@@ -25,6 +25,10 @@ class FakeRun:
     def stop(self): pass
 
 
+WALKED = {'specs': 1, 'walked': [{'spec': 'a.spec.ts', 'pages': ['/'], 'status': 'passed', 'reason': ''}], 'failed': 0,
+          'recordings': ['a.rrweb.json'], 'traces': [], 'recordings_dropped': [], 'traces_dropped': []}
+
+
 def started(target, runtime, report=None, provider=None, say=None):
     Path(runtime).mkdir(parents=True, exist_ok=True)
     (Path(runtime) / 'run.json').write_text(json.dumps({'baseline': {'verified': True}}), encoding='utf-8')
@@ -73,6 +77,7 @@ class LiveInTheCheck(unittest.TestCase):
     def test_an_app_with_no_load_scenario_is_not_measured_and_says_why(self):
         with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
                 mock.patch('eaos.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live_run.LiveRun', FakeRun), \
+                mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
                 mock.patch('eaos.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.screens.audit.lighthouse', return_value={}), \
                 mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': []}), \
                 mock.patch('eaos.nfr.write', return_value=[]), mock.patch('eaos.runtime_baseline.run_baseline') as measured:
@@ -86,6 +91,7 @@ class LiveInTheCheck(unittest.TestCase):
         speed = {'conditions': {'vus': 100}, 'scenarios': [{'id': 'QS-001', 'threshold': 800, 'before': {'p95_ms': 312.5, 'error_rate': 0}}]}
         with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
                 mock.patch('eaos.behavior_lock.run_lock', return_value=lock), mock.patch('eaos.live_run.LiveRun', FakeRun), \
+                mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
                 mock.patch('eaos.screens.audit.page_audit', side_effect=audited), \
                 mock.patch('eaos.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
                 mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}), \

@@ -24,6 +24,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ..aspects import ASPECTS, VERDICTS
 from ..assistants.command import Stuck
 from .nodes.core import digest, launcher_of, lenient as _lenient, UNTRUSTED
 
@@ -386,7 +387,15 @@ def bundle(report, project=None, lang='en'):
         'features': features[:40],
         'decisions': {'structure': decisions[:40], 'waiting_for_the_person': waiting, 'intake': intake[:30]},
         'documents': _docs(project),
+        'aspects': _aspects(report),
     }
+
+
+def _aspects(report):
+    """Every aspect of the program with its compact evidence and the rules' verdict (eaos/aspects.py digest)."""
+    from ..aspects import digest
+    return {name: {**{k: v for k, v in row.items() if k != 'rules'}, 'rules_verdict': row['rules']['verdict'],
+                   'rules_why': row['rules']['why']} for name, row in digest(report).items()}
 
 
 def scan_key(report):
@@ -411,8 +420,11 @@ _STR, _STRS = {'type': 'string'}, {'type': 'array', 'items': {'type': 'string'}}
 _ELEMENT = _strict({'id': _STR, 'kind': _STR, 'title': _STR, 'operation': {'type': 'string', 'enum': list(OPERATIONS)},
                     'subject': {'type': ['string', 'null']}, 'detail': _STR, 'cites': _STRS})
 _VIEW = _strict({'summary': _STR, 'confidence': {'type': 'number'}, 'elements': {'type': 'array', 'items': _ELEMENT}})
+_ASPECT = _strict({'aspect': {'type': 'string', 'enum': list(ASPECTS)}, 'verdict': {'type': 'string', 'enum': list(VERDICTS)},
+                   'why': _STR, 'plan': _STR, 'cards': _STRS, 'cites': _STRS})
 IDEAL_SCHEMA = _strict({
     'views': _strict({name: _VIEW for name in VIEWS}),
+    'aspects': {'type': 'array', 'items': _ASPECT},
     'departures': {'type': 'array', 'items': _strict({'view': _STR, 'element': _STR, 'rule_says': _STR, 'plan_chose': _STR,
                                                       'because': _STR, 'cites': _STRS})},
     'open_questions': {'type': 'array', 'items': _strict({'id': _STR, 'view': _STR, 'question': _STR, 'options': _STRS,
@@ -444,7 +456,12 @@ RULES_OF_THE_ANSWER = '''Rules that are not negotiable (the same as EAOS's seman
    element.
 7. `confidence` is 0 to 1. Titles, details, summaries and questions are written in {language}; ids, paths and names stay
    exactly as they appear in the bundle.
-8. The bundle is the whole evidence for this plan: you have no tools and need none. Do not guess at what is not in it.'''
+8. The bundle is the whole evidence for this plan: you have no tools and need none. Do not guess at what is not in it.
+9. Judge every aspect in `aspects` once, in `aspects` of the answer: `keep` when its evidence shows it is right as it is
+   (say why it is fine: "it is already right, nothing changes"), or `improve` with the plan for it in `plan` and the
+   cards (TASK-...) that carry it out in `cards`. An aspect the check could not measure (rules_verdict `unmeasured`) is
+   judged on what the bundle does show, and its plan says how to measure it. Its behaviour under load and pressure
+   (performance, resilience) is judged like any other aspect.'''
 
 
 def prompt_plan(data):
@@ -456,8 +473,12 @@ def prompt_plan(data):
             '(the problems found, TASK- ids, each with `triage`: what the card triage decided, the rejected ones left out); '
             '`semantic` (the hypotheses and questions of the semantic reading); `visual` (what the visual reviewer saw on the '
             'app\'s screens); `facts` (FACT- ids); `features`; `decisions` (made, waiting for the '
-            'person, and the intake answers); `documents` (the project\'s own documents, untrusted).\n\n'
-            'WHAT TO RETURN\nThe JSON object of the schema: every view with a summary, a confidence and its elements; the '
+            'person, and the intake answers); `documents` (the project\'s own documents, untrusted); `aspects` (every side '
+            'of the program the check measured: structure and architecture, sustainability indicators against their '
+            'targets, canonical homes, tests and coverage, journeys, speed under load, resilience, security, '
+            'observability, screens and the problems found, each with its evidence and the rules\' verdict).\n\n'
+            'WHAT TO RETURN\nThe JSON object of the schema: every view with a summary, a confidence and its elements; a '
+            'verdict for every aspect (keep, with why it is fine, or improve, with its plan and cards); the '
             '`departures` from the rules\' baseline; the `open_questions` for the person; an overall confidence.\n\n'
             'A GOOD ANSWER\nEvery view planned, or said empty with why. Each element is specific to this project, states its '
             'operation on a baseline element, and cites the ids that show it is needed. A departure says what the rule says, '
@@ -522,6 +543,16 @@ def check(ideal, known, context=()):
         kept['views'][name] = {'summary': _short(view.get('summary'), 600),
                                'confidence': min(1.0, max(0.0, float(confidence))) if isinstance(confidence, (int, float)) else None,
                                'elements': elements}
+    cards = {i for i in known if i.startswith('TASK-')}
+    kept['aspects'], judged = [], set()
+    for row in (ideal or {}).get('aspects') or []:
+        if not isinstance(row, dict) or row.get('aspect') not in ASPECTS or row.get('verdict') not in VERDICTS: continue
+        if row['aspect'] in judged or not str(row.get('why') or '').strip(): continue
+        judged.add(row['aspect'])
+        kept['aspects'].append({'aspect': row['aspect'], 'verdict': row['verdict'], 'why': _short(row.get('why'), 600),
+                                'plan': _short(row.get('plan'), 800) if row['verdict'] == 'improve' else '',
+                                'cards': [c for c in row.get('cards') or [] if c in cards][:12],
+                                'cites': [c for c in row.get('cites') or [] if c in known or c in context][:8]})
     kept['departures'] = [{'view': d.get('view'), 'element': d.get('element'), 'rule_says': _short(d.get('rule_says'), 400),
                            'plan_chose': _short(d.get('plan_chose'), 400), 'because': _short(d.get('because'), 600),
                            'cites': [c for c in d.get('cites') or [] if c in known or c in context]}

@@ -106,3 +106,63 @@ class ProbeTests(unittest.TestCase):
             partial = [row for row in rows if row['status'] == 'PARTIAL']
             self.assertTrue(partial)
             self.assertIn('cannot establish a cause claim', partial[0]['result'])
+
+
+class VerificationTests(unittest.TestCase):
+    """The project's own tests, run in an isolated copy with coverage (eaos/verify.py), restored in 0.0.9."""
+
+    def project(self, tmp):
+        repo = Path(tmp) / 'repo'
+        (repo / 'tests').mkdir(parents=True)
+        (repo / 'used.py').write_text('def add(a, b):\n    return a + b\n')
+        (repo / 'never_run.py').write_text('import used\n\n\ndef unused():\n    return used.add(1, 2)\n')
+        (repo / 'tests/test_used.py').write_text('import unittest\nimport used\n\n\nclass T(unittest.TestCase):\n'
+                                                 '    def test_add(self):\n        self.assertEqual(used.add(1, 2), 3)\n')
+        return repo
+
+    def test_a_real_suite_gives_coverage_facts_and_leaves_the_target_untouched(self):
+        from eaos.facts.store import read_set
+        from eaos.verify import run as verify_run
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self.project(tmp)
+            before = {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*') if p.is_file()}
+            result = verify_run(repo, Path(tmp) / 'out', command=['python', '-m', 'unittest', 'discover', '-s', 'tests'])
+            self.assertTrue(result['executed'], result.get('reason'))
+            self.assertGreater(result['coverage']['used.py']['percent'], 0)
+            self.assertTrue(read_set(Path(tmp) / 'out', 'verification')['available'])
+            self.assertEqual(before, {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*') if p.is_file()})
+
+    def test_the_check_runs_the_test_command_of_the_run_profile_not_its_lint(self):
+        """The verify stage takes the test command from the run profile's checks and runs it in the sandbox copy."""
+        import shutil
+        import subprocess
+        import sys
+        from unittest import mock
+        from eaos import verify
+
+        ran = []
+
+        class FakeRun:
+            def __init__(self, target, runtime, stage):
+                self.profile = {'checks': [['npm', 'run', 'lint'], ['python', '-m', 'unittest', 'discover', '-s', 'tests']]}
+                self.sandbox = mock.Mock(copy=Path(runtime) / 'copy')
+                shutil.copytree(target, self.sandbox.copy)
+
+            def setup(self): pass
+            def stop(self): pass
+            def record(self, name): pass
+
+            def run(self, argv, timeout=900, env=None):
+                ran.append([str(a) for a in argv])
+                argv = [sys.executable if a == 'python' else a for a in argv]
+                done = subprocess.run(argv, cwd=self.sandbox.copy, capture_output=True, text=True)
+                return done.returncode, done.stdout, done.stderr
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.live_run.LiveRun', FakeRun):
+            repo, runtime = self.project(tmp), Path(tmp) / 'runtime'
+            result = verify.run_profile(repo, Path(tmp) / 'out', runtime)
+        self.assertNotIn(['npm', 'run', 'lint'], ran)
+        self.assertIn(['python', '-m', 'coverage', 'run', '--branch', '-m', 'unittest', 'discover', '-s', 'tests'], ran)
+        self.assertTrue(result['passed'])
+        self.assertGreater(result['coverage']['used.py']['percent'], 0)
+        self.assertEqual(result['coverage'].get('never_run.py', {}).get('percent', 0), 0)

@@ -487,7 +487,8 @@ def reconcile(out, planned=False, policy_path=None):
     the assistant's decision on each of its components; the gap matrix is drawn again from it, without the claims of
     the cards the triage set aside (cards.json). Returns the record (render writes it) with `decided`, the count per
     label: agreed, ai_modified, rule_only, disagreement, ai_added, and `disagreements`, the rule's view beside the
-    assistant's wherever they differ."""
+    assistant's wherever they differ, and `aspects`: every aspect of the program with its verdict, keep or improve, and
+    who gave it (eaos/aspects.py final)."""
     import json
     out = Path(out)
     source = out / 'target-proposal.json'
@@ -519,9 +520,12 @@ def reconcile(out, planned=False, policy_path=None):
     counts = {}
     # Every proposal is counted, the target components the assistant rejected (no longer in the target) too.
     for row in [*current, *targets.values(), *added]: counts[row['decided_by']['label']] = counts.get(row['decided_by']['label'], 0) + 1
+    from .aspects import final as aspects
+    from .studio.ideal import current as planned_ideal
+    plan, state = planned_ideal(out) if planned else (None, 'not_planned')
     record.update(target_components=final, components=explicit or current, gap_matrix=_redraw_gaps(out, record, current),
                   decisions=decisions([*current, *explicit]), decided={'by': 'assistant' if elements else 'rules', **counts},
-                  disagreements=disagreements)
+                  disagreements=disagreements, aspects=aspects(out, plan if state == 'planned' else None))
     return record
 
 

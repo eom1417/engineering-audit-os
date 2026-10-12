@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.9 (2026-10-12)
+
+The information stages the slim-down removed are back, restored from `archive/before-slim-2026-10-12`, and everything
+they learn reaches the person's assistant, which now judges every aspect of the program: keep it (and why it is right)
+or improve it (with its plan and cards).
+- **Stages restored**: `verify` (the run profile's own test command in the isolated copy, with Python or Node V8
+  coverage; without consent or command, which test imports which file and why nothing ran), `journeys` (rrweb and
+  failure traces, capped on disk), `readiness` (new: resilience, security, observability and the k6 baseline against
+  the intake, as findings with evidence, from the old handover kits), `architecture` (CodeCharta city and Emerge
+  clusters, JSON only, with their hotspots and clusters), `sustainability` and `transform` (the six indicators and a
+  canonical home per repeated definition). Tools back in the toolchain: temurin-jre, rrweb, codecharta, emerge.
+- **Every aspect reaches the assistant**: `eaos/aspects.py` digests eleven aspects for the ideal planner's bundle and
+  the semantic reading; the planner answers a verdict per aspect; the rules give theirs where it does not;
+  target-architecture.json, TARGET-STATE.md and GAP-AND-STRATEGY.md list every aspect with its verdict and who gave it
+  (test_aspects: every restored aspect is in the planner's bundle and its verdicts reach the gap report).
+
 ## 0.0.8 (2026-10-12)
 
 The fifteen fixes of the 2026-10-12 review; each is proven by the test named after it.

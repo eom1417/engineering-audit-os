@@ -47,7 +47,7 @@ class Journey(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
-                      mock.patch.dict(runners.RUNNERS, engines=no_engines),
+                      mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
                       mock.patch('eaos.waves.original_checks', return_value={}),
                       mock.patch('eaos.waves.gates', side_effect=project_checks)):

@@ -36,9 +36,11 @@ def _decisions(node, report, plan_record, why=None):
     return [{'subject': SUBJECT, 'decision': 'ask' if questions else 'accept', 'options': core.choices(node), 'evidence': evidence,
              'confidence': float(confidence) if isinstance(confidence, (int, float)) else 0.5,
              'why': core.short(f"{plan_record.get('elements', 0)} elements planned on evidence over {len(views)} views, "
+                               f"{len(kept.get('aspects') or [])} aspects judged, "
                                f"{len(kept.get('departures') or [])} departures from the rules, {len(questions)} questions for the person.", 600),
              'open_questions': questions, 'source': 'model',
-             'detail': {'views': views, 'elements': plan_record.get('elements', 0), 'dropped': len(plan_record.get('dropped') or [])}}]
+             'detail': {'views': views, 'elements': plan_record.get('elements', 0), 'dropped': len(plan_record.get('dropped') or []),
+                        'aspects': {row['aspect']: row['verdict'] for row in kept.get('aspects') or []}}}]
 
 
 def _dropped(plan_record):

@@ -20,7 +20,10 @@ SYSTEM = (
     'the root cause behind a confirmed symptom. Answer `questions_for_this_goal` first.\n\n'
     'WHAT YOU ARE GIVEN\nOne JSON message: `instructions.digest` holds `components` (path, fan_in, fan_out, depends_on, '
     'symbols, fact_id), `entry_points`, `flows`, `domain`, `confirmed_claims` (proven by probes), `coverage`, `policy`, '
-    '`review_goal`, `questions_for_this_goal`, `source_catalog` (the files whose code you may ask for) and, once '
+    '`review_goal`, `questions_for_this_goal`, `aspects` (every other side of the program the check measured: structure '
+    'and architecture, sustainability indicators against their targets, canonical homes, tests and coverage, journeys, '
+    'speed under load, resilience, security, observability, screens and the problems found, each with its evidence and '
+    'the rules\' verdict), `source_catalog` (the files whose code you may ask for) and, once '
     'supplied, `source_ranges` (sanitized code). `instructions.feedback` lists what a check rejected in your previous '
     'answer: fix exactly that. This is the whole evidence; you have no tools.\n\n'
     'WHAT TO RETURN\nOne JSON object and nothing else: {"claims":[{"statement","claim_type","fact_ids","falsifier",'
@@ -170,6 +173,9 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     goal = dossier.get('review_goal', 'evolution')
     digest['review_goal'] = goal
     digest['questions_for_this_goal'] = GOAL_QUESTIONS.get(goal, GOAL_QUESTIONS['evolution'])
+    # The cards are written after this reading, so the problems found are not one of its aspects yet.
+    from .aspects import digest as aspects
+    digest['aspects'] = {name: row for name, row in aspects(out).items() if name != 'findings'}
     from .semantic_source import SourceSession
     sources = SourceSession(target, out, sets, exclude=dossier['provenance'].get('excluded_patterns', []))
     known.update(f['id'] for f in sources.allowed.values())

@@ -94,6 +94,30 @@ def setup(context):
     return {'attempts': result['attempts'], 'limitations': len(result['limitations'])}
 
 
+def verify(context):
+    """The project's own tests from its run profile in the isolated copy, with coverage (eaos/verify.py run_profile),
+    once the person agreed to run the app; else which test imports which file, and why nothing ran."""
+    from ..verify import declared, run_profile
+    if not context.get('runtime'):
+        declared(context.target, context.out, NO_RUN, context.get('source'))
+        raise SkipStage(NO_RUN, code='no_run_consent')
+    if not (Path(context.runtime) / 'run.json').is_file():
+        reason = 'the app has no run profile in the isolated copy, so its tests have no command to run with'
+        declared(context.target, context.out, reason, context.get('source'))
+        raise SkipStage(reason, code='no_test_command')
+    try:
+        result = run_profile(context.target, context.out, context.runtime)
+    except LookupError as problem:
+        declared(context.target, context.out, str(problem), context.get('source'))
+        raise SkipStage(f"{problem}, so the project's tests were not run", code='no_test_command') from None
+    except Exception as problem:                       # an install that fails is the project's state, not EAOS's
+        reason = f'the tests could not run in the isolated copy: {type(problem).__name__}: {problem}'[:300]
+        declared(context.target, context.out, reason, context.get('source'))
+        raise SkipStage(reason, code='tests_not_run') from None
+    return {'commands': len(result['attempts']), 'passed': result['passed'], 'overall_percent': result.get('overall_percent'),
+            'covered_files': len(result.get('coverage') or {})}
+
+
 def _live(context):
     """The runtime folder of an app this check started; else the reason no live stage can run."""
     if not context.get('runtime'):
@@ -115,6 +139,24 @@ def record(context):
     passed = sum(r['status'] == 'passed' for r in result['results'])
     _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
     return {'specs': len(result['results']), 'passed': passed}
+
+
+def journeys(context):
+    """Each feature's pages walked once more, rrweb recording and the trace of a failure kept, capped in size
+    (eaos/behavior_lock.py run_journeys)."""
+    runtime = _live(context)
+    plan = json.loads((context.out / 'behavior-lock/plan.json').read_text(encoding='utf-8')) \
+        if (context.out / 'behavior-lock/plan.json').is_file() else {}
+    if not any(spec.get('tool') == 'playwright' and spec.get('path') for spec in plan.get('specs') or []):
+        raise SkipStage('the lock has no page to walk through', code='no_pages')
+    from ..behavior_lock import run_journeys
+    try:
+        result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys')
+    except FileNotFoundError as problem:
+        raise SkipStage(str(problem)[:300], code='no_engine_installed') from None
+    _keep(context, 'journeys.json', result)
+    return {'specs': result['specs'], 'failed': result['failed'], 'recordings': len(result['recordings']),
+            'traces': len(result['traces'])}
 
 
 def screens(context):
@@ -189,6 +231,46 @@ def baseline(context):
             'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
 
 
+
+
+def readiness(context):
+    """Production readiness under pressure as findings with evidence (eaos/production_readiness.py); the k6 baseline is
+    read only when it ran in this check."""
+    from ..production_readiness import write
+    record = write(context.out, measured=_ran(context, 'baseline'))
+    return {aspect: counts for aspect, counts in record['summary'].items()}
+
+
+def architecture(context):
+    """The city and the clusters of the code (eaos/engines/architecture.py) and their digest, in architecture/map.json."""
+    if context.engines is None:
+        raise SkipStage('external engines were not requested for this run', code='engines_not_requested')
+    from ..engines.architecture import city, clusters, digest
+    from ..workspace import write
+    folder = context.out / 'architecture'
+    drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}
+    if all(row['status'] != 'observed' for row in drawn.values()):
+        raise SkipStage('; '.join(row.get('reason', '') for row in drawn.values())[:300], code='no_architecture_map')
+    summary = digest(folder)
+    write(folder / 'map.json', {'schema_version': 1, **drawn, 'digest': summary})
+    return {**{name: row['status'] for name, row in drawn.items()}, 'hotspots': len(summary['hotspots']),
+            'clusters': len(summary['clusters'])}
+
+
+def sustainability(context):
+    """The six indicators against their targets (eaos/sustainability.py): SUSTAINABILITY.md and sustainability.json."""
+    from ..sustainability import render
+    result = render(context.out, language=context.language)
+    return {'measured': sum(1 for row in result['rows'] if row['measured']), 'moves': len(result['moves'])}
+
+
+def transform(context):
+    """A canonical home for each repeated definition and the move that gets there (eaos/transform_plan.py)."""
+    from ..transform_plan import build, render
+    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
+    plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
+    render(context.out, plan, language=context.language)
+    return {'stages': plan['summary']['stages'], 'without_home': plan['summary']['moves_with_no_viable_candidate']}
 
 
 def policy(context):
@@ -488,3 +570,5 @@ def steps(context):
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
+RUNNERS.update(verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
+               sustainability=sustainability, transform=transform)

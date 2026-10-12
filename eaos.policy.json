@@ -38,6 +38,7 @@
       "eaos/ranking.py",
       "eaos/semantic.py",
       "eaos/semantic_source.py",
+      "eaos/sustainability.py",
       "eaos/verify.py"
     ],
     "planning": [
@@ -47,7 +48,9 @@
       "eaos/target_architecture.py",
       "eaos/target_projection.py",
       "eaos/roadmap.py",
-      "eaos/codemods.py"
+      "eaos/codemods.py",
+      "eaos/canonical_home.py",
+      "eaos/transform_plan.py"
     ],
     "orchestration": [
       "eaos/__main__.py",
@@ -108,7 +111,9 @@
       "eaos/reference_architecture.py",
       "eaos/c4.py",
       "eaos/nfr.py",
-      "eaos/adr.py"
+      "eaos/adr.py",
+      "eaos/aspects.py",
+      "eaos/production_readiness.py"
     ],
     "tools": [
       "tools/**",

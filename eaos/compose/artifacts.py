@@ -124,6 +124,21 @@ ARTIFACTS = (
     Artifact('behavior-lock/plan.json', 'lock', RECORD, 'The spec of every feature, its tool and the surfaces it locks',
              required=False, absent_when='the program has no feature to lock'),
     Artifact('intake.json', 'intake', RECORD, 'What the owner must protect: every question answered or on a declared default, and the quality scenarios'),
+    Artifact('SUSTAINABILITY.md', 'sustainability', DOCUMENT, 'The six indicators against their targets, and the moves that would close them',
+             30, 200, record='sustainability.json'),
+    Artifact('sustainability.json', 'sustainability', RECORD, 'Indicator values, targets, gaps and moves in full'),
+    Artifact('transform-plan.md', 'transform', DOCUMENT, 'A canonical home for each repeated definition, and the move that gets there',
+             33, 200, record='transform-plan.json'),
+    Artifact('transform-plan.json', 'transform', RECORD, 'Every transform stage in full'),
+    Artifact('verification.json', 'verify', RECORD, "What the project's own tests reached when they ran, or which test imports which file",
+             required=False, absent_when='the person did not agree to run the app, or its run profile names no test command'),
+    Artifact('live/journeys.json', 'journeys', RECORD, "Each feature's pages walked, with where a journey fails; its capped rrweb recordings "
+             'and failure traces under live/journeys/', required=False,
+             absent_when='the app is not running in an isolated copy, or the lock has no page'),
+    Artifact('readiness.json', 'readiness', RECORD, 'Resilience, security, observability and speed under load, as findings with evidence'),
+    Artifact('architecture/map.json', 'architecture', RECORD, 'The code as a city (CodeCharta) and its dependency clusters (Emerge), '
+             'with their hotspots and clusters', required=False,
+             absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project'),
 
 )
 

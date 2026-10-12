@@ -451,8 +451,12 @@
    "en": "No external tool is installed on this computer."
   },
   "no_test_command": {
-   "ar": "لم يُحدَّد أمر لتشغيل اختبارات مشروعك، فلم أشغّل شيئًا.",
-   "en": "No command to run your project's tests was given, so nothing was run."
+   "ar": "ما في خطوات تشغيل برنامجك أمر لاختباراته، فما شغّلتها؛ وكتبت أي اختبار يستورد أي ملف.",
+   "en": "Your app's run steps name no command for its tests, so they were not run; which test imports which file is still written."
+  },
+  "tests_not_run": {
+   "ar": "حاولت أشغّل اختبارات مشروعك في النسخة المنفصلة وما اشتغلت (التثبيت أو البناء ما نجح)، فكتبت أي اختبار يستورد أي ملف فقط.",
+   "en": "Your project's tests could not be run in the separate copy (its install or build failed), so only which test imports which file is written."
   },
   "no_policy": {
    "ar": "مشروعك لا يعلن قواعد لبنيته (eaos.policy.json).",

@@ -96,6 +96,38 @@ def _risks(register, n=3):
             for item in (register or {}).get('items', [])[:n]]
 
 
+VERDICT_WORDS = {'keep': ('keep: already right, nothing changes', 'يبقى: صحيح كما هو، لا تغيير'),
+                 'improve': ('improve', 'يتحسّن'), 'unmeasured': ('not measured in this check', 'لم يُقَس في هذا الفحص')}
+
+
+def aspects(out):
+    """Every aspect of the program with its verdict: the final target's (target-architecture.json, written by the
+    reconcile stage), else the rules' verdict from the records (eaos/aspects.py)."""
+    rows = (_load(out, 'target-architecture.json', {}) or {}).get('aspects')
+    if rows: return rows
+    from ..aspects import final
+    return final(out)
+
+
+def aspect_section(page, out, ar):
+    """One line per aspect: its verdict, why, and for one to improve its plan and cards; who decided. The counts."""
+    rows = aspects(out)
+    page.heading('كل جانب من البرنامج: يبقى أو يتحسّن' if ar else 'Every aspect of the program: keep or improve')
+    page.para('حكم مساعدك على كل جانب حيث حكم، وحكم القواعد في الباقي (target-architecture.json → aspects).' if ar else
+              "Your assistant's verdict on each aspect it judged, the rules' on the rest (target-architecture.json → aspects).")
+    items = []
+    for row in rows:
+        label = row['label'][1 if ar else 0] if isinstance(row.get('label'), (list, tuple)) else row.get('label') or row['aspect']
+        words = VERDICT_WORDS.get(row['verdict'], (row['verdict'], row['verdict']))[1 if ar else 0]
+        who = ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar else 'the rules')
+        line = f"{label}: {words}. {clip(row.get('why'), 220)}"
+        if row['verdict'] == 'improve' and row.get('plan'): line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
+        if row.get('cards'): line += ' (' + ', '.join(row['cards'][:4]) + ')'
+        items.append(line + f" ({who})")
+    page.items(items)
+    return {verdict: sum(1 for row in rows if row['verdict'] == verdict) for verdict in ('keep', 'improve', 'unmeasured')}
+
+
 def current_state(out, ar):
     L = _labels(ar)
     dossier = _load(out, 'dossier.json', {}) or {}
@@ -199,6 +231,7 @@ def target_state(out, ar):
         page.block('mermaid', diagram.read_text(encoding='utf-8'))
     page.heading(('البنية التحتية' if ar else 'Infrastructure'))
     page.items([clip(f"{'✅' if i['present'] else '⬜'} {i['area']}: {i.get('tool') or '—'}. {i['evidence']}", 170) for i in infrastructure])
+    numbers['aspects'] = (aspect_section(page, out, ar), 'target-architecture.json → aspects')
     page.heading(L['recommendation'])
     page.para(('القرارات المعمارية بصيغة MADR في adr/، وكل قرار يذكر بدائله وكلفة ألا نفعل شيئًا.' if ar else
                'The decisions are MADR files in adr/, each with its options and the cost of doing nothing.'))
@@ -243,6 +276,7 @@ def gap_and_strategy(out, ar):
     page.items([f"{c['origin']}: {c.get('relation')} → {c.get('target_component') or '—'}"
                 + (f" ({decided(c['decided_by']['label'], 'ar' if ar else 'en')})" if c.get('decided_by') else '')
                 for c in sorted(current, key=lambda c: (order.get(c.get('relation'), 9), c['origin']))[:20]])
+    numbers['aspects'] = (aspect_section(page, out, ar), 'target-architecture.json → aspects')
     page.heading(L['impact'])
     page.para(('المكوّن الذي يُعاد بناؤه يُبنى بنمط Strangler Fig: المسار الجديد خلف علم، والقديم يُزال بعد تكافؤ السلوك فقط.' if ar else
                'A component that is rebuilt is done Strangler Fig: the new path behind a flag, the old removed only after behaviour parity.'))

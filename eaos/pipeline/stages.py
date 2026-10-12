@@ -51,10 +51,20 @@ STAGES = (
           absent_when='the person did not agree to run the app in an isolated copy, or it could not be started there',
           description='Install and start the app in an isolated copy, with a temporary database and none of the '
                       "person's secrets; the assistant helps when the files alone do not say how"),
+    Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL,
+          absent_when='the person did not agree to run the app in an isolated copy, or its run profile names no test '
+                      'command; which test imports which file is still written',
+          description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "
+                      'reach, what they miss, and whether they pass on the code as it is'),
     Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "
                       'safety net every fix is judged by'),
+    Stage('journeys', produces=('live/journeys.json',), requires=('record',), necessity=OPTIONAL,
+          absent_when='the app is not running in an isolated copy, the lock has no page to walk through, or rrweb is not '
+                      'installed',
+          description="Each feature's pages walked once more, rrweb recording them and Playwright keeping the trace of a "
+                      'failure, both capped in size: which pages a user walks and where a journey fails'),
     Stage('crawl', produces=('live/crawl.json',), requires=('setup',), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it serves no page',
           description="Every page of the app found by following its links (Unlighthouse), each measured by Lighthouse"),
@@ -65,8 +75,16 @@ STAGES = (
     Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it has no production build that starts',
           description="Today's speed under the intake's load scenarios (k6, p95) on the app's production build"),
+    Stage('readiness', produces=('readiness.json',), requires=('intake',),
+          description='How the program holds up in production and under pressure, as findings with evidence: the external '
+                      'dependencies a fault would hit, the routes a security scan would request, a health route, telemetry '
+                      "and SLO-able scenarios, and the load baseline against the intake's thresholds"),
     Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',),
           description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
+    Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL,
+          absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project',
+          description="The architecture map: the code as a city (CodeCharta: size, complexity and changes per file) and its "
+                      'dependency clusters (Emerge), with the hotspots and the clusters the assistant reads'),
     Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),
@@ -76,6 +94,10 @@ STAGES = (
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',),
           description='Settle every claim whose truth can be decided mechanically'),
+    Stage('sustainability', produces=('SUSTAINABILITY.md', 'sustainability.json'), requires=('claims',),
+          description='The six sustainability indicators, measured or declared unmeasured, each against its target'),
+    Stage('transform', produces=('transform-plan.md', 'transform-plan.json'), requires=('sustainability',),
+          description='Canonical homes for repeated definitions, and the move that gets there'),
     Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its answer could not be used',
           description='Model interpretation over the facts; every output stays a hypothesis', ai=True),
