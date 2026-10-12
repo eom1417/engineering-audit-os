@@ -51,7 +51,7 @@ export function EventRow({ event }: { event: HistoryEvent }) {
   )
 }
 
-export function ScanRow({ scan }: { scan: Scan }) {
+function ScanRow({ scan }: { scan: Scan }) {
   const w = useHistoryWords()
   const { date } = usePrefs()
   const open = openTotal(scan)
@@ -69,7 +69,7 @@ function scoreAnswer(w: ReturnType<typeof useHistoryWords>, scans: Scan[]): stri
 }
 
 /** The charts of a history, each only when it has two points; else the designed state of one check. */
-export function HistoryCharts({ history, project }: { history: HistoryData; project: string }) {
+function HistoryCharts({ history, project }: { history: HistoryData; project: string }) {
   const w = useHistoryWords()
   const { lang, num } = usePrefs()
   const withScore = scored(history.scans)
@@ -90,8 +90,7 @@ export function HistoryCharts({ history, project }: { history: HistoryData; proj
       ) : (
         <Panel>
           <StateMessage icon="clock" title={history.scans.length < 2 ? w('oneScan') : w('unscored')}
-            sub={<>{history.scans.length < 2 ? w('oneScanSub') : (history.missing ?? []).map((m) => m.detail[lang]).join(' ')}
-              {history.scans.length >= 2 && history.missing?.[0] && <> · <Id value={history.missing[0].step} /></>}</>}
+            sub={<>{history.scans.length < 2 ? w('oneScanSub') : (history.missing ?? []).map((m) => m.detail[lang]).join(' ')}</>}
             action={history.scans.length < 2 ? <div><DirectAction request={{ action: 'audit', inputs: { fresh: true } }} label={w('checkAgain')} copy={{ request: w('checkAgainRequest', { p: project }), tool: 'audit' }} /></div> : undefined} />
         </Panel>
       )}
@@ -136,7 +135,7 @@ function ComparePicker({ scans }: { scans: Scan[] }) {
 export function NoHistory({ data }: { data: StudioData }) {
   const w = useHistoryWords()
   const row = useCoverageRow(data, 'history')
-  return <Panel><StateMessage title={w('oneScan')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : w('oneScanSub')}{row?.step && <> · <Id value={row.step} /></>}</>} /></Panel>
+  return <Panel><StateMessage title={w('oneScan')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : w('oneScanSub')}</>} /></Panel>
 }
 
 function HistoryBody({ data }: { data: StudioData }) {

@@ -24,7 +24,6 @@ import json
 import re
 import secrets
 import socket
-import subprocess
 from datetime import date, timedelta
 from pathlib import Path
 

@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "engineering-audit-os"
-version = "0.0.6"
+version = "0.0.7"
 description = "Architecture, structure and maintainability audit CLI"
 requires-python = ">=3.10"
 readme = "README.md"
@@ -19,4 +19,4 @@ eaos = "eaos.cli:main"
 [tool.setuptools.packages.find]
 include = ["eaos*"]
 [tool.setuptools.package-data]
-eaos = ["data/*.json", "data/*.md", "data/core/*.md", "data/modules/*.md", "data/schemas/*.json", "data/schemas/artifacts/*.json", "data/studio/*", "data/studio/**/*", "rules/*.json", "rules/**/*", "rules/.markdownlint-cli2.jsonc", "rules/vale/.vale.ini", "templates/**/*"]
+eaos = ["data/*.json", "data/schemas/*.json", "data/schemas/artifacts/*.json", "data/studio/*", "data/studio/**/*", "rules/*.json", "rules/**/*", "templates/**/*"]

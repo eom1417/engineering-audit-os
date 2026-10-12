@@ -7,26 +7,20 @@ import { timeFormatter, validZone } from './prefs'
 const AT = '2026-10-09T08:00:00+00:00'
 
 describe('timeFormatter', () => {
-  it('shows the exact time in Asia/Dubai (+4) with its zone', () => {
+  it("shows the exact time in the person's zone, half-hour offsets and the day included", () => {
     const text = timeFormatter('en', 'Asia/Dubai').exact(AT)
     expect(text).toContain('12:00')
     expect(text).toMatch(/GMT\+4|GST/)
-  })
-  it('shows the exact time in Asia/Kolkata (+5:30, a half-hour offset)', () => {
-    const text = timeFormatter('en', 'Asia/Kolkata').exact(AT)
-    expect(text).toContain('13:30')
-    expect(text).toMatch(/GMT\+5:30|IST/)
-  })
-  it('moves the day with the zone, in Arabic with Western digits', () => {
+    const text2 = timeFormatter('en', 'Asia/Kolkata').exact(AT)
+    expect(text2).toContain('13:30')
+    expect(text2).toMatch(/GMT\+5:30|IST/)
     expect(timeFormatter('ar', 'Pacific/Auckland').exact('2026-10-09T20:00:00Z')).toMatch(/10/)
     expect(timeFormatter('ar', 'Asia/Kolkata').exact(AT)).toContain('13:30')
   })
-  it('says how long ago in both languages', () => {
+  it('says how long ago in both languages and never changes what is stored', () => {
     const now = Date.parse(AT) + 8 * 3600 * 1000
     expect(timeFormatter('en', 'Asia/Dubai').ago(AT, now)).toBe('8 hours ago')
     expect(timeFormatter('ar', 'Asia/Dubai').ago(AT, now)).toMatch(/8/)
-  })
-  it('never changes what is stored', () => {
     expect(new Date(AT).toISOString()).toBe('2026-10-09T08:00:00.000Z')
     expect(validZone('Asia/Kolkata')).toBe(true)
     expect(validZone('Mars/Base')).toBe(false)

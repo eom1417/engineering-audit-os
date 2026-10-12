@@ -137,8 +137,6 @@ export const PATH_WORDS = {
   waveTasks: ['مهام الموجة {w}', 'Tasks of wave {w}'],
   cellTasks: ['{s} في الموجة {w}', '{s} in wave {w}'],
   firstLast: ['من الموجة {a} إلى {b}', 'waves {a} to {b}'],
-  galleryPaths: ['معرض مسارات الكود', 'Code paths gallery'],
-  galleryPathsLead: ['الرسم والتسلسل والخطوات والجدول الزمني على بيانات صغيرة ثابتة، في كل عرض.', 'The diagram, the sequence, the steps and the timeline on a small fixed fixture, in every view.'],
 } satisfies Record<string, readonly [string, string]>
 
 export type PathWord = keyof typeof PATH_WORDS

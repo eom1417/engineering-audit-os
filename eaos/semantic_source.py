@@ -1,7 +1,7 @@
 """Bounded source retrieval reusing the runtime's redaction and evidence format."""
 import json
 from pathlib import Path
-from .runtime.context import Context
+from .assistants.context import Context
 from .workspace import inventory, write
 
 

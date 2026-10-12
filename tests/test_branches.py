@@ -11,7 +11,18 @@ from unittest import mock
 
 from eaos import agent_tools, branches, guided, ledger
 from eaos.waves import commit as eaos_commit, plan as read_plan
-from tests.test_continuity import FIRST
+
+
+def card(number, pattern, path, title):
+    return {'id': f'TASK-{number:03d}', 'pattern': pattern, 'paths': [path], 'title': title, 'kind': 'remediate',
+            'decision': {'readiness': 'ready'}}
+
+
+FIRST = [card(1, 'remove_dead', 'src/a.js', 'unused function `a.old` (line 3)'),
+         card(2, 'remove_dead', 'src/a.js', 'unused function `a.older` (line 9)'),
+         card(3, 'import_cycle', 'src/b.js', 'Import cycle between: src/b.js, src/c.js'),
+         card(4, 'duplicated_rule', 'src/c.js', '2 copies of the same rule'),
+         card(5, 'remove_dead', 'src/d.js', 'unused file src/d.js')]
 
 
 def git(project, *argv):
@@ -44,13 +55,6 @@ class Branches(unittest.TestCase):
         git(p, 'branch', 'dependabot/npm/left-pad-2')             # a bot's branch is never offered
         git(p, 'branch', 'eaos/wave-9')                           # nor one of EAOS's own
 
-    def test_a_branch_with_work_of_its_own_is_still_a_choice_beside_merged_and_archived_ones(self):
-        git(self.project, 'branch', 'merged-long-ago')
-        git(self.project, 'branch', 'archive/develop-copy', 'develop')
-        options = branches.choice(str(self.project))
-        self.assertEqual({row['name'] for row in options['branches']}, {'main', 'develop'})
-        self.assertEqual(options['recommended'], 'develop')
-
     def choose(self, branch, where, said):
         """The person was asked (status) and answered."""
         agent_tools.status(str(where))
@@ -70,15 +74,15 @@ class Branches(unittest.TestCase):
         guided.publish(state)
         return state
 
-    def test_the_branches_offered_are_the_persons_and_the_one_ahead_is_recommended(self):
+    def test_the_branches_offered_are_the_persons_and_the_one_ahead_is_recommended_and_one_branch_is_no_question(self):
+        git(self.project, 'branch', 'merged-long-ago')
+        git(self.project, 'branch', 'archive/develop-copy', 'develop')
         options = branches.choice(self.project)
         self.assertEqual(sorted(r['name'] for r in options['branches']), ['develop', 'main'])
         develop = next(r for r in options['branches'] if r['name'] == 'develop')
         self.assertEqual((develop['ahead_of_main'], develop['behind_main'], develop['checked_out']), (3, 0, False))
         self.assertEqual((options['recommended'], options['main']), ('develop', 'main'))
-
-    def test_one_branch_is_not_a_question(self):
-        git(self.project, 'branch', '-D', 'develop')
+        for name in ('develop', 'merged-long-ago', 'archive/develop-copy'): git(self.project, 'branch', '-D', name)
         self.assertIsNone(branches.choice(self.project))
         status = agent_tools.status(str(self.project))
         self.assertEqual((status['branch'], status['next']['tool']), ('main', 'audit'), 'the branch checked out, without asking')
@@ -103,6 +107,12 @@ class Branches(unittest.TestCase):
         self.assertEqual((branches.checked_out(self.project), (self.project / 'app.js').read_text()), ('main', 'export const version = 1;\n'))
         git(self.project, 'checkout', '-q', 'develop')
         self.assertEqual(guided.source(guided.load(self.project)), self.project, 'checked out: the project itself')
+        clone = Path(self.tmp.name) / 'clone'
+        subprocess.run(['git', 'clone', '-q', '-b', 'main', str(self.project), str(clone)], check=True)
+        self.assertEqual(git(clone, 'branch', '--list', 'develop'), '')
+        self.assertIn('develop', [r['name'] for r in branches.inventory(clone)])
+        self.choose('develop', clone, 'develop please')
+        self.assertEqual(git(clone, 'rev-parse', 'develop'), git(self.project, 'rev-parse', 'develop'), 'a branch only on origin gets its local branch')
 
     def test_a_merge_goes_into_the_chosen_branch_and_main_stays_as_it_is(self):
         self.choose('develop', self.project, 'develop please')
@@ -145,15 +155,7 @@ class Branches(unittest.TestCase):
         self.assertTrue(back['checked_before'])
         self.assertEqual(ledger.load(guided.load(self.project))['totals']['total'], 5, "develop's own ledger")
 
-    def test_a_branch_only_on_origin_gets_its_local_branch(self):
-        clone = Path(self.tmp.name) / 'clone'
-        subprocess.run(['git', 'clone', '-q', str(self.project), str(clone)], check=True)
-        self.assertEqual(git(clone, 'branch', '--list', 'develop'), '')
-        self.assertIn('develop', [r['name'] for r in branches.inventory(clone)])
-        self.choose('develop', clone, 'develop please')
-        self.assertEqual(git(clone, 'rev-parse', 'develop'), git(self.project, 'rev-parse', 'develop'))
-
-    def test_work_from_before_branches_stays_with_the_branch_it_was_done_on(self):
+    def test_work_from_before_branches_stays_with_its_branch_and_the_branch_cannot_change_mid_batch(self):
         state = agent_tools.project_state(str(self.project))
         state.update(scanned='before', scanned_commit=git(self.project, 'rev-parse', 'main'), setup={'commit': 'x', 'ok': True})
         guided.save(state)
@@ -161,10 +163,6 @@ class Branches(unittest.TestCase):
         state = guided.load(self.project)
         self.assertEqual((state['home_branch'], state['by_branch']['main']['scanned']), ('main', 'before'))
         self.assertNotIn('setup', state)
-
-    def test_the_branch_cannot_change_in_the_middle_of_a_batch(self):
-        self.choose('develop', self.project, 'develop please')
-        state = guided.load(self.project)
         state['open_wave'] = {'number': 1, 'cards': [], 'kept': {}, 'failed': {}}
         guided.save(state)
         with self.assertRaises(ValueError): self.choose('main', self.project, 'main')

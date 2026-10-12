@@ -19,8 +19,18 @@ from eaos.pipeline import STAGES  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
 from test_continuity import Base as Checked  # noqa: E402
 from test_mcp import git_project  # noqa: E402
-from test_studio_api import PORT, report_with_data  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
+
+PORT = 48123
+
+
+def report_with_data(where):
+    """A report folder with a Studio data folder: these routes read the report's files, not the Studio's sections."""
+    folder = Path(where) / 'report' / 'studio'
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / 'manifest.json').write_text('{"sections": {}}', encoding='utf-8')
+    return folder.parent
+
 
 FLOWS = {'check': STAGES, 'setup': live_setup.FLOW, 'safety': behavior_lock.FLOW, 'fix': waves.FLOW,
          'tools': toolchain.stages(toolchain.ordered(toolchain.registry()['tools']))}
@@ -52,7 +62,20 @@ class Project(unittest.TestCase):
 
 
 class ProgressRoute(Project):
-    def test_the_journey_and_every_flow_folded_and_laid_out(self):
+    def assert_drawn(self, stages, declared, flow):
+        """The map's nodes and edges are the declaration's, each edge going down a layer."""
+        self.assertEqual([s['name'] for s in stages], [s.name for s in declared], flow)
+        edges = [(need, s['name']) for s in stages for need in s['requires']]
+        self.assertEqual(edges, [(need, s.name) for s in declared for need in s.requires], flow)
+        layer = {s['name']: s['layer'] for s in stages}
+        self.assertTrue(all(layer[after] > layer[before] for before, after in edges), flow)
+
+    def test_the_journey_and_every_flow_are_folded_and_laid_out_from_their_declaration(self):
+        # A stage added to a flow appears with no other change.
+        added = live_setup.FLOW + (progress.Stage('smoke', requires=('detect',), description='A stage added in a test'),)
+        with mock.patch.object(live_setup, 'FLOW', added):
+            stages = self.get('/api/progress').json()['flows']['setup']['stages']
+        self.assertEqual((stages[-1]['name'], stages[-1]['requires'], stages[-1]['layer']), ('smoke', ['detect'], 1))
         log = progress.ProgressLog(self.runtime, 'setup', pulse=False, sampler=None)
         log.started(live_setup.FLOW, [s.name for s in live_setup.FLOW], {})
         log.emit('stage.started', stage='detect')
@@ -69,92 +92,21 @@ class ProgressRoute(Project):
         self.assertTrue(body['now'] and body['feed_last'])
         log.finish('STOPPED')
 
-    def assert_drawn(self, stages, declared, flow):
-        """The map's nodes and edges are the declaration's, each edge going down a layer."""
-        self.assertEqual([s['name'] for s in stages], [s.name for s in declared], flow)
-        edges = [(need, s['name']) for s in stages for need in s['requires']]
-        self.assertEqual(edges, [(need, s.name) for s in declared for need in s.requires], flow)
-        layer = {s['name']: s['layer'] for s in stages}
-        self.assertTrue(all(layer[after] > layer[before] for before, after in edges), flow)
-
-    def test_a_stage_added_to_a_flow_appears_with_no_other_change(self):
-        added = live_setup.FLOW + (progress.Stage('smoke', requires=('detect',), description='A stage added in a test'),)
-        with mock.patch.object(live_setup, 'FLOW', added):
-            stages = self.get('/api/progress').json()['flows']['setup']['stages']
-        self.assertEqual((stages[-1]['name'], stages[-1]['requires'], stages[-1]['layer']), ('smoke', ['detect'], 1))
-
-    def test_scan_progress_is_the_check_flow_of_progress(self):
+    def test_the_check_flow_alone_the_feed_over_every_flow_and_the_token_guard(self):
         log = progress.ProgressLog(self.report)
         log.started(STAGES, list(ORDER), {})
         log.emit('stage.started', stage='facts')
         whole, alone = self.get('/api/progress').json()['flows']['check'], self.get('/api/scan-progress').json()
         self.assertEqual({k: v for k, v in alone.items() if k not in ('now', 'feed_last')}, whole)
-
-    def test_without_a_project_only_the_check_and_the_tools(self):
         http, keys, _ = report_client(self.report)
         body = http.get('/api/progress', headers={'X-EAOS-Token': keys.token}).json()
         self.assertEqual((body['journey'], list(body['flows'])), ([], ['check', 'tools']))
-
-    def test_the_token_guards_it_and_the_document_lists_it(self):
         http, keys, _ = self.client()
         self.assertEqual(http.get('/api/progress').status_code, 401)
         for route in ('/api/report-file', '/api/screen'): self.assertEqual(http.get(route, params={'path': 'a.md'}).status_code, 401)
         paths = http.get('/api/openapi.json', headers={'X-EAOS-Token': keys.token}).json()['paths']
         self.assertTrue({'/api/progress', '/api/scan-progress', '/api/report-file', '/api/screen'} <= set(paths))
-
-
-def report_client(report):
-    keys = server.Keys(port=PORT)
-    app = server.create_app(report, name='shop', keys=keys, mounts=[], watch=False)
-    return TestClient(app, base_url=f'http://127.0.0.1:{PORT}'), keys, app
-
-
-class ReportFile(Project):
-    def test_a_text_file_of_the_report_is_served_as_plain_text(self):
-        (self.report / 'EXECUTIVE.md').write_text('# تقرير\n<script>alert(1)</script>\n', encoding='utf-8')
-        answer = self.get('/api/report-file', path='EXECUTIVE.md')
-        self.assertEqual((answer.status_code, answer.text), (200, '# تقرير\n<script>alert(1)</script>\n'))
-        self.assertEqual(answer.headers['content-type'], 'text/plain; charset=utf-8', 'never rendered, even html')
-        self.assertEqual((answer.headers['content-security-policy'], answer.headers['x-content-type-options']), ('sandbox', 'nosniff'))
-        self.assertEqual(self.get('/api/report-file', path='studio/manifest.json').status_code, 200, 'a file in a sub-folder')
-
-    def test_paths_that_leave_the_report_are_refused(self):
-        outside = Path(self.tmp.name) / 'secret.md'
-        outside.write_text('secret\n')
-        (self.report / 'link.md').symlink_to(outside)
-        (self.report / 'up').symlink_to(Path(self.tmp.name), target_is_directory=True)
-        for path in ('../secret.md', 'studio/../../secret.md', '..', str(outside), '/etc/passwd', '~/secret.md',
-                     'link.md', 'up/secret.md', 'a\0b.md', ''):
-            answer = self.get('/api/report-file', path=path)
-            self.assertEqual((answer.status_code, answer.json()['error']), (400, 'path'), path)
-            self.assertNotIn('secret', answer.text)
-
-    def test_only_existing_text_files_up_to_two_megabytes(self):
-        (self.report / 'shot.png').write_bytes(b'\x89PNG\r\n')
-        (self.report / 'bytes.txt').write_bytes(b'\xff\xfe\x00')
-        (self.report / 'big.json').write_text('x' * (2 * 2 ** 20 + 1))
-        (self.report / 'edge.json').write_text('x' * (2 * 2 ** 20))
-        for path, status, error in (('missing.md', 404, 'not_found'), ('studio', 404, 'not_found'), ('shot.png', 415, 'type'),
-                                    ('bytes.txt', 415, 'type'), ('big.json', 413, 'size')):
-            answer = self.get('/api/report-file', path=path)
-            self.assertEqual((answer.status_code, answer.json()['error']), (status, error), path)
-        self.assertEqual(self.get('/api/report-file', path='edge.json').status_code, 200)
-
-    def test_a_recorded_screen_is_served_and_nothing_else_of_the_runtime_folder(self):
-        shots = self.runtime / 'behavior-lock' / 'snapshots' / 'home.spec.ts'
-        shots.mkdir(parents=True)
-        (shots / 'home.png').write_bytes(b'\x89PNG\r\n')
-        (self.runtime / 'run.png').write_bytes(b'\x89PNG\r\n')
-        (shots / 'notes.txt').write_text('x')
-        answer = self.get('/api/screen', path='behavior-lock/snapshots/home.spec.ts/home.png')
-        self.assertEqual((answer.status_code, answer.content, answer.headers['content-type']), (200, b'\x89PNG\r\n', 'image/png'))
-        for path, status in (('run.png', 400), ('behavior-lock/snapshots/home.spec.ts/notes.txt', 400),
-                             ('behavior-lock/snapshots/../../run.png', 400), ('behavior-lock/snapshots/gone.png', 404)):
-            self.assertEqual(self.get('/api/screen', path=path).status_code, status, path)
-
-
-class FeedOverFlows(Project):
-    def test_every_progress_file_is_followed_each_event_naming_its_flow(self):
+        # The feed follows every progress file, each event naming its flow; history files are not followed.
         check = progress.ProgressLog(self.report)
         check.started(STAGES, list(ORDER), {})
         safety = progress.ProgressLog(self.runtime, 'safety', pulse=False, sampler=None)
@@ -178,13 +130,57 @@ class FeedOverFlows(Project):
         self.assertEqual([(e['data']['flow'], e['data']['event'], e['data']['run']) for e in feed.poll()],
                          [('safety', 'run.started', second.run)])
         for log in (check, safety, setup, second): log.finish('STOPPED')
-
-    def test_history_files_are_not_followed(self):
         _, _, app = self.client()
         kept = progress.history_folder(self.runtime, 'fix')
         kept.mkdir(parents=True)
         (kept / 'old.jsonl').write_text('{"seq": 1, "event": "run.started", "flow": "fix", "run": "old"}\n')
         self.assertEqual(app.state.ctx.feed.poll(), [])
+
+
+def report_client(report):
+    keys = server.Keys(port=PORT)
+    app = server.create_app(report, name='shop', keys=keys, mounts=[], watch=False)
+    return TestClient(app, base_url=f'http://127.0.0.1:{PORT}'), keys, app
+
+
+class ReportFile(Project):
+    def test_only_an_existing_text_file_of_the_report_is_served_as_plain_text(self):
+        (self.report / 'EXECUTIVE.md').write_text('# تقرير\n<script>alert(1)</script>\n', encoding='utf-8')
+        answer = self.get('/api/report-file', path='EXECUTIVE.md')
+        self.assertEqual((answer.status_code, answer.text), (200, '# تقرير\n<script>alert(1)</script>\n'))
+        self.assertEqual(answer.headers['content-type'], 'text/plain; charset=utf-8', 'never rendered, even html')
+        self.assertEqual((answer.headers['content-security-policy'], answer.headers['x-content-type-options']), ('sandbox', 'nosniff'))
+        self.assertEqual(self.get('/api/report-file', path='studio/manifest.json').status_code, 200, 'a file in a sub-folder')
+        (self.report / 'shot.png').write_bytes(b'\x89PNG\r\n')
+        (self.report / 'bytes.txt').write_bytes(b'\xff\xfe\x00')
+        (self.report / 'big.json').write_text('x' * (2 * 2 ** 20 + 1))
+        (self.report / 'edge.json').write_text('x' * (2 * 2 ** 20))
+        for path, status, error in (('missing.md', 404, 'not_found'), ('studio', 404, 'not_found'), ('shot.png', 415, 'type'),
+                                    ('bytes.txt', 415, 'type'), ('big.json', 413, 'size')):
+            answer = self.get('/api/report-file', path=path)
+            self.assertEqual((answer.status_code, answer.json()['error']), (status, error), path)
+        self.assertEqual(self.get('/api/report-file', path='edge.json').status_code, 200)
+
+    def test_paths_that_leave_the_report_are_refused_and_only_recorded_screens_are_served(self):
+        outside = Path(self.tmp.name) / 'secret.md'
+        outside.write_text('secret\n')
+        (self.report / 'link.md').symlink_to(outside)
+        (self.report / 'up').symlink_to(Path(self.tmp.name), target_is_directory=True)
+        for path in ('../secret.md', 'studio/../../secret.md', '..', str(outside), '/etc/passwd', '~/secret.md',
+                     'link.md', 'up/secret.md', 'a\0b.md', ''):
+            answer = self.get('/api/report-file', path=path)
+            self.assertEqual((answer.status_code, answer.json()['error']), (400, 'path'), path)
+            self.assertNotIn('secret', answer.text)
+        shots = self.runtime / 'behavior-lock' / 'snapshots' / 'home.spec.ts'
+        shots.mkdir(parents=True)
+        (shots / 'home.png').write_bytes(b'\x89PNG\r\n')
+        (self.runtime / 'run.png').write_bytes(b'\x89PNG\r\n')
+        (shots / 'notes.txt').write_text('x')
+        answer = self.get('/api/screen', path='behavior-lock/snapshots/home.spec.ts/home.png')
+        self.assertEqual((answer.status_code, answer.content, answer.headers['content-type']), (200, b'\x89PNG\r\n', 'image/png'))
+        for path, status in (('run.png', 400), ('behavior-lock/snapshots/home.spec.ts/notes.txt', 400),
+                             ('behavior-lock/snapshots/../../run.png', 400), ('behavior-lock/snapshots/gone.png', 404)):
+            self.assertEqual(self.get('/api/screen', path=path).status_code, status, path)
 
 
 class Watch(Checked):
@@ -219,7 +215,7 @@ class Watch(Checked):
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
 
-    def test_each_long_tool_answers_with_the_live_map(self):
+    def test_each_long_tool_answers_with_the_live_map_opened_once(self):
         self.ready()
         detected = {'profile': {'start': [['npm', 'run', 'dev']]}, 'limitations': []}
         with mock.patch.object(live_setup, 'authorize'), mock.patch.object(live_setup, 'detect', return_value=detected), \
@@ -233,25 +229,19 @@ class Watch(Checked):
             self.assertTrue(answer['what_now'].startswith('Tell the person the live map'), name)
             self.assertIn('Call `wait`', answer['what_now'], name)
         self.assertEqual(self.open.call_args_list, [mock.call(str(self.project), show=True, route='/scan')] * 4, 'once per tool')
-
-    def test_a_run_the_studio_started_does_not_open_another_tab(self):
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'run-1'}):
             agent_tools.audit(str(self.project), fresh=True)
         self.assertEqual(self.open.call_args.kwargs['show'], False)
-
-    def test_an_address_not_opened_is_given_to_the_person(self):
         self.open.return_value = {**self.opened, 'opened_in_browser': False}
         answer = agent_tools.audit(str(self.project), fresh=True)
         self.assertTrue(answer['what_now'].startswith('Before anything else, write the person a message with the `watch` address'))
 
-    def test_the_work_starts_without_its_map_when_the_studio_cannot(self):
+    def test_the_work_never_waits_for_the_map_and_a_running_studio_is_reused(self):
         for broken in ({'side_effect': OSError('no port')}, {'return_value': {'error': 'did not start in time'}}):
             self.open.configure_mock(**{'side_effect': None, **broken})
             answer = agent_tools.audit(str(self.project), fresh=True)
             self.assertEqual(answer['status'], 'running')
             self.assertNotIn('watch', answer)
-
-    def test_a_running_studio_is_reused_without_rebuilding_its_data(self):
         open_studio = self.studio.temp_original
         self.assertTrue(guided.scan_done(guided.load(self.project)))
         with mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32}), \
@@ -259,8 +249,7 @@ class Watch(Checked):
             opened = open_studio(str(self.project), show=False, route='/scan')
         publish.assert_not_called()
         self.assertEqual((opened['started'], opened['studio']), (False, 'http://127.0.0.1:8123/#/scan'))
-
-    def test_busy_or_short_tools_do_not_open_it(self):
+        self.open.reset_mock(side_effect=True, return_value=True)
         with mock.patch.object(jobs, 'running', return_value={'id': 'audit-0', 'kind': 'audit', 'progress': {}}):
             self.assertEqual(agent_tools.audit(str(self.project), fresh=True)['status'], 'busy')
         agent_tools.status(str(self.project))
@@ -268,15 +257,13 @@ class Watch(Checked):
 
 
 class Addresses(unittest.TestCase):
-    def test_the_address_on_this_computer_is_plain_and_a_remote_one_carries_the_token(self):
+    def test_the_address_is_plain_here_routed_remotely_and_eaos_start_opens_it_unless_told_not_to(self):
         record = {'port': 8123, 'token': 't' * 32}
         self.assertEqual(launch.url_of(record), 'http://127.0.0.1:8123/')
         self.assertEqual(launch.url_of(record, '/scan'), 'http://127.0.0.1:8123/#/scan')
         routed = {**record, 'remote_origin': 'https://shop--8123.dev.remote.e-m.sa'}
         self.assertEqual(launch.url_of(routed, '/scan'), f"https://shop--8123.dev.remote.e-m.sa/#/scan?token={'t' * 32}",
                          'a Remote record gives its routed address')
-
-    def test_eaos_start_prints_and_opens_the_live_map_when_the_studio_runs(self):
         address = 'http://127.0.0.1:8123/#/scan'
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}), \
                 mock.patch.object(guided, 'doctor_rows', return_value=[]), mock.patch.object(guided, 'advance', return_value=0), \
@@ -289,8 +276,6 @@ class Addresses(unittest.TestCase):
             cli.main(['start', str(project), '--lang', 'en'])
         opened.assert_called_once_with(address, True)
         self.assertIn(mock.call(f'Watch the work live: {address}'), said.call_args_list)
-
-    def test_nothing_is_started_or_said_with_no_watch(self):
         with mock.patch.object(launch, 'start') as started, mock.patch.object(guided, 'say') as said:
             guided.watch({'lang': 'ar'}, cli.argparse.Namespace(no_watch=True))
         started.assert_not_called()

@@ -21,22 +21,17 @@ class JsRedundancyTests(Workspace):
         index = _index_js(structure, accesses)
         return _js_redundancies(PATH, index[PATH], text)
 
-    def test_a_query_inside_a_for_loop_or_an_iterating_callback_is_n_plus_one(self):
+    def test_a_query_repeated_per_item_is_n_plus_one_but_a_retry_or_a_chain_is_not(self):
         structure = [at('scope', 1, 30, kind='function', symbol='load'), at('loop', 3, 6, kind='for'),
                      at('call_site', 10, 14, callee='map')]
         rows = self.rows(structure, [access(4), access(12, 'items'), access(20)])
         self.assertEqual([(r['kind'], r['start_line']) for r in rows], [('n_plus_one', 4), ('n_plus_one', 12)])
         self.assertEqual(rows[0]['symbol'], 'load')
-
-    def test_a_one_line_chain_is_not_a_loop_around_its_own_query(self):
-        structure = [at('call_site', 5, 5, callee='filter')]
-        self.assertEqual(self.rows(structure, [access(5)]), [])
-
-    def test_a_fetch_counts_as_data_access(self):
-        structure = [at('loop', 2, 4, kind='for'), at('call_site', 3, callee='fetch')]
-        self.assertEqual([r['callee'] for r in self.rows(structure, [])], ['http.get fetch'])
-
-    def test_a_counted_loop_that_leaves_on_success_is_a_retry_not_n_plus_one(self):
+        # A one-line chain is not a loop around its own query; a fetch counts as data access.
+        self.assertEqual(self.rows([at('call_site', 5, 5, callee='filter')], [access(5)]), [])
+        fetch_loop = [at('loop', 2, 4, kind='for'), at('call_site', 3, callee='fetch')]
+        self.assertEqual([r['callee'] for r in self.rows(fetch_loop, [])], ['http.get fetch'])
+        # A counted loop that leaves on success is a retry, not N+1.
         retry = ['async function live(url) {', '  for (let attempt = 1; attempt <= 3; attempt += 1) {',
                  '    const r = await fetch(url);', '    if (r.ok) return r;', '  }', '}']
         structure = [at('loop', 2, 5, kind='for'), at('call_site', 3, callee='fetch')]
@@ -51,14 +46,12 @@ class JsRedundancyTests(Workspace):
         self.assertEqual([r['kind'] for r in self.rows(structure, [], '\n'.join(each))], ['n_plus_one'],
                          'a counted loop that never leaves early repeats the call every time')
 
-    def test_the_same_read_twice_on_one_path_is_repeated(self):
+    def test_the_same_read_twice_on_one_path_is_repeated_but_not_across_alternative_arms(self):
         structure = [at('scope', 1, 20, kind='function', symbol='load')]
         text = '\n'.join(['function load() {', '  const a = read();', '  log(a);', '  const b = read();', '}'])
         rows = self.rows(structure, [access(2), access(4)], text)
         self.assertEqual([(r['kind'], r['start_line'], r['end_line']) for r in rows], [('repeated_call', 2, 4)])
-
-    def test_reads_in_alternative_arms_or_a_fallback_are_not_repeated(self):
-        structure = [at('scope', 1, 20, kind='function', symbol='load')]
+        # Reads in alternative arms or a fallback are not repeated.
         for between in ('  } else if (y) {', '  } catch (err) {', '  if (x) return a;', '    case 2:'):
             text = '\n'.join(['function load() {', '  const a = read();', between, '  const b = read();', '}'])
             self.assertEqual(self.rows(structure, [access(2), access(4)], text), [], between)

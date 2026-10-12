@@ -1,5 +1,5 @@
-"""Fixes in waves (NS9.T4): the expensive gates once per batch, the card at fault found by halving, and the
-result handed over as a branch that leaves the person's branch and files alone."""
+"""Fixes in waves: the expensive gates once per batch (eaos/waves.py finish_batch, behind the MCP fix_finish), the card
+at fault found by halving, and the result handed over as a branch that leaves the person's branch and files alone."""
 import json
 import subprocess
 import tempfile
@@ -30,7 +30,7 @@ def commit_file(root, name, text):
 
 
 class OrderTests(unittest.TestCase):
-    def test_a_batch_is_the_next_ready_cards_in_milestone_order_skipping_those_tried(self):
+    def test_a_batch_is_the_next_ready_cards_in_milestone_order_and_judged_from_one_collection_of_facts(self):
         report = Path(tempfile.mkdtemp())
         ready = lambda i: {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'}}
         (report / 'plan.json').write_text(json.dumps({'tasks': [ready('T1'), ready('T2'), ready('T3'),
@@ -38,10 +38,6 @@ class OrderTests(unittest.TestCase):
                                                       'milestones': [{'tasks': ['T3', 'T4']}, {'tasks': ['T1', 'T2']}]}))
         self.assertEqual(waves.next_batch(report, [], size=2), ['T3', 'T1'])
         self.assertEqual(waves.next_batch(report, ['T3'], size=5), ['T1', 'T2'])
-
-
-class AcceptanceTests(unittest.TestCase):
-    def test_every_card_is_judged_from_one_collection_of_facts(self):
         dead_card = {'id': 'D', 'verify_command': ['python', '-c', "left = [f for f in facts if (f['location']['path'], "
                                                    "f['location']['symbol'], f['value']['rule']) == ('src/a.ts', 'gone', 'unused-symbol')]"]}
         gone_card = {'id': 'G', 'verify_command': ['python', '-c', "x == ('src/a.ts', 'still', 'unused-symbol')"]}
@@ -53,16 +49,13 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
-
 class RebuildTests(unittest.TestCase):
-    def test_the_branch_is_the_base_plus_exactly_the_kept_commits(self):
+    def test_the_branch_is_the_base_plus_exactly_the_kept_commits_and_the_card_at_fault_is_found_by_halving(self):
         root = repository()
         base = git(root, 'rev-parse', 'HEAD')
         one, two, three = (commit_file(root, f'{n}.txt', n) for n in ('one', 'two', 'three'))
         self.assertEqual(waves.rebuild(root, base, [one, three]), [])
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['a.txt', 'one.txt', 'three.txt'])
-
-    def test_the_card_at_fault_is_found_by_halving(self):
         commits = [f'c{n}' for n in range(8)]
         applied = []
         with mock.patch.object(waves, 'rebuild', side_effect=lambda root, base, part: applied.append(list(part)) or []), \
@@ -88,42 +81,37 @@ class HandOverTests(unittest.TestCase):
         self.assertFalse((project / 'fixed.txt').exists())
         self.assertEqual(waves.undo(project, 'eaos/wave-1'), 'deleted')
         self.assertEqual(waves.undo(project, 'eaos/wave-1'), 'absent')
-
-    def test_a_merged_wave_is_not_undone_behind_the_persons_back(self):
-        project = repository()
         git(project, 'branch', 'eaos/wave-1')
-        self.assertEqual(waves.undo(project, 'eaos/wave-1'), 'merged')
-
-    def test_a_wave_that_kept_nothing_hands_nothing_over(self):
-        with self.assertRaises(ValueError):
-            waves.apply(repository(), {'kept': [], 'branch': 'eaos/wave-1', 'root': '/nowhere'})
+        self.assertEqual(waves.undo(project, 'eaos/wave-1'), 'merged', 'a merged wave is not undone behind the person\'s back')
+        with self.assertRaises(ValueError, msg='a wave that kept nothing hands nothing over'):
+            waves.apply(project, {'kept': [], 'branch': 'eaos/wave-1', 'root': '/nowhere'})
 
 
-class BatchTests(unittest.TestCase):
-    def test_a_card_that_breaks_something_is_taken_back_and_the_others_stay(self):
-        project = repository()
-        runtime = Path(tempfile.mkdtemp())
-        report = Path(tempfile.mkdtemp())
+class FinishTests(unittest.TestCase):
+    def test_a_card_that_breaks_the_gates_is_taken_back_and_the_others_stay(self):
+        project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
         cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
-                  'verify_command': ['true']} for n in (1, 2, 3)]
+                  'verify_command': ['true']} for n in (1, 2, 3, 4)]
         (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
-        (runtime / 'authorization.json').write_text(json.dumps({'commit': git(project, 'rev-parse', 'HEAD')}))
-
-        def change(card, root, report, provider):
-            (Path(root) / card['paths'][0]).write_text(card['id'])
-            return 'model', ''
-        with mock.patch('eaos.sandbox.refusal', return_value=''), mock.patch.object(waves, 'change', side_effect=change), \
-                mock.patch.object(waves, 'new_breakage', side_effect=lambda report, root: ['boom'] if (Path(root) / '2.txt').exists() else []), \
-                mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
-                mock.patch.object(waves, 'original_checks', return_value=[]), mock.patch.object(waves, 'gates', return_value=''):
-            summary = waves.run_batch(report, project, runtime, 1, ['T1', 'T2', 'T3'])
+        root = Path(tempfile.mkdtemp()) / 'candidate'
+        subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
+        base = git(root, 'rev-parse', 'HEAD')
+        kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
+        broken = lambda report, root, *rest: 'the project\'s own check failed: test' if (Path(root) / '2.txt').exists() else ''
+        with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
+                               | {'T4': 1}), \
+                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=broken):
+            summary = waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2', 'T3', 'T4'], kept, {}, {}, lock=False)
         self.assertEqual(summary['kept'], ['T1', 'T3'])
-        self.assertIn('boom', summary['failed']['T2'])
-        root = Path(summary['root'])
+        self.assertIn("own check failed", summary['failed']['T2'])
+        self.assertIn('acceptance exited 1', summary['failed']['T4'])
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '3.txt', 'a.txt'])
-        rows = {r['id']: r['status'] for r in json.loads((runtime / 'runtime/execution.json').read_text())['tasks']}
-        self.assertEqual(rows, {'T1': 'VERIFIED_IN_ISOLATED_COPY', 'T2': 'FAILED', 'T3': 'VERIFIED_IN_ISOLATED_COPY'})
+        rows = {r['id']: (r['status'], r['tool']) for r in json.loads((runtime / 'runtime/execution.json').read_text())['tasks']}
+        self.assertEqual(rows, {'T1': ('VERIFIED_IN_ISOLATED_COPY', 'assistant'), 'T2': ('FAILED', 'assistant'),
+                                'T3': ('VERIFIED_IN_ISOLATED_COPY', 'assistant'), 'T4': ('FAILED', 'assistant')},
+                         'a card the assistant fixed is recorded like any other')
         self.assertEqual(len(list((runtime / 'waves/wave-1').glob('*.patch'))), 2)
+        self.assertEqual(json.loads((runtime / 'waves/wave-1/wave.json').read_text())['branch'], 'eaos/wave-1')
 
 
 if __name__ == '__main__':

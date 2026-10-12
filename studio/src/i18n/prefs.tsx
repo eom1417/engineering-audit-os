@@ -1,4 +1,4 @@
-// The person's display choices (language, theme, time zone) and the developer flag, kept in localStorage and on <html>.
+// The person's display choices (language, theme, time zone), kept in localStorage and on <html>.
 // public/boot.js applies them before the first paint; this context keeps React and <html> in step afterwards.
 // Every time the Studio shows goes through one formatter here, in the device's time zone
 // (Intl.DateTimeFormat().resolvedOptions().timeZone) or the zone chosen in Settings; stored times stay UTC ISO-8601.
@@ -10,15 +10,13 @@ export type Lang = 'ar' | 'en'
 export type Theme = 'light' | 'dark'
 const KEY = 'eaos.studio'
 
-function saved(): { lang?: Lang; theme?: Theme; dev?: boolean; zone?: string | null } {
+function saved(): { lang?: Lang; theme?: Theme; zone?: string | null } {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {} } catch { return {} }
 }
 
 function save(patch: Record<string, unknown>) {
   try { localStorage.setItem(KEY, JSON.stringify({ ...saved(), ...patch })) } catch { /* private mode: the choice lasts this visit */ }
 }
-
-declare global { interface Window { EAOS_BOOT?: { dev?: boolean } } }
 
 /** The device's own time zone; UTC when the browser cannot say. */
 export function deviceZone(): string {
@@ -63,16 +61,10 @@ export function timeFormatter(lang: Lang, zone: string) {
   }
 }
 
-/** Unbuilt sections are hidden unless the developer flag is on: ?dev=1 in the address once (public/boot.js keeps it). */
-function devFlag(): boolean {
-  return (window.EAOS_BOOT?.dev ?? saved().dev) === true
-}
-
 export interface Prefs {
   lang: Lang
   dir: 'rtl' | 'ltr'
   theme: Theme
-  dev: boolean
   setLang(lang: Lang): void
   setTheme(theme: Theme): void
   /** The zone every time is shown in: the Settings choice, else the device's */
@@ -94,7 +86,7 @@ const PrefsContext = createContext<Prefs | null>(null)
 
 interface Setters { setLang(lang: Lang): void; setTheme(theme: Theme): void; setZone(zone: string | null): void }
 
-function makePrefs(lang: Lang, theme: Theme, dev: boolean, zoneChoice: string | null, set: Setters): Prefs {
+function makePrefs(lang: Lang, theme: Theme, zoneChoice: string | null, set: Setters): Prefs {
   const index = lang === 'ar' ? 0 : 1
   const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
   const numbers = new Intl.NumberFormat(locale)
@@ -102,7 +94,7 @@ function makePrefs(lang: Lang, theme: Theme, dev: boolean, zoneChoice: string | 
   // Building a date format is slow next to using one: the formatter is built on its first use and kept with these prefs
   let times: ReturnType<typeof timeFormatter> | undefined
   return {
-    lang, theme, dev, zone, zoneChoice, ...set,
+    lang, theme, zone, zoneChoice, ...set,
     dir: lang === 'ar' ? 'rtl' : 'ltr',
     t(key, vars) {
       let text: string = WORDS[key][index]
@@ -120,7 +112,6 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   const html = document.documentElement
   const [lang, setLangState] = useState<Lang>(html.lang === 'en' ? 'en' : 'ar')
   const [theme, setThemeState] = useState<Theme>(html.dataset.theme === 'dark' ? 'dark' : 'light')
-  const [dev] = useState(devFlag)
   const [zoneChoice, setZoneState] = useState<string | null>(savedZone)
 
   useEffect(() => {
@@ -136,7 +127,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     save({ zone }); setZoneState(zone)
   }, [])
 
-  const value = useMemo(() => makePrefs(lang, theme, dev, zoneChoice, { setLang, setTheme, setZone }), [lang, theme, dev, zoneChoice, setLang, setTheme, setZone])
+  const value = useMemo(() => makePrefs(lang, theme, zoneChoice, { setLang, setTheme, setZone }), [lang, theme, zoneChoice, setLang, setTheme, setZone])
 
   return (
     <PrefsContext.Provider value={value}>
@@ -149,17 +140,4 @@ export function usePrefs(): Prefs {
   const prefs = useContext(PrefsContext)
   if (!prefs) throw new Error('usePrefs outside PrefsProvider')
   return prefs
-}
-
-/** A part of the page in another language or theme (the gallery's frames): words, direction and tokens follow it. */
-export function PrefsScope({ lang, theme, children, className }: { lang: Lang; theme: Theme; children: ReactNode; className?: string }) {
-  const parent = usePrefs()
-  const value = useMemo(() => makePrefs(lang, theme, parent.dev, parent.zoneChoice, parent), [lang, theme, parent])
-  return (
-    <PrefsContext.Provider value={value}>
-      <I18nProvider locale={lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB'}>
-        <div lang={lang} dir={value.dir} data-theme={theme} className={className}>{children}</div>
-      </I18nProvider>
-    </PrefsContext.Provider>
-  )
 }

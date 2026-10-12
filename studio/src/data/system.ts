@@ -3,7 +3,6 @@
 import type { Measure } from './measure'
 
 export type Operation = 'retain' | 'modify' | 'rebuild' | 'delete' | 'merge' | 'introduce'
-export const OPERATIONS: Operation[] = ['retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce']
 
 export interface MapLabel { x: number; y: number; anchor: 'start' | 'middle' | 'end'; size: number; placed: boolean; big?: boolean }
 

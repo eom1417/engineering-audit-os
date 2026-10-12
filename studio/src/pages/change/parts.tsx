@@ -32,13 +32,13 @@ export function ChangeNav() {
   )
 }
 
-/** A section the report does not hold: what is missing, why, and the step of EAOS's plan that produces it. */
+/** A section the report does not hold: what is missing, and why. */
 export function NotMeasured({ data, section, title }: { data: StudioData; section: string; title: string }) {
   const w = useChangeWords()
   const row = useCoverage(data, section)
   return (
     <Panel>
-      <StateMessage title={title} sub={<>{w('notMeasured')}{row?.detail ? <> — {row.detail}</> : null}{row?.step ? <> · <Id value={row.step} /></> : null}</>} />
+      <StateMessage title={title} sub={<>{w('notMeasured')}{row?.detail ? <> — {row.detail}</> : null}</>} />
     </Panel>
   )
 }
@@ -74,10 +74,6 @@ export function StateBar({ counts }: { counts: Record<OpState, number> }) {
 
 export function StepLink({ plan, step, children }: { plan: string; step: string; children?: ReactNode }) {
   return <Go to={`/plans/${encodeURIComponent(plan)}/${encodeURIComponent(step)}`} className={css.inlineLink}>{children ?? <Id value={step} />}</Go>
-}
-
-export function TaskLink({ id }: { id: string }) {
-  return <Go to={`/tasks/${encodeURIComponent(id)}`} className={css.inlineLink}><Id value={id} /></Go>
 }
 
 export function OpLink({ id, children }: { id: string; children?: ReactNode }) {

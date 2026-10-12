@@ -114,16 +114,16 @@ def follow_ups(answers):
     path = top['citation'].split(':')[0]
     suggestions = []
     if top['kind'] in {'entry point', 'flow'}:
-        suggestions.append(f'eaos impact-of {path} --out <dir>  — what a change to this entry point would reach')
+        suggestions.append(f"the `impact` tool on {path} — what a change to this entry point would reach")
         suggestions.append('FLOWS.md — the traced steps of this entry point')
     elif top['kind'] == 'rule constant':
         suggestions.append('DOMAIN-AND-DATA.md — every definition site of this rule')
-        suggestions.append(f'eaos impact-of {path} --out <dir>')
+        suggestions.append(f"the `impact` tool on {path}")
     elif top['kind'] == 'claim':
         suggestions.append('RISK-REGISTER.md — where this claim sits against the others')
         suggestions.append('PLAN/ — the task card generated for it, if any')
     else:
-        suggestions.append(f'eaos impact-of {path} --out <dir>  — who depends on this')
+        suggestions.append(f"the `impact` tool on {path} — who depends on this")
     return suggestions
 
 
@@ -145,5 +145,5 @@ def answer(out, question, limit=8):
             'note': ('Answers come only from recorded facts and claims; each carries its own location.'
                      if answers else
                      'No record answers this question. Records are written in the code\'s own language; try the identifier or path you are after, '
-                     'or extend coverage with eaos facts/verify before concluding anything.'),
+                     'or check again before concluding anything.'),
             'unexamined': dossier.get('coverage', {}).get('not_examined', [])}

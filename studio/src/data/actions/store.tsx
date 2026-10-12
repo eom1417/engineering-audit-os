@@ -1,15 +1,11 @@
-// The command centre's state, shared by every page: which client runs actions (live, demo or none in a snapshot),
-// the runs with the queue's order, and the open questions. Live runs are polled (often while one is active, rarely
-// otherwise, and again when the tab comes back); the demo tells when it changes. Changes the person makes are shown
+// The command centre's state, shared by every page: which client runs actions (live, or none in a snapshot), the
+// runs with the queue's order, and the open questions. Live runs are polled (often while one is active, rarely
+// otherwise, and again when the tab comes back). Changes the person makes are shown
 // at once (optimistic) where a refusal can simply be undone: pause, resume, stop, reorder and answers.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useLoaded, useStudio } from '../context'
-import type { DemoCard } from './demo'
 import { deriveRun, type RunView } from './derive'
 import { liveClient, takeToken } from './live'
 import { ACTIVE, type ActionsClient, type Mode, type Question, type Run, type RunEvent, type StreamStatus, type ReportDecision } from './types'
-
-const DEMO_KEY = 'eaos.demo'
 
 export interface Actions {
   mode: Mode
@@ -27,40 +23,13 @@ export interface Actions {
   patch(id: string, change: Partial<Run>): void
   setQueue(order: string[]): void
   dropQuestion(id: string): void
-  startDemo(): void
-  stopDemo(): void
 }
 
 const ActionsContext = createContext<Actions | null>(null)
 
-function demoWanted(): boolean {
-  if (/[?&]demo=1(&|$)/.test(location.hash)) {
-    try { sessionStorage.setItem(DEMO_KEY, '1') } catch { /* this visit only */ }
-    return true
-  }
-  try { return sessionStorage.getItem(DEMO_KEY) === '1' } catch { return false }
-}
-
 export function ActionsProvider({ children, client: given }: { children: ReactNode; client?: ActionsClient }) {
-  const data = useStudio()
-  const settled = useLoaded().kind !== 'loading'
-  const cards = useRef<DemoCard[]>([])
-  cards.current = (data?.cards?.cards ?? []) as DemoCard[]
   const [token] = useState(() => (given ? null : takeToken()))
-  const [demo, setDemo] = useState(() => !given && !token && demoWanted())
-  // The demo (its client and recorded run) is its own chunk, read only when the demo is asked for
-  const [demoModule, setDemoModule] = useState<typeof import('./demo') | null>(null)
-  useEffect(() => {
-    if (demo && !demoModule) void import('./demo').then((module) => setDemoModule(module))
-  }, [demo, demoModule])
-  const demoRef = useRef<ReturnType<typeof import('./demo').demoClient> | null>(null)
-  const client = useMemo<ActionsClient | null>(() => {
-    if (given) return given
-    if (token) return liveClient(token)
-    if (!demo || !demoModule) return null
-    demoRef.current ??= demoModule.demoClient(() => cards.current)
-    return demoRef.current
-  }, [given, token, demo, demoModule])
+  const client = useMemo<ActionsClient | null>(() => given ?? (token ? liveClient(token) : null), [given, token])
   const [runs, setRuns] = useState<Run[]>([])
   const [queue, setQueueState] = useState<string[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
@@ -82,22 +51,15 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
     } catch { setLoaded(true) }
   }, [client])
 
-  // The demo seeds its runs once the report has loaded, so they name the report's own cards (examples without one)
-  useEffect(() => {
-    if (client?.mode === 'demo' && settled && demoRef.current) { demoRef.current.seed(); void refresh() }
-  }, [client, settled, refresh])
-
   useEffect(() => {
     if (!client) { setRuns([]); setQueueState([]); setQuestions([]); setLoaded(false); return }
     let timer: ReturnType<typeof setTimeout> | undefined
-    let unwatch: (() => void) | undefined
     let stopped = false
     const back = () => { if (document.visibilityState === 'visible') void refresh() }
     void (client.available ? client.available() : Promise.resolve(true)).then((available) => {
       if (stopped) return
       if (!available) { setLoaded(true); return }
       void refresh()
-      if (client.watch) { unwatch = client.watch(() => { void refresh() }); return }
       const loop = () => {
         const busy = document.visibilityState === 'visible'
         timer = setTimeout(async () => { if (busy) await refresh(); if (!stopped) loop() }, busy ? 3000 : 15000)
@@ -105,7 +67,7 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
       loop()
       document.addEventListener('visibilitychange', back)
     })
-    return () => { stopped = true; clearTimeout(timer); unwatch?.(); document.removeEventListener('visibilitychange', back) }
+    return () => { stopped = true; clearTimeout(timer); document.removeEventListener('visibilitychange', back) }
   }, [client, refresh])
 
   const value = useMemo<Actions>(() => ({
@@ -117,8 +79,6 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
     patch: (id, change) => setRuns((all) => all.map((run) => (run.id === id ? { ...run, ...change } : run))),
     setQueue: (order) => setQueueState(order),
     dropQuestion: (id) => setQuestions((all) => all.filter((q) => q.id !== id)),
-    startDemo: () => { try { sessionStorage.setItem(DEMO_KEY, '1') } catch { /* this visit only */ } setDemo(true) },
-    stopDemo: () => { try { sessionStorage.removeItem(DEMO_KEY) } catch { /* nothing kept */ } demoRef.current = null; setDemo(false) },
   }), [client, runs, queue, questions, decisions, loaded, refresh])
 
   return <ActionsContext.Provider value={value}>{children}</ActionsContext.Provider>
@@ -130,7 +90,7 @@ export function useActions(): Actions {
   return value
 }
 
-/** The command centre where a page may be rendered without it (a test, the gallery): null instead of an error. */
+/** The command centre where a page may be rendered without it (a test): null instead of an error. */
 export function useActionsMaybe(): Actions | null {
   return useContext(ActionsContext)
 }

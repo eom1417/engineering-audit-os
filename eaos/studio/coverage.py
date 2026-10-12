@@ -19,7 +19,7 @@ FUNCTION_SCOPES = ('function', 'method')
 PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'cards', 'evidence': 'facts', 'story': 'gap',
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
-           'quality': 'detectors', 'maps': None, 'paths': 'paths', 'journeys': 'screens', 'hidden': 'items',
+           'maps': None, 'paths': 'paths', 'journeys': 'screens', 'hidden': 'items',
            'data_paths': 'stores', 'infra': None, 'pipeline': 'stages', 'ideal': None, 'nodes': 'nodes'}
 V1_STEP = 'NS36.T2'
 
@@ -84,10 +84,6 @@ def _not_exported(section, report, built, lang):
         return ('facts_not_exported', _text(lang, f'{len(scans)} فحص مسجل، وصفحة التاريخ لم تُصدَّر بعد.',
                                             f'{len(scans)} scans recorded; the history page is not exported yet.'),
                 'NS46.T4', 'audit', _count(len(scans), 'health.json#history'), [])
-    if section == 'quality':
-        return ('not_built', _text(lang, 'دقة كاشفات EAOS تُقاس على حالاتها المعلَّمة، ولم تُصدَّر لكل مشروع بعد.',
-                                   "EAOS's detector precision is measured on its labelled cases and not exported per project yet."),
-                'NS46.T4', None, _count(None, 'docs/engine-precision.json'), [])
     if section == 'paths':
         return ('not_built', _text(lang, 'مسارات الكود لم تُصدَّر في هذا الفحص.', 'The code paths are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'paths.json#paths'), [])

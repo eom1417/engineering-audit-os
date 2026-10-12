@@ -79,38 +79,7 @@ def rules_for(target):
     return rules, 'default'
 
 
-def read_contract(path):
-    """Read an engagement contract from a JSON file, or return sensible defaults."""
-    path = Path(path) if path else None
-    if path is None or not path.is_file():
-        return _default_contract()
-    contract = json.loads(path.read_text())
-    if not isinstance(contract, dict) or contract.get('schema_version') != 1:
-        raise ValueError('Unsupported engagement contract; the original file was preserved')
-    if not isinstance(contract.get('targets'), dict): contract['targets'] = dict(DEFAULT_TARGETS)
-    if not isinstance(contract.get('scenarios'), list): contract['scenarios'] = []
-    if not isinstance(contract.get('priority'), dict): contract['priority'] = _default_priority()
-    if not isinstance(contract.get('scope'), dict): contract['scope'] = {'in': [], 'out': []}
-    return contract
 
-
-def _default_contract():
-    return {'schema_version': 1, 'name': 'default', 'targets': dict(DEFAULT_TARGETS),
-            'scenarios': [], 'priority': _default_priority(), 'scope': {'in': [], 'out': []},
-            'rules': {name: dict(rule) for name, rule in DEFAULT_RULES.items()}}
-
-
-def _default_priority():
-    return {'formula': 'reach × confidence × origin ÷ cost',
-             'scales': {'reach': 'lines of code touched',
-                         'confidence': '0..1 (probe verdicts)',
-                         'origin': '0..1 (signal strength)',
-                         'cost': 'engineering hours'}}
-
-
-def render_contract(path=None):
-    """Return a starter engagement contract the team can edit."""
-    return _default_contract()
 
 
 def write(path, contract):

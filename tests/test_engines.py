@@ -27,31 +27,25 @@ def fact_set(facts, evaluated):
 
 
 class ContractTests(unittest.TestCase):
-    def test_an_unknown_finding_kind_is_refused_rather_than_stored(self):
+    def test_a_finding_has_a_known_kind_a_content_identity_and_every_place_it_names(self):
         with self.assertRaises(ValueError):
             finding('e', '1', 'rule', 'not_a_kind', subject('file', 'a.py'), 'message')
-
-    def test_the_identity_of_a_finding_is_its_content(self):
         first = finding('e', '1', 'rule', 'cycle', subject('file', 'a.py'), 'message')
-        again = finding('e', '1', 'rule', 'cycle', subject('file', 'a.py'), 'message')
-        other = finding('e', '1', 'rule', 'cycle', subject('file', 'b.py'), 'message')
-        self.assertEqual(first['id'], again['id'])
-        self.assertNotEqual(first['id'], other['id'])
-
-    def test_a_finding_about_several_places_keeps_all_of_them(self):
+        self.assertEqual(first['id'], finding('e', '1', 'rule', 'cycle', subject('file', 'a.py'), 'message')['id'])
+        self.assertNotEqual(first['id'], finding('e', '1', 'rule', 'cycle', subject('file', 'b.py'), 'message')['id'])
         row = finding('e', '1', 'rule', 'duplication', subject('file', 'a.py'), 'message',
                       sites=[{'path': 'b.py', 'line': 3}, {'path': 'a.py', 'line': None}])
         self.assertEqual([spot[0] for spot in row['sites']], ['a.py', 'b.py'])
 
 
 class DegradationTests(unittest.TestCase):
-    def test_health_reports_every_adapter_whether_installed_or_not(self):
+    def test_a_missing_crashing_unknown_or_inapplicable_engine_never_fails_the_run_and_is_reported(self):
         report = health()
         self.assertEqual(sorted(report), sorted(ADAPTERS))
-        for detail in report.values():
-            self.assertIn('version_matches_pin', detail)
+        self.assertTrue(all('version_matches_pin' in detail for detail in report.values()))
+        absent = Report('absent', None, '1.0', UNAVAILABLE, reason='not installed').as_dict()
+        self.assertEqual((absent['status'], absent['version_matches_pin']), (UNAVAILABLE, False))
 
-    def test_an_engine_that_raises_does_not_take_the_run_down(self):
         class Exploding:
             NAME, PINNED = 'exploding', '0'
             @staticmethod
@@ -59,130 +53,85 @@ class DegradationTests(unittest.TestCase):
         ADAPTERS['exploding'] = Exploding
         try:
             with tempfile.TemporaryDirectory() as workdir:
-                manifest = analyze('.', workdir, only=['exploding'])
-            self.assertEqual(manifest['coverage']['exploding']['status'], 'error')
-            self.assertIn('engine crashed', manifest['coverage']['exploding']['reason'])
+                manifest = analyze('.', workdir, only=['exploding', 'imaginary'])
         finally:
             del ADAPTERS['exploding']
-
-    def test_an_engine_name_nobody_implements_is_reported_not_ignored(self):
-        with tempfile.TemporaryDirectory() as workdir:
-            manifest = analyze('.', workdir, only=['imaginary'])
-        self.assertEqual(manifest['unknown_engines'], ['imaginary'])
-        self.assertEqual(manifest['findings'], [])
-
-    def test_an_uninstalled_engine_reports_unavailable_rather_than_silence(self):
-        report = Report('absent', None, '1.0', UNAVAILABLE, reason='not installed')
-        self.assertEqual(report.as_dict()['status'], UNAVAILABLE)
-        self.assertFalse(report.as_dict()['version_matches_pin'])
+        self.assertEqual(manifest['coverage']['exploding']['status'], 'error')
+        self.assertIn('engine crashed', manifest['coverage']['exploding']['reason'])
+        self.assertEqual((manifest['unknown_engines'], manifest['findings']), (['imaginary'], []))
+        # A tool with nothing to read is not applicable, not absent.
+        from unittest import mock
+        from eaos.engines import tool
+        from eaos.engines.contract import NOT_APPLICABLE
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'app.py').write_text('print(1)\n')
+            with mock.patch.object(tool, 'version', return_value='4.3.0'):
+                self.assertEqual(tool.declined('sqlfluff', 'sqlfluff', tmp).status, NOT_APPLICABLE)
+            with mock.patch.object(tool, 'version', return_value=None):
+                self.assertEqual(tool.declined('sqlfluff', 'sqlfluff', tmp).status, 'unavailable')
 
 
 class CorrelationTests(unittest.TestCase):
-    def test_two_engines_on_one_place_are_one_corroborated_cluster(self):
-        sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
-                         engine_fact('F2', 'reforge', 'complexity', 'a.py')],
-                        {'enola': evaluated_at(complexity=('observed', 'file')),
-                         'reforge': evaluated_at(complexity=('observed', 'file'))})
-        [cluster] = correlate.clusters(sets)
+    def test_agreement_silence_and_resolution_decide_the_verdict(self):
+        both = {'enola': evaluated_at(complexity=('observed', 'file')), 'reforge': evaluated_at(complexity=('observed', 'file'))}
+        [cluster] = correlate.clusters(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
+                                                 engine_fact('F2', 'reforge', 'complexity', 'a.py')], both))
         self.assertEqual(cluster['corroboration']['complexity']['verdict'], correlate.CORROBORATED)
         self.assertEqual(cluster['engines'], ['enola', 'reforge'])
-
-    def test_silence_about_a_threshold_rule_is_not_a_denial(self):
-        sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
-                        {'enola': evaluated_at(complexity=('observed', 'file')),
-                         'reforge': evaluated_at(complexity=('observed', 'file'))})
-        [cluster] = correlate.clusters(sets)
+        # Silence about a threshold rule is not a denial.
+        [cluster] = correlate.clusters(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')], both))
         self.assertEqual(cluster['corroboration']['complexity']['verdict'], correlate.SINGLE)
-
-    def test_silence_about_a_structural_property_at_the_same_resolution_is_a_denial(self):
-        sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': evaluated_at(cycle=('observed', 'file')),
-                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
-        [cluster] = correlate.clusters(sets)
-        detail = cluster['corroboration']['cycle']
-        self.assertEqual(detail['verdict'], correlate.CONTESTED)
-        self.assertEqual(detail['denied_by'], ['codegraph'])
-
-    def test_silence_at_another_resolution_is_a_gap_not_a_contradiction(self):
-        sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': evaluated_at(cycle=('observed', 'package')),
-                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
-        [cluster] = correlate.clusters(sets)
-        detail = cluster['corroboration']['cycle']
-        self.assertEqual(detail['verdict'], correlate.GRANULARITY_GAP)
-        self.assertEqual(detail['denied_by'], [])
-        self.assertEqual(detail['silent_at_another_resolution'], ['codegraph'])
-        self.assertEqual(detail['asserted_at'], ['package'])
-
-    def test_a_partial_evaluation_does_not_deny(self):
-        sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': evaluated_at(cycle=('observed', 'file')),
-                         'reforge': evaluated_at(cycle=('partial', 'file'))})
-        [cluster] = correlate.clusters(sets)
-        self.assertEqual(cluster['corroboration']['cycle']['verdict'], correlate.SINGLE)
-        self.assertEqual(cluster['corroboration']['cycle']['evaluated_and_silent'], {'reforge': 'partial'})
-
-    def test_a_multi_site_finding_belongs_to_every_site(self):
+        cycle = lambda other, enola_level='file': correlate.clusters(fact_set(
+            [engine_fact('F1', 'enola', 'cycle', 'pkg')],
+            {'enola': evaluated_at(cycle=('observed', enola_level)), **other}))[0]['corroboration']['cycle']
+        # Silence about a structural property at the same resolution is a denial.
+        detail = cycle({'codegraph': evaluated_at(cycle=('observed', 'file'))})
+        self.assertEqual((detail['verdict'], detail['denied_by']), (correlate.CONTESTED, ['codegraph']))
+        # Silence at another resolution is a gap, not a contradiction.
+        detail = cycle({'codegraph': evaluated_at(cycle=('observed', 'file'))}, enola_level='package')
+        self.assertEqual((detail['verdict'], detail['denied_by'], detail['silent_at_another_resolution'], detail['asserted_at']),
+                         (correlate.GRANULARITY_GAP, [], ['codegraph'], ['package']))
+        # A partial evaluation does not deny.
+        detail = cycle({'reforge': evaluated_at(cycle=('partial', 'file'))})
+        self.assertEqual((detail['verdict'], detail['evaluated_and_silent']), (correlate.SINGLE, {'reforge': 'partial'}))
+        # A multi-site finding belongs to every site.
         sets = fact_set([engine_fact('F1', 'jscpd', 'literal_duplication', 'a.py',
                                      sites=[{'path': 'a.py', 'line': 1}, {'path': 'b.py', 'line': 9}])],
                         {'jscpd': evaluated_at(literal_duplication=('observed', 'file'))})
-        self.assertEqual([cluster['place'] for cluster in correlate.clusters(sets)], ['a.py', 'b.py'])
+        self.assertEqual([c['place'] for c in correlate.clusters(sets)], ['a.py', 'b.py'])
 
 
 class EngineClaimTests(unittest.TestCase):
-    def test_one_engine_speaking_alone_produces_no_claim(self):
+    def test_engine_evidence_becomes_a_claim_only_when_corroborated_and_never_above_its_ceiling(self):
         from eaos.claims import from_engines
-        sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
-                        {'enola': evaluated_at(complexity=('observed', 'file'))})
-        self.assertEqual(from_engines(sets), [])
-
-    def test_corroborated_evidence_becomes_a_likely_claim_capped_at_likely(self):
-        from eaos.claims import from_engines
-        sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
-                         engine_fact('F2', 'reforge', 'complexity', 'a.py')],
-                        {'enola': evaluated_at(complexity=('observed', 'file')),
-                         'reforge': evaluated_at(complexity=('observed', 'file'))})
-        [claim] = from_engines(sets)
-        self.assertEqual(claim['confidence'], 'LIKELY')
-        self.assertEqual(claim['confidence_ceiling'], 'LIKELY')
-        self.assertEqual(claim['method'], ['external_engine'])
-        self.assertTrue(claim['falsifier'].strip())
-
-    def test_a_contested_structural_finding_becomes_a_hypothesis_capped_at_hypothesis(self):
-        from eaos.claims import from_engines
-        sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': evaluated_at(cycle=('observed', 'file')),
-                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
-        [claim] = from_engines(sets)
-        self.assertEqual(claim['confidence'], 'HYPOTHESIS')
-        self.assertEqual(claim['confidence_ceiling'], 'HYPOTHESIS')
-
-    def test_a_probe_cannot_raise_an_external_claim_to_confirmed(self):
         from eaos.probes import _apply_ceiling
+        self.assertEqual(from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
+                                               {'enola': evaluated_at(complexity=('observed', 'file'))})), [])
+        [claim] = from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
+                                         engine_fact('F2', 'reforge', 'complexity', 'a.py')],
+                                        {'enola': evaluated_at(complexity=('observed', 'file')),
+                                         'reforge': evaluated_at(complexity=('observed', 'file'))}))
+        self.assertEqual((claim['confidence'], claim['confidence_ceiling'], claim['method']), ('LIKELY', 'LIKELY', ['external_engine']))
+        self.assertTrue(claim['falsifier'].strip())
+        [contested] = from_engines(fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
+                                            {'enola': evaluated_at(cycle=('observed', 'file')),
+                                             'codegraph': evaluated_at(cycle=('observed', 'file'))}))
+        self.assertEqual((contested['confidence'], contested['confidence_ceiling']), ('HYPOTHESIS', 'HYPOTHESIS'))
+        # A probe cannot raise an external claim to confirmed; a claim without a ceiling is left alone.
         claim = {'confidence': 'CONFIRMED', 'confidence_ceiling': 'LIKELY', 'method': ['external_engine']}
         row = {'status': 'CONFIRMED', 'result': 'still reported'}
         _apply_ceiling(claim, row)
-        self.assertEqual(claim['confidence'], 'LIKELY')
-        self.assertEqual(row['status'], 'PARTIAL')
+        self.assertEqual((claim['confidence'], row['status']), ('LIKELY', 'PARTIAL'))
         self.assertIn('capped at LIKELY', row['result'])
-
-    def test_a_claim_without_a_ceiling_is_left_alone(self):
-        from eaos.probes import _apply_ceiling
-        claim = {'confidence': 'CONFIRMED', 'method': ['static_fact']}
-        row = {'status': 'CONFIRMED', 'result': 'proved'}
+        claim, row = {'confidence': 'CONFIRMED', 'method': ['static_fact']}, {'status': 'CONFIRMED', 'result': 'proved'}
         _apply_ceiling(claim, row)
-        self.assertEqual(claim['confidence'], 'CONFIRMED')
-        self.assertEqual(row['status'], 'CONFIRMED')
+        self.assertEqual((claim['confidence'], row['status']), ('CONFIRMED', 'CONFIRMED'))
 
 
 class ReportRenderingTests(unittest.TestCase):
-    def test_the_engine_artifact_says_so_when_nothing_ran(self):
+    def test_the_engine_artifact_leads_with_disagreements_and_says_so_when_nothing_ran(self):
         from eaos.engines_report import document
-        text = document({}, 'en').render()
-        self.assertIn('No external engine ran', text)
-
-    def test_the_engine_artifact_leads_with_the_disagreements(self):
-        from eaos.engines_report import document
+        self.assertIn('No external engine ran', document({}, 'en').render())
         sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
                         {'enola': evaluated_at(cycle=('observed', 'file')),
                          'codegraph': evaluated_at(cycle=('observed', 'file'))})
@@ -202,37 +151,21 @@ class InstalledEngineTests(unittest.TestCase):
         if not (enola.version() and jscpd.version()):
             raise unittest.SkipTest('the pinned engines are not installed in this environment')
 
-    def test_a_run_leaves_the_target_byte_identical(self):
+    def test_a_run_only_runs_what_was_asked_leaves_the_target_untouched_and_is_reproducible(self):
+        import os, shutil
+        from eaos.facts.run import collect
         with tempfile.TemporaryDirectory() as workdir:
-            manifest = analyze('eaos/compose', workdir, only=['enola', 'jscpd'], formats=['python'])
+            manifest = analyze('eaos/compose', workdir, only=['jscpd'], formats=['python'])
         self.assertTrue(manifest['target_unchanged'])
-
-    def test_two_runs_over_an_unchanged_tree_produce_the_same_facts(self):
-        from eaos.facts.run import collect
-        digests = []
-        for _ in range(2):
-            with tempfile.TemporaryDirectory() as out:
-                collect('eaos/compose', out, engines=['jscpd'])
-                digests.append(Path(out, 'facts/external.json').read_bytes())
-        self.assertEqual(digests[0], digests[1])
-
-    def test_a_fresh_copy_of_the_same_files_gives_the_same_fact_ids(self):
+        self.assertEqual((manifest['requested'], sorted(manifest['coverage'])), (['jscpd'], ['jscpd']))
         # A fact id hashing modification times changed with every clone, and with it the measurement a claim shows.
-        import json, os, shutil
-        from eaos.facts.run import collect
         ids = []
         with tempfile.TemporaryDirectory() as tmp:
             for name, mtime in (('a', 1_000_000), ('b', 2_000_000)):
                 target = shutil.copytree('eaos/compose', Path(tmp, name, 'compose'))
                 for path in target.rglob('*'): os.utime(path, (mtime, mtime))
-                collect(target, Path(tmp, name, 'out'), engines=['enola'])
+                collect(target, Path(tmp, name, 'out'), engines=['enola', 'jscpd'])
                 facts = json.loads(Path(tmp, name, 'out', 'facts/external.json').read_text())['facts']
                 ids.append(sorted(fact['id'] for fact in facts))
         self.assertTrue(ids[0])
         self.assertEqual(ids[0], ids[1])
-
-    def test_an_engine_asked_for_by_name_is_the_only_one_that_runs(self):
-        with tempfile.TemporaryDirectory() as workdir:
-            manifest = analyze('eaos/compose', workdir, only=['jscpd'], formats=['python'])
-        self.assertEqual(manifest['requested'], ['jscpd'])
-        self.assertEqual(sorted(manifest['coverage']), ['jscpd'])

@@ -347,10 +347,7 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
     plan_path = Path(out) / 'plan.json'
     plan_tasks = json.loads(plan_path.read_text(encoding='utf-8')).get('tasks', []) \
         if plan_path.is_file() else []
-    transform_path = Path(out) / 'transform-plan.json'
-    transform_stages = json.loads(transform_path.read_text(encoding='utf-8')).get('stages', []) \
-        if transform_path.is_file() else []
-    matrix = gap_matrix(current, target_components, claims, plan_tasks, transform_stages)
+    matrix = gap_matrix(current, target_components, claims, plan_tasks, [])
     for row in matrix:
         source = next((c for c in current if c['id'] == row['component']), None)
         if source and source.get('target_component'):

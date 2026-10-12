@@ -26,22 +26,19 @@ class FourReportsTests(Workspace):
         write(out, language)
         return out
 
-    def test_every_report_follows_the_template(self):
+    def test_every_report_follows_the_template_and_every_number_names_its_source(self):
         out = self.report()
         for name in NAMES:
             text = (out / name).read_text()
             for heading in ('## Summary', '### The numbers that matter', '### The largest risks', '## Not examined', '## Appendices'):
                 self.assertIn(heading, text, name)
-
-    def test_every_number_names_its_source(self):
-        record = json.loads((self.report() / 'reports.json').read_text())
+        record = json.loads((out / 'reports.json').read_text())
         self.assertEqual(sorted(record['reports']), sorted(NAMES))
         for numbers in record['reports'].values():
             for row in numbers.values(): self.assertTrue(row['source'])
-
-    def test_a_cut_text_shows_it_was_cut_and_lines_fit(self):
+        # A cut text shows it was cut, and lines fit.
         self.assertTrue(clip('word ' * 40, 20).endswith('…'))
-        text = (self.report() / 'CURRENT-STATE.md').read_text()
+        text = (out / 'CURRENT-STATE.md').read_text()
         self.assertIn('…', text)
         for line in text.splitlines():
             self.assertTrue(len(line) <= 80 or ' ' not in line.strip()[:81] or line.startswith('```'), line)

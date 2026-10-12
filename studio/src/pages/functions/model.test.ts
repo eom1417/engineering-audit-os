@@ -20,32 +20,25 @@ const FNS = [
 const BY_ID = new Map(FNS.map((f) => [f.id, f]))
 
 describe('the function explorer reads functions.json and invents nothing', () => {
-  it('measures complexity against Lizard’s warning line, and says when it was not measured', () => {
+  it("measures complexity against Lizard's warning line and orders by it, an unmeasured function last", () => {
     expect(FNS.map(level)).toEqual(['ok', 'watch', 'none', 'high', 'ok', 'ok'])
-  })
-
-  it('orders by complexity first, an unmeasured function last', () => {
     expect(filterFunctions(FNS, {}).map((f) => f.name)).toEqual(['leaf', 'mid', 'saveOrder', 'root', 'deep', 'other'])
     expect(filterFunctions(FNS, { sort: 'callers' })[0].name).toBe('mid')
     expect(filterFunctions(FNS, { sort: 'name' }).map((f) => f.name)).toEqual(['deep', 'leaf', 'mid', 'other', 'root', 'saveOrder'])
   })
 
-  it('filters by what it touches, its problems, its kind, its file, and functions nobody calls', () => {
+  it('filters by what a function touches, its problems, kind and file, and finds it by any words', () => {
     expect(filterFunctions(FNS, { show: 'data' }).map((f) => f.name)).toEqual(['saveOrder'])
     expect(filterFunctions(FNS, { show: 'problems' }).map((f) => f.name)).toEqual(['saveOrder'])
     expect(filterFunctions(FNS, { kind: 'hook' }).map((f) => f.name)).toEqual(['deep'])
     expect(filterFunctions(FNS, { module: 'b.ts', sort: 'name' }).map((f) => f.name)).toEqual(['leaf', 'other', 'saveOrder'])
     // nobody calls root and other; deep is exported, so something outside the file may
     expect(filterFunctions(FNS, { show: 'unused', sort: 'name' }).map((f) => f.name)).toEqual(['other', 'root'])
-  })
-
-  it('finds a function by its name, file or the table it writes, every word in any order', () => {
     expect(filterFunctions(FNS, { q: 'orders' }).map((f) => f.name)).toEqual(['saveOrder'])
     expect(filterFunctions(FNS, { q: 'B.TS leaf' }).map((f) => f.name)).toEqual(['leaf'])
     expect(searchText(FNS[4])).toContain('orders')
   })
-
-  it('draws two steps around a function and counts what it cuts', () => {
+  it('draws two steps around a function, counts what it cuts and opens the most complex neighbour first', () => {
     const g = callGraph(BY_ID.get('a.ts#mid')!, BY_ID)
     expect(g.callers.map((f) => f.name)).toEqual(['root', 'other'])
     expect(g.callees.map((f) => f.name)).toEqual(['leaf', 'saveOrder'])
@@ -53,9 +46,6 @@ describe('the function explorer reads functions.json and invents nothing', () =>
     expect(g.callers2).toEqual([])
     const small = callGraph(BY_ID.get('a.ts#mid')!, BY_ID, 1)
     expect(small.more).toEqual({ callers: 1, callees: 1, far: 0 })
-  })
-
-  it('opens the most complex neighbour first, and shortens a qualified name', () => {
     expect(riskiestNeighbour(BY_ID.get('a.ts#mid')!, BY_ID)?.name).toBe('leaf')
     expect(shortName({ name: 'OrdersPage.handleSave' })).toBe('handleSave')
     expect(shortName({ name: 'Program::Main' })).toBe('Main')

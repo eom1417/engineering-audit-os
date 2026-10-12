@@ -29,9 +29,7 @@ class DeclarationLineTests(Workspace):
                  (manifests.DOCKER, 'CMD ["python", "app.py"]')]
         for pattern, declaration in cases:
             self.assertEqual(line_of(pattern, 'first = 1\n\n\n' + declaration + '\n'), 4, pattern.pattern)
-
-    def test_every_multiline_pattern_starts_within_its_own_line(self):
-        """`^\\s*` under re.M crosses newlines, so the match starts on the blank line before the declaration."""
+        # `^\s*` under re.M crosses newlines, so the match would start on the blank line before the declaration.
         root = Path(domain.__file__).resolve().parent
         offenders = []
         for path in sorted(root.rglob('*.py')):

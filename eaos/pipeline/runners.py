@@ -62,12 +62,6 @@ def engines(context):
     return {'findings': external_entry['facts']}
 
 
-def verify(context):
-    if not context.test_command:
-        raise SkipStage('no test command was given, so nothing was executed', code='no_test_command')
-    from ..verify import run
-    result = run(context.target, context.out, command=context.test_command, execute=True)
-    return {'covered_files': result.get('covered_files'), 'command': context.test_command}
 
 
 NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
@@ -155,17 +149,6 @@ def screens(context):
             'lighthouse': (speed.get('scores') or {}).get('performance')}
 
 
-def journeys(context):
-    """Each feature's pages walked once more with the trace on and rrweb recording (eaos/behavior_lock.py run_journeys)."""
-    runtime = _live(context)
-    plan = json.loads((context.out / 'behavior-lock/plan.json').read_text(encoding='utf-8')) \
-        if (context.out / 'behavior-lock/plan.json').is_file() else {}
-    if not any(spec.get('tool') == 'playwright' for spec in plan.get('specs') or []):
-        raise SkipStage('the lock has no page to walk through', code='no_pages')
-    from ..behavior_lock import run_journeys
-    result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys')
-    _keep(context, 'journeys.json', result)
-    return {'specs': result['specs'], 'traces': len(result['traces']), 'recordings': len(result['recordings'])}
 
 
 def crawl(context):
@@ -195,7 +178,7 @@ def baseline(context):
     if not (profile.get('baseline') or {}).get('verified'):
         raise SkipStage('the production build of the app did not start in the isolated copy, so its speed was not measured',
                         code='no_production_run')
-    from ..emit.nfr import write as scenarios
+    from ..nfr import write as scenarios
     from ..runtime_baseline import run_baseline
     scenarios(context.out)
     if not list((context.out / 'nfr/k6').glob('*.js')):
@@ -206,21 +189,6 @@ def baseline(context):
             'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
 
 
-def architecture(context):
-    """The city and the clusters of the code (eaos/engines/architecture.py), and how many findings the two dependency
-    engines already gave, in architecture/map.json."""
-    from ..engines.architecture import city, clusters
-    from ..facts.store import read_set
-    from ..workspace import write
-    folder = context.out / 'architecture'
-    drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}
-    if all(row['status'] != 'observed' for row in drawn.values()):
-        raise SkipStage('; '.join(row.get('reason', '') for row in drawn.values())[:300], code='no_architecture_map')
-    try: external = read_set(context.out, 'external').get('facts') or []
-    except (OSError, ValueError): external = []
-    engines = {name: sum((f.get('value') or {}).get('engine') == name for f in external) for name in ('dependency-cruiser', 'gitnexus')}
-    write(folder / 'map.json', {'schema_version': 1, **drawn, 'dependency_findings': engines})
-    return {name: row['status'] for name, row in drawn.items()}
 
 
 def policy(context):
@@ -253,7 +221,7 @@ NO_ASSISTANT = 'no assistant was installed or allowed for this check, so the rul
 
 
 def _absent(provider):
-    """SkipStage for an AI stage without its assistant: the reason the provider carries (eaos/runtime/readiness.py
+    """SkipStage for an AI stage without its assistant: the reason the provider carries (eaos/assistants/readiness.py
     NoAssistant: the person said no, the assistant is not signed in, ...), else nobody allowed one."""
     code = getattr(provider, 'code', None)
     return SkipStage(provider.reason, code=code) if code else SkipStage(NO_ASSISTANT, code='no_provider')
@@ -264,7 +232,7 @@ def _lost(context, problem, code):
     longer ready gives its own reason (signed out during the check, its limit reached); else `problem` and `code`."""
     name = (getattr(context.provider, 'config', None) or {}).get('assistant')
     if name:
-        from ..runtime import readiness
+        from ..assistants import readiness
         try: found = readiness.probe(name, fresh=True)
         except Exception: found = {'ready': True}
         if not found['ready']:
@@ -275,7 +243,7 @@ def _lost(context, problem, code):
 def semantic(context):
     if not context.provider:
         raise _absent(context.provider)
-    from ..runtime.provider import Stuck
+    from ..assistants.command import Stuck
     from ..semantic import run
     from ..views import refresh
     try: result = run(context.target, context.out, context.provider, language=context.language)
@@ -345,21 +313,8 @@ def load(context):
             'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
 
 
-def sustainability(context):
-    from ..sustainability import render
-    render(context.out, language=context.language)
-    return {}
 
 
-def transform(context):
-    from ..transform_plan import build, render
-    from ..guarantee import record_predictions
-    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
-    plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
-    render(context.out, plan, language=context.language)
-    predictions = record_predictions(context.out, plan)
-    return {'moves': len(plan.get('stages', plan.get('moves', []))),
-            'predictions': predictions['recorded'], 'predictions_skipped': predictions['skipped']}
 
 
 def plan(context):
@@ -377,24 +332,15 @@ def lock(context):
 
 
 def reports(context):
+    # The C4 diagrams first: CURRENT-STATE and TARGET-STATE embed them.
+    from ..c4 import write as diagrams
     from ..compose.four_reports import write
+    diagrams(context.out)
     return write(context.out, context.language)
 
 
-def quality(context):
-    from ..report_quality import check
-    from ..engines.process import which
-    if not (which('vale') or which('markdownlint-cli2')):
-        raise SkipStage('neither Vale nor markdownlint-cli2 is installed', code='no_report_linters')
-    record = check(context.out)
-    return {'reports': len(record['reports']), 'passing': record['passing']}
 
 
-def pdf(context):
-    from ..compose.pdf import available, write
-    reason = available(context.language)
-    if reason: raise SkipStage(reason, code='pdf_unavailable')
-    return {'pages': write(context.out, context.language)}
 
 
 def measure(context):
@@ -408,61 +354,13 @@ def intake(context):
     return {'answered': sum(q['status'] == 'answered' for q in record['questions']), 'scenarios': len(record['scenarios'])}
 
 
-def compose(context):
-    from .. import progress
-    from ..compose.gallery import write as gallery
-    from ..compose.product_report import render
-    from ..human_report import write as human_page
-    from ..start_here import start_here
-    from ..studio.export import export as studio
-    from ..workspace import read
-    name = Path(context.target).name
-    writers = (lambda: render(context.out, read(context.out / 'dossier.json'), context.language),
-               lambda: human_page(context.out, context.language, name),
-               lambda: studio(context.out, context.language, name, context.target),
-               lambda: start_here(context.out, context.language, name),
-               lambda: gallery(context.out, context.language))
-    for done, write in enumerate(writers):
-        progress.count('artifacts', done, len(writers))
-        write()
-    progress.count('artifacts', len(writers), len(writers))
-    return {}
 
 
-def execution_guide(context):
-    from ..execution_guide import render
-    return render(context.out, language=context.language)
 
 
-def site(context):
-    if not context.site:
-        raise SkipStage('the site was turned off for this run', code='site_off')
-    from ..site import build
-    result = build(context.out)
-    return {'bytes': result.get('bytes')}
 
 
-def emit(context):
-    from ..emit import emit as run
-    written, rows = run(context.out, validate=True)
-    if not written:
-        raise SkipStage('no emitter applies', code='no_emitter')
-    return {'files': len(written), 'accepted': sum(1 for row in rows if row['ok'])}
 
-
-def validate(context):
-    from ..compose.rules import validate as check
-    from ..workspace import read
-    from .report import document
-    # RUN.md is written first so the contract checker judges it like any other artifact.
-    manifest = read(context.out / 'run-manifest.json') if (context.out / 'run-manifest.json').is_file() else None
-    (context.out / 'RUN.md').write_text(document(manifest or context['manifest_so_far'],
-                                                 context.language).render(), encoding='utf-8')
-    from ..dossier import write_verdict
-    dossier = read(context.out / 'dossier.json')
-    violations = check(context.out, dossier)
-    write_verdict(context.out, dossier, violations, target=str(context.target))
-    return {'violations': len(violations)}
 
 
 
@@ -516,11 +414,10 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'setup': setup, 'architecture': architecture, 'journeys': journeys, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
-           'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
-           'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
-           'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
-           'compose': compose, 'emit': emit, 'site': site, 'validate': validate}
+RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
+           'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports,
+           'engines': engines, 'policy': policy, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic,
+           'plan': plan}
 
 
 def target(context):
@@ -584,17 +481,9 @@ def steps(context):
     return {'steps': len(record['steps']), 'decided_by': record['source']}
 
 
-def executive(context):
-    from ..executive import render
-    # The transform stage wrote this run's plan; building it again took as long as that stage (45 s on EAOS itself).
-    plan = json.loads((context.out / 'transform-plan.json').read_text(encoding='utf-8'))
-    return render(context.out, language=context.language, transform_plan=plan)
 
 
-def bundles(context):
-    from ..bundles import build
-    return build(context.out, language=context.language)
 
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
-RUNNERS.update(executive=executive, bundles=bundles, ideal=ideal, triage=triage, visual=visual, order=order)
+RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)

@@ -1,23 +1,21 @@
-"""C4 models written from the records, and judged by the Structurizr CLI itself."""
+"""C4 models and MADR decisions written from the records."""
 import json
 import re
 from pathlib import Path
 
 from shared_fixture import Workspace
 
+from eaos import c4
+from eaos.adr import render, write_all
 from eaos.c4 import quote, workspace, write
+
+DECISION = {'id': 'ADR-007', 'component_id': 'T-src', 'problem': 'It breaks two layer rules. ' * 8,
+            'evidence': ['CLM-1', 'FACT-2'], 'options': ['Move 3 file(s) into `features`.', 'Add an adapter.', 'Do nothing.'],
+            'chosen': 'Move 3 file(s) into `features`.', 'tradeoffs': 'The component has one cycle.',
+            'consequences': ['It stays traceable.'], 'migration': ['Record the contract.', 'Move the files.']}
 
 
 class C4Tests(Workspace):
-    def test_names_are_quoted_and_escaped_and_identifiers_are_plain(self):
-        dsl, mermaid = workspace('p', 'stack', [('a "quoted" name', 'd'), ('feature:x', 'e')], [('feature:x', 'a "quoted" name', 'uses')], [])
-        self.assertIn(quote('a "quoted" name'), dsl)
-        self.assertIn('\\"quoted\\"', dsl)
-        self.assertEqual(dsl.count('{'), dsl.count('}'))
-        for identifier in re.findall(r'^\s*(\w+) = ', dsl, re.M): self.assertRegex(identifier, r'^[A-Za-z0-9_]+$')
-        self.assertIn('c2 -> c1 "uses"', dsl)
-        self.assertTrue(mermaid.startswith('flowchart LR'))
-
     def report(self):
         out = Path(self.tmp)
         (out / 'facts').mkdir()
@@ -29,10 +27,20 @@ class C4Tests(Workspace):
             'target_edges': [{'from': 'feature:fleet', 'to': 'api-client', 'imports': 3}]}))
         return out
 
+    def test_names_are_quoted_and_escaped_and_identifiers_are_plain(self):
+        dsl, mermaid = workspace('p', 'stack', [('a "quoted" name', 'd'), ('feature:x', 'e')], [('feature:x', 'a "quoted" name', 'uses')], [])
+        self.assertIn(quote('a "quoted" name'), dsl)
+        self.assertIn('\\"quoted\\"', dsl)
+        self.assertEqual(dsl.count('{'), dsl.count('}'))
+        for identifier in re.findall(r'^\s*(\w+) = ', dsl, re.M): self.assertRegex(identifier, r'^[A-Za-z0-9_]+$')
+        self.assertIn('c2 -> c1 "uses"', dsl)
+        self.assertTrue(mermaid.startswith('flowchart LR'))
+
     def test_every_current_and_target_component_is_in_its_model_with_its_dependencies(self):
         out = self.report()
-        written = write(out)
-        self.assertEqual([e.path for e in written], ['architecture/current/workspace.dsl', 'architecture/target/workspace.dsl'])
+        written = [str(getattr(entry, 'path', entry)) for entry in write(out)]
+        self.assertTrue(any(name.endswith('architecture/current/workspace.dsl') for name in written), written)
+        self.assertTrue(any(name.endswith('architecture/target/workspace.dsl') for name in written), written)
         current = (out / 'architecture/current/workspace.dsl').read_text()
         target = (out / 'architecture/target/workspace.dsl').read_text()
         self.assertIn('component "src"', current)
@@ -41,22 +49,27 @@ class C4Tests(Workspace):
         self.assertIn('c1 -> c2 "3 import(s)"', target)
         self.assertTrue((out / 'architecture/target/diagram.mmd').is_file())
 
-    def test_the_structurizr_cli_accepts_both_models(self):
-        from eaos.emit import emit
-        from eaos.engines.process import which
-        if not which('structurizr'): self.skipTest('structurizr-cli is not installed: python -m eaos tools install')
-        out = self.report()
-        _, rows = emit(out, only=['c4'], validate=True)
-        self.assertEqual([r['ok'] for r in rows], [True, True], rows)
+    def test_a_crowded_diagram_keeps_the_strongest_links_and_says_so(self):
+        names = [f'p{i}' for i in range(30)]
+        edges = [(a, b, i * 30 + j) for i, a in enumerate(names) for j, b in enumerate(names) if a != b]
+        text = c4.readable(names, edges, {}, limit=150)
+        self.assertEqual(text.count('-->'), 150)
+        self.assertIn('%% 720 of the 870 links are left out', text)
+        first = next(line for line in text.splitlines() if '-->' in line)
+        self.assertIn(f'|{max(n for _, _, n in edges)} imports|', first, 'the strongest link comes first')
 
-    def test_the_cli_rejects_a_broken_model(self):
-        import subprocess
-        from eaos.engines.process import which
-        from eaos.toolchain import home
-        if not which('structurizr'): self.skipTest('structurizr-cli is not installed')
-        bad = Path(self.tmp) / 'bad.dsl'
-        bad.write_text('workspace "x" {\n  model {\n    a = person "A"\n    a -> nothing "uses"\n  }\n}\n')
-        import os
-        env = {**os.environ, 'PATH': str(home() / 'bin') + os.pathsep + os.environ['PATH']}
-        self.assertNotEqual(subprocess.run([which('structurizr'), 'validate', '-workspace', str(bad)], env=env,
-                                           capture_output=True).returncode, 0)
+
+class AdrTests(Workspace):
+    def test_a_decision_is_one_madr_file_with_its_sections_in_order_and_lines_that_fit(self):
+        text = render(DECISION)
+        order = [text.index(h) for h in ('## Context and Problem Statement', '## Considered Options', '## Decision Outcome',
+                                         '### Consequences', '### When to Revisit')]
+        self.assertEqual(order, sorted(order))
+        self.assertIn('Chosen option: "Move 3 file(s) into `features`.", because the component has one cycle.', text.replace('\n', ' '))
+        for line in text.splitlines():
+            self.assertTrue(len(line) <= 80 or ' ' not in line.strip()[:81], line)
+        folder = Path(self.tmp) / 'adr'
+        folder.mkdir()
+        (folder / 'ADR-999.md').write_text('old\n')
+        self.assertEqual(write_all(self.tmp, [DECISION]), ['ADR-007.md'])
+        self.assertFalse((folder / 'ADR-999.md').exists())

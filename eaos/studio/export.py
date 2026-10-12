@@ -23,7 +23,6 @@ from . import change as change_map
 from . import coverage as coverage_section
 from . import history as history_section
 from . import library as library_section
-from . import quality as quality_section
 from . import hidden as hidden_map
 from . import journeys as journeys_map
 from . import data_paths as data_map
@@ -40,7 +39,7 @@ from . import system as system_map
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('functions', 'screens', 'history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations', 'library')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('functions', 'screens', 'history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations', 'library')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 LANGUAGES_SHOWN = ('ar', 'en')     # the Studio's two languages: a sentence written for both, shown in the person's
@@ -257,21 +256,13 @@ def story(report, m, card_rows):
         gap.append({'component': comp.get('name') or row.get('current_origin') or row.get('component') or '', 'relation': relation,
                     'to': row.get('target_component'), 'files': comp.get('files') or 0, 'cards': tasks,
                     'closed': sum(t in closed for t in tasks)})
-    sustain = M._load(Path(report) / 'sustainability.json', {}) or {}
-    predicted = (M._load(Path(report) / 'predictions.json', {}) or {}).get('predictions') or []
-    after = ((predicted[-1].get('prediction') or {}).get('after') or {}) if predicted else {}
-    rows = [{'id': r['indicator'], 'name': r['indicator'],
-             'today': measure(r.get('value') if r.get('measured') else None, f"sustainability.json#rows[{r['indicator']}].value"),
-             'expected': measure(after.get(r['indicator']), f"predictions.json#predictions[-1].prediction.after.{r['indicator']}"),
-             'target': measure(r.get('target'), f"sustainability.json#rows[{r['indicator']}].target")}
-            for r in sustain.get('rows') or [] if isinstance(r, dict) and r.get('indicator')]
     return {'current': {'summary': str(target.get('retained_structure') or '')[:600],
                         'components': [{'name': c.get('name') or c.get('id') or '', 'layer': c.get('kind'), 'files': c.get('files') or 0}
                                        for c in current.values()]},
             'target': {'summary': str(target.get('limits') or '')[:600],
                        'components': [{'name': c.get('name') or '', 'responsibility': c.get('responsibility') or '', 'layer': c.get('layer')}
                                       for c in target.get('target_components') or [] if isinstance(c, dict)]},
-            'gap': gap, 'indicators': rows}
+            'gap': gap, 'indicators': []}
 
 
 def plans(m, card_rows, lang):
@@ -401,8 +392,6 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
     attempt('history', lambda: history_section.history(scan, m['score']['score'], card_rows, (progress or {}).get('ledger'),
                                                        (progress or {}).get('waves') or ()))
-    attempt('quality', lambda: quality_section.quality(report, m['dossier'], name or Path(str(project or report)).name, lang))
-    if built.get('quality', False) is None: built.pop('quality')     # this EAOS carries no quality record
     if 'docs' in built and 'media' in built:
         attempt('library', lambda: library_section.library(report, built['docs'], built['media'], project))
     if built.get('pipeline', False) is None: built.pop('pipeline')   # the check wrote no facts/pipeline.json

@@ -4,6 +4,7 @@ import os
 import socket
 import subprocess
 import sys
+import time
 from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
@@ -24,9 +25,13 @@ class SandboxTests(Workspace):
         self.project.mkdir()
         (self.project / 'app.py').write_text('print("app")\n')
         git(self.project, 'init', '-q'); git(self.project, 'add', '.')
-        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'app')
+        self.commit('app')
         self.grant = Path(self.tmp) / 'authorization.json'
         self.write_grant()
+
+    def commit(self, message):
+        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam' if message != 'app' else '-qm', message)
+        return git(self.project, 'rev-parse', 'HEAD')
 
     def write_grant(self, **change):
         record = {'schema_version': 1, 'project': 'p', 'commit': git(self.project, 'rev-parse', 'HEAD'),
@@ -37,65 +42,77 @@ class SandboxTests(Workspace):
     def box(self):
         return sandbox.Sandbox(self.project, self.grant, Path(self.tmp) / 'work', 'S05')
 
-    def test_a_date_grant_is_valid_through_that_whole_day(self):
+    def record(self):
+        return json.loads((Path(self.tmp) / 'work/sandbox-run.json').read_text())
+
+    def test_the_grant_holds_through_its_day_for_its_commit_and_a_descendant_only_from_s08(self):
         self.assertEqual(sandbox.refusal(self.grant, 'S05'), '')
         self.write_grant(expires=(date.today() - timedelta(days=1)).isoformat())
         self.assertIn('expired', sandbox.refusal(self.grant, 'S05'))
-
-    def test_a_grant_for_another_commit_is_refused(self):
+        self.write_grant(stages=['S05', 'S08'])
         (self.project / 'app.py').write_text('print("changed")\n')
-        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'change')
+        head = self.commit('candidate')
         with self.assertRaisesRegex(sandbox.AuthorizationError, 'granted for commit'):
             self.box()
+        self.assertEqual(sandbox.refusal(self.grant, 'S08', head, self.project), '')
+        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S05', head, self.project))
+        self.write_grant(stages=['S08'], commit='0' * 40)
+        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project), 'an unrelated commit')
 
-    def test_commands_run_in_a_copy_and_leave_the_project_as_it_was(self):
-        box = self.box()
-        code, _, _ = box.run([sys.executable, '-c', 'open("written.txt", "w").write("x")'])
-        self.assertEqual(code, 0)
-        self.assertTrue((box.copy / 'written.txt').is_file())
-        self.assertFalse((self.project / 'written.txt').exists())
-
-    def test_the_copy_is_the_authorised_commit_without_any_env_file(self):
+    def test_the_copy_is_the_authorised_commit_without_env_files_or_unallowed_secrets_and_the_project_stays_as_it_was(self):
         (self.project / '.gitignore').write_text('.env\n')
         (self.project / '.env.example').write_text('DATABASE_URL=\n')
         (self.project / 'config').mkdir()
         (self.project / 'config/.env.production').write_text('DATABASE_URL=postgres://prod\n')
-        git(self.project, 'add', '-A'); git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'env')
+        git(self.project, 'add', '-A'); self.commit('env')
         self.write_grant()
         (self.project / '.env').write_text('DATABASE_URL=postgres://real-production\n')     # ignored, real
         (self.project / 'app.py').write_text('print("unsaved edit")\n')                        # not committed
-        copy = self.box().copy
+        box = self.box()
+        copy = box.copy
         self.assertFalse((copy / '.env').exists(), 'the real .env never reaches the copy')
         self.assertFalse((copy / 'config/.env.production').exists(), 'a committed .env is removed too')
         self.assertTrue((copy / '.env.example').is_file())
         self.assertEqual((copy / 'app.py').read_text(), 'print("app")\n', 'the copy is the commit, not the working folder')
+        code, out, _ = box.run([sys.executable, '-c', 'import os; open("written.txt", "w").write("x"); print(os.getcwd())'], cwd='.')
+        self.assertEqual(code, 0)
+        self.assertEqual(Path(out.strip()).resolve(), copy.resolve())
+        self.assertTrue((copy / 'written.txt').is_file())
+        self.assertFalse((self.project / 'written.txt').exists())
+        with self.assertRaises(sandbox.AuthorizationError):
+            box.run(['true'], cwd='../../')
+        with mock.patch.dict(os.environ, {'OWNER_SECRET_TOKEN': 'do-not-leak'}):
+            env = self.box().environment({'DATABASE_URL': 'postgres://local'})
+        self.assertEqual(env['DATABASE_URL'], 'postgres://local')
+        self.assertNotIn('OWNER_SECRET_TOKEN', env)
 
-    def test_a_service_that_stops_says_why_in_the_error(self):
-        with self.assertRaisesRegex(RuntimeError, 'APP_URL must be an https'):
-            self.box().start([sys.executable, '-c', 'import sys; print("APP_URL must be an https address"); sys.exit(1)'], 9, '/')
-
-    def test_a_command_has_no_network_where_the_kernel_allows_it(self):
+    def test_network_is_cut_where_the_kernel_allows_it_and_the_record_says_when_it_is_not(self):
         box = self.box()
-        if not box.offline: self.skipTest('unshare -rn is not allowed here; the record says network not isolated')
-        listener = socket.socket(); listener.bind(('127.0.0.1', 0)); listener.listen(1)
-        port = listener.getsockname()[1]
-        try:
-            code, _, _ = box.run([sys.executable, '-c', f'import socket; socket.create_connection(("127.0.0.1", {port}), 2)'])
-        finally:
-            listener.close()
-        self.assertNotEqual(code, 0)
-        record = json.loads((Path(self.tmp) / 'work/sandbox-run.json').read_text())
-        self.assertEqual(record['backend'], 'unshare')
-
-    def test_without_network_isolation_the_record_says_so(self):
+        if box.offline:
+            listener = socket.socket(); listener.bind(('127.0.0.1', 0)); listener.listen(1)
+            port = listener.getsockname()[1]
+            try:
+                code, _, _ = box.run([sys.executable, '-c', f'import socket; socket.create_connection(("127.0.0.1", {port}), 2)'])
+            finally:
+                listener.close()
+            self.assertNotEqual(code, 0)
+            self.assertEqual(self.record()['backend'], 'unshare')
         with mock.patch.object(sandbox, '_network_isolation', return_value=()):
             box = self.box()
         box.run([sys.executable, '-c', 'pass'])
-        record = json.loads((Path(self.tmp) / 'work/sandbox-run.json').read_text())
-        self.assertEqual(record['backend'], 'process')
-        self.assertIn('network not isolated', record['limitations'])
+        self.assertEqual(self.record()['backend'], 'process')
+        self.assertIn('network not isolated', self.record()['limitations'])
 
-    def test_a_timeout_kills_the_whole_process_group(self):
+    def test_a_service_that_stops_says_why_and_the_record_keeps_its_exit(self):
+        with self.assertRaisesRegex(RuntimeError, 'APP_URL must be an https'):
+            self.box().start([sys.executable, '-c', 'import sys; print("APP_URL must be an https address"); sys.exit(1)'], 9, '/')
+        with self.assertRaisesRegex(RuntimeError, 'exited with 3 before answering'):
+            self.box().start([sys.executable, '-c', 'raise SystemExit(3)'], 9, '/health', timeout=10)
+        record = self.record()
+        self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
+        self.assertEqual(record['commands'][-1]['exit'], 3)
+
+    def test_a_timeout_kills_the_whole_process_group_and_dispose_keeps_only_the_record(self):
         box = self.box()
         marker = Path(self.tmp) / 'child.pid'
         script = (f'import subprocess, sys, time; p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"]); '
@@ -107,58 +124,9 @@ class SandboxTests(Workspace):
         with self.assertRaises(ProcessLookupError):
             for _ in range(50):
                 os.kill(child, 0)
-                __import__('time').sleep(0.1)
-
-    def test_a_started_service_keeps_the_network_and_the_record_says_so(self):
-        box = self.box()
-        with self.assertRaisesRegex(RuntimeError, 'exited with 3 before answering'):
-            box.start([sys.executable, '-c', 'raise SystemExit(3)'], 9, '/health', timeout=10)
-        record = json.loads((Path(self.tmp) / 'work/sandbox-run.json').read_text())
-        self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
-        self.assertEqual(record['commands'][-1]['exit'], 3)
-
-
-class SandboxEnvironmentTests(SandboxTests):
-    """What a run chose is passed; what this process holds, and was not allowed, never is."""
-
-    def test_extra_values_pass_and_an_unallowed_secret_does_not(self):
-        with mock.patch.dict(os.environ, {'OWNER_SECRET_TOKEN': 'do-not-leak'}):
-            env = self.box().environment({'DATABASE_URL': 'postgres://local'})
-        self.assertEqual(env['DATABASE_URL'], 'postgres://local')
-        self.assertNotIn('OWNER_SECRET_TOKEN', env)
-
-    def test_a_working_folder_outside_the_copy_is_refused(self):
-        box = self.box()
-        with self.assertRaises(sandbox.AuthorizationError):
-            box.run(['true'], cwd='../../')
-        code, out, _ = box.run([sys.executable, '-c', 'import os;print(os.getcwd())'], cwd='.')
-        self.assertEqual(code, 0)
-        self.assertEqual(Path(out.strip()).resolve(), box.copy.resolve())
-
-
-class SandboxDisposeTests(SandboxTests):
-    def test_a_disposed_run_leaves_its_record_but_not_its_copy(self):
-        box = self.box()
+                time.sleep(0.1)
         copy, home = box.copy, box.home
-        box.run([sys.executable, '-c', 'print(1)'])
         box.dispose()
         self.assertFalse(copy.exists())
         self.assertFalse(home.exists())
         self.assertTrue((Path(self.tmp) / 'work/sandbox-run.json').is_file())
-
-
-class DescendantTests(SandboxTests):
-    """A candidate EAOS committed on the granted commit runs from S08 on; an unrelated commit never does."""
-
-    def test_a_descendant_runs_for_execution_stages_only(self):
-        self.write_grant(stages=['S05', 'S08'])
-        (self.project / 'app.py').write_text('print("changed")\n')
-        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'candidate')
-        head = git(self.project, 'rev-parse', 'HEAD')
-        self.assertEqual(sandbox.refusal(self.grant, 'S08', head, self.project), '')
-        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S05', head, self.project))
-
-    def test_an_unrelated_commit_is_refused(self):
-        self.write_grant(stages=['S08'], commit='0' * 40)
-        head = git(self.project, 'rev-parse', 'HEAD')
-        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project))

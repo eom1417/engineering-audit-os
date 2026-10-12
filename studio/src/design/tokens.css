@@ -41,7 +41,7 @@
   [lang="en"] { --text-label: 13px; }
 }
 
-/* ---------- Semantic: light (scoped by data-theme, so a gallery frame can differ from the page) ---------- */
+/* ---------- Semantic: light (scoped by data-theme) ---------- */
 :root, [data-theme="light"] {
   color-scheme: light;
   --gray-1: #fcfcfd; --gray-2: #f8f9fa; --gray-3: #f0f1f3; --gray-4: #e8e9ec; --gray-5: #e0e1e6; --gray-6: #d8d9df;

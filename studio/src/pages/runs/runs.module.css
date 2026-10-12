@@ -22,10 +22,6 @@ li + li > .row { border-block-start: 1px solid var(--border-subtle); }
 .historyTools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .historyTools > :first-child { flex: 1 1 240px; }
 
-.demo {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 6px 6px 14px;
-  border-radius: var(--radius-8); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px;
-}
 .snapshot { padding: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .snapLead { color: var(--text-secondary); line-height: 1.55; }
 .command { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -118,10 +114,6 @@ li + li > .row { border-block-start: 1px solid var(--border-subtle); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .cardLink { display: inline-flex; align-items: center; min-block-size: 28px; padding-inline: 10px; border-radius: var(--radius-full); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px; }
 .cardLink:hover { text-decoration: underline; text-underline-offset: 3px; }
-.indicators { display: flex; flex-direction: column; }
-.indicators li { display: flex; justify-content: space-between; gap: 12px; padding-block: 6px; border-block-end: 1px solid var(--border-subtle); font-size: 14px; }
-.indName { color: var(--text-secondary); }
-.indMove { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .stat { font-family: var(--font-mono); font-size: 13px; }
 .decide { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px; }
 .outcome { font-weight: 500; color: var(--status-good-text); }

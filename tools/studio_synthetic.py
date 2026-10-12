@@ -407,10 +407,6 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
         'history': {**V2, 'scans': scans, 'events': [{'at': s['at'], 'kind': 'scan', 'title': f'Check {s["id"]}', 'ref': s['commit']} for s in scans],
                     'progress': [{'at': s['at'], 'event': 'recheck' if n else 'baseline', 'closed': min(cards, 25 * n), 'total': cards,
                                   'percent': round(min(cards, 25 * n) / cards, 4), 'commit': s['commit']} for n, s in enumerate(scans)]},
-        'quality': {**V2, 'detectors': [{'id': f'{k}', 'name': k, 'engine': None, 'applies': True, 'precision': ratio(0.9, 'synthetic'),
-                                         'recall': ratio(None, 'not measured'), 'labelled': None} for k in KINDS],
-                    'capabilities': [{'id': 'C2', 'name': 'Current state', 'value': ratio(0.6, 'synthetic')}],
-                    'indicators': [{'id': 'S1', 'name': 'S1', 'value': ratio(0.88, 'synthetic'), 'target': 0.8}]},
     }
     sections['paths'] = synthetic_paths(comps, layer, modules, card_rows)
     sections.update(maps(comps, layer, card_rows))

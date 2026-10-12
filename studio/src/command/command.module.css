@@ -84,7 +84,6 @@ li.stepRow { grid-template-columns: auto 48px minmax(0, 1fr) auto; align-items: 
 .pvMuted { color: var(--text-tertiary); font-size: 13px; }
 .pvNote { font-size: 13px; color: var(--text-secondary); padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); }
 .pvWarn { font-size: 14px; font-weight: 500; color: var(--status-critical-text); padding: 10px 12px; border-radius: var(--radius-8); background: var(--status-critical-subtle); }
-.demoNote { font-size: 13px; color: var(--accent-text); padding: 8px 12px; border-radius: var(--radius-8); background: var(--accent-subtle); }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .facts > div { display: flex; flex-direction: column-reverse; gap: 2px; padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); }
 .facts dt { font-size: 12px; color: var(--text-tertiary); }

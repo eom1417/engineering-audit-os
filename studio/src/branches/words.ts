@@ -174,8 +174,6 @@ export const BRANCH_WORDS = {
   branchChip: ['فرع التحليل: {b}', 'Analysis branch: {b}'],
 } as const satisfies Record<string, readonly [string, string]>
 
-export type BranchWord = keyof typeof BRANCH_WORDS
-
 export function useBranchWords() {
   return useWordTable(BRANCH_WORDS)
 }

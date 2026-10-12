@@ -11,7 +11,6 @@ export const SCREEN_WORDS = {
   notCapturedSub: ['التصوير يشغّل تطبيقك في نسخة منفصلة، فيحتاج موافقتك مرة واحدة. حتى ذلك الحين تظهر هنا كل شاشة بمسارها وملفها.', 'Capturing runs your app in a separate copy, so it needs your agreement once. Until then every screen shows here with its route and its file.'],
   askCapture: ['اطلب من المساعد تشغيل التطبيق وتصوير الشاشات', 'Ask the assistant to run the app and capture the screens'],
   captureRequest: ['شغّل تطبيقي في نسخة منفصلة بأداة run_setup من EAOS، ثم صوّر كل شاشاته.', 'Run my app in a separate copy with the EAOS run_setup tool, then capture every screen.'],
-  byStep: ['تأتي بها الخطوة', 'Comes with step'],
   filter: ['أي الشاشات', 'Which screens'],
   filter_all: ['الكل', 'All'],
   filter_issues: ['عليها مشاكل', 'With issues'],

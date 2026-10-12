@@ -78,7 +78,6 @@ export interface Journeys {
 }
 
 export type HiddenGroupId = 'triggers' | 'screens' | 'server' | 'writes' | 'outside' | 'config' | 'build' | 'dead'
-export const HIDDEN_GROUPS: HiddenGroupId[] = ['triggers', 'screens', 'server', 'writes', 'outside', 'config', 'build', 'dead']
 
 export interface HiddenItem {
   id: string

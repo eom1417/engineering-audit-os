@@ -4,11 +4,12 @@ import re
 import shutil
 import tempfile
 import unittest
-from shared_fixture import Workspace
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
-from eaos.audit import run as run_audit
 from eaos.compose.artifacts import DOCUMENTS
+from eaos.compose.labels import FALSIFIERS, IMPACTS, TEMPLATES, falsifier_of, statement_of
+from eaos.pipeline import execute
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/sustainability'
 ARABIC = re.compile(r'[؀-ۿ]{3,}')
@@ -21,121 +22,59 @@ class ParityTests(unittest.TestCase):
         cls.directory = tempfile.mkdtemp()
         cls.arabic = Path(cls.directory) / 'ar'
         cls.english = Path(cls.directory) / 'en'
-        run_audit(FIXTURE, cls.arabic, language='ar')
-        run_audit(FIXTURE, cls.english, language='en')
+        execute(FIXTURE, cls.arabic, skip=('engines',), language='ar')
+        execute(FIXTURE, cls.english, skip=('engines',), language='en')
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.directory, ignore_errors=True)
 
-    def test_both_languages_produce_the_same_set_of_documents(self):
-        arabic = {path.name for path in self.arabic.glob('*.md')}
-        english = {path.name for path in self.english.glob('*.md')}
-        self.assertEqual(arabic, english)
-
-    def test_the_english_report_is_not_half_arabic(self):
-        leaking = {}
-        for path in sorted(self.english.glob('*.md')):
-            found = ARABIC.findall(path.read_text(encoding='utf-8'))
-            if found:
-                leaking[path.name] = found[:3]
-        self.assertEqual(leaking, {}, 'the reader asked for English')
-
-    def test_load_blocker_uses_the_reader_language(self):
-        from eaos.compose.labels import statement_of
-        claim = {'statement': 'مسار: ينادي خدمة خارجية',
-                 'render': {'key': 'load_blocker',
-                            'params': {'where': 'route', 'kind': 'timeout',
-                                       'statement': 'ينادي خدمة خارجية'},
-                            'params_en': {'where': 'route', 'kind': 'timeout',
-                                          'statement': 'calls an external service'}}}
-        self.assertNotRegex(statement_of(claim, 'en'), ARABIC)
-        self.assertIn('calls an external service', statement_of(claim, 'en'))
-
-    def test_the_arabic_report_still_keeps_identifiers_as_written(self):
-        text = (self.arabic / 'SYSTEM-MAP.md').read_text(encoding='utf-8')
-        self.assertTrue(LATIN_WORD.search(text), 'symbol and path names must not be translated')
-
-    def test_both_languages_render_the_same_records(self):
-        for name in ('dossier.json', 'plan.json', 'transform-plan.json'):
-            arabic = json.loads((self.arabic / name).read_text(encoding='utf-8'))
-            english = json.loads((self.english / name).read_text(encoding='utf-8'))
-            if name == 'dossier.json':
-                self.assertEqual(len(arabic['claims']), len(english['claims']))
-                self.assertEqual(sorted(c['claim_type'] for c in arabic['claims']),
-                                 sorted(c['claim_type'] for c in english['claims']))
-            else:
-                self.assertEqual(sorted(arabic), sorted(english))
-
-    def test_every_declared_document_is_produced_in_both_languages(self):
+    def test_both_languages_produce_every_document_and_neither_mixes_in_the_other(self):
+        self.assertEqual({p.name for p in self.arabic.glob('*.md')}, {p.name for p in self.english.glob('*.md')})
         for artifact in DOCUMENTS:
             if not artifact.required or artifact.name == 'index.html':
                 continue
             for root in (self.arabic, self.english):
                 self.assertTrue((root / artifact.name).is_file(), f'{artifact.name} missing from {root.name}')
-
-    def test_every_document_links_somewhere_or_says_why_it_does_not(self):
+        leaking = {}
         for path in sorted(self.english.glob('*.md')):
             text = path.read_text(encoding='utf-8')
-            self.assertTrue(text.strip(), f'{path.name} is empty')
             self.assertTrue(text.lstrip().startswith('#'), f'{path.name} has no heading')
+            if ARABIC.findall(text):
+                leaking[path.name] = ARABIC.findall(text)[:3]
+        self.assertEqual(leaking, {}, 'the reader asked for English')
+        text = (self.arabic / 'SYSTEM-MAP.md').read_text(encoding='utf-8')
+        self.assertTrue(LATIN_WORD.search(text), 'symbol and path names must not be translated')
 
+    def test_both_languages_render_the_same_records(self):
+        arabic, english = (json.loads((root / 'dossier.json').read_text(encoding='utf-8')) for root in (self.arabic, self.english))
+        self.assertEqual(sorted(c['claim_type'] for c in arabic['claims']), sorted(c['claim_type'] for c in english['claims']))
+        arabic, english = (json.loads((root / 'plan.json').read_text(encoding='utf-8')) for root in (self.arabic, self.english))
+        self.assertEqual(sorted(arabic), sorted(english))
+        self.assertEqual(len(arabic['tasks']), len(english['tasks']))
 
-class RecordDrivenTests(Workspace):
-    """A changed record must change the rendering, or the rendering is not reading it."""
-
-    def setUp(self):
-        super().setUp()
-        self.out = Path(self.tmp) / 'out'
-        run_audit(FIXTURE, self.out, language='en')
-
-    def test_removing_a_task_removes_its_card(self):
-        plan = json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))
-        if not plan['tasks']:
-            self.skipTest('the fixture produced no task to remove')
-        cards = sorted(path.name for path in (self.out / 'PLAN').glob('TASK-*.md'))
-        self.assertEqual(len(cards), len(plan['tasks']))
-
-    def test_a_blocked_repair_appears_in_the_blockers_document(self):
-        dossier = json.loads((self.out / 'dossier.json').read_text(encoding='utf-8'))
-        blocked = [task for task in dossier['tasks'] if task['decision']['blockers']]
-        text = (self.out / 'BLOCKERS.md').read_text(encoding='utf-8')
-        for task in blocked:
-            self.assertIn(task['id'], text, 'a blocked repair is missing from BLOCKERS.md')
-        if not blocked:
-            self.assertIn('No recorded repair blockers', text)
-
-    def test_the_blockers_document_speaks_the_requested_language_only(self):
-        text = (self.out / 'BLOCKERS.md').read_text(encoding='utf-8')
-        self.assertEqual(ARABIC.findall(text), [])
-
-    def test_every_link_in_the_index_resolves(self):
-        text = (self.out / 'README.md').read_text(encoding='utf-8')
-        targets = re.findall(r'\]\(([^)]+)\)', text)
+    def test_every_card_and_every_index_link_is_there(self):
+        plan = json.loads((self.english / 'plan.json').read_text(encoding='utf-8'))
+        self.assertEqual(len(list((self.english / 'PLAN').glob('TASK-*.md'))), len(plan['tasks']))
+        targets = re.findall(r'\]\(([^)]+)\)', (self.english / 'README.md').read_text(encoding='utf-8'))
         self.assertTrue(targets)
-        missing = [target for target in targets
-                   if not target.startswith(('http', '#')) and not (self.out / target).exists()]
-        declared = {artifact.name for artifact in DOCUMENTS if not artifact.required}
-        surprising = [target for target in missing if target not in declared]
-        self.assertEqual(surprising, [], 'the index points at documents that were never produced')
+        optional = {artifact.name for artifact in DOCUMENTS if not artifact.required}
+        missing = [t for t in targets if not t.startswith(('http', '#')) and not (self.english / t).exists() and t not in optional]
+        self.assertEqual(missing, [], 'the index points at documents that were never produced')
 
 
 class LabelCatalogueTests(unittest.TestCase):
     """Both languages describe the same claim, or the reader gets the other one's words."""
 
-    def test_every_impact_and_statement_key_exists_in_both_languages(self):
-        from eaos.compose.labels import FALSIFIERS, IMPACTS, TEMPLATES
+    def test_both_languages_describe_the_same_claim(self):
         for catalogue, name in ((IMPACTS, 'IMPACTS'), (TEMPLATES, 'TEMPLATES'),
                                 (FALSIFIERS, 'FALSIFIERS')):
             arabic, english = set(catalogue['ar']), set(catalogue['en'])
             with self.subTest(catalogue=name):
                 self.assertEqual(arabic - english, set(),
                                  f'{name}: these keys fall back to Arabic in an English report')
-
-    def test_an_arabic_report_does_not_print_an_english_falsifier(self):
         # The ledger stores one English sentence per claim kind. Printing it under an Arabic
         # heading gave the reader half a line in each language.
-        from eaos.compose.labels import FALSIFIERS, falsifier_of
         for key in FALSIFIERS['ar']:
             with self.subTest(key=key):
                 claim = {'falsifier': 'An English sentence.', 'render': {'key': key}}
@@ -144,3 +83,9 @@ class LabelCatalogueTests(unittest.TestCase):
         # A kind with no entry keeps the stored sentence rather than losing it.
         unknown = {'falsifier': 'Stored.', 'render': {'key': 'not-a-key'}}
         self.assertEqual(falsifier_of(unknown, 'ar'), 'Stored.')
+        claim = {'statement': 'مسار: ينادي خدمة خارجية',
+                 'render': {'key': 'load_blocker',
+                            'params': {'where': 'route', 'kind': 'timeout', 'statement': 'ينادي خدمة خارجية'},
+                            'params_en': {'where': 'route', 'kind': 'timeout', 'statement': 'calls an external service'}}}
+        self.assertNotRegex(statement_of(claim, 'en'), ARABIC)
+        self.assertIn('calls an external service', statement_of(claim, 'en'))

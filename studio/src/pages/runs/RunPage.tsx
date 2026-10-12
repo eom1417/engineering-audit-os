@@ -21,7 +21,7 @@ import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout } from '../../shell/Layout'
 import { Batches, ResultFacts, RunBranches, ScreenPairs, StateChip, Timeline } from './parts'
-import { DemoBanner, SnapshotPanel } from './RunsPage'
+import { SnapshotPanel } from './RunsPage'
 import css from './runs.module.css'
 
 function useNow(on: boolean): number {
@@ -142,7 +142,6 @@ function RunBody({ id }: { id: string }) {
 
   return (
     <div className={[layout.page, css.runPage].join(' ')}>
-      {actions.mode === 'demo' && <DemoBanner />}
       <header className={css.head}>
         <div className={css.headTop} data-run-state={state}>
           <span className={css.kicker}>{run.verb ? verbOf(run.verb).label[lang] : <Id value={run.action} />}</span>

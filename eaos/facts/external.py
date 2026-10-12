@@ -110,8 +110,20 @@ def run(target, source, out=None, only=None):
                            for kind in sorted({f['value'].get('kind') for f in facts if f['value'].get('kind')})},
                'graph_edges_without_a_finding_kind': len([f for f in facts if not f['value'].get('kind')]),
                'unmapped_rules': {name: manifest['engines'][name].get('unmapped_rules', {}) for name in present}}
+    _drop_scratch(Path(workdir) / 'engines')
     return {'facts': facts, 'input_sha': input_sha, 'summary': summary, 'available': bool(present),
             'reason': None if present else 'no external engine is installed'}
+
+
+# The engines' working folders: their indexes, caches and copies of the project. Once their findings are normalised
+# above nothing reads them, and the code index alone is 130 MB on a five-file project.
+SCRATCH = ('codegraph/index-home', 'gitnexus/copy', 'gitnexus/home', 'semgrep/rules', 'complexipy/cache', 'mirror')
+
+
+def _drop_scratch(engines):
+    import shutil
+    for part in SCRATCH:
+        shutil.rmtree(engines / part, ignore_errors=True)
 
 
 def _from_external_symbol_metrics(input_sha, metric_facts):

@@ -14,7 +14,7 @@ import { usePrefs } from '../i18n/prefs'
 import { Id, Txt } from '../i18n/text'
 import { DATA_WORDS } from '../pages/data/words'
 import { buildIndex, type Entry, type EntryKind } from '../search'
-import { visibleSections } from './sections'
+import { SECTIONS } from './sections'
 import css from './Palette.module.css'
 
 const KIND: Record<EntryKind, { icon: IconName; word: 'kindPage' | 'kindAction' | 'kindComponent' | 'kindCard' | 'kindDecision' | 'kindDoc' }> = {
@@ -27,15 +27,15 @@ const KIND: Record<EntryKind, { icon: IconName; word: 'kindPage' | 'kindAction' 
 }
 const ORDER: EntryKind[] = ['page', 'action', 'decision', 'component', 'card', 'doc']
 
-/** Every place the palette can open: the visible sections (in both languages), every EAOS action by name (the command
+/** Every place the palette can open: the sections (in both languages), every EAOS action by name (the command
  * centre, docs/studio-actions.json) and the verbs over the current selection, components, cards, decisions, docs. */
 export function useEntries(): Entry[] {
   const data = useStudio()
-  const { lang, dev } = usePrefs()
+  const { lang } = usePrefs()
   const selected = useCommandMaybe()?.sel.ids.length ?? 0
   return useMemo(() => {
     const index = lang === 'ar' ? 0 : 1
-    const entries: Entry[] = visibleSections(dev).map((s) => ({
+    const entries: Entry[] = SECTIONS.map((s) => ({
       id: `page:${s.id}`, kind: 'page', title: WORDS[s.nav][index], keywords: [...WORDS[s.nav], ...WORDS[s.tab]].join(' '), to: s.to,
     }))
     if (selected) for (const verb of VERBS) entries.push({ id: `verb:${verb.id}`, kind: 'action', title: `${verb.label[lang]} (${selected})`, keywords: `${verb.label.en} ${verb.label.ar} ${verb.id}`, to: `verb:${verb.id}` })
@@ -50,7 +50,7 @@ export function useEntries(): Entry[] {
     for (const c of data.cards?.cards ?? []) entries.push({ id: `card:${c.id}`, kind: 'card', title: c.title, keywords: [c.id, ...c.paths, c.kind].join(' '), to: `/problems?card=${encodeURIComponent(c.id)}` })
     for (const d of data.docs?.docs ?? []) entries.push({ id: `doc:${d.id}`, kind: 'doc', title: d.title, keywords: [d.path, ...(d.headings ?? []).map((h) => h.text)].join(' '), to: `/library/docs/${encodeURIComponent(d.path)}` })
     return entries
-  }, [data, lang, dev, selected])
+  }, [data, lang, selected])
 }
 
 export function Palette({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {

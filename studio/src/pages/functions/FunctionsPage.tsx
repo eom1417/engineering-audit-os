@@ -62,7 +62,7 @@ function Row({ fn, current }: { fn: Fn; current: boolean }) {
 
 const LANG_TONE: Record<LanguageRow['state'], Tone> = { measured: 'good', empty: 'neutral', partial: 'warning', not_measured: 'neutral', failed: 'critical' }
 
-/** What EAOS measured per language, and the step that brings the rest: the designed "not measured yet" state. */
+/** What EAOS measured per language, and what is not measured yet: the designed "not measured yet" state. */
 export function LanguagesPanel({ fx, row }: { fx: FunctionsData; row?: CoverageRow }) {
   const w = useFunctionWords()
   const { lang } = usePrefs()
@@ -81,7 +81,7 @@ export function LanguagesPanel({ fx, row }: { fx: FunctionsData; row?: CoverageR
           ))}
         </ul>
         {(fx.missing ?? []).map((gap) => (
-          <p key={gap.id} className={css.gap}><Txt>{gap.detail[lang]}</Txt> · {w('byStep')} <Id value={gap.step} /></p>
+          <p key={gap.id} className={css.gap}><Txt>{gap.detail[lang]}</Txt></p>
         ))}
         {row && row.state !== 'measured' && !(fx.missing ?? []).length && <p className={css.gap}><Txt>{row.detail}</Txt></p>}
       </Panel>
@@ -212,7 +212,7 @@ function Explorer({ data, selected }: { data: StudioData; selected?: string }) {
     return (
       <div className={layout.page}>
         <Heading data={data} />
-        <Panel><StateMessage title={w('lang_not_measured')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : null}{row?.step && <> · {w('byStep')} <Id value={row.step} /></>}</>} /></Panel>
+        <Panel><StateMessage title={w('lang_not_measured')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : null}</>} /></Panel>
       </div>
     )
   }

@@ -26,51 +26,24 @@ def _setup(tmp, file_count, body, fn_name='compute_total'):
     return repo, out
 
 
+BODY = ('    total = sum(x.amount for x in items)\n'
+        '    if items.tier == "premium":\n'
+        '        total = total * 0.9\n'
+        '    tax = total * 0.15\n'
+        '    return round(total + tax, 2)\n')
+
+
 class StructuralDuplicateThresholdTests(unittest.TestCase):
     """Six or more occurrences make the cluster an engineering claim; fewer stay a fact."""
 
-    def test_two_copies_of_a_function_are_not_a_claim(self):
-        body = (
-            '    total = sum(x.amount for x in items)\n'
-            '    if items.tier == "premium":\n'
-            '        total = total * 0.9\n'
-            '    tax = total * 0.15\n'
-            '    return round(total + tax, 2)\n'
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            _, out = _setup(tmp, 2, body)
-            claims = json.loads((out / 'dossier.json').read_text())['claims']
-            dups = [c for c in claims if 'same structure' in c.get('statement', '')]
-            self.assertEqual(dups, [])
-
-    def test_five_copies_are_still_too_few(self):
-        body = (
-            '    total = sum(x.amount for x in items)\n'
-            '    if items.tier == "premium":\n'
-            '        total = total * 0.9\n'
-            '    tax = total * 0.15\n'
-            '    return round(total + tax, 2)\n'
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            _, out = _setup(tmp, 5, body)
-            claims = json.loads((out / 'dossier.json').read_text())['claims']
-            dups = [c for c in claims if 'same structure' in c.get('statement', '')]
-            self.assertEqual(dups, [])
-
-    def test_six_copies_become_a_claim(self):
-        body = (
-            '    total = sum(x.amount for x in items)\n'
-            '    if items.tier == "premium":\n'
-            '        total = total * 0.9\n'
-            '    tax = total * 0.15\n'
-            '    return round(total + tax, 2)\n'
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            _, out = _setup(tmp, 6, body)
-            claims = json.loads((out / 'dossier.json').read_text())['claims']
-            dups = [c for c in claims if 'same structure' in c.get('statement', '')]
-            self.assertEqual(len(dups), 1)
-            self.assertEqual(dups[0]['confidence'], 'CONFIRMED')
+    def test_six_copies_become_a_claim_and_five_are_still_too_few(self):
+        for copies, expected in ((5, 0), (6, 1)):
+            with self.subTest(copies=copies), tempfile.TemporaryDirectory() as tmp:
+                _, out = _setup(tmp, copies, BODY)
+                claims = json.loads((out / 'dossier.json').read_text())['claims']
+                dups = [c for c in claims if 'same structure' in c.get('statement', '')]
+                self.assertEqual(len(dups), expected)
+                self.assertTrue(all(c['confidence'] == 'CONFIRMED' for c in dups))
 
 
 class VendoredUiExclusionTests(unittest.TestCase):

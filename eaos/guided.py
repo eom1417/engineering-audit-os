@@ -14,7 +14,6 @@ For a person who built their app with an AI assistant and does not read code. Fo
 
 `next` picks the next step by itself from STEPS: each step says when it is done and how to do it.
 """
-import hashlib
 import json
 import os
 import re
@@ -217,13 +216,6 @@ def explain(problem):
     return next(entry for entry in catalog() if entry['id'] == 'unknown')
 
 
-def complete_entries():
-    """(complete, total): catalog entries with a plain message, a fix and a command to copy, in both languages (X5)."""
-    rows = catalog()
-    ok = sum(all(str((row.get(lang) or {}).get(key) or '').strip() and (row.get(lang) or {}).get('commands')
-                 for lang in ('ar', 'en') for key in ('message', 'fix')) for row in rows)
-    return ok, len(rows)
-
 
 def show_error(lang, entry_id=None, problem=None, log=None):
     entry = next(e for e in catalog() if e['id'] == entry_id) if entry_id else explain(problem)
@@ -254,7 +246,7 @@ def node_major():
 
 def doctor_rows(project=None, probe=False):
     """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]. `probe`: ask each AI
-    assistant for one word (eaos/runtime/readiness.py) instead of only looking for its command."""
+    assistant for one word (eaos/assistants/readiness.py) instead of only looking for its command."""
     from .toolchain import doctor as tools
     js = bool(project) and any((Path(project) / folder / 'package.json').is_file() for folder in ('.', 'app', 'web', 'client', 'frontend'))
     rows = [
@@ -296,7 +288,7 @@ def doctor_rows(project=None, probe=False):
 def assistant_row(probe=False):
     """The doctor's row for the AI assistants: with `probe`, each one's readiness in a word and, when none is ready, the
     first one's reason and fix; without, whether one is installed."""
-    from .runtime import readiness
+    from .assistants import readiness
     if not probe:
         found = next((name for name in readiness.NAMES if shutil.which(name)), None)
         return {'id': 'assistant', 'ok': bool(found), 'when': 'later',
@@ -311,7 +303,7 @@ def assistant_row(probe=False):
             'fix': (blocked.get('reason') or {}).get('en') or blocked['code']}
 
 
-# One word for each readiness problem (eaos/runtime/readiness.py), for a line that lists every assistant.
+# One word for each readiness problem (eaos/assistants/readiness.py), for a line that lists every assistant.
 READY_WORD = {'ar': {'ready': 'جاهز', 'not_installed': 'غير مثبّت', 'not_working': 'لا يعمل', 'not_signed_in': 'غير مسجّل الدخول',
                      'sign_in_expired': 'دخوله انتهى', 'limit': 'وصل حدّه', 'no_answer': 'ما جاوب', 'failed': 'توقف بخطأ'},
               'en': {'ready': 'ready', 'not_installed': 'not installed', 'not_working': 'does not run', 'not_signed_in': 'not signed in',
@@ -344,7 +336,6 @@ def doctor(args):
     if args.fix and tools_missing:
         from .toolchain import install
         if any(row['id'] == 'database' for row in tools_missing):
-            import subprocess
             say('…' + ('أثبّت PostgreSQL المؤقت' if lang == 'ar' else 'Installing the temporary PostgreSQL'))
             _pip_install('pgserver>=0.1.4')
         say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
@@ -487,8 +478,8 @@ def scan_done(state):
 
 def chosen_assistant(state):
     """The assistant the check asks: the person's own choice for this project (`assistant` in state.json), else
-    $EAOS_ASSISTANT, else the first installed (eaos/runtime/assistants.py); None when none is installed."""
-    from .runtime.assistants import ADAPTERS, available
+    $EAOS_ASSISTANT, else the first installed (eaos/assistants/__init__.py); None when none is installed."""
+    from .assistants import ADAPTERS, available
     if state.get('assistant') in ADAPTERS: return state['assistant']
     found = available()
     return found[0] if found else None
@@ -497,7 +488,7 @@ def chosen_assistant(state):
 def choose_assistant(state, use, name=None, via='person'):
     """Keeps the person's choice for the check's AI on this project: whether to use an assistant (`use_assistant`) and
     which one (`assistant`: claude or codex). Asked again only when they change it."""
-    from .runtime.assistants import ADAPTERS
+    from .assistants import ADAPTERS
     if name is not None and name not in ADAPTERS: raise ValueError(f'no assistant named {name}: claude or codex')
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'use_assistant'] + [
         {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use), 'via': via, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}]
@@ -508,11 +499,11 @@ def choose_assistant(state, use, name=None, via='person'):
 
 def check_provider(state):
     """The provider of the person's assistant for the check's AI stages (docs/AI-IN-THE-PIPELINE.md): on unless they
-    said no to `use_assistant`, as long as the assistant they chose answers (eaos/runtime/readiness.py). Otherwise a
+    said no to `use_assistant`, as long as the assistant they chose answers (eaos/assistants/readiness.py). Otherwise a
     falsy NoAssistant that says why (they said no, it is not signed in, not answering), or None when no assistant is
     installed: the rules stand alone and the live map and the report name the reason."""
-    from .runtime import readiness
-    from .runtime.assistants import provider
+    from .assistants import readiness
+    from .assistants import provider
     # The assistant is on by default (owner, 2026-10-11): only the person's explicit no turns it off.
     said = answered(state, 'use_assistant')
     if said is False: return readiness.NoAssistant('ai_declined', 'the person chose to check without AI, so the rules stand alone')
@@ -532,9 +523,9 @@ def check_runtime(state):
 
 def agree_to_assistant(state, yes):
     """Asks once, when an assistant is installed, whether the check may use it; a no is kept and the check goes on. Then
-    the assistant chosen is asked for one word (eaos/runtime/readiness.py): when it is not ready, the reason and its fix
+    the assistant chosen is asked for one word (eaos/assistants/readiness.py): when it is not ready, the reason and its fix
     are said and the person decides whether this check starts without AI. False: they said no, the check does not start."""
-    from .runtime import readiness
+    from .assistants import readiness
     lang = 'ar' if state['lang'] == 'ar' else 'en'
     name = chosen_assistant(state)
     if not name: return True
@@ -593,7 +584,7 @@ def scan(state, args):
     if not agree_to_assistant(state, args.yes): return 1
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
-    options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang), provider=check_provider(state),
+    options = dict(language=lang, engines=[], progress=progress_printer(lang), provider=check_provider(state),
                    runtime=check_runtime(state), without_tools=sorted(failed))
     manifest = check(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
@@ -799,7 +790,7 @@ def ready_done(state):
 def ready(state, args):
     """Step 2: consent, then a run profile nobody writes (eaos/live_setup.py)."""
     from . import live_setup
-    from .runtime.assistants import available, provider
+    from .assistants import available, provider
     lang, commit = state['lang'], _commit(state)
     assistant = (available() or [None])[0]
     ask(state, 'run_app',
@@ -926,61 +917,16 @@ def fix_done(state):
 
 
 def fix(state, args):
-    """Step 4: a wave of fixes, made by the codemods and the person's assistant, checked, then handed over as a
-    branch (eaos/waves.py). One question, the first time: may I fix, and put the result on a branch?"""
-    from . import waves
-    from .runtime.assistants import provider
+    """Step 4: the fixes are made by the person's AI assistant through EAOS's tools (fix_start, fix_edit, fix_finish),
+    from the assistant or the Studio; this command never calls a model itself. It says where to go."""
+    from .waves import next_batch
     lang = state['lang']
-    batch = waves.next_batch(report_of(state), state.get('tried') or [])
-    number = len(state.get('waves') or []) + 1
-    ask(state, 'fix_code',
-        (f'أصلح الآن دفعات من الإصلاحات الجاهزة (هذه الدفعة {len(batch)})، وأجرّب كلًّا منها في النسخة المنفصلة، '
-         f'ثم أضع ما ينجح في فرع جديد في مشروعك (eaos/wave-{number}) دون أن ألمس فرعك الحالي أو ملفاتك. أوافق؟')
-        if lang == 'ar' else
-        (f'Fix batches of the ready fixes now (this one: {len(batch)}), try each in the separate copy, and put what '
-         f'passes on a new branch in your project (eaos/wave-{number}) without touching your current branch or files. OK?'), args.yes)
-    say((f'أصلح الدفعة {number}: {len(batch)} إصلاحات. قد يأخذ هذا من 20 إلى 60 دقيقة.' if lang == 'ar'
-         else f'Fixing batch {number}: {len(batch)} fixes. This can take 20 to 60 minutes.'))
-
-    def progress(kind, *rest):
-        if kind == 'card':
-            index, total, card = rest
-            title, _ = plain.problem(card.get('pattern'), lang)
-            say(f"   [{index}/{total}] {title}: {(card.get('paths') or [''])[0]}")
-        elif kind == 'acceptance': say('   ' + ('أتحقق أن كل مشكلة اختفت…' if lang == 'ar' else 'Checking every problem is gone…'))
-        elif kind == 'gates': say('   ' + ('أشغّل فحوص مشروعك وأقارن الشاشات…' if lang == 'ar' else "Running your project's checks and comparing the screens…"))
-        elif kind == 'bisect': say('   ' + ('أبحث عن الإصلاح الذي سبّب مشكلة…' if lang == 'ar' else 'Looking for the fix that caused a problem…'))
-    _, model = provider()
-    from .progress import Flow
-    with Flow(runtime_of(state), 'fix', waves.FLOW):     # the flow `fix` of the live map; handover ends with apply()
-        summary = waves.run_batch(report_of(state), source(state), runtime_of(state), number, batch, provider=model, say=progress)
-        keys = {c['id']: c['key'] for c in waves.plan(report_of(state))['tasks'] if c['id'] in set(batch)}
-        wave = {'number': number, 'base': state['setup']['commit'], 'cards': batch, 'kept': summary['kept'],
-                'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'keys': keys}
-        state['tried'] = sorted(set(state.get('tried') or []) | set(batch))
-        if summary['kept']:
-            waves.apply(state['project'], summary)
-            wave.update(status='applied', tip=_git(state['project'], 'rev-parse', summary['branch']).stdout.strip())
-            state['applied'] = True
-    state.setdefault('waves', []).append(wave)
-    save(state)
-    publish_fixes(state, wave)
-    save(state)
-    notes = []
-    if summary['failed']:
-        notes.append((f"{len(summary['failed'])} لم تنجح فتركتها، وأسبابها في {runtime_of(state) / 'runtime/execution.json'}" if lang == 'ar'
-                      else f"{len(summary['failed'])} did not pass and were left out; the reasons are in {runtime_of(state) / 'runtime/execution.json'}"))
-    if not summary['kept']:
-        box(lang, ('لم ينجح أي إصلاح في هذه الدفعة، فلم يتغير شيء في مشروعك' if lang == 'ar'
-                   else 'No fix in this batch passed, so nothing changed in your project'), commands=['eaos next'], status='warn', note=notes)
-        return 0
-    notes.insert(0, (f"التغييرات: {summary['stat']}. فرعك الحالي كما هو." if lang == 'ar'
-                     else f"The changes: {summary['stat']}. Your current branch is as it was."))
-    box(lang, (f"نجح {len(summary['kept'])} من {len(batch)} إصلاحًا، وهي الآن في الفرع {summary['branch']} في مشروعك" if lang == 'ar'
-               else f"{len(summary['kept'])} of {len(batch)} fixes passed; they are on the branch {summary['branch']} in your project"),
-        where=outputs(state) / 'fixes' / f'wave-{number}', note=notes,
-        commands=['eaos accept   ' + ('# لاعتمادها في مشروعك' if lang == 'ar' else '# to take them into your project'),
-                  'eaos undo     ' + ('# للتخلي عنها' if lang == 'ar' else '# to throw them away')])
+    batch = next_batch(report_of(state), state.get('tried') or [])
+    box(lang, (f'{len(batch)} إصلاحات جاهزة. يصلحها مساعدك الذكي: افتح Claude Code أو Codex في هذا المجلد واكتب /eaos ثم '
+               '"أصلح"، أو اضغط "أصلح" في الاستوديو' if lang == 'ar' else
+               f'{len(batch)} fixes are ready. Your AI assistant makes them: open Claude Code or Codex in this folder and type '
+               '/eaos then "fix", or press "Fix" in the Studio'),
+        commands=['eaos studio'], note=None)
     return 0
 
 

@@ -53,7 +53,7 @@ export function NoPaths({ data }: { data: StudioData }) {
   return (
     <div className={layout.page}>
       <Panel>
-        <StateMessage title={w('noPaths')} sub={<>{row?.detail ?? w('noPathsSub')}{row?.step && <> · <Id value={row.step} /></>}</>} />
+        <StateMessage title={w('noPaths')} sub={<>{row?.detail ?? w('noPathsSub')}</>} />
       </Panel>
     </div>
   )

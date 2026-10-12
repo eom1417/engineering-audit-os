@@ -37,30 +37,22 @@ It builds `.venv`, installs every external tool at its pinned version in `~/.eao
 the pinned sample corpus and the engines' source checkouts. `python tools/dev_paths.py` shows where
 each part is. Never write a path of one machine in code: `tests/test_platforms.py` fails if you do.
 
-## The plan and progress
+## The plan
 
-- The product's plan is `docs/north-star.json` (steps NS*, weights sum to 100; capabilities with
-  indicators). `docs/NORTH-STAR.md` is generated from it: `python tools/north_star.py`, then
-  `python tools/north_star.py --check`.
-- A new request from the owner becomes a new step, its weight taken from done steps (the owner
-  accepts progress dropping). A task closes only when its acceptance command passes
-  (`tools/north_star.py measure --only X --min 1.0` or `tools/acceptance.py`), never on its own
-  unit tests alone. `python tools/north_star.py --no-regression` must hold.
-- `acceptance/` is locked by `acceptance/LOCK.json`: change an acceptance test only as the planner,
-  never to make a failing task pass, then `python tools/acceptance.py lock`.
+`ROADMAP.md` is the only plan: the fixes in order and what comes after. There is no other plan, score or
+progress file; a finished item is removed from it and recorded in `CHANGELOG.md`.
 
-## Tests and gates
+## Tests
 
-The checks in `CONTRIBUTING.md` before every commit. The tests are `unittest`, about 1500 of them,
-about 25 minutes: run the affected modules while working (`.venv/bin/python -m unittest tests.test_x`),
-the full suite before pushing, as a background job.
+`unittest`, at most about 550 tests and 15 minutes. A fix adds a test only when it reproduces a real failure;
+one test per real behaviour, no tests for their own sake. Run the affected modules while working
+(`.venv/bin/python -m unittest tests.test_x`), the full suite before pushing, as a background job (the machine has
+4 GB of memory: one heavy job at a time). `tests/test_journey.py` is the fast end-to-end proof: check, change,
+check again, fix, accept.
 
-## Real trials
+## Before every commit
 
-`tools/mcp_trial.py`, `tools/build_trial.py`, `tools/handover_trial.py`, `tools/branch_trial.py`,
-`tools/ux_trial.py` drive the real Codex and Claude Code on real projects and write
-`$EAOS_MEASURE/<kind>/<project>/trial.json` (default `~/.eaos/dev/measure`), which the plan's
-indicators read. Run long trials from a frozen copy of the repository: a code edit changes the tool
-digest and forces a new audit. They need the assistants installed and logged in, and the owner's
-projects cloned from their GitHub (`eom1417/*`); only run their code with the owner's authorization,
-recorded in `docs/north-star.json` (`live_corpus`).
+```bash
+.venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
+(cd studio && npm run build)      # only when studio/ changed
+```

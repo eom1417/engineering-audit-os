@@ -87,14 +87,3 @@ def run_baseline(report, target, runtime):
     return record
 
 
-def record_after(runtime, scenario_id, after, conditions):
-    """Write a scenario's `after` (NS22): refused without its `before`, or under other conditions."""
-    path = Path(runtime) / 'runtime/performance.json'
-    record = json.loads(path.read_text(encoding='utf-8'))
-    if record.get('conditions') != conditions:
-        raise ValueError('after must run under the conditions of before: ' + json.dumps(record.get('conditions')))
-    row = next((s for s in record['scenarios'] if s['id'] == scenario_id), None)
-    if not row or not row.get('before'): raise ValueError(f'{scenario_id}: no before, so no after')
-    row['after'] = after
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    return record

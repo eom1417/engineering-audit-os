@@ -26,7 +26,7 @@ import { Id, N, When } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
 import { ScanBanner } from './ScanBanner'
-import { sectionOf, visibleSections, type SectionDef } from './sections'
+import { SECTIONS, sectionOf, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SystemViews } from '../pages/system/SystemViews'
 
@@ -67,10 +67,9 @@ function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {
 }
 
 function Sidebar({ project, current, onPalette, onProject }: { project: string; current?: SectionDef; onPalette: () => void; onProject: () => void }) {
-  const { t, dev } = usePrefs()
+  const { t } = usePrefs()
   const c = useCounts()
   const data = useStudio()
-  const sections = visibleSections(dev)
   const live = useLiveCounts()
   const pending = data?.pending ?? []
   const item = (s: SectionDef) => (
@@ -82,7 +81,7 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
     </Go>
   )
   const groups: SectionDef[][] = []
-  for (const s of sections) {
+  for (const s of SECTIONS) {
     const last = groups[groups.length - 1]
     if (last && s.group && last[0].group === s.group) last.push(s)
     else groups.push([s])
@@ -104,8 +103,6 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
             {group.map(item)}
           </div>
         ) : group.map(item))}
-        {dev && <div className={css.navGroup}><div className={css.navGroupTitle}>dev</div>
-          <Go to="/_gallery" className={css.navItem} current={current === undefined} label={t('gallery')}><Icon name="gallery" /><span className={css.navLabel}>{t('gallery')}</span></Go></div>}
       </nav>
       <div className={css.sideFoot}>
         <LanguageAndTheme />
@@ -124,7 +121,7 @@ function TabBar({ current }: { current?: SectionDef }) {
   const pending = useStudio()?.pending ?? []
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
-      {visibleSections(false).filter((s) => s.tabbar).map((s) => {
+      {SECTIONS.filter((s) => s.tabbar).map((s) => {
         const badge = (c && s.badge && !(s.countFrom && pending.includes(s.countFrom)) ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
         return (
           <Go key={s.id} to={s.to} className={css.tab} current={current?.id === s.id}>
@@ -150,7 +147,7 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
   const chrome = useChrome()
   const systemWorkspace = useRouterState({ select: (s) => s.location.pathname.startsWith('/system') || s.location.pathname.startsWith('/screens') || s.location.pathname.startsWith('/flows') })
   const back = systemWorkspace ? undefined : chrome.back
-  const sectionTitle = current ? t(current.nav) : t('gallery')
+  const sectionTitle = t((current ?? SECTIONS[0]).nav)
   return (
     <header className={css.topbar}>
       <div className={css.desk}>

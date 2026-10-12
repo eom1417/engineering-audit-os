@@ -15,7 +15,6 @@ import json
 import re
 from pathlib import Path
 
-from .emit.base import Emitted
 
 
 def quote(text):
@@ -32,7 +31,7 @@ def _stack(target):
 
 
 def _externals(report):
-    from .emit.nfr import dependencies
+    from .nfr import dependencies
     return [(name, 'Supabase' if name == 'supabase' else ('the project\'s own API' if name == 'api' else name))
             for name, _, _ in dependencies(report)]
 
@@ -125,7 +124,7 @@ def _target_diagram(target):
 
 
 def write(report):
-    """Write both models; returns the files for their validator. Nothing is written without a target record.
+    """Write both models; returns the files written. Nothing is written without a target record.
     Beside them, architecture/system.mmd: pages, APIs, server handlers and data (eaos/system_map.py)."""
     report = Path(report)
     target = _load(report / 'target-architecture.json', None)
@@ -152,8 +151,7 @@ def write(report):
         except Exception: pass                  # the plain flowchart stays: a diagram is never a reason to fail
         (folder / 'workspace.dsl').write_text(dsl, encoding='utf-8')
         (folder / 'diagram.mmd').write_text(mermaid, encoding='utf-8')
-        written.append(Emitted(f'architecture/{kind}/workspace.dsl', 'structurizr-cli',
-                               ('structurizr', 'validate', '-workspace', '{path}')))
+        written.append(f'architecture/{kind}/workspace.dsl')
     try:
         from . import system_map
         text = system_map.mermaid(system_map.build(report))

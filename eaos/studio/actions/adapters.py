@@ -358,10 +358,10 @@ def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
     `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run
     manager can pause or stop it. It works as long as it needs: `cancel` (a threading.Event) ends the whole group and
-    raises AskFailed('stopped'), and only an assistant silent for eaos/runtime/provider.py STUCK seconds is ended as
+    raises AskFailed('stopped'), and only an assistant silent for eaos/assistants/command.py STUCK seconds is ended as
     stuck (Stuck). An answer that is not a JSON object raises AskFailed. The stream stays in `folder`. `images`: the
     pictures the question is about, the only files the assistant may open."""
-    from ...runtime.provider import wait
+    from ...assistants.command import wait
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     stream, began = folder / 'stream.jsonl', time.monotonic()

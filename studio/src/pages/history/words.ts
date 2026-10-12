@@ -84,8 +84,6 @@ export const HISTORY_WORDS = {
   state_on_branch: ['على فرع', 'On a branch'],
   state_in_batch: ['في دفعة', 'In a batch'],
   state_skipped: ['تحتاج قرارًا', 'Needs a decision'],
-  // gallery
-  gallery: ['معرض التاريخ', 'History gallery'],
 } as const
 
 export type HistoryWord = keyof typeof HISTORY_WORDS

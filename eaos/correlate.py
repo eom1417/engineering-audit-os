@@ -10,7 +10,6 @@ raised for them.
 """
 import re
 import json
-from collections import defaultdict
 from hashlib import sha1
 from .facts.source import Source
 

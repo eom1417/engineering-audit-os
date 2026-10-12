@@ -46,32 +46,7 @@ class Home(unittest.TestCase):
 
 
 class ServerTests(Home):
-    def test_an_assistant_lists_the_tools_and_calls_one_over_stdio(self):
-        from mcp import ClientSession, StdioServerParameters, stdio_client
-
-        async def talk():
-            server = StdioServerParameters(command=sys.executable, args=['-m', 'eaos', 'mcp'], cwd=str(self.project),
-                                           env={**os.environ, 'PYTHONPATH': str(ROOT)})
-            async with stdio_client(server) as (read, write):
-                async with ClientSession(read, write) as session:
-                    started = await session.initialize()
-                    tools = await session.list_tools()
-                    prompts = await session.list_prompts()
-                    called = await session.call_tool('status', {})
-                    return started, tools, prompts, called
-
-        started, tools, prompts, called = asyncio.run(talk())
-        self.assertIn('Work on your own until the job is done', started.instructions)
-        names = {tool.name for tool in tools.tools}
-        self.assertTrue({'status', 'audit', 'wait', 'finding', 'run_setup', 'run_try', 'safety_net', 'fix_start', 'fix_edit',
-                         'fix_finish', 'accept', 'undo', 'open_report', 'blueprint_start', 'blueprint_spec', 'blueprint_design',
-                         'build_start', 'build_edit', 'build_finish'} <= names)
-        self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status', 'build', 'continue', 'report', 'tasks', 'ask', 'tools'})
-        answer = json.loads(called.content[0].text)
-        self.assertEqual((answer['project'], answer['next']['tool']), (str(self.project.resolve()), 'audit'),
-                         'the folder the assistant was opened in is the project')
-
-    def test_the_branch_is_chosen_and_a_note_left_over_stdio(self):
+    def test_an_assistant_lists_the_tools_chooses_the_branch_leaves_a_note_and_reads_errors_as_words_over_stdio(self):
         from mcp import ClientSession, StdioServerParameters, stdio_client
         run = lambda *argv: subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv],
                                            check=True, capture_output=True)
@@ -81,26 +56,33 @@ class ServerTests(Home):
         async def talk():
             server = StdioServerParameters(command=sys.executable, args=['-m', 'eaos', 'mcp'], cwd=str(self.project),
                                            env={**os.environ, 'PYTHONPATH': str(ROOT), 'EAOS_ASSISTANT': 'Codex',
-                                                                        'EAOS_ANSWER_SECONDS': '0'})
+                                                'EAOS_ANSWER_SECONDS': '0'})
             async with stdio_client(server) as (read, write):
                 async with ClientSession(read, write) as session:
-                    await session.initialize()
+                    started = await session.initialize()
+                    tools = await session.list_tools()
+                    prompts = await session.list_prompts()
                     asked = await session.call_tool('status', {})
                     listed = await session.call_tool('branches', {})
                     chosen = await session.call_tool('choose_branch', {'branch': 'develop', 'person_said': 'الفرع اللي تنصح فيه'})
                     noted = await session.call_tool('note', {'text': 'develop is where the work goes on; checking it next.'})
                     after = await session.call_tool('status', {})
-                    return [json.loads(r.content[0].text) for r in (asked, listed, chosen, noted, after)]
+                    return started, tools, prompts, [json.loads(r.content[0].text) for r in (asked, listed, chosen, noted, after)]
 
-        asked, listed, chosen, noted, after = asyncio.run(talk())
+        started, tools, prompts, (asked, listed, chosen, noted, after) = asyncio.run(talk())
+        self.assertIn('Work on your own until the job is done', started.instructions)
+        names = {tool.name for tool in tools.tools}
+        self.assertTrue({'status', 'audit', 'wait', 'finding', 'run_setup', 'run_try', 'safety_net', 'fix_start', 'fix_edit',
+                         'fix_finish', 'fix_abandon', 'accept', 'undo', 'open_report', 'blueprint_start', 'blueprint_spec',
+                         'blueprint_design', 'build_start', 'build_edit', 'build_finish'} <= names)
+        self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status', 'build', 'continue', 'report', 'tasks', 'ask', 'tools'})
+        self.assertEqual(asked['project'], str(self.project.resolve()), 'the folder the assistant was opened in is the project')
         self.assertEqual((asked['next']['tool'], asked['recommended']), ('choose_branch', 'develop'))
         self.assertEqual({b['name'] for b in listed['branches']}, {'develop', 'master'})
         self.assertEqual((chosen['status'], after['branch'], after['next']['tool']), ('chosen', 'develop', 'audit'))
         self.assertTrue(noted['noted'])
         self.assertEqual(after['handover']['notes'][-1]['by'], 'Codex')
         self.assertEqual([s['tool'] for s in after['handover']['last_steps']], ['choose_branch', 'note'])
-
-    def test_an_error_reaches_the_assistant_as_words_to_act_on(self):
         from eaos.mcp_server import _answer
         empty = Path(self.tmp.name) / 'empty'                 # no project file and no repository under it
         empty.mkdir()
@@ -108,22 +90,23 @@ class ServerTests(Home):
         self.assertIn('not a project folder', answer['error'])
         self.assertIn('eaos start .', answer['what_now'])
 
-
 class ToolTests(Home):
     def test_the_assistant_way_never_calls_a_model_itself(self):
         source = (ROOT / 'eaos/agent_tools.py').read_text()
-        for call in ('runtime.assistants', 'provider()', '.complete('):
+        for call in ('from .assistants import provider', 'provider()', '.complete('):
             self.assertNotIn(call, source)
-        self.assertIn('change(cards[card_id], root, report, None)', source, 'a codemod card is changed with no model at all')
 
-    def test_nothing_runs_before_the_person_agrees(self):
+    def test_nothing_runs_or_is_taken_in_before_the_person_agrees_and_an_unsafe_proposal_is_refused(self):
         answer = agent_tools.run_setup(str(self.project))
         self.assertEqual(answer['status'], 'needs_agreement')
         self.assertIn('separate copy', answer['ask_the_person'])
         self.assertFalse((guided.runtime_of(guided.load(self.project)) / 'authorization.json').exists())
         self.assertEqual(agent_tools.fix_start(str(self.project))['status'], 'needs_agreement')
-
-    def test_an_unsafe_proposal_is_refused_with_its_reason(self):
+        state = guided.load(self.project)
+        wave_branch(self.project)
+        state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]
+        guided.save(state)
+        self.assertEqual(agent_tools.accept(str(self.project))['status'], 'needs_agreement')
         state = agent_tools.project_state(str(self.project))
         runtime = guided.runtime_of(state)
         runtime.mkdir(parents=True)
@@ -150,7 +133,7 @@ class ToolTests(Home):
             with self.assertRaises(ValueError): agent_tools._apply(root, bad)
         self.assertEqual((root / 'src/a.js').read_text(), before, 'a refused set of edits changes nothing')
 
-    def test_a_kept_edit_stays_committed_and_a_failing_one_is_taken_back(self):
+    def test_a_kept_edit_stays_a_failing_one_is_taken_back_and_the_batch_is_handed_over_or_abandoned(self):
         state = agent_tools.project_state(str(self.project))
         report = guided.report_of(state)
         report.mkdir(parents=True)
@@ -158,6 +141,7 @@ class ToolTests(Home):
         (report / 'plan.json').write_text(json.dumps({'tasks': [card, {**card, 'id': 'TASK-002'}]}))
         copy = Path(self.tmp.name) / 'copy'
         subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True)
+        guided._git(copy, 'checkout', '-q', '-b', 'eaos/wave-1')
         base = guided._git(copy, 'rev-parse', 'HEAD').stdout.strip()
         state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'cards': ['TASK-001', 'TASK-002'],
                               'kept': {}, 'failed': {}, 'tools': {}}
@@ -180,6 +164,20 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
         agent_tools.fix_skip('TASK-002', 'needs a product decision', str(self.project))
         self.assertEqual(guided.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
+        with mock.patch('eaos.waves.batch_acceptance', return_value={'TASK-001': 0}), \
+                mock.patch('eaos.waves.original_checks', return_value=[]), mock.patch('eaos.waves.gates', return_value=''):
+            done = agent_tools._fix_finish_job(str(self.project), {}, lambda *_: None)
+        self.assertEqual((done['branch'], done['kept']), ('eaos/wave-1', ['TASK-001']))
+        self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout, 'the fix arrives as a branch')
+        self.assertEqual((self.project / 'src/a.js').read_text(), 'export const a = 1;\nexport const b = 2;\n',
+                         "the person's own files are not touched")
+        state = guided.load(self.project)
+        self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('applied', None))
+        state['open_wave'] = {'number': 2, 'root': str(copy), 'base': base, 'cards': ['TASK-002'], 'kept': {}, 'failed': {}, 'tools': {}}
+        guided.save(state)
+        self.assertEqual(agent_tools.fix_abandon(str(self.project))['status'], 'abandoned')
+        state = guided.load(self.project)
+        self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('abandoned', None))
 
     def test_status_names_the_next_tool_at_each_point(self):
         project = str(self.project)
@@ -207,28 +205,9 @@ class ToolTests(Home):
             state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'accept or undo')
 
-    def test_accept_waits_for_the_person(self):
-        state = agent_tools.project_state(str(self.project))
-        wave_branch(self.project)
-        state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]
-        guided.save(state)
-        self.assertEqual(agent_tools.accept(str(self.project))['status'], 'needs_agreement')
-
-
-class ExecutionRecordTests(Home):
-    def test_a_card_the_assistant_fixed_is_recorded_like_any_other(self):
-        """The trial of 2026-09-29: fix_finish failed on 'assistant' not in ['codemod', 'model'] for every batch with an
-        assistant's fix."""
-        from eaos.execute import record
-        runtime = Path(self.tmp.name) / 'runtime'
-        for tool in ('codemod', 'model', 'assistant'):
-            record(runtime, {'id': f'TASK-{tool}', 'tool': tool, 'status': 'VERIFIED_IN_ISOLATED_COPY', 'acceptance_exit': 0,
-                             'result': 'wave 1'})
-        self.assertEqual(len(json.loads((runtime / 'runtime/execution.json').read_text())['tasks']), 3)
-
 
 class OutputsTests(Home):
-    def test_every_output_is_in_one_folder_named_after_the_project(self):
+    def test_every_output_and_each_batch_summary_is_in_one_folder_named_after_the_project(self):
         state = agent_tools.project_state(str(self.project))
         folder = guided.outputs(state)
         self.assertEqual(folder, guided.outputs_root() / 'shop')
@@ -239,42 +218,11 @@ class OutputsTests(Home):
                          'another project with the same name gets its own folder')
         self.assertNotIn(str(self.project), str(folder), 'nothing is written into the project')
         self.assertFalse(str(folder).startswith(str(Path.home() / 'EAOS')), 'a test never writes into the real home')
-
-    def test_a_report_page_that_cannot_be_built_never_stops_the_step(self):
-        state = agent_tools.project_state(str(self.project))
-        guided.report_of(state).mkdir(parents=True)
-        with mock.patch('eaos.human_report.write', side_effect=RuntimeError('broken record')):
-            page = guided.publish(state)                           # the step goes on
-        self.assertEqual(page, guided.outputs(state) / 'REPORT.html')
-        self.assertIn('broken record', page.read_text(), 'the page says why, instead of an old page left in silence')
-        self.assertIn('page: RuntimeError: broken record', guided.report_stamp(state)['errors'])
-        self.assertTrue(list((guided.outputs(state) / 'logs').glob('*.log')))
-
-    def test_every_page_says_which_eaos_made_it_and_is_rebuilt_after_an_update(self):
-        from eaos.build_info import digest
-        state = agent_tools.project_state(str(self.project))
-        guided.report_of(state).mkdir(parents=True)
-        guided.publish(state)
-        made = guided.report_stamp(state)
-        self.assertEqual((made['digest'], made['version'], made['errors']), (digest(), __import__('eaos').__version__, []))
-        (guided.outputs(state) / '.report.json').write_text(json.dumps({**made, 'digest': 'an-older-eaos'}))
-        report = agent_tools._fresh_report(state)
-        self.assertTrue(report['rebuilt'])
-        self.assertEqual(guided.report_stamp(state)['digest'], digest())
-        self.assertFalse(agent_tools._fresh_report(state)['rebuilt'], 'a page this EAOS made is not rebuilt again')
-
-    def test_a_report_an_older_eaos_left_is_moved_into_the_folder(self):
-        state = agent_tools.project_state(str(self.project))
         old = Path(state['workspace']) / 'report'
         old.mkdir(parents=True)
         (old / 'plan.json').write_text('{"tasks": []}')
-        self.assertTrue((guided.report_of(state) / 'plan.json').is_file())
+        self.assertTrue((guided.report_of(state) / 'plan.json').is_file(), 'a report an older EAOS left is moved into the folder')
         self.assertFalse(old.exists())
-
-    def test_a_batch_of_fixes_is_published_with_a_summary_and_the_report_opens(self):
-        state = agent_tools.project_state(str(self.project))
-        (guided.report_of(state)).mkdir(parents=True)
-        (guided.report_of(state) / 'plan.json').write_text('{"tasks": []}')
         wave = {'number': 1, 'kept': ['TASK-001'], 'failed': {'TASK-002': 'its problem is still there'}, 'branch': 'eaos/wave-1',
                 'stat': '1 file changed'}
         target = guided.publish_fixes(state, wave)
@@ -285,6 +233,24 @@ class OutputsTests(Home):
         answer = agent_tools.open_report(str(self.project), show=False)
         self.assertEqual(answer['outputs_folder'], str(guided.outputs(state)))
 
+    def test_a_page_that_cannot_be_built_never_stops_the_step_and_every_page_names_the_eaos_that_made_it(self):
+        state = agent_tools.project_state(str(self.project))
+        guided.report_of(state).mkdir(parents=True)
+        with mock.patch('eaos.human_report.write', side_effect=RuntimeError('broken record')):
+            page = guided.publish(state)                           # the step goes on
+        self.assertEqual(page, guided.outputs(state) / 'REPORT.html')
+        self.assertIn('broken record', page.read_text(), 'the page says why, instead of an old page left in silence')
+        self.assertIn('page: RuntimeError: broken record', guided.report_stamp(state)['errors'])
+        self.assertTrue(list((guided.outputs(state) / 'logs').glob('*.log')))
+        from eaos.build_info import digest
+        guided.publish(state)
+        made = guided.report_stamp(state)
+        self.assertEqual((made['digest'], made['version'], made['errors']), (digest(), __import__('eaos').__version__, []))
+        (guided.outputs(state) / '.report.json').write_text(json.dumps({**made, 'digest': 'an-older-eaos'}))
+        report = agent_tools._fresh_report(state)
+        self.assertTrue(report['rebuilt'])
+        self.assertEqual(guided.report_stamp(state)['digest'], digest())
+        self.assertFalse(agent_tools._fresh_report(state)['rebuilt'], 'a page this EAOS made is not rebuilt again')
 
 class JobTests(Home):
     def setUp(self):
@@ -292,7 +258,7 @@ class JobTests(Home):
         patcher = mock.patch.object(jobs.subprocess, 'Popen', return_value=mock.Mock(pid=os.getpid()))
         patcher.start(); self.addCleanup(patcher.stop)
 
-    def test_a_job_runs_on_its_own_and_its_result_is_read_back(self):
+    def test_a_job_runs_on_its_own_is_read_back_stops_as_an_interrupt_and_a_dead_one_has_failed(self):
         job = jobs.start('audit', str(self.project), {})
         record = json.loads((jobs.folder() / f'{job}.json').read_text())
         self.assertEqual((record['status'], record['kind']), ('running', 'audit'))
@@ -300,16 +266,13 @@ class JobTests(Home):
             jobs.run(job)
         self.assertEqual((jobs.read(job)['status'], jobs.read(job)['result']), ('done', {'ok': True}))
         self.assertEqual(jobs.read(job)['progress'], {'done': 1, 'total': 2, 'stage': 'half'})
-
-    def test_a_job_whose_process_died_is_said_to_have_failed(self):
+        with self.assertRaises(ValueError): jobs.read('../state')
         job = jobs.start('audit', str(self.project), {})
         record = json.loads((jobs.folder() / f'{job}.json').read_text())
         record.update(status='running', pid=2 ** 22 + 12345)
         (jobs.folder() / f'{job}.json').write_text(json.dumps(record))
         self.assertEqual(jobs.read(job)['status'], 'failed')
         self.assertIn('start it again', jobs.read(job)['error'])
-
-    def test_a_stop_ends_the_work_as_an_interrupt_so_what_it_started_ends_with_it(self):
         import signal
         import time
         job = jobs.start('audit', str(self.project), {})
@@ -321,25 +284,14 @@ class JobTests(Home):
             self.assertEqual(jobs.run(job), 1)
         self.assertIn('KeyboardInterrupt', jobs.read(job)['error'])
 
-    def test_a_job_name_cannot_reach_outside_the_jobs_folder(self):
-        with self.assertRaises(ValueError): jobs.read('../state')
-
-
-
-class MenuAndQuestionTests(Home):
-    """/eaos alone, and the person's questions about their code (eaos/menu.py; impact, ask and tools_check)."""
+class QuestionTests(Home):
+    """The person's questions about their code: impact, ask and tools_check."""
 
     def call(self, name, arguments):
         from eaos.mcp_server import build
         os.chdir(self.project)
         self.addCleanup(os.chdir, ROOT)
         return json.loads(asyncio.run(build().call_tool(name, arguments)).content[0].text)
-
-    def test_the_menu_offers_the_check_first_on_a_project_never_checked(self):
-        offered = self.call('menu', {'lang': 'ar'})
-        first = offered['pages'][0][0]
-        self.assertEqual((first['id'], first['label']), ('audit', 'افحص المشروع (موصى به)'))
-        self.assertLessEqual(len(offered['pages'][0]), 4)
 
     def test_questions_wait_for_a_check_then_answer_from_its_facts(self):
         import shutil

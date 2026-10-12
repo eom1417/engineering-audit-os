@@ -39,7 +39,7 @@ function NotCaptured({ sx }: { sx: ScreensData }) {
   return (
     <Panel>
       <StateMessage icon="eye" title={w('notCaptured')}
-        sub={<>{w('notCapturedSub')}<br /><Txt>{gap.detail[lang]}</Txt> · {w('byStep')} <Id value={gap.step} /></>}
+        sub={<>{w('notCapturedSub')}<br /><Txt>{gap.detail[lang]}</Txt></>}
         action={<div><DirectAction request={{ action: 'run_setup' }} label={w('askCapture')} block copy={{ request: w('captureRequest'), tool: 'run_setup' }} /></div>} />
     </Panel>
   )
@@ -249,6 +249,7 @@ function IssueList({ screen, numbered, picked }: { screen: Screen; numbered: (Is
 
 function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id: string }) {
   const w = useScreenWords()
+  const { lang } = usePrefs()
   const fx = useSection<FunctionsData>(data, 'functions')
   const screen = sx.screens.find((s) => s.id === id)
   if (!screen) {
@@ -280,7 +281,7 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
               <span className={css.noShotFrame} aria-hidden="true"><Icon name="eye" size={20} /></span>
               <div>
                 <p className={css.noShotTitle}>{w('shotMissing')}</p>
-                {(sx.missing ?? []).filter((g) => g.id === 'shots').map((g) => <p key={g.id} className={css.noShotSub}>{w('byStep')} <Id value={g.step} /></p>)}
+                {(sx.missing ?? []).filter((g) => g.id === 'shots').map((g) => <p key={g.id} className={css.noShotSub}><Txt>{g.detail[lang]}</Txt></p>)}
               </div>
             </div>
           </Panel>
@@ -337,7 +338,7 @@ function NotExported({ data }: { data: StudioData }) {
   return (
     <div className={layout.page}>
       <Heading data={data} />
-      <Panel><StateMessage icon="eye" title={w('notCaptured')} sub={<>{row ? <Txt>{row.detail}</Txt> : w('notCapturedSub')}{row?.step && <> · {w('byStep')} <Id value={row.step} /></>}</>} /></Panel>
+      <Panel><StateMessage icon="eye" title={w('notCaptured')} sub={<>{row ? <Txt>{row.detail}</Txt> : w('notCapturedSub')}</>} /></Panel>
     </div>
   )
 }

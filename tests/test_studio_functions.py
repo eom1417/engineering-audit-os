@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from eaos import artifact_contracts
-from eaos.studio import coverage, export, functions, screens
+from eaos.studio import coverage, functions, screens
 from tests.shared_fixture import TemporaryWorkspace
 
 
@@ -82,15 +82,12 @@ class Functions(TemporaryWorkspace):
         cls.body = functions.functions(cls.report, cards, evidence)
         cls.by_id = {f['id']: f for f in cls.body['functions']}
 
-    def test_calls_resolve_within_the_file_and_through_imports_and_nothing_is_guessed(self):
+    def test_calls_resolve_within_the_file_and_through_imports_and_complexity_says_its_source_and_nothing_is_guessed(self):
         self.assertEqual(self.by_id[f'{API}#createOrder']['callees'], [f'{API}#toRow'])
         self.assertEqual(self.by_id[f'{API}#toRow']['callers'], [f'{API}#createOrder', f'{API}#listOrders'])
         self.assertEqual(self.by_id[f'{PAGE}#OrdersPage.handleSave']['callees'], [f'{API}#createOrder'])
         self.assertEqual(self.by_id[f'{PAGE}#OrdersPage']['callees'], [f'{PAGE}#useOrders'])      # `mystery` resolves nowhere: left out
-        self.assertEqual(self.body['counts']['calls']['value'], 5)
-        self.assertEqual(self.body['counts']['call_sites']['value'], 7)
-
-    def test_complexity_is_lizards_where_it_ran_else_the_lexical_count_and_says_which(self):
+        self.assertEqual((self.body['counts']['calls']['value'], self.body['counts']['call_sites']['value']), (5, 7))
         create, row = self.by_id[f'{API}#createOrder'], self.by_id[f'{API}#toRow']
         self.assertEqual((create['complexity']['value'], create['lines']['value']), (7, 19))
         self.assertIn('lizard', create['complexity']['src'])
@@ -98,11 +95,10 @@ class Functions(TemporaryWorkspace):
         self.assertIn('lexical', row['complexity']['src'])
         self.assertIsNone(self.by_id[f'{API}#listOrders']['complexity']['value'])     # neither: null, never 0
 
-    def test_kinds_signatures_reads_writes_and_cards(self):
+    def test_kinds_signatures_reads_writes_cards_and_languages_meet_the_contract_and_coverage(self):
         page = self.by_id[f'{PAGE}#OrdersPage']
         self.assertEqual((page['kind'], page['signature']), ('component', 'OrdersPage({ limit?, title })'))
-        self.assertEqual(self.by_id[f'{PAGE}#useOrders']['kind'], 'hook')
-        self.assertEqual(self.by_id[f'{PAGE}#OrdersPage.handleSave']['kind'], 'handler')
+        self.assertEqual((self.by_id[f'{PAGE}#useOrders']['kind'], self.by_id[f'{PAGE}#OrdersPage.handleSave']['kind']), ('hook', 'handler'))
         create = self.by_id[f'{API}#createOrder']
         self.assertEqual(create['signature'], 'createOrder(input)')
         self.assertEqual(create['writes'], [{'kind': 'table', 'name': 'orders'}])
@@ -110,20 +106,18 @@ class Functions(TemporaryWorkspace):
         self.assertEqual(self.by_id[f'{API}#listOrders']['reads'], [{'kind': 'network', 'name': 'GET /orders'}])
         self.assertEqual(create['cards'], ['TASK-001'])
         self.assertEqual({m['id']: m['component'] for m in self.body['modules']}, {API: 'src/api', PAGE: 'src', OLD: None})
-
-    def test_a_language_without_function_facts_is_named_not_left_as_an_empty_list(self):
         states = {row['id']: row['state'] for row in self.body['languages']}
-        self.assertEqual(states, {'C#': 'partial', 'JavaScript': 'measured', 'TypeScript': 'measured'})
+        self.assertEqual(states, {'C#': 'partial', 'JavaScript': 'measured', 'TypeScript': 'measured'}, 'a language without calls is named')
         self.assertEqual(self.by_id[f'{OLD}#Program::Main']['callers'], [])
         self.assertEqual([m['id'] for m in self.body['missing']], ['calls:C#'])
-
-    def test_the_section_meets_its_contract_and_its_coverage_row_names_each_language(self):
         data = {'schema_version': 1, 'contract': 1, 'revision': 2, **self.body}
         self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-functions']), [])
-        rows = coverage.coverage(self.report, {'functions': self.body}, ['functions'], [], 'en')['sections']
-        row = next(r for r in rows if r['section'] == 'functions')
-        self.assertEqual((row['state'], row['step']), ('partial', 'NS40.T3'))
-        self.assertEqual([p['id'] for p in row['parts']], ['C#', 'JavaScript', 'TypeScript'])
+        row = next(r for r in coverage.coverage(self.report, {'functions': self.body}, ['functions'], [], 'en')['sections'] if r['section'] == 'functions')
+        self.assertEqual((row['state'], [p['id'] for p in row['parts']]), ('partial', ['C#', 'JavaScript', 'TypeScript']))
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / 'facts').mkdir()
+            self.assertIsNone(functions.functions(folder), 'nothing read is not measured rather than empty')
 
 
 class Screens(unittest.TestCase):
@@ -132,7 +126,7 @@ class Screens(unittest.TestCase):
          'router': 'src/App.tsx', 'line': 12, 'fact': 'FACT-9', 'flags': ['dead_end']},
         {'id': '/#Root', 'route': '/', 'title': 'Root', 'kind': 'redirect', 'file': None, 'router': 'src/App.tsx', 'flags': []}]}
 
-    def test_every_page_is_a_screen_and_what_was_not_captured_is_named(self):
+    def test_every_page_is_a_screen_with_its_shot_and_what_was_not_captured_is_named(self):
         body = screens.screens(self.JOURNEYS, [{'kind': 'screen', 'path': 'public/logo.png', 'route': None}])
         self.assertEqual([s['id'] for s in body['screens']], ['/orders#Orders'])      # a logo is not a screen shot
         self.assertEqual(body['screens'][0]['shots'], [])
@@ -140,31 +134,14 @@ class Screens(unittest.TestCase):
         self.assertIsNone(body['counts']['issues']['value'])                           # not checked, not "no issues"
         data = {'schema_version': 1, 'contract': 1, 'revision': 2, **body}
         self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-screens']), [])
-
-    def test_a_shot_of_the_route_is_used_and_no_journeys_writes_nothing(self):
         body = screens.screens(self.JOURNEYS, [{'kind': 'screen', 'path': 'screens/orders-390.png', 'route': '/orders',
                                                 'viewport': 390, 'phase': 'baseline', 'batch': None}])
         self.assertEqual(body['screens'][0]['shots'], [{'path': 'screens/orders-390.png', 'width': 390, 'phase': 'baseline', 'batch': None}])
-        self.assertEqual([m['id'] for m in body['missing']], ['inputs'])
-        self.assertEqual(body['counts']['issues']['value'], 0)
+        self.assertEqual(([m['id'] for m in body['missing']], body['counts']['issues']['value']), (['inputs'], 0))
         self.assertIsNone(screens.screens(None))
-
-    def test_a_project_with_no_pages_has_an_empty_measured_screens_section(self):
-        body = screens.screens({'screens': []})
-        self.assertEqual((body['screens'], body['missing']), ([], []))
-
-
-class Export(unittest.TestCase):
-    def test_nothing_read_is_not_measured_rather_than_empty(self):
-        import tempfile
-        with tempfile.TemporaryDirectory() as folder:
-            (Path(folder) / 'facts').mkdir()
-            self.assertIsNone(functions.functions(folder))
+        empty = screens.screens({'screens': []})
+        self.assertEqual((empty['screens'], empty['missing']), ([], []), 'no pages: an empty measured section')
         self.assertIsNone(screens.screens({'screens': []}, read=False))
-
-    def test_the_exporter_lists_both_sections_in_the_manifest(self):
-        self.assertIn('functions', export.SECTIONS_V2)
-        self.assertIn('screens', export.SECTIONS_V2)
 
 
 if __name__ == '__main__':

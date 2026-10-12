@@ -18,12 +18,4 @@ def refresh(out, language='ar', target=None):
         summary['tasks'] = rebuild(out, dossier, language, target)
         dossier = read(out / 'dossier.json')
         summary['refreshed'].append('PLAN/')
-    if (out / 'PRODUCT-REPORT.md').is_file():
-        from .compose.product_report import render
-        render(out, dossier, language)
-        summary['refreshed'].append('PRODUCT-REPORT.md')
-    if (out / 'index.html').is_file():
-        from .site import build
-        build(out)
-        summary['refreshed'].append('index.html')
     return summary

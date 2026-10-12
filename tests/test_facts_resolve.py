@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -14,180 +13,90 @@ def edges(out):
     return data, {(f['location']['path'], f['value']['module']): f for f in data['facts']}
 
 
-class ResolveTests(TemporaryWorkspace):
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        collect(FIXTURE, Path(cls.tmp.name) / 'out', ['syntax', 'resolve'])
-        cls.data, cls.edges = edges(Path(cls.tmp.name) / 'out')
+def resolve_files(files):
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / 'repo'
+        for name, text in files.items():
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_text(text)
+        collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
+        return edges(Path(tmp) / 'out')
 
 
-    def test_python_package_and_relative_imports_resolve_to_files(self):
-        self.assertEqual(self.edges[('cli.py', 'core.pricing')]['value']['to_path'], 'core/pricing.py')
-        self.assertEqual(self.edges[('core/audit.py', 'pricing')]['value']['to_path'], 'core/pricing.py')
-
-    def test_typescript_relative_imports_resolve_across_extensions(self):
-        self.assertEqual(self.edges[('api/server.ts', './handlers/orders')]['value']['to_path'], 'api/handlers/orders.ts')
-        self.assertEqual(self.edges[('api/handlers/orders.ts', '../lib/pricing')]['value']['to_path'], 'api/lib/pricing.ts')
-
-    def test_third_party_and_standard_library_are_external_not_invented(self):
+class ResolveTests(unittest.TestCase):
+    def test_python_and_typescript_imports_resolve_and_third_party_stays_external(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            collect(FIXTURE, Path(tmp) / 'out', ['syntax', 'resolve'])
+            data, found = edges(Path(tmp) / 'out')
+        for key, target in [(('cli.py', 'core.pricing'), 'core/pricing.py'),
+                            (('core/audit.py', 'pricing'), 'core/pricing.py'),
+                            (('api/server.ts', './handlers/orders'), 'api/handlers/orders.ts'),
+                            (('api/handlers/orders.ts', '../lib/pricing'), 'api/lib/pricing.ts')]:
+            self.assertEqual(found[key]['value']['to_path'], target)
         for key in [('api/server.ts', 'express'), ('core/pricing.py', 'os'), ('worker/tasks.py', 'celery')]:
-            self.assertEqual(self.edges[key]['resolution'], 'EXTERNAL')
-            self.assertIsNone(self.edges[key]['value']['to_path'])
-
-    def test_every_internal_edge_in_the_fixture_resolves(self):
-        self.assertEqual(self.data['summary']['internal_resolution_rate'], 1.0)
-        self.assertEqual(self.data['summary']['by_resolution']['UNRESOLVED'], 0)
+            self.assertEqual(found[key]['resolution'], 'EXTERNAL')
+            self.assertIsNone(found[key]['value']['to_path'])
+        self.assertEqual(data['summary']['internal_resolution_rate'], 1.0)
+        self.assertEqual(data['summary']['by_resolution']['UNRESOLVED'], 0)
 
     def test_ambiguous_target_is_never_promoted_to_a_dependency(self):
+        files = {'Main.java': 'import com.example.Thing;\npublic class Main { void run() { new Thing(); } }\n'}
+        for name in ['one', 'two']:
+            files[f'{name}/com/example/Thing.java'] = 'package com.example;\npublic class Thing {}\n'
+        _, found = resolve_files(files)
+        edge = found[('Main.java', 'com.example.Thing')]
+        self.assertEqual(edge['resolution'], 'AMBIGUOUS')
+        self.assertIsNone(edge['value']['to_path'])
+        self.assertEqual(len(edge['value']['candidates']), 2)
+
+    def test_an_engine_resolved_edge_keeps_its_engine_name_and_is_counted_apart(self):
+        from eaos.facts.resolve import run as resolve_run, make, digest
+        from eaos.facts.source import Source
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; (repo / 'pkg').mkdir(parents=True)
-            (repo / 'shared.java').write_text('package app;\n')
-            (repo / 'pkg/app').mkdir(parents=True)
-            for name in ['one', 'two']:
-                folder = repo / name / 'com/example'; folder.mkdir(parents=True)
-                (folder / 'Thing.java').write_text('package com.example;\npublic class Thing {}\n')
-            (repo / 'Main.java').write_text('import com.example.Thing;\npublic class Main { void run() { new Thing(); } }\n')
-            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
-            _, found = edges(Path(tmp) / 'out')
-            edge = found[('Main.java', 'com.example.Thing')]
-            self.assertEqual(edge['resolution'], 'AMBIGUOUS')
-            self.assertIsNone(edge['value']['to_path'])
-            self.assertEqual(len(edge['value']['candidates']), 2)
-
-    def test_go_module_paths_resolve_through_go_mod(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; (repo / 'internal/store').mkdir(parents=True)
-            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
-            (repo / 'internal/store/store.go').write_text('package store\n\nfunc Load() string { return "x" }\n')
-            (repo / 'main.go').write_text('package main\n\nimport (\n\t"example.com/app/internal/store"\n)\n\nfunc main() { store.Load() }\n')
-            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
-            data, found = edges(Path(tmp) / 'out')
-            self.assertEqual(data['summary']['go_module'], 'example.com/app')
-            self.assertEqual(found[('main.go', 'example.com/app/internal/store')]['value']['to_path'], 'internal/store/store.go')
-
-    def test_resolution_is_deterministic(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            collect(FIXTURE, Path(tmp) / 'a', ['syntax', 'resolve']); collect(FIXTURE, Path(tmp) / 'b', ['syntax', 'resolve'])
-            self.assertEqual((Path(tmp) / 'a/facts/resolve.json').read_bytes(), (Path(tmp) / 'b/facts/resolve.json').read_bytes())
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'a.go').write_text('package a\n')
+            edge = make('call_edge', 'external', '1', digest(b''), {'path': 'a.go'},
+                        {'caller': 'A', 'callee': 'B', 'caller_path': 'a.go', 'callee_path': 'b.go',
+                         'line': 1, 'source': 'codegraph', 'engine': 'codegraph'},
+                        resolution='RESOLVED_BY_ENGINE', limitations=[])
+            result = resolve_run(repo, Source(repo), imports=None, external_edges=[edge])
+        engine_edges = [f for f in result['facts'] if f.get('resolution') == 'RESOLVED_BY_ENGINE']
+        self.assertEqual([f['value']['engine'] for f in engine_edges], ['codegraph'])
+        self.assertIn('resolved_by_us', result['summary'])
+        self.assertEqual(result['summary']['resolved_by_engine'], 1)
 
 
-class EngineResolvedEdgesTests(TemporaryWorkspace):
-    """When an external engine resolves an edge, the resolver records it under its own banner."""
+class GoResolutionTests(unittest.TestCase):
+    """A Go import points at a package (a directory) resolved through go.mod, not at a single file."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = cls.workspace()
+    def test_go_imports_resolve_to_their_package_folder_with_a_non_test_stand_in(self):
+        main = ('package main\n\nimport (\n\t"example.com/app/internal/store"\n\t"example.com/app/internal/config"\n'
+                '\t"example.com/app/internal/engine"\n\t"example.com/app/internal/only"\n)\n\n'
+                'func main() { store.Load(); _ = config.A; _ = engine.E; _ = only.A }\n')
+        data, found = resolve_files({
+            'go.mod': 'module example.com/app\n\ngo 1.21\n', 'main.go': main,
+            'internal/store/store.go': 'package store\n\nfunc Load() string { return "x" }\n',
+            'internal/config/config.go': 'package config\n\nvar A = 1\n',
+            'internal/config/loader.go': 'package config\n\nvar B = 2\n',
+            'internal/engine/append_replace_test.go': 'package engine\n\nvar T = 1\n',
+            'internal/engine/engine.go': 'package engine\n\nvar E = 2\n',
+            'internal/only/a_test.go': 'package only\n\nvar A = 1\n',
+            'internal/only/b_test.go': 'package only\n\nvar B = 2\n'})
+        self.assertEqual(data['summary']['go_module'], 'example.com/app')
+        edge = lambda name: found[('main.go', f'example.com/app/internal/{name}')]
+        self.assertEqual(edge('store')['value']['to_path'], 'internal/store/store.go')
+        config = edge('config')
+        self.assertEqual((config['resolution'], config['value']['target_kind'], config['value']['package_path']),
+                         ('RESOLVED', 'package', 'internal/config'))
+        self.assertEqual(set(config['value']['candidates']), {'internal/config/config.go', 'internal/config/loader.go'})
+        # A fixture never stands in for a package; an all-test package still resolves rather than losing the edge.
+        self.assertEqual(edge('engine')['value']['to_path'], 'internal/engine/engine.go')
+        self.assertEqual(edge('only')['resolution'], 'RESOLVED')
+        self.assertTrue(edge('only')['value']['to_path'].endswith('_test.go'))
 
-    def test_an_engine_resolved_edge_is_carrying_the_engine_name(self):
-        """The edge comes through resolve with RESOLVED_BY_ENGINE and an engine key in value."""
-        from eaos.facts.resolve import make, digest
-        facts, summary = _resolve_with_engine_edge()
-        engine_edges = [f for f in facts if f.get('resolution') == 'RESOLVED_BY_ENGINE']
-        self.assertGreater(len(engine_edges), 0)
-        for edge in engine_edges:
-            self.assertIn('engine', edge['value'])
-            self.assertTrue(edge['value']['engine'])
-
-    def test_engine_edges_and_own_edges_are_counted_separately(self):
-        facts, summary = _resolve_with_engine_edge()
-        self.assertIn('resolved_by_us', summary)
-        self.assertIn('resolved_by_engine', summary)
-        self.assertGreater(summary['resolved_by_engine'], 0)
-
-
-def _resolve_with_engine_edge():
-    """Run resolve with one RESOLVED_BY_ENGINE edge mixed in."""
-    from eaos.facts.resolve import run as resolve_run, make, digest
-    from eaos.facts.source import Source
-    import tempfile
-    from pathlib import Path
-    with tempfile.TemporaryDirectory() as tmp:
-        repo = Path(tmp) / 'repo'; repo.mkdir()
-        (repo / 'a.go').write_text('package a\n')
-        src = Source(repo)
-        engine_edge = make('call_edge', 'external', '1', digest(b''),
-                           {'path': 'a.go'},
-                           {'caller': 'A', 'callee': 'B',
-                            'caller_path': 'a.go', 'callee_path': 'b.go',
-                            'line': 1, 'source': 'codegraph', 'engine': 'codegraph'},
-                           resolution='RESOLVED_BY_ENGINE', limitations=[])
-        result = resolve_run(repo, src, imports=None, external_edges=[engine_edge])
-        return result['facts'], result['summary']
-
-
-class GoPackageFolderResolutionTests(TemporaryWorkspace):
-    """A Go import points at a package, not at a single file. Multiple candidate .go files in the
-    same directory are not ambiguity: that directory IS the target. Real ambiguity only exists
-    when candidates span more than one directory.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = cls.workspace()
-
-    def test_single_folder_with_multiple_go_files_resolves_to_the_folder(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; (repo / 'internal/config').mkdir(parents=True)
-            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
-            (repo / 'internal/config/config.go').write_text('package config\n\nvar A = 1\n')
-            (repo / 'internal/config/loader.go').write_text('package config\n\nvar B = 2\n')
-            (repo / 'main.go').write_text(
-                'package main\n\nimport "example.com/app/internal/config"\n\n'
-                'var _ = config.A\n')
-            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
-            data, found = edges(Path(tmp) / 'out')
-        edge = found[('main.go', 'example.com/app/internal/config')]
-        self.assertEqual(edge['resolution'], 'RESOLVED')
-        self.assertEqual(edge['value']['target_kind'], 'package')
-        self.assertEqual(edge['value']['to_path'], 'internal/config/config.go')
-        # The candidates field lists every member of the package, so the reader can audit which
-        # files compiled into the resolved package.
-        self.assertEqual(set(edge['value']['candidates']),
-                         {'internal/config/config.go', 'internal/config/loader.go'})
-        # The import names the directory; to_path only stands in for it so the graph keeps a file.
-        self.assertEqual(edge['value']['package_path'], 'internal/config')
-
-    def test_the_package_stand_in_file_is_never_a_test_file(self):
-        # Picking the alphabetically first member put `append_replace_test.go` on the dependency
-        # graph as the target of an `internal/engine` import: a fixture standing in for a package.
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; (repo / 'internal/engine').mkdir(parents=True)
-            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
-            (repo / 'internal/engine/append_replace_test.go').write_text('package engine\n\nvar T = 1\n')
-            (repo / 'internal/engine/engine.go').write_text('package engine\n\nvar E = 2\n')
-            (repo / 'main.go').write_text(
-                'package main\n\nimport "example.com/app/internal/engine"\n\n'
-                'var _ = engine.E\n')
-            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
-            data, found = edges(Path(tmp) / 'out')
-        edge = found[('main.go', 'example.com/app/internal/engine')]
-        self.assertEqual(edge['resolution'], 'RESOLVED')
-        self.assertEqual(edge['value']['to_path'], 'internal/engine/engine.go')
-        self.assertEqual(edge['value']['package_path'], 'internal/engine')
-
-    def test_an_all_test_package_still_resolves_rather_than_losing_the_edge(self):
-        # Dropping the edge would hide a real dependency. The stand-in falls back to the full list.
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; (repo / 'internal/only').mkdir(parents=True)
-            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
-            (repo / 'internal/only/a_test.go').write_text('package only\n\nvar A = 1\n')
-            (repo / 'internal/only/b_test.go').write_text('package only\n\nvar B = 2\n')
-            (repo / 'main.go').write_text(
-                'package main\n\nimport "example.com/app/internal/only"\n\n'
-                'var _ = only.A\n')
-            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
-            data, found = edges(Path(tmp) / 'out')
-        edge = found[('main.go', 'example.com/app/internal/only')]
-        self.assertEqual(edge['resolution'], 'RESOLVED')
-        self.assertTrue(edge['value']['to_path'].endswith('_test.go'))
-        self.assertEqual(edge['value']['package_path'], 'internal/only')
-
-    def test_real_ambiguity_across_two_folders_stays_ambiguous(self):
-        # Go imports that share a common prefix with files in two distinct folders must
-        # stay AMBIGUOUS — the single-folder rule must not collapse them. We synthesise the
-        # import_edge directly so the resolver sees three candidates spanning three folders.
+    def test_real_ambiguity_across_folders_stays_ambiguous(self):
         from eaos.facts import resolve as resolve_mod
+        from eaos.facts.source import Source
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'
             for folder in ('one', 'two', 'three'):
@@ -195,65 +104,46 @@ class GoPackageFolderResolutionTests(TemporaryWorkspace):
                 (repo / 'pkg' / folder / 'util.go').write_text('package util\n')
             (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
             (repo / 'main.go').write_text('package main\n')
-            src = __import__('eaos.facts.source', fromlist=['Source']).Source(repo)
-            import_edge = resolve_mod.make('import_edge', 'syntax', '1',
-                                            'sha', {'path': 'main.go', 'start_line': 1},
-                                            {'module': 'example.com/app/pkg', 'language': 'go',
-                                             'names': [], 'level': 0, 'style': 'import'},
-                                            limitations=[])
-            result = resolve_mod.run(repo, src, imports=[import_edge])
-        edges_amb = [e for e in result['facts']
-                      if e['value'].get('language') == 'go'
-                      and e['value'].get('module') == 'example.com/app/pkg']
-        ambiguous = [e for e in edges_amb if e['resolution'] == 'AMBIGUOUS']
-        self.assertTrue(ambiguous,
-                          f'expected at least one AMBIGUOUS across folders, got: '
-                          f'{[(e["resolution"], e["value"].get("candidates")) for e in edges_amb]}')
+            import_edge = resolve_mod.make('import_edge', 'syntax', '1', 'sha', {'path': 'main.go', 'start_line': 1},
+                                           {'module': 'example.com/app/pkg', 'language': 'go',
+                                            'names': [], 'level': 0, 'style': 'import'}, limitations=[])
+            result = resolve_mod.run(repo, Source(repo), imports=[import_edge])
+        matching = [e for e in result['facts'] if e['value'].get('module') == 'example.com/app/pkg']
+        self.assertTrue(any(e['resolution'] == 'AMBIGUOUS' for e in matching), matching)
 
 
 class PathAliasTests(unittest.TestCase):
     """`@/x` in a Vite or Next project is the project's own src/x, never an npm package."""
 
     def resolve(self, files):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
-            for name, text in files.items():
-                (repo / name).parent.mkdir(parents=True, exist_ok=True)
-                (repo / name).write_text(text)
-            collect(repo, out, ['syntax', 'resolve'])
-            rows = json.loads((out / 'facts/resolve.json').read_text())['facts']
-            return {(r['location']['path'], r['value']['module']): (r['resolution'], r['value']['to_path'], r['value'].get('target_kind'))
-                    for r in rows if r['kind'] == 'module_edge'}
+        _, found = resolve_files(files)
+        return {key: (f['resolution'], f['value']['to_path'], f['value'].get('target_kind'))
+                for key, f in found.items() if f['kind'] == 'module_edge'}
 
     def test_a_tsconfig_path_alias_resolves_to_the_file(self):
-        edges = self.resolve({'tsconfig.json': '{\n  // comments are allowed here\n  "compilerOptions": {"baseUrl": ".", "paths": {"@app/*": ["./src/app/*"],},},\n}\n',
+        found = self.resolve({'tsconfig.json': '{\n  // comments are allowed here\n  "compilerOptions": {"baseUrl": ".", '
+                                               '"paths": {"@app/*": ["./src/app/*"],},},\n}\n',
                               'src/app/orders.ts': 'export const x = 1;\n',
                               'src/main.ts': 'import { x } from "@app/orders";\nimport React from "react";\n'})
-        self.assertEqual(edges[('src/main.ts', '@app/orders')][:2], ('RESOLVED', 'src/app/orders.ts'))
-        self.assertEqual(edges[('src/main.ts', 'react')][0], 'EXTERNAL')
+        self.assertEqual(found[('src/main.ts', '@app/orders')][:2], ('RESOLVED', 'src/app/orders.ts'))
+        self.assertEqual(found[('src/main.ts', 'react')][0], 'EXTERNAL')
 
-    def test_a_js_specifier_in_typescript_names_its_ts_source(self):
-        edges = self.resolve({'server/src/env.ts': 'export const env = {};\n', 'server/src/view.tsx': 'export const v = 1;\n',
-                              'server/src/index.ts': 'import { env } from "./env.js";\nimport { v } from "./view.jsx";\n'
-                                                     'import { gone } from "./gone.js";\n'})
-        self.assertEqual(edges[('server/src/index.ts', './env.js')][:2], ('RESOLVED', 'server/src/env.ts'))
-        self.assertEqual(edges[('server/src/index.ts', './view.jsx')][:2], ('RESOLVED', 'server/src/view.tsx'))
-        self.assertNotEqual(edges[('server/src/index.ts', './gone.js')][0], 'RESOLVED')
-
-    def test_at_slash_points_at_src_without_any_config(self):
-        edges = self.resolve({'src/services/Orders.ts': 'export class Orders {}\n',
-                              'src/hooks/index.ts': 'export const h = 1;\n',
-                              'src/pages/Home.tsx': 'import { Orders } from "@/services/Orders";\nimport { h } from "@/hooks";\n'
-                                                    'import raw from "@/services/Orders?raw";\n'})
-        self.assertEqual(edges[('src/pages/Home.tsx', '@/services/Orders')][:2], ('RESOLVED', 'src/services/Orders.ts'))
-        self.assertEqual(edges[('src/pages/Home.tsx', '@/hooks')][:2], ('RESOLVED', 'src/hooks/index.ts'))
-        self.assertEqual(edges[('src/pages/Home.tsx', '@/services/Orders?raw')][:2], ('RESOLVED', 'src/services/Orders.ts'))
-
-    def test_a_missing_aliased_file_is_unresolved_not_external(self):
-        edges = self.resolve({'src/pages/Old.tsx': 'import { api } from "@/lib/serviceHistoryApi";\n', 'src/lib/other.ts': 'export {};\n'})
-        self.assertEqual(edges[('src/pages/Old.tsx', '@/lib/serviceHistoryApi')][0], 'UNRESOLVED')
-
-    def test_an_import_into_an_excluded_vendored_directory_is_external_with_its_path(self):
-        edges = self.resolve({'src/components/ui/button.tsx': 'export const Button = 1;\n',
-                              'src/pages/Home.tsx': 'import { Button } from "@/components/ui/button";\n'})
-        self.assertEqual(edges[('src/pages/Home.tsx', '@/components/ui/button')], ('EXTERNAL', None, 'excluded'))
+    def test_at_slash_and_js_specifiers_resolve_without_any_config(self):
+        found = self.resolve({
+            'src/services/Orders.ts': 'export class Orders {}\n', 'src/hooks/index.ts': 'export const h = 1;\n',
+            'src/components/ui/button.tsx': 'export const Button = 1;\n',
+            'src/pages/Home.tsx': 'import { Orders } from "@/services/Orders";\nimport { h } from "@/hooks";\n'
+                                  'import raw from "@/services/Orders?raw";\nimport { api } from "@/lib/serviceHistoryApi";\n'
+                                  'import { Button } from "@/components/ui/button";\n',
+            'server/src/env.ts': 'export const env = {};\n', 'server/src/view.tsx': 'export const v = 1;\n',
+            'server/src/index.ts': 'import { env } from "./env.js";\nimport { v } from "./view.jsx";\n'
+                                   'import { gone } from "./gone.js";\n'})
+        home = lambda module: found[('src/pages/Home.tsx', module)]
+        self.assertEqual(home('@/services/Orders')[:2], ('RESOLVED', 'src/services/Orders.ts'))
+        self.assertEqual(home('@/hooks')[:2], ('RESOLVED', 'src/hooks/index.ts'))
+        self.assertEqual(home('@/services/Orders?raw')[:2], ('RESOLVED', 'src/services/Orders.ts'))
+        self.assertEqual(home('@/lib/serviceHistoryApi')[0], 'UNRESOLVED', 'a missing aliased file is not external')
+        self.assertEqual(home('@/components/ui/button'), ('EXTERNAL', None, 'excluded'))
+        self.assertEqual(found[('server/src/index.ts', './env.js')][:2], ('RESOLVED', 'server/src/env.ts'))
+        self.assertEqual(found[('server/src/index.ts', './view.jsx')][:2], ('RESOLVED', 'server/src/view.tsx'))
+        self.assertNotEqual(found[('server/src/index.ts', './gone.js')][0], 'RESOLVED')

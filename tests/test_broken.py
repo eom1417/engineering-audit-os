@@ -8,19 +8,16 @@ from eaos.facts import broken
 from eaos.facts.run import collect
 
 
-class UndefinedNameTests(unittest.TestCase):
-    def test_a_name_imported_in_one_function_and_used_in_another_is_undefined(self):
+class BrokenCodeTests(unittest.TestCase):
+    def test_undefined_names_and_overwritten_keys_are_found_without_false_alarms(self):
         text = ('def one():\n    from os import sep as SEP\n    return SEP\n\n'
                 'def two():\n    return SEP\n')
         self.assertEqual(broken.undefined_names(text, 'cli.py'), [('SEP', 6)])
-
-    def test_closures_conditional_definitions_builtins_and_star_imports_are_not_reported(self):
+        # Closures, conditional definitions, builtins and star imports are not reported.
         self.assertEqual(broken.undefined_names('try:\n    import json\nexcept ImportError:\n    json = None\n'
                                                 'def f(x):\n    y = [i for i in x]\n    def g():\n        return y\n'
                                                 '    return g, len(x), json\n', 'a.py'), [])
         self.assertEqual(broken.undefined_names('from os import *\nprint(path)\n', 'b.py'), [])
-
-    def test_a_key_written_twice_with_different_values_loses_the_first(self):
         self.assertEqual(broken.duplicate_keys('X = {"a": 1, "b": 2, "a": 3}\nY = {"c": 1, "c": 1}\n'), [('a', 1, 1)])
 
 
@@ -44,28 +41,17 @@ class BrokenProjectTests(unittest.TestCase):
             'src/lib/other.ts': 'export {};\n',
             'README.md': 'Run `tool audit`, then `tool next`.\n\n```\nnpm run dev\nnpm run build\npython scripts/gone.py\n```\n'})
         self.assertIn(('missing-import', '@/lib/historyApi'), found)
-        self.assertIn(('stale-instruction', 'tool next'), found)
-        self.assertIn(('stale-instruction', 'npm run build'), found)
-        self.assertIn(('stale-instruction', 'python scripts/gone.py'), found)
+        for symbol in ('tool next', 'npm run build', 'python scripts/gone.py'):
+            self.assertIn(('stale-instruction', symbol), found)
         self.assertNotIn(('stale-instruction', 'tool audit'), found)
         self.assertNotIn(('stale-instruction', 'npm run dev'), found)
 
-
-    def test_a_script_family_and_a_command_run_from_the_app_folder_are_not_stale(self):
+    def test_script_families_placeholders_and_app_folder_commands_are_not_stale(self):
         found = self.run_on({
             'app/package.json': '{"scripts": {"deploy:staging": "x", "deploy:production": "y"}}',
             'app/scripts/baseline.mjs': 'export {};\n',
-            'README.md': '`npm run deploy:*` refuses; run `node scripts/baseline.mjs`, not `npm run release:*`.\n'})
-        stale = {symbol for rule, symbol in found if rule == 'stale-instruction'}
-        self.assertEqual(stale, {'npm run release:*'})
-
-    def test_a_script_name_followed_by_a_placeholder_is_a_pattern_not_a_prefix(self):
-        found = self.run_on({
-            'app/package.json': '{"scripts": {"deploy:staging": "x", "deploy:production": "y"}}',
+            'README.md': '`npm run deploy:*` refuses; run `node scripts/baseline.mjs`, not `npm run release:*`.\n',
             'CLAUDE.md': ('`npm run deploy:<target>` refuses; so do `npm run deploy:{env}`, `npm run deploy:$ENV`, '
                           '`npm run deploy:[name]` and `npm run deploy:…`; `npm run release:<target>` is gone.\n')})
         stale = {symbol for rule, symbol in found if rule == 'stale-instruction'}
-        self.assertEqual(stale, {'npm run release:<target>'})
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertEqual(stale, {'npm run release:*', 'npm run release:<target>'})

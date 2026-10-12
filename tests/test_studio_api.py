@@ -24,15 +24,18 @@ from starlette.testclient import TestClient  # noqa: E402
 from eaos import artifact_contracts  # noqa: E402
 from eaos.api import events as feed_module, guard, read, server  # noqa: E402
 from eaos.studio import export  # noqa: E402
-import studio_live_trial  # noqa: E402
 import studio_synthetic  # noqa: E402
 
 PORT = 48123
+KINDS = ('scan', 'batch', 'merge', 'decision')
 
 
 def report_with_data(where, cards=30):
     folder = Path(where) / 'report' / 'studio'
-    problems = studio_synthetic.write(folder, studio_synthetic.build(cards=cards, components=6))
+    contracts = artifact_contracts.contracts()
+    # Only the sections the contract still has: tools/studio_synthetic.py also builds the removed `quality` section.
+    sections = {name: body for name, body in studio_synthetic.build(cards=cards, components=6).items() if f'studio-{name}' in contracts}
+    problems = studio_synthetic.write(folder, sections)
     assert not problems, problems
     return folder.parent
 
@@ -41,6 +44,43 @@ def client(report, mounts=None):
     keys = server.Keys(port=PORT)
     app = server.create_app(report, name='shop', keys=keys, mounts=mounts or [], watch=False)
     return TestClient(app, base_url=f'http://127.0.0.1:{PORT}'), keys, app
+
+
+def _load(folder, name):
+    return json.loads((Path(folder) / f'{name}.json').read_text(encoding='utf-8'))
+
+
+def publish(folder, changed):
+    """Write the changed sections whole, then the manifest with their new digests: what export.export does."""
+    folder = Path(folder)
+    manifest = _load(folder, 'manifest')
+    for name, data in changed.items():
+        blob = export._write(folder, name, data)
+        entry = next(s for s in manifest['sections'] if s['name'] == name)
+        entry.update(sha256=hashlib.sha256(blob).hexdigest(), bytes=len(blob))
+    if 'head' in changed: manifest['scanned'] = changed['head']['scanned']
+    export._write(folder, 'manifest', manifest)
+
+
+def mutate(folder, kind, number):
+    """One event on a Studio data folder, written the way the exporter writes it: a new check, a batch delivered, the
+    batch merged, a new decision."""
+    folder = Path(folder)
+    if kind == 'scan':
+        head = _load(folder, 'head')
+        head['scanned'] = {**head['scanned'], 'commit': hashlib.sha1(f'live-{number}'.encode()).hexdigest()}
+        return publish(folder, {'head': head})
+    if kind in ('batch', 'merge'):
+        cards = _load(folder, 'cards')
+        state = 'in_batch' if kind == 'batch' else 'done'
+        pool = [c for c in cards['cards'] if c['state'] == ('open' if kind == 'batch' else 'in_batch')]
+        min(pool, key=lambda c: c['id'])['state'] = state
+        return publish(folder, {'cards': cards})
+    decisions = _load(folder, 'decisions')
+    decisions['decisions'].insert(0, {'id': f'live-{number}', 'question': f'Live decision {number}?', 'recommendation': 'Keep it.',
+                                      'options': [{'id': 'yes', 'label': 'Yes'}, {'id': 'later', 'label': 'Later'}], 'blocks': [],
+                                      'state': 'waiting', 'answer': None, 'plan': None, 'asked': '', 'tool': None})
+    publish(folder, {'decisions': decisions})
 
 
 class Guard(unittest.TestCase):
@@ -56,49 +96,25 @@ class Guard(unittest.TestCase):
         self.http, self.keys, _ = client(self.report, [mount])
         self.token = {'X-EAOS-Token': self.keys.token}
 
-    def test_the_api_refuses_without_the_token_and_with_a_wrong_one(self):
-        self.assertEqual(self.http.get('/api/session').status_code, 401)
-        self.assertEqual(self.http.get('/api/session', headers={'X-EAOS-Token': self.keys.token[:-1] + 'x'}).status_code, 401)
-        self.assertEqual(self.http.get('/api/sections/cards').status_code, 401)
-        self.assertEqual(self.http.get('/api/events').status_code, 401)
-        answer = self.http.get('/api/session', headers=self.token)
-        self.assertEqual(answer.status_code, 200)
-        self.assertEqual(answer.json()['mode'], 'live')
-
-    def test_another_host_name_is_refused_even_with_the_token(self):
-        answer = self.http.get('/api/session', headers={**self.token, 'Host': f'evil.example:{PORT}'})
-        self.assertEqual(answer.status_code, 421, 'DNS rebinding: a page that renames itself 127.0.0.1 is refused')
+    def test_the_token_and_the_host_are_required_compared_safely_and_never_logged_or_shown(self):
+        for path in ('/api/session', '/api/sections/cards', '/api/events'):
+            self.assertEqual(self.http.get(path).status_code, 401, path)
+        wrong = self.keys.token[:-1] + 'x'
+        self.assertEqual(self.http.get('/api/session', headers={'X-EAOS-Token': wrong}).status_code, 401)
+        with mock.patch('hmac.compare_digest', wraps=__import__('hmac').compare_digest) as compare:
+            answer = self.http.get('/api/session', headers=self.token)
+        self.assertTrue(compare.called)
+        self.assertEqual((answer.status_code, answer.json()['mode']), (200, 'live'))
+        self.assertFalse(guard.same(None, 'x') or guard.same('', ''))
+        self.assertEqual(self.http.get('/api/session', headers={**self.token, 'Host': f'evil.example:{PORT}'}).status_code, 421,
+                         'DNS rebinding: a page that renames itself 127.0.0.1 is refused')
         self.assertEqual(self.http.get('/', headers={'Host': 'evil.example'}).status_code, 421)
         self.assertEqual(self.http.get('/api/session', headers={**self.token, 'Host': f'localhost:{PORT}'}).status_code, 200)
-
-    def test_a_write_needs_csrf_and_this_origin(self):
-        csrf = self.http.get('/api/session', headers=self.token).json()['csrf']
-        origin = {'Origin': f'http://127.0.0.1:{PORT}'}
-        post = lambda headers: self.http.post('/api/test/echo', json={'a': 1}, headers=headers).status_code
-        self.assertEqual(post(self.token), 403)
-        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf}), 403, 'no Origin')
-        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf, 'Origin': 'http://evil.example'}), 403)
-        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf[::-1] + 'x', **origin}), 403)
-        self.assertEqual(post({'X-EAOS-CSRF': csrf, **origin}), 401)
-        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf, **origin}), 200)
-        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf, 'Referer': f'http://localhost:{PORT}/#/problems'}), 200)
-
-    def test_the_read_api_has_no_write(self):
-        csrf = self.http.get('/api/session', headers=self.token).json()['csrf']
-        headers = {**self.token, 'X-EAOS-CSRF': csrf, 'Origin': f'http://127.0.0.1:{PORT}'}
-        for path in ('/api/session', '/api/manifest', '/api/sections/cards', '/api/openapi.json'):
-            self.assertIn(self.http.post(path, headers=headers).status_code, (404, 405), path)
-        self.assertEqual(self.http.post('/', headers=headers).status_code, 405)
-
-    def test_the_token_is_compared_in_constant_time(self):
-        with mock.patch('hmac.compare_digest', wraps=__import__('hmac').compare_digest) as compare:
-            self.http.get('/api/session', headers=self.token)
-        self.assertTrue(compare.called)
-        self.assertFalse(guard.same(None, 'x'))
-        self.assertFalse(guard.same('', ''))
-
-    def test_the_token_never_reaches_a_log_or_the_page(self):
-        wrong = self.keys.token[::-1]
+        with self.assertRaises(ValueError):
+            server.bind(0, host='0.0.0.0')
+        sock = server.bind(0)
+        self.addCleanup(sock.close)
+        self.assertEqual(sock.getsockname()[0], '127.0.0.1')
         with self.assertLogs('eaos.studio.server', level='WARNING') as logged:
             self.http.get('/api/session', headers={'X-EAOS-Token': wrong})
             self.http.post('/api/test/echo', json={}, headers=self.token)
@@ -113,12 +129,21 @@ class Guard(unittest.TestCase):
         self.assertIn("sessionStorage.setItem('eaos.token'", boot)
         self.assertIn("history.replaceState(null, '', location.pathname + location.search + route)", boot, 'the token leaves the address')
 
-    def test_it_listens_on_loopback_only(self):
-        with self.assertRaises(ValueError):
-            server.bind(0, host='0.0.0.0')
-        sock = server.bind(0)
-        self.addCleanup(sock.close)
-        self.assertEqual(sock.getsockname()[0], '127.0.0.1')
+    def test_a_write_needs_csrf_and_this_origin_and_the_read_api_has_none(self):
+        csrf = self.http.get('/api/session', headers=self.token).json()['csrf']
+        origin = {'Origin': f'http://127.0.0.1:{PORT}'}
+        post = lambda headers: self.http.post('/api/test/echo', json={'a': 1}, headers=headers).status_code
+        self.assertEqual(post(self.token), 403)
+        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf}), 403, 'no Origin')
+        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf, 'Origin': 'http://evil.example'}), 403)
+        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf[::-1] + 'x', **origin}), 403)
+        self.assertEqual(post({'X-EAOS-CSRF': csrf, **origin}), 401)
+        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf, **origin}), 200)
+        self.assertEqual(post({**self.token, 'X-EAOS-CSRF': csrf, 'Referer': f'http://localhost:{PORT}/#/problems'}), 200)
+        headers = {**self.token, 'X-EAOS-CSRF': csrf, **origin}
+        for path in ('/api/session', '/api/manifest', '/api/sections/cards', '/api/openapi.json'):
+            self.assertIn(self.http.post(path, headers=headers).status_code, (404, 405), path)
+        self.assertEqual(self.http.post('/', headers=headers).status_code, 405)
 
 
 class ReadApi(unittest.TestCase):
@@ -132,7 +157,7 @@ class ReadApi(unittest.TestCase):
     def get(self, path):
         return self.http.get(path, headers=self.headers)
 
-    def test_every_section_of_the_contract_has_its_route_and_its_schema(self):
+    def test_every_section_is_routed_with_its_schema_and_served_byte_for_byte(self):
         contract = {name[len('studio-'):] for name in artifact_contracts.contracts() if name.startswith('studio-')} - {'manifest'}
         self.assertEqual(set(read.section_schemas()), contract)
         spec = self.get('/api/openapi.json').json()
@@ -141,8 +166,6 @@ class ReadApi(unittest.TestCase):
             path = spec['paths'][f'/api/sections/{name}']['get']
             self.assertEqual(path['responses']['200']['content']['application/json']['schema'], {'$ref': f'/api/schemas/{name}'})
             self.assertEqual(self.get(f'/api/schemas/{name}').json(), artifact_contracts.contracts()[f'studio-{name}'])
-
-    def test_a_section_is_the_file_the_exporter_wrote_byte_for_byte(self):
         folder = self.report / 'studio'
         manifest = json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))
         self.assertEqual(self.get('/api/manifest').content, (folder / 'manifest.json').read_bytes())
@@ -151,20 +174,26 @@ class ReadApi(unittest.TestCase):
             self.assertEqual(body.status_code, 200, entry['name'])
             self.assertEqual(hashlib.sha256(body.content).hexdigest(), entry['sha256'], entry['name'])
             self.assertEqual(body.headers['cache-control'], 'no-store')
+        session = self.get('/api/session').json()
+        self.assertEqual((session['feed']['source'], session['actions']), ('manifest', False))
+        self.assertIn('cards', session['sections'])
+        self.assertNotIn('token', json.dumps(session).lower().replace('csrf', ''))
+        catalog = {'schema_version': 1, 'source_locale': 'ar', 'translations': {'en': {'نعم': 'Yes'}}}
+        (folder / 'locale.json').write_text(json.dumps(catalog), encoding='utf-8')
+        self.assertEqual(self.http.get('/api/locales/en').status_code, 401, 'a translation sits behind the token too')
+        self.assertEqual(self.get('/api/locales/en').json(), catalog)
+        self.assertEqual(self.get('/api/locales/ar').status_code, 404)
 
-    def test_an_unwritten_section_answers_with_its_coverage_row_and_an_unknown_one_is_refused(self):
+    def test_an_unwritten_or_unknown_section_and_no_check_yet_answer_plainly(self):
         folder = self.report / 'studio'
         manifest = json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))
         manifest['sections'] = [s for s in manifest['sections'] if s['name'] != 'functions']
         (folder / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
         answer = self.get('/api/sections/functions')
-        self.assertEqual(answer.status_code, 404)
-        self.assertEqual(answer.json()['error'], 'not_written')
+        self.assertEqual((answer.status_code, answer.json()['error']), (404, 'not_written'))
         self.assertEqual(answer.json()['coverage']['section'], 'functions')
         self.assertEqual(self.get('/api/sections/..%2F..%2Fetc').status_code, 404)
         self.assertEqual(self.get('/api/sections/secrets').json()['error'], 'unknown')
-
-    def test_no_check_yet_is_an_empty_state(self):
         empty = Path(self.tmp.name) / 'empty'
         (empty / 'studio').mkdir(parents=True)
         http, keys, _ = client(empty)
@@ -185,13 +214,6 @@ class ReadApi(unittest.TestCase):
         for path in ('/../eaos/api/guard.py', '/%2e%2e/%2e%2e/pyproject.toml', '/SOURCE.json/../../cli.py', '/nope.js'):
             self.assertEqual(self.http.get(path).status_code, 404, path)
 
-    def test_the_session_names_the_feed_and_whether_actions_are_mounted(self):
-        session = self.get('/api/session').json()
-        self.assertEqual(session['feed']['source'], 'manifest')
-        self.assertFalse(session['actions'])
-        self.assertIn('cards', session['sections'])
-        self.assertNotIn('token', json.dumps(session).lower().replace('csrf', ''))
-
 
 class FeedEvents(unittest.TestCase):
     def setUp(self):
@@ -205,52 +227,53 @@ class FeedEvents(unittest.TestCase):
     def kinds(self, events):
         return [e['kind'] for e in events]
 
-    def test_each_event_kind_comes_from_what_changed_in_the_manifest(self):
-        cards = json.loads((self.folder / 'cards.json').read_text(encoding='utf-8'))
+    def test_each_event_kind_comes_from_what_changed_until_the_event_log_takes_over(self):
+        cards = _load(self.folder, 'cards')
         opened = sorted(c['id'] for c in cards['cards'] if c['state'] == 'open')
-        studio_live_trial.mutate(self.folder, 'scan', 1)
+        mutate(self.folder, 'scan', 1)
         got = self.feed.poll()
         self.assertEqual(self.kinds(got), ['scan.done'])
-        self.assertEqual(set(got[0]['sections']), {'head'})
-        self.assertEqual(got[0]['source'], 'manifest')
-        studio_live_trial.mutate(self.folder, 'batch', 2)
+        self.assertEqual((set(got[0]['sections']), got[0]['source']), ({'head'}, 'manifest'))
+        mutate(self.folder, 'batch', 2)
         got = self.feed.poll()
-        self.assertEqual(self.kinds(got), ['batch.delivered'])
-        self.assertEqual(got[0]['data']['cards'], [opened[0]])
-        studio_live_trial.mutate(self.folder, 'merge', 3)
+        self.assertEqual((self.kinds(got), got[0]['data']['cards']), (['batch.delivered'], [opened[0]]))
+        mutate(self.folder, 'merge', 3)
         self.assertEqual(self.kinds(self.feed.poll()), ['branch.merged'])
-        studio_live_trial.mutate(self.folder, 'decision', 4)
+        mutate(self.folder, 'decision', 4)
         got = self.feed.poll()
-        self.assertEqual(self.kinds(got), ['decision.asked'])
-        self.assertEqual(got[0]['data']['decisions'], ['live-4'])
+        self.assertEqual((self.kinds(got), got[0]['data']['decisions']), (['decision.asked'], ['live-4']))
         self.assertEqual(self.feed.poll(), [], 'nothing changed, nothing published')
-        decisions = json.loads((self.folder / 'decisions.json').read_text(encoding='utf-8'))
+        decisions = _load(self.folder, 'decisions')
         decisions['decisions'][0].update(state='answered', answer='yes')
-        studio_live_trial.publish(self.folder, {'decisions': decisions})
+        publish(self.folder, {'decisions': decisions})
         self.assertEqual(self.kinds(self.feed.poll()), ['decision.answered'])
-        studio_live_trial.publish(self.folder, {'docs': {**json.loads((self.folder / 'docs.json').read_text(encoding='utf-8')), 'docs': []}})
+        publish(self.folder, {'docs': {**_load(self.folder, 'docs'), 'docs': []}})
         self.assertEqual(self.kinds(self.feed.poll()), ['studio.updated'])
+        log = self.report / 'events.jsonl'
+        log.write_text(json.dumps({'kind': 'branch.merged', 'seq': 1}) + '\n' + '{"kind": "half', encoding='utf-8')
+        got = self.feed.poll()
+        self.assertEqual(self.feed.source, 'events')
+        self.assertEqual([(e['kind'], e['source']) for e in got], [('branch.merged', 'events')])
+        with log.open('a', encoding='utf-8') as handle: handle.write(' written"}\n')
+        self.assertEqual(self.kinds(self.feed.poll()), ['half written'], 'a line is read once it is whole')
 
-    def test_every_event_has_both_languages_and_a_growing_number(self):
-        for n, kind in enumerate(studio_live_trial.KINDS, 1):
-            studio_live_trial.mutate(self.folder, kind, n)
+    def test_a_missed_event_is_replayed_and_a_foreign_or_too_old_id_asks_for_a_reset(self):
+        start = self.feed.last_id()
+        for n, kind in enumerate(KINDS, 1):
+            mutate(self.folder, kind, n)
             self.feed.poll()
+        action = self.feed.publish('action', data={'action': 'audit'}, text={'en': 'Check started', 'ar': 'بدأ الفحص'})
+        self.assertEqual((action['source'], action['seq']), ('action', 5), 'an action is numbered with the rest')
         rows = list(self.feed.events)
         self.assertEqual([r['seq'] for r in rows], list(range(1, len(rows) + 1)))
         for row in rows:
             self.assertTrue(row['text']['en'] and row['text']['ar'])
             self.assertTrue(row['id'].startswith(self.feed.epoch + '-'))
-
-    def test_a_missed_event_is_replayed_and_a_foreign_or_too_old_id_asks_for_a_reset(self):
-        start = self.feed.last_id()
-        for n, kind in enumerate(studio_live_trial.KINDS, 1):
-            studio_live_trial.mutate(self.folder, kind, n)
-            self.feed.poll()
         missed, reset = self.feed.since(start)
         self.assertFalse(reset)
-        self.assertEqual(self.kinds(missed), ['scan.done', 'batch.delivered', 'branch.merged', 'decision.asked'])
+        self.assertEqual(self.kinds(missed), ['scan.done', 'batch.delivered', 'branch.merged', 'decision.asked', 'action'])
         missed, reset = self.feed.since(missed[1]['id'])
-        self.assertEqual((self.kinds(missed), reset), (['branch.merged', 'decision.asked'], False))
+        self.assertEqual((self.kinds(missed), reset), (['branch.merged', 'decision.asked', 'action'], False))
         self.assertEqual(self.feed.since('another-3'), ([], True), 'an id of an earlier server')
         self.assertEqual(self.feed.since(f'{self.feed.epoch}-99'), ([], True))
         small = feed_module.Feed(self.report, keep=2)
@@ -258,19 +281,6 @@ class FeedEvents(unittest.TestCase):
         for n in range(3): small.publish('studio.updated')
         self.assertEqual(small.since(first), ([], True), 'older than what the feed keeps')
         self.assertEqual(self.feed.since(None), ([], False))
-
-    def test_the_event_log_is_the_source_once_it_exists(self):
-        log = self.report / 'events.jsonl'
-        log.write_text(json.dumps({'kind': 'branch.merged', 'seq': 1}) + '\n' + '{"kind": "half', encoding='utf-8')
-        got = self.feed.poll()
-        self.assertEqual(self.feed.source, 'events')
-        self.assertEqual([(e['kind'], e['source']) for e in got], [('branch.merged', 'events')])
-        with log.open('a', encoding='utf-8') as handle: handle.write(' written"}\n')
-        self.assertEqual([e['kind'] for e in self.feed.poll()], ['half written'], 'a line is read once it is whole')
-
-    def test_an_action_publishes_into_the_same_numbers(self):
-        event = self.feed.publish('action', data={'action': 'audit'}, text={'en': 'Check started', 'ar': 'بدأ الفحص'})
-        self.assertEqual((event['source'], event['seq']), ('action', 1))
 
 
 class PlainMount(unittest.TestCase):
@@ -304,18 +314,15 @@ class PlainMount(unittest.TestCase):
         self.assertIs(seen['ctx'], app.state.ctx)
 
 
-def _get(url, token=None, timeout=5):
-    request = urllib.request.Request(url, headers={'X-EAOS-Token': token} if token else {})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response: return response.status, response.read()
-    except urllib.error.HTTPError as error: return error.code, error.read()
-
-
 def _fetch(url, headers=None, timeout=5):
     request = urllib.request.Request(url, headers=headers or {})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response: return response.status, response.read()
     except urllib.error.HTTPError as error: return error.code, error.read()
+
+
+def _get(url, token=None, timeout=5):
+    return _fetch(url, {'X-EAOS-Token': token} if token else {}, timeout)
 
 
 def _page_token(base):
@@ -349,7 +356,7 @@ def sse_frames(port, token, last=None, count=1, timeout=10):
 
 
 class LiveServer(unittest.TestCase):
-    """The real server on a free port: token refusal, a read, and an SSE event after a manifest change."""
+    """The real server on a free port: token refusal, a read, an SSE event after a manifest change, and the replay."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -370,12 +377,11 @@ class LiveServer(unittest.TestCase):
             self.thread.join(5)
         self.addCleanup(stop)
 
-    def test_refusal_a_read_and_an_event_after_the_manifest_changes(self):
+    def test_a_read_an_event_within_seconds_and_a_reconnect_that_replays_what_was_missed(self):
         base, token = f'http://127.0.0.1:{self.port}', self.ctx.keys.token
         self.assertEqual(_get(f'{base}/api/sections/cards')[0], 401)
         status, body = _get(f'{base}/api/sections/cards', token)
-        self.assertEqual(status, 200)
-        self.assertEqual(len(json.loads(body)['cards']), 30)
+        self.assertEqual((status, len(json.loads(body)['cards'])), (200, 30))
         status, frames = sse_frames(self.port, token)
         self.assertEqual((status, frames[0]['event']), (200, 'hello'))
         last = frames[0]['id']
@@ -384,21 +390,17 @@ class LiveServer(unittest.TestCase):
         reader.start()
         time.sleep(0.5)
         written = time.monotonic()
-        studio_live_trial.mutate(self.report / 'studio', 'scan', 1)
+        mutate(self.report / 'studio', 'scan', 1)
         reader.join(10)
         self.assertLess(time.monotonic() - written, 5)
         event = json.loads(result['frames'][0]['data'])
         self.assertEqual((result['frames'][0]['event'], event['kind'], event['sections']), ('studio', 'scan.done', ['head']))
         self.assertEqual(result['frames'][0]['id'], event['id'])
-
-    def test_a_reconnect_replays_what_was_missed_and_an_old_server_id_resets(self):
-        token = self.ctx.keys.token
-        _, frames = sse_frames(self.port, token)
-        last = frames[0]['id']
-        studio_live_trial.mutate(self.report / 'studio', 'batch', 1)
-        studio_live_trial.mutate(self.report / 'studio', 'decision', 2)
+        last = event['id']
+        mutate(self.report / 'studio', 'batch', 2)
+        mutate(self.report / 'studio', 'decision', 3)
         deadline = time.monotonic() + 5
-        while time.monotonic() < deadline and len(self.ctx.feed.events) < 2: time.sleep(0.1)
+        while time.monotonic() < deadline and len(self.ctx.feed.events) < 3: time.sleep(0.1)
         _, frames = sse_frames(self.port, token, last=last, count=2)
         self.assertEqual([json.loads(f['data'])['kind'] for f in frames], ['batch.delivered', 'decision.asked'])
         _, frames = sse_frames(self.port, token, last='deadbeef-7')
@@ -421,15 +423,33 @@ class Commands(unittest.TestCase):
     def records(self):
         return list((Path(self.env['EAOS_HOME']) / 'studio').glob('*.json'))
 
-    def test_eaos_studio_serves_until_stopped_and_a_second_one_reuses_it(self):
+    def studio(self):
         process = subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.addCleanup(lambda: process.poll() is None and process.kill())
+        return process
+
+    def stop_later(self, pid):
+        def stop():
+            try: os.kill(pid, 15)
+            except OSError: pass
+        self.addCleanup(stop)
+        return stop
+
+    def test_eaos_studio_serves_until_stopped_is_reused_and_gives_its_token_to_its_own_page_only(self):
+        process = self.studio()
         line = process.stdout.readline()
         self.assertIn('EAOS Studio, live: http://127.0.0.1:', line)
         url = line.split('live: ', 1)[1].strip()
         self.assertNotIn('token', url, 'the address on this computer is plain')
         base = url.rstrip('/')
+        page = _fetch(f'{base}/', {'Sec-Fetch-Site': 'none', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
+        self.assertIn('live-token.js', page, 'the person opening the address')
+        other = _fetch(f'{base}/', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
+        self.assertNotIn('live-token.js', other, 'a link from another site')
+        self.assertEqual(_fetch(f'{base}/live-token.js', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'script'})[0], 404,
+                         "another site's page including the script")
+        self.assertEqual(_fetch(f'{base}/live-token.js')[0], 404, 'a client that does not say where the request comes from')
         token = _page_token(base)
         self.assertEqual(_get(f'{base}/api/session')[0], 401)
         status, body = _get(f'{base}/api/session', token)
@@ -444,61 +464,26 @@ class Commands(unittest.TestCase):
         process.terminate()
         process.wait(10)
         self.assertEqual(self.records(), [], 'a stopped server leaves no record behind')
-        restarted = subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        self.addCleanup(lambda: restarted.poll() is None and restarted.kill())
+        restarted = self.studio()
         self.assertIn(url, restarted.stdout.readline(), 'a restarted Studio keeps its address')
         self.assertEqual(_get(f'{base}/api/session', token)[0], 200, 'and its token: a saved address keeps working')
         restarted.terminate()
         restarted.wait(10)
 
-    def test_on_a_remote_server_the_studio_gives_its_plain_remote_address(self):
+    def test_in_the_background_on_a_remote_server_the_studio_gives_its_plain_remote_address(self):
         env = {**self.env, 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.remote.e-m.sa'}
         done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=env,
                               capture_output=True, text=True, timeout=60)
         [record] = self.records()
         saved = json.loads(record.read_text(encoding='utf-8'))
-        def stop():
-            try: os.kill(saved['pid'], 15)
-            except OSError: pass
-        self.addCleanup(stop)
+        self.stop_later(saved['pid'])
+        self.assertEqual(done.returncode, 0, done.stderr)
         address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
         self.assertEqual(address, f"https://shop--{saved['port']}.dev.remote.e-m.sa/", 'the Remote address carries no token')
         host = {'Host': f"shop--{saved['port']}.dev.remote.e-m.sa"}
-        self.assertEqual(_fetch(f"http://127.0.0.1:{saved['port']}/", host)[0], 200, 'it answers to its Remote name')
-        self.assertIn('live-token.js', _fetch(f"http://127.0.0.1:{saved['port']}/", host)[1].decode('utf-8'),
-                      'behind the Remote sign-in the page also reads its token from its server')
-
-    def test_studio_in_the_background_prints_its_address_and_returns(self):
-        done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=self.env,
-                              capture_output=True, text=True, timeout=60)
-        [record] = self.records()
-        pid = json.loads(record.read_text(encoding='utf-8'))['pid']
-        def stop():
-            try: os.kill(pid, 15)
-            except OSError: pass
-        self.addCleanup(stop)
-        self.assertEqual(done.returncode, 0, done.stderr)
-        address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
-        self.assertTrue(address.startswith('http://127.0.0.1:') and 'token' not in address, address)
-        base = address.split('/#', 1)[0].rstrip('/')
-        self.assertEqual(_get(f'{base}/api/session', _page_token(base))[0], 200, 'the server it left running answers')
-
-    def test_the_plain_address_gives_the_token_to_the_studios_own_page_only(self):
-        process = subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        self.addCleanup(lambda: process.poll() is None and process.kill())
-        base = process.stdout.readline().split('live: ', 1)[1].strip().rstrip('/')
-        page = _fetch(f'{base}/', {'Sec-Fetch-Site': 'none', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
-        self.assertIn('live-token.js', page, 'the person opening the address')
-        other = _fetch(f'{base}/', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
-        self.assertNotIn('live-token.js', other, 'a link from another site')
-        self.assertEqual(_fetch(f'{base}/live-token.js', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'script'})[0], 404,
-                         "another site's page including the script")
-        self.assertEqual(_fetch(f'{base}/live-token.js')[0], 404, 'a client that does not say where the request comes from')
-        self.assertEqual(_get(f'{base}/api/session', _page_token(base))[0], 200)
-        process.terminate()
-        process.wait(10)
+        status, page = _fetch(f"http://127.0.0.1:{saved['port']}/", host)
+        self.assertEqual(status, 200, 'it answers to its Remote name')
+        self.assertIn('live-token.js', page.decode('utf-8'), 'behind the Remote sign-in the page also reads its token from its server')
 
     def test_open_studio_starts_it_in_the_background_and_reuses_it(self):
         from eaos import agent_tools
@@ -506,10 +491,7 @@ class Commands(unittest.TestCase):
         first = agent_tools.open_studio(str(self.project), show=False)
         [record] = self.records()
         pid = json.loads(record.read_text(encoding='utf-8'))['pid']
-        def stop():
-            try: os.kill(pid, 15)
-            except OSError: pass
-        self.addCleanup(stop)
+        stop = self.stop_later(pid)
         self.assertTrue(first['started'] and first['live'])
         self.assertFalse(first['checked'])
         self.assertTrue(first['studio'].startswith('http://127.0.0.1:'))
@@ -520,24 +502,13 @@ class Commands(unittest.TestCase):
         while time.monotonic() < deadline and launch._alive(pid): time.sleep(0.1)
         self.assertIsNone(launch.running(server.prepare(str(self.project))[0]), 'a dead server is not reused')
 
-    def test_open_studio_is_an_mcp_tool_and_eaos_studio_a_grouped_command(self):
-        import asyncio
-        from eaos.command_groups import group_of
-        from eaos.mcp_server import build
-        tools = {tool.name: tool for tool in asyncio.run(build().list_tools())}
-        self.assertIn('open_studio', tools)
-        annotations = tools['open_studio'].annotations
-        self.assertTrue(getattr(annotations, 'read_only_hint', None) or getattr(annotations, 'readOnlyHint', None))
-        self.assertEqual(group_of('studio'), 'start')
 
+class Remote(unittest.TestCase):
+    """A Studio behind the Remote sign-in: its exact routed origin, its kept token, and the opt-in that hands it over."""
 
-if __name__ == '__main__':
-    unittest.main()
-
-
-class RemoteGuard(unittest.TestCase):
-    def test_remote_origin_keeps_outer_and_command_centre_locks(self):
-        from eaos.studio.actions import adapters
+    def test_the_exact_routed_origin_keeps_every_lock(self):
+        from eaos.api import launch
+        from eaos.studio.actions import adapters, security
         origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
             report = report_with_data(folder)
@@ -553,72 +524,49 @@ class RemoteGuard(unittest.TestCase):
                 for altered in ({'Origin': 'https://evil.example'}, {'X-EAOS-CSRF': 'bad'}):
                     self.assertEqual(remote.post('/api/decisions/missing/answer', headers={**headers, **altered}, json={}).status_code, 403)
                 self.assertEqual(remote.post('/api/decisions/missing/answer', headers=headers, json={}).status_code, 404)
-            with self.assertRaises(ValueError): server.bind(0, host='0.0.0.0')
             with self.assertRaises(ValueError): server.Keys(port=8097, remote_origin=origin)
-
-    def test_protected_remote_launch_record_uses_its_exact_routed_origin(self):
-        from eaos.api import launch
-        record = {'port': 8096, 'token': 'fixture-not-a-secret', 'remote_origin': 'https://engineering-audit-os--8096.dev.remote.e-m.sa'}
-        self.assertTrue(launch.url_of(record).startswith(record['remote_origin'] + '/#token='))
+        for value in ('https://*.dev.remote.e-m.sa', 'http://engineering-audit-os--8095.dev.remote.e-m.sa', 'https://evil.example'):
+            with self.assertRaises(ValueError): security.Locks(8095, remote_origin=value)
+        record = {'port': 8096, 'token': 'fixture-not-a-secret', 'remote_origin': origin}
+        self.assertTrue(launch.url_of(record).startswith(origin + '/#token='))
         self.assertTrue(launch.url_of({**record, 'remote_origin': None}).startswith('http://127.0.0.1:8096/'))
         with self.assertRaises(ValueError): launch.url_of({**record, 'remote_origin': 'https://evil.example'})
 
-
-class KeptToken(unittest.TestCase):
-    """A remote Studio keeps its launch token across restarts in a file only its owner reads (server._kept_token)."""
-
-    def test_written_once_then_reused_and_private(self):
+    def test_the_token_is_kept_privately_and_handed_to_the_page_only_when_the_owner_opted_in(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'token'
             first = server._kept_token(str(path))
             self.assertEqual(first, server._kept_token(str(path)))
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-
-    def test_a_readable_or_malformed_file_gets_a_new_token(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'token'
             path.write_text('x' * 40)
             path.chmod(0o644)
-            fresh = server._kept_token(str(path))
-            self.assertNotEqual(fresh, 'x' * 40)
+            self.assertNotEqual(server._kept_token(str(path)), 'x' * 40, 'a file others can read gets a new token')
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-
-    def test_no_path_no_token(self):
         self.assertIsNone(server._kept_token(None))
-
-
-class RemoteLoginBoot(unittest.TestCase):
-    """boot.js carries the launch token only on a remote Studio whose owner opted in (server._remote_login_trusted)."""
-
-    def ctx(self, remote):
-        keys = server.Keys(port=8096, remote_origin='https://p--8096.dev.remote.e-m.sa' if remote else None)
-        return mock.Mock(keys=keys)
-
-    def test_opt_in_on_remote_only(self):
+        ctx = lambda remote: mock.Mock(keys=server.Keys(port=8096, remote_origin='https://p--8096.dev.remote.e-m.sa' if remote else None))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
-            self.assertTrue(server._remote_login_trusted(self.ctx(True)))
-            self.assertFalse(server._remote_login_trusted(self.ctx(False)))
+            self.assertEqual((server._remote_login_trusted(ctx(True)), server._remote_login_trusted(ctx(False))), (True, False))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': ''}):
-            self.assertFalse(server._remote_login_trusted(self.ctx(True)))
+            self.assertFalse(server._remote_login_trusted(ctx(True)))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': 'https://p--{port}.dev.remote.e-m.sa'}):
-            self.assertTrue(server._remote_login_trusted(self.ctx(True)), 'a computer set up for Remote opts in')
-            self.assertFalse(server._remote_login_trusted(self.ctx(False)))
-
-    def test_page_reads_token_from_an_uncached_script_when_opted_in(self):
+            self.assertTrue(server._remote_login_trusted(ctx(True)), 'a computer set up for Remote opts in')
         from eaos.studio.actions import adapters
         origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
-            report = report_with_data(folder)
             keys = server.Keys(port=8096, remote_origin=origin)
-            app = server.create_app(report, keys=keys, watch=False)
+            app = server.create_app(report_with_data(folder), keys=keys, watch=False)
             with TestClient(app, base_url=origin) as remote:
                 with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
                     first, second = remote.get('/').text, remote.get('/').text
                     self.assertIn('live-token.js?n=', first)
-                    self.assertNotEqual(first, second)  # a new address on every load
+                    self.assertNotEqual(first, second, 'a new address on every load')
                     given = remote.get('/live-token.js?n=1')
                     self.assertIn(keys.token, given.text)
                     self.assertIn('no-store', given.headers['cache-control'])
                 with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': ''}):
                     self.assertNotIn('live-token.js', remote.get('/').text)
                     self.assertEqual(remote.get('/live-token.js').status_code, 404)
+
+
+if __name__ == '__main__':
+    unittest.main()

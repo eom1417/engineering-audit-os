@@ -9,7 +9,7 @@ import { STATE_WORDS } from '../../data/actions/contract'
 import { duration, labelOf, share, type Batch, type Item, type Screens } from '../../data/actions/derive'
 import type { Bi, Run, RunEvent, RunResult, RunState } from '../../data/actions/types'
 import { usePrefs } from '../../i18n/prefs'
-import { Id, N, Txt } from '../../i18n/text'
+import { Id, Txt } from '../../i18n/text'
 import { useCmdWords } from '../../command/words'
 import { useBranchWords } from '../../branches/words'
 import css from './runs.module.css'
@@ -233,21 +233,6 @@ export function ResultFacts({ result }: { result: RunResult }) {
           <h3 className={css.subTitle}>{w('cardsClosed', { n: result.cards_closed.length })}</h3>
           <ul className={css.chips}>
             {result.cards_closed.map((id) => <li key={id}><Go to="/problems" search={{ card: id }} className={css.cardLink}><Id value={id} /></Go></li>)}
-          </ul>
-        </section>
-      )}
-      {result.indicators.length > 0 && (
-        <section aria-label={w('indicators')}>
-          <h3 className={css.subTitle}>{w('indicators')}</h3>
-          <ul className={css.indicators}>
-            {result.indicators.map((row) => (
-              <li key={row.id}>
-                <span className={css.indName}><Txt>{row.id}</Txt></span>
-                <span className={css.indMove}>
-                  {row.before === null ? '—' : <N value={row.before} />}<Icon name="arrow" size={14} />{row.after === null ? '—' : <N value={row.after} />}
-                </span>
-              </li>
-            ))}
           </ul>
         </section>
       )}

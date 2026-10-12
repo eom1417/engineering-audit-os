@@ -301,7 +301,7 @@ def _fresh_report(state):
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False):
     """`use_assistant` and `assistant` (claude or codex) are the person's choice for the check's AI, kept for the
-    project. When they chose an assistant that is not ready (eaos/runtime/readiness.py), the check does not start: the
+    project. When they chose an assistant that is not ready (eaos/assistants/readiness.py), the check does not start: the
     answer says why and how to fix it, and the person decides: fix it and call again (the assistant is asked again), or
     `without_ai`, this one check with the rules alone, their choice kept for the next."""
     state = project_state(project)
@@ -321,7 +321,7 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
 
 def _assistant_not_ready(state):
     """{status: assistant_not_ready, ...} when the person said yes to their assistant and it does not answer now."""
-    from .runtime import readiness
+    from .assistants import readiness
     if guided.answered(state, 'use_assistant') is False: return None      # on unless the person said no
     name = guided.chosen_assistant(state)
     if not name: return None
@@ -339,7 +339,7 @@ def assistant_check(project=None, fresh=False, assistant=None):
     one-word question, else the exact reason and its fix), the person's choice for this project, and what the
     assistant may do in the check. `fresh` asks again instead of the answer of the last few minutes; `assistant`
     asks only that one."""
-    from .runtime import readiness
+    from .assistants import readiness
     state = project_state(project)
     rows = readiness.probe_all(fresh=fresh, names=[assistant] if assistant else None)
     said = guided.answered(state, 'use_assistant')
@@ -378,10 +378,10 @@ def _audit_job(project, arguments, progress):
     if failed and not without:
         raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     if arguments.get('without_ai'):
-        from .runtime.readiness import NoAssistant
+        from .assistants.readiness import NoAssistant
         provider = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
     else: provider = guided.check_provider(state)
-    options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress,
+    options = dict(language=state.get('lang') or 'en', engines=[], progress=progress,
                    provider=provider, runtime=guided.check_runtime(state), without_tools=sorted(failed))
     source = guided.source(state)
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
@@ -843,7 +843,7 @@ def _fix_start_job(project, arguments, progress):
     for index, card_id in enumerate(automatic, 1):
         progress(index, len(automatic) + 1, f'automatic fix of {card_id}')
         try:
-            tool, _ = change(cards[card_id], root, report, None)
+            tool, _ = change(cards[card_id], root, report)
             sha = commit(root, cards[card_id], tool)
             broke = new_breakage(report, root)
             if broke:

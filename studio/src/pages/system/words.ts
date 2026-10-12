@@ -102,7 +102,6 @@ export const JOURNEY_WORDS = {
   byDepth: ['الشاشات بحسب بُعدها عن البداية', 'Screens by distance from the start'],
   // gaps and counts
   gaps: ['ما لم يُقس بعد', 'Not measured yet'],
-  stepWord: ['الخطوة', 'Step'],
   unowned: ['روابط في كود لا تعرضه أي شاشة', 'Links in code no screen renders'],
   unownedDead: ['{n} منها في ملفات ميتة', '{n} of them in dead files'],
   relative: ['روابط نسبية لم تُربط', 'Relative links not resolved'],

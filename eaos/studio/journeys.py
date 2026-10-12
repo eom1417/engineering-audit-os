@@ -101,10 +101,6 @@ def _reach(start, imports, depth, stop=()):
     return seen
 
 
-def _owner_of(owners, path):
-    """The deepest component whose files hold this path (the System map's rule), or None."""
-    return owners.get(path)
-
 
 # ---------------------------------------------------------------- the records
 

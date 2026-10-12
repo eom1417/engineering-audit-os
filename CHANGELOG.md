@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.7 (2026-10-12)
+
+- **EAOS made small: only what the person's journey uses is left.** Removed: the model-provider path (`eaos run`,
+  `continue`, `implement`, `improve`, `live execute`); 30 commands outside the journey (19 remain: start, next,
+  status, doctor, clean, accept, undo, show, do, assistant, handover, studio, mcp, tools, audit, facts, policy,
+  recheck, decided); 14 check stages whose output nobody read (42 → 28: verify, journeys, architecture,
+  sustainability, transform, execution guide, quality, pdf, executive, compose, bundles, emit, site, validate); the
+  audit-manual era (MASTER-MANUAL, modules, core, controls, sources, duplicate schemas); the old plans and records
+  (north star, capability plan, adoption notes, trials); the north-star tooling and the acceptance folder; 15 tools
+  only those stages used (CodeCharta, Emerge, Structurizr, Typst, Vale, markdownlint, Zensical, rrweb…). Everything
+  removed is kept under the tag `archive/before-slim-2026-10-12`.
+- `eaos next` no longer calls a model to fix: the fixes are made by the person's assistant (`/eaos`) or from the
+  Studio, through the MCP tools. The assistant code moved from `eaos/runtime/` to `eaos/assistants/`.
+- A check writes less: the C4 diagrams come before the four reports (so the reports show them), and the engines'
+  working folders (a 130 MB code index on a five-file project) are deleted once their findings are read.
+- The Studio lost the "EAOS quality" page, the hidden gallery, the demo mode and the plan-step ids it showed people.
+- Tests: 2228 → 536, one hour → 3.3 minutes; `tests/test_journey.py` checks, changes, checks again, fixes and
+  accepts on a small project in two seconds. `ROADMAP.md` is now the only plan.
+
 ## 0.0.6 (2026-10-11)
 
 - **The check uses the person's assistant unless they said no, and never turns it off silently**: before a check

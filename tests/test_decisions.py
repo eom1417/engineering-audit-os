@@ -4,12 +4,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from eaos import cli
 from eaos.claims import from_facts
 from eaos.decisions import check_errors, decide
 from eaos.facts.run import collect
 from eaos.policy_assessment import build_assessment
-from eaos.policy import FILENAME as POLICY_FILENAME
+from eaos.policy import FILENAME as POLICY_FILENAME, check as check_policy
 
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
 
@@ -40,86 +39,45 @@ class PolicyAssessmentTests(unittest.TestCase):
         repo = _policy_repo(tmp, violating)
         out = Path(tmp) / 'out'
         collect(repo, out, SETS)
-        from eaos.policy import check as check_policy
         check_policy(repo, out)
         return repo, out
 
     def _policy_claim(self, claims):
         return next(c for c in claims if (c.get('render') or {}).get('key') == 'policy')
 
-    def test_build_assessment_returns_none_without_a_target(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            _, out = self._prepared(tmp, violating=True)
-            policy = json.loads((out / 'facts/policy.json').read_text())
-            resolve = json.loads((out / 'facts/resolve.json').read_text())
-            sets = {'policy': policy, 'resolve': resolve}
-            claim = {'render': {'key': 'policy'}, 'fact_ids': [], 'evidence_ids': []}
-            self.assertIsNone(build_assessment(claim, sets, target=None))
+    def _claims(self, tmp, violating):
+        repo, out = self._prepared(tmp, violating)
+        sets = {'policy': json.loads((out / 'facts/policy.json').read_text()),
+                'resolve': json.loads((out / 'facts/resolve.json').read_text())}
+        return sets, from_facts(sets, target=repo)
 
-    def test_build_assessment_produces_a_decide_ready_repair(self):
+    def test_no_repair_without_a_target_or_a_violation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            repo, out = self._prepared(tmp, violating=True)
-            policy = json.loads((out / 'facts/policy.json').read_text())
-            resolve = json.loads((out / 'facts/resolve.json').read_text())
-            sets = {'policy': policy, 'resolve': resolve}
-            claims = from_facts(sets, target=repo)
-            claim = self._policy_claim(claims)
-            self.assertIn('assessment', claim, 'assessment must be attached to policy claim')
-            self.assertIn('checks', claim, 'checks must be attached to policy claim')
-            decision = decide(claim)
-            self.assertEqual(decision['kind'], 'repair')
-            self.assertEqual(decision['readiness'], 'ready')
-            self.assertFalse(decision['blockers'], decision['blockers'])
+            sets, _ = self._claims(tmp, violating=True)
+            self.assertIsNone(build_assessment({'render': {'key': 'policy'}, 'fact_ids': [], 'evidence_ids': []}, sets, target=None))
+        with tempfile.TemporaryDirectory() as tmp:
+            _, claims = self._claims(tmp, violating=False)
+            self.assertFalse([c for c in claims if (c.get('render') or {}).get('key') == 'policy'])
 
-    def test_each_check_satisfies_check_errors_and_carries_a_real_binding(self):
+    def test_a_violation_becomes_a_ready_repair_with_a_bound_check_and_cited_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
-            repo, out = self._prepared(tmp, violating=True)
-            policy = json.loads((out / 'facts/policy.json').read_text())
-            resolve = json.loads((out / 'facts/resolve.json').read_text())
-            sets = {'policy': policy, 'resolve': resolve}
-            claims = from_facts(sets, target=repo)
-            claim = self._policy_claim(claims)
-            for check in claim['checks']:
-                self.assertEqual(check_errors(check), [], check)
-                self.assertEqual(check['expected_exit'], 0)
-                self.assertEqual(check['cwd'], '.')
-                argv = check['argv']
-                self.assertTrue(argv)
-                self.assertFalse(any(x in {'dossier', 'facts', 'tasks'} for x in argv[:3]),
-                                'argv must not be report regeneration: ' + str(argv))
-                self.assertTrue(check['source_revision'], 'source_revision must be bound')
-
-    def test_assessment_cites_known_facts_for_requirement_and_evidence(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, out = self._prepared(tmp, violating=True)
-            policy = json.loads((out / 'facts/policy.json').read_text())
-            resolve = json.loads((out / 'facts/resolve.json').read_text())
-            sets = {'policy': policy, 'resolve': resolve}
-            claims = from_facts(sets, target=repo)
-            claim = self._policy_claim(claims)
-            assessment = claim['assessment']
-            known = {row['id'] for row in policy['facts']} | {row['id'] for row in resolve['facts']}
-            for ref in assessment['requirement_refs']:
-                self.assertIn(ref, known, 'requirement_refs must cite a known fact: ' + ref)
-            for ref in assessment['evidence_refs']:
-                self.assertIn(ref, known, 'evidence_refs must cite a known fact: ' + ref)
-            self.assertTrue(assessment['reviewed_by'].strip(), 'reviewed_by is the policy file itself')
-            self.assertIn(POLICY_FILENAME, assessment['reviewed_by'])
-            self.assertTrue(assessment['before'].strip())
-            self.assertTrue(assessment['after'].strip())
-            self.assertTrue(assessment['violated_invariant'].strip())
-            self.assertTrue(assessment['proposed_change'].strip())
-
-    def test_a_clean_project_does_not_get_a_repair_card(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, out = self._prepared(tmp, violating=False)
-            policy = json.loads((out / 'facts/policy.json').read_text())
-            resolve = json.loads((out / 'facts/resolve.json').read_text())
-            sets = {'policy': policy, 'resolve': resolve}
-            claims = from_facts(sets, target=repo)
-            for claim in claims:
-                if (claim.get('render') or {}).get('key') == 'policy':
-                    self.fail('a clean project must not produce a policy claim')
+            sets, claims = self._claims(tmp, violating=True)
+        claim = self._policy_claim(claims)
+        decision = decide(claim)
+        self.assertEqual((decision['kind'], decision['readiness'], decision['blockers']), ('repair', 'ready', []))
+        for check in claim['checks']:
+            self.assertEqual(check_errors(check), [], check)
+            self.assertEqual((check['expected_exit'], check['cwd']), (0, '.'))
+            self.assertTrue(check['argv'])
+            self.assertFalse(any(x in {'dossier', 'facts', 'tasks'} for x in check['argv'][:3]),
+                             'argv must not be report regeneration: ' + str(check['argv']))
+            self.assertTrue(check['source_revision'], 'source_revision must be bound')
+        assessment = claim['assessment']
+        known = {row['id'] for row in sets['policy']['facts']} | {row['id'] for row in sets['resolve']['facts']}
+        self.assertTrue(set(assessment['requirement_refs']) | set(assessment['evidence_refs']) <= known)
+        self.assertIn(POLICY_FILENAME, assessment['reviewed_by'])
+        for field in ('before', 'after', 'violated_invariant', 'proposed_change'):
+            self.assertTrue(assessment[field].strip(), field)
 
     def test_each_policy_claim_is_assessed_against_its_own_violation(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -128,14 +86,13 @@ class PolicyAssessmentTests(unittest.TestCase):
                 'from app.runtime.engine import start\n\n\ndef again():\n    return start()\n')
             out = Path(tmp) / 'out'
             collect(repo, out, SETS)
-            from eaos.policy import check as check_policy
             check_policy(repo, out)
             policy = json.loads((out / 'facts/policy.json').read_text())
             resolve = json.loads((out / 'facts/resolve.json').read_text())
             claims = from_facts({'policy': policy, 'resolve': resolve}, target=repo)
-            policy_claims = [c for c in claims if (c.get('render') or {}).get('key') == 'policy']
-            self.assertEqual(len(policy_claims), 2)
-            for claim in policy_claims:
-                self.assertEqual(claim['assessment']['requirement_refs'], claim['fact_ids'])
-                self.assertIn(claim['render']['params']['path'], claim['assessment']['before'])
-            self.assertEqual(len({c['checks'][0]['id'] for c in policy_claims}), 2)
+        policy_claims = [c for c in claims if (c.get('render') or {}).get('key') == 'policy']
+        self.assertEqual(len(policy_claims), 2)
+        for claim in policy_claims:
+            self.assertEqual(claim['assessment']['requirement_refs'], claim['fact_ids'])
+            self.assertIn(claim['render']['params']['path'], claim['assessment']['before'])
+        self.assertEqual(len({c['checks'][0]['id'] for c in policy_claims}), 2)

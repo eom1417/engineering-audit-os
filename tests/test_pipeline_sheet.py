@@ -36,7 +36,7 @@ def gallery_fixture():
 
 
 class PipelineSheet(unittest.TestCase):
-    def test_the_sheet_draws_every_stage_of_a_short_pipeline_where_eaos_placed_it(self):
+    def test_the_sheet_draws_every_stage_where_eaos_placed_it_with_its_evidence(self):
         data = fixture()
         page = pipeline_sheet.sheet({'ar': data, 'en': data})
         self.assertIn('id="pipeline-sheet"', page)
@@ -47,18 +47,14 @@ class PipelineSheet(unittest.TestCase):
             if stage['kind'] != 'router':
                 self.assertIn(f'x="{x}" y="{pipeline_sheet.PAD + stage["order"] * pipeline_sheet.STEP_Y}"', svg)
             self.assertIn(stage['label'][:17].replace("'", '&#x27;'), svg)
-
-    def test_the_stage_table_and_the_gap_carry_their_evidence(self):
-        data = fixture()
-        page = pipeline_sheet.sheet({'ar': data, 'en': data})
+        # The stage table and the gap carry their evidence.
         for g in data['views']['gap']:
             self.assertIn(f"{g['evidence']['path']}:{g['evidence']['line']}", page)
         claims = next(s for s in data['stages'] if s['label'] == 'claims')
         self.assertIn(f"{claims['entry']['path']}:{claims['entry']['line']}", page)     # a stage, by its entry
-
-    def test_no_pipeline_means_no_sheet(self):
-        data = {**fixture(), 'detected': False, 'pipelines': [], 'stages': []}
-        self.assertEqual(pipeline_sheet.sheet({'ar': data, 'en': data}), '')
+        # No pipeline means no sheet.
+        empty = {**data, 'detected': False, 'pipelines': [], 'stages': []}
+        self.assertEqual(pipeline_sheet.sheet({'ar': empty, 'en': empty}), '')
         self.assertEqual(pipeline_sheet.sheet({}), '')
 
     def test_the_report_page_holds_the_sheet_in_both_languages(self):

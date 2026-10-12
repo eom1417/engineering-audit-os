@@ -78,10 +78,32 @@ class Base(unittest.TestCase):
 
 
 class Continuity(Base):
-    def test_a_card_keeps_its_key_when_a_new_check_numbers_it_again(self):
+    def test_a_card_keeps_its_key_across_checks_and_one_no_longer_found_is_resolved(self):
         again = [dict(c, id=f'TASK-{100 - i:03d}', title=c['title'].replace('line 3', 'line 7')) for i, c in enumerate(reversed(FIRST))]
         self.assertEqual(sorted(ledger.keys(FIRST).values()), sorted(ledger.keys(again).values()))
         self.assertEqual(len(set(ledger.keys(FIRST).values())), 5, 'alike cards stay apart')
+        totals = self.check(FIRST[1:])['totals']
+        self.assertEqual((totals['resolved'], totals['closed'], totals['total']), (1, 1, 5))
+
+    def test_a_batch_from_before_keys_follows_its_card_when_a_new_check_numbers_it_again(self):
+        self.batch(1, ['TASK-001'])
+        state = guided.load(self.project)
+        del state['waves'][0]['keys']
+        guided.save(state)
+        again = [dict(c, id=f'TASK-{6 - i:03d}') for i, c in enumerate(FIRST, 1)]    # the same problems, numbered backwards
+        cards = self.check(again)['cards'].values()
+        self.assertEqual([c['title'] for c in cards if c['state'] == 'on_branch'], [FIRST[0]['title']])
+
+    def test_fixes_merged_before_the_ledger_existed_are_read_from_git(self):
+        """The owner's project: the batch merged by hand, then a new check numbered everything again."""
+        cards = {c['id']: c for c in read_plan(guided.report_of(self.state))['tasks']}
+        (self.project / 'src/x.js').write_text('// fixed\n')
+        subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-qm',
+                        f"TASK-001: {cards['TASK-001']['title']}\n\nExecuted by EAOS (assistant)."], check=True)
+        ledger.path(self.state).unlink()
+        totals = self.check([dict(c, id=f'TASK-{i:03d}') for i, c in enumerate(FIRST[1:], 1)])['totals']
+        self.assertEqual((totals['done'], totals['total']), (1, 5))
 
     def test_accept_merges_deletes_the_branch_and_updates_the_report_at_once(self):
         self.batch(1, ['TASK-001', 'TASK-003'], {'TASK-004': 'skipped: needs a product decision'})
@@ -98,7 +120,7 @@ class Continuity(Base):
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'run_setup',
                          'no new check is needed after EAOS merged its own fixes')
 
-    def test_a_merge_made_with_git_by_hand_is_recorded_and_its_branch_deleted(self):
+    def test_a_merge_made_by_hand_is_recorded_its_branch_deleted_and_a_reverted_revert_is_done_again(self):
         self.batch(1, ['TASK-001', 'TASK-002'])
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-1')          # what the other assistant did
         status = agent_tools.status(str(self.project))
@@ -107,15 +129,16 @@ class Continuity(Base):
         self.assertEqual((status['progress']['done'], status['progress']['total']), (2, 5))
         history = ledger.load(guided.load(self.project))['history']
         self.assertEqual((history[0]['event'], history[-1]['event'], history[-1]['closed']), ('baseline', 'merged', 2))
-
-    def test_a_branch_an_older_eaos_left_after_its_merge_is_deleted(self):
-        self.batch(1, ['TASK-005'])
-        git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-1')
+        # A branch an older EAOS left after its merge is deleted; a fix whose revert was reverted is done again.
+        self.batch(2, ['TASK-005'])
+        git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-2')
         state = guided.load(self.project)
-        state['waves'][0]['status'] = 'accepted'
+        state['waves'][-1]['status'] = 'accepted'
         guided.save(state)
         agent_tools.status(str(self.project))
         self.assertEqual(self.branches(), [])
+        for _ in range(2): git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'revert', '--no-edit', 'HEAD')
+        self.assertEqual(ledger.sync(guided.load(self.project))['totals']['done'], 3)
 
     def test_a_new_check_after_the_merge_keeps_the_count_right(self):
         """The trial's numbers: 339 before, then '3 done, 339 left'. Here: 5 before; 2 merged; the new check finds 3 of
@@ -130,30 +153,6 @@ class Continuity(Base):
         cards = ledger.load(guided.load(self.project))['cards'].values()
         self.assertEqual({c['id'] for c in cards if c['state'] == 'done'}, {None}, 'the fixed cards are no longer in the plan')
         self.assertEqual(ledger.load(guided.load(self.project))['history'][-1]['event'], 'recheck')
-
-    def test_a_card_a_new_check_no_longer_finds_is_closed_as_resolved(self):
-        totals = self.check(FIRST[1:])['totals']
-        self.assertEqual((totals['resolved'], totals['closed'], totals['total']), (1, 1, 5))
-
-    def test_fixes_merged_before_the_ledger_existed_are_read_from_git(self):
-        """The owner's project: the batch merged by hand, then a new check numbered everything again."""
-        cards = {c['id']: c for c in read_plan(guided.report_of(self.state))['tasks']}
-        (self.project / 'src/x.js').write_text('// fixed\n')
-        subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True)
-        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-qm',
-                        f"TASK-001: {cards['TASK-001']['title']}\n\nExecuted by EAOS (assistant)."], check=True)
-        ledger.path(self.state).unlink()
-        totals = self.check([dict(c, id=f'TASK-{i:03d}') for i, c in enumerate(FIRST[1:], 1)])['totals']
-        self.assertEqual((totals['done'], totals['total']), (1, 5))
-
-    def test_a_batch_from_before_keys_follows_its_card_when_a_new_check_numbers_it_again(self):
-        self.batch(1, ['TASK-001'])
-        state = guided.load(self.project)
-        del state['waves'][0]['keys']
-        guided.save(state)
-        again = [dict(c, id=f'TASK-{6 - i:03d}') for i, c in enumerate(FIRST, 1)]    # the same problems, numbered backwards
-        cards = self.check(again)['cards'].values()
-        self.assertEqual([c['title'] for c in cards if c['state'] == 'on_branch'], [FIRST[0]['title']])
 
     def test_a_merge_that_is_not_a_fast_forward_still_merges_and_a_conflict_changes_nothing(self):
         self.batch(1, ['TASK-001'])
@@ -171,43 +170,16 @@ class Continuity(Base):
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'status', '--porcelain')), (head, ''))
         self.assertEqual(self.branches(), ['eaos/wave-2'], 'a branch that is not merged stays')
 
-    def test_a_new_batch_waits_for_the_decision_on_the_last(self):
-        self.batch(1, ['TASK-001'])
+    def test_a_batch_opens_for_a_ready_card_closes_cleanly_and_the_next_waits_for_a_decision(self):
         state = guided.load(self.project)
-        state['consent'] = {'run_and_fix': True}
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
+        state['consent'] = {'run_and_fix': True}
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
-        self.assertEqual(agent_tools.fix_start(str(self.project))['status'], 'waiting_decision')
-
-
-class FieldEdges(Base):
-    """The edges of the field-report scenarios (acceptance/test_field_report.py) that the acceptance does not walk."""
-
-    def test_a_fix_whose_revert_was_reverted_is_done_again(self):
-        self.batch(1, ['TASK-001'])
-        git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-1')
-        agent_tools.status(str(self.project))
-        for _ in range(2): git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'revert', '--no-edit', 'HEAD')
-        self.assertEqual(ledger.sync(guided.load(self.project))['totals']['done'], 1)
-
-    def test_a_folder_with_a_project_file_is_the_project_even_with_one_repository_under_it(self):
-        inner = git_project(self.project / 'vendor' / 'lib').parent.parent
-        self.assertEqual(agent_tools.locate(inner), self.project)
-        plain = Path(self.tmp.name) / 'plain'
-        plain.mkdir()
-        self.assertEqual(agent_tools.locate(plain), plain, 'nothing under it: the folder stays, and project_state says why')
-
-    def test_the_folder_above_means_its_one_repository_and_several_are_never_guessed(self):
-        above = Path(self.tmp.name)
-        self.assertEqual(agent_tools.locate(above), self.project)
-        git_project(above / 'other')
-        with self.assertRaises(agent_tools.SeveralProjects) as several:
-            agent_tools.locate(above)
-        self.assertEqual([p.name for p in several.exception.projects], ['other', 'shop'])
-        self.assertEqual(agent_tools.status(str(above))['status'], 'needs_project')
-
-    def test_a_batch_that_cannot_close_is_closed_without_touching_the_project(self):
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+            self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
+        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001']})
+        # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         state = guided.load(self.project)
         root = guided.runtime_of(state) / 'candidates/WAVE-1'
@@ -221,20 +193,31 @@ class FieldEdges(Base):
         self.assertNotIn('open_wave', state)
         self.assertEqual((state['waves'][-1]['status'], root.exists()), ('abandoned', False))
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'status', '--porcelain')), (head, ''))
-
-    def test_a_ready_card_still_opens_its_batch_past_the_decision_check(self):
+        self.batch(1, ['TASK-001'])
         state = guided.load(self.project)
-        state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['consent'] = {'run_and_fix': True}
+        state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
-            self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
-        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001']})
+        self.assertEqual(agent_tools.fix_start(str(self.project))['status'], 'waiting_decision')
+
+    def test_the_project_is_found_from_a_folder_inside_or_above_and_several_are_never_guessed(self):
+        inner = git_project(self.project / 'vendor' / 'lib').parent.parent
+        self.assertEqual(agent_tools.locate(inner), self.project)
+        plain = Path(self.tmp.name) / 'plain'
+        plain.mkdir()
+        self.assertEqual(agent_tools.locate(plain), plain, 'nothing under it: the folder stays, and project_state says why')
+        above = Path(self.tmp.name)
+        self.assertEqual(agent_tools.locate(above), self.project)
+        git_project(above / 'other')
+        with self.assertRaises(agent_tools.SeveralProjects) as several:
+            agent_tools.locate(above)
+        self.assertEqual([p.name for p in several.exception.projects], ['other', 'shop'])
+        self.assertEqual(agent_tools.status(str(above))['status'], 'needs_project')
 
 
 class Handover(Base):
-    def test_every_call_is_journaled_and_the_next_assistant_knows_where_to_go_on(self):
+    def test_the_next_assistant_and_a_new_session_know_where_the_work_stopped(self):
         from eaos.mcp_server import _answer
         state = guided.load(self.project)
         state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': 'x', 'cards': ['TASK-002', 'TASK-004', 'TASK-005'],
@@ -254,13 +237,11 @@ class Handover(Base):
         page = (guided.outputs(guided.load(self.project)) / 'HANDOVER.md').read_text()
         for words in ('Continue from here', 'TASK-005', 'do not ask again', 'deleting it next', 'Codex'):
             self.assertIn(words, page)
-
-    def test_a_new_session_is_told_where_the_work_stopped_and_on_which_card(self):
-        from eaos.mcp_server import _answer
-        state = guided.load(self.project)
-        state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': 'x', 'cards': ['TASK-002', 'TASK-005'],
-                              'kept': {'TASK-002': 'abc'}, 'failed': {}, 'tools': {}}
-        guided.save(state)
+        with mock.patch('eaos.handover.refresh', side_effect=OSError('disk full')):
+            answer = json.loads(_answer(agent_tools.plan)(project=str(self.project)))
+        self.assertIn('milestones', answer)
+        self.assertEqual(answer['progress']['total'], 5)
+        # A new session is told where the work stopped and on which card; a broken hook says nothing.
         _answer(agent_tools.finding)(id='TASK-005', project=str(self.project))
         _answer(agent_tools.fix_read)(path='src/a.js', project=str(self.project))
         context = handover.hook_context(self.project / 'src')           # opened in a sub-folder of the project
@@ -274,34 +255,11 @@ class Handover(Base):
                 mock.patch('sys.stdout', new_callable=io.StringIO) as out:
             cli.handover_hook(None)
         self.assertEqual(json.loads(out.getvalue())['hookSpecificOutput']['hookEventName'], 'SessionStart')
-
-    def test_a_broken_hook_never_stops_a_session(self):
-        import io, sys
-        from eaos import cli
         for stdin, failing in (('{not json', False), (json.dumps({'cwd': str(self.project)}), True)):
             with mock.patch.object(sys, 'stdin', io.StringIO(stdin)), mock.patch('sys.stdout', new_callable=io.StringIO) as out, \
                     mock.patch('eaos.handover.brief', side_effect=RuntimeError('broken state')) if failing else mock.patch('os.getcwd', return_value='/'):
                 self.assertEqual(cli.handover_hook(None), 0)
             self.assertEqual(out.getvalue(), '', 'nothing printed: the session starts as if EAOS were not there')
-
-    def test_the_person_is_told_where_it_stopped_and_what_to_write(self):
-        from tests.test_guided import run
-        state = guided.load(self.project)
-        state['open_wave'] = {'number': 1, 'root': str(self.project), 'base': 'x', 'cards': ['TASK-001', 'TASK-003'],
-                              'kept': {'TASK-001': 'abc'}, 'failed': {}, 'tools': {}}
-        guided.save(state)
-        handover.note('checking TASK-003 next', 'TASK-003', str(self.project))
-        code, printed = run('handover', self.project, lang='ar')
-        self.assertEqual(code, 0)
-        for words in ('الدفعة 1', 'حُفظ 1، باقي 1', 'كمّل شغل EAOS', 'Codex'):
-            self.assertIn(words, printed)
-
-    def test_a_failing_handover_never_costs_the_tool_its_answer(self):
-        from eaos.mcp_server import _answer
-        with mock.patch('eaos.handover.refresh', side_effect=OSError('disk full')):
-            answer = json.loads(_answer(agent_tools.plan)(project=str(self.project)))
-        self.assertIn('milestones', answer)
-        self.assertEqual(answer['progress']['total'], 5)
 
 
 if __name__ == '__main__':

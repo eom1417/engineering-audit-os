@@ -49,7 +49,7 @@ describe('one fold, two languages (plan 4.4, I4)', () => {
 })
 
 describe('the live check fold', () => {
-  it('applies starts, counted steps, programs and ends in order', () => {
+  it('applies starts, counted steps, programs and ends in order, reading again only when it must', () => {
     const state = replay(started(), [
       row(2, 'stage.started', { stage: 'facts' }),
       row(3, 'stage.step', { stage: 'facts', step: 'syntax', done: 0, total: 2, status: 'waiting' }),
@@ -65,33 +65,27 @@ describe('the live check fold', () => {
     expect(state.stages[1].state).toBe('running')
     expect(state.last_seq).toBe(8)
     expect(summarize(state)).toMatchObject({ total: 5, ended: 1, position: 2 })
-  })
-
-  it('ignores what it already shows, and reads again on a gap, a new run or another run', () => {
-    const state = replay(started(), [row(2, 'stage.started', { stage: 'facts' })])
-    expect(verdict(state, row(2, 'stage.started', { stage: 'facts' }))).toBe('ignore')
-    expect(verdict(state, row(4, 'stage.ended', { stage: 'facts' }))).toBe('reload')
-    expect(verdict(state, { ...row(1, 'run.started'), run: 'r2' })).toBe('reload')
-    expect(verdict(state, { ...row(3, 'stage.started'), run: 'r2' })).toBe('reload')
+    const state2 = replay(started(), [row(2, 'stage.started', { stage: 'facts' })])
+    expect(verdict(state2, row(2, 'stage.started', { stage: 'facts' }))).toBe('ignore')
+    expect(verdict(state2, row(4, 'stage.ended', { stage: 'facts' }))).toBe('reload')
+    expect(verdict(state2, { ...row(1, 'run.started'), run: 'r2' })).toBe('reload')
+    expect(verdict(state2, { ...row(3, 'stage.started'), run: 'r2' })).toBe('reload')
     expect(verdict(emptyProgress(), row(5, 'stage.started', { stage: 'facts' }))).toBe('reload')
   })
 
-  it('carries the reason and its code of a stage that did not run, and the run\'s end', () => {
+  it('carries why a stage did not run and lights only the stages whose needs are met', () => {
     const state = replay(started(), [
       row(2, 'stage.ended', { stage: 'semantic', status: 'unavailable', reason: 'no model provider was configured', reason_code: 'no_model_provider', seconds: 0 }),
       row(3, 'run.ended', { status: 'INCOMPLETE', seconds: 12, counts: { ok: 3 } }),
     ])
     expect(state.stages.find((s) => s.name === 'semantic')).toMatchObject({ state: 'unavailable', reason_code: 'no_model_provider' })
     expect([state.state, state.status, state.seconds]).toEqual(['done', 'INCOMPLETE', 12])
-  })
-
-  it('sends the light only to the stages whose needs are all met', () => {
-    let state = replay(started(), [row(2, 'stage.ended', { stage: 'facts', status: 'ok' })])
-    expect(opened(state, 'facts')).toEqual(['engines', 'measure'])
-    state = replay(state, [row(3, 'stage.ended', { stage: 'engines', status: 'ok' })])
-    expect(opened(state, 'engines')).toEqual([])
-    state = replay(state, [row(4, 'stage.ended', { stage: 'measure', status: 'ok' })])
-    expect(opened(state, 'measure')).toEqual(['claims'])
+    let state2 = replay(started(), [row(2, 'stage.ended', { stage: 'facts', status: 'ok' })])
+    expect(opened(state2, 'facts')).toEqual(['engines', 'measure'])
+    state2 = replay(state2, [row(3, 'stage.ended', { stage: 'engines', status: 'ok' })])
+    expect(opened(state2, 'engines')).toEqual([])
+    state2 = replay(state2, [row(4, 'stage.ended', { stage: 'measure', status: 'ok' })])
+    expect(opened(state2, 'measure')).toEqual(['claims'])
     expect(clock(3725)).toBe('1:02:05')
     expect(clock(65)).toBe('1:05')
   })
@@ -114,16 +108,13 @@ describe('preparing the tools (eaos/toolchain.py readiness)', () => {
     requested: tools.map((t) => t.name) }, ...rows])
   const at = Date.parse('2026-10-09T10:00:30.000+00:00')
 
-  it('unlocks the check once every tool it needs here is ready, the others still installing', () => {
+  it('unlocks the check once its tools are ready, and a failed tool it needs keeps it locked', () => {
     const running = install(row(1, 'stage.started', { stage: 'semgrep' }), row(2, 'stage.step', { stage: 'semgrep', step: 'download', done: 50, total: 200, kind: 'count' }))
     const before = toolsOf(running, ['semgrep'], at)
     expect([before.unlocked, before.rows[0].state, before.rows[0].done, before.rows[0].total, before.left]).toEqual([false, 'downloading', 50, 200, null])
     const after = toolsOf(install(row(1, 'stage.started', { stage: 'semgrep' }), row(2, 'stage.ended', { stage: 'semgrep', status: 'ok' })), ['semgrep'], at)
     expect([after.unlocked, after.needed, after.all, after.rows[1].state]).toEqual([true, { ready: 1, total: 1 }, { ready: 1, total: 3 }, 'waiting'])
     expect(after.left).toBe(60)
-  })
-
-  it('a failed tool the check needs keeps it locked, with its reason; an install over without a tool is a failure', () => {
     const failed = toolsOf(install(row(1, 'stage.ended', { stage: 'semgrep', status: 'failed', reason: 'no network', reason_code: 'tool_failed' })), ['semgrep'], at)
     expect([failed.unlocked, failed.failed.map((t) => [t.name, t.reason, t.reasonCode])]).toEqual([false, [['semgrep', 'no network', 'tool_failed']]])
     const over = toolsOf(install(row(1, 'run.ended', { status: 'STOPPED' })), ['knip'], at)

@@ -234,7 +234,7 @@ def build():
         return tools.plan(project, milestone)
 
     @server.tool(annotations=reading, description='A file of the report (for example START-HERE.md, TARGET-ARCHITECTURE.md, '
-                 'SECURITY-SURFACE.md, LOAD-MODEL.md); with no name, the list of files.')
+                 'CURRENT-STATE.md, LOAD-MODEL.md); with no name, the list of files.')
     @_answer
     def report_file(name: str = '', offset: int = 0, limit: int = 20000, project: str | None = None) -> str:
         return tools.report_file(name, project, offset, limit)

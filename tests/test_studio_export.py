@@ -1,23 +1,36 @@
-"""studio/: every section the Studio reads, written from the one model, valid against its contract (NS36.T2)."""
+"""studio/: every section the Studio reads, written from the one model, valid against its contract, with its coverage
+row; the evidence excerpts; the small contract fixtures and the synthetic Studio at scale; the translation catalog."""
+import copy
+import hashlib
 import json
-from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from eaos import artifact_contracts
-from eaos.studio import export, model
+from eaos.studio import coverage, export, model
+from eaos.studio.localization import publish
 from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
-SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations', 'library')
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'tools'))
+import studio_synthetic  # noqa: E402
 
+SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
+SECTIONS_V2 = ('history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations', 'library')
+FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 
 def js_string_value(literal):
     """The text of a single-quoted JavaScript string literal as eaos/studio/export.py writes it."""
-    import re
     assert literal[0] == literal[-1] == "'", literal[:20]
-    return re.sub(r"\\(\\|'|u2028|u2029)", lambda m: {'u2028': '\u2028', 'u2029': '\u2029'}.get(m.group(1), m.group(1)), literal[1:-1])
+    return re.sub(r"\\(\\|'|u2028|u2029)", lambda m: {'u2028': ' ', 'u2029': ' '}.get(m.group(1), m.group(1)), literal[1:-1])
+
 
 class Export(Workspace):
     def setUp(self):
@@ -30,14 +43,44 @@ class Export(Workspace):
     def load(self, name):
         return json.loads((self.folder / f'{name}.json').read_text(encoding='utf-8'))
 
-    def test_every_section_and_the_manifest_meet_their_contract(self):
+    def test_every_section_meets_its_contract_with_its_fingerprint_its_js_twin_and_coverage_last(self):
+        from eaos import __version__
         self.assertEqual(self.result['errors'], [])
         self.assertEqual(self.result['written'], [*SECTIONS, *SECTIONS_V2, 'coverage'])
         contracts = artifact_contracts.contracts()
-        for name in ('manifest', *SECTIONS, 'coverage'):
+        for name in ('manifest', *self.result['written']):
             self.assertEqual(artifact_contracts.validate(self.load(name), contracts[f'studio-{name}']), [], name)
+        manifest = self.load('manifest')
+        self.assertEqual((manifest['contract'], manifest['revision'], manifest['sections'][-1]['name']), (1, 2, 'coverage'))
+        for entry in manifest['sections']:
+            blob = (self.folder / entry['file']).read_bytes()
+            self.assertEqual((entry['sha256'], entry['bytes']), (hashlib.sha256(blob).hexdigest(), len(blob)), entry['name'])
+        for name in ('manifest', *SECTIONS):
+            text = (self.folder / f'{name}.js').read_text(encoding='utf-8')
+            prefix = f"(window.EAOS_STUDIO=window.EAOS_STUDIO||{{}})[\"{name}\"]=JSON.parse('"
+            self.assertTrue(text.startswith(prefix) and text.endswith("');\n"), name)
+            self.assertEqual(json.loads(js_string_value(text[len(prefix) - 1:-len(');\n')])), self.load(name))
+        tricky = {'title': "it's a \\ \"path\"     \n </script> ما'"}
+        export._write(self.folder, 'tricky', tricky)
+        text = (self.folder / 'tricky.js').read_text(encoding='utf-8')
+        self.assertNotIn(' ', text)
+        self.assertEqual(json.loads(js_string_value(text[text.index('JSON.parse(') + len('JSON.parse('):-len(');\n')])), tricky)
+        self.assertEqual((manifest['built']['version'], self.load('head')['eaos']['version']), (__version__, __version__))
+        data = self.load('coverage')
+        rows = {row['section']: row for row in data['sections']}
+        self.assertEqual(list(rows)[:len(coverage.PLANNED)], list(coverage.PLANNED))
+        for name in ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'gaps', 'operations'):
+            self.assertIn(rows[name]['state'], ('measured', 'empty'), name)
+        for name in ('history', 'library'):
+            self.assertEqual(rows[name]['state'], 'measured', name)
+        for name in ('functions', 'screens'):
+            self.assertEqual(rows[name]['state'], 'not_measured', name)
+            self.assertTrue(rows[name]['detail'], name)
+        self.assertEqual(data['not_measured']['value'], sum(r['state'] in ('not_measured', 'failed') for r in data['sections']))
+        self.assertEqual([d['id'] for d in self.load('library')['documents']], ['START-HERE.md'])
+        self.assertTrue((self.folder / 'library.js').is_file())
 
-    def test_decision_revision_and_recommendation_survive_language_reexport(self):
+    def test_a_reexport_in_arabic_keeps_every_decision_identity_and_writes_plain_arabic(self):
         before = {row['id']: row for row in self.load('decisions')['decisions']}
         self.assertTrue(before)
         export.export(self.out, 'ar', 'shop')
@@ -47,95 +90,49 @@ class Export(Workspace):
             self.assertEqual(row['revision'], after[identity]['revision'])
             self.assertEqual(row.get('recommended_option'), after[identity].get('recommended_option'))
             self.assertEqual([o['id'] for o in row['options']], [o['id'] for o in after[identity]['options']])
-
-    def test_the_manifest_fingerprints_what_was_written(self):
-        import hashlib
-        for entry in self.load('manifest')['sections']:
-            blob = (self.folder / entry['file']).read_bytes()
-            self.assertEqual(entry['sha256'], hashlib.sha256(blob).hexdigest(), entry['name'])
-            self.assertEqual(entry['bytes'], len(blob))
-
-    def test_each_section_has_a_js_twin_for_a_page_opened_from_a_file(self):
-        for name in ('manifest', *SECTIONS):
-            text = (self.folder / f'{name}.js').read_text(encoding='utf-8')
-            prefix = f"(window.EAOS_STUDIO=window.EAOS_STUDIO||{{}})[\"{name}\"]=JSON.parse('"
-            self.assertTrue(text.startswith(prefix), name)
-            self.assertTrue(text.endswith("');\n"), name)
-            self.assertEqual(json.loads(js_string_value(text[len(prefix) - 1:-len(');\n')])), self.load(name))
-
-    def test_the_js_twin_keeps_quotes_backslashes_and_line_separators(self):
-        tricky = {'title': "it's a \\ \"path\" \u2028 \u2029 \n </script> ما'"}
-        export._write(self.folder, 'tricky', tricky)
-        text = (self.folder / 'tricky.js').read_text(encoding='utf-8')
-        self.assertNotIn('\u2028', text)
-        literal = text[text.index('JSON.parse(') + len('JSON.parse('):-len(');\n')]
-        self.assertEqual(json.loads(js_string_value(literal)), tricky)
-
-    def test_the_version_shown_is_the_installed_eaos(self):
-        from eaos import __version__
-        self.assertEqual(self.load('manifest')['built']['version'], __version__)
-        self.assertEqual(self.load('head')['eaos']['version'], __version__)
-
-    def test_no_arabic_numeral_is_glued_to_a_one_letter_prefix(self):
-        import re
-        export.export(self.out, 'ar', 'shop')
         head = self.load('head')
         for text in (head['verdict'], head['next']['action']):
-            self.assertIsNone(re.search(r'(?:^|\s)[\u0644\u0628\u0643\u0648\u0641]\u0640?\d', text), text)
+            self.assertIsNone(re.search(r'(?:^|\s)[لبكوف]ـ?\d', text), text)
+        functions = next(r for r in self.load('coverage')['sections'] if r['section'] == 'functions')
+        self.assertRegex(functions['detail'], '[؀-ۿ]')
 
-    def test_the_studio_and_the_report_show_the_same_score(self):
+    def test_the_studio_shows_the_reports_score_cards_plan_and_documents_and_nothing_outside_the_project(self):
         m = model.records(self.out)
         self.assertEqual(self.load('health')['score']['value'], m['score']['score'] / 100)
         areas = {d['id']: d['score']['value'] for d in self.load('health')['domains']}
-        self.assertIsNone(areas['performance'])          # its stage failed: not measured, not zero
-
-    def test_cards_carry_their_state_and_whether_they_need_a_person(self):
+        self.assertIsNone(areas['performance'], 'its stage failed: not measured, not zero')
         cards = {c['id']: c for c in self.load('cards')['cards']}
         self.assertEqual(len(cards), 6)
-        self.assertTrue(cards['TASK-1']['fixable'])
-        self.assertTrue(cards['TASK-2']['needs_decision'])
+        self.assertTrue(cards['TASK-1']['fixable'] and cards['TASK-2']['needs_decision'])
         self.assertEqual({c['state'] for c in cards.values()}, {'open'})
-
-    def test_the_ledger_moves_the_plan_and_the_decisions(self):
+        docs = {d['path']: d for d in self.load('docs')['docs']}
+        self.assertEqual((docs['START-HERE.md']['group'], docs['START-HERE.md']['title']), ('start', 'Start here'))
+        for outside in ('/etc/passwd', '../secret', '~/x'):
+            self.assertIsNone(export.rel(outside), outside)
+        self.assertEqual(export.rel('src/a.ts'), 'src/a.ts')
+        self.assertNotIn(self.tmp, ''.join((self.folder / f'{n}.json').read_text(encoding='utf-8') for n in SECTIONS))
         ledger = {'cards': [{'id': 'TASK-1', 'key': 'k1', 'state': 'done'}, {'id': 'TASK-2', 'key': 'k2', 'state': 'open'}]}
         export.export(self.out, 'en', 'shop', progress={'ledger': ledger})
         plan = self.load('plans')['plans'][0]
         self.assertEqual(plan['state'], 'active')
         self.assertAlmostEqual(plan['progress']['value'], 1 / 6, places=3)
-        first = plan['steps'][0]
-        self.assertEqual(first['state'], 'active')
-        self.assertEqual(first['tasks'][0]['state'], 'done')
+        self.assertEqual((plan['steps'][0]['state'], plan['steps'][0]['tasks'][0]['state']), ('active', 'done'))
         decision = self.load('decisions')['decisions'][0]
-        self.assertEqual(decision['id'], 'investigations')
-        self.assertEqual(set(decision['blocks']), {'TASK-2', 'TASK-6'})
+        self.assertEqual((decision['id'], set(decision['blocks'])), ('investigations', {'TASK-2', 'TASK-6'}))
 
-    def test_no_path_outside_the_project_is_written(self):
-        self.assertIsNone(export.rel('/etc/passwd'))
-        self.assertIsNone(export.rel('../secret'))
-        self.assertIsNone(export.rel('~/x'))
-        self.assertEqual(export.rel('src/a.ts'), 'src/a.ts')
-        text = ''.join((self.folder / f'{n}.json').read_text(encoding='utf-8') for n in SECTIONS)
-        self.assertNotIn(self.tmp, text)
-
-    def test_the_documents_are_listed_in_reading_order(self):
-        docs = {d['path']: d for d in self.load('docs')['docs']}
-        self.assertEqual(docs['START-HERE.md']['group'], 'start')
-        self.assertEqual(docs['START-HERE.md']['title'], 'Start here')
-
-    def test_a_section_that_fails_is_named_and_the_rest_is_written(self):
-        from unittest import mock
+    def test_a_section_that_fails_or_records_that_cannot_be_read_are_named_and_never_counted_as_measured(self):
         with mock.patch.object(export.library_section, 'media', side_effect=ValueError('no folder')):
             result = export.export(self.out, 'en', 'shop')
         self.assertEqual(result['errors'], [{'section': 'media', 'error': 'ValueError: no folder'}])
         # the library carries the media's content: without the media it is not written either
-        self.assertEqual(result['written'], [name for name in SECTIONS if name != 'media']
-                         + [name for name in SECTIONS_V2 if name != 'library'] + ['coverage'])
+        self.assertEqual(result['written'], [n for n in SECTIONS if n != 'media'] + [n for n in SECTIONS_V2 if n != 'library'] + ['coverage'])
         self.assertNotIn('media', {entry['name'] for entry in self.load('manifest')['sections']})
         rows = {row['section']: row for row in self.load('coverage')['sections']}
         self.assertEqual((rows['media']['state'], rows['media']['reason']), ('failed', 'section_error'))
-
-    def test_records_that_cannot_be_read_name_the_failure_and_leave_no_manifest(self):
-        from unittest import mock
+        built = {'cards': [{'id': 'TASK-1'}], 'functions': {'functions': [{'id': 'f'}]}}
+        rows = {row['section']: row for row in coverage.coverage(self.out, built, ['cards'], [{'section': 'media', 'error': 'broken'}], 'en')['sections']}
+        self.assertEqual([rows[n]['state'] for n in ('cards', 'functions', 'media', 'evidence')], ['measured', 'not_measured', 'failed', 'not_measured'],
+                         'built but not written is not measured')
         with mock.patch.object(model, 'records', side_effect=OSError('disk gone')):
             result = export.export(self.out, 'en', 'shop')
         self.assertEqual(result, {'written': [], 'errors': [{'section': 'records', 'error': 'OSError: disk gone'}]})
@@ -144,68 +141,130 @@ class Export(Workspace):
 
 
 class Evidence(unittest.TestCase):
-    """NS46.T2: a card says why it matters in both languages; a fact carries the code around its line, never a secret."""
+    """A card says why it matters in both languages; a fact carries the code around its line, never a secret."""
 
     TEXT = 'import a\n\nconst KEY = "sk_live_123"\nfunction f() {\n  return 1\n}\n'
 
     def source(self, path):
         return {'src/a.ts': self.TEXT, 'bin.dat': 'x\0y'}.get(path)
 
-    def test_the_code_around_the_line_is_written_with_its_numbers(self):
+    def test_the_code_around_a_line_is_written_with_its_numbers_and_a_secret_line_never(self):
         code = export.code_excerpt(self.source, 'src/a.ts', 5, 'complexity')
         self.assertEqual(code, {'start': 3, 'line': 5, 'lines': ['const KEY = "sk_live_123"', 'function f() {', '  return 1', '}'], 'hidden': []})
         self.assertEqual(export.code_excerpt(self.source, 'src/a.ts', 1, 'complexity')['lines'][0], 'import a')
-        long = export.code_excerpt(lambda path: 'x' * 1000, 'min.js', 1, 'complexity')
-        self.assertEqual(len(long['lines'][0]), export.CODE_WIDTH)
-
-    def test_no_code_for_a_secret_a_missing_line_or_a_file_not_read(self):
-        self.assertIsNone(export.code_excerpt(self.source, 'src/a.ts', 3, 'secret'))
-        self.assertIsNone(export.code_excerpt(self.source, 'src/a.ts', None, 'complexity'))
-        self.assertIsNone(export.code_excerpt(self.source, 'src/a.ts', 99, 'complexity'))
-        self.assertIsNone(export.code_excerpt(self.source, 'gone.ts', 1, 'complexity'))
-        self.assertIsNone(export.code_excerpt(self.source, 'bin.dat', 1, 'complexity'))
-
-    def test_a_line_where_any_fact_found_a_secret_is_hidden_in_every_excerpt(self):
+        self.assertEqual(len(export.code_excerpt(lambda path: 'x' * 1000, 'min.js', 1, 'complexity')['lines'][0]), export.CODE_WIDTH)
+        for args in (('src/a.ts', 3, 'secret'), ('src/a.ts', None, 'complexity'), ('src/a.ts', 99, 'complexity'),
+                     ('gone.ts', 1, 'complexity'), ('bin.dat', 1, 'complexity')):
+            self.assertIsNone(export.code_excerpt(self.source, *args), args)
         code = export.code_excerpt(self.source, 'src/a.ts', 4, 'complexity', {('src/a.ts', 3)})
         self.assertEqual(code['hidden'], [3])
         self.assertEqual(code['lines'][code['hidden'][0] - code['start']], '')
         self.assertNotIn('sk_live', ''.join(code['lines']))
 
-    def test_the_evidence_section_hides_secret_lines_and_meets_its_contract(self):
-        from unittest import mock
+    def test_the_evidence_section_hides_secret_lines_and_a_card_says_why_in_both_languages(self):
         facts = [{'id': 'F1', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts', 'line': 4}, 'value': {'kind': 'complexity', 'message': 'complex'}},
                  {'id': 'F2', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'}, 'value': {'kind': 'secret', 'sites': [{'path': 'src/a.ts', 'line': 3}]}}]
         with mock.patch.object(export.indicators, 'facts', return_value=facts):
             rows = {f['id']: f for f in export.evidence('report', {'F1', 'F2'}, self.source)}
-        self.assertEqual(rows['F1']['line'], 4)
-        self.assertEqual(rows['F1']['code']['hidden'], [3])
+        self.assertEqual((rows['F1']['line'], rows['F1']['code']['hidden']), (4, [3]))
         self.assertIsNone(rows['F2']['code'])
         self.assertNotIn('sk_live', json.dumps(rows))
         body = {'schema_version': 1, 'contract': 1, 'facts': list(rows.values())}
         self.assertEqual(artifact_contracts.validate(body, artifact_contracts.contracts()['studio-evidence']), [])
+        why = export.why_of({'impact': 'Code nobody runs is still read.', 'impact_render': {'key': 'dead_code', 'params': {}}})['why']
+        self.assertEqual(set(why), {'ar', 'en'})
+        self.assertRegex(why['ar'], '[؀-ۿ]')
+        self.assertEqual(export.why_of({}), {})
 
     def test_files_are_read_at_the_scanned_commit_and_never_outside_the_project(self):
-        import subprocess
-        import tempfile
         with tempfile.TemporaryDirectory() as folder:
             project = Path(folder) / 'p'
             (project / 'src').mkdir(parents=True)
             (Path(folder) / 'outside.txt').write_text('secret', encoding='utf-8')
             (project / 'src/a.ts').write_text('old\n', encoding='utf-8')
-            git = lambda *a: subprocess.run(['git', '-C', str(project), *a], check=True, capture_output=True)
+            git = lambda *a: subprocess.run(['git', '-C', str(project), *a], check=True, capture_output=True, text=True).stdout.strip()
             git('init', '-q'); git('add', '.'); git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one')
-            commit = subprocess.run(['git', '-C', str(project), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+            commit = git('rev-parse', 'HEAD')
             (project / 'src/a.ts').write_text('new\n', encoding='utf-8')
             self.assertEqual(export.sources(project, commit)('src/a.ts'), 'old\n')
             self.assertEqual(export.sources(project, None)('src/a.ts'), 'new\n')
             self.assertIsNone(export.sources(project, None)('../outside.txt'))
             self.assertIsNone(export.sources(None, None)('src/a.ts'))
 
-    def test_why_a_card_matters_is_written_in_both_languages_from_its_render_key(self):
-        why = export.why_of({'impact': 'Code nobody runs is still read.', 'impact_render': {'key': 'dead_code', 'params': {}}})['why']
-        self.assertEqual(set(why), {'ar', 'en'})
-        self.assertRegex(why['ar'], '[\u0600-\u06FF]')
-        self.assertEqual(export.why_of({}), {})
+
+class Contract(unittest.TestCase):
+    def load(self, name):
+        return json.loads((FIXTURES / f'{name}.json').read_text(encoding='utf-8'))
+
+    def test_the_small_fixtures_meet_their_contract_and_it_refuses_what_the_studio_must_never_show(self):
+        contracts = artifact_contracts.contracts()
+        names = sorted(p.stem for p in FIXTURES.glob('*.json'))
+        self.assertTrue(names)
+        for name in names:
+            self.assertEqual(artifact_contracts.validate(self.load(name), contracts[f'studio-{name}']), [], name)
+        def broken(name, change):
+            data = copy.deepcopy(self.load(name))
+            change(data)
+            return artifact_contracts.validate(data, contracts[f'studio-{name}'])
+        for name, change in (('coverage', lambda d: d['sections'][0].update(state='coming_soon')),
+                             ('coverage', lambda d: d['sections'][0].pop('reason')),
+                             ('functions', lambda d: d['functions'][0].update(module='/home/me/app/api.ts')),
+                             ('functions', lambda d: d['modules'][0].update(id='../outside.ts')),
+                             ('gaps', lambda d: d['gaps'][0]['closed'].update(value=1.5)),
+                             ('gaps', lambda d: d['gaps'][0].update(operation='modify')),
+                             ('history', lambda d: d['scans'][0].update(score=60)),
+                             ('screens', lambda d: d['screens'][0]['issues'][0]['box'].update(x=-1)),
+                             ('operations', lambda d: d.update(revision=1))):
+            with self.subTest(name=name):
+                self.assertTrue(broken(name, change))
+        rows = {row['section']: row for row in self.load('coverage')['sections']}
+        self.assertIsNone(rows['screens']['count']['value'], 'not measured is null, never 0')
+
+    def test_the_synthetic_studio_holds_the_scale_and_every_reference_resolves(self):
+        s = studio_synthetic.build(cards=5000, components=1000)
+        self.assertEqual((len(s['cards']['cards']), len(s['story']['current']['components']), len(s['gaps']['gaps'])), (5000, 1000, 1000))
+        self.assertGreaterEqual(len(s['functions']['functions']), 1000)
+        facts = {f['id'] for f in s['evidence']['facts']}
+        cards = {c['id'] for c in s['cards']['cards']}
+        functions = {f['id'] for f in s['functions']['functions']}
+        operations = {o['id'] for o in s['operations']['operations']}
+        steps = {step['id'] for plan in s['plans']['plans'] for step in plan['steps']}
+        self.assertTrue(all(set(c['evidence']) <= facts for c in s['cards']['cards']))
+        self.assertTrue(all(set(f['callers']) | set(f['callees']) <= functions for f in s['functions']['functions']))
+        self.assertTrue(all(set(g['operations']) <= operations and set(g['cards']) <= cards for g in s['gaps']['gaps']))
+        self.assertTrue(all(o['step'] in steps and set(o['after']) <= operations for o in s['operations']['operations']))
+        self.assertTrue(all(set(d['blocks']) <= cards for d in s['decisions']['decisions']))
+        self.assertEqual(json.dumps(studio_synthetic.build(cards=50, components=10), sort_keys=True),
+                         json.dumps(studio_synthetic.build(cards=50, components=10), sort_keys=True), 'the same seed gives the same folder')
+
+    def test_the_synthetic_studio_is_written_whole_and_meets_the_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(studio_synthetic.write(folder, studio_synthetic.build(cards=50, components=10)), [])
+            manifest = json.loads((Path(folder) / 'manifest.json').read_text(encoding='utf-8'))
+            for entry in manifest['sections']:
+                self.assertEqual(entry['sha256'], hashlib.sha256((Path(folder) / entry['file']).read_bytes()).hexdigest())
+            self.assertEqual(manifest['sections'][-1]['name'], 'coverage')
+
+
+class Localization(unittest.TestCase):
+    def test_a_translation_catalog_is_optional_keeps_both_languages_and_a_blank_one_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report_folder = Path(tmp)
+            (report_folder / 'studio').mkdir()
+            self.assertIsNone(publish(report_folder, 'ar'))
+            translations = {'en': {'هل تعتمد الخطة؟': 'Do you approve the plan?'}}
+            (report_folder / 'studio-translations.json').write_text(json.dumps(translations))
+            metadata = publish(report_folder, 'ar')
+            catalog = json.loads((report_folder / 'studio/locale.json').read_text())
+            self.assertEqual((catalog['source_locale'], catalog['translations']), ('ar', translations))
+            self.assertEqual((metadata['en']['file'], len(metadata['en']['sha256'])), ('locale.js', 64))
+        with tempfile.TemporaryDirectory() as tmp:
+            report_folder = Path(tmp)
+            (report_folder / 'studio').mkdir()
+            (report_folder / 'studio-translations.json').write_text(json.dumps({'en': {'question': ''}}))
+            with self.assertRaises(ValueError):
+                publish(report_folder, 'ar')
+            self.assertFalse((report_folder / 'studio/locale.js').exists())
 
 
 if __name__ == '__main__':

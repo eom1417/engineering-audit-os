@@ -94,7 +94,7 @@ class Paths(Workspace):
     def walked(self, pid):
         return [(e['from'], e['to'], e['how']) for e in (self.body['edges'][i] for i in self.path[pid]['steps'])]
 
-    def test_a_page_walks_its_layers_and_every_link_carries_its_evidence(self):
+    def test_a_page_walks_its_layers_with_evidence_and_where_the_records_stop_draws_a_gap_never_an_invented_link(self):
         steps = self.walked('orders-orderspage')
         self.assertEqual(steps[:4], [
             ('S:/orders OrdersPage', 'C:src/pages/OrdersPage.tsx', 'route'),
@@ -111,9 +111,6 @@ class Paths(Workspace):
         self.assertEqual(self.nodes['A:GET /api/orders']['fact'], 'F-call1')
         self.assertEqual(self.nodes['H:src/api/orders.ts#audit']['label'], 'audit')    # the function holding the call
         self.assertEqual(self.nodes['T:orders']['fact'], 'F-table')
-
-    def test_where_the_records_stop_the_path_draws_a_gap_never_an_invented_link(self):
-        steps = self.walked('orders-orderspage')
         self.assertIn(('A:POST /api/audit', 'G:endpoint:POST /api/audit', 'gap'), steps)
         gap = self.nodes['G:endpoint:POST /api/audit']
         self.assertEqual((gap['kind'], gap['lane'], gap['reason'], gap['component']), ('gap', 'endpoint', 'no_server_route', None))
@@ -129,7 +126,7 @@ class Paths(Workspace):
         self.assertEqual(counts['unresolved_steps'], 2)
         self.assertTrue(all(v['src'] for v in self.body['counts'].values()))
 
-    def test_every_step_names_its_part_its_operation_and_its_target(self):
+    def test_every_step_names_its_target_and_the_layout_overview_and_timeline_are_computed_by_eaos(self):
         parts = self.body['components']
         self.assertEqual(parts['src/pages'], {'op': 'rebuild', 'target': 'features', 'layer': 'features'})
         self.assertEqual(parts['src/api']['op'], 'merge')           # two parts of today feed `features`
@@ -139,7 +136,6 @@ class Paths(Workspace):
         self.assertEqual(self.nodes['H:src/api/orders.ts#fetchOrders']['cards'], ['T1', 'T2'])
         self.assertEqual(self.nodes['H:src/api/orders.ts#fetchOrders']['steps'], ['M01'])
 
-    def test_the_layout_puts_each_node_once_in_its_lane_and_does_not_move_between_runs(self):
         again = paths.paths(self.tmp, self.cards, self.plan, 'en')
         for path, other in zip(self.body['paths'], again['paths']):
             self.assertEqual(path['columns'], other['columns'])
@@ -150,7 +146,6 @@ class Paths(Workspace):
             ends = {self.body['edges'][i][end] for i in path['steps'] for end in ('from', 'to')} | {path['entry']}
             self.assertEqual(set(placed), ends)
 
-    def test_the_overview_clusters_parts_and_cuts_them_to_folders_when_there_are_too_many(self):
         overview = self.body['overview']
         ids = {c['id'] for c in overview['clusters']}
         self.assertIn('K:endpoint:no_server_route:/api/audit', ids)
@@ -162,7 +157,6 @@ class Paths(Workspace):
         self.assertEqual((cut['level'], len(cut['clusters'])), (1, 4))
         self.assertEqual(paths._folder('src', 3), 'src')            # never below the first folder
 
-    def test_the_timeline_runs_by_waves_and_says_what_each_task_waits_for(self):
         tl = self.body['timeline']
         self.assertEqual([w['wave'] for w in tl['waves']], [1, 2])
         rows = {t['id']: t for t in tl['tasks']}
@@ -173,7 +167,7 @@ class Paths(Workspace):
         self.assertEqual(rows['T1']['title'], 'Fix the client')
         self.assertIsNone(paths.timeline({}, [], 'en'))
 
-    def test_the_section_meets_its_contract_and_its_coverage_counts_the_gaps(self):
+    def test_the_section_meets_its_contract_is_exported_with_its_coverage_and_clusters_at_scale(self):
         contracts = artifact_contracts.contracts()
         data = {'schema_version': 1, 'contract': 1, 'revision': 2, **self.body}
         self.assertEqual(artifact_contracts.validate(data, contracts['studio-paths']), [])
@@ -181,34 +175,25 @@ class Paths(Workspace):
         self.assertEqual(artifact_contracts.validate(json.loads(source), contracts['studio-paths']), [])
         # the Studio's gallery draws the same fixture, mirrored byte for byte inside studio/
         self.assertEqual((ROOT / 'studio/src/pages/paths/fixture.json').read_bytes(), source)
-
-
-class Export(unittest.TestCase):
-    def test_the_exporter_writes_paths_as_a_v2_section_listed_in_the_manifest_and_counted_in_coverage(self):
         with tempfile.TemporaryDirectory() as folder:
             write_report(folder)
             result = export.export(folder, 'en', name='demo')
             self.assertIn('paths', result['written'], result['errors'])
             data = json.loads((Path(folder) / 'studio/paths.json').read_text(encoding='utf-8'))
             self.assertEqual((data['contract'], data['revision']), (1, 2))
-            manifest = json.loads((Path(folder) / 'studio/manifest.json').read_text(encoding='utf-8'))
-            self.assertIn('paths', [s['name'] for s in manifest['sections']])
             row = next(r for r in json.loads((Path(folder) / 'studio/coverage.json').read_text(encoding='utf-8'))['sections']
                        if r['section'] == 'paths')
             self.assertEqual(row['state'], 'measured')
-            parts = {p['id']: p['state'] for p in row['parts']}
-            self.assertEqual(parts, {'links': 'measured', 'no_server_route': 'not_measured', 'trace_stopped': 'not_measured',
-                                     'component_not_found': 'not_measured'})
-
-
-class Synthetic(unittest.TestCase):
-    def test_the_synthetic_project_has_paths_past_the_cluster_threshold(self):
+            self.assertEqual({p['id']: p['state'] for p in row['parts']}, {'links': 'measured', 'no_server_route': 'not_measured',
+                                                                         'trace_stopped': 'not_measured', 'component_not_found': 'not_measured'})
         sys.path.insert(0, str(ROOT / 'tools'))
         import studio_synthetic
         body = studio_synthetic.build(cards=600, components=300)['paths']
         self.assertGreater(len(body['nodes']), paths.CLUSTER_AT)
-        self.assertFalse(body['overview']['all'])
+        self.assertFalse(body['overview']['all'], 'past the threshold the overview clusters')
         self.assertLessEqual(len(body['overview']['clusters']), paths.MAX_CLUSTERS)
+
+
 
 
 if __name__ == '__main__':

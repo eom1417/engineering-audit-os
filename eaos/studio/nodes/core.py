@@ -29,7 +29,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...runtime.provider import Stuck
+from ...assistants.command import Stuck
 
 RULES_ONLY = 'rules only'
 LOG = 'runs.jsonl'

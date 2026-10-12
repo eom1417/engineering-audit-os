@@ -105,7 +105,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'gaps', 'operations', 'ideal', 'history', 'quality'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'gaps', 'operations', 'ideal', 'history'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -133,10 +133,9 @@ export interface StudioData {
   operations?: { operations: Operation[] }
   /** studio/ideal.json, typed by its page (pages/ideal/model.ts) */
   ideal?: unknown
-  /** studio/history.json and studio/quality.json, typed by their pages (pages/history/model.ts, pages/quality/model.ts);
+  /** studio/history.json, typed by its pages (pages/history/model.ts);
    * studio/library.json (the documents' text) is loaded only when the reader opens (pages/library/model.ts) */
   history?: unknown
-  quality?: unknown
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
   /** Sections the manifest lists that are not read yet: they load when a page asks for them (data/stages.ts) */

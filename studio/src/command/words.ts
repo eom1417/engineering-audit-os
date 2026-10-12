@@ -66,9 +66,6 @@ export const CMD_WORDS = {
   snapshotStep2: ['اكتب هذا الأمر، فيفتح الاستوديو الحي في متصفحك:', 'Type this command; the live Studio opens in your browser:'],
   copyCommand: ['انسخ الأمر', 'Copy the command'],
   orAssistant: ['أو اطلبه من مساعدك مباشرة:', 'Or ask your assistant directly:'],
-  watchExample: ['شاهد تشغيلًا تجريبيًا', 'Watch an example run'],
-  demoBanner: ['تشغيل تجريبي مسجّل: لا شيء يتغير في مشروعك.', 'An example, replayed from a recording: nothing changes in your project.'],
-  leaveDemo: ['اخرج من التجربة', 'Leave the example'],
   // runs
   runs: ['التشغيل', 'Runs'],
   runsLead: ['كل ما طلبته من EAOS: ما يشتغل الآن، وما ينتظر دوره، وما انتهى.', 'Everything you asked EAOS to do: what runs now, what waits its turn, and what is done.'],
@@ -136,7 +133,6 @@ export const CMD_WORDS = {
   filesCount: ['{n} ملفات', '{n} files'],
   tests: ['الفحوص', 'Checks'],
   cardsClosed: ['البطاقات المغلقة ({n})', 'Cards closed ({n})'],
-  indicators: ['المؤشرات', 'Indicators'],
   acceptBranch: ['اعتمد الفرع', 'Accept the branch'],
   undoBranch: ['ارمِ الفرع', 'Undo the branch'],
   acceptTitle: ['اعتماد {branch}', 'Accept {branch}'],

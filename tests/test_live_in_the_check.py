@@ -57,12 +57,10 @@ class LiveInTheCheck(unittest.TestCase):
         manifest = execute(self.target, self.base / name, language='en', **options)
         return manifest, {stage: (manifest['stages'][stage]['status'], manifest['stages'][stage].get('reason_code')) for stage in LIVE}
 
-    def test_without_consent_every_live_stage_says_so_and_the_check_completes(self):
+    def test_without_consent_or_when_the_app_does_not_start_every_live_stage_says_why_and_the_check_completes(self):
         manifest, live = self.run_check('none')
         self.assertEqual(live, {stage: ('unavailable', 'no_run_consent') for stage in LIVE})
         self.assertEqual(manifest['status'], 'COMPLETE')
-
-    def test_an_app_that_does_not_start_is_written_down_and_the_other_live_stages_say_why(self):
         failed = {'ok': False, 'attempts': 3, 'limitations': ['npm ci failed'], 'page': None}
         with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', return_value=failed):
             manifest, live = self.run_check('down', runtime=self.base / 'runtime')
@@ -77,8 +75,7 @@ class LiveInTheCheck(unittest.TestCase):
                 mock.patch('eaos.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live_run.LiveRun', FakeRun), \
                 mock.patch('eaos.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.screens.audit.lighthouse', return_value={}), \
                 mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': []}), \
-                mock.patch('eaos.behavior_lock.run_journeys', return_value={'specs': 0, 'traces': [], 'recordings': []}), \
-                mock.patch('eaos.emit.nfr.write', return_value=[]), mock.patch('eaos.runtime_baseline.run_baseline') as measured:
+                mock.patch('eaos.nfr.write', return_value=[]), mock.patch('eaos.runtime_baseline.run_baseline') as measured:
             manifest, live = self.run_check('no-scenario', runtime=self.base / 'runtime')
         self.assertEqual(live['baseline'], ('unavailable', 'no_load_scenario'))
         measured.assert_not_called()
@@ -92,8 +89,7 @@ class LiveInTheCheck(unittest.TestCase):
                 mock.patch('eaos.screens.audit.page_audit', side_effect=audited), \
                 mock.patch('eaos.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
                 mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}), \
-                mock.patch('eaos.behavior_lock.run_journeys', return_value={'specs': 1, 'traces': ['001.zip'], 'recordings': ['a.rrweb.json']}), \
-                mock.patch('eaos.emit.nfr.write', side_effect=scenario), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
+                mock.patch('eaos.nfr.write', side_effect=scenario), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
             manifest, live = self.run_check('up', runtime=self.base / 'runtime')
         self.assertEqual(manifest['status'], 'COMPLETE')
         self.assertEqual(manifest['stages']['crawl']['detail'], {'pages': 1})

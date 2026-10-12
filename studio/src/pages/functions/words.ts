@@ -12,7 +12,6 @@ export const FUNCTION_WORDS = {
   lang_not_measured: ['لم تُقس بعد', 'not measured yet'],
   lang_empty: ['لا دوال', 'no functions'],
   lang_failed: ['تعذّر القياس', 'could not be measured'],
-  byStep: ['تأتي بها الخطوة', 'Comes with step'],
   search: ['ابحث في الدوال', 'Search functions'],
   searchHint: ['اسم دالة أو ملف أو جدول', 'A function, file or table'],
   sortBy: ['الترتيب', 'Order'],

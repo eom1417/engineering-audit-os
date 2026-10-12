@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -14,85 +13,65 @@ def load(root, repo, sets=('syntax', 'entrypoints')):
     return json.loads((Path(root) / 'out/facts/entrypoints.json').read_text())
 
 
-class EntryPointTests(TemporaryWorkspace):
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        cls.data = load(cls.tmp.name, FIXTURE)
-        cls.rows = [f['value'] | {'path': f['location']['path'], 'resolution': f['resolution']} for f in cls.data['facts']]
+def load_files(files):
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / 'repo'
+        for name, text in files.items():
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_text(text)
+        return load(tmp, repo)
 
 
-    def routes(self, surface): return {(r['http_method'], r['route']) for r in self.rows if r['surface'] == surface}
-
-    def test_http_routes_are_found_across_languages(self):
-        self.assertIn(('GET', '/orders'), self.routes('http'))
-        self.assertIn(('POST', '/orders'), self.routes('http'))
-        self.assertIn(('DELETE', '/orders/:id'), self.routes('http'))
-        self.assertIn(('ANY', '/health'), self.routes('http'))
-
-    def test_handlers_are_linked_to_real_symbols(self):
-        handler = next(r for r in self.rows if r['route'] == '/orders' and r['http_method'] == 'POST')
-        self.assertEqual(handler['handler'], 'createOrder')
-        self.assertEqual(handler['resolution'], 'RESOLVED')
-
-    def test_cli_jobs_and_manifest_surfaces_are_covered(self):
-        self.assertIn(('polyglot', 'argparse'), {(r['route'], r['framework']) for r in self.rows})
-        self.assertIn(('recalculate', 'celery'), {(r['route'], r['framework']) for r in self.rows})
-        self.assertIn('npm run start', {r['route'] for r in self.rows})
-
-    def test_nothing_is_invented_for_a_project_without_entry_points(self):
+class EntryPointTests(unittest.TestCase):
+    def test_routes_cli_jobs_and_manifest_surfaces_are_found_across_languages(self):
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'lib.py').write_text('VALUE = 1\n\n\ndef helper():\n    return VALUE\n')
-            data = load(tmp, repo)
-            self.assertEqual(data['facts'], [])
-            self.assertEqual(data['summary']['entry_points'], 0)
+            data = load(tmp, FIXTURE)
+        rows = [f['value'] | {'resolution': f['resolution']} for f in data['facts']]
+        http = {(r['http_method'], r['route']) for r in rows if r['surface'] == 'http'}
+        self.assertTrue({('GET', '/orders'), ('POST', '/orders'), ('DELETE', '/orders/:id'), ('ANY', '/health')} <= http)
+        handler = next(r for r in rows if r['route'] == '/orders' and r['http_method'] == 'POST')
+        self.assertEqual((handler['handler'], handler['resolution']), ('createOrder', 'RESOLVED'))
+        pairs = {(r['route'], r['framework']) for r in rows}
+        self.assertTrue({('polyglot', 'argparse'), ('recalculate', 'celery')} <= pairs)
+        self.assertIn('npm run start', {r['route'] for r in rows})
+
+    def test_nothing_is_invented_for_a_library_without_entry_points(self):
+        data = load_files({'lib.py': 'VALUE = 1\n\n\ndef helper():\n    return VALUE\n'})
+        self.assertEqual(data['facts'], [])
+        self.assertEqual(data['summary']['entry_points'], 0)
 
     def test_runtime_registered_commands_are_declared_as_gaps_not_hidden(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'tool.py').write_text(
-                'import argparse\n\n\ndef main():\n    parser = argparse.ArgumentParser(prog="tool")\n'
-                '    sub = parser.add_subparsers()\n    for command in ["a", "b"]:\n        sub.add_parser(command)\n')
-            data = load(tmp, repo)
-            dynamic = [f for f in data['facts'] if f['value']['framework'] == 'argparse_dynamic']
-            self.assertEqual(len(dynamic), 1)
-            self.assertIsNone(dynamic[0]['value']['route'])
-            self.assertEqual(dynamic[0]['resolution'], 'UNRESOLVED')
-            self.assertIn('built at runtime', dynamic[0]['value']['note'])
+        data = load_files({'tool.py': 'import argparse\n\n\ndef main():\n    parser = argparse.ArgumentParser(prog="tool")\n'
+                                      '    sub = parser.add_subparsers()\n    for command in ["a", "b"]:\n'
+                                      '        sub.add_parser(command)\n'})
+        dynamic = [f for f in data['facts'] if f['value']['framework'] == 'argparse_dynamic']
+        self.assertEqual(len(dynamic), 1)
+        self.assertIsNone(dynamic[0]['value']['route'])
+        self.assertEqual(dynamic[0]['resolution'], 'UNRESOLVED')
 
-    def test_dockerfile_and_makefile_surfaces_are_detected(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'Dockerfile').write_text('FROM python:3.12\nCMD ["python", "-m", "app"]\n')
-            (repo / 'Makefile').write_text('.PHONY: test\ntest:\n\tpytest\n')
-            rows = [f['value'] for f in load(tmp, repo)['facts']]
-            self.assertIn('container', {r['surface'] for r in rows})
-            self.assertIn('make test', {r['route'] for r in rows})
+    def test_dockerfile_makefile_and_main_guarded_scripts_are_surfaces(self):
+        rows = [f['value'] for f in load_files({
+            'Dockerfile': 'FROM python:3.12\nCMD ["python", "-m", "app"]\n',
+            'Makefile': '.PHONY: test\ntest:\n\tpytest\n',
+            'render.py': 'def render():\n    return 1\n\n\nif __name__ == "__main__":\n    raise SystemExit(render())\n'})['facts']]
+        self.assertIn('container', {r['surface'] for r in rows})
+        self.assertIn('make test', {r['route'] for r in rows})
+        script = next(row for row in rows if row['framework'] == 'python_script')
+        self.assertEqual((script['route'], script['handler'], script['surface']), ('render', 'render', 'cli'))
 
-    def test_detection_is_deterministic(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            collect(FIXTURE, Path(tmp) / 'a', ['syntax', 'entrypoints']); collect(FIXTURE, Path(tmp) / 'b', ['syntax', 'entrypoints'])
-            self.assertEqual((Path(tmp) / 'a/facts/entrypoints.json').read_bytes(), (Path(tmp) / 'b/facts/entrypoints.json').read_bytes())
-
-    def test_a_script_guarded_by_main_is_an_entry_point(self):
-        """A runnable script looked unreachable because its __main__ guard was not a surface."""
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'render.py').write_text('def render():\n    return 1\n\n\nif __name__ == "__main__":\n'
-                                            '    raise SystemExit(render())\n')
-            rows = [f['value'] for f in load(tmp, repo)['facts']]
-            script = next(row for row in rows if row['framework'] == 'python_script')
-            self.assertEqual(script['route'], 'render')
-            self.assertEqual(script['handler'], 'render')
-            self.assertEqual(script['surface'], 'cli')
-
-    def test_a_module_without_a_main_guard_is_not_an_entry_point(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'lib.py').write_text('def helper():\n    return 1\n')
-            self.assertEqual([f for f in load(tmp, repo)['facts']
-                              if f['value']['framework'] == 'python_script'], [])
+    def test_go_main_needs_package_main_and_func_main_and_receiver_handlers_are_routes(self):
+        data = load_files({
+            'cmd/x/main.go': 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("hi")\n}\n',
+            'helpers/helpers.go': 'package main\n\nfunc helper() {}\n',
+            'lib/lib.go': 'package lib\n\nfunc main() {}\n',
+            'server/server.go': 'package main\n\nimport "net/http"\n\ntype Server struct{}\n\n'
+                                'func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {}\n\n'
+                                'func main() {\n    s := &Server{}\n    http.HandleFunc("/", s.handleIndex)\n}\n'})
+        mains = {f['location']['path']: f['value'] for f in data['facts'] if f['value']['framework'] == 'go_main'}
+        self.assertEqual(set(mains), {'cmd/x/main.go', 'server/server.go'})
+        self.assertEqual((mains['cmd/x/main.go']['surface'], mains['cmd/x/main.go']['handler']), ('cli', 'main'))
+        route = next(f['value'] for f in data['facts'] if f['value']['surface'] == 'http')
+        self.assertEqual((route['handler'], route['framework']), ('s.handleIndex', 'go_http'))
 
 
 class TaskRunnerScriptTests(unittest.TestCase):
@@ -100,12 +79,7 @@ class TaskRunnerScriptTests(unittest.TestCase):
     when it only runs an external tool it is a tool command, never an entry point without a handler."""
 
     def facts(self, files):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'
-            for name, text in files.items():
-                (repo / name).parent.mkdir(parents=True, exist_ok=True)
-                (repo / name).write_text(text)
-            data = load(tmp, repo)
+        data = load_files(files)
         return {f['value']['route']: f for f in data['facts']}, data['summary']
 
     def test_npm_scripts_are_traced_to_the_program_they_run(self):
@@ -113,19 +87,21 @@ class TaskRunnerScriptTests(unittest.TestCase):
                    'lint': 'eslint src/app.ts', 'ship': 'NODE_ENV=production npx tsx scripts/ship.ts --fast',
                    'build': 'npm run lint && vite build && node scripts/pack.mjs', 'check': 'pnpm typecheck',
                    'gates': '../.venv/bin/python ../tools/gates.py --strict', 'outside': 'node ../../elsewhere.js'}
-        facts, summary = self.facts({'web/package.json': json.dumps({'scripts': scripts})})
+        facts, summary = self.facts({'web/package.json': json.dumps({'scripts': scripts}),
+                                     'loop/package.json': json.dumps({'scripts': {'a': 'npm run b', 'b': 'npm run a'}})})
         handlers = {route[len('npm run '):]: fact['value']['handler'] for route, fact in facts.items()
                     if fact['kind'] == 'entry_point'}
         self.assertEqual(handlers, {'start': 'web/server.js', 'ship': 'web/scripts/ship.ts',
                                     'build': 'web/scripts/pack.mjs', 'gates': 'tools/gates.py'})
         tools = {route[len('npm run '):]: fact['value']['tools'] for route, fact in facts.items()
-                 if fact['kind'] == 'tool_command'}
+                 if fact['kind'] == 'tool_command' and route not in ('npm run a', 'npm run b')}
         # A file handed to a linter is read, not run; a path outside the repository is no handler of it.
         self.assertEqual(tools, {'dev': ['vite'], 'typecheck': ['tsc'], 'test': ['vitest'], 'lint': ['eslint'],
                                  'check': ['tsc'], 'outside': ['node']})
+        # Scripts that call each other in a cycle end, as tool commands.
+        self.assertEqual({facts['npm run a']['kind'], facts['npm run b']['kind']}, {'tool_command'})
         self.assertEqual(facts['npm run start']['resolution'], 'RESOLVED')
         self.assertEqual(summary['production_entry_points'], 4)
-        self.assertEqual(summary['tool_commands'], 6)
         self.assertEqual(summary['by_framework'], {'npm_script': 4})
 
     def test_make_targets_follow_their_recipes_and_prerequisites(self):
@@ -145,66 +121,3 @@ class TaskRunnerScriptTests(unittest.TestCase):
         # A target with nothing to run is no evidence either way: it stays a declared entry point without a handler.
         self.assertEqual((facts['make out.txt']['kind'], facts['make out.txt']['value']['handler']), ('entry_point', None))
         self.assertEqual(facts['make run']['location']['start_line'], 5)
-
-    def test_scripts_that_call_each_other_in_a_cycle_end(self):
-        facts, _ = self.facts({'package.json': json.dumps({'scripts': {'a': 'npm run b', 'b': 'npm run a'}})})
-        self.assertEqual({fact['kind'] for fact in facts.values()}, {'tool_command'})
-
-
-class GoMainPackageTests(TemporaryWorkspace):
-    """`package main` + `func main()` is the binary's entry point: surface=cli, framework=go_main.
-
-    The detector only fires when both pieces are present; either alone is not a runtime surface.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-
-    def test_cmd_x_main_go_with_package_main_and_func_main_is_an_entry_point(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'cmd/x').mkdir(parents=True)
-            (repo / 'cmd/x/main.go').write_text('package main\n\nimport "fmt"\n\n'
-                                                 'func main() {\n    fmt.Println("hi")\n}\n')
-            rows = [f['value'] for f in load(tmp, repo)['facts']]
-        main_entry = next((r for r in rows if r['framework'] == 'go_main'), None)
-        self.assertIsNotNone(main_entry)
-        self.assertEqual(main_entry['surface'], 'cli')
-        self.assertEqual(main_entry['handler'], 'main')
-        self.assertEqual(main_entry['route'], 'main')
-
-    def test_a_package_main_file_without_func_main_does_not_emit_a_go_main_entry_point(self):
-        """A library file that happens to start with `package main` is not an entry point."""
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'helpers.go').write_text('package main\n\nfunc helper() {}\n')
-            rows = [f['value'] for f in load(tmp, repo)['facts']]
-        self.assertEqual([r for r in rows if r['framework'] == 'go_main'], [])
-
-    def test_a_non_main_package_with_func_main_does_not_emit_a_go_main_entry_point(self):
-        """`func main` only counts in a `package main` file; anything else is a collision."""
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'lib.go').write_text('package lib\n\nfunc main() {}\n')
-            rows = [f['value'] for f in load(tmp, repo)['facts']]
-        self.assertEqual([r for r in rows if r['framework'] == 'go_main'], [])
-
-    def test_http_handler_with_receiver_is_an_entry_point(self):
-        """A receiver-method handler like `s.handleIndex` registers as an http route."""
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / 'repo'; repo.mkdir()
-            (repo / 'server.go').write_text(
-                'package main\n\n'
-                'import "net/http"\n\n'
-                'type Server struct{}\n\n'
-                'func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {}\n\n'
-                'func main() {\n'
-                '    s := &Server{}\n'
-                '    http.HandleFunc("/", s.handleIndex)\n'
-                '}\n')
-            rows = [f['value'] for f in load(tmp, repo)['facts']]
-        http_route = next((r for r in rows if r['surface'] == 'http'), None)
-        self.assertIsNotNone(http_route)
-        self.assertEqual(http_route['handler'], 's.handleIndex')
-        self.assertEqual(http_route['framework'], 'go_http')

@@ -138,6 +138,3 @@ li + li > .stepRow { border-block-start: 1px solid var(--border-subtle); }
   .inspector { position: static; block-size: auto; overflow: visible; }
 }
 
-/* the gallery's fixtures */
-.fixture { border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--map-water); padding: 8px; display: flex; flex-direction: column; gap: 8px; }
-.fixtureCol { display: flex; flex-direction: column; gap: 12px; }

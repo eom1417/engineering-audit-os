@@ -1,10 +1,8 @@
-"""Branch control and scan freshness (eaos/studio/actions/branches.py, eaos/branches.py freshness; NS46.T18, NS46.T19)
-on real temporary git repositories through the command centre's own authenticated handler. These are unit checks: the
-tasks themselves close only on the live trial (acceptance/test_branch_control.py, acceptance/test_scan_freshness.py)."""
+"""Branch control and scan freshness (eaos/studio/actions/branches.py, eaos/branches.py freshness) on real temporary
+git repositories through the command centre's own authenticated handler."""
 import json
 import os
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -80,7 +78,7 @@ class Repo(Workspace):
 
 
 class Inventory(Repo):
-    def test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance(self):
+    def test_local_and_remote_refs_roles_policy_and_ownership_only_from_merged_provenance(self):
         status, inventory = self.get('/api/branches')
         self.assertEqual(status, 200)
         names = {(r['kind'], r['name']) for r in inventory['branches']}
@@ -93,33 +91,26 @@ class Inventory(Repo):
         self.assertEqual(self.row('eaos/task-1')['compare'], {'base': 'develop', 'ahead': 1, 'behind': 0, 'merged': False})
         self.assertEqual(self.row('main', 'remote')['remote'], 'origin')
         self.assertIn('remote_as_of', self.row('main', 'remote'))
+        self.app.branches.record('eaos/task-1', checks={'commit': self.work_tip, 'status': 'passed'})
+        entry = self.app.branches._registry()['branches']['eaos/task-1']
+        self.assertEqual((entry['kind'], entry['tip'], entry['checks'][0]['status']), ('task', self.work_tip, 'passed'), 'merged, never replaced')
+        from eaos.studio.actions import branches as control
+        self.assertEqual(control.git(self.project, 'log', timeout=0.000001).returncode, 124, 'a git timeout is an exit code')
 
-    def test_detached_head_no_origin_dirty_checkout_and_worktree(self):
+    def test_detached_head_no_origin_dirty_checkout_worktree_and_no_repository(self):
         git(self.project, 'remote', 'remove', 'origin')
         git(self.project, 'switch', '-q', '--detach', 'main')
         (self.project / 'app.py').write_text('changed\n', encoding='utf-8')
         git(self.project, 'worktree', 'add', '-q', str(self.base / 'wt'), 'eaos/task-1')
         status, inventory = self.get('/api/branches')
         self.assertEqual(status, 200)
-        self.assertTrue(inventory['head']['detached'])
-        self.assertIsNone(inventory['head']['branch'])
-        self.assertFalse(inventory['has_origin'])
+        self.assertEqual((inventory['head']['detached'], inventory['head']['branch'], inventory['has_origin']), (True, None, False))
         self.assertEqual(inventory['default'], {'name': None, 'source': None})
         self.assertFalse(any(r['kind'] == 'remote' for r in inventory['branches']))
         self.assertEqual(inventory['context']['dirty'], {'tracked': 1, 'untracked': 0})
         held = self.row('eaos/task-1')['worktree']
-        self.assertFalse(held['current'])
-        self.assertEqual(held['dirty'], {'tracked': 0, 'untracked': 0})
+        self.assertEqual((held['current'], held['dirty']), (False, {'tracked': 0, 'untracked': 0}))
         self.assertFalse(any(r['name'] == 'HEAD' for r in inventory['branches']))
-
-    def test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes(self):
-        self.app.branches.record('eaos/task-1', checks={'commit': self.work_tip, 'status': 'passed'})
-        entry = self.app.branches._registry()['branches']['eaos/task-1']
-        self.assertEqual((entry['kind'], entry['tip'], entry['checks'][0]['status']), ('task', self.work_tip, 'passed'))
-        from eaos.studio.actions import branches as control
-        self.assertEqual(control.git(self.project, 'log', timeout=0.000001).returncode, 124)
-
-    def test_not_a_repository_shows_no_branches(self):
         plain = self.base / 'plain'
         plain.mkdir()
         (plain / 'package.json').write_text('{}', encoding='utf-8')
@@ -130,49 +121,44 @@ class Inventory(Repo):
 
 
 class Selecting(Repo):
-    def test_select_changes_context_not_the_checkout_and_records_a_run(self):
+    def test_choosing_the_branch_to_analyse_changes_the_context_never_the_checkout(self):
         before = git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'symbolic-ref', '--short', 'HEAD')
         status, out = self.post('/api/branches/analysis', {'branch': 'main'})
         self.assertEqual(status, 200, out)
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'symbolic-ref', '--short', 'HEAD')), before)
-        self.assertEqual(out['context']['analysis']['branch'], 'main')
-        self.assertEqual(out['context']['checkout']['branch'], 'develop')
+        self.assertEqual((out['context']['analysis']['branch'], out['context']['checkout']['branch']), ('main', 'develop'))
         self.assertEqual(out['run']['state'], 'done')
         self.assertEqual(guided.load(self.project)['branch'], 'main')
-
-    def test_select_and_scan_asks_for_a_new_check_not_the_one_on_record(self):
         made = []
+        create, public = self.app.create, self.app.public
         self.app.create = lambda body: made.append(body) or {'id': 'r9', 'action': 'audit', 'state': 'queued'}
         self.app.public = lambda run: run
         status, out = self.post('/api/branches/analysis', {'branch': 'main', 'scan': True})
         self.assertEqual(status, 200, out)
-        self.assertEqual(made, [{'action': 'audit', 'inputs': {'fresh': True}}])
+        self.assertEqual(made, [{'action': 'audit', 'inputs': {'fresh': True}}], 'select and scan asks for a new check')
+        self.app.create, self.app.public = create, public
+        run = {'id': 'r3', 'action': 'report_decision', 'mode': 'handoff', 'state': 'waiting_for_person', 'read': False, 'created': 'x',
+               'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'}, 'context': self.app.branches.run_context()}
+        self.app.store.save(run, new=True)
+        status, out = self.post('/api/branches/analysis', {'branch': 'main'})
+        self.assertEqual(status, 200, out)
+        self.assertEqual((out['context']['analysis']['branch'], self.app.store.load('r3')['state']), ('main', 'waiting_for_person'),
+                         'rescanning the branch already analysed waits for no run')
 
-    def test_in_flight_runs_are_never_retargeted(self):
+    def test_work_in_flight_is_never_retargeted_and_a_run_keeps_its_branch_after_restart_and_deletion(self):
         run = {'id': 'r1', 'action': 'explain', 'state': 'waiting_for_person', 'read': False, 'created': 'x', 'label': {'en': 'a', 'ar': 'a'},
                'context': self.app.branches.run_context()}
         self.app.store.save(run, new=True)
         status, out = self.post('/api/branches/analysis', {'branch': 'main'})
-        self.assertEqual(status, 409, out)
-        self.assertEqual(out['needs'], 'in_flight')
+        self.assertEqual((status, out['needs']), (409, 'in_flight'))
         self.assertEqual(self.app.store.load('r1')['context']['analysis_branch'], 'develop')
         reason = out['reasons'][0]
         self.assertEqual(reason['runs'], [{'id': 'r1', 'label': {'en': 'a', 'ar': 'a'}}], 'the refusal names the work and offers its stop')
         self.assertIn('فيه شغل ما خلص على الفرع الحالي: a.', reason['ar'])
         self.assertNotIn('r1', reason['ar'] + reason['en'], 'plain words, never an id')
-
-    def test_rescanning_the_branch_already_analysed_waits_for_no_run(self):
-        run = {'id': 'r3', 'action': 'report_decision', 'mode': 'handoff', 'state': 'waiting_for_person', 'read': False, 'created': 'x',
-               'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'}, 'context': self.app.branches.run_context()}
-        self.app.store.save(run, new=True)
-        status, out = self.post('/api/branches/analysis', {'branch': 'develop'})
-        self.assertEqual(status, 200, out)
-        self.assertEqual((out['context']['analysis']['branch'], self.app.store.load('r3')['state']), ('develop', 'waiting_for_person'))
-
-    def test_run_keeps_its_branch_relation_after_restart_and_deletion(self):
-        run = {'id': 'r2', 'action': 'fix_finish', 'state': 'done', 'read': False, 'created': 'x', 'label': {'en': 'a', 'ar': 'a'},
-               'context': self.app.branches.run_context(), 'result': {'branch': 'eaos/task-1', 'branch_tip': self.work_tip}}
-        self.app.store.save(run, new=True)
+        done = {'id': 'r2', 'action': 'fix_finish', 'state': 'done', 'read': False, 'created': 'x', 'label': {'en': 'a', 'ar': 'a'},
+                'context': self.app.branches.run_context(), 'result': {'branch': 'eaos/task-1', 'branch_tip': self.work_tip}}
+        self.app.store.save(done, new=True)
         again = actions.Actions(self.project, port=8765, adapters={})
         self.addCleanup(again.close)
         self.assertEqual(again.public(again.store.load('r2'))['work_branch']['state'], 'exists')
@@ -192,85 +178,66 @@ class Merging(Repo):
                                                  'target_head': preview['target_head'], 'unchecked': preview['needs_unchecked_ack'],
                                                  'confirm': (preview['confirm'] or {}).get('token'), **extra})
 
-    def test_isolated_preview_then_merge_with_expected_heads(self):
+    def test_an_isolated_preview_then_a_merge_at_the_expected_heads_one_at_a_time(self):
         develop = git(self.project, 'rev-parse', 'develop')
         preview = self.preview()
         self.assertEqual(git(self.project, 'rev-parse', 'develop'), develop)      # nothing moved
         self.assertEqual((preview['blocked'], preview['conflicts'], preview['fast_forward']), ([], [], True))
         self.assertEqual([f['path'] for f in preview['files']], ['feature.py'])
-        status, out = self.merge(preview)
-        self.assertEqual((status, out['needs']), (409, 'unchecked_ack'))
+        self.assertEqual(self.merge(preview)[1]['needs'], 'unchecked_ack')
+        held = self.app.branches._locked()
+        try:
+            status, out = self.merge(self.preview(), unchecked_ack=True)
+            self.assertEqual((status, out['needs']), (409, 'refresh'), 'one change at a time')
+        finally:
+            held.close()
+        stale = self.preview()
+        git(self.project, 'switch', '-q', 'eaos/task-1')
+        moved = commit(self.project, 'feature.py', 'x = 2\n', 'moved', env=EAOS)
+        git(self.project, 'switch', '-q', 'develop')
+        status, out = self.merge(stale, unchecked_ack=True)
+        self.assertEqual((status, out['needs']), (409, 'refresh'), 'a head that moved invalidates the preview')
+        self.assertEqual(git(self.project, 'rev-parse', 'develop'), develop)
         status, out = self.merge(self.preview(), unchecked_ack=True)
         self.assertEqual(status, 200, out)
-        self.assertEqual(git(self.project, 'rev-parse', 'develop'), self.work_tip)
+        self.assertEqual(git(self.project, 'rev-parse', 'develop'), moved)
         self.assertEqual(out['run']['outcome'], 'merged')
 
-    def test_stale_head_invalidates_the_preview(self):
-        preview = self.preview()
-        git(self.project, 'switch', '-q', 'main')
-        git(self.project, 'switch', '-q', 'eaos/task-1')
-        commit(self.project, 'feature.py', 'x = 2\n', 'moved', env=EAOS)
-        git(self.project, 'switch', '-q', 'main')
-        status, out = self.merge(preview, unchecked_ack=True)
-        self.assertEqual((status, out['needs']), (409, 'refresh'))
-        self.assertEqual(git(self.project, 'rev-parse', 'develop'), preview['target_head'])
-
-    def test_protected_destination_refused_by_the_backend(self):
+    def test_a_protected_dirty_failed_or_conflicting_merge_is_refused_and_a_persons_branch_merges_on_their_confirmation(self):
         preview = self.preview(target='main')
         self.assertIn('protected_target', [r['code'] for r in preview['blocked']])
         self.assertIsNone(preview['confirm'])
         forged = {**preview, 'confirm': self.app.locks.confirm('branch_merge', {'source': 'eaos/task-1', 'target': 'main', 'source_head': preview['source_head'],
                                                                               'target_head': preview['target_head'], 'unchecked': True}, self.app.project)}
-        status, out = self.merge(forged, unchecked_ack=True)
-        self.assertEqual(status, 409, out)
+        self.assertEqual(self.merge(forged, unchecked_ack=True)[0], 409, 'refused by the backend, not only the page')
         self.assertNotEqual(git(self.project, 'rev-parse', 'main'), self.work_tip)
-
-    def test_failed_checks_and_conflict_are_refused_and_a_persons_branch_merges_on_their_confirmation(self):
         human = self.preview('eaos/not-ours')
         self.assertEqual(human['blocked'], [])                       # their repository: their confirmation decides
         self.assertTrue(human['confirm'])
-        self.app.branches.record('eaos/task-1', checks={'commit': self.work_tip, 'status': 'failed', 'at': 'x'})
-        self.assertIn('checks_failed', [r['code'] for r in self.preview()['blocked']])
-        git(self.project, 'switch', '-q', 'develop')
-        commit(self.project, 'feature.py', 'x = 99\n', 'conflicting')
-        preview = self.preview()
-        self.assertEqual(preview['conflicts'], ['feature.py'])
-        status, out = self.post('/api/branches/conflict', {'source': 'eaos/task-1', 'target': 'develop', 'assistant': 'handoff'})
-        self.assertEqual(status, 200, out)
-        self.assertEqual(out['run']['action'], 'branch_conflict')
-        self.assertEqual(git(self.project, 'rev-parse', 'eaos/task-1'), self.work_tip)
-
-    def test_dirty_checked_out_target_is_refused(self):
         (self.project / 'app.py').write_text('unsaved\n', encoding='utf-8')
         self.assertIn('dirty_target', [r['code'] for r in self.preview()['blocked']])
-
-    def test_one_change_at_a_time(self):
-        held = self.app.branches._locked()
-        try:
-            status, out = self.merge(self.preview(), unchecked_ack=True)
-            self.assertEqual((status, out['needs']), (409, 'refresh'))
-        finally:
-            held.close()
+        git(self.project, 'checkout', '--', 'app.py')
+        self.app.branches.record('eaos/task-1', checks={'commit': self.work_tip, 'status': 'failed', 'at': 'x'})
+        self.assertIn('checks_failed', [r['code'] for r in self.preview()['blocked']])
+        commit(self.project, 'feature.py', 'x = 99\n', 'conflicting')
+        self.assertEqual(self.preview()['conflicts'], ['feature.py'])
+        status, out = self.post('/api/branches/conflict', {'source': 'eaos/task-1', 'target': 'develop', 'assistant': 'handoff'})
+        self.assertEqual((status, out['run']['action']), (200, 'branch_conflict'))
+        self.assertEqual(git(self.project, 'rev-parse', 'eaos/task-1'), self.work_tip)
 
 
 class Guarding(Repo):
-    def test_auth_csrf_and_origin_failures_change_nothing(self):
+    def test_refused_requests_and_hostile_names_change_nothing_and_the_project_is_the_servers_own(self):
         before = git(self.project, 'for-each-ref')
         for headers in ({**self.headers(), 'X-EAOS-CSRF': 'no'}, {**self.headers(), 'Origin': 'http://evil.example'},
                         {**self.headers(), 'X-EAOS-Token': 'no'}):
-            status, _ = self.post('/api/branches/analysis', {'branch': 'main'}, headers)
-            self.assertIn(status, (401, 403))
+            self.assertIn(self.post('/api/branches/analysis', {'branch': 'main'}, headers)[0], (401, 403))
         self.assertEqual(git(self.project, 'for-each-ref'), before)
         self.assertIsNone((guided.load(self.project) or {}).get('branch'))
-
-    def test_invalid_names_cannot_escape_or_run_code(self):
         marker = self.base / 'pwned'
         for name in (f'x;touch {marker}', '--output=/tmp/x', '../../etc', 'a..b', '$(touch x)', 'refs/heads/../x', ''):
-            status, _ = self.post('/api/branches/merge/preview', {'source': name, 'target': 'develop'})
-            self.assertIn(status, (400, 404, 409), name)
+            self.assertIn(self.post('/api/branches/merge/preview', {'source': name, 'target': 'develop'})[0], (400, 404, 409), name)
         self.assertFalse(marker.exists())
-
-    def test_the_project_is_the_servers_own_never_the_bodys(self):
         other = self.base / 'other'
         other.mkdir()
         git(other, 'init', '-q', '-b', 'main')
@@ -286,53 +253,39 @@ class Deleting(Repo):
         self.assertEqual(status, 200, out)
         return out
 
-    def test_merged_branch_deleted_with_recovery_and_restored(self):
+    def delete(self, branch, tip, preview, **extra):
+        body = {'branch': branch, 'tip': tip, 'unmerged': preview['unmerged'], 'confirm': preview['confirm']['token'], **extra}
+        return self.post('/api/branches/delete', body)
+
+    def test_a_deleted_branch_is_kept_for_recovery_and_an_unmerged_one_needs_a_second_confirmation(self):
+        preview = self.preview(branch='eaos/task-1')
+        self.assertTrue(preview['unmerged'])
+        self.assertEqual([c['commit'] for c in preview['lost_commits']], [self.work_tip])
+        status, out = self.delete('eaos/task-1', preview['tip'], preview)
+        self.assertEqual((status, out['needs']), (403, 'confirm_unmerged'))
+        self.assertEqual(git(self.project, 'rev-parse', 'eaos/task-1'), self.work_tip)
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/task-1')
         preview = self.preview(branch='eaos/task-1')
-        self.assertFalse(preview['unmerged'])
-        self.assertIsNone(preview['confirm_unmerged'])
-        status, out = self.post('/api/branches/delete', {'branch': 'eaos/task-1', 'tip': preview['tip'], 'unmerged': False, 'confirm': preview['confirm']['token']})
+        self.assertEqual((preview['unmerged'], preview['confirm_unmerged']), (False, None))
+        status, out = self.delete('eaos/task-1', preview['tip'], preview)
         self.assertEqual(status, 200, out)
         recovery = out['run']['result']['answer']['recovery']
         self.assertEqual(git(self.project, 'rev-parse', f'refs/eaos-recovery/{recovery}'), self.work_tip)
         self.assertIsNone(self.row('eaos/task-1'))
-        status, out = self.post('/api/branches/restore', {'recovery': recovery})
-        self.assertEqual(status, 200, out)
+        self.assertEqual(self.post('/api/branches/restore', {'recovery': recovery})[0], 200)
         self.assertEqual(git(self.project, 'rev-parse', 'eaos/task-1'), self.work_tip)
-
-    def test_unmerged_needs_a_second_confirmation(self):
-        preview = self.preview(branch='eaos/task-1')
-        self.assertTrue(preview['unmerged'])
-        self.assertEqual([c['commit'] for c in preview['lost_commits']], [self.work_tip])
-        body = {'branch': 'eaos/task-1', 'tip': preview['tip'], 'unmerged': True, 'confirm': preview['confirm']['token']}
-        status, out = self.post('/api/branches/delete', body)
-        self.assertEqual((status, out['needs']), (403, 'confirm_unmerged'))
-        self.assertEqual(git(self.project, 'rev-parse', 'eaos/task-1'), self.work_tip)
-        preview = self.preview(branch='eaos/task-1')
-        status, out = self.post('/api/branches/delete', {**body, 'confirm': preview['confirm']['token'], 'confirm_unmerged': preview['confirm_unmerged']['token']})
-        self.assertEqual(status, 200, out)
-
-    def test_protected_and_checked_out_branches_are_never_deleted(self):
-        for name, code in (('develop', 'checked_out'), ('main', 'protected')):
-            self.assertIn(code, [r['code'] for r in self.preview(branch=name)['blocked']], name)
-        git(self.project, 'switch', '-q', 'eaos/task-1')
-        self.assertIn('checked_out', [r['code'] for r in self.preview(branch='eaos/task-1')['blocked']])
-
-    def test_a_persons_own_branch_is_deleted_on_their_confirmation_and_restorable(self):
         tip = git(self.project, 'rev-parse', 'eaos/not-ours')
         preview = self.preview(branch='eaos/not-ours')
         self.assertEqual((preview['blocked'], preview['whose']['code'], preview['unmerged']), ([], 'yours', True))
-        body = {'branch': 'eaos/not-ours', 'tip': tip, 'unmerged': True, 'worktree': False, 'confirm': preview['confirm']['token'],
-                'confirm_unmerged': preview['confirm_unmerged']['token']}
-        status, out = self.post('/api/branches/delete', body)
+        status, out = self.delete('eaos/not-ours', tip, preview, worktree=False, confirm_unmerged=preview['confirm_unmerged']['token'])
         self.assertEqual(status, 200, out)
         self.assertIsNone(self.row('eaos/not-ours'))
-        recovery = out['run']['result']['answer']['recovery']
-        self.assertEqual(git(self.project, 'rev-parse', f'refs/eaos-recovery/{recovery}'), tip)
-        self.assertEqual(self.post('/api/branches/restore', {'recovery': recovery})[0], 200)
+        self.assertEqual(self.post('/api/branches/restore', {'recovery': out['run']['result']['answer']['recovery']})[0], 200)
         self.assertEqual(git(self.project, 'rev-parse', 'eaos/not-ours'), tip)
 
-    def test_a_clean_worktree_goes_with_its_branch_and_a_dirty_one_blocks(self):
+    def test_protected_checked_out_and_dirty_worktree_branches_stay_and_a_clean_worktree_goes_with_its_branch(self):
+        for name, code in (('develop', 'checked_out'), ('main', 'protected')):
+            self.assertIn(code, [r['code'] for r in self.preview(branch=name)['blocked']], name)
         folder = self.base / 'wt'
         git(self.project, 'worktree', 'add', '-q', str(folder), 'eaos/task-1')
         (folder / 'feature.py').write_text('unsaved\n', encoding='utf-8')
@@ -341,12 +294,10 @@ class Deleting(Repo):
         preview = self.preview(branch='eaos/task-1')
         self.assertEqual(preview['blocked'], [])
         self.assertTrue(preview['worktree'])
-        stale = {'branch': 'eaos/task-1', 'tip': self.work_tip, 'unmerged': True, 'worktree': False, 'confirm': preview['confirm']['token'],
-                 'confirm_unmerged': preview['confirm_unmerged']['token']}
-        self.assertEqual(self.post('/api/branches/delete', stale)[0], 403)   # the worktree is part of what was confirmed
+        stale = {'worktree': False, 'confirm_unmerged': preview['confirm_unmerged']['token']}
+        self.assertEqual(self.delete('eaos/task-1', self.work_tip, preview, **stale)[0], 403, 'the worktree is part of what was confirmed')
         preview = self.preview(branch='eaos/task-1')
-        status, out = self.post('/api/branches/delete', {**stale, 'worktree': True, 'confirm': preview['confirm']['token'],
-                                                         'confirm_unmerged': preview['confirm_unmerged']['token']})
+        status, out = self.delete('eaos/task-1', self.work_tip, preview, worktree=True, confirm_unmerged=preview['confirm_unmerged']['token'])
         self.assertEqual(status, 200, out)
         self.assertFalse(folder.exists())
         self.assertIsNone(self.row('eaos/task-1'))
@@ -364,66 +315,8 @@ class Deleting(Repo):
         status, out = self.post('/api/branches/delete', {'branch': 'eaos/task-1', 'where': 'remote', 'remote': 'origin', 'tip': remote['tip'],
                                                          'confirm': remote['confirm']['token']})
         self.assertEqual(status, 200, out)
-        self.assertFalse(subprocess.run(['git', '-C', str(self.origin), 'rev-parse', '--verify', '--quiet', 'refs/heads/eaos/task-1']).returncode == 0)
+        self.assertNotEqual(subprocess.run(['git', '-C', str(self.origin), 'rev-parse', '--verify', '--quiet', 'refs/heads/eaos/task-1']).returncode, 0)
         self.assertEqual(git(self.project, 'rev-parse', 'eaos/task-1'), self.work_tip)     # the local branch stays
-
-
-class Freshness(Repo):
-    def scanned(self, **extra):
-        state = {'schema_version': 1, 'project': str(self.project), 'workspace': str(guided.workspace(self.project)), 'questions': [],
-                 'scanned': '2026-10-09T08:00:00+00:00', 'scanned_commit': git(self.project, 'rev-parse', 'HEAD'),
-                 **reading.scan_provenance({'project': str(self.project)}, self.project), **extra}
-        guided.save(state)
-        return state
-
-    def fresh(self):
-        status, out = self.get('/api/freshness')
-        self.assertEqual(status, 200, out)
-        return out['freshness']
-
-    def test_records_branch_commit_and_dirty_state(self):
-        state = self.scanned()
-        self.assertEqual((state['scanned_branch'], state['scanned_detached'], state['scanned_dirty']), ('develop', False, False))
-        self.assertEqual(len(state['scanned_commit']), 40)
-        self.assertEqual(self.fresh()['state'], 'fresh')
-
-    def test_behind_with_files_then_dirty_then_rewritten(self):
-        self.scanned()
-        commit(self.project, 'new.py', 'z\n', 'later')
-        found = self.fresh()
-        self.assertEqual((found['state'], found['behind']['commits'], found['behind']['file_list']), ('behind', 1, ['new.py']))
-        git(self.project, 'reset', '-q', '--hard', 'HEAD~1')
-        (self.project / 'app.py').write_text('unsaved\n', encoding='utf-8')
-        self.assertEqual(self.fresh()['state'], 'dirty')
-        git(self.project, 'checkout', '-q', '--', 'app.py')
-        git(self.project, 'commit', '-q', '--amend', '-m', 'rewritten')
-        self.assertEqual(self.fresh()['state'], 'rewritten')
-
-    def test_detached_head_legacy_and_other_branch(self):
-        git(self.project, 'switch', '-q', '--detach', 'main')
-        state = self.scanned()
-        self.assertEqual((state['scanned_branch'], state['scanned_detached']), (None, True))
-        self.assertEqual(self.fresh()['state'], 'fresh')
-        git(self.project, 'switch', '-q', 'develop')
-        self.scanned()
-        guided.save({**guided.load(self.project), 'branch': 'main'})
-        self.assertEqual(self.fresh()['state'], 'other_branch')
-        self.app.studio = self.base / 'studio'
-        (self.app.studio).mkdir(exist_ok=True)
-        (self.app.studio / 'manifest.json').write_text(json.dumps({'scanned': {'branch': 'develop', 'commit': git(self.project, 'rev-parse', 'develop'),
-                                                                              'at': '2026-10-09T08:00:00+00:00', 'recorded': True, 'detached': False}}))
-        guided.choose(guided.load(self.project), 'eaos/task-1')
-        found = self.fresh()
-        self.assertEqual((found['state'], found['scanned_branch'], found['branch']), ('other_branch', 'develop', 'eaos/task-1'))
-        guided.choose(guided.load(self.project), 'main')
-        legacy = {k: v for k, v in guided.load(self.project).items() if k not in ('scanned_commit', 'scanned_branch', 'scanned_detached', 'scanned_dirty')}
-        guided.save(legacy)
-        found = self.fresh()
-        self.assertEqual((found['state'], found['reason']), ('unknown', 'legacy_report'))
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class CleaningUp(Repo):
@@ -434,7 +327,7 @@ class CleaningUp(Repo):
         self.assertEqual(status, 200, out)
         return out
 
-    def test_merged_branches_and_clean_detached_worktrees_go_unmerged_and_dirty_stay(self):
+    def test_merged_branches_and_clean_detached_worktrees_go_unmerged_and_dirty_stay_and_only_the_previewed_set(self):
         git(self.project, 'branch', 'merged-a', 'develop')
         git(self.project, 'branch', 'merged-b', 'main')
         git(self.project, 'branch', 'held', 'develop')
@@ -455,30 +348,76 @@ class CleaningUp(Repo):
         self.assertIn('worktree_dirty', stays['busy'])
         self.assertNotIn('develop', stays)                                  # the base and protected branches are never listed
         self.assertEqual(sorted(preview['kept_branches']), ['develop', 'main'])
+        status, out = self.post('/api/branches/cleanup', {'digest': '0' * 64, 'confirm': preview['confirm']['token']})
+        self.assertEqual((status, out['needs']), (403, 'confirm'), 'a forged digest needs its own confirmation')
+        preview = self.preview()
+        git(self.project, 'branch', 'merged-c', 'develop')
+        status, out = self.post('/api/branches/cleanup', {'digest': preview['digest'], 'confirm': preview['confirm']['token']})
+        self.assertEqual((status, out['needs']), (409, 'refresh'), 'a change after the preview changes nothing')
+        self.assertTrue(git(self.project, 'rev-parse', 'merged-a'))
+        git(self.project, 'branch', '-D', 'merged-c')
+        preview = self.preview()
         status, out = self.post('/api/branches/cleanup', {'digest': preview['digest'], 'confirm': preview['confirm']['token']})
         self.assertEqual(status, 200, out)
         answer = out['run']['result']['answer']
         self.assertEqual((sorted(d['branch'] for d in answer['deleted']), answer['failed']), (['held', 'merged-a', 'merged-b'], []))
         left = git(self.project, 'for-each-ref', '--format=%(refname:short)', 'refs/heads').split()
         self.assertEqual(sorted(left), ['busy', 'develop', 'eaos/not-ours', 'eaos/task-1', 'main'])
-        self.assertFalse(held.exists())
-        self.assertFalse(old.exists())
+        self.assertFalse(held.exists() or old.exists())
         self.assertEqual((dirty / 'note.txt').read_text(encoding='utf-8'), 'unsaved\n')
         recovery = next(d['recovery'] for d in answer['deleted'] if d['branch'] == 'merged-a')
         self.assertEqual(self.post('/api/branches/restore', {'recovery': recovery})[0], 200)
         self.assertEqual(git(self.project, 'rev-parse', 'merged-a'), git(self.project, 'rev-parse', 'develop'))
 
-    def test_a_change_after_the_preview_changes_nothing(self):
-        git(self.project, 'branch', 'merged-a', 'develop')
-        preview = self.preview()
-        git(self.project, 'branch', 'merged-c', 'develop')
-        status, out = self.post('/api/branches/cleanup', {'digest': preview['digest'], 'confirm': preview['confirm']['token']})
-        self.assertEqual((status, out['needs']), (409, 'refresh'))
-        self.assertTrue(git(self.project, 'rev-parse', 'merged-a'))
 
-    def test_a_forged_digest_needs_its_own_confirmation(self):
-        git(self.project, 'branch', 'merged-a', 'develop')
-        preview = self.preview()
-        status, out = self.post('/api/branches/cleanup', {'digest': '0' * 64, 'confirm': preview['confirm']['token']})
-        self.assertEqual((status, out['needs']), (403, 'confirm'))
-        self.assertTrue(git(self.project, 'rev-parse', 'merged-a'))
+class Freshness(Repo):
+    def scanned(self, **extra):
+        state = {'schema_version': 1, 'project': str(self.project), 'workspace': str(guided.workspace(self.project)), 'questions': [],
+                 'scanned': '2026-10-09T08:00:00+00:00', 'scanned_commit': git(self.project, 'rev-parse', 'HEAD'),
+                 **reading.scan_provenance({'project': str(self.project)}, self.project), **extra}
+        guided.save(state)
+        return state
+
+    def fresh(self):
+        status, out = self.get('/api/freshness')
+        self.assertEqual(status, 200, out)
+        return out['freshness']
+
+    def test_a_check_is_fresh_behind_dirty_rewritten_on_another_branch_or_unknown(self):
+        state = self.scanned()
+        self.assertEqual((state['scanned_branch'], state['scanned_detached'], state['scanned_dirty'], len(state['scanned_commit'])),
+                         ('develop', False, False, 40))
+        self.assertEqual(self.fresh()['state'], 'fresh')
+        commit(self.project, 'new.py', 'z\n', 'later')
+        found = self.fresh()
+        self.assertEqual((found['state'], found['behind']['commits'], found['behind']['file_list']), ('behind', 1, ['new.py']))
+        git(self.project, 'reset', '-q', '--hard', 'HEAD~1')
+        (self.project / 'app.py').write_text('unsaved\n', encoding='utf-8')
+        self.assertEqual(self.fresh()['state'], 'dirty')
+        git(self.project, 'checkout', '-q', '--', 'app.py')
+        git(self.project, 'commit', '-q', '--amend', '-m', 'rewritten')
+        self.assertEqual(self.fresh()['state'], 'rewritten')
+        git(self.project, 'switch', '-q', '--detach', 'main')
+        state = self.scanned()
+        self.assertEqual((state['scanned_branch'], state['scanned_detached']), (None, True))
+        self.assertEqual(self.fresh()['state'], 'fresh')
+        git(self.project, 'switch', '-q', 'develop')
+        self.scanned()
+        guided.save({**guided.load(self.project), 'branch': 'main'})
+        self.assertEqual(self.fresh()['state'], 'other_branch')
+        self.app.studio = self.base / 'studio'
+        self.app.studio.mkdir(exist_ok=True)
+        (self.app.studio / 'manifest.json').write_text(json.dumps({'scanned': {'branch': 'develop', 'commit': git(self.project, 'rev-parse', 'develop'),
+                                                                              'at': '2026-10-09T08:00:00+00:00', 'recorded': True, 'detached': False}}))
+        guided.choose(guided.load(self.project), 'eaos/task-1')
+        found = self.fresh()
+        self.assertEqual((found['state'], found['scanned_branch'], found['branch']), ('other_branch', 'develop', 'eaos/task-1'))
+        guided.choose(guided.load(self.project), 'main')
+        legacy = {k: v for k, v in guided.load(self.project).items() if k not in ('scanned_commit', 'scanned_branch', 'scanned_detached', 'scanned_dirty')}
+        guided.save(legacy)
+        found = self.fresh()
+        self.assertEqual((found['state'], found['reason']), ('unknown', 'legacy_report'))
+
+
+if __name__ == '__main__':
+    unittest.main()

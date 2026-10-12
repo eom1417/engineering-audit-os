@@ -34,7 +34,7 @@ def _runners():
 
 
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
-            test_command=None, site=True, goal=None, audit_run=None, runners=None, intake=None,
+            goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
             runtime=None):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
@@ -57,7 +57,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     if unknown:
         raise ValueError('Unknown stage: ' + ', '.join(unknown))
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
-                      provider=provider, test_command=test_command, site=site, goal=goal,
+                      provider=provider, goal=goal,
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
                       intake=str(Path(intake).resolve()) if intake else None, runtime=str(runtime) if runtime else None)
     requested = [name for name in ORDER if (not only or name in set(only)) and name not in set(skip)]

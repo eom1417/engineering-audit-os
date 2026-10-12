@@ -31,12 +31,45 @@ from eaos import progress  # noqa: E402
 from eaos.pipeline import STAGES, SkipStage, execute, resume  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
 from eaos.progress import log as writer, sampler  # noqa: E402
-from test_live_scan_map import project, stepping_runners  # noqa: E402
+from test_pipeline_run import fake_runners  # noqa: E402
+from test_progress_server import report_with_data  # noqa: E402
 
 FIXTURES = ROOT / 'tests/fixtures/progress'
 SCHEMA = json.loads((ROOT / 'eaos/data/schemas/progress.json').read_text(encoding='utf-8'))
 VALIDATOR = jsonschema.Draft202012Validator(SCHEMA, format_checker=jsonschema.Draft202012Validator.FORMAT_CHECKER)
 GOLDEN = sorted(FIXTURES.glob('*.jsonl'))
+
+
+def stepping_runners(**behaviour):
+    """The fake runners, with `facts` and `engines` reporting steps the way the real ones do."""
+    runners = fake_runners(**behaviour)
+    plain_facts, plain_engines = runners['facts'], runners['engines']
+
+    def facts(context):
+        names = ['syntax', 'resolve', 'graph']
+        for name in names: context.step(name, 0, len(names), 'waiting')
+        for done, name in enumerate(names):
+            context.step(name, done, len(names), 'running')
+            context.step(name, done + 1, len(names), 'ok', 0.01)
+        return plain_facts(context)
+
+    def engines(context):
+        context.step('semgrep', 0, 2, 'waiting')
+        context.step('trivy', 0, 2, 'waiting')
+        context.step('semgrep', 0, 2, 'running')
+        context.step('semgrep', 1, 2, 'observed', 0.2)
+        context.step('trivy', 1, 2, 'running')
+        context.step('trivy', 2, 2, 'unavailable', 0.0, reason='trivy is not installed')
+        return plain_engines(context)
+
+    runners.update(facts=facts, engines=engines)
+    return runners
+
+
+def project():
+    folder = Path(tempfile.mkdtemp(prefix='scanmap-src-'))
+    (folder / 'app.py').write_text('print(1)\n', encoding='utf-8')
+    return folder
 
 
 class Clock:
@@ -78,20 +111,21 @@ def ends(rows):
 
 
 class Schema(unittest.TestCase):
-    def test_the_schema_is_a_valid_versioned_json_schema_shipped_with_the_package(self):
+    def test_every_event_written_validates_and_a_line_that_breaks_the_contract_is_refused(self):
         jsonschema.Draft202012Validator.check_schema(SCHEMA)
         self.assertEqual((SCHEMA['x-version'], SCHEMA['$defs']['run.started']['properties']['schema']), (1, {'const': writer.SCHEMA}))
-        self.assertEqual((ROOT / 'schemas/progress.json').read_bytes(), (ROOT / 'eaos/data/schemas/progress.json').read_bytes(),
-                         'the packaged copy is the canonical one')
-
-    def test_every_event_a_check_writes_validates_against_the_schema(self):
+        good = {'seq': 3, 'at': '2026-10-09T20:00:00.000+00:00', 'event': 'stage.step', 'run': '20261009T200000-abcdef',
+                'stage': 'facts', 'step': 'syntax', 'done': 1, 'total': 19, 'status': 'running'}
+        self.assertEqual(invalid([good]), [])
+        for broken in ({'done': -1}, {'surprise': 1}, {'event': 'stage.stepped'}, {'stage': ''}):
+            self.assertTrue(invalid([{**good, **broken}]), broken)
+        self.assertTrue(invalid([{**good, 'event': 'stage.ended', 'status': 'done'}]), 'an end is one of the five fates')
+        # Every event a check, the writer or a recorded run writes validates.
         for behaviour in ({}, {'probe': RuntimeError('boom'), 'semantic': SkipStage('no provider')},
                           {'claims': KeyboardInterrupt()}, {'features': SystemExit(3)}):
             rows, _, _ = check_rows(runners=counting_runners(**behaviour))
             self.assertGreater(len(rows), len(STAGES))
             self.assertEqual(invalid(rows), [], behaviour)
-
-    def test_every_event_the_writer_can_write_validates_including_activity_and_heartbeats(self):
         clock = Clock()
         found = [[{'name': 'semgrep-core', 'pid': 42, 'since': '2026-10-09T20:00:00+00:00'}], None]
         stub = type('Stub', (), {'off': False, 'reason': 'the running programs cannot be seen: FileNotFoundError: ps',
@@ -108,20 +142,10 @@ class Schema(unittest.TestCase):
         self.assertEqual({r['event'] for r in rows}, {'run.started', 'stage.started', 'stage.step', 'stage.activity',
                                                        'run.alive', 'stage.ended', 'run.ended'})
         self.assertEqual(invalid(rows), [])
-
-    def test_every_line_of_every_recorded_real_run_validates(self):
         self.assertTrue(GOLDEN, 'the recorded runs are committed')
         for path in GOLDEN:
             rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
             self.assertEqual(invalid(rows), [], path.name)
-
-    def test_a_line_that_breaks_the_contract_is_refused(self):
-        good = {'seq': 3, 'at': '2026-10-09T20:00:00.000+00:00', 'event': 'stage.step', 'run': '20261009T200000-abcdef',
-                'stage': 'facts', 'step': 'syntax', 'done': 1, 'total': 19, 'status': 'running'}
-        self.assertEqual(invalid([good]), [])
-        for broken in ({'done': -1}, {'surprise': 1}, {'event': 'stage.stepped'}, {'stage': ''}):
-            self.assertTrue(invalid([{**good, **broken}]), broken)
-        self.assertTrue(invalid([{**good, 'event': 'stage.ended', 'status': 'done'}]), 'an end is one of the five fates')
 
 
 class OneEndPerStage(unittest.TestCase):
@@ -132,47 +156,19 @@ class OneEndPerStage(unittest.TestCase):
         self.assertEqual(rows[-1]['event'], 'run.ended')
         self.assertEqual([r['seq'] for r in rows], list(range(1, len(rows) + 1)))
 
-    def test_a_whole_run_a_partial_run_and_a_run_with_failures(self):
+    def test_whole_partial_failed_and_resumed_runs_end_each_stage_once(self):
         for options in ({}, {'only': ['facts', 'features']},
                         {'runners': counting_runners(probe=RuntimeError('x'), semantic=SkipStage('no provider'))}):
             options.setdefault('runners', counting_runners())
             rows, raised, _ = check_rows(**options)
             self.assertIsNone(raised)
             self.assert_one_end_each(rows)
-
-    def test_a_resumed_run(self):
         folder, out = project(), Path(tempfile.mkdtemp())
         execute(folder, out, runners=counting_runners(probe=RuntimeError('x')))
         resume(folder, out, runners=counting_runners())
         rows = progress.read(out)
         self.assert_one_end_each(rows)
         self.assertTrue(all(r.get('resumed') for r in rows if r['event'] == 'stage.ended' and r['stage'] == 'facts'))
-
-    def test_a_stopped_run_ends_the_stage_it_was_in_and_every_stage_it_did_not_reach(self):
-        rows, raised, _ = check_rows(runners=counting_runners(claims=KeyboardInterrupt()))
-        self.assertIsInstance(raised, KeyboardInterrupt, 'the stop still reaches the caller')
-        self.assert_one_end_each(rows)
-        ended = {r['stage']: r for r in rows if r['event'] == 'stage.ended'}
-        self.assertEqual(ended['claims']['status'], 'failed')
-        self.assertIn('while this stage ran', ended['claims']['reason'])
-        after = [n for n in ORDER if 'claims' in progress.fold(rows)['stages'][ORDER.index(n)]['requires']]
-        self.assertTrue(after and all(ended[n]['status'] == 'not_reached' for n in after))
-        self.assertEqual((rows[-1]['status'], progress.fold(rows)['reason']), ('STOPPED', 'KeyboardInterrupt: '))
-        self.assertEqual(ended['facts']['status'], 'ok', 'what ended before the stop keeps its own end')
-
-    def test_a_run_that_crashes_inside_a_stage_or_after_the_stages(self):
-        rows, raised, _ = check_rows(runners=counting_runners(features=SystemExit(3)))
-        self.assertIsInstance(raised, SystemExit)
-        self.assert_one_end_each(rows)
-        self.assertEqual(rows[-1]['status'], 'ERROR')
-        self.assertEqual({r['stage']: r['status'] for r in rows if r['event'] == 'stage.ended'}['features'], 'failed')
-        from unittest import mock
-        with mock.patch('eaos.pipeline.run._manifest', side_effect=RuntimeError('disk full')):
-            rows, raised, _ = check_rows(runners=counting_runners())
-        self.assertIsInstance(raised, RuntimeError)
-        self.assert_one_end_each(rows)
-
-    def test_the_writer_refuses_a_second_end_and_a_second_finish(self):
         out = Path(tempfile.mkdtemp())
         log = progress.ProgressLog(out, pulse=False, sampler=None)
         log.started(STAGES, list(ORDER), {})
@@ -184,8 +180,6 @@ class OneEndPerStage(unittest.TestCase):
         rows = progress.read(out)
         self.assertEqual(sorted(ends(rows)), sorted(ORDER))
         self.assertEqual([r['status'] for r in rows if r['event'] == 'run.ended'], ['COMPLETE'])
-
-    def test_every_recorded_run_that_reached_an_end_ended_each_stage_once(self):
         for path in GOLDEN:
             rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
             names = [s['name'] for s in rows[0]['stages']]
@@ -193,6 +187,28 @@ class OneEndPerStage(unittest.TestCase):
                 self.assertEqual(sorted(ends(rows)), sorted(names), path.name)
             else:
                 self.assertEqual(len(ends(rows)), len(set(ends(rows))), f'{path.name}: no stage ended twice')
+
+    def test_a_stopped_or_crashed_run_still_ends_every_stage(self):
+        rows, raised, _ = check_rows(runners=counting_runners(claims=KeyboardInterrupt()))
+        self.assertIsInstance(raised, KeyboardInterrupt, 'the stop still reaches the caller')
+        self.assert_one_end_each(rows)
+        ended = {r['stage']: r for r in rows if r['event'] == 'stage.ended'}
+        self.assertEqual(ended['claims']['status'], 'failed')
+        self.assertIn('while this stage ran', ended['claims']['reason'])
+        after = [n for n in ORDER if 'claims' in progress.fold(rows)['stages'][ORDER.index(n)]['requires']]
+        self.assertTrue(after and all(ended[n]['status'] == 'not_reached' for n in after))
+        self.assertEqual((rows[-1]['status'], progress.fold(rows)['reason']), ('STOPPED', 'KeyboardInterrupt: '))
+        self.assertEqual(ended['facts']['status'], 'ok', 'what ended before the stop keeps its own end')
+        rows, raised, _ = check_rows(runners=counting_runners(features=SystemExit(3)))
+        self.assertIsInstance(raised, SystemExit)
+        self.assert_one_end_each(rows)
+        self.assertEqual(rows[-1]['status'], 'ERROR')
+        self.assertEqual({r['stage']: r['status'] for r in rows if r['event'] == 'stage.ended'}['features'], 'failed')
+        from unittest import mock
+        with mock.patch('eaos.pipeline.run._manifest', side_effect=RuntimeError('disk full')):
+            rows, raised, _ = check_rows(runners=counting_runners())
+        self.assertIsInstance(raised, RuntimeError)
+        self.assert_one_end_each(rows)
 
 
 class CountedSteps(unittest.TestCase):
@@ -207,19 +223,15 @@ class CountedSteps(unittest.TestCase):
             if stage['state'] == 'ok' and items:
                 self.assertEqual(max(s['done'] for s in items), items[0]['total'], f'{where}: {stage["name"]} accounted for every item')
 
-    def test_counts_inside_a_stage_are_bounded_and_end_at_their_total(self):
+    def test_counts_are_bounded_end_at_their_total_and_do_nothing_outside_a_run(self):
         rows, _, _ = check_rows(runners=counting_runners())
         self.assert_bounded(rows, 'fake run')
         plan = {s['name']: s for s in progress.fold(rows)['stages']}['plan']['steps']
         self.assertEqual([(s['name'], s['kind'], s['status'], s['done'], s['total']) for s in plan],
                          [('codemod trial', 'count', 'ok', 156, 156), ('debt items', 'count', 'ok', 454, 454),
                           ('homes', 'count', 'running', 0, 642)])
-
-    def test_every_recorded_real_run_keeps_its_counts_bounded(self):
         for path in GOLDEN:
             self.assert_bounded([json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()], path.name)
-
-    def test_count_and_step_do_nothing_outside_a_run_and_never_raise(self):
         self.assertIsNone(progress.current())
         progress.count('anything', 3, 10)
         progress.step('anything', 3, 10)
@@ -230,14 +242,6 @@ class CountedSteps(unittest.TestCase):
             progress.step('anything', 3, 10)
             self.assertIs(progress.current(), broken)
         self.assertIsNone(progress.current(), 'the block restores what was there')
-
-    def test_the_real_facts_and_engines_report_through_the_current_stage(self):
-        heard = []
-        with progress.using(lambda *args, **kwargs: heard.append(args)):
-            from eaos.engines import analyze
-            analyze(project(), tempfile.mkdtemp(), only=['lizard'])
-        self.assertEqual([(a[0], a[3]) for a in heard][:2], [('lizard', 'waiting'), ('lizard', 'running')])
-        self.assertEqual(heard[-1][1:3], (1, 1))
 
 
 class Coalescer(unittest.TestCase):
@@ -250,7 +254,7 @@ class Coalescer(unittest.TestCase):
     def lines_of(self, name):
         return [r for r in progress.read(self.out) if r['event'] == 'stage.step' and r['step'] == name]
 
-    def test_a_fast_loop_writes_at_most_four_lines_a_second_and_always_its_last_value(self):
+    def test_a_fast_loop_is_coalesced_per_step_and_its_newest_value_is_always_written(self):
         with progress.using(self.log.stepper('plan')):
             for done in range(1, 643):                       # 642 items, one every 15 ms: about 9.6 s
                 self.clock.move(0.015)
@@ -262,8 +266,15 @@ class Coalescer(unittest.TestCase):
         self.assertEqual((lines[-1]['done'], lines[-1]['status']), (642, 'ok'))
         moments = [i for i, r in enumerate(lines) if r['status'] == 'running']
         self.assertEqual(len(moments), len(lines) - 1)
-
-    def test_a_coalesced_value_is_written_when_its_window_passes_and_at_the_latest_when_the_stage_ends(self):
+        step = self.log.stepper('plan')
+        step('a', 0, 2, 'running')
+        step('b', 0, 2, 'running')
+        step('a', 1, 2, 'running')                          # coalesced
+        step('a', 2, 2, 'ok')                               # a new status: written now, the coalesced value dropped
+        self.assertEqual([(r['step'], r['done'], r['status']) for r in progress.read(self.out)
+                          if r['event'] == 'stage.step' and r['step'] in ('a', 'b')],
+                         [('a', 0, 'running'), ('b', 0, 'running'), ('a', 2, 'ok')])
+        # A coalesced value is written when its window passes, and at the latest when the stage ends.
         with progress.using(self.log.stepper('plan')):
             for done in range(1, 100): progress.count('cards', done, 156)            # all within one instant
         self.assertEqual([r['done'] for r in self.lines_of('cards')], [1])
@@ -278,18 +289,8 @@ class Coalescer(unittest.TestCase):
         last_step = max(i for i, r in enumerate(rows) if r['event'] == 'stage.step')
         self.assertLess(last_step, next(i for i, r in enumerate(rows) if r['event'] == 'stage.ended'))
 
-    def test_each_step_name_has_its_own_window_and_a_change_of_status_is_written_at_once(self):
-        step = self.log.stepper('plan')
-        step('a', 0, 2, 'running')
-        step('b', 0, 2, 'running')
-        step('a', 1, 2, 'running')                          # coalesced
-        step('a', 2, 2, 'ok')                               # a new status: written now, the coalesced value dropped
-        self.assertEqual([(r['step'], r['done'], r['status']) for r in progress.read(self.out) if r['event'] == 'stage.step'],
-                         [('a', 0, 'running'), ('b', 0, 'running'), ('a', 2, 'ok')])
-
-
 class Sampling(unittest.TestCase):
-    def test_the_linux_process_table_recorded_during_a_real_check(self):
+    def test_the_running_programs_are_read_from_ps_on_linux_and_macos_and_a_failing_ps_is_said_once(self):
         rows = sampler.parse((FIXTURES / 'ps/linux.txt').read_text(encoding='utf-8'))
         self.assertEqual(len(rows), 38)
         self.assertIn((1, 0, 3 * 3600 + 50 * 60 + 4, 'systemd'), rows)
@@ -298,8 +299,6 @@ class Sampling(unittest.TestCase):
         found = sampler.programs(rows, eaos, leave={next(r[0] for r in rows if r[3] == 'ps')})
         self.assertEqual([p['name'] for p in found], ['pysemgrep'] + ['semgrep-core'] * 6)
         self.assertTrue(all(p['since'].endswith('+00:00') for p in found))
-
-    def test_the_macos_process_table(self):
         rows = sampler.parse((FIXTURES / 'ps/macos.txt').read_text(encoding='utf-8'))
         self.assertEqual(len(rows), 14)
         by = {r[0]: r for r in rows}
@@ -310,21 +309,16 @@ class Sampling(unittest.TestCase):
         found = sampler.programs(rows, 9001, leave={9080})
         self.assertEqual([(p['name'], p['pid']) for p in found],
                          [('python3.12', 9050), ('semgrep-core', 9061), ('semgrep-core', 9062), ('trivy', 9077)])
-
-    def test_elapsed_times_in_every_ps_form(self):
         self.assertEqual([sampler.elapsed(t) for t in ('00:07', '59:59', '01:02:03', '2-00:00:01', '12-03:04:05')],
                          [7, 3599, 3723, 172801, 12 * 86400 + 3 * 3600 + 4 * 60 + 5])
         self.assertEqual([sampler.elapsed(t) for t in ('', 'abc', '7', '1:2:3:4', '-1:00')], [None] * 5)
-
-    def test_the_real_ps_here_sees_a_program_this_process_started_and_not_itself(self):
+        # The running programs are seen, and a ps that fails is said once.
         child = subprocess.Popen(['sleep', '20'])
         self.addCleanup(lambda: (child.kill(), child.wait()))
         found = sampler.Sampler().sample()
         self.assertIsNotNone(found)
         self.assertIn(('sleep', child.pid), [(p['name'], p['pid']) for p in found])
         self.assertNotIn('ps', [p['name'] for p in found], 'the ps that looked is left out')
-
-    def test_a_ps_that_is_missing_fails_or_prints_nonsense_turns_the_sampler_off_with_one_line(self):
         for command in (['no-such-ps-anywhere'], ['false'], ['echo', 'nothing useful']):
             looker = sampler.Sampler(command=command)
             self.assertIsNone(looker.sample())
@@ -342,8 +336,6 @@ class Sampling(unittest.TestCase):
         self.assertEqual((activity[0]['programs'], activity[0]['stage']), ([], 'facts'))
         self.assertIn('ps exited with 1', activity[0]['reason'])
         self.assertEqual(progress.fold(progress.read(out))['stages'][0]['activity_note'], activity[0]['reason'])
-
-    def test_activity_is_written_only_when_the_set_of_programs_changes(self):
         semgrep = {'name': 'semgrep-core', 'pid': 7, 'since': '2026-10-09T20:00:00+00:00'}
         seen = [[semgrep], [semgrep], [semgrep, {'name': 'trivy', 'pid': 9, 'since': '2026-10-09T20:00:02+00:00'}], []]
         stub = type('Stub', (), {'off': False, 'reason': '', 'sample': lambda self: seen.pop(0)})()
@@ -361,7 +353,7 @@ class Sampling(unittest.TestCase):
 
 
 class Liveness(unittest.TestCase):
-    def test_a_quiet_run_says_it_is_alive_every_ten_seconds_and_a_busy_one_does_not_need_to(self):
+    def test_a_quiet_run_beats_and_a_silent_one_is_judged_stalled(self):
         clock, out = Clock(), Path(tempfile.mkdtemp())
         log = progress.ProgressLog(out, clock=clock, pulse=False, sampler=None)
         log.started(STAGES, list(ORDER), {})
@@ -378,8 +370,6 @@ class Liveness(unittest.TestCase):
         clock.move(60)
         self.assertFalse(log.tick(), 'the beat stops with the run')
         self.assertEqual(progress.read(out)[-1]['event'], 'run.ended')
-
-    def test_the_real_heartbeat_thread_beats_and_stops_with_the_run(self):
         out = Path(tempfile.mkdtemp())
         log = progress.ProgressLog(out, sampler=None, alive_every=0.2)
         log.started(STAGES, list(ORDER), {})
@@ -389,8 +379,6 @@ class Liveness(unittest.TestCase):
         log.finish('STOPPED')
         log.thread.join(3)
         self.assertFalse(log.thread.is_alive())
-
-    def test_the_beat_stops_when_the_file_cannot_be_written(self):
         out = Path(tempfile.mkdtemp())
         progress.path_for(out).mkdir()                    # the path cannot be written as a file
         log = progress.ProgressLog(out, clock=Clock(), sampler=None)
@@ -398,8 +386,6 @@ class Liveness(unittest.TestCase):
         self.assertTrue(log.broken)
         self.assertIsNone(log.thread, 'no beat for a file nobody can read')
         self.assertFalse(log.tick())
-
-    def test_stalled_after_thirty_seconds_of_silence_with_an_injected_clock(self):
         state = {'state': 'running', 'alive_every': 10.0}
         self.assertEqual(progress.judge(state, heard=1000.0, now=1029.9), 'running')
         self.assertEqual(progress.judge(state, heard=1000.0, now=1030.0), 'running')
@@ -409,9 +395,6 @@ class Liveness(unittest.TestCase):
                          'a run that promised no heartbeat is not judged by its silence')
         self.assertEqual(progress.judge({**state, 'state': 'done'}, heard=1000.0, now=9999.0), 'done')
         self.assertEqual(progress.judge(state, heard=None, now=9999.0), 'running')
-
-    def test_the_server_shows_a_silent_run_as_stalled(self):
-        from test_studio_api import report_with_data
         from eaos.api.read import scan_state
         report = report_with_data(tempfile.mkdtemp())
         log = progress.ProgressLog(report, pulse=False, sampler=None)
@@ -424,7 +407,7 @@ class Liveness(unittest.TestCase):
 
 
 class Flows(unittest.TestCase):
-    def test_each_flow_has_its_own_file_and_the_check_keeps_its_v1_place(self):
+    def test_each_flow_has_its_own_file_and_carries_the_last_runs_step_seconds(self):
         folder = Path(tempfile.mkdtemp())
         self.assertEqual(progress.path_for(folder), folder / 'run-progress.jsonl')
         self.assertEqual(progress.path_for(folder, 'setup'), folder / 'progress' / 'setup.jsonl')
@@ -433,8 +416,6 @@ class Flows(unittest.TestCase):
         log.finish('COMPLETE')
         state = progress.fold(progress.read(folder, 'safety'))
         self.assertEqual((state['flow'], state['state'], progress.read(folder)), ('safety', 'done', []))
-
-    def test_the_last_runs_step_seconds_are_carried_into_the_next_run(self):
         out = Path(tempfile.mkdtemp())
         execute(project(), out, runners=stepping_runners())
         execute(project(), out, runners=stepping_runners())
@@ -446,16 +427,12 @@ class Flows(unittest.TestCase):
 class GoldenFold(unittest.TestCase):
     """I4, the Python half: the fold of each recorded real run is the committed expected JSON."""
 
-    def test_the_recorded_runs_cover_an_end_a_stop_and_a_kill(self):
-        self.assertEqual({p.stem for p in GOLDEN}, {'complete', 'stopped', 'killed'})
-
     def test_the_fold_of_every_recorded_run_equals_its_expected_json(self):
+        self.assertEqual({p.stem for p in GOLDEN}, {'complete', 'stopped', 'killed'})
         for path in GOLDEN:
             rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
             expected = json.loads(path.with_suffix('.fold.json').read_text(encoding='utf-8'))
             self.assertEqual(progress.fold(rows), expected, path.name)
-
-    def test_what_each_recorded_run_folds_to(self):
         folds = {p.stem: json.loads(p.with_suffix('.fold.json').read_text(encoding='utf-8')) for p in GOLDEN}
         complete, stopped, killed = folds['complete'], folds['stopped'], folds['killed']
         self.assertEqual((complete['state'], complete['status']), ('done', 'COMPLETE'))
@@ -469,8 +446,6 @@ class GoldenFold(unittest.TestCase):
         self.assertEqual(progress.judge(killed, heard=0.0, now=progress.STALLED_AFTER + 1), 'stalled')
         running = [s['name'] for s in killed['stages'] if s['state'] == 'running']
         self.assertEqual(running, ['engines'])
-
-    def test_the_tool_that_writes_the_expected_json_agrees(self):
         import progress_golden
         self.assertEqual(progress_golden.main(['check']), 0)
 

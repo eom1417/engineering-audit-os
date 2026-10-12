@@ -9,8 +9,7 @@
     "lint": "stylelint \"src/**/*.css\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs",
-    "gates": "../.venv/bin/python ../tools/studio_gates.py --studio"
+    "build": "npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "5.3.0",

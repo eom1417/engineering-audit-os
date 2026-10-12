@@ -18,7 +18,7 @@ def stats(**change):
 
 
 class PlacementTests(Workspace):
-    def test_a_file_one_feature_uses_goes_to_that_feature_and_a_shared_one_to_its_layer(self):
+    def test_every_file_is_placed_and_every_forbidden_import_named(self):
         features = [{'name': 'Contas', 'files': ['src/components/accounts/Card.tsx', 'src/lib/format.ts']},
                     {'name': 'Metas', 'files': ['src/lib/format.ts']}]
         placed = place(['src/components/accounts/Card.tsx', 'src/lib/format.ts', 'src/components/ui/button.tsx', 'vite.config.ts'],
@@ -27,13 +27,11 @@ class PlacementTests(Workspace):
         self.assertEqual(placed['src/lib/format.ts'], ('lib', 'lib'))
         self.assertEqual(placed['src/components/ui/button.tsx'], ('ui', 'ui'))
         self.assertEqual(placed['vite.config.ts'], ('platform', 'platform'))
-
-    def test_a_file_moves_only_when_it_is_not_where_its_component_keeps_files(self):
+        # A file moves only when it is not where its component keeps files.
         self.assertTrue(moves('src/components/accounts/Card.tsx', 'feature:contas', 'features', REFERENCE))
         self.assertFalse(moves('src/features/contas/Card.tsx', 'feature:contas', 'features', REFERENCE))
         self.assertFalse(moves('src/lib/format.ts', 'lib', 'lib', REFERENCE))
-
-    def test_an_import_the_layer_rules_do_not_allow_is_forbidden(self):
+        # An import the layer rules do not allow is forbidden.
         placed = {'src/lib/a.ts': ('lib', 'lib'), 'src/services/s.ts': ('data-access', 'data-access'),
                   'src/routes/r.tsx': ('routes', 'routes')}
         edges = [('src/lib/a.ts', 'src/services/s.ts'), ('src/routes/r.tsx', 'src/lib/a.ts')]
@@ -41,18 +39,14 @@ class PlacementTests(Workspace):
 
 
 class DispositionTests(Workspace):
-    def test_each_disposition_follows_the_declared_rules_in_order(self):
-        self.assertEqual(disposition(stats(unreachable=4, moved=4, moved_share=1.0), RULES)[0], 'delete')
-        self.assertEqual(disposition(stats(moved=3, moved_share=0.75), RULES)[0], 'rebuild')
-        self.assertEqual(disposition(stats(complexity_max=41), RULES)[0], 'rebuild')
-        self.assertEqual(disposition(stats(critical=1), RULES)[0], 'rebuild')
-        self.assertEqual(disposition(stats(), RULES)[0], 'retain')
-        self.assertEqual(disposition(stats(forbidden=1), RULES)[0], 'modify')
-        self.assertEqual(disposition(stats(complexity_max=15), RULES)[0], 'modify')
-
-    def test_the_reason_carries_the_numbers_that_decided(self):
-        relation, reason = disposition(stats(complexity_max=41), RULES)
-        self.assertIn('complexity_max 41', reason)
+    def test_each_disposition_follows_the_declared_rules_in_order_and_says_why(self):
+        cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75), 'rebuild'),
+                 (dict(complexity_max=41), 'rebuild'), (dict(critical=1), 'rebuild'), ({}, 'retain'),
+                 (dict(forbidden=1), 'modify'), (dict(complexity_max=15), 'modify')]
+        for change, expected in cases:
+            with self.subTest(change=change):
+                self.assertEqual(disposition(stats(**change), RULES)[0], expected)
+        self.assertIn('complexity_max 41', disposition(stats(complexity_max=41), RULES)[1])
 
 
 class InfrastructureTests(Workspace):
@@ -62,7 +56,7 @@ class InfrastructureTests(Workspace):
         facts.update(kinds)
         return facts
 
-    def test_every_baseline_item_is_decided_from_evidence(self):
+    def test_every_baseline_item_is_decided_from_evidence_for_the_kind_of_program(self):
         root = Path(self.tmp)
         (root / 'supabase/migrations').mkdir(parents=True)
         facts = self.facts(ci_step=[{}], env_read=[{'location': {'path': 'src/a.ts'}}, {'location': {'path': 'src/b.ts'}}],
@@ -76,8 +70,7 @@ class InfrastructureTests(Workspace):
         self.assertEqual(rows['dependencies']['tool'], 'Renovate')
         self.assertTrue(rows['dependencies']['alternative'].startswith('Do nothing'))
         self.assertIn('hosting', rows)
-
-    def test_a_desktop_program_is_not_hosted_and_needs_no_telemetry_server(self):
+        # A desktop program is not hosted and needs no telemetry server.
         rows = {row['area']: row for row in infrastructure(by_id('python-desktop'), self.facts(), Path(self.tmp), [])}
         self.assertNotIn('hosting', rows)
         self.assertIsNone(rows['observability']['tool'])
@@ -108,7 +101,7 @@ class ProjectTests(Workspace):
         self.assertEqual(components['src/components/accounts']['relation'], 'rebuild')
         self.assertTrue(any('Rebuild `src/components/accounts` as `feature:contas`' in d['chosen'] for d in result['decisions']))
         self.assertTrue(all(row.get('target_component') for row in result['gap_matrix']))
-
-    def test_without_a_recognisable_type_there_is_no_projection(self):
-        (Path(self.tmp) / 'facts').mkdir()
-        self.assertIsNone(project(self.tmp, self.tmp))
+        # Without a recognisable type there is no projection.
+        empty = Path(self.tmp) / 'empty'
+        (empty / 'facts').mkdir(parents=True)
+        self.assertIsNone(project(empty, empty))

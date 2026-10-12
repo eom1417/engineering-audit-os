@@ -345,7 +345,7 @@ export function Missing({ j }: { j: { missing: Journeys['missing']; counts?: Par
         {j.missing.map((g) => (
           <li key={g.id}>
             <span>{g.detail[lang]}</span>
-            <span className={css.gapMeta}>{g.count.value !== null ? <><N value={g.count.value} /> · </> : null}{w('stepWord')} <Id value={g.step} /></span>
+            <span className={css.gapMeta}>{g.count.value !== null ? <N value={g.count.value} /> : null}</span>
           </li>
         ))}
         {unowned > 0 && (

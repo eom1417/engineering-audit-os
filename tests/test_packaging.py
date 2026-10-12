@@ -5,35 +5,30 @@ import shutil
 import tempfile
 import unittest
 
-ROOT=Path(__file__).resolve().parents[1]
-_spec=importlib.util.spec_from_file_location('eaos_validate_tool',ROOT/'tools/validate.py')
-validate=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(validate)
+ROOT = Path(__file__).resolve().parents[1]
+_spec = importlib.util.spec_from_file_location('eaos_validate_tool', ROOT / 'tools/validate.py')
+validate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(validate)
 
 
 class PackagingTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.data=Path(self.tmp.name)/'data';shutil.copytree(ROOT/'eaos/data',self.data)
+    def copy(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        data = Path(tmp.name) / 'data'
+        shutil.copytree(ROOT / 'eaos/data', data)
+        return data
 
-    def test_complete_package_reports_no_errors(self):
-        self.assertEqual(validate.packaged_errors(ROOT,self.data),[])
+    def test_the_shipped_package_is_complete_and_every_file_is_packaged(self):
+        self.assertEqual(validate.packaged_errors(ROOT, self.copy()), [])
 
-    def test_missing_required_schema_is_detected(self):
-        (self.data/'schemas/finding.schema.json').unlink()
-        self.assertIn('Missing packaged file schemas/finding.schema.json',validate.packaged_errors(ROOT,self.data))
-
-    def test_missing_rendered_module_is_detected(self):
-        (self.data/'modules/27.md').unlink()
-        self.assertIn('Missing packaged file modules/27.md',validate.packaged_errors(ROOT,self.data))
-
-    def test_stale_packaged_copy_is_detected(self):
-        target=self.data/'controls.json';target.write_text(target.read_text()+' ')
-        self.assertIn('Stale packaged copy controls.json',validate.packaged_errors(ROOT,self.data))
-
-    def test_leftover_packaged_file_is_detected(self):
-        (self.data/'schemas/leftover.schema.json').write_text('{}')
-        self.assertIn('Unexpected packaged file schemas/leftover.schema.json',validate.packaged_errors(ROOT,self.data))
-
-    def test_packaging_patterns_cover_every_required_file(self):
-        if validate.package_data_patterns(ROOT) is None:self.skipTest('tomllib unavailable on this interpreter')
-        self.assertEqual([e for e in validate.packaged_errors(ROOT,self.data) if e.startswith('Packaging pattern')],[])
+    def test_a_missing_stale_or_unexpected_file_is_detected(self):
+        cases = [(lambda data: (data / 'errors.json').unlink(), 'Missing packaged file errors.json'),
+                 (lambda data: (data / 'toolchain.json').write_text((data / 'toolchain.json').read_text() + ' '),
+                  'Stale packaged copy toolchain.json'),
+                 (lambda data: (data / 'leftover.json').write_text('{}'), 'Unexpected packaged file leftover.json')]
+        for change, expected in cases:
+            with self.subTest(expected):
+                data = self.copy()
+                change(data)
+                self.assertTrue(any(error.startswith(expected) for error in validate.packaged_errors(ROOT, data)))

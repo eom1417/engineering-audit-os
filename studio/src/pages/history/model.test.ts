@@ -14,7 +14,7 @@ const HISTORY: HistoryData = {
 }
 
 describe('the history', () => {
-  it('compares two checks from what they recorded, never guessing the rest', () => {
+  it('compares two checks from what they recorded and counts open problems only when known', () => {
     const found = compare(HISTORY, 'c', 'a')!
     expect([found.from.id, found.to.id]).toEqual(['a', 'c'])
     expect(found.score).toBeNull()
@@ -25,21 +25,15 @@ describe('the history', () => {
     expect(compare(HISTORY, 'a', 'b')!.appeared).toBeNull()
     expect(compare(HISTORY, 'b', 'b')).toBeNull()
     expect(compare(HISTORY, 'b', 'nope')).toBeNull()
-  })
-
-  it('counts the open problems only when every severity is known, or the ledger counted them', () => {
     expect(openTotal(HISTORY.scans[1])).toBe(10)
     expect(openTotal(HISTORY.scans[0])).toBe(12)
     expect(openTotal(scan('d', 'x', null, { critical: 1 }))).toBeNull()
-  })
-
-  it('reads a range of two checks', () => {
     expect(parseRange('a1..b2')).toEqual(['a1', 'b2'])
     expect(parseRange('..b')).toBeNull()
     expect(parseRange('ab')).toBeNull()
   })
 
-  it('runs time from inline-start: mirrored in right-to-left', () => {
+  it('runs time from inline-start and labels the points of a line, always the last', () => {
     const plot = { width: 300, height: 200, pad: { start: 40, end: 20, top: 10, bottom: 30 } }
     const values = [{ at: '2026-10-01T00:00:00Z', value: 0 }, { at: '2026-10-11T00:00:00Z', value: 1 }]
     const ltr = place(values, plot, false), rtl = place(values, plot, true)
@@ -47,9 +41,6 @@ describe('the history', () => {
     expect([rtl[0].x, rtl[1].x]).toEqual([260, 20])
     expect([ltr[0].y, ltr[1].y]).toEqual([170, 10])
     expect(bands(HISTORY.scans.slice(1), plot, false)).toHaveLength(5)
-  })
-
-  it('labels every point of a short line and some of a long one, always the last', () => {
     expect([...labelled(3)]).toEqual([0, 1, 2])
     const many = labelled(30, 5)
     expect(many.size).toBe(5)

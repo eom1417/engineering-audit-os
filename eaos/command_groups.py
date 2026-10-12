@@ -1,22 +1,9 @@
-"""Which command belongs to which surface, so `eaos --help` reads as a map rather than a list.
-
-Thirty-eight commands in one alphabetical block tell a reader nothing about which of them is the
-one to run. These groups say what each surface is for and which workspace it operates in.
-"""
+"""Which command belongs to which surface, so `eaos --help` reads as a map rather than a list."""
 GROUPS = (
     ('start', 'ابدأ من هنا: أوامر موجِّهة بكلام بسيط', 'Start here: guided commands in plain words',
      ('start', 'next', 'status', 'show', 'do', 'accept', 'undo', 'doctor', 'clean', 'assistant', 'handover', 'mcp', 'studio')),
-    ('run', 'تشغيل التدقيق', 'Run an audit',
-     ('audit', 'review-project', 'stages', 'engines', 'tools', 'emit', 'engage', 'live')),
-    ('inspect', 'استعلام عن مشروع', 'Ask a question about a project',
-     ('facts', 'map', 'dossier', 'probe', 'verify', 'semantic', 'ask', 'impact-of', 'tasks', 'site')),
-    ('assess', 'تقييم واتجاه', 'Assess and propose a direction',
-     ('sustainability', 'transform-plan', 'target-architecture', 'executive', 'bundles',
-      'simulate', 'guarantee', 'progress', 'review')),
-    ('govern', 'حوكمة وانحراف', 'Govern and detect drift',
-     ('policy', 'baseline', 'delta', 'api-diff', 'acceptance', 'decision-review', 'evaluate', 'recheck', 'decided')),
-    ('repair', 'إصلاح يقوده نموذج (مساحة عمل منفصلة عبر eaos init)', 'Model-driven repair (separate workspace via eaos init)',
-     ('init', 'run', 'continue', 'implement', 'improve', 'packet', 'graph', 'impact', 'context')),
+    ('run', 'الفحص والأدوات', 'The check and its tools', ('audit', 'tools')),
+    ('cards', 'ما تشغّله بطاقات الإصلاح للتحقق', 'What a task card runs to check itself', ('facts', 'policy', 'decided', 'recheck')),
 )
 
 

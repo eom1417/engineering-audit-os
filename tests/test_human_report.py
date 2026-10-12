@@ -6,7 +6,8 @@ import unittest
 from pathlib import Path
 
 from eaos import human_report
-from eaos.human_report import readability_problems
+from eaos.human_report import priority_words
+from eaos.studio import model
 
 
 def _task(number, pattern, claim, paths, ready=True):
@@ -65,49 +66,37 @@ class HumanReportTests(unittest.TestCase):
         self.out = report(self.tmp.name)
         self.page = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
 
-    def test_the_page_is_one_self_contained_file_with_the_four_reports(self):
+    def test_the_page_is_one_self_contained_bilingual_file_with_the_four_reports(self):
         self.assertTrue((self.out / 'human' / 'index.html').is_file())
         for name in human_report.SECTIONS:
             self.assertIn(f'<section id="{name}" class="report" data-report="{name}">', self.page)
         self.assertNotRegex(self.page, r'(src|href)="https?://')
         self.assertIn('dir="rtl"', self.page)
-
-    def test_the_severity_legend_defines_every_level(self):
+        for text in ('ملخص المشروع', 'Project summary', 'الخطة والتقدم', 'Plan and progress', 'كيف حسبنا', 'How we computed'):
+            self.assertIn(text, self.page)
+        self.assertIn("localStorage.setItem('eaos-human-lang'", self.page)
         start = self.page.index('data-legend="severity"')
         legend = self.page[start:self.page.index('<div class="card"', start)]
         for level in ('حرجة', 'عالية', 'متوسطة', 'منخفضة', 'Critical', 'High', 'Medium', 'Low'):
             self.assertIn(level, legend)
+        self.assertIn('data-priority="0.6', self.page)       # the raw priority stays in an attribute, out of the text
+        summary = section(self.page, 'summary')
+        self.assertIn('أقدّر السلوك مع كثرة المستخدمين', summary)      # the failed load stage, in plain words
+        self.assertIn('لم تُشغَّل اختبارات المشروع', summary)
 
-    def test_the_score_follows_the_documented_formula(self):
+    def test_the_score_follows_the_documented_formula_and_a_confirmed_critical_caps_it(self):
         result = human_report.model(self.out)['score']
         areas = {name: area['score'] for name, area in result['areas'].items()}
         # security: medium from the register (2) + critical likely (10 x 0.7) = 9 -> 100 x 20 / 29
         self.assertEqual(areas, {'security': 69, 'quality': 92, 'structure': 91, 'maintainability': 91, 'performance': None})
         self.assertEqual((result['score'], result['grade'], result['capped']), (86, 'good', False))
-        self.assertEqual(result['areas']['security']['light'], 'red')
-        self.assertEqual(result['areas']['performance']['light'], 'grey')
-
-    def test_a_confirmed_critical_problem_caps_the_score(self):
-        from eaos.studio import model
+        self.assertEqual((result['areas']['security']['light'], result['areas']['performance']['light']), ('red', 'grey'))
         rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]
         self.assertEqual(model.score(rows, 50)['score'], model.CRITICAL_CAP)
-
-    def test_no_number_stands_alone(self):
-        self.assertEqual(readability_problems(self.page), [])
-        self.assertIn('data-priority="0.6', self.page)       # the raw priority stays in an attribute, out of the text
-
-    def test_the_indicator_catches_a_bare_score_and_a_missing_section(self):
-        page = ('<section id="summary" data-report="summary"><p class="l-ar">الأولوية 0.79</p><p class="l-en">12 files</p></section>')
-        found = readability_problems(page)
-        self.assertTrue(any('raw decimal' in p for p in found), found)
-        self.assertTrue(any('no stated meaning' in p for p in found), found)
-        self.assertIn('missing report section: plan', found)
-        self.assertIn('no severity legend', found)
-
-    def test_both_languages_are_in_the_page(self):
-        for text in ('ملخص المشروع', 'Project summary', 'الخطة والتقدم', 'Plan and progress', 'كيف حسبنا', 'How we computed'):
-            self.assertIn(text, self.page)
-        self.assertIn("localStorage.setItem('eaos-human-lang'", self.page)
+        # A serious problem is never called low priority.
+        self.assertIn('Urgent because of its severity', priority_words(90, 'high'))
+        self.assertIn('Low priority', priority_words(90, 'low'))
+        self.assertIn('Very high priority', priority_words(5, 'high'))
 
     def test_progress_changes_the_plan_section(self):
         progress = {'waves': [{'number': 1, 'kept': ['TASK-1', 'TASK-3'], 'failed': {'TASK-4': 'the tests failed'},
@@ -118,20 +107,11 @@ class HumanReportTests(unittest.TestCase):
         self.assertIn('eaos/wave-1', now)
         self.assertIn('the tests failed', now)
         self.assertIn('aria-valuenow="67"', now)
-        self.assertEqual(readability_problems(after), [])
 
-    def test_what_was_not_checked_is_said(self):
-        summary = section(self.page, 'summary')
-        self.assertIn('أقدّر السلوك مع كثرة المستخدمين', summary)      # the failed load stage, in plain words
-        self.assertIn('لم تُشغَّل اختبارات المشروع', summary)
-
-    def test_a_report_with_no_records_still_gets_a_page_that_says_not_available(self):
+    def test_missing_or_broken_records_cost_a_section_not_the_page(self):
         with tempfile.TemporaryDirectory() as empty:
             page = human_report.write(empty, 'en', 'shop').read_text(encoding='utf-8')
         self.assertIn('Not available in this report.', page)
-        self.assertEqual(readability_problems(page), [])
-
-    def test_broken_records_cost_a_section_not_the_page(self):
         (self.out / 'plan.json').write_text('{"tasks": [1, {"id": "TASK-9"}], "milestones": "none"}', encoding='utf-8')
         (self.out / 'target-architecture.json').write_text('{"current_components": [{"paths": 7}]', encoding='utf-8')
         (self.out / 'dossier.json').write_text('[]', encoding='utf-8')
@@ -139,15 +119,6 @@ class HumanReportTests(unittest.TestCase):
         for name in human_report.SECTIONS:
             self.assertIn(f'data-report="{name}"', page)
         self.assertIn('غير متاح في هذا التقرير.', page)
-        self.assertEqual(readability_problems(page), [])
-
-
-class PriorityWordsTests(unittest.TestCase):
-    def test_a_serious_problem_is_never_called_low_priority(self):
-        from eaos.human_report import priority_words
-        self.assertIn('Urgent because of its severity', priority_words(90, 'high'))
-        self.assertIn('Low priority', priority_words(90, 'low'))
-        self.assertIn('Very high priority', priority_words(5, 'high'))
 
 
 if __name__ == '__main__':

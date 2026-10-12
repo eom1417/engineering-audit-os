@@ -260,7 +260,6 @@ def trust_grades(dossier, sets, verification):
     """How well each section is sourced, so a reader knows which parts to take at face value."""
     flows = sets.get('flows', {}).get('summary', {})
     history = sets.get('history', {})
-    executed = bool(verification and verification.get('executed'))
     commits = (history.get('summary') or {}).get('commits_analysed', 0) if history.get('available') else 0
     return [
         {'section': 'SYSTEM-MAP.md', 'source': 'deterministic extractors', 'grade': '⬤',
@@ -273,9 +272,6 @@ def trust_grades(dossier, sets, verification):
          'note': 'attention order is a declared convention, not a measured predictor'},
         {'section': 'EVOLUTION.md', 'source': 'git history', 'grade': '⬤' if commits >= 50 else '◐',
          'note': f'{commits} commits in scope'},
-        {'section': 'VERIFICATION-MAP.md', 'source': 'executed test run' if executed else 'not executed',
-         'grade': '⬤' if executed else '○',
-         'note': f"{verification.get('overall_percent')}% coverage" if executed else 'run eaos verify --execute'},
         {'section': 'responsibilities, boundaries, internal contracts',
          'source': 'model inference over facts' if semantic_claims(dossier) else '—',
          'grade': '○',
@@ -304,7 +300,7 @@ def onboarding_document(target, dossier, sets, verification, language):
                           f"{verification.get('overall_percent')}% coverage over {len(verification.get('test_files', []))} test files"])
     else:
         document.bullets([f"{len((verification or {}).get('test_files', []))} test files found; "
-                          f"no command has been executed in this run (eaos verify --execute)"])
+                          f"no test command was run by this check"])
     document.section('نقاط الدخول لتجربتها' if language == 'ar' else 'Entry points to try')
     production = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
                   if fact.get('kind') == 'entry_point'
@@ -368,7 +364,7 @@ def index_document(target, dossier, sets, verification, language):
         ('تراجع البنية' if language == 'ar' else 'reviewing the architecture',
          '[POLICY.md](POLICY.md) → [COUPLING-ATLAS.md](COUPLING-ATLAS.md) → [CONTRACTS.md](CONTRACTS.md)', '30 min'),
         ('ستغيّر ملفًا محددًا' if language == 'ar' else 'about to change one file',
-         '`eaos impact-of <path> --out .`', '1 min'),
+         "the assistant's `impact` tool (/eaos)", '1 min'),
     ]
     document.table(['إن كنت…' if language == 'ar' else 'If you are…', 'ابدأ بـ' if language == 'ar' else 'Start with',
                     'الوقت' if language == 'ar' else 'Time'], [list(row) for row in rows])
@@ -384,8 +380,7 @@ def index_document(target, dossier, sets, verification, language):
                    inventory_rows(language))
     document.section('إعادة الإنتاج' if language == 'ar' else 'Reproduce')
     document.bullets([f'eaos audit {target} --out <dir> --engines',
-                      f'eaos audit {target} --out <dir> --resume',
-                      'eaos impact-of <path> --out <dir>'])
+                      f'eaos audit {target} --out <dir> --resume'])
     return document
 
 
@@ -419,7 +414,7 @@ def provenance_document(target, dossier, language):
     provenance = dossier['provenance']
     document.table(['key', 'value'], [[key, str(value)] for key, value in sorted(provenance.items())])
     document.section('reproduce')
-    document.bullets([f"eaos report {target} --out <dir>" + (f" --run {provenance['audit_run']}" if provenance.get('audit_run') else ''),
+    document.bullets([f"eaos audit {target} --out <dir>",
                       'Deterministic fact sets are byte-identical for the same snapshot and extractor versions.',
                       'Model-derived claims are not deterministic and carry their provider configuration above.'])
     return document
@@ -553,29 +548,6 @@ def contracts_document(dossier, sets, language):
     return document
 
 
-def verification_document(verification, language):
-    words = Document('', language).words
-    document = Document(words['verification'], language, budget_lines=180)
-    document.header([words['verify_note']])
-    if not verification:
-        document.text('No verification run recorded. Run eaos verify --execute to obtain execution evidence.')
-        return document
-    document.section(words['executed'])
-    document.bullets([f"executed: {verification['executed']}",
-                      f"command: {' '.join(verification.get('command', [])) or '—'}",
-                      f"overall coverage: {verification.get('overall_percent', '—')}%",
-                      f"{words['tests']}: {len(verification.get('test_files', []))}",
-                      verification.get('reason')])
-    coverage = verification.get('coverage') or {}
-    document.section(words['coverage_pct'])
-    document.table([words['path'], words['coverage_pct'], 'statements'],
-                   [[path, value['percent'], value['statements']]
-                    for path, value in sorted(coverage.items(), key=lambda kv: (kv[1]['percent'], kv[0]))
-                    if value['statements']], limit=20)
-    document.section(words['uncovered'])
-    document.bullets(verification.get('uncovered_entry_reachable_files', [])[:20] or [words['no_rows']])
-    return document
-
 
 def refresh_views(out, language='ar'):
     """Re-render the views the ledger owns: the brief, the risk register and the index.
@@ -704,7 +676,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
         'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
-                             'VERIFICATION-MAP.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
+                             'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
                             + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])
                             + (['ENGINES.md'] if (out / 'facts/external.json').is_file() else [])),
     }
@@ -716,7 +688,6 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
     for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
         (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
-    (out / 'VERIFICATION-MAP.md').write_text(verification_document(verification, language).render(), encoding='utf-8')
     write_register(out, dossier, language)
     (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')

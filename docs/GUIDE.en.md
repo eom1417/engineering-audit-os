@@ -98,7 +98,7 @@ Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 | --- | --- |
 | `REPORT.html` | The report for you: double-click to open |
 | `HANDOVER.md` | Where the work stopped and what is left, to carry on with any assistant |
-| `technical/` | The full technical report, for your assistant and developers. In it, `gallery/index.html`: your app's screens with the problems drawn on them, and the user journeys replayed |
+| `technical/` | The full technical report, for your assistant and developers |
 | `fixes/` | Every batch of fixes: what changed, what did not pass and why |
 | `logs/` | Technical logs, for whoever helps you if something goes wrong |
 

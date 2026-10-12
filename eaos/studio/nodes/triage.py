@@ -167,11 +167,6 @@ def by_kind(verdicts):
     return out
 
 
-def precision(report):
-    """by_kind of the last triage of `report`, or {} when it was not triaged by a model."""
-    body = core.load(Path(report) / 'nodes/card_triage/verdicts.json', {}) or {}
-    return body.get('by_kind') or {} if body.get('method') == 'model' else {}
-
 
 def run(node, report, **options):
     return core.run_node(node, sys.modules[__name__], report, **options)

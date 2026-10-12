@@ -27,7 +27,7 @@ function bin(n: number): 1 | 2 | 3 | 4 {
   return n <= 2 ? 1 : n <= 9 ? 2 : n <= 29 ? 3 : 4
 }
 
-export function TaskRows({ tasks }: { tasks: TimelineTask[] }) {
+function TaskRows({ tasks }: { tasks: TimelineTask[] }) {
   const w = usePathWords()
   const { t } = usePrefs()
   const [all, setAll] = useState(false)
@@ -61,7 +61,7 @@ export function TaskRows({ tasks }: { tasks: TimelineTask[] }) {
   )
 }
 
-export function Grid({ timeline, step, wave, onPick }: { timeline: Timeline; step?: string; wave?: number; onPick: (step: string | undefined, wave: number | undefined) => void }) {
+function Grid({ timeline, step, wave, onPick }: { timeline: Timeline; step?: string; wave?: number; onPick: (step: string | undefined, wave: number | undefined) => void }) {
   const w = usePathWords()
   const cell = useMemo(() => {
     const out = new Map<string, number>()

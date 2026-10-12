@@ -28,8 +28,8 @@ def spec(**changes):
     return base
 
 
-class SourceTests(unittest.TestCase):
-    def test_any_plan_is_read_as_text_pasted_markdown_html_or_word(self):
+class SpecTests(unittest.TestCase):
+    def test_any_plan_is_read_and_what_makes_its_spec_unbuildable_or_open_is_named(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(blueprint.read_source(text='  a pasted plan  '), 'a pasted plan')
             (Path(tmp) / 'plan.md').write_text('# Plan\n\nBook visits.\n')
@@ -41,13 +41,7 @@ class SourceTests(unittest.TestCase):
                                                    '<w:p><w:r><w:t>Staff book visits</w:t></w:r></w:p></w:body></w:document>')
             self.assertEqual(blueprint.read_source(Path(tmp) / 'plan.docx').splitlines(), ['حجز المواعيد', 'Staff book visits'])
             with self.assertRaises(ValueError): blueprint.read_source(Path(tmp) / 'missing.pdf')
-
-
-class SpecTests(unittest.TestCase):
-    def test_a_complete_spec_has_no_problem(self):
         self.assertEqual(blueprint.validate_spec(spec()), ([], []))
-
-    def test_what_makes_a_spec_unbuildable_is_named(self):
         broken = spec(features=[{'id': 'F1', 'name': 'x', 'module': 'patients', 'entities': ['patient', 'ghost'], 'acceptance': []}],
                       entities=spec()['entities'] + [{'id': 'orphan', 'name': 'O', 'module': 'nowhere', 'fields': []}])
         problems, _ = blueprint.validate_spec(broken)
@@ -55,8 +49,6 @@ class SpecTests(unittest.TestCase):
         for expected in ('no acceptance criterion', 'uses ghost, which is not an entity', 'entity orphan: its owning module',
                          'entity orphan: no feature uses it', 'module appointments: no feature belongs to it'):
             self.assertIn(expected, text)
-
-    def test_an_open_decision_and_an_unknown_technology_become_questions_with_a_recommendation(self):
         _, questions = blueprint.validate_spec(spec(stack_preferences={'database': 'mongodb'},
                                                     decisions=[{'id': 'D1', 'question': 'Reminders by SMS or e-mail?',
                                                                 'options': ['sms', 'email'], 'recommendation': 'email'}]))
@@ -64,16 +56,13 @@ class SpecTests(unittest.TestCase):
         self.assertEqual(by_id['stack-database']['recommendation'], 'postgres-drizzle')
         self.assertEqual((by_id['D1']['kind'], by_id['D1']['recommendation']), ('choice', 'email'))
 
-
 class DesignTests(unittest.TestCase):
-    def test_the_stack_follows_the_person_then_the_recommendation_and_leaves_out_what_the_plan_does_not_need(self):
+    def test_the_stack_follows_the_person_and_the_build_goes_skeleton_foundations_modules_then_journeys(self):
         self.assertEqual(blueprint.choose_stack(spec(), {'database': 'supabase'})['database']['id'], 'supabase')
         self.assertEqual(blueprint.choose_stack(spec())['database']['id'], 'postgres-drizzle')
         bare = blueprint.choose_stack(spec(entities=[], roles=[], features=[{'id': 'F1', 'module': 'patients'}]))
         self.assertEqual((bare['database']['id'], bare['auth']['id']), ('none', 'none'))
         self.assertTrue(blueprint.choose_stack(spec())['database']['switch'], 'every choice says how to change it later')
-
-    def test_the_build_goes_skeleton_foundations_then_each_module_after_the_data_it_uses_then_the_journeys(self):
         built = blueprint.design(spec(), blueprint.choose_stack(spec()))
         names = [m['name'] for m in built['plan']['milestones']]
         self.assertEqual(names, ['The skeleton', 'Shared foundations', 'Patients', 'Appointments', 'Journeys end to end'],
@@ -85,9 +74,6 @@ class DesignTests(unittest.TestCase):
         self.assertIn('server/src/infrastructure/database/', built['policy']['vendors']['database']['only_in'])
         rules = {rule['allow_only']['from']: rule['allow_only']['to'] for rule in built['policy']['rules']}
         self.assertEqual(rules['domain'], ['shared'], 'business rules use nothing but the shared types')
-
-    def test_the_target_reads_like_an_audits_target(self):
-        built = blueprint.design(spec(), blueprint.choose_stack(spec()))
         target = built['architecture']
         self.assertEqual({c['name'] for c in target['target_components'] if c['kind'] == 'module'}, {'Patients', 'Appointments'})
         self.assertTrue(all(d['how_to_change_later'] for d in target['decisions']))

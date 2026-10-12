@@ -2,7 +2,7 @@
 // and English equally finished; a key missing in one language is a type error. Counts stand after a label ("الملفات: 12")
 // so no Arabic noun has to agree with a number.
 import { makeWords } from '../../map/words'
-import type { ChangeOp, OpState } from '../../data/change'
+import type { OpState } from '../../data/change'
 
 export const CHANGE_WORDS = {
   changeNav: ['أقسام التغيير', 'Change sections'],
@@ -158,4 +158,3 @@ export type ChangeWord = keyof typeof CHANGE_WORDS
 export const useChangeWords = makeWords<ChangeWord>(CHANGE_WORDS)
 
 export const STATE_WORD: Record<OpState, ChangeWord> = { todo: 'st_todo', active: 'st_active', done: 'st_done', blocked: 'st_blocked', regressed: 'st_regressed' }
-export const OPS: ChangeOp[] = ['delete', 'refactor', 'rebuild', 'merge', 'new', 'retain']

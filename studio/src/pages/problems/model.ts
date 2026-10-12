@@ -25,10 +25,9 @@ export interface ProblemsSearch {
   step?: string
   component?: string
   group?: string
-  demo?: string
 }
 
-export const SEARCH_KEYS = ['card', 'q', 'who', 'severity', 'area', 'state', 'step', 'component', 'group', 'demo'] as const
+export const SEARCH_KEYS = ['card', 'q', 'who', 'severity', 'area', 'state', 'step', 'component', 'group'] as const
 
 export interface Filters {
   q: string

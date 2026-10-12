@@ -22,7 +22,6 @@ export const WORDS = {
   waitingForYou: ['بانتظارك', 'Waiting for you'],
   library: ['المكتبة', 'Library'],
   documents: ['الوثائق', 'Documents'],
-  gallery: ['معرض المكوّنات', 'Component gallery'],
   groupCurrent: ['الوضع الحالي', 'Current state'],
   groupProblems: ['المشاكل', 'Problems'],
   groupChange: ['التغيير', 'Change'],
@@ -33,7 +32,6 @@ export const WORDS = {
   kindAction: ['أمر', 'Action'],
   groupLibrary: ['المكتبة', 'Library'],
   history: ['التاريخ', 'History'],
-  eaosQuality: ['جودة EAOS', 'EAOS quality'],
   // search and palette
   search: ['بحث', 'Search'],
   searchCommands: ['بحث وأوامر', 'Search, commands'],
@@ -86,7 +84,6 @@ export const WORDS = {
   eaosVersion: ['نسخة EAOS', 'EAOS version'],
   // actions
   copyRequest: ['انسخ الطلب للمساعد', 'Copy request for the assistant'],
-  copyShort: ['انسخ الطلب', 'Copy request'],
   copied: ['نُسخ الطلب. الصقه للمساعد.', 'Request copied. Paste it to the assistant.'],
   copiedAnswer: ['نُسخت إجابتك. الصقها للمساعد.', 'Your answer is copied. Paste it to the assistant.'],
   copyFailed: ['تعذّر النسخ. حدّد النص وانسخه بنفسك.', 'Could not copy. Select the text and copy it yourself.'],
@@ -197,9 +194,6 @@ export const WORDS = {
   errorSub: ['ملفات البيانات من نسخة أخرى من العقد. اطلب من المساعد إعادة بناء التقرير.', 'The data files are from another contract version. Ask the assistant to rebuild the report.'],
   partialTitle: ['بعض أقسام التقرير ناقصة', 'Some parts of the report are missing'],
   partialSub: ['الأقسام الناقصة: {names}. ما تبقى صحيح ومعروض.', 'Missing parts: {names}. The rest is correct and shown.'],
-  // gallery
-  galleryThisMode: ['هذا الوضع', 'This mode'],
-  galleryLead: ['كل مكوّن بكل حالاته، في الوضعين والاتجاهين. هذه الصفحة للمطوّرين وللبوابات الآلية.', 'Every component in every state, in both themes and directions. This page is for developers and the automated gates.'],
 } satisfies Record<string, readonly [string, string]>
 
 export type WordKey = keyof typeof WORDS

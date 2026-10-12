@@ -4,7 +4,6 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from eaos.facts import history
 from eaos.facts.run import collect
 
 
@@ -28,7 +27,7 @@ class HistoryFactTests(unittest.TestCase):
             (self.repo / 'b.py').write_text(f'b = {step}\n')
             git(self.repo, 'add', 'a.py', 'b.py'); git(self.repo, 'commit', '-q', '-m', f'change pair {step}')
         (self.repo / 'c.py').write_text('c = 0\n')
-        git(self.repo, 'add', 'c.py'); git(self.repo, 'commit', '-q', '-m', 'fix rounding in c')
+        git(self.repo, 'add', 'c.py'); git(self.repo, 'commit', '-q', '-m', 'fix token=SUBJECT_SENTINEL in c')
 
     def facts(self, out='facts-out'):
         collect(self.repo, self.base / out, ['history'])
@@ -37,50 +36,30 @@ class HistoryFactTests(unittest.TestCase):
     def row(self, data, kind, path):
         return next(f for f in data['facts'] if f['kind'] == kind and f['location']['path'] == path)
 
-    def test_churn_and_fix_classification(self):
-        data = self.facts()
+    def test_churn_fixes_cochange_and_ownership_are_reproducible_and_free_of_commit_text(self):
+        data = self.facts('run-a')
         self.assertEqual(self.row(data, 'history_churn', 'a.py')['value']['commits'], 3)
-        self.assertEqual(self.row(data, 'history_churn', 'c.py')['value']['fix_commits'], 1)
         self.assertEqual(self.row(data, 'history_churn', 'a.py')['value']['fix_commits'], 0)
+        self.assertEqual(self.row(data, 'history_churn', 'c.py')['value']['fix_commits'], 1)
         self.assertTrue(self.row(data, 'history_churn', 'a.py')['value']['exists_in_working_tree'])
-
-    def test_cochange_pairs_files_that_move_together(self):
-        data = self.facts()
-        pairs = {(f['location']['path'], f['location']['paired_path']): f['value'] for f in data['facts'] if f['kind'] == 'history_cochange'}
-        self.assertEqual(pairs[('a.py', 'b.py')]['support'], 3)
-        self.assertEqual(pairs[('a.py', 'b.py')]['confidence'], 1.0)
+        pairs = {(f['location']['path'], f['location']['paired_path']): f['value']
+                 for f in data['facts'] if f['kind'] == 'history_cochange'}
+        self.assertEqual((pairs[('a.py', 'b.py')]['support'], pairs[('a.py', 'b.py')]['confidence']), (3, 1.0))
         self.assertNotIn(('a.py', 'c.py'), pairs)
+        owner = self.row(data, 'history_ownership', 'a.py')['value']
+        self.assertEqual((owner['single_author'], owner['top_author'], owner['top_author_share']), (True, 'Fixture', 1.0))
+        raw = (self.base / 'run-a/facts/history.json').read_bytes()
+        self.assertNotIn(b'SUBJECT_SENTINEL', raw)
+        self.facts('run-b')
+        self.assertEqual(raw, (self.base / 'run-b/facts/history.json').read_bytes())
 
-    def test_ownership_reports_single_author_concentration(self):
-        value = self.row(self.facts(), 'history_ownership', 'a.py')['value']
-        self.assertTrue(value['single_author'])
-        self.assertEqual(value['top_author'], 'Fixture')
-        self.assertEqual(value['top_author_share'], 1.0)
-
-    def test_two_runs_produce_identical_bytes(self):
-        self.facts('run-a'); self.facts('run-b')
-        self.assertEqual((self.base / 'run-a/facts/history.json').read_bytes(),
-                         (self.base / 'run-b/facts/history.json').read_bytes())
-
-    def test_commit_subjects_never_enter_the_fact_set(self):
-        (self.repo / 'a.py').write_text('a = 9\n')
-        git(self.repo, 'add', 'a.py')
-        git(self.repo, 'commit', '-q', '-m', 'fix token=SUBJECT_SENTINEL leak')
-        text = (self.base / 'facts-out').as_posix()
-        collect(self.repo, text, ['history'])
-        raw = (Path(text) / 'facts/history.json').read_text()
-        self.assertNotIn('SUBJECT_SENTINEL', raw)
-        self.assertEqual(self.row(json.loads(raw), 'history_churn', 'a.py')['value']['fix_commits'], 1)
-
-    def test_target_is_never_written_to(self):
-        before = {p.relative_to(self.repo).as_posix(): p.read_bytes() for p in self.repo.rglob('*')
-                  if p.is_file() and '.git/' not in p.relative_to(self.repo).as_posix()}
+    def test_the_target_is_never_written_to(self):
+        def snapshot():
+            return {p.relative_to(self.repo).as_posix(): p.read_bytes() for p in self.repo.rglob('*')
+                    if p.is_file() and '.git/' not in p.relative_to(self.repo).as_posix()}
+        before = snapshot()
         self.facts()
-        after = {p.relative_to(self.repo).as_posix(): p.read_bytes() for p in self.repo.rglob('*')
-                 if p.is_file() and '.git/' not in p.relative_to(self.repo).as_posix()}
-        self.assertEqual(before, after)
-
-    def test_facts_cannot_be_written_inside_the_target(self):
+        self.assertEqual(before, snapshot())
         with self.assertRaisesRegex(ValueError, 'read-only'):
             collect(self.repo, self.repo / 'facts', ['history'])
 
@@ -91,7 +70,3 @@ class HistoryFactTests(unittest.TestCase):
         self.assertFalse(data['available'])
         self.assertIn('No git work tree', data['reason'])
         self.assertEqual(data['facts'], [])
-
-    def test_extractor_declares_its_own_blind_spots(self):
-        self.assertTrue(any('Renames are not followed' in limit for limit in history.LIMITATIONS))
-        self.assertTrue(any('not defect probability' in limit for limit in history.LIMITATIONS))

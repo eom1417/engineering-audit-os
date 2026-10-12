@@ -255,7 +255,7 @@ function NoMap({ studio }: { studio: StudioData }) {
     <div className={layout.page}>
       <MissingBanner data={studio} />
       <h1 className={layout.largeTitle}>{w('pipeline')}</h1>
-      <Panel><StateMessage title={w('absent')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : w('absentSub')}{row?.step && <> · <Id value={row.step} /></>}</>} /></Panel>
+      <Panel><StateMessage title={w('absent')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : w('absentSub')}</>} /></Panel>
     </div>
   )
 }

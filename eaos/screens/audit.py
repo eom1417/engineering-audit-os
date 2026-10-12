@@ -185,16 +185,6 @@ LIGHTHOUSE_CATEGORIES = ('performance', 'accessibility', 'best-practices')
 LIGHTHOUSE_MINIMUMS = {'performance': 90, 'accessibility': 100}
 
 
-def lighthouse_failures(result, minimums=None):
-    """What fails the gate in one Lighthouse result: a category under its minimum score (the Studio's mobile
-    budget: performance 90, accessibility 100), or a run that did not observe."""
-    if result.get('status') != 'observed': return [f"lighthouse {result.get('status')}: {result.get('reason', '')[:300]}"]
-    found = []
-    for name, least in (LIGHTHOUSE_MINIMUMS if minimums is None else minimums).items():
-        score = result['scores'].get(name)
-        if score is None or score < least: found.append(f'lighthouse: {name} {score} under {least}')
-    return found
-
 
 def failed_audits(data):
     """Per category, the weighted audits that did not score full marks: what pulled the score down."""
@@ -243,43 +233,6 @@ STYLE = re.compile(r'<style[^>]*>(.*?)</style>', re.S | re.I)
 SPACING = re.compile(r'(?:^|[;{\s])(?:margin|padding|gap|row-gap|column-gap)(?:-[a-z-]+)?\s*:\s*([^;}!]+)', re.I)
 LENGTH = re.compile(r'-?\d*\.?\d+(?:px|rem|em|%|vh|vw|ch)\b|var\(--[\w-]+\)')
 
-
-def site_css(folder):
-    """(CSS files, inline <style> blocks) of a built site, without dependency folders."""
-    files, inline = [], []
-    for base, directories, names in os.walk(folder):
-        directories[:] = sorted(d for d in directories if d not in SKIP_FOLDERS)
-        for name in sorted(names):
-            path = Path(base) / name
-            if name.endswith('.css'): files.append(str(path))
-            elif name.endswith(('.html', '.htm')): inline += STYLE.findall(path.read_text(encoding='utf-8', errors='replace'))
-    return files, inline
-
-
-def spacings(texts):
-    """Distinct non-zero margin, padding and gap lengths (the analyzer has no spacing count of its own)."""
-    seen = {}
-    for text in texts:
-        for value in SPACING.findall(text):
-            for length in LENGTH.findall(value):
-                number = re.match(r'-?\d*\.?\d+', length)
-                if number is None or float(number.group()): seen[length] = seen.get(length, 0) + 1
-    return {'unique': len(seen), 'values': dict(sorted(seen.items(), key=lambda kv: -kv[1]))}
-
-
-def css_stats(folder, timeout=180):
-    """Design-drift counts over every CSS file and inline <style> block of a built site."""
-    absent = missing('css-analyzer')
-    if absent: return unavailable(absent)
-    files, inline = site_css(folder)
-    if not files and not inline: return {'status': 'not_applicable', 'reason': f'no CSS in {folder}'}
-    result, error = _node('css.mjs', {'files': files, 'inline': inline, 'modules': {'css': str(toolchain.node_modules('css-analyzer'))}},
-                          timeout)
-    if error: return {'status': 'error', 'reason': error}
-    texts = [Path(f).read_text(encoding='utf-8', errors='replace') for f in files] + inline
-    version = next(t['version'] for t in toolchain.registry()['tools'] if t['name'] == 'css-analyzer')
-    return {'status': 'observed', 'version': version, 'files': len(files), 'inline_blocks': len(inline),
-            **result, 'spacings': spacings(texts)}
 
 
 COMPRESSED = ('.html', '.htm', '.js', '.mjs', '.css', '.json', '.svg', '.txt', '.map')

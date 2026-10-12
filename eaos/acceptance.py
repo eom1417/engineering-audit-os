@@ -66,7 +66,7 @@ def run(check, target, *, execute=False, timeout=60):
     result['candidate_sha256'] = before
     if before != check['source_revision']:
         return {**result, 'errors': ['Candidate revision differs from the reviewed check binding.']}
-    from .runtime.context import redact
+    from .assistants.context import redact
     with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
         try:
             process = subprocess.Popen(check['argv'], cwd=target, stdout=stdout, stderr=stderr,

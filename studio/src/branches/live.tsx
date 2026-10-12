@@ -12,7 +12,7 @@ import type { Freshness } from '../data/types'
 export const FRESH_INTERVAL_MS = 60_000
 
 export interface BranchLive {
-  /** The live branch API, or null in a snapshot, a demo or a read-only server */
+  /** The live branch API, or null in a snapshot or a read-only server */
   api: BranchApi | null
   freshness: LiveFreshness | null
   context: BranchContext | null

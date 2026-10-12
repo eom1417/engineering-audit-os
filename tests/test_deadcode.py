@@ -9,15 +9,18 @@ from eaos.facts.run import collect
 SETS = ['syntax', 'resolve', 'entrypoints', 'deadcode']
 
 
-def run(files):
+def dead_facts(files):
     with tempfile.TemporaryDirectory() as tmp:
         repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
         for name, text in files.items():
             (repo / name).parent.mkdir(parents=True, exist_ok=True)
             (repo / name).write_text(text)
         collect(repo, out, SETS)
-        return {(f['value']['rule'], f['location']['symbol']): f['value']['message']
-                for f in json.loads((out / 'facts/deadcode.json').read_text())['facts']}
+        return json.loads((out / 'facts/deadcode.json').read_text())
+
+
+def run(files):
+    return {(f['value']['rule'], f['location']['symbol']): f['value']['message'] for f in dead_facts(files)['facts']}
 
 
 APP = {
@@ -38,58 +41,49 @@ APP['pkg/app.py'] += 'import importlib\nmod = importlib.import_module("pkg.loade
 
 
 class DeadCodeTests(unittest.TestCase):
-    def test_a_module_only_tests_import_is_unreachable(self):
-        found = run(APP)
-        self.assertIn(('unreachable-module', 'pkg/orphan.py'), found)
+    def test_what_only_tests_or_itself_use_is_dead_and_what_text_names_is_reached(self):
+        data = dead_facts(APP)
+        found = {(f['value']['rule'], f['location']['symbol']): f['value']['message'] for f in data['facts']}
+        verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict'] for f in data['facts']}
         self.assertIn('imported only by tests', found[('unreachable-module', 'pkg/orphan.py')])
-
-    def test_a_module_named_in_text_is_reached(self):
-        self.assertNotIn(('unreachable-module', 'pkg/loaded.py'), run(APP))
-
-    def test_a_function_only_tests_or_itself_call_is_unused(self):
-        found = run(APP)
-        self.assertIn(('unused-symbol', 'only_tested'), found)
+        self.assertNotIn(('unreachable-module', 'pkg/loaded.py'), found, 'a module named in text is reached')
         self.assertIn('referenced only by tests', found[('unused-symbol', 'only_tested')])
         self.assertIn(('unused-symbol', '_loop'), found)
-
-    def test_replacing_a_platform_global_is_not_dead_code(self):
-        found = run({'package.json': '{"name": "web", "main": "src/main.js"}',
-                     'src/main.js': 'import "./host.js";\nalert("hi");\n',
-                     'src/host.js': 'window.alert = (m) => console.log(m);\nwindow.confirm = () => true;\n'
-                                    'export function forgotten() { return 1; }\n'})
-        self.assertFalse([key for key in found if key[1] and key[1].startswith('window.')], found)
-
-    def test_a_function_under_a_quoted_key_is_reached_by_lookup_not_judged_by_name(self):
-        found = run({'package.json': '{"name": "web", "main": "src/main.js"}',
-                     'src/main.js': ('const SAY = {\n  \'past-empty\': (m) => `${m} passed`,\n  empty: (m) => `${m} empty`,\n};\n'
-                                     'export const say = (state, m) => SAY[state](m);\n')})
-        self.assertNotIn(('unused-symbol', "'past-empty'"), found)
-
-    def test_a_name_held_in_a_registry_string_is_referenced(self):
-        found = run(APP)
+        # A name held in a registry string is referenced.
         self.assertNotIn(('unused-symbol', 'pretty'), found)
         self.assertNotIn(('unused-symbol', 'used'), found)
-
-    def test_a_constant_nothing_reads_is_reported_and_one_read_is_not(self):
-        found = run(APP)
-        self.assertIn(('unread-constant', 'UNUSED_LIMIT'), found)
         self.assertIn('never read', found[('unread-constant', 'UNUSED_LIMIT')])
         self.assertNotIn(('unread-constant', 'LIMIT'), found)
+        self.assertFalse([key for key in found if 'shown' in key or 'examples/demo.py' in key], 'examples are never candidates')
+        # A name only tests read is a review candidate, not an asserted defect.
+        self.assertEqual((verdicts['only_tested'], verdicts['_loop'], verdicts['pkg/orphan.py']),
+                         ('test_only', 'confirmed', 'test_only'))
 
-    def test_examples_and_tests_are_never_candidates(self):
-        found = run(APP)
-        self.assertFalse([key for key in found if 'shown' in key or 'examples/demo.py' in key])
+    def test_globals_lookup_keys_and_barrel_files_are_not_dead(self):
+        cases = {
+            'replacing a platform global': {
+                'package.json': '{"name": "web", "main": "src/main.js"}',
+                'src/main.js': 'import "./host.js";\nalert("hi");\n',
+                'src/host.js': 'window.alert = (m) => console.log(m);\nwindow.confirm = () => true;\n'
+                               'export function forgotten() { return 1; }\n'},
+            'a function under a quoted key': {
+                'package.json': '{"name": "web", "main": "src/main.js"}',
+                'src/main.js': ('const SAY = {\n  \'past-empty\': (m) => `${m} passed`,\n  empty: (m) => `${m} empty`,\n};\n'
+                                'export const say = (state, m) => SAY[state](m);\n')},
+            'a module behind a barrel file': {
+                'index.html': '<script type="module" src="/src/main.tsx"></script>',
+                'src/main.tsx': 'import { Dialog } from "./components";\nDialog();\n',
+                'src/components/index.ts': 'export { Dialog } from "./Dialog";\nexport * from "./types";\n',
+                'src/components/Dialog.tsx': 'export function Dialog() { return 1; }\n',
+                'src/components/types.ts': 'export const KIND = 1;\n',
+                'src/global.d.ts': 'declare global {\n  interface Window { app: number }\n}\n'}}
+        for case, files in cases.items():
+            with self.subTest(case=case):
+                found = run(files)
+                self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
+                self.assertFalse([key for key in found if key[1] and (key[1].startswith('window.') or key[1] == "'past-empty'")], found)
 
-    def test_a_module_behind_a_barrel_file_is_reached(self):
-        found = run({'index.html': '<script type="module" src="/src/main.tsx"></script>',
-                     'src/main.tsx': 'import { Dialog } from "./components";\nDialog();\n',
-                     'src/components/index.ts': 'export { Dialog } from "./Dialog";\nexport * from "./types";\n',
-                     'src/components/Dialog.tsx': 'export function Dialog() { return 1; }\n',
-                     'src/components/types.ts': 'export const KIND = 1;\n',
-                     'src/global.d.ts': 'declare global {\n  interface Window { app: number }\n}\n'})
-        self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
-
-    def test_the_source_of_a_built_start_script_is_an_entry_and_its_ts_and_dynamic_imports_are_reached(self):
+    def test_built_start_scripts_dynamic_imports_and_tool_configs_reach_their_modules(self):
         found = run({'app/package.json': '{"type": "module", "scripts": {"start": "node dist-server/main.mjs"}}',
                      'app/server/main.mjs': 'import { handle } from "./index.mjs";\nhandle();\n',
                      'app/server/index.mjs': ('import { claimAttempt } from "./security/rate-limit.ts";\n'
@@ -102,8 +96,7 @@ class DeadCodeTests(unittest.TestCase):
                      'app/server/routes/gone.ts': 'export function GET() { return 1; }\n',
                      'app/tests/rate.test.mjs': 'import { claimAttempt } from "../server/security/rate-limit.ts";\n'})
         self.assertEqual({key for key in found if key[0] == 'unreachable-module'}, {('unreachable-module', 'app/server/routes/gone.ts')})
-
-    def test_a_module_a_tool_config_loads_by_a_path_relative_to_itself_is_reached(self):
+        # A module a tool config loads by a path relative to itself is reached.
         found = run({'app/package.json': '{"scripts": {"dev": "vite"}}',
                      'app/index.html': '<script type="module" src="/src/main.ts"></script>',
                      'app/src/main.ts': 'document.title = "x";\n',
@@ -117,39 +110,13 @@ class DeadCodeTests(unittest.TestCase):
         found = run({'lib/api.py': 'def public():\n    return 1\n\ndef _private():\n    return 2\n'})
         self.assertEqual(set(found), {('unused-symbol', '_private')})
 
-
-if __name__ == '__main__':
-    unittest.main()
-
-
-class VerdictTests(unittest.TestCase):
-    def test_a_name_only_tests_read_is_a_review_candidate_not_an_asserted_defect(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
-            for name, text in APP.items():
-                (repo / name).parent.mkdir(parents=True, exist_ok=True)
-                (repo / name).write_text(text)
-            collect(repo, out, SETS)
-            verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict']
-                        for f in json.loads((out / 'facts/deadcode.json').read_text())['facts']}
-        self.assertEqual(verdicts['only_tested'], 'test_only')
-        self.assertEqual(verdicts['_loop'], 'confirmed')
-        self.assertEqual(verdicts['pkg/orphan.py'], 'test_only')
-
     def test_a_module_nothing_imports_is_confirmed_and_a_program_nothing_runs_is_a_review_candidate(self):
-        files = {'package.json': '{"main": "src/main.js", "scripts": {"audit": "node scripts/audit.mjs"}}',
-                 'src/main.js': 'export const x = 1;\n', 'src/lost.js': 'export const y = 1;\n',
-                 'scripts/audit.mjs': 'console.log(1);\n', 'scripts/by-hand.mjs': 'console.log(2);\n',
-                 'scripts/in-ci.mjs': 'console.log(3);\n', 'scripts/documented.mjs': 'console.log(4);\n',
-                 '.github/workflows/ci.yml': 'jobs:\n  a:\n    steps:\n      - run: node scripts/in-ci.mjs\n',
-                 'README.md': 'Run `node --import tsx scripts/documented.mjs --write` after a change.\n'}
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
-            for name, text in files.items():
-                (repo / name).parent.mkdir(parents=True, exist_ok=True)
-                (repo / name).write_text(text)
-            collect(repo, out, SETS)
-            data = json.loads((out / 'facts/deadcode.json').read_text())
+        data = dead_facts({'package.json': '{"main": "src/main.js", "scripts": {"audit": "node scripts/audit.mjs"}}',
+                           'src/main.js': 'export const x = 1;\n', 'src/lost.js': 'export const y = 1;\n',
+                           'scripts/audit.mjs': 'console.log(1);\n', 'scripts/by-hand.mjs': 'console.log(2);\n',
+                           'scripts/in-ci.mjs': 'console.log(3);\n', 'scripts/documented.mjs': 'console.log(4);\n',
+                           '.github/workflows/ci.yml': 'jobs:\n  a:\n    steps:\n      - run: node scripts/in-ci.mjs\n',
+                           'README.md': 'Run `node --import tsx scripts/documented.mjs --write` after a change.\n'})
         verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict'] for f in data['facts'] if f['value']['rule'] == 'unreachable-module'}
         self.assertEqual(verdicts, {'src/lost.js': 'confirmed', 'scripts/by-hand.mjs': 'review'})
         from eaos import claims

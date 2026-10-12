@@ -1,7 +1,6 @@
-"""The pipeline map (NS46.T12): eaos/facts/pipeline.py finds pipelines from what code declares or does, and
+"""The pipeline map: eaos/facts/pipeline.py finds pipelines from what code declares or does, and
 eaos/studio/pipeline.py draws them as the Studio's pipeline section, current, ideal and gap."""
 import json
-import sys
 import tempfile
 import textwrap
 import time
@@ -13,9 +12,8 @@ from eaos.facts import pipeline
 from eaos.facts import run as facts_run
 from eaos.studio import pipeline as section
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / 'tools'))
-import pipeline_truth  # noqa: E402
+# Stages that only shape a pipeline (eaos/facts/pipeline.py); the tests compare the real ones.
+STRUCTURAL = ('router', 'fork', 'join', 'source', 'sink')
 
 HEAD = {'schema_version': 1, 'contract': 1, 'revision': 2}
 
@@ -42,7 +40,7 @@ class Base(unittest.TestCase):
         return found[0]
 
     def labels(self, p):
-        return [s['label'] for s in p['stages'] if s['kind'] not in pipeline_truth.STRUCTURAL]
+        return [s['label'] for s in p['stages'] if s['kind'] not in STRUCTURAL]
 
     def links(self, p):
         label = {s['id']: s['label'] for s in p['stages']}
@@ -119,26 +117,20 @@ class DeclaredDag(Base):
         self.record = self.scan({'app/__init__.py': '', 'app/stages.py': STAGES, 'app/runners.py': RUNNERS, 'app/run.py': RUN})
         self.p = self.one(self.record, 'declared_dag')
 
-    def test_stages_and_edges_come_from_the_declaration(self):
+    def test_stages_edges_routers_hidden_channels_and_failure_lanes_come_from_the_declaration(self):
         self.assertTrue(self.record['detected'])
         self.assertEqual(self.labels(self.p), ['read', 'judge', 'plan', 'report'])
         self.assertEqual(self.links(self.p), {('read', 'judge'), ('judge', 'plan'), ('plan', 'report'), ('judge', 'report')})
         stage = next(s for s in self.p['stages'] if s['label'] == 'judge')
         self.assertEqual((stage['entry']['path'], stage['symbol']), ('app/runners.py', 'app.runners.judge'))
         self.assertEqual(stage['outputs'], [{'name': 'claims.json', 'kind': 'artifact', 'shape': None}])
-
-    def test_the_registry_is_a_total_router_and_its_extra_entry_a_dead_stage(self):
         router = self.p['routers'][0]
         self.assertEqual((router['kind'], router['table'], router['total']), ('registry', 'RUNNERS', True))
         self.assertEqual({b['condition'] for b in router['branches']}, {'read', 'judge', 'plan', 'report', 'old'})
         self.assertEqual([h['name'] for h in self.p['hidden'] if h['kind'] == 'dead_stage'], ['old'])
-
-    def test_a_context_key_one_stage_writes_and_another_reads_is_a_side_channel(self):
         kinds = {h['name']: h['kind'] for h in self.p['hidden']}
         self.assertEqual(kinds["context['cache']"], 'side_channel')
         self.assertEqual(kinds["context['note']"], 'unread_output')
-
-    def test_failures_have_their_lanes(self):
         lanes = {(lane['to'], lane['kind']) for lane in self.p['error_lanes']}
         self.assertIn(('failed', 'catch'), lanes)
         self.assertIn(('skipped', 'skip'), lanes)
@@ -166,28 +158,21 @@ def collect(names):
 '''
 
 
-class RegistryLoop(Base):
-    def setUp(self):
+class FromCode(Base):
+    def test_loops_phases_and_values_passed_between_stages_make_a_pipeline_and_a_plain_call_chain_does_not(self):
         files = {'steps/__init__.py': REGISTRY_LOOP}
         for name in ('load', 'clean', 'count', 'extra'): files[f'steps/{name}.py'] = 'def run(**_):\n    return []\n'
         self.p = self.one(self.scan(files), 'registry_loop')
-
-    def test_the_accumulator_gives_the_edges_and_the_if_chain_the_branches(self):
         self.assertEqual(self.labels(self.p), ['load', 'clean', 'count'])
         self.assertEqual(self.links(self.p), {('load', 'clean'), ('clean', 'count')})
         chain = next(r for r in self.p['routers'] if r['kind'] == 'if_chain')
         self.assertEqual([b['condition'] for b in chain['branches']], ['clean', 'count', 'else'])
         table = next(r for r in self.p['routers'] if r['kind'] == 'dict_dispatch')
         self.assertTrue(table['total'])
-
-    def test_a_dispatch_eaos_cannot_follow_is_an_unresolved_step_never_an_edge(self):
         self.assertEqual([u['call'] for u in self.p['unresolved']], ["produced['ghost']"])
         self.assertFalse(any('ghost' in name for e in self.p['edges'] for name in e['data']['names']))
         self.assertEqual([h['name'] for h in self.p['hidden'] if h['kind'] == 'dead_stage'], ['extra'])
-
-
-class Orchestrators(Base):
-    def test_announced_phases_are_stages_in_order(self):
+        # what EAOS cannot follow is an unresolved step, never an edge (above); announced phases are stages in order
         p = self.one(self.scan({'audit.py': '''
             def run(job):
                 def phase(name): print(name)
@@ -199,8 +184,6 @@ class Orchestrators(Base):
             '''}), 'orchestrator')
         self.assertEqual(self.labels(p), ['read the code', 'judge', 'write the report'])
         self.assertEqual(self.links(p), {('read the code', 'judge'), ('judge', 'write the report')})
-
-    def test_values_passed_from_stage_to_stage_make_the_edges(self):
         p = self.one(self.scan({'etl/steps.py': '''
             def extract(source): return [source]
             def transform(rows): return rows
@@ -218,8 +201,6 @@ class Orchestrators(Base):
         self.assertEqual(self.labels(p), ['extract', 'transform', 'load'])
         self.assertEqual(self.links(p), {('extract', 'transform'), ('transform', 'load')})
         self.assertEqual(next(e for e in p['edges'] if e['to'].endswith('/transform'))['data']['names'], ['frame'])
-
-    def test_a_chain_of_calls_without_a_pipeline_signal_is_not_a_pipeline(self):
         record = self.scan({'billing.py': '''
             def price(order): return order
             def tax(amount): return amount
@@ -256,21 +237,6 @@ extract >> branch >> [small, large]
 small >> publish
 large >> publish
 '''
-
-
-class Airflow(Base):
-    def test_operators_dependencies_branches_and_the_join(self):
-        p = self.one(self.scan({'dags/nightly.py': AIRFLOW}), 'airflow')
-        self.assertEqual(p['title'], 'nightly')
-        self.assertEqual({('extract', 'branch'), ('branch', 'small'), ('branch', 'large'), ('small', 'publish'), ('large', 'publish')}
-                         | {('extract', 'small'), ('extract', 'large'), ('extract', 'publish')} >= self.links(p), True)
-        self.assertIn(('extract', 'branch'), self.links(p))
-        router = next(r for r in p['routers'] if r['kind'] == 'branch_operator')
-        self.assertEqual([b['condition'] for b in router['branches']], ["returns 'small'", "returns 'large'"])
-        fan = next(f for f in p['fans'] if f['fork'].endswith('/branch'))
-        self.assertTrue(fan['matched'])
-        self.assertTrue(fan['join'].endswith('/publish'))
-        self.assertTrue(any(c['kind'] == 'retry' for c in p['control']))
 
 
 CELERY_TASKS = '''
@@ -316,29 +282,33 @@ app.conf.task_routes = {'shop.tasks.charge': {'queue': 'money'}, 'shop.tasks.not
 '''
 
 
-class Celery(Base):
-    def setUp(self):
-        self.p = self.one(self.scan({'shop/__init__.py': '', 'shop/tasks.py': CELERY_TASKS, 'shop/canvas.py': CELERY_CANVAS,
+class Frameworks(Base):
+    def test_airflow_celery_langgraph_step_functions_queues_and_build_chains(self):
+        p = self.one(self.scan({'dags/nightly.py': AIRFLOW}), 'airflow')
+        self.assertEqual(p['title'], 'nightly')
+        self.assertEqual({('extract', 'branch'), ('branch', 'small'), ('branch', 'large'), ('small', 'publish'), ('large', 'publish')}
+                         | {('extract', 'small'), ('extract', 'large'), ('extract', 'publish')} >= self.links(p), True)
+        self.assertIn(('extract', 'branch'), self.links(p))
+        router = next(r for r in p['routers'] if r['kind'] == 'branch_operator')
+        self.assertEqual([b['condition'] for b in router['branches']], ["returns 'small'", "returns 'large'"])
+        fan = next(f for f in p['fans'] if f['fork'].endswith('/branch'))
+        self.assertTrue(fan['matched'])
+        self.assertTrue(fan['join'].endswith('/publish'))
+        self.assertTrue(any(c['kind'] == 'retry' for c in p['control']))
+        p = self.one(self.scan({'shop/__init__.py': '', 'shop/tasks.py': CELERY_TASKS, 'shop/canvas.py': CELERY_CANVAS,
                                      'shop/celery.py': CELERY_CONFIG}), 'celery')
 
-    def test_chain_group_and_chord(self):
-        self.assertEqual(set(self.labels(self.p)), {'charge', 'record', 'notify', 'total'})
-        self.assertEqual(self.links(self.p), {('charge', 'record'), ('charge', 'total')})
-        fans = {f['kind']: f for f in self.p['fans']}
+        self.assertEqual(set(self.labels(p)), {'charge', 'record', 'notify', 'total'})
+        self.assertEqual(self.links(p), {('charge', 'record'), ('charge', 'total')})
+        fans = {f['kind']: f for f in p['fans']}
         self.assertFalse(fans['map']['matched'], 'a group nothing gathers is an unmatched fan-out')
         self.assertTrue(fans['chord']['matched'])
-
-    def test_routes_retries_and_the_dead_letter_lane(self):
-        router = next(r for r in self.p['routers'] if r['table'] == 'task_routes')
+        router = next(r for r in p['routers'] if r['table'] == 'task_routes')
         self.assertEqual({b['condition'] for b in router['branches']}, {'shop.tasks.charge', 'shop.tasks.notify'})
         self.assertTrue(all(b['to'] for b in router['branches']))
-        lanes = {(lane['from'].rsplit('/', 1)[-1], lane['to'], lane['kind']) for lane in self.p['error_lanes']}
+        lanes = {(lane['from'].rsplit('/', 1)[-1], lane['to'], lane['kind']) for lane in p['error_lanes']}
         self.assertIn(('charge', 'dead_letter', 'fail'), lanes)
-        self.assertIn(('charge', self.p['id'] + '/charge', 'retry'), lanes)
-
-
-class Frameworks(Base):
-    def test_langgraph_conditional_edges_are_a_router(self):
+        self.assertIn(('charge', p['id'] + '/charge', 'retry'), lanes)
         p = self.one(self.scan({'graph.py': '''
             from langgraph.graph import StateGraph, START, END
 
@@ -356,16 +326,12 @@ class Frameworks(Base):
         router = p['routers'][0]
         self.assertEqual((router['kind'], [b['condition'] for b in router['branches']]), ('conditional_edges', ['go', 'stop']))
         self.assertIn(('plan', 'act'), self.links(p))
-
-    def test_step_functions_choice_and_catch(self):
         p = self.one(self.scan({'machine.asl.json': json.dumps({'StartAt': 'Get', 'States': {
             'Get': {'Type': 'Task', 'Next': 'Check', 'Catch': [{'ErrorEquals': ['States.ALL'], 'Next': 'Fail'}]},
             'Check': {'Type': 'Choice', 'Choices': [{'Variable': '$.ok', 'BooleanEquals': True, 'Next': 'Done'}], 'Default': 'Fail'},
             'Done': {'Type': 'Succeed'}, 'Fail': {'Type': 'Fail'}}}, indent=1)}), 'step_functions')
         self.assertEqual(p['routers'][0]['total'], True)
         self.assertEqual(p['error_lanes'][0]['to'], 'Fail')
-
-    def test_a_topic_both_produced_and_consumed_is_a_queue_edge(self):
         p = self.one(self.scan({'events.py': '''
             from kafka import KafkaProducer, KafkaConsumer
 
@@ -378,8 +344,6 @@ class Frameworks(Base):
             '''}), 'queue')
         self.assertEqual(self.links(p), {('publish_orders', 'handle_orders')})
         self.assertEqual(p['edges'][0]['matched_by'], 'topic')
-
-    def test_build_and_ci_chains_are_tooling_not_a_product_pipeline(self):
         record = self.scan({
             '.github/workflows/ci.yml': 'name: ci\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          npm test\n'
                                         '  build:\n    needs: test\n    runs-on: ubuntu-latest\n  deploy:\n    needs: [build, test]\n    runs-on: ubuntu-latest\n',
@@ -395,7 +359,7 @@ class Frameworks(Base):
 
 
 class NothingInvented(Base):
-    def test_an_app_holds_no_pipeline(self):
+    def test_an_app_holds_no_pipeline_and_the_scan_never_runs_the_project(self):
         record = self.scan({'src/App.tsx': 'export function App() { return null }\n',
                             'src/api/client.ts': 'export async function load(){ const r = await fetch("/api"); return r.json() }\n',
                             'server/views.py': '''
@@ -415,8 +379,6 @@ class NothingInvented(Base):
         body = {**HEAD, **section.section(record, lang='en')}
         self.assertEqual(artifact_contracts.validate(body, artifact_contracts.contracts()['studio-pipeline']), [])
         self.assertIn('No pipeline', body['verdict'])
-
-    def test_never_runs_the_project(self):
         self.scan({'flow.py': '''
             import pathlib
             pathlib.Path('ran.txt').write_text('ran')
@@ -440,11 +402,9 @@ class Section(Base):
                                  'shop/celery.py': CELERY_CONFIG})
         self.body = {**HEAD, **section.section(self.record, cards=[{'id': 'TASK-1', 'paths': ['app/runners.py'], 'milestone': 'M01'}], lang='en')}
 
-    def test_it_meets_its_contract(self):
+    def test_the_section_meets_its_contract_with_one_gap_per_broken_rule_stable_places_and_facts_that_round_trip(self):
         self.assertEqual(artifact_contracts.validate(self.body, artifact_contracts.contracts()['studio-pipeline']), [])
         self.assertEqual({row['kind'] for row in self.body['looked_for']}, {kind for kind, _ in pipeline.KINDS})
-
-    def test_one_gap_per_broken_rule_with_its_evidence_card_and_step(self):
         rules = {g['rule'] for g in self.body['views']['gap']}
         self.assertTrue({'P2', 'P3', 'P5', 'P6', 'P8'} <= rules, rules)
         side = next(g for g in self.body['views']['gap'] if g['rule'] == 'P3')
@@ -453,16 +413,12 @@ class Section(Base):
         self.assertEqual(broken['P3'], sum(g['rule'] == 'P3' for g in self.body['views']['gap']))
         joins = [s for s in self.body['views']['ideal']['stages'] if s['op'] == 'new' and s['rule'] == 'P5']
         self.assertEqual(len(joins), 1)
-
-    def test_every_stage_has_a_stable_place(self):
         again = section.section(self.record, lang='en')
         place = lambda body: {s['id']: (s['layer'], s['order']) for s in body['stages']}
         self.assertEqual(place(self.body), place(again))
         dag = {s['label']: s['layer'] for s in self.body['stages'] if s['pipeline'].endswith('STAGES') and s['kind'] == 'stage'}
         self.assertEqual(dag, {'read': 0, 'judge': 1, 'plan': 2, 'report': 3})
         self.assertEqual(self.body['views']['current']['stages'], [s['id'] for s in self.body['stages']])
-
-    def test_the_facts_round_trip(self):
         with tempfile.TemporaryDirectory() as folder:
             pipeline.write(folder, self.record)
             back = pipeline.read(folder)
@@ -470,14 +426,9 @@ class Section(Base):
         first = back['pipelines'][0]
         self.assertTrue(first['stages'][0]['fact'].startswith('FACT-'))
         self.assertEqual(section.section(back, lang='en')['counts']['stages'], section.section(self.record, lang='en')['counts']['stages'])
-
-    def test_the_facts_stage_runs_the_extractor(self):
         self.assertIn('pipeline', facts_run.ORDER)
         self.assertIs(facts_run.EXTRACTORS['pipeline'], pipeline)
-
-
-class Scale(unittest.TestCase):
-    def test_a_1000_stage_pipeline_builds_within_its_budget(self):
+        # a 1000-stage pipeline builds within its budget
         with tempfile.TemporaryDirectory() as folder:
             body = ['def stage_%d(value):\n    return value + %d\n' % (n, n) for n in range(1000)]
             calls = ['    v0 = stage_0(seed)'] + ['    v%d = stage_%d(v%d)' % (n, n, n - 1) for n in range(1, 1000)]
@@ -493,27 +444,6 @@ class Scale(unittest.TestCase):
         self.assertLess(spent, 20.0)
 
 
-class Eaos(unittest.TestCase):
-    """EAOS itself, against its hand-written truth file."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.record = pipeline.scan(ROOT)
-
-    def test_its_pipelines_match_the_truth(self):
-        scores = pipeline_truth.compare(pipeline_truth.load('eaos'), self.record)
-        for part in ('stages', 'edges', 'branches'):
-            self.assertGreaterEqual(scores[part]['recall'], 0.8, scores[part])
-            self.assertGreaterEqual(scores[part]['precision'], 0.9, scores[part])
-
-    def test_every_element_names_its_evidence(self):
-        self.assertEqual(pipeline_truth.verify(ROOT, self.record), [])
-
-    def test_the_fixture_is_eaos_and_meets_the_contract(self):
-        fixture = json.loads((ROOT / 'tests/fixtures/studio/v2/pipeline.json').read_text(encoding='utf-8'))
-        self.assertEqual(artifact_contracts.validate(fixture, artifact_contracts.contracts()['studio-pipeline']), [])
-        self.assertTrue(fixture['detected'])
-        self.assertTrue({'eaos/pipeline/stages.py:STAGES', 'eaos/facts/run.py:collect'} <= {p['id'] for p in fixture['pipelines']})
 
 
 if __name__ == '__main__':

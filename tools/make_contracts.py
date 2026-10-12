@@ -1,12 +1,11 @@
-"""Write schemas/artifacts/*.schema.json: the contract of every artifact the north-star plan produces.
+"""Write eaos/data/schemas/artifacts/*.schema.json: the contract of every artifact EAOS writes.
 
 The schemas are generated from this file; edit here, then run python tools/make_contracts.py.
 """
 import json
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / 'schemas/artifacts'
-MIRROR = Path(__file__).resolve().parent.parent / 'eaos/data/schemas/artifacts'
+OUT = Path(__file__).resolve().parent.parent / 'eaos/data/schemas/artifacts'
 S, I, N, B = {'type': 'string'}, {'type': 'integer'}, {'type': 'number'}, {'type': 'boolean'}
 NS = {'type': ['string', 'null']}
 NN = {'type': ['number', 'null']}
@@ -48,14 +47,6 @@ CONTRACTS = {
                             'writes': arr(S), 'endpoints': arr(S), 'evidence': arr(S, 1), 'critical': B, 'target_component': NS},
                            ['name', 'description', 'surfaces', 'tables', 'evidence', 'critical']), 1),
        'unassigned_surfaces': arr(S)}, ['schema_version', 'features', 'unassigned_surfaces'])),
- 'sbom': ('sbom.cdx.json', 'NS12.T1', 'CycloneDX written by Syft, kept as Syft wrote it. Only the fields EAOS reads are constrained.',
-  obj({'bomFormat': {'const': 'CycloneDX'}, 'specVersion': S,
-       'components': arr(obj({'name': S, 'version': S, 'purl': S}, ['name']), 1)}, ['bomFormat', 'components'])),
- 'tools-doctor': ('tools-doctor.json', 'NS17.T1', 'Standard output of `eaos tools doctor --json`.',
-  obj({'tools': arr(obj({'name': S, 'role': enum('read', 'emit', 'run', 'validate'),
-                         'stages': arr(STAGE), 'pinned': S, 'found': NS, 'ok': B, 'reason': S,
-                         'license_note': S},
-                        ['name', 'role', 'pinned', 'found', 'ok']), 1)})),
  'measurements': ('measurements.json', 'NS18.T1', 'One row per analysed source file. A field without a source is null and its reason is in `missing`; never zero for unknown.',
   obj({'schema_version': {'const': 1},
        'files': arr(obj({'path': S, 'language': S, 'loc': NI, 'complexity_max': NN, 'duplicated_lines': NI,
@@ -76,23 +67,6 @@ CONTRACTS = {
   obj({'schema_version': {'const': 1},
        'specs': arr(obj({'feature': S, 'tool': enum('playwright', 'schemathesis', 'pact', 'approvaltests'),
                          'path': S, 'surfaces': arr(S)}, ['feature', 'tool', 'path']), 1)})),
- 'behavior-lock-results': ('behavior-lock/results.json', 'NS26.T1', 'Runtime artifact: the lock suite on the original code. results-after.json (NS20.T1) has the same shape.',
-  obj({'schema_version': {'const': 1}, 'commit': S, 'backend': enum('docker', 'unshare', 'process'),
-       'results': arr(obj({'path': S, 'status': enum('passed', 'failed', 'quarantined', 'error'), 'reason': S},
-                          ['path', 'status']), 1)})),
- 'nfr-experiments': ('nfr/experiments.json', 'NS15.T2', 'Fault experiments for Toxiproxy, one per critical dependency and toxic.',
-  obj({'schema_version': {'const': 1},
-       'experiments': arr(obj({'id': S, 'dependency': S, 'proxy': S, 'toxic': enum('latency', 'timeout', 'down'),
-                               'params': {'type': 'object'}, 'expected': S, 'features': arr(S)},
-                              ['id', 'dependency', 'proxy', 'toxic', 'expected']))})),
- 'handover-validation': ('handover/validation.json', 'NS17.T3', 'Every file EAOS generated in a tool\'s own format, and that tool\'s verdict on it.',
-  obj({'schema_version': {'const': 1},
-       'files': arr(obj({'path': S, 'tool': S, 'command': S, 'ok': B, 'output': S, 'reason': S},
-                        ['path', 'tool', 'ok']), 1)})),
- 'report-quality': ('report-quality.json', 'NS14.T2', 'Style and structure errors in each of the four reports. A tool that did not run is `null`, never 0.',
-  obj({'schema_version': {'const': 1},
-       'reports': arr(obj({'name': enum('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md'),
-                           'vale_errors': NI, 'markdownlint_errors': NI}, ['name', 'vale_errors', 'markdownlint_errors']))})),
  'runtime-performance': ('runtime/performance.json', 'NS26.T2, NS22.T1', 'Runtime artifact. `after` exists only once `before` does, under the same conditions.',
   obj({'schema_version': {'const': 1},
        'conditions': obj({'build': S, 'warmup_s': N, 'vus': I, 'duration_s': N, 'machine': S}),
@@ -101,28 +75,11 @@ CONTRACTS = {
                              'after': {'type': ['object', 'null'], 'required': ['p95_ms', 'error_rate'],
                                        'properties': {'p95_ms': N, 'error_rate': N}}},
                             ['id', 'script', 'threshold', 'before']), 1)})),
- 'runtime-security': ('runtime/security.json', 'NS21.T1', 'Runtime artifact: open findings after the change, static and live.',
-  obj({'schema_version': {'const': 1}, 'static': obj({'critical': I, 'high': I, 'tools': arr(S, 1)}),
-       'dast': obj({'tool': S, 'high': I, 'medium': I})})),
- 'runtime-resilience': ('runtime/resilience.json', 'NS23.T1', 'Runtime artifact: what the application did under each injected fault.',
-  obj({'schema_version': {'const': 1},
-       'experiments': arr(obj({'id': S, 'dependency': S, 'toxic': S, 'expected': S, 'observed': S, 'ok': B}), 1)})),
- 'runtime-telemetry': ('runtime/telemetry.json', 'NS24.T1', 'Runtime artifact: spans seen per surface while the lock suite and k6 ran.',
-  obj({'schema_version': {'const': 1},
-       'surfaces': arr(obj({'surface': S, 'critical': B, 'spans': I}), 1)})),
- 'production-readiness': ('PRODUCTION-READINESS.json', 'NS16.T1', 'Runtime artifact: every readiness item with the command that decided it.',
-  obj({'schema_version': {'const': 1},
-       'items': arr(obj({'id': S, 'title': S, 'command': {'type': 'string', 'minLength': 1}, 'ok': B, 'output': S},
-                        ['id', 'command', 'ok']), 1)})),
  'execution-log': ('runtime/execution.json', 'NS9.T1', 'Runtime artifact: every plan card executed in an isolated copy, by its codemod or by a model, and what came of it.',
   obj({'schema_version': {'const': 1},
        'tasks': arr(obj({'id': S, 'tool': enum('codemod', 'model', 'assistant'),
                          'status': enum('VERIFIED_IN_ISOLATED_COPY', 'NEEDS_REVIEW', 'BASELINE_FAILED', 'FAILED'),
                          'acceptance_exit': I, 'result': S}, ['id', 'tool', 'status', 'acceptance_exit']), 1)})),
- 'runtime-guarantee': ('runtime/guarantee.json', 'NS20.T1', 'Runtime artifact: the output of eaos guarantee after the change, copied as written: predicted against observed indicator deltas.',
-  obj({'status': enum('COMPARED', 'UNAVAILABLE'),
-       'rows': arr(obj({'indicator': S, 'predicted': N, 'observed': N, 'verdict': enum('HONEST', 'OVERSTATED', 'UNDERSTATED')},
-                       ['indicator', 'verdict']))}, ['status', 'rows'])),
  'authorization': ('authorization.json', 'NS17.T5', 'The owner\'s written permission to run their project\'s code. Without it no execution-contract stage starts.',
   obj({'schema_version': {'const': 1}, 'project': S, 'commit': {'type': 'string', 'pattern': '^[0-9a-f]{40}$'},
        'granted_by': S, 'stages': arr(STAGE, 1), 'env_allow': arr(S), 'expires': S})),
@@ -137,17 +94,6 @@ CONTRACTS = {
  'approvals': ('approvals.json', 'NS17.T4', 'A person\'s recorded approval of a stage whose gate needs a human (S06: the target architecture). EAOS never writes it; eaos engage approve does, on the owner\'s command.',
   obj({'schema_version': {'const': 1},
        'approvals': arr(obj({'stage': STAGE, 'by': {'type': 'string', 'minLength': 1}, 'at': S, 'note': S}, ['stage', 'by', 'at']), 1)})),
- 'sandbox-run': ('sandbox-run.json', 'NS17.T5', 'What an isolated run did, and what it could not isolate.',
-  obj({'schema_version': {'const': 1}, 'backend': enum('docker', 'unshare', 'process'),
-       'commands': arr(obj({'argv': arr(S, 1), 'exit': I, 'seconds': N})),
-       'limitations': arr(S)})),
- 'plan-fragment': ('plan.json', 'NS8', 'Only the fields the north-star plan adds to plan.json; the rest of the file keeps its existing contract.',
-  obj({'tasks': arr(obj({'effort': enum('S', 'M', 'L'),
-                         'section': enum('frontend', 'backend', 'data', 'infrastructure', 'security', 'quality'),
-                         'codemod': {'type': ['object', 'null'], 'required': ['tool', 'command', 'dry_run'],
-                                     'properties': {'tool': S, 'command': S,
-                                                    'dry_run': obj({'exit': I, 'files_changed': I})}}}, [])),
-       'milestones': arr(obj({'id': S, 'goal': S, 'exit': S, 'tasks': arr(S, 1)}))}, [])),
  'target-fragment': ('target-architecture.json', 'NS7', 'Only the fields the north-star plan adds to target-architecture.json.',
   obj({'root': S,
        'target_components': arr(obj({'name': S, 'responsibility': S, 'layer': S, 'reference': S}, ['name', 'responsibility', 'layer'])),
@@ -167,7 +113,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
-SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',
+SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'coverage', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',
                'pipeline', 'ideal', 'nodes', 'library')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
@@ -491,23 +437,6 @@ STUDIO_V2 = {
               'missing': arr(_MAP_GAP),
               'src': {'type': 'object', 'additionalProperties': REF('source')}},
              ['scans', 'events'])),
- 'quality': ("How good EAOS's own analysis is for this project: each detector's precision and recall on EAOS's labelled set, whether it meets the bar the product shows it at, what it produced in this report and, for a labelled project, its own true and false positives; the plan's capabilities that judge the analysis and their indicators.",
-  section_v2({'detectors': arr(obj({'id': S, 'name': S, 'names': _NAMES2, 'engine': NS, 'applies': B,
-                                    'precision': REF('ratio_measure'), 'recall': REF('ratio_measure'), 'labelled': NI,
-                                    'shown': B, 'status': enum('meets_bar', 'below_bar', 'not_measured'), 'why': S, 'judged': COUNT,
-                                    'here': obj({'shown': COUNT, 'withheld': COUNT, 'facts': COUNT}, ['shown', 'withheld', 'facts']),
-                                    'project': {'type': ['object', 'null'], 'properties': {'tp': COUNT, 'fp': COUNT, 'unjudged': COUNT},
-                                                'required': ['tp', 'fp', 'unjudged']}},
-                                   ['id', 'name', 'applies', 'precision', 'recall'])),
-              'capabilities': arr(obj({'id': S, 'name': S, 'names': _NAMES2, 'value': REF('ratio_measure'), 'measured': COUNT, 'indicators': COUNT},
-                                      ['id', 'name', 'value'])),
-              'indicators': arr(obj({'id': S, 'name': S, 'names': _NAMES2, 'value': REF('ratio_measure'), 'target': REF('ratio'), 'capability': S,
-                                     'how': enum('automated', 'recorded')}, ['id', 'name', 'value', 'target'])),
-              'bar': obj({'precision': REF('ratio'), 'recall': REF('ratio'), 'judged': COUNT}),
-              'labelled': obj({'items': NI, 'projects': REFS, 'this_project': NS}),
-              'counts': {'type': 'object', 'additionalProperties': REF('measure')},
-              'measured_at': NS},
-             ['detectors', 'capabilities', 'indicators'])),
  'library': ('The content of the Library: the text of every document of docs.json and every image or diagram of media.json (an image as a data URI, a diagram as its source), so the reader shows them from the Studio\'s own folder; what is too large to carry is listed with the reason.',
   section_v2({'documents': arr(obj({'id': S, 'text': {'type': 'string'}, 'chars': COUNT, 'truncated': B}, ['id', 'text', 'truncated'])),
               'images': arr(obj({'id': S, 'format': enum('png', 'svg', 'jpeg', 'gif', 'webp', 'mermaid'),
@@ -754,10 +683,8 @@ def main():
         schema = {'$schema': 'http://json-schema.org/draft-07/schema#', 'title': artifact, 'description': description,
                   'x-artifact': artifact, 'x-owner': owner, **schema}
         text = json.dumps(schema, indent=2, ensure_ascii=False) + '\n'
+        OUT.mkdir(parents=True, exist_ok=True)
         (OUT / f'{name}.schema.json').write_text(text, encoding='utf-8')
-        # The packaged mirror an installed eaos reads (eaos/artifact_contracts.py); tools/validate.py keeps them equal.
-        MIRROR.mkdir(parents=True, exist_ok=True)
-        (MIRROR / f'{name}.schema.json').write_text(text, encoding='utf-8')
     print(len(CONTRACTS), 'contracts')
 
 

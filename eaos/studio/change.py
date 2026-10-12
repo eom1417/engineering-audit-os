@@ -13,7 +13,6 @@ plan.json (its milestones in order and its waves) and the cards' ledger states. 
 """
 from collections import Counter, defaultdict
 
-from .model import CLOSED
 
 OPERATION = {'retain': 'retain', 'modify': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete', 'retire': 'delete'}
 SEQUENCE = ('delete', 'refactor', 'rebuild', 'merge', 'new', 'retain')    # inside one step and one wave

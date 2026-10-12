@@ -28,7 +28,7 @@ from pathlib import Path
 from . import progress
 from .ledger import TRAILER, key, keys
 from .progress.flow import OPTIONAL, Stage
-from .execute import apply_edits, candidate, git, model_messages, new_breakage, original_checks, project_checks, record, regressions, run_codemod
+from .execute import candidate, git, original_checks, project_checks, record, regressions, run_codemod
 
 SIZE = 10
 FLOW = (
@@ -107,18 +107,13 @@ def batch_acceptance(report, cards, root, collected=None):
 
 # ---------------------------------------------------------------- the batch
 
-def change(card, root, report, provider):
-    """Make one card's change in the candidate: its codemod, or the assistant's edit. (tool, summary)."""
+def change(card, root, report):
+    """Make one card's change in the candidate with its codemod: (tool, summary). A card without one is the
+    assistant's to edit (fix_edit)."""
     uses_codemod = ((card.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0
-    if uses_codemod:
-        run_codemod(card, root, report)
-        return 'codemod', card['codemod']['command']
-    if provider is None: raise ValueError('this card has no codemod: a model provider is needed')
-    answer, _ = provider.complete(model_messages(card, root))
-    result = answer.get('result') or {}
-    if not result.get('edits'): raise ValueError('the assistant made no edit: ' + str(result.get('summary'))[:200])
-    apply_edits(root, result['edits'], set(card['paths']))
-    return 'model', result.get('summary') or ''
+    if not uses_codemod: raise ValueError('this card has no codemod: the assistant edits it')
+    run_codemod(card, root, report)
+    return 'codemod', card['codemod']['command']
 
 
 def commit(root, card, tool):
@@ -183,40 +178,6 @@ def drop_last(root):
     git(root, 'clean', '-fdq')
 
 
-def run_batch(report, target, runtime, number, card_ids, provider=None, lock=True, say=lambda *_: None):
-    """Execute one wave; {'wave', 'branch', 'kept': [...], 'failed': {card: reason}, 'root', 'base'}."""
-    report, runtime = Path(report), Path(runtime)
-    cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
-    progress.begin('open')
-    try: root, base = open_batch(target, runtime, number)
-    except PermissionError as refused:
-        progress.end('open', 'failed', str(refused)[:300], 'not_authorised')
-        raise
-    kept, failed, tools = {}, {}, {}
-    progress.begin('change')
-    for index, card_id in enumerate(card_ids, 1):
-        card = cards[card_id]
-        say('card', index, len(card_ids), card)
-        progress.step(card_id, index - 1, len(card_ids), 'running')
-        try:
-            tools[card_id], _ = change(card, root, report, provider)
-            sha = commit(root, card, tools[card_id])
-            broke = new_breakage(report, root)
-            if broke:
-                git(root, 'reset', '--hard', '--quiet', 'HEAD~1')
-                failed[card_id] = f'it broke something: {broke[0]}'
-                progress.step(card_id, index, len(card_ids), 'failed', reason=failed[card_id], reason_code='card_broke_something')
-                continue
-            kept[card_id] = sha
-            progress.step(card_id, index, len(card_ids), 'ok')
-        except (ValueError, RuntimeError, OSError, subprocess.CalledProcessError) as problem:
-            git(root, 'reset', '--hard', '--quiet', 'HEAD')
-            git(root, 'clean', '-fdq')
-            failed[card_id] = f'{type(problem).__name__}: {problem}'[:300]
-            progress.step(card_id, index, len(card_ids), 'failed', reason=failed[card_id], reason_code='card_error')
-    return finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=lock, say=say)
-
-
 def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None):
     """Every kept change together: the acceptances from one collection of facts, then the project's checks and
     the behaviour lock once, halving to the culprit when they fail. The kept commits become the wave's branch
@@ -267,7 +228,7 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
     progress.begin('handover')
     for card_id in card_ids:
         ok = card_id in kept
-        record(runtime, {'id': card_id, 'tool': tools.get(card_id, 'model'), 'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED',
+        record(runtime, {'id': card_id, 'tool': tools.get(card_id, 'assistant'), 'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED',
                          'acceptance_exit': 0 if ok else -1, 'result': (f'wave {number}' if ok else failed.get(card_id, ''))[:400]})
     patches = runtime / 'waves' / f'wave-{number}'
     subprocess.run(['rm', '-rf', str(patches)])

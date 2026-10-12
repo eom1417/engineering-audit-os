@@ -2,8 +2,8 @@
 (studio/library.json, contract v2), so the Studio's reader shows them from its own folder, opened from a file or served.
 
 - docs: every Markdown document of the report, grouped by purpose, in the reading order the report's own index
-  (README.md) gives, with its headings for search. The engines' working copies of the project (engines/) and the built
-  site are not documents EAOS wrote, and are left out.
+  (README.md) gives, with its headings for search. The engines' working copies of the project (engines/) are not
+  documents EAOS wrote, and are left out.
 - media: the report's diagrams and images, the same way.
 - library: each document's text, and each image as a data URI (an <img> runs no script from it) or a diagram's source.
   A file too large to carry is listed with the reason; nothing is cut silently. The machine's own folders in the text
@@ -13,9 +13,9 @@ import base64
 import re
 from pathlib import Path
 
-DOC_GROUPS = (('START-HERE.md', 'start'), ('README.md', 'start'), ('EXECUTIVE.md', 'start'), ('CURRENT-STATE.md', 'story'),
+DOC_GROUPS = (('START-HERE.md', 'start'), ('README.md', 'start'), ('CURRENT-STATE.md', 'story'),
               ('TARGET-STATE.md', 'story'), ('GAP-AND-STRATEGY.md', 'story'), ('EXECUTION-PLAN.md', 'plan'))
-SKIP = ('handover/site/', 'studio/', 'bundles/', 'engines/')
+SKIP = ('studio/', 'engines/')
 LINK = re.compile(r'\]\(([^)#\s]+\.md)(?:#[^)]*)?\)')
 HEADING = re.compile(r'^(#{1,3})\s+(.+?)\s*#*\s*$')
 FENCE = re.compile(r'^\s*(```|~~~)')

@@ -29,19 +29,15 @@ def accuracy():
 
 
 class UnderstandingTests(unittest.TestCase):
-    def test_requests_in_plain_words_reach_the_right_command(self):
+    def test_requests_in_plain_words_as_people_type_them_reach_a_real_command(self):
         rows = accuracy()
         right, total = sum(r for r, _ in rows.values()), sum(t for _, t in rows.values())
         self.assertGreaterEqual(right / total, 0.9, rows)
         self.assertGreaterEqual(rows['untuned'][0] / rows['untuned'][1], 0.9, 'what the table was never tuned on')
-
-    def test_arabic_is_read_the_way_people_type_it(self):
         self.assertEqual(intents.normalise('أصلِحْ المشاكلَ'), intents.normalise('اصلح المشاكل'))
         self.assertEqual(intents.understand('افحص جهازي')[0]['id'], 'doctor', 'the longest phrase wins over "افحص"')
         self.assertEqual(intents.understand('وش الناقص')[0]['id'], 'doctor', 'the article does not hide the word')
         self.assertEqual(intents.understand('كيف حالك'), (None, None))
-
-    def test_every_intent_names_a_real_command_in_both_languages(self):
         for intent in intents.catalog():
             self.assertIn(intent['command'][0], guided.COMMANDS, intent['id'])
             self.assertTrue(intent['ar'] and intent['en'] and intent['keywords'], intent['id'])
@@ -55,13 +51,11 @@ class DoTests(unittest.TestCase):
             code = guided.do(Namespace(request=words.split(), project='.', lang='en', yes=False))
         return code, printed.getvalue()
 
-    def test_a_request_runs_the_command_it_means(self):
+    def test_a_request_runs_the_command_it_means_and_one_not_understood_says_how_to_ask(self):
         called = []
         code, printed = self.run_do('where are we please', status=lambda args: called.append(args.command) or 0)
         self.assertEqual((code, called), (0, ['status']))
         self.assertIn('eaos status', printed)
-
-    def test_a_request_it_does_not_understand_says_how_to_ask(self):
         code, printed = self.run_do('write me a poem')
         self.assertIn('eaos do "check my project"', printed)
         self.assertTrue(printed.rstrip().endswith(guided.LINE))

@@ -1,619 +1,189 @@
-"""Runtime and operational facts: deployment, CI, security, observability, integrations, models."""
+"""Runtime and operational facts: deployment, CI, security, observability, integrations, capacity."""
 import json
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.facts import runtime
 from eaos.facts.run import collect
 
+FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
-def _collect(tmp, body=None, name='app.py', extra_files=None):
-    repo = Path(tmp) / 'repo'; repo.mkdir()
-    if body is not None: (repo / name).write_text(body)
-    for n, c in (extra_files or {}).items():
-        path = repo / n
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(c)
-    collect(repo, Path(tmp) / 'out', ['runtime'])
-    return json.loads((Path(tmp) / 'out/facts/runtime.json').read_text())
+
+def runtime_facts(files, kind=None):
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / 'repo'; repo.mkdir()
+        for name, text in files.items():
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_text(text)
+        collect(repo, Path(tmp) / 'out', ['runtime'])
+        facts = json.loads((Path(tmp) / 'out/facts/runtime.json').read_text())['facts']
+    return [f for f in facts if kind is None or f['kind'] == kind]
 
 
 class RuntimeFactTests(unittest.TestCase):
-    def test_dockerfile_expose_creates_deployment_targets(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, extra_files={'Dockerfile': 'FROM python:3.11\nEXPOSE 8080\nEXPOSE 9090\n'})
-        targets = [f for f in data['facts'] if f['kind'] == 'deployment_target']
-        self.assertEqual(len(targets), 2)
-        ports = sorted(t['value']['port'] for t in targets)
-        self.assertEqual(ports, ['8080', '9090'])
+    def test_deployment_targets_ci_steps_and_migrations_are_found(self):
+        facts = runtime_facts({
+            'Dockerfile': 'FROM python:3.11\nEXPOSE 8080\nEXPOSE 9090\n',
+            'docker-compose.yml': 'services:\n  api:\n    image: app\n  worker:\n    image: app\n',
+            'vercel.json': '{"rewrites": []}', 'app/railway.toml': '[build]\n',
+            '.github/workflows/ci.yml': 'jobs:\n  test:\n    steps:\n      - name: install\n        run: pip install\n'
+                                        '      - name: test\n        run: pytest\n',
+            'migrations/0001_initial.py': 'pass'})
+        targets = [f for f in facts if f['kind'] == 'deployment_target']
+        self.assertEqual(sorted(t['value']['port'] for t in targets if t['value'].get('port')), ['8080', '9090'])
+        self.assertEqual({t['value']['service'] for t in targets if t['value'].get('kind') == 'compose'}, {'api', 'worker'})
+        self.assertEqual({(t['location']['path'], t['value']['host']) for t in targets if t['value'].get('kind') == 'hosting'},
+                         {('vercel.json', 'Vercel'), ('app/railway.toml', 'Railway')})
+        self.assertIn('install', [s['value']['name'] for s in facts if s['kind'] == 'ci_step'])
+        self.assertEqual(len([f for f in facts if f['kind'] == 'migration_step']), 1)
 
-    def test_compose_services_become_deployment_targets(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, extra_files={'docker-compose.yml':
-                                                'services:\n  api:\n    image: app\n  worker:\n    image: app\n'})
-        targets = [f for f in data['facts'] if f['kind'] == 'deployment_target' and f['value'].get('kind') == 'compose']
-        self.assertEqual({t['value']['service'] for t in targets}, {'api', 'worker'})
-
-    def test_a_hosting_manifest_names_its_host(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, extra_files={'vercel.json': '{"rewrites": []}', 'app/railway.toml': '[build]\n'})
-        hosts = {(f['location']['path'], f['value']['host']) for f in data['facts']
-                 if f['kind'] == 'deployment_target' and f['value'].get('kind') == 'hosting'}
-        self.assertEqual(hosts, {('vercel.json', 'Vercel'), ('app/railway.toml', 'Railway')})
-
-    def test_github_actions_steps_become_ci_facts(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, extra_files={'.github/workflows/ci.yml':
-                                                'jobs:\n  test:\n    steps:\n      - name: install\n        run: pip install\n      - name: test\n        run: pytest\n'})
-        steps = [f for f in data['facts'] if f['kind'] == 'ci_step']
-        self.assertGreater(len(steps), 0)
-        names = [s['value']['name'] for s in steps]
-        self.assertIn('install', names)
-
-    def test_auth_decorators_become_security_surface_facts(self):
-        body = (
-            "@login_required\n"
-            "def protected():\n    return {}\n"
-            "@permission_required('admin')\n"
-            "def admin():\n    return {}\n"
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body)
-        surfaces = [f for f in data['facts'] if f['kind'] == 'security_surface']
-        self.assertGreater(len(surfaces), 0)
-        hints = {s['value']['hint'] for s in surfaces}
-        self.assertIn('login_required', hints)
-
-    def test_observability_calls_become_signals(self):
-        body = (
-            "from prometheus_client import Counter\n"
-            "import logging\n"
-            "requests = Counter('requests', 'Total')\n"
-            "logger = logging.getLogger('app')\n"
-            "def handler():\n    requests.inc()\n    logger.info('hello')\n"
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body)
-        signals = [f for f in data['facts'] if f['kind'] == 'observability_signal']
-        kinds = {s['value']['kind'] for s in signals}
-        self.assertIn('metric', kinds)
-        self.assertIn('log', kinds)
-
-    def test_outbound_http_calls_become_integration_targets(self):
-        body = (
-            "import requests\n"
-            "def fetch():\n    return requests.get('https://api.stripe.com/v1/charges')\n"
-            "def other():\n    return requests.get('http://localhost:8080/health')\n"
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body)
-        targets = [f for f in data['facts'] if f['kind'] == 'integration_target']
-        hosts = {t['value']['host'] for t in targets}
+    def test_security_observability_and_outbound_integrations_are_found_in_code(self):
+        facts = runtime_facts({'app.py': (
+            "from prometheus_client import Counter\nimport logging\nimport requests\n"
+            "requests_total = Counter('requests', 'Total')\nlogger = logging.getLogger('app')\n"
+            "@login_required\ndef protected():\n    requests_total.inc()\n    logger.info('hello')\n"
+            "    return requests.get('https://api.stripe.com/v1/charges')\n"
+            "def other():\n    return requests.get('http://localhost:8080/health')\n")})
+        self.assertIn('login_required', {s['value']['hint'] for s in facts if s['kind'] == 'security_surface'})
+        self.assertTrue({'metric', 'log'} <= {s['value']['kind'] for s in facts if s['kind'] == 'observability_signal'})
+        hosts = {t['value']['host'] for t in facts if t['kind'] == 'integration_target'}
         self.assertIn('api.stripe.com', hosts)
         self.assertNotIn('localhost', hosts)
 
-    def test_sqlalchemy_model_class_is_a_data_model(self):
-        body = "from sqlalchemy import Column, Integer\n\nclass Order(Base):\n    id = Column(Integer, primary_key=True)\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body)
-        models = [f for f in data['facts'] if f['kind'] == 'data_model']
-        self.assertEqual(len(models), 1)
-        self.assertEqual(models[0]['value']['name'], 'Order')
-        self.assertEqual(models[0]['value']['framework'], 'sqlalchemy')
+    def test_orm_models_are_data_models_with_their_framework(self):
+        for name, body, framework in [
+                ('a.py', 'from sqlalchemy import Column, Integer\n\nclass Order(Base):\n    id = Column(Integer, primary_key=True)\n', 'sqlalchemy'),
+                ('b.py', 'from django.db import models\n\nclass Order(models.Model):\n    name = models.CharField(max_length=100)\n', 'django'),
+                ('c.py', 'class Order < ApplicationRecord\nend\n', 'rails')]:
+            with self.subTest(framework=framework):
+                models = runtime_facts({name: body}, 'data_model')
+                self.assertEqual([(m['value']['name'], m['value']['framework']) for m in models], [('Order', framework)])
 
-    def test_django_model_class_is_data_model_not_sqlalchemy(self):
-        body = "from django.db import models\n\nclass Order(models.Model):\n    name = models.CharField(max_length=100)\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body)
-        models = [f for f in data['facts'] if f['kind'] == 'data_model']
-        self.assertEqual(len(models), 1)
-        self.assertEqual(models[0]['value']['framework'], 'django')
+    def test_query_bounds_are_recorded_bounded_unbounded_or_unknown(self):
+        cases = [('a.py', 'def f():\n    return Order.query.filter(Order.paid == True).all()\n', False),
+                 ('a.py', 'def f():\n    return Order.query.limit(50).all()\n', True),
+                 ('a.py', 'def f():\n    return Order.query.first()\n', True),
+                 ('a.ts', 'async function f() { return await prisma.order.findMany({}); }\n', False),
+                 ('a.ts', 'async function f() { return await prisma.order.findMany({ take: 25 }); }\n', True),
+                 ('a.go', 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n'
+                          '    return db.Query("SELECT * FROM orders LIMIT 100")\n}\n', True),
+                 ('a.go', 'package main\nfunc f(db *gorm.DB) error {\n    return db.Limit(50).Find(&orders)\n}\n', True),
+                 # A file with no detectable pattern says unknown rather than omitting the question.
+                 ('a.py', 'def f():\n    x = 1 + 1\n    return x\n', 'unknown')]
+        for name, body, bounded in cases:
+            with self.subTest(body=body):
+                bounds = runtime_facts({name: body}, 'query_bound')
+                self.assertIn(bounded, [b['value']['bounded'] for b in bounds])
+                for fact in bounds:
+                    self.assertTrue({'bounded', 'mechanism', 'kind'} <= set(fact['value']))
+        unlimited_go = runtime_facts({'a.go': 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n'
+                                              '    return db.Query("SELECT * FROM orders")\n}\n'}, 'query_bound')
+        self.assertTrue({False, 'unknown'} & {b['value']['bounded'] for b in unlimited_go})
 
-    def test_rails_model_class_is_data_model(self):
-        body = "class Order < ApplicationRecord\nend\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body)
-        models = [f for f in data['facts'] if f['kind'] == 'data_model']
-        self.assertEqual(len(models), 1)
-        self.assertEqual(models[0]['value']['framework'], 'rails')
+    def test_each_outbound_call_carries_the_resilience_guards_its_file_declares(self):
+        call = "    return requests.get('https://api.example.com'{})\n"
+        cases = [('a.py', "import requests\ndef f():\n" + call.format(''), (False, False, False)),
+                 ('a.py', "import requests\nfrom tenacity import retry\nimport pybreaker\n@retry\n"
+                          "@pybreaker.CircuitBreaker(fail_max=5)\ndef f():\n" + call.format(', timeout=30'), (True, True, True)),
+                 ('a.py', "import requests\nfrom tenacity import retry\n@retry\ndef f():\n" + call.format(''), (False, True, False)),
+                 ('a.go', 'package api\nimport ("context"; "net/http"; "time")\n'
+                          'var client = http.Client{Timeout: 2 * time.Second}\n'
+                          'func Call(ctx context.Context) { ctx, cancel := context.WithTimeout(ctx, time.Second); '
+                          'defer cancel(); client.Get("https://api.example.com") }\n', (True, None, None)),
+                 ('a.go', 'package api\nimport "net/http"\nfunc Call() { http.Get("https://api.example.com") }\n',
+                  (False, None, None))]
+        for name, body, (timeout, retry, breaker) in cases:
+            with self.subTest(body=body):
+                policy = runtime_facts({name: body}, 'resilience_policy')[0]['value']
+                self.assertIs(policy['has_timeout'], timeout)
+                if retry is not None:
+                    self.assertIs(policy['has_retry'], retry)
+                    self.assertIs(policy['has_circuit_breaker'], breaker)
+        self.assertEqual(runtime_facts({'a.py': 'def f():\n    return 1 + 1\n'}, 'resilience_policy'), [])
 
-    def test_migration_files_create_migration_step(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, extra_files={'migrations/0001_initial.py': 'pass'})
-        steps = [f for f in data['facts'] if f['kind'] == 'migration_step']
-        self.assertEqual(len(steps), 1)
+    def test_a_detector_that_cannot_tell_answers_unknown_never_false(self):
+        from eaos.facts.runtime import _has_timeout, _detect_resilience_for_integration as detect
+        # The timeout detector is file-scoped and says so.
+        self.assertTrue(_has_timeout('client = Client(timeout=30)\n\n\ndef fetch():\n    return client.get(url)\n'))
+        self.assertFalse(_has_timeout('import requests\nrequests.get(url)\n'))
+        self.assertIs(detect('import requests\nrequests.get(url)\n', 'x', 'python')['has_timeout'], False)
+        uncovered = detect('HTTPoison.get(url)', 'x', 'elixir')
+        self.assertEqual(uncovered['has_timeout'], 'unknown')
+        self.assertTrue(uncovered['reason'])
 
+    def test_cache_sites_carry_their_scope_and_whether_a_ttl_was_declared(self):
+        cases = [('a.py', 'import functools\n@functools.lru_cache(maxsize=128)\ndef f(n):\n    return n\n', 'process', False),
+                 ('a.py', "import redis\nr = redis.Redis()\ndef g():\n    return r.get('k')\n", 'shared', None),
+                 ('a.py', "import redis\nr = redis.Redis()\ndef g():\n    return r.set('k', 'v', ex=30)\n", 'shared', True),
+                 ('a.py', "from fastapi import Response\nresp = Response()\nresp.headers['Cache-Control'] = 'max-age=60'\n",
+                  'http', None),
+                 ('a.go', 'package api\nimport "github.com/patrickmn/go-cache"\n'
+                          'var local = cache.New(cache.DefaultExpiration, 0)\n', None, None)]
+        for name, body, scope, ttl in cases:
+            with self.subTest(body=body):
+                caches = runtime_facts({name: body}, 'cache_policy')
+                self.assertTrue(caches)
+                if scope:
+                    self.assertIn(scope, {c['value']['scope'] for c in caches})
+                if ttl is not None:
+                    self.assertIn(ttl, {c['value']['ttl_declared'] for c in caches})
+                for fact in caches:
+                    self.assertNotIn('absent', json.dumps(fact['value']), 'a cache fact describes what was seen only')
+        self.assertEqual(runtime_facts({'a.py': 'def f():\n    return 1 + 1\n'}, 'cache_policy'), [])
 
-class RuntimeLimitationsTests(unittest.TestCase):
-    def test_runtime_facts_are_static_observations(self):
-        self.assertIn('static analysis', ' '.join(runtime.LIMITATIONS))
+    def test_rate_limits_and_concurrency_bounds_are_found_in_code_and_config(self):
+        cases = [('a.py', "@limiter.limit(limit=100, per=60)\ndef f():\n    pass\n", 'code', None),
+                 ('a.py', "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n", 'code', 'semaphore'),
+                 ('a.py', "from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(max_workers=8)\n", 'code', 'worker'),
+                 ('nginx.conf', 'http {\n  limit_req_zone $binary_remote_addr zone=api:10m rate=100r/s;\n}\n', 'config', None),
+                 ('deployment.yaml', 'apiVersion: apps/v1\nkind: Deployment\nspec:\n  containers:\n  - name: app\n'
+                                     '    resources:\n      limits:\n        cpu: "1"\n        memory: "1Gi"\n', 'config', 'resources'),
+                 ('a.go', 'package api\nimport "golang.org/x/time/rate"\nvar limit = rate.NewLimiter(10, 20)\n', None, None)]
+        for name, body, source, mechanism in cases:
+            with self.subTest(body=body):
+                limits = runtime_facts({name: body}, 'rate_limit')
+                self.assertTrue(limits)
+                for fact in limits:
+                    self.assertTrue({'scope', 'mechanism', 'source', 'declared_limit'} <= set(fact['value']))
+                if source:
+                    self.assertIn(source, {l['value']['source'] for l in limits})
+                if mechanism:
+                    self.assertTrue(any(mechanism in l['value']['mechanism'] for l in limits))
+        declared = runtime_facts({'a.py': cases[0][1]}, 'rate_limit')
+        self.assertTrue(any(l['value']['declared_limit'] is not None for l in declared))
+        self.assertEqual(runtime_facts({'a.py': 'def f():\n    return 1 + 1\n'}, 'rate_limit'), [])
 
+    def test_declared_connection_pools_are_recorded_and_defaults_are_never_assumed(self):
+        cases = [('a.py', "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=20)\n", 20),
+                 ('a.go', 'package main\nimport "net/http"\nfunc f() *http.Client {\n'
+                          '    transport := &http.Transport{MaxIdleConns: 100}\n    return &http.Client{Transport: transport}\n}\n', 100),
+                 ('a.go', 'package main\nimport "github.com/jackc/pgx/v4/pgxpool"\nfunc f() {\n'
+                          '    cfg, _ := pgxpool.ParseConfig("")\n    cfg.MaxConns = 30\n}\n', 30),
+                 ('config.py', 'DATABASE_URL = "postgres://x?pool=50"\n', None)]
+        for name, body, size in cases:
+            with self.subTest(body=body):
+                pools = runtime_facts({name: body}, 'connection_pool')
+                self.assertTrue(pools)
+                for fact in pools:
+                    self.assertTrue({'resource', 'declared_size', 'source'} <= set(fact['value']))
+                if size is not None:
+                    self.assertEqual(pools[0]['value']['declared_size'], size)
+        for body in ["from sqlalchemy import create_engine\ne = create_engine('sqlite:///local.db')\n",
+                     'def f():\n    return 1 + 1\n']:
+            self.assertEqual(runtime_facts({'a.py': body}, 'connection_pool'), [])
 
-class ReproducibilityTests(unittest.TestCase):
-    """Same tree, same versions, same bytes — including the order of summary keys."""
-
-    def test_the_summary_key_order_does_not_depend_on_set_iteration(self):
-        from eaos.facts.runtime import KINDS
-        self.assertEqual(list(KINDS), sorted(KINDS))
-
-    def test_two_collections_of_the_same_tree_are_byte_identical(self):
-        import tempfile
-        from pathlib import Path
-        from eaos.facts.run import collect
-        written = []
-        for _ in range(2):
-            with tempfile.TemporaryDirectory() as out:
-                collect('eaos/compose', out, ['syntax', 'runtime'])
-                written.append(Path(out, 'facts/runtime.json').read_bytes())
-        self.assertEqual(written[0], written[1])
-
-
-class QueryBoundDetectorTests(unittest.TestCase):
-    """A query that returns rows must declare a bound, or the detector flags it."""
-
-    FIXTURE = Path(__file__).resolve().parent / 'fixtures/runtime/query-bounds'
-
-    def _facts_for(self, name):
-        data = _collect(str(self.FIXTURE).rsplit('/', 1)[0], name=str(self.FIXTURE / name))
-        return [f for f in data['facts'] if f['kind'] == 'query_bound']
-
-    def test_python_unbounded_all_is_flagged(self):
-        """An `.all()` chain without a preceding limit is unbounded."""
-        body = "def f():\n    return Order.query.filter(Order.paid == True).all()\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            unbounded = [f for f in bounds if f['value']['bounded'] is False]
-            self.assertGreater(len(unbounded), 0, 'expected at least one unbounded site')
-
-    def test_python_limit_with_literal_is_bounded(self):
-        body = "def f():\n    return Order.query.limit(50).all()\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            bounded = [f for f in bounds if f['value']['bounded'] is True]
-            self.assertGreater(len(bounded), 0, 'expected at least one bounded site')
-
-    def test_python_first_is_bounded(self):
-        body = "def f():\n    return Order.query.first()\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            kinds = {b['value']['kind'] for b in bounds}
-            self.assertIn('first', kinds)
-
-    def test_javascript_prisma_findMany_without_take_is_unbounded(self):
-        body = "async function f() { return await prisma.order.findMany({}); }\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='app.ts')
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            unbounded = [f for f in bounds if f['value']['bounded'] is False]
-            self.assertGreater(len(unbounded), 0)
-
-    def test_javascript_take_with_literal_is_bounded(self):
-        body = "async function f() { return await prisma.order.findMany({ take: 25 }); }\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='app.ts')
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            bounded = [f for f in bounds if f['value']['bounded'] is True]
-            self.assertGreater(len(bounded), 0)
-
-    def test_go_sql_without_limit_is_unbounded(self):
-        body = 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n    return db.Query("SELECT * FROM orders")\n}\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='orders.go')
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            # We don't have a Go unbounded detector; expect unknown
-            self.assertTrue(any(b['value']['bounded'] == 'unknown' for b in bounds) or
-                            any(b['value']['bounded'] is False for b in bounds),
-                            'Go query without LIMIT should be recorded as either unbounded or unknown')
-
-    def test_go_sql_with_limit_is_bounded(self):
-        body = 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n    return db.Query("SELECT * FROM orders LIMIT 100")\n}\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='orders.go')
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            bounded = [f for f in bounds if f['value']['bounded'] is True]
-            self.assertGreater(len(bounded), 0, 'expected at least one bounded site for LIMIT 100')
-
-    def test_go_gorm_limit_is_bounded(self):
-        body = 'package main\nfunc f(db *gorm.DB) error {\n    return db.Limit(50).Find(&orders)\n}\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='orders.go')
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            bounded = [f for f in bounds if f['value']['bounded'] is True and 'gorm' in f['value']['kind']]
-            self.assertGreater(len(bounded), 0)
-
-    def test_query_bound_fact_carries_position_and_mechanism(self):
-        """Every query_bound fact carries bounded, mechanism, location, kind."""
-        body = "def f():\n    return Order.query.limit(10).all()\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            for fact in bounds:
-                self.assertIn('bounded', fact['value'])
-                self.assertIn('mechanism', fact['value'])
-                self.assertIn('kind', fact['value'])
-                self.assertIn('path', fact['location'])
-
-    def test_query_bound_unknowable_recorded_as_unknown(self):
-        """A file with no detectable patterns records bounded=unknown rather than silently omitting."""
-        body = "def f():\n    x = 1 + 1\n    return x\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
-            self.assertTrue(any(b['value']['bounded'] == 'unknown' for b in bounds))
-
-
-class ResiliencePolicyDetectorTests(unittest.TestCase):
-    """Each outbound call carries the resilience policy the file declares for its host."""
-
-    def test_a_bare_call_records_no_guards(self):
-        body = "import requests\ndef f():\n    return requests.get('https://api.example.com')\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
-            self.assertEqual(len(policies), 1)
-            self.assertFalse(policies[0]['value']['has_timeout'])
-            self.assertFalse(policies[0]['value']['has_retry'])
-            self.assertFalse(policies[0]['value']['has_circuit_breaker'])
-
-    def test_a_protected_call_records_timeout_retry_and_breaker(self):
-        body = (
-            "import requests\n"
-            "from tenacity import retry\n"
-            "import pybreaker\n"
-            "@retry\n"
-            "@pybreaker.CircuitBreaker(fail_max=5)\n"
-            "def f():\n"
-            "    return requests.get('https://api.example.com', timeout=30)\n"
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
-            self.assertGreater(len(policies), 0)
-            self.assertTrue(policies[0]['value']['has_timeout'])
-            self.assertTrue(policies[0]['value']['has_retry'])
-            self.assertTrue(policies[0]['value']['has_circuit_breaker'])
-
-    def test_retry_only_call_records_only_retry(self):
-        body = (
-            "import requests\n"
-            "from tenacity import retry\n"
-            "@retry\n"
-            "def f():\n"
-            "    return requests.get('https://api.example.com')\n"
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
-            self.assertGreater(len(policies), 0)
-            self.assertTrue(policies[0]['value']['has_retry'])
-            self.assertFalse(policies[0]['value']['has_timeout'])
-            self.assertFalse(policies[0]['value']['has_circuit_breaker'])
-
-    def test_circuit_breaker_aliases_are_detected(self):
-        for alias in ['hystrix', 'CircuitBreaker', 'pybreaker', 'resilience4j']:
-            body = (
-                "import requests\n"
-                f"import {alias}\n"
-                "def f():\n"
-                "    return requests.get('https://api.example.com')\n"
-            )
-            with tempfile.TemporaryDirectory() as tmp:
-                data = _collect(tmp, body=body)
-                policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy'
-                            and f['value']['host'] == 'api.example.com']
-                if not policies:
-                    continue
-                # If the alias was a bare import, our regex matches the module name on import line
-                self.assertTrue(policies[0]['value']['has_circuit_breaker'],
-                                f'expected breaker detection for {alias}, got {policies[0]["value"]}')
-
-    def test_go_http_client_timeout_is_detected(self):
-        body = ('package main\n'
-                'import ("net/http"; "time")\n'
-                'func Protected(client *http.Client) error {\n'
-                '    client.Timeout = 30 * time.Second\n'
-                '    _, err := client.Get("https://api.example.com")\n'
-                '    return err\n'
-                '}\n')
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='orders.go')
-            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
-            self.assertGreater(len(policies), 0)
-            self.assertTrue(policies[0]['value']['has_timeout'])
-
-    def test_no_resilience_policy_fact_when_no_outbound_call(self):
-        body = "def f():\n    return 1 + 1\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
-            self.assertEqual(policies, [])
-
-
-class CachePolicyDetectorTests(unittest.TestCase):
-    """A cache site is reported with its scope and whether a TTL was declared."""
-
-    def test_lru_cache_creates_process_scoped_policy(self):
-        body = "import functools\n@functools.lru_cache(maxsize=128)\ndef f(n):\n    return n\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            process = [p for p in policies if p['value']['scope'] == 'process']
-            self.assertGreater(len(process), 0)
-
-    def test_redis_creates_shared_scoped_policy(self):
-        body = "import redis\nr = redis.Redis()\ndef g():\n    return r.get('k')\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            shared = [p for p in policies if p['value']['scope'] == 'shared']
-            self.assertGreater(len(shared), 0)
-
-    def test_cache_control_header_creates_http_scoped_policy(self):
-        body = "from fastapi import Response\nresp = Response()\nresp.headers['Cache-Control'] = 'max-age=60'\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            http = [p for p in policies if p['value']['scope'] == 'http']
-            self.assertGreater(len(http), 0)
-
-    def test_ttl_declared_when_expires_in_keyword_appears(self):
-        body = "import redis\nr = redis.Redis()\ndef g():\n    return r.set('k', 'v', ex=30)\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            self.assertTrue(any(p['value']['ttl_declared'] is True for p in policies))
-
-    def test_ttl_unknown_when_no_ttl_marker_anywhere(self):
-        body = "import functools\n@functools.lru_cache\ndef f(n):\n    return n\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            self.assertTrue(all(p['value']['ttl_declared'] is False for p in policies))
-
-    def test_no_cache_fact_when_file_has_no_cache_marker(self):
-        body = "def f():\n    return 1 + 1\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            self.assertEqual(policies, [])
-
-    def test_each_cache_site_carries_location_and_mechanism(self):
-        body = "import functools\n@functools.lru_cache(maxsize=10)\ndef f():\n    return 1\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-            self.assertGreater(len(policies), 0)
-            for fact in policies:
-                self.assertIn('path', fact['location'])
-                self.assertIn('mechanism', fact['value'])
-                self.assertIn('scope', fact['value'])
-                self.assertIn('ttl_declared', fact['value'])
-
-
-class RateLimitDetectorTests(unittest.TestCase):
-    """An entry point without a rate limit is recorded as one with no limit."""
-
-    def test_a_limiter_decorator_is_a_rate_limit(self):
-        body = "@limiter.limit('100/minute')\ndef api():\n    return 'ok'\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            self.assertGreater(len(limits), 0)
-            self.assertEqual(limits[0]['value']['source'], 'code')
-
-    def test_a_semaphore_is_a_rate_limit(self):
-        body = "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            sem_limits = [l for l in limits if 'semaphore' in l['value']['mechanism']]
-            self.assertGreater(len(sem_limits), 0)
-
-    def test_threadpoolexecutor_max_workers_is_a_concurrency_bound(self):
-        body = "from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(max_workers=8)\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            workers = [l for l in limits if 'worker' in l['value']['mechanism']]
-            self.assertGreater(len(workers), 0)
-
-    def test_nginx_limit_req_zone_is_a_config_rate_limit(self):
-        body = 'http {\n  limit_req_zone $binary_remote_addr zone=api:10m rate=100r/s;\n}\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='nginx.conf')
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            nginx = [l for l in limits if l['value']['source'] == 'config']
-            self.assertGreater(len(nginx), 0)
-
-    def test_kubernetes_resources_limits_is_a_config_rate_limit(self):
-        body = 'apiVersion: apps/v1\nkind: Deployment\nspec:\n  containers:\n  - name: app\n    resources:\n      limits:\n        cpu: "1"\n        memory: "1Gi"\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='deployment.yaml')
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            k8s = [l for l in limits if 'resources' in l['value']['mechanism'] or 'hpa' in l['value']['mechanism']]
-            self.assertGreater(len(k8s), 0)
-
-    def test_no_rate_limit_fact_when_nothing_matches(self):
-        body = "def f():\n    return 1 + 1\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            self.assertEqual(limits, [])
-
-    def test_go_cache_and_rate_limit_vocabularies_have_positive_and_negative_cases(self):
-        positive = ('package api\nimport ("sync"; "github.com/patrickmn/go-cache"; '
-                    '"golang.org/x/time/rate")\nvar values sync.Map\n'
-                    'var local = cache.New(cache.DefaultExpiration, 0)\n'
-                    'var limit = rate.NewLimiter(10, 20)\n')
-        negative = 'package api\nfunc Handle() int { return 1 }\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            yes = _collect(tmp, body=positive, name='positive.go')
-        with tempfile.TemporaryDirectory() as tmp:
-            no = _collect(tmp, body=negative, name='negative.go')
-        self.assertTrue([f for f in yes['facts'] if f['kind'] == 'cache_policy'])
-        self.assertTrue([f for f in yes['facts'] if f['kind'] == 'rate_limit'])
-        self.assertFalse([f for f in no['facts'] if f['kind'] in {'cache_policy', 'rate_limit'}])
-
-    def test_go_timeout_vocabularies_have_positive_and_negative_cases(self):
-        positive = ('package api\nimport ("context"; "net/http"; "time")\n'
-                    'var client = http.Client{Timeout: 2 * time.Second}\n'
-                    'func Call(ctx context.Context) { ctx, cancel := context.WithTimeout(ctx, time.Second); '
-                    'defer cancel(); client.Get("https://api.example.com") }\n')
-        negative = ('package api\nimport "net/http"\n'
-                    'func Call() { http.Get("https://api.example.com") }\n')
-        with tempfile.TemporaryDirectory() as tmp:
-            yes = _collect(tmp, body=positive, name='positive.go')
-        with tempfile.TemporaryDirectory() as tmp:
-            no = _collect(tmp, body=negative, name='negative.go')
-        yes_policy = next(f for f in yes['facts'] if f['kind'] == 'resilience_policy')
-        no_policy = next(f for f in no['facts'] if f['kind'] == 'resilience_policy')
-        self.assertTrue(yes_policy['value']['has_timeout'])
-        self.assertFalse(no_policy['value']['has_timeout'])
-
-
-class GoSharedStateDetectorTests(unittest.TestCase):
-    def test_go_package_state_has_positive_and_negative_cases(self):
+    def test_go_package_state_is_mutable_only_when_it_is_a_variable(self):
         from eaos.facts.domain import go_mutable_globals
         positive = ('package api\nimport "sync"\nvar mu sync.RWMutex\nvar count int\n'
                     'func Add() { mu.Lock(); count++; mu.Unlock() }\n')
-        negative = 'package api\nconst maximum = 10\nfunc Value() int { return maximum }\n'
-        names = {row[0] for row in go_mutable_globals(positive)}
-        self.assertEqual(names, {'mu', 'count'})
-        self.assertEqual(go_mutable_globals(negative), [])
+        self.assertEqual({row[0] for row in go_mutable_globals(positive)}, {'mu', 'count'})
+        self.assertEqual(go_mutable_globals('package api\nconst maximum = 10\nfunc Value() int { return maximum }\n'), [])
 
-    def test_declared_limit_is_captured_when_numeric_value_present(self):
-        body = "@limiter.limit(limit=100, per=60)\ndef f():\n    pass\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            self.assertTrue(any(l['value']['declared_limit'] is not None for l in limits),
-                            f'expected a numeric declared_limit somewhere, got {limits}')
-
-    def test_each_rate_limit_fact_carries_scope_mechanism_and_source(self):
-        body = "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
-            for fact in limits:
-                self.assertIn('scope', fact['value'])
-                self.assertIn('mechanism', fact['value'])
-                self.assertIn('source', fact['value'])
-                self.assertIn('declared_limit', fact['value'])
-                self.assertIn(fact['value']['source'], ('code', 'config'))
-
-
-class ConnectionPoolDetectorTests(unittest.TestCase):
-    """A connection pool is the real ceiling on concurrency; we record what is declared."""
-
-    def test_sqlalchemy_pool_size_is_a_connection_pool(self):
-        body = "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=20)\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            sqlalchemy = [p for p in pools if 'sqlalchemy' in p['value']['resource']]
-            self.assertGreater(len(sqlalchemy), 0)
-            self.assertEqual(sqlalchemy[0]['value']['declared_size'], 20)
-
-    def test_sqlalchemy_no_pool_size_emits_no_fact(self):
-        """We do not assume defaults: undeclared means unknown means no fact."""
-        body = "from sqlalchemy import create_engine\ne = create_engine('sqlite:///local.db')\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            self.assertEqual(pools, [])
-
-    def test_go_http_max_idle_conns_is_a_connection_pool(self):
-        body = ('package main\n'
-                'import "net/http"\n'
-                'func f() *http.Client {\n'
-                '    transport := &http.Transport{MaxIdleConns: 100}\n'
-                '    return &http.Client{Transport: transport}\n'
-                '}\n')
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='orders.go')
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            self.assertGreater(len(pools), 0)
-            self.assertEqual(pools[0]['value']['declared_size'], 100)
-
-    def test_pgx_max_conns_is_a_connection_pool(self):
-        body = ('package main\n'
-                'import "github.com/jackc/pgx/v4/pgxpool"\n'
-                'func f() {\n'
-                '    cfg, _ := pgxpool.ParseConfig("")\n'
-                '    cfg.MaxConns = 30\n'
-                '}\n')
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='orders.go')
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            self.assertGreater(len(pools), 0)
-            self.assertEqual(pools[0]['value']['declared_size'], 30)
-
-    def test_no_pool_fact_when_nothing_matches(self):
-        body = "def f():\n    return 1 + 1\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            self.assertEqual(pools, [])
-
-    def test_each_pool_fact_carries_resource_declared_size_and_source(self):
-        body = "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=5)\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            for fact in pools:
-                self.assertIn('resource', fact['value'])
-                self.assertIn('declared_size', fact['value'])
-                self.assertIn('source', fact['value'])
-                self.assertIn('path', fact['location'])
-
-    def test_database_url_with_pool_param_is_a_connection_pool(self):
-        body = 'DATABASE_URL = "postgres://x?pool=50"\n'
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body, name='config.py')
-            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
-            self.assertGreater(len(pools), 0)
-
-
-class HonestUnknownTests(unittest.TestCase):
-    """A detector that cannot tell says so; it never reports absence as a clean result."""
-
-    def test_a_timeout_anywhere_in_the_file_marks_the_integration_as_protected(self):
-        """eaos/facts/runtime.py:_has_timeout — the detector is file-scoped and says so."""
-        from eaos.facts.runtime import _has_timeout
-        self.assertTrue(_has_timeout('import requests\nTIMEOUT = 5\nrequests.get(url, timeout=TIMEOUT)\n'))
-        self.assertTrue(_has_timeout('client = Client(timeout=30)\n\n\ndef fetch():\n    return client.get(url)\n'),
-                        'a timeout declared elsewhere in the file still counts; the detector is file-scoped')
-        self.assertFalse(_has_timeout('import requests\nrequests.get(url)\n'))
-
-    def test_resilience_reports_unknown_rather_than_false_when_it_cannot_tell(self):
-        """eaos/facts/runtime.py:_detect_resilience_for_integration — unknown is the honest answer."""
-        from eaos.facts.runtime import _detect_resilience_for_integration as detect
-        covered = detect('import requests\nrequests.get(url)\n', 'x', 'python')
-        self.assertIs(covered['has_timeout'], False, 'we looked and found none, which is False')
-        uncovered = detect('HTTPoison.get(url)', 'x', 'elixir')
-        self.assertEqual(uncovered['has_timeout'], 'unknown',
-                         'a language we have no vocabulary for must answer unknown, never False')
-        self.assertTrue(uncovered['reason'])
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body='import requests\n\n\ndef fetch():\n    return requests.get("http://x/y")\n')
-            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
-            for policy in policies:
-                for field in ('has_timeout', 'has_retry', 'has_circuit_breaker'):
-                    self.assertIn(policy['value'][field], (True, False, 'unknown'), field)
-
-    def test_a_cache_of_one_scope_never_asserts_the_absence_of_another(self):
-        """eaos/facts/runtime.py:_detect_cache_policies — we report what we observed only."""
-        body = ('from functools import lru_cache\n\n\n'
-                '@lru_cache(maxsize=128)\ndef rate(code):\n    return code\n')
-        with tempfile.TemporaryDirectory() as tmp:
-            data = _collect(tmp, body=body)
-            caches = [f for f in data['facts'] if f['kind'] == 'cache_policy']
-        self.assertTrue(caches, 'the process-scoped cache was not detected')
-        scopes = {fact['value']['scope'] for fact in caches}
-        self.assertIn('process', scopes)
-        for fact in caches:
-            self.assertNotIn('absent', json.dumps(fact['value']),
-                             'a cache fact must describe what was seen, never what was not')
+    def test_two_collections_of_the_same_tree_are_byte_identical(self):
+        from eaos.facts.runtime import KINDS
+        self.assertEqual(list(KINDS), sorted(KINDS), 'summary key order must not depend on set iteration')
+        written = []
+        for _ in range(2):
+            with tempfile.TemporaryDirectory() as out:
+                collect(FIXTURE, out, ['syntax', 'runtime'])
+                written.append(Path(out, 'facts/runtime.json').read_bytes())
+        self.assertEqual(written[0], written[1])

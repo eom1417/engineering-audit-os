@@ -51,7 +51,6 @@ function SnapshotBody({ request }: { request: CommandRequest }) {
   const w = useCmdWords()
   const { lang } = usePrefs()
   const toast = useToast()
-  const actions = useActions()
   return (
     <div className={css.pvBody}>
       <p className={css.pvLead}>{SNAPSHOT.text[lang]}</p>
@@ -67,7 +66,6 @@ function SnapshotBody({ request }: { request: CommandRequest }) {
       </ol>
       <p className={css.pvMuted}>{w('orAssistant')}</p>
       <CopyRequestButton request={requestText(request)[lang]} label={w('copyRequest')} block />
-      <Button variant="ghost" icon="play" block onPress={() => actions.startDemo()}>{w('watchExample')}</Button>
     </div>
   )
 }
@@ -295,7 +293,6 @@ export function PreviewSheet() {
     <Sheet isOpen onOpenChange={close} title={title}>
       {actions.mode === 'snapshot' ? <SnapshotBody request={request} /> : (
         <>
-          {actions.mode === 'demo' && <p className={css.demoNote}>{w('demoBanner')}</p>}
           {needsForm && (
             <Block title={w('inputs')}>
               <InputsForm fields={fields} required={required} values={values} onChange={(name, value) => { setValues((was) => ({ ...was, [name]: value })); setAsked(false) }} />

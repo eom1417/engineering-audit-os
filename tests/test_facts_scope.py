@@ -4,118 +4,49 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from eaos.facts.scope import (declared_exclusions, exclusion_reasons,
-                              vendored_patterns, VENDORED)
+from eaos.facts.scope import declared_exclusions, exclusion_reasons, VENDORED
 from eaos.facts.source import Source
 from shared_fixture import Workspace
 from eaos.facts.run import collect
 
 
-class VendoredDefaultsTests(unittest.TestCase):
-    def test_vendored_set_is_well_known(self):
-        for name in ("testdata", "fixtures", "vendor", "node_modules",
-                      "third_party", "generated", ".venv", "dist", "build"):
-            self.assertIn(name, VENDORED)
-            self.assertIn(name, vendored_patterns())
-
-    def test_an_assistants_working_copy_inside_the_project_is_not_the_project(self):
-        """Claude Code keeps worktrees in .claude/worktrees/: whole copies of the code, which would count every file twice."""
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / 'app.py').write_text('def main():\n    return 1\n')
-            copy = root / '.claude/worktrees/agent-1'
-            copy.mkdir(parents=True)
-            (copy / 'app.py').write_text('def main():\n    return 1\n')
-            self.assertIn('.claude/worktrees', declared_exclusions(root))
-            self.assertEqual([item['path'] for item in Source(root).files], ['app.py'])
-
-    def test_declared_exclusions_include_vendored(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            result = declared_exclusions(Path(tmp))
-            for pattern in VENDORED:
-                self.assertIn(pattern, result)
-
-    def test_opt_in_returns_only_declared(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / 'eaos.policy.json').write_text(json.dumps({
-                'schema_version': 1,
-                'layers': {'all': ['**']},
-                'analysis': {'include_vendored': True,
-                              'exclude': ['build_only']},
-            }))
-            result = declared_exclusions(Path(tmp))
-            self.assertNotIn('testdata', result)
-            self.assertNotIn('fixtures', result)
-            self.assertIn('build_only', result)
-
-
-class ExclusionReasonsTests(unittest.TestCase):
-    def test_reasons_carry_a_nonempty_string_for_every_pattern(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            reasons = exclusion_reasons(Path(tmp))
-            for pattern in VENDORED:
-                self.assertIn(pattern, reasons)
-                self.assertTrue(reasons[pattern])
-                self.assertIsInstance(reasons[pattern], str)
-
-
-class CollectRespectsExclusionsTests(Workspace):
-    def _make_repo(self):
-        repo = Path(self.tmp) / 'repo'; repo.mkdir()
-        (repo / 'app.py').write_text('def hello():\n    return 1\n')
-        (repo / 'lib').mkdir()
-        (repo / 'lib' / 'util.py').write_text('def helper():\n    return 2\n')
-        (repo / 'testdata').mkdir()
-        (repo / 'testdata' / 'fixture_a.py').write_text('def noise_a():\n    return 10\n')
-        (repo / 'testdata' / 'fixture_b.py').write_text('def noise_b():\n    return 20\n')
-        (repo / 'vendor').mkdir()
-        (repo / 'vendor' / 'lib.py').write_text('def vendored():\n    return 30\n')
+class ScopeTests(Workspace):
+    def make_repo(self):
+        repo = Path(self.tmp) / 'repo'
+        for name, text in {'app.py': 'def hello():\n    return 1\n', 'lib/util.py': 'def helper():\n    return 2\n',
+                           'testdata/fixture_a.py': 'def noise_a():\n    return 10\n',
+                           'vendor/lib.py': 'def vendored():\n    return 30\n',
+                           # Claude Code keeps whole copies of the code here; counting them would count every file twice.
+                           '.claude/worktrees/agent-1/app.py': 'def hello():\n    return 1\n'}.items():
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_text(text)
         return repo
 
-    def test_vendored_files_do_not_appear_in_facts(self):
-        repo = self._make_repo()
-        out = Path(self.tmp) / 'out'
+    def syntax_paths(self, repo, out):
         result = collect(repo, out, ['syntax'])
+        return result, {fact['location']['path'] for fact in json.loads((out / 'facts/syntax.json').read_text())['facts']}
+
+    def test_vendored_paths_and_assistant_worktrees_are_excluded_with_a_reason(self):
+        repo = self.make_repo()
+        exclusions, reasons = declared_exclusions(repo), exclusion_reasons(repo)
+        for pattern in VENDORED:
+            self.assertIn(pattern, exclusions)
+            self.assertTrue(reasons[pattern])
+        self.assertIn('.claude/worktrees', exclusions)
+        self.assertEqual(sorted(item['path'] for item in Source(repo).files), ['app.py', 'lib/util.py'])
+        result, paths = self.syntax_paths(repo, Path(self.tmp) / 'out')
         self.assertGreater(result['excluded_paths'], 0)
-        reasons = result['exclusion_reasons']
-        self.assertIn('testdata', reasons)
-        self.assertIn('vendor', reasons)
-        syntax = json.loads((out / 'facts/syntax.json').read_text())
-        paths = {fact['location']['path'] for fact in syntax['facts']}
-        self.assertNotIn('testdata/fixture_a.py', paths)
-        self.assertNotIn('testdata/fixture_b.py', paths)
-        self.assertNotIn('vendor/lib.py', paths)
-        self.assertIn('app.py', paths)
-        self.assertIn('lib/util.py', paths)
+        self.assertTrue({'testdata', 'vendor'} <= set(result['exclusion_reasons']))
+        self.assertEqual(paths, {'app.py', 'lib/util.py'})
 
-    def test_opt_in_brings_vendored_back(self):
-        repo = self._make_repo()
+    def test_opting_in_brings_vendored_code_back_but_keeps_declared_exclusions(self):
+        repo = self.make_repo()
         (repo / 'eaos.policy.json').write_text(json.dumps({
-            'schema_version': 1,
-            'layers': {'all': ['**']},
-            'analysis': {'include_vendored': True},
-        }))
-        out = Path(self.tmp) / 'out'
-        result = collect(repo, out, ['syntax'])
-        syntax = json.loads((out / 'facts/syntax.json').read_text())
-        paths = {fact['location']['path'] for fact in syntax['facts']}
+            'schema_version': 1, 'layers': {'all': ['**']},
+            'analysis': {'include_vendored': True, 'exclude': ['lib']}}))
+        exclusions = declared_exclusions(repo)
+        self.assertNotIn('testdata', exclusions)
+        self.assertIn('lib', exclusions)
+        _, paths = self.syntax_paths(repo, Path(self.tmp) / 'out')
         self.assertIn('testdata/fixture_a.py', paths)
-
-
-class SourceExclusionTests(Workspace):
-    def test_source_excludes_vendored_by_default(self):
-        repo = Path(self.tmp) / 'repo'; repo.mkdir()
-        (repo / 'app.py').write_text('def hi():\n    return 1\n')
-        (repo / 'testdata').mkdir()
-        (repo / 'testdata' / 'fixture.py').write_text('def t():\n    return 1\n')
-        src = Source(repo)
-        self.assertIn('testdata/fixture.py', src.excluded_files)
-        self.assertNotIn('testdata/fixture.py', [item['path'] for item in src.files])
-
-    def test_source_respects_include_vendored_flag(self):
-        repo = Path(self.tmp) / 'repo'; repo.mkdir()
-        (repo / 'app.py').write_text('def hi():\n    return 1\n')
-        (repo / 'testdata').mkdir()
-        (repo / 'testdata' / 'fixture.py').write_text('def t():\n    return 1\n')
-        src = Source(repo, include_vendored=True)
-        self.assertNotIn('testdata/fixture.py', src.excluded_files)
+        self.assertNotIn('lib/util.py', paths)

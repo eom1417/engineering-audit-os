@@ -227,12 +227,12 @@ def falsifier_of(claim, language):
 # Which artifact carries the detail behind each kind of claim, so a reader is never left searching.
 DETAIL_ARTIFACT = {
     'cycle': 'COUPLING-ATLAS.md', 'cochange': 'EVOLUTION.md', 'duplicated_rule': 'DOMAIN-AND-DATA.md',
-    'trace_gap': 'FLOWS.md', 'hotspot': 'COUPLING-ATLAS.md', 'mutable_global': 'DOMAIN-AND-DATA.md', 'access_gap_no_rls': 'SECURITY-SURFACE.md', 'access_gap_open_write': 'SECURITY-SURFACE.md',
-    'external_write': 'DOMAIN-AND-DATA.md', 'untested': 'VERIFICATION-MAP.md', 'policy': 'POLICY.md',
-    'structural_duplicate': 'SUSTAINABILITY.md', 'sequence_duplicate': 'SUSTAINABILITY.md',
-    'redundant_work': 'SUSTAINABILITY.md', 'engine_cluster': 'ENGINES.md', 'load_blocker': 'LOAD-MODEL.md',
+    'trace_gap': 'FLOWS.md', 'hotspot': 'COUPLING-ATLAS.md', 'mutable_global': 'DOMAIN-AND-DATA.md', 'access_gap_no_rls': 'RISK-REGISTER.md', 'access_gap_open_write': 'RISK-REGISTER.md',
+    'external_write': 'DOMAIN-AND-DATA.md', 'untested': 'RISK-REGISTER.md', 'policy': 'POLICY.md',
+    'structural_duplicate': 'DOMAIN-AND-DATA.md', 'sequence_duplicate': 'DOMAIN-AND-DATA.md',
+    'redundant_work': 'DOMAIN-AND-DATA.md', 'engine_cluster': 'ENGINES.md', 'load_blocker': 'LOAD-MODEL.md',
     'dead_code': 'SYSTEM-MAP.md', 'dead_code_review': 'SYSTEM-MAP.md', 'broken_code': 'SYSTEM-MAP.md',
-    'vulnerable_dependency': 'SECURITY-SURFACE.md',
+    'vulnerable_dependency': 'ENGINES.md',
 }
 
 

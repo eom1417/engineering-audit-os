@@ -20,7 +20,7 @@ export function TierStrip({ dp, vertical }: { dp: DataPaths; vertical?: boolean 
         const { known } = tierCounts(dp.paths, tier)
         const share = total ? known / total : 0
         const row = dp.tiers.find((t) => t.id === tier)
-        const why = row?.gaps.map((g) => `${w(`gap_${g.reason}` as DataWord)} (${w('stepWord', { s: g.step })})`).join(' · ')
+        const why = row?.gaps.map((g) => w(`gap_${g.reason}` as DataWord)).join(' · ')
         return (
           <li key={tier} className={css.tier} title={why || undefined}>
             <span className={css.tierName} title={w(`tier_${tier}`)} data-truncate>{w(`tier_${tier}`)}</span>
@@ -40,11 +40,11 @@ function SiteRef({ site }: { site: Site }) {
 }
 
 /** One write as its seven links, in order; a link the records do not reach is a hatched gap with its reason. */
-export function Chain({ path, endpoint, steps }: { path: WritePath; endpoint?: Endpoint; steps: Record<string, string> }) {
+function Chain({ path, endpoint }: { path: WritePath; endpoint?: Endpoint }) {
   const w = useDataWords()
   const value = (tier: Tier) => {
     const step = path.steps[tier]
-    if (step.state === 'gap') return <span className={css.gapText}>{w(`gap_${step.reason}` as DataWord)}{steps[step.reason ?? ''] ? ` · ${w('stepWord', { s: steps[step.reason ?? ''] })}` : ''}</span>
+    if (step.state === 'gap') return <span className={css.gapText}>{w(`gap_${step.reason}` as DataWord)}</span>
     if (step.state === 'direct') return <span className={css.muted}>{w('direct')}</span>
     if (tier === 'key' || tier === 'column') {
       const names = tier === 'key' ? step.keys : step.columns
@@ -65,11 +65,6 @@ export function Chain({ path, endpoint, steps }: { path: WritePath; endpoint?: E
       ))}
     </ol>
   )
-}
-
-/** {gap reason: the plan step that reaches it}, as the tiers record it. */
-export function gapSteps(dp: DataPaths): Record<string, string> {
-  return Object.fromEntries(dp.tiers.flatMap((t) => t.gaps.map((g) => [g.reason, g.step])))
 }
 
 /** Who writes a store, in words: nobody, one file, several files for different inputs, or one input from several. */
@@ -102,7 +97,6 @@ export function StoreInspector({ dp, store, mode }: { dp: DataPaths; store: Stor
   const endpoints = dp.endpoints.filter((e) => e.store === store.id)
   const byId = new Map(endpoints.map((e) => [e.id, e]))
   const paths = pathsOf(dp, store.id)
-  const steps = gapSteps(dp)
   return (
     <div className={css.inspect}>
       <div className={css.inspectHead}>
@@ -140,7 +134,7 @@ export function StoreInspector({ dp, store, mode }: { dp: DataPaths; store: Stor
       {paths.length > 0 && (
         <Section title={w('chain')} count={paths.length}>
           <p className={css.hint}>{w('chainHint')}</p>
-          <FoldList items={paths} first={2} render={(p) => <Chain path={p} endpoint={byId.get(p.endpoint)} steps={steps} />} />
+          <FoldList items={paths} first={2} render={(p) => <Chain path={p} endpoint={byId.get(p.endpoint)} />} />
         </Section>
       )}
     </div>

@@ -1,9 +1,8 @@
 """Visual evidence in the check: the assistant may open the screen pictures and nothing else, each finding names its
-picture and a region inside it and becomes a design card; the architecture map, the crawl and the journeys go
-through their pinned tools and say why when they cannot."""
+picture and a region inside it and becomes a design card; the crawl goes through its pinned tool and says why when it
+cannot."""
 import json
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,9 +10,6 @@ from unittest import mock
 
 from shared_fixture import TemporaryWorkspace
 
-from eaos import plan as plan_module
-from eaos.behavior_lock import JOURNEY_HOOKS, playwright_spec
-from eaos.engines import architecture
 from eaos.pipeline.run import execute
 from eaos.screens import crawl
 from eaos.studio.actions import adapters
@@ -92,44 +88,22 @@ class VisualReviewer(TemporaryWorkspace):
         self.assertEqual(json.loads((self.out / 'cards.json').read_text(encoding='utf-8'))['design'], ['TASK-V001'])
 
 
-    def test_the_gallery_draws_each_finding_on_its_picture(self):
-        page = (self.out / 'gallery/index.html').read_text(encoding='utf-8')
-        self.assertIn('src="../live/screens/screenshots/00-index-light-phone.png"', page)
-        self.assertEqual(page.count('class="box high"'), 1)
-        self.assertIn('left:0.0%;top:0.0%;width:100.0%;height:20.0%', page)
 
 
-class Gallery(unittest.TestCase):
-    def test_the_city_is_a_rectangle_per_file_sized_by_its_lines(self):
-        from eaos.compose import gallery
-        city = {'files': [{'id': 'r', 'name': 'root', 'type': 'Folder', 'children': [
-                    {'id': 'a', 'name': 'a.py', 'type': 'File'}, {'id': 'b', 'name': 'b.py', 'type': 'File'}]}],
-                'lenses': {'metrics': {'attributes': {'a': {'rloc': 300, 'number_of_commits': 9, 'complexity': 12},
-                                                      'b': {'rloc': 100, 'number_of_commits': 1, 'complexity': 2}}}}}
+class Crawl(unittest.TestCase):
+    def test_each_crawled_page_is_read_from_its_lighthouse_report_a_failed_crawl_is_retried_and_a_missing_tool_is_unavailable(self):
         with tempfile.TemporaryDirectory() as folder:
-            (Path(folder) / 'architecture').mkdir()
-            (Path(folder) / 'architecture/city.cc.json').write_text(json.dumps(city), encoding='utf-8')
-            page = gallery.city(Path(folder), ar=False)
-        self.assertIn('width="1000.00" height="450.00"', page)
-        self.assertIn('root/a.py: 300 lines, 9 changes, complexity 12', page)
-        self.assertIn('width="1000.00" height="150.00"', page)
-
-
-class Tools(unittest.TestCase):
-    def test_a_tool_that_is_not_installed_is_unavailable_with_its_install_command(self):
-        with mock.patch.object(architecture, 'which', return_value=None), tempfile.TemporaryDirectory() as folder:
-            self.assertIn('--only codecharta', architecture.city(ROOT / 'tests/fixtures/polyglot', Path(folder))['reason'])
-            self.assertIn('--only emerge', architecture.clusters(ROOT / 'tests/fixtures/polyglot', Path(folder))['reason'])
+            report = Path(folder) / 'unlighthouse/reports/about/lighthouse.json'
+            report.parent.mkdir(parents=True)
+            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/about', 'categories': {'performance': {'score': 0.91}},
+                                          'audits': {'largest-contentful-paint': {'numericValue': 1234.4}}}), encoding='utf-8')
+            self.assertEqual(crawl.route_of(report, Path(folder)),
+                             {'path': '/about', 'scores': {'performance': 91, 'accessibility': None, 'best-practices': None, 'seo': None},
+                              'lcp_ms': 1234, 'cls': None, 'report': 'unlighthouse/reports/about/lighthouse.json'})
+            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/#/branches'}), encoding='utf-8')
+            self.assertEqual(crawl.route_of(report, Path(folder))['path'], '/#/branches', 'a page routed by its fragment keeps it')
         with mock.patch.object(crawl, 'which', return_value=None):
             self.assertEqual(crawl.crawl('http://127.0.0.1:9', '/nonexistent')['status'], 'unavailable')
-
-    def test_a_page_routed_by_its_fragment_keeps_it(self):
-        with tempfile.TemporaryDirectory() as folder:
-            report = Path(folder) / 'lighthouse.json'
-            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/#/branches'}), encoding='utf-8')
-            self.assertEqual(crawl.route_of(report, Path(folder))['path'], '/#/branches')
-
-    def test_a_crawl_that_measured_nothing_is_run_once_more(self):
         with tempfile.TemporaryDirectory() as folder:
             calls = []
             def unlighthouse(argv, cwd=None, timeout=None):
@@ -145,38 +119,6 @@ class Tools(unittest.TestCase):
                 config = (Path(folder) / 'unlighthouse.config.ts').read_text(encoding='utf-8')
         self.assertEqual((found['status'], len(calls), [r['path'] for r in found['routes']]), ('observed', 2, ['/']))
         self.assertIn('"maxConcurrency": 1', config)
-
-    def test_a_python_tool_with_its_own_environment_is_checked_there(self):
-        from eaos import toolchain
-        with tempfile.TemporaryDirectory() as folder, mock.patch.object(toolchain, 'home', return_value=Path(folder)):
-            tool = {'name': 'emerge', 'install': {'method': 'pip', 'own_venv': True, 'with': ['setuptools==80.10.2']}}
-            record = Path(folder) / 'venv-emerge/lib/python3.12/site-packages/setuptools-80.10.2.dist-info'
-            record.mkdir(parents=True)
-            self.assertEqual((toolchain.venv_of(tool), toolchain._companions_missing(tool)), (Path(folder) / 'venv-emerge', ''))
-            self.assertIsNone(toolchain.pip_version('setuptools'))
-
-    def test_emerge_reads_one_analysis_per_language_of_the_project(self):
-        text = architecture._config(Path('/p'), Path('/o'), ['python', 'typescript'])
-        self.assertEqual([line for line in text.splitlines() if line.startswith('- analysis_name')],
-                         ['- analysis_name: python', '- analysis_name: typescript'])
-        self.assertIn('  - directory: "/o/typescript"', text)
-
-    def test_a_crawled_page_is_read_from_its_lighthouse_report(self):
-        with tempfile.TemporaryDirectory() as folder:
-            report = Path(folder) / 'unlighthouse/reports/about/lighthouse.json'
-            report.parent.mkdir(parents=True)
-            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/about', 'categories': {'performance': {'score': 0.91}},
-                                          'audits': {'largest-contentful-paint': {'numericValue': 1234.4}}}), encoding='utf-8')
-            self.assertEqual(crawl.route_of(report, Path(folder)),
-                             {'path': '/about', 'scores': {'performance': 91, 'accessibility': None, 'best-practices': None, 'seo': None},
-                              'lcp_ms': 1234, 'cls': None, 'report': 'unlighthouse/reports/about/lighthouse.json'})
-
-    def test_only_a_feature_with_pages_records_its_journey(self):
-        page, _ = playwright_spec({'name': 'Shop'}, [('/', ('page', 'GET', 'app.ts'))])
-        api, _ = playwright_spec({'name': 'Api'}, [('/api/items', ('http', 'GET', 'api.ts'))])
-        self.assertIn(JOURNEY_HOOKS[0], page)
-        self.assertNotIn(JOURNEY_HOOKS[0], api)
-
 
 if __name__ == '__main__':
     unittest.main()

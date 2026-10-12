@@ -158,7 +158,7 @@ def current_state(out, ar):
                + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
     page.heading(L['appendices'])
     page.items(['[FEATURES.md](FEATURES.md)', '[MEASUREMENTS.md](MEASUREMENTS.md)', '[RISK-REGISTER.md](RISK-REGISTER.md)',
-                '[SECURITY-SURFACE.md](SECURITY-SURFACE.md)', '[LOAD-MODEL.md](LOAD-MODEL.md)', '[ENGINES.md](ENGINES.md)'])
+                '[LOAD-MODEL.md](LOAD-MODEL.md)', '[ENGINES.md](ENGINES.md)'])
     return page.text(), numbers
 
 
@@ -252,7 +252,7 @@ def gap_and_strategy(out, ar):
     page.items([('الكلفة بالزمن غير مقيسة: الحجم S/M/L قاعدة على الملفات والتابعين.' if ar else
                  'Duration is not measured: S/M/L is a rule on files and dependents.')])
     page.heading(L['appendices'])
-    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[ROADMAP.md](ROADMAP.md)', '[SUSTAINABILITY.md](SUSTAINABILITY.md)'])
+    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[ROADMAP.md](ROADMAP.md)'])
     return page.text(), numbers
 
 
@@ -311,7 +311,7 @@ def execution_plan(out, ar):
     page.items([('لم تُشغَّل أي بطاقة على كود المشروع بعد؛ التنفيذ يحتاج تفويض المالك (authorization.json).' if ar else
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
     page.heading(L['appendices'])
-    page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)', '[EXECUTION-GUIDE.md](EXECUTION-GUIDE.md)'])
+    page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)'])
     return page.text(), numbers
 
 

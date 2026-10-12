@@ -23,25 +23,19 @@ const J: Journeys = {
 }
 
 describe('journeys model', () => {
-  it('shows hidden routes and their links only with the lens on', () => {
+  it('shows hidden routes only with the lens on and walks a task path with its evidence', () => {
     expect(shownScreens(J, false).map((s) => s.id)).not.toContain('/app/*')
     expect(shownEdges(J, false)).toHaveLength(2)
     expect(shownEdges(J, true)).toHaveLength(3)
-  })
-  it('captions each column by clicks from the start, and the unreached last', () => {
-    expect(captions(J).map((c) => [c.kind, c.n])).toEqual([['start', 0], ['clicks', 1], ['clicks', 2], ['none', 0]])
-  })
-  it('walks a task path with the evidence of each link', () => {
     const task = { id: 't', name: { ar: 'م', en: 'T' }, kind: 'route' as const, screen: '/app/x', path: ['/', '/app', '/app/x'], dead: false, src: 'route' }
     expect([...pathEdges(task)]).toEqual(['/>/app', '/app>/app/x'])
     expect(stepsOf(J, task).map((s) => s.via?.evidence[0]?.line ?? null)).toEqual([null, 9, 3])
     expect([...litSet(J, undefined, task)!].sort()).toEqual(['/', '/app', '/app/x'])
   })
-  it('groups pages by distance, the unreached last, and lights a flag', () => {
+  it('captions and groups pages by clicks from the start, the unreached last', () => {
+    expect(captions(J).map((c) => [c.kind, c.n])).toEqual([['start', 0], ['clicks', 1], ['clicks', 2], ['none', 0]])
     expect(byDepth(J).map((g) => g.depth)).toEqual([0, 1, 2, null])
     expect([...litSet(J, undefined, undefined, 'no_way_in')!]).toEqual(['/lost'])
-  })
-  it('clips a long identifier from the start', () => {
     expect(clip('src/pages/settings/tabs/AccountTab', 12)).toBe('…/AccountTab')
   })
 })

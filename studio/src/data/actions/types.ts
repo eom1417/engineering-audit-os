@@ -66,7 +66,6 @@ export interface RunResult {
   diff_stat: { files: number; insertions: number; deletions: number } | null
   tests: { passed: boolean | null; summary: string } | null
   cards_closed: string[]
-  indicators: { id: string; before: number | null; after: number | null }[]
   answer?: unknown
 }
 
@@ -150,7 +149,7 @@ export interface Preview {
 export interface PreviewBody { inputs?: Record<string, unknown>; selection?: Selection; verb?: VerbId; assistant?: string }
 export interface StartBody extends PreviewBody { action: string; confirm?: string | null }
 
-export type Mode = 'live' | 'demo' | 'snapshot'
+export type Mode = 'live' | 'snapshot'
 
 /** The connection of a run's event stream: what the run page says while it reconnects. */
 export type StreamStatus = 'connecting' | 'open' | 'reconnecting' | 'closed'
@@ -170,7 +169,7 @@ export class ActionError extends Error {
   }
 }
 
-/** The command centre as the pages use it; live (the server), demo (a recorded run replayed) or snapshot. */
+/** The command centre as the pages use it; live (the server) or snapshot. */
 export interface ReportDecision {
   id: string
   scope: string
@@ -195,8 +194,6 @@ export interface ActionsClient {
   questions(): Promise<Question[]>
   answer(question: string, option: string | null, text?: string | null): Promise<Run>
   decide(id: string, op: 'accept' | 'undo', confirm: string): Promise<Run>
-  /** Called when the client's runs change by themselves (demo); the live client is polled instead. */
-  watch?(onChange: () => void): () => void
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

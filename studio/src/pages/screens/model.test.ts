@@ -17,13 +17,10 @@ const ORDERS = screen('orders', {
 })
 
 describe('the screens gallery reads screens.json and never shows "not measured" as "none"', () => {
-  it('says which parts were not measured', () => {
+  it('says which parts were not measured and pairs before and after at one width', () => {
     const data: ScreensData = { screens: [], missing: [{ id: 'shots', state: 'not_measured', step: 'NS41.T1', count: { value: 0, src: 's' }, detail: { ar: 'أ', en: 'a' } }] }
     expect(measured(data, 'shots')).toBe(false)
     expect(measured(data, 'inputs')).toBe(true)
-  })
-
-  it('pairs before and after at one width, else shows the one shot there is', () => {
     expect(widths(ORDERS)).toEqual([390, 1440])
     expect(shotsAt(ORDERS, 390)).toEqual({ before: ORDERS.shots[1], after: ORDERS.shots[2] })
     expect(shotsAt(ORDERS, 1440)).toEqual({ one: ORDERS.shots[0] })
@@ -31,12 +28,9 @@ describe('the screens gallery reads screens.json and never shows "not measured" 
     expect(thumbnail(screen('empty'))).toBeUndefined()
   })
 
-  it('numbers the pins of one width in reading order', () => {
+  it('numbers the pins in reading order and puts screens with open issues first', () => {
     expect(pins(ORDERS, 390).map((p) => [p.id, p.n])).toEqual([['i1', 1], ['i2', 2]])
     expect(pins(ORDERS, 1440).map((p) => p.id)).toEqual(['i3'])
-  })
-
-  it('puts screens with open issues first and filters by issues, journey flags and shots', () => {
     const list = [screen('b'), screen('a', { flags: ['dead_end'] }), ORDERS]
     expect(filterScreens(list, 'all').map((s) => s.id)).toEqual(['orders', 'a', 'b'])
     expect(filterScreens(list, 'issues').map((s) => s.id)).toEqual(['orders'])

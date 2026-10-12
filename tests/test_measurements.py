@@ -29,7 +29,7 @@ class MeasurementTests(Workspace):
                 fact('history_ownership', path, {'authors': 2}),
                 fact('graph_node', path, {'fan_in': 3, 'fan_out': 1})]
 
-    def test_a_complete_row_names_the_source_of_every_field_and_keeps_its_contract(self):
+    def test_every_number_names_its_source_and_the_projects_own_metrics_answer_without_engines(self):
         facts = self.base() + [fact('symbol_metric_external', 'src/a.ts', {'engine': 'scc', 'code': 28}),
                                fact('symbol_metric_external', 'src/a.ts', {'engine': 'codegraph', 'complexity': 9})]
         record = self.report(facts)
@@ -38,33 +38,24 @@ class MeasurementTests(Workspace):
         self.assertEqual((row['loc'], row['complexity_max'], row['churn'], row['authors'], row['fan_in']), (28, 9, 4, 2, 3))
         self.assertEqual(row['sources'], {'loc': 'scc', 'complexity_max': 'codegraph', 'duplicated_lines': 'jscpd',
                                           'churn': 'git history', 'fan_in': 'eaos.graph'})
-
-    def test_without_the_engines_the_project_own_metrics_answer_and_say_so(self):
         [row] = self.report(self.base(), engines=())['files']
         self.assertEqual((row['loc'], row['complexity_max']), (30, 7))
         self.assertIsNone(row['duplicated_lines'])
         self.assertIn({'field': 'duplicated_lines', 'reason': 'jscpd did not run in this audit'}, row['missing'])
+        # A file with no function is measured by its body.
+        [row] = self.report([f for f in self.base() if f['value'].get('scope') != 'function'])['files']
+        self.assertEqual((row['complexity_max'], row['sources']['complexity_max']), (3, 'eaos.metrics (file body, no function)'))
 
-    def test_a_file_with_no_function_is_measured_by_its_body(self):
-        facts = [f for f in self.base() if f['value'].get('scope') != 'function']
-        [row] = self.report(facts)['files']
-        self.assertEqual(row['complexity_max'], 3)
-        self.assertEqual(row['sources']['complexity_max'], 'eaos.metrics (file body, no function)')
-
-    def test_an_unknown_is_null_with_a_reason_never_zero(self):
+    def test_an_unknown_is_null_with_a_reason_never_zero_and_unparsed_files_are_listed(self):
         facts = [f for f in self.base() if f['kind'] not in ('history_churn', 'graph_node')]
-        [row] = self.report(facts)['files']
+        facts.append(fact('source_file', 'db/schema.sql', {'language': 'sql', 'parse_status': 'UNSUPPORTED'}))
+        record = self.report(facts)
+        [row] = record['files']
         self.assertIsNone(row['churn'])
         self.assertIsNone(row['fan_in'])
         self.assertEqual({m['field'] for m in row['missing']}, {'churn', 'fan_in', 'coverage'})
-        self.assertEqual(self.report(facts)['complete'], 0)
-
-    def test_coverage_is_read_as_eaos_verify_writes_it(self):
+        self.assertEqual(record['complete'], 0)
+        self.assertEqual(record['not_measured'], [{'path': 'db/schema.sql', 'reason': 'not parsed: UNSUPPORTED'}])
+        # Coverage is read as eaos verify writes it.
         record = self.report(self.base(), verification={'coverage': {'src/a.ts': {'percent': 62.5, 'covered_lines': 5}}})
         self.assertEqual(record['files'][0]['coverage'], 0.625)
-
-    def test_the_rows_are_the_parsed_files_and_the_rest_are_listed_with_their_reason(self):
-        facts = self.base() + [fact('source_file', 'db/schema.sql', {'language': 'sql', 'parse_status': 'UNSUPPORTED'})]
-        record = self.report(facts)
-        self.assertEqual([row['path'] for row in record['files']], ['src/a.ts'])
-        self.assertEqual(record['not_measured'], [{'path': 'db/schema.sql', 'reason': 'not parsed: UNSUPPORTED'}])

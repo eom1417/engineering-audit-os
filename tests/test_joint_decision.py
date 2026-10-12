@@ -3,7 +3,6 @@ rejected cards leave the plan and the gaps, the ideal planner's answers become t
 component, the order becomes the plan's steps; without an assistant the same path gives the rules' result."""
 import json
 import shutil
-import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -124,13 +123,15 @@ class JointDecision(TemporaryWorkspace):
                          {'ai_modified': 1, 'disagreement': 2, 'ai_added': 1})
         self.assertIn('Rebuild `api` as `interface`', (self.base / 'joint/TARGET-ARCHITECTURE.md').read_text(encoding='utf-8'))
 
-    def test_the_order_becomes_the_plans_steps_and_the_guide_follows_them(self):
+    def test_the_order_becomes_the_plans_steps_before_the_reports_are_written(self):
         order = self.read('joint', 'plan.json')['order']
         self.assertEqual((order['source'], [s['id'] for s in order['steps']]), ('assistant', ['s1', 's2']))
-        first = order['steps'][0]['tasks'][0]
-        guide = (self.base / 'joint/EXECUTION-GUIDE.md').read_text(encoding='utf-8')
-        self.assertIn(f'**{first} / step 1**', guide)
         self.assertIn('The last card first', (self.base / 'joint/PLAN/STEPS.md').read_text(encoding='utf-8'))
+        # The reports are written after every decision.
+        decided = ('triage', 'cards', 'ideal', 'pipeline_gaps', 'reconcile', 'order', 'steps')
+        self.assertGreater(ORDER.index('reports'), max(ORDER.index(name) for name in decided))
+        self.assertEqual(BY_NAME['reports'].requires, ('reconcile', 'steps'))
+        self.assertEqual(self.joint['status'], 'COMPLETE')
 
     def test_a_decision_an_earlier_check_left_on_disk_is_never_read_as_this_ones(self):
         out = self.base / 'stale'
@@ -142,13 +143,6 @@ class JointDecision(TemporaryWorkspace):
         self.assertEqual(len(self.read('stale', 'plan.json')['tasks']), len(self.read('rules', 'plan.json')['tasks']))
         self.assertEqual(self.read('stale', 'target-architecture.json')['decided']['by'], 'rules')
         self.assertEqual(self.read('stale', 'plan.json')['order']['source'], 'rules')
-
-    def test_the_reports_are_written_after_every_decision(self):
-        decided = ('triage', 'cards', 'ideal', 'pipeline_gaps', 'reconcile', 'order', 'steps')
-        for report in ('execution_guide', 'reports', 'executive', 'compose', 'bundles', 'site', 'validate'):
-            self.assertGreater(ORDER.index(report), max(ORDER.index(name) for name in decided), report)
-        self.assertEqual(BY_NAME['reports'].requires, ('reconcile', 'steps'))
-        self.assertEqual(self.joint['status'], 'COMPLETE')
 
 
 if __name__ == '__main__':

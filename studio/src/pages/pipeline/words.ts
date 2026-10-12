@@ -199,8 +199,6 @@ export const PIPELINE_WORDS = {
   aiQuestions: ['{n} سؤالًا ينتظرك في صندوق القرارات', '{n} questions wait for you in the Decisions inbox'],
   aiToInbox: ['افتح صندوق القرارات', 'Open the Decisions inbox'],
   aiLoading: ['يحمّل آخر قرار…', 'Loading the last decision…'],
-  galleryPipeline: ['معرض خط المعالجة', 'Pipeline gallery'],
-  galleryPipelineLead: ['المخطط والخطوات في العروض الثلاثة على بيانات EAOS الثابتة.', 'The map and the steps in the three views on the EAOS fixture.'],
 } satisfies Record<string, readonly [string, string]>
 
 export type PipelineWord = keyof typeof PIPELINE_WORDS

@@ -82,90 +82,63 @@ class Journeys(TemporaryWorkspace):
         cls.s = {s['id']: s for s in cls.j['screens']}
         cls.edges = {(e['from'], e['to']): e for e in cls.j['edges']}
 
-    def test_screens_are_the_full_routes_with_their_component_file_and_kind(self):
+    def test_screens_links_broken_links_and_flags_come_from_the_records_with_their_evidence(self):
         self.assertEqual(self.s['/app/items']['file'], 'src/pages/Items.tsx')
-        self.assertEqual((self.s['/app/*#Shell']['kind'], self.s['/app/*#NotFound']['kind'], self.s['*']['kind']),
-                         ('layout', 'fallback', 'fallback'))
+        self.assertEqual((self.s['/app/*#Shell']['kind'], self.s['/app/*#NotFound']['kind'], self.s['*']['kind']), ('layout', 'fallback', 'fallback'))
         self.assertEqual(self.s['/app/items']['fact'], 'FACT-entry_point-src_App.tsx-14')
-
-    def test_a_link_belongs_to_the_screens_rendering_its_file_and_the_menu_to_the_layout(self):
         self.assertEqual(self.edges[('/', '/app')]['via'], 'redirect')                   # the handler Root holds it
         self.assertIn(('menu:src/App.tsx', '/app/items'), self.edges)                   # the sidebar, reached from the router
         self.assertIn(('/app', 'menu:src/App.tsx'), self.edges)                         # the menu hangs under the layout's root
         self.assertIn(('/app/items', '/app/items/:id'), self.edges)                     # a :param link opens a :param route
         site = self.edges[('/app/items', '/app/items/new')]['evidence'][0]
         self.assertEqual((site['file'], site['line']), ('src/pages/Items.tsx', 40))
-
-    def test_a_link_to_no_screen_is_broken_and_a_link_in_dead_code_is_counted_not_drawn(self):
         self.assertEqual([(b['from'], b['target']) for b in self.j['broken']], [('/app/items/:id', '/app/missing')])
         self.assertEqual([(u['file'], u['dead']) for u in self.j['unowned']], [('src/dead/Widget.tsx', True)])
-        self.assertNotIn(('src/dead/Widget.tsx', '/app/lost'), self.edges)
-
-    def test_the_flags_say_what_is_wrong_with_each_screen(self):
-        self.assertIn('no_way_in', self.s['/app/lost']['flags'])
-        self.assertIn('no_way_in', self.s['/terms']['flags'])
-        self.assertIn('dead_end', self.s['/terms']['flags'])
-        self.assertIn('duplicate', self.s['/app/old']['flags'])                         # Items serves two routes
+        self.assertNotIn(('src/dead/Widget.tsx', '/app/lost'), self.edges, 'a link in dead code is counted, not drawn')
+        for screen, flag in (('/app/lost', 'no_way_in'), ('/terms', 'no_way_in'), ('/terms', 'dead_end'), ('/app/old', 'duplicate'),
+                             ('/app/items/:id', 'broken_link')):
+            self.assertIn(flag, self.s[screen]['flags'], (screen, flag))
         self.assertEqual(self.s['/app/old']['twins'], ['/app/items'])
-        self.assertIn('broken_link', self.s['/app/items/:id']['flags'])
         self.assertNotIn('dead_end', self.s['/app/items/:id']['flags'])                  # it has the menu
 
-    def test_tasks_are_paths_from_the_start(self):
+    def test_tasks_targets_and_a_stable_layout_meet_the_contract(self):
         tasks = {t['id']: t for t in self.j['tasks']}
         self.assertEqual(tasks['task:create:item']['path'], ['/', '/app', 'menu:src/App.tsx', '/app/items', '/app/items/new'])
         self.assertEqual((tasks['task:edit:item']['kind'], tasks['task:edit:item']['screen']), ('dialog', '/app/items'))
-
-    def test_each_screen_takes_its_folder_operation_and_the_missing_screen_decision_is_counted(self):
         self.assertEqual((self.s['/app/items']['op'], self.s['/app/items']['target'], self.s['/app/items']['decided']), ('rebuild', 'pages', False))
         self.assertEqual(self.s['/']['component'], 'src')                                # defined in the router
         gaps = {g['id']: g for g in self.j['missing']}
         self.assertEqual(gaps['screen_target']['count']['value'], self.j['counts']['screens']['value'])
         self.assertIn('shots', gaps)
-
-    def test_columns_are_clicks_from_the_start_and_a_screen_keeps_its_cell_across_scans(self):
         self.assertEqual((self.s['/']['col'], self.s['/app']['col']), (0, 1))
         previous = {'screens': [{**s, 'col': 9, 'row': 9} if s['id'] == '/app/items' else s for s in self.j['screens']], 'menus': self.j['menus']}
-        again = journeys.build(self.report, previous, media=[])
-        moved = {s['id']: (s['col'], s['row']) for s in again['screens']}
-        self.assertEqual(moved['/app/items'], (9, 9))
+        moved = {s['id']: (s['col'], s['row']) for s in journeys.build(self.report, previous, media=[])['screens']}
+        self.assertEqual(moved['/app/items'], (9, 9), 'a screen keeps its cell across scans')
         self.assertEqual(moved['/'], (self.s['/']['col'], self.s['/']['row']))
-
-    def test_the_section_meets_its_contract(self):
         data = {'schema_version': 1, 'contract': 1, 'revision': 2, **self.j}
         self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-journeys']), [])
 
 
 class Hidden(TemporaryWorkspace):
-    @classmethod
-    def setUpClass(cls):
-        cls.report = write_report(cls.workspace().name)
-        cls.j = journeys.build(cls.report, media=[])
-        cls.h = hidden.build(cls.report, cls.j, [{'id': 'TASK-1', 'evidence': ['FACT-data_access-src_dead_Widget.tsx-7']}])
-        cls.items = {i['id']: i for i in cls.h['items']}
-
-    def test_unseen_work_is_grouped_with_its_evidence(self):
-        groups = {g['id']: g['count']['value'] for g in self.h['groups']}
+    def test_unseen_work_is_grouped_with_its_evidence_linked_to_its_screens_and_counted_per_component(self):
+        report = write_report(self.workspace().name)
+        j = journeys.build(report, media=[])
+        h = hidden.build(report, j, [{'id': 'TASK-1', 'evidence': ['FACT-data_access-src_dead_Widget.tsx-7']}])
+        items = {i['id']: i for i in h['items']}
+        groups = {g['id']: g['count']['value'] for g in h['groups']}
         self.assertEqual((groups['triggers'], groups['screens'], groups['writes'], groups['outside'], groups['dead']), (1, 3, 2, 1, 1))
-        job = next(i for i in self.h['items'] if i['kind'] == 'job')
+        job = next(i for i in h['items'] if i['kind'] == 'job')
         self.assertEqual((job['file'], job['line']), ('jobs/nightly.py', 4))
-
-    def test_a_write_a_screen_sets_in_motion_is_linked_and_one_no_screen_reaches_is_flagged(self):
-        items = self.items['writes:http:/items']
-        self.assertEqual(items['areas'], ['area:items', 'area:old'])          # /app/old renders the same file
-        self.assertFalse(items['no_screen'])
-        widgets = self.items['writes:http:/widgets']
-        self.assertTrue(widgets['no_screen'])
-        self.assertEqual(widgets['card'], 'TASK-1')
-        self.assertIn({'from': 'area:items', 'to': 'writes', 'count': 1, 'items': ['writes:http:/items']}, self.h['links'])
-
-    def test_each_component_counts_the_unseen_work_it_holds(self):
-        self.assertEqual(self.h['components']['src/dead'], {'writes': 1, 'dead': 1})
-
-    def test_the_section_meets_its_contract_and_coverage_says_what_is_missing(self):
-        data = {'schema_version': 1, 'contract': 1, 'revision': 2, **self.h}
+        self.assertEqual(items['writes:http:/items']['areas'], ['area:items', 'area:old'])          # /app/old renders the same file
+        self.assertFalse(items['writes:http:/items']['no_screen'])
+        self.assertTrue(items['writes:http:/widgets']['no_screen'], 'a write no screen reaches is flagged')
+        self.assertEqual(items['writes:http:/widgets']['card'], 'TASK-1')
+        self.assertIn({'from': 'area:items', 'to': 'writes', 'count': 1, 'items': ['writes:http:/items']}, h['links'])
+        self.assertEqual(h['components']['src/dead'], {'writes': 1, 'dead': 1})
+        data = {'schema_version': 1, 'contract': 1, 'revision': 2, **h}
         self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-hidden']), [])
-        rows = {r['section']: r for r in coverage.coverage(self.report, {'journeys': self.j, 'hidden': self.h}, ['journeys', 'hidden'], [], 'en')['sections']}
-        self.assertEqual((rows['journeys']['state'], rows['journeys']['step']), ('partial', 'NS44.T1'))
+        rows = {r['section']: r for r in coverage.coverage(report, {'journeys': j, 'hidden': h}, ['journeys', 'hidden'], [], 'en')['sections']}
+        self.assertEqual(rows['journeys']['state'], 'partial')
         self.assertEqual([p['id'] for p in rows['hidden']['parts']], ['controls'])
 
 

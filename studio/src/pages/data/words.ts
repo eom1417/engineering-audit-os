@@ -33,7 +33,6 @@ export const DATA_WORDS = {
   gap_no_matching_route: ['لا مسار في الخادم بنفس الطريقة والعنوان', 'no server route with this method and path'],
   gap_behind_handler: ['الأعمدة خلف معالج لم يُقرأ', 'the columns sit behind a handler not read'],
   gap_handler_writes_unseen: ['المعالج معروف ولا كتابة ظاهرة في مساره', 'the handler is known; its flow shows no write'],
-  stepWord: ['الخطوة {s}', 'step {s}'],
   direct: ['مباشر إلى قاعدة البيانات', 'straight to the database'],
   lane_caller: ['من يكتب ويقرأ', 'Who writes and reads'],
   lane_store: ['أين تُحفظ', 'Where it is kept'],

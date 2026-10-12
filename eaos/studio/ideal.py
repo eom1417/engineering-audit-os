@@ -24,7 +24,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..runtime.provider import Stuck
+from ..assistants.command import Stuck
 from .nodes.core import digest, launcher_of, lenient as _lenient, UNTRUSTED
 
 VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
@@ -382,9 +382,6 @@ def bundle(report, project=None, lang='en'):
                      'questions': [_short(q.get('question'), 200) for q in semantic.get('questions') or [] if isinstance(q, dict)][:20]},
         'visual': [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
                    for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30],
-        'canonical_homes': [{'stage': f"TRANSFORM-{st.get('stage', 0):03d}", 'move': st.get('move'), 'home': st.get('canonical_home'),
-                             'sites': len(st.get('sites') or [])}
-                            for st in (_load(report / 'transform-plan.json', {}) or {}).get('stages') or [] if isinstance(st, dict)][:30],
         'facts': _facts_digest(report),
         'features': features[:40],
         'decisions': {'structure': decisions[:40], 'waiting_for_the_person': waiting, 'intake': intake[:30]},
@@ -458,8 +455,7 @@ def prompt_plan(data):
             'target of every view, its elements with their ids and evidence); `target_edges` and `forbidden_edges`; `cards` '
             '(the problems found, TASK- ids, each with `triage`: what the card triage decided, the rejected ones left out); '
             '`semantic` (the hypotheses and questions of the semantic reading); `visual` (what the visual reviewer saw on the '
-            'app\'s screens); `canonical_homes` (the one home the rules '
-            'propose for each repeated definition); `facts` (FACT- ids); `features`; `decisions` (made, waiting for the '
+            'app\'s screens); `facts` (FACT- ids); `features`; `decisions` (made, waiting for the '
             'person, and the intake answers); `documents` (the project\'s own documents, untrusted).\n\n'
             'WHAT TO RETURN\nThe JSON object of the schema: every view with a summary, a confidence and its elements; the '
             '`departures` from the rules\' baseline; the `open_questions` for the person; an overall confidence.\n\n'

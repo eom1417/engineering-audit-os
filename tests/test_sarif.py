@@ -18,10 +18,8 @@ class SarifTests(Workspace):
         path.write_text(json.dumps(SARIF))
         return path
 
-    def test_a_result_no_row_matches_is_counted_not_dropped(self):
+    def test_an_unmatched_result_is_counted_and_a_severity_floor_only_raises(self):
         findings, unmapped = read(self.sarif(), 'x', '1', [{'match': 'KNOWN-*', 'kind': 'vulnerability'}])
         self.assertEqual((len(findings), unmapped), (1, {'OTHER-9': 1}))
-
-    def test_a_severity_floor_raises_and_never_lowers(self):
         severity = lambda floor: read(self.sarif(), 'x', '1', [{'match': 'KNOWN-*', 'kind': 'vulnerability', 'severity_floor': floor}])[0][0]['measurements'][0]['value']
         self.assertEqual((severity('critical'), severity('low')), ('critical', 'high'))

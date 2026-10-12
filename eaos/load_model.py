@@ -7,12 +7,10 @@ is, whether it shares mutable state, whether its outbound calls are
 protected, whether it caches, and whether it is rate-limited.
 
 The eight questions live here as a constant; the schema lives in
-schemas/load-model.schema.json. Anything that wants to answer a question
+eaos/data/schemas/load-model.schema.json. Anything that wants to answer a question
 must do so in the agreed shape, with evidence and (when undetectable) a
 reason that names what would have been needed to answer it.
 """
-import json
-from pathlib import Path
 
 NAME = 'load_model'
 VERSION = '1'
@@ -114,11 +112,6 @@ def validate(record):
     return problems
 
 
-def load_schema():
-    """The JSON Schema the load-model record must satisfy."""
-    path = Path(__file__).resolve().parents[1] / 'schemas' / 'load-model.schema.json'
-    if not path.is_file(): path = Path(__file__).resolve().parent / 'data/schemas/load-model.schema.json'   # installed
-    return json.loads(path.read_text(encoding='utf-8'))
 def compute(record_root):
     """Build a load-model record by reading facts already produced for this project.
 

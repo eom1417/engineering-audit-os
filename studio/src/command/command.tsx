@@ -68,7 +68,7 @@ export function useCommand(): Command {
   return value
 }
 
-/** The command centre where the page may be rendered without it (the gallery, a test): null instead of an error. */
+/** The command centre where the page may be rendered without it (a test): null instead of an error. */
 export function useCommandMaybe(): Command | null {
   return useContext(CommandContext)
 }

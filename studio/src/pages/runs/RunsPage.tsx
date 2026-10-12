@@ -1,6 +1,5 @@
 // Runs (#/runs): what runs now, the queue in the order the person chooses (one runs at a time), and every run before,
-// searchable by its words, cards and outcome. In a snapshot it says how to start the live Studio, and offers an
-// example run replayed from a recording.
+// searchable by its words, cards and outcome. In a snapshot it says how to start the live Studio.
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Button, IconButton, copyText } from '../../components/Button'
@@ -23,24 +22,11 @@ import css from './runs.module.css'
 type Show = 'all' | 'done' | 'unfinished'
 interface RunsSearch { q?: string; show?: Show }
 
-export function DemoBanner() {
-  const w = useCmdWords()
-  const actions = useActions()
-  const navigate = useNavigate()
-  return (
-    <div className={css.demo} role="note">
-      <span>{w('demoBanner')}</span>
-      <Button variant="ghost" onPress={() => { actions.stopDemo(); navigate({ to: '/runs' }) }}>{w('leaveDemo')}</Button>
-    </div>
-  )
-}
-
-/** What a snapshot says instead of running: the command that starts the live Studio, and an example to watch. */
+/** What a snapshot says instead of running: the command that starts the live Studio. */
 export function SnapshotPanel() {
   const w = useCmdWords()
   const { lang } = usePrefs()
   const toast = useToast()
-  const actions = useActions()
   return (
     <Panel className={css.snapshot} label={w('snapshotTitle')}>
       <h2 className={css.panelTitle}>{w('snapshotTitle')}</h2>
@@ -49,7 +35,6 @@ export function SnapshotPanel() {
         <code><bdi dir="ltr">{SNAPSHOT.command}</bdi></code>
         <Button variant="secondary" icon="copy" onPress={async () => toast((await copyText(SNAPSHOT.command)) ? `${w('copyCommand')} ✓` : '')}>{w('copyCommand')}</Button>
       </div>
-      <Button variant="primary" icon="play" onPress={() => actions.startDemo()}>{w('watchExample')}</Button>
     </Panel>
   )
 }
@@ -149,7 +134,6 @@ export function RunsPage() {
   usePageChrome(w('runs'), undefined, data?.manifest.project.name)
   return (
     <div className={layout.page}>
-      {actions.mode === 'demo' && <DemoBanner />}
       <PageTitle title={w('runs')} lead={w('runsLead')} />
       {actions.mode === 'snapshot' ? <SnapshotPanel /> : <RunsBody />}
     </div>

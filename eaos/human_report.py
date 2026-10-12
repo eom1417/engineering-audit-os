@@ -22,7 +22,6 @@ import html
 import json
 import math
 import re
-from html.parser import HTMLParser
 from pathlib import Path
 
 from . import plain
@@ -406,8 +405,8 @@ def not_checked(m):
             items.append(T(f'لم يكتمل: {esc(plain.stage(stage, "ar"))}. ما كان سيجده قد يكون ناقصًا.',
                            f'Did not complete: {esc(plain.stage(stage, "en"))}. What it would have found may be missing.', 'li'))
     for stage, status in statuses.items():
-        covered = ('verify', 'semantic') if coverage else ()
-        if status in ('unavailable', 'skipped') and stage not in ('site', 'pdf', 'quality', *covered):
+        covered = ('semantic',) if coverage else ()
+        if status in ('unavailable', 'skipped') and stage not in covered:
             reason = (stages.get(stage) or {}).get('reason') or ''
             words = T(f'لم يُشغَّل: {esc(plain.stage(stage, "ar"))}.', f'Not run: {esc(plain.stage(stage, "en"))}.')
             items.append(f'<li title="{esc(reason)}">{words}</li>')
@@ -1281,7 +1280,7 @@ METHOD_CLASS = {'GET': 'get', 'POST': 'post', 'PUT': 'put', 'PATCH': 'put', 'DEL
 def system_svg(sm, lay, rtl):
     """Five columns, right to left in Arabic: pages, APIs grouped by resource, the server files that answer them, the
     parts those use, and the tables and services reached. Every link is drawn faint; the JS lights one chain."""
-    from .system_map import COLUMNS, BOX_H, PAD, WIDTH
+    from .system_map import COLUMNS, BOX_H, WIDTH
     place, height = lay['place'], lay['height']
     X = lambda c: (WIDTH - COLUMNS[c][0] - COLUMNS[c][1]) if rtl else COLUMNS[c][0]
     mid = lambda i: place[i][1] + BOX_H / 2
@@ -1684,67 +1683,6 @@ def write(report, lang='ar', name=None, progress=None):
 NUMBER = re.compile(r'\d+(?:[.,]\d+)?')
 RAW_FRACTION = re.compile(r'(?<![\w.@/-])0\.\d+\b')
 
-
-class _Reader(HTMLParser):
-    VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'}
-
-    def __init__(self):
-        super().__init__(convert_charrefs=True)
-        self.stack, self.problems, self.ids, self.legend, self.langs, self.severities = [], [], {}, False, set(), set()
-
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if attrs.get('data-report') and attrs.get('id'): self.ids[attrs['id']] = attrs['data-report']
-        if attrs.get('data-legend') == 'severity': self.legend = True
-        if self.legend and attrs.get('data-severity') and any(t == 'div' and a.get('data-legend') for t, a in self.stack):
-            self.severities.add(attrs['data-severity'])
-        for cls in (attrs.get('class') or '').split():
-            if cls in ('l-ar', 'l-en'): self.langs.add(cls)
-        if tag not in self.VOID and not tag.endswith('/'):
-            self.stack.append((tag, attrs))
-
-    def handle_startendtag(self, tag, attrs):
-        pass
-
-    def handle_endtag(self, tag):
-        for index in range(len(self.stack) - 1, -1, -1):
-            if self.stack[index][0] == tag:
-                del self.stack[index:]
-                return
-
-    def handle_data(self, data):
-        if any(tag in ('script', 'style', 'head') for tag, _ in self.stack) or not data.strip(): return
-        literal = any('data-literal' in attrs for _, attrs in self.stack)
-        meaning = any((attrs.get('data-meaning') or '').strip() for _, attrs in self.stack)
-        if not literal and RAW_FRACTION.search(data):
-            self.problems.append(f'raw decimal score in visible text: {data.strip()[:60]!r}')
-        elif NUMBER.search(data) and not literal and not meaning:
-            self.problems.append(f'a number with no stated meaning: {data.strip()[:60]!r}')
-
-
-def readability_problems(html_text):
-    """What stops a person from reading the page; an empty list means it passes.
-
-    The rules: the five reports exist (section ids summary, gaps, structure, target, plan, each with data-report);
-    a severity legend (data-legend="severity") defines all four levels; both languages are present
-    (class l-ar and l-en); every number in visible text sits inside an element with a non-empty
-    data-meaning attribute, unless it is part of a literal (data-literal: a file path or an identifier);
-    and no raw fraction such as 0.79 is shown outside a literal, with or without a meaning.
-    """
-    reader = _Reader()
-    reader.feed(html_text)
-    found = []
-    for section in SECTIONS:
-        if reader.ids.get(section) != section:
-            found.append(f'missing report section: {section}')
-    if not reader.legend:
-        found.append('no severity legend')
-    elif reader.severities != set(SEVERITIES):
-        found.append(f'the severity legend lacks: {", ".join(sorted(set(SEVERITIES) - reader.severities))}')
-    for cls in ('l-ar', 'l-en'):
-        if cls not in reader.langs:
-            found.append(f'no text in {cls[2:]}')
-    return found + sorted(set(reader.problems))
 
 
 # ---------------------------------------------------------------- style and behaviour
