@@ -45,26 +45,30 @@ def glob_regex(pattern):
 
 def configuration(target):
     """The rule set: no-circular, plus one forbidden rule per deny in the project's eaos.policy.json."""
-    rules = [{'name': 'no-circular', 'severity': 'error', 'from': {}, 'to': {'circular': True}}]
-    policy = Path(target) / 'eaos.policy.json'
-    declared = 0
-    if policy.is_file():
-        try: data = json.loads(policy.read_text(encoding='utf-8'))
-        except ValueError: data = {}
-        layers = data.get('layers') or {}
-        for index, rule in enumerate(data.get('rules') or []):
-            deny = rule.get('deny') or {}
-            source, sink = layers.get(deny.get('from')), layers.get(deny.get('to'))
-            if not source or not sink: continue
-            rules.append({'name': f"policy-{index + 1}-{deny['from']}-to-{deny['to']}", 'severity': 'error',
-                          'comment': rule.get('reason', ''),
-                          'from': {'path': '|'.join(glob_regex(p) for p in source)},
-                          'to': {'path': '|'.join(glob_regex(p) for p in sink)}})
-            declared += 1
+    denied = _policy_rules(Path(target) / 'eaos.policy.json')
+    rules = [{'name': 'no-circular', 'severity': 'error', 'from': {}, 'to': {'circular': True}}] + denied
+    declared = len(denied)
     return {'forbidden': rules, 'options': {'doNotFollow': {'path': 'node_modules'}, 'exclude': {'path': SKIPPED},
                                             # The runtime graph: a type-only import is erased by the compiler,
                                             # so a cycle through one does not exist when the code runs.
                                             'tsPreCompilationDeps': False}}, declared
+
+
+def _policy_rules(policy):
+    """A forbidden rule per `deny` of eaos.policy.json whose two layers are declared."""
+    if not policy.is_file(): return []
+    try: data = json.loads(policy.read_text(encoding='utf-8'))
+    except ValueError: data = {}
+    layers, rules = data.get('layers') or {}, []
+    for index, rule in enumerate(data.get('rules') or []):
+        deny = rule.get('deny') or {}
+        source, sink = layers.get(deny.get('from')), layers.get(deny.get('to'))
+        if not source or not sink: continue
+        rules.append({'name': f"policy-{index + 1}-{deny['from']}-to-{deny['to']}", 'severity': 'error',
+                      'comment': rule.get('reason', ''),
+                      'from': {'path': '|'.join(glob_regex(p) for p in source)},
+                      'to': {'path': '|'.join(glob_regex(p) for p in sink)}})
+    return rules
 
 
 def cycles(summary):
@@ -82,6 +86,46 @@ def type_only_cycles(source, runtime_keys):
     return [' -> '.join(members) for key, members in sorted(cycles(source).items()) if key not in runtime_keys]
 
 
+def _cruise(target, workdir, rules, graph, keep_types):
+    """(summary, seconds, failure) of one run on the runtime or the source graph; failure is '' when it wrote its output."""
+    rules['options']['tsPreCompilationDeps'] = keep_types
+    config = workdir / f'rules-{graph}.json'
+    config.write_text(json.dumps(rules, indent=1), encoding='utf-8')
+    output = workdir / f'depcruise-{graph}.json'
+    command = [which(BINARY), '.', '--config', str(config), '--output-type', 'json', '--output-to', str(output)]
+    if (target / 'tsconfig.json').is_file(): command += ['--ts-config', 'tsconfig.json']
+    # It exits with the number of error-level violations; a violation is a result, not a failure.
+    code, _, error, spent = run(command, cwd=target)
+    if not output.is_file(): return None, spent, error.strip()[-300:] or f'exit {code}'
+    return json.loads(output.read_text(encoding='utf-8')).get('summary') or {}, spent, ''
+
+
+def _violation(found, violation):
+    """(key, finding) of one violation: an import cycle keyed by its members, or a forbidden import by its rule."""
+    rule = (violation.get('rule') or {}).get('name', '')
+    if violation.get('type') == 'cycle' or rule == 'no-circular':
+        members = [violation['from']] + [step['name'] for step in violation.get('cycle') or []]
+        key = tuple(sorted(set(members)))
+        return key, finding(NAME, found, 'no-circular', 'cycle', subject('module', ' -> '.join(key), key[0]),
+                            'import cycle: ' + ' -> '.join(members), raw_ref=f'{NAME}/depcruise-runtime.json',
+                            sites=[{'path': member, 'line': None} for member in key])
+    return (rule, violation['from'], violation['to']), finding(
+        NAME, found, rule, 'boundary', subject('module', violation['from'], violation['from']),
+        f"{violation['from']} imports {violation['to']}, which {rule} forbids", raw_ref=f'{NAME}/depcruise-runtime.json',
+        sites=[{'path': violation['from'], 'line': None}, {'path': violation['to'], 'line': None}])
+
+
+def _findings(found, summary):
+    """(findings, keys seen): one finding per distinct cycle or forbidden import of the runtime graph."""
+    findings, seen = [], set()
+    for violation in summary.get('violations') or []:
+        key, made = _violation(found, violation)
+        if key in seen: continue
+        seen.add(key)
+        findings.append(made)
+    return findings, seen
+
+
 def analyze(target, workdir, exclude=(), formats=None):
     declined = tool.declined(NAME, BINARY, target)
     if declined: return declined
@@ -95,43 +139,16 @@ def analyze(target, workdir, exclude=(), formats=None):
     # Twice: the runtime graph gives the findings; the source graph (type imports kept) shows which cycles
     # exist only through `import type`: coupling a design should remove, but not a cycle when the code runs.
     for graph, keep_types in (('runtime', False), ('source', True)):
-        rules['options']['tsPreCompilationDeps'] = keep_types
-        config = workdir / f'rules-{graph}.json'
-        config.write_text(json.dumps(rules, indent=1), encoding='utf-8')
-        output = workdir / f'depcruise-{graph}.json'
-        command = [which(BINARY), '.', '--config', str(config), '--output-type', 'json', '--output-to', str(output)]
-        if (target / 'tsconfig.json').is_file(): command += ['--ts-config', 'tsconfig.json']
-        # It exits with the number of error-level violations; a violation is a result, not a failure.
-        code, _, error, spent = run(command, cwd=target)
+        runs[graph], spent, failure = _cruise(target, workdir, rules, graph, keep_types)
         seconds += spent
-        if not output.is_file():
-            return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
-        runs[graph] = json.loads(output.read_text(encoding='utf-8')).get('summary') or {}
+        if failure: return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=failure)
     summary = runs['runtime']
     issues = [issue['name'] for issue in (summary.get('environment') or {}).get('issues') or []]
     if not summary.get('totalCruised'):
         return Report(NAME, found, PINNED, ERROR, seconds=seconds,
                       reason='no module was examined' + (f" ({', '.join(issues)})" if issues else ''))
     output = workdir / 'depcruise-runtime.json'
-    findings, seen = [], set()
-    for violation in summary.get('violations') or []:
-        rule = (violation.get('rule') or {}).get('name', '')
-        if violation.get('type') == 'cycle' or rule == 'no-circular':
-            members = [violation['from']] + [step['name'] for step in violation.get('cycle') or []]
-            key = tuple(sorted(set(members)))
-            if key in seen: continue
-            seen.add(key)
-            findings.append(finding(NAME, found, 'no-circular', 'cycle', subject('module', ' -> '.join(key), key[0]),
-                                    'import cycle: ' + ' -> '.join(members), raw_ref=f'{NAME}/depcruise-runtime.json',
-                                    sites=[{'path': member, 'line': None} for member in key]))
-        else:
-            key = (rule, violation['from'], violation['to'])
-            if key in seen: continue
-            seen.add(key)
-            findings.append(finding(NAME, found, rule, 'boundary', subject('module', violation['from'], violation['from']),
-                                    f"{violation['from']} imports {violation['to']}, which {rule} forbids",
-                                    raw_ref=f'{NAME}/depcruise-runtime.json',
-                                    sites=[{'path': violation['from'], 'line': None}, {'path': violation['to'], 'line': None}]))
+    findings, seen = _findings(found, summary)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, raw=str(output),
                   coverage={'status': 'observed', 'modules': summary.get('totalCruised'),
                             'dependencies': summary.get('totalDependenciesCruised'),
