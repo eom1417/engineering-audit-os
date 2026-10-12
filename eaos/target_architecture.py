@@ -69,27 +69,26 @@ def _package_component(package, members, indexes, contracts_by_path):
     depends = sorted({package_of(target)
                       for value in node_values for target in (value.get('depends_on') or [])
                       if package_of(target) != package})
-    if True:
-        return ({
-            'id': 'T-' + (package.replace('/', '.') if package else 'root'),
-            'name': package or '(root)',
-            'kind': 'package',
-            'origin': package or '.',
-            'relation': 'unassessed',
-            'reason': 'no rule has been applied to this component yet',
-            'responsibility': '',
-            'owner': '',
-            'paths': members,
-            'files': len(members),
-            'symbols': sum(len(symbols.get(path, [])) for path in members),
-            'fan_in': sum(value.get('fan_in', 0) for value in node_values),
-            'fan_out': sum(value.get('fan_out', 0) for value in node_values),
-            'contracts': sorted({contract for path in members
-                                 for contract in contracts_by_path.get(path, [])}),
-            'depends_on': depends,
-            'evidence_ids': sorted({evidence[path] for path in members if path in evidence}),
-            'source_component_id': None,
-        })
+    return {
+        'id': 'T-' + (package.replace('/', '.') if package else 'root'),
+        'name': package or '(root)',
+        'kind': 'package',
+        'origin': package or '.',
+        'relation': 'unassessed',
+        'reason': 'no rule has been applied to this component yet',
+        'responsibility': '',
+        'owner': '',
+        'paths': members,
+        'files': len(members),
+        'symbols': sum(len(symbols.get(path, [])) for path in members),
+        'fan_in': sum(value.get('fan_in', 0) for value in node_values),
+        'fan_out': sum(value.get('fan_out', 0) for value in node_values),
+        'contracts': sorted({contract for path in members
+                             for contract in contracts_by_path.get(path, [])}),
+        'depends_on': depends,
+        'evidence_ids': sorted({evidence[path] for path in members if path in evidence}),
+        'source_component_id': None,
+    }
 
 
 def assess(component, sets, claims=None, load_record=None):
@@ -610,30 +609,28 @@ def render(out, target, language='ar'):
 
 def _reference_section(target, ar):
     """The reference type, its largest target components and the infrastructure decisions."""
-    if True:
-        lines = ['## ' + ('النوع المرجعي والمكوّنات المستهدفة' if ar else 'Reference type and target components'), '',
-                  (f"النوع: `{target['reference']}` (وحدة واحدة معيارية). {len(target['target_components'])} مكوّنًا مستهدفًا، "
-                   f"و{target.get('forbidden_edges', 0)} استيرادًا ممنوعًا تزيله الخطة." if ar else
-                   f"Type: `{target['reference']}` (a modular monolith). {len(target['target_components'])} target components; "
-                   f"{target.get('forbidden_edges', 0)} forbidden imports the plan removes."), '',
-                  '| ' + (' | '.join(['المكوّن', 'الطبقة', 'الملفات', 'تنتقل إليه', 'استيرادات ممنوعة']) if ar else
-                         ' | '.join(['Component', 'Layer', 'Files', 'Moving in', 'Forbidden imports'])) + ' |',
-                  '|---|---|---:|---:|---:|']
-        shown = sorted(target['target_components'], key=lambda c: (-c.get('moves_in', 0), -c.get('files', 0), c['name']))[:15]
-        for component in shown:
-            lines.append(f"| `{component['name']}` | {component['layer']} | {component.get('files', 0)} | "
-                         f"{component.get('moves_in', 0)} | {component.get('forbidden_edges_removed', 0)} |")
-        if len(target['target_components']) > len(shown):
-            lines += ['', (f"عُرض {len(shown)} من {len(target['target_components'])}؛ البقية في `target-architecture.json`." if ar else
-                           f"Showing {len(shown)} of {len(target['target_components'])}; the rest are in `target-architecture.json`.")]
-        lines += ['', '## ' + ('قرارات البنية التحتية' if ar else 'Infrastructure decisions'), '']
-        for item in target.get('infrastructure') or []:
-            mark = '✅' if item['present'] else '⬜'
-            tool = item['tool'] or (('بلا أداة: ' if ar else 'no tool: ') + (item.get('tool_reason') or ''))
-            lines.append(f"- {mark} **{item['area']}**: {item['decision']} ({tool}). "
-                         + ('الدليل: ' if ar else 'Evidence: ') + item['evidence'])
-        lines.append('')
-    return lines
+    lines = ['## ' + ('النوع المرجعي والمكوّنات المستهدفة' if ar else 'Reference type and target components'), '',
+             (f"النوع: `{target['reference']}` (وحدة واحدة معيارية). {len(target['target_components'])} مكوّنًا مستهدفًا، "
+              f"و{target.get('forbidden_edges', 0)} استيرادًا ممنوعًا تزيله الخطة." if ar else
+              f"Type: `{target['reference']}` (a modular monolith). {len(target['target_components'])} target components; "
+              f"{target.get('forbidden_edges', 0)} forbidden imports the plan removes."), '',
+             '| ' + (' | '.join(['المكوّن', 'الطبقة', 'الملفات', 'تنتقل إليه', 'استيرادات ممنوعة']) if ar else
+                    ' | '.join(['Component', 'Layer', 'Files', 'Moving in', 'Forbidden imports'])) + ' |',
+             '|---|---|---:|---:|---:|']
+    shown = sorted(target['target_components'], key=lambda c: (-c.get('moves_in', 0), -c.get('files', 0), c['name']))[:15]
+    for component in shown:
+        lines.append(f"| `{component['name']}` | {component['layer']} | {component.get('files', 0)} | "
+                     f"{component.get('moves_in', 0)} | {component.get('forbidden_edges_removed', 0)} |")
+    if len(target['target_components']) > len(shown):
+        lines += ['', (f"عُرض {len(shown)} من {len(target['target_components'])}؛ البقية في `target-architecture.json`." if ar else
+                       f"Showing {len(shown)} of {len(target['target_components'])}; the rest are in `target-architecture.json`.")]
+    lines += ['', '## ' + ('قرارات البنية التحتية' if ar else 'Infrastructure decisions'), '']
+    for item in target.get('infrastructure') or []:
+        mark = '✅' if item['present'] else '⬜'
+        tool = item['tool'] or (('بلا أداة: ' if ar else 'no tool: ') + (item.get('tool_reason') or ''))
+        lines.append(f"- {mark} **{item['area']}**: {item['decision']} ({tool}). "
+                     + ('الدليل: ' if ar else 'Evidence: ') + item['evidence'])
+    return lines + ['']
 
 
 def _who_section(target, language, ar):
