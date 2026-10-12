@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.10 (2026-10-12)
+
+- **An efficient, complete check**: one theme, one picture per distinct page (46 instead of 308 on EAOS itself);
+  every page is still found, the heavy Lighthouse audit runs on at most 10; the assistant reviews each page once and
+  gives one finding per problem per page; a new complete check replaces the previous check's bulky data, and
+  `eaos clean --pictures` deletes old pictures.
+- **Few cards, the assistant decides the simple ones**: one card per real problem (per page and kind, per file and
+  kind); the triage resolves each card it confirms (fix, keep, or a question for the owner) and the owner's
+  questions are capped at 10% of the cards (867 cards and 847 owner decisions became 323 and 32 on EAOS's report).
+- **The Studio**: the Screens page is a gallery of the pictures with problems, each problem boxed where it shows;
+  "Fix with your assistant's recommendations" and an "Accept automatically when the checks pass" option.
+
 ## 0.0.9 (2026-10-12)
 
 The information stages the slim-down removed are back, restored from `archive/before-slim-2026-10-12`, and everything

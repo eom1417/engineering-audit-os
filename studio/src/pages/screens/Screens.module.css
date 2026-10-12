@@ -77,3 +77,39 @@
   .props > div { flex-direction: column; gap: 2px; }
   .props dd { text-align: start; }
 }
+
+/* The gallery of the pictured pages: each page with problems, its picture with the problems boxed and numbered, the
+   problems explained beside it; the clean and unreviewed pages in one line each. */
+.summary { display: flex; flex-direction: column; gap: 6px; }
+.pagesLine { font-size: 14px; color: var(--text-secondary); }
+.pagesLine > summary { cursor: pointer; padding-block: 4px; }
+.addresses { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 6px 0 0; font-size: 12px; color: var(--text-tertiary); }
+.pages { display: flex; flex-direction: column; gap: 18px; }
+.pageCard { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--bg-surface); min-inline-size: 0; }
+[data-theme="dark"] .pageCard { border-color: var(--border-subtle); }
+.pageHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.pageTitle { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.pageBody { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.pageFrame { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+.marked { max-block-size: 560px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-8); background: var(--bg-sunken); }
+.markedLarge { border: 1px solid var(--border-subtle); border-radius: var(--radius-8); background: var(--bg-sunken); }
+.markedCanvas { position: relative; }
+.box { position: absolute; border: 2px solid var(--status-critical); border-radius: var(--radius-4); background: color-mix(in srgb, var(--status-critical) 8%, transparent); cursor: pointer; padding: 0; }
+.box .pinN { inset-block-start: -11px; inset-inline-start: -11px; }
+.notes { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
+.noteList { display: flex; flex-direction: column; }
+.noteList > li + li { border-block-start: 1px solid var(--border-subtle); }
+.note { display: flex; align-items: flex-start; gap: 10px; inline-size: 100%; padding: 10px 8px; text-align: start; background: transparent; border: 0; color: inherit; cursor: pointer; border-radius: var(--radius-8); }
+.note:hover { background: var(--bg-hover); }
+.noteWhy { font-size: 13px; color: var(--text-secondary); line-height: 1.55; overflow-wrap: anywhere; }
+.checks { font-size: 12px; color: var(--text-tertiary); }
+.checks > summary { cursor: pointer; padding-block: 4px; }
+.checks ul { display: flex; flex-direction: column; gap: 4px; padding-block-start: 4px; overflow-wrap: anywhere; }
+.largeBody { display: flex; flex-direction: column; gap: 14px; }
+
+@media (max-width: 767px) {
+  .pageBody { grid-template-columns: minmax(0, 1fr); }
+  .marked { max-block-size: 440px; }
+  .pageCard { padding: 10px; }
+  .note { min-block-size: 44px; }
+}

@@ -47,7 +47,7 @@ export interface ActionDef {
   inputs: JsonSchema
 }
 
-export interface VerbDef { id: VerbId; label: Bi; needs_assistant: boolean; changes_code: boolean; tools: string[]; result: Bi }
+export interface VerbDef { id: VerbId; label: Bi; needs_assistant: boolean; changes_code: boolean; tools: string[]; result: Bi; inputs?: JsonSchema }
 
 export interface Assistant { id: string; name: string; installed: boolean; logged_in: boolean; version?: string | null }
 
@@ -146,6 +146,8 @@ export interface Preview {
   confirm: { token: string; expires?: string } | null
   /** Fix only: where the batch is built, the branch it arrives on, and the branch Accept merges it into. */
   where?: FixWhere | null
+  /** Fix only: this preview's confirmation carries the person's choice to accept the batch when its checks pass */
+  auto_accept?: boolean
 }
 
 /** A Fix preview's place (eaos/studio/actions/branches.py fix_where): every part editable; the base commit is pinned. */

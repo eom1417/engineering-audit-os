@@ -233,6 +233,24 @@ class Triage(Base):
         self.assertEqual(probes[0]['specification']['falsifier'], 'a caller of b')
         self.assertEqual([r['card'] for r in json.loads((folder / 'library-feedback.json').read_text(encoding='utf-8'))['rejected']], ['TASK-003'])
 
+    def test_a_confirmed_card_carries_what_the_assistant_decided_for_it(self):
+        # The self-audit: the triage confirmed 203 cards and every one still waited for the owner's decision.
+        detail = lambda **d: {'falsifier': 'x', 'resolution': None, 'change': None, 'question': None, 'options': [], 'recommendation': None, **d}
+        launcher = Answer(lambda n, s: {'summary': '', 'decisions': [
+            decision('TASK-001', 'confirm', ['TASK-001'], detail=detail(resolution='fix', change='Delete dead() and its export')),
+            decision('TASK-002', 'confirm', ['TASK-002'], detail=detail(resolution='owner', question='Keep b for the mobile app?',
+                                                                        options=['Keep it', 'Remove it'], recommendation='Remove it')),
+            decision('TASK-003', 'confirm', ['TASK-003'], detail=detail(resolution='owner', question='Which?'))]})
+        self.triage(launcher, fresh=True)
+        self.assertIn('detail.resolution', launcher.calls[0][1])
+        body = json.loads((self.report / 'nodes/card_triage/verdicts.json').read_text(encoding='utf-8'))
+        verdicts = {v['card']: v for v in body['verdicts']}
+        self.assertEqual((verdicts['TASK-001']['resolution'], verdicts['TASK-001']['change']), ('fix', 'Delete dead() and its export'))
+        self.assertEqual((verdicts['TASK-002']['resolution'], verdicts['TASK-002']['options'], verdicts['TASK-002']['recommendation']),
+                         ('owner', ['Keep it', 'Remove it'], 'Remove it'))
+        self.assertNotIn('resolution', verdicts['TASK-003'], 'a question with no recommendation leaves the rules\' readiness')
+        self.assertEqual(body['resolutions'], {'fix': 1, 'keep': 0, 'owner': 1})
+
     def test_a_doubted_card_is_judged_again_on_all_its_measurements_largest_over_its_threshold_first(self):
         """Self-audit: the triage saw 4 facts in id-hash order, so it doubted cards whose measurement it was never shown."""
         def measured(n, value, threshold=None):

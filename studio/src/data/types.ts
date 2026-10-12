@@ -67,6 +67,22 @@ export interface Card {
   confidence: number
   /** Why it matters, in both languages (absent when the plan gives no impact) */
   why?: { ar: string; en: string }
+  /** What the assistant decided for the card (eaos/studio/export.py resolution_of): fix it, or ask the owner one choice */
+  resolution?: Resolution
+}
+
+/** The assistant's decision on a card: `fix` with the change it makes (`capped`: the owner's choice turned into its
+ * recommendation), or `owner` with the one product question, its options and its recommendation. In the person's language. */
+export interface Resolution {
+  kind: 'fix' | 'owner'
+  by: string
+  words: string
+  why: string
+  change?: string
+  capped?: boolean
+  question?: string
+  options?: string[]
+  recommendation?: string
 }
 
 /** The lines of code around a fact's place as the check read them; a line where a secret was found is empty and in `hidden`. */

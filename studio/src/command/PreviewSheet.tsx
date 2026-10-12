@@ -272,10 +272,14 @@ export function PreviewSheet() {
   const [asked, setAsked] = useState(false)
   const [place, setPlace] = useState<WhereChoice>({})
   const [moved, setMoved] = useState(false)
+  // Fix only: the person's choice to accept the batch by itself when its checks pass; previewed again when it changes,
+  // since the confirmation is bound to it
+  const [autoAccept, setAutoAccept] = useState(false)
+  const verbInputs = request?.verb === 'fix' && autoAccept ? { auto_accept: true } : undefined
 
   // A new request starts clean; one with no inputs to fill is previewed at once
   useEffect(() => {
-    setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false); setPlace({}); setMoved(false)
+    setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false); setPlace({}); setMoved(false); setAutoAccept(false)
     const start: Record<string, string | boolean> = {}
     if (action && request?.selection?.cards && fields.some(([name]) => name === 'cards')) start.cards = request.selection.cards.join('\n')
     if (action && request?.selection?.cards?.length === 1 && fields.some(([name]) => name === 'card')) start.card = request.selection.cards[0]
@@ -293,13 +297,13 @@ export function PreviewSheet() {
     const inputs = request.verb ? undefined : inputsOf()
     if (inputs === null) return
     const id = request.verb ?? request.action ?? ''
-    const body = request.verb ? { verb: request.verb, selection: request.selection ?? undefined, assistant: assistant ?? undefined, where: request.verb === 'fix' ? place : undefined } : { inputs, assistant: assistant ?? undefined }
+    const body = request.verb ? { verb: request.verb, selection: request.selection ?? undefined, assistant: assistant ?? undefined, where: request.verb === 'fix' ? place : undefined, inputs: verbInputs } : { inputs, assistant: assistant ?? undefined }
     setPreview(null); setProblem(null)
     actions.client.preview(id, body).then((next) => { if (on) setPreview(next) },
       (error) => { if (on) setProblem(error instanceof ActionError ? error.message : String(error)) })
     return () => { on = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, asked, actions.client, assistant, place])
+  }, [request, asked, actions.client, assistant, place, autoAccept])
 
   if (!request) return null
   const title = request.verb
@@ -315,7 +319,7 @@ export function PreviewSheet() {
       if (inputs === null) { setBusy(false); return }
       const run = await actions.client.start({ action: request.verb ?? request.action ?? '', verb: request.verb, selection: (request.selection ?? undefined) as Selection | undefined,
         // The assistant the preview showed, never the server's own pick at start time (it may differ a minute later)
-        inputs: inputs ?? undefined, assistant: assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null,
+        inputs: (request.verb ? verbInputs : inputs) ?? undefined, assistant: assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null,
         // The place the preview showed, its base commit pinned: a branch that moved since is refused, never built on
         where: preview.where?.base ? { ...place, base: preview.where.base.branch, base_commit: preview.where.base.commit,
           deliver_as: preview.where.deliver_as ?? undefined, merge_into: preview.where.merge_into ?? undefined } : undefined })
@@ -353,6 +357,12 @@ export function PreviewSheet() {
           {preview && installed.length > 1 && (
             <Segmented label={w('assistant')} value={assistant ?? preview.assistant?.id ?? installed[0].id} onChange={setAssistant} comfortable
               options={installed.map((a) => ({ id: a.id, label: a.name }))} />
+          )}
+          {request.verb === 'fix' && (
+            <div className={css.check} data-confirm="auto-accept">
+              <SelectBox checked={autoAccept} label={w('autoAccept')} onToggle={() => setAutoAccept(!autoAccept)} />
+              <span>{w('autoAccept')}<span className={css.hint}>{w('autoAcceptHint')}</span></span>
+            </div>
           )}
           {preview?.irreversible && (
             <div className={css.check}>

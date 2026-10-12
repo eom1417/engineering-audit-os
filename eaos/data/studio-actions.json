@@ -1697,6 +1697,17 @@
    "result": {
     "en": "A new branch eaos/<branch>/wave-N with the kept fixes, waiting for Accept or Undo.",
     "ar": "فرع جديد eaos/<branch>/wave-N فيه الإصلاحات المقبولة، ينتظر الاعتماد أو الرمي."
+   },
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "auto_accept": {
+      "type": "boolean",
+      "description": "Accept automatically when the checks pass: chosen by the person in this preview (bound to its confirm token), the run calls accept itself once fix_finish kept at least one change; never into a protected branch, never for another run."
+     }
+    },
+    "required": []
    }
   },
   {
@@ -2289,6 +2300,10 @@
      "null"
     ],
     "description": "Fix only: {base{branch, commit, short, when, checked_out}, deliver_as, merge_into, branches[{name, short, blocked}], problem}: where the batch is built, the branch it arrives on and the branch Accept merges it into, each editable through the body `where`; the confirm token pins the base commit"
+   },
+   "auto_accept": {
+    "type": "boolean",
+    "description": "Fix only: whether this preview's confirm token carries the person's choice to accept the batch automatically when its checks pass (inputs.auto_accept)"
    }
   }
  },
@@ -2311,14 +2326,14 @@
   {
    "method": "POST",
    "path": "/api/actions/<id>/preview",
-   "body": "{inputs?, selection?, verb?, assistant?, where?{base?, deliver_as?, merge_into?}}",
+   "body": "{inputs?, selection?, verb?, assistant?, where?{base?, deliver_as?, merge_into?}}; a Fix may carry inputs.auto_accept",
    "does": "The preview payload; never changes anything. <id> is an action, or a verb (fix, verify, explain, plan) when the body has a selection."
   },
   {
    "method": "POST",
    "path": "/api/runs",
-   "body": "{action, inputs?, selection?, verb?, assistant?, confirm?, where?{base?, deliver_as?, merge_into?, base_commit?}}",
-   "does": "Queues a run; returns {run}. A verb over a selection is posted with `verb` and `selection` (and `action` = the verb); a read-only action answers at once, its result in run.result, and stays out of the history unless ?all=1. Refused with 403 {needs: \"confirm\"} when the run changes code or cannot be undone and the confirm token is missing. A Fix whose base branch moved since its preview (where.base_commit) is refused with 409 {needs: \"preview\"}."
+   "body": "{action, inputs?, selection?, verb?, assistant?, confirm?, where?{base?, deliver_as?, merge_into?, base_commit?}}; a Fix carries inputs.auto_accept exactly as previewed",
+   "does": "Queues a run; returns {run}. A verb over a selection is posted with `verb` and `selection` (and `action` = the verb); a read-only action answers at once, its result in run.result, and stays out of the history unless ?all=1. Refused with 403 {needs: \"confirm\"} when the run changes code or cannot be undone and the confirm token is missing. A Fix whose base branch moved since its preview (where.base_commit) is refused with 409 {needs: \"preview\"}. A Fix whose inputs.auto_accept differs from its preview is refused with 403 {needs: \"confirm\"}; with auto_accept the run accepts its own batch once fix_finish kept something and the target is not protected, and says so in its events."
   },
   {
    "method": "GET",

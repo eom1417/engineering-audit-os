@@ -67,11 +67,12 @@ STAGES = (
                       'failure, both capped in size: which pages a user walks and where a journey fails'),
     Stage('crawl', produces=('live/crawl.json',), requires=('setup',), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it serves no page',
-          description="Every page of the app found by following its links (Unlighthouse), each measured by Lighthouse"),
+          description="Every page of the app found by following its links; Lighthouse on the entry and the first page of "
+                      'each distinct template, ten at most'),
     Stage('screens', produces=('live/screens.json',), requires=('setup',), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it has no page to open',
-          description='Each page, from the code and from the crawl, in its light and dark states at phone and desktop '
-                      'width: its picture and its accessibility (axe); the first page also by Lighthouse'),
+          description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own theme at '
+                      'phone and desktop width: its picture and its accessibility (axe); the first page also by Lighthouse'),
     Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it has no production build that starts',
           description="Today's speed under the intake's load scenarios (k6, p95) on the app's production build"),

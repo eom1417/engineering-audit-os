@@ -224,7 +224,12 @@ STUDIO = {
                              'place': {'type': ['string', 'null']}, 'paths': arr(REF('path')),
                              'evidence': arr(S), 'state': enum(*CARD_STATES), 'milestone': NS,
                              'confidence': {'type': ['number', 'null'], 'minimum': 0, 'maximum': 1},
-                             'why': obj({'ar': S, 'en': S})},
+                             'why': obj({'ar': S, 'en': S}),
+                             # what the assistant decided for the card (eaos/studio/export.py resolution_of): fix it, or
+                             # ask the owner one real product choice
+                             'resolution': obj({'kind': enum('fix', 'owner'), 'by': S, 'words': S, 'why': S, 'change': S,
+                                                'capped': B, 'question': S, 'options': arr(S), 'recommendation': S},
+                                               ['kind', 'by', 'words', 'why'])},
                             ['id', 'key', 'title', 'kind', 'severity', 'fixable', 'scope', 'paths', 'evidence', 'state']))},
           ['cards'])),
  'evidence': ('The facts the cards cite: which engine found what, and where, with the lines of code around the place (never for a secret).',
@@ -407,6 +412,18 @@ STUDIO_V2 = {
                                   'flags': arr(enum('no_way_in', 'dead_end', 'duplicate', 'broken_link'))},
                                  ['id', 'route', 'title', 'shots', 'inputs', 'issues'])),
               'missing': arr(_MAP_GAP),
+              # the gallery of what the check pictured (eaos/studio/screens.py gallery): each page once, its pictures, and
+              # the visual reviewer's findings on each with their region as fractions 0-1 of the picture
+              'pages': arr(obj({'path': S, 'template': S, 'same_as': arr(S), 'state': enum('findings', 'clean', 'not_reviewed'),
+                                'findings': COUNT,
+                                'pictures': arr(obj({'path': S, 'viewport': NS, 'width': NI, 'height': NI, 'checks': arr(S),
+                                                     'findings': arr(obj({'id': NS, 'title': NS, 'kind': NS, 'severity': NS, 'why': NS,
+                                                                          'region': {'type': ['object', 'null'],
+                                                                                     'properties': {k: {'type': 'number', 'minimum': 0, 'maximum': 1}
+                                                                                                    for k in ('x', 'y', 'width', 'height')}}},
+                                                                         ['title', 'region']))},
+                                                    ['path', 'findings']))},
+                               ['path', 'state', 'findings', 'pictures'])),
               'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
              ['screens'])),
  'gaps': ('The gap register: what separates each component from the ideal, the operation that closes it, and how far it is closed.',

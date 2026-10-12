@@ -25,18 +25,24 @@ def region(x, y, width, height):
 
 
 class Reviewer:
-    """Sees a crowded header on the first picture, a region outside the second, and nothing on the rest."""
+    """Sees one crowded header on both pictures of the first page, points the second page's finding at a picture of the
+    first, and finds the third page clean."""
     assistant, model, cost_usd = 'Claude Code', 'test-model', None
 
     def __call__(self, name, prompt, schema):
         ids = schema['properties']['decisions']['items']['properties']['subject']['enum']
-        finding = lambda box: {'title': 'Crowded header', 'kind': 'crowding', 'severity': 'high', 'region': box,
-                               'why': 'Four buttons share one line at phone width'}
-        rows = [{'subject': ids[0], 'decision': 'cards', 'detail': {'findings': [finding(region(0, 0, 1, 0.2))]}},
-                {'subject': ids[1], 'decision': 'cards', 'detail': {'findings': [finding(region(0.5, 0.9, 0.8, 0.3))]}}]
-        rows += [{'subject': i, 'decision': 'clean', 'detail': {'findings': []}} for i in ids[2:]]
+        finding = lambda *shows: {'title': 'Crowded header', 'kind': 'crowding', 'severity': 'high', 'why': 'Four buttons share one line',
+                                  'shows': [{'picture': picture, 'region': box} for picture, box in shows]}
+        rows = [{'subject': ids[0], 'decision': 'cards', 'detail': {'findings': [finding(('IMG-001', region(0, 0, 1, 0.2)),
+                                                                                         ('IMG-002', region(0, 0, 1, 0.1)))]}},
+                {'subject': ids[1], 'decision': 'cards', 'detail': {'findings': [finding(('IMG-001', region(0, 0, 1, 0.2)))]}},
+                {'subject': ids[2], 'decision': 'clean', 'detail': {'findings': []}}]
         return {'summary': '', 'decisions': [{'options': [], 'evidence': [row['subject']], 'confidence': 0.8, 'why': 'seen',
                                               'open_questions': [], **row} for row in rows]}
+
+
+PICTURED = (('http://127.0.0.1:9/', 'phone'), ('http://127.0.0.1:9/', 'desktop'), ('http://127.0.0.1:9/#/tasks/TASK-001', 'phone'),
+            ('http://127.0.0.1:9/#/problems', 'phone'))
 
 
 class VisualReviewer(TemporaryWorkspace):
@@ -50,12 +56,14 @@ class VisualReviewer(TemporaryWorkspace):
         shots = cls.out / 'live/screens/screenshots'
         shots.mkdir(parents=True)
         rows = []
-        for n, (viewport, theme) in enumerate((('phone', 'light'), ('desktop', 'light'), ('phone', 'dark'))):
-            (shots / f'0{n}-index-{theme}-{viewport}.png').write_bytes(PNG)
-            rows.append({'url': 'http://127.0.0.1:9/', 'viewport': viewport, 'variant': theme, 'failures': [],
+        for n, (page, viewport) in enumerate(PICTURED):
+            (shots / f'0{n}-{viewport}.png').write_bytes(PNG)
+            rows.append({'url': page, 'viewport': viewport, 'variant': 'default', 'failures': [],
                          'axe': {'violations': [{'id': 'color-contrast', 'help': 'Elements must meet contrast'}]},
-                         'screenshot': f'live/screens/screenshots/0{n}-index-{theme}-{viewport}.png'})
-        (cls.out / 'live/screens.json').write_text(json.dumps({'rows': rows}), encoding='utf-8')
+                         'screenshot': f'live/screens/screenshots/0{n}-{viewport}.png'})
+        pages = [{'path': '/', 'template': '/', 'same_as': ['/#/']},
+                 {'path': '/#/tasks/TASK-001', 'template': '/#/tasks/:id', 'same_as': ['/#/tasks/TASK-004']}]
+        (cls.out / 'live/screens.json').write_text(json.dumps({'rows': rows, 'pages': pages}), encoding='utf-8')
         made = []
         def launcher(adapter, folder, cancel=None, started=None, images=()):
             made.append(list(images))
@@ -74,51 +82,46 @@ class VisualReviewer(TemporaryWorkspace):
         self.assertTrue(all(rule.startswith('Read(//') for rule in allowed))
         self.assertEqual(adapters.ClaudeCode().ask_argv({}, self.out)[-4:-2], ['--tools', ''])
 
-    def test_a_finding_outside_its_picture_is_dropped_and_each_other_becomes_a_design_card(self):
+    def test_a_problem_is_one_finding_per_page_with_every_picture_it_shows_on_and_the_gallery_pins_it_to_each(self):
+        # The self-check made 1030 findings, one per picture: the same problem on a page's phone and desktop pictures twice
         record = json.loads((self.out / 'nodes/visual_reviewer/last.json').read_text(encoding='utf-8'))
-        self.assertEqual([row['why'] for row in record['dropped']], ['a finding names a region outside its picture'])
+        self.assertEqual([row['why'] for row in record['dropped']], ['a finding names a picture of another page'])
         findings = json.loads((self.out / 'nodes/visual_reviewer/findings.json').read_text(encoding='utf-8'))['findings']
-        self.assertEqual([(f['image'], f['file'], f['region']) for f in findings],
-                         [('IMG-001', 'live/screens/screenshots/00-index-light-phone.png', region(0, 0, 1, 0.2))])
+        self.assertEqual([(f['page'], f['viewports'], [p['region'] for p in f['pictures']]) for f in findings],
+                         [('http://127.0.0.1:9/', ['phone', 'desktop'], [region(0, 0, 1, 0.2), region(0, 0, 1, 0.1)])])
         plan = json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))
         card = next(t for t in plan['tasks'] if t['id'] == 'TASK-V001')
-        self.assertEqual((card['origin'], card['evidence']['images'], card['evidence']['region']),
-                         ('visual_review', ['live/screens/screenshots/00-index-light-phone.png'], region(0, 0, 1, 0.2)))
-        self.assertIn('TASK-V001', [task for wave in plan['waves'] for task in wave['tasks']])
+        self.assertEqual((card['origin'], card['evidence']['images'][0], card['evidence']['region']),
+                         ('visual_review', 'live/screens/screenshots/00-phone.png', region(0, 0, 1, 0.2)))
         self.assertEqual(json.loads((self.out / 'cards.json').read_text(encoding='utf-8'))['design'], ['TASK-V001'])
-
-
+        from eaos.studio.screens import gallery
+        pages = {p['path']: p for p in gallery(self.out)}
+        self.assertEqual({path: p['state'] for path, p in pages.items()},
+                         {'/': 'findings', '/#/tasks/TASK-001': 'not_reviewed', '/#/problems': 'clean'})
+        self.assertEqual([(shot['viewport'], [f['region'] for f in shot['findings']]) for shot in pages['/']['pictures']],
+                         [('phone', [region(0, 0, 1, 0.2)]), ('desktop', [region(0, 0, 1, 0.1)])])
+        self.assertEqual((pages['/#/tasks/TASK-001']['template'], pages['/#/tasks/TASK-001']['same_as']), ('/#/tasks/:id', ['/#/tasks/TASK-004']))
 
 
 class Crawl(unittest.TestCase):
-    def test_each_crawled_page_is_read_from_its_lighthouse_report_a_failed_crawl_is_retried_and_a_missing_tool_is_unavailable(self):
-        with tempfile.TemporaryDirectory() as folder:
-            report = Path(folder) / 'unlighthouse/reports/about/lighthouse.json'
-            report.parent.mkdir(parents=True)
-            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/about', 'categories': {'performance': {'score': 0.91}},
-                                          'audits': {'largest-contentful-paint': {'numericValue': 1234.4}}}), encoding='utf-8')
-            self.assertEqual(crawl.route_of(report, Path(folder)),
-                             {'path': '/about', 'scores': {'performance': 91, 'accessibility': None, 'best-practices': None, 'seo': None},
-                              'lcp_ms': 1234, 'cls': None, 'report': 'unlighthouse/reports/about/lighthouse.json'})
-            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/#/branches'}), encoding='utf-8')
-            self.assertEqual(crawl.route_of(report, Path(folder))['path'], '/#/branches', 'a page routed by its fragment keeps it')
-        with mock.patch.object(crawl, 'which', return_value=None):
+    def test_every_page_is_found_and_lighthouse_measures_the_entry_and_each_distinct_template_ten_at_most(self):
+        # Lighthouse ran on all 76 crawled routes of the Studio: 28 minutes, most of them one template with other data
+        found = [{'path': '/', 'depth': 0, 'status': 'observed'}, {'path': '/#/broken', 'depth': 1, 'status': 'error'}]
+        found += [{'path': f'/#/tasks/TASK-{n:03d}', 'depth': 1, 'status': 'observed'} for n in range(1, 9)]
+        found += [{'path': f'/#/page{chr(97 + n)}', 'depth': 1, 'status': 'observed'} for n in range(12)]
+        measured = []
+        def lighthouse(url, out=None):
+            measured.append(url)
+            return {'status': 'observed', 'scores': {'performance': 90}, 'lcp_ms': 900, 'cls': 0, 'report': str(Path(out) / 'lighthouse.json')}
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(crawl, 'discover', return_value=(found, '')), \
+                mock.patch.object(crawl, 'lighthouse', side_effect=lighthouse):
+            result = crawl.crawl('http://127.0.0.1:9', folder)
+        self.assertEqual((result['status'], len(result['routes']), result['templates'], result['measured']), ('observed', 21, 14, 10))
+        self.assertEqual(measured[:3], ['http://127.0.0.1:9/', 'http://127.0.0.1:9/#/tasks/TASK-001', 'http://127.0.0.1:9/#/pagea'])
+        task = next(r for r in result['routes'] if r['path'] == '/#/tasks/TASK-001')
+        self.assertEqual((task['template'], task['measured'], task['report']), ('/#/tasks/:id', True, 'lighthouse/01/lighthouse.json'))
+        with mock.patch.object(crawl, 'discover', return_value=(None, 'not installed: playwright')):
             self.assertEqual(crawl.crawl('http://127.0.0.1:9', '/nonexistent')['status'], 'unavailable')
-        with tempfile.TemporaryDirectory() as folder:
-            calls = []
-            def unlighthouse(argv, cwd=None, timeout=None):
-                calls.append(argv)
-                if len(calls) == 1: return 1, '', 'socket hang up', 1.0
-                report = Path(folder) / 'unlighthouse/reports/lighthouse.json'
-                report.parent.mkdir(parents=True)
-                report.write_text('{"finalDisplayedUrl": "http://127.0.0.1:9/"}')
-                return 0, '', '', 1.0
-            with mock.patch.object(crawl, 'which', return_value='/bin/unlighthouse-ci'), mock.patch.object(crawl, 'chromium_path', return_value='/bin/chrome'), \
-                    mock.patch.object(crawl, 'run', side_effect=unlighthouse):
-                found = crawl.crawl('http://127.0.0.1:9', folder)
-                config = (Path(folder) / 'unlighthouse.config.ts').read_text(encoding='utf-8')
-        self.assertEqual((found['status'], len(calls), [r['path'] for r in found['routes']]), ('observed', 2, ['/']))
-        self.assertIn('"maxConcurrency": 1', config)
 
 if __name__ == '__main__':
     unittest.main()

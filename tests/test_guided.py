@@ -172,6 +172,37 @@ class Journey(unittest.TestCase):
         self.assertFalse(guided.load(self.project).get('open_wave'))
 
 
+class Bulk(unittest.TestCase):
+    def test_a_new_check_replaces_the_previous_checks_bulky_data_and_clean_deletes_old_pictures_on_request(self):
+        # EAOS's own report kept 230 MB of pictures and 130 MB of the assistant's raw runs from check to check
+        from eaos.pipeline import run as pipeline
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(folder) / 'home')}):
+            report = guided.outputs_root() / 'shop/technical'
+            bulky = ['live/screens/screenshots/00-index-dark-phone.png', 'live/screens.json', 'live/crawl/x/thumb.jpg',
+                     'nodes/visual_reviewer/runs/r1/prompt.txt', 'nodes/card_triage/cache/k.json', 'engines/gitnexus/copy/a.ts']
+            kept = ['dossier.json', 'studio/screens.json', 'nodes/visual_reviewer/findings.json', 'live/setup.json', 'engines/engines.json']
+            for name in bulky + kept:
+                (report / name).parent.mkdir(parents=True, exist_ok=True)
+                (report / name).write_text('x')
+            with mock.patch.object(pipeline, 'execute', return_value={'status': 'COMPLETE'}):
+                pipeline.check(_project(folder), report, language='en', only=['facts'])
+                self.assertTrue(all((report / name).exists() for name in bulky), 'a run of some stages keeps them')
+                pipeline.check(_project(Path(folder) / 'b'), report, language='en')
+            self.assertEqual([name for name in bulky + kept if (report / name).exists()], kept)
+            for name in ('live/screens/screenshots/00-index-default-phone.png', 'nodes/visual_reviewer/runs/r2/prompt.txt',
+                         'branches/fix/technical/live/crawl/lighthouse/00/lighthouse.json'):
+                path = report / name if not name.startswith('branches') else report.parent / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('x')
+            with redirect_stdout(io.StringIO()):
+                guided.clean(Namespace(lang='en', pictures=False, project='.'))
+                self.assertTrue((report / 'live/screens').exists(), 'pictures go only when asked')
+                guided.clean(Namespace(lang='en', pictures=True, project='.'))
+            self.assertEqual([p for p in ('technical/live/screens', 'technical/nodes/visual_reviewer/runs', 'branches/fix/technical/live/crawl')
+                              if (report.parent / p).exists()], [])
+            self.assertTrue((report / 'nodes/visual_reviewer/findings.json').is_file())
+
+
 class Pages(unittest.TestCase):
     def test_the_first_page_counts_from_the_plan_in_the_persons_language_and_the_run_says_which_stage_it_is_on(self):
         with tempfile.TemporaryDirectory() as tmp:

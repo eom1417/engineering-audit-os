@@ -4,7 +4,7 @@ Three runners, each returning a plain dict with a `status` ('observed', 'unavail
 when it did not observe; a missing tool is reported as unavailable, it is not raised:
 
     page_audit(urls, viewports, variants, out)   Playwright + axe (eaos/templates/screens/audit.mjs): per page,
-                                                 variant and viewport, the WCAG 2.2 A/AA violations, horizontal
+                                                 variant (by default the app's own theme alone) and viewport, the WCAG 2.2 A/AA violations, horizontal
                                                  overflow, the scroll position after load, interactive targets
                                                  under 44x44 CSS px at phone width, clipped text, letter-spaced
                                                  Arabic, the page's script errors, the page height and a
@@ -75,13 +75,14 @@ def _node(script, config, timeout, env=None):
     except ValueError as problem: return None, f'{script} printed no JSON: {problem}'
 
 
-def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=('light', 'dark'),
+def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=(None,),
              lang_field=None, theme_field=None):
     """The page variants to audit. A language is set through a localStorage key or a query parameter, when one is
-    named; a theme the same way, and always through prefers-color-scheme. With no theme key or parameter, the dark
-    variant is audited only when the page declares a dark scheme (audit.mjs checks it on the light variant).
-    A key with a field keeps a JSON object (the EAOS Studio keeps {"lang", "theme"} under "eaos.studio"): the variant's
-    value is merged into that object, {key: {field: value}}, rather than set as the whole value."""
+    named; a theme the same way, and always through prefers-color-scheme. By default one theme only, the app's own:
+    nothing is set and the browser asks for light (a dark pass doubled the pictures and the review, for a theme the
+    person rarely changes). A key with a field keeps a JSON object (the EAOS Studio keeps {"lang", "theme"} under
+    "eaos.studio"): the variant's value is merged into that object, {key: {field: value}}, rather than set as the
+    whole value."""
     languages = list(langs) if (lang_key or lang_param) else [None]
     rows = []
     for theme in themes:
@@ -92,10 +93,9 @@ def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, l
                 if field: storage[key] = {**(storage.get(key) if isinstance(storage.get(key), dict) else {}), field: value}
                 else: storage[key] = value
             if lang and lang_param: query[lang_param] = lang
-            if theme_param: query[theme_param] = theme
-            rows.append({'name': '-'.join(part for part in (lang, theme) if part), 'lang': lang, 'theme': theme,
-                         'color_scheme': theme if theme in ('light', 'dark') else 'light', 'storage': storage, 'query': query,
-                         'if_page_supports_dark': theme == 'dark' and not (theme_key or theme_param)})
+            if theme and theme_param: query[theme_param] = theme
+            rows.append({'name': '-'.join(part for part in (lang, theme) if part) or 'default', 'lang': lang, 'theme': theme,
+                         'color_scheme': theme if theme in ('light', 'dark') else 'light', 'storage': storage, 'query': query})
     return rows
 
 
@@ -134,7 +134,6 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     block (the page needs the network), a language, direction or theme other than the variant expects, a phone page
     taller than `height_budget` screens, or a page that did not load. A fragment that starts with '/' is a route
     (#/problems), not an anchor: such a page must still open at the top."""
-    if row.get('status') == 'skipped': return []
     if row.get('status') != 'observed': return [f"error: {row.get('reason', 'not audited')}"]
     found = []
     if row.get('layout_width', row['width']) != row['width']:

@@ -467,6 +467,40 @@ class Manager:
         self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else ''),
                                           'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch') else '')}, payload)
         self.set_state(run, 'done', result=payload)
+        self._auto_accept(run, payload)
+
+    def _auto_accept(self, run, payload):
+        """Accept this run's own batch when the person chose it in this run's Fix preview (auto_accept, bound to its
+        confirm token) and fix_finish kept at least one change: the choice is the person's agreement, for this run
+        only. Never into a protected branch, never another run's branch; otherwise the branch waits for the person."""
+        from ... import guided
+        record = self.store.load(run)
+        branch = payload.get('branch')
+        if not (record.get('verb') == 'fix' and record.get('auto_accept') is True and branch and payload.get('cards_closed')): return None
+        if record.get('outcome') or self.newest_waiting() != branch: return None
+        wave = next((w for w in reversed((guided.load(self.project) or {}).get('waves') or []) if w.get('branch') == branch), {})
+        target = wave.get('merge_into') or (record.get('where') or {}).get('merge_into') or payload.get('target')
+        if not target or not self.branch_control: return None
+        reason = self.branch_control.policy()['protected'].get(target)
+        if reason:
+            self.store.append(run, 'say', {'en': f'Not accepted automatically: {target} is protected ({reason["en"]}); the branch {branch} waits for you',
+                                           'ar': f'ما اعتُمد تلقائيًا: {target} محمي ({reason["ar"]})؛ الفرع {branch} ينتظرك'}, {'branch': branch, 'target': target})
+            return None
+        self.store.append(run, 'action', {'en': f'Accepting {branch} automatically: you chose it in the preview and the checks passed',
+                                          'ar': f'أعتمد {branch} تلقائيًا: اخترت هذا في المعاينة والفحوص نجحت'},
+                          {'action': 'accept', 'by': 'person', 'arguments': {'branch': branch, 'auto_accept': True}})
+        try: result = self.call('accept', {'person_agreed': True})
+        except Exception as problem: result = {'error': f'{type(problem).__name__}: {problem}'}
+        ok = isinstance(result, dict) and not result.get('error') and result.get('status') == 'accepted'
+        if ok:
+            self.store.append(run, 'result', {'en': f'Taken in automatically: {branch}', 'ar': f'اعتُمد تلقائيًا: {branch}'},
+                              {'branch': branch, 'outcome': 'accept', 'auto_accept': True, 'answer': result})
+            self.store.update(run, outcome='accepted', decided=now())
+        else:
+            why = str((result or {}).get('status') or (result or {}).get('error'))
+            self.store.append(run, 'say', {'en': f'Not accepted automatically ({why}): the branch {branch} waits for you',
+                                           'ar': f'ما اعتُمد تلقائيًا ({why}): الفرع {branch} ينتظرك'}, {'branch': branch, 'reason': why})
+        return result
 
     def _restore_question(self, run):
         record = self.store.load(run)
@@ -613,7 +647,9 @@ class Manager:
                 if row['state'] == 'done':
                     payload = self._outcome(run, answer=row.get('done'))
                     self.store.append(run, 'result', {'en': 'Your assistant finished the request', 'ar': 'مساعدك خلّص الطلب'}, payload)
-                    if not self._restore_question(run): self.set_state(run, 'done', result=payload)
+                    if not self._restore_question(run):
+                        self.set_state(run, 'done', result=payload)
+                        self._auto_accept(run, payload)
                     return handoff.drop(self.project, run)
                 time.sleep(1)
         finally:

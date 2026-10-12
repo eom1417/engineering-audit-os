@@ -53,6 +53,8 @@ export const CMD_WORDS = {
   openInFolder: ['مفتوح في مجلد المشروع', 'open in the project folder'],
   notOpenBase: ['هذا ليس الفرع المفتوح في مجلد المشروع.', 'This is not the branch open in the project folder.'],
   updatePreview: ['حدّث المعاينة', 'Update the preview'],
+  autoAccept: ['اعتمد تلقائيًا إذا نجحت الفحوص', 'Accept automatically when the checks pass'],
+  autoAcceptHint: ['لهذا التشغيل فقط: إذا نجحت فحوص الدفعة واحتفظت بتغيير واحد على الأقل يُدمج الفرع بنفسه بدون ما نسألك. لا يُدمج أبدًا في فرع محمي.', 'For this run only: if the batch passes its checks and keeps at least one change, its branch is merged without asking you. Never into a protected branch.'],
   branchMoved: ['الفرع تحرّك بعد المعاينة، فعاينّاه من جديد: راجع ثم أكّد.', 'The branch moved since the preview, so it was previewed again: check it, then confirm.'],
   irreversibleLead: ['هذا لا رجعة فيه من هنا.', 'This cannot be undone from here.'],
   understand: ['فهمت، وأريد المتابعة', 'I understand, and I want to go on'],

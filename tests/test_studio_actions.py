@@ -628,6 +628,33 @@ class Direct(Base):
         self.assertEqual(self.kinds('r-three')[-1], 'error')
 
 
+    def test_a_fix_accepts_its_own_batch_only_when_the_person_chose_it_in_its_preview(self):
+        """The owner's rule: "accept automatically when the checks pass" is the person's choice in that Fix preview, for
+        that run only; without it, or into a protected branch, or with nothing kept, the branch waits for the person."""
+        selection = {'kind': 'cards', 'cards': ['TASK-001']}
+        preview = lambda auto: self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'inputs': {'auto_accept': auto}})[1]
+        self.assertTrue(preview(True)['auto_accept'])
+        for shown, sent in ((True, False), (False, True)):          # the token carries the choice the person saw
+            status, payload = self.post('/api/runs', {'action': 'fix', 'verb': 'fix', 'selection': selection, 'inputs': {'auto_accept': sent},
+                                                      'confirm': preview(shown)['confirm']['token']})
+            self.assertEqual((status, payload.get('needs')), (403, 'confirm'), payload)
+        self.assertEqual(self.app.store.all(), [])
+        self.app.manager.tools, calls = self.fake_tools({'accept': {'status': 'accepted', 'branch': 'eaos/wave-1'}})
+        self.app.manager.newest_waiting = lambda: 'eaos/wave-1'
+        self.app.branches.policy = lambda: {'protected': {'main': {'en': 'main', 'ar': 'main', 'code': 'main_name'}}}
+        def end(run, auto, target='dev', kept=('TASK-001',)):
+            self.app.store.save({'id': run, 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'running', 'label': {'en': 'x', 'ar': 'x'},
+                                 'created': '0', 'cards': ['TASK-001'], 'where': {'merge_into': target}, **({'auto_accept': True} if auto else {})}, new=True)
+            with mock.patch.object(self.app.manager, '_outcome', return_value={'branch': 'eaos/wave-1', 'cards_closed': list(kept), 'target': target}):
+                self.app.manager._end_turn(run, {'eaos_results': [], 'final': 'done'}, 0)
+            return self.app.store.load(run)
+        for run, auto, target, kept in (('r-not-chosen', False, 'dev', ('TASK-001',)), ('r-protected', True, 'main', ('TASK-001',))):
+            self.assertNotIn('outcome', end(run, auto, target, kept), run)
+        self.assertEqual(calls, [], 'nothing is accepted that the person did not choose, nor into a protected branch')
+        self.assertEqual(end('r-chosen', True)['outcome'], 'accepted')
+        self.assertEqual(calls, [('accept', {'person_agreed': True, 'project': str(self.project.resolve())})])
+        self.assertTrue(next(e for e in reversed(self.app.store.events('r-chosen')) if e['kind'] == 'result')['data']['auto_accept'])
+
 class Handoff(Base):
     def test_with_no_assistant_the_next_status_call_takes_the_request_and_a_note_closes_it(self):
         app = self.make(adapters_={})

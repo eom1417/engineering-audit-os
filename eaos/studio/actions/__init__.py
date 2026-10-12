@@ -60,6 +60,18 @@ def _where_of(where):
             'merge_into': where.get('merge_into')}
 
 
+def _auto_accept(verb, inputs):
+    """Whether the person chose, in a Fix preview, to accept the batch automatically when its checks pass."""
+    return verb == 'fix' and (inputs or {}).get('auto_accept') is True
+
+
+def _bound(selection, where, auto):
+    """What a confirm token is bound to: the selection, a Fix's place, and the person's auto-accept choice, so a token
+    of a preview without it never starts a run that accepts by itself."""
+    bound = {'selection': selection, 'where': where} if where else selection
+    return {'bound': bound, 'auto_accept': True} if auto else bound
+
+
 class Refused(Exception):
     def __init__(self, status, reason, **extra):
         super().__init__(reason)
@@ -272,10 +284,13 @@ class Actions:
         if name not in self.actions: raise KeyError(name)
         return None, name
 
-    def _inputs(self, action, inputs):
+    def _inputs(self, action, inputs, verb=None):
+        """The inputs of an action, or of a verb that declares any (a Fix's auto_accept), checked against the contract."""
         from ...artifact_contracts import validate
         inputs = {key: value for key, value in (inputs or {}).items() if key != 'project'}
-        problems = validate(inputs, self.actions[action]['inputs'])
+        schema = self.verbs[verb].get('inputs') if verb else self.actions[action]['inputs']
+        if verb and not schema: return {}
+        problems = validate(inputs, schema)
         if problems: raise ValueError('; '.join(problems[:5]))
         return inputs
 
@@ -302,7 +317,7 @@ class Actions:
 
     def preview(self, name, body):
         verb, action = self._kind(name, body)
-        inputs = {} if verb else self._inputs(action, body.get('inputs'))
+        inputs = self._inputs(action, body.get('inputs'), verb)
         needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
         assistant = self._assistant(body.get('assistant'), needed)
         chosen = self.adapters.get(assistant).detect() if assistant and assistant != 'handoff' else None
@@ -324,7 +339,7 @@ class Actions:
                        on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
         from .prompts import build
         cards_detail = out['cards']
-        prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs=inputs, labels={k: v['label'] for k, v in self.actions.items()},
+        prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs={} if verb else inputs, labels={k: v['label'] for k, v in self.actions.items()},
                        where=_where_of(out.get('where')))
         # The planner asks the assistant itself: there is no request a chat assistant could take over.
         handed = bool(needed) and action not in PLANNERS
@@ -332,7 +347,8 @@ class Actions:
         # a Fix confirms where it builds too: the token pins the base commit the person saw, and nothing is confirmed
         # while the preview says the place is wrong (a protected target, a branch name git refuses)
         where = out.get('where')
-        bound = {'selection': out['selection'], 'where': _where_of(where)} if where else out['selection']
+        out['auto_accept'] = _auto_accept(verb, inputs)
+        bound = _bound(out['selection'], _where_of(where), out['auto_accept'])
         out['confirm'] = (self.locks.confirm(action, bound, self.project)
                           if self._needs_confirm(verb, action, inputs) and not (where and where.get('problem')) else None)
         return out
@@ -347,7 +363,9 @@ class Actions:
     def create(self, body):
         if not (body.get('action') or body.get('verb')): raise ValueError('say which action to run (action) or which verb (verb)')
         verb, action = self._kind(str(body.get('action') or body.get('verb')), body)
-        inputs = {} if verb else self._inputs(action, body.get('inputs'))
+        inputs = self._inputs(action, body.get('inputs'), verb)
+        auto = _auto_accept(verb, inputs)
+        if verb: inputs = {}
         selection = body.get('selection') if verb else None
         where = None
         if verb == 'fix' and self._has_commits():
@@ -357,7 +375,7 @@ class Actions:
             if asked.get('base_commit') and where['base_commit'] != asked['base_commit']:
                 raise Refused(409, f"the branch {where['base']} moved since the preview: preview again", needs='preview')
             if now_at.get('problem'): raise Refused(409, now_at['problem']['en'], needs='preview', reasons=[now_at['problem']])
-        bound = {'selection': selection, 'where': where} if where else selection
+        bound = _bound(selection, where, auto)
         if self._needs_confirm(verb, action, inputs) and not self.locks.spend(body.get('confirm'), action, bound, self.project):
             raise Refused(403, 'this needs your explicit confirmation: open its preview and confirm', needs='confirm')
         needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
@@ -372,7 +390,7 @@ class Actions:
                   'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
                   'mode': 'planner' if action in PLANNERS else 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
                   'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
-                  'context': self.branches.run_context(), **({'where': where} if where else {}),
+                  'context': self.branches.run_context(), **({'where': where} if where else {}), **({'auto_accept': True} if auto else {}),
                   'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                   **({'started': now()} if reading else {})}
         self.store.save(record, new=True)

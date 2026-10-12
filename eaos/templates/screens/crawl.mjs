@@ -1,0 +1,61 @@
+// EAOS crawl: every page of a running app, found by following its links, through the pinned Playwright.
+//
+// Run by eaos/screens/crawl.py as a separate process:  node crawl.mjs <config.json>
+// The config names the Playwright module folder, the app's base URL and the most pages to open. Each page is opened
+// once, breadth first from the base, and the links it shows are read after it settles; nothing is measured here (the
+// heavy Lighthouse audit runs on a few distinct pages only, in crawl.py). A hash-routed app (#/problems) is followed
+// by its routes; any other fragment is an anchor of the same page. Requests to any other origin are aborted.
+// The result is one JSON object on stdout: {routes: [{path, depth, status}]}.
+import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const playwright = (() => {
+  const require = createRequire(join(config.modules.playwright, 'eaos-resolve.js'));
+  try { return require('playwright'); } catch { return require('@playwright/test'); }
+})();
+const base = new URL(config.base);
+
+// The page's address as the crawl names it: its path and, for a hash route, the route; null for another origin.
+function pathOf(href) {
+  let url;
+  try { url = new URL(href, base); } catch { return null; }
+  if (url.origin !== base.origin || !['http:', 'https:'].includes(url.protocol)) return null;
+  const route = url.hash.startsWith('#/') ? url.hash : '';
+  return (url.pathname || '/') + url.search + route;
+}
+
+const browser = await playwright.chromium.launch({ headless: true, args: config.chromium_args || [] });
+const routes = [];
+try {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
+  await context.route('**/*', (route) => {
+    const target = new URL(route.request().url());
+    if (['data:', 'blob:'].includes(target.protocol) || target.origin === base.origin) return route.continue();
+    return route.abort('blockedbyclient');
+  });
+  const seen = new Set([pathOf(base.href)]);
+  const queue = [{ path: pathOf(base.href), depth: 0 }];
+  while (queue.length && routes.length < config.max_routes) {
+    const { path, depth } = queue.shift();
+    const page = await context.newPage();
+    let status = 'observed', links = [];
+    try {
+      await page.goto(new URL(path, base).href, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
+      try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
+      links = await page.evaluate(() => [...document.querySelectorAll('a[href]')].map((a) => a.href));
+    } catch (error) {
+      status = 'error';
+    }
+    await page.close();
+    routes.push({ path, depth, status });
+    for (const href of links) {
+      const found = pathOf(href);
+      if (found && !seen.has(found)) { seen.add(found); queue.push({ path: found, depth: depth + 1 }); }
+    }
+  }
+} finally {
+  await browser.close();
+}
+process.stdout.write(JSON.stringify({ routes }) + '\n');

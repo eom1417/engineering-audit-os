@@ -129,6 +129,51 @@
                 "type": "string"
               }
             }
+          },
+          "resolution": {
+            "type": "object",
+            "required": [
+              "kind",
+              "by",
+              "words",
+              "why"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "fix",
+                  "owner"
+                ]
+              },
+              "by": {
+                "type": "string"
+              },
+              "words": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
+              },
+              "change": {
+                "type": "string"
+              },
+              "capped": {
+                "type": "boolean"
+              },
+              "question": {
+                "type": "string"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "recommendation": {
+                "type": "string"
+              }
+            }
           }
         }
       }

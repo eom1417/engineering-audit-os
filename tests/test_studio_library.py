@@ -30,6 +30,8 @@ class Library(unittest.TestCase):
             'engines/mirror/logo.png': PNG,
             'architecture/system.mmd': 'flowchart LR\n  a --> b\n',
             'shots/home.png': PNG,
+            # An older crawl's Unlighthouse kept 760 such thumbnails in EAOS's own report; the Studio exported them all
+            'live/crawl/unlighthouse/reports/__screenshot-thumbnails__/0.jpg': PNG,
         })
 
     def test_documents_follow_the_reading_order_and_travel_with_the_studio_and_the_machines_folders_and_oversized_images_do_not(self):
@@ -41,7 +43,7 @@ class Library(unittest.TestCase):
         self.assertEqual(rows['START-HERE.md']['headings'], [{'level': 2, 'text': 'What was found'}, {'level': 3, 'text': 'Next'}],
                          'a line inside a code block is not a heading')
         docs, media = library.docs(self.out), library.media(self.out, 'en')
-        self.assertEqual([m['id'] for m in media], ['architecture/system.mmd', 'shots/home.png'])
+        self.assertEqual([m['id'] for m in media], ['architecture/system.mmd', 'shots/home.png'], "a crawler's thumbnails are left out")
         self.assertEqual(media[0]['title'], 'Map of pages and APIs')
         body = library.library(self.out, docs, media, project=None)
         text = {d['id']: d['text'] for d in body['documents']}

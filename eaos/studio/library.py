@@ -4,7 +4,8 @@
 - docs: every Markdown document of the report, grouped by purpose, in the reading order the report's own index
   (README.md) gives, with its headings for search. The engines' working copies of the project (engines/) are not
   documents EAOS wrote, and are left out.
-- media: the report's diagrams and images, the same way.
+- media: the report's diagrams and images, the same way. The thumbnails an older crawl's Unlighthouse kept
+  (`__screenshot-thumbnails__`, 760 of them on EAOS's own Studio) are its working files, not pictures of the check.
 - library: each document's text, and each image as a data URI (an <img> runs no script from it) or a diagram's source.
   A file too large to carry is listed with the reason; nothing is cut silently. The machine's own folders in the text
   (the project's absolute path, the home folder) are replaced by the project's name and `~`.
@@ -16,6 +17,7 @@ from pathlib import Path
 DOC_GROUPS = (('START-HERE.md', 'start'), ('README.md', 'start'), ('CURRENT-STATE.md', 'story'),
               ('TARGET-STATE.md', 'story'), ('GAP-AND-STRATEGY.md', 'story'), ('EXECUTION-PLAN.md', 'plan'))
 SKIP = ('studio/', 'engines/')
+SKIP_PARTS = ('__screenshot-thumbnails__',)
 LINK = re.compile(r'\]\(([^)#\s]+\.md)(?:#[^)]*)?\)')
 HEADING = re.compile(r'^(#{1,3})\s+(.+?)\s*#*\s*$')
 FENCE = re.compile(r'^\s*(```|~~~)')
@@ -33,7 +35,7 @@ def _files(report, suffixes):
     report = Path(report)
     for path in sorted(p for suffix in suffixes for p in report.rglob(f'*{suffix}')):
         name = path.relative_to(report).as_posix()
-        if name.startswith(SKIP) or not path.is_file(): continue
+        if name.startswith(SKIP) or any(part in name for part in SKIP_PARTS) or not path.is_file(): continue
         yield path, name
 
 

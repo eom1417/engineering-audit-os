@@ -129,6 +129,7 @@ def main(argv=None):
         q.add_argument('--lang',choices=['ar','en'],default=None)
         q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
         if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
+        if name == 'clean': q.add_argument('--pictures',action='store_true',help="also delete the reports' screen pictures and the assistant's raw runs")
         if name == 'start':
             q.add_argument('--no-watch',action='store_true',help='do not open the live map in the running Studio')
             q.add_argument('--assistant',choices=['claude','codex','none'],default=None,

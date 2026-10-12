@@ -44,14 +44,15 @@ class PageAuditTests(TemporaryWorkspace):
     def phone(self, name):
         return next(r for r in self.observed(name) if r['viewport'] == 'phone')
 
-    def test_a_clean_page_passes_every_viewport_and_its_dark_theme_with_the_pinned_tools(self):
+    def test_a_clean_page_passes_every_viewport_in_the_apps_own_theme_with_the_pinned_tools(self):
         self.assertEqual(self.result['status'], 'observed', self.result.get('reason'))
         self.assertEqual((self.result['tools']['playwright'], self.result['tools']['axe-core']), ('1.63.0', '4.13.0'))
         rows = self.observed('clean')
         self.assertEqual(rows[0]['axe']['version'], '4.13.0')
-        self.assertEqual(sorted({(r['variant'], r['viewport']) for r in rows}),
-                         sorted((v, s['name']) for v in ('light', 'dark') for s in audit.VIEWPORTS))
-        self.assertEqual([r['failures'] for r in rows], [[]] * 6)
+        self.assertEqual(sorted((r['variant'], r['viewport']) for r in rows), sorted(('default', s['name']) for s in audit.VIEWPORTS))
+        self.assertEqual([r['failures'] for r in rows], [[]] * 3)
+        # The self-check pictured every page light and dark (308 pictures); one theme, the app's own, by default
+        self.assertEqual(len(self.result['rows']), len(PAGES) * len(audit.VIEWPORTS))
         phone = self.phone('clean')
         self.assertEqual((phone['mobile'], phone['layout_width']), (True, 390), 'a phone is emulated')
         self.assertEqual((phone['overflow_element_count'], phone['scroll_width']), (0, 390), 'a data-scroll-x scroller is not overflow')
@@ -61,10 +62,8 @@ class PageAuditTests(TemporaryWorkspace):
         self.assertTrue(audit.failures(phone, height_budget=0.2)[0].startswith('height:'))
         for row in self.result['rows']:
             if row['status'] == 'observed': self.assertTrue(Path(row['screenshot']).is_file(), row)
-        self.assertEqual({Path(r['screenshot']).name.split('-', 1)[1] for r in rows if r['variant'] == 'light'},
-                         {f'problems-open-light-{s["name"]}.png' for s in audit.VIEWPORTS})
-        dark = [r for r in rows_of(self.result, 'overflow') if r['variant'] == 'dark']
-        self.assertEqual({r['status'] for r in dark}, {'skipped'}, 'a page without a dark theme is not audited dark')
+        self.assertEqual({Path(r['screenshot']).name.split('-', 1)[1] for r in rows},
+                         {f'problems-open-default-{s["name"]}.png' for s in audit.VIEWPORTS})
 
     def test_layout_faults_fail_where_they_happen_and_only_there(self):
         overflow = {r['viewport']: r for r in self.observed('overflow')}
@@ -104,18 +103,17 @@ class PageStateTests(unittest.TestCase):
     """Language, theme, actions and the subset of a page: the page measured in the state a person reaches."""
 
     def test_language_and_theme_are_set_through_the_named_key_and_parameter(self):
-        page_variants = audit.variants(lang_key='studio-lang', theme_param='theme')
+        page_variants = audit.variants(lang_key='studio-lang', theme_param='theme', themes=('light', 'dark'))
         rows = {v['name']: v for v in page_variants}
         self.assertEqual(list(rows), ['ar-light', 'en-light', 'ar-dark', 'en-dark'])
         self.assertEqual((rows['ar-dark']['storage'], rows['ar-dark']['query'], rows['ar-dark']['color_scheme']),
                          ({'studio-lang': 'ar'}, {'theme': 'dark'}, 'dark'))
-        self.assertFalse(rows['ar-dark']['if_page_supports_dark'])
-        plain = {v['name']: v for v in audit.variants()}
-        self.assertEqual((set(plain), plain['dark']['color_scheme'], plain['dark']['if_page_supports_dark']), ({'light', 'dark'}, 'dark', True))
+        self.assertEqual([(v['name'], v['storage'], v['query'], v['color_scheme']) for v in audit.variants(theme_key='t', theme_param='t')],
+                         [('default', {}, {}, 'light')], "by default nothing is set: the app's own theme")
         # The theme kept in a key's JSON object (the EAOS Studio's "eaos.studio"): merged in, so dark is pictured
-        in_json = audit.variants(lang_key='studio-lang', theme_key='studio', theme_field='theme')
+        in_json = audit.variants(lang_key='studio-lang', theme_key='studio', theme_field='theme', themes=('light', 'dark'))
         self.assertEqual({v['name']: v['storage'] for v in in_json}['ar-dark'], {'studio-lang': 'ar', 'studio': {'theme': 'dark'}})
-        self.assertEqual(audit.variants(lang_key='p', lang_field='lang', theme_key='p', theme_field='theme')[-1]['storage'],
+        self.assertEqual(audit.variants(lang_key='p', lang_field='lang', theme_key='p', theme_field='theme', themes=('dark',))[-1]['storage'],
                          {'p': {'lang': 'en', 'theme': 'dark'}})
         result = audit.page_audit([url('bilingual')], viewports=audit.VIEWPORTS[:1], page_variants=in_json)
         found = {r['variant']: r for r in result['rows']}
@@ -135,7 +133,7 @@ class PageStateTests(unittest.TestCase):
         self.assertEqual(opened['root_attributes'], {'lang': 'ar', 'dir': 'rtl'})
         self.assertLessEqual({'overflow', 'arabic_tracking', 'script_errors', 'height'}, {f.split(':')[0] for f in opened['failures']})
         subset = audit.page_audit([{'url': url('clean'), 'name': 'clean', 'viewports': ['phone'], 'variants': ['dark']}],
-                                  page_variants=audit.variants())
+                                  page_variants=audit.variants(themes=('light', 'dark')))
         self.assertEqual([(r['viewport'], r['variant']) for r in subset['rows']], [('phone', 'dark')])
         with tempfile.TemporaryDirectory() as folder:
             page = Path(folder) / 'remote.html'
@@ -177,6 +175,24 @@ class ServeAndLighthouseTests(unittest.TestCase):
             self.assertIn('python -m eaos tools install --only', result['reason'])
         with mock.patch.object(audit.shutil, 'which', return_value=None):
             self.assertIn('Node.js', audit.page_audit(url('clean'))['reason'])
+
+
+class DistinctPagesTests(unittest.TestCase):
+    def test_pages_of_one_template_with_other_data_are_pictured_once(self):
+        # The self-check pictured 77 routes of the Studio, 8 task pages and 8 flow pages among them, each light and dark
+        from eaos.screens.crawl import distinct
+        crawled = ['/', '/#/', '/#/problems', '/#/problems?severity=low', '/#/tasks/TASK-001', '/#/tasks/TASK-004',
+                   '/#/plans/fix', '/#/plans/fix/M01', '/#/plans/fix/M02', '/#/system/f/eaos%2Fplan.py%23confirm',
+                   '/#/system/functions', '/#/system/paths', '/#/system/pipeline', '/#/history', '/#/history/e8fb378a06cc',
+                   '/#/change', '/#/change/gaps', '/#/change/ideal', '/about#team', '/items/1', '/items/2', '/index.html']
+        crawled += [f'/#/flows/{name}' for name in ('cli', 'main', 'root-shell', 'codex-adapter-main', 'contracts-main')]
+        crawled += [f'/#/change/gaps/{name}' for name in ('eaos', 'eaos%2Fstudio', '(root)', 'eaos%2Ffacts', 'eaos%2Fengines')]
+        found = distinct(crawled)
+        self.assertEqual(list(found), ['/', '/#/problems', '/#/tasks/:id', '/#/plans/fix', '/#/plans/fix/:id', '/#/system/f/:id',
+                                       '/#/system/functions', '/#/system/paths', '/#/system/pipeline', '/#/history', '/#/history/:id',
+                                       '/#/change', '/#/change/gaps', '/#/change/ideal', '/about', '/items/:id', '/#/flows/:id',
+                                       '/#/change/gaps/:id'])
+        self.assertEqual((found['/'], found['/#/tasks/:id'][0], len(found['/#/flows/:id'])), (['/', '/#/', '/index.html'], '/#/tasks/TASK-001', 5))
 
 
 class FailureRuleTests(unittest.TestCase):

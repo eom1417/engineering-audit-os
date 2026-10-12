@@ -73,6 +73,15 @@ class TaskCardTests(TemporaryWorkspace):
         mutable = lambda private: {'pattern': 'mutable_state', 'render': {'key': 'mutable_global', 'params': {'encapsulated': private}}}
         self.assertEqual((plain.kind(mutable(False)), plain.kind(mutable(True))), ('mutable_state', 'mutable_state_private'))
         self.assertNotIn('several parts', plain.problem('mutable_state_private', 'en')[1])
+        # The self-audit's code cards: four dead symbols of eaos/screens/audit.py were four cards for one change.
+        def task(claim, pattern, path):
+            return {'id': 'TASK-X', 'claim_id': claim, 'title': claim, 'pattern': pattern, 'kind': 'remediate', 'origin': 'source',
+                    'paths': [path], 'finding_ids': [claim], 'acceptance': [{'command': f'check {claim}', 'expect': ''}],
+                    'evidence': {'fact_ids': [f'FACT-{claim}'], 'evidence_ids': [], 'probe_ids': []}}
+        cards = plan_module.grouped([task('CLM-1', 'remove_dead', 'a.py'), task('CLM-2', 'broken_code', 'a.py'),
+                                     task('CLM-3', 'remove_dead', 'a.py'), task('CLM-4', 'remove_dead', 'b.py')])
+        self.assertEqual([(c['id'], c['claim_ids']) for c in cards], [('TASK-001', ['CLM-1', 'CLM-3']), ('TASK-002', ['CLM-2']), ('TASK-003', ['CLM-4'])])
+        self.assertEqual((cards[0]['evidence']['fact_ids'], len(cards[0]['acceptance'])), (['FACT-CLM-1', 'FACT-CLM-3'], 2))
 
     def test_blast_radius_comes_from_facts_not_prose(self):
         task = next(task for task in self.plan['tasks'] if 'core/pricing.py' in task['paths'])
@@ -116,6 +125,70 @@ class AddedClaimTests(unittest.TestCase):
             text = (out / 'PLAN/TASK-001.md').read_text()
         self.assertIn('is defined in', text)
         self.assertNotIn('معرّف في', text)
+
+
+class ResolutionTests(unittest.TestCase):
+    def test_the_assistant_resolves_its_cards_and_asks_the_owner_on_at_most_one_in_ten(self):
+        # The self-audit: 867 cards, 847 waiting for the owner; 653 of them one design card per picture, and every card
+        # the triage confirmed still an investigation only a person could close.
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            target, out = Path(tmp) / 'shop', Path(tmp) / 'out'
+            shutil.copytree(FIXTURE, target)
+            shutil.copytree(FIXTURE.parent / 'sustainability/redundant', target / 'redundant')
+            assemble(target, out, language='en')
+            build(target, out, language='en')
+            dossier = json.loads((out / 'dossier.json').read_text())
+            claim = next(c for c in dossier['claims'] if c['id'] == 'CLM-006')
+            claim.pop('assessment'); claim.pop('checks')            # an investigation, as most cards of the self-audit
+            (out / 'dossier.json').write_text(json.dumps(dossier))
+            build(target, out, language='en')
+            plan = json.loads((out / 'plan.json').read_text())
+            fix = next(t['id'] for t in plan['tasks'] if t['claim_id'] == 'CLM-006')
+            self.assertEqual(next(t for t in plan['tasks'] if t['id'] == fix)['decision']['readiness'], 'needs_review')
+            keep, reject, *asked = [t['id'] for t in plan['tasks'] if t['id'] != fix and not t['blast_radius']['total']][:6]
+            def verdict(card, decision='confirm', **detail):
+                return {'card': card, 'decision': decision, 'kind': 'broken_code', 'severity': 'high' if card == asked[-1] else 'medium',
+                        'confidence': 0.8, 'why': f'{card}: the evidence shows it', 'evidence': [card], 'source': 'model', 'rejudged': False, **detail}
+            ask = lambda n: {'resolution': 'owner', 'question': f'Should users see {n}?', 'options': ['Yes', 'No'], 'recommendation': 'No'}
+            verdicts = [verdict(keep, resolution='keep'), verdict(fix, resolution='fix', change='Define `process` before api.py uses it'),
+                        verdict(reject, 'reject')] + [verdict(card, **ask(card)) for card in asked]
+            (out / 'nodes/card_triage').mkdir(parents=True)
+            (out / 'nodes/card_triage/verdicts.json').write_text(json.dumps({'method': 'model', 'verdicts': verdicts}))
+            def finding(image, page, kind, title):
+                return {'image': image, 'file': f'live/{image}.png', 'page': page, 'viewport': 'phone', 'theme': 'light', 'title': title,
+                        'kind': kind, 'severity': 'medium', 'region': {'x': 0, 'y': 0, 'width': 1, 'height': 0.2}, 'why': 'Cut off'}
+            findings = [dict(finding('IMG-001', 'http://h/#/tasks/TASK-001', 'crowding', 'Chips cut off'), template='/tasks/$taskId',
+                             pictures=[{'image': 'IMG-001', 'file': 'live/IMG-001.png', 'viewport': 'phone', 'region': {}},
+                                       {'image': 'IMG-005', 'file': 'live/IMG-005.png', 'viewport': 'desktop', 'region': {}}]),
+                        finding('IMG-002', 'http://h/#/tasks/TASK-002', 'crowding', 'Buttons overlap'),
+                        finding('IMG-003', 'http://h/#/tasks/TASK-002', 'clarity', 'Unclear label'), finding('IMG-004', 'http://h/', 'clarity', 'Jargon')]
+            (out / 'nodes/visual_reviewer').mkdir(parents=True)
+            (out / 'nodes/visual_reviewer/findings.json').write_text(json.dumps({'method': 'model', 'findings': findings}))
+            record = plan_module.confirm(target, out, 'en', triaged=True, reviewed=True)
+            tasks = {t['id']: t for t in json.loads((out / 'plan.json').read_text())['tasks']}
+        # one design card per (kind of page, kind of problem), every picture its evidence
+        design = [tasks[c] for c in record['design']]
+        self.assertEqual(sorted((c['design']['page'], c['design']['kind'], len(c['design']['findings'])) for c in design),
+                         [('/', 'clarity', 1), ('/tasks/$taskId', 'crowding', 1), ('/tasks/*', 'clarity', 1), ('/tasks/*', 'crowding', 1)])
+        self.assertEqual(next(c for c in design if c['design']['page'] == '/tasks/$taskId')['evidence']['evidence_ids'], ['IMG-001', 'IMG-005'])
+        # keep closes with its reason; fix makes an investigation ready work; owner is asked on at most one card in ten
+        self.assertNotIn(keep, tasks)
+        self.assertEqual(record['closed'][0]['why'], f'{keep}: the evidence shows it')
+        fixed = tasks[fix]
+        self.assertEqual((fixed['kind'], fixed['decision']['readiness'], fixed['change']),
+                         ('remediate', 'ready', 'Define `process` before api.py uses it'))
+        from eaos.decisions import task_errors
+        self.assertEqual(task_errors(fixed), [])
+        self.assertEqual(record['owner'], [asked[-1]], 'the most severe question stays the owner\'s')
+        self.assertEqual((tasks[asked[-1]]['decision']['readiness'], tasks[asked[-1]]['resolution']['question']),
+                         ('needs_review', f'Should users see {asked[-1]}?'))
+        turned = tasks[asked[0]]['resolution']
+        self.assertEqual((turned['resolution'], turned['change'], tasks[asked[0]]['decision']['readiness']), ('fix', 'No', 'ready'))
+        self.assertIn('decided by your assistant', turned['words'])
+        self.assertEqual(record['resolved'], {'fix': 8, 'keep': 1, 'owner': 1, 'turned_to_fix': 3})
+        self.assertLessEqual(len(record['owner']), max(1, len(record['kept']) // 10))
+        self.assertTrue(all(tasks[c]['kind'] == 'remediate' and tasks[c]['decision']['readiness'] == 'ready' for c in record['design']))
 
 
 def graph_claim(query, **specification):

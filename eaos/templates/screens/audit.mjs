@@ -136,16 +136,6 @@ function measure({ phoneWidth, targetMin, viewportWidth }) {
     if ([...el.childNodes].some((n) => n.nodeType === 3 && /[\u0600-\u06FF]/.test(n.textContent))) tracking.push(selector(el));
   }
   const scroller = document.scrollingElement || document.documentElement;
-  const darkRules = (() => {
-    const meta = document.querySelector('meta[name="color-scheme"]');
-    if (meta && /dark/.test(meta.content)) return true;
-    for (const sheet of document.styleSheets) {
-      let rules;
-      try { rules = sheet.cssRules; } catch { continue; }
-      for (const rule of rules) if (rule.media && /prefers-color-scheme:\s*dark/.test(rule.media.mediaText)) return true;
-    }
-    return false;
-  })();
   return {
     inner_width: width,
     layout_width: window.innerWidth,
@@ -163,7 +153,6 @@ function measure({ phoneWidth, targetMin, viewportWidth }) {
     arabic_tracking: tracking.slice(0, 10),
     arabic_tracking_count: tracking.length,
     root_attributes: Object.fromEntries([...document.documentElement.attributes].map((a) => [a.name, a.value])),
-    supports_dark: darkRules,
   };
 }
 
@@ -268,23 +257,9 @@ let index = 0;
 try {
   for (const item of config.urls) {
     const entry = typeof item === 'string' ? { url: item } : item;
-    const page_url = entry.url;
     const viewports = config.viewports.filter((v) => !entry.viewports || entry.viewports.includes(v.name));
-    let darkSupported = null;
     for (const variant of config.variants.filter((v) => !entry.variants || entry.variants.includes(v.name))) {
-      // A dark variant set only through prefers-color-scheme is audited when the page answers it.
-      if (variant.if_page_supports_dark && darkSupported === false) {
-        for (const viewport of viewports) {
-          rows.push({ url: page_url, page: entry.name || null, viewport: viewport.name, width: viewport.width, height: viewport.height, variant: variant.name,
-            status: 'skipped', reason: 'the page has no dark theme (no prefers-color-scheme: dark rule, no color-scheme meta)' });
-        }
-        continue;
-      }
-      for (const viewport of viewports) {
-        const row = await auditOne(browser, entry, viewport, variant, index++);
-        if (row.status === 'observed' && darkSupported !== true) darkSupported = row.supports_dark;
-        rows.push(row);
-      }
+      for (const viewport of viewports) rows.push(await auditOne(browser, entry, viewport, variant, index++));
     }
   }
 } finally {

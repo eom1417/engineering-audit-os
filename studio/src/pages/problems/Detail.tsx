@@ -44,6 +44,30 @@ function PlanPlace({ card, data }: { card: Card; data: StudioData }) {
   )
 }
 
+/** What the assistant decided for this card: it fixes it (the change and why), or it left the person one choice. */
+function Decided({ card }: { card: Card }) {
+  const w = useProblemWords()
+  const r = card.resolution
+  if (!r) return null
+  return (
+    <Section title={w('decided')} id="decided">
+      <Panel pad>
+        <div className={css.decided}>
+          <span className={css.decidedHead}>{w(r.kind === 'fix' ? 'decidedFix' : 'decidedOwner')}{r.words ? <>: <Txt>{r.words}</Txt></> : null}</span>
+          {r.kind === 'fix' && r.change && <span><span className={css.muted}>{w('decidedChange')}:</span> <Txt>{r.change}</Txt></span>}
+          {r.kind === 'owner' && r.question && <span><Txt block>{r.question}</Txt></span>}
+          {r.kind === 'owner' && (r.options ?? []).length > 0 && (
+            <ul className={css.decidedOptions} aria-label={w('decidedOptions')}>{r.options!.map((o) => <li key={o}><Txt>{o}</Txt></li>)}</ul>
+          )}
+          {r.kind === 'owner' && r.recommendation && <span><span className={css.muted}>{w('decidedRecommended')}:</span> <Txt>{r.recommendation}</Txt></span>}
+          {r.why && <span><span className={css.muted}>{w('decidedWhy')}:</span> <Txt>{r.why}</Txt></span>}
+          {r.capped && <span className={css.muted}>{w('decidedCapped')}</span>}
+        </div>
+      </Panel>
+    </Section>
+  )
+}
+
 export function Detail({ card, data }: { card: Card; data: StudioData }) {
   const { t, lang } = usePrefs()
   const search = useSearch({ strict: false }) as Record<string, string | undefined>
@@ -72,6 +96,7 @@ export function Detail({ card, data }: { card: Card; data: StudioData }) {
           <p className={css.why}><Txt block>{why}</Txt></p>
         </Section>
       )}
+      <Decided card={card} />
       <Props rows={[
         [w('place'), <span className={pcss.paths}>{card.paths.length ? card.paths.map((p) => <Id key={p} value={p} />) : '—'}</span>],
         ...(component ? [[w('component'), <Go to="/system" search={{ focus: component }} className={css.inlineLink}><Id value={component} keep={3} /></Go>] as [React.ReactNode, React.ReactNode]] : []),

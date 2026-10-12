@@ -38,13 +38,24 @@ def check_errors(check):
 DOUBTED = 'The assistant doubted this card even on all its measurements: a person reviews it, it is never fixed automatically.'
 
 
+KEPT = 'Decided by your assistant: not a problem worth changing. '
+FIXED = 'Decided by your assistant: '
+
+
 def decide(claim):
+    """The claim's decision. The assistant's triage (claim `triage`, eaos/plan.py apply_verdicts), when it confirmed the
+    card, settles it: `keep` retains it with its reason, `fix` makes it a repair checked by the claim's own checks or the
+    triage's (`triage.checks`), `owner` leaves it an investigation for the person."""
     disposition = claim.get('disposition') or {}
     assessment = claim.get('assessment') or {}
     if not isinstance(assessment, dict): raise ValueError('assessment must be an object')
     checks = claim.get('checks') or []
     if not isinstance(checks, list): raise ValueError('checks must be an array')
     reasons = []
+    triage = claim.get('triage') or {}
+    resolution = triage.get('resolution') if triage.get('decision') == 'confirm' else None
+    if resolution == 'fix' and not (checks or triage.get('checks')): resolution = None
+    if resolution == 'fix': checks = checks or triage['checks']
     if claim.get('confidence') == 'REFUTED':
         kind, reason = 'retain', 'The claim was refuted; no repair is justified.'
     elif disposition.get('kind') == 'accepted' and disposition.get('owner') and disposition.get('reason'):
@@ -53,6 +64,12 @@ def decide(claim):
         kind, reason = 'retain', 'Test or fixture observation: no product violation established; retain for review.'
     elif claim.get('origin') == 'archive' and not assessment.get('violated_invariant'):
         kind, reason = 'retain', 'Archived code: not part of the running product; the owner keeps it for reference or removes it.'
+    elif resolution == 'keep':
+        kind, reason = 'retain', KEPT + (triage.get('why') or '')
+    elif resolution == 'fix':
+        kind, reason = 'repair', FIXED + (triage.get('note') or triage.get('change') or '')
+    elif resolution == 'owner':
+        kind, reason = 'investigate', 'Your assistant asks you: ' + (triage.get('question') or '')
     elif (claim.get('confidence') == 'CONFIRMED' and assessment.get('violated_invariant')
           and assessment.get('requirement_refs') and assessment.get('evidence_refs')):
         kind, reason = 'repair', 'A confirmed observation violates an explicitly evidenced requirement.'
@@ -63,8 +80,10 @@ def decide(claim):
     if kind == 'repair':
         if not checks: reasons.append('No acceptance check attached.')
         for check in checks: reasons.extend(check_errors(check))
-        if not assessment.get('reviewed_by'): reasons.append('The engineering decision has not been reviewed.')
-        if not assessment.get('before') or not assessment.get('after'): reasons.append('Before/after behavior is missing.')
+        # The assistant's triage is the review of a change it decided, and its change is the "after".
+        if resolution != 'fix' and not assessment.get('reviewed_by'): reasons.append('The engineering decision has not been reviewed.')
+        if resolution != 'fix' and (not assessment.get('before') or not assessment.get('after')):
+            reasons.append('Before/after behavior is missing.')
     return {'contract_version': VERSION, 'observation_uid': claim.get('uid') or identity(claim),
             'kind': kind, 'reason': reason,
             'readiness': 'needs_review' if kind == 'investigate' or doubted else

@@ -1,61 +1,98 @@
-"""Every page of a running app, found by Unlighthouse and measured with Lighthouse, through the pinned tools.
+"""Every page of a running app, found by following its links, and Lighthouse on a few distinct ones.
 
-    crawl(base, out, max_routes)   unlighthouse-ci from `base` (the app's own address on this computer), driving the
-                                   Chromium of the pinned Playwright: the routes it found by following the app's links
-                                   and, for each, Lighthouse's mobile scores, LCP and CLS. Returns {status, reason?,
-                                   routes: [{path, scores, lcp_ms, cls, report}]}; its own reports stay in `out`.
+    crawl(base, out, max_routes, measured)   the pinned Playwright (eaos/templates/screens/crawl.mjs) opens each page
+                                             of the app at `base` (its own address on this computer) once, breadth
+                                             first, and follows its links: every page it reaches is listed. Lighthouse
+                                             (audit.lighthouse, mobile profile) then measures at most `measured` of
+                                             them: the entry and the first page of each distinct template after it.
+                                             Returns {status, reason?, routes: [{path, template, depth, measured,
+                                             scores?, lcp_ms?, cls?, report?}]}; the Lighthouse reports stay in `out`.
+    templates(paths)                         {path: template}: pages that are one template with different data
+                                             (/items/1 and /items/2, #/tasks/TASK-001 and #/tasks/TASK-004, a list
+                                             and its ?filter=) are one page: they are pictured and measured once.
 
-Lighthouse's numbers are comparable between two runs on an idle computer; the crawl records them as measured.
+Lighthouse on every crawled route took 28 minutes on EAOS's own Studio (76 routes, most of them the same template
+with other data); a page's speed and accessibility are its template's.
 """
-import json
+import re
 from pathlib import Path
-from urllib.parse import urlsplit
 
-from ..engines.process import run, which
-from .audit import chromium_path, unavailable
+from .audit import _node, lighthouse, missing, toolchain
 
-CATEGORIES = ('performance', 'accessibility', 'best-practices', 'seo')
-
-
-def config(base, out, chrome, max_routes):
-    """Unlighthouse's configuration: the pinned Chromium, one browser at a time (by default it opens one per processor,
-    beside the running app and the assistant), one sample, no throttling, no sitemap or robots.txt."""
-    return {'site': base, 'outputPath': str(out), 'puppeteerOptions': {'executablePath': chrome, 'args': ['--no-sandbox']},
-            'puppeteerClusterOptions': {'maxConcurrency': 1}, 'chrome': {'useSystem': False},
-            'scanner': {'device': 'mobile', 'samples': 1, 'throttle': False, 'sitemap': False, 'robotsTxt': False,
-                        'maxRoutes': max_routes},
-            'ci': {'buildStatic': False, 'reporter': 'jsonExpanded'}}
+MEASURED = 10                   # pages Lighthouse measures in one crawl
+SIBLINGS = 5                    # this many sibling pages under one parent are one template (/blog/<slug>)
+DATA = re.compile(r'\d|%|[()~:@.,;=+]')   # a path segment that carries data: a number, an encoded or punctuated name
 
 
-def route_of(report, out):
-    """{path, scores, lcp_ms, cls, report} of one route's lighthouse.json."""
-    data = json.loads(report.read_text(encoding='utf-8'))
-    audits = data.get('audits') or {}
-    value = lambda key: (audits.get(key) or {}).get('numericValue')
-    url = urlsplit(data.get('finalDisplayedUrl') or data.get('requestedUrl') or '')
-    # A single-page app routes by the fragment (/#/branches): it is part of the page's address.
-    return {'path': (url.path or '/') + (f'#{url.fragment}' if url.fragment else ''),
-            'scores': {name: None if (data.get('categories', {}).get(name) or {}).get('score') is None
-                       else round(data['categories'][name]['score'] * 100) for name in CATEGORIES},
-            'lcp_ms': None if value('largest-contentful-paint') is None else round(value('largest-contentful-paint')),
-            'cls': None if value('cumulative-layout-shift') is None else round(value('cumulative-layout-shift'), 4),
-            'report': report.relative_to(out).as_posix()}
+def _parts(path):
+    """(prefix, segments) of a page's address without its query or anchor: a hash route (/#/tasks/1) is split after
+    '#/'; a bare '#/' and a folder's index.html are the page itself."""
+    address, _, fragment = path.partition('#')
+    address = address.split('?', 1)[0]
+    route = [s for s in fragment.split('?', 1)[0].split('/') if s] if fragment.startswith('/') else []
+    if route: return address.rstrip('/') + '/#', route
+    segments = [s for s in address.split('/') if s]
+    return '', segments[:-1] if segments and segments[-1] in ('index.html', 'index.htm') else segments
 
 
-def crawl(base, out, max_routes=200):
-    binary = which('unlighthouse-ci')
-    if not binary: return unavailable('unlighthouse-ci is not installed: python -m eaos tools install --only unlighthouse', routes=[])
-    chrome = chromium_path()
-    if not chrome: return unavailable('the Chromium of the pinned Playwright was not found', routes=[])
+def templates(paths):
+    """{path: template}. A segment after the first that carries data (a number, an encoded or punctuated name) is a
+    parameter (:id); so is the last segment of pages that share a parent with SIBLINGS or more other last pages
+    (/#/flows/cli, /#/flows/main, ...). The query is dropped: a filtered list is the list."""
+    split = {path: _parts(path) for path in paths}
+    marked = {path: (prefix, [':id' if i and DATA.search(s) else s for i, s in enumerate(segments)])
+              for path, (prefix, segments) in split.items()}
+    shapes = {(prefix, tuple(segments)) for prefix, segments in marked.values()}
+    leaves = {}
+    for path, (prefix, segments) in marked.items():
+        if len(segments) < 2: continue
+        if any(other[0] == prefix and len(other[1]) > len(segments) and other[1][:len(segments)] == tuple(segments) for other in shapes):
+            continue                                           # it has pages under it: a section, not a leaf
+        leaves.setdefault((prefix, tuple(segments[:-1])), set()).add(split[path][1][-1])
+    out = {}
+    for path, (prefix, segments) in marked.items():
+        if len(segments) >= 2 and len(leaves.get((prefix, tuple(segments[:-1])), ())) >= SIBLINGS:
+            segments = segments[:-1] + [':id']
+        out[path] = prefix + '/' + '/'.join(segments)
+    return out
+
+
+def distinct(paths):
+    """{template: [paths]} in the order the paths come (the first is the template's picture), without repeats."""
+    paths = list(dict.fromkeys(paths))
+    found = {}
+    for path, template in templates(paths).items(): found.setdefault(template, []).append(path)
+    return found
+
+
+def discover(base, max_routes=200, timeout=1800):
+    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]."""
+    absent = missing('playwright')
+    if absent: return None, absent
+    config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')}}
+    result, error = _node('crawl.mjs', config, timeout)
+    return (result or {}).get('routes'), error
+
+
+def crawl(base, out, max_routes=200, measured=MEASURED):
+    routes, error = discover(base, max_routes)
+    if routes is None:
+        return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
+    routes = [r for r in routes if r.get('status') == 'observed']
+    if not routes: return {'status': 'error', 'reason': 'the crawl opened no page of the app', 'routes': []}
+    shapes = templates([r['path'] for r in routes])
+    chosen = list(dict.fromkeys(paths[0] for paths in distinct(r['path'] for r in routes).values()))[:measured]
     out = Path(out)
-    out.mkdir(parents=True, exist_ok=True)
-    (out / 'unlighthouse.config.ts').write_text('export default ' + json.dumps(config(base, out / 'unlighthouse', chrome, max_routes)) + '\n',
-                                                encoding='utf-8')
-    # Its browser pool sometimes loses the browser while it starts ("socket hang up"); a second run starts afresh.
-    for _ in range(2):
-        code, stdout, stderr, _ = run([binary, '--config-file', str(out / 'unlighthouse.config.ts')], cwd=out, timeout=3600)
-        reports = sorted((out / 'unlighthouse/reports').glob('**/lighthouse.json'))
-        if reports: break
-    if not reports: return {'status': 'error', 'reason': f'unlighthouse-ci exited {code} and measured no page: {(stderr or stdout)[-400:]}',
-                            'routes': []}
-    return {'status': 'observed', 'routes': [route_of(report, out) for report in reports]}
+    rows = []
+    for route in routes:
+        row = {'path': route['path'], 'template': shapes[route['path']], 'depth': route.get('depth'), 'measured': False}
+        if route['path'] in chosen:
+            folder = out / 'lighthouse' / f"{chosen.index(route['path']):02d}"
+            speed = lighthouse(base.rstrip('/') + route['path'], out=folder)
+            if speed.get('status') == 'observed':
+                row.update(measured=True, scores=speed['scores'], lcp_ms=speed['lcp_ms'], cls=speed['cls'],
+                           report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
+            else: row['reason'] = speed.get('reason')
+        rows.append(row)
+    return {'status': 'observed', 'routes': rows, 'templates': len(set(shapes.values())),
+            'measured': sum(r['measured'] for r in rows)}

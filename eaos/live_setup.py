@@ -211,23 +211,6 @@ def report_values(project, folder, names, report):
     return found
 
 
-def display_storage(project, folder):
-    """How the app keeps its theme in localStorage, for the dark pictures (eaos/screens/audit.py variants):
-    {'theme_key': key} when a key named for the theme holds it, {'theme_key', 'theme_field': 'theme'} when the
-    theme is a field of a JSON object kept under a key (the EAOS Studio: {"theme": "dark"} under "eaos.studio",
-    studio/src/i18n/prefs.tsx); {} when none is found."""
-    for path in sorted(_declarations(project, folder)):
-        text = path.read_text(encoding='utf-8', errors='replace')
-        if 'localStorage' not in text or not re.search(r'[\'"]dark[\'"]|\bdark\b', text): continue
-        constants = dict(re.findall(r'\b(\w+)\s*=\s*[\'"]([\w.:-]+)[\'"]', text))
-        for match in re.finditer(r'localStorage\.(?:getItem|setItem)\(\s*(?:[\'"]([\w.:-]+)[\'"]|(\w+))', text):
-            key = match[1] or constants.get(match[2])
-            if not key: continue
-            if re.search('theme', key, re.I): return {'theme_key': key}
-            if 'JSON' in text and re.search(r'\.theme\b|\btheme\s*[:?]', text): return {'theme_key': key, 'theme_field': 'theme'}
-    return {}
-
-
 def database_kind(project, folder, package):
     deps = dependencies(package)
     for base in (Path(project) / folder, Path(project)):
@@ -300,8 +283,6 @@ def detect(project, report=None):
                'checks': checks(manager, package)}
     prepare = prepare_commands(manager, package, project, folder, database)
     if prepare: profile['prepare'] = prepare
-    storage = display_storage(project, folder)
-    if storage: profile['screens'] = storage
     if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
     if build and production:
         baseline_env = {k: v for k, v in profile['env'].items() if k != 'NODE_ENV'}

@@ -10,6 +10,15 @@
   border-radius: var(--radius-8); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px;
 }
 
+.assistantFixes {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--radius-8);
+  border: 1px solid var(--border-default); background: var(--bg-surface); font-size: 13px;
+}
+.assistantFixesActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.decided { display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.6; }
+.decidedHead { font-weight: 500; }
+.decidedOptions { padding-inline-start: 18px; list-style: disc; }
+
 .list { display: flex; flex-direction: column; }
 .rows > li + li { border-block-start: 1px solid var(--border-subtle); }
 .group + .group, .rows + .group { border-block-start: 1px solid var(--border-default); }

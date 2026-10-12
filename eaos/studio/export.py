@@ -154,11 +154,26 @@ def cards(m, claims):
         evidence = list((task.get('evidence') or {}).get('fact_ids') or claim.get('fact_ids') or [])
         out.append({'id': card['id'], 'key': card['key'], 'title': card['title'], 'kind': card['pattern'],
                     'category': row.get('area') or M.classify({'pattern': card['pattern']})[0], 'severity': card['severity'],
-                    'fixable': bool(row.get('auto')), 'needs_decision': task.get('kind') == 'investigate' or card['state'] == 'skipped',
+                    'fixable': bool(row.get('auto')),
+                    'needs_decision': (task['resolution']['resolution'] == 'owner' if task.get('resolution') else task.get('kind') == 'investigate')
+                                      or card['state'] == 'skipped',
+                    **({'resolution': resolution_of(task['resolution'])} if task.get('resolution') else {}),
                     'scope': 'group' if str(params.get('place') or '').startswith('group:') else 'place',
                     'place': place, 'paths': [p for p in map(rel, card['paths']) if p], 'evidence': evidence,
                     'state': card['state'], 'milestone': card.get('milestone'),
                     'confidence': SEVERITY_OF_CONFIDENCE.get(row.get('confidence')), **why_of(task)})
+    return out
+
+
+def resolution_of(row):
+    """What the assistant decided for a card (eaos/plan.py resolve): {kind: fix | owner, by, words, and the change of a
+    fix or the question, options and recommendation of an owner's choice; capped when it was the owner's but turned
+    into the assistant's recommendation}. A fixable card with `by: assistant` is in the Studio's "fix with the
+    assistant's recommendations" selection."""
+    out = {'kind': row.get('resolution'), 'by': row.get('by') or 'assistant', 'words': row.get('words') or '', 'why': row.get('why') or ''}
+    if out['kind'] == 'fix': out.update(change=row.get('change') or '', capped=bool(row.get('capped')))
+    if out['kind'] == 'owner': out.update(question=row.get('question') or '', options=list(row.get('options') or []),
+                                          recommendation=row.get('recommendation') or '')
     return out
 
 
@@ -290,7 +305,16 @@ def plans(m, card_rows, lang):
 def decisions(m, card_rows, lang):
     out = []
     review = [c for c in card_rows if c['needs_decision'] and c['state'] not in M.CLOSED]
-    if review:
+    resolved = any(c.get('resolution') for c in card_rows)
+    for card in review if resolved else []:
+        # The assistant resolved the cards: only a real product choice it left to the person is asked, one card each.
+        asked = card.get('resolution') or {}
+        if asked.get('kind') != 'owner': continue
+        options = [{'id': f'o{i + 1}', 'label': text} for i, text in enumerate(asked['options'])]
+        out.append({'id': f"card:{card['id']}", 'question': asked['question'], 'recommendation': asked['recommendation'],
+                    'options': options, 'recommended_option': next((o['id'] for o in options if o['label'] == asked['recommendation']), None),
+                    'blocks': [card['id']], 'state': 'waiting', 'answer': None, 'plan': 'fix', 'asked': '', 'tool': 'findings'})
+    if review and not resolved:
         out.append({'id': 'investigations',
                     'question': (f'{len(review)} بطاقة تحتاج تحققًا قبل أي تغيير. هل يتولاها المساعد؟' if lang == 'ar' else
                                  f'{len(review)} cards need checking before any change. Should the assistant take them on?'),
@@ -444,7 +468,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     for section, body in zip(('gaps', 'operations'), built.pop('change', None) or (None, None)):
         if body is not None: built[section] = body                    # no target: coverage says why
     attempt('functions', lambda: function_explorer.functions(report, card_rows, built.get('evidence') or ()))
-    attempt('screens', lambda: screens_gallery.screens(built.get('journeys'), built.get('media'), (report / 'facts/entrypoints.json').is_file()))
+    attempt('screens', lambda: screens_gallery.screens(built.get('journeys'), built.get('media'), (report / 'facts/entrypoints.json').is_file(), report))
     for section in ('functions', 'screens'):                         # nothing was read to build it from
         if built.get(section, False) is None: built.pop(section)
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}

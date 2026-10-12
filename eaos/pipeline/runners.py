@@ -160,25 +160,30 @@ def journeys(context):
 
 
 def screens(context):
-    """Each known page of the running app at phone and desktop width with axe, and the first with Lighthouse
-    (eaos/screens/audit.py)."""
+    """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
+    desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
+    (eaos/screens/audit.py, eaos/screens/crawl.py distinct)."""
     runtime = _live(context)
     from ..behavior_lock import surfaces
     from ..live_run import LiveRun
     from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
+    from ..screens.crawl import distinct
     pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
                      if kind == 'page' and route.startswith('/') and ':' not in route and '*' not in route and '[' not in route]
-    if _ran(context, 'crawl'):
-        pages += [row['path'] for row in json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes']]
+    crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
+    pages += [row['path'] for row in crawled]
+    groups = distinct(pages)
+    measured = next((row for row in crawled if row.get('measured') and row.get('template') == '/'), None)
     live = LiveRun(context.target, runtime, 'S05')
     try:
         live.setup()
         base = live.start()
         live.seed(base)
         folder = context.out / 'live/screens'
-        audit = page_audit([base + page for page in dict.fromkeys(pages)], [v for v in VIEWPORTS if v['name'] != 'tablet'],
+        audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
                            variants(**(live.profile.get('screens') or {})), out=folder)
-        speed = lighthouse(base + '/', out=folder)
+        speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
+                 if measured else lighthouse(base + '/', out=folder))
     finally:
         live.stop()
     if audit['status'] != 'observed':
@@ -186,15 +191,16 @@ def screens(context):
     rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
             for row in audit['rows']]
     _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows,
-                                              'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
-    return {'pages': len(dict.fromkeys(pages)), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
+                                    'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]}
+                                              for template, paths in groups.items()],
+                                    'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
+    return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
             'lighthouse': (speed.get('scores') or {}).get('performance')}
 
 
-
-
 def crawl(context):
-    """Every page of the running app found by Unlighthouse, each measured by Lighthouse (eaos/screens/crawl.py)."""
+    """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
+    distinct template, ten at most (eaos/screens/crawl.py)."""
     runtime = _live(context)
     from ..live_run import LiveRun
     from ..screens.crawl import crawl as find

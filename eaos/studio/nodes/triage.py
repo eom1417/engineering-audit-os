@@ -17,8 +17,13 @@ from .. import ideal
 VERSION = '1'
 LIMIT = {'facts': 4, 'rejudge_facts': 12, 'measurements': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
 SEVERITY = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
-DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['falsifier'],
-          'properties': {'falsifier': {'type': 'string'}}}
+RESOLUTIONS = ('fix', 'keep', 'owner')
+_TEXT = {'type': ['string', 'null']}
+DETAIL = {'type': 'object', 'additionalProperties': False,
+          'required': ['falsifier', 'resolution', 'change', 'question', 'options', 'recommendation'],
+          'properties': {'falsifier': {'type': 'string'}, 'resolution': {'type': ['string', 'null'], 'enum': [*RESOLUTIONS, None]},
+                         'change': _TEXT, 'question': _TEXT, 'options': {'type': 'array', 'items': {'type': 'string'}},
+                         'recommendation': _TEXT}}
 TASK = '''GOAL
 You are the card triage of EAOS, an engineering audit. Each card below is a problem EAOS's engines found in this project.
 Before the person sees it, judge each card: does its own evidence show the problem it names?
@@ -37,6 +42,14 @@ it neither shows nor contradicts it (a probe will settle it before the person se
 contradicts it (a false alarm: the card is set aside and its rule is told). `why`: one or two plain sentences naming what
 in the evidence decided it. `detail.falsifier`: the observation that would show your decision wrong. `evidence`: the
 card id and the fact ids you relied on.
+
+For a card you confirm, also decide what happens to it, in `detail.resolution`, the way the project is already going:
+"fix" when the change is clear and yours to make: `detail.change` is the change in one plain line (the card becomes work
+the assistant does, checked by the project's own tests); "keep" when it is not worth changing (a deliberate design, a
+cost above its worth): `why` says so and the card closes; "owner" only for a real product choice that only the person
+can make (what users should see or be able to do, a trade-off of business value): `detail.question` asks it in one
+plain sentence, `detail.options` are the two to four choices and `detail.recommendation` is the one you would take. A
+technical choice is yours, not the person's: decide it. For a doubt or a reject, the resolution is null.
 
 A GOOD ANSWER
 Every card decided once. A confirm points at the fact (its message, measurement or how the engine knows) and the code
@@ -183,7 +196,8 @@ def finish(report, record, data):
     route = {s: r['decision'] for r in record['routes'] for s in r['subjects']}
     verdicts = [{'card': d['subject'], 'decision': route[d['subject']], 'kind': cards[d['subject']]['kind'],
                  'severity': cards[d['subject']]['severity'], 'confidence': d['confidence'], 'why': d['why'],
-                 'evidence': d['evidence'], 'source': d['source'], 'rejudged': 'first_doubt' in (d.get('detail') or {})}
+                 'evidence': d['evidence'], 'source': d['source'], 'rejudged': 'first_doubt' in (d.get('detail') or {}),
+                 **resolution(route[d['subject']], d.get('detail') or {})}
                 for d in record['decisions']]
     doubted = [v for v in verdicts if v['decision'] == 'doubt']
     probes = [probe(i + 1, claims.get(v['card']) or v['card'], 'falsification',
@@ -193,10 +207,24 @@ def finish(report, record, data):
     feedback = [{'card': v['card'], 'kind': v['kind'], 'why': v['why'], 'evidence': v['evidence']} for v in verdicts if v['decision'] == 'reject']
     body = {'schema_version': 1, 'at': record['at'], 'method': record['method'], 'assistant': record['assistant'], 'model': record['model'],
             'verdicts': verdicts, 'counts': {r['decision']: len(r['subjects']) for r in record['routes']}, 'by_kind': by_kind(verdicts),
+            'resolutions': {name: sum(v.get('resolution') == name for v in verdicts) for name in RESOLUTIONS},
             'omitted': data['omitted']}
     for name, value in (('verdicts.json', body), ('probes.json', {'schema_version': 1, 'at': record['at'], 'probes': probes}),
                         ('library-feedback.json', {'schema_version': 1, 'at': record['at'], 'rejected': feedback})):
         (folder / name).write_text(json.dumps(value, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+
+
+def resolution(decision, detail):
+    """{resolution, change, question, options, recommendation} of a confirmed card when its detail settles it: a fix
+    names its change, a question to the person has its question and the assistant's recommendation; else {} (the rules'
+    readiness stays)."""
+    kind = detail.get('resolution')
+    if decision != 'confirm' or kind not in RESOLUTIONS: return {}
+    change, question, recommendation = (core.short(detail.get(k), 300) or None for k in ('change', 'question', 'recommendation'))
+    options = [core.short(o, 120) for o in detail.get('options') or [] if isinstance(o, str) and o.strip()][:4]
+    if kind == 'fix' and not change or kind == 'owner' and not (question and recommendation): return {}
+    return {'resolution': kind, **({'change': change} if kind == 'fix' else {}),
+            **({'question': question, 'options': options, 'recommendation': recommendation} if kind == 'owner' else {})}
 
 
 def by_kind(verdicts):

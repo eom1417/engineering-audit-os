@@ -209,12 +209,44 @@ def _previous(out):
     return None
 
 
+# A new complete check replaces these of the previous one: its pictures and crawl, the engines' working folders and
+# the assistant's raw runs and cached decisions (the cache keys on the prompt, which names a picture, not what it shows).
+# The ledger, the history and the state stay. 230 MB of pictures and 130 MB of runs piled up on EAOS's own report.
+BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache')
+PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs')     # what `eaos clean --pictures` removes from every report
+
+
+def bulky(out, patterns=None):
+    """The paths of report `out` that match `patterns`, by default the previous check's bulky data (BULKY and the
+    engines' scratch)."""
+    from ..facts.external import SCRATCH
+    out = Path(out)
+    patterns = patterns or (*BULKY, *(f'engines/{part}' for part in SCRATCH))
+    return sorted({path for pattern in patterns for path in out.glob(pattern)})
+
+
+def clear(out, patterns=None):
+    """Remove from report `out` what `patterns` match (bulky); the bytes freed."""
+    import shutil
+    freed = 0
+    for path in bulky(out, patterns):
+        if path.is_dir() and not path.is_symlink():
+            freed += sum(f.stat().st_size for f in path.rglob('*') if f.is_file() and not f.is_symlink())
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            freed += path.stat().st_size if path.is_file() else 0
+            path.unlink(missing_ok=True)
+    return freed
+
+
 def check(target, out, **options):
     """A check the person asked for: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
-    goes on from that checkpoint; otherwise, or when the source changed since, a fresh full run."""
+    goes on from that checkpoint; otherwise, or when the source changed since, a fresh full run, which first clears
+    the previous check's bulky data (clear) unless it runs some stages only."""
     if (Path(out) / CHECKPOINT).is_file():
         try: return resume(target, out, **options)
         except ValueError: pass                         # the source or the options changed since: its evidence is stale
+    if not options.get('only'): clear(out)
     return execute(target, out, **options)
 
 

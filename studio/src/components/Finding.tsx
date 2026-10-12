@@ -17,6 +17,7 @@ export function FindingRow({ card, to, search, current }: { card: Card; to: stri
       <span className={css.main}>
         <span className={css.title}><Txt block>{card.title}</Txt></span>
         <span className={css.meta}>{path && <Id value={path} keep={2} />}{path && <span aria-hidden="true">·</span>}<Id value={card.id} /></span>
+        {card.resolution?.words && <span className={css.decided}>{t('decidedBy')} <Txt>{card.resolution.words}</Txt></span>}
       </span>
       <span className={[css.marker, card.needs_decision ? css.you : css.eaos].join(' ')}>{card.needs_decision ? t('needsYou') : t('eaosFixes')}</span>
     </Go>

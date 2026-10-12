@@ -17,10 +17,12 @@ import { layout, MissingBanner, SectionsLoading, WithData } from '../../shell/La
 import { useSections } from '../../data/context'
 import { CARD_NEEDS, PROBLEMS_NEEDS } from '../../data/stages'
 import { ListTools, SelectableRow } from '../../command/Selectable'
+import { useCommandMaybe } from '../../command/command'
+import type { Card } from '../../data/types'
 import { Detail } from './Detail'
 import { FilterSheet } from './FilterSheet'
 import { useValueLabel } from './labels'
-import { activeCount, facetParam, FACETS, filterRows, itemsOf, prepare, readFilters, type Facet, type GroupBy, type Item, type ProblemsSearch, type Who } from './model'
+import { activeCount, assistantFixes, facetParam, FACETS, filterRows, itemsOf, prepare, readFilters, type Facet, type GroupBy, type Item, type ProblemsSearch, type Who } from './model'
 import { useProblemWords } from './words'
 import css from './problems.module.css'
 
@@ -53,6 +55,26 @@ function Segment({ head, items, search, order }: { head?: Item & { kind: 'group'
       </h2>
       {list}
     </section>
+  )
+}
+
+/** What your assistant will fix: the cards it decided to fix itself, offered as one selection and one button that
+ * opens the Fix preview over them (where the person may also let the batch be accepted when its checks pass). */
+function AssistantFixes({ cards }: { cards: Card[] }) {
+  const w = useProblemWords()
+  const command = useCommandMaybe()
+  const ids = useMemo(() => assistantFixes(cards), [cards])
+  if (!ids.length || !command) return null
+  return (
+    <div className={css.assistantFixes} role="region" aria-label={w('assistantFixesRegion')} data-assistant-fixes={ids.length}>
+      <span>{w('assistantFixes', { n: ids.length })}</span>
+      <div className={css.assistantFixesActions}>
+        <Button variant="primary" icon="fix" onPress={() => command.open({ verb: 'fix', selection: { kind: 'cards', cards: ids } })} data-direct="fix-assistant">
+          {w('fixWithAssistant')}
+        </Button>
+        <Button variant="secondary" onPress={() => command.pick(ids, null)}>{w('selectThem')}</Button>
+      </div>
+    </div>
   )
 }
 
@@ -169,6 +191,7 @@ function ProblemsBody({ data }: { data: StudioData }) {
               <Button variant="secondary" icon="retry" onPress={() => setPinned(data.cards)}>{w('showChanges')}</Button>
             </div>
           )}
+          <AssistantFixes cards={all} />
           <SearchField label={t('search')} placeholder={t('search')} value={typed} onChange={setTyped} />
           <Controls who={filters.who} group={filters.group} chosen={chosen} active={active} onSet={onSet} onFilters={openSheet} />
           <ListTools shown={ids} />

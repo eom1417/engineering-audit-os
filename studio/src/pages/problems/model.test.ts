@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Card, StudioData } from '../../data/types'
-import { activeCount, filterRows, groupRows, itemsOf, prepare, queryWords, readFilters } from './model'
+import { activeCount, assistantFixes, filterRows, groupRows, itemsOf, prepare, queryWords, readFilters } from './model'
 
 const SEV = ['critical', 'high', 'medium', 'low'] as const
 const AREAS = ['security', 'structure', 'quality', 'maintainability']
@@ -113,5 +113,14 @@ describe('5,000 cards', () => {
       times.push(performance.now() - started)
     }
     expect(Math.max(...times)).toBeLessThan(100)
+  })
+})
+
+describe('what your assistant will fix', () => {
+  it('is the open cards the assistant decided to fix itself, most severe first; never its questions to the owner nor closed cards', () => {
+    const fix = { kind: 'fix' as const, by: 'assistant', words: 'Remove it', why: 'unused' }
+    const cards = [card(3, { severity: 'low', state: 'open', resolution: fix }), card(1, { severity: 'high', state: 'open', resolution: fix }),
+      card(2, { state: 'done', resolution: fix }), card(4, { state: 'open', resolution: { ...fix, kind: 'owner' } }), card(5, { state: 'open' })]
+    expect(assistantFixes(cards)).toEqual(['TASK-00001', 'TASK-00003'])
   })
 })

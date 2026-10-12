@@ -25,7 +25,48 @@ export interface Screen {
   issues: Issue[]
 }
 
-export interface ScreensData { screens: Screen[]; missing?: Gap[]; counts?: Record<string, Measure> }
+export interface ScreensData { screens: Screen[]; missing?: Gap[]; counts?: Record<string, Measure>; pages?: PicturedPage[] }
+
+// ---------------------------------------------------------------- the gallery of what the check pictured
+
+/** A region of a picture as fractions 0-1 of its width and height. */
+export interface Region { x: number; y: number; width: number; height: number }
+/** One finding of the visual reviewer on one picture. */
+export interface PageFinding { id?: string | null; title: string | null; kind?: string | null; severity?: string | null; why?: string | null; region: Region | null }
+/** One picture of a page: its report-relative path, its viewport, what the page checks found, and the findings on it. */
+export interface Picture { path: string; viewport: string | null; width: number | null; height: number | null; checks: string[]; findings: PageFinding[] }
+/** One page of the running app (eaos/studio/screens.py gallery): pictured once per viewport, with what was found on it. */
+export interface PicturedPage {
+  path: string
+  template: string
+  same_as: string[]
+  state: 'findings' | 'clean' | 'not_reviewed'
+  findings: number
+  pictures: Picture[]
+}
+
+const GRAVITY = ['critical', 'high', 'medium', 'low', 'info']
+const gravity = (severity?: string | null) => { const at = GRAVITY.indexOf(severity ?? ''); return at < 0 ? GRAVITY.length : at }
+/** The most severe finding of a page, as a rank (0 = critical). */
+const worst = (page: PicturedPage) => Math.min(...page.pictures.flatMap((p) => p.findings.map((f) => gravity(f.severity))), GRAVITY.length)
+
+/** The gallery as the owner reads it: the pages with findings, most severe first (then the most findings), each with
+ * only its pictures that carry a finding; the clean pages and the pages not reviewed as counts and addresses, never
+ * pictured one by one. */
+export function gallery(pages: PicturedPage[]): { shown: PicturedPage[]; clean: PicturedPage[]; notReviewed: PicturedPage[] } {
+  const shown = pages.filter((p) => p.state === 'findings')
+    .map((p) => ({ ...p, pictures: p.pictures.filter((pic) => pic.findings.length) }))
+    .filter((p) => p.pictures.length)
+    .sort((a, b) => worst(a) - worst(b) || b.findings - a.findings || a.path.localeCompare(b.path))
+  return { shown, clean: pages.filter((p) => p.state === 'clean'), notReviewed: pages.filter((p) => p.state === 'not_reviewed') }
+}
+
+/** A picture's findings numbered in reading order (top to bottom, then along the line); one without a region keeps
+ * its number after them and draws no box. */
+export function marks(picture: Picture): (PageFinding & { n: number })[] {
+  const placed = picture.findings.filter((f) => f.region).sort((a, b) => a.region!.y - b.region!.y || a.region!.x - b.region!.x)
+  return [...placed, ...picture.findings.filter((f) => !f.region)].map((f, i) => ({ ...f, n: i + 1 }))
+}
 
 /** Whether a part of the section (shots, issues, inputs) was measured: a part named in `missing` was not. */
 export function measured(data: ScreensData, part: 'shots' | 'issues' | 'inputs'): boolean {

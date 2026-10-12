@@ -4,7 +4,7 @@
 // issues pinned (390 / 1440, before / after / slider when a batch changed it), its issues, inputs, file and route.
 // What EAOS has not measured (shots, issues, inputs) is said, with the step that brings it, never shown as "none".
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { DirectAction } from '../../command/Direct'
 import { Chip } from '../../components/Chip'
@@ -12,6 +12,7 @@ import { Segmented } from '../../components/Controls'
 import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
 import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
+import { Sheet } from '../../components/Sheet'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
@@ -20,11 +21,12 @@ import { layout, MissingBanner, WithData } from '../../shell/Layout'
 import { useCoverage, useSection, type FunctionsData } from '../functions/model'
 import { usePhone } from '../SystemMap'
 import { SystemViews } from '../system/SystemViews'
-import { FILTERS, filterScreens, measured, pins, shotsAt, thumbnail, widths, type Issue, type Screen, type ScreenFilter, type ScreensData, type Shot } from './model'
-import { useScreenWords } from './words'
+import { FILTERS, filterScreens, gallery, marks, measured, pins, shotsAt, thumbnail, widths, type Issue, type PageFinding, type Picture, type PicturedPage,
+  type Screen, type ScreenFilter, type ScreensData, type Shot } from './model'
+import { SCREEN_WORDS, useScreenWords, type ScreenWord } from './words'
 import css from './Screens.module.css'
 
-type Search = { show?: string; vp?: string; compare?: string }
+type Search = { show?: string; vp?: string; compare?: string; every?: string }
 
 function ScreenLink({ id, className, children, label }: { id: string; className?: string; children: React.ReactNode; label?: string }) {
   return <Link to="/screens/$screenId" params={{ screenId: id }} className={className} aria-label={label}>{children}</Link>
@@ -88,8 +90,20 @@ function Card({ screen, checked }: { screen: Screen; checked: boolean }) {
   )
 }
 
-function Heading({ data, sx }: { data: StudioData; sx?: ScreensData }) {
+function Heading({ data, sx, pictured }: { data: StudioData; sx?: ScreensData; pictured?: { total: number; found: number } }) {
   const w = useScreenWords()
+  if (pictured) {
+    return (
+      <>
+        <MissingBanner data={data} />
+        <SystemViews current="screens" />
+        <div className={layout.titleBlock}>
+          <h1 className={layout.largeTitle}>{w('screens')}</h1>
+          <p className={layout.lead}>{w('galleryLead', { t: pictured.total, f: pictured.found })}</p>
+        </div>
+      </>
+    )
+  }
   const shot = sx ? sx.screens.filter((s) => s.shots.length).length : 0
   const open = sx ? sx.screens.reduce((n, s) => n + s.issues.filter((i) => i.state === 'open').length, 0) : 0
   return (
@@ -104,7 +118,13 @@ function Heading({ data, sx }: { data: StudioData; sx?: ScreensData }) {
   )
 }
 
+/** The pictured pages' gallery when the check pictured the app; every declared screen as cards otherwise (or on ?every=1). */
 function Gallery({ data, sx }: { data: StudioData; sx: ScreensData }) {
+  const search = useSearch({ strict: false }) as Search
+  return (sx.pages ?? []).length && search.every !== '1' ? <PicturedGallery data={data} sx={sx} /> : <ScreenGrid data={data} sx={sx} />
+}
+
+function ScreenGrid({ data, sx }: { data: StudioData; sx: ScreensData }) {
   const w = useScreenWords()
   const search = useSearch({ strict: false }) as Search
   const navigate = useNavigate()
@@ -112,7 +132,7 @@ function Gallery({ data, sx }: { data: StudioData; sx: ScreensData }) {
   const checked = measured(sx, 'issues')
   const offered = FILTERS.filter((f) => f === 'all' || f === 'flagged' || (f === 'issues' ? checked : sx.screens.some((s) => s.shots.length)))
   const kept = filterScreens(sx.screens, filter)
-  const set = (show: ScreenFilter) => navigate({ to: '/screens', replace: true, search: show === 'all' ? {} : { show } })
+  const set = (show: ScreenFilter) => navigate({ to: '/screens', replace: true, search: { ...(search.every ? { every: search.every } : {}), ...(show === 'all' ? {} : { show }) } })
   const { t } = usePrefs()
   const phone = usePhone()
   const [open, setOpen] = useState(false)
@@ -120,6 +140,7 @@ function Gallery({ data, sx }: { data: StudioData; sx: ScreensData }) {
   return (
     <div className={layout.page}>
       <Heading data={data} sx={sx} />
+      {(sx.pages ?? []).length > 0 && <div className={css.links}><Go to="/screens" className={css.inlineLink}>{w('backToGallery')}</Go></div>}
       <NotCaptured sx={sx} />
       {sx.screens.length > 0 && (
         <>
@@ -142,6 +163,176 @@ function Gallery({ data, sx }: { data: StudioData; sx: ScreensData }) {
             </>
           ) : <Panel><StateMessage title={w('none')} /></Panel>}
         </>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- the gallery of the pictured pages
+
+/** A picture's report-relative path from the Studio's folder (one folder down in the report). */
+const pictureSrc = (picture: Picture) => `../${picture.path}`
+
+function useKindWord() {
+  const w = useScreenWords()
+  return (kind?: string | null) => (kind && `kind_${kind}` in SCREEN_WORDS ? w(`kind_${kind}` as ScreenWord) : null)
+}
+
+function viewportWord(w: ReturnType<typeof useScreenWords>, picture: Picture): string {
+  const name = picture.viewport ?? ''
+  if (name === 'phone' || name === 'tablet' || name === 'desktop') return w(`vp_${name}`)
+  return picture.width ? w('width', { w: picture.width }) : name
+}
+
+/** One picture with its findings drawn over it as numbered boxes (regions are fractions of the picture, so the boxes
+ * hold at any size). `large` draws it whole; otherwise in a frame that scrolls, loaded only when near the screen. */
+function Marked({ picture, list, picked, onPick, onOpen, large }:
+  { picture: Picture; list: (PageFinding & { n: number })[]; picked?: number; onPick: (n: number) => void; onOpen?: () => void; large?: boolean }) {
+  const w = useScreenWords()
+  const [broken, setBroken] = useState(false)
+  if (broken) {
+    return (
+      <div className={css.noShot}>
+        <span className={css.noShotFrame} aria-hidden="true"><Icon name="eye" size={20} /></span>
+        <div><p className={css.noShotTitle}>{w('shotUnreadable')}</p><p className={css.noShotSub}>{w('shotUnreadableSub')}</p></div>
+      </div>
+    )
+  }
+  return (
+    <div className={large ? css.markedLarge : css.marked} dir="ltr">
+      <div className={css.markedCanvas}>
+        <img className={css.shot} src={pictureSrc(picture)} alt={w('shotAlt', { r: picture.path, w: picture.width ?? '' })}
+          loading={large ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken(true)}
+          onClick={onOpen} style={onOpen ? { cursor: 'zoom-in' } : undefined} />
+        {list.filter((f) => f.region).map((f) => (
+          <button key={f.n} type="button" data-mark={f.n} className={[css.box, picked === f.n && css.pinOn].filter(Boolean).join(' ')}
+            style={{ insetInlineStart: `${f.region!.x * 100}%`, insetBlockStart: `${f.region!.y * 100}%`,
+              inlineSize: `${Math.max(f.region!.width * 100, 2)}%`, blockSize: `${Math.max(f.region!.height * 100, 1)}%` }}
+            aria-label={w('pinAria', { n: f.n, s: f.title ?? w('problemHere') })} title={w('problemHere')} onClick={() => onPick(f.n)}>
+            <span className={css.pinN}>{f.n}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** The findings beside their picture, numbered as the boxes, in plain words. */
+function Notes({ picture, list, picked, onPick }: { picture: Picture; list: (PageFinding & { n: number })[]; picked?: number; onPick: (n: number) => void }) {
+  const w = useScreenWords()
+  const kindWord = useKindWord()
+  return (
+    <div className={css.notes}>
+      <ol className={css.noteList}>
+        {list.map((f) => (
+          <li key={f.n}>
+            <button type="button" className={[css.note, picked === f.n && css.issueOn].filter(Boolean).join(' ')} onClick={() => onPick(f.n)} aria-pressed={picked === f.n}>
+              <span className={css.issueN}>{f.n}</span>
+              <span className={css.issueMain}>
+                <span className={css.issueTitle}><Txt>{f.title ?? w('problemHere')}</Txt></span>
+                <span className={css.issueSub}>
+                  {f.severity && `sev_${f.severity}` in SCREEN_WORDS ? w(`sev_${f.severity}` as ScreenWord) : null}
+                  {kindWord(f.kind) ? <> · {kindWord(f.kind)}</> : null}
+                  {!f.region ? <> · {w('noRegion')}</> : null}
+                </span>
+                {f.why && <span className={css.noteWhy}><Txt block>{f.why}</Txt></span>}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      {picture.checks.length > 0 && (
+        <details className={css.checks}>
+          <summary>{w('pageChecks', { n: picture.checks.length })}</summary>
+          <ul>{picture.checks.map((c, i) => <li key={i}><Id value={c} /></li>)}</ul>
+        </details>
+      )}
+    </div>
+  )
+}
+
+/** One page with findings: its pictures that carry them (phone, tablet, desktop as tabs), the problems marked on the
+ * picture and explained beside it; the picture opens large. */
+function PageCard({ page }: { page: PicturedPage }) {
+  const w = useScreenWords()
+  const pictures = useMemo(() => [...page.pictures].sort((a, b) => (a.width ?? 0) - (b.width ?? 0)), [page])
+  const [at, setAt] = useState(0)
+  const [picked, setPicked] = useState<number>()
+  const [large, setLarge] = useState(false)
+  const frame = useRef<HTMLDivElement>(null)
+  const picture = pictures[Math.min(at, pictures.length - 1)]
+  const list = useMemo(() => marks(picture), [picture])
+  const pick = (n: number) => {
+    setPicked(n)
+    frame.current?.querySelector(`[data-mark="${n}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }
+  const found = picture.findings.length
+  return (
+    <article className={css.pageCard} aria-label={page.path}>
+      <header className={css.pageHead}>
+        <h2 className={css.pageTitle}><Id value={page.path} /></h2>
+        <span className={css.badgeIssues}>{w('issuesN', { n: page.findings })}</span>
+        {page.same_as.length > 0 && <span className={css.cardRoute}>{w('sameAs', { n: page.same_as.length })}</span>}
+      </header>
+      {pictures.length > 1 && (
+        <Segmented<string> label={w('viewport')} value={String(at)} onChange={(v) => { setAt(Number(v)); setPicked(undefined) }}
+          options={pictures.map((p, i) => ({ id: String(i), label: `${viewportWord(w, p)} (${p.findings.length})` }))} />
+      )}
+      <div className={css.pageBody}>
+        <div ref={frame} className={css.pageFrame}>
+          <Marked key={picture.path} picture={picture} list={list} picked={picked} onPick={pick} onOpen={() => setLarge(true)} />
+          <Button variant="ghost" icon="eye" onPress={() => setLarge(true)}>{w('openLarge')}</Button>
+        </div>
+        <Notes picture={picture} list={list} picked={picked} onPick={pick} />
+      </div>
+      <Sheet isOpen={large} onOpenChange={setLarge} title={`${page.path} · ${viewportWord(w, picture)} · ${w('issuesN', { n: found })}`}>
+        <div className={css.largeBody}>
+          <Marked picture={picture} list={list} picked={picked} onPick={setPicked} large />
+          <Notes picture={picture} list={list} picked={picked} onPick={setPicked} />
+        </div>
+      </Sheet>
+    </article>
+  )
+}
+
+/** A one-line summary of pages that are not pictured here (clean, or not reviewed), their addresses folded away. */
+function PagesLine({ pages, words }: { pages: PicturedPage[]; words: string }) {
+  const w = useScreenWords()
+  if (!pages.length) return null
+  return (
+    <details className={css.pagesLine}>
+      <summary><span>{words}</span> <span className={css.cardRoute}>{w('showAddresses')}</span></summary>
+      <ul className={css.addresses}>{pages.map((p) => <li key={p.path}><Id value={p.path} /></li>)}</ul>
+    </details>
+  )
+}
+
+/** The Screens page when the check pictured the app: only the pages with problems, most severe first, each problem
+ * marked on its picture; the clean and the unreviewed pages in one line each. */
+function PicturedGallery({ data, sx }: { data: StudioData; sx: ScreensData }) {
+  const w = useScreenWords()
+  const { t } = usePrefs()
+  const pages = sx.pages ?? []
+  const { shown, clean, notReviewed } = useMemo(() => gallery(pages), [pages])
+  const [all, setAll] = useState(false)
+  const first = 12
+  return (
+    <div className={layout.page}>
+      <Heading data={data} pictured={{ total: pages.length, found: shown.length }} />
+      <div className={css.summary}>
+        <PagesLine pages={clean} words={w('cleanLine', { n: clean.length })} />
+        <PagesLine pages={notReviewed} words={w('notReviewedLine', { n: notReviewed.length })} />
+      </div>
+      {shown.length ? (
+        <>
+          <div className={css.pages}>{shown.slice(0, all ? shown.length : first).map((page) => <PageCard key={page.path} page={page} />)}</div>
+          {shown.length > first && (
+            <div className={css.more}><Button variant="ghost" onPress={() => setAll(!all)} aria-expanded={all}>{all ? t('showLess') : t('showAllN', { n: shown.length })}</Button></div>
+          )}
+        </>
+      ) : !notReviewed.length ? <Panel><StateMessage icon="eye" title={w('galleryNone')} /></Panel> : null}
+      {sx.screens.length > 0 && (
+        <div className={css.links}><Go to="/screens" search={{ every: '1' }} className={css.inlineLink}>{w('everyScreen', { n: sx.screens.length })}</Go></div>
       )}
     </div>
   )

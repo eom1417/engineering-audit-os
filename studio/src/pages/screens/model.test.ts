@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterScreens, measured, pins, shotsAt, thumbnail, widths, type Screen, type ScreensData } from './model'
+import { filterScreens, gallery, marks, measured, pins, shotsAt, thumbnail, widths, type PicturedPage, type Screen, type ScreensData } from './model'
 
 const screen = (id: string, extra: Partial<Screen> = {}): Screen => ({ id, route: `/${id}`, title: id, shots: [], inputs: [], issues: [], ...extra })
 
@@ -36,5 +36,24 @@ describe('the screens gallery reads screens.json and never shows "not measured" 
     expect(filterScreens(list, 'issues').map((s) => s.id)).toEqual(['orders'])
     expect(filterScreens(list, 'flagged').map((s) => s.id)).toEqual(['a'])
     expect(filterScreens(list, 'shot').map((s) => s.id)).toEqual(['orders'])
+  })
+})
+
+describe('the gallery shows only the pictures with problems, the problem marked where it is', () => {
+  const picture = (path: string, width: number, findings: PicturedPage['pictures'][number]['findings']) =>
+    ({ path, viewport: width < 768 ? 'phone' : 'desktop', width, height: 900, checks: [], findings })
+  const at = (x: number, y: number) => ({ x, y, width: 0.2, height: 0.1 })
+  const page = (path: string, state: PicturedPage['state'], pictures: PicturedPage['pictures']): PicturedPage =>
+    ({ path, template: path, same_as: [], state, findings: pictures.reduce((n, p) => n + p.findings.length, 0), pictures })
+  it('puts the most severe pages first, drops their clean pictures, counts the rest, and numbers marks in reading order', () => {
+    const low = page('/a', 'findings', [picture('a-390.png', 390, [{ title: 'Faint', severity: 'low', region: at(0, 0) }])])
+    const high = page('/b', 'findings', [picture('b-390.png', 390, []),
+      picture('b-1440.png', 1440, [{ title: 'Crowded', severity: 'medium', region: at(0.5, 0.6) }, { title: 'Hidden', severity: 'high', region: at(0.1, 0.2) },
+        { title: 'Whole page', severity: 'low', region: null }])])
+    const out = gallery([low, page('/c', 'clean', [picture('c.png', 390, [])]), high, page('/d', 'not_reviewed', [picture('d.png', 390, [])])])
+    expect(out.shown.map((p) => p.path)).toEqual(['/b', '/a'])
+    expect(out.shown[0].pictures.map((p) => p.path)).toEqual(['b-1440.png'])
+    expect([out.clean.length, out.notReviewed.length]).toEqual([1, 1])
+    expect(marks(out.shown[0].pictures[0]).map((m) => [m.title, m.n])).toEqual([['Hidden', 1], ['Crowded', 2], ['Whole page', 3]])
   })
 })

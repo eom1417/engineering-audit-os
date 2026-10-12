@@ -137,6 +137,7 @@ export const WORDS = {
   stateSkipped: ['متروكة', 'Skipped'],
   needsYou: ['تحتاجك', 'Needs you'],
   eaosFixes: ['يصلحها EAOS', 'EAOS fixes'],
+  decidedBy: ['قرار مساعدك:', 'Decided by your assistant:'],
   // home
   needCheck: ['تحتاج تحققًا أولًا', 'need a check first'],
   highSeverity: ['شدتها عالية', 'high severity'],

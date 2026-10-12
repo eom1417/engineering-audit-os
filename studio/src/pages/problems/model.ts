@@ -45,6 +45,15 @@ export interface Row {
   text: string
 }
 
+/** What your assistant will fix: the open cards it decided to fix itself (resolution kind fix, by the assistant), most
+ * severe first, at most one selection's worth (MAX_CARDS). The Problems page offers them as one "fix with your
+ * assistant's recommendations" selection, so the person is not asked about each one. */
+export function assistantFixes(cards: Card[], max = 500): string[] {
+  const rank = (card: Card) => SEVERITY_ORDER.indexOf(card.severity)
+  return cards.filter((card) => card.state === 'open' && card.resolution?.kind === 'fix' && card.resolution.by === 'assistant')
+    .sort((a, b) => rank(a) - rank(b)).slice(0, max).map((card) => card.id)
+}
+
 const list = (value: string | undefined) => (value ? value.split(',').filter(Boolean) : [])
 
 export function readFilters(search: ProblemsSearch): Filters {

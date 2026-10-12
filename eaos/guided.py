@@ -1198,9 +1198,15 @@ def status(args):
 
 
 def clean(args):
-    """Remove the isolated copies and caches EAOS made; reports and state stay."""
+    """Remove the isolated copies and caches EAOS made; reports and state stay. With --pictures, also the screen
+    pictures, the crawl and the assistant's raw runs of every report (eaos/pipeline/run.py PICTURES): a new check
+    takes them again."""
     lang = language(args.lang)
     freed = 0
+    if getattr(args, 'pictures', False):
+        from .pipeline.run import PICTURES, clear
+        for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
+            freed += clear(report, PICTURES)
     for folder in (home() / 'projects').glob('*/runtime/sandbox'):
         freed += sum(f.stat().st_size for f in folder.rglob('*') if f.is_file() and not f.is_symlink())
         shutil.rmtree(folder, ignore_errors=True)
@@ -1209,8 +1215,9 @@ def clean(args):
             freed += sum(f.stat().st_size for f in copy.rglob('*') if f.is_file() and not f.is_symlink())
             shutil.rmtree(copy, ignore_errors=True)
     gb = freed / 2 ** 30
-    box(lang, (f'حذفت النسخ المؤقتة ووفّرت {gb:.1f} GB. التقارير باقية' if lang == 'ar'
-               else f'Removed the temporary copies and freed {gb:.1f} GB. Reports are kept'),
+    pictures = getattr(args, 'pictures', False)
+    box(lang, (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {gb:.1f} GB. التقارير باقية" if lang == 'ar'
+               else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {gb:.1f} GB. Reports are kept"),
         where=home(), commands=['eaos next'])
     return 0
 

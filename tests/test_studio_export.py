@@ -133,6 +133,24 @@ class Export(Workspace):
         target = export.decisions({**m, 'target': {'status': 'REVIEW_REQUIRED', 'decisions': [{'id': f'ADR-{i}', 'chosen': 'x'} for i in range(51)]}}, [], 'ar')[0]
         self.assertEqual(([o['id'] for o in target['options']], target['decisions_count']), (['approve', 'changes', 'review'], 51))
 
+    def test_the_inbox_asks_only_what_the_assistant_left_to_the_person_and_each_card_says_what_it_decided(self):
+        # The self-audit: 847 of 867 cards waited for the owner; the assistant decides the clear ones itself.
+        plan = json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))
+        tasks = {t['id']: t for t in plan['tasks']}
+        tasks['TASK-2']['resolution'] = {'resolution': 'owner', 'by': 'assistant', 'question': 'Show prices with tax?', 'options': ['Yes', 'No'],
+                                         'recommendation': 'Yes', 'why': 'a product choice', 'words': 'decided by your assistant: a product choice'}
+        tasks['TASK-6'].update(kind='remediate', resolution={'resolution': 'fix', 'by': 'assistant', 'change': 'Split the handler', 'capped': True,
+                                                             'words': 'decided by your assistant: it mattered less'})
+        tasks['TASK-6']['decision'] = {**tasks['TASK-6']['decision'], 'kind': 'repair', 'readiness': 'ready'}
+        (self.out / 'plan.json').write_text(json.dumps(plan), encoding='utf-8')
+        export.export(self.out, 'en', 'shop')
+        decisions = self.load('decisions')['decisions']
+        self.assertEqual([(d['id'], d['question'], d['recommended_option']) for d in decisions], [('card:TASK-2', 'Show prices with tax?', 'o1')])
+        cards = {c['id']: c for c in self.load('cards')['cards']}
+        self.assertEqual((cards['TASK-6']['fixable'], cards['TASK-6']['needs_decision'], cards['TASK-6']['resolution']['kind'],
+                          cards['TASK-6']['resolution']['change'], cards['TASK-6']['resolution']['capped']), (True, False, 'fix', 'Split the handler', True))
+        self.assertEqual((cards['TASK-2']['needs_decision'], cards['TASK-2']['resolution']['options']), (True, ['Yes', 'No']))
+
     def test_a_section_that_fails_or_records_that_cannot_be_read_are_named_and_never_counted_as_measured(self):
         with mock.patch.object(export.library_section, 'media', side_effect=ValueError('no folder')):
             result = export.export(self.out, 'en', 'shop')
