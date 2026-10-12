@@ -3,8 +3,9 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { usePrefs } from './prefs'
 
-// A Latin run (words, paths, versions, ids) or a group of numbers joined by punctuation ("1 · 3 · 35", "1–47")
-const RUN = /`([^`]+)`|([A-Za-z][\w.\-/:@]*(?:[ ][A-Za-z][\w.\-/:@]*)*)|(\d+(?:\s?[·–\-/:]\s?\d+)+)/g
+// A Latin run (words, paths, versions, ids, and a comma-separated list of them: "complexipy, lizard, reforge") or a group
+// of numbers joined by punctuation ("1 · 3 · 35", "1–47")
+const RUN = /`([^`]+)`|([A-Za-z][\w.\-/:@]*(?:,?[ ][A-Za-z][\w.\-/:@]*)*)|(\d+(?:\s?[·–\-/:]\s?\d+)+)/g
 
 export function isolate(text: string): ReactNode[] {
   const out: ReactNode[] = []
