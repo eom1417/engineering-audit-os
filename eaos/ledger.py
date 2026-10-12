@@ -92,10 +92,7 @@ def _walk(project, ref):
     done = _git(project, 'log', '--format=%H%x00%ae%x00%B%x1e', ref)
     by_key, legacy, reverted, undone = {}, {}, set(), set()
     if done.returncode: return by_key, legacy, undone
-    for entry in done.stdout.split('\x1e'):            # newest first: a revert is met before what it reverts
-        parts = entry.strip('\n').split('\x00')
-        if len(parts) != 3: continue
-        sha, email, body = parts
+    for sha, email, body in _commits(done.stdout):     # newest first: a revert is met before what it reverts
         found = re.findall(rf'^{TRAILER}: ([0-9a-f]{{12}})$', body, re.M)
         if sha in reverted:
             undone.update(found)
@@ -104,10 +101,20 @@ def _walk(project, ref):
         if undoes:
             reverted.update(undoes)
             continue
-        for k in found: by_key.setdefault(k, sha)
-        if not found and email == 'eaos@localhost' and re.match(r'TASK-\d+: ', body):
-            legacy[body.split('\n', 1)[0]] = sha
+        _record_commit(sha, email, body, found, by_key, legacy)
     return by_key, legacy, undone - set(by_key)
+
+
+def _commits(log):
+    for entry in log.split('\x1e'):
+        parts = entry.strip('\n').split('\x00')
+        if len(parts) == 3: yield parts
+
+
+def _record_commit(sha, email, body, found, by_key, legacy):
+    for k in found: by_key.setdefault(k, sha)
+    if not found and email == 'eaos@localhost' and re.match(r'TASK-\d+: ', body):
+        legacy[body.split('\n', 1)[0]] = sha
 
 
 def _plan(state, report=None):
@@ -121,16 +128,26 @@ def _plan(state, report=None):
 def _older_keys(project, wave, tasks, ids):
     """{card id: key} for a batch from before keys were kept, read from its commits' subjects ("TASK-008: <words>"): the
     card of this plan with those words (after a new check, TASK-008 may be another problem)."""
-    tip = wave.get('tip') or wave.get('branch')
-    log = _git(project, 'log', '--format=%s', f"{wave.get('base')}..{tip}") if tip and wave.get('base') else None
-    if not log or log.returncode: return {}
-    said = dict(line.split(': ', 1) for line in log.stdout.splitlines() if re.match(r'TASK-\d+: ', line))
     out = {}
-    for old_id, title in said.items():
-        alike = [c['id'] for c in tasks if (c.get('title') or '')[:70] == title]
-        chosen = old_id if old_id in alike else alike[0] if len(alike) == 1 else None
+    for old_id, title in _batch_subjects(project, wave).items():
+        chosen = _card_for(old_id, title, tasks)
         if chosen: out[old_id] = ids[chosen]
     return out
+
+
+def _batch_subjects(project, wave):
+    """{old card id: its title} from the subjects of a batch's commits."""
+    tip = wave.get('tip') or wave.get('branch')
+    if not (tip and wave.get('base')): return {}
+    log = _git(project, 'log', '--format=%s', f"{wave.get('base')}..{tip}")
+    if log.returncode: return {}
+    return dict(line.split(': ', 1) for line in log.stdout.splitlines() if re.match(r'TASK-\d+: ', line))
+
+
+def _card_for(old_id, title, tasks):
+    alike = [c['id'] for c in tasks if (c.get('title') or '')[:70] == title]
+    if old_id in alike: return old_id
+    return alike[0] if len(alike) == 1 else None
 
 
 def _entry(card, k, milestone):
@@ -153,45 +170,70 @@ def sync(state, event=None, report=None):
     if first:
         ledger = {'schema_version': 1, 'started': _now(), 'plan_stamp': stamp, 'cards': {}, 'history': []}
     cards = ledger['cards']
-    for card in cards.values(): card['id'] = None
-    fresh = ledger.get('plan_stamp') != stamp
-    for card in plan['tasks']:
-        k = ids[card['id']]
-        if k in cards:
-            cards[k].update(id=card['id'], title=card.get('title') or cards[k]['title'], milestone=milestone.get(card['id']))
-            if cards[k]['state'] not in ('done', 'on_branch', 'in_batch', 'skipped', 'open'): cards[k]['state'] = 'open'
-        else:
-            cards[k] = _entry(card, k, milestone.get(card['id']))
-            cards[k]['new'] = not first
-    for k in [k for k, card in cards.items() if card['id'] is None and card['state'] != 'done']:
-        del cards[k]                                                         # no longer found, not fixed by EAOS: gone
-    if fresh:
+    _merge_plan(cards, plan['tasks'], ids, milestone, first)
+    if ledger.get('plan_stamp') != stamp:
         ledger['plan_stamp'] = stamp
         event = event or 'recheck'
     project = state['project']
     in_branch, legacy, undone = _walk(project, branches.ref(state))
     by_id = {c['id']: c for c in cards.values() if c['id']}
-    waves = state.get('waves') or []
-    for wave in waves:                                                       # what each batch did, by key
-        known = wave.get('keys') or _older_keys(project, wave, plan['tasks'], ids)
-        for card_id, reason in (wave.get('failed') or {}).items():
-            card = cards.get(known.get(card_id))
-            if card and card['state'] in ('open', 'in_batch'):
-                card.update(state='skipped', why=str(reason)[:300], batch=wave.get('number'))
-        for card_id in wave.get('kept') or []:
-            card = cards.get(known.get(card_id))
-            if not card or card['state'] in CLOSED: continue
-            if wave.get('status') == 'applied':
-                card.update(state='on_branch', batch=wave.get('number'), why='')
-            elif wave.get('status') == 'accepted':
-                card.update(state='done', batch=wave.get('number'), at=wave.get('merged_at') or card['at'], why='')
-            elif card['state'] == 'on_branch' and wave.get('status') in ('undone', 'empty'):
-                card.update(state='open', batch=None)
+    for wave in state.get('waves') or []:                                    # what each batch did, by key
+        _apply_wave(wave, cards, wave.get('keys') or _older_keys(project, wave, plan['tasks'], ids))
+    _apply_history(cards, in_branch, undone)
+    _apply_legacy(cards, legacy)
+    _apply_open_batch(cards, by_id, state.get('open_wave') or {})
+    totals = _record_history(ledger, first, event, project, state)
+    ledger.update(updated=_now(), commit=_git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None, totals=totals)
+    _save(state, ledger)
+    return ledger
+
+
+def _merge_plan(cards, tasks, ids, milestone, first):
+    """Every card of the plan into the ledger by its key; a card no longer found and not fixed by EAOS leaves it."""
+    for card in cards.values(): card['id'] = None
+    for card in tasks:
+        k = ids[card['id']]
+        if k in cards: _refresh(cards[k], card, milestone)
+        else:
+            cards[k] = _entry(card, k, milestone.get(card['id']))
+            cards[k]['new'] = not first
+    for k in [k for k, card in cards.items() if card['id'] is None and card['state'] != 'done']:
+        del cards[k]                                                         # no longer found, not fixed by EAOS: gone
+
+
+def _refresh(entry, card, milestone):
+    entry.update(id=card['id'], title=card.get('title') or entry['title'], milestone=milestone.get(card['id']))
+    if entry['state'] not in ('done', 'on_branch', 'in_batch', 'skipped', 'open'): entry['state'] = 'open'
+
+
+def _apply_kept(wave, card):
+    if not card or card['state'] in CLOSED: return
+    status = wave.get('status')
+    if status == 'applied':
+        card.update(state='on_branch', batch=wave.get('number'), why='')
+    elif status == 'accepted':
+        card.update(state='done', batch=wave.get('number'), at=wave.get('merged_at') or card['at'], why='')
+    elif card['state'] == 'on_branch' and status in ('undone', 'empty'):
+        card.update(state='open', batch=None)
+
+
+def _apply_wave(wave, cards, known):
+    for card_id, reason in (wave.get('failed') or {}).items():
+        card = cards.get(known.get(card_id))
+        if card and card['state'] in ('open', 'in_batch'):
+            card.update(state='skipped', why=str(reason)[:300], batch=wave.get('number'))
+    for card_id in wave.get('kept') or []: _apply_kept(wave, cards.get(known.get(card_id)))
+
+
+def _apply_history(cards, in_branch, undone):
     for card in cards.values():
         if card['key'] in undone and card['state'] == 'done':                # its fix was reverted on the branch
             card.update(state='open', commit=None, batch=None, why='its fix was reverted on the branch')
         if card['key'] in in_branch and card['state'] != 'done':
             card.update(state='done', commit=in_branch[card['key']], at=_now(), why='')
+
+
+def _apply_legacy(cards, legacy):
     for subject, sha in legacy.items():                                     # merged before keys: its old card, by its words
         title = subject.split(': ', 1)[1] if ': ' in subject else subject
         match = next((c for c in cards.values() if c['state'] != 'done' and c['title'][:70] == title and c['id'] is None), None)
@@ -200,22 +242,28 @@ def sync(state, event=None, report=None):
             k = 'legacy-' + sha[:6]
             cards[k] = {'key': k, 'id': None, 'title': title, 'pattern': 'generic', 'milestone': None, 'paths': [], 'state': 'done',
                         'new': False, 'batch': None, 'at': _now(), 'why': '', 'commit': sha}
-    open_wave = state.get('open_wave') or {}
-    for card_id in open_wave.get('cards') or []:
+
+
+def _apply_open_batch(cards, by_id, open_wave):
+    in_batch = open_wave.get('cards') or []
+    for card_id in in_batch:
         card = by_id.get(card_id)
         if card and card['state'] in ('open', 'skipped'): card.update(state='in_batch', batch=open_wave.get('number'), why='')
     for card in cards.values():                                              # a batch that closed without it
-        if card['state'] == 'in_batch' and card['id'] not in (open_wave.get('cards') or []): card['state'] = 'open'
+        if card['state'] == 'in_batch' and card['id'] not in in_batch: card['state'] = 'open'
+
+
+def _record_history(ledger, first, event, project, state):
+    """The totals; a point added to the history when they moved, on the first sync, or on an event."""
     totals = count(ledger)
     history = ledger['history']
     last = history[-1] if history else None
-    if first or event or not last or last['closed'] != totals['closed'] or last['total'] != totals['total']:
+    moved = not last or last['closed'] != totals['closed'] or last['total'] != totals['total']
+    if first or event or moved:
         history.append({'at': _now(), 'event': 'baseline' if first else event or 'merged', 'closed': totals['closed'],
                         'total': totals['total'], 'percent': totals['percent'], 'commit': _git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None})
         del history[:-200]
-    ledger.update(updated=_now(), commit=_git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None, totals=totals)
-    _save(state, ledger)
-    return ledger
+    return totals
 
 
 def count(ledger):
