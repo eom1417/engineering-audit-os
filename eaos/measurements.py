@@ -39,76 +39,116 @@ def _engines_observed(out):
     return set((data.get('summary') or {}).get('engines_observed') or [])
 
 
-def build(out):
-    out = Path(out)
-    facts = _facts(out)
-    observed = _engines_observed(out)
-    by_kind = {}
-    for fact in facts: by_kind.setdefault(fact['kind'], []).append(fact)
-    path_of = lambda fact: (fact.get('location') or {}).get('path')
+def _path_of(fact):
+    return (fact.get('location') or {}).get('path')
 
-    sources = [f for f in by_kind.get('source_file', []) if (f.get('value') or {}).get('parse_status') == 'OBSERVED']
-    skipped = [{'path': path_of(f), 'reason': f"not parsed: {(f.get('value') or {}).get('parse_status')}"}
-               for f in by_kind.get('source_file', []) if (f.get('value') or {}).get('parse_status') != 'OBSERVED']
-    scc = {path_of(f): f['value'] for f in by_kind.get('symbol_metric_external', []) if f['value'].get('engine') == 'scc'}
-    codegraph = {}
-    for fact in by_kind.get('symbol_metric_external', []):
-        if fact['value'].get('engine') == 'codegraph' and isinstance(fact['value'].get('complexity'), (int, float)):
-            codegraph[path_of(fact)] = max(codegraph.get(path_of(fact), 0), fact['value']['complexity'])
-    own_file, own_symbols = {}, {}
-    for fact in by_kind.get('metric', []):
-        value = fact['value']
-        if value.get('scope') == 'file': own_file[path_of(fact)] = value
-        elif value.get('scope') in FUNCTION_SCOPES:
-            own_symbols[path_of(fact)] = max(own_symbols.get(path_of(fact), 0), (value.get('branches') or 0) + 1)
-    duplicated = {}
-    jscpd_seen = 'jscpd' in observed
-    for fact in by_kind.get('engine_finding', []):
-        value = fact['value']
-        if value.get('engine') != 'jscpd': continue
-        lines = next((m['value'] for m in value.get('measurements') or [] if m['name'] == 'duplicated_lines'), None) or 0
-        for site in value.get('sites') or []:
-            duplicated[site['path']] = duplicated.get(site['path'], 0) + lines
-    churn = {path_of(f): f['value'] for f in by_kind.get('history_churn', [])}
-    ownership = {path_of(f): f['value'] for f in by_kind.get('history_ownership', [])}
-    graph = {path_of(f): f['value'] for f in by_kind.get('graph_node', [])}
-    has_history = bool(churn)
-    coverage = {}
+
+def _coverage(out):
+    """{path: covered fraction 0..1} from verification.json, which holds percents."""
     verification = out / 'verification.json'
-    if verification.is_file():
-        # eaos.verify writes coverage as {path: {'percent': 0..100, ...}}; the table holds a 0..1 fraction.
-        try: coverage = {path: round(value['percent'] / 100, 4)
-                         for path, value in (json.loads(verification.read_text(encoding='utf-8')).get('coverage') or {}).items()}
-        except (ValueError, KeyError, TypeError): coverage = {}
+    if not verification.is_file(): return {}
+    try: return {path: round(value['percent'] / 100, 4)
+                 for path, value in (json.loads(verification.read_text(encoding='utf-8')).get('coverage') or {}).items()}
+    except (ValueError, KeyError, TypeError): return {}
 
-    rows = []
-    for fact in sorted(sources, key=path_of):
-        path, missing, used = path_of(fact), [], {}
-        row = {'path': path, 'language': fact['value'].get('language') or 'unknown'}
-        if path in scc: row['loc'], used['loc'] = scc[path].get('code'), 'scc'
-        elif path in own_file: row['loc'], used['loc'] = own_file[path].get('code_lines'), 'eaos.metrics'
-        else: row['loc'] = None; missing.append({'field': 'loc', 'reason': 'neither scc nor EAOS measured this file'})
-        if path in codegraph: row['complexity_max'], used['complexity_max'] = codegraph[path], 'codegraph'
-        elif path in own_symbols: row['complexity_max'], used['complexity_max'] = own_symbols[path], 'eaos.metrics (branches + 1)'
-        elif path in own_file:
-            row['complexity_max'], used['complexity_max'] = (own_file[path].get('branches') or 0) + 1, 'eaos.metrics (file body, no function)'
-        else: row['complexity_max'] = None; missing.append({'field': 'complexity_max', 'reason': 'no symbol or file metric for this file'})
-        if jscpd_seen: row['duplicated_lines'], used['duplicated_lines'] = duplicated.get(path, 0), 'jscpd'
-        else: row['duplicated_lines'] = None; missing.append({'field': 'duplicated_lines', 'reason': 'jscpd did not run in this audit'})
-        if path in churn:
-            row['churn'], row['last_changed'] = churn[path].get('commits'), churn[path].get('last_change')
-            row['authors'] = (ownership.get(path) or {}).get('authors')
+
+class _Indexes:
+    """Every fact a row is read from, indexed by file once; each method fills its fields of one row, with the source it
+    used or the reason it is missing."""
+
+    def __init__(self, out, by_kind):
+        metric_external = by_kind.get('symbol_metric_external', [])
+        self.scc = {_path_of(f): f['value'] for f in metric_external if f['value'].get('engine') == 'scc'}
+        self.codegraph = {}
+        for fact in metric_external:
+            if fact['value'].get('engine') == 'codegraph' and isinstance(fact['value'].get('complexity'), (int, float)):
+                self.codegraph[_path_of(fact)] = max(self.codegraph.get(_path_of(fact), 0), fact['value']['complexity'])
+        self.own_file, self.own_symbols = {}, {}
+        for fact in by_kind.get('metric', []):
+            value = fact['value']
+            if value.get('scope') == 'file': self.own_file[_path_of(fact)] = value
+            elif value.get('scope') in FUNCTION_SCOPES:
+                self.own_symbols[_path_of(fact)] = max(self.own_symbols.get(_path_of(fact), 0), (value.get('branches') or 0) + 1)
+        self.jscpd_seen = 'jscpd' in _engines_observed(out)
+        self.duplicated = self._duplicated(by_kind.get('engine_finding', []))
+        self.churn = {_path_of(f): f['value'] for f in by_kind.get('history_churn', [])}
+        self.ownership = {_path_of(f): f['value'] for f in by_kind.get('history_ownership', [])}
+        self.graph = {_path_of(f): f['value'] for f in by_kind.get('graph_node', [])}
+        self.coverage = _coverage(out)
+
+    @staticmethod
+    def _duplicated(findings):
+        duplicated = {}
+        for fact in findings:
+            value = fact['value']
+            if value.get('engine') != 'jscpd': continue
+            lines = next((m['value'] for m in value.get('measurements') or [] if m['name'] == 'duplicated_lines'), None) or 0
+            for site in value.get('sites') or []:
+                duplicated[site['path']] = duplicated.get(site['path'], 0) + lines
+        return duplicated
+
+    def loc(self, path, row, used, missing):
+        if path in self.scc: row['loc'], used['loc'] = self.scc[path].get('code'), 'scc'
+        elif path in self.own_file: row['loc'], used['loc'] = self.own_file[path].get('code_lines'), 'eaos.metrics'
+        else:
+            row['loc'] = None
+            missing.append({'field': 'loc', 'reason': 'neither scc nor EAOS measured this file'})
+
+    def complexity(self, path, row, used, missing):
+        if path in self.codegraph: row['complexity_max'], used['complexity_max'] = self.codegraph[path], 'codegraph'
+        elif path in self.own_symbols: row['complexity_max'], used['complexity_max'] = self.own_symbols[path], 'eaos.metrics (branches + 1)'
+        elif path in self.own_file:
+            row['complexity_max'], used['complexity_max'] = (self.own_file[path].get('branches') or 0) + 1, 'eaos.metrics (file body, no function)'
+        else:
+            row['complexity_max'] = None
+            missing.append({'field': 'complexity_max', 'reason': 'no symbol or file metric for this file'})
+
+    def duplication(self, path, row, used, missing):
+        if self.jscpd_seen: row['duplicated_lines'], used['duplicated_lines'] = self.duplicated.get(path, 0), 'jscpd'
+        else:
+            row['duplicated_lines'] = None
+            missing.append({'field': 'duplicated_lines', 'reason': 'jscpd did not run in this audit'})
+
+    def history(self, path, row, used, missing):
+        if path in self.churn:
+            row['churn'], row['last_changed'] = self.churn[path].get('commits'), self.churn[path].get('last_change')
+            row['authors'] = (self.ownership.get(path) or {}).get('authors')
             used['churn'] = 'git history'
         else:
             row['churn'] = row['authors'] = row['last_changed'] = None
-            missing.append({'field': 'churn', 'reason': 'not in the recorded git history' if has_history else 'the project has no git history'})
-        if path in graph: row['fan_in'], row['fan_out'], used['fan_in'] = graph[path].get('fan_in'), graph[path].get('fan_out'), 'eaos.graph'
-        else: row['fan_in'] = row['fan_out'] = None; missing.append({'field': 'fan_in', 'reason': 'not in the resolved import graph'})
-        row['coverage'] = coverage.get(path)
+            missing.append({'field': 'churn', 'reason': 'not in the recorded git history' if self.churn else 'the project has no git history'})
+
+    def dependency(self, path, row, used, missing):
+        if path in self.graph:
+            row['fan_in'], row['fan_out'], used['fan_in'] = self.graph[path].get('fan_in'), self.graph[path].get('fan_out'), 'eaos.graph'
+        else:
+            row['fan_in'] = row['fan_out'] = None
+            missing.append({'field': 'fan_in', 'reason': 'not in the resolved import graph'})
+
+    def tested(self, path, row, used, missing):
+        row['coverage'] = self.coverage.get(path)
         if row['coverage'] is None:
-            missing.append({'field': 'coverage', 'reason': 'no test command was run' if not coverage else 'the tests did not load this file'})
+            missing.append({'field': 'coverage', 'reason': 'no test command was run' if not self.coverage else 'the tests did not load this file'})
+
+    def row(self, fact):
+        path, missing, used = _path_of(fact), [], {}
+        row = {'path': path, 'language': fact['value'].get('language') or 'unknown'}
+        for fill in (self.loc, self.complexity, self.duplication, self.history, self.dependency, self.tested):
+            fill(path, row, used, missing)
         row['missing'], row['sources'] = missing, used
-        rows.append(row)
+        return row
+
+
+def build(out):
+    out = Path(out)
+    by_kind = {}
+    for fact in _facts(out): by_kind.setdefault(fact['kind'], []).append(fact)
+    files = by_kind.get('source_file', [])
+    sources = [f for f in files if (f.get('value') or {}).get('parse_status') == 'OBSERVED']
+    skipped = [{'path': _path_of(f), 'reason': f"not parsed: {(f.get('value') or {}).get('parse_status')}"}
+               for f in files if (f.get('value') or {}).get('parse_status') != 'OBSERVED']
+    indexes = _Indexes(out, by_kind)
+    rows = [indexes.row(fact) for fact in sorted(sources, key=_path_of)]
     return {'schema_version': 1, 'files': rows, 'not_measured': skipped,
             'complete': sum(all(r[f] is not None for f in ('loc', 'complexity_max', 'churn', 'fan_in')) for r in rows)}
 
