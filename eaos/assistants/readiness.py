@@ -37,7 +37,6 @@ QUICK = 15              # seconds for --version and the sign-in status
 KEEP_READY = 600        # seconds a ready answer is reused
 KEEP_NOT_READY = 60     # seconds a not-ready answer is reused (the person may be fixing it)
 QUESTION = 'Reply with the single word: ready'
-SIGN_IN = ('codex login', 'claude', '/login')
 
 # What a failed call says, in the assistants' own words, and the problem it means (first match wins).
 PATTERNS = (
