@@ -39,28 +39,34 @@ def _externals(report):
 def workspace(project, stack, components, edges, externals):
     """(dsl text, mermaid text) for one model; components [(name, description)], edges [(from, to, label)]."""
     ids = {name: f'c{index}' for index, (name, _) in enumerate(components, 1)}
+    lines = _model_lines(project, stack, components, edges, externals, ids)
+    lines += ['  }', '  views {', '    systemContext system {', '      include *', '      autolayout', '    }',
+              '    container system {', '      include *', '      autolayout', '    }',
+              '    component app {', '      include *', '      autolayout', '    }', '  }', '}', '']
+    return '\n'.join(lines), _plain_mermaid(components, edges, ids)
+
+
+def _model_lines(project, stack, components, edges, externals, ids):
+    """The DSL's model: the user, the system with its components, the outside systems and every link."""
     ext_ids = {name: f'ext{index}' for index, (name, _) in enumerate(externals, 1)}
     lines = [f'workspace {quote(project)} {{', '  model {', '    user = person "User"',
              f'    system = softwareSystem {quote(project)} {{',
              f'      app = container "Application" {quote(stack)} {{']
-    for name, description in components:
-        lines.append(f'        {ids[name]} = component {quote(name)} {quote(description[:200])}')
+    lines += [f'        {ids[name]} = component {quote(name)} {quote(description[:200])}' for name, description in components]
     lines += ['      }', '    }']
-    for name, label in externals:
-        lines.append(f'    {ext_ids[name]} = softwareSystem {quote(label)}')
+    lines += [f'    {ext_ids[name]} = softwareSystem {quote(label)}' for name, label in externals]
     lines.append('    user -> app "uses"')
-    for name, _ in externals:
-        lines.append(f'    app -> {ext_ids[name]} "calls"')
-    for source, sink, label in edges:
-        if source in ids and sink in ids and source != sink:
-            lines.append(f'    {ids[source]} -> {ids[sink]} {quote(label)}')
-    lines += ['  }', '  views {', '    systemContext system {', '      include *', '      autolayout', '    }',
-              '    container system {', '      include *', '      autolayout', '    }',
-              '    component app {', '      include *', '      autolayout', '    }', '  }', '}', '']
+    lines += [f'    app -> {ext_ids[name]} "calls"' for name, _ in externals]
+    lines += [f'    {ids[source]} -> {ids[sink]} {quote(label)}' for source, sink, label in edges
+              if source in ids and sink in ids and source != sink]
+    return lines
+
+
+def _plain_mermaid(components, edges, ids):
     safe = lambda name: re.sub(r'[^A-Za-z0-9_]', '_', ids[name])
     mermaid = ['flowchart LR'] + [f'  {safe(name)}["{name.replace(chr(34), chr(39))}"]' for name, _ in components]
     mermaid += [f'  {safe(a)} --> {safe(b)}' for a, b, _ in edges if a in ids and b in ids and a != b]
-    return '\n'.join(lines), '\n'.join(mermaid) + '\n'
+    return '\n'.join(mermaid) + '\n'
 
 
 MAX_EDGES = 150
@@ -71,25 +77,34 @@ def readable(names, edges, group_of, cycles=(), limit=MAX_EDGES, title=''):
     labelled with its import count, strongest first and capped at `limit` (a comment says how many are left out),
     and the links inside an import loop drawn red. edges: [(from, to, count or None)]."""
     ids = {name: f'c{index}' for index, name in enumerate(names, 1)}
-    q = lambda text: str(text).replace('"', "'")
-    lines = ['flowchart LR'] + ([f'  %% {title}'] if title else [])
-    groups = {}
-    for name in names: groups.setdefault(group_of.get(name) or 'other', []).append(name)
-    for number, (group, members) in enumerate(sorted(groups.items()), 1):
-        lines.append(f'  subgraph g{number}["{q(group)}"]')
-        lines += [f'    {ids[n]}["{q(n)}"]' for n in members]
-        lines.append('  end')
+    lines = ['flowchart LR'] + ([f'  %% {title}'] if title else []) + _subgraphs(names, group_of, ids)
     kept = sorted(((a, b, n) for a, b, n in edges if a in ids and b in ids and a != b), key=lambda e: (-(e[2] or 0), e[0], e[1]))
     if len(kept) > limit:
         lines.append(f'  %% {len(kept) - limit} of the {len(kept)} links are left out: only the {limit} strongest are drawn')
-    red = []
-    for index, (a, b, n) in enumerate(kept[:limit]):
-        lines.append(f'  {ids[a]} -->|{n} imports| {ids[b]}' if n else f'  {ids[a]} --> {ids[b]}')
-        if (a, b) in cycles: red.append(str(index))
+    return '\n'.join(lines + _links(kept[:limit], ids, cycles)) + '\n'
+
+
+def _quoted(text):
+    return str(text).replace('"', "'")
+
+
+def _subgraphs(names, group_of, ids):
+    """One subgraph per layer (or top folder), its parts inside."""
+    groups, lines = {}, []
+    for name in names: groups.setdefault(group_of.get(name) or 'other', []).append(name)
+    for number, (group, members) in enumerate(sorted(groups.items()), 1):
+        lines += [f'  subgraph g{number}["{_quoted(group)}"]'] + [f'    {ids[n]}["{_quoted(n)}"]' for n in members] + ['  end']
+    return lines
+
+
+def _links(kept, ids, cycles):
+    """The links, labelled with their import count, the ones inside an import loop styled red."""
+    lines = [f'  {ids[a]} -->|{n} imports| {ids[b]}' if n else f'  {ids[a]} --> {ids[b]}' for a, b, n in kept]
+    red = [str(index) for index, (a, b, _) in enumerate(kept) if (a, b) in cycles]
     if red:
         lines.append('  %% red: the link is inside an import loop (each end reaches the other)')
         lines.append(f'  linkStyle {",".join(red)} stroke:#d03b3b,stroke-width:2px')
-    return '\n'.join(lines) + '\n'
+    return lines
 
 
 def _current_diagram(report, target, current):
@@ -101,15 +116,23 @@ def _current_diagram(report, target, current):
     group_of = {c['name']: layer.get(c.get('target_component')) or '/'.join(c['name'].split('/')[:2]) for c in current}
     try: cmap = arch_map.component_map(report, target)
     except Exception: cmap = None
-    if cmap:
-        name_of = {n['id']: n['name'] for n in cmap['nodes']}
-        edges = [(name_of[e['from']], name_of[e['to']], e['n']) for e in cmap['edges']]
-        cycles = {(name_of[e['from']], name_of[e['to']]) for e in cmap['edges'] if e['cycle']}
-    else:
-        by_package = {('' if c.get('origin') == '.' else c.get('origin')): c['name'] for c in current}
-        edges = [(c['name'], by_package[d], None) for c in current for d in c.get('depends_on') or [] if d in by_package]
-        cycles = set()
+    edges, cycles = _current_links(cmap, current)
     return readable(names, edges, group_of, cycles, title="today's parts; a label is the number of imports along the link")
+
+
+def _package_edges(current, label):
+    """The links between today's components by the packages they depend on: depends_on names packages, and a
+    component's package is its origin ('.' is the root package, '')."""
+    by_package = {('' if c.get('origin') == '.' else c.get('origin')): c['name'] for c in current}
+    return [(c['name'], by_package[d], label) for c in current for d in c.get('depends_on') or [] if d in by_package]
+
+
+def _current_links(cmap, current):
+    """(edges, cycles) of today's parts: the import counts and loops of the component map, else the package links."""
+    if not cmap: return _package_edges(current, None), set()
+    name_of = {n['id']: n['name'] for n in cmap['nodes']}
+    return ([(name_of[e['from']], name_of[e['to']], e['n']) for e in cmap['edges']],
+            {(name_of[e['from']], name_of[e['to']]) for e in cmap['edges'] if e['cycle']})
 
 
 def _target_diagram(target):
@@ -132,30 +155,42 @@ def write(report):
     project = ((_load(report / 'dossier.json', {}) or {}).get('provenance') or {}).get('target') or report.name
     project = Path(project).name
     externals = _externals(report)
+    written = []
+    for kind, model in _models(report, target).items():
+        _write_model(report / 'architecture' / kind, (project, _stack(target), externals), model)
+        written.append(f'architecture/{kind}/workspace.dsl')
+    _write_system_map(report)
+    return written
+
+
+def _models(report, target):
+    """{current, target}: each (components, edges, the readable diagram's maker); the target only when it has parts."""
     current = target.get('current_components') or []
-    # depends_on names packages; a component's package is its origin ('.' is the root package, '').
-    by_package = {('' if c.get('origin') == '.' else c.get('origin')): c['name'] for c in current}
-    current_edges = [(c['name'], by_package[d], 'depends on') for c in current for d in c.get('depends_on') or [] if d in by_package]
-    models = {'current': ([(c['name'], c.get('reason') or c.get('relation') or '') for c in current], current_edges,
-                          lambda: _current_diagram(report, target, current))}
+    models = {'current': ([(c['name'], c.get('reason') or c.get('relation') or '') for c in current],
+                          _package_edges(current, 'depends on'), lambda: _current_diagram(report, target, current))}
     if target.get('target_components'):
         models['target'] = ([(c['name'], c.get('responsibility') or '') for c in target['target_components']],
                             [(e['from'], e['to'], f"{e['imports']} import(s)") for e in target.get('target_edges') or []],
                             lambda: _target_diagram(target))
-    written = []
-    for kind, (components, edges, diagram) in models.items():
-        folder = report / 'architecture' / kind
-        folder.mkdir(parents=True, exist_ok=True)
-        dsl, mermaid = workspace(project, _stack(target), components, edges, externals)
-        try: mermaid = diagram()
-        except Exception: pass                  # the plain flowchart stays: a diagram is never a reason to fail
-        (folder / 'workspace.dsl').write_text(dsl, encoding='utf-8')
-        (folder / 'diagram.mmd').write_text(mermaid, encoding='utf-8')
-        written.append(f'architecture/{kind}/workspace.dsl')
+    return models
+
+
+def _write_model(folder, system, model):
+    """workspace.dsl and diagram.mmd of one model; `system` is (project, stack, externals)."""
+    components, edges, diagram = model
+    folder.mkdir(parents=True, exist_ok=True)
+    dsl, mermaid = workspace(*system[:2], components, edges, system[2])
+    try: mermaid = diagram()
+    except Exception: pass                  # the plain flowchart stays: a diagram is never a reason to fail
+    (folder / 'workspace.dsl').write_text(dsl, encoding='utf-8')
+    (folder / 'diagram.mmd').write_text(mermaid, encoding='utf-8')
+
+
+def _write_system_map(report):
+    """architecture/system.mmd: pages, APIs, server handlers and data; never a reason to fail."""
     try:
         from . import system_map
         text = system_map.mermaid(system_map.build(report))
         if text: (report / 'architecture' / 'system.mmd').write_text(text, encoding='utf-8')
     except Exception:
         pass
-    return written
