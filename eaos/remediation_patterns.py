@@ -18,29 +18,41 @@ _ENGINE_CLUSTER_KINDS = {
 }
 
 
+# The pattern of a claim proven by one of these probe queries.
+QUERY_PATTERNS = {
+    'cycle_present': 'import_cycle',
+    'flow_has_unresolved_steps': 'trace_gap',
+    'no_code_dependency': 'hidden_coupling',
+    'metric_threshold': 'hotspot',
+    'mutable_global_present': 'mutable_state',
+    'external_write_present': 'external_write',
+    'policy_violation_present': 'policy_violation',
+    'duplicate_cluster_present': 'canonicalize',
+    'sequence_cluster_present': 'canonicalize',
+    'redundancy_present': 'redundant_work',
+    'load_blocker_present': 'load_blocker',
+    'access_gap_present': 'access_gap',
+    'broken_code_present': 'broken_code',
+    'vulnerable_dependency_present': 'upgrade_dependency',
+}
+
+
+def _by_query(claim, specification):
+    """The pattern the probe's query names, or None when the query names none."""
+    query = specification.get('query')
+    if query == 'dead_code_present':
+        return 'remove_dead' if (claim.get('render') or {}).get('key') == 'dead_code' else 'dead_code'
+    if query == 'engine_cluster_present':
+        return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
+    return QUERY_PATTERNS.get(query)
+
+
 def classify(claim):
     """Map a claim to a remediation pattern using how it was proven, not how it was worded."""
     specification = (claim.get('probe_spec') or {}).get('specification') or {}
     probe_type = (claim.get('probe_spec') or {}).get('probe_type')
-    query = specification.get('query')
-    if query == 'cycle_present': return 'import_cycle'
-    if query == 'flow_has_unresolved_steps': return 'trace_gap'
-    if query == 'no_code_dependency': return 'hidden_coupling'
-    if query == 'metric_threshold': return 'hotspot'
-    if query == 'mutable_global_present': return 'mutable_state'
-    if query == 'external_write_present': return 'external_write'
-    if query == 'policy_violation_present': return 'policy_violation'
-    if query == 'duplicate_cluster_present': return 'canonicalize'
-    if query == 'sequence_cluster_present': return 'canonicalize'
-    if query == 'redundancy_present': return 'redundant_work'
-    if query == 'load_blocker_present': return 'load_blocker'
-    if query == 'access_gap_present': return 'access_gap'
-    if query == 'dead_code_present':
-        return 'remove_dead' if (claim.get('render') or {}).get('key') == 'dead_code' else 'dead_code'
-    if query == 'broken_code_present': return 'broken_code'
-    if query == 'vulnerable_dependency_present': return 'upgrade_dependency'
-    if query == 'engine_cluster_present':
-        return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
+    found = _by_query(claim, specification)
+    if found: return found
     if probe_type == 'absence_search': return 'duplicated_rule'
     if claim.get('claim_type') == 'risk' and 'never executed' in claim['statement']: return 'untested_path'
     if claim.get('claim_type') == 'capability_gap': return 'trace_gap'
