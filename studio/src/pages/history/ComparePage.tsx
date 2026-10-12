@@ -38,9 +38,11 @@ function CardRow({ card }: { card: ChangedCard }) {
   const w = useHistoryWords()
   const { date } = usePrefs()
   const state = `state_${card.state}` as HistoryWord
+  // the file a card is about, when its title ends with one: it tells rows apart that open with the same sentence
+  const file = /\s([\w.\-]+(?:\/[\w.\-]+)+)$/.exec(card.title ?? '')?.[1]
   const body = (
     <span className={css.eventMain}>
-      <span className={css.eventTitle}><Txt>{card.title}</Txt></span>
+      <span className={css.eventTitle}>{file && <><strong><Id value={file} keep={3} /></strong> · </>}<Txt>{card.title}</Txt></span>
       <span className={css.eventSub}>{card.id && <><Id value={card.id} /> · </>}{card.at ? date(card.at) : ''}</span>
     </span>
   )
