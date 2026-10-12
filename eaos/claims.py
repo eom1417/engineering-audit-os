@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 from .compose.labels import IMPACTS
+from .fact_claims import BUILDERS, NAMED_IN_A_STATEMENT, engine_measurement, naming
 from .vocabulary import schema_errors
 from .workspace import DATA, read, write
 
@@ -91,29 +92,40 @@ def errors(claims, evidence_ids=(), fact_ids=()):
     spec = schema()
     found = []
     seen = set()
-    known_evidence, known_facts = set(evidence_ids), set(fact_ids)
+    known = (set(evidence_ids), set(fact_ids))
     for claim in claims:
         identity = claim.get('id', '?')
         found += [identity + ': ' + message for message in schema_errors(claim, spec)]
         if identity in seen: found.append(identity + ': duplicate claim id')
         seen.add(identity)
-        if not claim.get('falsifier', '').strip():
-            found.append(identity + ': a claim must state what would disprove it')
-        if claim.get('confidence') == 'CONFIRMED' and not (set(claim.get('method', [])) & PROVING_METHODS):
-            found.append(identity + ': CONFIRMED requires a probe, a test or a deterministic fact, not model inference')
-        if claim.get('confidence') != 'REFUTED' and not claim.get('evidence_ids') and not claim.get('fact_ids'):
-            found.append(identity + ': no evidence and no fact backs this claim')
-        if known_evidence:
-            for reference in claim.get('evidence_ids', []):
-                if reference not in known_evidence: found.append(identity + ': unknown evidence ' + reference)
-        if known_facts:
-            for reference in claim.get('fact_ids', []):
-                if reference not in known_facts: found.append(identity + ': unknown fact ' + reference)
-        if claim.get('claim_type') == 'risk' and claim.get('disposition', {}).get('kind') == 'accepted':
-            disposition = claim['disposition']
-            if not disposition.get('owner') or not disposition.get('reason'):
-                found.append(identity + ': an accepted risk needs an owner and a reason')
+        found += [identity + ': ' + message for message in _claim_errors(claim, known)]
     return sorted(set(found))
+
+
+def _unknown(references, known, what):
+    """Each reference not among `known`; none when nothing is known to check against."""
+    return [f'unknown {what} {reference}' for reference in references if reference not in known] if known else []
+
+
+def _unowned_acceptance(claim):
+    if claim.get('claim_type') != 'risk' or claim.get('disposition', {}).get('kind') != 'accepted': return False
+    return not claim['disposition'].get('owner') or not claim['disposition'].get('reason')
+
+
+def _claim_errors(claim, known):
+    """The epistemic rules one claim breaks; `known`: (evidence ids, fact ids) to resolve against."""
+    known_evidence, known_facts = known
+    found = []
+    if not claim.get('falsifier', '').strip():
+        found.append('a claim must state what would disprove it')
+    if claim.get('confidence') == 'CONFIRMED' and not (set(claim.get('method', [])) & PROVING_METHODS):
+        found.append('CONFIRMED requires a probe, a test or a deterministic fact, not model inference')
+    if claim.get('confidence') != 'REFUTED' and not claim.get('evidence_ids') and not claim.get('fact_ids'):
+        found.append('no evidence and no fact backs this claim')
+    found += _unknown(claim.get('evidence_ids', []), known_evidence, 'evidence')
+    found += _unknown(claim.get('fact_ids', []), known_facts, 'fact')
+    if _unowned_acceptance(claim): found.append('an accepted risk needs an owner and a reason')
+    return found
 
 
 def load(path): return read(path)
@@ -170,370 +182,21 @@ def from_legacy(findings, model, flows, coverage, revision=None):
     return claims
 
 
-# A claim statement is one decidable sentence, and the schema caps it at 600 characters. An
-# eighty-module cycle listed every member and the whole dossier failed to assemble; the members
-# live in the fact, so the sentence names enough of them to recognise and says how many more.
-NAMED_IN_A_STATEMENT = 6
-
-
-def naming(members, limit=NAMED_IN_A_STATEMENT):
-    members = list(members)
-    if len(members) <= limit:
-        return ', '.join(members)
-    return ', '.join(members[:limit]) + f' and {len(members) - limit} more'
-
-
 def from_facts(fact_sets, target=None):
-    """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation.
+    """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation; one builder per
+    kind of fact (eaos/fact_claims.py BUILDERS), numbered in that order.
 
     ``target`` is the audited root, used to bind a runnable acceptance check to
     a declared-policy violation. It is optional so test fixtures can build a
     claim ledger without a real directory.
     """
-    claims, index = [], 0
-    graph = fact_sets.get('graph', {})
-    for fact in [f for f in graph.get('facts', []) if f['kind'] == 'graph_cycle']:
-        index += 1
-        claims.append(make(index, 'Import cycle between: ' + naming(fact['value']['members']), 'structure',
-                           'CONFIRMED', ['static_fact'], [], 'A resolved import graph in which these files no longer form a cycle.',
-                           fact_ids=[fact['id']],
-                           probe_spec={'probe_type': 'graph_query', 'specification': {'query': 'cycle_present', 'members': fact['value']['members'],
-                                                                                      'expected': 'The same files still form a cycle in the resolved import graph.'}},
-                           impact={'scenario': 'Changing any member can require changing the others together; the group cannot be tested or replaced independently.'}))
-    history = fact_sets.get('history', {})
-    shallow = (history.get('summary', {}).get('commits_analysed') or 0) < 10
-    linked = {fact['location']['path']: set(fact['value']['depends_on']) for fact in graph.get('facts', []) if fact['kind'] == 'graph_node'}
-    from .facts.source import language_of
-    pairs = [] if shallow else sorted([f for f in history.get('facts', []) if f['kind'] == 'history_cochange'],
-                                       key=lambda f: (-f['value']['support'] * f['value']['confidence'], f['location']['path']))
-    for fact in pairs[:15]:
-        left, right = fact['location']['path'], fact['location']['paired_path']
-        if right in linked.get(left, set()) or left in linked.get(right, set()): continue
-        if fact['value']['confidence'] < 0.6: continue
-        # Structural coupling needs code on both sides; a document moving with code is editorial.
-        if language_of(left) is None or language_of(right) is None: continue
-        index += 1
-        claims.append(make(index, f'{left} and {right} change together in {fact["value"]["support"]} commits with no visible code dependency',
-                           'structure', 'CONFIRMED', ['history_fact'], [],
-                           'A longer history window, or a rename, showing the pairing is coincidental rather than a shared reason to change.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'cochange', 'params': {'left': left, 'right': right,
-                                                                 'support': fact['value']['support']}},
-                           probe_spec={'probe_type': 'graph_query', 'specification': {'query': 'no_code_dependency', 'left': left, 'right': right,
-                                                                                      'expected': 'Neither file imports the other in the resolved graph.'}},
-                           impact={'scenario': 'A change to one is likely to need a matching change to the other, with nothing in the code to signal it.'}))
-    domain = fact_sets.get('domain', {})
-    for fact in [f for f in domain.get('facts', []) if f['kind'] == 'domain_constant' and f['value']['duplicated']]:
-        index += 1
-        places = naming(f"{d['path']}:{d['line']}" for d in fact['value']['definitions'])
-        differs = fact['value']['distinct_values'] > 1
-        claims.append(make(index, f"{fact['value']['name']} is defined in {len(fact['value']['definitions'])} places ({places})"
-                           + (' with different values' if differs else ' with the same value'),
-                           'business_rule', 'CONFIRMED', ['static_fact'], [],
-                           'A single definition with the other sites importing it, or evidence that the repeated name encodes unrelated rules.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'duplicated_rule', 'params': {'name': fact['value']['name'],
-                                                                        'count': len(fact['value']['definitions']),
-                                                                        'places': places,
-                                                                        'differs': 'yes' if differs else 'no'}},
-                           probe_spec={'probe_type': 'absence_search', 'specification': {'patterns': [fact['value']['name']],
-                                                                                         'search_scope': ['source', 'test'],
-                                                                                         'expected': 'The name is defined in more than one file with no import linking them.'}},
-                           impact={'scenario': 'Changing the rule in one place and not the others makes two paths disagree'
-                                               + (' — and they already hold different values.' if differs else '.')}))
-    # Maintenance hotspot: complexity that sits where change and dependency already concentrate.
-    BRANCH_THRESHOLD, ATTENTION_TOP, MAX_HOTSPOTS = 60, 10, 3
-    hotspots = 0
-    # Rank alone is unstable: adding modules pushed the most complex function in the project out of
-    # the top ten and silently dropped the finding. The worst offenders stay visible on their own merit.
-    # A hotspot is one function: a class's metric sums the branches of all its methods, which no single change carries.
-    ranked_symbols = sorted((fact for fact in fact_sets.get('metrics', {}).get('facts', [])
-                             if fact['kind'] == 'metric' and fact['value'].get('scope') == 'function'),
-                            key=lambda fact: -(fact['value'].get('branches') or 0))
-    worst = {fact['id'] for fact in ranked_symbols[:MAX_HOTSPOTS]}
-    graph_nodes = {fact['location']['path']: fact['value'] for fact in graph.get('facts', []) if fact['kind'] == 'graph_node'}
-    for fact in sorted(fact_sets.get('metrics', {}).get('facts', []),
-                       key=lambda f: -(f['value'].get('branches') or 0)):
-        if fact['kind'] != 'metric' or fact['value'].get('scope') != 'function': continue
-        path, symbol = fact['location']['path'], fact['location'].get('symbol')
-        node = graph_nodes.get(path)
-        if not node: continue
-        central = (node.get('attention_rank') or 999) <= ATTENTION_TOP
-        if not central and fact['id'] not in worst: continue
-        if (fact['value'].get('branches') or 0) < BRANCH_THRESHOLD: continue
-        if hotspots >= MAX_HOTSPOTS: break
-        hotspots += 1
-        index += 1
-        claims.append(make(index, f"{symbol} in {path} carries {fact['value']['branches']} branches over "
-                                  f"{fact['value']['lines']} lines, in a file ranked {node['attention_rank']} for attention",
-                           'structure', 'CONFIRMED', ['static_fact'], [],
-                           'A measurement showing the branching is below the declared threshold, or evidence that the '
-                           'complexity is inherent to the problem and isolated behind a tested contract.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'hotspot', 'params': {'symbol': symbol, 'path': path,
-                                                                'branches': fact['value']['branches'],
-                                                                'lines': fact['value']['lines'],
-                                                                'rank': node['attention_rank']}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'metric_threshold', 'path': path, 'symbol': symbol,
-                                                         'max_branches': BRANCH_THRESHOLD,
-                                                         'expected': 'The symbol still exceeds the declared branch threshold.'}},
-                           impact={'scenario': 'Every change to this path passes through one dense function; '
-                                               'it is the most concentrated maintenance risk in the module.'
-                                               + ('' if central else ' It is among the most branching functions in the project.')}))
-    domain_facts = fact_sets.get('domain', {}).get('facts', [])
-    for fact in [f for f in domain_facts if f['kind'] == 'mutable_global' and f['value'].get('mutation_scope') == 'function']:
-        index += 1
-        # State private to its module has an owner: its own functions. Whether it may stay per-process (a
-        # shutdown flag) or must move out (an in-memory rate limit behind two instances) is a decision, not a
-        # mechanical repair; exposed state other modules change directly is the defect.
-        private = bool(fact['value'].get('encapsulated'))
-        claims.append(make(index, f"{fact['value']['name']} in {fact['location']['path']} is module-level state changed "
-                                  f"at runtime ({fact['value']['mutated_by']}, line {fact['value']['mutated_at_line']})"
-                                  + ('; private to its module, changed only through its own functions' if private else ''),
-                           'risk', 'LIKELY' if private else 'CONFIRMED', ['static_fact'], [],
-                           'The value becoming immutable, or the mutation moving behind an owner that serialises access.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'mutable_global', 'params': {'name': fact['value']['name'],
-                                                                       'path': fact['location']['path'],
-                                                                       'how': fact['value']['mutated_by'],
-                                                                       'line': fact['value']['mutated_at_line'],
-                                                                       'encapsulated': private}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'mutable_global_present', 'path': fact['location']['path'],
-                                                         'name': fact['value']['name'],
-                                                         'expected': 'The module-level value is still mutated at runtime.'}},
-                           impact={'scenario': 'Two callers can observe different values depending on order, and tests '
-                                               'can pass in isolation while failing together.'}))
-    # A Supabase table is served to the browser through its API; without row-level security, or with a
-    # write policy that checks nothing, whoever holds the public key reads or writes every row.
-    exposed = [f for f in domain_facts if f['kind'] == 'data_table' and '/supabase/' in '/' + f['location']['path']
-               and f['value'].get('rls_enabled') is False and not f['value'].get('dropped')]
-    open_writes = [f for f in domain_facts if f['kind'] == 'db_policy' and f['value'].get('open')
-                   and f['value'].get('command') in {'ALL', 'INSERT', 'UPDATE', 'DELETE'}]
-    for fact, gap in [(f, 'no_rls') for f in exposed] + [(f, 'open_write') for f in open_writes]:
-        index += 1
-        table = fact['value']['name'] if gap == 'no_rls' else fact['value']['table']
-        policy = fact['value'].get('name') if gap == 'open_write' else None
-        what = ('has row-level security disabled' if gap == 'no_rls'
-                else f"has a {fact['value']['command']} policy \"{policy}\" that checks nothing (true)")
-        claims.append(make(index, f"Table {table} ({fact['location']['path']}:{fact['location']['start_line']}) {what}",
-                           'risk', 'CONFIRMED', ['static_fact'], [],
-                           'A later migration enabling row-level security on the table, or replacing the policy '
-                           'condition with one that ties each row to its owner.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'access_gap_' + gap, 'params': {'table': table, 'path': fact['location']['path'],
-                                                                   'line': fact['location']['start_line'],
-                                                                   'gap': gap, 'policy': policy or '—'}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'access_gap_present', 'table': table, 'gap': gap,
-                                                         'policy': policy,
-                                                         'expected': 'The table is still exposed in the net migration state.'}},
-                           impact={'scenario': 'Anyone holding the public API key can read or change rows of this '
-                                               'table that belong to other users.'}))
-    for fact in [f for f in domain_facts if f['kind'] == 'external_state_write']:
-        index += 1
-        claims.append(make(index, f"{fact['location']['path']} writes into {fact['value']['module']}."
-                                  f"{fact['value']['attribute']}, state it does not own",
-                           'structure', 'CONFIRMED', ['static_fact'], [],
-                           'The write moving into the owning module behind a named operation.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'external_write', 'params': {'path': fact['location']['path'],
-                                                                       'module': fact['value']['module'],
-                                                                       'attribute': fact['value']['attribute']}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'external_write_present', 'path': fact['location']['path'],
-                                                         'module': fact['value']['module'], 'attribute': fact['value']['attribute'],
-                                                         'expected': 'The cross-module assignment is still present.'}},
-                           impact={'scenario': 'The owning module cannot guarantee its own invariant, because another '
-                                               'module assigns into it directly.'}))
-    # Sustainability observations reach the same ledger as everything else: one record, one decision.
-    DUPLICATE_MIN, REDUNDANCY_MAX = 6, 10  # structural duplicates below 6 are common noise in shared-method code
-    # UI components share boilerplate by construction: an arrow function that calls setState
-    # and renders a button is not a duplicated business rule, it is a duplicated idiom.
-    # The detector runs on every duplicate cluster; only large clusters of code that is not
-    # pure JSX reach the ledger as a business-rule claim. JSX files whose shared shape is
-    # small stay as facts but do not produce a CONFIRMED rule-duplication claim.
-    UI_LANGUAGES = {'typescript', 'tsx', 'javascript', 'jsx'}
-    UI_PATH_PARTS = {'components', 'pages', 'views', 'screens'}
-    SHARED_SIZE_FOR_UI = 30  # tokens of shared shape, not occurrence count
-    UI_MIN_OCCURRENCES = 4
-    for fact in fact_sets.get('fingerprint', {}).get('facts', []):
-        if fact['kind'] != 'duplicate_cluster': continue
-        places = fact['value']['occurrences']
-        if len(places) < DUPLICATE_MIN: continue
-        shared_size = fact['value'].get('shared_size', 0)
-        occurrences = len(places)
-        languages = {(p.get('path') or '').rsplit('.', 1)[-1] for p in places}
-        in_ui = all(any(part in UI_PATH_PARTS for part in (p.get('path') or '').split('/'))
-                     for p in places)
-        all_ui_lang = languages <= UI_LANGUAGES
-        ui_noise = in_ui and all_ui_lang
-        # UI noise stays a fact: the cluster is recorded, the claim is not.
-        if ui_noise and (shared_size < SHARED_SIZE_FOR_UI or occurrences < UI_MIN_OCCURRENCES):
-            continue
-        index += 1
-        where = ', '.join(f"{row['path']}:{row['start_line']} {row['symbol']}" for row in places[:4])
-        claims.append(make(index, f"{len(places)} symbols share the same structure up to identifier names ({where})",
-                           'business_rule', 'CONFIRMED', ['static_fact'], [],
-                           'Evidence that the occurrences encode different rules that evolve for different reasons, '
-                           'which would make a single definition wrong rather than missing.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'structural_duplicate',
-                                   'params': {'count': len(places), 'where': where}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'duplicate_cluster_present',
-                                                         'shape_sha': fact['value']['shape_sha'],
-                                                         'expected': 'The same structural cluster is still present.'}},
-                           impact={'scenario': 'Changing the rule in one occurrence and not the others makes the paths '
-                                               'disagree, and nothing in the code links them.'}))
-    for fact in fact_sets.get('sequences', {}).get('facts', [])[:5]:
-        if fact['kind'] != 'sequence_cluster': continue
-        index += 1
-        members = fact['value'].get('occurrences') or []
-        where = ', '.join(f"{row['path']}:{row.get('start_line')}" for row in members[:4])
-        claims.append(make(index, f"{len(members)} functions perform the same ordered sequence of calls ({where})",
-                           'structure', 'CONFIRMED', ['static_fact'], [],
-                           'Evidence that the shared order is coincidental rather than one orchestration copied.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'sequence_duplicate', 'params': {'count': len(members), 'where': where}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'sequence_cluster_present',
-                                                         'sequence_sha': fact['value'].get('sequence_sha'),
-                                                         'expected': 'The same call sequence is still repeated.'}},
-                           impact={'scenario': 'The orchestration is maintained in several places at once.'}))
-    redundant = [fact for fact in fact_sets.get('redundancy', {}).get('facts', []) if fact['kind'] == 'redundancy']
-    for fact in redundant[:REDUNDANCY_MAX]:
-        index += 1
-        kind = fact['value']['kind']
-        location = f"{fact['location']['path']}:{fact['location']['start_line']}"
-        claims.append(make(index, f"{kind} at {location} in {fact['location'].get('symbol')}: {fact['value']['callee']}",
-                           'risk' if kind == 'n_plus_one' else 'structure', 'CONFIRMED', ['static_fact'], [],
-                           'Evidence that the repetition is required — a different result per call, or a dependency on '
-                           'state that changes between the two.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'redundant_work',
-                                   'params': {'kind': kind, 'location': location,
-                                              'symbol': fact['location'].get('symbol'),
-                                              'callee': fact['value']['callee']}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'redundancy_present', 'path': fact['location']['path'],
-                                                         'line': fact['location']['start_line'], 'kind': kind,
-                                                         'callee': fact['value']['callee'],
-                                                         'expected': 'The redundant work is still present at that location.'}},
-                           impact={'scenario': 'The path does more work than its result requires, on every execution.'}))
-    from .policy_assessment import build_assessment
-    for fact in fact_sets.get('policy', {}).get('facts', []):
-        if fact['kind'] != 'policy_violation': continue
-        index += 1
-        claim = make(index, f"{fact['location']['path']} imports {fact['value']['to_path']}, which the declared "
-                             f"policy forbids ({fact['value']['from_layer']} → {fact['value']['to_layer']})",
-                     'structure', 'CONFIRMED', ['static_fact'], [],
-                     'The edge disappearing from the resolved graph, or the policy being changed deliberately with a reason.',
-                     fact_ids=[fact['id']],
-                     render={'key': 'policy', 'params': {'path': fact['location']['path'],
-                                                         'to': fact['value']['to_path'],
-                                                         'from_layer': fact['value']['from_layer'],
-                                                         'to_layer': fact['value']['to_layer']}},
-                     probe_spec={'probe_type': 'graph_query',
-                                 'specification': {'query': 'policy_violation_present',
-                                                   'path': fact['location']['path'],
-                                                   'to_path': fact['value']['to_path'],
-                                                   'expected': 'The forbidden edge is still present in the resolved graph.'}},
-                     impact={'scenario': fact['value']['reason']})
-        if target is not None:
-            built = build_assessment(claim, fact_sets, target)
-            if built:
-                claim['assessment'] = built['assessment']
-                claim['checks'] = built['checks']
-        claims.append(claim)
-    flows = fact_sets.get('flows', {})
-    for fact in [f for f in flows.get('facts', []) if f['value']['unresolved_steps'] > 2][:10]:
-        index += 1
-        entry = fact['value']['entry']
-        claims.append(make(index, f"Flow {fact['value']['flow_id']} ({entry['surface']} {entry['route']}) stops at "
-                                  f"{fact['value']['unresolved_steps']} unresolvable calls",
-                           'capability_gap', 'CONFIRMED', ['static_fact'], [],
-                           'A resolver or runtime trace that follows those calls to their targets.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'trace_gap', 'params': {'flow': fact['value']['flow_id'],
-                                                                  'surface': entry['surface'], 'route': str(entry['route']),
-                                                                  'count': fact['value']['unresolved_steps']}},
-                           probe_spec={'probe_type': 'graph_query', 'specification': {'query': 'flow_has_unresolved_steps', 'flow_id': fact['value']['flow_id'],
-                                                                                      'expected': 'The traced flow still stops at calls the resolver cannot follow.'}},
-                           impact={'scenario': 'The end-to-end behaviour of this entry point is not fully visible from source alone.'}))
-    reasons = {'unreachable-module': ('لا تصله أي نقطة دخول إنتاجية', 'no production entry point reaches it'),
-               'unused-symbol': ('لا يُذكر اسمه خارج تعريفه', 'its name appears nowhere outside its definition'),
-               'unread-constant': ('لا يقرؤه شيء', 'nothing reads it')}
-    for fact in (fact_sets.get('deadcode') or {}).get('facts', []):
-        value, location = fact['value'], fact['location']
-        verdict = (value.get('adjudication') or {}).get('verdict')
-        if verdict not in ('confirmed', 'test_only', 'review'): continue
-        index += 1
-        # test_only and review are candidates to ask about, not defects to remove: they render as dead_code_review.
-        test_only = verdict in ('test_only', 'review')
-        ar, en = reasons[value['rule']]
-        if verdict == 'test_only': ar, en = 'تذكره الاختبارات وحدها', 'only tests name it'
-        if verdict == 'review': ar, en = 'برنامج لا يشغّله شيء مسجّل، وقد يشغّله أحد بيده', 'a program nothing on record runs; someone may run it by hand'
-        subject = value['message'].split('`')[1]
-        claims.append(make(index, value['message'], 'structure', 'LIKELY' if test_only else 'CONFIRMED', ['static_fact'], [],
-                           ('A test that pins it as a contract the product relies on, or a production path the text search missed.' if test_only else
-                            'A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.'),
-                           fact_ids=[fact['id']],
-                           render={'key': 'dead_code', 'params': {'subject': subject, 'reason_ar': ar, 'reason_en': en}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'dead_code_present', 'path': location['path'],
-                                                         'symbol': location.get('symbol'), 'rule': value['rule'],
-                                                         'expected': 'The candidate is still unreached and unreferenced in the current snapshot.'}},
-                           impact={'scenario': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.'}))
-        if test_only: claims[-1]['render']['key'] = 'dead_code_review'
-        elif target is not None:
-            from .dead_code_assessment import build_assessment as dead_code_assessment
-            built = dead_code_assessment(claims[-1], fact_sets, target)
-            if built: claims[-1]['assessment'], claims[-1]['checks'] = built['assessment'], built['checks']
-    broken_reasons = {'undefined-name': ('اسم غير معرّف يرفع NameError عند تشغيل السطر', 'an undefined name that raises NameError when the line runs'),
-                      'duplicate-key': ('مفتاح مكرر في قاموس واحد تضيع قيمته الأولى بصمت', 'a key written twice in one dictionary; the first value is silently lost'),
-                      'missing-import': ('استيراد ملف غير موجود فتفشل الوحدة عند تحميلها', 'an import of a file that does not exist; the module fails to load'),
-                      'stale-instruction': ('وثيقة تأمر بأمر لم يعد موجودًا', 'a document instructing a command that no longer exists')}
-    for fact in (fact_sets.get('broken') or {}).get('facts', []):
-        value, location = fact['value'], fact['location']
-        index += 1
-        ar, en = broken_reasons[value['rule']]
-        claims.append(make(index, value['message'], 'risk' if value['severity'] == 'high' else 'structure', 'CONFIRMED', ['static_fact'], [],
-                           'The name, key, file or command existing after all: a definition, a file or a subcommand the text reading missed.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'broken_code', 'params': {'path': location['path'], 'line': location.get('start_line'),
-                                                                    'subject': str(location.get('symbol')), 'reason_ar': ar, 'reason_en': en}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'broken_code_present', 'path': location['path'],
-                                                         'symbol': location.get('symbol'), 'rule': value['rule'],
-                                                         'expected': 'The same broken reference is still in the current snapshot.'}},
-                           impact={'scenario': en[0].upper() + en[1:] + '.'}))
-    # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices.
-    for fact in (fact_sets.get('external') or {}).get('facts', []):
-        value = fact.get('value') or {}
-        if fact.get('kind') != 'engine_finding' or value.get('kind') != 'vulnerability' or value.get('engine') != 'osv-scanner':
-            continue
-        numbers = {m['name']: m['value'] for m in value.get('measurements') or []}
-        ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
-        package, _, installed = rest.rpartition('@')
-        ids = numbers.get('advisory_ids') or []
-        index += 1
-        claims.append(make(index, value['message'], 'risk', 'CONFIRMED', ['static_fact'], [],
-                           'The locked version being another, or the OSV database withdrawing the advisory.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'vulnerable_dependency',
-                                   'params': {'package': package, 'installed': installed, 'count': len(ids),
-                                              'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
-                                              'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—'}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'vulnerable_dependency_present', 'package': fact['location'].get('symbol'),
-                                                         'expected': 'The same package version is still reported vulnerable.'}},
-                           impact={'scenario': 'Every user runs a version with a published vulnerability; the fix is published too.'}))
-        if target is not None:
-            from .dependency_assessment import build_assessment as dependency_assessment
-            built = dependency_assessment(claims[-1], fact_sets, target)
-            if built: claims[-1]['assessment'], claims[-1]['checks'] = built['assessment'], built['checks']
+    claims = []
+
+    def add(statement, claim_type, confidence, method, falsifier, **extra):
+        claims.append(make(len(claims) + 1, statement, claim_type, confidence, method, [], falsifier, **extra))
+        return claims[-1]
+
+    for build in BUILDERS: build(fact_sets, add, target)
     return one_card_per_hotspot(claims + from_engines(fact_sets, len(claims)))
 
 
@@ -585,74 +248,62 @@ def from_load_model(fact_sets, offset=0):
     return made
 
 
-def _extract_measurement(fact, name):
-    for m in fact.get('value', {}).get('measurements', []) or []:
-        if m.get('name') == name:
-            return m
-    return None
-
-
-def _number(value):
-    return int(value) if isinstance(value, float) and value.is_integer() else value
-
-
-def _engine_cluster_measurement(kind, cluster, fact_sets):
-    """Return ``(impact_key, params)`` naming the measurement a corroborated finding was earned by.
-
-    The key selects a template in ``compose.labels.IMPACTS`` for every language, so the report reads
-    the same measurement the claim carries. With no measurement the key says so rather than guessing.
-    """
-    import re as _re
-    by_id = {fact['id']: fact for fact in (fact_sets.get('external') or {}).get('facts', [])}
-    facts = [by_id.get(fid) for fid in cluster.get('fact_ids', [])]
-    facts = [fact for fact in facts if fact and (fact.get('value') or {}).get('kind') == kind]
-    unmeasured = ('engine_cluster_unmeasured', {})
-    if kind == 'complexity':
-        # reforge names it function.complexity and declares a threshold; codegraph names it complexity
-        # without one. A measurement that carries its threshold is preferred over one that does not.
-        found = [m for fact in facts for name in ('function.complexity', 'cyclomatic_complexity', 'cognitive_complexity', 'complexity')
-                 for m in [_extract_measurement(fact, name)] if m is not None and m.get('value') is not None]
-        found.sort(key=lambda m: m.get('threshold') is None)
-        if found and found[0].get('threshold') is not None:
-            return 'engine_cluster_complexity', {'value': _number(found[0]['value']),
-                                                 'threshold': _number(found[0]['threshold'])}
-        if found:
-            return 'engine_cluster_complexity_value', {'value': _number(found[0]['value'])}
-    elif kind == 'literal_duplication':
-        # reforge reports the occurrence count as group.size; its sites list also carries file-level
-        # entries, so counting sites overstates it. jscpd reports one site per copy.
-        sizes = [m['value'] for fact in facts for m in [_extract_measurement(fact, 'group.size')]
-                 if m is not None and m.get('value') is not None]
-        counts = sizes or [len((fact.get('value') or {}).get('sites') or []) for fact in facts]
-        if any(counts):
-            return 'engine_cluster_literal_duplication', {'sites': _number(max(counts))}
-    elif kind == 'coupling':
-        for fact in facts:
-            message = (fact.get('value') or {}).get('message') or ''
-            parts = [label + ' ' + found.group(1) for label in ('fan-in', 'fan-out')
-                     for found in [_re.search(label + r'\s+(\d+)', message)] if found]
-            if parts:
-                return 'engine_cluster_coupling', {'measure': ', '.join(parts)}
-    elif kind == 'dead_code':
-        for fact in facts:
-            location = fact.get('location') or {}
-            symbol = location.get('symbol')
-            if symbol and symbol != location.get('path'):
-                return 'engine_cluster_dead_code', {'symbol': symbol}
-            found = _re.search(r'(?:function|method|class)\s+([\w./]+)', (fact.get('value') or {}).get('message') or '')
-            if found:
-                return 'engine_cluster_dead_code', {'symbol': found.group(1)}
-            sites = (fact.get('value') or {}).get('sites') or []
-            if sites and sites[0].get('path'):
-                return 'engine_cluster_dead_code', {'symbol': sites[0]['path']}
-    return unmeasured
-
-
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
                      'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
                      'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
                      'boundary': 'خرق حد', 'naming': 'انحراف تسمية', 'test_quality': 'جودة اختبار',
                      'unused_dependency': 'اعتمادية غير مستخدمة'}
+
+
+def _corroborated(kind, detail, cluster, fact_sets):
+    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    impact_key, measured = engine_measurement(kind, cluster, fact_sets)
+    return {'statement': f"{len(detail['asserted_by'])} محركات مستقلة ({engines}) تبلّغ عن {word} في {cluster['place']}",
+            'confidence': 'LIKELY',
+            'falsifier': ('Show the measurement each engine reports is below the threshold it declares, '
+                          'or that the engines share one implementation and are therefore one witness.'),
+            'impact': {'scenario': IMPACTS['ar'][impact_key].format(**measured)}, 'impact_key': impact_key, 'measured': measured}
+
+
+def _granularity_gap(kind, detail, cluster, fact_sets):
+    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    elsewhere = ', '.join(detail['silent_at_another_resolution'])
+    level = ', '.join(detail['asserted_at']) or 'unknown'
+    return {'statement': (f"{engines} يبلّغ عن {word} في {cluster['place']} على مستوى {level}، "
+                          f"و{elsewhere} فحص على مستوى آخر ولم يجدها"),
+            'confidence': 'LIKELY',
+            'falsifier': ('Show that no import inside this package reaches back into it, so the loop '
+                          'does not close at that resolution either.'),
+            'impact': {'scenario': 'الخاصية قائمة عند دقة قياس ومنتفية عند أخرى؛ القرار يتبع الدقة التي تهمّ المشروع.'},
+            'impact_key': None, 'measured': {}}
+
+
+def _contested(kind, detail, cluster, fact_sets):
+    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    denied = ', '.join(detail['denied_by'])
+    return {'statement': (f"{engines} يبلّغ عن {word} في {cluster['place']}، و{denied} فحص الخاصية نفسها ولم يجدها"),
+            'confidence': 'HYPOTHESIS',
+            'falsifier': ('Resolve the contradiction: exhibit the edges that close the cycle in the source, '
+                          'or show the asserting engine inferred an edge no import supports.'),
+            'impact': {'scenario': 'محركان يتناقضان في خاصية بنيوية؛ أحدهما مخطئ ولا يصح البناء على أي منهما قبل الحسم.'},
+            'impact_key': None, 'measured': {}}
+
+
+def _engine_claim(index, kind, cluster, detail, said):
+    """The claim of one kind at one place, from what its verdict says."""
+    engines, impact_key = ', '.join(detail['asserted_by']), said['impact_key']
+    return make(index, said['statement'][:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
+                said['confidence'], ['external_engine'], [],
+                said['falsifier'], fact_ids=cluster['fact_ids_by_kind'][kind], confidence_ceiling=said['confidence'],
+                render={'key': 'engine_cluster',
+                        'params': {'place': cluster['place'], 'kind': kind,
+                                   'engines': engines, 'verdict': detail['verdict'],
+                                   **said['measured'], **({'impact_key': impact_key} if impact_key else {})}},
+                probe_spec={'probe_type': 'graph_query',
+                            'specification': {'query': 'engine_cluster_present',
+                                              'place': cluster['place'], 'kind': kind,
+                                              'expected': 'The same engines still report this kind at this place.'}},
+                impact=said['impact'])
 
 
 def from_engines(fact_sets, offset=0):
@@ -666,51 +317,15 @@ def from_engines(fact_sets, offset=0):
     from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP
     if not fact_sets.get('external'):
         return []
+    says = {CORROBORATED: _corroborated, GRANULARITY_GAP: _granularity_gap, CONTESTED: _contested}
     made, index = [], offset
     for cluster in clusters(fact_sets):
         for kind, detail in sorted(cluster['corroboration'].items()):
             # A vulnerable dependency already has its own claim (from_facts); a second scanner is a witness, not a claim.
-            if kind == 'vulnerability' or detail['verdict'] not in (CORROBORATED, CONTESTED, GRANULARITY_GAP):
+            if kind == 'vulnerability' or detail['verdict'] not in says:
                 continue
             index += 1
-            engines = ', '.join(detail['asserted_by'])
-            word = ENGINE_KIND_WORDS.get(kind, kind)
-            impact_key, measured = None, {}
-            if detail['verdict'] == CORROBORATED:
-                statement = f"{len(detail['asserted_by'])} محركات مستقلة ({engines}) تبلّغ عن {word} في {cluster['place']}"
-                confidence = ceiling = 'LIKELY'
-                falsifier = ('Show the measurement each engine reports is below the threshold it declares, '
-                             'or that the engines share one implementation and are therefore one witness.')
-                impact_key, measured = _engine_cluster_measurement(kind, cluster, fact_sets)
-                impact = {'scenario': IMPACTS['ar'][impact_key].format(**measured)}
-            elif detail['verdict'] == GRANULARITY_GAP:
-                elsewhere = ', '.join(detail['silent_at_another_resolution'])
-                level = ', '.join(detail['asserted_at']) or 'unknown'
-                statement = (f"{engines} يبلّغ عن {word} في {cluster['place']} على مستوى {level}، "
-                             f"و{elsewhere} فحص على مستوى آخر ولم يجدها")
-                confidence = ceiling = 'LIKELY'
-                falsifier = ('Show that no import inside this package reaches back into it, so the loop '
-                             'does not close at that resolution either.')
-                impact = {'scenario': 'الخاصية قائمة عند دقة قياس ومنتفية عند أخرى؛ القرار يتبع الدقة التي تهمّ المشروع.'}
-            else:
-                denied = ', '.join(detail['denied_by'])
-                statement = (f"{engines} يبلّغ عن {word} في {cluster['place']}، و{denied} فحص الخاصية نفسها ولم يجدها")
-                confidence = ceiling = 'HYPOTHESIS'
-                falsifier = ('Resolve the contradiction: exhibit the edges that close the cycle in the source, '
-                             'or show the asserting engine inferred an edge no import supports.')
-                impact = {'scenario': 'محركان يتناقضان في خاصية بنيوية؛ أحدهما مخطئ ولا يصح البناء على أي منهما قبل الحسم.'}
-            made.append(make(index, statement[:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
-                             confidence, ['external_engine'], [],
-                             falsifier, fact_ids=cluster['fact_ids_by_kind'][kind], confidence_ceiling=ceiling,
-                             render={'key': 'engine_cluster',
-                                     'params': {'place': cluster['place'], 'kind': kind,
-                                                'engines': engines, 'verdict': detail['verdict'],
-                                                **measured, **({'impact_key': impact_key} if impact_key else {})}},
-                             probe_spec={'probe_type': 'graph_query',
-                                         'specification': {'query': 'engine_cluster_present',
-                                                           'place': cluster['place'], 'kind': kind,
-                                                           'expected': 'The same engines still report this kind at this place.'}},
-                             impact=impact))
+            made.append(_engine_claim(index, kind, cluster, detail, says[detail['verdict']](kind, detail, cluster, fact_sets)))
     return made
 
 
