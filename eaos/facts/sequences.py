@@ -29,15 +29,15 @@ _MIN_FUNCTION_SIZE = 3
 # than silently dropping the cluster.
 IDIOMS = {
     'python': {frozenset({'assertEqual', 'assertTrue', 'assertFalse', 'assertNotEqual',
-                           'assertRaises', 'assertIsNone', 'assertIsNotNone',
-                           'patch', 'mock', 'MagicMock'})},
+                          'assertRaises', 'assertIsNone', 'assertIsNotNone',
+                          'patch', 'mock', 'MagicMock'})},
     'go': {frozenset({'t.Run', 't.Fatalf', 't.Errorf', 't.Logf', 't.Skip',
-                       'require', 'assert', 'NoError', 'Equal', 'NotEqual',
-                       'len', 'cap', 'err', 'nil'})},
+                      'require', 'assert', 'NoError', 'Equal', 'NotEqual',
+                      'len', 'cap', 'err', 'nil'})},
     'javascript': {frozenset({'expect', 'describe', 'it', 'beforeEach', 'afterEach',
-                                'jest', 'fn'})},
+                              'jest', 'fn'})},
     'typescript': {frozenset({'expect', 'describe', 'it', 'beforeEach', 'afterEach',
-                                 'jest', 'fn'})},
+                              'jest', 'fn'})},
 }
 
 
@@ -64,27 +64,23 @@ def _python_callees(func_node):
     return calls
 
 
+_PY_FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def _visit_python(node, scope, rows):
+    if isinstance(node, _PY_FUNCTIONS):
+        rows.append(('.'.join(scope + [node.name]), node.lineno, node.end_lineno or node.lineno, _python_callees(node)))
+    inner = scope + [node.name] if isinstance(node, _PY_FUNCTIONS + (ast.ClassDef,)) else scope
+    for child in ast.iter_child_nodes(node): _visit_python(child, inner, rows)
+
+
 def _python_sequences(text):
-    """Yield (qualified, start, end, [callees]) for every Python function in the file."""
+    """(qualified, start, end, [callees]) for every Python function in the file; none when it does not parse."""
     try: tree = ast.parse(text)
-    except SyntaxError: return
-    def visit(node, scope):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            qualified = '.'.join(scope + [node.name])
-            yield qualified, node.lineno, node.end_lineno or node.lineno, _python_callees(node)
-            new_scope = scope + [node.name]
-            for child in ast.iter_child_nodes(node):
-                for item in visit(child, new_scope): yield item
-            return
-        if isinstance(node, ast.ClassDef):
-            new_scope = scope + [node.name]
-            for child in ast.iter_child_nodes(node):
-                for item in visit(child, new_scope): yield item
-            return
-        for child in ast.iter_child_nodes(node):
-            for item in visit(child, scope): yield item
-    for node in tree.body:
-        for item in visit(node, []): yield item
+    except SyntaxError: return []
+    rows = []
+    for node in tree.body: _visit_python(node, [], rows)
+    return rows
 
 
 def _ts_callee(node):
@@ -101,94 +97,111 @@ def _ts_callee(node):
     return ''
 
 
-def _tree_sitter_sequences(text, language):
+_TS_FUNCTIONS = {'function_declaration', 'function_definition', 'function_item',
+                 'method_declaration', 'method_definition', 'function', 'function_expression',
+                 'arrow_function', 'singleton_method', 'local_function_statement'}
+_TS_CALLS = {'call_expression', 'method_invocation', 'invocation_expression',
+             'function_call_expression', 'member_call_expression', 'selector'}
+_TS_CLASSES = {'class_declaration', 'class_definition', 'impl_item'}
+
+
+def _tree_sitter_tree(text, language):
     try:
         from tree_sitter_language_pack import get_parser
     except ImportError: return None
     try: parser = get_parser('c_sharp' if language == 'csharp' else language)
     except Exception: return None
-    try: tree = parser.parse(text.encode('utf-8'))
+    try: return parser.parse(text.encode('utf-8'))
     except Exception: return None
-    function_types = {'function_declaration', 'function_definition', 'function_item',
-                       'method_declaration', 'method_definition', 'function', 'function_expression',
-                       'arrow_function', 'singleton_method', 'local_function_statement'}
-    call_types = {'call_expression', 'method_invocation', 'invocation_expression',
-                   'function_call_expression', 'member_call_expression', 'selector'}
+
+
+def _function_calls(node):
+    calls = []
+    for child in node.children:
+        if child.type in _TS_CALLS: calls.append(_ts_callee(child))
+        calls.extend(_function_calls(child))
+    return calls
+
+
+def _walk_tree(node, scope, rows):
+    if node.type in _TS_FUNCTIONS:
+        calls = [c for c in _function_calls(node) if c]
+        rows.append(('.'.join(scope + [node.type]), node.start_point[0] + 1, node.end_point[0] + 1, calls))
+    inner = scope + [node.type] if node.type in _TS_FUNCTIONS or node.type in _TS_CLASSES else scope
+    for child in node.children: _walk_tree(child, inner, rows)
+
+
+def _tree_sitter_sequences(text, language):
+    tree = _tree_sitter_tree(text, language)
+    if tree is None: return None
     rows = []
-
-    def function_calls(node):
-        calls = []
-        for child in node.children:
-            if child.type in call_types: calls.append(_ts_callee(child))
-            calls.extend(function_calls(child))
-        return calls
-
-    def walk(node, scope):
-        if node.type in function_types:
-            calls = [c for c in function_calls(node) if c]
-            qualified = '.'.join(scope + [node.type])
-            rows.append((qualified, node.start_point[0] + 1, node.end_point[0] + 1, calls))
-            for child in node.children: walk(child, scope + [node.type])
-            return
-        if node.type in {'class_declaration', 'class_definition', 'impl_item'}:
-            for child in node.children: walk(child, scope + [node.type])
-            return
-        for child in node.children: walk(child, scope)
-    walk(tree.root_node, [])
+    _walk_tree(tree.root_node, [], rows)
     return rows
 
 
-def run(target, source, symbols=None, **options):
-    from . import syntax as syntax_module
-    if symbols is None:
-        syntax_result = syntax_module.run(target, source)
-        symbols = [f for f in syntax_result['facts'] if f['kind'] == 'symbol']
-    sequence_clusters = defaultdict(list)
-    files_observed = 0; files_blocked = 0
-    idiomatic_clusters = 0
-    idiom_languages = {}
+def _sequences_of(text, language):
+    if language == 'python': return _python_sequences(text)
+    return _tree_sitter_sequences(text, language)
+
+
+def _add_windows(row, rel, language, found):
+    """Every window of one function's callees into the clusters, or counted as idiomatic."""
+    qualified, start, end, callees = row
+    if len(callees) < _MIN_FUNCTION_SIZE: return
+    for i in range(0, len(callees) - _MIN_SEQUENCE + 1):
+        window = tuple(callees[i:i + _MIN_SEQUENCE])
+        if _is_idiomatic(window, language):
+            found['idiomatic'] += 1
+            found['idiom_languages'][language] = found['idiom_languages'].get(language, 0) + 1
+            continue
+        found['clusters'][window].append({'path': rel, 'start': start, 'end': end, 'qualified': qualified})
+
+
+def _collect(source):
+    found = {'clusters': defaultdict(list), 'observed': 0, 'blocked': 0, 'idiomatic': 0, 'idiom_languages': {}}
     for item in source.readable():
         rel = item['path']; language = language_of(rel)
         if language is None: continue
         text = source.text(rel)
         if text is None: continue
-        rows = None
-        if language == 'python': rows = list(_python_sequences(text))
-        else: rows = _tree_sitter_sequences(text, language)
-        if rows is None: files_blocked += 1; continue
-        files_observed += 1
-        for qualified, start, end, callees in rows:
-            if len(callees) < _MIN_FUNCTION_SIZE: continue
-            for i in range(0, len(callees) - _MIN_SEQUENCE + 1):
-                window = tuple(callees[i:i + _MIN_SEQUENCE])
-                if _is_idiomatic(window, language):
-                    idiomatic_clusters += 1
-                    idiom_languages[language] = idiom_languages.get(language, 0) + 1
-                    continue
-                sequence_clusters[window].append({'path': rel, 'start': start, 'end': end,
-                                                   'qualified': qualified})
+        rows = _sequences_of(text, language)
+        if rows is None:
+            found['blocked'] += 1
+            continue
+        found['observed'] += 1
+        for row in rows: _add_windows(row, rel, language, found)
+    return found
+
+
+def _unique(occurrences):
+    unique, seen = [], set()
+    for occ in occurrences:
+        key = (occ['path'], occ['start'])
+        if key in seen: continue
+        seen.add(key)
+        unique.append(occ)
+    return unique
+
+
+def _cluster_fact(window, unique):
+    return make('sequence_cluster', NAME, VERSION, digest(repr(window).encode()),
+                {'path': unique[0]['path'], 'start_line': unique[0]['start']},
+                {'sequence': list(window), 'length': len(window), 'occurrences': unique},
+                limitations=LIMITATIONS)
+
+
+def run(target, source, symbols=None, **options):
+    found = _collect(source)
     cluster_facts = []
-    for window, occurrences in sorted(sequence_clusters.items(), key=lambda item: -len(item[1])):
-        if len(occurrences) < _CLUSTER_MIN: continue
-        unique = []
-        seen = set()
-        for occ in occurrences:
-            key = (occ['path'], occ['start'])
-            if key in seen: continue
-            seen.add(key); unique.append(occ)
-        if len(unique) < _CLUSTER_MIN: continue
-        seq_sha = digest(repr(window).encode())
-        cluster_facts.append(make('sequence_cluster', NAME, VERSION, seq_sha,
-                                    {'path': unique[0]['path'], 'start_line': unique[0]['start']},
-                                    {'sequence': list(window), 'length': len(window),
-                                     'occurrences': unique},
-                                    limitations=LIMITATIONS))
-    summary = {'files_observed': files_observed, 'files_blocked': files_blocked,
+    for window, occurrences in sorted(found['clusters'].items(), key=lambda item: -len(item[1])):
+        unique = _unique(occurrences) if len(occurrences) >= _CLUSTER_MIN else []
+        if len(unique) >= _CLUSTER_MIN: cluster_facts.append(_cluster_fact(window, unique))
+    summary = {'files_observed': found['observed'], 'files_blocked': found['blocked'],
                'clusters': len(cluster_facts),
-               'idiomatic_clusters_excluded': idiomatic_clusters,
-               'idiomatic_clusters_by_language': idiom_languages,
+               'idiomatic_clusters_excluded': found['idiomatic'],
+               'idiomatic_clusters_by_language': found['idiom_languages'],
                'interpretation': 'A cluster contains functions that perform the same ordered list of callees. '
-                                  'Idiomatic sequences (test patterns, common library calls) are excluded and reported.'}
+                                 'Idiomatic sequences (test patterns, common library calls) are excluded and reported.'}
     return {'facts': cluster_facts, 'summary': summary,
             'available': True, 'input_sha': digest(b''),
             'reason': None}
