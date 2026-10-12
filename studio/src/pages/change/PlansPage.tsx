@@ -31,6 +31,11 @@ function planState(state: string, w: ReturnType<typeof useChangeWords>) {
   return (PLAN_STATES as readonly string[]).includes(state) ? w(`ps_${state as (typeof PLAN_STATES)[number]}`) : state
 }
 
+/** A plan's title in the interface language: the fix plan's from the Studio's catalog, any other plan's own. */
+function planTitle(plan: Plan, t: ReturnType<typeof usePrefs>['t']): string {
+  return plan.kind === 'fix' || plan.id === 'fix' ? t('fixPlan') : plan.title ?? plan.id
+}
+
 export function Progress({ plan }: { plan: Plan }) {
   const w = useChangeWords()
   const value = plan.progress.value
@@ -54,7 +59,7 @@ function PlansBody({ data }: { data: StudioData }) {
           <ul aria-label={w('plansTitle')}>
             {plans.map((plan) => (
               <li key={plan.id}>
-                <RowLink to={`/plans/${encodeURIComponent(plan.id)}`} icon="plan" title={<Txt>{plan.title ?? plan.id}</Txt>}
+                <RowLink to={`/plans/${encodeURIComponent(plan.id)}`} icon="plan" title={<Txt>{planTitle(plan, t)}</Txt>}
                   sub={<>{planState(plan.state, w)} · {w('stepsN', { n: plan.steps.length })} · {w('tasksN', { n: plan.steps.reduce((s, x) => s + x.tasks.length, 0) })}</>}
                   end={<Progress plan={plan} />} />
               </li>
@@ -181,11 +186,12 @@ function Board({ ops, phone, plan }: { ops: Operation[]; phone: boolean; plan: P
 function PlanBody({ data, id }: { data: StudioData; id: string }) {
   const w = useChangeWords()
   const b = useBranchWords()
+  const { t } = usePrefs()
   const phone = usePhone()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { view?: string }
   const plan = data.plans?.plans.find((p) => p.id === id)
-  usePageChrome(plan?.title ?? w('plansTitle'), { to: '/plans', label: w('plansTitle') }, data.manifest.project.name)
+  usePageChrome(plan ? planTitle(plan, t) : w('plansTitle'), { to: '/plans', label: w('plansTitle') }, data.manifest.project.name)
   const paths = usePaths(data)
   const timeline = paths.kind === 'ready' ? paths.paths.timeline : null
   const links = useMemo(() => stepLinks(timeline), [timeline])
@@ -202,7 +208,7 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
       <ChangeNav />
       <div className={css.head}>
         <span className={css.kicker}>{w('plansTitle')}</span>
-        <h1 className={css.title}><Txt>{plan.title ?? plan.id}</Txt></h1>
+        <h1 className={css.title}><Txt>{planTitle(plan, t)}</Txt></h1>
         <Stepper state={plan.state} />
         <span className={css.metaLine}>
           <Progress plan={plan} /><span>{w('stepsN', { n: plan.steps.length })}</span><span>{w('tasksN', { n: tasks })}</span>
