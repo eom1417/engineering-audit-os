@@ -10,69 +10,100 @@ from . import plain
 from .compose.labels import who_decided
 
 
+def _read_json(path, empty):
+    return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else empty
+
+
 def summary_counts(report):
-    plan = json.loads((Path(report) / 'plan.json').read_text(encoding='utf-8')) if (Path(report) / 'plan.json').is_file() else {'tasks': []}
+    plan = _read_json(Path(report) / 'plan.json', {'tasks': []})
     tasks = plan.get('tasks') or []
     ready = [t for t in tasks if t.get('kind') == 'remediate' and (t.get('decision') or {}).get('readiness') == 'ready']
     return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready)}
 
 
-def start_here(report, lang, name):
-    """START-HERE.md: one page in plain words. Counts come from plan.json; nothing is scored or invented."""
-    report = Path(report)
-    plan = json.loads((report / 'plan.json').read_text(encoding='utf-8')) if (report / 'plan.json').is_file() else {'tasks': []}
-    tasks = plan.get('tasks') or []
-    counts = summary_counts(report)
+def _say(ar, arabic, english): return arabic if ar else english
+
+
+def _grouped(tasks):
     groups = {}
     for task in tasks:
         groups.setdefault(plain.kind(task), []).append(task)
-    ordered = sorted(groups, key=lambda p: (plain.ORDER.index(p) if p in plain.ORDER else len(plain.ORDER), -len(groups[p])))
-    ar = lang == 'ar'
-    lines = [f"# {'ابدأ هنا' if ar else 'Start here'}: {name}", '']
-    if not tasks:
-        lines += ['لم أجد مشاكل تحتاج إصلاحًا.' if ar else 'I found no problems that need fixing.', '']
-    else:
-        lines += ['## ' + ('الخلاصة' if ar else 'In short'), '',
-                  (f"- وجدت **{counts['problems']}** مشكلة." if ar else f"- I found **{counts['problems']}** problems."),
-                  (f"- **{counts['ready']}** منها يستطيع EAOS إصلاحها آليًا، ويتحقق بعد كل إصلاح أن برنامجك لم ينكسر." if ar else
-                   f"- **{counts['ready']}** of them EAOS can fix automatically, checking after each fix that your app still works."),
-                  (f"- **{counts['decide']}** تحتاج قرارك أو نظرة شخص قبل أي تغيير." if ar else
-                   f"- **{counts['decide']}** need your decision, or a person's look, before any change."), '',
-                  '## ' + ('أهم المشاكل' if ar else 'The main problems'), '']
-        for index, pattern in enumerate(ordered[:5], 1):
-            title, why = plain.problem(pattern, lang)
-            rows = groups[pattern]
-            ready = sum((t.get('decision') or {}).get('readiness') == 'ready' and t.get('kind') == 'remediate' for t in rows)
-            example = next((p for t in rows for p in t.get('paths') or []), '')
-            lines += [f"{index}. **{title}** ({len(rows)})", f"   {why}",
-                      f"   {'يمكن إصلاحه آليًا' if ar else 'Can be fixed automatically'}: {ready} {'من' if ar else 'of'} {len(rows)}"
-                      + (f" · {'مثال' if ar else 'example'}: `{example}`" if example else ''), '']
-        rest = [f"{plain.problem(p, lang)[0]} ({len(groups[p])})" for p in ordered[5:]]
-        if rest:
-            lines += [('وأنواع أخرى: ' if ar else 'And other kinds: ') + ('، ' if ar else ', ').join(rest), '']
-        target = json.loads((report / 'target-architecture.json').read_text(encoding='utf-8')) \
-            if (report / 'target-architecture.json').is_file() else {}
-        lines += ['## ' + ('من قرر' if ar else 'Who decided'), '', who_decided(target, lang), '']
-        lines += ['## ' + ('ما أنصح به' if ar else 'What I recommend'), '',
-                  ('ابدأ بالإصلاحات الآلية: هي الأكثر أمانًا، وكل واحدة تُجرَّب في نسخة منفصلة من مشروعك قبل أن تراها.' if ar else
+    rank = lambda p: (plain.ORDER.index(p) if p in plain.ORDER else len(plain.ORDER), -len(groups[p]))
+    return groups, sorted(groups, key=rank)
+
+
+def _summary_lines(counts, ar):
+    return ['## ' + _say(ar, 'الخلاصة', 'In short'), '',
+            _say(ar, f"- وجدت **{counts['problems']}** مشكلة.", f"- I found **{counts['problems']}** problems."),
+            _say(ar, f"- **{counts['ready']}** منها يستطيع EAOS إصلاحها آليًا، ويتحقق بعد كل إصلاح أن برنامجك لم ينكسر.",
+                 f"- **{counts['ready']}** of them EAOS can fix automatically, checking after each fix that your app still works."),
+            _say(ar, f"- **{counts['decide']}** تحتاج قرارك أو نظرة شخص قبل أي تغيير.",
+                 f"- **{counts['decide']}** need your decision, or a person's look, before any change."), '',
+            '## ' + _say(ar, 'أهم المشاكل', 'The main problems'), '']
+
+
+def _pattern_lines(index, pattern, rows, lang, ar):
+    title, why = plain.problem(pattern, lang)
+    ready = sum((t.get('decision') or {}).get('readiness') == 'ready' and t.get('kind') == 'remediate' for t in rows)
+    example = next((p for t in rows for p in t.get('paths') or []), '')
+    shown = f" · {_say(ar, 'مثال', 'example')}: `{example}`" if example else ''
+    return [f"{index}. **{title}** ({len(rows)})", f"   {why}",
+            f"   {_say(ar, 'يمكن إصلاحه آليًا', 'Can be fixed automatically')}: {ready} {_say(ar, 'من', 'of')} {len(rows)}" + shown, '']
+
+
+def _problem_lines(report, tasks, counts, lang, ar):
+    groups, ordered = _grouped(tasks)
+    lines = _summary_lines(counts, ar)
+    for index, pattern in enumerate(ordered[:5], 1):
+        lines += _pattern_lines(index, pattern, groups[pattern], lang, ar)
+    rest = [f"{plain.problem(p, lang)[0]} ({len(groups[p])})" for p in ordered[5:]]
+    if rest:
+        lines += [_say(ar, 'وأنواع أخرى: ', 'And other kinds: ') + _say(ar, '، ', ', ').join(rest), '']
+    target = _read_json(report / 'target-architecture.json', {})
+    lines += ['## ' + _say(ar, 'من قرر', 'Who decided'), '', who_decided(target, lang), '']
+    lines += ['## ' + _say(ar, 'ما أنصح به', 'What I recommend'), '',
+              _say(ar, 'ابدأ بالإصلاحات الآلية: هي الأكثر أمانًا، وكل واحدة تُجرَّب في نسخة منفصلة من مشروعك قبل أن تراها.',
                    'Start with the automatic fixes: they are the safest, and each is tried on a separate copy of your project before you see it.'), '']
-    manifest = report / 'run-manifest.json'
-    if manifest.is_file():
-        stages = json.loads(manifest.read_text(encoding='utf-8')).get('stages') or {}
-        missing = [name for name, row in stages.items() if row.get('status') in ('failed', 'not_reached')]
-        if missing:
-            lines += ['## ' + ('ما لم يكتمل' if ar else 'What did not complete'), '',
-                      ('هذه الأجزاء من الفحص لم تكتمل، فما وجدته فيها قد يكون ناقصًا: ' if ar else
-                       'These parts of the check did not complete, so what they would have found may be missing: ')
-                      + ('، ' if ar else ', ').join(plain.stage(name, lang) for name in missing), '']
-    if (report / 'human' / 'index.html').is_file():
-        lines += ['## ' + ('التقرير في صفحة واحدة' if ar else 'The report on one page'), '',
-                  ('افتح `human/index.html` في المتصفح: الملخص، والفجوات والمخاطر، وخريطة البنية، والخطة، بالعربية والإنجليزية.' if ar else
-                   'Open `human/index.html` in a browser: the summary, gaps and risks, structure map and plan, in Arabic and English.'), '']
-    lines += ['## ' + ('الخطوة التالية' if ar else 'Next step'), '', '```', 'eaos next', '```', '',
-              '## ' + ('للتفاصيل التقنية' if ar else 'Technical detail'), '',
-              ('للمطوّر أو لمساعدك الذكي: ' if ar else 'For a developer or your AI assistant: ')
-              + '`CURRENT-STATE.md` · `TARGET-STATE.md` · `GAP-AND-STRATEGY.md` · `EXECUTION-PLAN.md` · `plan.json`', '']
+    return lines
+
+
+def _incomplete_lines(report, lang, ar):
+    stages = _read_json(report / 'run-manifest.json', {}).get('stages') or {}
+    missing = [name for name, row in stages.items() if row.get('status') in ('failed', 'not_reached')]
+    if not missing: return []
+    return ['## ' + _say(ar, 'ما لم يكتمل', 'What did not complete'), '',
+            _say(ar, 'هذه الأجزاء من الفحص لم تكتمل، فما وجدته فيها قد يكون ناقصًا: ',
+                 'These parts of the check did not complete, so what they would have found may be missing: ')
+            + _say(ar, '، ', ', ').join(plain.stage(name, lang) for name in missing), '']
+
+
+def _one_page_lines(report, ar):
+    if not (report / 'human' / 'index.html').is_file(): return []
+    return ['## ' + _say(ar, 'التقرير في صفحة واحدة', 'The report on one page'), '',
+            _say(ar, 'افتح `human/index.html` في المتصفح: الملخص، والفجوات والمخاطر، وخريطة البنية، والخطة، بالعربية والإنجليزية.',
+                 'Open `human/index.html` in a browser: the summary, gaps and risks, structure map and plan, in Arabic and English.'), '']
+
+
+def _closing_lines(ar):
+    return ['## ' + _say(ar, 'الخطوة التالية', 'Next step'), '', '```', 'eaos next', '```', '',
+            '## ' + _say(ar, 'للتفاصيل التقنية', 'Technical detail'), '',
+            _say(ar, 'للمطوّر أو لمساعدك الذكي: ', 'For a developer or your AI assistant: ')
+            + '`CURRENT-STATE.md` · `TARGET-STATE.md` · `GAP-AND-STRATEGY.md` · `EXECUTION-PLAN.md` · `plan.json`', '']
+
+
+def start_here(report, lang, name):
+    """START-HERE.md: one page in plain words. Counts come from plan.json; nothing is scored or invented."""
+    report = Path(report)
+    tasks = _read_json(report / 'plan.json', {'tasks': []}).get('tasks') or []
+    ar = lang == 'ar'
+    lines = [f"# {_say(ar, 'ابدأ هنا', 'Start here')}: {name}", '']
+    if not tasks:
+        lines += [_say(ar, 'لم أجد مشاكل تحتاج إصلاحًا.', 'I found no problems that need fixing.'), '']
+    else:
+        lines += _problem_lines(report, tasks, summary_counts(report), lang, ar)
+    lines += _incomplete_lines(report, lang, ar)
+    lines += _one_page_lines(report, ar)
+    lines += _closing_lines(ar)
     page = report / 'START-HERE.md'
     page.write_text('\n'.join(lines), encoding='utf-8')
     return page
