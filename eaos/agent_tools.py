@@ -49,9 +49,8 @@ def locate(folder):
     return found[0] if found else folder
 
 
-def project_state(project=None, new=False):
-    """The project's state, made on first use. `new`: a project still to be built from its plan, whose folder may be
-    empty or not there yet (it is made); never the home folder or the disk's root."""
+def _project_folder(project, new):
+    """The project's folder, checked: made when it is to be built, else it must exist and look like a project."""
     folder = Path(project or os.getcwd()).expanduser().resolve()
     if not new and not (guided.load(folder) if folder.is_dir() else None): folder = locate(folder)
     state = guided.load(folder) if folder.is_dir() else None
@@ -59,10 +58,18 @@ def project_state(project=None, new=False):
         if folder in (Path.home().resolve(), Path(folder.anchor)):
             raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the assistant there)')
         folder.mkdir(parents=True, exist_ok=True)
-    elif not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
-    elif not guided.looks_like_project(folder):
+        return folder
+    if not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
+    if not guided.looks_like_project(folder):
         raise ValueError(f'not a project folder: {folder} (no .git, package.json or other project file at its top; '
                          'pass the project folder as `project`)')
+    return folder
+
+
+def project_state(project=None, new=False):
+    """The project's state, made on first use. `new`: a project still to be built from its plan, whose folder may be
+    empty or not there yet (it is made); never the home folder or the disk's root."""
+    folder = _project_folder(project, new)
     state = guided.load(folder)
     if not state:
         state = {'schema_version': 1, 'project': str(folder), 'workspace': str(guided.workspace(folder)),
@@ -311,8 +318,7 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
-    if use_assistant is not None or assistant:
-        state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
+    state = _keep_choice(state, use_assistant, assistant)
     # A check on record stands until the person asks for a new one (fresh): a check takes up to an hour, and one started
     # because the code moved on stopped the person's fixes midway (owner, 2026-10-10).
     if guided.scan_done(state) and not fresh:
@@ -321,6 +327,12 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     if blocked: return blocked
     arguments = {**({'without_tools': True} if without_tools else {}), **({'without_ai': True} if without_ai else {})}
     return _start('audit', state, arguments, watch=True)
+
+
+def _keep_choice(state, use_assistant, assistant):
+    """The state with the person's choice for the check's AI kept, when they made one now."""
+    if use_assistant is None and not assistant: return state
+    return guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
 
 
 def _assistant_not_ready(state):
@@ -478,37 +490,53 @@ def _excerpt(root, location, around=8, limit=60):
             'code': '\n'.join(f'{n:>5}  {lines[n - 1]}' for n in range(start, stop + 1))}
 
 
-def finding(id, project=None):
-    """One card (TASK-…) or claim (CLM-…), whole: what, why, the evidence with its code, the change, the check."""
-    state = project_state(project)
-    report = _report(state)
+def _card_and_claim(report, id):
+    """(card or None, claim or {}) of a TASK-… or CLM-… id; ValueError when it is neither."""
     tasks = {t['id']: t for t in _read(report / 'plan.json').get('tasks') or []}
     claims = _claims(report)
     task = tasks.get(id) or next((t for t in tasks.values() if t.get('claim_id') == id), None)
     claim = claims.get(id) or claims.get((task or {}).get('claim_id')) or {}
     if not task and not claim: raise ValueError(f'{id} is neither a card nor a claim of this report')
+    return task, claim
+
+
+def _evidence(state, report, card, claim):
+    """The first six facts behind a card and its claim, each with the code it points at."""
     facts = _facts_index(report)
-    fact_ids = list(dict.fromkeys((claim.get('fact_ids') or []) + (((task or {}).get('evidence') or {}).get('fact_ids') or [])))
-    evidence = []
-    for fact_id in fact_ids[:6]:
-        fact = facts.get(fact_id)
-        if not fact: continue
-        evidence.append({'fact': fact_id, 'kind': fact.get('kind'), 'value': fact.get('value'),
-                         'code': _excerpt(guided.source(state), fact.get('location') or {})})
+    fact_ids = list(dict.fromkeys((claim.get('fact_ids') or []) + ((card.get('evidence') or {}).get('fact_ids') or [])))
+    return [{'fact': fact_id, 'kind': facts[fact_id].get('kind'), 'value': facts[fact_id].get('value'),
+             'code': _excerpt(guided.source(state), facts[fact_id].get('location') or {})}
+            for fact_id in fact_ids[:6] if facts.get(fact_id)]
+
+
+def _what_and_why(card, claim):
+    """What a finding is, why it matters, and how it is proven gone."""
     assessment = claim.get('assessment') or {}
-    card = task or {}
     return {'id': card.get('id') or claim.get('id'), 'claim': claim.get('id'), 'title': card.get('title') or claim.get('statement'),
             'kind': card.get('pattern'), 'confidence': claim.get('confidence'), 'paths': card.get('paths'),
             'impact': card.get('impact') or (claim.get('impact') or {}).get('scenario'),
             'rule_broken': assessment.get('violated_invariant'), 'before': card.get('before') or assessment.get('before'),
             'after': card.get('after') or assessment.get('after'), 'suggested_change': assessment.get('proposed_change'),
-            'how_it_is_proven_gone': claim.get('falsifier') or ((card.get('evidence') or {}).get('falsifier')),
-            'fixable_automatically': _ready(card) if card else False,
+            'how_it_is_proven_gone': claim.get('falsifier') or ((card.get('evidence') or {}).get('falsifier'))}
+
+
+def _card_work(card):
+    """How a card can be worked on: fixable, by a codemod, its decision, what it waits on and what uses it."""
+    decision = card.get('decision') or {}
+    return {'fixable_automatically': _ready(card) if card else False,
             'has_codemod': ((card.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0,
             'decision': card.get('decision', {}).get('kind') if card else None,
-            'blockers': (card.get('decision') or {}).get('blockers'),
-            'depends_on': card.get('prerequisites'), 'used_by': ((card.get('blast_radius') or {}).get('direct_dependents') or [])[:15],
-            'evidence': evidence}
+            'blockers': decision.get('blockers'),
+            'depends_on': card.get('prerequisites'), 'used_by': ((card.get('blast_radius') or {}).get('direct_dependents') or [])[:15]}
+
+
+def finding(id, project=None):
+    """One card (TASK-…) or claim (CLM-…), whole: what, why, the evidence with its code, the change, the check."""
+    state = project_state(project)
+    report = _report(state)
+    task, claim = _card_and_claim(report, id)
+    card = task or {}
+    return {**_what_and_why(card, claim), **_card_work(card), 'evidence': _evidence(state, report, card, claim)}
 
 
 def structure(project=None):
@@ -525,25 +553,28 @@ def structure(project=None):
                           if (report / name).is_file()]}
 
 
+def _milestone_row(m, cards, whole, tried_card, where):
+    """One milestone with its cards: all of them when `whole`, else the first 25 and how many more."""
+    shown = cards if whole else cards[:25]
+    return {'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'exit': m.get('exit'),
+            'cards': [{'id': c['id'], 'title': c.get('title'), 'kind': c.get('pattern'), 'fixable_automatically': _ready(c),
+                       'tried': tried_card(c), 'state': where.get(c['id'], 'open')} for c in shown],
+            'more_cards': 0 if whole else max(0, len(cards) - 25)}
+
+
 def plan(project=None, milestone=None):
-    from .ledger import sync
+    from .ledger import keys, sync
     state = project_state(project)
     guided.reconcile(state)
     report = _report(state)
     data = _read(report / 'plan.json')
     tasks = {t['id']: t for t in data.get('tasks') or []}
-    from .ledger import keys
     tried, ids = set(state.get('tried') or []), keys(data.get('tasks') or [])
     record = sync(state, report=report) or {}
     where = {c['id']: c['state'] for c in (record.get('cards') or {}).values() if c.get('id')}
-    out = []
-    for m in data.get('milestones') or []:
-        if milestone and m['id'] != milestone: continue
-        cards = [tasks[i] for i in m['tasks'] if i in tasks]
-        out.append({'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'exit': m.get('exit'),
-                    'cards': [{'id': c['id'], 'title': c.get('title'), 'kind': c.get('pattern'), 'fixable_automatically': _ready(c),
-                               'tried': ids.get(c['id']) in tried, 'state': where.get(c['id'], 'open')} for c in (cards if milestone else cards[:25])],
-                    'more_cards': 0 if milestone else max(0, len(cards) - 25)})
+    out = [_milestone_row(m, [tasks[i] for i in m['tasks'] if i in tasks], bool(milestone),
+                          lambda c: ids.get(c['id']) in tried, where)
+           for m in data.get('milestones') or [] if not milestone or m['id'] == milestone]
     return {'milestones': out, 'progress': record.get('totals'),
             'order': 'Fix in this order: milestone by milestone, the fixable cards first. Only these cards count as progress: '
                      'work outside the plan is not recorded anywhere.'}
@@ -680,6 +711,63 @@ def run_try(proposal=None, mode='lock', project=None):
     return _start('run_try', state, {'proposal': proposal, 'mode': mode})
 
 
+def _limitations(profile, record, runtime, missing):
+    """The profile's limitations, the ones a run decides again replaced by what this run found."""
+    unset = [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or []) if n not in profile['env'] and n != 'NODE_ENV']
+    limitations = [l for l in profile.get('limitations') or [] if not l.startswith(('run without a value', 'screens that need', 'the app could not'))]
+    if unset and record['ok']: limitations.append('run without a value for: ' + ', '.join(unset[:12]))
+    if missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
+    if not record['ok']: limitations.append('the app could not be made to answer: ' + (record.get('failure') or '')[:300])
+    return sorted(set(limitations))
+
+
+def _lock_run(project, runtime, report, record, profile, attempt):
+    """After a run as developers run it: the profile's values and limitations, and the project's setup record.
+    The fixtures the screens need and nobody gave."""
+    from . import live_setup
+    needs = live_setup.fixtures_needed(report) if (report / 'plan.json').is_file() else []
+    known = {**profile.get('env', {}), **record.get('fixtures', {})}
+    missing = [name for name in needs if name not in known]
+    if record.get('fixtures'):
+        profile.setdefault('env', {}).update({k: str(v) for k, v in record['fixtures'].items()})
+    profile['limitations'] = _limitations(profile, record, runtime, missing)
+    live_setup.write_profile(runtime, profile)
+    state = guided.load(project)
+    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': attempt, 'limitations': profile['limitations']}
+    state.pop('safety', None)
+    guided.save(state)
+    return missing
+
+
+def _production_build(source, runtime, answer, progress):
+    """Build and start the production version once, to measure speed later; the profile as it is after."""
+    from . import live_setup
+    progress(1, 2, 'building and starting the production version, to measure speed later')
+    base = live_setup.verify(source, runtime, 1, mode='baseline')
+    profile = _read(runtime / 'run.json')
+    profile['baseline']['verified'] = base['ok']
+    live_setup.write_profile(runtime, profile)
+    answer['production_build_runs'] = base['ok']
+    if not base['ok']: answer['production_failure'] = (base.get('failure') or '')[-2500:]
+    return profile
+
+
+def _first_page(page):
+    if not page: return None
+    return {'status': page.get('status'), 'url': page.get('url'), 'text': (page.get('text') or '')[:800],
+            'others': [{k: o.get(k) for k in ('path', 'status', 'url')} for o in page.get('others') or []],
+            'errors': (page.get('errors') or [])[:5]}
+
+
+def _run_what_now(ok, mode):
+    if ok and mode == 'lock': return 'The app runs: call safety_net.'
+    if ok: return 'The production build runs.'
+    return ('Read the failure and the code, then call run_try with a proposal: {"env": {...complete environment...}, '
+            '"start": [...], "install": [[...]], "prepare": [[...]], "database": "postgres"|"none", '
+            '"seed_script": "<node script that signs in and saves storage state>", "fixtures": {...}}'
+            + (' (mode="baseline", with "build": [[...]] too)' if mode == 'baseline' else ''))
+
+
 def _run_job(project, arguments, progress):
     from . import live_setup
     state = guided.load(project)
@@ -696,47 +784,17 @@ def _run_job(project, arguments, progress):
         profile.setdefault('baseline', {})['verified'] = record['ok']
         live_setup.write_profile(runtime, profile)
     else:
-        needs = live_setup.fixtures_needed(report) if (report / 'plan.json').is_file() else []
-        known = {**profile.get('env', {}), **record.get('fixtures', {})}
-        missing = [name for name in needs if name not in known]
-        if record.get('fixtures'):
-            profile.setdefault('env', {}).update({k: str(v) for k, v in record['fixtures'].items()})
-        unset = [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or []) if n not in profile['env'] and n != 'NODE_ENV']
-        limitations = [l for l in profile.get('limitations') or [] if not l.startswith(('run without a value', 'screens that need', 'the app could not'))]
-        if unset and record['ok']: limitations.append('run without a value for: ' + ', '.join(unset[:12]))
-        if missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
-        if not record['ok']: limitations.append('the app could not be made to answer: ' + (record.get('failure') or '')[:300])
-        profile['limitations'] = sorted(set(limitations))
-        live_setup.write_profile(runtime, profile)
-        state = guided.load(project)
-        state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': attempt, 'limitations': profile['limitations']}
-        state.pop('safety', None)
-        guided.save(state)
-        answer['fixtures_missing'] = missing
+        answer['fixtures_missing'] = _lock_run(project, runtime, report, record, profile, attempt)
         if record['ok'] and (profile.get('baseline') or {}).get('build') and 'verified' not in profile['baseline']:
-            progress(1, 2, 'building and starting the production version, to measure speed later')
-            base = live_setup.verify(source, runtime, 1, mode='baseline')
-            profile = _read(runtime / 'run.json')
-            profile['baseline']['verified'] = base['ok']
-            live_setup.write_profile(runtime, profile)
-            answer['production_build_runs'] = base['ok']
-            if not base['ok']: answer['production_failure'] = (base.get('failure') or '')[-2500:]
-    page = record.get('page') or {}
-    answer['first_page'] = {'status': page.get('status'), 'url': page.get('url'), 'text': (page.get('text') or '')[:800],
-                            'others': [{k: o.get(k) for k in ('path', 'status', 'url')} for o in page.get('others') or []],
-                            'errors': (page.get('errors') or [])[:5]} if page else None
+            profile = _production_build(source, runtime, answer, progress)
+    answer['first_page'] = _first_page(record.get('page') or {})
     if not record['ok']:
         answer['failure'] = (record.get('failure') or '')[-3000:]
         folder = profile.get('app') or '.'
         answer['code_that_raised_it'] = live_setup.relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
     if record.get('seed_output'): answer['seed_output'] = record['seed_output'][-1500:]
     answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database', 'seed', 'checks', 'baseline', 'limitations')}
-    answer['what_now'] = ('The app runs: call safety_net.' if record['ok'] and mode == 'lock' else
-                          'Read the failure and the code, then call run_try with a proposal: {"env": {...complete environment...}, '
-                          '"start": [...], "install": [[...]], "prepare": [[...]], "database": "postgres"|"none", '
-                          '"seed_script": "<node script that signs in and saves storage state>", "fixtures": {...}}'
-                          + (' (mode="baseline", with "build": [[...]] too)' if mode == 'baseline' else '') if not record['ok'] else
-                          'The production build runs.')
+    answer['what_now'] = _run_what_now(record['ok'], mode)
     return answer
 
 
@@ -802,16 +860,26 @@ def delivery(state, deliver_as=None, merge_into=None):
     working = state.get('branch') or branches.checked_out(project) or 'HEAD'
     name = (deliver_as or '').strip() or f"eaos/{branches.slug(working)}/wave-{len(state.get('waves') or []) + 1}"
     if guided._git(project, 'check-ref-format', '--branch', name).returncode: raise ValueError(f'{name} is not a valid branch name')
-    if name == working:
-        why = branches.protected(project, name)
-        if why: raise ValueError(f'{name} is protected ({why}): the fixes cannot land on it directly; deliver them on a new branch')
-        return name, name
+    if name == working: return _direct(project, name)
     continued = waiting_on(state, name)
     if guided._branch_exists(state, name) and not continued:
         raise ValueError(f'a branch named {name} already exists and is not an EAOS work branch waiting for a decision: choose another name')
+    return name, _merge_target(state, merge_into, continued)
+
+
+def _direct(project, name):
+    """The batch lands on the branch EAOS works on itself, unless that branch is protected."""
+    why = branches.protected(project, name)
+    if why: raise ValueError(f'{name} is protected ({why}): the fixes cannot land on it directly; deliver them on a new branch')
+    return name, name
+
+
+def _merge_target(state, merge_into, continued):
+    """Where the batch merges: as asked, else where the batch it continues was to merge, else the branch open now."""
+    project = state['project']
     target = (merge_into or '').strip() or (continued or {}).get('merge_into') or branches.checked_out(project) or state.get('branch')
     if target and not _commit_of(project, target): raise ValueError(f'no branch named {target} to merge into')
-    return name, target
+    return target
 
 
 def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None):
