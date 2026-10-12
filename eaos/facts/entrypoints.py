@@ -91,12 +91,97 @@ def _data_access_fact(item, rel, line, call, category):
                 limitations=LIMITATIONS)
 
 
-def _navigation_fact(item, rel, line, link, category, limitations):
-    return make('navigation', NAME, VERSION, item['sha256'],
-                {'path': rel, 'start_line': line, 'symbol': link.get('symbol') or 'navigation'},
+def _navigation_fact(file, line, link, limitations):
+    return make('navigation', NAME, VERSION, file['item']['sha256'],
+                {'path': file['rel'], 'start_line': line, 'symbol': link.get('symbol') or 'navigation'},
                 {'target': link['target'], 'via': link['via'], 'dynamic': link['dynamic'], 'relative': link['relative'],
-                 'category': category},
+                 'category': file['category']},
                 resolution='UNRESOLVED' if link['relative'] else None, limitations=limitations)
+
+
+def _count(table, key): table[key] = table.get(key, 0) + 1
+
+
+def _texts_for(module, source):
+    return {item['path']: source.text(item['path']) or '' for item in source.readable()
+            if applicable(module, item['path'], language_of(item['path']))}
+
+
+def _prepared(source):
+    # A detector that needs the whole project before reading one file (which names reach a database
+    # client across imports, say) declares prepare(texts); what it returns per file reaches it as
+    # context.prepared[its module name]. The core never names a detector.
+    return {module.__name__: module.prepare(_texts_for(module, source)) for module in MODULES if hasattr(module, 'prepare')}
+
+
+def _record_entry_points(module, context, file, tally):
+    item, rel, language, category = file['item'], file['rel'], file['language'], file['category']
+    for entry in module.detect(context):
+        tally['fingerprints'].append(item['sha256'])
+        if entry.get('kind') == 'tool_command':
+            tally['facts'].append(_tool_command_fact(item, rel, language, entry, category))
+            continue
+        _count(tally['surfaces'], entry['surface'])
+        _count(tally['frameworks'], entry['framework'])
+        tally['covered_languages'].add(language or 'manifest')
+        tally['facts'].append(_entry_point_fact(item, rel, language, entry, category))
+
+
+def _record_data_access(module, context, file, tally):
+    for _offset, line, call in module.detect(context):
+        tally['fingerprints'].append(file['item']['sha256'])
+        _count(tally['data_access_by_client'], call['client'])
+        tally['facts'].append(_data_access_fact(file['item'], file['rel'], line, call, file['category']))
+
+
+def _record_navigation(module, context, file, tally):
+    for _offset, line, link in module.detect(context):
+        tally['fingerprints'].append(file['item']['sha256'])
+        _count(tally['navigation_by_via'], link['via'])
+        tally['facts'].append(_navigation_fact(file, line, link, module.LIMITATIONS))
+
+
+RECORDERS = {'entry_point': _record_entry_points, 'data_access': _record_data_access, 'navigation': _record_navigation}
+
+
+def _scan_file(item, source, table, prepared, tally):
+    rel = item['path']
+    text = source.text(rel)
+    if text is None: return
+    file = {'item': item, 'rel': rel, 'language': language_of(rel), 'category': source.category(rel)}
+    context = Context(rel, text, file['language'], table.get(rel, []))
+    context.prepared = {name: per_file.get(rel) for name, per_file in prepared.items()}
+    modules = [module for module in MODULES if applicable(module, rel, file['language'])]
+    for module in modules:
+        recorder = RECORDERS.get(fact_kind(module))
+        if recorder: recorder(module, context, file, tally)
+    if not modules and file['language'] and file['category'] == 'source':
+        _count(tally['uncovered'], file['language'])
+
+
+def _fact_order(f):
+    return (f['value'].get('surface') or f['value'].get('client') or '',
+            str(f['value'].get('route') or f['value'].get('target') or ''),
+            f['location']['path'], f['location'].get('start_line') or 0)
+
+
+def _summary(tally):
+    facts = tally['facts']
+    entry_point_facts = [f for f in facts if f['kind'] == 'entry_point']
+    production = [f for f in entry_point_facts if f['value'].get('category') != 'test']
+    return {'entry_points': len(entry_point_facts),
+            'production_entry_points': len(production),
+            'test_only_entry_points': len(entry_point_facts) - len(production),
+            'tool_commands': len([f for f in facts if f['kind'] == 'tool_command']),
+            'data_access': len([f for f in facts if f['kind'] == 'data_access']),
+            'data_access_by_client': dict(sorted(tally['data_access_by_client'].items())),
+            'navigation': sum(tally['navigation_by_via'].values()),
+            'navigation_by_via': dict(sorted(tally['navigation_by_via'].items())),
+            'by_surface': dict(sorted(tally['surfaces'].items())),
+            'by_framework': dict(sorted(tally['frameworks'].items())),
+            'languages_with_detections': sorted(tally['covered_languages']),
+            'files_without_any_detector': dict(sorted(tally['uncovered'].items())),
+            'interpretation': 'Detected invocation surfaces. Absence of a route here means no detector matched, not that the system cannot be invoked that way.'}
 
 
 def run(target, source, symbols=None, **options):
@@ -104,70 +189,10 @@ def run(target, source, symbols=None, **options):
     if symbols is None:
         symbols = [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'symbol']
     table = symbol_map(symbols)
-    facts, fingerprints, surfaces, frameworks, data_access_by_client, navigation_by_via = [], [], {}, {}, {}, {}
-    covered_languages, uncovered = set(), {}
-    # A detector that needs the whole project before reading one file (which names reach a database
-    # client across imports, say) declares prepare(texts); what it returns per file reaches it as
-    # context.prepared[its module name]. The core never names a detector.
-    prepared = {}
-    for module in MODULES:
-        if hasattr(module, 'prepare'):
-            prepared[module.__name__] = module.prepare({item['path']: source.text(item['path']) or '' for item in source.readable()
-                                                        if applicable(module, item['path'], language_of(item['path']))})
-    for item in source.readable():
-        rel = item['path']
-        text = source.text(rel)
-        if text is None: continue
-        language = language_of(rel)
-        category = source.category(rel)
-        context = Context(rel, text, language, table.get(rel, []))
-        context.prepared = {name: per_file.get(rel) for name, per_file in prepared.items()}
-        any_match = False
-        for module in MODULES:
-            if not applicable(module, rel, language): continue
-            any_match = True
-            kind = fact_kind(module)
-            if kind == 'entry_point':
-                for entry in module.detect(context):
-                    fingerprints.append(item['sha256'])
-                    if entry.get('kind') == 'tool_command':
-                        facts.append(_tool_command_fact(item, rel, language, entry, category))
-                        continue
-                    surfaces[entry['surface']] = surfaces.get(entry['surface'], 0) + 1
-                    frameworks[entry['framework']] = frameworks.get(entry['framework'], 0) + 1
-                    covered_languages.add(language or 'manifest')
-                    facts.append(_entry_point_fact(item, rel, language, entry, category))
-            elif kind == 'data_access':
-                for _offset, line, call in module.detect(context):
-                    fingerprints.append(item['sha256'])
-                    data_access_by_client[call['client']] = data_access_by_client.get(call['client'], 0) + 1
-                    facts.append(_data_access_fact(item, rel, line, call, category))
-            elif kind == 'navigation':
-                for _offset, line, link in module.detect(context):
-                    fingerprints.append(item['sha256'])
-                    navigation_by_via[link['via']] = navigation_by_via.get(link['via'], 0) + 1
-                    facts.append(_navigation_fact(item, rel, line, link, category, module.LIMITATIONS))
-        if not any_match and language and category == 'source':
-            uncovered[language] = uncovered.get(language, 0) + 1
-    facts.sort(key=lambda f: (f['value'].get('surface') or f['value'].get('client') or '',
-                              str(f['value'].get('route') or f['value'].get('target') or ''),
-                              f['location']['path'], f['location'].get('start_line') or 0))
-    entry_point_facts = [f for f in facts if f['kind'] == 'entry_point']
-    data_access_facts = [f for f in facts if f['kind'] == 'data_access']
-    tool_command_facts = [f for f in facts if f['kind'] == 'tool_command']
-    production = [f for f in entry_point_facts if f['value'].get('category') != 'test']
-    summary = {'entry_points': len(entry_point_facts),
-               'production_entry_points': len(production),
-               'test_only_entry_points': len(entry_point_facts) - len(production),
-               'tool_commands': len(tool_command_facts),
-               'data_access': len(data_access_facts),
-               'data_access_by_client': dict(sorted(data_access_by_client.items())),
-               'navigation': sum(navigation_by_via.values()),
-               'navigation_by_via': dict(sorted(navigation_by_via.items())),
-               'by_surface': dict(sorted(surfaces.items())),
-               'by_framework': dict(sorted(frameworks.items())),
-               'languages_with_detections': sorted(covered_languages),
-               'files_without_any_detector': dict(sorted(uncovered.items())),
-               'interpretation': 'Detected invocation surfaces. Absence of a route here means no detector matched, not that the system cannot be invoked that way.'}
-    return {'facts': facts, 'summary': summary, 'available': True,
-            'input_sha': digest(''.join(sorted(set(fingerprints))).encode('utf-8')), 'reason': None}
+    tally = {'facts': [], 'fingerprints': [], 'surfaces': {}, 'frameworks': {}, 'data_access_by_client': {},
+             'navigation_by_via': {}, 'covered_languages': set(), 'uncovered': {}}
+    prepared = _prepared(source)
+    for item in source.readable(): _scan_file(item, source, table, prepared, tally)
+    tally['facts'].sort(key=_fact_order)
+    return {'facts': tally['facts'], 'summary': _summary(tally), 'available': True,
+            'input_sha': digest(''.join(sorted(set(tally['fingerprints']))).encode('utf-8')), 'reason': None}
