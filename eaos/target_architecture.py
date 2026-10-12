@@ -58,13 +58,19 @@ def components(sets, contracts_by_path=None):
     grouped = {}
     for path in paths:
         grouped.setdefault(package_of(path), []).append(path)
-    out = []
-    for package, members in sorted(grouped.items()):
-        node_values = [nodes[path] for path in members if path in nodes]
-        depends = sorted({package_of(target)
-                          for value in node_values for target in (value.get('depends_on') or [])
-                          if package_of(target) != package})
-        out.append({
+    return [_package_component(package, members, (nodes, evidence, symbols), contracts_by_path)
+            for package, members in sorted(grouped.items())]
+
+
+def _package_component(package, members, indexes, contracts_by_path):
+    """The target component of one package: its files, symbols, links, contracts and evidence."""
+    nodes, evidence, symbols = indexes
+    node_values = [nodes[path] for path in members if path in nodes]
+    depends = sorted({package_of(target)
+                      for value in node_values for target in (value.get('depends_on') or [])
+                      if package_of(target) != package})
+    if True:
+        return ({
             'id': 'T-' + (package.replace('/', '.') if package else 'root'),
             'name': package or '(root)',
             'kind': 'package',
@@ -84,7 +90,6 @@ def components(sets, contracts_by_path=None):
             'evidence_ids': sorted({evidence[path] for path in members if path in evidence}),
             'source_component_id': None,
         })
-    return out
 
 
 def assess(component, sets, claims=None, load_record=None):
@@ -434,8 +439,7 @@ def _decide_targets(targets, on, because, moving_to, disagreements):
     for key, target in targets.items():
         element = on.get(key)
         rejected = element is not None and element.get('operation') == 'delete'
-        label = 'rule_only' if element is None else 'agreed' if not rejected else \
-            'disagreement' if target.get('name') in moving_to else 'ai_modified'
+        label = _target_label(element, rejected, target.get('name') in moving_to)
         why = because.get(str((element or {}).get('id'))) or (element or {}).get('detail') or ''
         if label == 'disagreement': why = "today's components still move into it, so it stays: " + why
         target['decided_by'] = {'label': label, 'rule': 'new', 'assistant': (element or {}).get('operation'), 'why': why,
@@ -445,6 +449,14 @@ def _decide_targets(targets, on, because, moving_to, disagreements):
                                   'final': 'new' if label == 'disagreement' else 'delete', 'cites': target['decided_by']['cites']})
         if label != 'ai_modified': kept.append(target)
     return kept
+
+
+def _target_label(element, rejected, moved_into):
+    """rule_only when the assistant said nothing, agreed when it kept it; a rejected target leaves (ai_modified) unless
+    today's components still move into it (disagreement)."""
+    if element is None: return 'rule_only'
+    if not rejected: return 'agreed'
+    return 'disagreement' if moved_into else 'ai_modified'
 
 
 def _added(elements, known, because):
@@ -482,6 +494,45 @@ def _redraw_gaps(out, record, current):
     return rows
 
 
+def _elements_on(elements, known):
+    """{component or target id: the assistant's first element about it} (by its own id, else by its subject)."""
+    on = {}
+    for element in elements:
+        on.setdefault(element.get('id') if element.get('id') in known else element.get('subject'), element)
+    return on
+
+
+def _set_aside(out):
+    """The cards and claims the triage set aside (cards.json)."""
+    import json
+    try: set_aside = json.loads((Path(out) / 'cards.json').read_text(encoding='utf-8')).get('set_aside') or []
+    except (OSError, ValueError): set_aside = []
+    return {row.get(key) for row in set_aside for key in ('card', 'claim_id') if row.get(key)}
+
+
+def _decide_currents(current, on, because, guards):
+    """Each of today's components decided (its `decided_by`); the disagreements between the rule and the assistant.
+    `guards`: (protected path test, the set-aside cards and claims)."""
+    protected, aside = guards
+    disagreements = []
+    for component in current:
+        element = on.get(component['id'])
+        rule, why = component['relation'], because.get(str((element or {}).get('id'))) or (element or {}).get('detail') or ''
+        label, said = _decide_current(component, element, why, protected, aside)
+        component['decided_by'] = {'label': label, 'rule': rule, 'why': said, 'cites': list((element or {}).get('cites') or []),
+                                   'assistant': RELATION_OF.get((element or {}).get('operation'), (element or {}).get('operation'))}
+        if label in ('ai_modified', 'disagreement'):
+            disagreements.append({'element': component['id'], 'rule': rule, 'assistant': component['decided_by']['assistant'],
+                                  'final': component['relation'], 'label': label, 'why': said, 'cites': component['decided_by']['cites']})
+    return disagreements
+
+
+def _label_counts(rows):
+    counts = {}
+    for row in rows: counts[row['decided_by']['label']] = counts.get(row['decided_by']['label'], 0) + 1
+    return counts
+
+
 def reconcile(out, planned=False, policy_path=None):
     """The final target from the rules' proposal (target-proposal.json) and, when the ideal was planned in this check,
     the assistant's decision on each of its components; the gap matrix is drawn again from it, without the claims of
@@ -497,29 +548,14 @@ def reconcile(out, planned=False, policy_path=None):
     current = record['current_components']
     ids = {c['id'] for c in current}
     targets = {f"TC-{_slug(t.get('name') or t.get('id'))}": t for t in record.get('target_components') or [] if isinstance(t, dict)}
-    on = {}
-    for element in elements:
-        on.setdefault(element.get('id') if element.get('id') in ids | set(targets) else element.get('subject'), element)
-    protected, disagreements = protected_paths(out, policy_path), []
-    try: set_aside = json.loads((out / 'cards.json').read_text(encoding='utf-8')).get('set_aside') or []
-    except (OSError, ValueError): set_aside = []
-    aside = {row.get(key) for row in set_aside for key in ('card', 'claim_id') if row.get(key)}
-    for component in current:
-        element = on.get(component['id'])
-        rule, why = component['relation'], because.get(str((element or {}).get('id'))) or (element or {}).get('detail') or ''
-        label, said = _decide_current(component, element, why, protected, aside)
-        component['decided_by'] = {'label': label, 'rule': rule, 'why': said, 'cites': list((element or {}).get('cites') or []),
-                                   'assistant': RELATION_OF.get((element or {}).get('operation'), (element or {}).get('operation'))}
-        if label in ('ai_modified', 'disagreement'):
-            disagreements.append({'element': component['id'], 'rule': rule, 'assistant': component['decided_by']['assistant'],
-                                  'final': component['relation'], 'label': label, 'why': said, 'cites': component['decided_by']['cites']})
+    on = _elements_on(elements, ids | set(targets))
+    disagreements = _decide_currents(current, on, because, (protected_paths(out, policy_path), _set_aside(out)))
     final = _decide_targets(targets, on, because, {c.get('target_component') for c in current}, disagreements)
     added = _added(elements, ids | set(targets), because)
     final += added
     explicit = [c for c in record.get('components') or [] if c.get('id') not in ids]
-    counts = {}
     # Every proposal is counted, the target components the assistant rejected (no longer in the target) too.
-    for row in [*current, *targets.values(), *added]: counts[row['decided_by']['label']] = counts.get(row['decided_by']['label'], 0) + 1
+    counts = _label_counts([*current, *targets.values(), *added])
     from .aspects import final as aspects
     from .studio.ideal import current as planned_ideal
     plan, state = planned_ideal(out) if planned else (None, 'not_planned')
@@ -561,8 +597,21 @@ def render(out, target, language='ar'):
     else:
         lines += ['# Target architecture', '',
                   '> Source inventory and reviewed target proposals are separate. Unspecified targets remain gaps.', '']
-    if target.get('reference'):
-        lines += ['## ' + ('النوع المرجعي والمكوّنات المستهدفة' if ar else 'Reference type and target components'), '',
+    if target.get('reference'): lines += _reference_section(target, ar)
+    lines += _who_section(target, language, ar) + _components_section(target, language, ar) + _decisions_section(target, ar)
+    lines += ['', '## ' + ('مصفوفة الفجوة' if ar else 'Gap matrix')]
+    covered = sum(1 for row in target['gap_matrix'] if row['gap'] == 'covered')
+    lines += [f"- {'مغطى' if ar else 'covered'}: {covered} / {len(target['gap_matrix'])}"]
+    Path(out, 'TARGET-ARCHITECTURE.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    Path(out, 'target-architecture.json').write_text(json_dumps(target), encoding='utf-8')
+    return {'markdown': str(Path(out, 'TARGET-ARCHITECTURE.md')),
+            'json': str(Path(out, 'target-architecture.json'))}
+
+
+def _reference_section(target, ar):
+    """The reference type, its largest target components and the infrastructure decisions."""
+    if True:
+        lines = ['## ' + ('النوع المرجعي والمكوّنات المستهدفة' if ar else 'Reference type and target components'), '',
                   (f"النوع: `{target['reference']}` (وحدة واحدة معيارية). {len(target['target_components'])} مكوّنًا مستهدفًا، "
                    f"و{target.get('forbidden_edges', 0)} استيرادًا ممنوعًا تزيله الخطة." if ar else
                    f"Type: `{target['reference']}` (a modular monolith). {len(target['target_components'])} target components; "
@@ -584,14 +633,25 @@ def render(out, target, language='ar'):
             lines.append(f"- {mark} **{item['area']}**: {item['decision']} ({tool}). "
                          + ('الدليل: ' if ar else 'Evidence: ') + item['evidence'])
         lines.append('')
+    return lines
+
+
+def _who_section(target, language, ar):
+    """Who decided the target, and the first places where the rules and the assistant disagreed."""
     from .compose.labels import decided, who_decided
-    lines += ['## ' + ('من قرر' if ar else 'Who decided'), '', who_decided(target, language), '']
+    lines = ['## ' + ('من قرر' if ar else 'Who decided'), '', who_decided(target, language), '']
     for row in (target.get('disagreements') or [])[:SHOWN_DECISIONS]:
         lines.append(f"- `{row['element']}`: " + (f"القواعد «{row['rule']}»، مساعدك «{row['assistant']}»، النهائي «{row['final']}» ({decided(row['label'], language)}). "
                                                    if ar else f"the rules \"{row['rule']}\", your assistant \"{row['assistant']}\", final "
                                                    f"\"{row['final']}\" ({decided(row['label'], language)}). ") + clip_why(row['why']))
     lines.append('')
-    lines += ['## ' + ('البنية المحفوظة' if ar else 'Retained structure'), '']
+    return lines
+
+
+def _components_section(target, language, ar):
+    """The retained structure, and today's components by relation, the first of each."""
+    from .compose.labels import decided
+    lines = ['## ' + ('البنية المحفوظة' if ar else 'Retained structure'), '']
     lines += [target['retained_structure']]
     lines += ['', '## ' + ('المكوّنات' if ar else 'Components')]
     by_relation = defaultdict(list)
@@ -608,7 +668,12 @@ def render(out, target, language='ar'):
         if len(rows) > SHOWN_COMPONENTS:
             lines += [('- … البقية في `target-architecture.json`' if ar
                        else '- … the rest are in `target-architecture.json`')]
-    lines += ['', '## ' + ('القرارات المعمارية' if ar else 'Architectural decisions')]
+    return lines
+
+
+def _decisions_section(target, ar):
+    """The first architectural decisions: problem, options, choice and trade-offs."""
+    lines = ['', '## ' + ('القرارات المعمارية' if ar else 'Architectural decisions')]
     for adr in target['decisions'][:SHOWN_DECISIONS]:
         lines += ['', f"### {adr['id']}: {adr.get('problem', '')}"]
         lines += ['- ' + ('المشكلة' if ar else 'problem') + f": {adr.get('problem', '')}"]
@@ -621,13 +686,7 @@ def render(out, target, language='ar'):
                        '`target-architecture.json`.' if ar else
                        f"Showing {SHOWN_DECISIONS} of {len(target['decisions'])} decisions; the rest are in "
                        '`target-architecture.json`.')]
-    lines += ['', '## ' + ('مصفوفة الفجوة' if ar else 'Gap matrix')]
-    covered = sum(1 for row in target['gap_matrix'] if row['gap'] == 'covered')
-    lines += [f"- {'مغطى' if ar else 'covered'}: {covered} / {len(target['gap_matrix'])}"]
-    Path(out, 'TARGET-ARCHITECTURE.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    Path(out, 'target-architecture.json').write_text(json_dumps(target), encoding='utf-8')
-    return {'markdown': str(Path(out, 'TARGET-ARCHITECTURE.md')),
-            'json': str(Path(out, 'target-architecture.json'))}
+    return lines
 
 
 def json_dumps(obj):
