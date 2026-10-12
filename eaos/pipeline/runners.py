@@ -40,13 +40,21 @@ def engines(context):
         from ..facts.source import Source
         context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
     entries = collect_external(context.target, context.out, context['source'], only=context.engines or None)
-    if not isinstance(entries, list):
-        entries = [entries]
-    external_entry = None
-    for entry in entries:
-        add_to_index(context.out, context.target, entry)
-        if entry['set'] == 'external':
-            external_entry = entry
+    external_entry = _index_engines(context, entries if isinstance(entries, list) else [entries], add_to_index)
+    from ..engines_report import document
+    from ..facts.store import read_set
+    (context.out / 'ENGINES.md').write_text(
+        document({'external': read_set(context.out, 'external')}, context.language).render(), encoding='utf-8')
+    return {'findings': external_entry['facts']}
+
+
+
+
+def _index_engines(context, entries, add_to_index):
+    """Index the engines' sets and join them to the facts stage's list; the `external` set's entry. SkipStage when no
+    engine is installed."""
+    for entry in entries: add_to_index(context.out, context.target, entry)
+    external_entry = next((entry for entry in reversed(entries) if entry['set'] == 'external'), None)
     if external_entry is None or not external_entry['available']:
         raise SkipStage('no external engine is installed', code='no_engine_installed')
     # The facts stage handed us its set list; a later stage rebuilding the dossier reads that list,
@@ -55,13 +63,7 @@ def engines(context):
     if collected is not None:
         collected['sets'] = ([row for row in collected['sets'] if row['set'] not in {e['set'] for e in entries}]
                               + entries)
-    from ..engines_report import document
-    from ..facts.store import read_set
-    (context.out / 'ENGINES.md').write_text(
-        document({'external': read_set(context.out, 'external')}, context.language).render(), encoding='utf-8')
-    return {'findings': external_entry['facts']}
-
-
+    return external_entry
 
 
 NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
@@ -164,16 +166,37 @@ def screens(context):
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
     (eaos/screens/audit.py, eaos/screens/crawl.py distinct)."""
     runtime = _live(context)
+    groups, measured = _screen_pages(context)
+    audit, speed = _audit_pages(context, runtime, groups, measured)
+    if audit['status'] != 'observed':
+        raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
+    rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
+            for row in audit['rows']]
+    _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows,
+                                    'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]}
+                                              for template, paths in groups.items()],
+                                    'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
+    return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
+            'lighthouse': (speed.get('scores') or {}).get('performance')}
+
+
+def _screen_pages(context):
+    """({template: its pages}, the crawl's measured entry or None): the app's static page routes and the crawled ones."""
     from ..behavior_lock import surfaces
-    from ..live_run import LiveRun
-    from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
     from ..screens.crawl import distinct
     pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
-                     if kind == 'page' and route.startswith('/') and ':' not in route and '*' not in route and '[' not in route]
+                     if kind == 'page' and route.startswith('/') and not any(mark in route for mark in (':', '*', '['))]
     crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
     pages += [row['path'] for row in crawled]
-    groups = distinct(pages)
     measured = next((row for row in crawled if row.get('measured') and row.get('template') == '/'), None)
+    return distinct(pages), measured
+
+
+def _audit_pages(context, runtime, groups, measured):
+    """(the page audit, the entry's speed) of the app running in the sandbox: Lighthouse only when the crawl did not
+    measure the entry already."""
+    from ..live_run import LiveRun
+    from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
     live = LiveRun(context.target, runtime, 'S05')
     try:
         live.setup()
@@ -186,16 +209,7 @@ def screens(context):
                  if measured else lighthouse(base + '/', out=folder))
     finally:
         live.stop()
-    if audit['status'] != 'observed':
-        raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
-    rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
-            for row in audit['rows']]
-    _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows,
-                                    'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]}
-                                              for template, paths in groups.items()],
-                                    'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
-    return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
-            'lighthouse': (speed.get('scores') or {}).get('performance')}
+    return audit, speed
 
 
 def crawl(context):
@@ -351,18 +365,22 @@ def _node(context, name):
     if not context.provider:
         raise _absent(context.provider)
     from ..studio.nodes import core, run
-    chosen = (getattr(context.provider, 'config', None) or {}).get('assistant')
-    adapters = None
-    if chosen:
-        from ..studio.actions.adapters import installed
-        adapters = {key: adapter for key, adapter in installed().items() if key == chosen}
-    record = run(context.out, names=[name], project=str(context.target), lang=context.language, adapters=adapters).get(name)
+    record = run(context.out, names=[name], project=str(context.target), lang=context.language,
+                 adapters=_adapters_of(context)).get(name)
     if record is None:
         raise SkipStage('there was nothing for the assistant to decide', code='not_applicable')
     if record['method'] != 'model':
         raise _lost(context, record['why'], 'ai_stuck' if record['why'] == core.WORDS['stuck'] else 'ai_failed')
     return record, {'dropped': len(record['dropped']), 'calls': 0 if record['cached'] else record['calls'],
                     'assistant': record['assistant'], 'model': record['model']}
+
+
+def _adapters_of(context):
+    """Only the assistant the person chose for the check, when they chose one; else None (any installed)."""
+    chosen = (getattr(context.provider, 'config', None) or {}).get('assistant')
+    if not chosen: return None
+    from ..studio.actions.adapters import installed
+    return {key: adapter for key, adapter in installed().items() if key == chosen}
 
 
 def ideal(context):
@@ -453,6 +471,15 @@ def intake(context):
 
 
 
+def _feature_block(feature):
+    """One feature's lines in FEATURES.md: its name, critical or not, what it does, its surfaces, tables and files."""
+    block = [f"## {feature['name']}"] + (['**critical**'] if feature['critical'] else []) + [feature['description'],
+             'Surfaces: ' + ', '.join(f"`{s}`" for s in feature['surfaces'])]
+    if feature['tables']: block.append('Tables: ' + ', '.join(f"`{t}`" for t in feature['tables']))
+    if feature['files']: block.append('Files: ' + ', '.join(f"`{f}`" for f in feature['files']))
+    return block + ['']
+
+
 def features_markdown(record):
     """FEATURES.md within its line budget (compose/artifacts.py): every feature while they fit, then a line naming how
     many more features.json holds; the surfaces no feature claims on one line."""
@@ -463,11 +490,7 @@ def features_markdown(record):
         tail = ['## Surfaces not assigned to a feature', ', '.join(f"`{s}`" for s in record['unassigned_surfaces'])]
     lines = ['# Features', '']
     for shown, feature in enumerate(record['features']):
-        block = [f"## {feature['name']}"] + (['**critical**'] if feature['critical'] else []) + [feature['description'],
-                 'Surfaces: ' + ', '.join(f"`{s}`" for s in feature['surfaces'])]
-        if feature['tables']: block.append('Tables: ' + ', '.join(f"`{t}`" for t in feature['tables']))
-        if feature['files']: block.append('Files: ' + ', '.join(f"`{f}`" for f in feature['files']))
-        block.append('')
+        block = _feature_block(feature)
         if len(lines) + len(block) + len(tail) + 2 > budget:
             lines += [f"… {len(record['features']) - shown} more features in features.json", '']
             break
