@@ -208,15 +208,8 @@ def check(node, spec, data, answer, known):
         subject, decision = row.get('subject'), row.get('decision')
         cited = [e for e in row.get('evidence') or [] if isinstance(e, str)]
         evidence = list(dict.fromkeys(e for e in cited if e in known))
-        why = ('no subject' if not subject else 'a subject this node was not asked about' if subject not in subjects else
-               'the subject was decided twice' if subject in seen else
-               f'"{decision}" is not one of the node\'s decisions' if decision not in allowed else
-               'no evidence id resolves to a fact, claim, card or rule of this report' if not evidence else None)
-        decided = {'subject': subject, 'decision': decision, 'options': [short(o, 120) for o in row.get('options') or [] if isinstance(o, str)][:8]
-                   or choices(node), 'evidence': evidence[:24],
-                   'confidence': min(1.0, max(0.0, float(row['confidence']))) if isinstance(row.get('confidence'), (int, float)) else 0.5,
-                   'why': short(row.get('why'), 600), 'open_questions': _questions(row.get('open_questions')), 'source': 'model',
-                   'detail': row.get('detail') if isinstance(row.get('detail'), dict) else {}}
+        why = _drop_reason(subject, decision, evidence, seen, (allowed, subjects))
+        decided = _model_decision(node, row, evidence)
         if why is None and hasattr(spec, 'check'): why = spec.check(data, decided)
         if why:
             dropped.append({'subject': subject if isinstance(subject, str) else None, 'decision': decision if isinstance(decision, str) else None,
@@ -225,6 +218,28 @@ def check(node, spec, data, answer, known):
         seen.add(subject)
         kept.append(decided)
     return kept, dropped
+
+
+def _drop_reason(subject, decision, evidence, seen, asked):
+    """Why a decision of the model cannot stand, or None when it can (before the node's own check)."""
+    allowed, subjects = asked
+    if not subject: return 'no subject'
+    if subject not in subjects: return 'a subject this node was not asked about'
+    if subject in seen: return 'the subject was decided twice'
+    if decision not in allowed: return f'"{decision}" is not one of the node\'s decisions'
+    return None if evidence else 'no evidence id resolves to a fact, claim, card or rule of this report'
+
+
+def _confidence(value):
+    return min(1.0, max(0.0, float(value))) if isinstance(value, (int, float)) else 0.5
+
+
+def _model_decision(node, row, evidence):
+    return {'subject': row.get('subject'), 'decision': row.get('decision'),
+            'options': [short(o, 120) for o in row.get('options') or [] if isinstance(o, str)][:8] or choices(node), 'evidence': evidence[:24],
+            'confidence': _confidence(row.get('confidence')),
+            'why': short(row.get('why'), 600), 'open_questions': _questions(row.get('open_questions')), 'source': 'model',
+            'detail': row.get('detail') if isinstance(row.get('detail'), dict) else {}}
 
 
 def rules_decisions(node, spec, data, why, skip=()):
@@ -313,81 +328,132 @@ def last(report, node):
 
 # ---------------------------------------------------------------- one node's run
 
-def run_node(node, spec, report, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None,
-             cancel=None, started=None, **inputs):
+# A run's settings, with their defaults; every other option of run_node is the node's own input.
+RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en', 'fresh': False, 'say': None,
+               'cancel': None, 'started': None}
+
+
+def run_node(node, spec, report, **options):
     """Run one decision node with its guards and return its record (contract ai-node), or None when it has nothing
     to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of
-    `adapters`; with none, the rules decide alone."""
-    report, tell = Path(report), (say or (lambda en, ar: None))
-    data = spec.inputs(report, project=project, lang=lang, **inputs)
+    `adapters`; with none, the rules decide alone. The settings come by name (RUN_OPTIONS: launcher, adapters, project,
+    lang, fresh, say, cancel, started); the other options are the node's inputs."""
+    settings = {name: options.pop(name, default) for name, default in RUN_OPTIONS.items()}
+    report = Path(report)
+    data = spec.inputs(report, project=settings['project'], lang=settings['lang'], **options)
     if data is None: return None
-    subjects, known = list(spec.subjects(data)), set(spec.known(report, data))
-    at, began = now(), time.monotonic()
-    base = {'at': at, 'inputs': digest(data), 'passes': list(node.passes), 'summary': ''}
+    return _Run(node, spec, report, data, settings).go()
 
-    def done(row, key=None):
-        row = keep(report, node, row, key)
-        if hasattr(spec, 'finish'): spec.finish(report, row, data)
+
+def _joined(answers):
+    """The answers of a list asked in batches, as one answer."""
+    if len(answers) == 1: return answers[0]
+    return {'summary': ' '.join(short(a.get('summary'), 300) for a in answers if a.get('summary')),
+            'decisions': [d for a in answers for d in a.get('decisions') or []]}
+
+
+def _shape_problem(answer, schema, what):
+    from ... import artifact_contracts
+    problems = artifact_contracts.validate(answer, lenient(schema))
+    if problems: raise ValueError(f'the {what} is not in the asked shape: ' + '; '.join(problems[:3]))
+
+
+class _Run:
+    """One run of a node on its inputs: what it says as it goes, and the record it ends with."""
+
+    def __init__(self, node, spec, report, data, settings):
+        self.node, self.spec, self.report, self.data, self.settings = node, spec, report, data, settings
+        self.tell = settings['say'] or (lambda en, ar: None)
+        self.subjects, self.known = list(spec.subjects(data)), set(spec.known(report, data))
+        self.at, self.began = now(), time.monotonic()
+        self.base = {'at': self.at, 'inputs': digest(data), 'passes': list(node.passes), 'summary': ''}
+
+    def done(self, row, key=None):
+        row = keep(self.report, self.node, row, key)
+        if hasattr(self.spec, 'finish'): self.spec.finish(self.report, row, self.data)
         return row
 
-    def rules_only(state, why, assistant=None, model=None, prompt=None, schema=None, seconds=None, cost=None):
-        tell(f'{node.title}: {why}', f'{node.title}: تقرّر بالقواعد فقط')
-        return done(record(node, {**base, 'state': state, 'method': 'rules', 'assistant': assistant, 'model': model,
-                                                'prompt': prompt, 'schema': schema, 'cached': False,
-                                                'seconds': seconds, 'cost_usd': cost, 'why': why},
-                                         rules_decisions(node, spec, data, why), []))
+    def rules_only(self, state, why, **ran):
+        """The rules decide alone; `ran`: assistant, model, prompt, schema, seconds and cost of an ask that failed."""
+        node, ran = self.node, {'assistant': None, 'model': None, 'prompt': None, 'schema': None, 'seconds': None, 'cost': None, **ran}
+        self.tell(f'{node.title}: {why}', f'{node.title}: تقرّر بالقواعد فقط')
+        return self.done(record(node, {**self.base, 'state': state, 'method': 'rules', 'assistant': ran['assistant'], 'model': ran['model'],
+                                       'prompt': ran['prompt'], 'schema': ran['schema'], 'cached': False,
+                                       'seconds': ran['seconds'], 'cost_usd': ran['cost'], 'why': why},
+                                rules_decisions(node, self.spec, self.data, why), []))
 
-    if not subjects:
-        return rules_only('rules_only', 'There was nothing for the node to decide.')
-    detail = getattr(spec, 'DETAIL', None)
-    # A long list is asked in batches (spec.batches), one question each; a planning node, whose critique reviews the
-    # whole draft, is asked at once.
-    parts = spec.batches(data) if hasattr(spec, 'batches') and 'critique' not in node.passes else [data]
-    asks = [(part, answer_schema(node, spec.subjects(part), detail), spec.prompt(part)) for part in parts]
-    schema, prompt = asks[0][1], asks[0][2]
-    key = digest([node.name, node.version, getattr(spec, 'VERSION', '1'), [digest(p) for _, _, p in asks], [digest(s) for _, s, _ in asks]])
-    hit = None if fresh else cached(report, node, key)
-    if hit:
-        tell(f'{node.title}: the same inputs as before, the cached decision stands', f'{node.title}: المدخلات نفسها، فيبقى القرار المحفوظ')
-        return done({**hit, 'at': at, 'cached': True})
-    stamp = at.replace(':', '').replace('+0000', 'Z')
-    images = spec.images(data) if hasattr(spec, 'images') else ()
-    launcher = launcher or launcher_of(adapters, folder_of(report, node) / 'runs' / stamp, cancel, started, images)
-    if launcher is None: return rules_only('rules_only', WORDS['no_assistant'])
-    who, asked, critique, answers = getattr(launcher, 'assistant', None), [p for _, _, p in asks], None, []
-    try:
-        from ... import artifact_contracts
+    def go(self):
+        node, spec, data = self.node, self.spec, self.data
+        if not self.subjects:
+            return self.rules_only('rules_only', 'There was nothing for the node to decide.')
+        detail = getattr(spec, 'DETAIL', None)
+        # A long list is asked in batches (spec.batches), one question each; a planning node, whose critique reviews the
+        # whole draft, is asked at once.
+        parts = spec.batches(data) if hasattr(spec, 'batches') and 'critique' not in node.passes else [data]
+        asks = [(part, answer_schema(node, spec.subjects(part), detail), spec.prompt(part)) for part in parts]
+        key = digest([node.name, node.version, getattr(spec, 'VERSION', '1'), [digest(p) for _, _, p in asks], [digest(s) for _, s, _ in asks]])
+        hit = None if self.settings['fresh'] else cached(self.report, node, key)
+        if hit:
+            self.tell(f'{node.title}: the same inputs as before, the cached decision stands', f'{node.title}: المدخلات نفسها، فيبقى القرار المحفوظ')
+            return self.done({**hit, 'at': self.at, 'cached': True})
+        launcher = self._launcher()
+        if launcher is None: return self.rules_only('rules_only', WORDS['no_assistant'])
+        asked = [p for _, _, p in asks]
+        try: answer, critique = self._ask(launcher, asks, asked, detail)
+        except Exception as problem:   # noqa: BLE001 - every failure falls back to the rules, with its reason
+            return self._failed(problem, launcher, asks, asked)
+        return self._decided(launcher, (answer, critique), asks, asked, key)
+
+    def _launcher(self):
+        s = self.settings
+        stamp = self.at.replace(':', '').replace('+0000', 'Z')
+        images = self.spec.images(self.data) if hasattr(self.spec, 'images') else ()
+        return s['launcher'] or launcher_of(s['adapters'], folder_of(self.report, self.node) / 'runs' / stamp, s['cancel'], s['started'], images)
+
+    def _ask(self, launcher, asks, asked, detail):
+        """(answer, critique): one ask per batch, then a planning node's critique pass."""
+        node, who = self.node, getattr(launcher, 'assistant', None)
+        answers = []
         for index, (part, part_schema, part_prompt) in enumerate(asks):
             batch = f' ({index + 1}/{len(asks)})' if len(asks) > 1 else ''
-            tell(f'{node.title}: {who or "the assistant"} decides{batch}', f'{node.title}: {who or "المساعد"} يقرّر{batch}')
+            self.tell(f'{node.title}: {who or "the assistant"} decides{batch}', f'{node.title}: {who or "المساعد"} يقرّر{batch}')
             one = launcher(node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}', part_prompt, part_schema)
-            problems = artifact_contracts.validate(one, lenient(part_schema))
-            if problems: raise ValueError('the answer is not in the asked shape: ' + '; '.join(problems[:3]))
+            _shape_problem(one, part_schema, 'answer')
             answers.append(one)
-        answer = answers[0] if len(answers) == 1 else {'summary': ' '.join(short(a.get('summary'), 300) for a in answers if a.get('summary')),
-                                                        'decisions': [d for a in answers for d in a.get('decisions') or []]}
-        if 'critique' in node.passes:
-            tell(f'{node.title}: a second pass reviews the decisions', f'{node.title}: تمرير ثانٍ يراجع القرارات')
-            second = critique_prompt(prompt, data, answer, lang)
-            asked.append(second)
-            reviewed = launcher('critique', second, critique_schema(node, subjects, detail))
-            problems = artifact_contracts.validate(reviewed, lenient(critique_schema(node, subjects, detail)))
-            if problems: raise ValueError('the review is not in the asked shape: ' + '; '.join(problems[:3]))
-            critique, answer = reviewed.get('critique'), reviewed
-    except Exception as problem:   # noqa: BLE001 - every failure falls back to the rules, with its reason
+        answer = _joined(answers)
+        if 'critique' not in node.passes: return answer, None
+        return self._critique(launcher, answer, asks[0][2], asked, detail)
+
+    def _critique(self, launcher, answer, prompt, asked, detail):
+        node = self.node
+        self.tell(f'{node.title}: a second pass reviews the decisions', f'{node.title}: تمرير ثانٍ يراجع القرارات')
+        second = critique_prompt(prompt, self.data, answer, self.settings['lang'])
+        asked.append(second)
+        reviewed = launcher('critique', second, critique_schema(node, self.subjects, detail))
+        _shape_problem(reviewed, critique_schema(node, self.subjects, detail), 'review')
+        return reviewed, reviewed.get('critique')
+
+    def _failed(self, problem, launcher, asks, asked):
+        cancel = self.settings['cancel']
         stopped = cancel is not None and cancel.is_set()
         why, state = fallback('stuck' if isinstance(problem, Stuck) else 'stopped' if stopped else f'{type(problem).__name__}: {problem}')
-        return rules_only(state, why, who, getattr(launcher, 'model', None), digest(asked), digest([s for _, s, _ in asks]),
-                          round(time.monotonic() - began, 1), spent(launcher))
-    tell(f'{node.title}: checking that every decision stands on evidence', f'{node.title}: يتحقق أن كل قرار قائم على دليل')
-    kept, dropped = check(node, spec, data, answer, known)
-    decided = {d['subject'] for d in kept}
-    left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
-    row = record(node, {**base, 'state': 'decided', 'method': 'model', 'assistant': who, 'model': getattr(launcher, 'model', None),
-                        'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': False, 'calls': len(asked),
-                        'seconds': round(time.monotonic() - began, 1),
-                        'cost_usd': spent(launcher), 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
-                 kept + left, dropped, critique=critique if isinstance(critique, dict) else None)
-    tell(f'{node.title}: {len(kept)} decisions with their evidence, {len(dropped)} dropped without it',
-         f'{node.title}: {len(kept)} قرارًا بدليله، وحُذف {len(dropped)} بلا دليل')
-    return done(row, key)
+        return self.rules_only(state, why, assistant=getattr(launcher, 'assistant', None), model=getattr(launcher, 'model', None),
+                               prompt=digest(asked), schema=digest([s for _, s, _ in asks]),
+                               seconds=round(time.monotonic() - self.began, 1), cost=spent(launcher))
+
+    def _decided(self, launcher, answered, asks, asked, key):
+        node, spec, data = self.node, self.spec, self.data
+        answer, critique = answered
+        self.tell(f'{node.title}: checking that every decision stands on evidence', f'{node.title}: يتحقق أن كل قرار قائم على دليل')
+        kept, dropped = check(node, spec, data, answer, self.known)
+        decided = {d['subject'] for d in kept}
+        left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
+        row = record(node, {**self.base, 'state': 'decided', 'method': 'model', 'assistant': getattr(launcher, 'assistant', None),
+                            'model': getattr(launcher, 'model', None),
+                            'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': False, 'calls': len(asked),
+                            'seconds': round(time.monotonic() - self.began, 1),
+                            'cost_usd': spent(launcher), 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
+                     kept + left, dropped, critique=critique if isinstance(critique, dict) else None)
+        self.tell(f'{node.title}: {len(kept)} decisions with their evidence, {len(dropped)} dropped without it',
+                  f'{node.title}: {len(kept)} قرارًا بدليله، وحُذف {len(dropped)} بلا دليل')
+        return self.done(row, key)
