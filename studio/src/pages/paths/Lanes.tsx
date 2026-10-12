@@ -75,8 +75,6 @@ export interface LanesProps {
 }
 
 export function Lanes({ columns, nodes, edges, mode, selected, onSelect, label, title, head, legend = 'float', className, centreOn }: LanesProps) {
-  const w = usePathWords()
-  const mw = useMapWords()
   const svg = useRef<SVGSVGElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const size = useSize(box)
@@ -106,76 +104,110 @@ export function Lanes({ columns, nodes, edges, mode, selected, onSelect, label, 
 
   return (
     <div className={[css.canvasWrap, className].filter(Boolean).join(' ')}>
-      {(title || head) && (
-        <div className={css.toolbar}>
-          {title}
-          <div className={css.toolRow}>
-            {head}
-            <span className={css.spacer} />
-            <div className={zoomCss.zoom} role="group" aria-label={mw('zoom')}>
-              <AriaButton className={zoomCss.zoomBtn} aria-label={mw('zoomOut')} onPress={() => zoom.zoomBy(1 / 1.3)}><span aria-hidden="true">−</span></AriaButton>
-              <AriaButton className={zoomCss.zoomBtn} aria-label={mw('zoomIn')} onPress={() => zoom.zoomBy(1.3)}><span aria-hidden="true">+</span></AriaButton>
-              <AriaButton className={zoomCss.zoomBtn} aria-label={mw('zoomFit')} onPress={() => setT(fitView)}><FitIcon /></AriaButton>
-            </div>
-          </div>
-        </div>
-      )}
+      {(title || head) && <LanesToolbar title={title} head={head} zoom={zoom} fitView={fitView} />}
       <div className={css.canvas} ref={box}>
         <svg ref={svg} className={css.canvasSvg} viewBox={`0 0 ${Math.max(size.w, 1)} ${Math.max(size.h, 1)}`} preserveAspectRatio="xMinYMin meet"
           direction="ltr" role="group" aria-label={label} data-dragging={zoom.dragging ? '' : undefined}>
-          <defs>
-            <pattern id="paths-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <rect width="6" height="6" className={css.hatchBg} /><line x1="0" y1="0" x2="0" y2="6" className={css.hatchLine} />
-            </pattern>
-            <marker id="paths-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L8,4 L0,8 z" className={css.arrow} />
-            </marker>
-            <marker id="paths-arrow-on" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L8,4 L0,8 z" className={css.arrowOn} />
-            </marker>
-          </defs>
+          <ArrowDefs />
           <g transform={`translate(${zoom.t.x},${zoom.t.y}) scale(${zoom.t.k})`}>
-            {g.lanes.map((l, i) => (
-              <g key={l.lane}>
-                <rect x={l.x} y={0} width={l.w} height={g.height} className={i % 2 ? css.laneBandAlt : css.laneBand} />
-                <line x1={l.x} y1={0} x2={l.x} y2={g.height} className={css.laneLine} />
-                <text x={l.x + l.w / 2} y={20} textAnchor="middle" className={css.laneHead}>{l.count ? w(LANE_WORD[l.lane]) : '·'}</text>
-                {l.count > 0 && <text x={l.x + l.w / 2} y={34} textAnchor="middle" className={css.laneCount}>{l.count}</text>}
-              </g>
-            ))}
+            <LaneBands g={g} />
             {edges.map((e) => {
               const a = g.at.get(e.from)
               const b = g.at.get(e.to)
-              if (!a || !b) return null
-              const on = linked.has(e.key)
-              const cls = [css.edge, e.style === 'possible' && css.possible, e.style === 'gap' && css.toGap, on && css.on,
-                selected && !on && css.edgeDim, e.dim && css.edgeDim].filter(Boolean).join(' ')
-              return <path key={e.key} d={curve(a, b)} className={cls} strokeWidth={on ? 2 : e.width} markerEnd={`url(#${on ? 'paths-arrow-on' : 'paths-arrow'})`} />
+              return a && b ? <LaneEdge key={e.key} e={e} a={a} b={b} on={linked.has(e.key)} selected={selected} /> : null
             })}
             {[...g.at.entries()].map(([id, at]) => {
               const n = nodes.get(id)
-              if (!n) return null
-              const cls = [css.node, KIND_CLASS[n.kind], n.op && mode === 'change' && css[`op_${n.op}`], mode === 'target' && n.op === 'delete' && css.op_delete,
-                id === selected && css.sel, n.dim && css.dim].filter(Boolean).join(' ')
-              const room = n.count !== undefined ? 16 : 20
-              return (
-                <g key={id} className={cls} transform={`translate(${at.x},${at.y})`} role="button" tabIndex={0} aria-label={n.aria}
-                  aria-pressed={id === selected} onClick={() => onSelect(id)}
-                  onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(id) } }}>
-                  <rect className={css.box} width={NODE_W} height={NODE_H} rx={8} />
-                  {n.op === 'delete' && (mode === 'change' || mode === 'target') && <rect width={NODE_W} height={NODE_H} rx={8} fill="url(#paths-hatch)" opacity={0.5} />}
-                  {n.kind === 'gap' && <text x={NODE_W - 12} y={28} textAnchor="middle" className={css.gapMark}>?</text>}
-                  <text x={10} y={n.sub ? 18 : 27} className={css.nodeTitle}>{fit(n.title, room)}</text>
-                  {n.sub && <text x={10} y={34} className={css.nodeSub}>{clip(n.sub, 26)}</text>}
-                  {n.count !== undefined && <text x={NODE_W - 10} y={27} textAnchor="end" className={css.nodeCount}>{n.count}</text>}
-                </g>
-              )
+              return n ? <LaneNode key={id} id={id} n={n} at={at} mode={mode} selected={selected} onSelect={onSelect} /> : null
             })}
           </g>
         </svg>
         {legend === 'float' && <Legend mode={mode} ops={ops} possible={hasPossible} gap={hasGap} />}
       </div>
     </div>
+  )
+}
+
+type Geometry = ReturnType<typeof geometry>
+type At = Parameters<typeof curve>[0]
+type Zoom = ReturnType<typeof useZoom>
+
+/** The rows above the canvas, with the zoom buttons at the end. */
+function LanesToolbar({ title, head, zoom, fitView }: { title?: ReactNode; head?: ReactNode; zoom: Zoom; fitView: { k: number; x: number; y: number } }) {
+  const mw = useMapWords()
+  return (
+    <div className={css.toolbar}>
+      {title}
+      <div className={css.toolRow}>
+        {head}
+        <span className={css.spacer} />
+        <div className={zoomCss.zoom} role="group" aria-label={mw('zoom')}>
+          <AriaButton className={zoomCss.zoomBtn} aria-label={mw('zoomOut')} onPress={() => zoom.zoomBy(1 / 1.3)}><span aria-hidden="true">−</span></AriaButton>
+          <AriaButton className={zoomCss.zoomBtn} aria-label={mw('zoomIn')} onPress={() => zoom.zoomBy(1.3)}><span aria-hidden="true">+</span></AriaButton>
+          <AriaButton className={zoomCss.zoomBtn} aria-label={mw('zoomFit')} onPress={() => zoom.setT(fitView)}><FitIcon /></AriaButton>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** The hatch of a box to delete and the two arrow heads (plain, and for a link of the selected box). */
+function ArrowDefs() {
+  return (
+    <defs>
+      <pattern id="paths-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="6" height="6" className={css.hatchBg} /><line x1="0" y1="0" x2="0" y2="6" className={css.hatchLine} />
+      </pattern>
+      <marker id="paths-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L8,4 L0,8 z" className={css.arrow} />
+      </marker>
+      <marker id="paths-arrow-on" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L8,4 L0,8 z" className={css.arrowOn} />
+      </marker>
+    </defs>
+  )
+}
+
+/** The seven lanes: alternating bands, a line between them, each lane's name and how many boxes it holds. */
+function LaneBands({ g }: { g: Geometry }) {
+  const w = usePathWords()
+  return (
+    <>
+      {g.lanes.map((l, i) => (
+        <g key={l.lane}>
+          <rect x={l.x} y={0} width={l.w} height={g.height} className={i % 2 ? css.laneBandAlt : css.laneBand} />
+          <line x1={l.x} y1={0} x2={l.x} y2={g.height} className={css.laneLine} />
+          <text x={l.x + l.w / 2} y={20} textAnchor="middle" className={css.laneHead}>{l.count ? w(LANE_WORD[l.lane]) : '·'}</text>
+          {l.count > 0 && <text x={l.x + l.w / 2} y={34} textAnchor="middle" className={css.laneCount}>{l.count}</text>}
+        </g>
+      ))}
+    </>
+  )
+}
+
+/** One link: traced, possible or to a gap; drawn stronger when it touches the selected box, dimmed otherwise. */
+function LaneEdge({ e, a, b, on, selected }: { e: DrawEdge; a: At; b: At; on: boolean; selected?: string }) {
+  const cls = [css.edge, e.style === 'possible' && css.possible, e.style === 'gap' && css.toGap, on && css.on,
+    selected && !on && css.edgeDim, e.dim && css.edgeDim].filter(Boolean).join(' ')
+  return <path d={curve(a, b)} className={cls} strokeWidth={on ? 2 : e.width} markerEnd={`url(#${on ? 'paths-arrow-on' : 'paths-arrow'})`} />
+}
+
+/** One box, a button: its kind, its operation in the change and target views, its title, line and count. */
+function LaneNode({ id, n, at, mode, selected, onSelect }: { id: string; n: DrawNode; at: At; mode: PathMode; selected?: string; onSelect: (id: string) => void }) {
+  const cls = [css.node, KIND_CLASS[n.kind], n.op && mode === 'change' && css[`op_${n.op}`], mode === 'target' && n.op === 'delete' && css.op_delete,
+    id === selected && css.sel, n.dim && css.dim].filter(Boolean).join(' ')
+  const room = n.count !== undefined ? 16 : 20
+  return (
+    <g className={cls} transform={`translate(${at.x},${at.y})`} role="button" tabIndex={0} aria-label={n.aria}
+      aria-pressed={id === selected} onClick={() => onSelect(id)}
+      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(id) } }}>
+      <rect className={css.box} width={NODE_W} height={NODE_H} rx={8} />
+      {n.op === 'delete' && (mode === 'change' || mode === 'target') && <rect width={NODE_W} height={NODE_H} rx={8} fill="url(#paths-hatch)" opacity={0.5} />}
+      {n.kind === 'gap' && <text x={NODE_W - 12} y={28} textAnchor="middle" className={css.gapMark}>?</text>}
+      <text x={10} y={n.sub ? 18 : 27} className={css.nodeTitle}>{fit(n.title, room)}</text>
+      {n.sub && <text x={10} y={34} className={css.nodeSub}>{clip(n.sub, 26)}</text>}
+      {n.count !== undefined && <text x={NODE_W - 10} y={27} textAnchor="end" className={css.nodeCount}>{n.count}</text>}
+    </g>
   )
 }
 
