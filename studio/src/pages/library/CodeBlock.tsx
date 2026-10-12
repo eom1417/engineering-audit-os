@@ -2,7 +2,7 @@
 // (highlight.ts, a chunk read the first time a document holds code in a language it knows). The highlighter's tree is
 // drawn as React elements; until it arrives, and for a language it does not know, the code is shown plain.
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
-import { copyText, IconButton } from '../../components/Button'
+import { Button, copyText } from '../../components/Button'
 import { useToast } from '../../components/Toast'
 import { languageOf, tokenKind, type Language } from './code'
 import type { Highlighted } from './highlight'
@@ -46,7 +46,7 @@ export function CodeBlock({ code, info, label }: { code: string; info?: string; 
     <div className={css.codeBlock}>
       <div className={css.codeBar}>
         <span className={css.codeLang} dir="ltr">{name || w('code')}</span>
-        <IconButton small icon="copy" label={w('copyCode')} onPress={() => { void copyText(code).then((ok) => toast(ok ? w('copiedCode') : w('copyFailed'))) }} />
+        <Button variant="secondary" icon="copy" onPress={() => { void copyText(code).then((ok) => toast(ok ? w('copiedCode') : w('copyFailed'))) }}>{w('copyCode')}</Button>
       </div>
       <pre className={css.pre} dir="ltr" tabIndex={0} aria-label={label}><code>{tree ? draw(tree.children, 'c') : code}</code></pre>
     </div>
