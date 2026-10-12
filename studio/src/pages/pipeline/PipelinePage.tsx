@@ -88,9 +88,16 @@ function Head({ data, scope, onEnter, compact }: { data: PipelineData; scope: Sc
   )
 }
 
+interface ViewCtx {
+  studio: StudioData; data: PipelineData; scope: Scope; id: string; view: View; show: Show; stage?: string; hidden: boolean
+  names: string[]; followed?: string; lit: ReturnType<typeof follow> | null; label: string
+  go: (patch: Partial<PipelineSearch>) => void; pick: (sid: string) => void; enter: (pid: string) => void
+  setFollow: (name: string | undefined) => void; setView: (v: View) => void; setShow: (s: Show) => void; setHidden: (on: boolean) => void
+}
+
 function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData }) {
   const w = usePipelineWords()
-  const { t, lang } = usePrefs()
+  const { t } = usePrefs()
   const phone = usePhone()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as PipelineSearch
@@ -117,35 +124,52 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
   const setShow = (s: Show) => go({ show: s === 'map' ? undefined : s })
   const setHidden = (on: boolean) => go({ hidden: on ? '1' : undefined })
   const label = w('countsAria', { t: scope.pipeline.title, s: scope.stages.length, e: scope.edges.length })
-  const inspector = stage
-    ? <StageInspector data={data} scope={scope} id={stage} view={view} onSelect={pick} onEnter={enter} onFollow={setFollow} />
-    : <PipelineSummary data={data} scope={scope} view={view} onSelect={pick} onEnter={enter} />
-  const followBar = followed && (
+  const c: ViewCtx = { studio, data, scope, id, view, show, stage, hidden, names, followed, lit, label, go, pick, enter, setFollow, setView, setShow, setHidden }
+  if (phone) return <PhonePipeline c={c} sheet={sheet} setSheet={setSheet} full={full} setFull={setFull} />
+  return <DesktopPipeline c={c} />
+}
+
+/** The choice of pipeline, each with its number of stages. */
+function PipelinePicker({ c }: { c: ViewCtx }) {
+  const w = usePipelineWords()
+  const { lang } = usePrefs()
+  return (
+    <label className={css.pipelinePicker}>
+      <span>{w('pipelines')}</span>
+      <select aria-label={w('pipelines')} value={c.id} onChange={(event) => c.enter(event.target.value)}>
+        {c.data.pipelines.map((pipeline) => <option key={pipeline.id} value={pipeline.id}>{pipelineTitle(pipeline, lang)} · {pipeline.counts?.stages ?? pipeline.stages.length} {w('kind_stage')}</option>)}
+      </select>
+    </label>
+  )
+}
+
+/** The data name being followed, with the way to stop following it. */
+function FollowBar({ followed, onClear }: { followed: string; onClear: () => void }) {
+  const w = usePipelineWords()
+  return (
     <div className={css.followBar} role="status">
       <span>{w('followOn')} <Id value={followed} /></span>
-      <Button variant="ghost" onPress={() => setFollow(undefined)}>{w('clearFollow')}</Button>
+      <Button variant="ghost" onPress={onClear}>{w('clearFollow')}</Button>
     </div>
   )
-  const long = scope.stages.length > 200
-  const picker = <label className={css.pipelinePicker}>
-    <span>{w('pipelines')}</span>
-    <select aria-label={w('pipelines')} value={id} onChange={(event) => enter(event.target.value)}>
-      {data.pipelines.map((pipeline) => <option key={pipeline.id} value={pipeline.id}>{pipelineTitle(pipeline, lang)} · {pipeline.counts?.stages ?? pipeline.stages.length} {w('kind_stage')}</option>)}
-    </select>
-  </label>
+}
 
-  if (phone) {
-    return (
+/** The phone: the steps first, the flowchart as a preview that opens full screen, the inspector as a sheet. */
+function PhonePipeline({ c, sheet, setSheet, full, setFull }: { c: ViewCtx; sheet: boolean; setSheet: (open: boolean) => void; full: boolean; setFull: (open: boolean) => void }) {
+  const w = usePipelineWords()
+  const { lang } = usePrefs()
+  const { studio, data, scope, view, show, stage, hidden, names, followed, lit, label, go, pick, enter, setFollow, setView, setShow, setHidden } = c
+  return (
       <div className={frame.phone}>
         <MissingBanner data={studio} />
         <Head data={data} scope={scope} onEnter={enter} compact />
-        {picker}
+        <PipelinePicker c={c} />
         <div className={css.mobileControls}><ViewSwitch view={view} onChange={setView} comfortable /><ShowSwitch show={show} onChange={setShow} comfortable /></div>
         <details className={css.explore}><summary>{lang === 'ar' ? 'تتبّع البيانات والمسارات الخفية' : 'Trace data and hidden paths'}</summary>
           <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
           <FollowPicker names={names} value={followed} onChange={setFollow} />
         </details>
-        {followBar}
+        {followed && <FollowBar followed={followed} onClear={() => setFollow(undefined)} />}
         {show === 'map' && (
           <div className={css.mobileDiagram}>
             <Flowchart scope={scope} view={view} down selected={stage} onSelect={pick} hidden={hidden} lit={lit} label={label} legend={false}
@@ -162,32 +186,49 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
         <Sheet isOpen={sheet && !!stage} onOpenChange={setSheet} title={w('inspector')}>
           {stage && <StageInspector data={data} scope={scope} id={stage} view={view} onSelect={(s) => go({ stage: s })} onEnter={enter} onFollow={setFollow} />}
         </Sheet>
-        <ModalOverlay isOpen={full} onOpenChange={setFull} isDismissable className={frame.sheetOverlay}>
-          <Modal className={frame.sheetModal}>
-            <Dialog className={frame.sheetDialog} aria-label={w('pipeline')}>
-              {({ close }) => (
-                <>
-                  <Flowchart scope={scope} view={view} down selected={stage} onSelect={(s) => go({ stage: s })} hidden={hidden} lit={lit} label={label} legend={false}
-                    title={<div className={frame.titleRow}><IconButton icon="x" label={w('closeDiagram')} onPress={close} /><Heading slot="title" className={frame.sheetTitle}><Id value={scope.pipeline.title} /></Heading></div>}
-                    head={<ViewSwitch view={view} onChange={setView} comfortable />} />
-                  {stage && (
-                    <div className={frame.sheetBar} role="status">
-                      <Id value={scope.stage.get(stage)?.label ?? scope.ideal.get(stage)?.label ?? stage} />
-                      <Button variant="primary" onPress={() => { close(); setSheet(true) }}>{w('inspector')}</Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </Dialog>
-          </Modal>
-        </ModalOverlay>
+        <FullDiagram c={c} open={full} onOpenChange={setFull} onInspect={() => setSheet(true)} />
       </div>
-    )
-  }
+  )
+}
 
+/** The phone's flowchart full screen, top to bottom, with pan and pinch; the chosen stage opens the inspector. */
+function FullDiagram({ c, open, onOpenChange, onInspect }: { c: ViewCtx; open: boolean; onOpenChange: (open: boolean) => void; onInspect: () => void }) {
+  const w = usePipelineWords()
+  const { scope, view, stage, hidden, lit, label, go, setView } = c
+  return (
+    <ModalOverlay isOpen={open} onOpenChange={onOpenChange} isDismissable className={frame.sheetOverlay}>
+      <Modal className={frame.sheetModal}>
+        <Dialog className={frame.sheetDialog} aria-label={w('pipeline')}>
+          {({ close }) => (
+            <>
+              <Flowchart scope={scope} view={view} down selected={stage} onSelect={(s) => go({ stage: s })} hidden={hidden} lit={lit} label={label} legend={false}
+                title={<div className={frame.titleRow}><IconButton icon="x" label={w('closeDiagram')} onPress={close} /><Heading slot="title" className={frame.sheetTitle}><Id value={scope.pipeline.title} /></Heading></div>}
+                head={<ViewSwitch view={view} onChange={setView} comfortable />} />
+              {stage && (
+                <div className={frame.sheetBar} role="status">
+                  <Id value={scope.stage.get(stage)?.label ?? scope.ideal.get(stage)?.label ?? stage} />
+                  <Button variant="primary" onPress={() => { close(); onInspect() }}>{w('inspector')}</Button>
+                </div>
+              )}
+            </>
+          )}
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  )
+}
+
+/** The desktop: the flowchart or the steps beside the inspector. */
+function DesktopPipeline({ c }: { c: ViewCtx }) {
+  const w = usePipelineWords()
+  const { studio, data, scope, view, show, stage, hidden, names, followed, lit, label, pick, enter, setFollow, setView, setShow, setHidden } = c
+  const inspector = stage
+    ? <StageInspector data={data} scope={scope} id={stage} view={view} onSelect={pick} onEnter={enter} onFollow={setFollow} />
+    : <PipelineSummary data={data} scope={scope} view={view} onSelect={pick} onEnter={enter} />
+  const long = scope.stages.length > 200
   const head: ReactNode = (
     <>
-      {picker}
+      <PipelinePicker c={c} />
       <ViewSwitch view={view} onChange={setView} />
       <ShowSwitch show={show} onChange={setShow} />
       <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
@@ -207,7 +248,7 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
             <div className={frame.seqWrap}><div className={frame.phone}><StepList scope={scope} view={view} selected={stage} onSelect={pick} lit={lit} /></div></div>
           </div>
         )}
-        {(followBar || long) && <div className={frame.note}>{followBar}{long && show === 'map' && <span>{w('partOfLong')}</span>}</div>}
+        {(followed || long) && <div className={frame.note}>{followed && <FollowBar followed={followed} onClear={() => setFollow(undefined)} />}{long && show === 'map' && <span>{w('partOfLong')}</span>}</div>}
       </section>
       <aside className={frame.side} aria-label={w('inspector')}>
         {!stage && <p className={css.verdict}><Txt>{data.verdict}</Txt></p>}
