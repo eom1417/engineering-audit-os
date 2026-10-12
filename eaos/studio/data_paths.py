@@ -111,32 +111,42 @@ def _component_of(report):
     return owner, goes, bool(record.get('target_components'))
 
 
-def _servers(report):
-    """{(METHOD, route key): {handler, path, line, fact, writes: [(store id, columns, fact)]}} from the server routes the
-    repository declares, with the writes their flows reach."""
-    access_by_file = defaultdict(list)
-    for fact in arch_map.facts(report, 'entrypoints', 'data_access'):
-        access_by_file[arch_map.path_of(fact)].append(fact)
+def _touched(report):
+    """{(METHOD, route key): (flow id, the files the flow touches)} of every HTTP flow."""
     touched = {}
     for flow in arch_map.facts(report, 'flows', 'flow'):
         value = flow.get('value') or {}
         entry = value.get('entry') or {}
         if entry.get('surface') == 'http' and entry.get('route'):
             touched[(str(entry.get('http_method') or '').upper(), route_key(entry['route']))] = (flow.get('id'), value.get('touched_files') or [])
+    return touched
+
+
+def _table_writes(files, access_by_file):
+    """[{store, columns, fact}] of every table write in the files."""
+    writes = []
+    for access in (access for path in sorted(set(files)) for access in access_by_file.get(path, [])):
+        v = access.get('value') or {}
+        store = _store_of(v)
+        if store and v.get('operation') in WRITES and store[1] == 'table':
+            writes.append({'store': store[0], 'columns': v.get('keys'), 'fact': access.get('id')})
+    return writes
+
+
+def _servers(report):
+    """{(METHOD, route key): {handler, path, line, fact, writes: [(store id, columns, fact)]}} from the server routes the
+    repository declares, with the writes their flows reach."""
+    access_by_file = defaultdict(list)
+    for fact in arch_map.facts(report, 'entrypoints', 'data_access'):
+        access_by_file[arch_map.path_of(fact)].append(fact)
+    touched = _touched(report)
     out = {}
     for fact in arch_map.facts(report, 'entrypoints', 'entry_point'):
         value = fact.get('value') or {}
         if value.get('surface') != 'http' or not value.get('route') or value.get('category') == 'test': continue
         key = (str(value.get('http_method') or 'GET').upper(), route_key(value['route']))
         flow_id, files = touched.get(key, (None, [arch_map.path_of(fact)]))
-        writes = []
-        for path in sorted(set(files)):
-            for access in access_by_file.get(path, []):
-                v = access.get('value') or {}
-                store = _store_of(v)
-                if store and v.get('operation') in WRITES and store[1] == 'table':
-                    writes.append({'store': store[0], 'columns': v.get('keys'), 'fact': access.get('id')})
-        out.setdefault(key, {'handler': value.get('handler'), **_site(fact), 'flow': flow_id, 'writes': writes})
+        out.setdefault(key, {'handler': value.get('handler'), **_site(fact), 'flow': flow_id, 'writes': _table_writes(files, access_by_file)})
     return out
 
 
@@ -183,144 +193,176 @@ def _layout(callers, stores, edges, pinned=None):
     return order, xy, size
 
 
-def _view(writers_of, readers_of, stores, group_of, store_family, caller_family, pinned=None):
-    """One overview: lanes of callers (grouped as `group_of` says) and stores, clustered above MAX_LANE, with their
-    weighted write and read edges, laid out."""
-    callers = sorted({group_of(m) for s in stores for m in writers_of.get(s, set()) | readers_of.get(s, set())} - {None})
-    caller_cluster = _cluster(callers, caller_family)
-    store_cluster = _cluster(list(stores), store_family) if pinned is None else pinned['clusters']
-    lane_caller = lambda c: caller_cluster.get(c, c)
-    lane_store = lambda s: store_cluster.get(s, s)
+def _weights(stores, edges_of, group_of, clusters):
+    """Counter {(caller lane node, store lane node, write or read): modules}; a module that writes a store is not
+    counted again as reading it."""
+    writers_of, readers_of = edges_of
+    caller_cluster, store_cluster = clusters
     weight = Counter()
     for s in stores:
         for kind, modules in (('write', writers_of.get(s, set())), ('read', readers_of.get(s, set()) - writers_of.get(s, set()))):
-            for m in modules:
-                group = group_of(m)
-                if group is not None: weight[(lane_caller(group), lane_store(s), kind)] += 1
-    caller_nodes = sorted({lane_caller(c) for c in callers})
-    store_nodes = sorted({lane_store(s) for s in stores})
-    pairs = {(a, b) for a, b, _ in weight}
-    order, xy, size = _layout(caller_nodes, store_nodes, pairs, pinned and pinned['order'])
-    edges = [{'from': a, 'to': b, 'kind': kind, 'modules': n} for (a, b, kind), n in sorted(weight.items())]
+            for group in (group for group in map(group_of, modules) if group is not None):
+                weight[(caller_cluster.get(group, group), store_cluster.get(s, s), kind)] += 1
+    return weight
+
+
+def _cluster_rows(caller_cluster, store_cluster):
     clusters = []
-    for lane, mapping in (('caller', caller_cluster), ('store', store_cluster if pinned is None else {})):
+    for lane, mapping in (('caller', caller_cluster), ('store', store_cluster)):
         members = defaultdict(list)
         for node, cluster in mapping.items(): members[cluster].append(node)
         clusters += [{'id': cid, 'lane': lane, 'members': sorted(m)} for cid, m in sorted(members.items())]
+    return clusters
+
+
+def _view(edges_of, stores, group_of, families, pinned=None):
+    """One overview: lanes of callers (grouped as `group_of` says) and stores, clustered above MAX_LANE, with their
+    weighted write and read edges, laid out. `edges_of`: (writers of each store, readers of each store); `families`:
+    (a store's family, a caller's family), what a lane too long is clustered by."""
+    writers_of, readers_of = edges_of
+    store_family, caller_family = families
+    callers = sorted({group_of(m) for s in stores for m in writers_of.get(s, set()) | readers_of.get(s, set())} - {None})
+    caller_cluster = _cluster(callers, caller_family)
+    store_cluster = _cluster(list(stores), store_family) if pinned is None else pinned['clusters']
+    weight = _weights(stores, edges_of, group_of, (caller_cluster, store_cluster))
+    caller_nodes = sorted({caller_cluster.get(c, c) for c in callers})
+    store_nodes = sorted({store_cluster.get(s, s) for s in stores})
+    pairs = {(a, b) for a, b, _ in weight}
+    order, xy, size = _layout(caller_nodes, store_nodes, pairs, pinned and pinned['order'])
+    edges = [{'from': a, 'to': b, 'kind': kind, 'modules': n} for (a, b, kind), n in sorted(weight.items())]
     return {'lanes': {'caller': order['caller'], 'store': order['store']},
             'place': {node: [round(x), round(y)] for node, (x, y) in sorted(xy.items())},
-            'size': size, 'box': [BOX_W, BOX_H], 'edges': edges, 'clusters': clusters}, store_cluster
+            'size': size, 'box': [BOX_W, BOX_H], 'edges': edges,
+            'clusters': _cluster_rows(caller_cluster, store_cluster if pinned is None else {})}, store_cluster
 
 
-def data_paths(report, lang='ar'):
-    """The section's body: {counts, tiers, stores, endpoints, paths, violations, current, target, change, src}."""
-    report = Path(report)
-    access = [f for f in arch_map.facts(report, 'entrypoints', 'data_access')
-              if (f.get('value') or {}).get('category') != 'test']
+def _handler_steps(value, kind, keys, server, has_server):
+    """The handler and column tiers of a write path: direct to the database, through a known server route, or a gap."""
+    if value.get('client') != 'http':
+        return {'handler': {'state': 'direct', 'reason': 'direct_database_client'},
+                'column': ({'state': 'known', 'columns': keys} if kind == 'table' and keys is not None else
+                           {'state': 'known', 'columns': None} if kind != 'table' else
+                           {'state': 'gap', 'reason': 'payload_not_literal'})}
+    if server:
+        reached = [w for w in server['writes'] if w['store']]
+        return {'handler': {'state': 'known', 'handler': server['handler'], 'path': server['path'],
+                            'line': server['line'], 'fact': server['fact'], 'flow': server['flow']},
+                'column': ({'state': 'known', 'stores': sorted({w['store'] for w in reached}),
+                            'columns': sorted({c for w in reached for c in w['columns'] or []}) or None}
+                           if reached else {'state': 'gap', 'reason': 'handler_writes_unseen'})}
+    return {'handler': {'state': 'gap', 'reason': 'no_matching_route' if has_server else 'backend_outside_snapshot'},
+            'column': {'state': 'gap', 'reason': 'behind_handler'}}
+
+
+def _steps(value, kind, module, context):
+    """Each tier of one write path, from the input field to the column; `context`: (owner, servers, any server)."""
+    owner, servers, has_server = context
+    keys, op = value.get('keys'), str(value.get('operation') or '')
+    server = servers.get((op.upper(), route_key(value.get('target')))) if value.get('client') == 'http' else None
+    steps = {'field': {'state': 'gap', 'reason': 'no_ui_extractor'},
+             'form': {'state': 'gap', 'reason': 'no_ui_extractor'},
+             'key': ({'state': 'known', 'keys': keys, 'partial': bool(value.get('keys_partial'))} if keys is not None
+                     else {'state': 'gap', 'reason': 'payload_not_literal'}),
+             'caller': {'state': 'known', 'component': owner(module)},  # the module is the path's site
+             'endpoint': {'state': 'known'}}                           # the endpoint is the path's own
+    steps.update(_handler_steps(value, kind, keys, server, has_server))
+    return steps
+
+
+class _Inventory:
+    """Every store and endpoint the calls reach, the modules that write and read each, and one path per write."""
+
+    def __init__(self, declared, context):
+        self.declared, self.context = declared, context
+        self.stores, self.endpoints = {}, {}
+        self.writers_of, self.readers_of = defaultdict(set), defaultdict(set)
+        self.paths = []
+
+    def endpoint(self, value, sid, op):
+        eid, label = _endpoint_of(value)
+        endpoint = self.endpoints.setdefault(eid, {'id': eid, 'label': label, 'store': sid, 'operation': op,
+                                                   'method': op.upper() if value.get('client') == 'http' else None,
+                                                   'writers': set(), 'readers': set(), 'keys': set(), 'sites': []})
+        if eid not in self.stores[sid]['endpoints']: self.stores[sid]['endpoints'].append(eid)
+        return endpoint
+
+    def add(self, fact):
+        value = fact.get('value') or {}
+        store = _store_of(value)
+        if not store: return
+        sid, kind, name = store
+        op = str(value.get('operation') or '')
+        module = arch_map.path_of(fact)
+        self.stores.setdefault(sid, {'id': sid, 'kind': kind, 'name': name, 'client': value.get('client'),
+                                     'declared': self.declared.get(sid), 'endpoints': [], 'sites': 0})
+        self.stores[sid]['sites'] += 1
+        endpoint = self.endpoint(value, sid, op)
+        endpoint['sites'].append(_site(fact))
+        writes = op in WRITES
+        (endpoint['writers'] if writes else endpoint['readers']).add(module)
+        (self.writers_of if writes else self.readers_of)[sid].add(module)
+        if not writes: return
+        if value.get('keys'): endpoint['keys'].update(value['keys'])
+        self.paths.append({'store': sid, 'endpoint': endpoint['id'], 'site': _site(fact), 'steps': _steps(value, kind, module, self.context)})
+
+
+def _declared(report):
+    """{table store id: where the code declares it, and whether row-level security is on} of every table not dropped."""
     declared = {}
     for fact in arch_map.facts(report, 'domain', 'data_table'):
         value = fact.get('value') or {}
         if value.get('dropped'): continue
         declared.setdefault(f"table:{table_name(value.get('name'))}", {**_site(fact), 'rls': value.get('rls_enabled')})
-    owner, goes, has_target = _component_of(report)
-    servers = _servers(report)
-    has_server = bool(servers)
+    return declared
 
-    stores, endpoints = {}, {}
-    writers_of, readers_of = defaultdict(set), defaultdict(set)
-    paths = []
-    for fact in sorted(access, key=lambda f: (arch_map.path_of(f), (f.get('location') or {}).get('start_line') or 0, f.get('id') or '')):
-        value = fact.get('value') or {}
-        store = _store_of(value)
-        if not store: continue
-        sid, kind, name = store
-        op = str(value.get('operation') or '')
-        module = arch_map.path_of(fact)
-        stores.setdefault(sid, {'id': sid, 'kind': kind, 'name': name, 'client': value.get('client'),
-                                'declared': declared.get(sid), 'endpoints': [], 'sites': 0})
-        stores[sid]['sites'] += 1
-        eid, label = _endpoint_of(value)
-        endpoint = endpoints.setdefault(eid, {'id': eid, 'label': label, 'store': sid, 'operation': op,
-                                              'method': op.upper() if value.get('client') == 'http' else None,
-                                              'writers': set(), 'readers': set(), 'keys': set(), 'sites': []})
-        if eid not in stores[sid]['endpoints']: stores[sid]['endpoints'].append(eid)
-        endpoint['sites'].append(_site(fact))
-        writes = op in WRITES
-        (endpoint['writers'] if writes else endpoint['readers']).add(module)
-        (writers_of if writes else readers_of)[sid].add(module)
-        if not writes: continue
-        keys = value.get('keys')
-        if keys: endpoint['keys'].update(keys)
-        server = servers.get((op.upper(), route_key(value.get('target')))) if value.get('client') == 'http' else None
-        steps = {'field': {'state': 'gap', 'reason': 'no_ui_extractor'},
-                 'form': {'state': 'gap', 'reason': 'no_ui_extractor'},
-                 'key': ({'state': 'known', 'keys': keys, 'partial': bool(value.get('keys_partial'))} if keys is not None
-                         else {'state': 'gap', 'reason': 'payload_not_literal'}),
-                 'caller': {'state': 'known', 'component': owner(module)},  # the module is the path's site
-                 'endpoint': {'state': 'known'}}                           # the endpoint is the path's own
-        if value.get('client') != 'http':
-            steps['handler'] = {'state': 'direct', 'reason': 'direct_database_client'}
-            steps['column'] = ({'state': 'known', 'columns': keys} if kind == 'table' and keys is not None else
-                               {'state': 'known', 'columns': None} if kind != 'table' else
-                               {'state': 'gap', 'reason': 'payload_not_literal'})
-        elif server:
-            steps['handler'] = {'state': 'known', 'handler': server['handler'], 'path': server['path'],
-                                'line': server['line'], 'fact': server['fact'], 'flow': server['flow']}
-            reached = [w for w in server['writes'] if w['store']]
-            steps['column'] = ({'state': 'known', 'stores': sorted({w['store'] for w in reached}),
-                                'columns': sorted({c for w in reached for c in w['columns'] or []}) or None}
-                               if reached else {'state': 'gap', 'reason': 'handler_writes_unseen'})
-        else:
-            steps['handler'] = {'state': 'gap', 'reason': 'no_matching_route' if has_server else 'backend_outside_snapshot'}
-            steps['column'] = {'state': 'gap', 'reason': 'behind_handler'}
-        paths.append({'store': sid, 'endpoint': eid, 'site': _site(fact), 'steps': steps})
 
-    for sid, entry in declared.items():  # a table the code declares but no call reaches is still a store
-        stores.setdefault(sid, {'id': sid, 'kind': 'table', 'name': sid.split(':', 1)[1], 'client': None,
-                                'declared': entry, 'endpoints': [], 'sites': 0})
+def _change(later, writers, store):
+    if later is None or not writers: return None
+    if len(writers) == 1: return 'single_already'
+    return 'merged_in_target' if len(later) == 1 and not store['target']['unmapped'] else 'still_multiple'
 
-    group_today = lambda module: owner(module) or module
-    group_target = lambda module: goes.get(owner(module)) if owner(module) else None
-    violations = []
-    for eid, endpoint in sorted(endpoints.items()):
-        if len(endpoint['writers']) > 1:
-            violations.append({'id': f'own:{eid}', 'subject': eid, 'kind': 'endpoint', 'tier': 'client',
-                               'writers': sorted(endpoint['writers'])})
-    for sid, store in sorted(stores.items()):
-        writers = writers_of.get(sid, set())
+
+def _ownership(store, writers, inventory, grouping):
+    """A store's writers and readers, its owners today and in the target; `grouping`: ((today's group, the target's
+    group), whether there is a target)."""
+    (group_today, group_target), has_target = grouping
+    today = sorted({group_today(m) for m in writers})
+    later = sorted({group_target(m) for m in writers} - {None}) if has_target else None
+    # A table has more than one owner when two modules write it; an API resource only when one of its endpoints is
+    # written from two modules (POST /auth/login and POST /auth/register from two files are two inputs, one owner each).
+    many = len(writers) > 1 if store['kind'] != 'resource' else any(len(inventory.endpoints[e]['writers']) > 1 for e in store['endpoints'])
+    store.update(
+        writers=sorted(writers), readers=sorted(inventory.readers_of.get(store['id'], set())),
+        multi_writer=many,
+        today={'writers': len(writers), 'components': today},
+        target=None if later is None else {'components': later, 'single': len(later) <= 1 if writers else None,
+                                           'unmapped': sorted(m for m in writers if group_target(m) is None)},
+    )
+    store['change'] = _change(later, writers, store)
+
+
+def _violations(inventory, grouping):
+    """The endpoints, then the tables, written from more than one module; each store's ownership on the way."""
+    violations = [{'id': f'own:{eid}', 'subject': eid, 'kind': 'endpoint', 'tier': 'client', 'writers': sorted(endpoint['writers'])}
+                  for eid, endpoint in sorted(inventory.endpoints.items()) if len(endpoint['writers']) > 1]
+    for sid, store in sorted(inventory.stores.items()):
+        writers = inventory.writers_of.get(sid, set())
         if store['kind'] == 'table' and len(writers) > 1:
             violations.append({'id': f'own:{sid}', 'subject': sid, 'kind': 'table', 'tier': 'client', 'writers': sorted(writers)})
-        today = sorted({group_today(m) for m in writers})
-        later = sorted({group_target(m) for m in writers} - {None}) if has_target else None
-        # A table has more than one owner when two modules write it; an API resource only when one of its endpoints is
-        # written from two modules (POST /auth/login and POST /auth/register from two files are two inputs, one owner each).
-        many = len(writers) > 1 if store['kind'] != 'resource' else any(len(endpoints[e]['writers']) > 1 for e in store['endpoints'])
-        store.update(
-            writers=sorted(writers), readers=sorted(readers_of.get(sid, set())),
-            multi_writer=many,
-            today={'writers': len(writers), 'components': today},
-            target=None if later is None else {'components': later, 'single': len(later) <= 1 if writers else None,
-                                               'unmapped': sorted(m for m in writers if group_target(m) is None)},
-        )
-        store['change'] = (None if later is None or not writers else
-                           'single_already' if len(writers) == 1 else
-                           'merged_in_target' if len(later) == 1 and not store['target']['unmapped'] else 'still_multiple')
+        _ownership(store, writers, inventory, grouping)
+    return violations
 
-    def family_store(sid):
-        kind, _, name = sid.partition(':')
-        return f"{kind}:{re.split(r'[_/.]', name.lstrip('/'))[0][:12] or name}"
 
-    def family_caller(name):
-        return '/'.join(str(name).split('/')[:2])
+def _family_store(sid):
+    kind, _, name = sid.partition(':')
+    return f"{kind}:{re.split(r'[_/.]', name.lstrip('/'))[0][:12] or name}"
 
-    store_ids = sorted(stores)
-    current, clusters = _view(writers_of, readers_of, store_ids, group_today, family_store, family_caller)
-    target = None
-    if has_target:
-        target, _ = _view(writers_of, readers_of, store_ids, group_target, family_store, family_caller,
-                          pinned={'order': current['lanes']['store'], 'clusters': clusters})
 
-    gap_count = Counter((tier, step['reason']) for p in paths for tier, step in p['steps'].items() if step['state'] == 'gap')
+def _family_caller(name):
+    return '/'.join(str(name).split('/')[:2])
+
+
+def _tiers(paths, gap_count):
     tiers = []
     for tier in TIERS:
         known = sum(p['steps'][tier]['state'] in ('known', 'direct') for p in paths)
@@ -329,29 +371,67 @@ def data_paths(report, lang='ar'):
         tiers.append({'id': tier, 'state': state,
                       'known': _measure(known if paths else None, f'paths[].steps.{tier}.state in known, direct'),
                       'gaps': [{'reason': r, 'paths': gap_count[(tier, r)], 'step': GAPS[r]} for r in reasons]})
-    for item in endpoints.values():
-        item.update(writers=sorted(item['writers']), readers=sorted(item['readers']), keys=sorted(item['keys']) or None,
-                    multi_writer=len(item['writers']) > 1)
+    return tiers
+
+
+def _counts(inventory, violations, gap_count, has_target):
+    stores, paths = inventory.stores, inventory.paths
     attributes = Counter()
     for p in paths:
         for key in p['steps']['key'].get('keys') or []: attributes[(p['store'], key)] += 1
-    writers_total = {m for s in writers_of.values() for m in s}
-    readers_total = {m for s in readers_of.values() for m in s}
+    writers_total = {m for s in inventory.writers_of.values() for m in s}
+    readers_total = {m for s in inventory.readers_of.values() for m in s}
     return {
-        'counts': {
-            'stores': _measure(len(stores), SRC['stores']),
-            'tables': _measure(sum(s['kind'] == 'table' for s in stores.values()), SRC['stores'] + ' (kind table)'),
-            'endpoints': _measure(len(endpoints), SRC['endpoints']),
-            'writers': _measure(len(writers_total), SRC['writers']),
-            'readers': _measure(len(readers_total), SRC['readers']),
-            'write_paths': _measure(len(paths), SRC['writers'] + ' (call sites)'),
-            'attributes': _measure(len(attributes), SRC['keys'] + ' (distinct store and key)'),
-            'multi_writer_endpoints': _measure(sum(v['kind'] == 'endpoint' for v in violations), 'violations[kind=endpoint]'),
-            'multi_writer_tables': _measure(sum(v['kind'] == 'table' for v in violations), 'violations[kind=table]'),
-            'gaps': _measure(sum(gap_count.values()), 'paths[].steps[state=gap] (count)'),
-            'single_in_target': _measure(sum(1 for s in stores.values() if (s.get('target') or {}).get('single')) if has_target else None,
-                                         SRC['target'] + ': stores written from one target component'),
-        },
+        'stores': _measure(len(stores), SRC['stores']),
+        'tables': _measure(sum(s['kind'] == 'table' for s in stores.values()), SRC['stores'] + ' (kind table)'),
+        'endpoints': _measure(len(inventory.endpoints), SRC['endpoints']),
+        'writers': _measure(len(writers_total), SRC['writers']),
+        'readers': _measure(len(readers_total), SRC['readers']),
+        'write_paths': _measure(len(paths), SRC['writers'] + ' (call sites)'),
+        'attributes': _measure(len(attributes), SRC['keys'] + ' (distinct store and key)'),
+        'multi_writer_endpoints': _measure(sum(v['kind'] == 'endpoint' for v in violations), 'violations[kind=endpoint]'),
+        'multi_writer_tables': _measure(sum(v['kind'] == 'table' for v in violations), 'violations[kind=table]'),
+        'gaps': _measure(sum(gap_count.values()), 'paths[].steps[state=gap] (count)'),
+        'single_in_target': _measure(sum(1 for s in stores.values() if (s.get('target') or {}).get('single')) if has_target else None,
+                                     SRC['target'] + ': stores written from one target component'),
+    }
+
+
+def data_paths(report, lang='ar'):
+    """The section's body: {counts, tiers, stores, endpoints, paths, violations, current, target, change, src}."""
+    report = Path(report)
+    access = [f for f in arch_map.facts(report, 'entrypoints', 'data_access')
+              if (f.get('value') or {}).get('category') != 'test']
+    declared = _declared(report)
+    owner, goes, has_target = _component_of(report)
+    servers = _servers(report)
+    inventory = _Inventory(declared, (owner, servers, bool(servers)))
+    for fact in sorted(access, key=lambda f: (arch_map.path_of(f), (f.get('location') or {}).get('start_line') or 0, f.get('id') or '')):
+        inventory.add(fact)
+    stores, endpoints, paths = inventory.stores, inventory.endpoints, inventory.paths
+    for sid, entry in declared.items():  # a table the code declares but no call reaches is still a store
+        stores.setdefault(sid, {'id': sid, 'kind': 'table', 'name': sid.split(':', 1)[1], 'client': None,
+                                'declared': entry, 'endpoints': [], 'sites': 0})
+
+    group_today = lambda module: owner(module) or module
+    group_target = lambda module: goes.get(owner(module)) if owner(module) else None
+    violations = _violations(inventory, ((group_today, group_target), has_target))
+
+    store_ids = sorted(stores)
+    edges_of, families = (inventory.writers_of, inventory.readers_of), (_family_store, _family_caller)
+    current, clusters = _view(edges_of, store_ids, group_today, families)
+    target = None
+    if has_target:
+        target, _ = _view(edges_of, store_ids, group_target, families,
+                          pinned={'order': current['lanes']['store'], 'clusters': clusters})
+
+    gap_count = Counter((tier, step['reason']) for p in paths for tier, step in p['steps'].items() if step['state'] == 'gap')
+    tiers = _tiers(paths, gap_count)
+    for item in endpoints.values():
+        item.update(writers=sorted(item['writers']), readers=sorted(item['readers']), keys=sorted(item['keys']) or None,
+                    multi_writer=len(item['writers']) > 1)
+    return {
+        'counts': _counts(inventory, violations, gap_count, has_target),
         'tiers': tiers,
         'stores': [stores[s] for s in store_ids],
         'endpoints': [endpoints[e] for e in sorted(endpoints)],
