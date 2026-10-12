@@ -90,6 +90,44 @@ def _read(path):
     except (OSError, ValueError): return None
 
 
+def _log_rows(chunk):
+    """The JSON objects in whole lines of the event log; a line that is not one is left out."""
+    rows = []
+    for line in chunk.decode('utf-8', 'replace').splitlines():
+        try: row = json.loads(line)
+        except ValueError: continue
+        if isinstance(row, dict): rows.append(row)
+    return rows
+
+
+def _changed_sections(before, current):
+    """The sections whose digest is not what it was, or that came or went."""
+    return sorted({*before['sections'], *current['sections']} - {
+        name for name in current['sections'] if before['sections'].get(name) == current['sections'][name]})
+
+
+def _card_events(before, current):
+    """batch.delivered for cards that moved onto a branch, branch.merged for cards that moved to done."""
+    cards_then, cards_now = before['states']['cards'], current['states']['cards']
+    moved = {cid: (cards_then.get(cid), state) for cid, state in cards_now.items() if cards_then.get(cid) != state}
+    batch = sorted(c for c, (was, state) in moved.items() if state in BATCH and was not in BATCH)
+    merged = sorted(c for c, (was, state) in moved.items() if state in MERGED and was not in MERGED)
+    return ([('batch.delivered', {'cards': batch[:500], 'count': len(batch)})] if batch else []) + \
+        ([('branch.merged', {'cards': merged[:500], 'count': len(merged)})] if merged else [])
+
+
+def _waiting(states):
+    return {d for d, state in states.items() if state == 'waiting'}
+
+
+def _decision_events(before, current):
+    """decision.asked for decisions now waiting, decision.answered for those no longer waiting."""
+    then, now_waiting = _waiting(before['states']['decisions']), _waiting(current['states']['decisions'])
+    asked, answered = sorted(now_waiting - then), sorted(then - now_waiting)
+    return ([('decision.asked', {'decisions': asked})] if asked else []) + \
+        ([('decision.answered', {'decisions': answered})] if answered else [])
+
+
 class Feed:
     def __init__(self, report, keep=KEEP, runtime=None):
         self.report = Path(report)
@@ -189,11 +227,7 @@ class Feed:
             return added
         complete = chunk[:chunk.rfind(b'\n') + 1]       # a line still being written waits for the next look
         self.log_at += len(complete)
-        for line in complete.decode('utf-8', 'replace').splitlines():
-            try: row = json.loads(line)
-            except ValueError: continue
-            if not isinstance(row, dict): continue
-            added.append(self.publish(str(row.get('kind') or row.get('type') or 'event'), data=row, source='events'))
+        added += [self.publish(str(row.get('kind') or row.get('type') or 'event'), data=row, source='events') for row in _log_rows(complete)]
         self._poll_manifest(quiet=True)                 # the manifest still tells the Studio which sections to reload
         return added
 
@@ -201,37 +235,25 @@ class Feed:
         manifest = _read(self.folder / 'manifest.json')
         if not isinstance(manifest, dict) or not isinstance(manifest.get('sections'), list): return None
         sections = {s.get('name'): s.get('sha256') for s in manifest['sections'] if isinstance(s, dict)}
-        before = self.seen or {}
-        def states(name, key):
-            if before.get('sections', {}).get(name) == sections.get(name) and name in before.get('states', {}):
-                return before['states'][name]
-            body = _read(self.folder / f'{name}.json') if name in sections else None
-            rows = (body or {}).get(key) if isinstance(body, dict) else None
-            return {str(r.get('id')): r.get('state') for r in rows or [] if isinstance(r, dict)}
         return {'digest': '|'.join(f'{k}:{v}' for k, v in sorted(sections.items(), key=lambda kv: str(kv[0]))),
                 'scan': manifest.get('scanned'), 'sections': sections,
-                'states': {'cards': states('cards', 'cards'), 'decisions': states('decisions', 'decisions')}}
+                'states': {name: self._states(sections, name) for name in ('cards', 'decisions')}}
+
+    def _states(self, sections, name):
+        """{id: state} of a section's rows; the last snapshot's when the section's digest has not changed."""
+        before = self.seen or {}
+        if before.get('sections', {}).get(name) == sections.get(name) and name in before.get('states', {}):
+            return before['states'][name]
+        body = _read(self.folder / f'{name}.json') if name in sections else None
+        rows = (body or {}).get(name) if isinstance(body, dict) else None
+        return {str(r.get('id')): r.get('state') for r in rows or [] if isinstance(r, dict)}
 
     def _poll_manifest(self, quiet=False):
         current = self.snapshot()
         if current is None: return []
         before, self.seen = self.seen, current
         if before is None or before['digest'] == current['digest'] or quiet: return []
-        changed = sorted({*before['sections'], *current['sections']} - {
-            name for name in current['sections'] if before['sections'].get(name) == current['sections'][name]})
-        events = []
-        if before['scan'] != current['scan']:
-            events.append(('scan.done', {'scanned': current['scan']}))
-        cards_then, cards_now = before['states']['cards'], current['states']['cards']
-        moved = {cid: (cards_then.get(cid), state) for cid, state in cards_now.items() if cards_then.get(cid) != state}
-        batch = sorted(c for c, (was, state) in moved.items() if state in BATCH and was not in BATCH)
-        merged = sorted(c for c, (was, state) in moved.items() if state in MERGED and was not in MERGED)
-        if batch: events.append(('batch.delivered', {'cards': batch[:500], 'count': len(batch)}))
-        if merged: events.append(('branch.merged', {'cards': merged[:500], 'count': len(merged)}))
-        waiting = lambda states: {d for d, state in states.items() if state == 'waiting'}
-        asked = sorted(waiting(current['states']['decisions']) - waiting(before['states']['decisions']))
-        answered = sorted(waiting(before['states']['decisions']) - waiting(current['states']['decisions']))
-        if asked: events.append(('decision.asked', {'decisions': asked}))
-        if answered: events.append(('decision.answered', {'decisions': answered}))
-        if not events: events.append(('studio.updated', {}))
-        return [self.publish(kind, data=data, source='manifest', sections=changed) for kind, data in events]
+        changed = _changed_sections(before, current)
+        events = [('scan.done', {'scanned': current['scan']})] if before['scan'] != current['scan'] else []
+        events += _card_events(before, current) + _decision_events(before, current)
+        return [self.publish(kind, data=data, source='manifest', sections=changed) for kind, data in events or [('studio.updated', {})]]
