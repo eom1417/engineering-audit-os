@@ -67,17 +67,34 @@ def remove_python(path, name):
     text = Path(path).read_text(encoding='utf-8')
     tree = ast.parse(text)
     lines = text.splitlines(keepends=True)
-    spans = []
-    for node in tree.body:
-        names = ([node.name] if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else
-                 [t.id for t in getattr(node, 'targets', []) if isinstance(t, ast.Name)] +
-                 ([node.target.id] if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) else []))
-        if name in names:
-            start = min([d.lineno for d in getattr(node, 'decorator_list', [])] + [node.lineno])
-            spans.append((start, node.end_lineno))
+    spans = [(min([d.lineno for d in getattr(node, 'decorator_list', [])] + [node.lineno]), node.end_lineno)
+             for node in tree.body if name in _names_of(node)]
     for start, end in sorted(spans, reverse=True): del lines[start - 1:end]
     if spans: Path(path).write_text(''.join(lines), encoding='utf-8')
     return bool(spans)
+
+
+def _names_of(node):
+    """The names a top-level statement defines: a def or class, or the targets of an assignment."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return [node.name]
+    return ([t.id for t in getattr(node, 'targets', []) if isinstance(t, ast.Name)] +
+            ([node.target.id] if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) else []))
+
+
+NPM_FLAGS = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
+
+
+def _npm_steps(detail, binary):
+    """In each folder: a direct dependency installed at its fixed version; a transitive one overridden, then installed."""
+    steps = []
+    for folder, direct in detail.get('folders') or [(detail.get('folder', '.'), detail['direct'])]:
+        prefix = ['--prefix', folder] if folder != '.' else []
+        if direct:
+            steps.append(([binary, 'install', f"{detail['package']}@{detail['fixed']}", *NPM_FLAGS, *prefix], None))
+        else:
+            steps += [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}", *prefix], None),
+                      ([binary, 'install', *NPM_FLAGS, *prefix], None)]
+    return steps
 
 
 def _commands(card, copy):
@@ -91,21 +108,34 @@ def _commands(card, copy):
                  f"python-ast remove {detail['symbol']} from {detail['path']}")]
     if kind == 'jscodeshift':
         binary = which('jscodeshift')
-        if not binary: return None
-        return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)]
-    if kind == 'npm':
-        binary = which('npm') or 'npm'
-        steps = []
-        for folder, direct in detail.get('folders') or [(detail.get('folder', '.'), detail['direct'])]:
-            flags = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
-            prefix = ['--prefix', folder] if folder != '.' else []
-            if direct:
-                steps.append(([binary, 'install', f"{detail['package']}@{detail['fixed']}", *flags, *prefix], None))
-            else:
-                steps += [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}", *prefix], None),
-                          ([binary, 'install', *flags, *prefix], None)]
-        return steps
+        return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)] if binary else None
+    if kind == 'npm': return _npm_steps(detail, which('npm') or 'npm')
     return None
+
+
+def _run_step(step, description, copy):
+    """(exit code, the command as shown) of one step in the copy."""
+    if callable(step):
+        try:
+            step()
+            return 0, description
+        except (OSError, SyntaxError, ValueError):
+            return 1, description
+    import os
+    done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,
+                          env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
+    return done.returncode, shlex.join([Path(step[0]).name, *step[1:]]).replace(str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs')
+
+
+def _run_steps(steps, copy):
+    """(exit code, commands shown): the steps in order, stopping at the first that fails."""
+    code, shown = 0, []
+    for step, description in steps:
+        result, text = _run_step(step, description, copy)
+        code = code or result
+        shown.append(text)
+        if code: break
+    return code, shown
 
 
 def dry_run(card, target, copy=None):
@@ -121,19 +151,8 @@ def dry_run(card, target, copy=None):
     try:
         steps = _commands(card, copy)
         if steps is None: return None, None
-        before, code, shown = _stats(copy), 0, []
-        for step, description in steps:
-            if callable(step):
-                try: step()
-                except (OSError, SyntaxError, ValueError): code = 1
-                shown.append(description)
-            else:
-                import os
-                done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,
-                                      env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
-                code = code or done.returncode
-                shown.append(shlex.join([Path(step[0]).name, *step[1:]]).replace(str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs'))
-            if code: break
+        before = _stats(copy)
+        code, shown = _run_steps(steps, copy)
         after = _stats(copy)
         changed = _changed(copy, target, before, after)
         if not owned: _restore(copy, target, before, after)
@@ -144,39 +163,50 @@ def dry_run(card, target, copy=None):
 
 def card_for(task, facts_by_id, target):
     """What the codemod of one task changes, or None when its family has no mechanical tool."""
-    rules = json.loads(RULES.read_text(encoding='utf-8'))
     facts = [facts_by_id[f] for f in (task.get('evidence') or {}).get('fact_ids') or [] if f in facts_by_id]
     pattern = task.get('pattern')
-    if pattern in ('remove_dead', 'dead_code'):
-        fact = next((f for f in facts if (f.get('value') or {}).get('rule')), None)
-        if not fact: return None
-        rule, path = fact['value']['rule'], fact['location']['path']
-        tool = rules['remove_dead'].get(rule)
-        if isinstance(tool, dict): tool = tool.get(LANGUAGES.get(Path(path).suffix))
-        if not tool: return None
-        return {'kind': tool, 'path': path, 'symbol': fact['location'].get('symbol')}
+    if pattern in ('remove_dead', 'dead_code'): return _removal_card(facts)
     if pattern == 'leftover':
         fact = next(iter(facts), None)
         return {'kind': 'delete-file', 'path': fact['location']['path']} if fact else None
     if pattern == 'upgrade_dependency':
         fact = next(iter(facts), None)
-        if not fact: return None
-        ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
-        package, _, _ = rest.rpartition('@')
-        fixed = next((m['value'] for m in fact['value'].get('measurements') or [] if m['name'] == 'fixed_in'), None)
-        # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
-        folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
-        if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
-        def direct_in(where):
-            manifest = json.loads((Path(target) / where / 'package.json').read_text(encoding='utf-8'))
-            return package in (manifest.get('dependencies') or {}) or package in (manifest.get('devDependencies') or {})
-        # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
-        # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it.
-        folders = [folder] + [where for where in _lock_folders_with(target, package, rest.rpartition('@')[2]) if where != folder]
-        folders = [where for where in folders if (Path(target) / where / 'package.json').is_file()]
-        return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': direct_in(folder), 'folder': folder,
-                'folders': [(where, direct_in(where)) for where in folders]}
+        return _upgrade_card(fact, target) if fact else None
     return None
+
+
+def _removal_card(facts):
+    """The tool that removes a dead symbol or file, by the finding's rule and the file's language."""
+    rules = json.loads(RULES.read_text(encoding='utf-8'))
+    fact = next((f for f in facts if (f.get('value') or {}).get('rule')), None)
+    if not fact: return None
+    rule, path = fact['value']['rule'], fact['location']['path']
+    tool = rules['remove_dead'].get(rule)
+    if isinstance(tool, dict): tool = tool.get(LANGUAGES.get(Path(path).suffix))
+    if not tool: return None
+    return {'kind': tool, 'path': path, 'symbol': fact['location'].get('symbol')}
+
+
+def _direct_in(target, where, package):
+    """True when the package.json in `where` names the package itself, not only through another one."""
+    manifest = json.loads((Path(target) / where / 'package.json').read_text(encoding='utf-8'))
+    return package in (manifest.get('dependencies') or {}) or package in (manifest.get('devDependencies') or {})
+
+
+def _upgrade_card(fact, target):
+    """An npm upgrade to the fixed version, in every folder whose lock file holds the vulnerable version."""
+    ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
+    package, _, _ = rest.rpartition('@')
+    fixed = next((m['value'] for m in fact['value'].get('measurements') or [] if m['name'] == 'fixed_in'), None)
+    # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
+    folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
+    if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
+    # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
+    # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it.
+    folders = [folder] + [where for where in _lock_folders_with(target, package, rest.rpartition('@')[2]) if where != folder]
+    folders = [where for where in folders if (Path(target) / where / 'package.json').is_file()]
+    return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
+            'folders': [(where, _direct_in(target, where, package)) for where in folders]}
 
 
 def _lock_folders_with(target, package, version):
@@ -196,29 +226,38 @@ MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')
 
 def attach(tasks, out, target):
     """Give every mechanical card its codemod, dry-run on an isolated copy; returns how many were attached."""
+    facts_by_id = _facts_by_id(out)
+    cards = [(task, card_for(task, facts_by_id, target)) for task in tasks if task.get('pattern') in MECHANICAL]
+    cards = [(task, card) for task, card in cards if card]
+    if not cards: return 0
+    from .verify import isolated_copy
+    holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))
+    try:
+        # One copy for the whole run, put back after every card: a copy per card on a large project was
+        # hundreds of full copies, and none of them was ever removed.
+        return _try_cards(cards, target, isolated_copy(Path(target), holder / 'project'))
+    finally:
+        shutil.rmtree(holder, ignore_errors=True)
+
+
+def _facts_by_id(out):
     facts_by_id = {}
     for path in sorted((Path(out) / 'facts').glob('*.json')):
         try: data = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError): continue
         for fact in data.get('facts') or []:
             if isinstance(fact, dict) and fact.get('id'): facts_by_id[fact['id']] = fact
-    cards = [(task, card_for(task, facts_by_id, target)) for task in tasks if task.get('pattern') in MECHANICAL]
-    cards = [(task, card) for task, card in cards if card]
-    if not cards: return 0
-    from .verify import isolated_copy
-    holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))
+    return facts_by_id
+
+
+def _try_cards(cards, target, copy):
+    """Dry-run each card's codemod on the copy and attach it to its task: how many were attached."""
     attached = 0
-    try:
-        # One copy for the whole run, put back after every card: a copy per card on a large project was
-        # hundreds of full copies, and none of them was ever removed.
-        copy = isolated_copy(Path(target), holder / 'project')
-        for done, (task, card) in enumerate(cards):
-            progress.count('codemod trials', done, len(cards))
-            result, command = dry_run(card, target, copy)
-            if result is None: continue
-            task['codemod'] = {'tool': card['kind'], 'command': command, 'dry_run': result}
-            attached += 1
-        progress.count('codemod trials', len(cards), len(cards))
-    finally:
-        shutil.rmtree(holder, ignore_errors=True)
+    for done, (task, card) in enumerate(cards):
+        progress.count('codemod trials', done, len(cards))
+        result, command = dry_run(card, target, copy)
+        if result is None: continue
+        task['codemod'] = {'tool': card['kind'], 'command': command, 'dry_run': result}
+        attached += 1
+    progress.count('codemod trials', len(cards), len(cards))
     return attached
