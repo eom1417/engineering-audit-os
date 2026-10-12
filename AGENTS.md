@@ -59,9 +59,13 @@ check again, fix, accept.
 (cd studio && npm run build)      # only when studio/ changed
 ```
 
-## Before any check in beta-trial
+## Before any check in beta-trial (owner's order, 2026-10-12)
 
-Never start a check of `/workspace/eaos-beta-trial` (Studio or CLI) before `bash /workspace/eaos-beta-trial/update.sh`
-succeeds: it fast-forwards `src` to `origin/develop`, reinstalls EAOS from it, installs and checks every tool through
-EAOS itself (`eaos tools install`, `eaos tools doctor` all ok), checks Claude Code is ready, and restarts the Studio.
-If it fails, fix the cause; never check anyway (owner's rule, 2026-10-12).
+Always in this order, every time, by `bash /workspace/eaos-beta-trial/update.sh` (it stops at the first failure):
+1. every update, tool and fix is merged and pushed on `develop` (clean, equal to `origin/develop`);
+2. `develop` is merged into `beta-trial` (fast-forward) and `beta-trial` is pushed;
+3. EAOS and its tools are installed locally from the `beta-trial` checkout, through EAOS itself;
+4. everything is checked up to date (version, commit, every tool ok, Claude Code ready);
+5. the test suite of that checkout passes;
+6. the Studio is restarted; only then the check of the `develop` branch, from the Studio.
+A check started any other way does not count; if a fix lands during a check, stop it and start again from step 1.
