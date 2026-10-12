@@ -45,7 +45,7 @@ li + li > .event { border-block-start: 1px solid var(--border-subtle); }
 .scoreTag { display: inline-flex; align-items: baseline; gap: 4px; font-weight: 600; }
 .scoreTag small { color: var(--text-tertiary); font-weight: 400; font-size: 11px; }
 .pickers { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 14px 16px; }
-.picker { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-label); color: var(--text-secondary); font-weight: 500; min-inline-size: 0; flex: 1 1 160px; }
+.picker { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-label); color: var(--text-secondary); font-weight: 500; min-inline-size: 0; flex: 1 1 220px; }
 .select { min-block-size: 36px; border-radius: var(--radius-8); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); padding-inline: 10px; font-size: 14px; inline-size: 100%; }
 
 /* ---------------------------------------------------------------- one check, two checks */

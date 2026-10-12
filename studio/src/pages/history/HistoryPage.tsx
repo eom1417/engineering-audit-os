@@ -121,7 +121,7 @@ function ComparePicker({ scans }: { scans: Scan[] }) {
   const [from, setFrom] = useState(scans[0].id)
   const [to, setTo] = useState(last(scans)!.id)
   const a = scans.find((s) => s.id === from)!, b = scans.find((s) => s.id === to)!
-  const option = (s: Scan) => <option key={s.id} value={s.id}>{date(s.at, true)} · {s.id}</option>
+  const option = (s: Scan) => <option key={s.id} value={s.id} title={s.id}>{date(s.at, true)}</option>
   return (
     <div className={css.pickers}>
       <label className={css.picker}>{w('from')}<select className={css.select} value={from} onChange={(e) => setFrom(e.target.value)}>{scans.map(option)}</select></label>
