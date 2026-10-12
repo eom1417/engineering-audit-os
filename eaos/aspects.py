@@ -57,14 +57,16 @@ def _structure(out, ran):
            'modularity': digest.get('modularity'), 'cycles': graph.get('cycles'),
            'policy_violations': policy.get('violations') if policy.get('declared') else None,
            'map': {k: (arch.get(k) or {}).get('status') for k in ('city', 'clusters')} if arch else None}
-    if graph.get('cycles') is None and not arch:
-        row['rules'] = _verdict('unmeasured', 'neither the dependency graph nor the architecture map was drawn in this check')
-    elif graph.get('cycles') or row['policy_violations']:
-        row['rules'] = _verdict('improve', f"{graph.get('cycles') or 0} import cycle(s) and {row['policy_violations'] or 0} breach(es) "
-                                           'of the declared layering')
-    else:
-        row['rules'] = _verdict('keep', 'no import cycle and no breach of a declared layering')
+    row['rules'] = _structure_verdict(graph.get('cycles'), row['policy_violations'], arch)
     return row
+
+
+def _structure_verdict(cycles, violations, arch):
+    if cycles is None and not arch:
+        return _verdict('unmeasured', 'neither the dependency graph nor the architecture map was drawn in this check')
+    if cycles or violations:
+        return _verdict('improve', f"{cycles or 0} import cycle(s) and {violations or 0} breach(es) of the declared layering")
+    return _verdict('keep', 'no import cycle and no breach of a declared layering')
 
 
 def _sustainability(out):
@@ -108,7 +110,13 @@ def _tests(out):
     untested = [{'path': r['path'], 'complexity': r.get('complexity_max'), 'commits': r.get('churn')}
                 for r in risky if not tested(r['path'])][:LIMIT['rows']]
     failing = [a for a in record.get('attempts') or [] if a.get('exit_code') not in (0, None)]
-    row = {'source': 'verification.json, measurements.json', 'executed': bool(record.get('executed')),
+    row = _tests_row(record, failing, untested)
+    row['rules'] = _tests_verdict(row, record, failing, (untested, coverage))
+    return row
+
+
+def _tests_row(record, failing, untested):
+    return {'source': 'verification.json, measurements.json', 'executed': bool(record.get('executed')),
            'why_not_executed': None if record.get('executed') else record.get('reason'),
            'command': record.get('command'), 'passed': record.get('passed'), 'overall_percent': record.get('overall_percent'),
            'test_files': len(record.get('test_files') or []), 'failing_commands': [' '.join(a.get('argv') or []) for a in failing][:4],
@@ -117,45 +125,51 @@ def _tests(out):
            # The suite itself: its time, its slowest tests, and the tests that run no line no other test runs.
            'suite': {k: v for k, v in (record.get('suite') or {}).items() if k != 'redundant'} | (
                {'redundant': (record.get('suite') or {}).get('redundant', [])[:LIMIT['rows']]} if record.get('suite') else {})}
+
+
+def _tests_verdict(row, record, failing, reach):
+    """`reach`: (the complex files no test reaches, the measured coverage)."""
+    untested, coverage = reach
     suite = record.get('suite') or {}
-    if not row['test_files']:
-        row['rules'] = _verdict('improve', 'the project has no test file')
-    elif failing:
-        row['rules'] = _verdict('improve', f'{len(failing)} test command(s) fail on the code as it is')
-    elif (suite.get('redundant_share') or 0) > 0.2:
-        row['rules'] = _verdict('improve', f"{suite['redundant_count']} of {suite['tests']} tests run no line another test does not "
-                                           'run too: merge or delete them')
-    elif untested:
-        row['rules'] = _verdict('improve', f"{len(untested)} complex file(s) no test {'runs' if coverage else 'imports'}: "
-                                           + ', '.join(u['path'] for u in untested[:3]))
-    else:
-        row['rules'] = _verdict('keep', 'the tests ' + ('ran and passed, and ' if record.get('executed') else '') +
-                                'reach every complex file')
-    return row
+    if not row['test_files']: return _verdict('improve', 'the project has no test file')
+    if failing: return _verdict('improve', f'{len(failing)} test command(s) fail on the code as it is')
+    if (suite.get('redundant_share') or 0) > 0.2:
+        return _verdict('improve', f"{suite['redundant_count']} of {suite['tests']} tests run no line another test does not "
+                                   'run too: merge or delete them')
+    if untested:
+        return _verdict('improve', f"{len(untested)} complex file(s) no test {'runs' if coverage else 'imports'}: "
+                                   + ', '.join(u['path'] for u in untested[:3]))
+    return _verdict('keep', 'the tests ' + ('ran and passed, and ' if record.get('executed') else '') + 'reach every complex file')
 
 
 def _journeys(out, ran):
     record = _load(out, 'live/journeys.json', None) if ran.get('journeys') else None
     lock = _load(out, 'live/lock.json', None) if ran.get('record') else None
-    if record:
-        walked = record.get('walked') or []
-        failed = [w for w in walked if w.get('status') == 'failed']
-        row = {'source': 'live/journeys.json', 'walked': [{'spec': w.get('spec'), 'pages': (w.get('pages') or [])[:LIMIT['members']],
-                                                           'status': w.get('status')} for w in walked[:LIMIT['rows']]],
-               'failures': [{'spec': w.get('spec'), 'reason': w.get('reason')} for w in failed[:LIMIT['rows']]],
-               'recordings': len(record.get('recordings') or [])}
-        row['rules'] = (_verdict('improve', f'{len(failed)} journey(s) fail on the app as it is today') if failed else
-                        _verdict('keep', f'all {len(walked)} journey(s) walked without a failure') if walked else
-                        _verdict('unmeasured', 'no journey was walked'))
-        return row
-    if lock:
-        failed = [r for r in lock.get('results') or [] if r.get('status') in ('failed', 'error')]
-        return {'source': 'live/lock.json', 'specs': lock.get('specs'), 'passed': lock.get('passed'),
-                'failures': [{'spec': r.get('path'), 'reason': r.get('reason')} for r in failed[:LIMIT['rows']]],
-                'rules': _verdict('improve', f'{len(failed)} recorded screen(s) fail on the app as it is today') if failed else
-                         _verdict('keep', f"the {lock.get('specs')} recorded spec(s) pass twice on today's code")}
+    if record: return _walked(record)
+    if lock: return _locked(lock)
     return {'source': 'live/journeys.json', 'rules': _verdict('unmeasured', 'the app was not run in an isolated copy in this check, '
                                                                           'so no journey was walked')}
+
+
+def _walked(record):
+    walked = record.get('walked') or []
+    failed = [w for w in walked if w.get('status') == 'failed']
+    row = {'source': 'live/journeys.json', 'walked': [{'spec': w.get('spec'), 'pages': (w.get('pages') or [])[:LIMIT['members']],
+                                                       'status': w.get('status')} for w in walked[:LIMIT['rows']]],
+           'failures': [{'spec': w.get('spec'), 'reason': w.get('reason')} for w in failed[:LIMIT['rows']]],
+           'recordings': len(record.get('recordings') or [])}
+    if failed: row['rules'] = _verdict('improve', f'{len(failed)} journey(s) fail on the app as it is today')
+    elif walked: row['rules'] = _verdict('keep', f'all {len(walked)} journey(s) walked without a failure')
+    else: row['rules'] = _verdict('unmeasured', 'no journey was walked')
+    return row
+
+
+def _locked(lock):
+    failed = [r for r in lock.get('results') or [] if r.get('status') in ('failed', 'error')]
+    rules = (_verdict('improve', f'{len(failed)} recorded screen(s) fail on the app as it is today') if failed else
+             _verdict('keep', f"the {lock.get('specs')} recorded spec(s) pass twice on today's code"))
+    return {'source': 'live/lock.json', 'specs': lock.get('specs'), 'passed': lock.get('passed'),
+            'failures': [{'spec': r.get('path'), 'reason': r.get('reason')} for r in failed[:LIMIT['rows']]], 'rules': rules}
 
 
 def _readiness(out, aspect):
@@ -191,6 +205,10 @@ def _screens(out, ran):
     visual = ((_load(out, 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []) if ran.get('visual') else []
     if not screens:
         return {'source': 'live/screens.json', 'rules': _verdict('unmeasured', 'no screen was pictured in this check')}
+    return _pictured(screens, visual)
+
+
+def _pictured(screens, visual):
     failing = [r for r in screens.get('rows') or [] if r.get('failures')]
     row = {'source': 'live/screens.json, nodes/visual_reviewer/findings.json', 'screens': len(screens.get('rows') or []),
            'with_accessibility_failures': [{'page': r.get('page') or r.get('url'), 'failures': len(r.get('failures') or [])}
