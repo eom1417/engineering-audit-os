@@ -81,52 +81,58 @@ function AiNodeRun({ label }: { label: string }) {
   const questions = run.decisions.reduce((n, d) => n + (d.open_questions?.length ?? 0), 0)
   return (
     <Sec title={w('aiNode')}>
-      <p className={frame.insP}>
-        {run.method === 'model' ? w('aiByModel', { who: run.assistant ?? '?', model: run.model ?? '?' }) : w('aiByRules')}
-        {run.cached && <> · {w('aiCached')}</>}
-        {run.at && <> · <Id value={w('aiAt', { at: run.at.slice(0, 16).replace('T', ' ') })} /></>}
-        {run.seconds != null && <> · {w('aiCost', { s: Math.round(run.seconds), c: run.cost_usd != null ? run.cost_usd.toFixed(2) : '—' })}</>}
-      </p>
+      <AiRunLine run={run} />
       {run.method === 'rules' && run.why && <p className={frame.insP}><Txt>{run.why}</Txt></p>}
       <h4 className={css.aiRoutesH}>{w('aiRoutes')}</h4>
-      <ul className={css.aiRoutes}>
-        {run.routes.map((r) => (
-          <li key={r.decision}>
-            <span className={css.aiRouteHead}>
-              <span className={css.cond}><Id value={r.decision} /></span>
-              <span><N value={r.subjects} /> → {nodes.sinks.has(r.to) ? pick(nodes.sinks.get(r.to)!) : <Id value={r.to} />}</span>
-            </span>
-            <span className={css.muted}>{pick(r.when)}</span>
-          </li>
-        ))}
-      </ul>
+      <AiRoutes run={run} nodes={nodes} pick={pick} />
       {run.dropped.length > 0 && <p className={frame.insP}>{w('aiDropped', { n: run.dropped.length })}</p>}
       {questions > 0 && <><p className={frame.insP}>{w('aiQuestions', { n: questions })}</p><Go to="/decisions" className={css.aiInbox}>{w('aiToInbox')}</Go></>}
     </Sec>
   )
 }
 
+type Nodes = NonNullable<ReturnType<typeof useNodeRuns>['nodes']>
+type Run = NonNullable<ReturnType<Nodes['runs']['get']>>
+type Stage = NonNullable<ReturnType<Scope['stage']['get']>>
+type Ideal = NonNullable<ReturnType<Scope['ideal']['get']>>
+type Router = NonNullable<ReturnType<Scope['routerOf']['get']>>
+
+/** Who decided the run and how, when, and what it cost. */
+function AiRunLine({ run }: { run: Run }) {
+  const w = usePipelineWords()
+  return (
+    <p className={frame.insP}>
+      {run.method === 'model' ? w('aiByModel', { who: run.assistant ?? '?', model: run.model ?? '?' }) : w('aiByRules')}
+      {run.cached && <> · {w('aiCached')}</>}
+      {run.at && <> · <Id value={w('aiAt', { at: run.at.slice(0, 16).replace('T', ' ') })} /></>}
+      {run.seconds != null && <> · {w('aiCost', { s: Math.round(run.seconds), c: run.cost_usd != null ? run.cost_usd.toFixed(2) : '—' })}</>}
+    </p>
+  )
+}
+
+/** Each branch of the run: its decision, how many subjects took it and where they went, and when it is taken. */
+function AiRoutes({ run, nodes, pick }: { run: Run; nodes: Nodes; pick: (words: { en: string; ar: string }) => string }) {
+  return (
+    <ul className={css.aiRoutes}>
+      {run.routes.map((r) => (
+        <li key={r.decision}>
+          <span className={css.aiRouteHead}>
+            <span className={css.cond}><Id value={r.decision} /></span>
+            <span><N value={r.subjects} /> → {nodes.sinks.has(r.to) ? pick(nodes.sinks.get(r.to)!) : <Id value={r.to} />}</span>
+          </span>
+          <span className={css.muted}>{pick(r.when)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFollow }:
   { data: PipelineData; scope: Scope; id: string; view: View; onSelect: (id: string) => void; onEnter: (pipeline: string) => void; onFollow: (name: string) => void }) {
   const w = usePipelineWords()
-  const { lang } = usePrefs()
   const s = scope.stage.get(id)
   const ideal = scope.ideal.get(id)
-  if (!s) {
-    if (!ideal) return null
-    return (
-      <div className={frame.inspect}>
-        <div className={frame.insHead}>
-          <span className={frame.insK}>{w('addedByIdeal')}</span>
-          <span className={frame.insTitle}><Id value={ideal.label} /></span>
-          <OperationChip relation={RELATION[ideal.op]} />
-        </div>
-        {ideal.why && <p className={frame.insP}><Txt>{ideal.why}</Txt></p>}
-        {ideal.rule && <p className={frame.insP}>{w('rule')} <Id value={ideal.rule} /></p>}
-        <Contract ideal={ideal} />
-      </div>
-    )
-  }
+  if (!s) return ideal ? <IdealOnly ideal={ideal} /> : null
   const router = scope.routerOf.get(id)
   const fan = scope.fans.find((f) => f.fork === id || f.join === id || f.branches.includes(id))
   const control = scope.control.filter((c) => c.stage === id)
@@ -140,11 +146,7 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
   const label = (other: string) => scope.stage.get(other)?.label ?? other
   return (
     <div className={frame.inspect}>
-      <div className={frame.insHead}>
-        <span className={frame.insK}>{w(KIND_WORD[s.kind])}{s.optional && <> · {w('optional')}</>}{(s.marks ?? []).map((m) => <span key={m}> · {w.known('mark_', m)}</span>)}</span>
-        <span className={frame.insTitle}>{stageTitle(s, lang)}</span><Id value={s.label} />
-        {view !== 'current' && ideal && <OperationChip relation={RELATION[ideal.op]} />}
-      </div>
+      <StageHead s={s} ideal={ideal} view={view} />
       {gaps.length > 0 && (
         <Sec title={w('gap')}>
           <ol className={css.gapList}>{gaps.map((g) => <GapItem key={g.id} g={g} n={scope.gap.indexOf(g) + 1} />)}</ol>
@@ -165,75 +167,151 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
           <ul className={css.stack}>{s.side_effects.map((e, i) => <li key={i}><span>{w.known('', e.kind)} · <Id value={e.name} /></span><Id value={where(e) ?? ''} keep={1} /></li>)}</ul>
         </Sec>
       )}
-      {router && (
-        <Sec title={<>{w('branches')} <N value={router.branches.length} /></>}>
-          <p className={frame.insP}>{w('routesOn')} <Id value={router.on} /> · {router.total === true ? w('totalYes') : router.total === false || router.unhandled.length ? w('totalNo', { v: router.unhandled.join(', ') || '…' }) : w('totalUnknown')}</p>
-          <Evidence site={router.entry} />
-          <ul className={css.branches}>
-            {router.branches.map((b, i) => (
-              <li key={i}>
-                <span className={css.cond}><Id value={b.condition} /></span>
-                {b.to ? <AriaButton className={css.inline} onPress={() => onSelect(b.to!)}><Id value={label(b.to)} /></AriaButton> : <span className={css.muted}>{w('noTarget')}</span>}
-                <span className={css.muted}><Id value={where(b.evidence) ?? ''} keep={1} /></span>
-              </li>
-            ))}
-          </ul>
-          {router.default && <p className={frame.insP}>{w('defaultBranch')}: <Id value={router.default} /></p>}
-        </Sec>
-      )}
+      {router && <RouterSec router={router} onSelect={onSelect} label={label} />}
       {fan && (
         <Sec title={w('lgFork')}>
           <p className={frame.insP}>{w('fanOut', { n: fan.branches.length })} · {fan.join ? w('fanIn', { s: label(fan.join) }) : w('fanNoJoin')}</p>
           <Evidence site={fan.evidence} />
         </Sec>
       )}
-      {control.length > 0 && (
-        <Sec title={w('control')}>
-          <ul className={css.stack}>{control.map((c) => <li key={c.id}><span>{w.known('control_', c.kind)}{c.condition && <> · <Id value={c.condition} /></>}</span><Id value={where(c.evidence) ?? ''} keep={1} /></li>)}</ul>
-        </Sec>
-      )}
-      {errors.length > 0 && (
-        <Sec title={w('failureRoutes')}>
-          <ul className={css.stack}>{errors.map((e) => <li key={e.id}><span>{w.known('err_', e.kind)} → <Id value={e.to} />{e.condition && <> · <Id value={e.condition} /></>}{e.from === '*' && <> · {w('fromAny')}</>}</span><Id value={where(e.evidence) ?? ''} keep={1} /></li>)}</ul>
-        </Sec>
-      )}
-      {hidden.length > 0 && (
-        <Sec title={w('hidden')}>
-          <ul className={css.stack}>{hidden.map((h) => <li key={h.id}><span>{w.known('hidden_', h.kind)} · <Id value={h.name} /></span><Id value={where(h.evidence) ?? ''} keep={1} /></li>)}</ul>
-        </Sec>
-      )}
-      {unresolved.length > 0 && (
-        <div className={frame.gapBox} role="note">
-          <span className={frame.gapTitle}>{w('unresolved')}</span>
-          {unresolved.map((u) => <span key={u.id}><Id value={u.call} /> · <Txt>{u.reason}</Txt> · <Id value={where(u.evidence) ?? ''} keep={2} /></span>)}
-        </div>
-      )}
-      {(into.length > 0 || out.length > 0) && (
-        <Sec title={w('links')}>
-          <ul className={css.linkTable}>
-            {[...into.map((e) => [e, 'in'] as const), ...out.map((e) => [e, 'out'] as const)].map(([e, dir]) => (
-              <li key={e.id}>
-                <AriaButton className={css.inline} onPress={() => onSelect(dir === 'in' ? e.from : e.to)}>
-                  {dir === 'in' ? w('comesFrom') : w('goesTo')} <Id value={label(dir === 'in' ? e.from : e.to)} />
-                </AriaButton>
-                <span className={css.muted}>{w.known('matched_', e.matched_by)}{(e.data.shape || e.data.names[0]) && <> · <Id value={e.data.shape ?? e.data.names[0]} /></>} · <Id value={where(e.evidence) ?? ''} keep={1} /></span>
-              </li>
-            ))}
-          </ul>
-        </Sec>
-      )}
-      {view !== 'current' && ideal && (ideal.op !== 'retain' || ideal.why) && (
-        <Sec title={w('ideal')}>
-          {ideal.why && <p className={frame.insP}><Txt>{ideal.why}</Txt>{ideal.rule && <> · <Id value={ideal.rule} /></>}</p>}
-          <Contract ideal={ideal} />
-        </Sec>
-      )}
-      <div className={frame.linkList}>
-        {sub && <PickRow onPress={() => onEnter(sub.id)}>{w('enter', { n: sub.stages.length })} · <Id value={sub.title} /></PickRow>}
-        {s.entry.path && <LinkRow to="/system/paths" search={{ file: s.entry.path }}>{w('openCodePath')}</LinkRow>}
-        {s.cards.map((c) => <LinkRow key={c} to="/problems" search={{ card: c }}>{w('card')} <Id value={c} /></LinkRow>)}
-        {s.steps.map((st) => <LinkRow key={st} to="/change/timeline" search={{ step: st }}>{w('step')} <Id value={st} /></LinkRow>)}
+      {control.length > 0 && <ControlSec control={control} />}
+      {errors.length > 0 && <ErrorSec errors={errors} />}
+      {hidden.length > 0 && <HiddenSec hidden={hidden} />}
+      {unresolved.length > 0 && <UnresolvedBox unresolved={unresolved} />}
+      {(into.length > 0 || out.length > 0) && <LinksSec into={into} out={out} onSelect={onSelect} label={label} />}
+      {view !== 'current' && ideal && (ideal.op !== 'retain' || ideal.why) && <IdealSec ideal={ideal} />}
+      <WaysOn s={s} sub={sub} onEnter={onEnter} />
+    </div>
+  )
+}
+
+/** A stage only the ideal adds: why, under which rule, and its contract. */
+function IdealOnly({ ideal }: { ideal: Ideal }) {
+  const w = usePipelineWords()
+  return (
+    <div className={frame.inspect}>
+      <div className={frame.insHead}>
+        <span className={frame.insK}>{w('addedByIdeal')}</span>
+        <span className={frame.insTitle}><Id value={ideal.label} /></span>
+        <OperationChip relation={RELATION[ideal.op]} />
       </div>
+      {ideal.why && <p className={frame.insP}><Txt>{ideal.why}</Txt></p>}
+      {ideal.rule && <p className={frame.insP}>{w('rule')} <Id value={ideal.rule} /></p>}
+      <Contract ideal={ideal} />
+    </div>
+  )
+}
+
+/** The stage's kind and marks, its title and label, and its operation outside the current view. */
+function StageHead({ s, ideal, view }: { s: Stage; ideal?: Ideal; view: View }) {
+  const w = usePipelineWords()
+  const { lang } = usePrefs()
+  return (
+    <div className={frame.insHead}>
+      <span className={frame.insK}>{w(KIND_WORD[s.kind])}{s.optional && <> · {w('optional')}</>}{(s.marks ?? []).map((m) => <span key={m}> · {w.known('mark_', m)}</span>)}</span>
+      <span className={frame.insTitle}>{stageTitle(s, lang)}</span><Id value={s.label} />
+      {view !== 'current' && ideal && <OperationChip relation={RELATION[ideal.op]} />}
+    </div>
+  )
+}
+
+/** A router's branches: what it routes on, whether every value is handled, each branch and the default. */
+function RouterSec({ router, onSelect, label }: { router: Router; onSelect: (id: string) => void; label: (id: string) => string }) {
+  const w = usePipelineWords()
+  return (
+    <Sec title={<>{w('branches')} <N value={router.branches.length} /></>}>
+      <p className={frame.insP}>{w('routesOn')} <Id value={router.on} /> · {router.total === true ? w('totalYes') : router.total === false || router.unhandled.length ? w('totalNo', { v: router.unhandled.join(', ') || '…' }) : w('totalUnknown')}</p>
+      <Evidence site={router.entry} />
+      <ul className={css.branches}>
+        {router.branches.map((b, i) => (
+          <li key={i}>
+            <span className={css.cond}><Id value={b.condition} /></span>
+            {b.to ? <AriaButton className={css.inline} onPress={() => onSelect(b.to!)}><Id value={label(b.to)} /></AriaButton> : <span className={css.muted}>{w('noTarget')}</span>}
+            <span className={css.muted}><Id value={where(b.evidence) ?? ''} keep={1} /></span>
+          </li>
+        ))}
+      </ul>
+      {router.default && <p className={frame.insP}>{w('defaultBranch')}: <Id value={router.default} /></p>}
+    </Sec>
+  )
+}
+
+function ControlSec({ control }: { control: Scope['control'] }) {
+  const w = usePipelineWords()
+  return (
+    <Sec title={w('control')}>
+      <ul className={css.stack}>{control.map((c) => <li key={c.id}><span>{w.known('control_', c.kind)}{c.condition && <> · <Id value={c.condition} /></>}</span><Id value={where(c.evidence) ?? ''} keep={1} /></li>)}</ul>
+    </Sec>
+  )
+}
+
+function ErrorSec({ errors }: { errors: Scope['errors'] }) {
+  const w = usePipelineWords()
+  return (
+    <Sec title={w('failureRoutes')}>
+      <ul className={css.stack}>{errors.map((e) => <li key={e.id}><span>{w.known('err_', e.kind)} → <Id value={e.to} />{e.condition && <> · <Id value={e.condition} /></>}{e.from === '*' && <> · {w('fromAny')}</>}</span><Id value={where(e.evidence) ?? ''} keep={1} /></li>)}</ul>
+    </Sec>
+  )
+}
+
+function HiddenSec({ hidden }: { hidden: Scope['hidden'] }) {
+  const w = usePipelineWords()
+  return (
+    <Sec title={w('hidden')}>
+      <ul className={css.stack}>{hidden.map((h) => <li key={h.id}><span>{w.known('hidden_', h.kind)} · <Id value={h.name} /></span><Id value={where(h.evidence) ?? ''} keep={1} /></li>)}</ul>
+    </Sec>
+  )
+}
+
+/** The calls on this stage EAOS could not follow, and why. */
+function UnresolvedBox({ unresolved }: { unresolved: Scope['unresolved'] }) {
+  const w = usePipelineWords()
+  return (
+    <div className={frame.gapBox} role="note">
+      <span className={frame.gapTitle}>{w('unresolved')}</span>
+      {unresolved.map((u) => <span key={u.id}><Id value={u.call} /> · <Txt>{u.reason}</Txt> · <Id value={where(u.evidence) ?? ''} keep={2} /></span>)}
+    </div>
+  )
+}
+
+/** The links into and out of the stage, each with how it is known. */
+function LinksSec({ into, out, onSelect, label }: { into: Scope['edges']; out: Scope['edges']; onSelect: (id: string) => void; label: (id: string) => string }) {
+  const w = usePipelineWords()
+  return (
+    <Sec title={w('links')}>
+      <ul className={css.linkTable}>
+        {[...into.map((e) => [e, 'in'] as const), ...out.map((e) => [e, 'out'] as const)].map(([e, dir]) => (
+          <li key={e.id}>
+            <AriaButton className={css.inline} onPress={() => onSelect(dir === 'in' ? e.from : e.to)}>
+              {dir === 'in' ? w('comesFrom') : w('goesTo')} <Id value={label(dir === 'in' ? e.from : e.to)} />
+            </AriaButton>
+            <span className={css.muted}>{w.known('matched_', e.matched_by)}{(e.data.shape || e.data.names[0]) && <> · <Id value={e.data.shape ?? e.data.names[0]} /></>} · <Id value={where(e.evidence) ?? ''} keep={1} /></span>
+          </li>
+        ))}
+      </ul>
+    </Sec>
+  )
+}
+
+function IdealSec({ ideal }: { ideal: Ideal }) {
+  const w = usePipelineWords()
+  return (
+    <Sec title={w('ideal')}>
+      {ideal.why && <p className={frame.insP}><Txt>{ideal.why}</Txt>{ideal.rule && <> · <Id value={ideal.rule} /></>}</p>}
+      <Contract ideal={ideal} />
+    </Sec>
+  )
+}
+
+/** The ways on: its own pipeline, its code path, its cards and plan steps. */
+function WaysOn({ s, sub, onEnter }: { s: Stage; sub?: PipelineData['pipelines'][number]; onEnter: (pipeline: string) => void }) {
+  const w = usePipelineWords()
+  return (
+    <div className={frame.linkList}>
+      {sub && <PickRow onPress={() => onEnter(sub.id)}>{w('enter', { n: sub.stages.length })} · <Id value={sub.title} /></PickRow>}
+      {s.entry.path && <LinkRow to="/system/paths" search={{ file: s.entry.path }}>{w('openCodePath')}</LinkRow>}
+      {s.cards.map((c) => <LinkRow key={c} to="/problems" search={{ card: c }}>{w('card')} <Id value={c} /></LinkRow>)}
+      {s.steps.map((st) => <LinkRow key={st} to="/change/timeline" search={{ step: st }}>{w('step')} <Id value={st} /></LinkRow>)}
     </div>
   )
 }
