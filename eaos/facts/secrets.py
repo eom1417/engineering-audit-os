@@ -17,7 +17,6 @@ ENV_SAFE = {'.env.example', '.env.sample', '.env.template', '.env.test'}
 # A literal string that looks like a JWT: three base64url segments separated by dots.
 JWT = re.compile(r'\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
 # PEM private keys (PEM-encoded RSA/ECDSA/OpenSSH/PGP).
-PEM_PRIVATE = re.compile(r'-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----')
 PEM_BLOCK = re.compile(r'-----BEGIN ((?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY)-----(.*?)(?:-----END \1-----|$)', re.S)
 # The shortest real private key (an EC P-256 key) carries well over 100 base64 characters. A block with less is a
 # marker a test or a scanner rule uses to talk about keys (chief-ops: "-----BEGIN PRIVATE KEY-----\nMIIE\n..."),
