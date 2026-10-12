@@ -58,3 +58,10 @@ check again, fix, accept.
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
 (cd studio && npm run build)      # only when studio/ changed
 ```
+
+## Before any check in beta-trial
+
+Never start a check of `/workspace/eaos-beta-trial` (Studio or CLI) before `bash /workspace/eaos-beta-trial/update.sh`
+succeeds: it fast-forwards `src` to `origin/develop`, reinstalls EAOS from it, installs and checks every tool through
+EAOS itself (`eaos tools install`, `eaos tools doctor` all ok), checks Claude Code is ready, and restarts the Studio.
+If it fails, fix the cause; never check anyway (owner's rule, 2026-10-12).
