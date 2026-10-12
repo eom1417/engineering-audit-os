@@ -285,7 +285,6 @@ STUDIO = {
 # (eaos/studio/journeys.py) and what the user sees against what runs unseen (eaos/studio/hidden.py). Every element
 # carries its evidence (fact, file, line); a gap in the engine's data is written in `missing` and counted in coverage.
 _EVIDENCE = obj({'file': NS, 'line': NI, 'fact': NS}, ['file'])
-_NAMES2 = obj({'ar': S, 'en': S}, ['ar', 'en'])   # a name in both languages, the page picks the person's
 _MAP_GAP = obj({'id': S, 'state': enum(*COVERAGE_STATES), 'step': {'type': 'string', 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
                 'count': REF('measure'), 'detail': obj({'ar': S, 'en': S})}, ['id', 'state', 'step', 'count', 'detail'])
 _LINK_SITE = obj({'file': S, 'line': NI, 'fact': NS, 'via': S, 'target': NS}, ['file', 'via'])
