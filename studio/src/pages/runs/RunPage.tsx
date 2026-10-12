@@ -81,22 +81,7 @@ function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'u
     <Sheet isOpen onOpenChange={(open) => { if (!open) onClose() }} title={w(op === 'accept' ? 'acceptTitle' : 'undoTitle', { branch })}>
       <SheetLead>{w(op === 'accept' ? 'acceptLead' : 'undoLead')}</SheetLead>
       <p className={css.decideBranch}><Id value={branch} /> · <Txt>{labelOf(run.label, lang)}</Txt></p>
-      {op === 'accept' && merge && (
-        <div className={cmd.form} data-accept="where">
-          <label className={cmd.field}>
-            <span className={cmd.fieldLabel}>{w('mergeTarget')}</span>
-            <select className={cmd.select} data-accept="target" value={target} onChange={(e) => setTarget(e.target.value)}>
-              {merge.targets.map((t) => (
-                <option key={t.name} value={t.name} disabled={Boolean(t.blocked)}>{t.blocked ? `${t.name} · ${t.blocked[lang]}` : `${t.name} · ${t.short}`}</option>
-              ))}
-            </select>
-          </label>
-          <div className={cmd.check} data-accept="delete-after">
-            <SelectBox checked={remove} label={w('deleteAfter')} onToggle={() => setRemove(!remove)} />
-            <span>{w('deleteAfter')}<span className={cmd.hint}>{w('deleteAfterHint')}</span></span>
-          </div>
-        </div>
-      )}
+      {op === 'accept' && merge && <MergeWhere merge={merge} target={target} onTarget={setTarget} remove={remove} onRemove={() => setRemove(!remove)} />}
       {blocked && <p className={cmd.pvWarn} role="note"><Txt>{blocked[lang]}</Txt></p>}
       {problem && <StateMessage kind="error" title={w('decideFailed')} sub={<Txt>{problem}</Txt>} />}
       <div className={css.decideFoot}>
@@ -106,6 +91,29 @@ function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'u
         </Button>
       </div>
     </Sheet>
+  )
+}
+
+/** Where Accept merges (a blocked branch shown with its reason, not choosable) and whether the branch goes after. */
+function MergeWhere({ merge, target, onTarget, remove, onRemove }:
+  { merge: AcceptWhere; target: string; onTarget: (name: string) => void; remove: boolean; onRemove: () => void }) {
+  const w = useCmdWords()
+  const { lang } = usePrefs()
+  return (
+    <div className={cmd.form} data-accept="where">
+      <label className={cmd.field}>
+        <span className={cmd.fieldLabel}>{w('mergeTarget')}</span>
+        <select className={cmd.select} data-accept="target" value={target} onChange={(e) => onTarget(e.target.value)}>
+          {merge.targets.map((t) => (
+            <option key={t.name} value={t.name} disabled={Boolean(t.blocked)}>{t.blocked ? `${t.name} · ${t.blocked[lang]}` : `${t.name} · ${t.short}`}</option>
+          ))}
+        </select>
+      </label>
+      <div className={cmd.check} data-accept="delete-after">
+        <SelectBox checked={remove} label={w('deleteAfter')} onToggle={onRemove} />
+        <span>{w('deleteAfter')}<span className={cmd.hint}>{w('deleteAfterHint')}</span></span>
+      </div>
+    </div>
   )
 }
 
@@ -148,7 +156,7 @@ function Controls({ run, onRun }: { run: Run; onRun: (next: Run) => void }) {
 
 function RunBody({ id }: { id: string }) {
   const actions = useActions()
-  const { lang, t } = usePrefs()
+  const { lang } = usePrefs()
   const w = useCmdWords()
   const followed = useRun(id)
   const { run, view, status } = followed
@@ -172,22 +180,7 @@ function RunBody({ id }: { id: string }) {
 
   return (
     <div className={[layout.page, css.runPage].join(' ')}>
-      <header className={css.head}>
-        <div className={css.headTop} data-run-state={state}>
-          <span className={css.kicker}>{run.verb ? verbOf(run.verb).label[lang] : <Id value={run.action} />}</span>
-          <StateChip state={state} />
-          {run.position && state === 'queued' ? <span className={css.meta}>{w('positionN', { n: run.position })}</span> : null}
-        </div>
-        <h1 className={css.title}><Txt>{labelOf(run.label, lang)}</Txt></h1>
-        <p className={css.meta}>
-          {[run.assistant === 'claude' ? 'Claude Code' : run.assistant === 'codex' ? 'Codex' : run.mode === 'handoff' ? null : 'EAOS',
-            elapsed ? w(run.ended ? 'took' : 'elapsed', { d: elapsed }) : null, run.attempt > 1 ? w('attempt', { n: run.attempt }) : null].filter(Boolean).join(' · ')}
-          {status === 'reconnecting' && <span className={css.reconnect} role="status"> · {w('reconnecting')}</span>}
-        </p>
-        {actions.mode === 'live' && <RunBranches run={run} />}
-        <Controls run={run} onRun={(next) => followed.reload(next)} />
-        {run.action === 'audit' && <Go to="/scan" search={{ flow: 'check' }} className={css.branchLink}>{t('liveCheck')}</Go>}
-      </header>
+      <RunHead run={run} state={state} elapsed={elapsed} reconnecting={status === 'reconnecting'} live={actions.mode === 'live'} onRun={(next) => followed.reload(next)} />
 
       <div className={css.now} aria-live="polite">
         <span className={css.nowLabel}>{w('latestStep')}</span>
@@ -197,46 +190,100 @@ function RunBody({ id }: { id: string }) {
       {question && <QuestionCard question={question} compact />}
       <div className={side ? css.grid : css.single}>
         <div className={css.mainCol}>
-          {view.error && TERMINAL.includes(state) && (
-            <Panel className={css.error} label={w('errorTitle')}>
-              <h2 className={css.panelTitle}>{w('errorTitle')}</h2>
-              <p><Txt>{view.error.text[lang]}</Txt></p>
-              {view.error.what_now && <p className={css.whatNow}><Txt>{view.error.what_now[lang]}</Txt></p>}
-              {Boolean(result?.answer) && result && state !== 'done' && <ResultFacts result={result} />}
-            </Panel>
-          )}
-          {result && state === 'done' && (
-            <Panel className={css.resultPanel} label={w('result')}>
-              <h2 className={css.panelTitle}>{w('result')}</h2>
-              <ResultFacts result={result} />
-              {result.landed_on && <p className={css.outcome} data-landed={result.landed_on}>{w('landedLead', { b: result.landed_on })}</p>}
-              {branchWaiting && (
-                <div className={css.decide}>
-                  <Button variant="primary" large icon="check" data-decide="accept" onPress={() => setDeciding('accept')}>{w('acceptBranch')}</Button>
-                  <Button variant="secondary" large icon="x" data-decide="undo" onPress={() => setDeciding('undo')}>{w('undoBranch')}</Button>
-                </div>
-              )}
-              {run.outcome && <p className={css.outcome}>{w('decided', { what: run.outcome === 'accepted' ? w('outcomeAccepted') : w('outcomeUndone') })}</p>}
-            </Panel>
-          )}
+          {view.error && TERMINAL.includes(state) && <ErrorPanel error={view.error} result={result} state={state} />}
+          {result && state === 'done' && <ResultPanel run={run} result={result} waiting={Boolean(branchWaiting)} onDecide={setDeciding} />}
           <Section title={w('whatHappened')} count={view.items.length}>
             <Panel><Timeline items={view.items} /></Panel>
           </Section>
         </div>
-        {side && <aside className={css.sideCol}>
-          {progress && <Section title={w('progress')}>
-            <Panel pad>
-              {view.batches.length ? <Batches batches={view.batches} />
-                : <p className={css.placeholder}>{state === 'queued' ? w('waitingTurn', { n: run.position ?? 1 }) : w('noProgressYet')}</p>}
-            </Panel>
-          </Section>}
-          {view.screens.length > 0 && (
-            <Section title={w('screens')}><Panel pad><ScreenPairs screens={view.screens} /></Panel></Section>
-          )}
-        </aside>}
+        {side && <RunSide view={view} run={run} state={state} progress={progress} />}
       </div>
       <DecideSheet run={run} op={deciding} onClose={() => setDeciding(null)} onDone={(next) => { actions.patch(run.id, next); followed.reload(next); void actions.refresh() }} />
     </div>
+  )
+}
+
+type View = ReturnType<typeof useRun>['view']
+type Result = Parameters<typeof ResultFacts>[0]['result']
+
+/** Who runs it, how long it took or has taken, and which attempt. */
+function runMeta(run: Run, elapsed: string | null | undefined, w: ReturnType<typeof useCmdWords>) {
+  return [run.assistant === 'claude' ? 'Claude Code' : run.assistant === 'codex' ? 'Codex' : run.mode === 'handoff' ? null : 'EAOS',
+    elapsed ? w(run.ended ? 'took' : 'elapsed', { d: elapsed }) : null, run.attempt > 1 ? w('attempt', { n: run.attempt }) : null].filter(Boolean).join(' · ')
+}
+
+/** The run's kind, state and place in the queue, its title, who and how long, its branches and controls. */
+function RunHead({ run, state, elapsed, reconnecting, live, onRun }:
+  { run: Run; state: Run['state']; elapsed: string | null | undefined; reconnecting: boolean; live: boolean; onRun: (next: Run) => void }) {
+  const { lang, t } = usePrefs()
+  const w = useCmdWords()
+  return (
+    <header className={css.head}>
+      <div className={css.headTop} data-run-state={state}>
+        <span className={css.kicker}>{run.verb ? verbOf(run.verb).label[lang] : <Id value={run.action} />}</span>
+        <StateChip state={state} />
+        {run.position && state === 'queued' ? <span className={css.meta}>{w('positionN', { n: run.position })}</span> : null}
+      </div>
+      <h1 className={css.title}><Txt>{labelOf(run.label, lang)}</Txt></h1>
+      <p className={css.meta}>
+        {runMeta(run, elapsed, w)}
+        {reconnecting && <span className={css.reconnect} role="status"> · {w('reconnecting')}</span>}
+      </p>
+      {live && <RunBranches run={run} />}
+      <Controls run={run} onRun={onRun} />
+      {run.action === 'audit' && <Go to="/scan" search={{ flow: 'check' }} className={css.branchLink}>{t('liveCheck')}</Go>}
+    </header>
+  )
+}
+
+/** Why the run could not go on, what to do now, and what it had found when it gave an answer. */
+function ErrorPanel({ error, result, state }: { error: NonNullable<View['error']>; result: Result | null; state: Run['state'] }) {
+  const { lang } = usePrefs()
+  const w = useCmdWords()
+  return (
+    <Panel className={css.error} label={w('errorTitle')}>
+      <h2 className={css.panelTitle}>{w('errorTitle')}</h2>
+      <p><Txt>{error.text[lang]}</Txt></p>
+      {error.what_now && <p className={css.whatNow}><Txt>{error.what_now[lang]}</Txt></p>}
+      {Boolean(result?.answer) && result && state !== 'done' && <ResultFacts result={result} />}
+    </Panel>
+  )
+}
+
+/** The result, where it landed, Accept and Undo while its branch waits, and the decision once taken. */
+function ResultPanel({ run, result, waiting, onDecide }: { run: Run; result: Result; waiting: boolean; onDecide: (op: 'accept' | 'undo') => void }) {
+  const w = useCmdWords()
+  return (
+    <Panel className={css.resultPanel} label={w('result')}>
+      <h2 className={css.panelTitle}>{w('result')}</h2>
+      <ResultFacts result={result} />
+      {result.landed_on && <p className={css.outcome} data-landed={result.landed_on}>{w('landedLead', { b: result.landed_on })}</p>}
+      {waiting && (
+        <div className={css.decide}>
+          <Button variant="primary" large icon="check" data-decide="accept" onPress={() => onDecide('accept')}>{w('acceptBranch')}</Button>
+          <Button variant="secondary" large icon="x" data-decide="undo" onPress={() => onDecide('undo')}>{w('undoBranch')}</Button>
+        </div>
+      )}
+      {run.outcome && <p className={css.outcome}>{w('decided', { what: run.outcome === 'accepted' ? w('outcomeAccepted') : w('outcomeUndone') })}</p>}
+    </Panel>
+  )
+}
+
+/** A Fix run's batches (or why there are none yet) and the before/after screens. */
+function RunSide({ view, run, state, progress }: { view: View; run: Run; state: Run['state']; progress: boolean }) {
+  const w = useCmdWords()
+  return (
+    <aside className={css.sideCol}>
+      {progress && <Section title={w('progress')}>
+        <Panel pad>
+          {view.batches.length ? <Batches batches={view.batches} />
+            : <p className={css.placeholder}>{state === 'queued' ? w('waitingTurn', { n: run.position ?? 1 }) : w('noProgressYet')}</p>}
+        </Panel>
+      </Section>}
+      {view.screens.length > 0 && (
+        <Section title={w('screens')}><Panel pad><ScreenPairs screens={view.screens} /></Panel></Section>
+      )}
+    </aside>
   )
 }
 
