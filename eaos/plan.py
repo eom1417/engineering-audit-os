@@ -64,71 +64,99 @@ def schedule(out, target, tasks, language):
     return plan_milestones, sections(tasks)
 
 
+def _radius(out, paths, sets):
+    """What a change to the paths reaches; nothing when there are no paths or the impact cannot be assessed."""
+    if paths:
+        try: return assess(out, paths, sets=sets)
+        except ValueError: pass
+    return {'direct_dependents': [], 'transitive_dependents': [], 'flows': [], 'covering_tests': [],
+            'coverage': {}, 'entry_points': [], 'blast_radius': 0, 'change_partners': []}
+
+
+def _what_to_do(claim, pattern, unproven):
+    """(change, options, rollback): proving or refuting an unproven claim first, else its pattern's change."""
+    if not unproven:
+        return (claim.get('assessment') or {}).get('proposed_change', pattern['change']), pattern['options'], pattern['rollback']
+    return (('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + falsifier_of(claim, 'ar')),
+            [{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
+             {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
+             *pattern['options']],
+            'لا تغيير في الكود خلال التحقيق.')
+
+
+def _task(index, claim, decision, context):
+    """The card of one actionable claim; `context`: (target, out, fact sets)."""
+    target, out, sets = context
+    paths = claim_paths(claim, {}) or (claim.get('priority_factors') or {}).get('paths', [])
+    radius = _radius(out, paths, sets)
+    pattern = pattern_for(claim)
+    unproven = decision['kind'] == 'investigate'
+    cost = (claim.get('priority_factors') or {}).get('cost', {})
+    effort, effort_confidence = effort_for(radius['blast_radius'], cost.get('bucket', 'medium'))
+    assessment = claim.get('assessment') or {}
+    change, options, rollback = _what_to_do(claim, pattern, unproven)
+    return {
+        'id': 'TASK-%03d' % index, 'claim_id': claim['id'], 'title': claim['statement'][:120],
+        'render': claim.get('render'),
+        'kind': 'investigate' if unproven else 'remediate',
+        'contract_version': 1, 'decision': decision,
+        'prerequisites': [], 'before': assessment.get('before'),
+        'after': assessment.get('after'),
+        'requirement_refs': list(assessment.get('requirement_refs') or []),
+        'status': 'planned', 'priority': claim.get('priority', 0),
+        'pattern': 'investigation' if claim['confidence'] == 'HYPOTHESIS' else pattern['name'], 'paths': paths,
+        'origin': claim.get('origin', 'unknown'),
+        'impact': (claim.get('impact') or {}).get('scenario', ''),
+        'impact_render': claim.get('render'),
+        'evidence': {'fact_ids': claim.get('fact_ids', []), 'evidence_ids': claim.get('evidence_ids', []),
+                     'probe_ids': claim.get('probe_ids', []), 'falsifier': claim['falsifier']},
+        'blast_radius': {'direct_dependents': radius['direct_dependents'],
+                         'transitive_dependents': radius['transitive_dependents'][:10],
+                         'flows': radius['flows'], 'entry_points': radius['entry_points'],
+                         'covering_tests': radius['covering_tests'],
+                         'coverage': radius['coverage'], 'change_partners': radius['change_partners'],
+                         'total': radius['blast_radius']},
+        'change': change,
+        'options': options,
+        'rollback': rollback,
+        'acceptance': acceptance_for(claim, target, out),
+        'verify_command': verify_command_for(claim, target, out),
+        'effort': size_of(paths, radius['blast_radius'])[0], 'effort_basis': size_of(paths, radius['blast_radius'])[1],
+        'effort_confidence': 'A rule on the files it touches and its dependents (eaos/roadmap.py), not a measured duration.',
+        'invariants': invariants_of(claim),
+        'harm': harm_of(claim, radius, effort, effort_confidence),
+        'finding_ids': [claim['id']],
+    }
+
+
+def _prerequisite(task, dependency, by_claim):
+    """A prerequisite the claim's assessment names, on the card that carries that claim (none on the card itself)."""
+    if dependency.get('claim_id') not in by_claim:
+        raise ValueError('Unknown or non-actionable prerequisite claim')
+    if not dependency.get('reason'): raise ValueError('Prerequisite needs a reason')
+    if by_claim[dependency['claim_id']] != task['id']:
+        task['prerequisites'].append({'task_id': by_claim[dependency['claim_id']], 'reason': dependency['reason']})
+
+
+def _link_prerequisites(tasks, dossier):
+    by_claim = {claim_id: task['id'] for task in tasks for claim_id in task['claim_ids']}
+    source_claims = {claim['id']: claim for claim in dossier['claims']}
+    for task in tasks:
+        for dependency in (d for claim_id in task['claim_ids'] for d in (source_claims[claim_id].get('assessment') or {}).get('prerequisites', [])):
+            _prerequisite(task, dependency, by_claim)
+
+
 def build_tasks(target, out, dossier, sets):
-    tasks, index = [], 0
+    tasks = []
     for claim in sorted(dossier['claims'], key=lambda row: (-row.get('priority', 0), row['id'])):
         if claim['confidence'] not in ACTIONABLE: continue
         from .decisions import decide
         decision = decide(claim)
-        if decision['kind'] == 'retain': continue
-        index += 1
-        paths = claim_paths(claim, {}) or (claim.get('priority_factors') or {}).get('paths', [])
-        radius = {'direct_dependents': [], 'transitive_dependents': [], 'flows': [], 'covering_tests': [],
-                  'coverage': {}, 'entry_points': [], 'blast_radius': 0, 'change_partners': []}
-        if paths:
-            try: radius = assess(out, paths, sets=sets)
-            except ValueError: pass
-        pattern = pattern_for(claim)
-        unproven = decision['kind'] == 'investigate'
-        cost = (claim.get('priority_factors') or {}).get('cost', {})
-        effort, effort_confidence = effort_for(radius['blast_radius'], cost.get('bucket', 'medium'))
-        tasks.append({
-            'id': 'TASK-%03d' % index, 'claim_id': claim['id'], 'title': claim['statement'][:120],
-            'render': claim.get('render'),
-            'kind': 'investigate' if unproven else 'remediate',
-            'contract_version': 1, 'decision': decision,
-            'prerequisites': [], 'before': (claim.get('assessment') or {}).get('before'),
-            'after': (claim.get('assessment') or {}).get('after'),
-            'requirement_refs': list((claim.get('assessment') or {}).get('requirement_refs') or []),
-            'status': 'planned', 'priority': claim.get('priority', 0),
-            'pattern': 'investigation' if claim['confidence'] == 'HYPOTHESIS' else pattern['name'], 'paths': paths,
-            'origin': claim.get('origin', 'unknown'),
-            'impact': (claim.get('impact') or {}).get('scenario', ''),
-            'impact_render': claim.get('render'),
-            'evidence': {'fact_ids': claim.get('fact_ids', []), 'evidence_ids': claim.get('evidence_ids', []),
-                         'probe_ids': claim.get('probe_ids', []), 'falsifier': claim['falsifier']},
-            'blast_radius': {'direct_dependents': radius['direct_dependents'],
-                             'transitive_dependents': radius['transitive_dependents'][:10],
-                             'flows': radius['flows'], 'entry_points': radius['entry_points'],
-                             'covering_tests': radius['covering_tests'],
-                             'coverage': radius['coverage'], 'change_partners': radius['change_partners'],
-                             'total': radius['blast_radius']},
-            'change': ('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + falsifier_of(claim, 'ar')) if unproven else (claim.get('assessment') or {}).get('proposed_change', pattern['change']),
-            'options': ([{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
-                         {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
-                         *pattern['options']] if unproven else pattern['options']),
-            'rollback': 'لا تغيير في الكود خلال التحقيق.' if unproven else pattern['rollback'],
-            'acceptance': acceptance_for(claim, target, out),
-            'verify_command': verify_command_for(claim, target, out),
-            'effort': size_of(paths, radius['blast_radius'])[0], 'effort_basis': size_of(paths, radius['blast_radius'])[1],
-            'effort_confidence': 'A rule on the files it touches and its dependents (eaos/roadmap.py), not a measured duration.',
-            'invariants': invariants_of(claim),
-            'harm': harm_of(claim, radius, effort, effort_confidence),
-            'finding_ids': [claim['id']],
-        })
+        if decision['kind'] != 'retain': tasks.append(_task(len(tasks) + 1, claim, decision, (target, out, sets)))
     tasks = grouped(tasks)
     from .roadmap import section
     for task in tasks: task['section'] = section(task)
-    by_claim = {claim_id: task['id'] for task in tasks for claim_id in task['claim_ids']}
-    source_claims = {claim['id']: claim for claim in dossier['claims']}
-    for task in tasks:
-        for claim_id in task['claim_ids']:
-            for dependency in (source_claims[claim_id].get('assessment') or {}).get('prerequisites', []):
-                if dependency.get('claim_id') not in by_claim:
-                    raise ValueError('Unknown or non-actionable prerequisite claim')
-                if not dependency.get('reason'): raise ValueError('Prerequisite needs a reason')
-                if by_claim[dependency['claim_id']] == task['id']: continue
-                task['prerequisites'].append({'task_id': by_claim[dependency['claim_id']], 'reason': dependency['reason']})
+    _link_prerequisites(tasks, dossier)
     from .decisions import task_errors
     for task in tasks:
         errors = task_errors(task)
@@ -476,31 +504,45 @@ def design_cards(findings, tasks):
     top = max((t.get('priority') or 0 for t in tasks if t.get('origin') != 'visual_review'), default=0) or 1.0
     kept = {}
     for finding in sorted(findings, key=lambda f: SEVERITY_ORDER.index(f['severity']) if f.get('severity') in SEVERITY_ORDER else 3):
-        kept.setdefault((finding.get('template') or template_of(finding.get('page')), finding.get('kind') or ' '.join(str(finding.get('title') or '').lower().split())),
-                        []).append(finding)
-    cards = []
-    for number, group in enumerate(kept.values(), 1):
-        finding = group[0]
-        card = design_card(number, finding)
-        card['priority'] = round(top * SEVERITY_SHARE.get(finding.get('severity'), 0.25) * CONFIDENCE_WEIGHT['HYPOTHESIS'], 4)
-        card['design']['page'] = finding.get('template') or template_of(finding.get('page'))
-        card['design']['findings'] = [{k: f.get(k) for k in ('image', 'file', 'page', 'viewport', 'theme', 'title', 'severity', 'region', 'why',
-                                                             'pictures')}
-                                      for f in group]
-        # A finding of the page reviewer (eaos/studio/nodes/visual_reviewer.py) lists every picture it shows on.
-        shown = [show for f in group for show in f.get('pictures') or [f]]
-        images = list(dict.fromkeys(show['image'] for show in shown))
-        if len(images) > 1:
-            card['design']['also_in'] = images[1:]
-            card['finding_ids'] = images
-            card['evidence']['evidence_ids'] = images
-            card['evidence']['images'] = list(dict.fromkeys(show['file'] for show in shown))
-            titles = list(dict.fromkeys(f['title'] for f in group[1:] if f['title'] != finding['title']))
-            if titles: card['change'] += ' Also on this page: ' + '; '.join(titles[:6]) + (f' (+{len(titles) - 6})' if len(titles) > 6 else '') + '.'
-        if finding.get('resolution') in RESOLUTIONS:
-            card['design']['resolution'] = {k: finding.get(k) for k in ('resolution', 'question', 'options', 'recommendation')}
-        cards.append(card)
-    return cards
+        kept.setdefault(_design_key(finding), []).append(finding)
+    return [_group_card(number, group, (top, CONFIDENCE_WEIGHT['HYPOTHESIS'])) for number, group in enumerate(kept.values(), 1)]
+
+
+def _design_key(finding):
+    """(kind of page, kind of problem) of a design finding."""
+    return (finding.get('template') or template_of(finding.get('page')),
+            finding.get('kind') or ' '.join(str(finding.get('title') or '').lower().split()))
+
+
+def _also_shown(card, group, finding):
+    """Every picture of the group as the card's evidence, and the other problems seen on the page in its change."""
+    # A finding of the page reviewer (eaos/studio/nodes/visual_reviewer.py) lists every picture it shows on.
+    shown = [show for f in group for show in f.get('pictures') or [f]]
+    images = list(dict.fromkeys(show['image'] for show in shown))
+    if len(images) <= 1: return
+    card['design']['also_in'] = images[1:]
+    card['finding_ids'] = images
+    card['evidence']['evidence_ids'] = images
+    card['evidence']['images'] = list(dict.fromkeys(show['file'] for show in shown))
+    titles = list(dict.fromkeys(f['title'] for f in group[1:] if f['title'] != finding['title']))
+    if titles: card['change'] += ' Also on this page: ' + '; '.join(titles[:6]) + (f' (+{len(titles) - 6})' if len(titles) > 6 else '') + '.'
+
+
+def _group_card(number, group, scale):
+    """The card of one group of design findings, its most severe finding standing for them; `scale`: (the code cards'
+    top priority, a hypothesis's confidence weight)."""
+    top, weight = scale
+    finding = group[0]
+    card = design_card(number, finding)
+    card['priority'] = round(top * SEVERITY_SHARE.get(finding.get('severity'), 0.25) * weight, 4)
+    card['design']['page'] = finding.get('template') or template_of(finding.get('page'))
+    card['design']['findings'] = [{k: f.get(k) for k in ('image', 'file', 'page', 'viewport', 'theme', 'title', 'severity', 'region', 'why',
+                                                         'pictures')}
+                                  for f in group]
+    _also_shown(card, group, finding)
+    if finding.get('resolution') in RESOLUTIONS:
+        card['design']['resolution'] = {k: finding.get(k) for k in ('resolution', 'question', 'options', 'recommendation')}
+    return card
 
 
 def design_card(number, finding):
@@ -555,15 +597,31 @@ def apply_verdicts(out, tasks, verdicts, language='ar'):
         verdict = verdicts.get(task['id'])
         if not verdict or verdict.get('decision') not in ('confirm', 'doubt', 'reject'): continue
         for claim in filter(None, (claims.get(c) for c in task.get('claim_ids') or [task.get('claim_id')])):
-            claim['triage'] = {'decision': verdict['decision'], 'card': task['id'], 'why': verdict.get('why'),
-                               'evidence': list(verdict.get('evidence') or []), 'rejudged': bool(verdict.get('rejudged')),
-                               **{k: verdict[k] for k in RESOLUTION_FIELDS if verdict.get(k) is not None}}
-            if verdict['decision'] == 'reject':
-                claim['confidence'] = 'REFUTED'
-                claim['refuted_by'] = sorted(set(claim.get('refuted_by') or []) | {'card_triage:' + task['id']})
+            _triage(claim, task['id'], verdict)
     write(out / 'dossier.json', dossier)
     refresh_views(out, language)
     return {c['id']: c for c in read(out / 'dossier.json')['claims']}
+
+
+def _triage(claim, card, verdict):
+    """The triage's verdict on a claim; a rejected claim is refuted by its card."""
+    claim['triage'] = {'decision': verdict['decision'], 'card': card, 'why': verdict.get('why'),
+                       'evidence': list(verdict.get('evidence') or []), 'rejudged': bool(verdict.get('rejudged')),
+                       **{k: verdict[k] for k in RESOLUTION_FIELDS if verdict.get(k) is not None}}
+    if verdict['decision'] == 'reject':
+        claim['confidence'] = 'REFUTED'
+        claim['refuted_by'] = sorted(set(claim.get('refuted_by') or []) | {'card_triage:' + card})
+
+
+def _design_resolution(card):
+    """A design card is the change it named, unless its finding asked the person or kept it."""
+    asked = card['design'].get('resolution') or {}
+    pictures = len(card['finding_ids']) or 1
+    resolution = asked if asked.get('resolution') in ('keep', 'owner') and (asked['resolution'] == 'keep' or asked.get('question')) else {
+        'resolution': 'fix', 'change': card['change'],
+        'note': f'the screen reviewer saw it on {pictures} picture{"s" if pictures > 1 else ""} of this page and named the change'}
+    return {**{k: v for k, v in resolution.items() if v is not None}, 'why': card['impact'],
+            'severity': card['design'].get('severity'), 'reach': pictures}
 
 
 def resolutions(tasks, verdicts, design):
@@ -576,14 +634,7 @@ def resolutions(tasks, verdicts, design):
         if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
             out[task['id']] = {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
                                'severity': verdict.get('severity'), 'reach': (task.get('blast_radius') or {}).get('total') or 0}
-    for card in design:
-        asked = card['design'].get('resolution') or {}
-        pictures = len(card['finding_ids']) or 1
-        resolution = asked if asked.get('resolution') in ('keep', 'owner') and (asked['resolution'] == 'keep' or asked.get('question')) else {
-            'resolution': 'fix', 'change': card['change'],
-            'note': f'the screen reviewer saw it on {pictures} picture{"s" if pictures > 1 else ""} of this page and named the change'}
-        out[card['id']] = {**{k: v for k, v in resolution.items() if v is not None}, 'why': card['impact'],
-                           'severity': card['design'].get('severity'), 'reach': pictures}
+    for card in design: out[card['id']] = _design_resolution(card)
     return out
 
 
@@ -645,7 +696,6 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     makes it ready work, `keep` closes it with why (cards.json `closed`), `owner` asks the person, at most one card in
     ten (cap_owner). The waves, milestones and cards are then drawn again. Without either every card stands as the
     rules wrote it. Writes cards.json, the record of who decided each card, and returns it."""
-    from .decisions import decide
     target, out = Path(target).resolve(), Path(out).resolve()
     plan = read(out / 'plan.json')
     verdicts = _verdicts(out) if triaged else {}
@@ -655,55 +705,83 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     resolved = resolutions([t for t in tasks if t['id'] not in rejected], verdicts, design)
     closed = {card for card, r in resolved.items() if r['resolution'] == 'keep'}
     turned = cap_owner(resolved, len(tasks) - len(rejected) - len(closed) + len(design))
-    revision = None
-    if any(r['resolution'] == 'fix' for r in resolved.values()):
-        from .acceptance import fingerprint
-        revision = fingerprint(target)
-        for card, row in resolved.items():
-            if row['resolution'] == 'fix' and card in verdicts: row['checks'] = [_fix_check(card, row['change'], revision)]
+    revision = _fix_checks(target, resolved, verdicts)
     for card, row in resolved.items():
         if card in verdicts: verdicts[card] = {**verdicts[card], **{k: row[k] for k in RESOLUTION_FIELDS if k in row}}
-    if verdicts:
-        claims = apply_verdicts(out, tasks, verdicts, language)
-        for task in tasks:
-            claim = claims.get(task.get('claim_id'))
-            if claim is not None and task['id'] not in rejected:
-                task['decision'], task['priority'] = decide(claim), claim.get('priority', task['priority'])
-        plan['decisions'] = read(out / 'dossier.json').get('decisions', plan.get('decisions', []))
-    else:
-        claims = {}
+    claims = _apply_triage(out, plan, verdicts, (rejected, language))
     gone = rejected | closed
     kept = [t for t in tasks if t['id'] not in gone] + [t for t in design if t['id'] not in closed]
-    for task in kept:
-        verdict = verdicts.get(task['id'])
-        if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence', 'rejudged')}
-        if task['id'] in resolved: resolve(task, resolved[task['id']], claims.get(task.get('claim_id')), target, out, revision)
-        dropped = [ref for ref in task['prerequisites'] if ref.get('task_id') in gone]
-        if dropped:
-            task['prerequisites'] = [ref for ref in task['prerequisites'] if ref not in dropped]
-            task['dropped_prerequisites'] = [{**ref, 'why': 'the triage set this card aside' if ref['task_id'] in rejected else
-                                              'your assistant closed this card: not worth changing'} for ref in dropped]
+    for task in kept: _settle(task, verdicts, (resolved, claims), (target, out, revision, gone, rejected))
     if rejected or verdicts or design:
         _publish_plan(target, out, plan, kept, language)
-    owner = [t for t in kept if (t.get('resolution') or {}).get('resolution') == 'owner']
-    record = {'schema_version': 1, 'decided_by': 'assistant' if verdicts or design else 'rules', 'kept': [t['id'] for t in kept],
-              'design': [t['id'] for t in design if t['id'] not in closed],
-              'set_aside': [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'),
-                             'why': verdicts[t['id']].get('why'), 'evidence': verdicts[t['id']].get('evidence') or []}
-                            for t in tasks if t['id'] in rejected],
-              'closed': [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': resolved[t['id']].get('why')}
-                         for t in tasks + design if t['id'] in closed],
-              'doubted': [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
-                          if v.get('decision') == 'doubt' and card not in rejected],
-              'resolved': {'fix': sum((t.get('resolution') or {}).get('resolution') == 'fix' for t in kept), 'keep': len(closed),
-                           'owner': len(owner), 'turned_to_fix': len(turned)},
-              'owner': [t['id'] for t in owner],
-              'ready': sum(t.get('kind') == 'remediate' and (t.get('decision') or {}).get('readiness') == 'ready' for t in kept),
-              'why': ('The assistant triaged every card on its own evidence: the rejected ones left the plan, the ones it '
-                      'resolved are fixed, closed or asked of you.' if verdicts else
-                      'No triage by an assistant in this check: every card stands as the rules wrote it.')}
+    record = _cards_record((tasks, design, kept), verdicts, resolved, (rejected, closed, turned))
     write(out / 'cards.json', record)
     return record
+
+
+def _fix_checks(target, resolved, verdicts):
+    """The revision the fixes the assistant decided are checked against, each triaged one with its check; None when
+    nothing is to be fixed."""
+    if not any(r['resolution'] == 'fix' for r in resolved.values()): return None
+    from .acceptance import fingerprint
+    revision = fingerprint(target)
+    for card, row in resolved.items():
+        if row['resolution'] == 'fix' and card in verdicts: row['checks'] = [_fix_check(card, row['change'], revision)]
+    return revision
+
+
+def _apply_triage(out, plan, verdicts, how):
+    """The triage's verdicts on the ledger, and each standing card's decision and priority drawn again from its claim;
+    `how`: (the rejected cards, the language). {claim id: claim}, {} without verdicts."""
+    if not verdicts: return {}
+    from .decisions import decide
+    rejected, language = how
+    claims = apply_verdicts(out, plan['tasks'], verdicts, language)
+    for task in plan['tasks']:
+        claim = claims.get(task.get('claim_id'))
+        if claim is not None and task['id'] not in rejected:
+            task['decision'], task['priority'] = decide(claim), claim.get('priority', task['priority'])
+    plan['decisions'] = read(out / 'dossier.json').get('decisions', plan.get('decisions', []))
+    return claims
+
+
+def _settle(task, verdicts, decided, context):
+    """A card that stays: its verdict, its resolution, and its prerequisites on cards that left dropped with why.
+    `decided`: (resolutions, claims); `context`: (target, out, revision, the cards gone, the cards rejected)."""
+    resolved, claims = decided
+    target, out, revision, gone, rejected = context
+    verdict = verdicts.get(task['id'])
+    if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence', 'rejudged')}
+    if task['id'] in resolved: resolve(task, resolved[task['id']], claims.get(task.get('claim_id')), target, out, revision)
+    dropped = [ref for ref in task['prerequisites'] if ref.get('task_id') in gone]
+    if not dropped: return
+    task['prerequisites'] = [ref for ref in task['prerequisites'] if ref not in dropped]
+    task['dropped_prerequisites'] = [{**ref, 'why': 'the triage set this card aside' if ref['task_id'] in rejected else
+                                      'your assistant closed this card: not worth changing'} for ref in dropped]
+
+
+def _cards_record(cards, verdicts, resolved, outcome):
+    """cards.json: who decided each card. `cards`: (the plan's, the design cards, those kept); `outcome`: (rejected,
+    closed, turned to fix)."""
+    tasks, design, kept = cards
+    rejected, closed, turned = outcome
+    owner = [t for t in kept if (t.get('resolution') or {}).get('resolution') == 'owner']
+    return {'schema_version': 1, 'decided_by': 'assistant' if verdicts or design else 'rules', 'kept': [t['id'] for t in kept],
+            'design': [t['id'] for t in design if t['id'] not in closed],
+            'set_aside': [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'),
+                           'why': verdicts[t['id']].get('why'), 'evidence': verdicts[t['id']].get('evidence') or []}
+                          for t in tasks if t['id'] in rejected],
+            'closed': [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': resolved[t['id']].get('why')}
+                       for t in tasks + design if t['id'] in closed],
+            'doubted': [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
+                        if v.get('decision') == 'doubt' and card not in rejected],
+            'resolved': {'fix': sum((t.get('resolution') or {}).get('resolution') == 'fix' for t in kept), 'keep': len(closed),
+                         'owner': len(owner), 'turned_to_fix': len(turned)},
+            'owner': [t['id'] for t in owner],
+            'ready': sum(t.get('kind') == 'remediate' and (t.get('decision') or {}).get('readiness') == 'ready' for t in kept),
+            'why': ('The assistant triaged every card on its own evidence: the rejected ones left the plan, the ones it '
+                    'resolved are fixed, closed or asked of you.' if verdicts else
+                    'No triage by an assistant in this check: every card stands as the rules wrote it.')}
 
 
 def _publish_plan(target, out, plan, tasks, language):
