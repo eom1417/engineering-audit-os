@@ -84,45 +84,50 @@ def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, l
     "eaos.studio"): the variant's value is merged into that object, {key: {field: value}}, rather than set as the
     whole value."""
     languages = list(langs) if (lang_key or lang_param) else [None]
-    rows = []
-    for theme in themes:
-        for lang in languages:
-            storage, query = {}, {}
-            for key, field, value in ((lang_key, lang_field, lang), (theme_key, theme_field, theme)):
-                if not (key and value): continue
-                if field: storage[key] = {**(storage.get(key) if isinstance(storage.get(key), dict) else {}), field: value}
-                else: storage[key] = value
-            if lang and lang_param: query[lang_param] = lang
-            if theme and theme_param: query[theme_param] = theme
-            rows.append({'name': '-'.join(part for part in (lang, theme) if part) or 'default', 'lang': lang, 'theme': theme,
-                         'color_scheme': theme if theme in ('light', 'dark') else 'light', 'storage': storage, 'query': query})
-    return rows
+    keys = ((lang_key, lang_field), (theme_key, theme_field))
+    return [_variant(lang, theme, keys, (lang_param, theme_param)) for theme in themes for lang in languages]
 
 
-def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, phone_width=PHONE_WIDTH, target_min=TARGET_MIN,
-               timeout=900, height_budget=None):
+def _variant(lang, theme, keys, params):
+    """One variant: its localStorage values (merged into a JSON object when the key has a field) and its query."""
+    storage = {}
+    for (key, field), value in zip(keys, (lang, theme)):
+        if not (key and value): continue
+        if field: storage[key] = {**(storage.get(key) if isinstance(storage.get(key), dict) else {}), field: value}
+        else: storage[key] = value
+    query = {param: value for param, value in zip(params, (lang, theme)) if value and param}
+    return {'name': '-'.join(part for part in (lang, theme) if part) or 'default', 'lang': lang, 'theme': theme,
+            'color_scheme': theme if theme in ('light', 'dark') else 'light', 'storage': storage, 'query': query}
+
+
+def _budget(row, height_budget, own_budget):
+    """A row's height budget: its page's own, else the one for its URL, else the one for every page."""
+    budget = height_budget.get(row['url'].split('?', 1)[0]) if isinstance(height_budget, dict) else height_budget
+    return own_budget.get(row.get('page'), budget)
+
+
+def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits):
     """Every URL in every variant at every viewport, through the pinned Playwright and axe. Screenshots go to
-    <out>/screenshots when `out` is given. `height_budget` caps a page's height at phone width, in phone screens:
+    <out>/screenshots when `out` is given. `limits`, by name: phone_width, target_min, timeout (900 seconds) and
+    height_budget, which caps a page's height at phone width, in phone screens:
     one number for every page, or {url: screens} for some (a URL without its query).
 
     A URL may also be a page, {'url', 'name', 'actions', 'viewports', 'variants', 'wait_for', 'height_budget'}
     (eaos/templates/screens/audit.mjs): the actions run before the page is measured, the viewports and variants
     are the names it is audited in, and its own height budget wins over `height_budget`."""
+    phone_width, height_budget = limits.get('phone_width', PHONE_WIDTH), limits.get('height_budget')
     urls = [urls] if isinstance(urls, (str, dict)) else list(urls)
     own_budget = {u['name']: u['height_budget'] for u in urls if isinstance(u, dict) and u.get('name') and u.get('height_budget')}
     absent = missing('playwright', 'axe-core')
     if absent: return unavailable(absent, rows=[])
     config = {'urls': [{k: v for k, v in u.items() if k != 'height_budget'} if isinstance(u, dict) else u for u in urls], 'viewports': list(viewports), 'variants': page_variants or variants(),
-              'phone_width': phone_width, 'target_min': target_min,
+              'phone_width': phone_width, 'target_min': limits.get('target_min', TARGET_MIN),
               'screenshots_dir': str(Path(out) / 'screenshots') if out else None,
               'modules': {'playwright': str(toolchain.home() / 'node/node_modules'), 'axe': str(toolchain.node_modules('axe-core'))}}
-    result, error = _node('audit.mjs', config, timeout)
+    result, error = _node('audit.mjs', config, limits.get('timeout', 900))
     if error: return {'status': 'error', 'reason': error, 'rows': []}
     tools = {name: next(t['version'] for t in toolchain.registry()['tools'] if t['name'] == name) for name in ('playwright', 'axe-core')}
-    for row in result['rows']:
-        budget = height_budget.get(row['url'].split('?', 1)[0]) if isinstance(height_budget, dict) else height_budget
-        budget = own_budget.get(row.get('page'), budget)
-        row['failures'] = failures(row, phone_width, budget)
+    for row in result['rows']: row['failures'] = failures(row, phone_width, _budget(row, height_budget, own_budget))
     return {'status': 'observed', 'tools': {**tools, 'chromium': result.get('chromium')}, 'rows': result['rows']}
 
 
@@ -135,6 +140,14 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     taller than `height_budget` screens, or a page that did not load. A fragment that starts with '/' is a route
     (#/problems), not an anchor: such a page must still open at the top."""
     if row.get('status') != 'observed': return [f"error: {row.get('reason', 'not audited')}"]
+    found = _layout_failures(row) + _content_failures(row, phone_width) + _variant_failures(row)
+    if height_budget and row['width'] <= phone_width and row.get('page_height', 0) > height_budget * row['height']:
+        found.append(f"height: {row['page_height']}px tall, over the budget of {height_budget:g} x {row['height']}px screens")
+    return found
+
+
+def _layout_failures(row):
+    """The layout viewport, overflow and the first scroll position."""
     found = []
     if row.get('layout_width', row['width']) != row['width']:
         found.append(f"layout_width: the page laid out {row['layout_width']}px wide in a {row['width']}px viewport "
@@ -146,6 +159,12 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     anchor = urlsplit(row['url']).fragment
     if not (anchor and not anchor.startswith('/')) and (scroll['x'] or scroll['y']):
         found.append(f"initial_scroll: the page opens scrolled to x={scroll['x']}, y={scroll['y']}")
+    return found
+
+
+def _content_failures(row, phone_width):
+    """Accessibility, small targets, clipped text, letter-spaced Arabic, script errors and blocked requests."""
+    found = []
     serious = [v for v in row['axe']['violations'] if v['impact'] in FAILING_IMPACTS]
     if serious:
         found.append('axe: ' + ', '.join(f"{v['id']} ({v['impact']}, {v['nodes']})" for v in serious))
@@ -161,15 +180,17 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
         found.append(f"script_errors: {len(row['page_errors'])}: {row['page_errors'][0][:200]}")
     if row.get('blocked_requests'):
         found.append(f"offline: {len(row['blocked_requests'])} request(s) outside the page's origin: {row['blocked_requests'][0][:200]}")
+    return found
+
+
+def _variant_failures(row):
+    """The language, direction or theme the variant expects and the page did not apply."""
     expect = row.get('expect') or {}
     attributes = row.get('root_attributes') or {}
     wrong = [f'{name}={attributes.get(name)!r} (expected {value!r})' for name, value in (expect.get('attributes') or {}).items()
              if attributes.get(name) != value]
     if expect.get('dir') and row.get('dir') != expect['dir']: wrong.insert(0, f"dir={row.get('dir')!r} (expected {expect['dir']!r})")
-    if wrong: found.append('variant: the page did not apply it: ' + ', '.join(wrong))
-    if height_budget and row['width'] <= phone_width and row.get('page_height', 0) > height_budget * row['height']:
-        found.append(f"height: {row['page_height']}px tall, over the budget of {height_budget:g} x {row['height']}px screens")
-    return found
+    return ['variant: the page did not apply it: ' + ', '.join(wrong)] if wrong else []
 
 
 def chromium_path():
@@ -206,22 +227,33 @@ def lighthouse(url, out=None, timeout=300):
     if absent: return unavailable(absent)
     chrome = chromium_path()
     if not chrome: return unavailable('the Chromium of the pinned Playwright was not found; run: python -m eaos tools install --only playwright')
-    flags = '--headless=new' + (' --no-sandbox' if hasattr(os, 'geteuid') and os.geteuid() == 0 else '')
     with tempfile.TemporaryDirectory(prefix='eaos-lighthouse-') as folder:
         report = Path(out) / 'lighthouse.json' if out else Path(folder) / 'lighthouse.json'
-        report.parent.mkdir(parents=True, exist_ok=True)
-        argv = [str(toolchain.home() / 'bin/lighthouse'), url, '--output=json', f'--output-path={report}', '--quiet',
-                '--form-factor=mobile', f"--only-categories={','.join(LIGHTHOUSE_CATEGORIES)}", f'--chrome-flags={flags}',
-                '--no-enable-error-reporting']
-        try:
-            done = subprocess.run(argv, capture_output=True, text=True, timeout=timeout,
-                                  env={**os.environ, 'CHROME_PATH': chrome, 'TMPDIR': folder})
-        except (OSError, subprocess.TimeoutExpired) as problem:
-            return {'status': 'error', 'reason': f'lighthouse: {problem}'}
-        try: data = json.loads(report.read_text(encoding='utf-8'))
-        except (OSError, ValueError):
-            return {'status': 'error', 'reason': f'lighthouse exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'}
+        data, error = _run_lighthouse(url, report, chrome, folder, timeout)
+    if error: return {'status': 'error', 'reason': error}
     if data.get('runtimeError'): return {'status': 'error', 'reason': f"lighthouse: {data['runtimeError'].get('message')}"}
+    return _lighthouse_result(data, url, report if out else None)
+
+
+def _run_lighthouse(url, report, chrome, folder, timeout):
+    """(Lighthouse's JSON report, '') or (None, why it could not be read)."""
+    flags = '--headless=new' + (' --no-sandbox' if hasattr(os, 'geteuid') and os.geteuid() == 0 else '')
+    report.parent.mkdir(parents=True, exist_ok=True)
+    argv = [str(toolchain.home() / 'bin/lighthouse'), url, '--output=json', f'--output-path={report}', '--quiet',
+            '--form-factor=mobile', f"--only-categories={','.join(LIGHTHOUSE_CATEGORIES)}", f'--chrome-flags={flags}',
+            '--no-enable-error-reporting']
+    try:
+        done = subprocess.run(argv, capture_output=True, text=True, timeout=timeout,
+                              env={**os.environ, 'CHROME_PATH': chrome, 'TMPDIR': folder})
+    except (OSError, subprocess.TimeoutExpired) as problem:
+        return None, f'lighthouse: {problem}'
+    try: return json.loads(report.read_text(encoding='utf-8')), ''
+    except (OSError, ValueError):
+        return None, f'lighthouse exited {done.returncode}: {(done.stderr or done.stdout)[-800:]}'
+
+
+def _lighthouse_result(data, url, kept):
+    """The category scores (0-100), LCP and CLS of a Lighthouse report; `kept` is the report's path when it is kept."""
     scores = {name: None if (data['categories'].get(name) or {}).get('score') is None else round(data['categories'][name]['score'] * 100)
               for name in LIGHTHOUSE_CATEGORIES}
     audit = lambda key: (data['audits'].get(key) or {}).get('numericValue')
@@ -230,7 +262,7 @@ def lighthouse(url, out=None, timeout=300):
             'failed_audits': failed_audits(data),
             'lcp_ms': None if audit('largest-contentful-paint') is None else round(audit('largest-contentful-paint')),
             'cls': None if audit('cumulative-layout-shift') is None else round(audit('cumulative-layout-shift'), 4),
-            'report': str(report) if out else None}
+            'report': str(kept) if kept else None}
 
 
 STYLE = re.compile(r'<style[^>]*>(.*?)</style>', re.S | re.I)
