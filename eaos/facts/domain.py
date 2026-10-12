@@ -53,47 +53,90 @@ def python_mutable_globals(text):
     A module-level dict used as a lookup table is a constant in practice. Reporting all of them
     would bury the few that are genuinely written to, which are the ones that cause surprises.
     """
-    try: tree = ast.parse(text)
-    except (SyntaxError, ValueError, RecursionError): return []
+    tree = _parse(text)
+    if tree is None: return []
+    bound = _mutable_bindings(tree)
+    mutated = _mutations(tree, bound)
+    found = [(name, shape, line, *mutated[name]) for name, (shape, line) in sorted(bound.items()) if name in mutated]
+    found += [(name, 'rebound_global', where, how, where, scope) for name, (how, where, scope) in sorted(mutated.items())
+              if name not in bound and how == 'global_statement']
+    return found
+
+
+def _parse(text):
+    try: return ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError): return None
+
+
+def _assign_targets(node):
+    return node.targets if isinstance(node, ast.Assign) else [node.target]
+
+
+def _mutable_bindings(tree):
     bound = {}
     for node in tree.body:
-        if isinstance(node, (ast.Assign, ast.AnnAssign)):
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            for target in targets:
-                if isinstance(target, ast.Name) and isinstance(node.value, MUTABLE):
-                    bound[target.id] = (type(node.value).__name__, node.lineno)
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)): continue
+        for target in _assign_targets(node):
+            if isinstance(target, ast.Name) and isinstance(node.value, MUTABLE):
+                bound[target.id] = (type(node.value).__name__, node.lineno)
+    return bound
+
+
+def _module_level_ids(tree):
     # A dict built up at module level is initialisation; the same write inside a function is
     # state that changes while the program runs, which is the case worth reporting.
     module_level = set()
     for statement in tree.body:
-        for node in ast.walk(statement):
-            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): continue
-            module_level.add(id(node))
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): continue
+        module_level.update(id(node) for node in ast.walk(statement))
+    return module_level
+
+
+def _is_mutator_call(node, bound):
+    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name) and node.func.value.id in bound
+            and node.func.attr in MUTATORS)
+
+
+def _is_item_of(target, bound):
+    return isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name) and target.value.id in bound
+
+
+def _mutation_of(node, bound, module_level):
+    """(name, (how, line, scope)) for every bound name this node changes."""
+    scope = 'module' if id(node) in module_level else 'function'
+    if isinstance(node, ast.Global):
+        return [(name, ('global_statement', node.lineno, 'function')) for name in node.names]
+    if _is_mutator_call(node, bound):
+        return [(node.func.value.id, ('method:' + node.func.attr, node.lineno, scope))]
+    if isinstance(node, (ast.Assign, ast.AugAssign)):
+        return [(target.value.id, ('item_assignment', node.lineno, scope))
+                for target in _assign_targets(node) if _is_item_of(target, bound)]
+    return []
+
+
+def _mutations(tree, bound):
+    module_level = _module_level_ids(tree)
     mutated = {}
     for node in ast.walk(tree):
-        if isinstance(node, ast.Global):
-            for name in node.names: mutated[name] = ('global_statement', node.lineno, 'function')
-        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
-                and isinstance(node.func.value, ast.Name) and node.func.value.id in bound \
-                and node.func.attr in MUTATORS:
-            mutated[node.func.value.id] = ('method:' + node.func.attr, node.lineno,
-                                           'module' if id(node) in module_level else 'function')
-        elif isinstance(node, (ast.Assign, ast.AugAssign)):
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            for target in targets:
-                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name) and target.value.id in bound:
-                    mutated[target.value.id] = ('item_assignment', node.lineno,
-                                                'module' if id(node) in module_level else 'function')
-    found = []
-    for name, (shape, line) in sorted(bound.items()):
-        if name not in mutated: continue
-        how, where, scope = mutated[name]
-        found.append((name, shape, line, how, where, scope))
-    for name, value in sorted(mutated.items()):
-        how, where, scope = value
-        if name not in bound and how == 'global_statement':
-            found.append((name, 'rebound_global', where, how, where, scope))
-    return found
+        for name, value in _mutation_of(node, bound, module_level): mutated[name] = value
+    return mutated
+
+
+def _imported_names(tree):
+    modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.update((alias.asname or alias.name).split('.')[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            modules.update(alias.asname or alias.name for alias in node.names)
+    return modules
+
+
+def _writes_into(node, modules, owned):
+    return [(target.value.id, target.attr, node.lineno) for target in _assign_targets(node)
+            if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in modules
+            and (owned is None or target.value.id in owned)]
 
 
 def python_external_writes(text, owned=None):
@@ -102,22 +145,12 @@ def python_external_writes(text, owned=None):
     Only modules this project owns count. Setting sys.dont_write_bytecode is an idiom, not a
     violation of somebody's invariant, and flagging it buries the case that matters.
     """
-    try: tree = ast.parse(text)
-    except (SyntaxError, ValueError, RecursionError): return []
-    modules = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names: modules.add((alias.asname or alias.name).split('.')[0])
-        elif isinstance(node, ast.ImportFrom):
-            for alias in node.names: modules.add(alias.asname or alias.name)
+    tree = _parse(text)
+    if tree is None: return []
+    modules = _imported_names(tree)
     found = []
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.Assign, ast.AugAssign)): continue
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        for target in targets:
-            if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in modules:
-                if owned is not None and target.value.id not in owned: continue
-                found.append((target.value.id, target.attr, node.lineno))
+        if isinstance(node, (ast.Assign, ast.AugAssign)): found += _writes_into(node, modules, owned)
     return found
 
 
@@ -180,19 +213,22 @@ def encapsulated(name, text, language):
     return not exported
 
 
+def _plain_literal(node):
+    try: literal = ast.literal_eval(node)
+    except (ValueError, SyntaxError): return None
+    return literal if isinstance(literal, (int, float, str, bool)) else None
+
+
 def python_constants(text):
-    try: tree = ast.parse(text)
-    except (SyntaxError, ValueError, RecursionError): return []
+    tree = _parse(text)
+    if tree is None: return []
     found = []
     for node in tree.body:
-        if isinstance(node, (ast.Assign, ast.AnnAssign)):
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            for target in targets:
-                if isinstance(target, ast.Name) and target.id.isupper() and node.value is not None:
-                    try: literal = ast.literal_eval(node.value)
-                    except (ValueError, SyntaxError): continue
-                    if isinstance(literal, (int, float, str, bool)):
-                        found.append((target.id, literal, node.lineno))
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None: continue
+        for target in _assign_targets(node):
+            if not (isinstance(target, ast.Name) and target.id.isupper()): continue
+            literal = _plain_literal(node.value)
+            if literal is not None: found.append((target.id, literal, node.lineno))
     return found
 
 
@@ -207,133 +243,186 @@ def sql_access(files):
 
     A policy dropped and created again counts once; one dropped and not recreated does not count.
     """
-    rls, dropped, policies = set(), set(), {}
+    state = {'rls': set(), 'dropped': set(), 'policies': {}}
     for rel, text in sorted(files):
-        events = [(m.start(), 'rls', m) for m in SQL_RLS.finditer(text)]
-        events += [(m.start(), 'policy', m) for m in SQL_POLICY.finditer(text)]
-        events += [(m.start(), 'drop_policy', m) for m in SQL_DROP_POLICY.finditer(text)]
-        events += [(m.start(), 'drop_table', m) for m in SQL_DROP_TABLE.finditer(text)]
-        for offset, kind, match in sorted(events, key=lambda event: event[0]):
-            table = table_key(match.group('table'))
-            if kind == 'rls': rls.add(table); dropped.discard(table)
-            elif kind == 'drop_table': dropped.add(table); rls.discard(table)
-            elif kind == 'drop_policy': policies.pop((table, match.group('name')), None)
-            else:
-                body = ' '.join(match.group('body').split())
-                command = re.search(r'\bFOR\s+(ALL|SELECT|INSERT|UPDATE|DELETE)\b', body, re.I)
-                roles = re.search(r'\bTO\s+([\w\s,]+?)(?:\s+USING|\s+WITH|$)', body, re.I)
-                policies[(table, match.group('name'))] = {
-                    'path': rel, 'line': text.count('\n', 0, offset) + 1,
-                    'command': (command.group(1).upper() if command else 'ALL'),
-                    'roles': [role.strip() for role in roles.group(1).split(',')] if roles else ['public'],
-                    'open': bool(SQL_OPEN.search(body))}
-    policies = {key: value for key, value in policies.items() if key[0] not in dropped}
-    return {'rls': rls, 'dropped': dropped, 'policies': policies}
+        for event in _sql_events(text): _apply_sql_event(state, rel, text, event)
+    policies = {key: value for key, value in state['policies'].items() if key[0] not in state['dropped']}
+    return {'rls': state['rls'], 'dropped': state['dropped'], 'policies': policies}
+
+
+def _sql_events(text):
+    events = [(m.start(), 'rls', m) for m in SQL_RLS.finditer(text)]
+    events += [(m.start(), 'policy', m) for m in SQL_POLICY.finditer(text)]
+    events += [(m.start(), 'drop_policy', m) for m in SQL_DROP_POLICY.finditer(text)]
+    events += [(m.start(), 'drop_table', m) for m in SQL_DROP_TABLE.finditer(text)]
+    return sorted(events, key=lambda event: event[0])
+
+
+def _policy(rel, text, offset, match):
+    body = ' '.join(match.group('body').split())
+    command = re.search(r'\bFOR\s+(ALL|SELECT|INSERT|UPDATE|DELETE)\b', body, re.I)
+    roles = re.search(r'\bTO\s+([\w\s,]+?)(?:\s+USING|\s+WITH|$)', body, re.I)
+    return {'path': rel, 'line': text.count('\n', 0, offset) + 1,
+            'command': (command.group(1).upper() if command else 'ALL'),
+            'roles': [role.strip() for role in roles.group(1).split(',')] if roles else ['public'],
+            'open': bool(SQL_OPEN.search(body))}
+
+
+def _apply_sql_event(state, rel, text, event):
+    offset, kind, match = event
+    table = table_key(match.group('table'))
+    if kind == 'rls': state['rls'].add(table); state['dropped'].discard(table)
+    elif kind == 'drop_table': state['dropped'].add(table); state['rls'].discard(table)
+    elif kind == 'drop_policy': state['policies'].pop((table, match.group('name')), None)
+    else: state['policies'][(table, match.group('name'))] = _policy(rel, text, offset, match)
+
+
+def _owned_modules(source):
+    # A module is "ours" when a file in the snapshot defines it.
+    owned = set()
+    for item in source.readable():
+        if not item['path'].endswith('.py'): continue
+        parts = PurePosixPath(item['path']).parts
+        owned.add(PurePosixPath(item['path']).stem)
+        if len(parts) > 1: owned.add(parts[-2])
+    return owned
+
+
+def _line(text, match): return text.count('\n', 0, match.start()) + 1
+
+
+def _add_mutables(found, rel, text, language, rows):
+    found['mutable_globals'] += [(rel, name, shape, line, how, where, scope, encapsulated(name, text, language))
+                                 for name, shape, line, how, where, scope in rows]
+
+
+def _scan_python(found, rel, text, owned):
+    for name, value, line in python_constants(text): found['constants'][name].append((rel, line, value))
+    _add_mutables(found, rel, text, 'python', python_mutable_globals(text))
+    found['external_writes'] += [(rel, module, attribute, line) for module, attribute, line in python_external_writes(text, owned)]
+    found['models'] += [(match.group('name'), rel, _line(text, match), 'python_class') for match in ORM_MODEL.finditer(text)]
+
+
+def _js_value(raw):
+    try: return ast.literal_eval(raw)
+    except (ValueError, SyntaxError): return raw[:40]
+
+
+def _scan_js(found, rel, text, language):
+    _add_mutables(found, rel, text, language, js_mutable_globals(text))
+    for match in JS_CONST.finditer(text):
+        found['constants'][match.group('name')].append((rel, _line(text, match), _js_value(match.group('value').strip().rstrip(','))))
+    found['models'] += [(match.group('name'), rel, _line(text, match), 'ts_type') for match in TS_MODEL.finditer(text)]
+
+
+def _scan_tables(found, rel, text):
+    if rel.endswith('.sql') or ('CREATE TABLE' in text.upper() and not rel.lower().endswith(PROSE)):
+        found['tables'] += [(match.group('name'), rel, _line(text, match)) for match in SQL_TABLE.finditer(text)]
+    if MIGRATION.search(rel): found['migrations'].append(rel)
+    if rel.endswith('.sql'): found['sql_files'].append((rel, text))
+
+
+def _scan_file(found, rel, text, owned):
+    language = language_of(rel)
+    if language == 'python': _scan_python(found, rel, text, owned)
+    elif language == 'go': _add_mutables(found, rel, text, language, go_mutable_globals(text))
+    elif language in {'javascript', 'typescript', 'tsx'}: _scan_js(found, rel, text, language)
+    _scan_tables(found, rel, text)
+
+
+def _excluded_reason(name, per_module_identifier):
+    if name in CONVENTIONAL: return 'conventional module metadata'
+    if per_module_identifier: return 'per-module identifier: every site holds a different string'
+    return None
+
+
+def _constant_fact(name, places):
+    values = {repr(value) for _, _, value in places}
+    # A name whose every site holds a different *string* is a per-module identifier (module name, version).
+    # Numbers that differ between sites are the opposite: one rule with two answers, which is the case we care about.
+    per_module_identifier = (len(places) > 1 and len(values) == len(places)
+                             and all(isinstance(value, str) for _, _, value in places))
+    duplicate = len(places) > 1 and name not in CONVENTIONAL and not per_module_identifier
+    return make('domain_constant', NAME, VERSION, digest(name.encode('utf-8')), {'path': places[0][0], 'start_line': places[0][1]},
+                {'name': name, 'definitions': [{'path': path, 'line': line} for path, line, _ in places],
+                 'distinct_values': len(values), 'duplicated': duplicate,
+                 'same_value_everywhere': len(values) == 1 and duplicate,
+                 'excluded_reason': _excluded_reason(name, per_module_identifier)},
+                limitations=LIMITATIONS)
+
+
+def _table_value(name, rel, access):
+    key = table_key(name)
+    value = {'name': name}
+    if rel.endswith('.sql'):
+        value.update(rls_enabled=key in access['rls'], policies=sum(table == key for table, _ in access['policies']),
+                     dropped=key in access['dropped'])
+    return value
+
+
+def _policy_fact(table, name, policy):
+    return make('db_policy', NAME, VERSION, digest((table + '/' + name).encode('utf-8')),
+                {'path': policy['path'], 'start_line': policy['line']},
+                {'table': table, 'name': name, 'command': policy['command'], 'roles': policy['roles'],
+                 'open': policy['open']}, limitations=LIMITATIONS)
+
+
+def _mutable_fact(row):
+    rel, name, shape, line, how, where, scope, private = row
+    return make('mutable_global', NAME, VERSION, digest((rel + name).encode('utf-8')),
+                {'path': rel, 'start_line': line},
+                {'name': name, 'shape': shape, 'mutated_by': how, 'mutated_at_line': where,
+                 'mutation_scope': scope, 'encapsulated': private,
+                 'note': 'Built at import time in its own module.' if scope == 'module'
+                         else 'Changed while the program runs.'},
+                limitations=LIMITATIONS)
+
+
+def _facts(found):
+    constants = found['constants']
+    facts = [_constant_fact(name, sorted(constants[name])) for name in sorted(constants)]
+    facts += [make('data_model', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
+                   {'name': name, 'kind': kind}, limitations=LIMITATIONS) for name, rel, line, kind in sorted(found['models'])]
+    access = sql_access(found['sql_files'])
+    facts += [make('data_table', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
+                   _table_value(name, rel, access), limitations=LIMITATIONS) for name, rel, line in sorted(found['tables'])]
+    facts += [_policy_fact(table, name, policy) for (table, name), policy in sorted(access['policies'].items())]
+    facts += [_mutable_fact(row) for row in sorted(found['mutable_globals'])]
+    facts += [make('external_state_write', NAME, VERSION, digest((rel + module + attribute).encode('utf-8')),
+                   {'path': rel, 'start_line': line},
+                   {'module': module, 'attribute': attribute}, limitations=LIMITATIONS)
+              for rel, module, attribute, line in sorted(found['external_writes'])]
+    return facts
+
+
+def _summary(facts, found):
+    constants, mutable_globals = found['constants'], found['mutable_globals']
+    flagged = {fact['value']['name'] for fact in facts if fact['kind'] == 'domain_constant' and fact['value']['duplicated']}
+    distinct = lambda name: len({repr(v) for _, _, v in constants[name]})
+    return {'constants': len(constants), 'duplicated_constants': len(flagged),
+            'duplicated_with_same_value': sorted(name for name in flagged if distinct(name) == 1),
+            'duplicated_with_different_values': sorted(name for name in flagged if distinct(name) > 1),
+            'excluded_from_duplication': sorted({fact['value']['name'] for fact in facts
+                                                 if fact['kind'] == 'domain_constant' and fact['value'].get('excluded_reason')}),
+            'mutable_globals': len(mutable_globals),
+            'mutable_globals_changed_at_runtime': sum(1 for row in mutable_globals if row[6] == 'function'),
+            'external_state_writes': len(found['external_writes']),
+            'data_models': len(found['models']), 'data_tables': len(found['tables']),
+            'migration_paths': sorted(set(found['migrations']))[:20],
+            'interpretation': 'A constant repeated in two modules is a question about rule ownership, not yet a defect.'}
 
 
 def run(target, source, **options):
-    facts, fingerprints = [], []
-    constants = defaultdict(list)
-    models, tables, migrations, sql_files = [], [], [], []
-    mutable_globals, external_writes = [], []
-    # A module is "ours" when a file in the snapshot defines it.
-    owned_modules = set()
-    for item in source.readable():
-        parts = PurePosixPath(item['path']).parts
-        if item['path'].endswith('.py'):
-            owned_modules.add(PurePosixPath(item['path']).stem)
-            if len(parts) > 1: owned_modules.add(parts[-2])
+    owned = _owned_modules(source)
+    found = {'constants': defaultdict(list), 'models': [], 'tables': [], 'migrations': [], 'sql_files': [],
+             'mutable_globals': [], 'external_writes': []}
+    fingerprints = []
     for item in source.readable():
         rel, text = item['path'], source.text(item['path'])
         if text is None: continue
-        language = language_of(rel)
         fingerprints.append(item['sha256'])
-        if language == 'python':
-            for name, value, line in python_constants(text): constants[name].append((rel, line, value))
-            for name, shape, line, how, where, scope in python_mutable_globals(text):
-                mutable_globals.append((rel, name, shape, line, how, where, scope, encapsulated(name, text, language)))
-            for module, attribute, line in python_external_writes(text, owned_modules):
-                external_writes.append((rel, module, attribute, line))
-            for match in ORM_MODEL.finditer(text):
-                models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'python_class'))
-        elif language == 'go':
-            for name, shape, line, how, where, scope in go_mutable_globals(text):
-                mutable_globals.append((rel, name, shape, line, how, where, scope, encapsulated(name, text, language)))
-        elif language in {'javascript', 'typescript', 'tsx'}:
-            for name, shape, line, how, where, scope in js_mutable_globals(text):
-                mutable_globals.append((rel, name, shape, line, how, where, scope, encapsulated(name, text, language)))
-            for match in JS_CONST.finditer(text):
-                raw = match.group('value').strip().rstrip(',')
-                try: value = ast.literal_eval(raw)
-                except (ValueError, SyntaxError): value = raw[:40]
-                constants[match.group('name')].append((rel, text.count('\n', 0, match.start()) + 1, value))
-            for match in TS_MODEL.finditer(text):
-                models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'ts_type'))
-        if rel.endswith('.sql') or ('CREATE TABLE' in text.upper() and not rel.lower().endswith(PROSE)):
-            for match in SQL_TABLE.finditer(text):
-                tables.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1))
-        if MIGRATION.search(rel): migrations.append(rel)
-        if rel.endswith('.sql'): sql_files.append((rel, text))
-    duplicated = 0
-    for name in sorted(constants):
-        places = sorted(constants[name])
-        values = {repr(value) for _, _, value in places}
-        fact_kind = 'domain_constant'
-        # A name whose every site holds a different *string* is a per-module identifier (module name, version).
-        # Numbers that differ between sites are the opposite: one rule with two answers, which is the case we care about.
-        per_module_identifier = (len(places) > 1 and len(values) == len(places)
-                                 and all(isinstance(value, str) for _, _, value in places))
-        duplicate = len(places) > 1 and name not in CONVENTIONAL and not per_module_identifier
-        if duplicate: duplicated += 1
-        facts.append(make(fact_kind, NAME, VERSION, digest(name.encode('utf-8')), {'path': places[0][0], 'start_line': places[0][1]},
-                          {'name': name, 'definitions': [{'path': path, 'line': line} for path, line, _ in places],
-                           'distinct_values': len(values), 'duplicated': duplicate,
-                           'same_value_everywhere': len(values) == 1 and duplicate,
-                           'excluded_reason': ('conventional module metadata' if name in CONVENTIONAL
-                                               else 'per-module identifier: every site holds a different string' if per_module_identifier
-                                               else None)},
-                          limitations=LIMITATIONS))
-    for name, rel, line, kind in sorted(models):
-        facts.append(make('data_model', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
-                          {'name': name, 'kind': kind}, limitations=LIMITATIONS))
-    access = sql_access(sql_files)
-    for name, rel, line in sorted(tables):
-        key = table_key(name)
-        value = {'name': name}
-        if rel.endswith('.sql'):
-            value.update(rls_enabled=key in access['rls'], policies=sum(table == key for table, _ in access['policies']),
-                         dropped=key in access['dropped'])
-        facts.append(make('data_table', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
-                          value, limitations=LIMITATIONS))
-    for (table, name), policy in sorted(access['policies'].items()):
-        facts.append(make('db_policy', NAME, VERSION, digest((table + '/' + name).encode('utf-8')),
-                          {'path': policy['path'], 'start_line': policy['line']},
-                          {'table': table, 'name': name, 'command': policy['command'], 'roles': policy['roles'],
-                           'open': policy['open']}, limitations=LIMITATIONS))
-    for rel, name, shape, line, how, where, scope, private in sorted(mutable_globals):
-        facts.append(make('mutable_global', NAME, VERSION, digest((rel + name).encode('utf-8')),
-                          {'path': rel, 'start_line': line},
-                          {'name': name, 'shape': shape, 'mutated_by': how, 'mutated_at_line': where,
-                           'mutation_scope': scope, 'encapsulated': private,
-                           'note': 'Built at import time in its own module.' if scope == 'module'
-                                   else 'Changed while the program runs.'},
-                          limitations=LIMITATIONS))
-    for rel, module, attribute, line in sorted(external_writes):
-        facts.append(make('external_state_write', NAME, VERSION, digest((rel + module + attribute).encode('utf-8')),
-                          {'path': rel, 'start_line': line},
-                          {'module': module, 'attribute': attribute}, limitations=LIMITATIONS))
+        _scan_file(found, rel, text, owned)
+    facts = _facts(found)
     facts.sort(key=lambda f: (f['kind'], f['value'].get('name', ''), f['location']['path']))
-    flagged = {fact['value']['name'] for fact in facts if fact['kind'] == 'domain_constant' and fact['value']['duplicated']}
-    summary = {'constants': len(constants), 'duplicated_constants': duplicated,
-               'duplicated_with_same_value': sorted(name for name in flagged
-                                                    if len({repr(v) for _, _, v in constants[name]}) == 1),
-               'duplicated_with_different_values': sorted(name for name in flagged
-                                                          if len({repr(v) for _, _, v in constants[name]}) > 1),
-               'excluded_from_duplication': sorted({fact['value']['name'] for fact in facts
-                                                    if fact['kind'] == 'domain_constant' and fact['value'].get('excluded_reason')}),
-               'mutable_globals': len(mutable_globals),
-               'mutable_globals_changed_at_runtime': sum(1 for row in mutable_globals if row[6] == 'function'), 'external_state_writes': len(external_writes),
-               'data_models': len(models), 'data_tables': len(tables), 'migration_paths': sorted(set(migrations))[:20],
-               'interpretation': 'A constant repeated in two modules is a question about rule ownership, not yet a defect.'}
-    return {'facts': facts, 'summary': summary, 'available': True,
+    return {'facts': facts, 'summary': _summary(facts, found), 'available': True,
             'input_sha': digest(''.join(sorted(set(fingerprints))).encode('utf-8')), 'reason': None}
