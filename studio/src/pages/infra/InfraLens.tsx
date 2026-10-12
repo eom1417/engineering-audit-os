@@ -83,11 +83,12 @@ function RowLine({ row }: { row: Row }) {
 /** Lane by lane, every row of the diagram: the lens's linear twin for the phone and screen readers. */
 function InfraSteps({ infra, mode, focus, onFocus }: { infra: Infra; mode: Mode; focus?: string; onFocus: (id: string) => void }) {
   const w = useDataWords()
+  const targets = targetLanes(infra)
   return (
     <ol className={css.steps}>
       {infra.lanes.map((lane) => {
         const rows = allRows(infra, lane.id, mode)
-        const target = infra.target?.lanes.find((l) => l.id === lane.id)
+        const target = targets.get(lane.id)
         return (
           <li key={lane.id}>
             <Panel>
@@ -115,12 +116,13 @@ function InfraSteps({ infra, mode, focus, onFocus }: { infra: Infra; mode: Mode;
 /** Every lane in a table: what was found today, and what the target decides for it (or that it is silent). */
 function LaneTable({ infra }: { infra: Infra }) {
   const w = useDataWords()
+  const targets = targetLanes(infra)
   return (
     <table className={css.lanes}>
       <thead><tr><th scope="col">{w('lensInfra')}</th><th scope="col">{w('today')}</th><th scope="col">{w('target')}</th></tr></thead>
       <tbody>
         {infra.lanes.map((lane) => {
-          const items = infra.target?.lanes.find((l) => l.id === lane.id)?.items ?? []
+          const items = targets.get(lane.id)?.items ?? []
           const keep = items.filter((i) => i.op === 'keep').length
           const add = items.length - keep
           return (
@@ -134,6 +136,84 @@ function LaneTable({ infra }: { infra: Infra }) {
         })}
       </tbody>
     </table>
+  )
+}
+
+/** The target's lanes by id: the first one of each id, as a search of the list would find it. */
+function targetLanes(infra: Infra) {
+  type TargetLane = NonNullable<Infra['target']>['lanes'][number]
+  const out = new Map<string, TargetLane>()
+  for (const l of infra.target?.lanes ?? []) if (!out.has(l.id)) out.set(l.id, l)
+  return out
+}
+
+type Found = ReturnType<typeof find>
+
+/** What the target keeps, introduces and leaves silent, or that there is no target. */
+function planLine(infra: Infra, w: ReturnType<typeof useDataWords>) {
+  return infra.target ? [w('keepN', { n: infra.counts.keep?.value ?? 0 }), w('introduceN', { n: infra.counts.introduce?.value ?? 0 }),
+    w('silentN', { n: infra.counts.target_silent?.value ?? 0 })].join(' · ') : w('noTarget')
+}
+
+/** The chosen item's panel: a found node's evidence or a target item's decision. */
+function ChosenDetail({ found }: { found: Found }) {
+  if (found?.node) return <NodeDetail node={found.node} />
+  return found?.item ? <ItemDetail lane={found.lane} item={found.item} /> : null
+}
+
+/** The phone's diagram as a full-screen sheet with pan, pinch and the zoom buttons; the chosen item is named below. */
+function ExploreSheet({ infra, mode, focus, onFocus, found, open, onOpenChange, svg, zoom }:
+  { infra: Infra; mode: Mode; focus?: string; onFocus: (id: string) => void; found: Found; open: boolean; onOpenChange: (open: boolean) => void
+    svg: React.RefObject<SVGSVGElement | null>; zoom: ReturnType<typeof useZoom> }) {
+  const w = useDataWords()
+  return (
+    <ModalOverlay isOpen={open} onOpenChange={onOpenChange} isDismissable className={dataCss.exploreOverlay}>
+      <Modal className={dataCss.exploreModal}>
+        <Dialog className={dataCss.exploreDialog} aria-label={w('infraTitle')}>
+          {({ close }) => (
+            <>
+              <div className={dataCss.exploreHead}>
+                <IconButton icon="x" label={w('closeMap')} onPress={close} />
+                <Heading slot="title" className={dataCss.exploreTitle}>{w('infraTitle')}</Heading>
+                <span className={dataCss.spacer} />
+                <div className={mapCss.zoom} role="group" aria-label={w('zoomFit')}>
+                  <AriaButton className={mapCss.zoomBtn} onPress={() => zoom.zoomBy(1.4)} aria-label={w('zoomIn')}>+</AriaButton>
+                  <AriaButton className={mapCss.zoomBtn} onPress={() => zoom.zoomBy(1 / 1.4)} aria-label={w('zoomOut')}>−</AriaButton>
+                  <AriaButton className={mapCss.zoomBtn} onPress={zoom.fit} aria-label={w('zoomFit')}>⤢</AriaButton>
+                </div>
+              </div>
+              <div className={dataCss.exploreCanvas}>
+                <InfraMap infra={infra} mode={mode} focus={focus} onFocus={onFocus} svgRef={svg}
+                  transform={`translate(${zoom.t.x},${zoom.t.y}) scale(${zoom.t.k})`} className={dataCss.exploreSvg} />
+              </div>
+              {found && (
+                <div className={dataCss.exploreBar} role="status">
+                  <span className={dataCss.exploreName}>{found.node ? nodeName(found.node, w) : w(`area_${found.item!.area}` as DataWord)}</span>
+                  <Button variant="primary" onPress={close}>{w('seeChain')}</Button>
+                </div>
+              )}
+            </>
+          )}
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  )
+}
+
+/** The desktop toolbar: the title with its counts, the view, map or steps, and the target's summary. */
+function InfraToolbar({ counts, modes, steps, plan, onSteps }: { counts: string; modes: React.ReactNode; steps: boolean; plan: string; onSteps: (steps: boolean) => void }) {
+  const w = useDataWords()
+  return (
+    <div className={dataCss.toolbar}>
+      <h1 className={dataCss.title} id="h-infra">{w('infraTitle')}<span className={dataCss.level}>{counts}</span></h1>
+      <div className={dataCss.toolRow}>
+        {modes}
+        <Segmented label={w('showAs')} value={steps ? 'steps' : 'map'} onChange={(v) => onSteps(v === 'steps')}
+          options={[{ id: 'map', label: w('asMap') }, { id: 'steps', label: w('asSteps') }]} />
+        <span className={dataCss.spacer} />
+        <span className={dataCss.level}>{plan}</span>
+      </div>
+    </div>
   )
 }
 
@@ -158,9 +238,8 @@ function InfraBody({ data, infra }: { data: StudioData; infra: Infra }) {
   const pick = (id: string) => { if (!id.startsWith('more:')) go({ item: id === focus ? undefined : id }) }
   const setMode = (m: Mode) => go({ view: m === 'current' ? undefined : m, item: undefined })
   const counts = w('infraCounts', { n: infra.counts.nodes?.value ?? 0, l: infra.counts.lanes_found?.value ?? 0 })
-  const plan = infra.target ? [w('keepN', { n: infra.counts.keep?.value ?? 0 }), w('introduceN', { n: infra.counts.introduce?.value ?? 0 }),
-    w('silentN', { n: infra.counts.target_silent?.value ?? 0 })].join(' · ') : w('noTarget')
-  const detail = found?.node ? <NodeDetail node={found.node} /> : found?.item ? <ItemDetail lane={found.lane} item={found.item} /> : null
+  const plan = planLine(infra, w)
+  const detail = found?.node || found?.item ? <ChosenDetail found={found} /> : null
   const modes = infra.target && (
     <Segmented label={w('view')} value={mode} onChange={setMode} comfortable={phone}
       options={[{ id: 'current', label: w('today') }, { id: 'change', label: w('change') }, { id: 'target', label: w('target') }]} />
@@ -176,36 +255,7 @@ function InfraBody({ data, infra }: { data: StudioData; infra: Infra }) {
         <Button variant="secondary" onPress={() => setExplore(true)}>{w('exploreMap')}</Button>
         {detail && <Panel pad>{detail}</Panel>}
         <InfraSteps infra={infra} mode={mode} focus={focus} onFocus={pick} />
-        <ModalOverlay isOpen={explore} onOpenChange={setExplore} isDismissable className={dataCss.exploreOverlay}>
-          <Modal className={dataCss.exploreModal}>
-            <Dialog className={dataCss.exploreDialog} aria-label={w('infraTitle')}>
-              {({ close }) => (
-                <>
-                  <div className={dataCss.exploreHead}>
-                    <IconButton icon="x" label={w('closeMap')} onPress={close} />
-                    <Heading slot="title" className={dataCss.exploreTitle}>{w('infraTitle')}</Heading>
-                    <span className={dataCss.spacer} />
-                    <div className={mapCss.zoom} role="group" aria-label={w('zoomFit')}>
-                      <AriaButton className={mapCss.zoomBtn} onPress={() => zoom.zoomBy(1.4)} aria-label={w('zoomIn')}>+</AriaButton>
-                      <AriaButton className={mapCss.zoomBtn} onPress={() => zoom.zoomBy(1 / 1.4)} aria-label={w('zoomOut')}>−</AriaButton>
-                      <AriaButton className={mapCss.zoomBtn} onPress={zoom.fit} aria-label={w('zoomFit')}>⤢</AriaButton>
-                    </div>
-                  </div>
-                  <div className={dataCss.exploreCanvas}>
-                    <InfraMap infra={infra} mode={mode} focus={focus} onFocus={pick} svgRef={svg}
-                      transform={`translate(${zoom.t.x},${zoom.t.y}) scale(${zoom.t.k})`} className={dataCss.exploreSvg} />
-                  </div>
-                  {found && (
-                    <div className={dataCss.exploreBar} role="status">
-                      <span className={dataCss.exploreName}>{found.node ? nodeName(found.node, w) : w(`area_${found.item!.area}` as DataWord)}</span>
-                      <Button variant="primary" onPress={close}>{w('seeChain')}</Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </Dialog>
-          </Modal>
-        </ModalOverlay>
+        <ExploreSheet infra={infra} mode={mode} focus={focus} onFocus={pick} found={found} open={explore} onOpenChange={setExplore} svg={svg} zoom={zoom} />
       </div>
     )
   }
@@ -214,16 +264,7 @@ function InfraBody({ data, infra }: { data: StudioData; infra: Infra }) {
     <div className={dataCss.sys}>
       <section className={dataCss.canvasCol} aria-labelledby="h-infra">
         <MissingBanner data={data} />
-        <div className={dataCss.toolbar}>
-          <h1 className={dataCss.title} id="h-infra">{w('infraTitle')}<span className={dataCss.level}>{counts}</span></h1>
-          <div className={dataCss.toolRow}>
-            {modes}
-            <Segmented label={w('showAs')} value={steps ? 'steps' : 'map'} onChange={(v) => go({ show: v === 'steps' ? 'steps' : undefined })}
-              options={[{ id: 'map', label: w('asMap') }, { id: 'steps', label: w('asSteps') }]} />
-            <span className={dataCss.spacer} />
-            <span className={dataCss.level}>{plan}</span>
-          </div>
-        </div>
+        <InfraToolbar counts={counts} modes={modes} steps={steps} plan={plan} onSteps={(on) => go({ show: on ? 'steps' : undefined })} />
         <div className={dataCss.scroll} data-scroll-y="">
           {steps
             ? <div className={dataCss.stepsPage}><InfraSteps infra={infra} mode={mode} focus={focus} onFocus={pick} /></div>
