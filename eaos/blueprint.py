@@ -366,43 +366,67 @@ def target(spec, stack, modules):
 
 def build_problems(root, out, rules, closing=False):
     """What a built copy breaks, from the facts collected into `out`: [{'gate', 'where', 'what'}]."""
-    from .facts.store import read_set
-    from .policy import violations
-    sets = {}
-    for name in ('resolve', 'graph', 'broken', 'metrics', 'deadcode'):
-        if (Path(out) / 'facts' / f'{name}.json').is_file(): sets[name] = read_set(out, name)
+    sets = _gate_sets(out)
     found = []
-    if 'resolve' in sets and 'graph' in sets:
-        broken, outside = violations(rules, sets)
-        found += [{'gate': 'layers', 'where': f"{row['from_path']}:{row['line'] or 1}",
-                   'what': f"{row['from_layer']} may not use {row['to_layer']} ({row['to_path']}): {row['reason']}"} for row in broken]
-        found += [{'gate': 'structure', 'where': path, 'what': 'this file is outside every planned folder: put it where the plan says'}
-                  for path in outside]
-        for concern, vendor in (rules.get('vendors') or {}).items():
-            for edge in sets['resolve']['facts']:
-                module, source = edge['value'].get('module') or '', edge['location']['path']
-                named = any(module == package or module.startswith(package + '/') for package in vendor['packages'])
-                homes = [vendor['only_in']] if isinstance(vendor['only_in'], str) else vendor['only_in']
-                if named and not any(source.startswith(home) for home in homes) and not re.search(r'\.test\.tsx?$', source):
-                    found.append({'gate': 'vendor', 'where': f"{source}:{edge['location'].get('start_line') or 1}",
-                                  'what': f"{module} is used outside {' and '.join(homes)}: only the {concern} adapter may use it, "
-                                          'so it can be changed in one place'})
-    for fact in (sets.get('graph') or {}).get('facts', []):
-        if fact['kind'] == 'graph_cycle':
-            found.append({'gate': 'cycle', 'where': fact['value']['members'][0], 'what': 'these files import each other in a loop: '
-                          + ', '.join(fact['value']['members'][:6])})
-    for fact in (sets.get('broken') or {}).get('facts', []):
-        if fact['value'].get('severity') == 'high':
-            found.append({'gate': 'broken', 'where': fact['location'].get('path'), 'what': fact['value']['message']})
+    if 'resolve' in sets and 'graph' in sets: found += _layer_problems(rules, sets) + _vendor_problems(rules, sets)
+    found += _cycle_problems(sets) + _broken_problems(sets) + _copy_problems(sets)
+    if closing:
+        found += [{'gate': 'dead', 'where': fact['location'].get('path'), 'what': fact['value'].get('message')}
+                  for fact in (sets.get('deadcode') or {}).get('facts', [])]
+    return found
+
+
+def _gate_sets(out):
+    from .facts.store import read_set
+    return {name: read_set(out, name) for name in ('resolve', 'graph', 'broken', 'metrics', 'deadcode')
+            if (Path(out) / 'facts' / f'{name}.json').is_file()}
+
+
+def _layer_problems(rules, sets):
+    """Each import a layer rule forbids, and each file outside every planned folder."""
+    from .policy import violations
+    broken, outside = violations(rules, sets)
+    return ([{'gate': 'layers', 'where': f"{row['from_path']}:{row['line'] or 1}",
+              'what': f"{row['from_layer']} may not use {row['to_layer']} ({row['to_path']}): {row['reason']}"} for row in broken]
+            + [{'gate': 'structure', 'where': path, 'what': 'this file is outside every planned folder: put it where the plan says'}
+               for path in outside])
+
+
+def _vendor_problems(rules, sets):
+    """Each import of a vendor's package outside its adapter (tests aside)."""
+    found = []
+    for concern, vendor in (rules.get('vendors') or {}).items():
+        homes = [vendor['only_in']] if isinstance(vendor['only_in'], str) else vendor['only_in']
+        for edge in sets['resolve']['facts']:
+            module, source = edge['value'].get('module') or '', edge['location']['path']
+            named = any(module == package or module.startswith(package + '/') for package in vendor['packages'])
+            if named and not any(source.startswith(home) for home in homes) and not re.search(r'\.test\.tsx?$', source):
+                found.append({'gate': 'vendor', 'where': f"{source}:{edge['location'].get('start_line') or 1}",
+                              'what': f"{module} is used outside {' and '.join(homes)}: only the {concern} adapter may use it, "
+                                      'so it can be changed in one place'})
+    return found
+
+
+def _cycle_problems(sets):
+    return [{'gate': 'cycle', 'where': fact['value']['members'][0], 'what': 'these files import each other in a loop: '
+             + ', '.join(fact['value']['members'][:6])}
+            for fact in (sets.get('graph') or {}).get('facts', []) if fact['kind'] == 'graph_cycle']
+
+
+def _broken_problems(sets):
+    return [{'gate': 'broken', 'where': fact['location'].get('path'), 'what': fact['value']['message']}
+            for fact in (sets.get('broken') or {}).get('facts', []) if fact['value'].get('severity') == 'high']
+
+
+def _copy_problems(sets):
+    """Each block of lines written twice or more outside tests and configuration."""
+    found = []
     for fact in (sets.get('metrics') or {}).get('facts', []):
         if fact['kind'] != 'clone_cluster': continue
         places = [o for o in fact['value']['occurrences'] if not re.search(r'(\.test\.|/tests?/|e2e/|\.config\.)', o['path'])]
         if len(places) >= 2:
             found.append({'gate': 'copy', 'where': places[0]['path'], 'what': 'the same lines are written in '
                           + ', '.join(f"{o['path']}:{o['start_line']}" for o in places[:4]) + ': give them one home and call it'})
-    if closing:
-        for fact in (sets.get('deadcode') or {}).get('facts', []):
-            found.append({'gate': 'dead', 'where': fact['location'].get('path'), 'what': fact['value'].get('message')})
     return found
 
 
@@ -433,23 +457,32 @@ BUILD_STATE = {'done': ('بُنيت ✓', 'Built ✓', 'good'), 'open': ('لم �
 
 def build_cards(built, progress):
     """Every build card with its state: built when a delivered milestone kept it, set aside when it skipped it."""
-    from html import escape
-    from .human_report import T
     done = {card for record in progress or [] for card in record.get('kept') or []}
+    skipped, batch = _card_batches(progress)
+    return [_card_row(c, done, skipped, batch) for c in built['plan']['tasks']]
+
+
+def _card_batches(progress):
+    """({card set aside: why}, {card: the milestone run that kept or skipped it})."""
     skipped, batch = {}, {}
     for record in progress or []:
         gone = record.get('skipped') or {}
         skipped.update(gone if isinstance(gone, dict) else {card: '' for card in gone})
         for card in list(record.get('kept') or []) + list(gone): batch[card] = record.get('number')
-    out = []
-    for c in built['plan']['tasks']:
+    return skipped, batch
+
+
+def _card_row(c, done, skipped, batch):
+    """One build card as the report's card block draws it: its state, its batch and its acceptance."""
+    from html import escape
+    from .human_report import T
+    if True:
         state = 'done' if c['id'] in done else 'skipped' if c['id'] in skipped else 'open'
         checks = ''.join(f'<li>{escape(str(a))}</li>' for a in c.get('acceptance') or [])
         extra = f'<p class="small"><b>{T("يُقبل حين:", "Accepted when:")}</b></p><ul class="small">{checks}</ul>' if checks else ''
-        out.append({'id': c['id'], 'key': c['id'], 'title': c['title'], 'pattern': None, 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
-                    'before': '', 'after': '', 'state': state, 'new': False, 'batch': batch.get(c['id']), 'at': None,
-                    'why': skipped.get(c['id']) or '', 'commit': None, 'module': c.get('module'), 'extra': extra})
-    return out
+    return {'id': c['id'], 'key': c['id'], 'title': c['title'], 'pattern': None, 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
+            'before': '', 'after': '', 'state': state, 'new': False, 'batch': batch.get(c['id']), 'at': None,
+            'why': skipped.get(c['id']) or '', 'commit': None, 'module': c.get('module'), 'extra': extra}
 
 
 def layer_map(built, cards):
@@ -461,15 +494,35 @@ def layer_map(built, cards):
     edges = [e for e in built['architecture'].get('target_edges') or [] if e.get('from') in names and e.get('to') in names]
     weights = {(e['from'], e['to']): 1 for e in edges}
     tier = layer_of(names, [e for e in weights if e not in feedback_edges(names, weights)])
-    homes = {name: [g.split('*')[0] for g in policy['layers'][name] if not g.startswith('*')] for name in names}
-    progress = {}
-    for name in names:
-        mine = [c for c in cards if any(p.startswith(h) for p in c['paths'] for h in homes[name] if h)]
-        progress[name] = (sum(c['state'] == 'done' for c in mine), len(mine))
-    comps = [{'name': name, 'layer': f'{tier[name] + 1}', 'responsibility': rules.get(name) or '', 'files': 0,
-              'sub': (f'البطاقات {progress[name][1]}', f'{progress[name][1]} card' + ('' if progress[name][1] == 1 else 's'))} for name in names]
+    progress = {name: _layer_progress(policy['layers'][name], cards) for name in names}
+    comps = [_layer_box(name, tier[name], rules.get(name), progress[name][1]) for name in names]
     rows = [(label, members) for label, members in target_rows(comps, sorted({c['layer'] for c in comps}, key=int))]
     return rows, edges, progress
+
+
+def _layer_progress(globs, cards):
+    """(cards built, cards) of the build cards whose paths are in a layer's folders."""
+    homes = [g.split('*')[0] for g in globs if not g.startswith('*')]
+    mine = [c for c in cards if any(p.startswith(h) for p in c['paths'] for h in homes if h)]
+    return sum(c['state'] == 'done' for c in mine), len(mine)
+
+
+def _layer_box(name, tier, reason, count):
+    return {'name': name, 'layer': f'{tier + 1}', 'responsibility': reason or '', 'files': 0,
+            'sub': (f'البطاقات {count}', f'{count} card' + ('' if count == 1 else 's'))}
+
+
+def _milestone_card(milestone, done, delivered, cards, rtl):
+    """One milestone: its name, how many of its cards are built (or its branch once delivered) and each card."""
+    from html import escape
+    ids = milestone['tasks']
+    share = round(100 * sum(c in done for c in ids) / len(ids)) if ids else 0
+    badge = ('✅ ' + escape(delivered[milestone['id']])) if milestone['id'] in delivered else f'{sum(c in done for c in ids)} / {len(ids)}'
+    items = ''.join(f'<li>{"✅" if c in done else "⬜"} {escape(cards[c]["title"])}</li>' for c in ids)
+    return (f'<div class="card"><h4>{escape(milestone.get("name_ar") if rtl else milestone["name"])} '
+            f'<span class="muted small" data-meaning="cards built of this milestone">{badge}</span></h4>'
+            f'<div style="height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0">'
+            f'<div style="width:{share}%;height:100%;background:var(--good)"></div></div><ul class="small">{items}</ul></div>')
 
 
 def page(spec, stack, built, progress=None):
@@ -502,16 +555,7 @@ def page(spec, stack, built, progress=None):
                    f'<td class="small">{escape(row["switch"])}</td></tr>' for row in stack.values())
     rules = ''.join(f'<li>{escape(rule["reason"])}</li>' for rule in built['policy']['rules'])
     cards = {c['id']: c for c in built['plan']['tasks']}
-    stages = []
-    for milestone in built['plan']['milestones']:
-        ids = milestone['tasks']
-        share = round(100 * sum(c in done for c in ids) / len(ids)) if ids else 0
-        badge = ('✅ ' + escape(delivered[milestone['id']])) if milestone['id'] in delivered else f'{sum(c in done for c in ids)} / {len(ids)}'
-        items = ''.join(f'<li>{"✅" if c in done else "⬜"} {escape(cards[c]["title"])}</li>' for c in ids)
-        stages.append(f'<div class="card"><h4>{escape(milestone.get("name_ar") if rtl else milestone["name"])} '
-                      f'<span class="muted small" data-meaning="cards built of this milestone">{badge}</span></h4>'
-                      f'<div style="height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0">'
-                      f'<div style="width:{share}%;height:100%;background:var(--good)"></div></div><ul class="small">{items}</ul></div>')
+    stages = [_milestone_card(milestone, done, delivered, cards, rtl) for milestone in built['plan']['milestones']]
     label = (lambda ar, en: ar if rtl else en)
     return f"""<!doctype html><html lang="{'ar' if rtl else 'en'}" dir="{'rtl' if rtl else 'ltr'}" data-lang="{'ar' if rtl else 'en'}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(spec['name'])}</title>
