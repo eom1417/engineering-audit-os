@@ -72,7 +72,7 @@ function FlowView({ data, paths, path }: { data: StudioData; paths: PathsData; p
     search: (prev: FlowSearch) => Object.fromEntries(Object.entries({ ...prev, ...patch }).filter(([, v]) => v !== undefined && v !== '')) as FlowSearch,
   })
   const pick = (id: string) => { go({ node: id === node ? undefined : id }); if (phone) setSheet(id !== node) }
-  const drawn = useMemo(() => drawPath(paths, index, path, mode, w, traced), [paths, index, path, mode, w, traced])
+  const drawn = useMemo(() => drawPath(paths, index, path, { mode, w, onlyTraced: traced }), [paths, index, path, mode, w, traced])
   const label = w('diagramAria', { t: path.title, n: path.columns.flat().length, l: path.columns.filter((c) => c.length).length, g: path.gaps })
   const maybe = useMemo(() => possible(paths, path), [paths, path])
   const setMode = (m: PathMode) => go({ view: m === 'current' ? undefined : m })
