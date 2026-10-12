@@ -52,7 +52,7 @@ function Neighbours({ ids, byId, empty, title }: { ids: string[]; byId: Map<stri
           <FoldList items={fns} first={6} label={title} render={(f) => (
             <FnLink id={f.id} className={css.row}>
               <span className={css.rowMain}>
-                <span className={css.rowName}><Id value={f.name} /></span>
+                <span className={[css.rowName, css.rowNameCut].join(' ')} title={f.name}><Id value={f.name} /></span>
                 <span className={css.rowSub}>{w(`kind_${f.kind}`)} · <Id value={f.module} keep={2} /></span>
               </span>
               <span className={css.rowEnd}><Level fn={f} /></span>
