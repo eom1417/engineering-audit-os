@@ -91,6 +91,16 @@ def _when(epoch):
     return datetime.fromtimestamp(epoch, timezone.utc).isoformat(timespec='seconds')
 
 
+def _roles(kind, name, known):
+    """What a branch is to the project: open in its folder, the one analysed, the report's, the base, the default."""
+    local, context = kind == 'local', known['context']
+    return [role for role, on in (('checkout', local and name == known['head']['branch']),
+                                  ('analysis', local and name == context['analysis']['branch']),
+                                  ('report', local and name == context['report']['branch']),
+                                  ('base', local and name == known['base']),
+                                  ('default', name == known['default']['name'])) if on]
+
+
 class BranchControl:
     def __init__(self, actions):
         self.actions = actions
@@ -356,23 +366,15 @@ class BranchControl:
             out['problem'] = say(f'There is no branch named {base} in this project.', f'ما فيه فرع اسمه {base} في هذا المشروع.', 'no_base')
             return out
         out['base'] = {'branch': base, 'commit': row[1], 'short': row[1][:7], 'when': row[2] or None, 'checked_out': base == head['branch']}
-        # the state as fix_start sees it once the base is chosen: that branch's own batches give the next number
-        view = dict(state, project=self.project)
-        if base != working and state:
-            view = {k: v for k, v in view.items() if k not in reading.KEYS}
-            view.update((state.get('by_branch') or {}).get(base, {}), branch=base)
-        elif not state: view['branch'] = base
+        view = self._fix_view(state, base, working)
         tips = {name: tip for name, tip, _ in locals_}
         out['continuable'] = [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in agent_tools.work_branches(view)]
-        why = blocked(base) or ({'code': 'main', 'en': reading.protected(self.project, base), 'ar': 'الفرع الرئيسي'} if reading.protected(self.project, base) else None)
-        if why: out['direct_blocked'] = say(f"{base} is protected ({why['en']}): fixes never land on it directly.",
-                                            f"{base} محمي ({why['ar']}): الإصلاحات ما تنزل عليه مباشرة أبدًا.", 'protected_direct')
+        out['direct_blocked'] = self._direct_blocked(base, blocked(base))
         asked = str(wanted.get('deliver_as') or '').strip()
         if asked == base and out['direct_blocked']:
             out.update(mode='direct', deliver_as=base, merge_into=base, problem=out['direct_blocked'])
             return out
-        named = f"eaos/{reading.slug(base)}/{reading.slug(str(hint)).lower()[:40]}" if hint and not asked else ''
-        if named and (agent_tools.guided._branch_exists(view, named) or git(self.project, 'check-ref-format', '--branch', named).returncode): named = ''
+        named = self._named_after(view, base, hint) if hint and not asked else ''
         try:
             out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, asked or named or None, wanted.get('merge_into') or head['branch'])
         except ValueError as problem:
@@ -386,6 +388,32 @@ class BranchControl:
             out['problem'] = say(f"{out['merge_into']} is protected ({target['en']}): choose another branch to merge into.",
                                  f"{out['merge_into']} محمي ({target['ar']}): اختر فرعًا ثانيًا يُدمج فيه.", 'protected_target')
         return out
+
+    def _fix_view(self, state, base, working):
+        """The state as fix_start sees it once the base is chosen: that branch's own batches give the next number."""
+        from ... import branches as reading
+        view = dict(state, project=self.project)
+        if base != working and state:
+            view = {k: v for k, v in view.items() if k not in reading.KEYS}
+            view.update((state.get('by_branch') or {}).get(base, {}), branch=base)
+        elif not state: view['branch'] = base
+        return view
+
+    def _direct_blocked(self, base, blocked):
+        """Why fixes may not land on the base directly (a protected branch, or the project's main), or None."""
+        from ... import branches as reading
+        why = blocked or ({'code': 'main', 'en': reading.protected(self.project, base), 'ar': 'الفرع الرئيسي'} if reading.protected(self.project, base) else None)
+        if not why: return None
+        return say(f"{base} is protected ({why['en']}): fixes never land on it directly.",
+                   f"{base} محمي ({why['ar']}): الإصلاحات ما تنزل عليه مباشرة أبدًا.", 'protected_direct')
+
+    def _named_after(self, view, base, hint):
+        """`eaos/<base>/<group>` for a group of cards, when that name is free and git takes it; else ''."""
+        from ... import agent_tools
+        from ... import branches as reading
+        named = f"eaos/{reading.slug(base)}/{reading.slug(str(hint)).lower()[:40]}"
+        if agent_tools.guided._branch_exists(view, named) or git(self.project, 'check-ref-format', '--branch', named).returncode: return ''
+        return named
 
     def accept_where(self):
         """What Accept shows before it merges: the waiting branch, the branch it merges into (the fix preview's choice,
@@ -416,32 +444,35 @@ class BranchControl:
         if base: valid_name(self.project, base)
         base_tip = self.tip(f'refs/heads/{base}') if base else None
         worktrees = self.worktrees()
-        held = {row['branch']: row for row in worktrees if row['branch']}
         waves, registry, links = self.waves(state), self._registry(), self.run_links()
-        rows, refs = [], self.refs()
-        for kind, remote, name, ref, tip, when, subject, upstream, track in refs[:REFS_SHOWN]:
-            behind, ahead = self.counts(base_tip, tip) if base_tip else (None, None)
-            owner = self.ownership(name, tip, state, waves, registry)
-            roles = [role for role, on in (('checkout', kind == 'local' and name == head['branch']),
-                                           ('analysis', kind == 'local' and name == context['analysis']['branch']),
-                                           ('report', kind == 'local' and name == context['report']['branch']),
-                                           ('base', kind == 'local' and name == base),
-                                           ('default', name == default['name'])) if on]
-            worktree = held.get(name) if kind == 'local' else None
-            rows.append({'id': ref, 'name': name, 'kind': kind, 'remote': remote, 'ref': ref, 'tip': tip, 'last_commit': when or None,
-                         'subject': subject[:160], 'upstream': upstream, 'tracking': track,
-                         'roles': roles, 'protected': policy['protected'].get(name), 'ownership': owner,
-                         'work': owner['owner'] != 'unknown',
-                         'compare': {'base': base, 'ahead': ahead, 'behind': behind, 'merged': None if ahead is None else ahead == 0},
-                         'worktree': {'path': worktree['path'], 'current': worktree['current'], 'dirty': worktree['dirty']} if worktree else None,
-                         'runs': links.get(name, []) if kind == 'local' else [],
-                         'remote_as_of': self.last_fetch() if kind == 'remote' else None})
+        known = {'state': state, 'head': head, 'context': context, 'default': default, 'policy': policy, 'base': base,
+                 'base_tip': base_tip, 'held': {row['branch']: row for row in worktrees if row['branch']},
+                 'waves': waves, 'registry': registry, 'links': links}
+        refs = self.refs()
+        rows = [self._branch_row(ref_row, known) for ref_row in refs[:REFS_SHOWN]]
         gone = sorted(set(links) - {r['name'] for r in rows if r['kind'] == 'local'})
         return {'git': True, 'project': self.project.name, 'head': head, 'context': context, 'base': base, 'base_tip': base_tip,
                 'default': default, 'remotes': self.remotes(), 'has_origin': 'origin' in self.remotes(),
                 'last_fetch': self.last_fetch(), 'worktrees': worktrees, 'protected': policy['protected'],
                 'branches': rows, 'truncated': len(refs) > REFS_SHOWN, 'recovery': self.recoveries(),
                 'missing_linked': [{'name': name, 'runs': links[name]} for name in gone], 'checked_at': now()}
+
+    def _branch_row(self, ref_row, known):
+        """One branch as the inventory shows it: its tip, roles, protection, owner, how it compares with the base, its
+        worktree and the runs on it."""
+        kind, remote, name, ref, tip, when, subject, upstream, track = ref_row
+        base, base_tip = known['base'], known['base_tip']
+        behind, ahead = self.counts(base_tip, tip) if base_tip else (None, None)
+        owner = self.ownership(name, tip, known['state'], known['waves'], known['registry'])
+        worktree = known['held'].get(name) if kind == 'local' else None
+        return {'id': ref, 'name': name, 'kind': kind, 'remote': remote, 'ref': ref, 'tip': tip, 'last_commit': when or None,
+                'subject': subject[:160], 'upstream': upstream, 'tracking': track,
+                'roles': _roles(kind, name, known), 'protected': known['policy']['protected'].get(name), 'ownership': owner,
+                'work': owner['owner'] != 'unknown',
+                'compare': {'base': base, 'ahead': ahead, 'behind': behind, 'merged': None if ahead is None else ahead == 0},
+                'worktree': {'path': worktree['path'], 'current': worktree['current'], 'dirty': worktree['dirty']} if worktree else None,
+                'runs': known['links'].get(name, []) if kind == 'local' else [],
+                'remote_as_of': self.last_fetch() if kind == 'remote' else None}
 
     def _ref_of(self, name, kind='local', remote=None):
         valid_name(self.project, name)
