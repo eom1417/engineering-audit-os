@@ -57,16 +57,26 @@ def bound_files(texts):
     bound = {rel: client_names(text) for rel, text in texts.items()}
     bound = {rel: names for rel, names in bound.items() if names}
     for _ in range(3):
-        by_stem = {}
-        for rel, names in bound.items():
-            if _stem(rel) not in GENERIC_STEMS: by_stem.setdefault(_stem(rel), set()).update(names)
-        grew = False
-        for rel, text in texts.items():
-            inherited = set().union(*(by_stem.get(_stem(spec), set()) for spec in IMPORT.findall(text)))
-            if inherited - bound.get(rel, set()):
-                bound[rel] = client_names(text, bound.get(rel, set()) | inherited); grew = True
-        if not grew: break
+        if not _grow(texts, bound, _by_stem(bound)): break
     return bound
+
+
+def _by_stem(bound):
+    """{file stem: the client names the files of that stem hold}, generic stems left out."""
+    by_stem = {}
+    for rel, names in bound.items():
+        if _stem(rel) not in GENERIC_STEMS: by_stem.setdefault(_stem(rel), set()).update(names)
+    return by_stem
+
+
+def _grow(texts, bound, by_stem):
+    """One hop along imports: each file takes the names of the stems it imports. True when a file gained one."""
+    grew = False
+    for rel, text in texts.items():
+        inherited = set().union(*(by_stem.get(_stem(spec), set()) for spec in IMPORT.findall(text)))
+        if inherited - bound.get(rel, set()):
+            bound[rel] = client_names(text, bound.get(rel, set()) | inherited); grew = True
+    return grew
 
 
 def prepare(texts):
@@ -106,33 +116,39 @@ def extract_calls(text, names=()):
     """
     names = set(names) | client_names(text)
     for match in TABLE_CALL.finditer(text):
-        # The receiver decides, not a mention nearby: `myClient.from("t")` under a comment naming Supabase
-        # is not a Supabase call, and `this.client.from("t")` in a service holding one is.
-        receiver = RECEIVER.search(text[max(0, match.start() - 200):match.start()])
-        if not receiver or not (SB_NAME.fullmatch(receiver.group(1)) or receiver.group(1) in names): continue
-        # A read is bounded when its chain limits the rows: .limit, .range, .single or .maybeSingle before the
-        # statement ends. None for writes, whose result size is not the question.
-        chain = re.split(r';|\n\s*\n', text[match.end():match.end() + 600], maxsplit=1)[0]
-        bounded = (bool(re.search(r'\.(?:limit|range|single|maybeSingle)\s*\(', chain))
-                   if match.group('op') == 'select' else None)
-        record = {'client': 'supabase', 'target': match.group('target'),
-                  'operation': match.group('op'), 'symbol': 'from', 'bounded': bounded}
-        row = ROW.match(text, match.end()) if match.group('op') in WRITES else None
-        found = object_keys(text, row.end()) if row else None
-        if found is not None: record.update(keys=found['keys'], keys_partial=found['partial'])
-        yield match.start(), _line_of(text, match.start()), record
-    for match in RPC_CALL.finditer(text):
-        if _supabase_prefix(text, match.start()) is None: continue
-        yield match.start(), _line_of(text, match.start()), \
-            {'client': 'supabase', 'target': match.group('target'), 'operation': 'rpc', 'symbol': 'rpc'}
-    for match in STORAGE_CALL.finditer(text):
-        if _supabase_prefix(text, match.start()) is None: continue
-        yield match.start(), _line_of(text, match.start()), \
-            {'client': 'supabase', 'target': match.group('target'), 'operation': 'storage', 'symbol': 'storage'}
-    for match in AUTH_CALL.finditer(text):
-        if _supabase_prefix(text, match.start()) is None: continue
-        yield match.start(), _line_of(text, match.start()), \
-            {'client': 'supabase', 'target': 'auth', 'operation': match.group('op'), 'symbol': 'auth'}
+        record = _table_record(text, match, names)
+        if record is not None: yield match.start(), _line_of(text, match.start()), record
+    for pattern, record in PREFIXED:
+        for match in pattern.finditer(text):
+            if _supabase_prefix(text, match.start()) is None: continue
+            yield match.start(), _line_of(text, match.start()), record(match)
+
+
+def _table_record(text, match, names):
+    """The record of one `.from(...)` chain, or None when its receiver is not a Supabase client."""
+    # The receiver decides, not a mention nearby: `myClient.from("t")` under a comment naming Supabase
+    # is not a Supabase call, and `this.client.from("t")` in a service holding one is.
+    receiver = RECEIVER.search(text[max(0, match.start() - 200):match.start()])
+    if not receiver or not (SB_NAME.fullmatch(receiver.group(1)) or receiver.group(1) in names): return None
+    # A read is bounded when its chain limits the rows: .limit, .range, .single or .maybeSingle before the
+    # statement ends. None for writes, whose result size is not the question.
+    chain = re.split(r';|\n\s*\n', text[match.end():match.end() + 600], maxsplit=1)[0]
+    bounded = (bool(re.search(r'\.(?:limit|range|single|maybeSingle)\s*\(', chain))
+               if match.group('op') == 'select' else None)
+    record = {'client': 'supabase', 'target': match.group('target'),
+              'operation': match.group('op'), 'symbol': 'from', 'bounded': bounded}
+    row = ROW.match(text, match.end()) if match.group('op') in WRITES else None
+    found = object_keys(text, row.end()) if row else None
+    if found is not None: record.update(keys=found['keys'], keys_partial=found['partial'])
+    return record
+
+
+# The calls that count only with a Supabase-named client earlier in their statement, and the record of each.
+PREFIXED = (
+    (RPC_CALL, lambda m: {'client': 'supabase', 'target': m.group('target'), 'operation': 'rpc', 'symbol': 'rpc'}),
+    (STORAGE_CALL, lambda m: {'client': 'supabase', 'target': m.group('target'), 'operation': 'storage', 'symbol': 'storage'}),
+    (AUTH_CALL, lambda m: {'client': 'supabase', 'target': 'auth', 'operation': m.group('op'), 'symbol': 'auth'}),
+)
 
 
 def detect(context):
