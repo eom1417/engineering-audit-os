@@ -60,32 +60,38 @@ def squarify(weights, x, y, w, h):
         short = min(w, h)
         row = [areas[i]]
         j = i + 1
-
-        def worst(r):
-            s = sum(r)
-            return max(max(s * s / (short * short * a), short * short * a / (s * s)) for a in r) if s else math.inf
-        while j < len(areas) and worst(row + [areas[j]]) <= worst(row):
+        while j < len(areas) and _worst(row + [areas[j]], short) <= _worst(row, short):
             row.append(areas[j])
             j += 1
-        s = sum(row)
-        if w >= h:                       # a column along the left side
-            cw = s / h if h else 0
-            cy = y
-            for a in row:
-                ch = a / cw if cw else 0
-                out.append((x, cy, cw, ch))
-                cy += ch
-            x, w = x + cw, w - cw
-        else:                            # a row along the top
-            rh = s / w if w else 0
-            cx = x
-            for a in row:
-                rw = a / rh if rh else 0
-                out.append((cx, y, rw, rh))
-                cx += rw
-            y, h = y + rh, h - rh
+        x, y, w, h = _lay_row(row, x, y, w, h, out)
         i = j
     return out
+
+
+def _worst(r, short):
+    """The worst aspect ratio of a row of areas laid along a side of length `short`."""
+    s = sum(r)
+    return max(max(s * s / (short * short * a), short * short * a / (s * s)) for a in r) if s else math.inf
+
+
+def _lay_row(row, x, y, w, h, out):
+    """Lay one row of areas into out; (x, y, w, h) of the room left."""
+    s = sum(row)
+    if w >= h:                           # a column along the left side
+        cw = s / h if h else 0
+        cy = y
+        for a in row:
+            ch = a / cw if cw else 0
+            out.append((x, cy, cw, ch))
+            cy += ch
+        return x + cw, y, w - cw, h
+    rh = s / w if w else 0               # a row along the top
+    cx = x
+    for a in row:
+        rw = a / rh if rh else 0
+        out.append((cx, y, rw, rh))
+        cx += rw
+    return x, y + rh, w, h - rh
 
 
 def rooms(regions):
@@ -177,46 +183,66 @@ def layout(nodes, edges, room, family=()):
 
 # ---------------------------------------------------------------- land
 
+# The sides a contour crosses in each marching-squares cell (0 top, 1 right, 2 bottom, 3 left), by its corner index.
+MARCH = {1: ((3, 2),), 2: ((2, 1),), 3: ((3, 1),), 4: ((0, 1),), 5: ((3, 0), (2, 1)), 6: ((0, 2),), 7: ((3, 0),),
+         8: ((0, 3),), 9: ((0, 2),), 10: ((0, 1), (3, 2)), 11: ((0, 1),), 12: ((3, 1),), 13: ((2, 1),), 14: ((3, 2),)}
+
+
 def _march(field, level, x0, y0):
     """Marching squares over field[row][col] (cell = GRID units, origin x0, y0): closed polylines in world units."""
+    return [[(x0 + cx * GRID, y0 + cy * GRID) for _, (cx, cy) in chain]
+            for chain in _chains(_segments(field, level)) if len(chain) > 6]
+
+
+def _segments(field, level):
+    """Every piece of the contour at `level`, cell by cell: ((edge key, point), (edge key, point))."""
     rows, cols = len(field), len(field[0])
     segs = []
-    table = {1: ((3, 2),), 2: ((2, 1),), 3: ((3, 1),), 4: ((0, 1),), 5: ((3, 0), (2, 1)), 6: ((0, 2),), 7: ((3, 0),),
-             8: ((0, 3),), 9: ((0, 2),), 10: ((0, 1), (3, 2)), 11: ((0, 1),), 12: ((3, 1),), 13: ((2, 1),), 14: ((3, 2),)}
     for y in range(rows - 1):
         up, down = field[y], field[y + 1]
         for x in range(cols - 1):
-            a, b, c, d = up[x], up[x + 1], down[x + 1], down[x]
+            corners = up[x], up[x + 1], down[x + 1], down[x]
+            a, b, c, d = corners
             idx = (a >= level) * 8 + (b >= level) * 4 + (c >= level) * 2 + (d >= level)
             if idx == 0 or idx == 15: continue
+            for p, q in MARCH[idx]:
+                segs.append((_cut(p, x, y, corners, level), _cut(q, x, y, corners, level)))
+    return segs
 
-            def cut(side):
-                if side == 0: return ('h', x, y), (x + _t(a, b, level), y)
-                if side == 1: return ('v', x + 1, y), (x + 1, y + _t(b, c, level))
-                if side == 2: return ('h', x, y + 1), (x + _t(d, c, level), y + 1)
-                return ('v', x, y), (x, y + _t(a, d, level))
-            for p, q in table[idx]:
-                segs.append((cut(p), cut(q)))
+
+def _cut(side, x, y, corners, level):
+    """Where the contour crosses one side of the cell at (x, y): (the side's key, the point)."""
+    a, b, c, d = corners
+    if side == 0: return ('h', x, y), (x + _t(a, b, level), y)
+    if side == 1: return ('v', x + 1, y), (x + 1, y + _t(b, c, level))
+    if side == 2: return ('h', x, y + 1), (x + _t(d, c, level), y + 1)
+    return ('v', x, y), (x, y + _t(a, d, level))
+
+
+def _chains(segs):
+    """The segments joined end to end into chains, each segment used once."""
     ends = defaultdict(list)
     for i, (p, q) in enumerate(segs):
         ends[p[0]].append(i)
         ends[q[0]].append(i)
     used = [False] * len(segs)
-    lines = []
+    chains = []
     for i in range(len(segs)):
         if used[i]: continue
         used[i] = True
-        chain = [segs[i][0], segs[i][1]]
-        while True:
-            key = chain[-1][0]
-            nxt = next((j for j in ends[key] if not used[j]), None)
-            if nxt is None: break
-            used[nxt] = True
-            p, q = segs[nxt]
-            chain.append(q if p[0] == key else p)
-        if len(chain) > 6:
-            lines.append([(x0 + cx * GRID, y0 + cy * GRID) for _, (cx, cy) in chain])
-    return lines
+        chains.append(_follow([segs[i][0], segs[i][1]], segs, ends, used))
+    return chains
+
+
+def _follow(chain, segs, ends, used):
+    """Grow a chain from its last point along the unused segments that share it."""
+    while True:
+        key = chain[-1][0]
+        nxt = next((j for j in ends[key] if not used[j]), None)
+        if nxt is None: return chain
+        used[nxt] = True
+        p, q = segs[nxt]
+        chain.append(q if p[0] == key else p)
 
 
 def _t(p, q, level):
@@ -328,20 +354,7 @@ def node_labels(nodes, pos, taken):
         px = 13.5 if big else 12
         w = text_width(n['short'], px, 'mono')
         others = [b for k, b in dots.items() if k != n['id']]
-        spot = None
-        for anchor, lx, ly in (('middle', x, y + r + px + 2), ('middle', x, y - r - 5), ('start', x + r + 5, y + px * .35),
-                               ('end', x - r - 5, y + px * .35)):
-            if anchor == 'middle':
-                lx = _clamp_x(lx, w / 2)
-                box = (lx - w / 2 - 2, ly - px, lx + w / 2 + 2, ly + 3)
-            elif anchor == 'start':
-                box = (lx - 2, ly - px, lx + w + 2, ly + 3)
-            else:
-                box = (lx - w - 2, ly - px, lx + 2, ly + 3)
-            if box[0] < 2 or box[2] > W - 2: continue
-            if _free(box, placed) and _free(box, others):
-                spot = (anchor, lx, ly, box)
-                break
+        spot = _spot(x, y, r, w, px, placed, others)
         if spot is None:
             lx = _clamp_x(x, w / 2)
             spot = ('middle', lx, y + r + px + 2, (lx - w / 2, y + r + 2, lx + w / 2, y + r + px + 5))
@@ -352,6 +365,25 @@ def node_labels(nodes, pos, taken):
         placed.append(box)
         out[n['id']] = {'x': round(lx, 1), 'y': round(ly, 1), 'anchor': anchor, 'size': px, 'placed': True, 'big': big}
     return out
+
+
+def _spot(x, y, r, w, px, placed, others):
+    """(anchor, x, y, box) of the first free place for a dot's label: below, above, right, left; None when none is."""
+    for anchor, lx, ly in (('middle', x, y + r + px + 2), ('middle', x, y - r - 5), ('start', x + r + 5, y + px * .35),
+                           ('end', x - r - 5, y + px * .35)):
+        lx, box = _label_box(anchor, lx, ly, w, px)
+        if box[0] < 2 or box[2] > W - 2: continue
+        if _free(box, placed) and _free(box, others): return anchor, lx, ly, box
+    return None
+
+
+def _label_box(anchor, lx, ly, w, px):
+    """(x, box) of a label of width w anchored at (lx, ly); a centred one is kept inside the world."""
+    if anchor == 'middle':
+        lx = _clamp_x(lx, w / 2)
+        return lx, (lx - w / 2 - 2, ly - px, lx + w / 2 + 2, ly + 3)
+    if anchor == 'start': return lx, (lx - 2, ly - px, lx + w + 2, ly + 3)
+    return lx, (lx - w - 2, ly - px, lx + 2, ly + 3)
 
 
 # ---------------------------------------------------------------- one map
@@ -371,21 +403,37 @@ def draw(nodes, edges, regions, family=()):
     by = {n['id']: n for n in nodes}
     names = region_labels(present, nodes, pos)
     labels = node_labels(nodes, pos, [v['box'] for v in names.values()])
-    out_edges = {}
-    for a, b, n in edges:
-        if a not in by or b not in by or a == b: continue
-        d, mid = edge_path(pos[a], pos[b], by[a]['r'], by[b]['r'])
-        out_edges[(a, b)] = {'d': d, 'mid': list(mid), 'width': round(0.6 + 0.6 * math.log1p(n), 2)}
-    boxes = [(x - n['r'] - 46, y - n['r'] - 40, x + n['r'] + 46, y + n['r'] + 46) for n in nodes for x, y in [pos[n['id']]]]
-    boxes += [(v['box'][0], v['box'][1] - 8, v['box'][2], v['box'][3]) for v in names.values()]
-    bounds = [max(0, min(b[0] for b in boxes)), max(0, min(b[1] for b in boxes)), min(W, max(b[2] for b in boxes)),
-              min(H, max(b[3] for b in boxes))] if boxes else [0, 0, W, H]
-    for v in names.values():                # the preview's large names stay inside the drawn land's frame
-        lo, hi = bounds[0] + v['half'] + 6, bounds[2] - v['half'] - 6
-        v['tx'] = round(min(max(v['tx'], lo), hi) if lo <= hi else (bounds[0] + bounds[2]) / 2)
+    out_edges = _edge_shapes(edges, pos, by)
+    bounds = _bounds(nodes, pos, names)
+    _fit_names(names, bounds)
     return {'nodes': {n['id']: {'x': pos[n['id']][0], 'y': pos[n['id']][1], 'r': n['r'], 'label': labels[n['id']]} for n in nodes},
             'bounds': [round(bounds[0]), round(bounds[1]), round(bounds[2] - bounds[0]), round(bounds[3] - bounds[1])],
             'edges': out_edges,
             'regions': {r['id']: {'label': {k: v for k, v in names[r['id']].items() if k not in ('box', 'half')},
                                   'land': land([n for n in nodes if n['region'] == r['id']], pos)} for r in present},
             'scale': round(scale, 3)}
+
+
+def _edge_shapes(edges, pos, by):
+    """{(from, to): {d, mid, width}} for every edge between two drawn dots."""
+    out_edges = {}
+    for a, b, n in edges:
+        if a not in by or b not in by or a == b: continue
+        d, mid = edge_path(pos[a], pos[b], by[a]['r'], by[b]['r'])
+        out_edges[(a, b)] = {'d': d, 'mid': list(mid), 'width': round(0.6 + 0.6 * math.log1p(n), 2)}
+    return out_edges
+
+
+def _bounds(nodes, pos, names):
+    """[x0, y0, x1, y1] of the drawn land: every dot with room for its label, and the region names."""
+    boxes = [(x - n['r'] - 46, y - n['r'] - 40, x + n['r'] + 46, y + n['r'] + 46) for n in nodes for x, y in [pos[n['id']]]]
+    boxes += [(v['box'][0], v['box'][1] - 8, v['box'][2], v['box'][3]) for v in names.values()]
+    return [max(0, min(b[0] for b in boxes)), max(0, min(b[1] for b in boxes)), min(W, max(b[2] for b in boxes)),
+            min(H, max(b[3] for b in boxes))] if boxes else [0, 0, W, H]
+
+
+def _fit_names(names, bounds):
+    """The preview's large names stay inside the drawn land's frame."""
+    for v in names.values():
+        lo, hi = bounds[0] + v['half'] + 6, bounds[2] - v['half'] - 6
+        v['tx'] = round(min(max(v['tx'], lo), hi) if lo <= hi else (bounds[0] + bounds[2]) / 2)
