@@ -49,41 +49,51 @@ def label_severity(label):
 
 def fixed_in(vulnerability, name, current):
     """The lowest version that fixes this advisory for the installed version, or None when none is known."""
-    fixes = []
-    for affected in vulnerability.get('affected') or []:
-        if (affected.get('package') or {}).get('name') not in (None, name): continue
-        for spans in affected.get('ranges') or []:
-            if spans.get('type') not in ('SEMVER', 'ECOSYSTEM'): continue
-            introduced = None
-            for event in spans.get('events') or []:
-                if 'introduced' in event: introduced = event['introduced']
-                if 'fixed' in event and introduced is not None:
-                    low = (0,) if introduced == '0' else _key(introduced)
-                    if (introduced == '0' or _key(current) >= low) and _key(current) < _key(event['fixed']):
-                        fixes.append(event['fixed'])
+    fixes = [fix for affected in vulnerability.get('affected') or [] if (affected.get('package') or {}).get('name') in (None, name)
+             for spans in affected.get('ranges') or [] if spans.get('type') in ('SEMVER', 'ECOSYSTEM')
+             for fix in _range_fixes(spans, current)]
     return min(fixes, key=_key) if fixes else None
+
+
+def _range_fixes(spans, current):
+    """The fixed versions of one range whose introduced..fixed span holds the installed version."""
+    fixes, introduced = [], None
+    for event in spans.get('events') or []:
+        if 'introduced' in event: introduced = event['introduced']
+        if 'fixed' not in event or introduced is None: continue
+        low = (0,) if introduced == '0' else _key(introduced)
+        if (introduced == '0' or _key(current) >= low) and _key(current) < _key(event['fixed']):
+            fixes.append(event['fixed'])
+    return fixes
 
 
 def packages(payload, target):
     """{(ecosystem, name, version): {'sites', 'advisories'}} merged over every source OSV-Scanner read."""
     merged = {}
     for result in payload.get('results') or []:
-        source = result.get('source') or {}
-        path = source.get('path') or ''
+        path = (result.get('source') or {}).get('path') or ''
         site = Path(path).relative_to(target).as_posix() if path.startswith(str(target)) else 'sbom.cdx.json'
-        for row in result.get('packages') or []:
-            package = row.get('package') or {}
-            key = (package.get('ecosystem'), package.get('name'), package.get('version'))
-            entry = merged.setdefault(key, {'sites': set(), 'advisories': {}})
-            entry['sites'].add(site)
-            scores = {vid: group.get('max_severity') for group in row.get('groups') or [] for vid in group.get('ids') or []}
-            for vulnerability in row.get('vulnerabilities') or []:
-                severity = (score_severity(scores.get(vulnerability['id']))
-                            or label_severity((vulnerability.get('database_specific') or {}).get('severity')) or 'medium')
-                entry['advisories'][vulnerability['id']] = {
-                    'severity': severity, 'fixed_in': fixed_in(vulnerability, key[1], key[2]),
-                    'summary': (vulnerability.get('summary') or '')[:160]}
+        for row in result.get('packages') or []: _add_package(merged, row, site)
     return merged
+
+
+def _add_package(merged, row, site):
+    """One package row of a source: its site and its advisories joined to the package's entry."""
+    package = row.get('package') or {}
+    key = (package.get('ecosystem'), package.get('name'), package.get('version'))
+    entry = merged.setdefault(key, {'sites': set(), 'advisories': {}})
+    entry['sites'].add(site)
+    scores = {vid: group.get('max_severity') for group in row.get('groups') or [] for vid in group.get('ids') or []}
+    for vulnerability in row.get('vulnerabilities') or []:
+        entry['advisories'][vulnerability['id']] = _advisory(vulnerability, scores.get(vulnerability['id']), key)
+
+
+def _advisory(vulnerability, score, key):
+    """An advisory's severity (its score, else its database's label, else medium), its fix for this version, its summary."""
+    severity = (score_severity(score)
+                or label_severity((vulnerability.get('database_specific') or {}).get('severity')) or 'medium')
+    return {'severity': severity, 'fixed_in': fixed_in(vulnerability, key[1], key[2]),
+            'summary': (vulnerability.get('summary') or '')[:160]}
 
 
 def normalise(payload, target, found):
@@ -110,18 +120,24 @@ def normalise(payload, target, found):
     return findings
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
-    found = version()
-    target = Path(target)
-    workdir = Path(workdir)
+def _scan(target, workdir):
+    """Run the scanner on the project's lockfiles, and on Syft's SBOM when there is one: (exit code, stderr, seconds,
+    report path, SBOM path)."""
     output = workdir / NAME / 'osv.json'
     output.parent.mkdir(parents=True, exist_ok=True)
     command = [which(BINARY), 'scan', 'source', '-r', '--format', 'json', '--output', str(output), str(target)]
     sbom = workdir / 'syft' / 'sbom.cdx.json'
     if sbom.is_file(): command[3:3] = ['-L', str(sbom)]
     code, _, error, seconds = run(command)
+    return code, error, seconds, output, sbom
+
+
+def analyze(target, workdir, exclude=(), formats=None):
+    declined = tool.declined(NAME, BINARY, target)
+    if declined: return declined
+    found = version()
+    target = Path(target)
+    code, error, seconds, output, sbom = _scan(target, Path(workdir))
     # 0: nothing vulnerable; 1: vulnerabilities found; 128: no package source at all. Anything else failed.
     if code == 128:
         return Report(NAME, found, PINNED, OBSERVED, seconds=seconds,
