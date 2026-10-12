@@ -372,19 +372,9 @@ def analyze(target, workdir, exclude=(), formats=None):
     findings, unmapped = [], {}
     for fact in produced['facts']:
         value = fact['value']
+        # A per-symbol metric carries no threshold: it stays a symbol metric (facts/external.py), never a finding.
         if fact['kind'] == 'symbol_metric_external':
-            findings.append(finding(
-                NAME, found, 'codegraph:analyze_complexity', 'complexity',
-                subject('symbol', value.get('name') or fact['location']['path'],
-                        fact['location']['path'], fact['location'].get('line')),
-                f"{value.get('name', 'symbol')}: cyclomatic complexity {value.get('complexity')} "
-                f"(grade {value.get('grade') or 'n/a'})",
-                measurements=[measurement('complexity', value.get('complexity')),
-                              measurement('lines_of_code', value.get('lines')),
-                              measurement('branches', value.get('branches')),
-                              measurement('loops', value.get('loops')),
-                              measurement('nesting', value.get('nesting'))],
-                method='measured', raw_ref=f'codegraph/{GRAPH_FACTS}'))
+            continue
         elif fact['kind'] == 'hot_path_external':
             findings.append(finding(
                 NAME, found, 'codegraph:find_hot_paths', 'coupling',
@@ -403,8 +393,7 @@ def analyze(target, workdir, exclude=(), formats=None):
         return Report(NAME, found, PINNED, UNAVAILABLE,
                       reason='no file in this report was named for CodeGraph to answer about',
                       coverage={'status': 'unavailable'}, raw=str(workdir / GRAPH_FACTS))
-    evaluated = {'complexity': {'status': 'observed', 'granularity': SYMBOL},
-                 'coupling': {'status': 'observed', 'granularity': SYMBOL}}
+    evaluated = {'coupling': {'status': 'observed', 'granularity': SYMBOL}}
     coverage = {'status': 'observed', 'scanned_files': summary.get('files_asked'),
                 'tools': summary.get('tools', {}), 'partial': summary.get('partial', []),
                 'file_budget': summary.get('file_budget'),

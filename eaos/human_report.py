@@ -11,8 +11,8 @@ EAOS that built it; progress['report_errors'] and every part that failed show in
 number on the page carries its meaning in words next to it.
 
 Progress comes from the ledger when the caller passes one (progress={'waves': [...], 'ledger': L}): a card
-is closed when it is 'done' (an EAOS fix merged into the person's main branch) or 'resolved' (a later check
-no longer finds it); 'on_branch' waits for the person and is not closed. With no ledger, a card a batch
+is closed only when it is 'done' (an EAOS fix merged into the person's main branch); a problem a later check no
+longer finds leaves the plan, it is not counted as closed; 'on_branch' waits for the person and is not closed. With no ledger, a card a batch
 kept counts as done, as before.
 
 What a problem is, its area and severity, and the health score are computed once, in eaos/studio/model.py, and
@@ -38,7 +38,7 @@ W = {  # every fixed word of the page: (Arabic, English)
     'summary': ('ملخص المشروع', 'Project summary'), 'gaps': ('الفجوات والمخاطر', 'Gaps and risks'),
     'structure': ('خريطة البنية', 'Structure map'), 'system': ('خريطة النظام', 'System map'), 'target': ('البنية المستهدفة', 'Target'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
     'security': ('الأمان', 'Security'), 'quality': ('جودة الكود', 'Code quality'),
-    'performance': ('الأداء تحت الضغط', 'Performance under load'),
+    'performance': ('الأداء تحت الضغط', 'Performance under load'), 'ux': ('شكل الشاشات', 'How the screens look'),
     'maintainability': ('سهولة التطوير والاختبار', 'Ease of change and testing'),
     'critical': ('حرجة', 'Critical'), 'high': ('عالية', 'High'), 'medium': ('متوسطة', 'Medium'), 'low': ('منخفضة', 'Low'),
     'excellent': ('ممتاز', 'Excellent'), 'good': ('جيد', 'Good'), 'fair': ('مقبول', 'Fair'), 'weak': ('ضعيف', 'Weak'),
@@ -54,6 +54,7 @@ AREA_WHAT = {
                   'Are the parts of the program clearly separate, or tangled so that none can change alone?'),
     'quality': ('كود ميت لا يستخدمه أحد، وكود منسوخ، ومراجع مكسورة.', 'Dead code nothing uses, copied code, and broken references.'),
     'performance': ('هل يبطئ البرنامج كلما زاد المستخدمون أو البيانات؟', 'Does the program slow down as users or data grow?'),
+    'ux': ('هل شاشات البرنامج واضحة ومرتبة في صورها؟', "Do the program's screens look clear and tidy in their pictures?"),
     'maintainability': ('هل يسهل فهم الكود وتغييره واختباره دون كسر شيء؟', 'Is the code easy to understand, change and test without breaking something?'),
 }
 SEVERITY_MEANS = {
@@ -682,7 +683,7 @@ def section_plan(m):
     _, failed = waves_state(progress)
     cards = m.get('cards') or []
     t = gap_totals(m, cards)
-    out = [work_log(progress), f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(t["closed"], "problems fixed and merged, or no longer found, so far")}</div><p>{T("مشاكل أُغلقت حتى الآن: أُصلحت ودُمجت أو لم تعد موجودة", "problems closed so far: fixed and merged, or no longer found")}</p></div>'
+    out = [work_log(progress), f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(t["closed"], "problems fixed and merged so far")}</div><p>{T("مشاكل أُغلقت حتى الآن: أُصلحت ودُمجت", "problems closed so far: fixed and merged")}</p></div>'
            f'<div class="card stat"><div class="stat-n">{num(M.problems_left(t), "problems left")}</div><p>{T("مشاكل باقية", "problems left")}</p></div>'
            f'<div class="card stat"><div class="stat-n">{num(t["on_branch"], "fixes on a branch waiting for your decision")}</div><p>{T("إصلاحات على فرع تنتظر قرارك، لا تُحسب حتى تُدمج", "fixes on a branch waiting for your decision; not counted until merged")}</p></div>'
            f'<div class="card stat warn-bg"><div class="stat-n">{num(M.collection_count(failed), "fixes that were tried and did not pass")}</div><p>{T("إصلاحات جُرّبت ولم تنجح", "fixes tried that did not pass")}</p></div></div>']
@@ -763,10 +764,10 @@ def decisions_block(rows):
 # ---------------------------------------------------------------- progress: the ledger and every task card
 
 CARD_STATE = {  # state: (Arabic, English, chip colour); 'on_branch' is delivered, not merged, so it is not closed
-    'done': ('أُصلحت ودُمجت ✓', 'Done ✓ merged', 'good'), 'resolved': ('أُغلقت: لم تعد موجودة', 'Closed by a recheck', 'good'),
+    'done': ('أُصلحت ودُمجت ✓', 'Done ✓ merged', 'good'),
     'on_branch': ('على فرع ينتظر قرارك', 'Waiting on a branch', 'warn'), 'in_batch': ('في الدفعة الحالية', 'In the current batch', 'accent'),
     'open': ('مفتوحة', 'Open', 'plain'), 'skipped': ('تحتاج قرارًا', 'Needs a decision', 'bad')}
-STATE_ORDER = ('open', 'in_batch', 'on_branch', 'skipped', 'done', 'resolved')
+STATE_ORDER = ('open', 'in_batch', 'on_branch', 'skipped', 'done')
 EVENT = {'baseline': ('الفحص الأول', 'first check'), 'merged': ('دُمجت دفعة', 'a batch merged'),
          'recheck': ('إعادة فحص', 'a recheck'), 'delivered': ('سُلّمت دفعة على فرع', 'a batch delivered on a branch')}
 
@@ -786,21 +787,21 @@ def bar(share, cls=''):
 
 
 def state_chip(state, words=CARD_STATE):
-    ar, en, tone = words[state]
+    ar, en, tone = words.get(state) or (state, state, 'plain')
     return f'<span class="chip st st-{tone}" data-state="{state}">{T(esc(ar), esc(en))}</span>'
 
 
 def gap_block(m, cards, chart=True):
-    """How much of the gap is closed: only what is merged into the person's branch, or no longer found, counts."""
+    """How much of the gap is closed: only what is merged into the person's branch counts."""
     t, ledger = gap_totals(m, cards), ledger_of(m)
     head = f'<h3 id="gap-closed">{T("كم أُغلق من الفجوة", "How much of the gap is closed")}</h3>'
     if not t['total']:
         return head + f'<div class="card">{T("لا مشاكل مفتوحة في الخطة: لا فجوة لإغلاقها.", "The plan has no problem to close: there is no gap.", "p")}</div>'
-    share = num(pct(t['percent']), 'share of the problems found that are closed: fixed and merged, or no longer found')
+    share = num(pct(t['percent']), 'share of the problems found that are closed: fixed and merged')
     closed, total = num(t['closed'], 'problems closed'), num(t['total'], 'problems in the plan, fixed ones included')
-    parts = [(k, v) for k, v in (('done', t['done']), ('resolved', t['resolved']), ('on_branch', t['on_branch']),
+    parts = [(k, v) for k, v in (('done', t['done']), ('on_branch', t['on_branch']),
                                  ('in_batch', t['in_batch']), ('skipped', t['skipped']), ('open', t['open'])) if v]
-    meanings = {'done': 'problems fixed by EAOS and merged into your main branch', 'resolved': 'problems a later check no longer found',
+    meanings = {'done': 'problems fixed by EAOS and merged into your main branch',
                 'on_branch': 'problems fixed on a branch that waits for your decision; not counted until merged',
                 'in_batch': 'problems in the batch being fixed now', 'skipped': 'problems set aside that need your decision',
                 'open': 'problems not started yet'}
@@ -814,7 +815,7 @@ def gap_block(m, cards, chart=True):
     when = (f'<p class="muted small">{T("آخر تحديث:", "Last updated:")} {num(updated, "the date the progress was last updated")}</p>' if updated else '')
     marker = ' data-part="progress-history"' if chart else ''
     body = (f'<div class="card gap-card"{marker}><div class="gap-head"><div class="gap-n">{share}</div><div>'
-            f'<p class="lead">{T(f"من الفجوة أُغلق: {closed} من {total} مشكلة أُصلحت ودُمجت في فرعك الرئيسي، أو لم تعد موجودة.", f"of the gap is closed: {closed} of {total} problems are fixed and merged into your main branch, or no longer found.")}</p>'
+            f'<p class="lead">{T(f"من الفجوة أُغلق: {closed} من {total} مشكلة أُصلحت ودُمجت في فرعك الرئيسي.", f"of the gap is closed: {closed} of {total} problems are fixed and merged into your main branch.")}</p>'
             f'{bar(t["percent"], "big")}</div></div><ul class="tally">{tally}</ul>{waiting}{when}')
     if chart:
         body += history_block((ledger or {}).get('history') or [])
@@ -1264,7 +1265,7 @@ def section_target(m):
         f'{bar(M.closed_share(*progress[c["name"]]), "thin") if progress.get(c["name"], (0, 0))[1] else ""}</td></tr>'
         for _, comps in rows for c in comps)
     out.append(f'<h3>{T("إغلاق الفجوة في كل جزء مستهدف", "The gap closed in each target part")}</h3><div class="card scroll"><p class="muted small">'
-               f'{T("تُحسب المشكلة في كل جزء مستهدف تذهب إليه أحد ملفاتها. المغلق: ما أُصلح ودُمج أو لم يعد موجودًا.", "A problem counts in every target part one of its files goes to. Closed: fixed and merged, or no longer found.")}</p>'
+               f'{T("تُحسب المشكلة في كل جزء مستهدف تذهب إليه أحد ملفاتها. المغلق: ما أُصلح ودُمج.", "A problem counts in every target part one of its files goes to. Closed: fixed and merged.")}</p>'
                f'<table class="tbl"><thead><tr><th>{T("الجزء المستهدف", "Target part")}</th><th>{T("الطبقة", "Layer")}</th><th>{T("الملفات", "Files")}</th>'
                f'<th>{T("يأتي من اليوم", "Comes from today’s")}</th><th>{T("المغلق من المشاكل", "Problems closed")}</th></tr></thead><tbody>{table}</tbody></table></div>')
     return ''.join(out)
@@ -1853,7 +1854,7 @@ document.querySelectorAll('[data-ph-ar]').forEach(function(e){e.placeholder=e.ge
 document.querySelectorAll('select option').forEach(function(o){if(!o.dataset.ar){o.dataset.ar=o.textContent}});
 document.querySelectorAll('option[data-en]').forEach(function(o){o.textContent=o.getAttribute('data-'+l)});
 var names={'':['كل درجات الخطورة','All severities'],critical:['حرجة','Critical'],high:['عالية','High'],medium:['متوسطة','Medium'],low:['منخفضة','Low']};
-var areas={'':['كل المجالات','All areas'],security:['الأمان','Security'],structure:['البنية','Structure'],quality:['جودة الكود','Code quality'],performance:['الأداء تحت الضغط','Performance under load'],maintainability:['سهولة التطوير والاختبار','Ease of change and testing']};
+var areas={'':['كل المجالات','All areas'],security:['الأمان','Security'],structure:['البنية','Structure'],quality:['جودة الكود','Code quality'],performance:['الأداء تحت الضغط','Performance under load'],ux:['شكل الشاشات','How the screens look'],maintainability:['سهولة التطوير والاختبار','Ease of change and testing']};
 var i=l==='ar'?0:1;document.querySelectorAll('#fsev option').forEach(function(o){o.textContent=names[o.value][i]});
 document.querySelectorAll('#farea option').forEach(function(o){o.textContent=areas[o.value][i]});count()}
 function show(id){document.querySelectorAll('section.report').forEach(function(s){s.classList.toggle('on',s.id===id)});

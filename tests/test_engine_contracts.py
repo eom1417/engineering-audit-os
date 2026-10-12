@@ -104,6 +104,18 @@ class CodegraphAdapterTests(unittest.TestCase):
         finally:
             codegraph.BINARY = original
         self.assertEqual((result['available'], result['summary']['tools'], result['facts']), (False, {}, []))
+        # Self-audit: every codegraph metric (grade A, complexity 1 included) became a complexity finding, twice. A
+        # metric with no threshold is kept as a symbol metric only, and codegraph is no witness of complexity.
+        from unittest import mock
+        metric = {'kind': 'symbol_metric_external', 'location': {'path': 'a.py', 'line': 3},
+                  'value': {'name': 'f', 'complexity': 1, 'grade': 'A'}}
+        produced = {'facts': [metric], 'summary': {'files_asked': 1, 'tools': {}}}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(codegraph, 'version', return_value='1'), \
+                mock.patch.object(codegraph, 'run', return_value=produced):
+            report = codegraph.analyze(tmp, tmp)
+        self.assertEqual(([f['kind'] for f in report.findings], sorted(report.evaluated)), ([], ['coupling']))
+        from eaos.facts import external
+        self.assertFalse(hasattr(external, '_from_external_symbol_metrics'))
 
     def test_engine_paths_are_relative_nameless_edges_are_dropped_and_flow_files_are_asked_about(self):
         from eaos.engines.codegraph import _relative, _module_edges_from_dep_graph, files_of_interest

@@ -40,8 +40,10 @@ class PlacementTests(Workspace):
 
 class DispositionTests(Workspace):
     def test_each_disposition_follows_the_declared_rules_in_order_and_says_why(self):
+        # The self-audit sent the whole `eaos` package to rebuild for one function past complexity 40: a complex
+        # function or a critical item is changed in place; only a structural reason (most files move) is a rebuild.
         cases = [(dict(unreachable=4, moved=4, moved_share=1.0), 'delete'), (dict(moved=3, moved_share=0.75), 'rebuild'),
-                 (dict(complexity_max=41), 'rebuild'), (dict(critical=1), 'rebuild'), ({}, 'retain'),
+                 (dict(complexity_max=41), 'modify'), (dict(critical=1), 'modify'), ({}, 'retain'),
                  (dict(forbidden=1), 'modify'), (dict(complexity_max=15), 'modify')]
         for change, expected in cases:
             with self.subTest(change=change):
@@ -98,8 +100,8 @@ class ProjectTests(Workspace):
         feature = json.loads((out / 'features.json').read_text())['features'][0]
         self.assertEqual(feature['target_component'], 'feature:contas')
         components = {c['origin']: c for c in result['current_components']}
-        self.assertEqual(components['src/components/accounts']['relation'], 'rebuild')
-        self.assertTrue(any('Rebuild `src/components/accounts` as `feature:contas`' in d['chosen'] for d in result['decisions']))
+        # One file to move into its feature is an edit (modify), not a rebuild.
+        self.assertEqual(components['src/components/accounts']['relation'], 'modify')
         self.assertTrue(all(row.get('target_component') for row in result['gap_matrix']))
         # Without a recognisable type there is no projection.
         empty = Path(self.tmp) / 'empty'

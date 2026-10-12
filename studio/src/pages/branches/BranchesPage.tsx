@@ -2,7 +2,7 @@
 // the analysis branch, the report's branch and the base kept apart, ownership only from durable provenance, and every
 // command with the reasons it is blocked. Desktop shows a table and the phone cards, with the same details and
 // actions; a drawer holds the compare, diff, checks, runs and the guarded merge and deletion. A snapshot is read-only.
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearch, useNavigate } from '@tanstack/react-router'
 import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
@@ -17,7 +17,7 @@ import { STATE_WORDS } from '../../data/actions/contract'
 import { useStudio } from '../../data/context'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, When } from '../../i18n/text'
-import { normalize } from '../../search/normalize'
+import { latestRun, shownBranches, type Show } from '../../branches/model'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, PageTitle } from '../../shell/Layout'
 import { useBranchLive } from '../../branches/live'
@@ -26,8 +26,6 @@ import { RescanStatus, SelectError } from '../../branches/ScanSheet'
 import { SnapshotPanel } from '../runs/RunsPage'
 import { useBranchWords } from '../../branches/words'
 import css from '../../branches/branches.module.css'
-
-type Show = 'work' | 'all'
 
 function Reasons({ reasons }: { reasons: Reason[] }) {
   const { lang } = usePrefs()
@@ -43,16 +41,16 @@ function Reasons({ reasons }: { reasons: Reason[] }) {
 
 function Badges({ row }: { row: BranchRow }) {
   const w = useBranchWords()
-  const owner: [Tone, string] = row.ownership.owner === 'eaos' ? ['accent', w('ownerEaos')] : row.ownership.owner === 'shared' ? ['warning', w('ownerShared')] : ['neutral', w('ownerUnknown')]
+  // the exceptions only: a branch is the person's own unless EAOS made it, and its group already says where it lives
+  const owner: [Tone, string] | null = row.ownership.owner === 'eaos' ? ['accent', w('ownerEaos')] : row.ownership.owner === 'shared' ? ['warning', w('ownerShared')] : null
   return (
     <span className={css.badges}>
-      <Chip dot={false}>{row.kind === 'local' ? w('local') : w('remote', { r: row.remote ?? '' })}</Chip>
+      {row.kind === 'remote' && row.remote !== 'origin' && <Chip dot={false}>{w('remote', { r: row.remote ?? '' })}</Chip>}
       {row.roles.includes('checkout') && <Chip tone="good">{w('checkout')}</Chip>}
-      {row.roles.includes('analysis') && <Chip tone="accent">{w('analysis')}</Chip>}
-      {row.roles.includes('report') && <Chip>{w('reportOf')}</Chip>}
+      {row.roles.includes('analysis') && !row.roles.includes('checkout') && <Chip tone="accent">{w('analysis')}</Chip>}
       {row.roles.includes('default') && <Chip>{w('defaultBranch')}</Chip>}
       {row.protected && <Chip tone="warning">{w('protected')}</Chip>}
-      <Chip tone={owner[0]}>{owner[1]}</Chip>
+      {owner && <Chip tone={owner[0]}>{owner[1]}</Chip>}
     </span>
   )
 }
@@ -72,14 +70,24 @@ function WorktreeNote({ row }: { row: BranchRow }) {
   return <span className={css.muted}>{row.worktree.current ? w('worktreeHere') : w('worktreeOther', { p: row.worktree.path })}{dirty ? ` · ${w('unsaved', { n: dirty })}` : ''}</span>
 }
 
-function RunLinks({ runs }: { runs: RunLink[] }) {
+function RunLinks({ runs, all = false }: { runs: RunLink[]; all?: boolean }) {
   const { lang } = usePrefs()
+  const w = useBranchWords()
   if (!runs.length) return null
+  const { run, more } = latestRun(runs)
+  const link = (r: RunLink) => <li key={r.id + r.role}><Go to={`/runs/${encodeURIComponent(r.id)}`} className={css.inlineLink}>{labelOf(r.label, lang)}</Go> <span className={css.muted}>· {STATE_WORDS[r.state]?.[lang] ?? r.state}</span></li>
+  if (all) return <ul className={css.runLinks}>{runs.slice(0, 20).map(link)}</ul>
   return (
     <ul className={css.runLinks}>
-      {runs.slice(0, 6).map((run) => <li key={run.id + run.role}><Go to={`/runs/${encodeURIComponent(run.id)}`} className={css.inlineLink}>{labelOf(run.label, lang)}</Go> <span className={css.muted}>· {STATE_WORDS[run.state]?.[lang] ?? run.state}</span></li>)}
+      {run && link(run)}
+      {more > 0 && <li className={css.muted}>{w('moreRuns', { n: more })}</li>}
     </ul>
   )
+}
+
+/** A commit subject: often English inside an Arabic line, so it keeps its own direction. */
+function Subject({ text }: { text: string }) {
+  return text ? <bdi dir="ltr" className={css.subject}>{text}</bdi> : null
 }
 
 // ------------------------------------------------------------------ merge and delete panels
@@ -117,8 +125,8 @@ function MergePanel({ row, target, onDone }: { row: BranchRow; target: string | 
       {stale && <p role="alert" className={css.note}>{w('stale')}</p>}
       <p>{w('mergePath', { p: preview.path === 'accept' ? w('pathAccept') : w('pathTransaction') })}{preview.fast_forward ? ` · ${w('fastForward')}` : ''}</p>
       <Props rows={[
-        [preview.source, <Id value={preview.source_head.slice(0, 12)} />],
-        [preview.target, <Id value={preview.target_head.slice(0, 12)} />],
+        [preview.source, <Id value={preview.source_head.slice(0, 7)} />],
+        [preview.target, <Id value={preview.target_head.slice(0, 7)} />],
         [w('commitsAhead', { b: preview.target }), <N value={preview.commits.length} />],
         [w('filesChanged'), <N value={preview.files.length} />],
         [w('checks'), preview.checks.status === 'passed' ? w('checksPassed', { c: preview.checks.commit.slice(0, 12) }) : preview.checks.status === 'failed' ? w('checksFailed', { c: preview.checks.commit.slice(0, 12) }) : w('checksNone')],
@@ -189,7 +197,7 @@ function DeletePanel({ row, onDone }: { row: BranchRow; onDone: (run: Run) => vo
         {preview.unmerged
           ? <p className={css.note}>{w('deleteUnmerged', { n: preview.lost_commits?.length ?? 0 })}</p>
           : <p>{w('deleteMerged', { b: (preview.merged_into ?? []).join(', ') || '—' })}</p>}
-        {preview.unmerged && <ul className={css.files}>{(preview.lost_commits ?? []).map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 12)} /> {c.subject}</li>)}</ul>}
+        {preview.unmerged && <ul className={css.files}>{(preview.lost_commits ?? []).map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 7)} /> <Subject text={c.subject} /></li>)}</ul>}
         {preview.worktree && <p className={css.note}>{w('worktreeGoes', { p: preview.worktree })}</p>}
         <p>{w('remoteKept')}</p>
       </>}
@@ -214,6 +222,7 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
   const [error, setError] = useState<string | null>(null)
   const [diff, setDiff] = useState(false)
   const [panel, setPanel] = useState<'merge' | 'delete' | null>(null)
+  const [more, setMore] = useState(false)
   const [result, setResult] = useState<Run | null>(null)
   const select = useSelect()
   const actions = useActions()
@@ -235,18 +244,19 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
       {select.scan && <RescanStatus run={select.scan} />}
       <SelectError error={select.error} />
       {detail && <>
+        {/* what is known, in plain words: a short commit, the subject in its own direction, and no row for what nobody knows */}
         <Props rows={[
-          ['Commit', <Id value={row.tip} />],
-          [w('lastCommit'), row.last_commit ? <><When iso={row.last_commit} /> · {row.subject}</> : '—'],
-          [w('base'), detail.base ? <Id value={detail.base} /> : '—', !detail.base],
-          [w('lineage'), detail.lineage ? <>{detail.lineage.parent ?? '—'}{detail.lineage.parent_commit ? <> @ <Id value={detail.lineage.parent_commit.slice(0, 12)} /></> : null} · {detail.lineage.evidence}{detail.lineage.recorded_at ? <> · <When iso={detail.lineage.recorded_at} /></> : null}</> : w('lineageUnknown'), !detail.lineage],
-          [w('checks'), detail.checks.status === 'passed' ? w('checksPassed', { c: detail.checks.commit.slice(0, 12) }) : detail.checks.status === 'failed' ? w('checksFailed', { c: detail.checks.commit.slice(0, 12) }) : w('checksNone')],
-          [w('destination'), <>{detail.destination.recommended ? w('recommended', { b: detail.destination.recommended }) : '—'} · {detail.destination.confirmed ? w('confirmedInto', { b: detail.destination.confirmed.branch }) : w('notMergedYet')}</>],
+          ['Commit', <Id value={row.tip.slice(0, 7)} />],
+          [w('lastCommit'), row.last_commit ? <><When iso={row.last_commit} /> · <Subject text={row.subject} /></> : '—'],
+          ...(detail.base && detail.base !== row.name ? [[w('base'), <Id value={detail.base} />] as [string, ReactNode]] : []),
+          ...(detail.lineage ? [[w('lineage'), <>{detail.lineage.parent ?? '—'}{detail.lineage.parent_commit ? <> @ <Id value={detail.lineage.parent_commit.slice(0, 7)} /></> : null}{detail.lineage.recorded_at ? <> · <When iso={detail.lineage.recorded_at} /></> : null}</>] as [string, ReactNode]] : []),
+          ...(detail.checks.status !== 'not_recorded' ? [[w('checks'), detail.checks.status === 'passed' ? w('checksPassed', { c: detail.checks.commit.slice(0, 7) }) : w('checksFailed', { c: detail.checks.commit.slice(0, 7) })] as [string, ReactNode]] : []),
+          ...(detail.destination.recommended || detail.destination.confirmed ? [[w('destination'), detail.destination.confirmed ? w('confirmedInto', { b: detail.destination.confirmed.branch }) : w('recommended', { b: detail.destination.recommended ?? '' })] as [string, ReactNode]] : []),
         ]} />
         {row.worktree && <WorktreeNote row={row} />}
         {detail.commits.length > 0 && <>
           <SheetSub>{w('commitsAhead', { b: detail.base ?? '' })} (<N value={detail.commits.length} />)</SheetSub>
-          <ul className={css.files}>{detail.commits.map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 12)} /> {c.subject} <span className={css.muted}>· {c.author}</span></li>)}</ul>
+          <ul className={css.files}>{detail.commits.map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 7)} /> <Subject text={c.subject} /> <span className={css.muted}>· {c.author}</span></li>)}</ul>
         </>}
         {detail.files.length > 0 && <>
           <SheetSub>{w('filesChanged')} (<N value={detail.files_total} />)</SheetSub>
@@ -254,7 +264,7 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
           <Button variant="ghost" onPress={() => setDiff(!diff)} aria-expanded={diff}>{diff ? w('hideDiff') : w('showDiff')}</Button>
           {diff && <>{detail.diff_cut && <p className={css.muted}>{w('diffCut')}</p>}<pre className={css.diff} tabIndex={0} dir="ltr">{detail.diff}</pre></>}
         </>}
-        {detail.runs.length > 0 && <><SheetSub>{w('linkedRuns')}</SheetSub><RunLinks runs={detail.runs} /></>}
+        {detail.runs.length > 0 && <><SheetSub>{w('linkedRuns')}</SheetSub><RunLinks runs={detail.runs} all /></>}
         <SheetSub>{w('commands')}</SheetSub>
         <div className={css.commandList}>
           {row.kind === 'local' && !row.roles.includes('analysis') && <div className={css.command}>
@@ -266,7 +276,10 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
             {!commands.merge.available && panel !== 'merge' && <Reasons reasons={commands.merge.blocked} />}
           </div>}
           {panel === 'merge' && <MergePanel row={row} target={detail.destination.recommended} onDone={done} />}
-          {(commands.delete_local || commands.delete_remote) && <div className={css.command}>
+          {(commands.delete_local || commands.delete_remote) && !more && panel !== 'delete' && (
+            <Button variant="ghost" icon="chevronDown" onPress={() => setMore(true)} aria-expanded={false}>{w('more')}</Button>
+          )}
+          {(commands.delete_local || commands.delete_remote) && (more || panel === 'delete') && <div className={css.command}>
             <Button variant="secondary" icon="opDelete" onPress={() => setPanel(panel === 'delete' ? null : 'delete')} aria-expanded={panel === 'delete'}>
               {row.kind === 'remote' ? w('deleteRemote', { r: row.remote ?? '' }) : w('deleteLocal')}</Button>
             {!(commands.delete_local ?? commands.delete_remote).available && panel !== 'delete' && <Reasons reasons={(commands.delete_local ?? commands.delete_remote).blocked} />}
@@ -288,7 +301,7 @@ function Row({ row, onOpen }: { row: BranchRow; onOpen: () => void }) {
   return (
     <tr data-branch={row.name} data-kind={row.kind}>
       <th scope="row"><Id value={row.name} /><div><Badges row={row} /></div></th>
-      <td>{row.last_commit ? <When iso={row.last_commit} /> : '—'}<div className={css.muted}>{row.subject}</div></td>
+      <td>{row.last_commit ? <When iso={row.last_commit} /> : '—'}<div className={css.muted}><Subject text={row.subject} /></div></td>
       <td><Compare row={row} /><div><WorktreeNote row={row} /></div></td>
       <td><RunLinks runs={row.runs} /></td>
       <td><Button variant="secondary" onPress={onOpen} aria-label={w('details', { b: row.name })}>{w('detailsShort')}</Button></td>
@@ -319,6 +332,7 @@ function Cleanup({ onChanged }: { onChanged: () => void }) {
   const [busy, setBusy] = useState(false)
   const [run, setRun] = useState<Run | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [technical, setTechnical] = useState(false)
   const load = useCallback(async () => {
     if (!api) return
     setError(null)
@@ -334,32 +348,40 @@ function Cleanup({ onChanged }: { onChanged: () => void }) {
     } finally { setBusy(false) }
   }
   const goes = preview ? preview.branches.length + preview.worktrees.length : 0
+  // A sheet that leads with what happens in plain words, the branches that stay (the one thing that may need the
+  // person) next, and the raw branch list and worktree paths only behind "technical details"
   return (
     <div className={css.cleanup} data-cleanup={open ? (preview ? (goes ? 'ready' : 'nothing') : 'loading') : 'closed'}>
-      <Button variant="secondary" icon="opDelete" onPress={() => setOpen(!open)} aria-expanded={open}>{w('cleanup')}</Button>
-      {open && <Panel>
-        <SheetSub>{w('cleanup')}</SheetSub>
-        {!preview ? (error ? <p role="alert" className={css.error}>{error}</p> : <p className={css.muted}>…</p>) : <>
-          <p>{w('cleanupLead', { b: [preview.base, ...preview.kept_branches.filter((b) => b !== preview.base)].filter(Boolean).join(lang === 'ar' ? '، ' : ', ') })}</p>
-          {run && <RescanStatus run={run} />}
-          {goes === 0 && <p className={css.note}>{w('cleanupNothing')}</p>}
-          {preview.branches.length > 0 && <>
-            <SheetSub>{w('cleanupGoes', { n: preview.branches.length })}</SheetSub>
-            <ul className={css.files}>{preview.branches.map((b) => <li key={b.branch} data-goes={b.branch}><Id value={b.branch} /> · {w('cleanupMergedInto', { b: b.merged_into })}{b.worktree ? ` · ${w('worktreeGoes', { p: b.worktree })}` : ''}</li>)}</ul>
+      <Button variant="secondary" icon="opDelete" onPress={() => setOpen(true)} aria-expanded={open}>{w('cleanup')}</Button>
+      {open && <Sheet isOpen onOpenChange={(next) => { if (!next) setOpen(false) }} title={w('cleanup')}>
+        <div className={css.drawerBody}>
+          {!preview ? (error ? <p role="alert" className={css.error}>{error}</p> : <p className={css.muted}>…</p>) : <>
+            {goes === 0 ? <SheetLead>{w('cleanupNothing')}</SheetLead> : <SheetLead>
+              {w('cleanupSummary', { n: preview.branches.length })}{preview.worktrees.length > 0 ? ` ${w('cleanupSummaryTrees', { n: preview.worktrees.length })}` : ''}
+            </SheetLead>}
+            {run && <RescanStatus run={run} />}
+            {preview.kept.length > 0 && <>
+              <SheetSub>{w('cleanupStays', { n: preview.kept.length })}</SheetSub>
+              <ul className={css.files}>{preview.kept.map((k) => <li key={k.branch} data-stays={k.branch}><Id value={k.branch} />: {k.reasons.map((r) => r[lang]).join(' · ')}</li>)}</ul>
+            </>}
+            <Reasons reasons={preview.blocked} />
+            {error && <p role="alert" className={css.error}>{error}</p>}
+            {goes > 0 && preview.confirm && <Button variant="primary" icon="opDelete" busy={busy} onPress={() => void confirm()}>{w('cleanupConfirm')}</Button>}
+            {goes > 0 && <Button variant="ghost" icon="chevronDown" onPress={() => setTechnical(!technical)} aria-expanded={technical}>{w('technicalDetails')}</Button>}
+            {technical && <>
+              <p className={css.muted}>{w('cleanupLead', { b: [preview.base, ...preview.kept_branches.filter((b) => b !== preview.base)].filter(Boolean).join(lang === 'ar' ? '، ' : ', ') })}</p>
+              {preview.branches.length > 0 && <>
+                <SheetSub>{w('cleanupGoes', { n: preview.branches.length })}</SheetSub>
+                <ul className={css.files}>{preview.branches.map((b) => <li key={b.branch} data-goes={b.branch}><Id value={b.branch} /> · {w('cleanupMergedInto', { b: b.merged_into })}{b.worktree ? ` · ${w('worktreeGoes', { p: b.worktree })}` : ''}</li>)}</ul>
+              </>}
+              {preview.worktrees.length > 0 && <>
+                <SheetSub>{w('cleanupWorktrees', { n: preview.worktrees.length })}</SheetSub>
+                <ul className={css.files}>{preview.worktrees.map((t) => <li key={t.path}><Id value={t.path} /></li>)}</ul>
+              </>}
+            </>}
           </>}
-          {preview.worktrees.length > 0 && <>
-            <SheetSub>{w('cleanupWorktrees', { n: preview.worktrees.length })}</SheetSub>
-            <ul className={css.files}>{preview.worktrees.map((t) => <li key={t.path}><Id value={t.path} /></li>)}</ul>
-          </>}
-          {preview.kept.length > 0 && <>
-            <SheetSub>{w('cleanupStays', { n: preview.kept.length })}</SheetSub>
-            <ul className={css.files}>{preview.kept.map((k) => <li key={k.branch} data-stays={k.branch}><Id value={k.branch} />: {k.reasons.map((r) => r[lang]).join(' · ')}</li>)}</ul>
-          </>}
-          <Reasons reasons={preview.blocked} />
-          {error && <p role="alert" className={css.error}>{error}</p>}
-          {goes > 0 && preview.confirm && <Button variant="primary" icon="opDelete" busy={busy} onPress={() => void confirm()}>{w('cleanupConfirm')}</Button>}
-        </>}
-      </Panel>}
+        </div>
+      </Sheet>}
     </div>
   )
 }
@@ -414,10 +436,7 @@ function LiveBranches() {
   }, [live.api, base, round, live.context?.analysis.branch, live.freshness?.checked_at])
   const changed = useCallback(() => { setRound((n) => n + 1); void live.refresh() }, [live])
   const set = (patch: Record<string, string | undefined>) => navigate({ to: '/branches', search: { ...search, ...patch }, replace: true })
-  const rows = useMemo(() => {
-    const words = normalize(q).split(' ').filter(Boolean)
-    return (inventory?.branches ?? []).filter((row) => (show === 'all' || row.work || row.roles.length > 0) && words.every((word) => normalize(`${row.name} ${row.remote ?? ''} ${row.subject}`).includes(word)))
-  }, [inventory, q, show])
+  const shown = useMemo(() => shownBranches(inventory?.branches ?? [], show, q), [inventory, q, show])
   const opened = inventory?.branches.find((row) => row.id === search.b) ?? null
   if (error && !inventory) return <Panel><StateMessage kind="error" title={w('failed')} sub={error} action={<Button variant="secondary" icon="retry" onPress={changed}>{w('retry')}</Button>} /></Panel>
   if (!inventory) return <Panel><p className={css.muted}>…</p></Panel>
@@ -450,14 +469,19 @@ function LiveBranches() {
       <Cleanup onChanged={changed} />
       {error && <p role="alert" className={css.error}>{error}</p>}
       {inventory.truncated && <p className={css.note}>{w('truncated', { n: inventory.branches.length })}</p>}
-      {rows.length === 0 ? <Panel><StateMessage title={show === 'work' ? w('noBranchesWork') : w('noBranches')} /></Panel> : <>
-        <div className={css.tableWrap}>
-          <table className={css.table}>
-            <thead><tr><th scope="col">{w('branches')}</th><th scope="col">{w('lastCommit')}</th><th scope="col">{w('base')}: {inventory.base ?? '—'}</th><th scope="col">{w('linkedRuns')}</th><th scope="col"><span className="sr">{w('commands')}</span></th></tr></thead>
-            <tbody>{rows.map((row) => <Row key={row.id} row={row} onOpen={() => set({ b: row.id })} />)}</tbody>
-          </table>
-        </div>
-        <ul className={css.cards}>{rows.map((row) => <Card key={row.id} row={row} onOpen={() => set({ b: row.id })} />)}</ul>
+      {shown.local.length + shown.remote.length === 0 ? <Panel><StateMessage title={show === 'work' ? w('noBranchesWork') : w('noBranches')} /></Panel> : <>
+        {([['local', w('onComputer'), shown.local], ['remote', w('onRemote'), shown.remote]] as const).filter(([, , rows]) => rows.length > 0).map(([kind, title, rows]) => (
+          <section key={kind} data-group={kind}>
+            <h2 className={css.groupTitle}>{title}</h2>
+            <div className={css.tableWrap}>
+              <table className={css.table}>
+                <thead><tr><th scope="col">{w('branches')}</th><th scope="col">{w('lastCommit')}</th><th scope="col">{w('base')}: {inventory.base ?? '—'}</th><th scope="col">{w('linkedRuns')}</th><th scope="col"><span className="sr">{w('commands')}</span></th></tr></thead>
+                <tbody>{rows.map((row) => <Row key={row.id} row={row} onOpen={() => set({ b: row.id })} />)}</tbody>
+              </table>
+            </div>
+            <ul className={css.cards}>{rows.map((row) => <Card key={row.id} row={row} onOpen={() => set({ b: row.id })} />)}</ul>
+          </section>
+        ))}
       </>}
       <Recoveries inventory={inventory} onChanged={changed} />
       {(inventory.missing_linked ?? []).length > 0 && <Section title={w('missingLinked')} count={inventory.missing_linked!.length}>

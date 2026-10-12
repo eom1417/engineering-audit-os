@@ -9,11 +9,11 @@ from eaos.engines import ADAPTERS, analyze, health
 from eaos.engines.contract import Report, UNAVAILABLE, finding, subject
 
 
-def engine_fact(identifier, engine, kind, path, rule='r', sites=None, message='m'):
+def engine_fact(identifier, engine, kind, path, rule='r', sites=None, message='m', measurements=()):
     return {'id': identifier, 'kind': 'engine_finding',
             'location': {'path': path, 'line': None, 'symbol': path},
             'value': {'engine': engine, 'engine_version': '1', 'rule': rule, 'kind': kind, 'method': 'heuristic',
-                      'message': message, 'measurements': [], 'engine_confidence': None, 'subject_kind': 'file',
+                      'message': message, 'measurements': list(measurements), 'engine_confidence': None, 'subject_kind': 'file',
                       'sites': sites if sites is not None else [{'path': path, 'line': None}]}}
 
 
@@ -75,7 +75,7 @@ class CorrelationTests(unittest.TestCase):
     def test_agreement_silence_and_resolution_decide_the_verdict(self):
         both = {'enola': evaluated_at(complexity=('observed', 'file')), 'reforge': evaluated_at(complexity=('observed', 'file'))}
         [cluster] = correlate.clusters(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
-                                                 engine_fact('F2', 'reforge', 'complexity', 'a.py')], both))
+                                                 engine_fact('F2', 'reforge', 'complexity', 'a.py', measurements=[{'name': 'function.complexity', 'value': 30, 'threshold': 15}])], both))
         self.assertEqual(cluster['corroboration']['complexity']['verdict'], correlate.CORROBORATED)
         self.assertEqual(cluster['engines'], ['enola', 'reforge'])
         # Silence about a threshold rule is not a denial.
@@ -108,7 +108,7 @@ class EngineClaimTests(unittest.TestCase):
         self.assertEqual(from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
                                                {'enola': evaluated_at(complexity=('observed', 'file'))})), [])
         [claim] = from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
-                                         engine_fact('F2', 'reforge', 'complexity', 'a.py')],
+                                         engine_fact('F2', 'reforge', 'complexity', 'a.py', measurements=[{'name': 'function.complexity', 'value': 30, 'threshold': 15}])],
                                         {'enola': evaluated_at(complexity=('observed', 'file')),
                                          'reforge': evaluated_at(complexity=('observed', 'file'))}))
         self.assertEqual((claim['confidence'], claim['confidence_ceiling'], claim['method']), ('LIKELY', 'LIKELY', ['external_engine']))

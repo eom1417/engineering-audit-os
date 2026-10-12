@@ -144,9 +144,23 @@ export interface Preview {
   irreversible: boolean
   needs_consent: boolean
   confirm: { token: string; expires?: string } | null
+  /** Fix only: where the batch is built, the branch it arrives on, and the branch Accept merges it into. */
+  where?: FixWhere | null
 }
 
-export interface PreviewBody { inputs?: Record<string, unknown>; selection?: Selection; verb?: VerbId; assistant?: string }
+/** A Fix preview's place (eaos/studio/actions/branches.py fix_where): every part editable; the base commit is pinned. */
+export interface FixWhere {
+  base: { branch: string; commit: string; short: string; when: string | null; checked_out: boolean } | null
+  deliver_as: string | null
+  merge_into: string | null
+  branches: { name: string; short: string; blocked: Reason | null }[]
+  problem: Reason | null
+}
+
+/** What the person changed in the place: sent with the preview, and with the start (plus the base commit it showed). */
+export interface WhereChoice { base?: string; deliver_as?: string; merge_into?: string; base_commit?: string }
+
+export interface PreviewBody { inputs?: Record<string, unknown>; selection?: Selection; verb?: VerbId; assistant?: string; where?: WhereChoice }
 export interface StartBody extends PreviewBody { action: string; confirm?: string | null }
 
 export type Mode = 'live' | 'snapshot'

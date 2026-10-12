@@ -35,6 +35,9 @@ def check_errors(check):
     return problems
 
 
+DOUBTED = 'The assistant doubted this card even on all its measurements: a person reviews it, it is never fixed automatically.'
+
+
 def decide(claim):
     disposition = claim.get('disposition') or {}
     assessment = claim.get('assessment') or {}
@@ -55,6 +58,8 @@ def decide(claim):
         kind, reason = 'repair', 'A confirmed observation violates an explicitly evidenced requirement.'
     else:
         kind, reason = 'investigate', 'Establish the requirement and consequence before proposing a code change.'
+    doubted = kind != 'retain' and (claim.get('triage') or {}).get('decision') == 'doubt'
+    if doubted: reasons.append(DOUBTED)
     if kind == 'repair':
         if not checks: reasons.append('No acceptance check attached.')
         for check in checks: reasons.extend(check_errors(check))
@@ -62,7 +67,7 @@ def decide(claim):
         if not assessment.get('before') or not assessment.get('after'): reasons.append('Before/after behavior is missing.')
     return {'contract_version': VERSION, 'observation_uid': claim.get('uid') or identity(claim),
             'kind': kind, 'reason': reason,
-            'readiness': 'needs_review' if kind == 'investigate' else
+            'readiness': 'needs_review' if kind == 'investigate' or doubted else
                          'blocked' if reasons else 'ready' if kind == 'repair' else 'no_change',
             'blockers': sorted(set(reasons)), 'checks': checks if kind == 'repair' else [],
             'allowed_outcomes': ['repair', 'retain', 'blocked_missing_requirement'] if kind == 'investigate' else []}

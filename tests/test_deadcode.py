@@ -123,3 +123,21 @@ class DeadCodeTests(unittest.TestCase):
         rendered = {row['render']['params']['subject']: (row['render']['key'], row['confidence']) for row in claims.from_facts({'deadcode': data})}
         self.assertEqual(rendered['scripts/by-hand.mjs'], ('dead_code_review', 'LIKELY'))
         self.assertEqual(rendered['src/lost.js'], ('dead_code', 'CONFIRMED'))
+
+    def test_files_loaded_by_path_package_data_rule_fixtures_and_types_are_not_dead_classes_or_modules(self):
+        # The self-audit: `Path(__file__).parent / 'templates/screens/stream-reporter.mjs'` loads a file no import
+        # names; a k6 template ships as declared package data; a semgrep rule test carries `# ruleid:` lines; and
+        # an unused TypeScript type was called an "unused class".
+        found = run({'pyproject.toml': '[tool.setuptools.package-data]\npkg = ["templates/**/*", "rules/*.json"]\n',
+                     'pkg/__init__.py': '', 'pkg/__main__.py': 'from pkg import lock\nlock.run()\n',
+                     'pkg/lock.py': ('from pathlib import Path\n'
+                                     "REPORTER = Path(__file__).resolve().parent / 'screens/stream-reporter.mjs'\n"
+                                     'def run():\n    return REPORTER\n'),
+                     'pkg/screens/stream-reporter.mjs': 'export default class StreamReporter {}\n',
+                     'pkg/templates/k6/load.js': 'export default function () {}\nexport const OPTIONS = {};\n',
+                     'pkg/checks/dynamic.py': 'def f(x):\n    # ruleid: pkg.dynamic-code\n    return eval(x)\n',
+                     'index.html': '<script type="module" src="/web/main.ts"></script>',
+                     'web/main.ts': 'import { words } from "./words";\nwords();\n',
+                     'web/words.ts': 'export type BranchWord = string;\nexport function words() { return 1; }\n'})
+        self.assertFalse([key for key in found if key[1] != 'BranchWord'], found)
+        self.assertIn('unused type', found[('unused-symbol', 'BranchWord')])

@@ -52,6 +52,14 @@ def reading_tools():
     return mcp_server.reading()
 
 
+def _where_of(where):
+    """The part of a Fix preview's place that is confirmed and handed to fix_start: {base, base_commit, deliver_as,
+    merge_into}; None without one."""
+    if not where or not where.get('base'): return None
+    return {'base': where['base']['branch'], 'base_commit': where['base']['commit'], 'deliver_as': where.get('deliver_as'),
+            'merge_into': where.get('merge_into')}
+
+
 class Refused(Exception):
     def __init__(self, status, reason, **extra):
         super().__init__(reason)
@@ -306,6 +314,7 @@ class Actions:
         if verb:
             cards, left = selecting.resolve(body.get('selection'), self._studio())
             out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
+            if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'))
         else:
             spec = self.actions[action]
             low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
@@ -315,12 +324,21 @@ class Actions:
                        on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
         from .prompts import build
         cards_detail = out['cards']
-        prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs=inputs, labels={k: v['label'] for k, v in self.actions.items()})
+        prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs=inputs, labels={k: v['label'] for k, v in self.actions.items()},
+                       where=_where_of(out.get('where')))
         # The planner asks the assistant itself: there is no request a chat assistant could take over.
         handed = bool(needed) and action not in PLANNERS
         out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
-        out['confirm'] = self.locks.confirm(action, out['selection'], self.project) if self._needs_confirm(verb, action, inputs) else None
+        # a Fix confirms where it builds too: the token pins the base commit the person saw, and nothing is confirmed
+        # while the preview says the place is wrong (a protected target, a branch name git refuses)
+        where = out.get('where')
+        bound = {'selection': out['selection'], 'where': _where_of(where)} if where else out['selection']
+        out['confirm'] = (self.locks.confirm(action, bound, self.project)
+                          if self._needs_confirm(verb, action, inputs) and not (where and where.get('problem')) else None)
         return out
+
+    def _has_commits(self):
+        return self.branches.is_repo() and not self.branches.head()['unborn']
 
     def _studio(self):
         return self.studio if self.studio else selecting.studio_folder(self.project)
@@ -331,7 +349,16 @@ class Actions:
         verb, action = self._kind(str(body.get('action') or body.get('verb')), body)
         inputs = {} if verb else self._inputs(action, body.get('inputs'))
         selection = body.get('selection') if verb else None
-        if self._needs_confirm(verb, action, inputs) and not self.locks.spend(body.get('confirm'), action, selection, self.project):
+        where = None
+        if verb == 'fix' and self._has_commits():
+            asked = body.get('where') if isinstance(body.get('where'), dict) else {}
+            now_at = self.branches.fix_where(asked)
+            where = _where_of(now_at)
+            if asked.get('base_commit') and where['base_commit'] != asked['base_commit']:
+                raise Refused(409, f"the branch {where['base']} moved since the preview: preview again", needs='preview')
+            if now_at.get('problem'): raise Refused(409, now_at['problem']['en'], needs='preview', reasons=[now_at['problem']])
+        bound = {'selection': selection, 'where': where} if where else selection
+        if self._needs_confirm(verb, action, inputs) and not self.locks.spend(body.get('confirm'), action, bound, self.project):
             raise Refused(403, 'this needs your explicit confirmation: open its preview and confirm', needs='confirm')
         needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
         cards, left = selecting.resolve(selection, self._studio()) if verb else ([], [])
@@ -345,7 +372,7 @@ class Actions:
                   'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
                   'mode': 'planner' if action in PLANNERS else 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
                   'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
-                  'context': self.branches.run_context(),
+                  'context': self.branches.run_context(), **({'where': where} if where else {}),
                   'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                   **({'started': now()} if reading else {})}
         self.store.save(record, new=True)

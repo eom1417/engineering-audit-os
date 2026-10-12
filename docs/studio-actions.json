@@ -889,6 +889,38 @@
       "minimum": 1,
       "maximum": 50
      },
+     "base": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 200,
+      "description": "The branch to build on; by default the branch EAOS works on."
+     },
+     "deliver_as": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 200,
+      "description": "The new branch the fixes arrive on; by default eaos/<branch>/wave-N."
+     },
+     "merge_into": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 200,
+      "description": "The branch Accept merges the fixes into; by default the branch open in the project folder."
+     },
+     "base_commit": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 200,
+      "description": "The commit of base the preview showed: when the branch moved since, nothing opens (status base_moved)."
+     },
      "project": {
       "type": [
        "string",
@@ -1047,8 +1079,8 @@
     "ar": "سلّم الدفعة"
    },
    "description": {
-    "en": "Every kept change through the project checks and screens, then a new branch eaos/wave-N. Your branch is not touched.",
-    "ar": "كل تغيير محفوظ يمر على فحوص المشروع وشاشاته، ثم فرع جديد eaos/wave-N. فرعك لا يُلمس."
+    "en": "Every kept change through the project checks and screens, then a new branch eaos/<branch>/wave-N. Your branch is not touched.",
+    "ar": "كل تغيير محفوظ يمر على فحوص المشروع وشاشاته، ثم فرع جديد eaos/<branch>/wave-N. فرعك لا يُلمس."
    },
    "mode": "direct",
    "needs_assistant": false,
@@ -1657,11 +1689,14 @@
     "fix_edit",
     "fix_skip",
     "fix_finish",
-    "note"
+    "note",
+    "fix_abandon",
+    "findings",
+    "plan"
    ],
    "result": {
-    "en": "A new branch eaos/wave-N with the kept fixes, waiting for Accept or Undo.",
-    "ar": "فرع جديد eaos/wave-N فيه الإصلاحات المقبولة، ينتظر الاعتماد أو الرمي."
+    "en": "A new branch eaos/<branch>/wave-N with the kept fixes, waiting for Accept or Undo.",
+    "ar": "فرع جديد eaos/<branch>/wave-N فيه الإصلاحات المقبولة، ينتظر الاعتماد أو الرمي."
    }
   },
   {
@@ -1678,7 +1713,11 @@
     "impact",
     "ask",
     "report_file",
-    "note"
+    "note",
+    "wait",
+    "overview",
+    "findings",
+    "plan"
    ],
    "result": {
     "en": "For each card: still real, already gone, or a false alarm, with the evidence; written as a note.",
@@ -1698,7 +1737,11 @@
     "finding",
     "impact",
     "structure",
-    "ask"
+    "ask",
+    "wait",
+    "overview",
+    "findings",
+    "plan"
    ],
    "result": {
     "en": "A plain explanation: what is wrong, why it matters, what fixing it changes.",
@@ -1719,7 +1762,10 @@
     "finding",
     "impact",
     "structure",
-    "note"
+    "note",
+    "wait",
+    "overview",
+    "findings"
    ],
    "result": {
     "en": "An order of batches for the selection, what waits for what, and the risk of each.",
@@ -2071,7 +2117,7 @@
    },
    "result": {
     "data": {
-     "branch": "eaos/wave-N or null",
+     "branch": "eaos/<branch>/wave-N or null",
      "diff_stat": {
       "files": "int",
       "insertions": "int",
@@ -2236,6 +2282,13 @@
      "null"
     ],
     "description": "{token, expires}: single-use, bound to the action, the selection and the project; required by POST /api/runs for a run that changes code or is irreversible, and by accept and undo"
+   },
+   "where": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "description": "Fix only: {base{branch, commit, short, when, checked_out}, deliver_as, merge_into, branches[{name, short, blocked}], problem}: where the batch is built, the branch it arrives on and the branch Accept merges it into, each editable through the body `where`; the confirm token pins the base commit"
    }
   }
  },
@@ -2258,14 +2311,14 @@
   {
    "method": "POST",
    "path": "/api/actions/<id>/preview",
-   "body": "{inputs?, selection?, verb?, assistant?}",
+   "body": "{inputs?, selection?, verb?, assistant?, where?{base?, deliver_as?, merge_into?}}",
    "does": "The preview payload; never changes anything. <id> is an action, or a verb (fix, verify, explain, plan) when the body has a selection."
   },
   {
    "method": "POST",
    "path": "/api/runs",
-   "body": "{action, inputs?, selection?, verb?, assistant?, confirm?}",
-   "does": "Queues a run; returns {run}. A verb over a selection is posted with `verb` and `selection` (and `action` = the verb); a read-only action answers at once, its result in run.result, and stays out of the history unless ?all=1. Refused with 403 {needs: \"confirm\"} when the run changes code or cannot be undone and the confirm token is missing."
+   "body": "{action, inputs?, selection?, verb?, assistant?, confirm?, where?{base?, deliver_as?, merge_into?, base_commit?}}",
+   "does": "Queues a run; returns {run}. A verb over a selection is posted with `verb` and `selection` (and `action` = the verb); a read-only action answers at once, its result in run.result, and stays out of the history unless ?all=1. Refused with 403 {needs: \"confirm\"} when the run changes code or cannot be undone and the confirm token is missing. A Fix whose base branch moved since its preview (where.base_commit) is refused with 409 {needs: \"preview\"}."
   },
   {
    "method": "GET",

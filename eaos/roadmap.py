@@ -2,8 +2,8 @@
 
 Size (effort), from what the card touches:
     S   two files or fewer, and at most 5 dependents in its blast radius
-    M   eight files or fewer, or at most 20 dependents
-    L   anything larger
+    M   eight files or fewer, and at most 20 dependents
+    L   anything larger: many files, or a file much of the code depends on
 effort_basis keeps both numbers.
 
 Section, the first rule that holds, in this order:
@@ -12,7 +12,9 @@ Section, the first rule that holds, in this order:
     data            a .sql file, or anything under supabase/
     backend         a path under server/, api/ or functions/
     quality         a trace gap or an untested path
-    frontend        everything else
+    frontend        a screen file (.tsx, .jsx, .vue, .svelte, .css, .html), or JavaScript in src/ or a front-end folder
+    backend         any other code: a server language (.py, .go, ...), or JavaScript outside those folders
+    general         a card that names no file
 
 Milestones, in the order of docs/MASTER-BLUEPRINT.md §7, an empty one never written:
     stabilize      vulnerable versions, broken code, dead code and leftovers, access gaps
@@ -32,6 +34,9 @@ SAFETY_NET = {'untested_path', 'trace_gap'}
 BOUNDARIES = {'import_cycle', 'hidden_coupling', 'policy_violation', 'canonicalize', 'duplicated_rule',
               'external_write', 'mutable_state'}
 HARDENING = {'load_blocker', 'redundant_work'}
+FRONTEND_SUFFIXES = ('.tsx', '.jsx', '.vue', '.svelte', '.css', '.scss', '.html')
+SCRIPT_SUFFIXES = ('.ts', '.js', '.mjs', '.cjs')
+FRONTEND_FOLDERS = {'src', 'components', 'pages', 'views', 'hooks', 'ui', 'client', 'frontend', 'web', 'public', 'static'}
 BUILDS_SHOWN = 3
 GOALS_AR = {
     'stabilize': ('لا يبقى إصدار معروف الثغرات، ولا مرجع معطّل، ولا كود ميت، ولا فجوة وصول مفتوحة.',
@@ -57,7 +62,8 @@ GOALS = {
 
 def effort(paths, dependents):
     files = len(set(paths or []))
-    size = 'S' if files <= 2 and dependents <= 5 else 'M' if files <= 8 or dependents <= 20 else 'L'
+    # Both measures count: one file 129 others depend on is no medium change.
+    size = 'S' if files <= 2 and dependents <= 5 else 'M' if files <= 8 and dependents <= 20 else 'L'
     return size, {'files': files, 'dependents': dependents}
 
 
@@ -69,7 +75,10 @@ def section(task):
     if any(p.endswith('.sql') or p.startswith('supabase/') for p in paths): return 'data'
     if any(part in ('server', 'api', 'functions') for p in paths for part in p.split('/')[:-1]): return 'backend'
     if task.get('pattern') in SAFETY_NET: return 'quality'
-    return 'frontend'
+    if not paths: return 'general'
+    if any(p.endswith(FRONTEND_SUFFIXES) or (p.endswith(SCRIPT_SUFFIXES) and FRONTEND_FOLDERS & set(p.split('/')[:-1]))
+           for p in paths): return 'frontend'
+    return 'backend'
 
 
 def milestone_of(task, placements):
@@ -130,7 +139,7 @@ def sections(tasks):
         for ref in task.get('prerequisites') or []:
             other = by_id.get(ref.get('task_id'))
             if other and other['section'] != task['section']: needs[task['section']].add(other['section'])
-    order = ['security', 'infrastructure', 'data', 'backend', 'frontend', 'quality']
+    order = ['security', 'infrastructure', 'data', 'backend', 'frontend', 'quality', 'general']
     return [{'section': name, 'tasks': grouped[name], 'depends_on': sorted(needs[name])} for name in order if grouped[name]]
 
 

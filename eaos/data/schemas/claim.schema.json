@@ -96,6 +96,18 @@
     "type": "string"
    }
   },
+  "triage": {
+   "type": "object",
+   "description": "The assistant's verdict on this claim's card, applied once after the triage (eaos/plan.py apply_verdicts): reject refutes the claim, doubt keeps it for a person's review and never for an automatic fix.",
+   "required": ["decision", "card"],
+   "properties": {
+    "decision": {"enum": ["confirm", "doubt", "reject"]},
+    "card": {"type": "string"},
+    "why": {"type": ["string", "null"]},
+    "evidence": {"type": "array", "items": {"type": "string"}},
+    "rejudged": {"type": "boolean"}
+   }
+  },
   "refuted_by": {
    "type": "array",
    "items": {
@@ -197,7 +209,7 @@
   "priority": {
    "type": "number",
    "minimum": 0,
-   "description": "Composite priority: reach × confidence × origin ÷ cost. Never a severity label."
+   "description": "Composite priority: reach × confidence × origin × severity (measured value ÷ its threshold, at most 3) ÷ cost."
   },
   "priority_factors": {
    "type": "object",

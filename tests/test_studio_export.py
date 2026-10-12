@@ -119,6 +119,19 @@ class Export(Workspace):
         self.assertEqual((plan['steps'][0]['state'], plan['steps'][0]['tasks'][0]['state']), ('active', 'done'))
         decision = self.load('decisions')['decisions'][0]
         self.assertEqual((decision['id'], set(decision['blocks'])), ('investigations', {'TASK-2', 'TASK-6'}))
+        # The incident (decisions inbox, 2026-10-12): one topic asked twice, a fact asked of the person, and the target
+        # approval offered as 51 ADR sentences
+        ask = lambda id, question: {'id': id, 'question': question, 'options': [], 'state': 'waiting'}
+        rows = export.tidy_decisions([ask('ideal-Q-search', 'هل خانتا البحث (في الشريط العلوي وفي القائمة الجانبية) تؤديان العمل نفسه؟'),
+                                      ask('node-visual_reviewer:IMG-014:Q-014-1', 'هل خانتين البحث (فوق وفي القائمة الجانبية) لهم نفس الوظيفة؟'),
+                                      ask('node-plan_orderer:plan:Q-cli-split', 'Split eaos/cli.py after the stage contracts?'),
+                                      ask('ideal-Q-cli-split', 'هل نقسّم eaos/cli.py إلى وحدات حسب مجموعات الأوامر؟'),
+                                      ask('node-card_triage:TASK-164:Q-164', 'هل في eaos/api/events.py دالة واحدة على الأقل تعقيدها فوق 15؟'),
+                                      ask('ideal-Q-types', 'هل تُولَّد studio/src/data/types.ts من eaos/artifact_contracts.py؟')])
+        self.assertEqual([(r['id'], r.get('merged')) for r in rows], [('ideal-Q-search', ['node-visual_reviewer:IMG-014:Q-014-1']),
+                         ('node-plan_orderer:plan:Q-cli-split', ['ideal-Q-cli-split']), ('ideal-Q-types', None)])
+        target = export.decisions({**m, 'target': {'status': 'REVIEW_REQUIRED', 'decisions': [{'id': f'ADR-{i}', 'chosen': 'x'} for i in range(51)]}}, [], 'ar')[0]
+        self.assertEqual(([o['id'] for o in target['options']], target['decisions_count']), (['approve', 'changes', 'review'], 51))
 
     def test_a_section_that_fails_or_records_that_cannot_be_read_are_named_and_never_counted_as_measured(self):
         with mock.patch.object(export.library_section, 'media', side_effect=ValueError('no folder')):

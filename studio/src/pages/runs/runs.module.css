@@ -105,6 +105,8 @@ li + li > .row { border-block-start: 1px solid var(--border-subtle); }
 .whatNow { color: var(--text-secondary); font-size: 14px; }
 .result { display: flex; flex-direction: column; gap: 14px; }
 .answer { font-size: 15px; line-height: 1.6; padding: 12px 14px; border-radius: var(--radius-8); background: var(--bg-sunken); }
+.md { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; overflow-wrap: anywhere; }
+.md > * { margin-block: 0; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
 .facts > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); min-inline-size: 0; }
 .facts dt { font-size: 12px; color: var(--text-tertiary); }

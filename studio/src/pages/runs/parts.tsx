@@ -1,6 +1,6 @@
 // The pieces of the runs pages: the state chip, a run row, the batch bars, the timeline rows (with the diff and the
 // technical detail one tap away), the before/after screens and the result with Accept and Undo.
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
 import { Go } from '../../components/Go'
@@ -12,6 +12,8 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
 import { useCmdWords } from '../../command/words'
 import { useBranchWords } from '../../branches/words'
+import { drawMarkdown } from '../library/markdown'
+import { useLibraryWords } from '../library/words'
 import css from './runs.module.css'
 
 const TONE: Record<RunState, Tone> = {
@@ -115,6 +117,19 @@ export function Diff({ text, label }: { text: string; label: string }) {
   )
 }
 
+const NONE: ReadonlySet<string> = new Set()
+const NO_IMAGES = new Map()
+
+/** The assistant's words as the docs reader draws them (library/markdown.tsx): bold, lists, code and tables drawn,
+ * never shown as raw `**` and `|---|`; tables keep their own scroll and each block its own direction. */
+export function RunMarkdown({ text }: { text: string }) {
+  const w = useLibraryWords()
+  const { lang } = usePrefs()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const body = useMemo(() => drawMarkdown(text, { path: '', title: '', docs: NONE, cards: NONE, images: NO_IMAGES, w }).body, [text, lang])
+  return <div className={css.md} data-markdown="">{body}</div>
+}
+
 function EventRow({ event }: { event: RunEvent }) {
   const { lang, zone, date } = usePrefs()
   const w = useCmdWords()
@@ -128,7 +143,9 @@ function EventRow({ event }: { event: RunEvent }) {
     <li className={[css.ev, quiet && css.evQuiet, failed && css.evBad, event.kind === 'check' && !failed && css.evGood].filter(Boolean).join(' ')}>
       <span className={css.evIcon}><Icon name={icon} /></span>
       <div className={css.evMain}>
-        <p className={css.evText}><Txt>{event.text[lang]}</Txt></p>
+        {event.kind === 'say' || event.kind === 'answer'
+          ? <div className={css.evText}><RunMarkdown text={event.text[lang]} /></div>
+          : <p className={css.evText}><Txt>{event.text[lang]}</Txt></p>}
         {event.kind === 'edit' && Array.isArray(data.paths) && (
           <div className={css.evMeta}>
             {(data.paths as string[]).map((p) => <Id key={p} value={p} keep={3} />)}
@@ -222,7 +239,7 @@ export function ResultFacts({ result }: { result: RunResult }) {
   const words = typeof answer === 'string' ? answer : answer && typeof answer === 'object' && 'en' in answer ? answer[lang] : null
   return (
     <div className={css.result}>
-      {words && <p className={css.answer}><Txt block>{words}</Txt></p>}
+      {words && <div className={css.answer}><RunMarkdown text={words} /></div>}
       <dl className={css.facts}>
         {result.branch && <div><dt>{w('branch')}</dt><dd><Icon name="branch" /><Id value={result.branch} /></dd></div>}
         {result.diff_stat && <div><dt>{w('changes')}</dt><dd className="num">{w('filesCount', { n: result.diff_stat.files })}<span aria-hidden="true">·</span><bdi dir="ltr" className={css.stat}>+{result.diff_stat.insertions} −{result.diff_stat.deletions}</bdi></dd></div>}

@@ -3,7 +3,8 @@
 One card at a time behind every gate costs about twelve minutes a card; the first milestone of a real project
 holds more than a hundred. So a batch (a wave) is executed together, and the expensive gates run once:
 
-  1. The candidate: a clone of the authorised commit, on branch eaos/wave-<n> (eaos/execute.candidate).
+  1. The candidate: a clone of the authorised commit (eaos/execute.candidate); its branch is handed over as
+     eaos/<branch>/wave-<n>, or the name the person gave in the fix preview.
   2. Each card: its codemod, or the assistant's edit (eaos/execute), committed alone, then the quick gate: no
      new broken code. A card that breaks something is taken back at once (its commit is dropped).
   3. The acceptance of every card from one collection of facts (batch_acceptance); a card whose problem is
@@ -60,13 +61,15 @@ def ready(card):
 
 
 def ready_cards(report, skip=()):
-    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them."""
+    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without the
+    cards whose key is in `skip` (the state's `tried`: keys, since a new check numbers the cards again)."""
     if not (Path(report) / 'plan.json').is_file(): return []
     data = plan(report)
     by_id = {card['id']: card for card in data.get('tasks') or [] if card.get('id')}
     order = [card_id for milestone in data.get('milestones') or [] for card_id in milestone['tasks']]
     order += [card_id for card_id in by_id if card_id not in set(order)]
-    return [by_id[i] for i in dict.fromkeys(order) if i in by_id and ready(by_id[i]) and i not in set(skip)]
+    skip = set(skip)
+    return [by_id[i] for i in dict.fromkeys(order) if i in by_id and ready(by_id[i]) and by_id[i]['key'] not in skip]
 
 
 def next_batch(report, done, size=SIZE):
@@ -178,7 +181,8 @@ def drop_last(root):
     git(root, 'clean', '-fdq')
 
 
-def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None):
+def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None,
+                 branch=None):
     """Every kept change together: the acceptances from one collection of facts, then the project's checks and
     the behaviour lock once, halving to the culprit when they fail. The kept commits become the wave's branch
     in the candidate, its patches and wave.json beside the run, and one execution.json row per card."""
@@ -234,7 +238,7 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
     subprocess.run(['rm', '-rf', str(patches)])
     patches.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(patches), f'{base}..HEAD')
-    summary = {'wave': number, 'branch': f'eaos/wave-{number}', 'root': str(root), 'base': base, 'kept': list(kept),
+    summary = {'wave': number, 'branch': branch or f'eaos/wave-{number}', 'root': str(root), 'base': base, 'kept': list(kept),
                'failed': failed, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
                'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip()}
     (patches / 'wave.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
@@ -245,10 +249,11 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
 
 def apply(project, summary):
     """The wave's branch in the person's project, fetched from the candidate: their current branch, their
-    working folder and their unsaved edits are not touched."""
+    working folder and their unsaved edits are not touched. The candidate's checkout (its kept commits) arrives under the
+    wave's name, whatever the candidate's own branch is called."""
     if not summary['kept']: raise ValueError('this wave kept no fix, so there is nothing to hand over')
     branch = summary['branch']
-    done = git(project, 'fetch', '--quiet', summary['root'], f'+{branch}:{branch}')
+    done = git(project, 'fetch', '--quiet', summary['root'], f'+HEAD:refs/heads/{branch}')
     if done.returncode: raise RuntimeError(f'could not create {branch}: {done.stderr[-300:]}')
     return branch
 

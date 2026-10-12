@@ -80,7 +80,8 @@ def result_events(tool, arguments, payload, labels=None):
                     str(payload['error'])[:2000] + (f"\n{payload['what_now']}" if payload.get('what_now') else '')))
         return out
     progress = payload.get('progress')
-    if isinstance(progress, dict) and progress.get('total'):
+    # only a job's progress is a progress bar: status's `progress` is the project's card count, not this run's
+    if isinstance(progress, dict) and progress.get('total') and payload.get('job'):
         out.append(('progress', {'en': f"{progress.get('stage') or tool}: {progress.get('done')} of {progress.get('total')}",
                                  'ar': f"{progress.get('stage') or tool}: {progress.get('done')} من {progress.get('total')}"},
                     {'batch': payload.get('batch'), 'done': progress.get('done'), 'total': progress.get('total'), 'stage': progress.get('stage')}, None))

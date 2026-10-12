@@ -78,12 +78,54 @@ class Base(unittest.TestCase):
 
 
 class Continuity(Base):
-    def test_a_card_keeps_its_key_across_checks_and_one_no_longer_found_is_resolved(self):
+    def test_a_card_keeps_its_key_across_checks_and_one_no_longer_found_leaves_the_ledger(self):
         again = [dict(c, id=f'TASK-{100 - i:03d}', title=c['title'].replace('line 3', 'line 7')) for i, c in enumerate(reversed(FIRST))]
         self.assertEqual(sorted(ledger.keys(FIRST).values()), sorted(ledger.keys(again).values()))
         self.assertEqual(len(set(ledger.keys(FIRST).values())), 5, 'alike cards stay apart')
+        # The incident (898 cards, 58.9% with no fix): a hotspot's title names the tools that saw it, so the next check
+        # gave it a new key. The observation's uid keys it, whatever the words; a problem no longer found is not progress.
+        hotspot = dict(FIRST[3], decision={'readiness': 'ready', 'observation_uid': 'OBS-1'}, title='3 tools (codegraph, complexipy, reforge)')
+        self.assertEqual(ledger.key(hotspot), ledger.key(dict(hotspot, title='4 tools (codegraph, complexipy, lizard, reforge)')))
         totals = self.check(FIRST[1:])['totals']
-        self.assertEqual((totals['resolved'], totals['closed'], totals['total']), (1, 1, 5))
+        self.assertEqual((totals['closed'], totals['total'], totals['percent']), (0, 4, 0.0))
+
+    def test_a_batch_left_on_code_that_moved_on_is_retired_and_a_failed_finish_leaves_it_as_it_was(self):
+        """The owner's trial (2026-10-10): batch 1 outlived four checks; every fix_finish failed after rewriting its copy,
+        status kept sending the assistant back to it, and each run_setup added one more consent question."""
+        state = guided.load(self.project)
+        state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
+                     safety={'commit': state['scanned_commit'], 'screens': 1, 'passed': 1})
+        copy = guided.runtime_of(state) / 'candidates/WAVE-1'
+        subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True)
+        base = git(copy, 'rev-parse', 'HEAD')
+        (copy / 'src/a.js').write_text('// fixed\n')
+        cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
+        kept = eaos_commit(copy, cards['TASK-001'], 'assistant')
+        state['open_wave'] = {'number': 1, 'root': str(copy), 'base': base, 'cards': ['TASK-001'], 'kept': {'TASK-001': kept},
+                              'failed': {}, 'tools': {}, 'keys': {'TASK-001': cards['TASK-001']['key']}}
+        guided.save(state)
+
+        def refused(*_, **__):                                   # it rewrites the copy, then the gate refuses it
+            git(copy, 'reset', '-q', '--hard', base)
+            raise PermissionError('S09: the copy does not descend from the authorised commit')
+        with mock.patch('eaos.waves.finish_batch', side_effect=refused), self.assertRaises(PermissionError):
+            agent_tools._fix_finish_job(str(self.project), {}, lambda *_: None)
+        wave = guided.load(self.project)['open_wave']
+        self.assertEqual((git(copy, 'rev-parse', 'HEAD'), list(wave['kept'])), (kept, ['TASK-001']), 'the batch as it was')
+        self.assertIn('S09', wave['last_error'])
+        self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'fix_abandon')
+        # The person commits: the batch no longer fits the code, and status retires it, with why, its copy removed.
+        (self.project / 'src/e.js').write_text('export const e = 1;\n')
+        git(self.project, 'add', '-A')
+        git(self.project, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-qm', 'the person works')
+        answer = agent_tools.status(str(self.project))
+        self.assertIsNone(answer['open_batch'])
+        self.assertIn('code moved on', answer['retired_batch']['why'])
+        state = guided.load(self.project)
+        self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('superseded', False))
+        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.detect', return_value={'profile': None, 'limitations': []}):
+            for _ in range(2): agent_tools.run_setup(str(self.project), person_agreed=True)
+        self.assertEqual(sum(q['id'] == 'run_and_fix' for q in guided.load(self.project)['questions']), 1, 'asked once')
 
     def test_a_batch_from_before_keys_follows_its_card_when_a_new_check_numbers_it_again(self):
         self.batch(1, ['TASK-001'])
@@ -178,7 +220,7 @@ class Continuity(Base):
         guided.save(state)
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
             self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
-        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001']})
+        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001'], 'deliver_as': 'eaos/master/wave-1', 'merge_into': 'master'})
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         state = guided.load(self.project)
@@ -220,7 +262,7 @@ class Handover(Base):
     def test_the_next_assistant_and_a_new_session_know_where_the_work_stopped(self):
         from eaos.mcp_server import _answer
         state = guided.load(self.project)
-        state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': 'x', 'cards': ['TASK-002', 'TASK-004', 'TASK-005'],
+        state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': state['scanned_commit'], 'cards': ['TASK-002', 'TASK-004', 'TASK-005'],
                               'kept': {'TASK-002': 'abc'}, 'failed': {'TASK-004': 'skipped: needs a product decision'}, 'tools': {}}
         state['consent'] = {'run_and_fix': True}
         guided.save(state)

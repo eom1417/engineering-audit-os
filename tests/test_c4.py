@@ -23,7 +23,8 @@ class C4Tests(Workspace):
             'reference': 'react-vite-spa-rest',
             'current_components': [{'id': 'T-src', 'name': 'src', 'origin': 'src', 'depends_on': ['src/lib'], 'relation': 'modify', 'reason': 'r'},
                                    {'id': 'T-lib', 'name': 'src/lib', 'origin': 'src/lib', 'depends_on': [], 'relation': 'retain', 'reason': 'r'}],
-            'target_components': [{'name': 'feature:fleet', 'responsibility': 'fleet'}, {'name': 'api-client', 'responsibility': 'http'}],
+            'target_components': [{'name': 'feature:fleet', 'responsibility': 'fleet', 'layer': 'features'},
+                                  {'name': 'api-client', 'responsibility': 'http', 'layer': 'data-access'}],
             'target_edges': [{'from': 'feature:fleet', 'to': 'api-client', 'imports': 3}]}))
         return out
 
@@ -48,6 +49,15 @@ class C4Tests(Workspace):
         self.assertIn('component "feature:fleet"', target)
         self.assertIn('c1 -> c2 "3 import(s)"', target)
         self.assertTrue((out / 'architecture/target/diagram.mmd').is_file())
+        # The reports stage draws the diagrams before CURRENT-STATE embeds one: a previous check's diagram (the
+        # self-audit's built eaos/data/studio/assets) never reaches the page.
+        from types import SimpleNamespace
+        from eaos.pipeline.runners import reports
+        (out / 'architecture/current/diagram.mmd').write_text('flowchart LR\n  stale["eaos/data/studio/assets"]\n')
+        reports(SimpleNamespace(out=out, language='en'))
+        page = (out / 'CURRENT-STATE.md').read_text()
+        self.assertNotIn('studio/assets', page)
+        self.assertIn((out / 'architecture/current/diagram.mmd').read_text().strip().splitlines()[1].strip(), page)
 
     def test_a_crowded_diagram_keeps_the_strongest_links_and_says_so(self):
         names = [f'p{i}' for i in range(30)]

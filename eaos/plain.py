@@ -22,6 +22,8 @@ PROBLEMS = (
                          'en': ('One rule written in several places', 'The same rule is written twice, and the first change makes the copies disagree.')}),
     ('mutable_state', {'ar': ('بيانات مشتركة يعدلها أكثر من طرف', 'قيم يغيّرها أكثر من جزء، فتختلف النتيجة حسب الترتيب.'),
                        'en': ('Shared values changed from many places', 'Values changed by several parts, so results depend on the order things run.')}),
+    ('mutable_state_private', {'ar': ('قيم داخلية تتغير أثناء التشغيل', 'قيم يملكها ملف واحد ويغيّرها من دواله فقط: آمنة ما دامت نسخة واحدة من البرنامج تعمل، وتحتاج قرارًا إن شُغّلت نسختان.'),
+                               'en': ('Private values changed while running', 'Values one file owns and changes only through its own functions: safe while one copy of the program runs, a decision once two copies do.')}),
     ('hidden_coupling', {'ar': ('ارتباطات خفية', 'ملفات تتغير معًا دائمًا دون أن يظهر في الكود ما يربطها.'),
                          'en': ('Hidden links', 'Files that always change together, with nothing in the code that shows why.')}),
     ('hotspot', {'ar': ('أجزاء معقدة جدًا', 'دوال كبيرة يمر بها كل تعديل، فيصعب فهمها ويسهل كسرها.'),
@@ -40,11 +42,23 @@ PROBLEMS = (
                         'en': ('Changes from outside the owner', 'One part changes data another part owns.')}),
     ('policy_violation', {'ar': ('مخالفة للبنية المعلنة', 'استيراد يخالف ترتيب الطبقات الذي أعلنه المشروع.'),
                           'en': ('Breaks the declared structure', 'An import that breaks the layering the project declared.')}),
+    ('design_review', {'ar': ('ملاحظات على شكل الشاشات', 'أشياء رآها مساعدك في صور شاشات برنامجك: زحمة، أو نص غير واضح، أو عنصر خارج مكانه. تحتاج نظرة قبل أي تعديل.'),
+                       'en': ('Notes on how the screens look', 'Things your assistant saw in pictures of your screens: crowding, hard-to-read text, something out of place. Look before changing anything.')}),
+    ('investigation', {'ar': ('أسئلة تحتاج تحققًا', 'احتمالات لاحظها مساعدك ولم يثبتها القياس بعد: تُفحص ويُسجَّل قرار، وقد لا تحتاج تعديلًا.'),
+                       'en': ('Questions to check', 'Possibilities your assistant noticed that no measurement has proven yet: checked, then decided, and maybe no change.')}),
     ('generic', {'ar': ('ملاحظات أخرى', 'ملاحظات تحتاج نظرة شخص قبل أي تغيير.'),
                  'en': ('Other notes', 'Notes a person should look at before any change.')}),
 )
 ORDER = [name for name, _ in PROBLEMS]
 TEXT = dict(PROBLEMS)
+
+
+def kind(task):
+    """The plain kind of a card: its pattern, except module-level state its own module keeps private (the fact's
+    `encapsulated`, carried in the claim's render), which is not "changed by several parts"."""
+    pattern = task.get('pattern') or 'generic'
+    params = (task.get('render') or {}).get('params') or {}
+    return 'mutable_state_private' if pattern == 'mutable_state' and params.get('encapsulated') else pattern
 
 
 def problem(pattern, language):

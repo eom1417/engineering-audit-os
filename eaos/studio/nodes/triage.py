@@ -15,7 +15,7 @@ from . import core
 from .. import ideal
 
 VERSION = '1'
-LIMIT = {'facts': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
+LIMIT = {'facts': 4, 'rejudge_facts': 12, 'measurements': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
 SEVERITY = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['falsifier'],
           'properties': {'falsifier': {'type': 'string'}}}
@@ -25,7 +25,8 @@ Before the person sees it, judge each card: does its own evidence show the probl
 
 WHAT YOU ARE GIVEN
 `cards`: each with its id, title, kind, severity, the engines' confidence, paths, and `evidence`: up to 4 of its facts,
-each with its summary, path, line and `code` (a few lines of the project's code at that line). A fact's summary is what
+those carrying a measurement first (the largest value over its declared threshold first), each with its summary, path,
+line, `measurements` (name, value, threshold) and `code` (a few lines of the project's code at that line). A fact's summary is what
 a deterministic engine found over the whole project: its message, its measurements and how it knows (for example "the
 name occurs nowhere in product code or configuration except line 76"). `batch` says which part of the list this is. A
 card may stand on more facts than the ones shown.
@@ -46,6 +47,14 @@ DO NOT
 Confirm a card on its title alone or because it is plausible or common. Reject a card only because the facts shown are
 weak: weak or missing evidence is a doubt, and only a contradiction is a reject. Judge a card on another card's
 evidence or on anything outside its own.'''
+
+REJUDGE = '''
+
+AGAIN
+You doubted these cards in a first pass. Each now carries every fact it stands on (up to 12, the largest measurement over
+its threshold first) and `first_doubt`, what you said was missing. Decide each again on this evidence. Doubt again only
+when even all its facts neither show nor contradict the problem: a doubted card is never fixed automatically, a person
+reviews it.'''
 
 
 def _facts(report):
@@ -73,25 +82,60 @@ def _claims(report):
             if isinstance(t, dict) and t.get('id')}
 
 
-def inputs(report, project=None, lang='en', cards=None, limit=None, **_):
-    """The open cards (or those of `cards`), most severe first, each with its facts and their code."""
+def _number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _measurements(report, wanted):
+    """{fact id: [{name, value, threshold}]}: the measurements of the facts in `wanted`, read from the report's fact
+    sets (an engine finding's measurements, a metric's branches)."""
+    from ... import indicators
+    out = {}
+    for row in indicators.facts(report):
+        if row.get('id') not in wanted: continue
+        value = row.get('value') or {}
+        found = [{'name': m.get('name'), 'value': m['value'], 'threshold': m.get('threshold') if _number(m.get('threshold')) else None}
+                 for m in value.get('measurements') or [] if isinstance(m, dict) and _number(m.get('value'))]
+        if row.get('kind') == 'metric' and _number(value.get('branches')):
+            found.append({'name': 'branches', 'value': value['branches'], 'threshold': None})
+        if found: out[row['id']] = found
+    return out
+
+
+def _weight(measured):
+    """Sort key of a fact: a value over its threshold first (the largest ratio first), then a bare value, then none."""
+    ratios = [m['value'] / m['threshold'] for m in measured if m['threshold']]
+    if ratios: return (0, -max(ratios))
+    return (1, -max(m['value'] for m in measured)) if measured else (2, 0)
+
+
+def inputs(report, project=None, lang='en', cards=None, limit=None, rejudge=None, **_):
+    """The open cards (or those of `cards`), most severe first, each with its facts and their code, those carrying the
+    measurement first. `rejudge` ({card: why it was doubted}): only those cards, each with all its facts and its doubt."""
     report = Path(report)
     rows = [c for c in ideal._cards(report) if c.get('state', 'open') not in ('done', 'resolved')]
     if cards: rows = [c for c in rows if c['id'] in set(cards)]
+    if rejudge: rows = [c for c in rows if c['id'] in rejudge]
     rows.sort(key=lambda c: (SEVERITY.get(c.get('severity'), 5), c['id']))
     facts = _facts(report)
+    cited = {card['id']: [f for f in card.get('evidence') or [] if isinstance(f, str)] for card in rows}
+    measured = _measurements(report, {f for ids in cited.values() for f in ids})
     out = []
     for card in rows[:limit] if limit else rows:
         evidence = []
-        for fact in [f for f in card.get('evidence') or [] if isinstance(f, str)][:LIMIT['facts']]:
+        ordered = sorted(cited[card['id']], key=lambda f: _weight(measured.get(f) or []))
+        for fact in ordered[:LIMIT['rejudge_facts' if rejudge else 'facts']]:
             known = facts.get(fact) or {}
             evidence.append({'id': fact, 'summary': known.get('summary'), 'path': known.get('path'), 'line': known.get('line'),
+                             'measurements': (measured.get(fact) or [])[:LIMIT['measurements']],
                              'code': _excerpt(project, known.get('path'), known.get('line'))})
         out.append({'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'), 'severity': card.get('severity'),
-                    'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3], 'evidence': evidence})
+                    'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3], 'evidence': evidence,
+                    **({'first_doubt': core.short(rejudge[card['id']], 400)} if rejudge else {})})
     if not out: return None
     return {'project': {'name': (project and Path(project).name) or report.name, 'language': 'Arabic' if lang == 'ar' else 'English'},
-            'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out), 'lang': lang}
+            'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out), 'lang': lang,
+            **({'rejudge': True} if rejudge else {})}
 
 
 BATCH = 40
@@ -119,7 +163,7 @@ def rules(data):
 
 
 def prompt(data):
-    return core.prompt(TASK, data)
+    return core.prompt(TASK + (REJUDGE if data.get('rejudge') else ''), data)
 
 
 def check(data, decision):
@@ -139,7 +183,8 @@ def finish(report, record, data):
     route = {s: r['decision'] for r in record['routes'] for s in r['subjects']}
     verdicts = [{'card': d['subject'], 'decision': route[d['subject']], 'kind': cards[d['subject']]['kind'],
                  'severity': cards[d['subject']]['severity'], 'confidence': d['confidence'], 'why': d['why'],
-                 'evidence': d['evidence'], 'source': d['source']} for d in record['decisions']]
+                 'evidence': d['evidence'], 'source': d['source'], 'rejudged': 'first_doubt' in (d.get('detail') or {})}
+                for d in record['decisions']]
     doubted = [v for v in verdicts if v['decision'] == 'doubt']
     probes = [probe(i + 1, claims.get(v['card']) or v['card'], 'falsification',
                     {'card': v['card'], 'question': v['why'], 'falsifier': next((d['detail'].get('falsifier') for d in record['decisions']
@@ -169,4 +214,23 @@ def by_kind(verdicts):
 
 
 def run(node, report, **options):
-    return core.run_node(node, sys.modules[__name__], report, **options)
+    """The triage, then a second look at the cards it doubted, each with every fact it stands on: the second verdict
+    replaces the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
+    the first verdicts stand."""
+    spec = sys.modules[__name__]
+    first = core.run_node(node, spec, report, **options)
+    if not first or first['method'] != 'model': return first
+    doubted = {d['subject']: d['why'] for d in first['decisions'] if d['source'] == 'model' and d['decision'] == 'doubt'}
+    if not doubted: return first
+    second = core.run_node(node, spec, report, **{**options, 'rejudge': doubted})
+    again = {d['subject']: d for d in (second or {}).get('decisions') or []
+             if (second or {}).get('method') == 'model' and d['source'] == 'model'}
+    decisions = [{**again[d['subject']], 'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
+                 if d['subject'] in again else d for d in first['decisions']]
+    merged = {**first, 'decisions': decisions, 'routes': core.routes(node, decisions),
+              'dropped': first['dropped'] + ((second or {}).get('dropped') or [] if again else []),
+              'calls': (first.get('calls') or 0) + ((second or {}).get('calls') or 0)}
+    row = core.keep(report, node, merged)
+    finish(report, row, inputs(report, project=options.get('project'), lang=options.get('lang', 'en'), cards=options.get('cards'),
+                               limit=options.get('limit')))
+    return row

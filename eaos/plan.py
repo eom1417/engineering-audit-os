@@ -415,7 +415,42 @@ def _verdicts(out):
     return {v['card']: v for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('source') == 'model'}
 
 
-SEVERITY_PRIORITY = {'high': 0.6, 'medium': 0.4, 'low': 0.2}
+# A design finding's share of the top code card's priority, by its severity, times the weight of an unconfirmed
+# claim (eaos/ranking.py): on the code claims' scale, never above the most urgent of them.
+SEVERITY_SHARE = {'high': 1.0, 'medium': 0.5, 'low': 0.25}
+SEVERITY_ORDER = ('high', 'medium', 'low')
+
+
+def page_of(page):
+    """One name per page: `http://host/`, `/`, `/#/` and `#/` are the home page; `/#/branches` is `/branches`."""
+    from urllib.parse import urlsplit
+    text = str(page or '')
+    if '://' in text:
+        parts = urlsplit(text)
+        text = parts.path + ('#' + parts.fragment if parts.fragment else '')
+    return '/' + '/'.join(part for part in text.split('?')[0].replace('#', '/').split('/') if part)
+
+
+def design_cards(findings, tasks):
+    """The visual reviewer's findings as design cards: one per (page, title), the most severe kept and the other
+    pictures of it named; each priority on the code cards' scale (SEVERITY_SHARE)."""
+    from .ranking import CONFIDENCE_WEIGHT
+    top = max((t.get('priority') or 0 for t in tasks if t.get('origin') != 'visual_review'), default=0) or 1.0
+    kept = {}
+    for finding in sorted(findings, key=lambda f: SEVERITY_ORDER.index(f['severity']) if f.get('severity') in SEVERITY_ORDER else 3):
+        key = (page_of(finding.get('page')), ' '.join(str(finding.get('title') or '').lower().split()))
+        if key in kept: kept[key][1].append(finding['image'])
+        else: kept[key] = (finding, [])
+    cards = []
+    for number, (finding, others) in enumerate(kept.values(), 1):
+        card = design_card(number, finding)
+        card['priority'] = round(top * SEVERITY_SHARE.get(finding.get('severity'), 0.25) * CONFIDENCE_WEIGHT['HYPOTHESIS'], 4)
+        card['design']['page'] = page_of(finding.get('page'))
+        if others:
+            card['design']['also_in'] = others
+            card['finding_ids'] += others
+        cards.append(card)
+    return cards
 
 
 def design_card(number, finding):
@@ -429,7 +464,7 @@ def design_card(number, finding):
                          'reason': 'A design finding of the visual reviewer: confirm it on the screen before changing it.',
                          'allowed_outcomes': ['repair', 'retain', 'blocked_missing_requirement']},
             'prerequisites': [], 'before': None, 'after': None, 'requirement_refs': [], 'status': 'planned',
-            'priority': SEVERITY_PRIORITY.get(finding['severity'], 0.2), 'pattern': 'design_review', 'paths': [], 'origin': 'visual_review',
+            'priority': SEVERITY_SHARE.get(finding['severity'], 0.25), 'pattern': 'design_review', 'paths': [], 'origin': 'visual_review',
             'impact': finding['why'], 'impact_render': None,
             'evidence': {'fact_ids': [], 'evidence_ids': [finding['image']], 'probe_ids': [], 'images': [finding['file']],
                          'region': region, 'falsifier': f"The picture {where} does not show it."},
@@ -442,29 +477,61 @@ def design_card(number, finding):
             'finding_ids': [finding['image']], 'section': 'frontend', 'design': {k: finding.get(k) for k in ('kind', 'severity', 'page', 'viewport', 'theme')}}
 
 
-def _design_cards(out):
-    """The visual reviewer's findings of this check, as design cards."""
+def _design_cards(out, tasks):
+    """The visual reviewer's findings of this check, as design cards (design_cards)."""
     body = _load(Path(out) / 'nodes/visual_reviewer/findings.json', {})
     if body.get('method') != 'model': return []
-    return [design_card(number, finding) for number, finding in enumerate(body.get('findings') or [], 1)]
+    return design_cards(body.get('findings') or [], tasks)
+
+
+def apply_verdicts(out, tasks, verdicts, language='ar'):
+    """The one place the assistant's triage reaches the ledger, before anything ranks, plans or reports: the claim of
+    a card it rejected is refuted (confidence REFUTED, `refuted_by` the card, its why kept in `triage`), the claim of a
+    card it doubted carries the doubt (eaos/decisions.py: needs_review, never fixed automatically), and the ledger's
+    ranking, decisions, brief and debt register are drawn again (dossier.refresh_views), so the risks, the reports and
+    the plan all read the same verdicts. Returns {claim id: claim}."""
+    from .dossier import refresh_views
+    out = Path(out)
+    dossier = read(out / 'dossier.json')
+    claims = {c['id']: c for c in dossier['claims']}
+    for task in tasks:
+        verdict, claim = verdicts.get(task['id']), claims.get(task.get('claim_id'))
+        if not verdict or claim is None or verdict.get('decision') not in ('confirm', 'doubt', 'reject'): continue
+        claim['triage'] = {'decision': verdict['decision'], 'card': task['id'], 'why': verdict.get('why'),
+                           'evidence': list(verdict.get('evidence') or []), 'rejudged': bool(verdict.get('rejudged'))}
+        if verdict['decision'] == 'reject':
+            claim['confidence'] = 'REFUTED'
+            claim['refuted_by'] = sorted(set(claim.get('refuted_by') or []) | {'card_triage:' + task['id']})
+    write(out / 'dossier.json', dossier)
+    refresh_views(out, language)
+    return {c['id']: c for c in read(out / 'dossier.json')['claims']}
 
 
 def confirm(target, out, language='ar', triaged=False, reviewed=False):
-    """The confirmed cards: when the triage ran in this check, a card it rejected leaves the plan (and with it the
-    gaps), a prerequisite on it is dropped with why, and every other card carries its verdict; when the visual reviewer
-    ran, each of its findings joins the plan as a design card. The waves, milestones and cards are then drawn again.
-    Without either every card stands as the rules wrote it. Writes cards.json, the record of who decided each card,
-    and returns it."""
+    """The confirmed cards: when the triage ran in this check, its verdicts are applied once (apply_verdicts), a card
+    it rejected leaves the plan (and with it the gaps) and stays only in cards.json `set_aside` with why, a
+    prerequisite on it is dropped with why, and every other card carries its verdict and its claim's decision and
+    priority drawn again (a doubted card needs a person's review); when the visual reviewer ran, each of its findings
+    joins the plan as a design card. The waves, milestones and cards are then drawn again. Without either every card
+    stands as the rules wrote it. Writes cards.json, the record of who decided each card, and returns it."""
+    from .decisions import decide
     target, out = Path(target).resolve(), Path(out).resolve()
     plan = read(out / 'plan.json')
     verdicts = _verdicts(out) if triaged else {}
     tasks = plan['tasks']
     rejected = {t['id'] for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'reject'}
-    design = _design_cards(out) if reviewed else []
+    if verdicts:
+        claims = apply_verdicts(out, tasks, verdicts, language)
+        for task in tasks:
+            claim = claims.get(task.get('claim_id'))
+            if claim is not None and task['id'] not in rejected:
+                task['decision'], task['priority'] = decide(claim), claim.get('priority', task['priority'])
+        plan['decisions'] = read(out / 'dossier.json').get('decisions', plan.get('decisions', []))
+    design = _design_cards(out, [t for t in tasks if t['id'] not in rejected]) if reviewed else []
     kept = [t for t in tasks if t['id'] not in rejected] + design
     for task in kept:
         verdict = verdicts.get(task['id'])
-        if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence')}
+        if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence', 'rejudged')}
         dropped = [ref for ref in task['prerequisites'] if ref.get('task_id') in rejected]
         if dropped:
             task['prerequisites'] = [ref for ref in task['prerequisites'] if ref not in dropped]

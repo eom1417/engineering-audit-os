@@ -37,7 +37,8 @@ class OrderTests(unittest.TestCase):
                                                                 {'id': 'T4', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}}],
                                                       'milestones': [{'tasks': ['T3', 'T4']}, {'tasks': ['T1', 'T2']}]}))
         self.assertEqual(waves.next_batch(report, [], size=2), ['T3', 'T1'])
-        self.assertEqual(waves.next_batch(report, ['T3'], size=5), ['T1', 'T2'])
+        tried = [c['key'] for c in waves.plan(report)['tasks'] if c['id'] == 'T3']     # `tried` holds keys, not ids
+        self.assertEqual(waves.next_batch(report, tried, size=5), ['T1', 'T2'])
         dead_card = {'id': 'D', 'verify_command': ['python', '-c', "left = [f for f in facts if (f['location']['path'], "
                                                    "f['location']['symbol'], f['value']['rule']) == ('src/a.ts', 'gone', 'unused-symbol')]"]}
         gone_card = {'id': 'G', 'verify_command': ['python', '-c', "x == ('src/a.ts', 'still', 'unused-symbol')"]}

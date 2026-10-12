@@ -16,15 +16,21 @@ ASK = ('When you need the person (their agreement to run the app, a choice only 
        '{"text": {"en": "<the question>", "ar": "<the question in Arabic>"}, "options": [{"id": "<short id>", "label": '
        '{"en": "<label>", "ar": "<label in Arabic>"}}], "recommendation": "<option id>"}\n'
        '```\n'
+       'When an option means closing the open batch of fixes (fix_abandon), give it "action": "fix_abandon": the Studio '
+       'closes the batch itself when the person picks it, before you go on. '
        'Never answer for the person. Do not call accept, undo or choose_branch: the person decides those in the Studio.')
+ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/studio/actions/runs.py)
 
 VERBS = {
     'fix': ('Use the eaos tools to fix these cards of this project safely, end to end, without coming back between steps. '
             'Follow `status`: audit if it says so, then run_setup, run_try until the app runs, safety_net, then fix_start with '
-            'exactly these cards, and for each card: finding and fix_read, then fix_edit (fix_skip only with a real reason). '
-            'Then fix_finish. Change code only with fix_edit: never write a file yourself. Add the why with `note` after each '
-            'card. At the end, tell the person in plain words what was fixed and on which branch; they accept or undo it in '
-            'the Studio.'),
+            'exactly these cards, and for each card: finding and fix_read, then fix_edit. A card you cannot fix (its change '
+            'keeps failing the checks, or no safe change exists) gets fix_skip with its reason, and you go on with the next '
+            'card: one card never stops the batch. When every card was tried, call fix_finish, even if some were skipped. If '
+            'status says fix_abandon (a batch that cannot be closed), call it and start again. Change code only with fix_edit: '
+            'never write a file yourself. Add the why with `note` after each card. At the end, tell the person in plain words '
+            'what was fixed, what was skipped and why, and on which branch; they accept or undo it in the Studio. If nothing '
+            'was kept, say so plainly: never say it is done.'),
     'verify': ('Use the eaos tools to verify these cards: read each with `finding`, look at the code it points at (Read, '
                'Grep), and decide whether the problem is still there, already gone, or a false alarm, with the evidence. '
                'Record each verdict with `note` (card set). Change nothing.'),
@@ -36,12 +42,18 @@ VERBS = {
 }
 
 
-def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None):
-    """The prompt of a run: a verb over cards, or one assistant action with its inputs."""
+def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None):
+    """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
+    chose to build and deliver it)."""
     language = LANGS.get(lang, LANGS['en'])
     if verb:
         listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()') for card in cards)
         task = f"{VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\nCard ids for the tools: {json.dumps([c['id'] for c in cards])}"
+        if verb == 'fix' and where:
+            task += (f"\nThe person chose where this batch goes: call fix_start with base={json.dumps(where['base'])}, "
+                     f"base_commit={json.dumps(where['base_commit'])}, deliver_as={json.dumps(where['deliver_as'])}, "
+                     f"merge_into={json.dumps(where['merge_into'])}. If it answers base_moved, stop and tell the person the "
+                     'branch moved: they preview the fix again.')
     else:
         label = (labels or {}).get(action, {}).get('en', action)
         shown = {k: v for k, v in (inputs or {}).items() if k != 'project'}
@@ -52,12 +64,21 @@ def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None
             f'person follows every step. {ASK}\nSpeak to the person in {language}.')
 
 
-def answer(question, option, text, lang='ar'):
-    """The words that resume a session with the person's answer."""
+def acts(question, option):
+    """The EAOS action the person's chosen option means (an option with `action`, or the id `abandon`), or None."""
+    chosen = next((o for o in question.get('options') or [] if o.get('id') == option), None)
+    if chosen is None: return None
+    action = chosen.get('action') or ('fix_abandon' if chosen['id'] in ('abandon', 'fix_abandon') else None)
+    return action if action in ACTS else None
+
+
+def answer(question, option, text, lang='ar', done=None):
+    """The words that resume a session with the person's answer (and what the Studio already did for it)."""
     chosen = next((o for o in question.get('options') or [] if o.get('id') == option), None)
     said = (chosen or {}).get('label', {}).get(lang) or (chosen or {}).get('label', {}).get('en') or option or ''
     parts = [f'The person answered in the Studio: {said}' + (f' (option "{option}")' if option else '')]
     if text: parts.append(f'They added: {text}')
+    if done: parts.append(f'The Studio already ran {done[0]} for this answer; its result: {json.dumps(done[1], ensure_ascii=False)[:1500]}.')
     parts.append('Go on from where you stopped.')
     return ' '.join(parts)
 
@@ -79,7 +100,8 @@ def question_in(text):
         if not isinstance(option, dict): continue
         label = option.get('label') or option.get('id')
         if isinstance(label, str): label = {'en': label, 'ar': label}
-        options.append({'id': str(option.get('id') or f'o{index + 1}'), 'label': {'en': label.get('en') or label.get('ar'), 'ar': label.get('ar') or label.get('en')}})
+        options.append({'id': str(option.get('id') or f'o{index + 1}'), 'label': {'en': label.get('en') or label.get('ar'), 'ar': label.get('ar') or label.get('en')},
+                        **({'action': option['action']} if option.get('action') in ACTS else {})})
     recommendation = data.get('recommendation')
     if recommendation not in {o['id'] for o in options}: recommendation = None
     return {'text': words, 'options': options, 'recommendation': recommendation}

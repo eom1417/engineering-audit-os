@@ -11,6 +11,7 @@ import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
+import { useWaitingDecisions } from '../shell/waiting'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
 import { COUNT_NEEDS, HOME_NEEDS } from '../data/stages'
 import { nextRequest } from './requests'
@@ -19,7 +20,7 @@ import css from './Pages.module.css'
 
 const AREA = {
   security: ['الأمان', 'Security'], structure: ['البنية', 'Structure'], quality: ['جودة الكود', 'Code quality'],
-  performance: ['الأداء تحت الضغط', 'Performance under load'], maintainability: ['سهولة التطوير والاختبار', 'Ease of change and testing'],
+  performance: ['الأداء تحت الضغط', 'Performance under load'], ux: ['شكل الشاشات', 'How the screens look'], maintainability: ['سهولة التطوير والاختبار', 'Ease of change and testing'],
 } as Record<string, [string, string]>
 
 function HealthSheet({ data, isOpen, onOpenChange }: { data: StudioData; isOpen: boolean; onOpenChange: (open: boolean) => void }) {
@@ -56,7 +57,7 @@ function HomeBody({ data }: { data: StudioData }) {
   const bandWord = useBandWord()
   const score = data.health?.score.value
   const scoreN = score === null || score === undefined ? null : Math.round(score * 100)
-  const decisions = (data.decisions?.decisions ?? []).filter((d) => d.state === 'waiting')
+  const decisions = useWaitingDecisions(data)
   const [first, ...rest] = decisions
   const verdict = data.head?.verdict ?? ''
   const parts = counting ? [verdict] : headlineParts(verdict, [

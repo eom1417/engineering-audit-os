@@ -32,6 +32,7 @@ export const PROBLEM_WORDS = {
   area_structure: ['البنية', 'Structure'],
   area_quality: ['جودة الكود', 'Code quality'],
   area_performance: ['الأداء', 'Performance'],
+  area_ux: ['شكل الشاشات', 'How the screens look'],
   area_maintainability: ['قابلية الصيانة', 'Maintainability'],
   // the detail
   whyItMatters: ['لماذا تهم', 'Why it matters'],

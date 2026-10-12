@@ -25,7 +25,7 @@ def start_here(report, lang, name):
     counts = summary_counts(report)
     groups = {}
     for task in tasks:
-        groups.setdefault(task.get('pattern') or 'generic', []).append(task)
+        groups.setdefault(plain.kind(task), []).append(task)
     ordered = sorted(groups, key=lambda p: (plain.ORDER.index(p) if p in plain.ORDER else len(plain.ORDER), -len(groups[p])))
     ar = lang == 'ar'
     lines = [f"# {'ابدأ هنا' if ar else 'Start here'}: {name}", '']

@@ -56,7 +56,6 @@ def run(target, source, out=None, only=None):
             metrics = [f for f in edges['facts'] if f['kind'] == 'symbol_metric_external']
             facts.extend(_from_external_call_edges(target, call_edges))
             facts.extend(_from_external_module_edges(target, module_edges))
-            facts.extend(_from_external_symbol_metrics(input_sha, metrics))
             facts.extend(_as_symbol_metrics(input_sha, metrics))
             total = len(call_edges) + len(module_edges) + len(metrics)
             edge_merge = {'status': 'merged' if total else 'empty',
@@ -126,42 +125,12 @@ def _drop_scratch(engines):
         shutil.rmtree(engines / part, ignore_errors=True)
 
 
-def _from_external_symbol_metrics(input_sha, metric_facts):
-    """Per-symbol complexity becomes a performance finding, because that is how it is read.
-
-    `load_model` answers `complexity_class` from findings whose rule is `performance`. A metric
-    recorded under any other rule is a measurement nobody reads, so the engine's complexity grade
-    enters under the name its only consumer looks for, carrying the file it was measured in.
-    """
-    out = []
-    for fact in metric_facts:
-        value = fact.get('value', {})
-        out.append(make('engine_finding', NAME, VERSION, input_sha,
-                        {'path': fact['location']['path'], 'line': fact['location'].get('line'),
-                         'symbol': value.get('name')},
-                        {'engine': 'codegraph', 'engine_version': PINNED_CODEGRAPH, 'rule': 'performance',
-                         'kind': 'complexity', 'method': 'measured',
-                         'message': (f"{value.get('name', 'symbol')}: cyclomatic complexity "
-                                     f"{value.get('complexity')} (grade {value.get('grade') or 'n/a'})"),
-                         'measurements': [{'name': 'complexity', 'value': value.get('complexity')},
-                                          {'name': 'lines_of_code', 'value': value.get('lines')},
-                                          {'name': 'branches', 'value': value.get('branches')},
-                                          {'name': 'loops', 'value': value.get('loops')},
-                                          {'name': 'nesting', 'value': value.get('nesting')}],
-                         'engine_confidence': None, 'subject_kind': 'symbol',
-                         'complexity': value.get('complexity'), 'grade': value.get('grade'),
-                         'sites': []},
-                        limitations=LIMITATIONS[:1]))
-    return out
-
-
 def _as_symbol_metrics(input_sha, metric_facts):
     """Keep the measurement in the vocabulary the engine contract declares for it.
 
     `symbol_metric_external` is one of the kinds an engine is allowed to produce, and it carries a
-    granularity and a set of measurements that a `performance` finding flattens into prose. Both
-    are stored: the finding is what `load_model` reads, and this is what a reader auditing the
-    engine layer's own vocabulary finds when they look for it.
+    granularity and a set of measurements. It is never a finding: with no threshold a metric of
+    complexity 1 would be a problem. `load_model` reads its `complexity` from here.
     """
     out = []
     for fact in metric_facts:

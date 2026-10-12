@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bilingual</title>
   <script>
-    // The language comes from localStorage (key "studio-lang"), the theme from the query (?theme=dark).
+    // The language comes from localStorage (key "studio-lang"), the theme from the query (?theme=dark) or, as in the
+    // EAOS Studio, from the JSON object under the key "studio" ({"theme": "dark"}).
     const lang = localStorage.getItem('studio-lang') || 'en';
-    const theme = new URLSearchParams(location.search).get('theme') || 'light';
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('studio') || '{}') || {}; } catch (e) {}
+    const theme = new URLSearchParams(location.search).get('theme') || saved.theme || 'light';
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.dataset.theme = theme;

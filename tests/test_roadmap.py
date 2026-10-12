@@ -11,13 +11,18 @@ def task(tid, pattern, paths=('src/a.ts',), priority=1.0, **extra):
 class RoadmapTests(unittest.TestCase):
     def test_cards_are_sized_and_placed_in_the_first_section_that_holds(self):
         self.assertEqual(effort(['a', 'b'], 5), ('S', {'files': 2, 'dependents': 5}))
-        self.assertEqual(effort(['a', 'b', 'c'], 30)[0], 'M')
+        # Size needs both measures small: one file with 129 dependents (the self-audit's workspace.py) is large.
+        self.assertEqual(effort(['a', 'b', 'c'], 20)[0], 'M')
+        self.assertEqual(effort(['eaos/workspace.py'], 129)[0], 'L')
         self.assertEqual(effort([str(i) for i in range(9)], 21)[0], 'L')
         cases = [(task('1', 'upgrade_dependency', ['package-lock.json']), 'security'),
                  (task('2', 'generic', ['.github/workflows/ci.yml']), 'infrastructure'),
                  (task('3', 'generic', ['supabase/migrations/1.sql']), 'data'),
                  (task('4', 'generic', ['src/server/x.ts']), 'backend'),
-                 (task('5', 'trace_gap'), 'quality'), (task('6', 'hotspot'), 'frontend')]
+                 (task('5', 'trace_gap'), 'quality'), (task('6', 'hotspot'), 'frontend'),
+                 # No default section: a Python module is back end, a card with no file is general.
+                 (task('7', 'hotspot', ['eaos/facts/secrets.py']), 'backend'), (task('8', 'generic', []), 'general'),
+                 (task('9', 'hotspot', ['studio/src/App.tsx']), 'frontend')]
         for card, expected in cases:
             with self.subTest(expected):
                 self.assertEqual(section(card), expected)

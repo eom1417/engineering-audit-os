@@ -111,12 +111,13 @@ def meta(report, m):
 def head(m, scan, lang, stamp, fresh):
     freshness, detail = fresh
     s = m['score']
-    fixable = sum(1 for r in m['rows'] if r['auto'])
+    counted = M.problem_counts(m)
+    fixable = counted['fixable']
     if s['score'] is None:
         verdict = ('لم تُحسب درجة لهذا الفحص.' if lang == 'ar' else 'This check has no score.')
     else:
-        verdict = (f"{len(m['rows'])} مشكلة، منها {fixable} يصلحها EAOS وحده." if lang == 'ar' else
-                   f"{len(m['rows'])} problems; EAOS fixes {fixable} of them by itself.")
+        verdict = (f"{counted['problems']} مشكلة، منها {fixable} يصلحها EAOS وحده." if lang == 'ar' else
+                   f"{counted['problems']} problems; EAOS fixes {fixable} of them by itself.")
     if fixable:
         # A numeral never sits glued to a one-letter prefix (لـ165): it stands alone after a word, and the noun agrees with it.
         cards = ('بطاقة واحدة' if fixable == 1 else 'بطاقتين' if fixable == 2 else
@@ -304,10 +305,50 @@ def decisions(m, card_rows, lang):
                     'question': ('هل تعتمد البنية المستهدفة؟' if lang == 'ar' else 'Do you approve the target structure?'),
                     'recommendation': ('راجع قرارات البنية في القصة، ثم اعتمدها أو اطلب تعديلها.' if lang == 'ar' else
                                        'Review the structure decisions in the story, then approve them or ask for changes.'),
-                    'options': [{'id': d.get('id') or '', 'label': str(d.get('chosen') or '')[:200]}
-                                for d in target.get('decisions') or [] if isinstance(d, dict)],
+                    # one approval, never one option per structure decision (the incident: 51 English ADR sentences)
+                    'options': [{'id': 'approve', 'label': 'اعتمدها' if lang == 'ar' else 'Approve'},
+                                {'id': 'changes', 'label': 'اطلب تعديلًا' if lang == 'ar' else 'Ask for changes'},
+                                {'id': 'review', 'label': 'أراجعها أولًا' if lang == 'ar' else 'Review them first'}],
+                    'recommended_option': 'review', 'decisions_count': len([d for d in target.get('decisions') or [] if isinstance(d, dict)]),
                     'blocks': ['S06'], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': '', 'tool': None})
     return out
+
+
+STOP = frozenset('هل في وفي فيه اذا إذا اللي عليه كل شي من على إلى الى او أو أم و ما ماذا كيف وين أين لما لها له لهم هذا هذه نفس نفسه the a an of in on to is are do does or and what which how where should we it'.split())
+
+
+def _words(text):
+    """The content words of a question, for telling two askings of one topic apart: Arabic's article and its letter
+    variants folded, short and common words left out."""
+    text = re.sub('[\u064b-\u0652]', '', str(text or '').lower()).translate(str.maketrans('أإآةى', 'اااهي'))
+    words = set()
+    for word in re.findall(r'[\w./-]+', text):
+        for prefix in ('وال', 'بال', 'لل', 'ال'):
+            if word.startswith(prefix) and len(word) > len(prefix) + 2: word = word[len(prefix):]; break
+        if len(word) > 2 and word not in STOP: words.add(word)
+    return words
+
+
+def tidy_decisions(rows):
+    """The inbox asks each thing once and only what the person decides: a card_triage question is a fact about the
+    code the assistant checks itself (the `investigations` row already offers that), so it never reaches the person;
+    two questions on one topic (the same key, or most of the same words, as the planner and a screen reviewer ask
+    about the phone's tab bar) become one, the first kept with the others' ids in `merged`."""
+    kept = []
+    for row in rows:
+        if str(row.get('id', '')).startswith('node-card_triage:'): continue
+        if row.get('state') == 'waiting':
+            key = str(row.get('id', '')).rsplit(':', 1)[-1].removeprefix('ideal-')
+            words = _words(row.get('question'))
+            same = next((k for k in kept if k.get('state') == 'waiting' and (
+                key and str(k.get('id', '')).rsplit(':', 1)[-1].removeprefix('ideal-') == key
+                or len(words) >= 3 and len(k['_words']) >= 3 and len(words & k['_words']) / min(len(words), len(k['_words'])) >= 0.5)), None)
+            if same is not None:
+                same.setdefault('merged', []).append(row['id'])
+                continue
+            row = {**row, '_words': words}
+        kept.append(row)
+    return [{k: v for k, v in row.items() if k != '_words'} for row in kept]
 
 
 # ---------------------------------------------------------------- writing
@@ -366,10 +407,10 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('docs', lambda: library_section.docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
     def decision_rows():
-        rows = (decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
-                + planned_ideal.disagreements(report, lang))
-        canonical_rows = (decisions(m, card_rows, 'en') + planned_ideal.decisions(report, 'en') + ai_nodes.decisions(report, 'en')
-                          + planned_ideal.disagreements(report, 'en'))
+        rows = tidy_decisions(decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
+                              + planned_ideal.disagreements(report, lang))
+        canonical_rows = tidy_decisions(decisions(m, card_rows, 'en') + planned_ideal.decisions(report, 'en') + ai_nodes.decisions(report, 'en')
+                                        + planned_ideal.disagreements(report, 'en'))
         by_id = {row['id']: row for row in canonical_rows}
         for row in rows:
             source = by_id.get(row['id'], row)

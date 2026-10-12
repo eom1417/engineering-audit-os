@@ -26,6 +26,7 @@ import { Id, N, When } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
 import { ScanBanner } from './ScanBanner'
+import { useWaitingDecisions } from './waiting'
 import { SECTIONS, sectionOf, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SystemViews } from '../pages/system/SystemViews'
@@ -36,13 +37,8 @@ const Palette = lazy(() => loadPalette().then((module) => ({ default: module.Pal
 
 function useCounts(): Counts | null {
   const data = useStudio()
-  const { decisions } = useActions()
-  return useMemo(() => {
-    if (!data) return null
-    const result = counts(data)
-    result.decisionsWaiting -= (data.decisions?.decisions ?? []).filter((d) => d.state === 'waiting' && decisions.some((r) => r.id === d.id && r.response)).length
-    return result
-  }, [data, decisions])
+  const waiting = useWaitingDecisions(data)
+  return useMemo(() => (data ? { ...counts(data), decisionsWaiting: waiting.length } : null), [data, waiting])
 }
 
 /** The command centre's counts beside the report's: questions from runs join the inbox, and runs that are not over. */

@@ -48,10 +48,15 @@ class WideGroupFindings(unittest.TestCase):
 
 class EvidenceOfItsKind(unittest.TestCase):
     def test_a_claim_cites_only_its_kind_and_its_own_file_leads_its_paths(self):
-        made = claims.from_engines(sets(finding('F-1', 'codegraph', 'complexity', 'symbol', ['src/m0.py']),
-                                        finding('F-2', 'reforge', 'complexity', 'symbol', ['src/m0.py']),
+        over = finding('F-2', 'reforge', 'complexity', 'symbol', ['src/m0.py'])
+        over['value']['measurements'] = [{'name': 'function.complexity', 'value': 31, 'threshold': 15}]
+        made = claims.from_engines(sets(finding('F-1', 'codegraph', 'complexity', 'symbol', ['src/m0.py']), over,
                                         finding('F-3', 'jscpd', 'literal_duplication', 'file', ['src/m0.py', 'src/other.py'])))
         complexity = next(c for c in made if c['render']['params']['kind'] == 'complexity')
+        # Self-audit: two engines measuring complexity 1 at store.py were "corroborated"; no value over a threshold, no card.
+        under = dict(over, value={**over['value'], 'measurements': [{'name': 'function.complexity', 'value': 1, 'threshold': 15}]})
+        self.assertEqual([c for c in claims.from_engines(sets(finding('F-1', 'codegraph', 'complexity', 'symbol', ['src/m0.py']), under))
+                          if c['render']['params']['kind'] == 'complexity'], [])
         self.assertEqual(complexity['fact_ids'], ['F-1', 'F-2'])
         index = {'F-1': 'src/m0.py', 'F-3': 'src/a_first.py', 'F-3:paths': ['src/a_first.py', 'src/m0.py']}
         claim = {'fact_ids': ['F-1', 'F-3'], 'render': {'params': {'place': 'src/m0.py'}}}

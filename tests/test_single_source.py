@@ -14,7 +14,7 @@ from tests.test_human_report import report
 class SingleSource(unittest.TestCase):
     def test_progress_and_milestones_are_counted_once_in_the_model(self):
         with tempfile.TemporaryDirectory() as folder:
-            progress = {'ledger': {'cards': [{'id': 'TASK-1', 'state': 'on_branch'}, {'id': 'TASK-2', 'state': 'resolved'}]}}
+            progress = {'ledger': {'cards': [{'id': 'TASK-1', 'state': 'on_branch'}, {'id': 'TASK-2', 'state': 'done'}]}}
             m = human_report.model(report(folder), progress)
         cards = M.task_cards(m)
         totals = M.gap_totals(m, cards)

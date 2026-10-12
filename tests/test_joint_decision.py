@@ -38,6 +38,7 @@ def element(id_, operation, subject=None):
 class Assistant:
     """Answers the triage, the ideal and the order the way a person's assistant would, with evidence."""
     assistant, model, cost_usd = 'Claude Code', 'test-model', None
+    rejected = set()
 
     def __call__(self, name, prompt, schema):
         text = json.dumps(schema)
@@ -49,7 +50,8 @@ class Assistant:
                      'open_questions': [], 'confidence': 0.8}
             ideal['views']['system']['elements'] = [element('T-api', 'rebuild'), element('T-svc', 'retain'),
                                                     element('T-worker', 'delete'), element('TC-domain', 'delete'),
-                                                    element('TC-events', 'new')]
+                                                    element('TC-events', 'new'),
+                                                    dict(element('T-core', 'rebuild'), cites=sorted(Assistant.rejected))]
             return {'critique': {'missed': [], 'risks': [], 'order': []}, 'ideal': ideal} if name == 'critique' else ideal
         subjects = schema['properties']['decisions']['items']['properties']['subject']['enum']
         if subjects == ['plan']:
@@ -60,6 +62,7 @@ class Assistant:
         if all(s.startswith('TASK-') for s in subjects):
             on_core = {c['id'] for c in bundle(prompt)['cards'] if 'core/audit.py' in c['paths']}
             verdict = lambda card: 'reject' if card in on_core else 'doubt' if card == 'TASK-002' else 'confirm'
+            Assistant.rejected |= on_core
             return {'summary': '', 'decisions': [decision(s, verdict(s), [s], {'falsifier': 'a caller'}) for s in subjects]}
         return {'summary': '', 'decisions': []}
 
@@ -101,6 +104,17 @@ class JointDecision(TemporaryWorkspace):
         self.assertFalse(core.keys() & {t['id'] for t in plan['tasks']})
         self.assertEqual({row['card']: row['claim_id'] for row in cards['set_aside']}, core)
         self.assertEqual(next(t for t in plan['tasks'] if t['id'] == 'TASK-002')['triage']['decision'], 'doubt')
+        # Self-audit: the verdicts reached only the plan; the claims the assistant rejected stayed open and ranked among
+        # the top risks, and a doubted card stayed "ready". Applied once, every later reader sees them.
+        claims = {c['id']: c for c in self.read('joint', 'dossier.json')['claims']}
+        self.assertEqual({(claims[c]['confidence'], claims[c]['triage']['decision'], claims[c]['priority']) for c in core.values()},
+                         {('REFUTED', 'reject', 0.0)})
+        self.assertFalse(set(core.values()) & {i['claim_id'] for i in self.read('joint', 'debt-register.json')['items']})
+        self.assertEqual({d['kind'] for d in self.read('joint', 'plan.json')['decisions']
+                          if d['observation_uid'] in {claims[c]['uid'] for c in core.values()}}, {'retain'})
+        doubted = next(t for t in plan['tasks'] if t['id'] == 'TASK-002')
+        self.assertEqual((doubted['decision']['readiness'], doubted['triage']['rejudged']), ('needs_review', True))
+        self.assertIn('assistant doubted', ' '.join(doubted['decision']['blockers']))
         gap = lambda run: {r['component']: r for r in self.read(run, 'target-architecture.json')['gap_matrix']}['T-core']
         self.assertTrue(core.keys() <= set(gap('rules')['blocking_tasks']))
         self.assertFalse(core.keys() & set(gap('joint')['blocking_tasks']))
@@ -111,16 +125,19 @@ class JointDecision(TemporaryWorkspace):
         self.assertEqual((by_id['T-api']['relation'], by_id['T-api']['decided_by']['label'], by_id['T-api']['decided_by']['rule']),
                          ('rebuild', 'ai_modified', 'retain'))
         self.assertEqual(by_id['T-api']['decided_by']['why'], 'its handlers mix transport and rules')
-        self.assertEqual(by_id['T-svc']['decided_by']['label'], 'agreed')
+        # Its one file moves into its feature: the rules say modify (one file is no rebuild), the assistant keeps it.
+        self.assertEqual((by_id['T-svc']['decided_by']['rule'], by_id['T-svc']['decided_by']['label']), ('modify', 'ai_modified'))
         self.assertEqual((by_id['T-worker']['relation'], by_id['T-worker']['decided_by']['label']), ('retain', 'disagreement'))
         self.assertEqual(by_id['T-root']['decided_by']['label'], 'rule_only')
         gaps = {r['component']: r for r in target['gap_matrix']}
         self.assertEqual((gaps['T-api']['gap'], gaps['T-api']['decided_by']), ('missing', 'ai_modified'))
         names = {t['name']: t['decided_by']['label'] for t in target['target_components']}
         self.assertEqual((names['domain'], names['TC-events']), ('disagreement', 'ai_added'))
-        self.assertEqual({d['element'] for d in target['disagreements']}, {'T-api', 'T-worker', 'TC-domain'})
+        # Self-audit: the ideal planner cited a claim the triage had rejected; standing only on it, the rule stays.
+        self.assertEqual((by_id['T-core']['relation'], by_id['T-core']['decided_by']['label']), ('retain', 'disagreement'))
+        self.assertEqual({d['element'] for d in target['disagreements']}, {'T-api', 'T-svc', 'T-worker', 'TC-domain', 'T-core'})
         self.assertEqual({k: target['decided'][k] for k in ('ai_modified', 'disagreement', 'ai_added')},
-                         {'ai_modified': 1, 'disagreement': 2, 'ai_added': 1})
+                         {'ai_modified': 2, 'disagreement': 3, 'ai_added': 1})
         self.assertIn('Rebuild `api` as `interface`', (self.base / 'joint/TARGET-ARCHITECTURE.md').read_text(encoding='utf-8'))
 
     def test_the_order_becomes_the_plans_steps_before_the_reports_are_written(self):

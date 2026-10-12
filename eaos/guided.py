@@ -590,6 +590,7 @@ def scan(state, args):
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     state.update(read)
+    retire_stale_batch(state)
     page = publish(state)
     save(state)
     counts = summary_counts(out)
@@ -637,6 +638,42 @@ def _branch_exists(state, branch):
     return not _git(state['project'], 'rev-parse', '--verify', '--quiet', f'refs/heads/{branch}').returncode
 
 
+def close_batch(state, status, why='', via='assistant'):
+    """Close the open batch without handing anything over: its copy is removed, it is recorded in `waves` with `status`
+    (abandoned, superseded) and `why`, and its cards can be picked again. Saved; the record, or None with no batch."""
+    wave = state.get('open_wave')
+    if not wave: return None
+    root, runtime = Path(wave.get('root') or '/').resolve(), runtime_of(state).resolve()
+    if runtime in root.parents: shutil.rmtree(root, ignore_errors=True)
+    record = {'number': wave['number'], 'base': wave.get('base'), 'cards': wave['cards'], 'kept': {},
+              'failed': wave.get('failed') or {} if status == 'abandoned' else {}, 'branch': None, 'status': status, 'via': via,
+              'keys': wave.get('keys') or {}, **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if k in wave}}
+    if why: record['why'] = why
+    state.setdefault('waves', []).append(record)
+    state.pop('open_wave', None)
+    save(state)
+    return record
+
+
+def retire_stale_batch(state):
+    """The open batch, retired (superseded, with why) when it no longer fits: its base is not the code of the branch EAOS
+    works on now (a commit of the person's came after it), or the check on record numbered its cards again (a card id
+    of the batch is another problem now). Called by `status`, `fix_start` and after every check. The record, or None."""
+    wave = state.get('open_wave')
+    if not wave: return None
+    now = tip(state)
+    why = None
+    if now and not same_code(state, wave.get('base'), now):
+        why = f"the code moved on since the batch opened (it was built on {str(wave.get('base'))[:12]}, the branch is at {now[:12]})"
+    elif wave.get('keys') and (report_of(state) / 'plan.json').is_file():
+        from .waves import plan as read_plan
+        try: keys = {t['id']: t['key'] for t in read_plan(report_of(state))['tasks']}
+        except (OSError, ValueError, KeyError): keys = None
+        if keys is not None and any(keys.get(card) != key for card, key in wave['keys'].items()):
+            why = 'a new check numbered the cards again: the batch\'s cards are other problems now'
+    return close_batch(state, 'superseded', why, via='eaos') if why else None
+
+
 def reconcile(state):
     """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
     whose last commit) is in the current branch is accepted, and its branch deleted; one whose branch is gone without
@@ -647,7 +684,8 @@ def reconcile(state):
         if not branch or status not in ('applied', 'superseded', 'accepted'): continue
         exists = _branch_exists(state, branch)
         tip = _git(state['project'], 'rev-parse', branch).stdout.strip() if exists else wave.get('tip')
-        inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, branches.ref(state)).returncode
+        into = f"refs/heads/{wave['merge_into']}" if wave.get('merge_into') else branches.ref(state)
+        inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, into).returncode
         if status == 'accepted':
             if exists and inside: _git(state['project'], 'branch', '-D', branch)
             continue
@@ -668,11 +706,13 @@ def reconcile(state):
 
 
 def merge(state, wave):
-    """The batch's branch into the person's current branch: a fast-forward when it can, else a merge commit when git
-    merges it cleanly (a conflict is taken back, and nothing changes); then reconcile deletes the branch and
-    updates the ledger and the report. 'merged', 'unsaved_changes' or 'conflict'."""
+    """The batch's branch into the branch it was to be merged into (wave['merge_into'], chosen in the fix preview; else
+    the branch EAOS works on): a fast-forward when it can, else a merge commit when git merges it cleanly (a conflict is
+    taken back, and nothing changes); then reconcile deletes the branch and updates the ledger and the report.
+    'merged', 'unsaved_changes' or 'conflict'."""
     project = state['project']
-    if state.get('branch') and branches.checked_out(project) != state['branch']: return _merge_elsewhere(state, wave)
+    into = wave.get('merge_into') or state.get('branch')
+    if into and branches.checked_out(project) != into: return _merge_elsewhere(state, wave, into)
     if _git(project, 'status', '--porcelain', '--untracked-files=no').stdout.strip(): return 'unsaved_changes'
     if _git(project, 'merge', '--ff-only', '--quiet', wave['branch']).returncode:
         done = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'merge', '--no-edit', '--quiet',
@@ -684,22 +724,21 @@ def merge(state, wave):
     return 'merged'
 
 
-def _merge_elsewhere(state, wave):
-    """The same merge into a branch that is not the one checked out: made in EAOS's copy of the branch, then the branch
-    moved to it only if nobody moved it meanwhile. The person's checkout and files are not touched."""
-    project, ref, before = state['project'], branches.ref(state), tip(state)
+def _merge_elsewhere(state, wave, into):
+    """The same merge into a branch that is not the one checked out, made by git without a checkout (merge-tree), then
+    the branch moved to it only if nobody moved it meanwhile. The person's checkout and files are not touched."""
+    project, ref = state['project'], f'refs/heads/{into}'
+    before = _git(project, 'rev-parse', '--verify', '--quiet', ref).stdout.strip()
     wave_tip = _git(project, 'rev-parse', wave['branch']).stdout.strip()
+    if not before or not wave_tip: return 'conflict'
     if not _git(project, 'merge-base', '--is-ancestor', before, wave_tip).returncode: after = wave_tip
     else:
-        copy = source(state)
-        _git(copy, 'fetch', '--quiet', str(project), f"+refs/heads/{wave['branch']}:refs/remotes/source/{wave['branch']}")
-        done = _git(copy, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'merge', '--no-edit', '--quiet',
-                    '-m', f"Merge {wave['branch']}: EAOS batch {wave.get('number')}", f"refs/remotes/source/{wave['branch']}")
-        if done.returncode:
-            _git(copy, 'merge', '--abort')
-            return 'conflict'
-        after = _git(copy, 'rev-parse', 'HEAD').stdout.strip()
-        if _git(project, 'fetch', '--quiet', str(copy), after).returncode: return 'conflict'
+        tree = _git(project, 'merge-tree', '--write-tree', before, wave_tip)
+        if tree.returncode: return 'conflict'
+        made = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit-tree', tree.stdout.split()[0],
+                    '-p', before, '-p', wave_tip, '-m', f"Merge {wave['branch']}: EAOS batch {wave.get('number')}")
+        if made.returncode: return 'conflict'
+        after = made.stdout.strip()
     if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after, before).returncode: return 'conflict'
     reconcile(state)
     return 'merged'

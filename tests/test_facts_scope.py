@@ -17,7 +17,11 @@ class ScopeTests(Workspace):
                            'testdata/fixture_a.py': 'def noise_a():\n    return 10\n',
                            'vendor/lib.py': 'def vendored():\n    return 30\n',
                            # Claude Code keeps whole copies of the code here; counting them would count every file twice.
-                           '.claude/worktrees/agent-1/app.py': 'def hello():\n    return 1\n'}.items():
+                           '.claude/worktrees/agent-1/app.py': 'def hello():\n    return 1\n',
+                           # Minified and built files are generated, in any project: a vendor .min.js, and a built
+                           # bundle (the self-audit drew eaos/data/studio/assets in its C4 diagram).
+                           'web/app.js': 'export const x = 1;\n', 'web/vendor.min.js': 'var a=1;\n',
+                           'pkg/data/studio/assets/index-B3x9.js': 'var a=1;' * 400 + '\n'}.items():
             (repo / name).parent.mkdir(parents=True, exist_ok=True)
             (repo / name).write_text(text)
         return repo
@@ -33,11 +37,12 @@ class ScopeTests(Workspace):
             self.assertIn(pattern, exclusions)
             self.assertTrue(reasons[pattern])
         self.assertIn('.claude/worktrees', exclusions)
-        self.assertEqual(sorted(item['path'] for item in Source(repo).files), ['app.py', 'lib/util.py'])
+        self.assertEqual(sorted(item['path'] for item in Source(repo).files), ['app.py', 'lib/util.py', 'web/app.js'])
+        self.assertIn('*.min.js', reasons)
         result, paths = self.syntax_paths(repo, Path(self.tmp) / 'out')
         self.assertGreater(result['excluded_paths'], 0)
         self.assertTrue({'testdata', 'vendor'} <= set(result['exclusion_reasons']))
-        self.assertEqual(paths, {'app.py', 'lib/util.py'})
+        self.assertEqual(paths, {'app.py', 'lib/util.py', 'web/app.js'})
 
     def test_opting_in_brings_vendored_code_back_but_keeps_declared_exclusions(self):
         repo = self.make_repo()

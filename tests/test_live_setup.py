@@ -173,6 +173,25 @@ class VerifyTests(unittest.TestCase):
         profile = json.loads((runtime / 'run.json').read_text())
         self.assertEqual((profile['baseline']['verified'], profile['baseline']['env']), (True, {'APP_URL': 'https://127.0.0.1:5'}))
 
+    def test_an_empty_no_data_page_is_no_working_app_and_eaos_own_studio_runs_on_its_report_with_its_dark_theme(self):
+        # Diagnosis 3 §4: the Studio started without STUDIO_DATA, showed "no report here yet", and was taken as working
+        studio = {'studio/package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '8'}},
+                  'studio/vite.config.ts': '// In development: STUDIO_DATA=/path/to/report/studio npm run dev\n'
+                                           'const folder = process.env.STUDIO_DATA\n',
+                  'studio/src/i18n/prefs.tsx': "const KEY = 'eaos.studio'\nexport type Theme = 'light' | 'dark'\n"
+                                               "function saved(): { theme?: Theme } { return JSON.parse(localStorage.getItem(KEY) || '{}') }\n"}
+        bare = live_setup.detect(project(studio))
+        self.assertNotIn('STUDIO_DATA', bare['profile']['env'])
+        page = {'status': 200, 'text': 'لا يوجد تقرير هنا بعد'}
+        self.assertIn('without a value for: STUDIO_DATA', live_setup.empty_state(page, ['STUDIO_DATA']))
+        self.assertEqual(live_setup.empty_state({'text': 'No data yet'}, []), '', 'every value given: an empty page is the app')
+        self.assertEqual(live_setup.empty_state({'text': 'Problems: 12 open, 3 waiting for you'}, ['STUDIO_DATA']), '')
+        report = Path(tempfile.mkdtemp())
+        (report / 'studio').mkdir()
+        profile = live_setup.detect(project(studio), report)['profile']
+        self.assertEqual(profile['env']['STUDIO_DATA'], str(report / 'studio'))
+        self.assertEqual(profile['screens'], {'theme_key': 'eaos.studio', 'theme_field': 'theme'})
+
     def test_the_assistant_sees_the_source_that_shows_the_problem_not_the_build(self):
         root = project({'app/package.json': {'scripts': {'dev': 'vite'}},
                         'app/vite.config.ts': '// Chief Operations dev server\n',

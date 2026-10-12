@@ -246,14 +246,15 @@ def from_facts(fact_sets, target=None):
     hotspots = 0
     # Rank alone is unstable: adding modules pushed the most complex function in the project out of
     # the top ten and silently dropped the finding. The worst offenders stay visible on their own merit.
+    # A hotspot is one function: a class's metric sums the branches of all its methods, which no single change carries.
     ranked_symbols = sorted((fact for fact in fact_sets.get('metrics', {}).get('facts', [])
-                             if fact['kind'] == 'metric' and fact['value'].get('scope') != 'file'),
+                             if fact['kind'] == 'metric' and fact['value'].get('scope') == 'function'),
                             key=lambda fact: -(fact['value'].get('branches') or 0))
     worst = {fact['id'] for fact in ranked_symbols[:MAX_HOTSPOTS]}
     graph_nodes = {fact['location']['path']: fact['value'] for fact in graph.get('facts', []) if fact['kind'] == 'graph_node'}
     for fact in sorted(fact_sets.get('metrics', {}).get('facts', []),
                        key=lambda f: -(f['value'].get('branches') or 0)):
-        if fact['kind'] != 'metric' or fact['value'].get('scope') == 'file': continue
+        if fact['kind'] != 'metric' or fact['value'].get('scope') != 'function': continue
         path, symbol = fact['location']['path'], fact['location'].get('symbol')
         node = graph_nodes.get(path)
         if not node: continue
@@ -296,7 +297,8 @@ def from_facts(fact_sets, target=None):
                            render={'key': 'mutable_global', 'params': {'name': fact['value']['name'],
                                                                        'path': fact['location']['path'],
                                                                        'how': fact['value']['mutated_by'],
-                                                                       'line': fact['value']['mutated_at_line']}},
+                                                                       'line': fact['value']['mutated_at_line'],
+                                                                       'encapsulated': private}},
                            probe_spec={'probe_type': 'graph_query',
                                        'specification': {'query': 'mutable_global_present', 'path': fact['location']['path'],
                                                          'name': fact['value']['name'],
@@ -532,8 +534,23 @@ def from_facts(fact_sets, target=None):
             from .dependency_assessment import build_assessment as dependency_assessment
             built = dependency_assessment(claims[-1], fact_sets, target)
             if built: claims[-1]['assessment'], claims[-1]['checks'] = built['assessment'], built['checks']
-    claims += from_engines(fact_sets, len(claims))
-    return claims
+    return one_card_per_hotspot(claims + from_engines(fact_sets, len(claims)))
+
+
+def one_card_per_hotspot(claims):
+    """A hotspot and the engines' complexity card on the same file are one problem: the engines' card leaves and its
+    measurements join the hotspot's evidence."""
+    hotspots = {c['render']['params']['path']: c for c in claims if (c.get('render') or {}).get('key') == 'hotspot'}
+    kept = []
+    for claim in claims:
+        render = claim.get('render') or {}
+        params = render.get('params') or {}
+        same = hotspots.get(params.get('place')) if render.get('key') == 'engine_cluster' else None
+        if same is not None and params.get('kind') == 'complexity':
+            same['fact_ids'] = sorted(set(same.get('fact_ids') or []) | set(claim.get('fact_ids') or []))
+            continue
+        kept.append(claim)
+    return kept
 
 
 def from_load_model(fact_sets, offset=0):

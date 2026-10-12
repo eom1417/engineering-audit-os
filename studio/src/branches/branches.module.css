@@ -50,6 +50,9 @@
 .context div { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
 .context dt { font-size: 12px; color: var(--text-tertiary); }
 .context dd { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
+.sameBranch { font-size: 15px; margin: 0; }
+.groupTitle { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin: 8px 0 0; }
+.subject { unicode-bidi: isolate; }
 
 /* ---------- Switcher ---------- */
 .switchList { display: flex; flex-direction: column; }

@@ -195,7 +195,16 @@ async function auditOne(browser, entry, viewport, variant, index) {
   });
   if (variant.storage && Object.keys(variant.storage).length) {
     await context.addInitScript((pairs) => {
-      try { for (const [key, value] of Object.entries(pairs)) window.localStorage.setItem(key, value); } catch {}
+      // A string is the whole value; an object is merged into the JSON object the key already holds.
+      try {
+        for (const [key, value] of Object.entries(pairs)) {
+          if (value && typeof value === 'object') {
+            let held = {};
+            try { held = JSON.parse(window.localStorage.getItem(key) || '{}') || {}; } catch {}
+            window.localStorage.setItem(key, JSON.stringify({ ...(typeof held === 'object' ? held : {}), ...value }));
+          } else window.localStorage.setItem(key, value);
+        }
+      } catch {}
     }, variant.storage);
   }
   const page = await context.newPage();
@@ -227,7 +236,9 @@ async function auditOne(browser, entry, viewport, variant, index) {
     };
     if (config.screenshots_dir) {
       mkdirSync(config.screenshots_dir, { recursive: true });
-      const page_name = entry.name || (base.pathname.split('/').pop() || 'index').replace(/\.html?$/, '');
+      // A hash-routed app (#/problems) is named by its route; any other page by the last part of its path.
+      const route = base.hash.startsWith('#/') ? base.hash.slice(2).split('?')[0].replace(/\/+/g, '-').replace(/^-|-$/g, '') : '';
+      const page_name = entry.name || route || (base.pathname.split('/').pop() || 'index').replace(/\.html?$/, '');
       const file = join(config.screenshots_dir, `${String(index).padStart(2, '0')}-${page_name}-${variant.name || 'default'}-${viewport.name}.png`
         .replace(/[^A-Za-z0-9._-]+/g, '_'));
       // Measured at the real viewport; the picture grows the viewport to the page, so bars fixed to the bottom of

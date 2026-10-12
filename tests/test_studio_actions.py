@@ -122,6 +122,20 @@ class Contract(unittest.TestCase):
             finally:
                 app.close()
 
+    def test_every_tool_status_can_name_next_is_allowed_to_the_fix_verb(self):
+        """The incident: status said fix_abandon, the fix run was not allowed it, and the stuck batch could not be closed."""
+        import inspect
+        from eaos import agent_tools
+        source = inspect.getsource(agent_tools.status)
+        named = set()
+        for step in re.findall(r"step = \('([^']+)'", source) + re.findall(r"'next': \{'tool': '([^']+)'", source):
+            named.update(word for word in re.split(r',? then | or ', step) if word != 'none')
+        verbs = {verb['id']: set(verb['tools']) for verb in actions.contract()['verbs']}
+        self.assertIn('fix_abandon', named)
+        self.assertEqual(named - set(adapters.PERSON_ONLY) - verbs['fix'], set())
+        for verb in ('verify', 'explain', 'plan'):
+            self.assertLessEqual({'wait', 'overview', 'findings', 'plan'}, verbs[verb], verb)
+
 
 class Locks(Base):
     def test_every_request_needs_the_token_and_a_post_the_csrf_token_and_the_studio_origin_and_refusals_are_logged_without_them(self):
@@ -165,6 +179,29 @@ class Locks(Base):
         self.assertEqual((status, payload.get('needs')), (403, 'confirm'))
         self.assertEqual(self.app.store.all(), [])
         self.assertEqual(self.post('/api/runs', {'action': 'accept', 'inputs': {'person_agreed': True}})[0], 403)
+        # A Fix shows and pins where it builds: a branch that moves after the preview is refused, never built on silently
+        commit = lambda: subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q',
+                                         '--allow-empty', '-m', 'm'], check=True)
+        commit()
+        subprocess.run(['git', '-C', str(self.project), 'checkout', '-q', '-b', 'dev'], check=True)
+        selection = {'kind': 'card', 'cards': ['TASK-001']}
+        where = self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection})[1]['where']
+        self.assertEqual((where['base']['branch'], where['deliver_as'], where['merge_into'], where['problem']), ('dev', 'eaos/dev/wave-1', 'dev', None))
+        main = next(b for b in where['branches'] if b['name'] != 'dev')
+        self.assertEqual(main['blocked']['code'], 'main_name', 'a protected branch that is not open takes no merge from here')
+        preview = self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'where': {'merge_into': main['name']}})[1]
+        self.assertEqual((preview['where']['problem']['code'], preview['confirm']), ('protected_target', None))
+        preview = self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'where': {'deliver_as': 'eaos/mine'}})[1]
+        commit()
+        status, payload = self.post('/api/runs', {'action': 'fix', 'verb': 'fix', 'selection': selection, 'confirm': preview['confirm']['token'],
+                                                  'where': {'deliver_as': 'eaos/mine', 'base': 'dev', 'base_commit': preview['where']['base']['commit']}})
+        self.assertEqual((status, payload.get('needs')), (409, 'preview'), payload)
+        self.assertIn('moved', payload['error'])
+        preview = self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'where': {'deliver_as': 'eaos/mine'}})[1]
+        status, payload = self.post('/api/runs', {'action': 'fix', 'verb': 'fix', 'selection': selection, 'confirm': preview['confirm']['token'],
+                                                  'where': {'deliver_as': 'eaos/mine', 'base_commit': preview['where']['base']['commit']}})
+        self.assertEqual((status, payload['run']['where']['deliver_as']), (200, 'eaos/mine'), payload)
+        self.assertIn('deliver_as="eaos/mine"', self.app.manager.prompt_of(self.app.store.load(payload['run']['id'])))
 
 
 class EventLog(unittest.TestCase):
@@ -347,6 +384,44 @@ class Runs(Base):
         self.assertIn('+x = 2', edits[0]['data']['diff'])
         self.assertIn('check', self.kinds(run))
         self.assertEqual(self.app.store.verify(run), [])
+
+    def test_an_answer_that_closes_the_stuck_batch_closes_it_and_a_direct_step_runs_while_a_question_waits(self):
+        """The incident: "yes, close the batch" was only text to a run without fix_abandon, and pressing fix_abandon from
+        the palette queued behind the run that waited for that same answer."""
+        calls = []
+        def tool(name):
+            def call(**arguments):
+                calls.append(name)
+                return json.dumps({'status': 'abandoned'} if name == 'fix_abandon' else {'ok': True})
+            return call
+        self.app.manager.tools = lambda: {a['id']: tool(a['id']) for a in actions.contract()['actions']}
+        run = self.start('explain')
+        self.assertEqual(self.app.wait(run, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
+        direct = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
+        self.assertEqual(self.app.wait(direct, ('done', 'failed'), 10)['state'], 'done', 'a direct step is not blocked by a waiting question')
+        asked = prompts.question_in('```eaos-question\n{"text": "Close the stuck batch?", "options": [{"id": "close", "label": "Yes", '
+                                    '"action": "fix_abandon"}, {"id": "keep", "label": "No", "action": "accept"}]}\n```')
+        self.assertEqual([o.get('action') for o in asked['options']], ['fix_abandon', None], 'only the allowed action is kept')
+        record = self.app.store.load(run)
+        self.app.store.update(run, question={**record['question'], 'options': asked['options']})
+        self.assertEqual(self.post(f"/api/questions/{record['question']['id']}/answer", {'option': 'close'})[0], 200)
+        self.assertEqual(self.app.wait(run, ('done', 'failed'), 30)['state'], 'done')
+        self.assertEqual(calls, ['audit', 'fix_abandon'])
+        argvs = [json.loads(line) for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '-p' in line]
+        self.assertIn('already ran fix_abandon', argvs[-1][argvs[-1].index('-p') + 1])
+
+    def test_a_fix_run_that_kept_nothing_says_so_and_its_progress_is_its_batch(self):
+        """The incident: a fix run that fixed nothing ended "done / تم", its bar reading status's "0 of 898" cards."""
+        self.assertEqual(adapters.result_events('status', {}, {'progress': {'done': 0, 'total': 898}}), [])
+        run = self.start('fix', cards=('TASK-001', 'TASK-002'))
+        question = self.app.wait(run, ('waiting_for_person', 'failed'), 30)['question']
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'yes'})[0], 200)
+        ended = self.app.wait(run, ('done', 'failed'), 30)
+        self.assertEqual((ended['state'], ended['result']['nothing_changed']), ('failed', True), self.app.store.events(run))
+        events = self.app.store.events(run)
+        self.assertEqual([(e['data']['done'], e['data']['total']) for e in events if e['kind'] == 'progress'], [(1, 2)])
+        self.assertTrue(next(e for e in events if e['kind'] == 'result')['data']['nothing_changed'])
+        self.assertNotIn('تم', ' '.join(e['text']['ar'] for e in events if e['kind'] == 'result'))
 
     def test_one_run_at_a_time_and_the_queue_is_reordered(self):
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='2')

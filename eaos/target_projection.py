@@ -128,10 +128,13 @@ def disposition(stats, rules):
         rule = rules[relation]
         if relation == 'delete' and stats['files'] and stats['unreachable'] / stats['files'] >= rule['unreachable_share_at_least']:
             return 'delete', f"{rule['why']} ({numbers})"
-        if relation == 'rebuild' and (stats['moved_share'] > rule['moved_share_above'] or stats['complexity_max'] > rule['complexity_max_above']
-                                      or (rule['critical_debt'] and stats['critical'])):
+        # Rebuild needs a structural reason. Complexity alone, or a critical item, is changed in place (modify):
+        # one function past the threshold sent a whole package to rebuild. Moving one or two files is a modify too.
+        if relation == 'rebuild' and stats['moved_share'] > rule['moved_share_above'] \
+                and stats['moved'] >= rule.get('moved_files_at_least', 1):
             return 'rebuild', f"{rule['why']} ({numbers})"
         if relation == 'retain' and (stats['moved_share'] <= rule['moved_share_at_most'] and stats['forbidden'] <= rule['forbidden_edges_at_most']
+                                     and stats['critical'] <= rule.get('critical_debt_at_most', 0)
                                      and stats['complexity_max'] < rule['complexity_max_below']
                                      and stats['duplicated_lines'] < rule['duplicated_lines_below']):
             return 'retain', f"{rule['why']} ({numbers})"

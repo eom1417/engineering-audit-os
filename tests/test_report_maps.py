@@ -150,14 +150,14 @@ class MapTests(unittest.TestCase):
         json.loads(re.search(r'<script type="application/json" id="eaos-flows">(.*?)</script>', page, re.S).group(1))
         self.assertRegex(page, r'<details class="card allcards" id="allcards" data-part="cards">')
         cards = section(page, 'plan')
-        self.assertIn('Unused helper removed from src/gone.ts', cards, 'a card the plan no longer has still shows')
+        self.assertNotIn('Unused helper removed from src/gone.ts', cards, 'a ledger row without a plan card is not a card')
         self.assertIn('a public name changes', cards)
         self.assertIn('>29%<', section(page, 'summary'), 'the ledger percent, in whole percents above ten')
         self.assertIn('class="edge cyc', section(page, 'structure'))
         page = human_report.write(self.out, 'en', progress={'waves': [], 'ledger': ledger()}).read_text(encoding='utf-8')
         plan = section(page, 'plan')
-        # M01: TASK-1 done and the resolved ledger-only card, of four cards; TASK-3 is only on a branch
-        self.assertIn('aria-valuenow="50"', plan)
+        # M01: TASK-1 done of three cards; TASK-3 is only on a branch; a ledger-only row is no card
+        self.assertIn('aria-valuenow="33"', plan)
 
     def test_the_page_works_without_a_ledger_and_with_nothing(self):
         page = human_report.write(self.out, 'en').read_text(encoding='utf-8')

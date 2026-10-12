@@ -86,7 +86,7 @@ class History(unittest.TestCase):
         self.assertEqual((last['score'], last['open_total'], last['resolved'], last['added']), (0.7, 7, 1, 1))
         self.assertEqual([p['percent'] for p in body['progress']], [0.0, 0.3, 0.4167])
         self.assertEqual([e['kind'] for e in body['events']], ['scan', 'batch', 'merge', 'scan'])
-        self.assertEqual(sorted(c['key'] for c in body['cards']), ['k1', 'k2', 'k3'], 'closed or new only')
+        self.assertEqual(sorted(c['key'] for c in body['cards']), ['k2', 'k3'], 'done or new only')
         self.assertEqual(body['missing'][0]['count']['value'], 1)
         ledger = {'history': [{'at': '2026-10-01T09:00:00+00:00', 'event': 'baseline', 'closed': 0, 'total': 4, 'commit': 'a' * 40,
                                'scores': {'score': 48, 'open': {'critical': 0, 'high': 2, 'medium': 1, 'low': 1, 'info': 0}}},

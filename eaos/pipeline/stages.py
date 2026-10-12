@@ -90,15 +90,17 @@ STAGES = (
                       'paths, data, infrastructure, pipeline gaps), which the assistant reads'),
     Stage('triage', produces=('nodes/card_triage/verdicts.json',), requires=('proposals',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its verdicts could not be used',
-          description='The assistant confirms, doubts or rejects every candidate card on its own evidence, and says why',
+          description='The assistant confirms, doubts or rejects every candidate card on its own evidence, those carrying '
+                      'the measurement first, and judges each doubted card again on all its facts; it says why',
           ai=True),
     Stage('visual', produces=('nodes/visual_reviewer/findings.json',), requires=('screens',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, no screen was pictured, or its review could not be used',
           description="The assistant looks at each picture of the app's screens and names what a person would notice, "
                       'each finding with its picture and the region of it', ai=True),
     Stage('cards', produces=('cards.json',), requires=('plan',),
-          description="The plan keeps the confirmed cards: a card the triage rejected leaves the plan and the gaps, a "
-                      "doubted one is marked; without the triage every card stands as the rules wrote it"),
+          description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the triage "
+                      "rejected leaves the plan and the gaps and its claim is refuted, a doubted one waits for a person's "
+                      "review and is never fixed automatically; without the triage every card stands as the rules wrote it"),
     Stage('ideal', produces=('ideal/plan.json',), requires=('proposals',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its plan could not be used',
           description="The assistant accepts, modifies or rejects each of the tools' proposals for the target, reading "

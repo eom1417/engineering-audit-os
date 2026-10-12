@@ -13,7 +13,7 @@ import { Sheet, SheetSub } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { actionOf, personInputs, SNAPSHOT, verbOf } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
-import { ActionError, type Bi, type JsonSchema, type Preview, type Selection } from '../data/actions/types'
+import { ActionError, type Bi, type FixWhere, type JsonSchema, type Preview, type Selection, type WhereChoice } from '../data/actions/types'
 import type { Severity } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
@@ -135,13 +135,53 @@ function InputsForm({ fields, required, values, onChange }:
   )
 }
 
+/** Where a Fix is built, the branch it arrives on and the branch Accept merges it into: each one editable, the base
+ * with its short commit (the one the confirmation pins), a protected target shown but not choosable, with its reason. */
+function WhereBlock({ where, onChange }: { where: FixWhere; onChange: (next: WhereChoice) => void }) {
+  const w = useCmdWords()
+  const { lang } = usePrefs()
+  const [name, setName] = useState(where.deliver_as ?? '')
+  useEffect(() => { setName(where.deliver_as ?? '') }, [where.deliver_as])
+  return (
+    <Block title={w('where')}>
+      <div className={css.form} data-where="block">
+        <label className={css.field}>
+          <span className={css.fieldLabel}>{w('buildOn')}</span>
+          <select className={css.select} data-where="base" value={where.base?.branch ?? ''} onChange={(e) => onChange({ base: e.target.value })}>
+            {where.branches.map((b) => <option key={b.name} value={b.name}>{`${b.name} · ${b.short}`}</option>)}
+          </select>
+          {where.base && <span className={css.hint}><bdi dir="ltr">{where.base.short}</bdi>{where.base.checked_out ? ` · ${w('openInFolder')}` : ` · ${w('notOpenBase')}`}</span>}
+        </label>
+        <TextField className={css.field} value={name} onChange={setName}>
+          <Label className={css.fieldLabel}>{w('deliverAs')}</Label>
+          <Input className={css.input} dir="ltr" data-where="deliver" />
+        </TextField>
+        {name.trim() && name.trim() !== where.deliver_as && (
+          <Button variant="secondary" icon="eye" onPress={() => onChange({ deliver_as: name.trim() })}>{w('updatePreview')}</Button>
+        )}
+        <label className={css.field}>
+          <span className={css.fieldLabel}>{w('mergeInto')}</span>
+          <select className={css.select} data-where="target" value={where.merge_into ?? ''} onChange={(e) => onChange({ merge_into: e.target.value })}>
+            {where.branches.map((b) => (
+              <option key={b.name} value={b.name} disabled={Boolean(b.blocked) && b.name !== where.merge_into}>
+                {b.blocked ? `${b.name} · ${b.blocked[lang]}` : b.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {where.problem && <p className={css.pvWarn} role="note"><Txt>{where.problem[lang]}</Txt></p>}
+      </div>
+    </Block>
+  )
+}
+
 function minutes(preview: Preview, w: ReturnType<typeof useCmdWords>): string {
   const { minutes_low: low, minutes_high: high } = preview.estimate
   if (low === null || high === null) return w('minutesUnknown')
   return w('minutes', { a: low, b: high })
 }
 
-function PreviewBody({ preview, request }: { preview: Preview; request: CommandRequest }) {
+function PreviewBody({ preview, request, onWhere }: { preview: Preview; request: CommandRequest; onWhere: (next: WhereChoice) => void }) {
   const w = useCmdWords()
   const { lang } = usePrefs()
   const action = actionOf(preview.action)
@@ -155,6 +195,7 @@ function PreviewBody({ preview, request }: { preview: Preview; request: CommandR
         {preview.batches.length > 0 && <div><dt>{w('batchesN', { n: preview.batches.length })}</dt><dd><N value={preview.batches.length} /></dd></div>}
         <div><dt>{w('time')}</dt><dd className="num">{minutes(preview, w)}</dd></div>
       </dl>
+      {preview.where && <WhereBlock where={preview.where} onChange={onWhere} />}
       <Block title={w('risk')}>
         <div className={css.risk}>
           <Chip tone={RISK_TONE[preview.risk.level]}>{w(preview.risk.level === 'low' ? 'riskLow' : preview.risk.level === 'medium' ? 'riskMedium' : 'riskHigh')}</Chip>
@@ -229,10 +270,12 @@ export function PreviewSheet() {
   const [understood, setUnderstood] = useState(false)
   const [assistant, setAssistant] = useState<string | null>(null)
   const [asked, setAsked] = useState(false)
+  const [place, setPlace] = useState<WhereChoice>({})
+  const [moved, setMoved] = useState(false)
 
   // A new request starts clean; one with no inputs to fill is previewed at once
   useEffect(() => {
-    setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false)
+    setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false); setPlace({}); setMoved(false)
     const start: Record<string, string | boolean> = {}
     if (action && request?.selection?.cards && fields.some(([name]) => name === 'cards')) start.cards = request.selection.cards.join('\n')
     if (action && request?.selection?.cards?.length === 1 && fields.some(([name]) => name === 'card')) start.card = request.selection.cards[0]
@@ -250,13 +293,13 @@ export function PreviewSheet() {
     const inputs = request.verb ? undefined : inputsOf()
     if (inputs === null) return
     const id = request.verb ?? request.action ?? ''
-    const body = request.verb ? { verb: request.verb, selection: request.selection ?? undefined, assistant: assistant ?? undefined } : { inputs, assistant: assistant ?? undefined }
+    const body = request.verb ? { verb: request.verb, selection: request.selection ?? undefined, assistant: assistant ?? undefined, where: request.verb === 'fix' ? place : undefined } : { inputs, assistant: assistant ?? undefined }
     setPreview(null); setProblem(null)
     actions.client.preview(id, body).then((next) => { if (on) setPreview(next) },
       (error) => { if (on) setProblem(error instanceof ActionError ? error.message : String(error)) })
     return () => { on = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, asked, actions.client, assistant])
+  }, [request, asked, actions.client, assistant, place])
 
   if (!request) return null
   const title = request.verb
@@ -272,22 +315,26 @@ export function PreviewSheet() {
       if (inputs === null) { setBusy(false); return }
       const run = await actions.client.start({ action: request.verb ?? request.action ?? '', verb: request.verb, selection: (request.selection ?? undefined) as Selection | undefined,
         // The assistant the preview showed, never the server's own pick at start time (it may differ a minute later)
-        inputs: inputs ?? undefined, assistant: assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null })
+        inputs: inputs ?? undefined, assistant: assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null,
+        // The place the preview showed, its base commit pinned: a branch that moved since is refused, never built on
+        where: preview.where?.base ? { ...place, base: preview.where.base.branch, base_commit: preview.where.base.commit,
+          deliver_as: preview.where.deliver_as ?? undefined, merge_into: preview.where.merge_into ?? undefined } : undefined })
       command.close()
       if (request.verb) command.clear()
       toast(run.state === 'queued' && run.position ? w('queuedToast', { label: run.label[lang] }) : w('started', { label: run.label[lang] }))
       void actions.refresh()
       navigate(run.action === 'audit' ? { to: '/scan', search: { flow: 'check' } } : { to: `/runs/${encodeURIComponent(run.id)}` })
     } catch (error) {
-      setProblem(error instanceof ActionError ? error.message : String(error))
       setBusy(false)
+      if (error instanceof ActionError && error.needs === 'preview') { setMoved(true); setPlace((was) => ({ ...was })); return }
+      setProblem(error instanceof ActionError ? error.message : String(error))
     }
   }
 
   const installed = (preview?.assistants ?? []).filter((a) => a.installed && a.logged_in)
   const n = request.verb ? preview?.cards.length ?? request.selection?.cards?.length ?? 0 : 0
   const confirmLabel = request.verb ? w('startVerb', { verb: verbOf(request.verb).label[lang], n }) : w('startAction', { label: action?.label[lang] ?? '' })
-  const blocked = !preview || busy || (preview.irreversible && !understood) || (request.verb && preview.cards.length === 0)
+  const blocked = !preview || busy || (preview.irreversible && !understood) || (request.verb && preview.cards.length === 0) || Boolean(preview.where?.problem)
 
   return (
     <Sheet isOpen onOpenChange={close} title={title}>
@@ -301,7 +348,8 @@ export function PreviewSheet() {
           )}
           {asked && !preview && !problem && <StateMessage icon="clock" title={w('loadingPreview')} />}
           {problem && <StateMessage kind="error" title={w(preview ? 'startFailed' : 'previewFailed')} sub={<Txt>{problem}</Txt>} />}
-          {preview && <PreviewBody preview={preview} request={request} />}
+          {moved && <p className={css.pvWarn} role="status">{w('branchMoved')}</p>}
+          {preview && <PreviewBody preview={preview} request={request} onWhere={(next) => { setMoved(false); setPlace((was) => ({ ...was, ...next })) }} />}
           {preview && installed.length > 1 && (
             <Segmented label={w('assistant')} value={assistant ?? preview.assistant?.id ?? installed[0].id} onChange={setAssistant} comfortable
               options={installed.map((a) => ({ id: a.id, label: a.name }))} />

@@ -319,6 +319,50 @@ class BranchControl:
         if changes and record.get('state') not in TERMINAL: return {'state': 'not_created_yet', 'base': (record.get('context') or {}).get('analysis_branch')}
         return {'state': 'not_required' if not changes else 'none_created', 'base': (record.get('context') or {}).get('analysis_branch')}
 
+    def fix_where(self, wanted=None):
+        """Where a Fix run builds and delivers, as its preview shows and the person may change it:
+        {base: {branch, commit, short, when, checked_out}, deliver_as, merge_into, branches: [{name, short, blocked}],
+        problem}. base defaults to the analysis branch, deliver_as to `eaos/<base>/wave-N` (agent_tools.delivery),
+        merge_into to the branch open in the project folder; a protected target is refused with its reason. The base
+        commit is what the confirm token pins, so a branch that moves after the preview is caught before anything runs."""
+        from ... import agent_tools
+        from ... import branches as reading
+        wanted = wanted if isinstance(wanted, dict) else {}
+        state = self.state()
+        head = self.head()
+        working = state.get('branch') or head['branch']
+        base = str(wanted.get('base') or '').strip() or working
+        locals_ = [(name, tip, when) for kind, _, name, _, tip, when, *_ in self.refs() if kind == 'local']
+        protected = self.policy()['protected']
+        # a protected branch takes no merge from here, except the branch open in the project folder when only its name
+        # protects it (a project with main alone): accept merges there, as it always did
+        def blocked(name):
+            reason = protected.get(name)
+            return reason if reason and (reason['code'] in ('eaos_main', 'policy') or name != head['branch']) else None
+        out = {'base': None, 'deliver_as': None, 'merge_into': None, 'problem': None,
+               'branches': [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in locals_]}
+        row = next((r for r in locals_ if r[0] == base), None)
+        if row is None:
+            out['problem'] = say(f'There is no branch named {base} in this project.', f'ما فيه فرع اسمه {base} في هذا المشروع.', 'no_base')
+            return out
+        out['base'] = {'branch': base, 'commit': row[1], 'short': row[1][:7], 'when': row[2] or None, 'checked_out': base == head['branch']}
+        # the state as fix_start sees it once the base is chosen: that branch's own batches give the next number
+        view = dict(state, project=self.project)
+        if base != working and state:
+            view = {k: v for k, v in view.items() if k not in reading.KEYS}
+            view.update((state.get('by_branch') or {}).get(base, {}), branch=base)
+        try:
+            out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, wanted.get('deliver_as'), wanted.get('merge_into') or head['branch'])
+        except ValueError as problem:
+            out['problem'] = say(str(problem), str(problem), 'delivery')
+            out['deliver_as'], out['merge_into'] = str(wanted.get('deliver_as') or '') or None, str(wanted.get('merge_into') or '') or head['branch']
+            return out
+        target = blocked(out['merge_into'])
+        if target:
+            out['problem'] = say(f"{out['merge_into']} is protected ({target['en']}): choose another branch to merge into.",
+                                 f"{out['merge_into']} محمي ({target['ar']}): اختر فرعًا ثانيًا يُدمج فيه.", 'protected_target')
+        return out
+
     # ------------------------------------------------------------------ reading
     def inventory(self, base=None):
         """Every local and remote branch, honestly: what git says and nothing more. Remote refs are as last fetched."""

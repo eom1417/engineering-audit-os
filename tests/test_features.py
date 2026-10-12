@@ -76,6 +76,23 @@ class BuildTests(unittest.TestCase):
         from eaos.artifact_contracts import contracts, validate
         self.assertEqual(validate(result, contracts()['features']), [])
 
+    def test_a_cli_groups_by_subcommand_and_its_scripts_tools_and_web_root_are_not_features(self):
+        # The self-audit: one feature per module with `__main__`, 53 features for tools/ scripts, and the whole
+        # Studio front end as `home` in a command-line program.
+        cli = lambda route, path, framework='argparse': entry_point(route, surface='cli', framework=framework, path=path,
+                                                                     fact_id=f'C-{route}-{path}')
+        facts = [cli('eaos', 'eaos/cli.py'), cli('check', 'eaos/cli.py'), cli('fix', 'eaos/cli.py'),
+                 cli('eaos', 'pyproject.toml', 'console_script'), cli('plan', 'eaos/plan.py', 'python_script'),
+                 cli('sbom', 'tools/sbom.py', 'python_script'), cli('shot', 'scripts/shot.py', 'python_script'),
+                 entry_point('/', path='studio/src/App.tsx', fact_id='P1')]
+        result = build(facts)
+        self.assertEqual({f['name'] for f in result['features']}, {'cli:eaos', 'cli:check', 'cli:fix', 'studio'})
+        self.assertEqual(set(result['unassigned_surfaces']), {'eaos/plan.py', 'tools/sbom.py', 'scripts/shot.py'})
+        # A web app's `/` is its home; a program made only of scripts keeps them.
+        self.assertEqual({f['name'] for f in build([entry_point('/', path='src/routes/index.tsx'),
+                                                     cli(None, 'manage.py', 'python_script')])['features']},
+                         {'home', 'cli:manage.py'})
+
 
 class FeatureDataTests(unittest.TestCase):
     """A feature is tied to the data its own pages reach, through a router file, imports and an HTTP client."""

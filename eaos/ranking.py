@@ -2,7 +2,8 @@
 
 Ordering by the length of a sentence, which is what the first version effectively did, is not a
 priority model. This one multiplies what a change would reach by how well the claim is established,
-divided by what it would cost to act, and shows every input it used.
+divided by what it would cost to act, times how far its measurement passes its threshold, and shows every input it
+used.
 """
 from .impact import dependents, entry_points_in, flows_through
 
@@ -13,7 +14,22 @@ WEIGHTS = {'reach': 'dependents + flows + entry-point exposure',
            'confidence': 'CONFIRMED 1.0 · LIKELY 0.7 · HYPOTHESIS 0.4',
            'origin': 'product code 1.0 · mixed 0.7 · test code 0.3',
            'cost': 'lines of the code the change would touch: small 1 · medium 2 · large 3',
-           'formula': 'priority = (reach_normalised × confidence × origin) ÷ cost'}
+           'severity': 'measured value ÷ its declared threshold, at most 3; 1 when the claim carries no measurement',
+           'formula': 'priority = (reach_normalised × confidence × origin × severity) ÷ cost'}
+SEVERITY_CAP = 3.0
+
+
+def severity_of(claim):
+    """{value, threshold, factor}: how far the claim's measurement passes its declared threshold (min(value ÷ threshold,
+    3)); factor 1 for a claim that carries no measured value with a threshold."""
+    params = (claim.get('render') or {}).get('params') or {}
+    specification = (claim.get('probe_spec') or {}).get('specification') or {}
+    value, threshold = params.get('value'), params.get('threshold')
+    if threshold is None and specification.get('max_branches'):
+        value, threshold = params.get('branches'), specification['max_branches']
+    numbers = all(isinstance(n, (int, float)) and not isinstance(n, bool) for n in (value, threshold))
+    if not numbers or threshold <= 0: return {'value': None, 'threshold': None, 'factor': 1.0}
+    return {'value': value, 'threshold': threshold, 'factor': round(min(value / threshold, SEVERITY_CAP), 4)}
 
 
 def claim_paths(claim, fact_index):
@@ -68,10 +84,11 @@ def rank(claims, sets, fact_index):
     for claim, paths, reach, cost in measured:
         confidence = CONFIDENCE_WEIGHT.get(claim['confidence'], 0.4)
         origin = ORIGIN_WEIGHT.get(claim.get('origin', 'unknown'), 0.6)
-        priority = round((reach['total'] / largest) * confidence * origin / cost['points'], 4)
+        severity = severity_of(claim)
+        priority = round((reach['total'] / largest) * confidence * origin * severity['factor'] / cost['points'], 4)
         claim['priority'] = priority
         claim['priority_factors'] = {'reach': reach, 'reach_normalised': round(reach['total'] / largest, 3),
                                      'reach_source': reach['reach_source'],
-                                     'confidence': confidence, 'origin': origin, 'cost': cost,
+                                     'confidence': confidence, 'origin': origin, 'cost': cost, 'severity': severity,
                                      'paths': paths, 'formula': WEIGHTS['formula']}
     return sorted(claims, key=lambda claim: (-claim['priority'], claim['id']))

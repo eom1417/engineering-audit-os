@@ -172,6 +172,7 @@ function RunBody({ id }: { id: string }) {
               <h2 className={css.panelTitle}>{w('errorTitle')}</h2>
               <p><Txt>{view.error.text[lang]}</Txt></p>
               {view.error.what_now && <p className={css.whatNow}><Txt>{view.error.what_now[lang]}</Txt></p>}
+              {Boolean(result?.answer) && result && state !== 'done' && <ResultFacts result={result} />}
             </Panel>
           )}
           {result && state === 'done' && (

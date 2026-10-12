@@ -97,4 +97,4 @@ def history(scan, score, card_rows, ledger=None, waves=()):
     return {'scans': scans, 'progress': progress, 'events': events, 'cards': changed[:2000], 'missing': missing,
             'src': {'scans': 'ledger.json#history[event in baseline, recheck]; the last: this check',
                     'score': 'model.score of this check; older checks: ledger.json#history[].scores (NS31.T1)',
-                    'progress': 'ledger.json#history[].closed / total', 'cards': 'ledger.json#cards[state in done, resolved, or new]'}}
+                    'progress': 'ledger.json#history[].closed / total', 'cards': 'ledger.json#cards[state done, or new]'}}

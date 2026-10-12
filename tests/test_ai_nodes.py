@@ -233,6 +233,35 @@ class Triage(Base):
         self.assertEqual(probes[0]['specification']['falsifier'], 'a caller of b')
         self.assertEqual([r['card'] for r in json.loads((folder / 'library-feedback.json').read_text(encoding='utf-8'))['rejected']], ['TASK-003'])
 
+    def test_a_doubted_card_is_judged_again_on_all_its_measurements_largest_over_its_threshold_first(self):
+        """Self-audit: the triage saw 4 facts in id-hash order, so it doubted cards whose measurement it was never shown."""
+        def measured(n, value, threshold=None):
+            return {'id': f'FACT-1{n}', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'},
+                    'value': {'kind': 'complexity', 'measurements': [{'name': 'ccn', 'value': value, 'threshold': threshold}] if value else []}}
+        rows = [measured(0, None), measured(1, 16, 15), measured(2, None), measured(3, 9), measured(4, 45, 15), measured(5, None)]
+        (self.report / 'facts/external.json').write_text(json.dumps({'facts': rows}), encoding='utf-8')
+        cards = json.loads((self.report / 'studio/cards.json').read_text(encoding='utf-8'))
+        cards['cards'][0]['evidence'] = [r['id'] for r in rows]
+        (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
+        shown = [e['id'] for e in triage.inputs(self.report)['cards'][0]['evidence']]
+        self.assertEqual(shown, ['FACT-14', 'FACT-11', 'FACT-13', 'FACT-10'])
+        asked = []
+        def answer(name, schema):
+            asked.append(name)
+            choice = 'doubt' if len(asked) == 1 else 'confirm'
+            return {'summary': '', 'decisions': [decision('TASK-001', choice, ['TASK-001', 'FACT-14'], detail={'falsifier': 'x'}),
+                                                 decision('TASK-002', 'doubt', ['TASK-002'], detail={'falsifier': 'y'})]}
+        launcher = Answer(answer)
+        self.triage(launcher, fresh=True)
+        self.assertEqual(len(launcher.calls), 2)
+        second = launcher.calls[1][1]
+        self.assertIn('FACT-15', second, 'judged again on every fact')
+        self.assertIn('"first_doubt": "because"', second)
+        verdicts = {v['card']: v for v in json.loads((self.report / 'nodes/card_triage/verdicts.json').read_text(encoding='utf-8'))['verdicts']}
+        self.assertEqual((verdicts['TASK-001']['decision'], verdicts['TASK-001']['rejudged']), ('confirm', True))
+        self.assertEqual((verdicts['TASK-002']['decision'], verdicts['TASK-002']['rejudged']), ('doubt', True))
+        self.assertEqual(verdicts['TASK-003']['decision'], 'rules only')
+
     def test_the_bundle_holds_the_code_at_each_fact_marked_untrusted(self):
         project = self.base / 'project'
         (project / 'src').mkdir(parents=True)

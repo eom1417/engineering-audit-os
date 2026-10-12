@@ -12,6 +12,10 @@ LANGUAGE_BY_SUFFIX = {
     '.scala': 'scala', '.sh': 'bash', '.sql': 'sql', '.vue': 'vue', '.svelte': 'svelte',
 }
 
+# Minified or bundled output has lines no person writes; checked on scripts and stylesheets only.
+GENERATED_SUFFIXES = ('.js', '.mjs', '.cjs', '.css')
+GENERATED_LINE = 1000
+
 
 def language_of(path): return LANGUAGE_BY_SUFFIX.get(Path(path).suffix.lower())
 
@@ -22,13 +26,14 @@ class Source:
     def __init__(self, target, inv=None, max_files=100000, max_bytes=2_000_000, exclude=None, include_vendored=False):
         self.target = Path(target).resolve()
         self.inventory = inv or inventory(self.target, max_files, max_bytes)
+        from .scope import GENERATED, vendored_patterns
         if exclude is None:
-            from .scope import vendored_patterns
             exclude = [] if include_vendored else vendored_patterns()
-        self.exclude = [prefix.strip('/') for prefix in exclude if prefix.strip('/')]
-        self.files = [item for item in self.inventory['files'] if not self.excluded(item['path'])]
-        self.excluded_files = [item['path'] for item in self.inventory['files'] if self.excluded(item['path'])]
+        self.exclude = [prefix.strip('/') for prefix in [*exclude, *GENERATED] if prefix.strip('/')]
         self._text = {}
+        self.files = [item for item in self.inventory['files'] if not self.excluded(item['path']) and not self.generated(item)]
+        kept = {item['path'] for item in self.files}
+        self.excluded_files = [item['path'] for item in self.inventory['files'] if item['path'] not in kept]
 
     def excluded(self, rel):
         for prefix in self.exclude:
@@ -41,6 +46,13 @@ class Source:
             if fnmatch(rel, prefix) or fnmatch(rel, '*/' + prefix) or fnmatch(rel, '*/' + prefix + '/*'):
                 return True
         return False
+
+    def generated(self, item):
+        """A script or stylesheet whatever its name whose text has a line over GENERATED_LINE characters: minified
+        or bundled output (a built assets/index-B3x9.js), which no person writes or changes."""
+        if Path(item['path']).suffix.lower() not in GENERATED_SUFFIXES or item.get('capture') != 'hashed': return False
+        text = self.text(item['path']) or ''
+        return any(len(line) > GENERATED_LINE for line in text.split('\n'))
 
     @property
     def fingerprint(self): return self.inventory['fingerprint']

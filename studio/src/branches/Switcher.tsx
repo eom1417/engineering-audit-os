@@ -44,6 +44,10 @@ export function ContextRows({ context }: { context: BranchContext }) {
   const w = useBranchWords()
   const checkout = context.checkout.branch ?? (context.checkout.detached ? w('detached', { c: (context.checkout.commit ?? '').slice(0, 12) }) : '—')
   const analysis = context.analysis.branch ?? w('detachedShort')
+  // the usual case, said once: the open branch, the analysed one and the report's are the same
+  if (context.analysis.branch && context.checkout.branch === context.analysis.branch && (!context.report.branch || context.report.branch === context.analysis.branch)) {
+    return <p className={css.sameBranch} data-context="same">{w('sameBranch', { b: '\u2068' + context.analysis.branch + '\u2069' })}</p>
+  }
   const notes: string[] = []
   if (context.analysis.branch && context.checkout.branch !== context.analysis.branch) notes.push(w('contextDiffers', { a: analysis, c: checkout }))
   if (context.report.branch && context.analysis.branch && context.report.branch !== context.analysis.branch) notes.push(w('reportDiffers', { r: context.report.branch, a: analysis }))

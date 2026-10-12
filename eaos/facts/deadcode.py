@@ -33,7 +33,10 @@ LIMITATIONS = [
     'A reference is any occurrence of the name in code or configuration text outside its definition; a name '
     'reused for something else keeps a dead symbol alive, so misses are possible and false accusations rare.',
     'Reachability follows resolved imports from production entry points; a module loaded by a computed path '
-    'counts as reached only when its dotted or slashed path appears as text somewhere reached.',
+    'counts as reached only when its dotted or slashed path appears as text somewhere reached, or a path literal '
+    'in a reached module names it from the module\'s folder or one above it.',
+    'Package data (templates/ and rules/ folders, declared package-data globs) is reached and not judged name by '
+    'name; a semgrep rule test (`# ruleid:` lines) is a fixture, never a candidate.',
     'Methods are not judged: a method is called through an object whose type is not resolved here.',
     'A built output named by a script (dist/, build/, out/, dist-<name>/) is traced back to its source by path; a '
     'build that renames or bundles differently leaves that entry unseen.',
@@ -61,6 +64,12 @@ def _tokens(text):
 BUILD_OUTPUT = re.compile(r'^(?:dist|build|out|lib|\.output)(?:[-_.](.+))?$')
 SOURCE_SUFFIXES = ('', '.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs', '.jsx')
 RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
+# A bare path literal with a folder and an extension: `Path(__file__).parent / 'templates/screens/reporter.mjs'`.
+PATH_LITERAL = re.compile(r'''['"`]([\w-][\w.-]*(?:/[\w.-]+)+\.\w+)['"`]''')
+# A semgrep rule test marks the lines its rule must flag; the file is a fixture for the rule, not product code.
+RULE_FIXTURE = re.compile(r'^[ \t]*(?:#|//)[ \t]*(?:ruleid|todoruleid|ok|todook):', re.M)
+# Folders a package ships as data, loaded by path at run time: templates and rules.
+DATA_FOLDERS = {'templates', 'rules'}
 
 
 def _source_of(base, file, known):
@@ -166,6 +175,39 @@ def _relative(path, text, texts):
     return out
 
 
+def _loaded(path, text, texts):
+    """Files a module loads by a bare path literal, read from its own folder or a folder above it:
+    `Path(__file__).resolve().parent / 'templates/screens/stream-reporter.mjs'` names a file no import reaches."""
+    folders = list(PurePosixPath(path).parents)
+    out = set()
+    for literal in PATH_LITERAL.findall(text):
+        out |= {found for folder in folders if (found := str(folder / literal).lstrip('./')) in texts}
+    return out
+
+
+def _glob(glob):
+    """A setuptools glob as a pattern: `**/` any folders, `*` any name within one folder."""
+    parts = re.split(r'(\*\*/|\*\*|\*|\?)', glob)
+    return re.compile(''.join({'**/': '(?:.*/)?', '**': '.*', '*': '[^/]*', '?': '[^/]'}.get(part, re.escape(part)) for part in parts))
+
+
+def _package_data(source, known):
+    """Files a package ships as data: under a templates/ or rules/ folder, or matched by a declared
+    `[tool.setuptools.package-data]` glob. They are loaded by path at run time; no import names them."""
+    data = {path for path in known if DATA_FOLDERS & set(PurePosixPath(path).parts[:-1]) and not _is_test(path)}
+    for manifest in (path for path in known if PurePosixPath(path).name == 'pyproject.toml'):
+        section = re.search(r'^\[tool\.setuptools\.package-data\]\s*$(.*?)(?=^\[|\Z)', source.text(manifest) or '', re.M | re.S)
+        for package, globs in re.findall(r'^\s*"?([\w.*-]+)"?\s*=\s*\[([^\]]*)\]', section.group(1) if section else '', re.M):
+            root = PurePosixPath(manifest).parent
+            bases = ({PurePosixPath(p).parent for p in known if PurePosixPath(p).name == '__init__.py'} if package == '*'
+                     else {root / package.replace('.', '/'), root / 'src' / package.replace('.', '/')})
+            for glob in re.findall(r'["\']([^"\']+)["\']', globs):
+                pattern = _glob(glob)
+                data |= {path for path in known for base in bases
+                         if PurePosixPath(path).is_relative_to(base) and pattern.fullmatch(str(PurePosixPath(path).relative_to(base)))}
+    return data
+
+
 def _reachable(seeds, graph, texts):
     reached, frontier = set(seeds), set(seeds)
     while True:
@@ -174,7 +216,8 @@ def _reachable(seeds, graph, texts):
             reached |= frontier
         blob = '\n'.join(texts[path] for path in reached if path in texts)
         named = {path for path in texts if path not in reached and _named(path, blob)}
-        named |= {found for path in reached if path in texts for found in _relative(path, texts[path], texts)} - reached
+        named |= {found for path in reached if path in texts
+                  for found in _relative(path, texts[path], texts) | _loaded(path, texts[path], texts)} - reached
         if not named: return reached
         reached |= named
         frontier = named
@@ -246,13 +289,21 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     configs = {path for path in known if NOT_CANDIDATES[0].search(path) and not _is_test(path)}
     folders = {PurePosixPath(path).parent for path in known if PurePosixPath(path).name == 'package.json'}
     commanded = {path for path in _commanded(source, known, folders) if not _is_test(path)}
-    reached = _reachable(seeds | configs | commanded if seeds else seeds, graph, {p: refs.texts[p] for p in code if p in refs.texts})
+    texts = {p: refs.texts[p] for p in code if p in refs.texts}
+    reached = _reachable(seeds | configs | commanded if seeds else seeds, graph, texts)
+    # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,
+    # a codemod engine): they are reached, and their names are not judged one by one. A semgrep rule test is a
+    # fixture for its rule: it is never a candidate.
+    whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path, texts[path], texts)}
+    reached |= whole
+    fixtures = {path for path in code if RULE_FIXTURE.search(texts.get(path) or '')}
+    skipped = whole | fixtures
     sha = source.content_fingerprint
     facts = []
     # With no production entry point, nothing says who uses the code: a library's public names serve callers
     # outside the snapshot. Then only what is private by convention (`_name`) is judged, and no module is.
     judged = (lambda name: True) if seeds else (lambda name: name.startswith('_'))
-    unreachable = sorted(path for path in code if seeds and path not in reached and not _is_test(path)
+    unreachable = sorted(path for path in code if seeds and path not in reached and not _is_test(path) and path not in fixtures
                          and classify(path) == 'source' and not any(rule.search(path) for rule in NOT_CANDIDATES))
     for path in unreachable:
         tests = sorted(test_importers.get(path, ()))
@@ -266,7 +317,7 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     for fact in symbols:
         value, location = fact.get('value') or {}, fact.get('location') or {}
         path, name = location.get('path'), value.get('name')
-        if (not path or path in dead_modules or path not in code or _is_test(path) or classify(path) != 'source'
+        if (not path or path in dead_modules or path in skipped or path not in code or _is_test(path) or classify(path) != 'source'
                 or any(rule.search(path) for rule in NOT_CANDIDATES)): continue
         if value.get('kind') not in ('function', 'class') or value.get('parent') or value.get('decorators'): continue
         if not name or name.startswith('__') or name in ('main', 'default') or not judged(name): continue
@@ -282,11 +333,15 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
         if count: continue
         module = str(PurePosixPath(path).with_suffix(''))
         how = f'referenced only by tests ({", ".join(tests[:3])})' if tests else 'no reference outside its definition'
+        # TypeScript's `type`, `interface` and `enum` are parsed as classes; the reader is told what it is.
+        declared = ((refs.texts.get(path) or '').split('\n')[start - 1:start] or [''])[0]
+        word = re.match(r'\s*(?:export\s+)?(?:declare\s+)?(?:const\s+)?(type|interface|enum)\b', declared)
+        noun = word.group(1) if word and value['kind'] == 'class' else value['kind']
         facts.append(_finding('unused-symbol', path, location.get('start_line') or 1, name,
-                              f'unused {value["kind"]} `{module}.{name}`: {how}', 'symbol',
+                              f'unused {noun} `{module}.{name}`: {how}', 'symbol',
                               f'the name occurs nowhere in product code or configuration outside lines '
                               f'{location.get("start_line")}-{location.get("end_line")}', sha, tests))
-    for path in sorted(code - dead_modules):
+    for path in sorted(code - dead_modules - skipped):
         if _is_test(path) or classify(path) != 'source' or any(rule.search(path) for rule in NOT_CANDIDATES): continue
         text = refs.texts.get(path) or ''
         pattern = PY_CONSTANT if language_of(path) == 'python' else JS_CONSTANT

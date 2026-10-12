@@ -119,6 +119,18 @@
         }
       }
     },
+    "screens": {
+      "description": "How the app keeps its theme in localStorage, for the dark pictures (eaos/screens/audit.py variants).",
+      "type": "object",
+      "properties": {
+        "theme_key": {
+          "type": "string"
+        },
+        "theme_field": {
+          "type": "string"
+        }
+      }
+    },
     "limitations": {
       "type": "array",
       "items": {

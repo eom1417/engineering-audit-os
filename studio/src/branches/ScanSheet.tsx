@@ -46,7 +46,9 @@ export function useRescan() {
       let made: Run
       if (live.api && ctx?.analysis.branch && !ctx.analysis.selected) {
         const chosen = await live.api.select(ctx.analysis.branch, true, ctx.analysis.tip)
-        made = chosen.scan ?? chosen.run
+        // the sheet follows the scan, never the branch choice before it (that one is done at once and would read as
+        // "scan done, the report is up to date" while nothing was scanned)
+        made = chosen.scan ?? await actions.client.start({ action: 'audit', inputs: { fresh: true } })
       } else made = await actions.client.start({ action: 'audit', inputs: { fresh: true } })
       setRun(made)
       await actions.refresh()

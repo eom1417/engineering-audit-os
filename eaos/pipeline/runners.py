@@ -135,7 +135,7 @@ def screens(context):
         live.seed(base)
         folder = context.out / 'live/screens'
         audit = page_audit([base + page for page in dict.fromkeys(pages)], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                           variants(), out=folder)
+                           variants(**(live.profile.get('screens') or {})), out=folder)
         speed = lighthouse(base + '/', out=folder)
     finally:
         live.stop()
@@ -286,7 +286,8 @@ def ideal(context):
 
 def triage(context):
     """The card triage node (eaos/studio/nodes/triage.py): each open card confirmed, doubted or rejected on its own
-    evidence, with why in the person's words; the cards stage then sets the rejected ones aside."""
+    evidence, a doubted one judged again on all its facts, with why in the person's words; the cards stage then applies
+    the verdicts once (eaos/plan.py apply_verdicts) before anything ranks, plans or reports."""
     record, detail = _node(context, 'card_triage')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 

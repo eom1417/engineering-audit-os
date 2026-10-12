@@ -406,14 +406,19 @@ def _view(out):
     return [e for e in ((ideal.get('views') or {}).get('system') or {}).get('elements') or [] if isinstance(e, dict)], because
 
 
-def _decide_current(component, element, why, protected):
+def _decide_current(component, element, why, protected, aside=frozenset()):
     """(label, why) of one of today's components: the rule stands when the assistant said nothing or when its decision
-    breaks a guard; otherwise the assistant's relation is the target's and the rule's is kept beside it."""
+    breaks a guard (it stands only on cards or claims the triage set aside: two of the assistant's steps would
+    contradict each other); otherwise the assistant's relation is the target's and the rule's is kept beside it."""
     rule = component['relation']
     if element is None: return 'rule_only', ''
     relation = RELATION_OF.get(element.get('operation'))
     if relation is None:
         return 'disagreement', f"\"{element.get('operation')}\" is not an operation on a component that exists today"
+    cites = set(element.get('cites') or [])
+    if relation != rule and cites and cites <= aside:
+        return 'disagreement', 'it stands only on cards the triage set aside as false alarms'
+
     if relation == 'delete' and any(protected(path) for path in component.get('paths') or []):
         return 'disagreement', 'it would delete files the owner protects (a critical feature or the architecture policy)'
     if relation == rule: return 'agreed', why
@@ -495,10 +500,13 @@ def reconcile(out, planned=False, policy_path=None):
     for element in elements:
         on.setdefault(element.get('id') if element.get('id') in ids | set(targets) else element.get('subject'), element)
     protected, disagreements = protected_paths(out, policy_path), []
+    try: set_aside = json.loads((out / 'cards.json').read_text(encoding='utf-8')).get('set_aside') or []
+    except (OSError, ValueError): set_aside = []
+    aside = {row.get(key) for row in set_aside for key in ('card', 'claim_id') if row.get(key)}
     for component in current:
         element = on.get(component['id'])
         rule, why = component['relation'], because.get(str((element or {}).get('id'))) or (element or {}).get('detail') or ''
-        label, said = _decide_current(component, element, why, protected)
+        label, said = _decide_current(component, element, why, protected, aside)
         component['decided_by'] = {'label': label, 'rule': rule, 'why': said, 'cites': list((element or {}).get('cites') or []),
                                    'assistant': RELATION_OF.get((element or {}).get('operation'), (element or {}).get('operation'))}
         if label in ('ai_modified', 'disagreement'):

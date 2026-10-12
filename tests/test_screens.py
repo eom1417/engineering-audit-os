@@ -23,7 +23,7 @@ def url(name):
 
 
 def rows_of(result, name):
-    return [row for row in result['rows'] if row['url'].split('?', 1)[0].endswith(f'/{name}.html')]
+    return [row for row in result['rows'] if row['url'].split('#', 1)[0].split('?', 1)[0].endswith(f'/{name}.html')]
 
 
 BROWSER_MISSING = audit.missing('playwright', 'axe-core')
@@ -35,7 +35,8 @@ class PageAuditTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.out = cls.workspace().name
-        cls.result = audit.page_audit([url(name) for name in PAGES], out=cls.out)
+        # A hash route names its picture (#/problems), as the Studio's screens are reached
+        cls.result = audit.page_audit([url(name) + ('#/problems/open' if name == 'clean' else '') for name in PAGES], out=cls.out)
 
     def observed(self, name):
         return [row for row in rows_of(self.result, name) if row['status'] == 'observed']
@@ -60,6 +61,8 @@ class PageAuditTests(TemporaryWorkspace):
         self.assertTrue(audit.failures(phone, height_budget=0.2)[0].startswith('height:'))
         for row in self.result['rows']:
             if row['status'] == 'observed': self.assertTrue(Path(row['screenshot']).is_file(), row)
+        self.assertEqual({Path(r['screenshot']).name.split('-', 1)[1] for r in rows if r['variant'] == 'light'},
+                         {f'problems-open-light-{s["name"]}.png' for s in audit.VIEWPORTS})
         dark = [r for r in rows_of(self.result, 'overflow') if r['variant'] == 'dark']
         self.assertEqual({r['status'] for r in dark}, {'skipped'}, 'a page without a dark theme is not audited dark')
 
@@ -109,11 +112,16 @@ class PageStateTests(unittest.TestCase):
         self.assertFalse(rows['ar-dark']['if_page_supports_dark'])
         plain = {v['name']: v for v in audit.variants()}
         self.assertEqual((set(plain), plain['dark']['color_scheme'], plain['dark']['if_page_supports_dark']), ({'light', 'dark'}, 'dark', True))
-        result = audit.page_audit([url('bilingual')], viewports=audit.VIEWPORTS[:1], page_variants=page_variants)
+        # The theme kept in a key's JSON object (the EAOS Studio's "eaos.studio"): merged in, so dark is pictured
+        in_json = audit.variants(lang_key='studio-lang', theme_key='studio', theme_field='theme')
+        self.assertEqual({v['name']: v['storage'] for v in in_json}['ar-dark'], {'studio-lang': 'ar', 'studio': {'theme': 'dark'}})
+        self.assertEqual(audit.variants(lang_key='p', lang_field='lang', theme_key='p', theme_field='theme')[-1]['storage'],
+                         {'p': {'lang': 'en', 'theme': 'dark'}})
+        result = audit.page_audit([url('bilingual')], viewports=audit.VIEWPORTS[:1], page_variants=in_json)
         found = {r['variant']: r for r in result['rows']}
         self.assertEqual((found['ar-dark']['lang'], found['ar-dark']['dir']), ('ar', 'rtl'))
         self.assertEqual((found['en-light']['lang'], found['en-light']['dir']), ('en', 'ltr'))
-        self.assertIn('theme=dark', found['ar-dark']['url'])
+        self.assertEqual((found['ar-dark']['root_attributes']['data-theme'], found['en-light']['root_attributes']['data-theme']), ('dark', 'light'))
         self.assertEqual([r['failures'] for r in found.values()], [[]] * 4)
 
     def test_an_opened_state_fails_on_what_the_action_revealed_a_page_keeps_to_its_subset_and_reaches_nothing_else(self):

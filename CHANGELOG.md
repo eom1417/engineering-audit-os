@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.0.8 (2026-10-12)
+
+The fifteen fixes of the 2026-10-12 review; each is proven by the test named after it.
+- **A stale fix batch no longer blocks every fix**: a batch whose base is not the current code is retired by one
+  helper (status, fix_start, after a check); a failed fix_finish leaves the batch as it was; `tried` holds card keys
+  (test_continuity: a batch left on code that moved on is retired).
+- **Honest progress**: cards are keyed on the observation uid; a problem no longer found leaves the ledger and never
+  counts; progress is the cards fixed and merged; one problem count on every page (test_journey: progress counts
+  only the fixes merged).
+- **Fixing from the Studio**: the fix run may call fix_abandon, findings and plan; the person's answer acts and a
+  direct step is not blocked by a question; a run that kept nothing says so; the preview chooses where to build,
+  the new branch (`eaos/<branch>/wave-N`) and where to merge, and pins the base commit (test_studio_actions,
+  test_branches).
+- **A true report**: the assistant's verdicts are applied once, before ranking, the plan, the reports and the
+  ledger (rejected cards leave with their reason, doubted ones are judged again on their measurements and never
+  auto-fixed); complexity needs a value over its threshold and ranks by severity, one card per function hotspot;
+  files loaded by path and package data are not dead code; complexity alone is modify, not rebuild; CLI features by
+  subcommand; plain areas and labels (a `ux` area), real sections and sizes, design cards deduplicated, minified and
+  generated files left out (test_joint_decision, test_claims, test_deadcode, test_target_projection, test_features,
+  test_plan, test_roadmap, test_facts_scope).
+- **The Studio reads well**: markdown and tables in run results and messages; the branches page shows the work
+  branches, "on this computer" / "on GitHub", the cleanup in a sheet; decisions without duplicates or questions the
+  machine answers, one waiting count (Vitest: runs/parts, branches/model; test_studio_export).
+- **Real screen pictures**: an empty "no data" page is not a working app; EAOS's own Studio runs on its report's
+  data; dark pictures are taken; pictures are named from the `#/route` (test_live_setup, test_screens).
+
 ## 0.0.7 (2026-10-12)
 
 - **EAOS made small: only what the person's journey uses is left.** Removed: the model-provider path (`eaos run`,

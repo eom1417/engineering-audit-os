@@ -1,5 +1,5 @@
 {
- "source_sha256": "cc5e29fa2240b6a297efd0a410f5bad814633e17e6eea5900dadca3ae5af531b",
+ "source_sha256": "b964128d5ad0363df203c9ae7a08b2bbf2a6a587d56b1ac11fee42c97c65c893",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -44,6 +44,8 @@
   "assets/diagram.js",
   "assets/diagramEngine.js",
   "assets/highlight.js",
+  "assets/library.module.js",
+  "assets/markdown.js",
   "assets/mermaid.abnfDiagram-YUKMZFIV.js",
   "assets/mermaid.arc.js",
   "assets/mermaid.architecture-WOLXFQ4H.js",
@@ -158,7 +160,6 @@
   "assets/style.css",
   "assets/words.js",
   "assets/words2.js",
-  "assets/words3.js",
   "boot.js",
   "index.html"
  ]

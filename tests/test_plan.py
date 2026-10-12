@@ -52,6 +52,28 @@ class TaskCardTests(TemporaryWorkspace):
         self.assertIn(task['claim_id'], ' '.join(step['expect'] for step in task['acceptance']))
         self.assertEqual((task['verify_command'], task['kind']), ([], 'investigate'))
 
+    def test_design_cards_merge_one_page_and_title_rank_on_the_code_scale_and_read_in_their_own_words(self):
+        # The self-audit: 64 design cards for 53 titles (`/` and `/#/` two pages), each at a fixed 0.4 above every
+        # code claim (top 0.366), all counted as "other notes" in ease of change; private mutable state was
+        # described as "changed by several parts".
+        from eaos import plain
+        from eaos.studio.model import classify
+        def finding(page, severity, image):
+            return {'title': 'Crowded header', 'kind': 'crowding', 'severity': severity, 'page': page, 'viewport': 'phone',
+                    'theme': 'light', 'image': image, 'file': f'live/{image}.png', 'why': 'Four buttons on one line',
+                    'region': {'x': 0, 'y': 0, 'width': 1, 'height': 0.2}}
+        cards = plan_module.design_cards([finding('http://127.0.0.1:9/', 'medium', 'IMG-001'), finding('http://127.0.0.1:9/#/', 'high', 'IMG-002'),
+                                          finding('http://127.0.0.1:9/#/branches', 'low', 'IMG-003')], [{'priority': 0.366}, {'priority': 0.1}])
+        self.assertEqual([(c['id'], c['design']['page'], c['design']['severity']) for c in cards],
+                         [('TASK-V001', '/', 'high'), ('TASK-V002', '/branches', 'low')])
+        self.assertTrue(all(0 < c['priority'] < 0.366 for c in cards), [c['priority'] for c in cards])
+        self.assertEqual(classify(cards[0]), ('ux', 'high'))
+        generic = plain.problem('generic', 'en')
+        self.assertTrue(all(plain.problem(kind, 'en') != generic for kind in ('design_review', 'investigation')))
+        mutable = lambda private: {'pattern': 'mutable_state', 'render': {'key': 'mutable_global', 'params': {'encapsulated': private}}}
+        self.assertEqual((plain.kind(mutable(False)), plain.kind(mutable(True))), ('mutable_state', 'mutable_state_private'))
+        self.assertNotIn('several parts', plain.problem('mutable_state_private', 'en')[1])
+
     def test_blast_radius_comes_from_facts_not_prose(self):
         task = next(task for task in self.plan['tasks'] if 'core/pricing.py' in task['paths'])
         self.assertIn('cli.py', task['blast_radius']['direct_dependents'])

@@ -88,7 +88,7 @@ class HumanReportTests(unittest.TestCase):
         result = human_report.model(self.out)['score']
         areas = {name: area['score'] for name, area in result['areas'].items()}
         # security: medium from the register (2) + critical likely (10 x 0.7) = 9 -> 100 x 20 / 29
-        self.assertEqual(areas, {'security': 69, 'quality': 92, 'structure': 91, 'maintainability': 91, 'performance': None})
+        self.assertEqual(areas, {'security': 69, 'quality': 92, 'structure': 91, 'maintainability': 91, 'performance': None, 'ux': None})
         self.assertEqual((result['score'], result['grade'], result['capped']), (86, 'good', False))
         self.assertEqual((result['areas']['security']['light'], result['areas']['performance']['light']), ('red', 'grey'))
         rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]

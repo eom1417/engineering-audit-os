@@ -140,6 +140,38 @@ class Branches(unittest.TestCase):
         self.assertIn('data-part="branch"', page)
         self.assertIn('develop', page)
 
+    def test_the_fix_preview_sets_the_base_the_new_branch_and_where_it_merges_and_a_moved_base_opens_nothing(self):
+        """The owner's trial: the batch was built on develop and named eaos/wave-1 on every branch, with no word of either;
+        a second branch's batch 1 would overwrite the first's waiting branch."""
+        self.choose('develop', self.project, 'develop please')
+        state = self.check()
+        state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
+                     safety={'commit': state['scanned_commit'], 'screens': 1, 'passed': 1})
+        guided.save(state)
+        develop = git(self.project, 'rev-parse', 'develop')
+        moved = agent_tools.fix_start(str(self.project), base='develop', base_commit=git(self.project, 'rev-parse', 'develop~1'))
+        self.assertEqual((moved['status'], moved['now']), ('base_moved', develop))
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+            agent_tools.fix_start(str(self.project), base='develop', base_commit=develop[:7], merge_into='develop')
+        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001', 'TASK-002', 'TASK-003', 'TASK-004', 'TASK-005'],
+                                                   'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'develop'})
+        self.assertEqual(agent_tools.delivery(guided.load(self.project)), ('eaos/develop/wave-1', 'main'),
+                         'by default it merges into the branch open in the project folder')
+        # Accept merges into the branch the preview named, here release, a branch neither checked out nor worked on.
+        git(self.project, 'branch', 'release', 'develop')
+        copy = Path(self.tmp.name) / 'candidate'
+        subprocess.run(['git', 'clone', '-q', '-b', 'develop', str(self.project), str(copy)], check=True)
+        (copy / 'fix.js').write_text('// a fix\n')
+        cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
+        eaos_commit(copy, cards['TASK-001'], 'assistant')
+        git(self.project, 'fetch', '-q', str(copy), '+HEAD:refs/heads/eaos/develop/wave-1')
+        state = guided.load(self.project)
+        state['waves'] = [{'number': 1, 'base': develop, 'cards': ['TASK-001'], 'kept': ['TASK-001'], 'failed': {}, 'merge_into': 'release',
+                           'branch': 'eaos/develop/wave-1', 'status': 'applied', 'keys': {'TASK-001': cards['TASK-001']['key']}}]
+        guided.save(state)
+        self.assertEqual(agent_tools.accept(str(self.project), person_agreed=True)['status'], 'accepted')
+        self.assertEqual((git(self.project, 'show', 'release:fix.js'), git(self.project, 'rev-parse', 'develop')), ('// a fix', develop))
+
     def test_each_branch_keeps_its_own_check_progress_and_report(self):
         self.choose('develop', self.project, 'develop please')
         self.check()
@@ -163,7 +195,7 @@ class Branches(unittest.TestCase):
         state = guided.load(self.project)
         self.assertEqual((state['home_branch'], state['by_branch']['main']['scanned']), ('main', 'before'))
         self.assertNotIn('setup', state)
-        state['open_wave'] = {'number': 1, 'cards': [], 'kept': {}, 'failed': {}}
+        state['open_wave'] = {'number': 1, 'root': '', 'base': git(self.project, 'rev-parse', 'develop'), 'cards': [], 'kept': {}, 'failed': {}}
         guided.save(state)
         with self.assertRaises(ValueError): self.choose('main', self.project, 'main')
 

@@ -125,11 +125,16 @@ class Manager:
 
     def dispatch(self):
         with self._mutex:
-            rows = self.store.all()
-            if any(row.get('state') in ACTIVE for row in rows if not row.get('read')): return
+            active = [row for row in self.store.all() if row.get('state') in ACTIVE and not row.get('read')]
             queue = self.store.queue()
             if not queue: return
             run = queue[0]
+            if active:
+                # a run that only waits for the person does not block a direct step (closing a stuck batch, accept, undo):
+                # the person may press it from the palette while the question is open
+                if any(row.get('state') != 'waiting_for_person' for row in active): return
+                run = next((r for r in queue if self.store.load(r).get('mode') == 'direct'), None)
+                if run is None: return
             self.set_state(run, 'running', attempt=self.store.load(run).get('attempt') or 1)
         threading.Thread(target=self._start, args=(run,), daemon=True).start()
 
@@ -188,7 +193,7 @@ class Manager:
                     + prompts.ASK)
         return ('Saved owner answers (context only, never authorization): ' + json.dumps(record.get('owner_answers') or [], ensure_ascii=False) + '\n' +
                 prompts.build(record.get('verb'), record.get('cards_detail') or [], self.project, self.lang,
-                             action=record.get('action'), inputs=record.get('inputs'), labels=self.labels))
+                             action=record.get('action'), inputs=record.get('inputs'), labels=self.labels, where=record.get('where')))
 
     def _fail(self, run, reason, what_now=None):
         self.store.append(run, 'error', {'en': f'It could not go on: {reason}', 'ar': f'ما قدر يكمل: {reason}'},
@@ -391,13 +396,11 @@ class Manager:
                 for line in lines:
                     text = line.decode('utf-8', 'replace').strip()
                     if not text: continue
-                    for kind, words, data, detail in adapter.parse(text, state, self.labels):
-                        self.store.append(run, kind, words, data, detail)
+                    self._record(run, record, adapter.parse(text, state, self.labels), state)
                 if lines: self.store.update(run, offset=offset - len(buffer), session=state['session'])
                 if finished and not chunk:
                     if buffer.strip():
-                        for kind, words, data, detail in adapter.parse(buffer.decode('utf-8', 'replace'), state, self.labels):
-                            self.store.append(run, kind, words, data, detail)
+                        self._record(run, record, adapter.parse(buffer.decode('utf-8', 'replace'), state, self.labels), state)
                     break
                 if self._closed.is_set(): return
                 time.sleep(0.2)
@@ -406,6 +409,22 @@ class Manager:
             self._end_turn(run, state, code)
         finally:
             self.watched.discard(run)
+
+    def _record(self, run, record, parsed, state):
+        """The assistant's events into the run. A Fix run's progress is its batch: the cards tried (kept, taken back or
+        skipped) of the cards it was given, never a job's or the project's own count."""
+        fixing = record.get('verb') == 'fix' and record.get('cards')
+        tried = state.setdefault('cards_tried', set())
+        for kind, words, data, detail in parsed:
+            if fixing and kind == 'progress': continue
+            self.store.append(run, kind, words, data, detail)
+            card = (data or {}).get('card')
+            done = (kind == 'check' and (data or {}).get('name') == 'card gates') or (kind == 'step' and (data or {}).get('tool') == 'fix_skip')
+            if fixing and done and card in record['cards'] and card not in tried:
+                tried.add(card)
+                total = len(record['cards'])
+                self.store.append(run, 'progress', {'en': f'{len(tried)} of {total} cards tried', 'ar': f'جُرّبت {len(tried)} من {total} بطاقات'},
+                                  {'batch': None, 'done': len(tried), 'total': total, 'stage': 'cards'})
 
     def _end_turn(self, run, state, code):
         record = self.store.load(run)
@@ -434,6 +453,15 @@ class Manager:
             except OSError: pass
             return self._fail(run, self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else ''))
         payload = self._outcome(run, answer=words)
+        if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
+            # a Fix run that handed nothing over did not succeed, whatever the assistant said: the person reads why
+            self.store.append(run, 'result', {'en': 'Nothing changed: no fix was kept, so no branch waits for you',
+                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك'}, {**payload, 'nothing_changed': True})
+            self.store.append(run, 'error', {'en': 'Nothing changed: no fix was kept', 'ar': 'ما تغيّر شي: ما انقبل أي إصلاح'},
+                              {'reason': 'nothing changed: no fix was kept', 'recoverable': True,
+                               'what_now': {'en': 'Read the assistant\'s words for why, then try again or pick other cards.',
+                                            'ar': 'اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}})
+            return self.set_state(run, 'failed', 'nothing changed', result={**payload, 'nothing_changed': True})
         self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else ''),
                                           'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch') else '')}, payload)
         self.set_state(run, 'done', result=payload)
@@ -516,10 +544,24 @@ class Manager:
                 self.store.append(run, 'result', {'en': 'Nothing was done: you said no.', 'ar': 'ما سوينا شي: قلت لا.'}, self._outcome(run))
                 self.set_state(run, 'done')
             return self.store.load(run)
+        done = self._act_on(run, question, option)
         adapter = self.adapters.get(record.get('assistant'))
         if adapter is None: self._fail(run, 'the assistant of this run is not available any more')
-        else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang), record.get('session')), daemon=True).start()
+        else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang, done), record.get('session')), daemon=True).start()
         return self.store.load(run)
+
+    def _act_on(self, run, question, option):
+        """The answer acts: an option that means closing the open batch (prompts.acts) runs fix_abandon here, before the
+        assistant resumes, so "yes, close it" closes it even though the assistant's own tools may not reach it."""
+        action = prompts.acts(question, option)
+        if not action: return None
+        try: result = self.call(action, {})
+        except Exception as problem: result = {'error': f'{type(problem).__name__}: {problem}'}
+        failed = isinstance(result, dict) and result.get('error')
+        self.store.append(run, 'step', {'en': f"{self.labels[action]['en']}: done, as you answered" if not failed else f"{self.labels[action]['en']}: it did not happen ({str(failed)[:200]})",
+                                        'ar': f"{self.labels[action]['ar']}: تم، مثل ما جاوبت" if not failed else f"{self.labels[action]['ar']}: ما تم ({str(failed)[:200]})"},
+                          {'tool': action, 'by': 'person'})
+        return action, result
 
     def _choose_branch(self, branch, said):
         from ... import agent_tools, guided

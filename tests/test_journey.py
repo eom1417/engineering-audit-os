@@ -67,9 +67,12 @@ class Journey(unittest.TestCase):
     def check(self):
         return agent_tools._audit_job(self.where, {}, None)
 
-    def ready(self):
+    def ready_cards(self):
         from eaos.waves import ready_cards
-        return {card['paths'][0]: card['id'] for card in ready_cards(guided.report_of(guided.load(self.project)))}
+        return ready_cards(guided.report_of(guided.load(self.project)))
+
+    def ready(self):
+        return {card['paths'][0]: card['id'] for card in self.ready_cards()}
 
     def agree_and_record(self):
         """What run_setup and safety_net leave when the app runs and its screens are recorded."""
@@ -104,8 +107,10 @@ class Journey(unittest.TestCase):
         finished = agent_tools._fix_finish_job(self.where, {}, lambda *_: None)
         self.assertEqual(sorted(finished['kept']), sorted([cards['app/old_export.py'], cards['app/old_invoice.py']]), finished)
         self.assertIn('test_monthly_report', finished['failed'][cards['app/old_report.py']])
-        self.assertEqual(finished['branch'], 'eaos/wave-1')
+        self.assertEqual(finished['branch'], 'eaos/main/wave-1', 'named after the branch: unique across branches')
         self.assertTrue((self.project / 'app/old_export.py').is_file(), "the person's branch is untouched until accept")
+        self.assertEqual(sorted(guided.load(self.project)['tried']), sorted(c['key'] for c in self.ready_cards() if c['id'] in batch),
+                         'tried holds keys: a new check numbers the cards again')
 
         # Accept: the branch is merged and deleted, the two files are gone, and the progress counts the two fixes.
         accepted = agent_tools.accept(self.where, person_agreed=True)
@@ -119,7 +124,6 @@ class Journey(unittest.TestCase):
         totals = self.journey()
         self.assertEqual(totals['done'], 2, totals)
 
-    @unittest.expectedFailure      # ROADMAP 2: the module the person deleted by hand counts as closed (75%, not 2 of 3)
     def test_progress_counts_only_the_fixes_merged(self):
         totals = self.journey()
         self.assertEqual((totals['closed'], totals['total']), (2, 3), totals)

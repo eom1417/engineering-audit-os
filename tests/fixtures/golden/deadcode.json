@@ -6,7 +6,8 @@
   "input_sha": "44c1c7d3ec751b412d110bd599de042ab706622f3e40ed95456639642d34c593",
   "limitations": [
     "A reference is any occurrence of the name in code or configuration text outside its definition; a name reused for something else keeps a dead symbol alive, so misses are possible and false accusations rare.",
-    "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached.",
+    "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached, or a path literal in a reached module names it from the module's folder or one above it.",
+    "Package data (templates/ and rules/ folders, declared package-data globs) is reached and not judged name by name; a semgrep rule test (`# ruleid:` lines) is a fixture, never a candidate.",
     "Methods are not judged: a method is called through an object whose type is not resolved here.",
     "A built output named by a script (dist/, build/, out/, dist-<name>/) is traced back to its source by path; a build that renames or bundles differently leaves that entry unseen."
   ],
@@ -63,7 +64,8 @@
       },
       "limitations": [
         "A reference is any occurrence of the name in code or configuration text outside its definition; a name reused for something else keeps a dead symbol alive, so misses are possible and false accusations rare.",
-        "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached.",
+        "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached, or a path literal in a reached module names it from the module's folder or one above it.",
+        "Package data (templates/ and rules/ folders, declared package-data globs) is reached and not judged name by name; a semgrep rule test (`# ruleid:` lines) is a fixture, never a candidate.",
         "Methods are not judged: a method is called through an object whose type is not resolved here.",
         "A built output named by a script (dist/, build/, out/, dist-<name>/) is traced back to its source by path; a build that renames or bundles differently leaves that entry unseen."
       ]

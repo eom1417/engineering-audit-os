@@ -2,8 +2,9 @@
 and what happened to it. The report for people reads its progress from here, and only from here.
 
 Why a key: a check numbers its cards TASK-001, TASK-002… in its own order, so after the next check TASK-008 is another
-problem. A card's key is its kind, its files and its words with the numbers taken out (line numbers and counts move);
-two cards alike in all three are told apart by their order. Every commit EAOS makes carries its card's key as a trailer
+problem. A card's key is its observation's uid (decision.observation_uid, OBS-…: what was observed and where, not how
+the title words it, so a reworded title or another list of tools keeps the key); a card without one (a design card)
+is keyed by its kind, its files and its words with the numbers taken out. Two cards alike are told apart by their order. Every commit EAOS makes carries its card's key as a trailer
 (`EAOS-Card: <key>`), so what is in the person's branch is read from git itself, whoever merged it and however.
 
 A card's state:
@@ -11,10 +12,11 @@ A card's state:
     in_batch    in the batch open now
     on_branch   fixed on a branch that waits for the person's decision: not done yet
     done        in the person's current branch (merged), through an EAOS fix
-    resolved    no longer found by a later check, without an EAOS fix: closed as well
     skipped     tried and not kept, with the reason: it needs a person's decision
+A problem a later check no longer finds, without an EAOS fix, leaves the ledger: it is neither progress nor a card.
+A card fixed and merged stays (done), with its commit, after a later check no longer finds it.
 `new` marks a card a later check found that the first one did not: the scope grows, and the page says so.
-closed = done + resolved; percent = closed / every card ever in scope.
+closed = done; total = the cards of the current plan + the done ones it no longer has; percent = closed / total.
 """
 import hashlib
 import json
@@ -27,7 +29,7 @@ from . import branches
 
 TRAILER = 'EAOS-Card'
 NUMBERS = re.compile(r'\d+')
-CLOSED = ('done', 'resolved')
+CLOSED = ('done',)
 
 
 def _now():
@@ -39,8 +41,11 @@ def _git(project, *args):
 
 
 def key(card, ordinal=0):
-    words = NUMBERS.sub('#', ' '.join((card.get('title') or '').split()).lower())
-    text = '|'.join([card.get('pattern') or 'generic', *sorted(card.get('paths') or []), words] + ([str(ordinal)] if ordinal else []))
+    uid = (card.get('decision') or {}).get('observation_uid')
+    if uid: text = '|'.join([uid] + ([str(ordinal)] if ordinal else []))
+    else:
+        words = NUMBERS.sub('#', ' '.join((card.get('title') or '').split()).lower())
+        text = '|'.join([card.get('pattern') or 'generic', *sorted(card.get('paths') or []), words] + ([str(ordinal)] if ordinal else []))
     return hashlib.sha256(text.encode('utf-8')).hexdigest()[:12]
 
 
@@ -154,14 +159,13 @@ def sync(state, event=None, report=None):
         k = ids[card['id']]
         if k in cards:
             cards[k].update(id=card['id'], title=card.get('title') or cards[k]['title'], milestone=milestone.get(card['id']))
-            if fresh and cards[k]['state'] == 'resolved': cards[k]['state'] = 'open'     # it came back
+            if cards[k]['state'] not in ('done', 'on_branch', 'in_batch', 'skipped', 'open'): cards[k]['state'] = 'open'
         else:
             cards[k] = _entry(card, k, milestone.get(card['id']))
             cards[k]['new'] = not first
-    if fresh:                                                                # a new check: what it no longer finds is closed
-        for card in cards.values():
-            if card['id'] is None and card['state'] not in CLOSED:
-                card.update(state='resolved', at=_now())
+    for k in [k for k, card in cards.items() if card['id'] is None and card['state'] != 'done']:
+        del cards[k]                                                         # no longer found, not fixed by EAOS: gone
+    if fresh:
         ledger['plan_stamp'] = stamp
         event = event or 'recheck'
     project = state['project']
@@ -218,7 +222,7 @@ def count(ledger):
     cards = list(ledger['cards'].values())
     tally = {s: sum(c['state'] == s for c in cards) for s in ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')}
     total = len(cards)
-    closed = tally['done'] + tally['resolved']
+    closed = tally['done']
     return {'total': total, 'closed': closed, **tally, 'new': sum(c['new'] for c in cards),
             'percent': round(100 * closed / total, 1) if total else 0.0}
 

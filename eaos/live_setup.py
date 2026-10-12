@@ -182,6 +182,52 @@ def environment_names(project, folder):
     return names
 
 
+def _declarations(project, folder):
+    """The text of the example env files, the code and the config files environment_names reads."""
+    for base in dict.fromkeys((Path(project) / folder, Path(project))):
+        for example in ENV_EXAMPLES:
+            if (base / example).is_file(): yield base / example
+    code = Path(project) / folder
+    for path in [p for pattern in ('src/**/*', 'server/**/*', 'app/**/*', 'lib/**/*', 'pages/**/*', 'public/*', '*.config.*')
+                 for p in code.glob(pattern)][:4000]:
+        if path.suffix in ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte') and 'node_modules' not in path.parts \
+                and path.is_file():
+            yield path
+
+
+def report_values(project, folder, names, report):
+    """{name: folder in the report} for each name the project documents as a report's folder: a line
+    `STUDIO_DATA=/path/to/report/studio` (EAOS's own Studio reads its data so, studio/vite.config.ts). The run points it
+    at the report of this check, when that folder exists, so the app's screens show real data, not an empty state."""
+    if not report or not names: return {}
+    found = {}
+    for path in _declarations(project, folder):
+        text = path.read_text(encoding='utf-8', errors='replace')
+        for name in names:
+            match = re.search(rf'\b{re.escape(name)}\s*=\s*["\']?(?:\S*/)?report/([\w./-]*)', text)
+            if name not in found and match:
+                target = Path(report) / match[1].strip('/.')
+                if target.is_dir(): found[name] = str(target)
+    return found
+
+
+def display_storage(project, folder):
+    """How the app keeps its theme in localStorage, for the dark pictures (eaos/screens/audit.py variants):
+    {'theme_key': key} when a key named for the theme holds it, {'theme_key', 'theme_field': 'theme'} when the
+    theme is a field of a JSON object kept under a key (the EAOS Studio: {"theme": "dark"} under "eaos.studio",
+    studio/src/i18n/prefs.tsx); {} when none is found."""
+    for path in sorted(_declarations(project, folder)):
+        text = path.read_text(encoding='utf-8', errors='replace')
+        if 'localStorage' not in text or not re.search(r'[\'"]dark[\'"]|\bdark\b', text): continue
+        constants = dict(re.findall(r'\b(\w+)\s*=\s*[\'"]([\w.:-]+)[\'"]', text))
+        for match in re.finditer(r'localStorage\.(?:getItem|setItem)\(\s*(?:[\'"]([\w.:-]+)[\'"]|(\w+))', text):
+            key = match[1] or constants.get(match[2])
+            if not key: continue
+            if re.search('theme', key, re.I): return {'theme_key': key}
+            if 'JSON' in text and re.search(r'\.theme\b|\btheme\s*[:?]', text): return {'theme_key': key, 'theme_field': 'theme'}
+    return {}
+
+
 def database_kind(project, folder, package):
     deps = dependencies(package)
     for base in (Path(project) / folder, Path(project)):
@@ -225,8 +271,9 @@ def prepare_commands(manager, package, project, folder, database):
     return commands
 
 
-def detect(project):
-    """{'profile': the draft run.json, 'facts': what was found, 'limitations': [...]} from the files alone."""
+def detect(project, report=None):
+    """{'profile': the draft run.json, 'facts': what was found, 'limitations': [...]} from the files alone. A value the
+    project documents as a folder of a report points at `report` (report_values)."""
     project = Path(project)
     folder = app_folder(project)
     if folder is None:
@@ -240,6 +287,8 @@ def detect(project):
     database = database_kind(project, folder, package)
     names = environment_names(project, folder)
     env, unset = environment_values(names, port, database)
+    data = report_values(project, folder, unset, report)
+    env, unset = {**env, **data}, [name for name in unset if name not in data]
     limitations = []
     if start is None: limitations.append('no safe command starts the app (its dev and start scripts deploy, or there are none)')
     if database in ('mysql', 'mongodb'): limitations.append(f'the app uses {database}; EAOS starts PostgreSQL and SQLite only, so pages that need data may be empty')
@@ -251,6 +300,8 @@ def detect(project):
                'checks': checks(manager, package)}
     prepare = prepare_commands(manager, package, project, folder, database)
     if prepare: profile['prepare'] = prepare
+    storage = display_storage(project, folder)
+    if storage: profile['screens'] = storage
     if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
     if build and production:
         baseline_env = {k: v for k, v in profile['env'].items() if k != 'NODE_ENV'}
@@ -308,6 +359,20 @@ def signed_out(page):
     return bool(page.get('password')) or bool(re.search(r'/(login|signin|sign-in|auth)(\b|/|\?|$)', page.get('url') or '', re.I))
 
 
+# The words of a page that shows nothing yet: no data, no report, an empty list.
+EMPTY = re.compile(r'\b(no (data|reports?|results?|items?|records?|content|entries)\b|nothing (here|to show|yet)|is empty\b|'
+                   r'(not|none) (found|available|loaded) yet)|لا (يوجد|توجد|شيء|بيانات)|فارغ', re.I)
+
+
+def empty_state(page, unset):
+    """Why the first page is no working app although it answered: it shows an empty, "no data" state while the run
+    has no value for a name the app reads, so every screen would be pictured empty. '' otherwise."""
+    text = ' '.join((page.get('text') or '').split())
+    if not unset or not (EMPTY.search(text) or len(text.split()) < 3): return ''
+    return ('the first page shows an empty, no-data state while the app runs without a value for: ' + ', '.join(unset[:12])
+            + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
+
+
 def verify(project, runtime, attempt, report=None, mode='lock'):
     """Run the draft: install (and, for the baseline, build), start, seed, open the first page and a few screens.
     {'ok', 'page', 'fixtures', 'failure'}"""
@@ -331,9 +396,11 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         page = json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
         record['page'] = page
         bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400]
-        record['ok'] = not bad and not signed_out(page) and not stuck(page)
+        names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
+        empty = '' if mode == 'baseline' else empty_state(page, [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV'])
+        record['ok'] = not bad and not signed_out(page) and not stuck(page) and not empty
         if not record['ok']:
-            record['failure'] = ('the first page asks for a sign-in' if signed_out(page) else
+            record['failure'] = ('the first page asks for a sign-in' if signed_out(page) else empty if not bad and not stuck(page) and empty else
                                  'every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
                                  'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600] if stuck(page) else
                                  f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}")
@@ -570,7 +637,7 @@ def setup(project, runtime, report=None, provider=None, say=print):
 def _setup(project, runtime, report, provider, say):
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     progress.begin('detect')
-    detected = detect(project)
+    detected = detect(project, report)
     if detected['profile'] is None:
         why = '; '.join(detected['limitations'])[:300]
         progress.end('detect', 'unavailable', why, 'no_app_profile')

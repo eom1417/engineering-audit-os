@@ -16,7 +16,7 @@ from . import __version__
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
 performance problems with evidence, and fixes them safely: each fix is made in an isolated copy, checked (the
 problem is gone, nothing broke, no endpoint disappeared, the project's own checks and every recorded screen still
-pass) and handed over as a new git branch, eaos/wave-N. The person's current branch and files are never touched.
+pass) and handed over as a new git branch, eaos/<branch>/wave-N. The person's current branch and files are never touched.
 
 The person is usually not a developer. Speak to them in their language, in plain words, without jargon.
 Work on your own until the job is done; do not come back to them between steps. Ask them only:
@@ -282,10 +282,15 @@ def build():
         return tools.safety_net(project)
 
     @server.tool(annotations=working, description='Open a batch of fixes in an isolated copy: the next cards EAOS can fix (or the card ids '
-                 'you pass), with their automatic fixes (codemods) applied and checked. Returns the cards left for you. Returns a job.')
+                 'you pass), with their automatic fixes (codemods) applied and checked. Returns the cards left for you. Returns a job. '
+                 'Optional, as the person set them in the fix preview: base (the branch to build on; default the branch EAOS works '
+                 'on), deliver_as (the new branch the fixes arrive on; default eaos/<branch>/wave-N), merge_into (the branch accept '
+                 'merges into; default the branch open in the project folder), base_commit (the commit the preview showed for base: '
+                 'status base_moved when the branch moved since).')
     @_answer
-    def fix_start(cards: list[str] | None = None, size: int = 10, project: str | None = None) -> str:
-        return tools.fix_start(project, cards, size)
+    def fix_start(cards: list[str] | None = None, size: int = 10, project: str | None = None, base: str | None = None,
+                  deliver_as: str | None = None, merge_into: str | None = None, base_commit: str | None = None) -> str:
+        return tools.fix_start(project, cards, size, base=base, deliver_as=deliver_as, merge_into=merge_into, base_commit=base_commit)
 
     @server.tool(annotations=reading, description='Read a file (or list a folder) in the open batch\'s copy, as it is now, with line numbers.')
     @_answer
@@ -307,7 +312,7 @@ def build():
         return tools.fix_skip(card, reason, project)
 
     @server.tool(annotations=working, description='Close the batch: every kept change together through the project\'s own checks and every '
-                 'recorded screen (a change that breaks them is found and left out), then the branch eaos/wave-N in the person\'s '
+                 'recorded screen (a change that breaks them is found and left out), then the branch eaos/<branch>/wave-N in the person\'s '
                  'project. Their current branch and files are not touched. Returns a job.')
     @_answer
     def fix_finish(project: str | None = None) -> str:

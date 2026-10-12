@@ -5,7 +5,8 @@ extractor produced: every fact whose surface is a person- or service-addressable
 and whose framework is one the user can reach. The grouping rule is taken from the
 project's own conventions: a layout-only segment (``/_authenticated``) and a parameter
 (``$invoiceId``) collapse to the next named segment; the CLI surface groups by the
-script that defined it. The facts are joined to flows (to learn which files the entry
+command that defines it (a program's subcommands; a lone script by its file), and dev scripts under
+tools/ or scripts/ are no feature. The facts are joined to flows (to learn which files the entry
 touches) and to data_access (to learn which tables it reads and writes), and a feature
 is critical when it is allowed to write to a table or when its path crosses an
 authentication or payments boundary. Surfaces that did not enter any feature are
@@ -193,9 +194,38 @@ def _surface_identifier(fact):
     return value.get('route') or ''
 
 
+# Frameworks whose CLI surfaces are a program's own commands: each command (subcommand) is one feature.
+_COMMANDS = frozenset({'argparse', 'click', 'console_script', 'go_command'})
+# Folders of a developer's scripts: running them is maintaining the product, not using it.
+_DEV_TOOLING = frozenset({'tools', 'tool', 'scripts', 'script'})
+
+
+def _namer(surface_facts):
+    """The feature a surface belongs to, or None when it is no product feature.
+
+    A program with commands (argparse subparsers, click, console scripts) groups its CLI by command; a module's
+    `if __name__ == '__main__'` is then a helper, not a feature. A script under tools/ or scripts/ is dev tooling.
+    Route `/` is `home` only in a web app; in a program with commands, a web front end is named by its folder
+    (studio/src/App.tsx is `studio`)."""
+    commands = any((f.get('value') or {}).get('surface') == 'cli' and (f.get('value') or {}).get('framework') in _COMMANDS
+                   and (f.get('value') or {}).get('route') for f in surface_facts)
+
+    def name(fact):
+        value, path = fact.get('value') or {}, (fact.get('location') or {}).get('path') or ''
+        if value.get('surface') == 'cli':
+            if _DEV_TOOLING & set(path.split('/')[:-1]): return None
+            if value.get('framework') in _COMMANDS and value.get('route'): return f"cli:{value['route']}"
+            return None if commands else f"cli:{_surface_identifier(fact)}"
+        feature = _feature_name(_surface_identifier(fact))
+        if feature == 'home' and commands and '/' in path: return path.split('/', 1)[0]
+        return feature
+    return name
+
+
 def build(facts):
     """Group user-facing surfaces into features and bind them to files, tables, and evidence."""
     surface_facts = _user_facing_surfaces(facts)
+    feature_of = _namer(surface_facts)
     flow_index = _index_flows_by_route(facts)
     data_access_index = _index_data_access(facts)
     by_feature = OrderedDict()
@@ -207,10 +237,8 @@ def build(facts):
         if not identifier:
             continue
         fact_value = fact.get('value') or {}
-        if fact_value.get('surface') == 'cli':
-            feature = f"cli:{identifier}"
-        else:
-            feature = _feature_name(identifier)
+        feature = feature_of(fact)
+        if not feature: continue
         record = by_feature.setdefault(feature, {'surfaces': [], 'evidence': [], 'files': [],
                                                 'tables': [], 'writes': False})
         record['surfaces'].append(identifier)
@@ -223,10 +251,7 @@ def build(facts):
     for fact in surface_facts:
         if fact.get('id') not in consumed: continue
         value = fact.get('value') or {}
-        if value.get('surface') == 'cli':
-            feature = f"cli:{_surface_identifier(fact)}"
-        else:
-            feature = _feature_name(_surface_identifier(fact))
+        feature = feature_of(fact)
         location_path = (fact.get('location') or {}).get('path')
         handler = value.get('handler')
         component = components.get((location_path, handler)) or by_stem.get((location_path, handler))

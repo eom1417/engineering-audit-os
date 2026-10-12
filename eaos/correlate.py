@@ -57,8 +57,20 @@ def _status(evaluated, engine, kind):
     return detail.get('status') if isinstance(detail, dict) else detail
 
 
-def verdict(kind, asserted_by, evaluated):
-    """How much weight a kind of finding at one place has earned."""
+# Kinds that are a measurement: agreeing engines corroborate only when one of them measured a value over the threshold
+# it declares. Two engines reporting complexity 1 at a file are two measurements, not a problem.
+MEASURED = ('complexity',)
+
+
+def over_threshold(fact):
+    """Whether one of the finding's measurements exceeds the threshold it declares."""
+    return any(isinstance(m.get('value'), (int, float)) and isinstance(m.get('threshold'), (int, float))
+               and m['value'] > m['threshold'] for m in (fact.get('value') or {}).get('measurements') or [])
+
+
+def verdict(kind, asserted_by, evaluated, over=None):
+    """How much weight a kind of finding at one place has earned. `over`: the engines whose value of a MEASURED kind
+    exceeds their declared threshold here; with none, more engines are not corroboration."""
     silent = {engine: state for engine in evaluated
               if (state := _status(evaluated, engine, kind)) and engine not in asserted_by}
     asserted_at = {_resolution(evaluated, engine, kind) for engine in asserted_by}
@@ -67,7 +79,7 @@ def verdict(kind, asserted_by, evaluated):
     other_resolution = sorted(engine for engine, state in silent.items()
                               if state == OBSERVED and _resolution(evaluated, engine, kind) not in asserted_at)
     denied_fully = same_resolution if kind in DENIABLE else []
-    if len(asserted_by) > 1:
+    if len(asserted_by) > 1 and (kind not in MEASURED or over is None or over):
         decision = CORROBORATED
     elif denied_fully:
         decision = CONTESTED
@@ -342,7 +354,12 @@ def clusters(sets):
             if (fact.get('value') or {}).get('referenced_by_registry'):
                 continue
             kinds.setdefault(fact['value']['kind'], set()).add(fact['value']['engine'])
-        corroboration = {kind: verdict(kind, engines, evaluated) for kind, engines in sorted(kinds.items())}
+        over = {}
+        for fact in facts:
+            if fact['value']['kind'] in MEASURED and over_threshold(fact):
+                over.setdefault(fact['value']['kind'], set()).add(fact['value']['engine'])
+        corroboration = {kind: verdict(kind, engines, evaluated, over.get(kind, set()) if kind in MEASURED else None)
+                         for kind, engines in sorted(kinds.items())}
         if not corroboration:
             continue
         engines = sorted({fact['value']['engine'] for fact in facts

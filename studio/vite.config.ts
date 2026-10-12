@@ -26,6 +26,17 @@ function reportData(): Plugin {
   }
 }
 
+// The page's own policy (index.html) is strict, and the built Studio keeps it as written. The dev server alone needs
+// two things it forbids: its live-reload websocket and React's inline refresh preamble. Without them every page the
+// screen audit takes of the dev server logs script errors (2026-10-12: three on each of the 26 pictures).
+function devPolicy(): Plugin {
+  return {
+    name: 'eaos-dev-policy',
+    apply: 'serve',
+    transformIndexHtml: (html) => html.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'").replace("connect-src 'none'", "connect-src 'self' ws: wss:"),
+  }
+}
+
 // No address outside the Studio is shipped (tests/test_studio_assets.py). The libraries name their repositories and
 // documentation in error and warning messages only: marked's lexer, Mermaid and its parser (chevrotain, langium) and
 // highlight.js never request them, so those words are taken out of the bundle; behaviour is unchanged. XML namespaces stay (test allowlist).
@@ -144,7 +155,7 @@ var module=ran[${JSON.stringify(name(entry!.fileName))}]={exports:{}};
 export default defineConfig({
   base: './',
   // React Aria's strings only for the two languages the Studio speaks (docs/adoption/ns37-t1-finish.md)
-  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), noOutsideAddress(), noElk(), classicScript(), classicChunks()],
+  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), devPolicy(), noOutsideAddress(), noElk(), classicScript(), classicChunks()],
   server: { host: '0.0.0.0', port: 5180, allowedHosts: ['.dev.remote.e-m.sa'] },
   build: {
     outDir: 'dist',

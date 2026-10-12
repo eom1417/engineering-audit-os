@@ -43,6 +43,7 @@ import json
 import math
 from pathlib import Path
 
+from ..plain import kind as plain_kind
 from ..ranking import CONFIDENCE_WEIGHT
 
 # The language of a source file by its suffix: the Studio's languages bar and the coverage of function facts.
@@ -55,25 +56,31 @@ SEVERITIES = ('critical', 'high', 'medium', 'low')
 SEVERITY_WEIGHT = {'critical': 10, 'high': 5, 'medium': 2, 'low': 1}
 HALF_POINT = 20          # weighted points per 100 files at which an area scores 50
 CRITICAL_CAP = 39
-AREAS = ('security', 'structure', 'quality', 'performance', 'maintainability')
+# ux: how the screens look, from the visual reviewer's design cards; measured only in a check that pictured them.
+AREAS = ('security', 'structure', 'quality', 'performance', 'ux', 'maintainability')
 PATTERNS = {
     'access_gap': ('security', 'critical'), 'upgrade_dependency': ('security', 'high'),
     'broken_code': ('quality', 'high'), 'remove_dead': ('quality', 'low'), 'dead_code': ('quality', 'low'),
     'canonicalize': ('quality', 'low'), 'duplicated_rule': ('quality', 'medium'),
-    'import_cycle': ('structure', 'medium'), 'mutable_state': ('structure', 'medium'),
+    'import_cycle': ('structure', 'medium'), 'mutable_state': ('structure', 'medium'), 'mutable_state_private': ('structure', 'low'),
     'hidden_coupling': ('structure', 'low'), 'external_write': ('structure', 'medium'),
     'policy_violation': ('structure', 'medium'),
     'load_blocker': ('performance', 'medium'), 'redundant_work': ('performance', 'medium'),
     'hotspot': ('maintainability', 'medium'), 'trace_gap': ('maintainability', 'low'),
     'untested_path': ('maintainability', 'medium'), 'generic': ('maintainability', 'medium'),
+    'design_review': ('ux', 'medium'), 'investigation': ('maintainability', 'low'),
 }
 CATEGORY_AREA = {'security': 'security', 'supply_chain': 'security', 'architecture': 'structure', 'data': 'structure',
                  'dead_code': 'quality', 'reliability': 'maintainability', 'maintainability': 'maintainability'}
 # The stage whose failure leaves an area unmeasured.
-AREA_STAGE = {'security': 'facts', 'structure': 'facts', 'quality': 'facts', 'performance': 'load', 'maintainability': 'measure'}
+AREA_STAGE = {'security': 'facts', 'structure': 'facts', 'quality': 'facts', 'performance': 'load', 'ux': 'visual',
+              'maintainability': 'measure'}
+# Areas whose stage is optional: measured only when that stage ran, never scored 100 for having looked at nothing.
+AREA_OPTIONAL = {'ux'}
 GRADES = ((90, 'excellent'), (75, 'good'), (60, 'fair'), (40, 'weak'), (0, 'critical'))
-CLOSED = ('done', 'resolved')
-CARD_STATES = ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')   # eaos/ledger.py
+CLOSED = ('done',)
+# eaos/ledger.py; 'resolved' is an older ledger's state (a problem no longer found), counted nowhere and shown nowhere.
+CARD_STATES = ('done', 'resolved', 'on_branch', 'in_batch', 'open', 'skipped')
 
 
 def _load(path, default):
@@ -83,10 +90,12 @@ def _load(path, default):
 
 def classify(task, debt=None, category=None):
     """(area, severity) of one card: the PATTERNS table, with the debt register's severity when it has one."""
-    pattern = task.get('pattern') or 'generic'
+    pattern = plain_kind(task)
     area, severity = PATTERNS.get(pattern, PATTERNS['generic'])
-    if pattern not in PATTERNS or pattern == 'generic':
+    # An investigation (an unproven claim) stays in the area of what it is about.
+    if pattern not in PATTERNS or pattern in ('generic', 'investigation'):
         area = CATEGORY_AREA.get(category, area)
+    debt = debt or (task.get('design') or {}).get('severity')
     if debt in SEVERITY_WEIGHT: severity = debt
     return area, severity
 
@@ -107,7 +116,7 @@ def problems(report):
         area, severity = classify(task, item.get('severity'), item.get('category'))
         assessment = claim.get('assessment') or {}
         decision = task.get('decision') or {}
-        rows.append({'id': task.get('id', ''), 'pattern': task.get('pattern') or 'generic', 'area': area, 'severity': severity,
+        rows.append({'id': task.get('id', ''), 'pattern': plain_kind(task), 'area': area, 'severity': severity,
                      'confidence': claim.get('confidence') or task.get('confidence') or 'CONFIRMED',
                      'auto': task.get('kind') == 'remediate' and decision.get('readiness') == 'ready',
                      'outcomes': decision.get('allowed_outcomes') or [], 'options': task.get('options') or [],
@@ -139,7 +148,8 @@ def score(rows, source_files, statuses=None, known=True):
         mine = [r for r in rows if r['area'] == area]
         points = sum(SEVERITY_WEIGHT[r['severity']] * CONFIDENCE_WEIGHT.get(r['confidence'], 1.0) for r in mine)
         density = points / size
-        measured = known and statuses.get(AREA_STAGE[area]) not in ('failed', 'not_reached')
+        measured = known and statuses.get(AREA_STAGE[area]) not in ('failed', 'not_reached') \
+            and (area not in AREA_OPTIONAL or statuses.get(AREA_STAGE[area]) == 'ok')
         value = round(100 * HALF_POINT / (HALF_POINT + density))
         counts = {s: sum(r['severity'] == s for r in mine) for s in SEVERITIES}
         light = ('red' if value < 50 or counts['critical'] else 'green' if value >= 80 and not counts['high'] else 'amber')
@@ -185,35 +195,35 @@ def waves_state(progress):
 
 
 def task_cards(m):
-    """Every card: the plan's rows with their ledger state, then the ledger's cards the plan no longer has (fixed ones).
-    With no ledger, a card kept by a batch is done and one that failed needs a decision, as before the ledger."""
+    """Every card of the plan, with its ledger state (by its id in this plan). A ledger row without a plan card (a
+    problem the check no longer finds, or one fixed and merged before it) is not a card: it never reaches a page, it
+    only counts in the progress (gap_totals). With no ledger, a card kept by a batch is done and one that failed needs
+    a decision, as before the ledger."""
     stones = {t: s.get('id') for s in m['plan'].get('milestones') or [] if isinstance(s, dict) for t in s.get('tasks') or []}
     ledger = ledger_of(m)
     kept, failed = waves_state(m['progress'])
     mine = {c.get('id'): c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict) and c.get('id')}
-    out, seen = [], set()
+    out = []
     for r in m['rows']:
         c = mine.get(r['id']) or {}
         state = c.get('state') if ledger else 'done' if r['id'] in kept else 'skipped' if r['id'] in failed else 'open'
-        seen.add(r['id'])
         out.append({'id': r['id'], 'key': c.get('key') or r['id'], 'title': r['title'], 'pattern': r['pattern'], 'severity': r['severity'],
                     'milestone': c.get('milestone') or stones.get(r['id']), 'paths': r['paths'], 'before': r['before'], 'after': r['after'] or r['change'],
-                    'state': state if state in CARD_STATES else 'open', 'new': bool(c.get('new')), 'batch': c.get('batch'), 'at': c.get('at'),
+                    'state': state if state in CARD_STATES and state != 'resolved' else 'open', 'new': bool(c.get('new')), 'batch': c.get('batch'), 'at': c.get('at'),
                     'why': c.get('why') or ('' if ledger else failed.get(r['id'], '')), 'commit': c.get('commit')})
-    for c in (ledger or {}).get('cards') or []:
-        if not isinstance(c, dict) or (c.get('id') and c['id'] in seen): continue
-        pattern = c.get('pattern') or 'generic'
-        out.append({'id': c.get('id') or '', 'key': c.get('key') or '', 'title': c.get('title') or '', 'pattern': pattern,
-                    'severity': PATTERNS.get(pattern, PATTERNS['generic'])[1], 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
-                    'before': '', 'after': '', 'state': c.get('state') if c.get('state') in CARD_STATES else 'open', 'new': bool(c.get('new')),
-                    'batch': c.get('batch'), 'at': c.get('at'), 'why': c.get('why') or '', 'commit': c.get('commit')})
     return out
+
+
+def problem_counts(m):
+    """The one count of problems every page says (the Studio's headline and its cards): the cards of the plan
+    (task_cards), and those EAOS fixes by itself."""
+    return {'problems': len(m['rows']), 'fixable': sum(1 for r in m['rows'] if r['auto'])}
 
 
 def gap_totals(m, cards):
     """The ledger's totals when it has them, else counted from the cards; percent is closed / total."""
     counts = {s: sum(c['state'] == s for c in cards) for s in CARD_STATES}
-    t = {'total': len(cards), 'closed': counts['done'] + counts['resolved'], 'new': sum(c['new'] for c in cards), **counts}
+    t = {'total': len(cards), 'closed': counts['done'], 'new': sum(c['new'] for c in cards), **counts}
     given = (ledger_of(m) or {}).get('totals')
     if isinstance(given, dict):
         t.update({k: v for k, v in given.items() if isinstance(v, (int, float)) and not isinstance(v, bool)})

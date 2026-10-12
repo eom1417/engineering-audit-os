@@ -75,18 +75,23 @@ def _node(script, config, timeout, env=None):
     except ValueError as problem: return None, f'{script} printed no JSON: {problem}'
 
 
-def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=('light', 'dark')):
+def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=('light', 'dark'),
+             lang_field=None, theme_field=None):
     """The page variants to audit. A language is set through a localStorage key or a query parameter, when one is
     named; a theme the same way, and always through prefers-color-scheme. With no theme key or parameter, the dark
-    variant is audited only when the page declares a dark scheme (audit.mjs checks it on the light variant)."""
+    variant is audited only when the page declares a dark scheme (audit.mjs checks it on the light variant).
+    A key with a field keeps a JSON object (the EAOS Studio keeps {"lang", "theme"} under "eaos.studio"): the variant's
+    value is merged into that object, {key: {field: value}}, rather than set as the whole value."""
     languages = list(langs) if (lang_key or lang_param) else [None]
     rows = []
     for theme in themes:
         for lang in languages:
             storage, query = {}, {}
-            if lang and lang_key: storage[lang_key] = lang
+            for key, field, value in ((lang_key, lang_field, lang), (theme_key, theme_field, theme)):
+                if not (key and value): continue
+                if field: storage[key] = {**(storage.get(key) if isinstance(storage.get(key), dict) else {}), field: value}
+                else: storage[key] = value
             if lang and lang_param: query[lang_param] = lang
-            if theme_key: storage[theme_key] = theme
             if theme_param: query[theme_param] = theme
             rows.append({'name': '-'.join(part for part in (lang, theme) if part), 'lang': lang, 'theme': theme,
                          'color_scheme': theme if theme in ('light', 'dark') else 'light', 'storage': storage, 'query': query,
