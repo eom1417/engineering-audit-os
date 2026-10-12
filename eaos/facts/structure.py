@@ -147,14 +147,6 @@ def _python_callee(node):
     return '<expr>', False
 
 
-def _walk_tree_sitter(node, language):
-    """Yield descendants of a tree-sitter node in source order."""
-    cursor = node.walk()
-    if not cursor.goto_first_child(): return
-    while True:
-        yield cursor.node
-        yield from _walk_tree_sitter(cursor.node, language)
-        if not cursor.goto_next_sibling(): return
 
 
 def _tree_sitter_parse(text, rel, language):
