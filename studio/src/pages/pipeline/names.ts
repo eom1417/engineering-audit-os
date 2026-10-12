@@ -7,7 +7,7 @@ const stages: Record<string, [string, string]> = {
   claims: ['تجميع الأدلة', 'Collect evidence'], probe: ['فحص إضافي', 'Run probes'], semantic: ['تحليل بالذكاء', 'AI analysis'],
   plan: ['إعداد الخطة', 'Build plan'],
   target: ['تصميم الهدف', 'Design target'],
-  triage: ['فرز البطاقات بالذكاء', 'AI card triage'], ideal: ['تخطيط المثالي بالذكاء', 'AI ideal planning'], order: ['ترتيب الخطة بالذكاء', 'AI plan order'], reports: ['إعداد التقارير', 'Write reports'],
+  triage: ['فرز البطاقات بالذكاء', 'AI card triage'], ideal: ['تخطيط المثالي بالذكاء', 'AI ideal planning'], order: ['ترتيب الخطة بالذكاء', 'AI plan order'], reports: ['إعداد التقارير', 'Write reports'], verify: ['التحقق من النتائج', 'Verify results'], sustainability: ['فحص الاستدامة', 'Check sustainability'], transform: ['تخطيط التغيير', 'Plan changes'], journeys: ['رحلات المستخدم', 'User journeys'], architecture: ['خريطة البنية', 'Architecture map'], readiness: ['الجاهزية تحت الضغط', 'Readiness under pressure'],
   RUNNERS: ['توزيع المراحل', 'Route stages'],
   setup: ['تشغيل البرنامج', 'Run the app'], record: ['تسجيل السلوك', 'Record behavior'],
   crawl: ['مسح الصفحات', 'Crawl pages'], screens: ['صور الشاشات', 'Screen pictures'], baseline: ['السرعة تحت الضغط', 'Speed under load'],

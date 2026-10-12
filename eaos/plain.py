@@ -92,6 +92,7 @@ STAGES = {
     'plan': ('أكتب مهام الإصلاح', 'Writing the fix tasks'),
     'target': ('أرسم البنية المثالية', 'Drawing the ideal structure'),
     'reports': ('أكتب التقارير', 'Writing the reports'),
+    'readiness': ('أقيس جاهزيته تحت الضغط', 'Measuring its readiness under pressure'),
     'quality': ('أراجع جودة التقارير', 'Checking the reports'),
     'pdf': ('أجهّز ملف PDF', 'Making the PDF'),
     'execution_guide': ('أكتب دليل التنفيذ', 'Writing the execution guide'),
