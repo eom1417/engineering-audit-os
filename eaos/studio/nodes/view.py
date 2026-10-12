@@ -51,33 +51,56 @@ def section(report, lang='ar'):
     logs = _log(report)
     rows, questions = [], []
     for node in NODES:
-        last = core.last(report, node)
-        last = last if isinstance(last, dict) and last.get('node') == node.name else None
-        taken = {r['decision']: len(r.get('subjects') or []) for r in (last or {}).get('routes') or []}
+        last = _last_run(report, node)
         decisions = list((last or {}).get('decisions') or [])
-        for d in decisions:
-            for q in d.get('open_questions') or []:
-                questions.append({'id': f"{node.name}:{d['subject']}:{q['id']}", 'node': node.name, 'subject': d['subject'], 'question': q['question'],
-                                  'options': list(q.get('options') or []), 'recommendation': q.get('recommendation')})
-        rows.append({'id': node.name, 'title': {'en': node.title, 'ar': TITLES_AR.get(node.name, node.title)}, 'kind': 'ai',
-                     'passes': list(node.passes), 'requires': list(node.requires),
-                     'routes': [{'decision': r.decision, 'to': r.to, 'when': {'en': r.when, 'ar': WHEN_AR.get((node.name, r.decision), r.when)},
-                                 'subjects': taken.get(r.decision, 0)} for r in node.routes],
-                     'state': last['state'] if last else 'not_run', 'method': last['method'] if last else None,
-                     'assistant': (last or {}).get('assistant'), 'model': (last or {}).get('model'), 'at': (last or {}).get('at'),
-                     'cached': bool((last or {}).get('cached')), 'seconds': (last or {}).get('seconds'), 'cost_usd': (last or {}).get('cost_usd'),
-                     'why': (last or {}).get('why'), 'summary': (last or {}).get('summary') or None,
-                     'decisions': decisions[:LIMIT['decisions']], 'dropped': list((last or {}).get('dropped') or [])[:LIMIT['dropped']],
-                     'log': [{k: e.get(k) for k in ('at', 'state', 'assistant', 'model', 'prompt', 'inputs', 'cached', 'seconds', 'cost_usd')}
-                             for e in logs.get(node.name, [])[-LIMIT['log']:]]})
+        questions += _questions(node, decisions)
+        rows.append(_node_row(node, last, decisions, logs.get(node.name, []), TITLES_AR))
+    return {'nodes': rows, 'sinks': [{'id': key, 'title': {'en': en, 'ar': ar}} for key, (en, ar) in SINKS.items()],
+            'questions': questions, 'counts': _counts(rows)}
+
+
+def _last_run(report, node):
+    last = core.last(report, node)
+    return last if isinstance(last, dict) and last.get('node') == node.name else None
+
+
+def _questions(node, decisions):
+    return [{'id': f"{node.name}:{d['subject']}:{q['id']}", 'node': node.name, 'subject': d['subject'], 'question': q['question'],
+             'options': list(q.get('options') or []), 'recommendation': q.get('recommendation')}
+            for d in decisions for q in d.get('open_questions') or []]
+
+
+def _routes(node, last):
+    taken = {r['decision']: len(r.get('subjects') or []) for r in (last or {}).get('routes') or []}
+    return [{'decision': r.decision, 'to': r.to, 'when': {'en': r.when, 'ar': WHEN_AR.get((node.name, r.decision), r.when)},
+             'subjects': taken.get(r.decision, 0)} for r in node.routes]
+
+
+def _run_fields(last):
+    """How the node's last run was decided; a node that never ran says so."""
+    run = last or {}
+    return {'state': last['state'] if last else 'not_run', 'method': last['method'] if last else None,
+            'assistant': run.get('assistant'), 'model': run.get('model'), 'at': run.get('at'),
+            'cached': bool(run.get('cached')), 'seconds': run.get('seconds'), 'cost_usd': run.get('cost_usd'),
+            'why': run.get('why'), 'summary': run.get('summary') or None}
+
+
+def _node_row(node, last, decisions, log, titles_ar):
+    return {'id': node.name, 'title': {'en': node.title, 'ar': titles_ar.get(node.name, node.title)}, 'kind': 'ai',
+            'passes': list(node.passes), 'requires': list(node.requires), 'routes': _routes(node, last),
+            **_run_fields(last),
+            'decisions': decisions[:LIMIT['decisions']], 'dropped': list((last or {}).get('dropped') or [])[:LIMIT['dropped']],
+            'log': [{k: e.get(k) for k in ('at', 'state', 'assistant', 'model', 'prompt', 'inputs', 'cached', 'seconds', 'cost_usd')}
+                    for e in log[-LIMIT['log']:]]}
+
+
+def _counts(rows):
     count = lambda value, what: {'value': value, 'src': f'nodes/<node>/last.json: {what}', 'unit': 'count'}
     ran = [r for r in rows if r['state'] != 'not_run']
-    return {'nodes': rows, 'sinks': [{'id': key, 'title': {'en': en, 'ar': ar}} for key, (en, ar) in SINKS.items()],
-            'questions': questions,
-            'counts': {'nodes': count(len(rows), 'declared nodes'), 'ran': count(len(ran), 'nodes with a last run'),
-                       'by_model': count(sum(r['method'] == 'model' for r in ran), "nodes the person's assistant decided"),
-                       'decisions': count(sum(len(r['decisions']) for r in rows), 'decisions'),
-                       'dropped': count(sum(len(r['dropped']) for r in rows), 'decisions dropped by the evidence check')}}
+    return {'nodes': count(len(rows), 'declared nodes'), 'ran': count(len(ran), 'nodes with a last run'),
+            'by_model': count(sum(r['method'] == 'model' for r in ran), "nodes the person's assistant decided"),
+            'decisions': count(sum(len(r['decisions']) for r in rows), 'decisions'),
+            'dropped': count(sum(len(r['dropped']) for r in rows), 'decisions dropped by the evidence check')}
 
 
 def decisions(report, lang='ar'):
