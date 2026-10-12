@@ -103,12 +103,12 @@ function HistoryCharts({ history, project }: { history: HistoryData; project: st
       )}
       {progress.filter((p) => p.percent !== null).length >= 2 && (
         <Section title={w('progressTitle')} id="s-progress">
-          <Panel className={css.chartPanel}>
+          {progress.every((p) => !p.percent) ? <Panel pad><p className={css.chartLead}>{w('noFixesYet')}</p></Panel> : <Panel className={css.chartPanel}>
             <p className={css.chartLead}>{w('progressLead')}</p>
             <LineChart values={progress.filter((p) => p.percent !== null).map((p) => ({ at: p.at, value: p.percent! }))} format={pct}
               ticks={[{ at: 0, label: '0%' }, { at: 0.5, label: '50%' }, { at: 1, label: '100%' }]}
               label={w('progressAria', { n: progress.length, a: Math.round((progress[0].percent ?? 0) * 100), b: Math.round((last(progress)!.percent ?? 0) * 100) })} />
-          </Panel>
+          </Panel>}
         </Section>
       )}
     </>

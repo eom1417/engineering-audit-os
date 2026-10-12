@@ -22,6 +22,7 @@ export const HISTORY_WORDS = {
   openTitle: ['المشاكل المفتوحة حسب الخطورة', 'Open problems by severity'],
   openAria: ['المشاكل المفتوحة عبر {n} فحص، من {a} إلى {b}', 'Open problems over {n} checks, from {a} to {b}'],
   progressTitle: ['الإصلاحات التي دخلت فرعك', 'Fixes taken into your branch'],
+  noFixesYet: ['لم تُغلق الإصلاحات أي بطاقة بعد.', 'No fix has closed a card yet.'],
   progressLead: ['نسبة ما أُغلق من كل البطاقات بعد كل فحص وكل دمج.', 'The share of all cards closed after every check and every merge.'],
   progressAria: ['ما أُغلق عبر {n} نقطة، من {a}٪ إلى {b}٪', 'Closed over {n} points, from {a}% to {b}%'],
   oneScan: ['فحص واحد حتى الآن', 'One check so far'],
