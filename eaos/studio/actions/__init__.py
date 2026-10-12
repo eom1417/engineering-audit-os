@@ -88,15 +88,82 @@ def _run_id():
     return 'r' + datetime.now().strftime('%Y%m%d-%H%M%S-') + os.urandom(3).hex()
 
 
+# The GET routes that take nothing from the path: /api/<route> -> (actions, query) -> answer.
+GET_ROUTES = {
+    ('session',): lambda a, q: a.session(),
+    ('actions',): lambda a, q: a.contract,
+    ('assistants',): lambda a, q: {'assistants': a.assistants()},
+    ('runs',): lambda a, q: a.runs(q),
+    ('questions',): lambda a, q: {'questions': a.questions()},
+    ('decisions',): lambda a, q: {'decisions': a.report_decisions()},
+    ('freshness',): lambda a, q: {'freshness': a.branches.freshness()},
+    ('context',): lambda a, q: {'context': a.branches.context() if a.branches.is_repo() else None},
+    ('branches',): lambda a, q: a.branches.inventory(q.get('base') or None),
+    ('branches', 'detail'): lambda a, q: a.branches.detail(q.get('name'), q.get('kind') or 'local', q.get('remote'), q.get('base') or None,
+                                                           q.get('path') or None),
+}
+
+
+def _chosen_answer(question, option, text):
+    """The option the owner chose, or None for a custom answer; refused when the answer is neither, or both."""
+    chosen = next((o for o in question.get('options', []) if o['id'] == option), None)
+    if option is not None and text is not None:
+        raise ValueError('send either an option or a custom answer, not both')
+    if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000):
+        raise ValueError('text must contain 1 to 4000 characters')
+    if not chosen and not (option is None and text):
+        raise ValueError('choose an authoritative option or a custom answer')
+    return chosen
+
+
+def _owner_response(saved, row, answer, path):
+    """The owner's saved answer to a report question, saved now when it is the first; `answer`: (decision, option,
+    text, the chosen option). A different answer to a question already answered is refused."""
+    decision, option, text, chosen = answer
+    response = saved.get(row['scope'])
+    if response and (response['option'] != option or response.get('text') != text):
+        raise LookupError('this question already has an owner answer')
+    if response: return response
+    response = {'decision': decision, 'scope': row['scope'], 'option': option, 'text': text,
+                'label': chosen['label'] if chosen else text, 'at': now(), 'provenance': 'owner:studio',
+                'status': 'saved', 'run': 'd' + row['scope'][:40],
+                'history': [{'at': now(), 'event': 'saved', 'by': 'owner:studio'}]}
+    saved[row['scope']] = response
+    _write_json(path, saved)
+    return response
+
+
+def _run_label(verb, label, cards):
+    if not verb: return label
+    return {lang: f"{label[lang]}: {', '.join(c['id'] for c in cards[:3])}{' …' if len(cards) > 3 else ''}" for lang in ('en', 'ar')}
+
+
+def _mode(action, needed, assistant):
+    if action in PLANNERS: return 'planner'
+    if not needed: return 'direct'
+    return 'handoff' if assistant == 'handoff' else 'assistant'
+
+
+def _decision_words(operation, branch, ok, result):
+    """What happened to the waiting branch, in both languages."""
+    if ok:
+        return {'en': f"{'Taken in' if operation == 'accept' else 'Thrown away'}: {branch}",
+                'ar': f"{'اعتُمد' if operation == 'accept' else 'رُمي'}: {branch}"}
+    return {'en': f"{operation} did not happen: {result.get('status') or result.get('error')}",
+            'ar': f"ما تم: {result.get('status') or result.get('error')}"}
+
+
 class Actions:
-    def __init__(self, project, home=None, port=8765, adapters=None, studio=None, lang='ar', token=None, remote_origin=None):
+    def __init__(self, project, **options):
+        """`options`, by name: home, port (8765), adapters (this computer's), studio, lang ('ar'), token, remote_origin."""
         from ... import guided
+        home, adapters, studio = options.get('home'), options.get('adapters'), options.get('studio')
         if home: os.environ['EAOS_HOME'] = str(home)
         self.project = Path(project).expanduser().resolve()
-        self.locks = Locks(port, token, remote_origin)
+        self.locks = Locks(options.get('port', 8765), options.get('token'), options.get('remote_origin'))
         self.token, self.csrf = self.locks.token, self.locks.csrf
         self.studio = Path(studio) if studio else None
-        self.lang = lang
+        self.lang = lang = options.get('lang', 'ar')
         self.adapters = adapters_module.installed() if adapters is None else dict(adapters)
         self.contract = contract()
         self.actions = {action['id']: action for action in self.contract['actions']}
@@ -137,47 +204,51 @@ class Actions:
     def _route(self, method, route, query, body):
         parts = route.strip('/').split('/')
         if parts[:1] != ['api']: raise KeyError(route)
-        rest = parts[1:]
-        if method == 'GET':
-            if rest == ['session']: return self.session()
-            if rest == ['actions']: return self.contract
-            if rest == ['assistants']: return {'assistants': self.assistants()}
-            if rest == ['runs']: return self.runs(query)
-            if rest == ['questions']: return {'questions': self.questions()}
-            if rest == ['decisions']: return {'decisions': self.report_decisions()}
-            if rest == ['freshness']: return {'freshness': self.branches.freshness()}
-            if rest == ['context']: return {'context': self.branches.context() if self.branches.is_repo() else None}
-            if rest == ['branches']: return self.branches.inventory(query.get('base') or None)
-            if rest == ['branches', 'detail']:
-                return self.branches.detail(query.get('name'), query.get('kind') or 'local', query.get('remote'), query.get('base') or None, query.get('path') or None)
-            if len(rest) == 2 and rest[0] == 'runs': return {'run': self.public(self.store.load(rest[1]))}
-            if len(rest) == 3 and rest[0] == 'runs' and rest[2] == 'events':
-                self.store.load(rest[1])
-                return {'events': self.store.events(rest[1], int(query.get('after') or 0))}
-            raise KeyError(route)
-        if len(rest) == 3 and rest[0] == 'actions' and rest[2] == 'preview': return self.preview(rest[1], body)
-        if rest[:1] == ['branches']:
-            change = {('analysis',): self.branches.select, ('merge', 'preview'): self.branches.preview_merge, ('merge',): self.branches.merge,
-                      ('conflict',): self.branches.propose_resolution, ('delete', 'preview'): self.branches.preview_delete,
-                      ('delete',): self.branches.delete, ('restore',): self.branches.restore, ('fetch',): self.branches.fetch,
-                      ('protect', 'preview'): self.branches.preview_protect, ('protect',): self.branches.protect,
-                      ('cleanup', 'preview'): self.branches.preview_cleanup, ('cleanup',): self.branches.cleanup}.get(tuple(rest[1:]))
-            if change is None: raise KeyError(route)
-            if not self.branches.is_repo(): raise LookupError('this project folder is not a git repository')
-            return change(body)
+        if method == 'GET': return self._get(parts[1:], query, route)
+        return self._post(parts[1:], body, route)
+
+    def _get(self, rest, query, route):
+        answer = GET_ROUTES.get(tuple(rest))
+        if answer: return answer(self, query)
+        if len(rest) == 2 and rest[0] == 'runs': return {'run': self.public(self.store.load(rest[1]))}
+        if len(rest) == 3 and rest[0] == 'runs' and rest[2] == 'events':
+            self.store.load(rest[1])
+            return {'events': self.store.events(rest[1], int(query.get('after') or 0))}
+        raise KeyError(route)
+
+    def _post(self, rest, body, route):
+        if rest[:1] == ['branches']: return self._branch_change(rest, body, route)
         if rest == ['runs']: return {'run': self.public(self.create(body))}
-        if len(rest) == 3 and rest[0] == 'decisions' and rest[2] == 'answer':
-            return {'decision': self.answer_decision(rest[1], body)}
         if rest == ['runs', 'reorder']: return {'queue': self.manager.reorder(body.get('order'))}
-        if len(rest) == 3 and rest[0] == 'questions' and rest[2] == 'answer':
-            return {'run': self.public(self.manager.answer(rest[1], body.get('option'), body.get('text')))}
-        if len(rest) == 3 and rest[0] == 'runs':
-            run, operation = rest[1], rest[2]
-            self.store.load(run)
-            if operation in ('pause', 'resume', 'stop', 'retry'):
-                self.store.append(run, 'action', {'en': f'You pressed {operation}', 'ar': f'ضغطت {operation}'}, {'action': operation, 'by': 'person', 'arguments': {}})
-                return {'run': self.public(getattr(self.manager, operation)(run))}
-            if operation in ('accept', 'undo'): return self.decide(run, operation, body)
+        if len(rest) == 3: return self._post_on(rest, body, route)
+        raise KeyError(route)
+
+    def _branch_change(self, rest, body, route):
+        change = {('analysis',): self.branches.select, ('merge', 'preview'): self.branches.preview_merge, ('merge',): self.branches.merge,
+                  ('conflict',): self.branches.propose_resolution, ('delete', 'preview'): self.branches.preview_delete,
+                  ('delete',): self.branches.delete, ('restore',): self.branches.restore, ('fetch',): self.branches.fetch,
+                  ('protect', 'preview'): self.branches.preview_protect, ('protect',): self.branches.protect,
+                  ('cleanup', 'preview'): self.branches.preview_cleanup, ('cleanup',): self.branches.cleanup}.get(tuple(rest[1:]))
+        if change is None: raise KeyError(route)
+        if not self.branches.is_repo(): raise LookupError('this project folder is not a git repository')
+        return change(body)
+
+    def _post_on(self, rest, body, route):
+        """POST /api/<things>/<id>/<operation>."""
+        kind, name, operation = rest
+        if kind == 'actions' and operation == 'preview': return self.preview(name, body)
+        if kind == 'decisions' and operation == 'answer': return {'decision': self.answer_decision(name, body)}
+        if kind == 'questions' and operation == 'answer':
+            return {'run': self.public(self.manager.answer(name, body.get('option'), body.get('text')))}
+        if kind == 'runs': return self._run_operation(name, operation, body, route)
+        raise KeyError(route)
+
+    def _run_operation(self, run, operation, body, route):
+        self.store.load(run)
+        if operation in ('pause', 'resume', 'stop', 'retry'):
+            self.store.append(run, 'action', {'en': f'You pressed {operation}', 'ar': f'ضغطت {operation}'}, {'action': operation, 'by': 'person', 'arguments': {}})
+            return {'run': self.public(getattr(self.manager, operation)(run))}
+        if operation in ('accept', 'undo'): return self.decide(run, operation, body)
         raise KeyError(route)
 
     # reading
@@ -233,44 +304,13 @@ class Actions:
             if body.get('scope') != row['scope']: raise LookupError('the report question changed; reload before answering')
             question = row['question']
             option, text = body.get('option'), body.get('text')
-            chosen = next((o for o in question.get('options', []) if o['id'] == option), None)
-            if option is not None and text is not None:
-                raise ValueError('send either an option or a custom answer, not both')
-            if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000):
-                raise ValueError('text must contain 1 to 4000 characters')
-            if not chosen and not (option is None and text):
-                raise ValueError('choose an authoritative option or a custom answer')
+            chosen = _chosen_answer(question, option, text)
             path = self.store.folder / 'decisions.json'
             saved = _read_json(path, {}) or {}
-            response = saved.get(row['scope'])
-            if response and (response['option'] != option or response.get('text') != text):
-                raise LookupError('this question already has an owner answer')
-            if not response:
-                response = {'decision': decision, 'scope': row['scope'], 'option': option, 'text': text,
-                            'label': chosen['label'] if chosen else text, 'at': now(), 'provenance': 'owner:studio',
-                            'status': 'saved', 'run': 'd' + row['scope'][:40],
-                            'history': [{'at': now(), 'event': 'saved', 'by': 'owner:studio'}]}
-                saved[row['scope']] = response
-                _write_json(path, saved)
+            response = _owner_response(saved, row, (decision, option, text, chosen), path)
             run = response['run']
             try: self.store.load(run)
-            except KeyError:
-                assistant = self._assistant(body.get('assistant'), True)
-                blocked = [c for c in (selecting._load(self._studio(), 'cards') or {}).get('cards', []) if c['id'] in question.get('blocks', [])]
-                evidence_ids = {e for c in blocked for e in c.get('evidence', []) if isinstance(e, str)}
-                facts = (selecting._load(self._studio(), 'evidence') or {}).get('facts', [])
-                context = {'question': question, 'answer': response,
-                           'evidence': [f for f in facts if f.get('id') in evidence_ids][:40],
-                           'project': self.project.name, 'report': Path(self._studio()).parent.name,
-                           'blocked_cards': [{'id': c['id'], 'title': c.get('title'), 'paths': c.get('paths'), 'evidence': c.get('evidence')} for c in blocked]}
-                record = {'id': run, 'action': 'report_decision', 'verb': None,
-                          'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'},
-                          'inputs': {}, 'owner_decision': context, 'cards': question.get('blocks', []),
-                          'assistant': None if assistant == 'handoff' else assistant,
-                          'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued',
-                          'attempt': 1, 'created': now(), 'queued_at': now(), 'read': False}
-                self.store.save(record, new=True)
-                self.store.append(run, 'action', record['label'], {'action': 'report_decision', 'by': 'person'})
+            except KeyError: self._queue_review(run, question, response, body.get('assistant'))
             response['status'] = 'queued'
             if not any(e['event'] == 'queued' for e in response['history']):
                 response['history'].append({'at': now(), 'event': 'queued', 'run': run})
@@ -278,6 +318,25 @@ class Actions:
             _write_json(path, saved)
             self.store.set_queue(self.store.queue())
             return next(r for r in self.report_decisions() if r['id'] == decision)
+
+    def _queue_review(self, run, question, response, wanted):
+        """A run for the assistant to review the owner's answer, with the cards it blocks and their evidence."""
+        assistant = self._assistant(wanted, True)
+        blocked = [c for c in (selecting._load(self._studio(), 'cards') or {}).get('cards', []) if c['id'] in question.get('blocks', [])]
+        evidence_ids = {e for c in blocked for e in c.get('evidence', []) if isinstance(e, str)}
+        facts = (selecting._load(self._studio(), 'evidence') or {}).get('facts', [])
+        context = {'question': question, 'answer': response,
+                   'evidence': [f for f in facts if f.get('id') in evidence_ids][:40],
+                   'project': self.project.name, 'report': Path(self._studio()).parent.name,
+                   'blocked_cards': [{'id': c['id'], 'title': c.get('title'), 'paths': c.get('paths'), 'evidence': c.get('evidence')} for c in blocked]}
+        record = {'id': run, 'action': 'report_decision', 'verb': None,
+                  'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'},
+                  'inputs': {}, 'owner_decision': context, 'cards': question.get('blocks', []),
+                  'assistant': None if assistant == 'handoff' else assistant,
+                  'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued',
+                  'attempt': 1, 'created': now(), 'queued_at': now(), 'read': False}
+        self.store.save(record, new=True)
+        self.store.append(run, 'action', record['label'], {'action': 'report_decision', 'by': 'person'})
 
     # what a run would be
     def _kind(self, name, body):
@@ -332,25 +391,9 @@ class Actions:
                'assistant': chosen, 'assistants': self.assistants() if needed else [],
                'irreversible': bool(not verb and self.actions[action]['irreversible']),
                'needs_consent': bool(not verb and self.actions[action]['needs_consent']) or verb == 'fix'}
-        if verb:
-            cards, left = selecting.resolve(body.get('selection'), self._studio())
-            out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
-            if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'), _group_name(body.get('selection')))
-        else:
-            spec = self.actions[action]
-            low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-            out.update(estimate={'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
-                       risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
-                             'why': spec['description'] if spec['description']['en'] else spec['label']},
-                       on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
-            if action == 'accept' and self._has_commits(): out['merge'] = self.branches.accept_where()
-        from .prompts import build
-        cards_detail = out['cards']
-        prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs={} if verb else inputs, labels={k: v['label'] for k, v in self.actions.items()},
-                       where=_where_of(out.get('where')))
-        # The planner asks the assistant itself: there is no request a chat assistant could take over.
-        handed = bool(needed) and action not in PLANNERS
-        out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
+        if verb: self._verb_preview(out, verb, body)
+        else: self._action_preview(out, action)
+        self._handoff(out, (verb, action, needed), inputs)
         # a Fix confirms where it builds too: the token pins the base commit the person saw, and nothing is confirmed
         # while the preview says the place is wrong (a protected target, a branch name git refuses)
         where = out.get('where')
@@ -359,6 +402,32 @@ class Actions:
         out['confirm'] = (self.locks.confirm(action, bound, self.project)
                           if self._needs_confirm(verb, action, inputs) and not (where and where.get('problem')) else None)
         return out
+
+    def _verb_preview(self, out, verb, body):
+        """The cards a verb would take and leave out, and where a Fix would build."""
+        cards, left = selecting.resolve(body.get('selection'), self._studio())
+        out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
+        if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'), _group_name(body.get('selection')))
+
+    def _action_preview(self, out, action):
+        """An action's rough time, risk and what happens when it fails; where Accept would merge."""
+        spec = self.actions[action]
+        low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
+        out.update(estimate={'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
+                   risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
+                         'why': spec['description'] if spec['description']['en'] else spec['label']},
+                   on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
+        if action == 'accept' and self._has_commits(): out['merge'] = self.branches.accept_where()
+
+    def _handoff(self, out, kind, inputs):
+        """The request a chat assistant could take over; `kind`: (verb, action, needs an assistant)."""
+        from .prompts import build
+        verb, action, needed = kind
+        prompt = build(verb, out['cards'], self.project, self.lang, action=action, inputs={} if verb else inputs, labels={k: v['label'] for k, v in self.actions.items()},
+                       where=_where_of(out.get('where')))
+        # The planner asks the assistant itself: there is no request a chat assistant could take over.
+        handed = bool(needed) and action not in PLANNERS
+        out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
 
     def _has_commits(self):
         return self.branches.is_repo() and not self.branches.head()['unborn']
@@ -374,32 +443,12 @@ class Actions:
         auto = _auto_accept(verb, inputs)
         if verb: inputs = {}
         selection = body.get('selection') if verb else None
-        where = None
-        if verb == 'fix' and self._has_commits():
-            asked = body.get('where') if isinstance(body.get('where'), dict) else {}
-            now_at = self.branches.fix_where(asked, _group_name(selection))
-            where = _where_of(now_at)
-            if asked.get('base_commit') and where['base_commit'] != asked['base_commit']:
-                raise Refused(409, f"the branch {where['base']} moved since the preview: preview again", needs='preview')
-            if now_at.get('problem'): raise Refused(409, now_at['problem']['en'], needs='preview', reasons=[now_at['problem']])
+        where = self._checked_where(body, selection) if verb == 'fix' and self._has_commits() else None
         bound = _bound(selection, where, auto)
         if self._needs_confirm(verb, action, inputs) and not self.locks.spend(body.get('confirm'), action, bound, self.project):
             raise Refused(403, 'this needs your explicit confirmation: open its preview and confirm', needs='confirm')
-        needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
-        cards, left = selecting.resolve(selection, self._studio()) if verb else ([], [])
-        label = self.verbs[verb]['label'] if verb else self.actions[action]['label']
-        if verb: label = {lang: f"{label[lang]}: {', '.join(c['id'] for c in cards[:3])}{' …' if len(cards) > 3 else ''}" for lang in ('en', 'ar')}
-        assistant = self._assistant(body.get('assistant'), needed)
-        run = _run_id()
-        reading = not verb and action in reading_tools()
-        record = {'id': run, 'action': action, 'verb': verb, 'label': label, 'selection': selection, 'inputs': inputs,
-                  'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
-                  'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
-                  'mode': 'planner' if action in PLANNERS else 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
-                  'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
-                  'context': self.branches.run_context(), **({'where': where} if where else {}), **({'auto_accept': True} if auto else {}),
-                  'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
-                  **({'started': now()} if reading else {})}
+        record = self._run_record((verb, action), body, (inputs, selection, where, auto))
+        run, label, reading = record['id'], record['label'], record['read']
         self.store.save(record, new=True)
         shown = {k: v for k, v in inputs.items() if k not in ('edits', 'spec', 'proposal', 'text')}
         self.store.append(run, 'action', {'en': f"You asked: {label['en']}", 'ar': f"طلبت: {label['ar']}"},
@@ -410,6 +459,50 @@ class Actions:
             return self.store.load(run)
         self.store.set_queue(self.store.queue())
         return self.store.load(run)
+
+    def _checked_where(self, body, selection):
+        """Where a Fix builds now: refused when its base moved since the preview, or the place is wrong."""
+        asked = body.get('where') if isinstance(body.get('where'), dict) else {}
+        now_at = self.branches.fix_where(asked, _group_name(selection))
+        where = _where_of(now_at)
+        if asked.get('base_commit') and where['base_commit'] != asked['base_commit']:
+            raise Refused(409, f"the branch {where['base']} moved since the preview: preview again", needs='preview')
+        if now_at.get('problem'): raise Refused(409, now_at['problem']['en'], needs='preview', reasons=[now_at['problem']])
+        return where
+
+    def _run_record(self, kind, body, given):
+        """A new run's record; `kind`: (verb, action); `given`: (inputs, selection, where, auto accept)."""
+        verb, action = kind
+        inputs, selection, where, auto = given
+        needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
+        cards, left = selecting.resolve(selection, self._studio()) if verb else ([], [])
+        label = _run_label(verb, self.verbs[verb]['label'] if verb else self.actions[action]['label'], cards)
+        assistant = self._assistant(body.get('assistant'), needed)
+        run = _run_id()
+        reading = not verb and action in reading_tools()
+        return {'id': run, 'action': action, 'verb': verb, 'label': label, 'selection': selection, 'inputs': inputs,
+                'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
+                'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
+                'mode': _mode(action, needed, assistant),
+                'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
+                'context': self.branches.run_context(), **({'where': where} if where else {}), **({'auto_accept': True} if auto else {}),
+                'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
+                **({'started': now()} if reading else {})}
+
+    def _merge_choice(self, body):
+        """Where Accept merges, as the person chose in its sheet (one of their branches, never a protected one), and
+        whether the branch is kept after merging."""
+        chosen = {}
+        target = str(body.get('merge_into') or '').strip()
+        if target:
+            from .branches import valid_name
+            valid_name(self.project, target)
+            if not self.branches.tip(f'refs/heads/{target}'): raise LookupError(f'no branch named {target} to merge into')
+            reason = self.branches.blocked_target(target)
+            if reason: raise Refused(409, f"{target} is protected ({reason['en']}): choose another branch to merge into", reasons=[reason])
+            chosen['merge_into'] = target
+        if body.get('delete_after') is False: chosen['delete_after'] = False
+        return chosen
 
     def decide(self, run, operation, body):
         """Accept or undo the branch a run handed over: only with the confirm token of that preview."""
@@ -426,24 +519,12 @@ class Actions:
             raise LookupError(f'another branch ({newest}) waits after {branch}: decide that one first' if newest else f'{branch} is not waiting for a decision any more')
         # Accept merges where the person chose in its sheet (one of their branches, never a protected one) and deletes the
         # branch after merging unless they unticked it
-        chosen = {}
-        if operation == 'accept':
-            target = str(body.get('merge_into') or '').strip()
-            if target:
-                from .branches import valid_name
-                valid_name(self.project, target)
-                if not self.branches.tip(f'refs/heads/{target}'): raise LookupError(f'no branch named {target} to merge into')
-                reason = self.branches.blocked_target(target)
-                if reason: raise Refused(409, f"{target} is protected ({reason['en']}): choose another branch to merge into", reasons=[reason])
-                chosen['merge_into'] = target
-            if body.get('delete_after') is False: chosen['delete_after'] = False
+        chosen = self._merge_choice(body) if operation == 'accept' else {}
         self.store.append(run, 'action', {'en': f'You chose to {operation} {branch}', 'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
                           {'action': operation, 'by': 'person', 'arguments': {'branch': branch, **chosen}})
         result = self.manager.call(operation, {'person_agreed': True, **chosen} if operation == 'accept' else {})
         ok = isinstance(result, dict) and not result.get('error') and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation]
-        words = {'en': f"{'Taken in' if operation == 'accept' else 'Thrown away'}: {branch}" if ok else f"{operation} did not happen: {result.get('status') or result.get('error')}",
-                 'ar': f"{'اعتُمد' if operation == 'accept' else 'رُمي'}: {branch}" if ok else f"ما تم: {result.get('status') or result.get('error')}"}
-        self.store.append(run, 'result' if ok else 'error', words,
+        self.store.append(run, 'result' if ok else 'error', _decision_words(operation, branch, ok, result),
                           {'branch': branch, 'outcome': operation if ok else None, 'answer': result} if ok else
                           {'reason': str(result.get('status') or result.get('error')), 'recoverable': True,
                            'what_now': {'en': str(result.get('what_now') or ''), 'ar': str(result.get('what_now') or '')}})
