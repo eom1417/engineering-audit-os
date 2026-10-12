@@ -48,8 +48,14 @@ function TaskSelect({ j, value, onChange }: { j: Journeys; value?: string; onCha
   )
 }
 
+interface JCtx {
+  data: StudioData; j: Journeys; mode: JourneyMode; steps: boolean; task?: Journeys['tasks'][number]; showHidden: boolean; flag?: ScreenFlag
+  focus?: string; area?: string; clustered: boolean; unseen: ReturnType<typeof unseenBy>; counts: string; count: Record<ScreenFlag, number>
+  go: (patch: Partial<JourneySearch>) => void; setFocus: (id: string) => void; pick: (id: string) => void; setTask: (id: string | undefined) => void
+  setFlag: (f: ScreenFlag | undefined) => void; setMode: (m: JourneyMode) => void; setHidden: (on: boolean) => void
+}
+
 function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
-  const { t } = usePrefs()
   const w = useJourneyWords()
   const phone = usePhone()
   const search = useSearch({ strict: false }) as JourneySearch
@@ -89,13 +95,25 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
     broken_link: j.counts.broken.value ?? 0, no_way_in: j.counts.no_way_in.value ?? 0, dead_end: j.counts.dead_ends.value ?? 0, duplicate: j.counts.duplicates.value ?? 0,
   }
   const counts = w('journeysCount', { s: j.counts.screens.value ?? 0, l: j.counts.links.value ?? 0, t: j.tasks.filter((x) => !x.dead).length })
-  const inspector = task ? <TaskPanel j={j} task={task} onFocus={pick} />
+  const c: JCtx = { data, j, mode, steps, task, showHidden, flag, focus, area, clustered, unseen, counts, count, go, setFocus, pick, setTask, setFlag, setMode, setHidden }
+  if (phone) return <PhoneJourneys c={c} explore={explore} setExplore={setExplore} />
+  return <DesktopJourneys c={c} />
+}
+
+/** The side panel: the chosen task, menu or screen, else the overview with its flags and tasks. */
+function JourneyInspector({ c }: { c: JCtx }) {
+  const { data, j, task, focus, flag, pick, setTask, setFlag } = c
+  return task ? <TaskPanel j={j} task={task} onFocus={pick} />
     : focus?.startsWith('menu:') ? <MenuPanel j={j} id={focus} onFocus={pick} />
     : focus ? <ScreenPanel j={j} hidden={data.hidden} id={focus} onFocus={pick} onTask={(id) => setTask(id)} />
     : <Overview j={j} flag={flag} onFlag={setFlag} onTask={(id) => setTask(id)} />
+}
 
-  if (phone) {
-    return (
+/** The phone: the map's preview, the task and its steps or every screen by clicks from the start. */
+function PhoneJourneys({ c, explore, setExplore }: { c: JCtx; explore: boolean; setExplore: (open: boolean) => void }) {
+  const w = useJourneyWords()
+  const { data, j, mode, task, showHidden, flag, focus, area, clustered, unseen, counts, count, pick, setTask, setFlag, setMode, setHidden } = c
+  return (
       <div className={css.phone}>
         <MissingBanner data={data} />
         <SystemViews current="journeys" />
@@ -116,7 +134,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
         <Legend mode={mode} showHidden={showHidden} />
         <TaskSelect j={j} value={task?.id} onChange={setTask} />
         <FlagFilter count={count} flag={flag} onFlag={setFlag} />
-        {(task || focus) && <Panel pad>{inspector}</Panel>}
+        {(task || focus) && <Panel pad><JourneyInspector c={c} /></Panel>}
         {!task && (
           <section className={css.stepsBox} aria-labelledby="h-steps">
             <h2 id="h-steps" className={css.sectionTitle}>{w('byDepth')}</h2>
@@ -124,29 +142,43 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
           </section>
         )}
         {!task && !focus && <Missing j={j} />}
-        <ModalOverlay isOpen={explore} onOpenChange={setExplore} isDismissable className={css.exploreOverlay}>
-          <Modal className={css.exploreModal}>
-            <Dialog className={css.exploreDialog} aria-label={w('journeys')}>
-              {({ close }) => (
-                <>
-                  <JourneyCanvas journeys={j} mode={mode} focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen}
-                    onFocus={setFocus} legend={false} className={css.exploreCanvas} clustered={clustered} area={area}
-                    head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('journeys')}</Heading></>} />
-                  {focus && (
-                    <div className={css.exploreBar} role="status">
-                      <Id value={j.screens.find((s) => s.id === focus)?.route ?? w('menu')} />
-                      <Button variant="primary" onPress={close}>{w('seeDetails')}</Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </Dialog>
-          </Modal>
-        </ModalOverlay>
+        <ExploreJourneys c={c} open={explore} onOpenChange={setExplore} />
       </div>
-    )
-  }
+  )
+}
 
+/** The phone's map full screen, with pan and pinch; the chosen screen is named below it. */
+function ExploreJourneys({ c, open, onOpenChange }: { c: JCtx; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const w = useJourneyWords()
+  const { j, mode, focus, task, flag, showHidden, unseen, setFocus, clustered, area } = c
+  return (
+    <ModalOverlay isOpen={open} onOpenChange={onOpenChange} isDismissable className={css.exploreOverlay}>
+      <Modal className={css.exploreModal}>
+        <Dialog className={css.exploreDialog} aria-label={w('journeys')}>
+          {({ close }) => (
+            <>
+              <JourneyCanvas journeys={j} mode={mode} focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen}
+                onFocus={setFocus} legend={false} className={css.exploreCanvas} clustered={clustered} area={area}
+                head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('journeys')}</Heading></>} />
+              {focus && (
+                <div className={css.exploreBar} role="status">
+                  <Id value={j.screens.find((s) => s.id === focus)?.route ?? w('menu')} />
+                  <Button variant="primary" onPress={close}>{w('seeDetails')}</Button>
+                </div>
+              )}
+            </>
+          )}
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  )
+}
+
+/** The desktop: the canvas (map or steps) beside the inspector. */
+function DesktopJourneys({ c }: { c: JCtx }) {
+  const { t } = usePrefs()
+  const w = useJourneyWords()
+  const { data, j, mode, steps, task, showHidden, flag, focus, area, clustered, unseen, counts, go, setFocus, pick, setTask, setMode, setHidden } = c
   const title = <h1 className={css.title} id="h-journeys">{w('journeys')}<span className={css.level}>{counts}</span></h1>
   const head = (
     <>
@@ -167,7 +199,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
           onFocus={setFocus} title={title} head={head} className={css.canvasBox} clustered={clustered} area={area}
           replace={steps ? <div className={css.stepsView}><StepsView j={j} task={task} focus={focus} onFocus={pick} /></div> : undefined} />
       </section>
-      <aside className={css.inspector} aria-label={t('inspector')}>{inspector}</aside>
+      <aside className={css.inspector} aria-label={t('inspector')}><JourneyInspector c={c} /></aside>
     </div>
   )
 }
