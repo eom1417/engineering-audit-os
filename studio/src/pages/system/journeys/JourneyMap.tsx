@@ -35,10 +35,138 @@ export interface JourneyMapProps {
   area?: string
 }
 
+type Words = ReturnType<typeof useJourneyWords>
+type Grid = Journeys['grid']
+type Edge = ReturnType<typeof shownEdges>[number]
+type Menu = Journeys['menus'][number]
+type Caption = ReturnType<typeof captions>[number]
+
 const TOP = 56
 
 export function JourneyMap(props: JourneyMapProps) {
   return props.clustered ? <ClusterMap {...props} /> : <ScreenMap {...props} />
+}
+
+/** What a node carries when the map is interactive: a button in the focus order, its label, Enter and Space press it. */
+function pressable(interactive: boolean, id: string, label: string, pressed: boolean | undefined, onFocus?: (id: string) => void) {
+  if (!interactive) return {}
+  return {
+    role: 'button', tabIndex: 0, 'aria-label': label, ...(pressed === undefined ? {} : { 'aria-pressed': pressed }),
+    onClick: () => onFocus?.(id),
+    onKeyDown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus?.(id) } },
+  }
+}
+
+function zoomStyle(transform?: ZoomState) {
+  return transform ? { transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})` } : undefined
+}
+
+/** The whole grid, or only the expanded area's screens with a margin around them. */
+function viewBoxOf(g: Grid, only: Set<string> | null, screens: Screen[]) {
+  if (!only || !screens.length) return `${-8} ${-TOP} ${g.width + 56} ${g.height + TOP + 16}`
+  const box = [Math.min(...screens.map((s) => s.x)), Math.min(...screens.map((s) => s.y)),
+    Math.max(...screens.map((s) => s.x)) + g.box_w, Math.max(...screens.map((s) => s.y)) + g.box_h]
+  return `${box[0] - 40} ${box[1] - TOP} ${box[2] - box[0] + 100} ${box[3] - box[1] + TOP + 40}`
+}
+
+function captionText(c: Caption, w: Words) {
+  if (c.kind === 'start') return w('start')
+  if (c.kind === 'none') return w('noWayInCol')
+  return c.n === 1 ? w('oneClick') : w('clicks', { n: c.n })
+}
+
+function MapDefs({ uid }: { uid: string }) {
+  return (
+    <defs>
+      <pattern id={`h${uid}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect className={css.hatchBg} width="7" height="7" /><rect className={css.hatchFg} width="2" height="7" />
+      </pattern>
+      <pattern id={`d${uid}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect className={css.delBg} width="6" height="6" /><rect className={css.delFg} width="2" height="6" />
+      </pattern>
+      <marker id={`a${uid}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,1 L7,4 L0,7z" className={css.arrow} />
+      </marker>
+      <marker id={`p${uid}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,1 L7,4 L0,7z" className={css.arrowOn} />
+      </marker>
+    </defs>
+  )
+}
+
+/** The links: on the task's path or touching the focused node they are drawn on, the others fade while one is lit. */
+function EdgeLayer({ edges, onPath, focus, dim, full, uid }: { edges: Edge[]; onPath: Set<string>; focus?: string; dim: boolean; full: boolean; uid: string }) {
+  return (
+    <g className={css.edges}>
+      {edges.map((e) => {
+        const on = onPath.has(edgeKey(e.from, e.to)) || (focus !== undefined && (e.from === focus || e.to === focus))
+        const off = dim && !on
+        return (
+          <path key={edgeKey(e.from, e.to)} d={e.d}
+            className={[css.edge, css[`via_${e.via}`], e.back && css.back, on && css.edgeOn, off && css.edgeOff].filter(Boolean).join(' ')}
+            markerEnd={e.via === 'menu_of' ? undefined : `url(#${on ? 'p' : 'a'}${uid})`}>
+            {full && <title>{`${e.from} → ${e.to}`}</title>}
+          </path>
+        )
+      })}
+    </g>
+  )
+}
+
+function MenuNode({ m, g, w, className, step, press }: { m: Menu; g: Grid; w: Words; className: string; step?: number; press: object }) {
+  const { lang } = usePrefs()
+  return (
+    <g className={className} {...press}>
+      <rect x={m.x} y={m.y + 6} width={g.box_w} height={g.box_h - 12} rx={(g.box_h - 12) / 2} className={css.menuBox} />
+      <text x={m.x + g.box_w / 2} y={m.y + g.box_h / 2 - 2} textAnchor="middle" direction={lang === 'ar' ? 'rtl' : 'ltr'} className={css.menuTitle}>{w('menu')}</text>
+      <text x={m.x + g.box_w / 2} y={m.y + g.box_h / 2 + 13} textAnchor="middle" direction={lang === 'ar' ? 'rtl' : 'ltr'} className={css.menuSub}>{w('menuSub', { n: m.links, s: m.scope.length })}</text>
+      {step !== undefined && <StepBadge x={m.x} y={m.y + 6} n={step} />}
+    </g>
+  )
+}
+
+interface FrameProps {
+  s: Screen; g: Grid; uid: string; mode: JourneyMode; full: boolean; shotBase: string; className: string
+  broken: Journeys['broken']; unseen?: number; step?: number; press: object
+}
+
+/** One screen: its frame (hatched when hidden, ghosted when the target deletes it), its picture, title and route, and
+ * its marks: a twin, a dead end, an undecided target, unseen work, broken links and its step on the task. */
+function ScreenFrame({ s, g, uid, mode, full, shotBase, className, broken, unseen, step, press }: FrameProps) {
+  const fill = s.kind !== 'page' ? `url(#h${uid})` : mode === 'target' && s.op === 'delete' ? `url(#d${uid})` : undefined
+  const shot = s.shots?.[0]
+  return (
+    <g className={className} data-node={s.id} {...press}>
+      {s.flags.includes('duplicate') && <rect x={s.x + 5} y={s.y + 5} width={g.box_w} height={g.box_h} rx={8} className={css.twin} />}
+      <rect x={s.x} y={s.y} width={g.box_w} height={g.box_h} rx={8} className={css.frame} style={fill ? { fill } : undefined} />
+      <path d={`M${s.x + 8},${s.y + 0.5}h${g.box_w - 16}a7.5,7.5 0 0 1 7.5,7.5v4.5h-${g.box_w - 1}v-4.5a7.5,7.5 0 0 1 7.5,-7.5z`} className={css.bar} />
+      <circle cx={s.x + 8} cy={s.y + 6.5} r={1.8} className={css.barDot} /><circle cx={s.x + 14} cy={s.y + 6.5} r={1.8} className={css.barDot} />
+      {shot && full ? (
+        <image href={`${shotBase}${shot}`} x={s.x + 1} y={s.y + 13} width={g.box_w - 2} height={g.box_h - 14} preserveAspectRatio="xMidYMin slice" />
+      ) : null}
+      <text x={s.x + 10} y={s.y + 32} className={css.title}>{clip(s.title, 20)}</text>
+      <text x={s.x + 10} y={s.y + 49} className={css.route}>{clip(s.route, 24)}</text>
+      {full && <title>{`${s.title} — ${s.route}`}</title>}
+      {s.flags.includes('dead_end') && <path d={`M${s.x + g.box_w + 4},${s.y + 14}v${g.box_h - 22}`} className={css.deadEnd} />}
+      {mode === 'target' && !s.decided && s.kind === 'page' && (
+        <g className={css.undecided}><circle cx={s.x + g.box_w - 13} cy={s.y + g.box_h - 13} r={8} /><text x={s.x + g.box_w - 13} y={s.y + g.box_h - 9.5} textAnchor="middle">?</text></g>
+      )}
+      {unseen ? (
+        <g className={css.unseen}><rect x={s.x + g.box_w - 36} y={s.y - 9} width={30} height={15} rx={4} style={{ fill: `url(#h${uid})` }} />
+          <text x={s.x + g.box_w - 21} y={s.y + 2.5} textAnchor="middle">{unseen}</text></g>
+      ) : null}
+      {broken.map((b, i) => {
+        const y0 = s.y + g.box_h - 12 - i * 9
+        return (
+          <g key={`${b.file}:${b.line}:${i}`} className={css.broken}>
+            <path d={`M${s.x + g.box_w},${y0}h22`} />
+            <path d={`M${s.x + g.box_w + 24},${y0 - 4}l8,8m0,-8l-8,8`} className={css.brokenX} />
+          </g>
+        )
+      })}
+      {step !== undefined && <StepBadge x={s.x} y={s.y} n={step} />}
+    </g>
+  )
 }
 
 function ScreenMap({ journeys: j, mode, variant, focus, task, flag, showHidden, unseen, onFocus, transform, svgRef, dragging, label, className, shotBase = '../', area }: JourneyMapProps) {
@@ -52,17 +180,11 @@ function ScreenMap({ journeys: j, mode, variant, focus, task, flag, showHidden, 
   const edges = shownEdges(j, showHidden).filter((e) => !only || (only.has(e.from) && only.has(e.to)))
   const menus = only ? [] : j.menus
   const lit = litSet(j, focus, task, flag)
-  const onPath = pathEdges(task)
   const step = new Map((task?.path ?? []).map((id, i) => [id, i + 1]))
   const dim = lit !== null
   const interactive = full && Boolean(onFocus)
-  const box = only && screens.length ? [Math.min(...screens.map((s) => s.x)), Math.min(...screens.map((s) => s.y)),
-    Math.max(...screens.map((s) => s.x)) + g.box_w, Math.max(...screens.map((s) => s.y)) + g.box_h] : null
-  const vb = box ? `${box[0] - 40} ${box[1] - TOP} ${box[2] - box[0] + 100} ${box[3] - box[1] + TOP + 40}` : `${-8} ${-TOP} ${g.width + 56} ${g.height + TOP + 16}`
-  const tf = transform ? { transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})` } : undefined
-  const key = (e: KeyboardEvent, id: string) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus?.(id) }
-  }
+  const faded = (id: string) => dim && !lit!.has(id)
+  const stepOf = (id: string) => (task ? step.get(id) : undefined)
   const frameClass = (s: Screen) => [
     css.screen,
     s.kind !== 'page' && css.hidden,
@@ -71,102 +193,37 @@ function ScreenMap({ journeys: j, mode, variant, focus, task, flag, showHidden, 
     s.flags.includes('no_way_in') && css.noWayIn,
     focus === s.id && css.sel,
     task && step.has(s.id) && css.onPath,
-    dim && !lit!.has(s.id) && css.faded,
+    faded(s.id) && css.faded,
   ].filter(Boolean).join(' ')
+  const menuClass = (m: Menu) => [css.menu, faded(m.id) && css.faded, task && step.has(m.id) && css.onPath, focus === m.id && css.sel].filter(Boolean).join(' ')
   const aria = (s: Screen) => w('screenAria', {
     t: s.title, r: s.route,
     f: s.flags.length ? (lang === 'ar' ? '، ' : ', ') + s.flags.map((f) => w(`flag_${f}`)).join(lang === 'ar' ? '، ' : ', ') : '',
   })
 
   return (
-    <svg ref={svgRef} viewBox={vb} preserveAspectRatio="xMidYMid meet" direction="ltr"
+    <svg ref={svgRef} viewBox={viewBoxOf(g, only, screens)} preserveAspectRatio="xMidYMid meet" direction="ltr"
       className={[css.map, css[variant], dim && css.dim, dragging && css.dragging, className].filter(Boolean).join(' ')}
       role={label ? (interactive ? 'group' : 'img') : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
-      <defs>
-        <pattern id={`h${uid}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect className={css.hatchBg} width="7" height="7" /><rect className={css.hatchFg} width="2" height="7" />
-        </pattern>
-        <pattern id={`d${uid}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect className={css.delBg} width="6" height="6" /><rect className={css.delFg} width="2" height="6" />
-        </pattern>
-        <marker id={`a${uid}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M0,1 L7,4 L0,7z" className={css.arrow} />
-        </marker>
-        <marker id={`p${uid}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0,1 L7,4 L0,7z" className={css.arrowOn} />
-        </marker>
-      </defs>
+      <MapDefs uid={uid} />
       <rect className={css.water} x={-4000} y={-4000} width={g.width + 8000} height={g.height + 8000} />
-      <g style={tf} className={css.world}>
+      <g style={zoomStyle(transform)} className={css.world}>
         {full && !only && captions(j).map((c) => (
           <text key={c.col} x={g.pad + c.col * g.col_w} y={-TOP + 22} className={css.caption} direction={lang === 'ar' ? 'rtl' : 'ltr'}
             textAnchor="start" dx={lang === 'ar' ? g.box_w : 0}>
-            {c.kind === 'start' ? w('start') : c.kind === 'none' ? w('noWayInCol') : c.n === 1 ? w('oneClick') : w('clicks', { n: c.n })}
+            {captionText(c, w)}
           </text>
         ))}
-        <g className={css.edges}>
-          {edges.map((e) => {
-            const on = onPath.has(edgeKey(e.from, e.to)) || (focus !== undefined && (e.from === focus || e.to === focus))
-            const off = dim && !on
-            return (
-              <path key={edgeKey(e.from, e.to)} d={e.d}
-                className={[css.edge, css[`via_${e.via}`], e.back && css.back, on && css.edgeOn, off && css.edgeOff].filter(Boolean).join(' ')}
-                markerEnd={e.via === 'menu_of' ? undefined : `url(#${on ? 'p' : 'a'}${uid})`}>
-                {full && <title>{`${e.from} → ${e.to}`}</title>}
-              </path>
-            )
-          })}
-        </g>
+        <EdgeLayer edges={edges} onPath={pathEdges(task)} focus={focus} dim={dim} full={full} uid={uid} />
         {menus.map((m) => (
-          <g key={m.id} className={[css.menu, dim && !lit!.has(m.id) && css.faded, task && step.has(m.id) && css.onPath, focus === m.id && css.sel].filter(Boolean).join(' ')}
-            {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': `${w('menu')}: ${w('menuSub', { n: m.links, s: m.scope.length })}`,
-              'aria-pressed': focus === m.id, onClick: () => onFocus?.(m.id), onKeyDown: (e: KeyboardEvent) => key(e, m.id) } : {})}>
-            <rect x={m.x} y={m.y + 6} width={g.box_w} height={g.box_h - 12} rx={(g.box_h - 12) / 2} className={css.menuBox} />
-            <text x={m.x + g.box_w / 2} y={m.y + g.box_h / 2 - 2} textAnchor="middle" direction={lang === 'ar' ? 'rtl' : 'ltr'} className={css.menuTitle}>{w('menu')}</text>
-            <text x={m.x + g.box_w / 2} y={m.y + g.box_h / 2 + 13} textAnchor="middle" direction={lang === 'ar' ? 'rtl' : 'ltr'} className={css.menuSub}>{w('menuSub', { n: m.links, s: m.scope.length })}</text>
-            {task && step.has(m.id) && <StepBadge x={m.x} y={m.y + 6} n={step.get(m.id)!} />}
-          </g>
+          <MenuNode key={m.id} m={m} g={g} w={w} className={menuClass(m)} step={stepOf(m.id)}
+            press={pressable(interactive, m.id, `${w('menu')}: ${w('menuSub', { n: m.links, s: m.scope.length })}`, focus === m.id, onFocus)} />
         ))}
-        {screens.map((s) => {
-          const fill = s.kind !== 'page' ? `url(#h${uid})` : mode === 'target' && s.op === 'delete' ? `url(#d${uid})` : undefined
-          const shot = s.shots?.[0]
-          const broken = j.broken.filter((b) => b.from === s.id)
-          const unseenN = showHidden ? unseen?.get(s.id) : undefined
-          return (
-            <g key={s.id} className={frameClass(s)} data-node={s.id}
-              {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': aria(s), 'aria-pressed': focus === s.id,
-                onClick: () => onFocus?.(s.id), onKeyDown: (e: KeyboardEvent) => key(e, s.id) } : {})}>
-              {s.flags.includes('duplicate') && <rect x={s.x + 5} y={s.y + 5} width={g.box_w} height={g.box_h} rx={8} className={css.twin} />}
-              <rect x={s.x} y={s.y} width={g.box_w} height={g.box_h} rx={8} className={css.frame} style={fill ? { fill } : undefined} />
-              <path d={`M${s.x + 8},${s.y + 0.5}h${g.box_w - 16}a7.5,7.5 0 0 1 7.5,7.5v4.5h-${g.box_w - 1}v-4.5a7.5,7.5 0 0 1 7.5,-7.5z`} className={css.bar} />
-              <circle cx={s.x + 8} cy={s.y + 6.5} r={1.8} className={css.barDot} /><circle cx={s.x + 14} cy={s.y + 6.5} r={1.8} className={css.barDot} />
-              {shot && variant === 'full' ? (
-                <image href={`${shotBase}${shot}`} x={s.x + 1} y={s.y + 13} width={g.box_w - 2} height={g.box_h - 14} preserveAspectRatio="xMidYMin slice" />
-              ) : null}
-              <text x={s.x + 10} y={s.y + 32} className={css.title}>{clip(s.title, 20)}</text>
-              <text x={s.x + 10} y={s.y + 49} className={css.route}>{clip(s.route, 24)}</text>
-              {full && <title>{`${s.title} — ${s.route}`}</title>}
-              {s.flags.includes('dead_end') && <path d={`M${s.x + g.box_w + 4},${s.y + 14}v${g.box_h - 22}`} className={css.deadEnd} />}
-              {mode === 'target' && !s.decided && s.kind === 'page' && (
-                <g className={css.undecided}><circle cx={s.x + g.box_w - 13} cy={s.y + g.box_h - 13} r={8} /><text x={s.x + g.box_w - 13} y={s.y + g.box_h - 9.5} textAnchor="middle">?</text></g>
-              )}
-              {unseenN ? (
-                <g className={css.unseen}><rect x={s.x + g.box_w - 36} y={s.y - 9} width={30} height={15} rx={4} style={{ fill: `url(#h${uid})` }} />
-                  <text x={s.x + g.box_w - 21} y={s.y + 2.5} textAnchor="middle">{unseenN}</text></g>
-              ) : null}
-              {broken.map((b, i) => {
-                const y0 = s.y + g.box_h - 12 - i * 9
-                return (
-                  <g key={`${b.file}:${b.line}:${i}`} className={css.broken}>
-                    <path d={`M${s.x + g.box_w},${y0}h22`} />
-                    <path d={`M${s.x + g.box_w + 24},${y0 - 4}l8,8m0,-8l-8,8`} className={css.brokenX} />
-                  </g>
-                )
-              })}
-              {task && step.has(s.id) && <StepBadge x={s.x} y={s.y} n={step.get(s.id)!} />}
-            </g>
-          )
-        })}
+        {screens.map((s) => (
+          <ScreenFrame key={s.id} s={s} g={g} uid={uid} mode={mode} full={full} shotBase={shotBase} className={frameClass(s)}
+            broken={j.broken.filter((b) => b.from === s.id)} unseen={showHidden ? unseen?.get(s.id) : undefined} step={stepOf(s.id)}
+            press={pressable(interactive, s.id, aria(s), focus === s.id, onFocus)} />
+        ))}
       </g>
     </svg>
   )
@@ -189,10 +246,6 @@ function ClusterMap({ journeys: j, variant, focus, onFocus, transform, svgRef, d
   const g = j.grid
   const { nodes, edges, width, height } = clusters(j)
   const interactive = variant === 'full' && Boolean(onFocus)
-  const tf = transform ? { transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})` } : undefined
-  const key = (e: KeyboardEvent, id: string) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus?.(id) }
-  }
   return (
     <svg ref={svgRef} viewBox={`-8 -24 ${width + 16} ${height + 40}`} preserveAspectRatio="xMidYMid meet" direction="ltr"
       className={[css.map, css[variant], dragging && css.dragging, className].filter(Boolean).join(' ')}
@@ -203,7 +256,7 @@ function ClusterMap({ journeys: j, variant, focus, onFocus, transform, svgRef, d
         </marker>
       </defs>
       <rect className={css.water} x={-4000} y={-4000} width={width + 8000} height={height + 8000} />
-      <g style={tf} className={css.world}>
+      <g style={zoomStyle(transform)} className={css.world}>
         <g className={css.edges}>
           {edges.map((e) => <path key={`${e.from}>${e.to}`} d={e.d} strokeWidth={1 + Math.log2(1 + e.count)} className={css.edge} markerEnd={`url(#a${uid})`} />)}
         </g>
@@ -212,8 +265,7 @@ function ClusterMap({ journeys: j, variant, focus, onFocus, transform, svgRef, d
           const problems = c.flags.broken_link + c.flags.no_way_in + c.flags.dead_end + c.flags.duplicate
           return (
             <g key={c.id} className={[css.screen, css.cluster, focus === id && css.sel].filter(Boolean).join(' ')}
-              {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': `${c.id}: ${w('clusterSub', { s: c.screens.length })}`,
-                onClick: () => onFocus?.(id), onKeyDown: (e: KeyboardEvent) => key(e, id) } : {})}>
+              {...pressable(interactive, id, `${c.id}: ${w('clusterSub', { s: c.screens.length })}`, undefined, onFocus)}>
               <rect x={c.x + 6} y={c.y + 6} width={g.box_w} height={g.box_h} rx={8} className={css.twin} />
               <rect x={c.x} y={c.y} width={g.box_w} height={g.box_h} rx={8} className={css.frame} />
               <text x={c.x + 10} y={c.y + 24} className={css.title}>{clip(c.id, 20)}</text>
