@@ -66,22 +66,36 @@ def inputs(report, project=None, lang='en', **_):
     body = core.load(report / 'live/screens.json', {}) or {}
     same = {row.get('path'): row for row in body.get('pages') or [] if isinstance(row, dict)}
     pages, count = {}, 0
-    for row in body.get('rows') or []:
-        if not isinstance(row, dict) or not row.get('screenshot') or not (report / row['screenshot']).is_file(): continue
+    pictured = [row for row in body.get('rows') or []
+                if isinstance(row, dict) and row.get('screenshot') and (report / row['screenshot']).is_file()]
+    for row in pictured:
         count += 1
-        page = pages.get(row.get('url'))
-        if page is None:
-            known = next((p for path, p in same.items() if path and str(row.get('url') or '').endswith(path)), {})
-            page = pages[row.get('url')] = {'id': f'PAGE-{len(pages) + 1:03d}', 'page': row.get('url'), 'template': known.get('template'),
-                                            'same_as': list(known.get('same_as') or [])[:20], 'pictures': [], 'axe': [], 'failures': []}
-        page['pictures'].append({'id': f'IMG-{count:03d}', 'path': str((report / row['screenshot']).resolve()), 'file': row['screenshot'],
-                                 'viewport': row.get('viewport'), 'theme': row.get('variant')})
-        for key, found in (('axe', [core.short(f"{v.get('id')}: {v.get('help')}", 120) for v in (row.get('axe') or {}).get('violations') or []
-                                    if isinstance(v, dict)]),
-                           ('failures', [core.short(f, 120) for f in row.get('failures') or []])):
-            page[key] = list(dict.fromkeys(page[key] + found))[:8]
+        if row.get('url') not in pages: pages[row.get('url')] = _new_page(row, same, len(pages) + 1)
+        page = pages[row.get('url')]
+        page['pictures'].append(_picture(report, row, count))
+        _add_found(page, row)
     if not pages: return None
     return {'lang': lang, 'project': {'name': (project and Path(project).name) or report.name}, 'pages': list(pages.values())}
+
+
+def _new_page(row, same, number):
+    """A page met for the first time, with the template and the same-looking pages the crawl named for its URL."""
+    known = next((p for path, p in same.items() if path and str(row.get('url') or '').endswith(path)), {})
+    return {'id': f'PAGE-{number:03d}', 'page': row.get('url'), 'template': known.get('template'),
+            'same_as': list(known.get('same_as') or [])[:20], 'pictures': [], 'axe': [], 'failures': []}
+
+
+def _picture(report, row, count):
+    return {'id': f'IMG-{count:03d}', 'path': str((report / row['screenshot']).resolve()), 'file': row['screenshot'],
+            'viewport': row.get('viewport'), 'theme': row.get('variant')}
+
+
+def _add_found(page, row):
+    """A row's axe violations and page-check failures joined to its page's, each once, eight at most."""
+    axe = [core.short(f"{v.get('id')}: {v.get('help')}", 120) for v in (row.get('axe') or {}).get('violations') or [] if isinstance(v, dict)]
+    failures = [core.short(f, 120) for f in row.get('failures') or []]
+    for key, found in (('axe', axe), ('failures', failures)):
+        page[key] = list(dict.fromkeys(page[key] + found))[:8]
 
 
 def batches(data):
@@ -113,19 +127,29 @@ def check(data, decision):
     """Every finding shows on a picture of its own page, each picture once, with a region inside it."""
     pictures = _pictures(data)
     for finding in (decision.get('detail') or {}).get('findings') or []:
-        shows = finding.get('shows') or []
-        if not shows: return 'a finding names no picture of its page'
-        named = [show.get('picture') for show in shows]
-        if any(pictures.get(name, ({},))[0].get('id') != decision['subject'] for name in named):
-            return 'a finding names a picture of another page'
-        if len(set(named)) < len(named): return 'a finding names one picture twice'
-        for show in shows:
-            region = show.get('region') or {}
-            x, y, width, height = (region.get(k) for k in ('x', 'y', 'width', 'height'))
-            if not all(isinstance(v, (int, float)) for v in (x, y, width, height)): return 'a finding names no region of its picture'
-            if width <= 0 or height <= 0 or x < 0 or y < 0 or x + width > 1.0001 or y + height > 1.0001:
-                return 'a finding names a region outside its picture'
+        problem = _finding_problem(finding, pictures, decision['subject'])
+        if problem: return problem
     if decision['decision'] == 'cards' and not (decision.get('detail') or {}).get('findings'): return 'cards without a finding'
+    return None
+
+
+def _finding_problem(finding, pictures, subject):
+    """What is wrong with one finding's pictures and regions, or None."""
+    shows = finding.get('shows') or []
+    if not shows: return 'a finding names no picture of its page'
+    named = [show.get('picture') for show in shows]
+    if any(pictures.get(name, ({},))[0].get('id') != subject for name in named):
+        return 'a finding names a picture of another page'
+    if len(set(named)) < len(named): return 'a finding names one picture twice'
+    return next(filter(None, (_region_problem(show.get('region') or {}) for show in shows)), None)
+
+
+def _region_problem(region):
+    """A region must be given as fractions of its picture, inside it."""
+    x, y, width, height = (region.get(k) for k in ('x', 'y', 'width', 'height'))
+    if not all(isinstance(v, (int, float)) for v in (x, y, width, height)): return 'a finding names no region of its picture'
+    if width <= 0 or height <= 0 or x < 0 or y < 0 or x + width > 1.0001 or y + height > 1.0001:
+        return 'a finding names a region outside its picture'
     return None
 
 
@@ -143,15 +167,20 @@ def findings_of(record, data):
         if decision['source'] != 'model': continue
         page = next(p for p in data['pages'] if p['id'] == decision['subject'])
         for finding in (decision.get('detail') or {}).get('findings') or []:
-            shows = [{'image': show['picture'], 'file': pictures[show['picture']][1]['file'],
-                      'viewport': pictures[show['picture']][1]['viewport'], 'region': show['region']} for show in finding['shows']]
-            first = shows[0]
-            rows.append({'id': f'VF-{len(rows) + 1:03d}', 'page_id': page['id'], 'page': page['page'], 'template': page['template'],
-                         'image': first['image'], 'file': first['file'], 'viewport': first['viewport'], 'region': first['region'],
-                         'viewports': list(dict.fromkeys(s['viewport'] for s in shows)),
-                         'theme': pictures[first['image']][1]['theme'], 'pictures': shows,
-                         **{k: finding[k] for k in ('title', 'kind', 'severity', 'why')}})
+            rows.append(_finding_row(f'VF-{len(rows) + 1:03d}', page, finding, pictures))
     return rows
+
+
+def _finding_row(row_id, page, finding, pictures):
+    """A finding on its page: its first picture's fields, and every picture it shows on with its region."""
+    shows = [{'image': show['picture'], 'file': pictures[show['picture']][1]['file'],
+              'viewport': pictures[show['picture']][1]['viewport'], 'region': show['region']} for show in finding['shows']]
+    first = shows[0]
+    return {'id': row_id, 'page_id': page['id'], 'page': page['page'], 'template': page['template'],
+            'image': first['image'], 'file': first['file'], 'viewport': first['viewport'], 'region': first['region'],
+            'viewports': list(dict.fromkeys(s['viewport'] for s in shows)),
+            'theme': pictures[first['image']][1]['theme'], 'pictures': shows,
+            **{k: finding[k] for k in ('title', 'kind', 'severity', 'why')}}
 
 
 def finish(report, record, data):
