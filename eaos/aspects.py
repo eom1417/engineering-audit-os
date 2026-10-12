@@ -113,11 +113,18 @@ def _tests(out):
            'command': record.get('command'), 'passed': record.get('passed'), 'overall_percent': record.get('overall_percent'),
            'test_files': len(record.get('test_files') or []), 'failing_commands': [' '.join(a.get('argv') or []) for a in failing][:4],
            'risky_code_without_tests': untested,
-           'uncovered_entry_reachable_files': (record.get('uncovered_entry_reachable_files') or [])[:LIMIT['rows']]}
+           'uncovered_entry_reachable_files': (record.get('uncovered_entry_reachable_files') or [])[:LIMIT['rows']],
+           # The suite itself: its time, its slowest tests, and the tests that run no line no other test runs.
+           'suite': {k: v for k, v in (record.get('suite') or {}).items() if k != 'redundant'} | (
+               {'redundant': (record.get('suite') or {}).get('redundant', [])[:LIMIT['rows']]} if record.get('suite') else {})}
+    suite = record.get('suite') or {}
     if not row['test_files']:
         row['rules'] = _verdict('improve', 'the project has no test file')
     elif failing:
         row['rules'] = _verdict('improve', f'{len(failing)} test command(s) fail on the code as it is')
+    elif (suite.get('redundant_share') or 0) > 0.2:
+        row['rules'] = _verdict('improve', f"{suite['redundant_count']} of {suite['tests']} tests run no line another test does not "
+                                           'run too: merge or delete them')
     elif untested:
         row['rules'] = _verdict('improve', f"{len(untested)} complex file(s) no test {'runs' if coverage else 'imports'}: "
                                            + ', '.join(u['path'] for u in untested[:3]))

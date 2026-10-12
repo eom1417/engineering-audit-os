@@ -162,7 +162,7 @@ class VerificationTests(unittest.TestCase):
             repo, runtime = self.project(tmp), Path(tmp) / 'runtime'
             result = verify.run_profile(repo, Path(tmp) / 'out', runtime)
         self.assertNotIn(['npm', 'run', 'lint'], ran)
-        self.assertIn(['python', '-m', 'coverage', 'run', '--branch', '-m', 'unittest', 'discover', '-s', 'tests'], ran)
+        self.assertIn(['python', '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', '-m', 'unittest', 'discover', '-s', 'tests'], ran)
         self.assertTrue(result['passed'])
         self.assertGreater(result['coverage']['used.py']['percent'], 0)
         self.assertEqual(result['coverage'].get('never_run.py', {}).get('percent', 0), 0)

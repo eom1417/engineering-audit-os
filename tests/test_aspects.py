@@ -4,6 +4,7 @@ stages restored in 0.0.9: production readiness (eaos/production_readiness.py), t
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -157,3 +158,32 @@ class EveryAspectReachesTheAssistant(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SuiteHealth(unittest.TestCase):
+    def test_the_suites_redundant_and_slowest_tests_are_measured_by_coverage_and_the_runners_report(self):
+        """The owner's incident: EAOS's own suite grew to 2228 tests and an hour, and nothing in the check said so.
+        Coverage.py's contexts name the test that runs no line of its own; the runner's report gives each test's time."""
+        from eaos.verify import COVERAGERC, suite_health
+        with tempfile.TemporaryDirectory() as folder:
+            app = Path(folder)
+            (app / 'price.py').write_text('def price(n):\n    if n > 10:\n        return n * 2\n    return n\n')
+            (app / 'test_price.py').write_text(
+                'import unittest\nfrom price import price\n\n\nclass T(unittest.TestCase):\n'
+                '    def test_small(self):\n        self.assertEqual(price(1), 1)\n\n'
+                '    def test_small_again(self):\n        self.assertEqual(price(2), 2)\n\n'
+                '    def test_large(self):\n        self.assertEqual(price(11), 22)\n')
+            (app / '.eaos-coveragerc').write_text(COVERAGERC)
+            run = lambda *argv: subprocess.run([sys.executable, '-m', 'coverage', *argv], cwd=app, capture_output=True, check=True)
+            run('run', '--rcfile=.eaos-coveragerc', '-m', 'unittest', 'test_price')
+            run('json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', 'c.json')
+            contexts = {}
+            for name, entry in json.loads((app / 'c.json').read_text())['files'].items():
+                for line, tests in (entry.get('contexts') or {}).items():
+                    for test in tests:
+                        if test and name == 'price.py': contexts.setdefault(test, set()).add((name, line))
+            (app / '.eaos-junit.xml').write_text('<testsuite><testcase classname="test_price.T" name="test_large" time="7.5"/>'
+                                                 '<testcase classname="test_price.T" name="test_small" time="0.01"/></testsuite>')
+            health = suite_health(app, contexts)
+        self.assertEqual([t.split('.')[-1] for t in health['redundant']], ['test_small', 'test_small_again'])
+        self.assertEqual((health['slowest'][0]['test'], health['seconds']), ('test_price.T::test_large', 7.5))

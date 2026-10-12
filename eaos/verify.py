@@ -215,6 +215,64 @@ def v8_coverage(folder, root):
             for path, row in files.items()}
 
 
+# Per-test measurements, read from the runners' own reports and Coverage.py's "who tests what" (dynamic contexts):
+# how long each test takes, and which tests run no line another test does not run too (redundant).
+COVERAGERC = '[run]\nbranch = True\ndynamic_context = test_function\n'
+TIMING = {'pytest': ['--junitxml=.eaos-junit.xml'], 'vitest': ['--reporter=default', '--reporter=json', '--outputFile.json=.eaos-tests.json'],
+          'jest': ['--json', '--outputFile=.eaos-tests.json']}
+
+
+def with_timing(argv, app):
+    """The test command with its runner's own per-test report switched on; `npm test` passes it through `--`."""
+    words = [Path(str(a)).name for a in argv]
+    runner = next((r for r in TIMING if any(w == r or w.startswith(r + '.') for w in words)), None)
+    if runner is None and words[:2] in (['npm', 'test'], ['npm', 'run']):
+        try: script = json.loads((Path(app) / 'package.json').read_text(encoding='utf-8'))['scripts']['test']
+        except (OSError, ValueError, KeyError, TypeError): script = ''
+        runner = next((r for r in ('vitest', 'jest') if r in script), None)
+        return [*argv, '--', *TIMING[runner]] if runner else argv
+    return [*argv, *TIMING[runner]] if runner else argv
+
+
+def test_times(app):
+    """[(test, file, seconds)] from a JUnit XML (pytest) or a Jest-format JSON (vitest, jest) report, if one was written."""
+    rows, app = [], Path(app)
+    junit = app / '.eaos-junit.xml'
+    if junit.is_file():
+        import xml.etree.ElementTree as ET
+        for case in ET.parse(junit).iter('testcase'):
+            rows.append((f"{case.get('classname', '')}::{case.get('name', '')}", case.get('file') or case.get('classname', ''),
+                         float(case.get('time') or 0)))
+    report = app / '.eaos-tests.json'
+    if report.is_file():
+        for suite in json.loads(report.read_text(encoding='utf-8')).get('testResults') or []:
+            for case in suite.get('assertionResults') or []:
+                rows.append((case.get('fullName') or case.get('title') or '', os.path.relpath(suite.get('name') or '', app),
+                             (case.get('duration') or 0) / 1000))
+    return rows
+
+
+def redundant_tests(contexts):
+    """The tests every line of which another test also runs: {test: lines} from Coverage.py's contexts."""
+    runs = defaultdict(int)
+    for lines in contexts.values():
+        for line in lines: runs[line] += 1
+    return sorted(test for test, lines in contexts.items() if lines and all(runs[line] > 1 for line in lines))
+
+
+def suite_health(app, contexts):
+    """What the person's assistant judges the test suite on: its size, its time, its slowest and its redundant tests."""
+    times = test_times(app)
+    redundant = redundant_tests(contexts)
+    total = sum(seconds for _, _, seconds in times)
+    return {'tests': len(times) or len(contexts), 'seconds': round(total, 1),
+            'slowest': [{'test': t, 'file': f, 'seconds': round(s, 2)} for t, f, s in sorted(times, key=lambda r: -r[2])[:10]],
+            'redundant': redundant[:30], 'redundant_count': len(redundant),
+            'redundant_share': round(len(redundant) / len(contexts), 3) if contexts else None,
+            'source': 'the runner\'s own per-test report; Coverage.py dynamic contexts (dynamic_context = test_function)'}
+
+
+
 def run_profile(target, out, runtime, timeout=1800):
     """The run profile's test commands in the sandbox copy (eaos/live_run.py), with coverage: verification.json and the
     `verification` facts. Raises LookupError when the profile names no test command. The project's own interpreter
@@ -234,29 +292,36 @@ def run_profile(target, out, runtime, timeout=1800):
     tests, covered = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered,
               'executed': False, 'limitations': LIMITATIONS, 'attempts': []}
-    files, python = {}, None
+    files, python, contexts = {}, None, {}
     try:
         live.setup()
         app = live.sandbox.copy / (live.profile.get('app') or '')
+        (app / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
         for argv in commands:
             started = time.monotonic()
             run_argv = argv
             if Path(str(argv[0])).name in INTERPRETER_NAMES and live.run([argv[0], '-c', 'import coverage'], timeout=60)[0] == 0:
-                run_argv, python = [argv[0], '-m', 'coverage', 'run', '--branch', *argv[1:]], argv[0]
+                run_argv, python = [argv[0], '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', *argv[1:]], argv[0]
+            run_argv = with_timing(run_argv, app)
             code, stdout, stderr = live.run(run_argv, timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)})
             result['attempts'].append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
                                        'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
         if python:
-            code, _, _ = live.run([python, '-m', 'coverage', 'json', '-o', '.eaos-coverage.json'], timeout=300)
+            code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', '.eaos-coverage.json'],
+                                  timeout=300)
             report = app / '.eaos-coverage.json'
             if code == 0 and report.is_file():
                 prefix = Path(live.profile.get('app') or '.').as_posix().strip('./')
                 for name, entry in json.loads(report.read_text(encoding='utf-8')).get('files', {}).items():
+                    for line, tests in (entry.get('contexts') or {}).items():
+                        for test in tests:
+                            if test: contexts.setdefault(test, set()).add((name, line))
                     relative = Path(name).as_posix().removeprefix('./')
                     relative = f'{prefix}/{relative}' if prefix else relative
                     summary = entry.get('summary', {})
                     files[relative] = {'covered_lines': summary.get('covered_lines', 0), 'statements': summary.get('num_statements', 0),
                                        'percent': round(summary.get('percent_covered', 0.0), 1)}
+        result['suite'] = suite_health(app, contexts)
         for path, row in v8_coverage(v8, live.sandbox.copy).items():
             files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'], 'percent': row['percent'],
                                     'unit': 'functions'})

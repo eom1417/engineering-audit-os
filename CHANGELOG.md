@@ -16,6 +16,17 @@ or improve it (with its plan and cards).
   target-architecture.json, TARGET-STATE.md and GAP-AND-STRATEGY.md list every aspect with its verdict and who gave it
   (test_aspects: every restored aspect is in the planner's bundle and its verdicts reach the gap report).
 
+## 0.0.9 (2026-10-12)
+
+- **Every aspect of the program reaches the person's assistant**: the information stages the slim-down removed are
+  back (sustainability indicators, canonical homes of repeated code, the architecture map, test coverage run with
+  the person's consent, light user journeys) with a new record of behaviour under load and failures (performance,
+  resilience, health, telemetry, security surface). The ideal planner judges every aspect: keep (with why) or
+  improve (with the plan); the gap and target reports show those verdicts. 34 stages.
+- **The test suite is an aspect too**: the check reads each test's time from the runner's own report (pytest,
+  vitest, jest) and, through Coverage.py's "who tests what", the tests that run no line no other test runs; the
+  assistant judges the suite (merge, speed up or delete). No new tool: both are switches of tools already in use.
+
 ## 0.0.8 (2026-10-12)
 
 The fifteen fixes of the 2026-10-12 review; each is proven by the test named after it.

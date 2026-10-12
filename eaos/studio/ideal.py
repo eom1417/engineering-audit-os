@@ -461,7 +461,9 @@ RULES_OF_THE_ANSWER = '''Rules that are not negotiable (the same as EAOS's seman
    (say why it is fine: "it is already right, nothing changes"), or `improve` with the plan for it in `plan` and the
    cards (TASK-...) that carry it out in `cards`. An aspect the check could not measure (rules_verdict `unmeasured`) is
    judged on what the bundle does show, and its plan says how to measure it. Its behaviour under load and pressure
-   (performance, resilience) is judged like any other aspect.'''
+   (performance, resilience) is judged like any other aspect. For `tests`, judge the suite itself too (`suite`: its
+   time, its slowest tests, the tests that run no line another test does not): a slow or redundant suite is `improve`,
+   with which tests to merge, speed up or delete.'''
 
 
 def prompt_plan(data):
