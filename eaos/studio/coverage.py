@@ -50,40 +50,54 @@ def _languages(report):
     return names
 
 
+def _functions_not_exported(section, report, built, lang):
+    found = _languages_with_functions(report)
+    parts = [{'id': name, 'state': 'measured' if name in found else 'not_measured',
+              'detail': _text(lang, f'{found.get(name, 0)} دالة', f'{found.get(name, 0)} functions')}
+             for name in sorted(_languages(report) | set(found))]
+    if found:
+        return ('facts_not_exported', _text(lang, f'قرأ EAOS {sum(found.values())} دالة، ومستكشف الدوال لم يُصدَّر بعد.',
+                                            f'EAOS read {sum(found.values())} functions; the function explorer is not exported yet.'),
+                'NS46.T5', 'audit', _count(sum(found.values()), 'facts/metrics.json#metric[scope in function, method]'), parts)
+    return ('not_built', _text(lang, 'لا حقائق عن الدوال في هذا الفحص بعد.', 'This check has no function facts yet.'),
+            'NS40.T3', 'audit', _count(None, 'facts/metrics.json#metric[scope in function, method]'), parts)
+
+
+def _screens_not_exported(section, report, built, lang):
+    shots = [image for image in built.get('media') or [] if image.get('kind') == 'screen']
+    if shots:
+        return ('facts_not_exported', _text(lang, f'{len(shots)} صورة شاشة موجودة، ومعرض الشاشات لم يُصدَّر بعد.',
+                                            f'{len(shots)} screen shots exist; the screens gallery is not exported yet.'),
+                'NS46.T5', 'audit', _count(len(shots), 'media.json#images[kind=screen]'), [])
+    return ('needs_screens', _text(lang, 'تصوير الشاشات يحتاج تشغيل التطبيق بموافقتك.', 'Capturing the screens needs the app running, with your agreement.'),
+            'NS41.T1', 'run_setup', _count(None, 'media.json#images[kind=screen]'), [])
+
+
+def _gap_not_exported(section, report, built, lang):
+    rows = (built.get('story') or {}).get('gap') or []
+    if rows:
+        return ('facts_not_exported', _text(lang, f'الفجوة محسوبة لـ{len(rows)} مكوّن، وصفحتها لم تُصدَّر بعد.',
+                                            f'The gap is computed for {len(rows)} components; its page is not exported yet.'),
+                'NS46.T3', 'plan', _count(len(rows), 'story.json#gap'), [])
+    return ('not_built', _text(lang, 'لم تُحسب الصورة المثالية والفجوة في هذا الفحص.', 'This check computed no ideal picture or gap.'),
+            'NS43.T1' if section == 'gaps' else 'NS44.T1', 'plan', _count(None, 'story.json#gap'), [])
+
+
+def _history_not_exported(section, report, built, lang):
+    scans = (built.get('health') or {}).get('history') or []
+    return ('facts_not_exported', _text(lang, f'{len(scans)} فحص مسجل، وصفحة التاريخ لم تُصدَّر بعد.',
+                                        f'{len(scans)} scans recorded; the history page is not exported yet.'),
+            'NS46.T4', 'audit', _count(len(scans), 'health.json#history'), [])
+
+
+# The sections whose facts can be counted before their page is exported.
+NOT_EXPORTED = {'functions': _functions_not_exported, 'screens': _screens_not_exported, 'gaps': _gap_not_exported,
+                'operations': _gap_not_exported, 'history': _history_not_exported}
+
+
 def _not_exported(section, report, built, lang):
     """(reason, detail, step, tool, count, parts) for a section the exporter does not write yet."""
-    if section == 'functions':
-        found = _languages_with_functions(report)
-        parts = [{'id': name, 'state': 'measured' if name in found else 'not_measured',
-                  'detail': _text(lang, f'{found.get(name, 0)} دالة', f'{found.get(name, 0)} functions')}
-                 for name in sorted(_languages(report) | set(found))]
-        if found:
-            return ('facts_not_exported', _text(lang, f'قرأ EAOS {sum(found.values())} دالة، ومستكشف الدوال لم يُصدَّر بعد.',
-                                                f'EAOS read {sum(found.values())} functions; the function explorer is not exported yet.'),
-                    'NS46.T5', 'audit', _count(sum(found.values()), 'facts/metrics.json#metric[scope in function, method]'), parts)
-        return ('not_built', _text(lang, 'لا حقائق عن الدوال في هذا الفحص بعد.', 'This check has no function facts yet.'),
-                'NS40.T3', 'audit', _count(None, 'facts/metrics.json#metric[scope in function, method]'), parts)
-    if section == 'screens':
-        shots = [image for image in built.get('media') or [] if image.get('kind') == 'screen']
-        if shots:
-            return ('facts_not_exported', _text(lang, f'{len(shots)} صورة شاشة موجودة، ومعرض الشاشات لم يُصدَّر بعد.',
-                                                f'{len(shots)} screen shots exist; the screens gallery is not exported yet.'),
-                    'NS46.T5', 'audit', _count(len(shots), 'media.json#images[kind=screen]'), [])
-        return ('needs_screens', _text(lang, 'تصوير الشاشات يحتاج تشغيل التطبيق بموافقتك.', 'Capturing the screens needs the app running, with your agreement.'),
-                'NS41.T1', 'run_setup', _count(None, 'media.json#images[kind=screen]'), [])
-    if section in ('gaps', 'operations'):
-        rows = (built.get('story') or {}).get('gap') or []
-        if rows:
-            return ('facts_not_exported', _text(lang, f'الفجوة محسوبة لـ{len(rows)} مكوّن، وصفحتها لم تُصدَّر بعد.',
-                                                f'The gap is computed for {len(rows)} components; its page is not exported yet.'),
-                    'NS46.T3', 'plan', _count(len(rows), 'story.json#gap'), [])
-        return ('not_built', _text(lang, 'لم تُحسب الصورة المثالية والفجوة في هذا الفحص.', 'This check computed no ideal picture or gap.'),
-                'NS43.T1' if section == 'gaps' else 'NS44.T1', 'plan', _count(None, 'story.json#gap'), [])
-    if section == 'history':
-        scans = (built.get('health') or {}).get('history') or []
-        return ('facts_not_exported', _text(lang, f'{len(scans)} فحص مسجل، وصفحة التاريخ لم تُصدَّر بعد.',
-                                            f'{len(scans)} scans recorded; the history page is not exported yet.'),
-                'NS46.T4', 'audit', _count(len(scans), 'health.json#history'), [])
+    if section in NOT_EXPORTED: return NOT_EXPORTED[section](section, report, built, lang)
     if section == 'paths':
         return ('not_built', _text(lang, 'مسارات الكود لم تُصدَّر في هذا الفحص.', 'The code paths are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'paths.json#paths'), [])
@@ -211,13 +225,23 @@ def _ideal_row(body, lang):
     with each view's part saying how it was made (docs/STUDIO.md D10)."""
     views = (body or {}).get('views') or {}
     planned = [name for name, view in views.items() if (view.get('provenance') or {}).get('method') == 'planned']
-    parts = [{'id': name, 'state': 'measured' if name in planned else 'partial',
-              'detail': _text(lang, 'مخطَّط بنموذج' if name in planned else 'هدف القواعد فقط',
-                              'planned with a model' if name in planned else "the rules' target only")} for name in views]
+    parts = _view_parts(views, planned, lang)
     count = _count(sum(len((v.get('planned') or {}).get('elements') or []) for v in views.values()) if planned else None,
                    'ideal.json#views[].planned.elements')
     if (body or {}).get('state') == 'planned':
         return {'count': count, 'parts': parts}
+    return _rules_ideal(body, lang, count, parts)
+
+
+def _view_parts(views, planned, lang):
+    """Each view of the ideal: planned with a model, or the rules' target only."""
+    return [{'id': name, 'state': 'measured' if name in planned else 'partial',
+              'detail': _text(lang, 'مخطَّط بنموذج' if name in planned else 'هدف القواعد فقط',
+                              'planned with a model' if name in planned else "the rules' target only")} for name in views]
+
+
+def _rules_ideal(body, lang, count, parts):
+    """The row of an ideal that is the rules' target only: partial, and how to plan it."""
     return {'state': 'partial', 'reason': 'some_parts_missing', 'detail': ((body or {}).get('message') or {}).get(lang if lang == 'ar' else 'en')
             or _text(lang, 'المثالي هو هدف القواعد، وما خُطِّط بعد.', "The ideal is the rules' target; it is not planned yet."),
             'step': 'NS46.T14', 'tool': 'replan_ideal', 'count': count, 'parts': parts}
@@ -231,36 +255,54 @@ def coverage(report, built, written, errors, lang='ar'):
     report, failed = Path(report), {row['section']: row['error'] for row in errors}
     rows = []
     for section in [*PLANNED, *[name for name in written if name not in PLANNED and name != 'coverage']]:
-        items = PLANNED.get(section)
-        if section in written:
-            body = built.get(section)
-            listed = body.get(items) if isinstance(body, dict) and items else body if isinstance(body, list) else None
-            count = len(listed) if isinstance(listed, list) else None
-            empty = count == 0
-            # A written section may name the parts of its data the engine does not produce yet (`missing`): it is partial.
-            gaps = [g for g in (body.get('missing') if isinstance(body, dict) and not empty else None) or []
-                    if isinstance(g, dict) and g.get('state') in ('not_measured', 'partial', 'failed')]
-            parts = PARTS[section](body, lang) if section in PARTS else \
-                [{'id': g['id'], 'state': g['state'], 'detail': (g.get('detail') or {}).get(lang) or g['id']} for g in gaps]
-            # A map whose own tiers stop short (no form extractor yet, a payload sent as a variable) is partial, not measured.
-            tiers = section == 'data_paths' and any(part['state'] in ('partial', 'not_measured') for part in parts)
-            rows.append({'section': section, 'state': 'empty' if empty else 'partial' if gaps or tiers else 'measured',
-                         'reason': 'nothing_found' if empty else 'some_parts_missing' if gaps or tiers else 'written',
-                         'detail': (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
+        if section in written: rows.append(_written_row(section, built.get(section), lang))
+        elif section in failed: rows.append(_failed_row(section, failed[section]))
+        else: rows.append(_not_measured_row(section, report, built, lang))
+    missing = sum(row['state'] in ('not_measured', 'failed') for row in rows)
+    return {'sections': rows, 'not_measured': _count(missing, 'coverage.json#sections[state in not_measured, failed]')}
+
+
+def _gaps(body, empty):
+    """The parts a written section names as not produced yet (`missing`): such a section is partial."""
+    return [g for g in (body.get('missing') if isinstance(body, dict) and not empty else None) or []
+            if isinstance(g, dict) and g.get('state') in ('not_measured', 'partial', 'failed')]
+
+
+def _written_row(section, body, lang):
+    """A section that met its contract: measured, empty, or partial when parts of it are not measured yet."""
+    items = PLANNED.get(section)
+    listed = body.get(items) if isinstance(body, dict) and items else body if isinstance(body, list) else None
+    count = len(listed) if isinstance(listed, list) else None
+    empty = count == 0
+    gaps = _gaps(body, empty)
+    parts = PARTS[section](body, lang) if section in PARTS else \
+        [{'id': g['id'], 'state': g['state'], 'detail': (g.get('detail') or {}).get(lang) or g['id']} for g in gaps]
+    # A map whose own tiers stop short (no form extractor yet, a payload sent as a variable) is partial, not measured.
+    tiers = section == 'data_paths' and any(part['state'] in ('partial', 'not_measured') for part in parts)
+    row = {'section': section, 'state': 'empty' if empty else 'partial' if gaps or tiers else 'measured',
+           'reason': 'nothing_found' if empty else 'some_parts_missing' if gaps or tiers else 'written',
+           'detail': _written_detail(lang, empty, gaps, tiers, parts),
+           'step': gaps[0]['step'] if gaps else 'NS40.T2' if tiers else None, 'tool': 'audit' if tiers and not gaps else None,
+           'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': parts}
+    if section == 'ideal': row.update(_ideal_row(body, lang))
+    if section == 'nodes': row.update(_nodes_row(body, lang))
+    return row
+
+
+def _failed_row(section, error):
+    return {'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': error[:300],
+            'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []}
+
+
+def _not_measured_row(section, report, built, lang):
+    reason, detail, step, tool, count, parts = _not_exported(section, report, built, lang)
+    return {'section': section, 'state': 'not_measured', 'reason': reason, 'detail': detail, 'step': step,
+            'tool': tool, 'count': count, 'parts': parts}
+
+
+def _written_detail(lang, empty, gaps, tiers, parts):
+    return (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
                                     _text(lang, 'مقيس، وأجزاء منه لم تُقس بعد: ', 'Measured; parts are not measured yet: ')
                                     + _text(lang, '؛ ', '; ').join(p['detail'].rstrip('.') for p in parts) + '.' if gaps else
                                     _text(lang, 'قيس جزء من المسار؛ الفجوات معدودة في أجزائه.', 'Part of each path is measured; the gaps are counted in its parts.') if tiers else
-                                    _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.')),
-                         'step': gaps[0]['step'] if gaps else 'NS40.T2' if tiers else None, 'tool': 'audit' if tiers and not gaps else None,
-                         'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': parts})
-            if section == 'ideal': rows[-1].update(_ideal_row(body, lang))
-            if section == 'nodes': rows[-1].update(_nodes_row(body, lang))
-        elif section in failed:
-            rows.append({'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': failed[section][:300],
-                         'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []})
-        else:
-            reason, detail, step, tool, count, parts = _not_exported(section, report, built, lang)
-            rows.append({'section': section, 'state': 'not_measured', 'reason': reason, 'detail': detail, 'step': step,
-                         'tool': tool, 'count': count, 'parts': parts})
-    missing = sum(row['state'] in ('not_measured', 'failed') for row in rows)
-    return {'sections': rows, 'not_measured': _count(missing, 'coverage.json#sections[state in not_measured, failed]')}
+                                    _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.'))
