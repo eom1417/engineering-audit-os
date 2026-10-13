@@ -60,23 +60,28 @@ def call(messages):
     if os.environ.get('EAOS_CLAUDE_MODEL'): argv += ['--model', os.environ['EAOS_CLAUDE_MODEL']]
     envelope = stream(argv, conversation)
     if envelope.get('is_error'): raise RuntimeError('claude reported an error: ' + str(envelope.get('result'))[:200])
-    usage = os.environ.get('EAOS_MODEL_USAGE')
-    if usage:
-        with open(usage, 'a', encoding='utf-8') as log:
-            log.write(json.dumps({'cost_usd': envelope.get('total_cost_usd'), 'models': list(envelope.get('modelUsage') or {}),
-                                  'duration_ms': envelope.get('duration_ms')}) + '\n')
+    record({'cost_usd': envelope.get('total_cost_usd'), 'models': list(envelope.get('modelUsage') or {}),
+            'duration_ms': envelope.get('duration_ms')})
     return parse(envelope.get('result') or '')
 
 
-def main():
+def record(row):
+    """One call's row appended to $EAOS_MODEL_USAGE when that names a file."""
+    usage = os.environ.get('EAOS_MODEL_USAGE')
+    if usage:
+        with open(usage, 'a', encoding='utf-8') as log: log.write(json.dumps(row) + '\n')
+
+
+def serve(call, name):
+    """An adapter's process: the request on stdin, one JSON object on stdout, or exit 1 with the reason on stderr."""
     request = json.loads(sys.stdin.read())
     try: answer = call(request['messages'])
     except Exception as problem:   # the provider sees a failed exit; the reason goes to stderr, never to stdout
-        print(f'claude adapter: {problem}', file=sys.stderr)
+        print(f'{name} adapter: {problem}', file=sys.stderr)
         return 1
     sys.stdout.write(json.dumps(answer, ensure_ascii=False))
     return 0
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(serve(call, 'claude'))

@@ -7,14 +7,13 @@ and changes nothing itself; its progress goes to stderr, so the provider sees th
 written: the CLI uses the sign-in it has. $EAOS_CODEX_MODEL picks the model; each call is appended to
 $EAOS_MODEL_USAGE when that names a file.
 """
-import json
 import os
 import subprocess
 import sys
 import tempfile
 import time
 
-from .claude_adapter import ANSWER, parse, render
+from .claude_adapter import ANSWER, parse, record, render, serve
 
 
 def call(messages):
@@ -29,22 +28,9 @@ def call(messages):
                               text=True, cwd=empty)
         if done.returncode != 0: raise RuntimeError(f'codex exited {done.returncode}')
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''
-    usage = os.environ.get('EAOS_MODEL_USAGE')
-    if usage:
-        with open(usage, 'a', encoding='utf-8') as log:
-            log.write(json.dumps({'assistant': 'codex', 'duration_ms': round((time.monotonic() - began) * 1000)}) + '\n')
+    record({'assistant': 'codex', 'duration_ms': round((time.monotonic() - began) * 1000)})
     return parse(text)
 
 
-def main():
-    request = json.loads(sys.stdin.read())
-    try: answer = call(request['messages'])
-    except Exception as problem:   # the provider sees a failed exit; the reason goes to stderr, never to stdout
-        print(f'codex adapter: {problem}', file=sys.stderr)
-        return 1
-    sys.stdout.write(json.dumps(answer, ensure_ascii=False))
-    return 0
-
-
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(serve(call, 'codex'))
