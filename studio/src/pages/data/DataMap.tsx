@@ -87,13 +87,17 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
 
 const KIND_MARK: Record<Store['kind'], string> = { table: '▦', resource: '⇄', bucket: '▤', rpc: 'ƒ', auth: '⚿' }
 
-/** A hatched tier the records do not reach, its title and how many writes it knows. */
-function Band({ x, width, height, title, sub }: { x: number; width: number; height: number; title: ReactNode; sub: ReactNode }) {
+/** A hatched tier the records do not reach, its title (a line per tier, broken at its arrows, so it fits the band) and
+ * how many writes it knows. */
+function Band({ x, width, height, title, sub }: { x: number; width: number; height: number; title: string; sub: ReactNode }) {
+  const lines = title.split(/\s*[←→]\s*/)
   return (
     <>
       <rect className={css.band} x={x} y={HEAD - 8} width={width} height={height - HEAD} rx={10} fill="url(#dp-hatch)" />
-      <text className={css.bandTitle} x={x + width / 2} y={HEAD + 18} textAnchor="middle">{title}</text>
-      <text className={css.bandSub} x={x + width / 2} y={HEAD + 36} textAnchor="middle">{sub}</text>
+      <text className={css.bandTitle} y={HEAD + 18} textAnchor="middle">
+        {lines.map((line, i) => <tspan key={i} x={x + width / 2} dy={i ? 16 : 0}>{line}</tspan>)}
+      </text>
+      <text className={css.bandSub} x={x + width / 2} y={HEAD + 36 + 16 * (lines.length - 1)} textAnchor="middle">{sub}</text>
     </>
   )
 }
