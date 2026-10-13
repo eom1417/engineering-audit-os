@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.22 (2026-10-13)
+
+- **A batch rebuilds what its project's build generates**: when its changes touch the app, the build runs in a copy of
+  the batch before the checks and the files it changes come back as one commit, so a Studio fix is never left out
+  because the shipped Studio was not rebuilt.
+- **Stopping a batch's finish leaves it whole**, and is not recorded as a failure.
+- **Every card is tried**: an old reason for skipping a card is no reason now.
+
 ## 0.0.21 (2026-10-13)
 
 - **Cards a closed batch had skipped open again**: 0.0.20 stopped a batch closed without handing anything over from
