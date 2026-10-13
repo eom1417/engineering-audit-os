@@ -141,31 +141,47 @@ def rebuild(root, base, commits):
     return dropped
 
 
-def gates(report, root, runtime, name, before, lock):
-    """'' when the project's checks and the lock pass on `root`, else why not."""
-    if before:
-        broken = regressions(before, project_checks(root, runtime, 'S09', name))
+def gates(batch, name):
+    """'' when the project's checks and the lock pass on the batch's copy as it is now, else why not. A screen the
+    batch's design cards declare may look different (`declared`, eaos/behavior_lock.py): that is their change."""
+    if batch['before']:
+        broken = regressions(batch['before'], project_checks(batch['root'], batch['runtime'], 'S09', name))
         if broken: return "the project's own check failed: " + ', '.join(broken)
-    if lock:
+    if batch['lock']:
         from .behavior_lock import verify_lock
-        verdict = verify_lock(report, root, runtime, name=name)
+        verdict = verify_lock(batch['report'], batch['root'], batch['runtime'], name=name, declared=batch['declared'])
         if verdict['failed']: return f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs"
     return ''
 
 
-def culprits(report, root, runtime, base, commits, before, lock, name, say, found=None):
-    """{commit: why it fails the gates}, found by halving: each half is tested on `base` alone, and each run keeps its
-    own logs (named by its first commit and its size), so a culprit carries its own reason."""
+def culprits(batch, commits, found=None):
+    """{commit: why it fails the gates}, found by halving: each half is tested on `base` alone with the files its build
+    makes rebuilt (without them every half failed the same way, and every change touching the Studio was left out),
+    and each run keeps its own logs (named by its first commit and its size), so a culprit carries its own reason."""
     found = {} if found is None else found
     half = len(commits) // 2
     for part in (commits[:half], commits[half:]):
         if not part: continue
-        rebuild(root, base, part)
-        say('bisect')
-        why = gates(report, root, runtime, f'{name}-bisect-{part[0][:8]}-{len(part)}', before, lock)
+        _rebuilt(batch, part)
+        batch['say']('bisect')
+        why = gates(batch, f"{batch['name']}-bisect-{part[0][:8]}-{len(part)}")
         if why and len(part) == 1: found[part[0]] = why
-        elif why: culprits(report, root, runtime, base, part, before, lock, name, say, found)
+        elif why: culprits(batch, part, found)
     return found
+
+
+def _rebuilt(batch, commits):
+    """The copy as `base` plus exactly `commits`, and the files its build makes rebuilt from them."""
+    rebuild(batch['root'], batch['base'], commits)
+    if commits: batch['regenerate'](batch['root'])
+
+
+def declared_screens(cards):
+    """The snapshot names (eaos/lock_specs.py) of the screens the design cards say they change: their findings' pages."""
+    from .lock_specs import path_of, slug
+    pages = {re.sub(r'^https?://[^/]+/?#?', '', f.get('page') or '') or '/' for card in cards
+             for f in (card.get('design') or {}).get('findings') or []}
+    return {slug(path_of(page) or page) for page in pages}
 
 
 def open_batch(target, runtime, number):
@@ -209,7 +225,8 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
         regenerate(root)
     progress.begin('gates')
     batch = {'report': report, 'root': root, 'runtime': runtime, 'base': base, 'name': f'wave-{number}',
-             'before': original_checks(target, runtime), 'lock': lock, 'say': say, 'bisect': bisect}
+             'before': original_checks(target, runtime), 'lock': lock, 'say': say, 'bisect': bisect, 'regenerate': regenerate,
+             'declared': declared_screens(cards[c] for c in kept)}
     kept = _through_gates(batch, kept, failed)
     progress.begin('handover')
     _record_cards(runtime, card_ids, kept, failed, tools, number)
@@ -238,7 +255,7 @@ def _through_gates(batch, kept, failed):
         progress.skip('culprit', 'no change was kept to check', 'nothing_kept')
         return kept
     batch['say']('gates')
-    why = gates(batch['report'], batch['root'], batch['runtime'], batch['name'], batch['before'], batch['lock'])
+    why = gates(batch, batch['name'])
     if not why:
         progress.step('batch', 1, 1, 'ok')
         progress.skip('culprit', 'the batch passed its checks', 'gates_passed')
@@ -259,17 +276,15 @@ def failing_output(runtime, name, size=6000):
 
 
 def _without_culprits(batch, kept, failed):
-    report, root, runtime, base = batch['report'], batch['root'], batch['runtime'], batch['base']
-    name, before, lock = batch['name'], batch['before'], batch['lock']
-    bad = culprits(report, root, runtime, base, list(kept.values()), before, lock, name, batch['say'])
+    bad = culprits(batch, list(kept.values()))
     for card_id, sha in list(kept.items()):
         if sha in bad: failed[card_id] = bad[sha]
     kept = {c: s for c, s in kept.items() if c not in failed}
-    rebuild(root, base, list(kept.values()))
-    if kept and gates(report, root, runtime, name, before, lock):
+    _rebuilt(batch, list(kept.values()))
+    if kept and gates(batch, batch['name']):
         for card_id in kept: failed[card_id] = 'the batch still failed its gates without the cards found responsible'
         kept = {}
-        rebuild(root, base, [])
+        rebuild(batch['root'], batch['base'], [])
     return kept
 
 

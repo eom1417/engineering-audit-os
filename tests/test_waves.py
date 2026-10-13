@@ -58,12 +58,15 @@ class RebuildTests(unittest.TestCase):
         self.assertEqual(waves.rebuild(root, base, [one, three]), [])
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['a.txt', 'one.txt', 'three.txt'])
         commits = [f'c{n}' for n in range(8)]
-        applied = []
+        applied, regenerated = [], []
+        batch = {'root': 'root', 'base': 'base', 'name': 'wave-1', 'say': lambda *a: None, 'regenerate': regenerated.append}
         with mock.patch.object(waves, 'rebuild', side_effect=lambda root, base, part: applied.append(list(part)) or []), \
                 mock.patch.object(waves, 'gates', side_effect=lambda *a, **k: f'broken by {len(applied[-1])}' if 'c5' in applied[-1] else ''):
-            found = waves.culprits('r', 'root', 'rt', 'base', commits, [], True, 'wave-1', lambda *a: None)
+            found = waves.culprits(batch, commits)
         self.assertEqual(found, {'c5': 'broken by 1'}, "the culprit's own reason, not the batch's")
         self.assertLessEqual(len(applied), 6, 'halving, not trying every card alone')
+        # Wave 4 on EAOS (2026-10-13): without the Studio rebuilt, every half failed alike, 56 runs over three hours
+        self.assertEqual(len(regenerated), len(applied), 'each half is checked with the files its build makes')
 
 
 class HandOverTests(unittest.TestCase):
@@ -98,7 +101,7 @@ class FinishTests(unittest.TestCase):
         subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
-        broken = lambda report, root, *rest: 'the project\'s own check failed: test' if (Path(root) / '2.txt').exists() else ''
+        broken = lambda batch, name: 'the project\'s own check failed: test' if (Path(batch['root']) / '2.txt').exists() else ''
         with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
                                | {'T4': 1}), \
                 mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=broken):
@@ -125,7 +128,7 @@ class FinishTests(unittest.TestCase):
         subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
-        together = lambda report, root, *rest: ('' if (Path(root) / 'repair.txt').exists() or not (Path(root) / '2.txt').exists()
+        together = lambda batch, name: ('' if (Path(batch['root']) / 'repair.txt').exists() or not (Path(batch['root']) / '2.txt').exists()
                                                 else "the project's own check failed: a cycle")
         finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2'], kept, {}, {},
                                                            lock=False, repairs=repairs, bisect=bisect)

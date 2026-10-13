@@ -33,9 +33,9 @@ def git(project, *argv):
                           check=True, capture_output=True, text=True).stdout.strip()
 
 
-def project_checks(report, root, runtime, name, before, lock):
+def project_checks(batch, name):
     """The project's own checks: one of them still needs app/old_report.py, so the batch that deletes it fails them."""
-    return '' if (Path(root) / 'app/old_report.py').is_file() else "the project's own check failed: test_monthly_report"
+    return '' if (Path(batch['root']) / 'app/old_report.py').is_file() else "the project's own check failed: test_monthly_report"
 
 
 def no_engines(context):

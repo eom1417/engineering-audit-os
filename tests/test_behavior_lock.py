@@ -120,6 +120,13 @@ class ApprovalResultTests(Workspace):
         self.assertEqual(statuses['home.spec.ts'][0], 'passed')
         self.assertEqual(statuses['rota.spec.ts'], ('failed', 'Screenshot comparison failed'))
         self.assertEqual(statuses['cases.spec.ts'][0], 'quarantined', 'a spec whose tests were all skipped')
+        # Wave 4 on EAOS (2026-10-13): design cards changed the screens they were about, and the lock refused them all
+        looks = lambda name: f'Error: \x1b[2mexpect(\x1b[22mpage).toHaveScreenshot(expected) failed\n  Snapshot: {name}.png'
+        report = playwright_report(('root.spec.ts', [('failed', looks('change')), ('passed', '')]),
+                                   ('other.spec.ts', [('failed', looks('problems'))]), ('broken.spec.ts', [('failed', 'pageerror: boom')]))
+        self.assertEqual({k: s for k, (s, _) in spec_statuses(report, {'change', 'broken'}).items()},
+                         {'root.spec.ts': 'passed', 'other.spec.ts': 'failed', 'broken.spec.ts': 'failed'},
+                         'a declared screen may look different; an undeclared one, or any other failure, still counts')
         from eaos.behavior_lock import _results
         (Path(self.tmp) / 'behavior-lock').mkdir()
         (Path(self.tmp) / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [
