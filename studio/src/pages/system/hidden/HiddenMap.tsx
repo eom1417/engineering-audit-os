@@ -6,7 +6,7 @@ import { useId, type KeyboardEvent, type Ref } from 'react'
 import type { Hidden, HiddenGroupId } from '../../../data/journeys'
 import { usePrefs } from '../../../i18n/prefs'
 import type { ZoomState } from '../../../map/useZoom'
-import { clip } from '../journeys/model'
+import { fit } from '../../../map/draw'
 import { useJourneyWords } from '../words'
 import css from './Hidden.module.css'
 
@@ -108,7 +108,7 @@ export function HiddenMap({ hidden: h, variant, focus, onlyNoScreen, showHidden,
             <g key={p.id} className={[css.area, focus === p.id && css.sel, off && css.faded].filter(Boolean).join(' ')}
               {...button(p.id, `${areaName(a.name)}: ${w('areaSub', { s: a.screens.length, d: a.dialog_count })}`, focus === p.id)}>
               <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.box} />
-              <text x={cx(p)} y={p.y + 25} className={a.name === '/' || a.name === 'public' ? css.name : css.ident} direction={a.name === '/' || a.name === 'public' ? dir : 'ltr'} textAnchor={a.name === '/' || a.name === 'public' ? anchor : identAnchor}>{clip(areaName(a.name), 18)}</text>
+              <text x={cx(p)} y={p.y + 25} className={a.name === '/' || a.name === 'public' ? css.name : css.ident} direction={a.name === '/' || a.name === 'public' ? dir : 'ltr'} textAnchor={a.name === '/' || a.name === 'public' ? anchor : identAnchor}>{fit(areaName(a.name), 18)}</text>
               <text x={lang === 'ar' ? p.x + 12 : p.x + p.w - 12} y={p.y + 25} className={css.sub} direction={dir} textAnchor={farAnchor}>{w('areaSub', { s: a.screens.length, d: a.dialog_count })}</text>
             </g>
           )
@@ -126,7 +126,7 @@ export function HiddenMap({ hidden: h, variant, focus, onlyNoScreen, showHidden,
               <text x={cx(p)} y={p.y + 22} className={css.name} direction={dir} textAnchor={anchor}>{w(`group_${g.id as HiddenGroupId}`)}</text>
               <text x={lang === 'ar' ? p.x + 12 : p.x + p.w - 12} y={p.y + 22} className={css.count} textAnchor={lang === 'ar' ? 'start' : 'end'}>{n}</text>
               {top.map((i, k) => (
-                <text key={i!.id} x={p.x + 12} y={p.y + 47 + k * 18} className={[css.item, i!.no_screen && css.itemAlone].filter(Boolean).join(' ')}>{clip(i!.name, 36)}</text>
+                <text key={i!.id} x={p.x + 12} y={p.y + 47 + k * 18} className={[css.item, i!.no_screen && css.itemAlone].filter(Boolean).join(' ')}>{fit(i!.name, 36)}</text>
               ))}
               {g.no_screen > 0 && !onlyNoScreen && (
                 <text x={cx(p)} y={p.y + p.h - 9} className={css.alone} direction={dir} textAnchor={anchor}>{`${w('noScreen')}: ${g.no_screen}`}</text>

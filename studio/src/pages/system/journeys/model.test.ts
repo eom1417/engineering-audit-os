@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Journeys, Screen } from '../../../data/journeys'
-import { byDepth, captions, clip, litSet, pathEdges, shownEdges, shownScreens, stepsOf } from './model'
+import { fit } from '../../../map/draw'
+import { byDepth, captions, litSet, pathEdges, shownEdges, shownScreens, stepsOf } from './model'
 
 const screen = (id: string, col: number, row: number, depth: number | null, extra: Partial<Screen> = {}): Screen => ({
   id, route: id, title: id, kind: 'page', file: null, router: 'src/App.tsx', fact: null, op: null, decided: false, flags: [],
@@ -36,6 +37,6 @@ describe('journeys model', () => {
     expect(captions(J).map((c) => [c.kind, c.n])).toEqual([['start', 0], ['clicks', 1], ['clicks', 2], ['none', 0]])
     expect(byDepth(J).map((g) => g.depth)).toEqual([0, 1, 2, null])
     expect([...litSet(J, undefined, undefined, 'no_way_in')!]).toEqual(['/lost'])
-    expect(clip('src/pages/settings/tabs/AccountTab', 12)).toBe('…/AccountTab')
+    expect(fit('src/pages/settings/tabs/AccountTab', 12)).toBe('…/AccountTab')
   })
 })

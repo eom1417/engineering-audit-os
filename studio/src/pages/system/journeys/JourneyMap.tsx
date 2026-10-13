@@ -6,9 +6,10 @@
 import { useId, type KeyboardEvent, type Ref } from 'react'
 import type { Journeys, Screen, ScreenFlag, Task } from '../../../data/journeys'
 import { usePrefs } from '../../../i18n/prefs'
+import { fit } from '../../../map/draw'
 import type { ZoomState } from '../../../map/useZoom'
 import { useJourneyWords } from '../words'
-import { areaScreens, captions, clip, clusters, edgeKey, litSet, pathEdges, shownEdges, shownScreens, type JourneyMode } from './model'
+import { areaScreens, captions, clusters, edgeKey, litSet, pathEdges, shownEdges, shownScreens, type JourneyMode } from './model'
 import css from './JourneyMap.module.css'
 
 export interface JourneyMapProps {
@@ -144,8 +145,8 @@ function ScreenFrame({ s, g, uid, mode, full, shotBase, className, broken, unsee
       {shot && full ? (
         <image href={`${shotBase}${shot}`} x={s.x + 1} y={s.y + 13} width={g.box_w - 2} height={g.box_h - 14} preserveAspectRatio="xMidYMin slice" />
       ) : null}
-      <text x={s.x + 10} y={s.y + 32} className={css.title}>{clip(s.title, 20)}</text>
-      <text x={s.x + 10} y={s.y + 49} className={css.route}>{clip(s.route, 24)}</text>
+      <text x={s.x + 10} y={s.y + 32} className={css.title}>{fit(s.title, 20)}</text>
+      <text x={s.x + 10} y={s.y + 49} className={css.route}>{fit(s.route, 24)}</text>
       {full && <title>{`${s.title} — ${s.route}`}</title>}
       {s.flags.includes('dead_end') && <path d={`M${s.x + g.box_w + 4},${s.y + 14}v${g.box_h - 22}`} className={css.deadEnd} />}
       {mode === 'target' && !s.decided && s.kind === 'page' && (
@@ -268,7 +269,7 @@ function ClusterMap({ journeys: j, variant, focus, onFocus, transform, svgRef, d
               {...pressable(interactive, id, `${c.id}: ${w('clusterSub', { s: c.screens.length })}`, undefined, onFocus)}>
               <rect x={c.x + 6} y={c.y + 6} width={g.box_w} height={g.box_h} rx={8} className={css.twin} />
               <rect x={c.x} y={c.y} width={g.box_w} height={g.box_h} rx={8} className={css.frame} />
-              <text x={c.x + 10} y={c.y + 24} className={css.title}>{clip(c.id, 20)}</text>
+              <text x={c.x + 10} y={c.y + 24} className={css.title}>{fit(c.id, 20)}</text>
               <text x={lang === 'ar' ? c.x + g.box_w - 10 : c.x + 10} y={c.y + 46} className={css.clusterSub} direction={lang === 'ar' ? 'rtl' : 'ltr'}>
                 {w('clusterSub', { s: c.screens.length }) + (problems ? ` · ${w('clusterFlags', { n: problems })}` : '')}</text>
             </g>

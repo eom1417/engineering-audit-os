@@ -5,6 +5,7 @@
 import { useMemo, type KeyboardEvent, type RefObject } from 'react'
 import type { DataPaths, DataView, Store } from '../../data/dataMap'
 import { isCluster, labelOf, membersOf, nodeOf, tierCounts, toneOf, touches, viewOf, type Mode } from './model'
+import { fit } from '../../map/draw'
 import { ownerWord } from './parts'
 import { useDataWords } from './words'
 import css from './Data.module.css'
@@ -21,10 +22,6 @@ export interface DataMapProps {
   svgRef?: RefObject<SVGSVGElement | null>
   transform?: string
   className?: string
-}
-
-function short(text: string, max: number): string {
-  return text.length <= max ? text : '…' + text.slice(text.length - max + 1)
 }
 
 export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, transform, className }: DataMapProps) {
@@ -66,7 +63,7 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
         {cluster && <rect className={css.stack} x={x + 4} y={y - 4} width={bw} height={bh} rx={8} />}
         <rect className={css.box} x={x} y={y} width={bw} height={bh} rx={8} />
         {lane === 'store' && <text className={css.kind} x={x + 10} y={y + bh / 2 + 4}>{store ? KIND_MARK[store.kind] : '⋯'}</text>}
-        <text className={css.label} x={x + (lane === 'store' ? 34 : 10)} y={y + bh / 2 + 4}>{short(label, lane === 'store' ? 20 : 26)}</text>
+        <text className={css.label} x={x + (lane === 'store' ? 34 : 10)} y={y + bh / 2 + 4}>{fit(label, lane === 'store' ? 20 : 26)}</text>
         {(cluster || (store && store.writers.length > 0)) && (
           <text className={[css.count, store?.multi_writer && css.countMany].filter(Boolean).join(' ')} x={x + bw - 10} y={y + bh / 2 + 4} textAnchor="end">
             {cluster ? count : `${store!.multi_writer ? '⚠ ' : ''}✎${count}`}

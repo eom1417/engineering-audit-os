@@ -88,11 +88,6 @@ export function byDepth(j: Journeys): { depth: number | null; screens: Screen[] 
     .map(([depth, screens]) => ({ depth, screens: screens.sort((a, b) => a.route.localeCompare(b.route)) }))
 }
 
-/** "…/tail" of a long identifier for a fixed-width box (the full value goes in the title). */
-export function clip(text: string, max: number): string {
-  return text.length <= max ? text : '…' + text.slice(text.length - max + 1)
-}
-
 /** The unseen items each screen sets in motion (hidden.json items whose areas hold the screen's area). */
 export function unseenBy(j: Journeys, areaItems: Map<string, number>): Map<string, number> {
   const out = new Map<string, number>()
