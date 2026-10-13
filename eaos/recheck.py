@@ -7,7 +7,6 @@ function the audit's probe stage uses. Exit 0: REFUTED, the observation is gone.
 Exit 2: the probe could not decide, which is never a pass.
 """
 import json
-import sys
 import tempfile
 from pathlib import Path
 
@@ -29,10 +28,3 @@ def main(args):
     status, detail = recheck(args.root, spec)
     print(f'{status}: {detail}')
     return 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
-
-
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('root', nargs='?', default='.'); parser.add_argument('--spec', required=True)
-    raise SystemExit(main(parser.parse_args(sys.argv[1:])))
