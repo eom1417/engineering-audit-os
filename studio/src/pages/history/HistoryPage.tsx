@@ -115,7 +115,7 @@ function HistoryCharts({ history, project }: { history: HistoryData; project: st
   )
 }
 
-function ComparePicker({ scans }: { scans: Scan[] }) {
+export function ComparePicker({ scans }: { scans: Scan[] }) {
   const w = useHistoryWords()
   const { date } = usePrefs()
   const [from, setFrom] = useState(scans[0].id)

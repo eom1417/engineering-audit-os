@@ -71,7 +71,8 @@ export const HISTORY_WORDS = {
   // comparison
   comparing: ['مقارنة فحصين', 'Comparing two checks'],
   compareNeedsTwo: ['المقارنة تحتاج فحصين', 'A comparison needs two checks'],
-  compareNeedsTwoSub: ['في تاريخ هذا المشروع فحص واحد حتى الآن، أو أن الرابط يسمّي فحصًا غير موجود.', 'This project has one check so far, or the link names a check that is not in its history.'],
+  compareBadLink: ['الرابط يسمّي فحصًا ليس في التاريخ', 'The link names a check that is not in the history'],
+  compareBadLinkSub: ['اختر فحصين هنا وقارن بينهما.', 'Pick two checks here and compare them.'],
   measure: ['المقياس', 'Measure'],
   change: ['التغيّر', 'Change'],
   better: ['أفضل', 'better'],
