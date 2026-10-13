@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.17 (2026-10-13)
+
+- **EAOS's tests pass in the check's isolated copy as on this computer.** The check and every fix batch run the Python
+  suite in an isolated copy (no git, an empty home, no tools installed); three tests depended on this computer and
+  failed there, so the check read "unittest fails, cause unknown" and a batch could have refused sound changes.
+
 ## 0.0.16 (2026-10-13)
 
 - **The app starts again in the check**: 0.0.15 found the Studio's hash routes (`/#/system`...), and the setup probe
