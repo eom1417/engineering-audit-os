@@ -695,7 +695,7 @@ def run_setup(project=None, person_agreed=False):
 
 
 def run_try(proposal=None, mode='lock', project=None):
-    """Try the assistant's proposal (see live_setup.ASSIST_SYSTEM for its fields), refused when unsafe."""
+    """Try the assistant's proposal (see live_assist.ASSIST_SYSTEM for its fields), refused when unsafe."""
     from . import live_setup
     state = project_state(project)
     runtime = guided.runtime_of(state)
@@ -789,7 +789,8 @@ def _run_job(project, arguments, progress):
     if not record['ok']:
         answer['failure'] = (record.get('failure') or '')[-3000:]
         folder = profile.get('app') or '.'
-        answer['code_that_raised_it'] = live_setup.relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
+        from .live_assist import relevant_source
+        answer['code_that_raised_it'] = relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
     if record.get('seed_output'): answer['seed_output'] = record['seed_output'][-1500:]
     answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database', 'seed', 'checks', 'baseline', 'limitations')}
     answer['what_now'] = _run_what_now(record['ok'], mode)

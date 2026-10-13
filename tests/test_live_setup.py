@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import live_setup
+from eaos import live_assist, live_setup
 from eaos.live_run import LiveRun, load_profile
 from eaos.sandbox import AuthorizationError
 
@@ -147,7 +147,7 @@ class VerifyTests(unittest.TestCase):
         assistant = mock.Mock()
         assistant.complete.return_value = ({'result': {'env': {'DEV_LOGIN': '1'}, 'seed_script': 'console.log("{}")'}}, {})
         with mock.patch.object(live_setup, 'verify', side_effect=lambda *a, **k: next(outcomes)), \
-                mock.patch.object(live_setup, 'assist_messages', return_value=[]), \
+                mock.patch.object(live_assist, 'assist_messages', return_value=[]), \
                 mock.patch.object(live_setup, 'setup_baseline', return_value={'ok': False, 'failure': 'APP_URL must be https'}):
             result = live_setup.setup(root, runtime, provider=assistant, say=lambda n: None)
         self.assertEqual((result['ok'], result['attempts']), (True, 2))
@@ -198,13 +198,13 @@ class VerifyTests(unittest.TestCase):
                         'app/src/ChooseProfile.tsx': '<h1>Where are you working?</h1>\n<p>Each is a separate record, its own people.</p>\n',
                         'app/server/config.ts': '\n'.join(['// config'] * 5 + ['if (!url.startsWith("https://")) problems.push("APP_URL must be an https:// address in production.");']),
                         'app/dist-server/main.mjs': 'problems.push("APP_URL must be an https:// address in production.");'})
-        found = live_setup.relevant_source(root, 'app', 'The page says:\nChief Operations\nWhere are you working?\n'
+        found = live_assist.relevant_source(root, 'app', 'The page says:\nChief Operations\nWhere are you working?\n'
                                                         'Each is a separate record, its own people.')
         self.assertTrue(found.startswith('=== app/src/ChooseProfile.tsx'), found[:80])
-        found = live_setup.relevant_source(root, 'app', 'Error: Configuration is not valid:\n - APP_URL must be an https:// address in production.')
+        found = live_assist.relevant_source(root, 'app', 'Error: Configuration is not valid:\n - APP_URL must be an https:// address in production.')
         self.assertIn('app/server/config.ts', found)
         self.assertNotIn('dist-server', found)
-        self.assertEqual(live_setup.relevant_source(root, 'app', 'short'), '')
+        self.assertEqual(live_assist.relevant_source(root, 'app', 'short'), '')
 
 
 class RunEnvironmentTests(unittest.TestCase):

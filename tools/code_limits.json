@@ -192,7 +192,6 @@
   "eaos/facts/pipeline_frameworks.py": 632,
   "eaos/guided.py": 1315,
   "eaos/human_report.py": 2174,
-  "eaos/live_setup.py": 682,
   "eaos/pipeline/runners.py": 603,
   "eaos/plan.py": 830,
   "eaos/studio/actions/branches.py": 1143,
