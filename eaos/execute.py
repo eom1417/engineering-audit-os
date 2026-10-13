@@ -30,16 +30,20 @@ def candidate(target, runtime, card_id):
     return where
 
 
-def run_codemod(card, root, report):
-    """The card's codemod on the candidate, rebuilt from the report's facts exactly as the plan's dry run built it."""
-    from .codemods import _commands, card_for
+def _facts_by_id(report):
+    """Every fact of the report's fact sets, by id; a set that does not read is skipped."""
     facts_by_id = {}
     for path in sorted((Path(report) / 'facts').glob('*.json')):
         try: data = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError): continue
-        for fact in data.get('facts') or []:
-            if isinstance(fact, dict) and fact.get('id'): facts_by_id[fact['id']] = fact
-    detail = card_for(card, facts_by_id, root)
+        facts_by_id.update((fact['id'], fact) for fact in data.get('facts') or [] if isinstance(fact, dict) and fact.get('id'))
+    return facts_by_id
+
+
+def run_codemod(card, root, report):
+    """The card's codemod on the candidate, rebuilt from the report's facts exactly as the plan's dry run built it."""
+    from .codemods import _commands, card_for
+    detail = card_for(card, _facts_by_id(report), root)
     steps = _commands(detail, Path(root)) if detail else None
     if not steps: raise RuntimeError(f"{card['id']}: its codemod cannot be rebuilt from the report's facts")
     for step, _ in steps:
@@ -74,36 +78,46 @@ def new_breakage(report, root, collected=None):
     return broke
 
 
+def _facts(folder, name):
+    file = Path(folder) / 'facts' / f'{name}.json'
+    return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
+
+
+def _copies(folder, paths):
+    """The copied blocks and functions with an occurrence in `paths`."""
+    from .fact_claims import worth_a_claim
+    touches = lambda f: paths & {o['path'] for o in f['value']['occurrences']}
+    found = {f['input_sha'] for f in _facts(folder, 'metrics') if f['kind'] == 'clone_cluster' and touches(f)}
+    return found | {f['value']['shape_sha'] for f in _facts(folder, 'fingerprint') if f['kind'] == 'duplicate_cluster' and touches(f)
+                    and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))}
+
+
+def _dead(folder, paths):
+    return {(f['value']['rule'], f['location'].get('path'), f['location'].get('symbol')) for f in _facts(folder, 'deadcode')
+            if f['location'].get('path') in paths}
+
+
+def _excess(folder, paths):
+    """{path: the decisions its functions have past the complexity limit, summed}."""
+    from .code_laws import MAX_COMPLEXITY
+    over = dict.fromkeys(paths, 0)
+    for f in _facts(folder, 'metrics'):
+        if f['kind'] == 'metric' and f['value']['scope'] != 'file' and f['location']['path'] in paths:
+            over[f['location']['path']] += max(0, f['value']['branches'] - MAX_COMPLEXITY)
+    return over
+
+
 def new_debt(report, collected, paths):
     """What a change added against the code laws (eaos/code_laws.py) in the files it touched (`paths`), from the facts
     of the report (before) and `collected` (after): a copied block or function, dead code, or more decisions past
     the complexity limit in a file (splitting a function of 60 into three of 20 is less; a new one of 20 is more).
     A change that adds any is taken back like a breakage."""
     from .code_laws import MAX_COMPLEXITY
-    from .fact_claims import worth_a_claim
     paths = set(paths)
-    def facts(folder, name):
-        file = Path(folder) / 'facts' / f'{name}.json'
-        return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
-    def copies(folder):
-        found = {f['input_sha'] for f in facts(folder, 'metrics') if f['kind'] == 'clone_cluster'
-                 and paths & {o['path'] for o in f['value']['occurrences']}}
-        return found | {f['value']['shape_sha'] for f in facts(folder, 'fingerprint') if f['kind'] == 'duplicate_cluster'
-                        and paths & {o['path'] for o in f['value']['occurrences']}
-                        and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))}
-    def dead(folder):
-        return {(f['value']['rule'], f['location'].get('path'), f['location'].get('symbol')) for f in facts(folder, 'deadcode')
-                if f['location'].get('path') in paths}
-    def excess(folder):
-        over = dict.fromkeys(paths, 0)
-        for f in facts(folder, 'metrics'):
-            if f['kind'] == 'metric' and f['value']['scope'] != 'file' and f['location']['path'] in paths:
-                over[f['location']['path']] += max(0, f['value']['branches'] - MAX_COMPLEXITY)
-        return over
-    was, now = excess(report), excess(collected)
-    copied = copies(collected) - copies(report)
+    was, now = _excess(report, paths), _excess(collected, paths)
+    copied = _copies(collected, paths) - _copies(report, paths)
     added = [f'{len(copied)} copied block(s) or function(s): call the one home instead'] if copied else []
-    added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(dead(collected) - dead(report))]
+    added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(_dead(collected, paths) - _dead(report, paths))]
     added += [f'{path} is more complex: {now[path] - was[path]} decisions more past the limit of {MAX_COMPLEXITY} per function'
               for path in sorted(paths) if now[path] > was[path]]
     return added
@@ -157,15 +171,15 @@ def regressions(before, after):
     """What the change broke: a check that passed and now fails, or, for a test suite already failing on the
     original, a test that passed and now fails. A failure the original already had is not the change's."""
     was = {tuple(c['argv']): c for c in before}
-    broken = []
-    for check in after:
-        old = was.get(tuple(check['argv']))
-        if old is None or check['exit'] == 0: continue
-        if old['exit'] == 0: broken.append(' '.join(check['argv']))
-        elif old.get('failing') and check.get('failing'):
-            new = sorted(set(check['failing']) - set(old['failing']))
-            if new: broken.append(f"{' '.join(check['argv'])} ({len(new)} new failing: {new[0]})")
-    return broken
+    return [broke for check in after if (broke := _regression(was.get(tuple(check['argv'])), check))]
+
+
+def _regression(old, check):
+    """What one check says the change broke (it passed and now fails, or it fails with new failing tests), or None."""
+    if old is None or check['exit'] == 0: return None
+    if old['exit'] == 0: return ' '.join(check['argv'])
+    new = sorted(set(check.get('failing') or []) - set(old['failing'])) if old.get('failing') else []
+    return f"{' '.join(check['argv'])} ({len(new)} new failing: {new[0]})" if new else None
 
 
 def record(runtime, row):
