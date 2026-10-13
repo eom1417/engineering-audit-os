@@ -248,3 +248,32 @@ class RunEnvironmentTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class HashRouteProbeTests(unittest.TestCase):
+    def test_the_setup_probe_counts_a_hash_route_drawn_in_the_loaded_page_as_answering(self):
+        # 0.0.15 found EAOS's Studio routes (/#/system...): the probe read the null answer of a same-page navigation as
+        # status 0, so the app "did not start" and every live stage of the check stood still.
+        import http.server, subprocess, threading, functools
+        from eaos.screens import audit
+        from eaos.toolchain import browsers, home
+        if audit.missing('playwright'): self.skipTest(audit.missing('playwright'))
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, 'index.html').write_text(
+                '<body><p id="o"></p><script>const draw = () => { document.getElementById("o").textContent = '
+                '"screen " + (location.hash || "#/home"); }; addEventListener("hashchange", draw); draw();</script></body>')
+            server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(http.server.SimpleHTTPRequestHandler,
+                                                                                          directory=folder))
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            script = Path(folder, 'probe.cjs')
+            script.write_text(live_setup.PROBE, encoding='utf-8')
+            try:
+                done = subprocess.run(['node', str(script)], capture_output=True, text=True, timeout=180, env={
+                    **os.environ, 'BASE_URL': f'http://127.0.0.1:{server.server_port}/', 'EAOS_ROUTES': json.dumps(['/#/system', '/#/problems']),
+                    'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())})
+            finally:
+                server.shutdown()
+        page = json.loads(done.stdout.strip().splitlines()[-1])
+        self.assertEqual([page['status']] + [o['status'] for o in page['others']], [200, 200, 200], done.stderr[-500:])
+        self.assertEqual([o['text'] for o in page['others']], ['screen #/system', 'screen #/problems'])
+        self.assertFalse(live_setup.stuck(page))

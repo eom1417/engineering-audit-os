@@ -304,9 +304,9 @@ const { chromium } = require('playwright');
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 300)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 300)); });
-  const visit = async (path) => {
+  const visit = async (path) => {   // a hash route (/#/x) is drawn in the page already loaded: no request, so goto answers null
     let status = 0;
-    try { const r = await page.goto(new URL(path, process.env.BASE_URL).href, { waitUntil: 'networkidle', timeout: 60000 }); status = r ? r.status() : 0; }
+    try { const href = new URL(path, process.env.BASE_URL).href, r = await page.goto(href, { waitUntil: 'networkidle', timeout: 60000 }); status = r ? r.status() : new URL(href).hash ? 200 : 0; }
     catch (e) { errors.push(String(e.message).slice(0, 300)); }
     return { path, status, url: page.url(), password: await page.locator('input[type=password]').count().catch(() => 0),
              text: (await page.locator('body').innerText().catch(() => '')).slice(0, 1500) };
