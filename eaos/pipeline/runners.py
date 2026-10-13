@@ -579,7 +579,8 @@ def pipeline_gaps(context):
 
 
 def reconcile(context):
-    from ..target_architecture import reconcile as decide, render
+    from ..target_architecture import reconcile as decide
+    from ..target_document import render
     policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
     result = decide(context.out, planned=_ran(context, 'ideal'), policy_path=policy_path if policy_path.is_file() else None)
     render(context.out, result, language=context.language)

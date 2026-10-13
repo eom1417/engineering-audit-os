@@ -188,7 +188,6 @@
   "eaos/studio/actions/branches.py": 1143,
   "eaos/studio/actions/runs.py": 740,
   "eaos/studio/export.py": 603,
-  "eaos/target_architecture.py": 691,
   "eaos/toolchain.py": 702,
   "tools/make_contracts.py": 708
  }

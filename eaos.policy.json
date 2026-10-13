@@ -47,6 +47,7 @@
       "eaos/plan.py",
       "eaos/remediation_patterns.py",
       "eaos/target_architecture.py",
+      "eaos/target_document.py",
       "eaos/target_projection.py",
       "eaos/roadmap.py",
       "eaos/codemods.py",

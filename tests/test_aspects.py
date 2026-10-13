@@ -114,7 +114,8 @@ class EveryAspectReachesTheAssistant(unittest.TestCase):
         from eaos.compose.four_reports import write as reports
         from eaos.pipeline.run import execute
         from eaos.studio import ideal
-        from eaos.target_architecture import reconcile, render
+        from eaos.target_architecture import reconcile
+        from eaos.target_document import render
         with tempfile.TemporaryDirectory() as tmp:
             project, out = Path(tmp) / 'shop', Path(tmp) / 'out'
             for name, text in FILES.items():
