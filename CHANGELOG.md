@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.23 (2026-10-13)
+
+- **Design fixes may change the screens they are about**: the behaviour lock accepts a different look on the screens
+  a batch's design cards declare, and still refuses any other change.
+- **Finding the change responsible rebuilds what the build makes in every half**: without it every half failed alike,
+  for hours, and every Studio fix would have been left out.
+
 ## 0.0.22 (2026-10-13)
 
 - **A batch rebuilds what its project's build generates**: when its changes touch the app, the build runs in a copy of
