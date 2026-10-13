@@ -10,6 +10,7 @@ import { FoldList, Panel, RowButton } from '../components/Panel'
 import type { CurrentNode, MapEdge, MapView, Operation, SystemMap, TargetNode } from '../data/system'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
+import { pressKey } from './draw'
 import { BINS, neighbours, ranked, type MapMode, type Neighbour } from './model'
 import { TerritoryMap, type Variant } from './TerritoryMap'
 import { useZoom, visibleWorld } from './useZoom'
@@ -203,7 +204,7 @@ export function Ego({ id, edges, onFocus, touch }: { id: string; edges: MapEdge[
         <path className={css.egEdge} d={`M${fromX},${y + BOX_H / 2} C${mid},${y + BOX_H / 2} ${mid},${centreY + 18} ${toX},${centreY + 18}`}
           strokeWidth={Math.min(4.5, 0.8 + Math.log1p(n.imports) * 0.8)} />
         <g className={css.egN} role="button" tabIndex={0} aria-label={`${n.id}, ${w('importsN', { n: n.imports })}`}
-          onClick={() => onFocus(n.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus(n.id) } }}>
+          onClick={() => onFocus(n.id)} onKeyDown={pressKey(() => onFocus(n.id))}>
           <rect className={css.egBg} x={x + 0.5} y={y + 0.5} width={BOX_W - 1} height={BOX_H - 1} rx={6} />
           <text className={css.egT} x={x + BOX_W / 2} y={y + BOX_H / 2 - 2} textAnchor="middle">{egoLabel(n.id)}</text>
           <text className={css.egM} x={x + BOX_W / 2} y={y + BOX_H / 2 + 10} textAnchor="middle">{n.imports}</text>

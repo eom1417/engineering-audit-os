@@ -6,7 +6,7 @@ import { Button as AriaButton } from 'react-aria-components'
 import { Button } from '../../components/Button'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N } from '../../i18n/text'
-import { fit } from '../../map/draw'
+import { fit, pressKey } from '../../map/draw'
 import { sequence, where, type CodePath, type Index, type Participant, type PathsData } from './model'
 import { GAP_WORD, HOW_WORD, LANE_WORD, usePathWords, type PathWord } from './words'
 import css from './paths.module.css'
@@ -50,7 +50,7 @@ export function SequenceDiagram({ data, index, path, selected, onSelect }:
           return (
             <g key={m.n} className={[css.msgRow, m.toNode === selected && css.msgSel].filter(Boolean).join(' ')} role="button" tabIndex={0}
               aria-label={`${m.n}. ${w(participantWord(m.from, path))} → ${w(participantWord(m.to, path))}: ${label} (${w(HOW_WORD[m.how])})`}
-              onClick={() => onSelect(m.toNode)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(m.toNode) } }}>
+              onClick={() => onSelect(m.toNode)} onKeyDown={pressKey(() => onSelect(m.toNode))}>
               <rect className={css.msgHit} x={2} y={y - ROW / 2 - 4} width={width - 4} height={ROW - 2} rx={6} />
               <text x={NUM - 10} y={y + 4} textAnchor="end" className={css.msgN}>{m.n}</text>
               <path d={d} className={[css.msg, m.gap && css.msgGap].filter(Boolean).join(' ')} markerEnd="url(#seq-arrow)" />

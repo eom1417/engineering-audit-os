@@ -5,7 +5,7 @@
 // sits in its own row above the canvas, so it never covers a stage. With reduced motion nothing moves and the state is
 // told by colour, outline and words alone. The drawing is a picture (role img): the stage list is the way to every
 // stage by keyboard and touch.
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { shownState, type ScanProgress, type ScanStage } from '../../data/scan'
 import { usePrefs } from '../../i18n/prefs'

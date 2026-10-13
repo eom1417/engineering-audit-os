@@ -1,5 +1,11 @@
-// What every SVG map of the Studio shares: text cut to the room of its box, and the size of the box it is drawn in.
-import { useCallback, useRef, useState } from 'react'
+// What every SVG map of the Studio shares: text cut to the room of its box, the size of the box it is drawn in, and a
+// drawn node pressed from the keyboard.
+import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
+
+/** The key handler of a drawn node that is a button: Enter and Space press it, as a click does. */
+export function pressKey(press: () => void) {
+  return (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); press() } }
+}
 
 /** The pixel size of the drawing's box, followed as it changes. */
 export function useBox(): [(el: HTMLDivElement | null) => void, { w: number; h: number }] {

@@ -3,7 +3,7 @@
 // condition; forks and joins are marked on the card's sides; failures run in their own lane; hidden side channels are
 // dotted and appear only when asked; what EAOS could not follow is a gap beside its stage. Pan with a drag, zoom with
 // the wheel, a pinch or the buttons (the map's useZoom); a long pipeline draws only what is in view.
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { clip, fit, useBox } from '../../map/draw'
 import { FitIcon } from '../../map/parts'
