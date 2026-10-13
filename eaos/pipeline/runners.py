@@ -182,7 +182,7 @@ def screens(context):
 
 def _screen_pages(context):
     """({template: its pages}, the crawl's measured entry or None): the app's static page routes and the crawled ones."""
-    from ..behavior_lock import surfaces
+    from ..lock_specs import surfaces
     from ..screens.crawl import distinct
     pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
                      if kind == 'page' and route.startswith('/') and not any(mark in route for mark in (':', '*', '['))]
@@ -431,7 +431,7 @@ def plan(context):
 
 
 def lock(context):
-    from ..behavior_lock import build
+    from ..lock_specs import build
     plan = build(context.out, context.target)
     if not plan['specs']:
         raise SkipStage('the program has no feature to lock', code='no_features')

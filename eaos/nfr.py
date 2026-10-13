@@ -24,7 +24,7 @@ def _facts(report, kind):
 
 def routes(report):
     """GET routes a load or scan can call without a fixture, as URLs."""
-    from .behavior_lock import PARAM, kind_of, path_of, surfaces
+    from .lock_specs import PARAM, kind_of, path_of, surfaces
     known = surfaces(report)
     found = []
     for feature in (_load(Path(report) / 'features.json', {}) or {}).get('features') or []:

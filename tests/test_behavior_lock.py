@@ -6,7 +6,8 @@ from pathlib import Path
 from shared_fixture import Workspace
 
 from eaos.artifact_contracts import contracts, validate
-from eaos.behavior_lock import LOCK_CONFIG, build, import_safe, path_of, spec_statuses, url
+from eaos.behavior_lock import LOCK_CONFIG, spec_statuses
+from eaos.lock_specs import build, import_safe, path_of, url
 
 
 def playwright_report(*files):

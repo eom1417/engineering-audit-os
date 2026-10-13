@@ -15,7 +15,6 @@
   "eaos/arch_map.py::function_calls": 21,
   "eaos/aspects.py::_readiness": 18,
   "eaos/aspects.py::_structure": 18,
-  "eaos/behavior_lock.py::playwright_spec": 16,
   "eaos/blueprint.py::choose_stack": 18,
   "eaos/blueprint.py::design": 60,
   "eaos/blueprint.py::page": 24,
@@ -185,7 +184,6 @@
  },
  "modules": {
   "eaos/agent_tools.py": 1258,
-  "eaos/behavior_lock.py": 740,
   "eaos/dossier.py": 785,
   "eaos/facts/pipeline_frameworks.py": 632,
   "eaos/guided.py": 1315,
