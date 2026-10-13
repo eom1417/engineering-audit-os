@@ -27,7 +27,7 @@ from pathlib import Path
 from ..aspects import ASPECTS, VERDICTS
 from ..code_laws import LAWS
 from ..assistants.command import Stuck
-from .nodes.core import digest, launcher_of, lenient as _lenient, UNTRUSTED
+from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short, UNTRUSTED
 
 VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
 OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
@@ -98,11 +98,6 @@ def _cards(report):
     return [t for t in (_load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [] if isinstance(t, dict) and t.get('id')]
 
 
-def _short(text, limit=220):
-    text = re.sub(r'\s+', ' ', str(text or '')).strip()
-    return text if len(text) <= limit else text[:limit - 1] + '…'
-
-
 def _slug(text):
     return re.sub(r'[^A-Za-z0-9_.:-]+', '-', str(text)).strip('-') or 'root'
 
@@ -140,7 +135,7 @@ def rules(report):
 
 def _element(id_, kind, title, operation, subject=None, detail='', cites=(), rule_ids=()):
     return {'id': str(id_), 'kind': kind, 'title': _short(title, 160) or str(id_), 'operation': RELATION_OP.get(operation, operation)
-            if RELATION_OP.get(operation, operation) in OPERATIONS else 'refactor', 'subject': subject, 'detail': _short(detail),
+            if RELATION_OP.get(operation, operation) in OPERATIONS else 'refactor', 'subject': subject, 'detail': _short(detail, 220),
             'cites': [c for c in dict.fromkeys(cites) if isinstance(c, str) and EVIDENCE.match(c)][:8], 'rules': list(rule_ids)}
 
 
