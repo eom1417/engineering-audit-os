@@ -4,7 +4,7 @@
 // place. Phone: the map's preview, a full-screen explorer, the focused component and the ranked list. A report with
 // no map (studio/system.json) keeps the list page (pages/System.tsx).
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../components/Button'
 import { Segmented } from '../components/Controls'
@@ -84,6 +84,85 @@ function Overview({ system, mode, onFocus }: { system: SystemMap; mode: MapMode;
   )
 }
 
+/** The "show hidden" lens: the components holding unseen work (studio/hidden.json), each with how many items. */
+function hiddenMarks(hidden: NonNullable<StudioData['hidden']>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const [id, groups] of Object.entries(hidden.components)) {
+    const n = Object.entries(groups).reduce((sum, [g, k]) => sum + (g === 'screens' ? 0 : k ?? 0), 0)
+    if (n) out[id] = n
+  }
+  return out
+}
+
+interface PhoneMapProps {
+  data: StudioData; system: SystemMap; mode: MapMode; focus?: string; only?: Operation; marked?: Record<string, number>
+  counts: ReactNode; ids: string[]; hiddenSwitch: ReactNode
+  setMode: (m: MapMode) => void; setFocus: (id: string) => void; pick: (id: string) => void
+}
+
+/** The phone: the map's preview, a full-screen explorer, the focused component's card and the ranked list. */
+function PhoneMap({ data, system, mode, focus, only, marked, counts, ids, hiddenSwitch, setMode, setFocus, pick }: PhoneMapProps) {
+  const w = useMapWords()
+  const view = mode === 'target' ? system.target : system.current
+  const [explore, setExplore] = useState(false)
+  const focusCard = useRef<HTMLDivElement>(null)
+
+  // a focus chosen on this page brings its card into view; the focus a link opened with does not move the page
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (focus && !explore) focusCard.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }, [focus, explore])
+
+  return (
+    <div className={css.phone}>
+      <MissingBanner data={data} />
+      <SystemViews current="map" />
+      <h1 className={css.largeTitle}>{w('systemMap')}</h1>
+      <ModeSwitch mode={mode} onChange={setMode} comfortable />
+      <figure className={css.preview}>
+        <button type="button" className={css.previewBtn} onClick={() => setExplore(true)} aria-label={w('exploreMap')}>
+          <TerritoryMap view={view} mode={mode} variant="preview" focus={focus} only={only} marked={marked} />
+        </button>
+        <figcaption className={css.cap}>
+          <span>{counts}</span>
+          <Button variant="ghost" onPress={() => setExplore(true)}>{w('exploreMap')}</Button>
+        </figcaption>
+      </figure>
+      {hiddenSwitch}
+      <Legend system={system} mode={mode} view={view} inline marked={marked} />
+      <FocusField ids={ids} label={w('findComponent')} onPick={pick} comfortable />
+      {focus && (
+        <div ref={focusCard} className={css.focusCard}>
+          <Panel pad><Inspector system={system} mode={mode} id={focus} onFocus={pick} touch /></Panel>
+        </div>
+      )}
+      <Section title={w('allComponents')} count={view.nodes.length} unit={mode === 'target' ? undefined : w('bySeverityWeight')}>
+        <RankedList system={system} mode={mode} focus={focus} onFocus={pick} />
+      </Section>
+      <ModalOverlay isOpen={explore} onOpenChange={setExplore} isDismissable className={css.exploreOverlay}>
+        <Modal className={css.exploreModal}>
+          <Dialog className={css.exploreDialog} aria-label={w('systemMap')}>
+            {({ close }) => (
+              <>
+                <MapCanvas system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} legend={false} minimap={false} marked={marked}
+                  className={css.exploreCanvas}
+                  head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('systemMap')}</Heading></>} />
+                {focus && (
+                  <div className={css.exploreBar} role="status">
+                    <bdi dir="ltr" className="id">{focus}</bdi>
+                    <Button variant="primary" onPress={close}>{w('seeDetails')}</Button>
+                  </div>
+                )}
+              </>
+            )}
+          </Dialog>
+        </Modal>
+      </ModalOverlay>
+    </div>
+  )
+}
+
 function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }) {
   const { t } = usePrefs()
   const w = useMapWords()
@@ -95,21 +174,10 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
   const focus = view.nodes.some((n) => n.id === search.focus) ? search.focus : undefined
   const only = (['retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce'] as Operation[]).find((op) => op === search.op)
   const list = search.show === 'list'
-  // the "show hidden" lens: the components holding unseen work (studio/hidden.json), each with how many items
   const showHidden = search.hidden === '1'
-  const marked = useMemo(() => {
-    if (!showHidden || !data.hidden) return undefined
-    const out: Record<string, number> = {}
-    for (const [id, groups] of Object.entries(data.hidden.components)) {
-      const n = Object.entries(groups).reduce((sum, [g, k]) => sum + (g === 'screens' ? 0 : k ?? 0), 0)
-      if (n) out[id] = n
-    }
-    return out
-  }, [showHidden, data.hidden])
+  const marked = useMemo(() => showHidden && data.hidden ? hiddenMarks(data.hidden) : undefined, [showHidden, data.hidden])
   const hiddenSwitch = data.hidden ? <HiddenSwitch on={showHidden} onChange={(on) => go({ hidden: on ? '1' : undefined })} /> : null
   const [centre, setCentre] = useState<string | undefined>()
-  const [explore, setExplore] = useState(false)
-  const focusCard = useRef<HTMLDivElement>(null)
   usePageChrome(t('system'), undefined, data.manifest.project.name)
 
   const go = (patch: Partial<SystemSearch>) => navigate({
@@ -126,61 +194,9 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
     ? w('targetCount', { r: system.target.regions.length, c: system.target.nodes.length, e: system.target.edges.length })
     : w('regionsCount', { r: system.current.regions.length, c: system.current.nodes.length, e: system.current.edges.length })
 
-  // a focus chosen on this page brings its card into view; the focus a link opened with does not move the page
-  const first = useRef(true)
-  useEffect(() => {
-    if (first.current) { first.current = false; return }
-    if (phone && focus && !explore) focusCard.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-  }, [phone, focus, explore])
-
   if (phone) {
-    return (
-      <div className={css.phone}>
-        <MissingBanner data={data} />
-        <SystemViews current="map" />
-        <h1 className={css.largeTitle}>{w('systemMap')}</h1>
-        <ModeSwitch mode={mode} onChange={setMode} comfortable />
-        <figure className={css.preview}>
-          <button type="button" className={css.previewBtn} onClick={() => setExplore(true)} aria-label={w('exploreMap')}>
-            <TerritoryMap view={view} mode={mode} variant="preview" focus={focus} only={only} marked={marked} />
-          </button>
-          <figcaption className={css.cap}>
-            <span>{counts}</span>
-            <Button variant="ghost" onPress={() => setExplore(true)}>{w('exploreMap')}</Button>
-          </figcaption>
-        </figure>
-        {hiddenSwitch}
-        <Legend system={system} mode={mode} view={view} inline marked={marked} />
-        <FocusField ids={ids} label={w('findComponent')} onPick={pick} comfortable />
-        {focus && (
-          <div ref={focusCard} className={css.focusCard}>
-            <Panel pad><Inspector system={system} mode={mode} id={focus} onFocus={pick} touch /></Panel>
-          </div>
-        )}
-        <Section title={w('allComponents')} count={view.nodes.length} unit={mode === 'target' ? undefined : w('bySeverityWeight')}>
-          <RankedList system={system} mode={mode} focus={focus} onFocus={pick} />
-        </Section>
-        <ModalOverlay isOpen={explore} onOpenChange={setExplore} isDismissable className={css.exploreOverlay}>
-          <Modal className={css.exploreModal}>
-            <Dialog className={css.exploreDialog} aria-label={w('systemMap')}>
-              {({ close }) => (
-                <>
-                  <MapCanvas system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} legend={false} minimap={false} marked={marked}
-                    className={css.exploreCanvas}
-                    head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('systemMap')}</Heading></>} />
-                  {focus && (
-                    <div className={css.exploreBar} role="status">
-                      <bdi dir="ltr" className="id">{focus}</bdi>
-                      <Button variant="primary" onPress={close}>{w('seeDetails')}</Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </Dialog>
-          </Modal>
-        </ModalOverlay>
-      </div>
-    )
+    return <PhoneMap data={data} system={system} mode={mode} focus={focus} only={only} marked={marked} counts={counts} ids={ids}
+      hiddenSwitch={hiddenSwitch} setMode={setMode} setFocus={setFocus} pick={pick} />
   }
 
   const title = <h1 className={css.title} id="h-map">{w('systemMap')}<span className={css.level}>{counts}</span></h1>
