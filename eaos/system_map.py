@@ -549,25 +549,38 @@ def _module_short(name, parts):
     return name.rsplit('/', 1)[-1]
 
 
+def _drawn_handlers(handlers, kept_apis, prefix):
+    return [{'id': h['id'], 'path': h['path'], 'short': _short(h['path'], prefix), 'apis': [a for a in h['apis'] if a in kept_apis],
+             'modules': sorted(h['modules']), 'tables': h['tables'], 'services': h['services']} for h in handlers]
+
+
+def _features(pages):
+    """Each feature with the drawn pages that belong to it, by name."""
+    features = defaultdict(list)
+    for p in pages:
+        for f in p['features']: features[f].append(p['id'])
+    return [{'name': f, 'pages': ps} for f, ps in sorted(features.items())]
+
+
+def _api_counts(apis):
+    """The APIs no handler answers (an outside URL aside), those matched by a guess, and the ways they were matched."""
+    return {'unknown': sum(1 for a in apis if not a['handlers'] and '://' not in a['path']),
+            'guessed': sum(1 for a in apis if a['handlers'] and not a['exact']),
+            'how': sorted({h['how'] for a in apis for h in a['handlers']})}
+
+
 def _drawn(view):
     """The system map as the report and the Studio read it."""
     cols, links, uses, ids, kept_apis, root = view['cols'], view['links'], view['uses'], view['ids'], view['kept_apis'], view['root']
     server, client = _common([h['path'] for h in cols['handlers']]), _common([c['path'] for c in cols['callers']])
     parts = _common([m['name'] + '/' for m in cols['modules']]) if len(cols['modules']) > 1 else ''
-    features = defaultdict(list)
-    for p in cols['pages']:
-        for f in p['features']: features[f].append(p['id'])
-    api_list = cols['apis']
     return {'pages': [{k: v for k, v in p.items() if k != 'reach'} | {'calls': sorted(links[p['id']] & kept_apis), 'shared': sorted(uses[p['id']] & ids)}
                       for p in cols['pages']],
             'callers': [dict(c, calls=sorted(links[c['id']] & kept_apis), short=_short(c['path'], client or root)) for c in cols['callers']],
-            'apis': [{k: (sorted(v) if isinstance(v, set) else v) for k, v in a.items()} for a in api_list],
-            'handlers': [{'id': h['id'], 'path': h['path'], 'short': _short(h['path'], server or root), 'apis': [a for a in h['apis'] if a in kept_apis],
-                          'modules': sorted(h['modules']), 'tables': h['tables'], 'services': h['services']} for h in cols['handlers']],
+            'apis': [{k: (sorted(v) if isinstance(v, set) else v) for k, v in a.items()} for a in cols['apis']],
+            'handlers': _drawn_handlers(cols['handlers'], kept_apis, server or root),
             'modules': [dict(m, short=_module_short(m['name'], parts)) for m in cols['modules']], 'data': cols['data'],
-            'features': [{'name': f, 'pages': ps} for f, ps in sorted(features.items())],
+            'features': _features(cols['pages']),
             'edges': [{'from': a, 'to': b, 'n': n, 'kind': k} for a, b, n, k in view['edges']], 'related': view['related'], 'capped': view['capped'],
-            'unknown': sum(1 for a in api_list if not a['handlers'] and '://' not in a['path']),
-            'guessed': sum(1 for a in api_list if a['handlers'] and not a['exact']),
-            'how': sorted({h['how'] for a in api_list for h in a['handlers']})}
+            **_api_counts(cols['apis'])}
 
