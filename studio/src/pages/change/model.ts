@@ -2,10 +2,8 @@
 // (studio/gaps.json, operations.json), and the plan's step dependencies (the waits of studio/paths.json's timeline).
 // Nothing here makes a number the exporter did not write: a flow is a component's files, a dependency is a task that
 // waits for another, and what the report does not hold is left out, not guessed.
-import { useEffect, useState } from 'react'
 import type { ChangeOp, Gap, Operation, OpState } from '../../data/change'
-import { script } from '../../data/load'
-import type { Plan, PlanStep, Relation, Story, StudioData } from '../../data/types'
+import type { Plan, PlanStep, Relation, Story } from '../../data/types'
 import type { WordKey } from '../../i18n/catalog'
 import type { Timeline } from '../paths/model'
 
@@ -213,22 +211,3 @@ export function nextStep(plan: Plan, links: StepLink[]): PlanStep | undefined {
 }
 
 export const PLAN_STATES = ['registered', 'approved', 'active', 'review', 'merged', 'closed'] as const
-
-// ---------------------------------------------------------------- the coverage row
-
-export interface CoverageRow { section: string; state: string; detail: string; step: string | null; tool: string | null }
-
-/** The coverage row of a section (studio/coverage.json, loaded on demand) for the designed "not measured yet" state. */
-export function useCoverage(data: StudioData, section: string): CoverageRow | undefined {
-  const listed = data.manifest.sections.some((s) => (s.name as string) === 'coverage')
-  const find = () => ((window.EAOS_STUDIO?.coverage as { sections?: CoverageRow[] } | undefined)?.sections ?? []).find((r) => r.section === section)
-  const [row, setRow] = useState<CoverageRow | undefined>(find)
-  useEffect(() => {
-    if (!listed || row) return
-    let live = true
-    script('coverage').then(() => { if (live) setRow(find()) })
-    return () => { live = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listed, section])
-  return row
-}

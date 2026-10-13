@@ -8,7 +8,8 @@ import { Panel, StateMessage } from '../../components/Panel'
 import type { Gap, OpState } from '../../data/change'
 import type { StudioData } from '../../data/types'
 import { Id, N } from '../../i18n/text'
-import { TASK_STATES, useCoverage } from './model'
+import { useCoverageRow } from '../library/model'
+import { TASK_STATES } from './model'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
@@ -35,7 +36,7 @@ export function ChangeNav() {
 /** A section the report does not hold: what is missing, and why. */
 export function NotMeasured({ data, section, title }: { data: StudioData; section: string; title: string }) {
   const w = useChangeWords()
-  const row = useCoverage(data, section)
+  const row = useCoverageRow(data, section)
   return (
     <Panel>
       <StateMessage title={title} sub={<>{w('notMeasured')}{row?.detail ? <> — {row.detail}</> : null}</>} />
