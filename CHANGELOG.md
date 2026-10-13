@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.0.15 (2026-10-13)
+
+The check covers the code laws and the UI it had missed on EAOS itself:
+- **The UI is read**: TanStack routes built in code (`createRoute`, hash history at `/#/x`) and Starlette `Route(...)`
+  are found (EAOS's Studio: 38 pages instead of one root layout, 19 server routes instead of none); every check
+  picture belongs to its screen with its issues (54 of 54, none before); the pictured Studio loads all its data.
+- **Oversized modules**: a production module past 600 lines is a card to split it along its responsibilities, and the
+  structure aspect counts them (20 on EAOS, judged "keep" before). **Copied functions**: a large shared shape is a
+  precise detector of its own (47 on EAOS), copies in the same files one card.
+- **One card per problem**: a screen problem in a shared part (the top bar, the language) is one card for every page;
+  a semantic claim that restates the ledger is dropped.
+- **The owner's share** (`eaos/owner_share.py`) covers every waiting question, not only the cards; a doubted card
+  closes as not proven, judged again next check; planners decide technical choices; the check writes in the Studio's
+  language.
+- **The Python suite is measured** by the check (coverage, timings) as the batch gates run it, one detector for both.
+- The findings' severity reaches the planner; the phone top bar shows the freshness as a count.
+
 ## 0.0.14 (2026-10-13)
 
 - **A fix keeps the code laws or is taken back**: after each card, `eaos.execute.new_debt` compares the files the card
