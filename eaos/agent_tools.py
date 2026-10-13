@@ -158,13 +158,19 @@ def _watch(state, route='/scan'):
     return opened if 'studio' in opened else None
 
 
-def open_studio(project=None, show=True, route=''):
+def open_studio(project=None, show=True, route='', address=None):
     """`open_studio`: the live Studio's address (on `route`, when given), starting its server in the background when it
     is not running. The server runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder it
     starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one. It rebuilds
     no data: a server it starts does (run_foreground), and a running one's is kept by every step that changes it, so a
-    check asked for starts at once."""
+    check asked for starts at once. `address`: this computer is a remote server reached at that routed address
+    (launch.serve_remotely); a running Studio that answers elsewhere starts again there."""
     state = project_state(project)
+    if address:
+        try: pattern = launch.serve_remotely(address)
+        except ValueError as problem: return {'error': str(problem), 'what_now': 'Pass the exact https address your environment routes to a port.'}
+        running = launch.running(state)
+        if running and running.get('remote_origin') != pattern.format(port=running['port']): launch.stop(running)
     found, started = launch.start(state)
     if not found:
         return {'error': 'the Studio server did not start in time', 'log': str(Path(state['workspace']) / 'logs/studio-server.log'),
@@ -174,10 +180,12 @@ def open_studio(project=None, show=True, route=''):
     return {'studio': url, 'opened_in_browser': opened, 'started': started, 'live': True,
             'checked': guided.scan_done(state),
             'what_now': ('Tell the person the Studio is open in their browser' if opened else
+                         'Send the person this address now, without being asked: it stays the same, and the Studio keeps '
+                         'running on this server after your session ends' if found.get('remote_origin') else
                          'Give the person this address to open in their browser on this computer (it works only here)')
                         + '; it updates by itself after every check, batch, merge and decision. '
                         + ('' if guided.scan_done(state) else 'The project is not checked yet: offer audit first. ')
-                        + 'Do not paste the address anywhere else: it holds the key of this session.'}
+                        + 'Do not paste the address anywhere else.'}
 
 
 def wait(job, seconds=WAIT):

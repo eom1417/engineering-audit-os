@@ -511,6 +511,29 @@ class Commands(unittest.TestCase):
 class Remote(unittest.TestCase):
     """A Studio behind the Remote sign-in: its exact routed origin, its kept token, and the opt-in that hands it over."""
 
+    def test_on_a_remote_server_the_studio_is_a_service_of_the_computer_at_its_routed_address(self):
+        # Chef Operations (2026-10-13): the Studio ran in the assistant's session, which the server ended overnight, and
+        # its address carried the token.
+        from eaos.api import launch
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder, 'SECRET_TOKEN': 'x'}):
+            self.assertFalse(launch.durable(), 'a person\'s own computer: a process of its own')
+            for wrong in ('https://evil.example:8096', 'https://shop.dev.remote.e-m.sa'):
+                with self.assertRaises(ValueError): launch.serve_remotely(wrong)
+            with mock.patch.object(launch.shutil, 'which', return_value='/usr/bin/systemd-run'), \
+                    mock.patch.object(launch.Path, 'is_dir', return_value=True):
+                self.assertEqual(launch.serve_remotely('https://shop--8096.dev.remote.e-m.sa/'), 'https://shop--{port}.dev.remote.e-m.sa')
+                self.assertTrue(launch.durable())
+            self.assertEqual(launch.remote_template(), 'https://shop--{port}.dev.remote.e-m.sa')
+            state = {'workspace': f'{folder}/projects/shop-1a2b3c4d', 'project': '/srv/shop'}
+            with mock.patch.object(launch.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout='inactive')) as ran:
+                self.assertTrue(launch._as_service(state, ['python', '-m', 'eaos', 'studio'], dict(os.environ, PWD='/x'), Path(folder) / 'log'))
+            argv = ran.call_args.args[0]
+            self.assertEqual(argv[:2 if os.geteuid() == 0 else 3][-1:], ['--unit=eaos-studio-shop-1a2b3c4d'])
+            self.assertIn('--property=Restart=on-failure', argv)
+            self.assertIn('--setenv=SECRET_TOKEN', argv, 'the environment passes by name')
+            self.assertFalse(any('=x' in word for word in argv), 'never a value on the command line')
+            self.assertNotIn('--setenv=PWD', argv)
+
     def test_the_exact_routed_origin_keeps_every_lock(self):
         from eaos.api import launch
         from eaos.studio.actions import adapters, security

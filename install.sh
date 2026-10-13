@@ -100,6 +100,11 @@ if [ -n "$ASSISTANTS" ]; then
   "$APP/venv/bin/eaos" assistant install >>"$LOG" 2>&1 || ASSISTANTS=""
 fi
 
+# On a server run by systemd, every Studio is a service of the computer: it outlives the assistant's session.
+if [ "$(uname -s)" = Linux ] && [ -d /run/systemd/system ] && command -v systemd-run >/dev/null 2>&1; then
+  mkdir -p "${EAOS_HOME:-$HOME/.eaos}" && echo systemd >"${EAOS_HOME:-$HOME/.eaos}/studio-service"
+fi
+
 line
 say "✅ ما حدث: تم تثبيت EAOS" "✅ What happened: EAOS is installed"
 if [ -n "$MISSING" ]; then

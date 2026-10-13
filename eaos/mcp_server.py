@@ -48,6 +48,9 @@ why with `note` after each card and before you stop.
 When the person types /eaos alone, or asks what EAOS can do here, call `menu` and show its options as one choice
 (the recommended one first); once they chose, do what that option says at once. For questions about their code,
 `impact` (what changing a file touches) and `ask` answer from the check's records; `tools_check` says what is installed.
+The Studio is the person's view of all of it: at the start of the work, and right after EAOS was installed or updated,
+call open_studio and send them its address without being asked (on a remote server whose ports your environment routes
+to https addresses, pass that address once: the Studio then stays there, on the server, whichever assistant comes next).
 Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). Keep every feature,
 route and behaviour when fixing: a fix that deletes what users reach is refused, and so is one that changes a
 public function or class (its name, its parameters, the module it is defined in): split inside, keep the outside. Never invent results: report
@@ -257,10 +260,12 @@ def build():
 
     @server.tool(annotations=reading, description='Open the live EAOS Studio of the project in the person\'s browser: every '
                  'card, map, plan and decision of the last check, updating by itself after every check, batch, merge and decision. '
-                 'It runs on this computer only (127.0.0.1) and is reused while it runs. Offer it with open_report.')
+                 'It runs on this computer and is reused while it runs. On a remote server whose ports your environment routes to '
+                 'an https address (for example https://<project>--<port>.dev.remote.e-m.sa), pass that address once as `address`: '
+                 'the Studio then answers there with a plain address and keeps running after your session ends.')
     @_answer
-    def open_studio(show: bool = True, project: str | None = None) -> str:
-        return tools.open_studio(project, show)
+    def open_studio(show: bool = True, address: str | None = None, project: str | None = None) -> str:
+        return tools.open_studio(project, show, address=address)
 
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '
                  'reaches the internet), found from its files. Needs the person\'s agreement once: without it, returns the question to '

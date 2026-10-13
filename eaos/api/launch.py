@@ -4,9 +4,14 @@ Its address, port, process and token are kept in ~/.eaos/studio/<workspace>.json
 second `eaos studio` (server.run_foreground) or `open_studio` (agent_tools.open_studio) reopens the running one instead
 of starting another. A record whose process is gone, or whose server does not answer with its token, is replaced. It
 imports neither the server nor the tools, so the guided commands, the tools and the server all read it.
+
+On a remote server the Studio belongs to the computer: told its routed address once (`serve_remotely`), it answers
+there with a plain address that stays the same, and runs as a systemd service that outlives the assistant's session.
 """
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import time
@@ -16,6 +21,7 @@ from pathlib import Path
 from ..places import home
 
 STARTUP = 15.0       # seconds `start` waits for the server it started to answer
+SHELL_ONLY = frozenset({'PWD', 'OLDPWD', 'SHLVL', '_', 'TERM', 'COLUMNS', 'LINES', 'TMUX', 'TMUX_PANE', 'STY'})   # not passed on
 
 
 def records_folder():
@@ -60,16 +66,73 @@ def start(state):
     if found: return found, False
     logs = Path(state['workspace']) / 'logs'
     logs.mkdir(parents=True, exist_ok=True)
-    with open(logs / 'studio-server.log', 'ab') as log:
-        here = str(Path(__file__).resolve().parents[2])
-        env = {**os.environ, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
-        subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open'], cwd=state['workspace'], env=env,
-                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, close_fds=True)
+    here = str(Path(__file__).resolve().parents[2])
+    env = {**os.environ, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
+    argv = [sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open']
+    if not (durable() and _as_service(state, argv, env, logs / 'studio-server.log')):
+        with open(logs / 'studio-server.log', 'ab') as log:
+            subprocess.Popen(argv, cwd=state['workspace'], env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
+                             start_new_session=True, close_fds=True)
     deadline = time.monotonic() + STARTUP
     while time.monotonic() < deadline and not found:
         time.sleep(0.25)
         found = running(state)
     return found, bool(found)
+
+
+def durable():
+    """True when this computer keeps its Studios as systemd services (~/.eaos/studio-service says `systemd`, as
+    install.sh writes it on a server run by systemd): a Studio then belongs to the computer, not to the session of the
+    assistant that asked for it, which a remote server ends with the session; it restarts after a crash, on its kept
+    port and token. Elsewhere (a person's own computer) it is a process in a session of its own."""
+    try: chosen = (home() / 'studio-service').read_text(encoding='utf-8').strip()
+    except OSError: return False
+    return chosen == 'systemd' and Path('/run/systemd/system').is_dir() and bool(shutil.which('systemd-run'))
+
+
+def service_name(state):
+    return 'eaos-studio-' + re.sub(r'[^A-Za-z0-9_-]', '-', Path(state['workspace']).name)
+
+
+def _as_service(state, argv, env, log):
+    """The server as a transient systemd service of its own; False when systemd refused it. Its environment is the
+    asker's, passed by name only (no value on a command line); a unit still starting is waited for, not doubled."""
+    unit, user = service_name(state), ([] if os.geteuid() == 0 else ['--user'])
+    systemctl = lambda *words: subprocess.run(['systemctl', *user, *words, unit], capture_output=True, text=True)
+    if systemctl('is-active').stdout.strip() in ('active', 'activating', 'reloading'): return True
+    systemctl('reset-failed')
+    names = sorted(name for name in env if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) and name not in SHELL_ONLY)
+    done = subprocess.run(['systemd-run', *user, f'--unit={unit}', f"--description=EAOS Studio of {Path(state['project']).name}",
+                           '--collect', '--service-type=exec', f"--working-directory={state['workspace']}",
+                           '--property=Restart=on-failure', '--property=RestartSec=2s',
+                           f'--property=StandardOutput=append:{log}', f'--property=StandardError=append:{log}',
+                           *(f'--setenv={name}' for name in names), *argv], env=env, capture_output=True, text=True)
+    return done.returncode == 0
+
+
+
+def stop(record, seconds=10.0):
+    """Stop the server of `record` (it removes its record as it ends) and wait for it."""
+    try: os.kill(int(record['pid']), 15)
+    except (OSError, ValueError, KeyError): return
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline and _alive(record['pid']): time.sleep(0.1)
+
+
+def serve_remotely(address):
+    """This computer is a remote server whose ports the person reaches at `address` (its routed address for one port,
+    or the pattern with {port}), as the assistant there knows it: every Studio answers there, behind that sign-in, with
+    a plain address (~/.eaos/remote-origin), and runs as a systemd service when systemd runs the computer
+    (~/.eaos/studio-service). The pattern, or ValueError for an address that is not a Remote one."""
+    from ..studio.actions.security import Locks
+    pattern = re.sub(r'--\d{1,5}(?=\.)', '--{port}', str(address or '').strip().rstrip('/'), count=1)
+    if '{port}' not in pattern: raise ValueError(f'{address}: not a routed address with its port')
+    Locks(8765, remote_origin=pattern.format(port=8765))
+    home().mkdir(parents=True, exist_ok=True)
+    (home() / 'remote-origin').write_text(pattern + '\n', encoding='utf-8')
+    if Path('/run/systemd/system').is_dir() and shutil.which('systemd-run'):
+        (home() / 'studio-service').write_text('systemd\n', encoding='utf-8')
+    return pattern
 
 
 REMOTE_ORIGIN = 'EAOS_REMOTE_ORIGIN'
