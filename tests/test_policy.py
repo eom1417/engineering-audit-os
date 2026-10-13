@@ -9,7 +9,8 @@ import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from eaos import cli
 from eaos.dossier import assemble
 from eaos.facts.run import collect
-from eaos.policy import check, declared_exclusions, init, load_policy
+from eaos.facts.scope import declared_exclusions
+from eaos.policy import check, init, load_policy
 
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
 

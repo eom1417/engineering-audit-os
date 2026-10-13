@@ -3,9 +3,8 @@ product pipeline, the stage table and the gap, drawn from the Studio's pipeline 
 report and System -> Pipeline show the same stages, places and numbers (docs/STUDIO.md D2, D9). Nothing here reads the
 records or computes a number: the section is given, once per language, by the caller.
 """
-import html
-
 from ..studio import model as M
+from .markup import both, esc
 
 NODE_W, NODE_H, STEP_X, STEP_Y, PAD = 150, 46, 200, 66, 16
 MOST_DRAWN = 60      # a longer pipeline is a table here; the Studio draws it with pan and zoom
@@ -14,16 +13,6 @@ OP = {'retain': ('يبقى', 'keep'), 'refactor': ('يُعدَّل', 'refactor')
       'delete': ('يُحذف', 'delete'), 'new': ('جديد', 'new')}
 KIND = {'stage': ('مرحلة', 'stage'), 'router': ('موجّه', 'router'), 'fork': ('تفرّع', 'fork'), 'join': ('تجميع', 'join'),
         'ai': ('ذكاء اصطناعي', 'AI node'), 'source': ('مصدر', 'source'), 'sink': ('مَصبّ', 'sink'), 'external': ('خارجي', 'external')}
-
-
-def esc(value):
-    return html.escape(str(value), quote=True)
-
-
-def both(ar, en, tag='span', cls=''):
-    """The same words in both languages; the page shows one of them (human_report's convention)."""
-    extra = f' {cls}' if cls else ''
-    return f'<{tag} class="l-ar{extra}" lang="ar">{ar}</{tag}><{tag} class="l-en{extra}" lang="en">{en}</{tag}>'
 
 
 def code(text):

@@ -7,7 +7,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from .pipeline_read import (slug, site, Found, _str, _strs, _name, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES)
+from . import call_name
+from .pipeline_read import (slug, site, Found, _str, _strs, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES)
 
 
 def airflow(py, out, flows):
@@ -16,7 +17,7 @@ def airflow(py, out, flows):
         found = None
         tasks = {}
         for sub in ast.walk(tree):
-            if isinstance(sub, ast.Call) and _name(sub.func) == 'DAG':
+            if isinstance(sub, ast.Call) and call_name(sub.func) == 'DAG':
                 dag_id = next((_str(k.value) for k in sub.keywords if k.arg == 'dag_id'), None) or (_str(sub.args[0]) if sub.args else None)
                 if dag_id and found is None:
                     found = Found(f'{rel}:{dag_id}', dag_id, 'airflow', site(rel, sub.lineno, py.line(rel, sub.lineno)),
@@ -31,7 +32,7 @@ def airflow(py, out, flows):
             line = next((k.value.lineno for k in call.keywords if k.arg == 'task_id'), call.lineno)
             keys[var] = found.stage(task_id, site(rel, line, py.line(rel, line)), symbol=f"{rel[:-3].replace('/', '.')}.{var}", variable=var)
             stage = found.stages[keys[var]]
-            stage['tools'] = [_name(call.func) or 'Operator']
+            stage['tools'] = [call_name(call.func) or 'Operator']
             for keyword in call.keywords:
                 if keyword.arg == 'python_callable' and isinstance(keyword.value, ast.Name):
                     target = py.resolve(rel, keyword.value.id)
@@ -40,9 +41,9 @@ def airflow(py, out, flows):
                         stage['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}"
                         stage['callable'] = (target[0], target[1].name)
                         describe(py, target[0], target[1], stage)
-                        if 'Branch' in (_name(call.func) or ''): _branch_operator(py, found, keys[var], target, tasks, rel, call)
+                        if 'Branch' in (call_name(call.func) or ''): _branch_operator(py, found, keys[var], target, tasks, rel, call)
                         for pull in ast.walk(target[1]):
-                            if isinstance(pull, ast.Call) and _name(pull.func) == 'xcom_pull':
+                            if isinstance(pull, ast.Call) and call_name(pull.func) == 'xcom_pull':
                                 for keyword2 in pull.keywords:
                                     if keyword2.arg == 'task_ids':
                                         for upstream in _strs(keyword2.value):
@@ -80,7 +81,7 @@ def airflow(py, out, flows):
                 for b in ends(sub.args[0]) if sub.args else []:
                     a = keys[sub.func.value.id]
                     found.edge(*((a, b) if sub.func.attr == 'set_downstream' else (b, a)), 'declared', site(rel, sub.lineno, py.line(rel, sub.lineno)))
-            elif isinstance(sub, ast.Call) and _name(sub.func) == 'chain':
+            elif isinstance(sub, ast.Call) and call_name(sub.func) == 'chain':
                 items = [ends(arg) for arg in sub.args]
                 for left, right in zip(items, items[1:]):
                     for a in left:
@@ -123,7 +124,7 @@ def celery(py, out):
     if not tasks: return tasks
     by_file = {}
     for rel, fn_name, fn in py.functions():
-        canvases = [sub for sub in ast.walk(fn) if isinstance(sub, ast.Call) and _name(sub.func) in ('chain', 'group', 'chord')]
+        canvases = [sub for sub in ast.walk(fn) if isinstance(sub, ast.Call) and call_name(sub.func) in ('chain', 'group', 'chord')]
         pipes = [sub for sub in ast.walk(fn) if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr) and _signature(sub.left, tasks)]
         if not canvases and not pipes: continue
         found = by_file.get(rel)
@@ -142,7 +143,7 @@ def _canvas(py, found, rel, fn_name, canvases, pipes, tasks):
     """The stages and edges of one function's Celery canvas: chain, group, chord and `|`."""
     canvas = _Canvas(py, found, rel, fn_name, tasks)
     for call in canvases:
-        kind = _name(call.func)
+        kind = call_name(call.func)
         if kind == 'chain': canvas.chain(call)
         elif kind == 'group': canvas.group(call)
         elif kind == 'chord' and call.args: canvas.chord(call)
@@ -181,7 +182,7 @@ class _Canvas:
         keys = [self.stage_of(arg) for arg in call.args]
         for index, (a, b) in enumerate(zip(keys, keys[1:])):
             arg = call.args[index + 1]
-            immutable = isinstance(arg, ast.Call) and _name(arg.func) == 'si'
+            immutable = isinstance(arg, ast.Call) and call_name(arg.func) == 'si'
             if a and b: self.found.edge(a, b, 'order' if immutable else 'value', self.where(arg),
                                         names=[] if immutable else ['return value'], kind='control' if immutable else 'data')
 
@@ -194,7 +195,7 @@ class _Canvas:
 
     def chord(self, call):
         first = call.args[0]
-        header, mapped = self.members(first.args[0] if isinstance(first, ast.Call) and _name(first.func) == 'group' and first.args else first)
+        header, mapped = self.members(first.args[0] if isinstance(first, ast.Call) and call_name(first.func) == 'group' and first.args else first)
         body = self.stage_of(call.args[1]) if len(call.args) > 1 else None
         fork, found, where = self.fork(), self.found, self.where(call)
         for key in header:
@@ -316,7 +317,7 @@ def langgraph(py, out):
         if not any((module or '').split('.')[0] == 'langgraph' for module, _ in py.imports.get(rel, {}).values()): continue
         graphs = {}
         for sub in ast.walk(tree):
-            if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and _name(sub.value.func) in ('StateGraph', 'Graph', 'MessageGraph') \
+            if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and call_name(sub.value.func) in ('StateGraph', 'Graph', 'MessageGraph') \
                     and len(sub.targets) == 1 and isinstance(sub.targets[0], (ast.Name, ast.Attribute)):
                 name = _unparse(sub.targets[0])
                 graphs[name] = Found(f'{rel}:{name}', f'{name} ({rel})', 'langgraph', site(rel, sub.lineno, py.line(rel, sub.lineno)),
@@ -380,7 +381,7 @@ def luigi(py, out):
     tasks = {}
     for rel, classes in py.classes.items():
         for name, node in classes.items():
-            if any(_name(base) in ('Task', 'WrapperTask', 'ExternalTask') for base in node.bases) and \
+            if any(call_name(base) in ('Task', 'WrapperTask', 'ExternalTask') for base in node.bases) and \
                     any((m or '').startswith('luigi') for m, _ in py.imports.get(rel, {}).values()):
                 tasks[name] = (rel, node)
     if len(tasks) < 2: return
@@ -392,8 +393,8 @@ def luigi(py, out):
         requires = next((f for f in node.body if isinstance(f, ast.FunctionDef) and f.name == 'requires'), None)
         if not requires: continue
         for sub in ast.walk(requires):
-            if isinstance(sub, ast.Call) and _name(sub.func) in tasks:
-                found.edge(f'{found.id}/{slug(_name(sub.func))}', f'{found.id}/{slug(name)}', 'declared', site(rel, sub.lineno, py.line(rel, sub.lineno)))
+            if isinstance(sub, ast.Call) and call_name(sub.func) in tasks:
+                found.edge(f'{found.id}/{slug(call_name(sub.func))}', f'{found.id}/{slug(name)}', 'declared', site(rel, sub.lineno, py.line(rel, sub.lineno)))
     if found.edges: out.append(found)
 
 
@@ -404,7 +405,7 @@ CONSUME_CALLS = ('subscribe', 'KafkaConsumer', 'basic_consume', 'xread', 'consum
 
 def _topic_use(sub):
     """('produced', [topic]) or ('consumed', [topics]) for a call that sends to or reads from a queue, else None."""
-    callee = _name(sub.func) or ''
+    callee = call_name(sub.func) or ''
     first = _str(sub.args[0]) if sub.args else None
     keyword = {k.arg: _str(k.value) for k in sub.keywords}
     topic = first or keyword.get('topic') or keyword.get('routing_key')

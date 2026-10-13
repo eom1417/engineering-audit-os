@@ -12,7 +12,6 @@ import hashlib
 import io
 import json
 import re
-import sys
 import tarfile
 import urllib.request
 import zipfile

@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 from .compose.labels import IMPACTS
-from .fact_claims import BUILDERS, NAMED_IN_A_STATEMENT, engine_measurement, naming
+from .fact_claims import BUILDERS, engine_measurement
 from .vocabulary import schema_errors
 from .workspace import DATA, read, write
 

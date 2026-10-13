@@ -13,6 +13,7 @@ dependencies = ["mcp>=2.2,<3", "pypdf>=5", "starlette>=1.7,<2", "sse-starlette>=
 facts = ["tree-sitter>=0.21", "tree-sitter-language-pack>=0.2"]
 runtime = ["coverage>=7.0"]
 live = ["pgserver>=0.1.4"]
+dev = ["pyflakes>=3,<5"]
 
 [project.scripts]
 eaos = "eaos.cli:main"

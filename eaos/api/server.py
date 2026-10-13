@@ -297,7 +297,7 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     state, report = prepare(project)
     found = launch.running(state)
     if found and (remote_origin or found.get('remote_origin')) and not launch.remote_template():
-        out(f'The Studio is already running; use its protected launch record to open it.')
+        out('The Studio is already running; use its protected launch record to open it.')
         return 0
     if found:
         out(f'The Studio of this project is already open: {launch.url_of(found)}')

@@ -18,7 +18,6 @@ kept counts as done, as before.
 What a problem is, its area and severity, and the health score are computed once, in eaos/studio/model.py, and
 read here: the Studio and this page show the same numbers.
 """
-import html
 import json
 import math
 import re
@@ -27,6 +26,7 @@ from pathlib import Path
 from . import plain
 from .studio import model as M
 from .compose import pipeline_sheet
+from .compose.markup import both as T, esc
 from .studio.model import (AREAS, CLOSED, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, gap_totals, ledger_of, records,
                           score, task_cards, waves_state)
 
@@ -100,16 +100,6 @@ component_problems = M.component_problems
 
 
 # ---------------------------------------------------------------- html helpers
-
-def esc(value):
-    return html.escape(str(value), quote=True)
-
-
-def T(ar, en, tag='span', cls=''):
-    """The same words in both languages; the page shows one of them."""
-    extra = f' {cls}' if cls else ''
-    return f'<{tag} class="l-ar{extra}" lang="ar">{ar}</{tag}><{tag} class="l-en{extra}" lang="en">{en}</{tag}>'
-
 
 def w(key, tag='span', cls=''):
     ar, en = W[key]
@@ -1251,7 +1241,7 @@ def mapping_svg(current, order, rtl, root=''):
                    + (f'<path d="M{a},{y1:.1f} C{(a + b) / 2:.1f},{y1:.1f} {(a + b) / 2:.1f},{ty[t]:.1f} {b},{ty[t]:.1f}" class="m-line {RELATION_STYLE.get(relation, "r-modify")}"/>' if t in ty else '')
                    + '</g>')
     for t, y1 in ty.items():
-        out.append(f'<g class="map-row" data-literal="1">' + svg_text(b + (-10 if rtl else 10), y1 + 4, fit(t, 40), 'm-target', 'right' if rtl else 'left') + '</g>')
+        out.append('<g class="map-row" data-literal="1">' + svg_text(b + (-10 if rtl else 10), y1 + 4, fit(t, 40), 'm-target', 'right' if rtl else 'left') + '</g>')
     return ''.join(out) + '</svg>'
 
 
@@ -1478,8 +1468,8 @@ def _system_notes(sm, metrics):
 
 def _system_controls(sm):
     features = ''.join(f'<option value="{esc(f["name"])}" data-literal="1">{esc(f["name"])}</option>' for f in sm['features'])
-    controls = (f'<div class="filters sm-tools" role="search"><input type="search" id="smq" data-ph-ar="ابحث عن صفحة أو API أو ملف أو جدول…" '
-                f'data-ph-en="Search a page, an API, a file or a table…" placeholder="ابحث عن صفحة أو API أو ملف أو جدول…">'
+    controls = ('<div class="filters sm-tools" role="search"><input type="search" id="smq" data-ph-ar="ابحث عن صفحة أو API أو ملف أو جدول…" '
+                'data-ph-en="Search a page, an API, a file or a table…" placeholder="ابحث عن صفحة أو API أو ملف أو جدول…">'
                 + (f'<select id="smf"><option value="" data-ar="كل الميزات" data-en="All features">كل الميزات</option>{features}</select>' if features else '')
                 + f'<button type="button" class="btn ghost" id="smclear">{T("إظهار الكل", "Show all")}</button>'
                 f'<span class="muted" id="smshown" aria-live="polite"></span></div>')

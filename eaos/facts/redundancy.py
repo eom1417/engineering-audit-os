@@ -12,7 +12,7 @@ None of them proves a problem exists at runtime.
 import ast
 import re
 from collections import defaultdict
-from . import digest, make
+from . import call_name, digest, make
 from .source import language_of
 
 NAME = 'redundancy'
@@ -76,7 +76,7 @@ def _python_signature(call):
         # A type name is not an identity: print(f"a") and print(f"b") are different calls.
         return ('expr', ast.dump(value, annotate_fields=False))
     # The callee is part of the signature: two different no-argument calls are not the same call.
-    name = _python_call_name(call.func) or '<expr>'
+    name = call_name(call.func) or '<expr>'
     # a.encode() and b.encode() share an attribute name and nothing else.
     if isinstance(call.func, ast.Attribute):
         name = ast.dump(call.func, annotate_fields=False)
@@ -132,18 +132,12 @@ def _python_repeated_calls(func_node):
         for i in range(1, len(group)):
             a, b = group[i-1], group[i]
             if b.lineno - a.lineno > 5: continue  # far apart, may be intentional
-            callee = _python_call_name(a.func) or '<expr>'
+            callee = call_name(a.func) or '<expr>'
             if callee.lower() in _TRIVIAL: continue
             if a.lineno == b.lineno: continue      # two objects created deliberately in one statement
             if _mutually_exclusive(a.lineno, b.lineno, exclusive): continue
             pairs.append({'callee': callee, 'start_line': a.lineno, 'end_line': b.lineno})
     return pairs
-
-
-def _python_call_name(node):
-    if isinstance(node, ast.Name): return node.id
-    if isinstance(node, ast.Attribute): return node.attr
-    return None
 
 
 def _python_loop_vars(loop_node):
@@ -212,7 +206,7 @@ def _loop_calls(func_node, kinds):
 def _hoistable(sub, bound, value_calls):
     """The callee of a loop-invariant call whose value is stored, or None."""
     if _names_in(sub) & bound: return None
-    callee = _python_call_name(sub.func) or '<expr>'
+    callee = call_name(sub.func) or '<expr>'
     # A call kept for its effect cannot be hoisted, however loop-invariant its arguments are;
     # and hoisting a cheap builtin is not a finding.
     if callee.lower() in _SIDE_EFFECTS or callee.lower() in _TRIVIAL: return None
@@ -224,7 +218,7 @@ def _python_n_plus_one(func_node):
     """Calls to data-access functions inside a loop."""
     rows = []
     for loop, sub, bound in _loop_calls(func_node, (ast.For, ast.AsyncFor)):
-        callee = _python_call_name(sub.func) or ''
+        callee = call_name(sub.func) or ''
         # Attribute calls (self.x, order.get, profile.fetch) on a loop-bound value are the N+1 idiom;
         # invariant work is hoistable, not an N+1.
         if _names_in(sub) & bound and callee.lower() in _N1_NAMES:
@@ -252,7 +246,7 @@ def _python_pass_through(func_node):
         for n in ast.walk(arg):
             if isinstance(n, ast.Name): arg_names.add(n.id)
     if not (arg_names & param_names): return None
-    return {'callee': _python_call_name(value.func) or '<expr>',
+    return {'callee': call_name(value.func) or '<expr>',
               'line': returns[0].lineno}
 
 

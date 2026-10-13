@@ -2,7 +2,6 @@
 from fnmatch import fnmatch
 from pathlib import Path
 import json
-import sys
 R=Path(__file__).resolve().parents[1]
 
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.

@@ -5,7 +5,8 @@ import unittest
 from pathlib import Path
 
 from eaos import pipeline
-from eaos.pipeline import MANIFEST, STAGES, SkipStage, check, execute, resume
+from eaos.pipeline import STAGES, SkipStage, check, execute, resume
+from eaos.pipeline.run import MANIFEST
 from eaos.pipeline import stages as module
 from eaos.pipeline.stages import OPTIONAL, REQUIRED, Stage
 from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE

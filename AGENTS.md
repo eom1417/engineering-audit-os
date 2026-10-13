@@ -22,6 +22,23 @@ It is not what EAOS tells the assistants of the projects it audits; that lives i
   owner decides about it. All work happens on `develop`: once a change is done and verified clean (full
   suite, gates), commit and push to `origin/develop` (standing instruction since 2026-10-07).
 
+## The code laws (owner, 2026-10-13)
+
+Always under one condition: EAOS does its job in the best possible way.
+1. **Least code, best performance**: the shortest, most direct code that does the job best; no needless layers,
+   options or abstractions. A change that adds lines must earn them.
+2. **One source of truth**: a function, rule or calculation needed in more than one place is written once, clearly,
+   and called from everywhere else; never rewritten, never re-exported from a second home. A change then happens in
+   one place.
+3. **Clear and clean**: no dead code, no unused import or variable, small functions with one job, modules with one
+   responsibility, easy to extend.
+
+`tests/test_code_limits.py` enforces what can be measured (`python tools/code_limits.py` prints it): no function over
+cyclomatic complexity 15 and no module over 600 lines, except today's listed ones, which may only shrink (run it
+with `--tighten` after shrinking one); no function written twice; no pyflakes finding unless its line says why
+(`# noqa`). The bar: an outside reviewer of logic, cohesion, layout, robustness, load and efficiency should conclude
+that a top professional engineering house wrote it.
+
 ## Versions
 
 `0.0.1`, `0.0.2`, … (`pyproject.toml`, `CHANGELOG.md`). Bump the patch number with each published

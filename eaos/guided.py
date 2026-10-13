@@ -877,7 +877,7 @@ def ready(state, args):
 
 def _run_question(lang, assistant):
     if lang == 'ar':
-        return (f"لأصلح بأمان، أحتاج أن أشغّل برنامجك في نسخة منفصلة على جهازك، بقاعدة بيانات مؤقتة وبلا أسرارك"
+        return ("لأصلح بأمان، أحتاج أن أشغّل برنامجك في نسخة منفصلة على جهازك، بقاعدة بيانات مؤقتة وبلا أسرارك"
                 + (f"، وقد أستعين بمساعدك الذكي ({assistant}) لأفهم طريقة تشغيله" if assistant else '') + '. أوافق؟')
     return ("To fix safely I need to run your app in a separate copy on this computer, with a temporary database and none of your secrets"
             + (f"; I may ask your AI assistant ({assistant}) how it runs" if assistant else '') + '. OK?')

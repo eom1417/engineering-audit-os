@@ -8,7 +8,6 @@ through its adapter offline; where the pinned tool is installed, the adapter als
 """
 import json
 import re
-import unittest
 from pathlib import Path
 from unittest import mock
 

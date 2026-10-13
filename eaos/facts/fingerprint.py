@@ -11,7 +11,7 @@ the underlying shapes are equal modulo identifier choice.
 """
 import ast
 from collections import defaultdict
-from . import digest, make
+from . import digest, make, tree_sitter_tree
 from .source import language_of
 
 NAME = 'fingerprint'
@@ -79,7 +79,7 @@ def _python_fingerprints(text, rel):
     return rows
 
 
-def _tree_sitter_shape_subtree(node, parser, depth=0, max_depth=60):
+def _tree_sitter_shape_subtree(node, depth=0, max_depth=60):
     """Render a tree-sitter subtree as a normalised shape, ignoring identifier text."""
     if depth > max_depth: return ('<over>',)
     if not node.children:
@@ -88,9 +88,8 @@ def _tree_sitter_shape_subtree(node, parser, depth=0, max_depth=60):
     for child in node.children:
         if not child.is_named:
             continue
-        children_shapes.append(_tree_sitter_shape_subtree(child, parser, depth + 1, max_depth))
+        children_shapes.append(_tree_sitter_shape_subtree(child, depth + 1, max_depth))
     return (node.type, tuple(children_shapes))
-
 
 
 def _subtree_size(node):
@@ -117,22 +116,6 @@ _TS_FUNCTIONS = {'function_declaration', 'function_definition', 'function_item',
 _TS_CONTAINERS = {'class_declaration', 'class_definition', 'impl_item', 'class_specifier', 'struct_item', 'object_definition'}
 
 
-def _tree_sitter_tree(text, language):
-    """(parser, tree) of a file, or None when the parser is missing or fails."""
-    try:
-        from tree_sitter_language_pack import get_parser
-    except ImportError:
-        return None
-    try:
-        parser = get_parser('c_sharp' if language == 'csharp' else language)
-    except Exception:
-        return None
-    try:
-        return parser, parser.parse(text.encode('utf-8'))
-    except Exception:
-        return None
-
-
 def _function_types(language):
     types = set(_TS_FUNCTIONS)
     # In TypeScript a signature is a declaration with no body: an overload, an interface member, a .d.ts entry.
@@ -141,8 +124,8 @@ def _function_types(language):
     return types
 
 
-def _tree_row(node, scope, parser):
-    shape_str = repr(_tree_sitter_shape_subtree(node, parser))
+def _tree_row(node, scope):
+    shape_str = repr(_tree_sitter_shape_subtree(node))
     return {'qualified': '.'.join(scope + [node.type]),
             'name': node.type, 'start': node.start_point[0] + 1,
             'end': node.end_point[0] + 1, 'size': _subtree_size(node),
@@ -151,7 +134,7 @@ def _tree_row(node, scope, parser):
 
 def _walk_tree(node, scope, walk):
     types = walk['types']
-    if node.type in types: walk['rows'].append(_tree_row(node, scope, walk['parser']))
+    if node.type in types: walk['rows'].append(_tree_row(node, scope))
     inner = scope + [node.type if node.type in types else '']
     for child in node.children:
         _walk_tree(child, inner if child.type in types or child.type in _TS_CONTAINERS else scope, walk)
@@ -159,10 +142,9 @@ def _walk_tree(node, scope, walk):
 
 def _tree_sitter_fingerprints(text, rel, language):
     """Fingerprint every function-shaped node in a tree-sitter file."""
-    parsed = _tree_sitter_tree(text, language)
-    if parsed is None: return None
-    parser, tree = parsed
-    walk = {'parser': parser, 'types': _function_types(language), 'rows': []}
+    tree = tree_sitter_tree(text, language)
+    if tree is None: return None
+    walk = {'types': _function_types(language), 'rows': []}
     _walk_tree(tree.root_node, [], walk)
     return walk['rows']
 

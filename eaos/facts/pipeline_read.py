@@ -3,6 +3,8 @@ function touches. Shared by the readers of eaos/facts/pipeline_code.py and eaos/
 import ast
 import re
 
+from . import call_name
+
 KINDS = (('declared_dag', 'Declared stages with requires, run through a registry'),
          ('registry_loop', 'A loop over stage names dispatching through a table'),
          ('orchestrator', 'A function passing one stage\'s output to the next, or announcing its phases'),
@@ -189,13 +191,6 @@ def _strs(node):
     return [single] if single is not None else []
 
 
-def _name(node):
-    """The last name of a callee: f, mod.f, obj.method."""
-    if isinstance(node, ast.Name): return node.id
-    if isinstance(node, ast.Attribute): return node.attr
-    return None
-
-
 def _root(node):
     while isinstance(node, (ast.Attribute, ast.Call, ast.Subscript)):
         node = node.func if isinstance(node, ast.Call) else node.value
@@ -206,7 +201,7 @@ def _decorators(node):
     out = []
     for item in getattr(node, 'decorator_list', []):
         target = item.func if isinstance(item, ast.Call) else item
-        out.append(_name(target) or '')
+        out.append(call_name(target) or '')
         if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Attribute): out.append(target.value.attr)
     return out
 
@@ -243,7 +238,7 @@ def describe(py, rel, node, found_stage):
                     if top not in tools: tools.append(top)
                     if top in NETWORK or root in NETWORK: marks.add('external'); marks.add('slow')
                     if top in ('subprocess',): marks.add('slow'); marks.add('risky'); effects.append(('process', top, sub.lineno))
-            callee = _name(sub.func) or ''
+            callee = call_name(sub.func) or ''
             if callee in ('write_text', 'write_bytes', 'dump', 'to_csv', 'to_parquet', 'savefig'):
                 effects.append(('file', _unparse(sub.func, 60), sub.lineno))
             if callee == 'open' and len(sub.args) > 1 and (_str(sub.args[1]) or '').startswith(('w', 'a')):

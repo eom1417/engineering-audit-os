@@ -1,7 +1,6 @@
 """A Supabase table without row-level security, or with a write policy that checks nothing, is a confirmed risk."""
 import json
 from pathlib import Path
-import unittest
 
 from eaos.pipeline import execute
 from shared_fixture import TemporaryWorkspace

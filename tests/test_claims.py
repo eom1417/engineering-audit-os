@@ -3,8 +3,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from eaos import claims
-from eaos.claims import from_facts, naming
-from eaos.fact_claims import engine_measurement
+from eaos.claims import from_facts
+from eaos.fact_claims import engine_measurement, naming
 from eaos.compose.labels import IMPACTS, impact_of
 from eaos.facts.run import collect
 from eaos.facts.store import read_set

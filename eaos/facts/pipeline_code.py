@@ -4,7 +4,8 @@ import ast
 import sys
 from collections import defaultdict
 
-from .pipeline_read import (slug, site, Found, _str, _strs, _name, _root, _decorators, _literal_label, _unparse, describe, REQUIRES, PRODUCES, CONSUMES, TIMEOUT_WORDS, PIPELINE_WORDS, PHASE_CALLS, FLOW_DECORATORS, ERROR_STATES, CONTEXT_PARAMS, DICT_METHODS, MODEL_WORDS, SIGNATURES)
+from . import call_name
+from .pipeline_read import (slug, site, Found, _str, _strs, _root, _decorators, _literal_label, _unparse, describe, REQUIRES, PRODUCES, CONSUMES, TIMEOUT_WORDS, PIPELINE_WORDS, PHASE_CALLS, FLOW_DECORATORS, ERROR_STATES, CONTEXT_PARAMS, DICT_METHODS, MODEL_WORDS, SIGNATURES)
 
 
 def _registry_for(py, names):
@@ -556,7 +557,7 @@ def phases(py, out):
     for rel, name, node in py.functions():
         calls = []
         for sub in ast.walk(node):
-            if isinstance(sub, ast.Call) and (_name(sub.func) or '') in PHASE_CALLS and sub.args:
+            if isinstance(sub, ast.Call) and (call_name(sub.func) or '') in PHASE_CALLS and sub.args:
                 label = _literal_label(sub.args[0])
                 if label: calls.append((sub.lineno, label.rstrip(' :.-'), sub))
         if len({label for _, label, _ in calls}) < 3: continue
@@ -585,10 +586,10 @@ def phases(py, out):
 
 def _calls_model(py, statements):
     """Whether these statements call a project function or method whose body reaches a model provider."""
-    names = {(_name(s.func) or '') for st in statements for s in ast.walk(st) if isinstance(s, ast.Call)}
+    names = {(call_name(s.func) or '') for st in statements for s in ast.walk(st) if isinstance(s, ast.Call)}
     for rel, defs in py.defs.items():
         for qualified, node in defs.items():
-            if qualified.split('.')[-1] in names and any(MODEL_WORDS.search(_name(s) or '') for s in ast.walk(node)
+            if qualified.split('.')[-1] in names and any(MODEL_WORDS.search(call_name(s) or '') for s in ast.walk(node)
                                                           if isinstance(s, (ast.Name, ast.Attribute))):
                 return True
     return False
@@ -598,7 +599,7 @@ def _stage_call(py, rel, call, tasks):
     """The function a call runs as a stage: a project function by name, a task's signature, or an activity."""
     func = call.func
     if isinstance(func, ast.Attribute) and func.attr in ('execute_activity', 'start_activity') and call.args:
-        target = _name(call.args[0])
+        target = call_name(call.args[0])
         return (target, py.resolve(rel, target)) if target else None
     if isinstance(func, ast.Attribute) and func.attr in SIGNATURES and isinstance(func.value, ast.Name):
         target = py.resolve(rel, func.value.id)

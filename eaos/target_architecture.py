@@ -36,7 +36,7 @@ def _gather(out):
 
 
 # An architectural component is a package, not a symbol (eaos/target_projection.py holds the rule).
-from .target_projection import PACKAGE_ROOT, package_of  # noqa: E402,F401
+from .target_projection import package_of  # noqa: E402
 
 
 def components(sets, contracts_by_path=None):

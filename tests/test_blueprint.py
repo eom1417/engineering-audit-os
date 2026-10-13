@@ -1,6 +1,5 @@
 """Building a project from its plan (docs/BUILD-FROM-PLAN.md): any plan read, the spec checked, the target and the
 build drawn, the gates that keep copies, cycles, layer breaks and stray vendors out, and the build handed over."""
-import json
 import os
 import subprocess
 import tempfile

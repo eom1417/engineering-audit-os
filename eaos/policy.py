@@ -20,7 +20,6 @@ LIMITATIONS = [
 ]
 
 
-from .facts.scope import declared_exclusions  # noqa: F401  (re-exported for callers)
 
 
 def load_policy(target, path=None):

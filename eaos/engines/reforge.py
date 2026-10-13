@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH, FILE, finding,
                        measurement, subject)
+from . import tool
 from .process import run, which
 
 NAME, BINARY, PINNED, SCHEMA = 'reforge', 'reforge', '0.3.0', 27
@@ -50,11 +51,7 @@ def capabilities():
 
 
 def version():
-    binary = which(BINARY)
-    if not binary:
-        return None
-    code, out, _, _ = run([binary, '--version'], timeout=30)
-    return out.strip().split()[-1] if code == 0 and out.strip() else None
+    return tool.version(BINARY)
 
 
 def _configuration(exclude):

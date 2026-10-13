@@ -15,7 +15,6 @@ import fcntl
 import functools
 import json
 import os
-import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +25,7 @@ from . import handoff, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
-from .store import ACTIVE, TERMINAL, Scrubber, Store, now, _read_json, _write_json
+from .store import TERMINAL, Scrubber, Store, now, _read_json, _write_json
 
 CONTRACT = Path(__file__).resolve().parents[2] / 'data/studio-actions.json'
 VERBS = ('fix', 'verify', 'explain', 'plan')

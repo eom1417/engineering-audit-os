@@ -7,7 +7,7 @@ sequences, and clusters the duplicates across files.
 """
 import ast
 from collections import defaultdict
-from . import digest, make
+from . import call_name, digest, make, tree_sitter_tree
 from .source import language_of
 
 NAME = 'sequences'
@@ -48,18 +48,12 @@ def _is_idiomatic(sequence, language):
     return any(seq_set <= idiom for idiom in idioms)
 
 
-def _python_call_name(node):
-    if isinstance(node, ast.Name): return node.id
-    if isinstance(node, ast.Attribute): return node.attr
-    return None
-
-
 def _python_callees(func_node):
     """Source-order list of callee names inside one Python function."""
     calls = []
     for sub in ast.walk(func_node):
         if isinstance(sub, ast.Call):
-            name = _python_call_name(sub.func)
+            name = call_name(sub.func)
             if name: calls.append(name)
     return calls
 
@@ -105,16 +99,6 @@ _TS_CALLS = {'call_expression', 'method_invocation', 'invocation_expression',
 _TS_CLASSES = {'class_declaration', 'class_definition', 'impl_item'}
 
 
-def _tree_sitter_tree(text, language):
-    try:
-        from tree_sitter_language_pack import get_parser
-    except ImportError: return None
-    try: parser = get_parser('c_sharp' if language == 'csharp' else language)
-    except Exception: return None
-    try: return parser.parse(text.encode('utf-8'))
-    except Exception: return None
-
-
 def _function_calls(node):
     calls = []
     for child in node.children:
@@ -132,7 +116,7 @@ def _walk_tree(node, scope, rows):
 
 
 def _tree_sitter_sequences(text, language):
-    tree = _tree_sitter_tree(text, language)
+    tree = tree_sitter_tree(text, language)
     if tree is None: return None
     rows = []
     _walk_tree(tree.root_node, [], rows)

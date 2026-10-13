@@ -10,7 +10,6 @@ started with `eaos start` is the one `overview` reads, and the other way round.
 """
 import json
 import os
-import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -260,7 +259,6 @@ def status(project=None):
     guided.reconcile(state)
     retired = guided.retire_stale_batch(state)
     head = _head(state)
-    report = guided.report_of(state)
     checked = guided.scan_done(state)
     setup, safety, wave = state.get('setup') or {}, state.get('safety') or {}, state.get('open_wave')
     waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
@@ -800,7 +798,6 @@ def _run_job(project, arguments, progress):
 
 def safety_net(project=None):
     state = project_state(project)
-    setup = state.get('setup') or {}
     if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     return _start('safety_net', state, {}, watch=True)
 

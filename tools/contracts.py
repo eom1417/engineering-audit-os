@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from eaos.artifact_contracts import RUNTIME, SCHEMAS, check, contracts, load_valid, location, validate  # noqa: E402,F401
+from eaos.artifact_contracts import RUNTIME, check, contracts  # noqa: E402
 
 
 def main(argv):

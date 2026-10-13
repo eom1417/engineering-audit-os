@@ -7,7 +7,7 @@ sequence must come from an ordered list of call sites. Without these facts,
 L3/L4/L5 detection cannot exist at all.
 """
 import ast
-from . import digest, make
+from . import digest, make, tree_sitter_tree
 from .source import language_of
 
 NAME = 'structure'
@@ -125,21 +125,6 @@ _TS_BRANCHES = {'if_statement', 'switch_statement', 'try_statement', 'with_state
                 'switch_expression', 'elif_clause', 'else_clause'}
 
 
-def _tree_sitter_tree(text, language):
-    try:
-        from tree_sitter_language_pack import get_parser
-    except ImportError:
-        return None
-    try:
-        parser = get_parser('c_sharp' if language == 'csharp' else language)
-    except Exception:
-        return None
-    try:
-        return parser.parse(text.encode('utf-8'))
-    except Exception:
-        return None
-
-
 def _ts_scope(node, kind, walk, span):
     name = _ts_name(node, kind) or '<anon>'
     qname = _qualified(walk['stack'], name)
@@ -183,7 +168,7 @@ def _ts_walk(node, walk):
 
 def _tree_sitter_parse(text, rel, language):
     """Return (scopes, calls, loops, branches, call_sites) for a tree-sitter language, or None on failure."""
-    tree = _tree_sitter_tree(text, language)
+    tree = tree_sitter_tree(text, language)
     if tree is None: return None
     root = tree.root_node
     walk = {'scopes': [], 'calls': [], 'loops': [], 'branches': [], 'call_sites': [], 'stack': [(root, '<module>')]}

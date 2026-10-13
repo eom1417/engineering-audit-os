@@ -1,8 +1,6 @@
 """Exclusion contract: vendored paths are out of scope unless the project opts in."""
 import json
 from pathlib import Path
-import tempfile
-import unittest
 
 from eaos.facts.scope import declared_exclusions, exclusion_reasons, VENDORED
 from eaos.facts.source import Source

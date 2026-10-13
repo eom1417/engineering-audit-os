@@ -12,7 +12,7 @@ from pathlib import Path
 
 from eaos.compose import artifacts as contract
 from eaos.compose.rules import BUDGETS, validate
-from eaos.pipeline import BY_NAME as STAGE_BY_NAME, STAGES
+from eaos.pipeline.stages import BY_NAME as STAGE_BY_NAME, STAGES
 
 
 class DeclarationTests(unittest.TestCase):

@@ -119,12 +119,10 @@ def collect(source):
                              'severity': severity, 'line': 1})
         else:
             line = 1
-            offset = 0
             for segment in re.findall(r'[^\n]*\n|[^\n]+$', text):
                 for family, severity in _classify_text(segment, rel):
                     findings.append({'path': rel, 'key_family': family, 'severity': severity, 'line': line})
                 line += 1
-                offset = 0
     return findings
 
 

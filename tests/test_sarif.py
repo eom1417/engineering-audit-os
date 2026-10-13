@@ -1,6 +1,5 @@
 """The SARIF reader drops nothing silently and lets a rule raise severity, never lower it."""
 import json
-import unittest
 from pathlib import Path
 
 from shared_fixture import Workspace
