@@ -4,7 +4,7 @@
 // issues pinned (390 / 1440, before / after / slider when a batch changed it), its issues, inputs, file and route.
 // What EAOS has not measured (shots, issues, inputs) is said, with the step that brings it, never shown as "none".
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useMemo, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { DirectAction } from '../../command/Direct'
 import { Chip } from '../../components/Chip'
@@ -248,6 +248,7 @@ function Notes({ picture, list, picked, onPick }: { picture: Picture; list: (Pag
  * picture and explained beside it; the picture opens large. */
 function PageCard({ page }: { page: PicturedPage }) {
   const w = useScreenWords()
+  const phone = usePhone()
   const pictures = useMemo(() => [...page.pictures].sort((a, b) => (a.width ?? 0) - (b.width ?? 0)), [page])
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number>()
@@ -276,7 +277,8 @@ function PageCard({ page }: { page: PicturedPage }) {
           <Marked key={picture.path} picture={picture} list={list} picked={picked} onPick={pick} onOpen={() => setLarge(true)} />
           <Button variant="ghost" icon="eye" onPress={() => setLarge(true)}>{w('openLarge')}</Button>
         </div>
-        <Notes picture={picture} list={list} picked={picked} onPick={pick} />
+        {phone ? <details className={css.checks}><summary>{w('issuesN', { n: found })}</summary><Notes picture={picture} list={list} picked={picked} onPick={pick} /></details>
+          : <Notes picture={picture} list={list} picked={picked} onPick={pick} />}
       </div>
       <Sheet isOpen={large} onOpenChange={setLarge} title={`${page.path} · ${viewportWord(w, picture)} · ${w('issuesN', { n: found })}`}>
         <div className={css.largeBody}>
