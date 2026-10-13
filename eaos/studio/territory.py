@@ -317,9 +317,20 @@ def _clamp_x(x, half):
     return min(max(x, half + 6), W - half - 6)
 
 
+def _step_down(x, y, half, height, placed):
+    """(y, box) of a name centred on x: two names that would meet, the lower one steps down; its box joins `placed`."""
+    box = (x - half - 4, y - height[0], x + half + 4, y + height[1])
+    while not _free(box, placed) and y < H - 20:
+        y += 8
+        box = (x - half - 4, y - height[0], x + half + 4, y + height[1])
+    placed.append(box)
+    return y, box
+
+
 def region_labels(regions, nodes, pos):
-    """Per region: {x, y} of its name on the full map (with its counts below) and on the preview (large type)."""
-    out, placed = {}, []
+    """Per region: {x, y} of its name on the full map (with its counts below) and {tx, ty} on the preview (large type),
+    each kept clear of the other names of its map."""
+    out, placed, thumbs = {}, [], []
     for reg in regions:
         mem = [n for n in nodes if n['region'] == reg['id']]
         if not mem: continue
@@ -327,15 +338,12 @@ def region_labels(regions, nodes, pos):
         top = min(pos[n['id']][1] - n['r'] for n in mem)
         half = max(text_width(reg['name']['ar'], 15, 'ar'), text_width(reg['name']['en'].upper(), 12, 'caps'),
                    text_width('00 folders · 000 files', 11, 'sans')) / 2
-        x, y = _clamp_x((min(xs) + max(xs)) / 2, half), max(top - 26, 22)
-        box = (x - half - 4, y - 17, x + half + 4, y + 19)
-        while not _free(box, placed) and y < H - 20:      # two regions whose names would meet: the lower one steps down
-            y += 8
-            box = (x - half - 4, y - 17, x + half + 4, y + 19)
-        placed.append(box)
+        x = _clamp_x((min(xs) + max(xs)) / 2, half)
+        y, box = _step_down(x, max(top - 26, 22), half, (17, 19), placed)
         thumb_half = max(text_width(reg['name']['ar'], 40, 'ar'), text_width(reg['name']['en'].upper(), 30, 'caps')) / 2
-        out[reg['id']] = {'x': round(x), 'y': round(y), 'tx': round(_clamp_x(x, thumb_half)), 'ty': round(max(y + 6, 44)),
-                          'box': box, 'half': thumb_half}
+        tx = _clamp_x(x, thumb_half)
+        ty, _ = _step_down(tx, max(y + 6, 44), thumb_half, (40, 10), thumbs)
+        out[reg['id']] = {'x': round(x), 'y': round(y), 'tx': round(tx), 'ty': round(ty), 'box': box, 'half': thumb_half}
     return out
 
 
