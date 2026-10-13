@@ -1,5 +1,6 @@
 """Committed credentials."""
 import base64
+from collections import Counter
 import json
 import re
 from . import digest, make
@@ -59,13 +60,7 @@ def _classify_jwt(token):
 def _classify_text(text, rel):
     """Yield (key_family, severity) for every credential embedded in the file text."""
     for match in JWT.finditer(text):
-        role = _decode_jwt_role(match.group(0))
-        if role in {'anon', 'authenticated', 'publishable', 'public'}:
-            yield ('jwt', 'public')
-        elif role in {'service_role', 'secret', 'admin'}:
-            yield ('jwt', 'secret')
-        else:
-            yield ('jwt', 'unknown')
+        yield ('jwt', _classify_jwt(match.group(0)))
     for match in PEM_BLOCK.finditer(text):
         body = re.sub(r'[^A-Za-z0-9+/=]', '', match.group(2).replace('\\n', '\n'))
         if len(body) >= PEM_MIN_BODY: yield ('private_key', 'secret')
@@ -98,31 +93,29 @@ def _read_text(source, rel):
         return None
 
 
+def _kind_of(rel):
+    """'env' for a committed .env file, 'code' for source that can hold an inline credential, else None."""
+    name = rel.rsplit('/', 1)[-1]
+    if name in ENV_SAFE or any(rel.endswith(suffix) for suffix in ENV_SAFE): return None
+    if name == '.env' or name.startswith('.env.'): return 'env'
+    return 'code' if rel.endswith(('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.json')) else None
+
+
+def _file_findings(rel, text, kind):
+    """A .env file is one finding at its most sensitive credential; source has one per credential, on its line."""
+    if kind == 'env': return [{'path': rel, 'key_family': 'env_file', 'severity': _env_severity(rel, text), 'line': 1}]
+    return [{'path': rel, 'key_family': family, 'severity': severity, 'line': line}
+            for line, segment in enumerate(re.findall(r'[^\n]*\n|[^\n]+$', text), start=1)
+            for family, severity in _classify_text(segment, rel)]
+
+
 def collect(source):
     """Walk every readable file and yield fact-ready records for every credential."""
     findings = []
-    items = list(source.inventory['files'])
-    for item in items:
-        rel = item['path']
-        name = rel.rsplit('/', 1)[-1]
-        if name in ENV_SAFE or any(rel.endswith(suffix) for suffix in ENV_SAFE):
-            continue
-        is_env = name == '.env' or name.startswith('.env.')
-        # Inline credentials live in source code (TS/JS/Python) and in committed .env files.
-        if not (is_env or rel.endswith(('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.json'))):
-            continue
-        text = source.text(rel) if item.get('capture') == 'hashed' else _read_text(source, rel)
-        if text is None: continue
-        if is_env:
-            severity = _env_severity(rel, text)
-            findings.append({'path': rel, 'key_family': 'env_file',
-                             'severity': severity, 'line': 1})
-        else:
-            line = 1
-            for segment in re.findall(r'[^\n]*\n|[^\n]+$', text):
-                for family, severity in _classify_text(segment, rel):
-                    findings.append({'path': rel, 'key_family': family, 'severity': severity, 'line': line})
-                line += 1
+    for item in source.inventory['files']:
+        kind = _kind_of(item['path'])
+        text = None if kind is None else source.text(item['path']) if item.get('capture') == 'hashed' else _read_text(source, item['path'])
+        if text is not None: findings += _file_findings(item['path'], text, kind)
     return findings
 
 
@@ -135,12 +128,10 @@ def run(target, source, **options):
                         'note': 'severity is read from the key, never the filename; the value is not recorded.'},
                        limitations=LIMITATIONS)
                   for record in findings]
+    severities = Counter(record['severity'] for record in findings)
     summary = {'credentials': len(facts_list),
-               'by_severity': {'public': sum(1 for f in facts_list if f['value']['severity'] == 'public'),
-                                'secret': sum(1 for f in facts_list if f['value']['severity'] == 'secret'),
-                                'unknown': sum(1 for f in facts_list if f['value']['severity'] == 'unknown')},
-               'by_family': {family: sum(1 for f in facts_list if f['value']['key_family'] == family)
-                              for family in {f['value']['key_family'] for f in facts_list}},
+               'by_severity': {severity: severities[severity] for severity in ('public', 'secret', 'unknown')},
+               'by_family': dict(Counter(record['key_family'] for record in findings)),
                'interpretation': 'A credential is reported with the severity its payload declares, not by its filename.'}
     return {'facts': facts_list, 'summary': summary, 'available': True,
             'input_sha': digest(';'.join(sorted(record['path'] for record in findings)).encode('utf-8')),
