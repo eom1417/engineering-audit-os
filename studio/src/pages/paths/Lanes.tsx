@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { useZoom } from '../../map/useZoom'
 import { usePhone } from '../SystemMap'
+import { clip } from '../../map/draw'
 import { FitIcon } from '../../map/parts'
 import zoomCss from '../../map/parts.module.css'
 import { useMapWords } from '../../map/words'
@@ -28,11 +29,6 @@ export interface DrawEdge { key: string; from: string; to: string; style: 'solid
 
 const KIND_CLASS: Record<DrawNode['kind'], string | undefined> = {
   step: undefined, gap: css.gap, table: css.kindTable, store: css.kindStore, external: css.kindExternal, group: css.kindGroup,
-}
-
-/** A sentence too long for its box: cut at its end. */
-function clip(text: string, room: number): string {
-  return text.length <= room ? text : text.slice(0, room - 1) + '…'
 }
 
 /** "…/pages/DriversPage.tsx" for a label too long for its box (identifiers keep their end). */

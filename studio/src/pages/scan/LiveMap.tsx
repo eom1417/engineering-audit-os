@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Button as AriaButton } from 'react-aria-components'
 import { shownState, type ScanProgress, type ScanStage } from '../../data/scan'
 import { usePrefs } from '../../i18n/prefs'
+import { clip } from '../../map/draw'
 import { FitIcon } from '../../map/parts'
 import zoomCss from '../../map/parts.module.css'
 import { useZoom, type ZoomState } from '../../map/useZoom'
@@ -59,10 +60,6 @@ function useMotion(progress: ScanProgress, reduced: boolean): Motion {
   return motion
 }
 
-function fit(text: string, room: number): string {
-  return text.length <= room ? text : text.slice(0, room - 1) + '…'
-}
-
 /** One light that runs once along `d`, from the moment it is drawn. */
 function TravellingLight({ d, from, to, at }: { d: string; from: string; to: string; at: string | null }) {
   const motion = useRef<SVGAnimateMotionElement>(null)
@@ -90,7 +87,7 @@ function Line2({ stage, state, skew }: { stage: ScanStage; state: string; skew: 
   const { lang } = usePrefs()
   if (state === 'running') {
     const step = stage.steps.find((x) => x.status === 'running')
-    const what = step?.kind === 'count' ? `${step.done}/${step.total}` : step ? fit(step.name, 12) : ''
+    const what = step?.kind === 'count' ? `${step.done}/${step.total}` : step ? clip(step.name, 12) : ''
     return <><Ticker since={stage.started_at} skew={skew} />{what ? ` · ${what}` : ''}</>
   }
   if (state === 'ok' && stage.seconds !== null) return <>{`${w('state_ok')} · ${1 > stage.seconds ? '<1' : Math.round(stage.seconds)}${lang === 'ar' ? ' ث' : ' s'}`}</>
@@ -110,7 +107,7 @@ function StageNode({ stage, state, at, flow, selected, fresh, skew, onSelect }: 
       {state === 'running' && <rect className={css.halo} x={-7} y={-7} width={NODE_W + 14} height={NODE_H + 14} rx={16} data-glow="" data-at={stage.started_at ?? ''} />}
       <rect className={css.box} width={NODE_W} height={NODE_H} rx={11} />
       <circle className={css.stateDot} cx={dot} cy={20} r={4.5} />
-      <text className={css.nodeTitle} x={x} y={24} direction={dir}>{fit(w.stageTitle(stage.name, flow), stage.ai ? 13 : 17)}</text>
+      <text className={css.nodeTitle} x={x} y={24} direction={dir}>{clip(w.stageTitle(stage.name, flow), stage.ai ? 13 : 17)}</text>
       {stage.ai && <text className={css.aiMark} x={NODE_W - end} y={24} direction={dir} textAnchor="end" data-ai=""><title>{w('aiNote')}</title>{w('ai')}</text>}
       <text className={css.nodeSub} x={end} y={44} direction={dir}><Line2 stage={stage} state={state} skew={skew} /></text>
     </g>

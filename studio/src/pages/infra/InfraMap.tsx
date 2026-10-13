@@ -5,6 +5,7 @@
 // about is hatched. Slots are fixed, so a lane keeps its place across views and scans; the geometry never mirrors.
 import type { KeyboardEvent, RefObject } from 'react'
 import type { Infra, Lane } from '../../data/dataMap'
+import { clip } from '../../map/draw'
 import { useDataWords, type DataWord } from '../data/words'
 import { MAX_ROWS, nodeName, rowsOf, type Mode, type Row } from './model'
 import css from './Infra.module.css'
@@ -18,10 +19,6 @@ const SLOT: Record<Lane, [number, number]> = {
   databases: [734, 16], queues: [734, 322], services: [734, 628], observability: [375, 628],
 }
 const APP = { x: 390, y: 300, w: 260, h: 96 }
-
-function short(text: string, max: number) {
-  return text.length <= max ? text : text.slice(0, max - 1) + '…'
-}
 
 export interface InfraMapProps {
   infra: Infra
@@ -92,7 +89,7 @@ export function InfraMap({ infra, mode, focus, onFocus, svgRef, transform, class
                     <rect className={css.rowBox} x={x + 8} y={ry} width={LANE_W - 16} height={ROW_H - 4} rx={6} />
                     {row.kind === 'item' && <text className={css.opMark} x={x + 18} y={ry + 18}>{row.item.op === 'keep' ? '●' : '+'}</text>}
                     <text className={row.kind === 'node' && row.node.kind === 'host' ? css.rowMono : css.rowText} x={x + (row.kind === 'item' ? 34 : 18)} y={ry + 18}>
-                      {short(rowText(row), row.kind === 'item' ? 30 : 28)}
+                      {clip(rowText(row), row.kind === 'item' ? 30 : 28)}
                     </text>
                     {row.kind === 'node' && row.node.evidence > 1 && <text className={css.rowN} x={x + LANE_W - 18} y={ry + 18} textAnchor="end">{row.node.evidence}</text>}
                   </g>
