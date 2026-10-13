@@ -304,6 +304,56 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
     modules = [(f'src/{layer[c]}/{c}/m{j}.ts', c) for c in comps for j in range(modules_per_component)]
     fns = [(f'{path}#fn{k}', f'fn{k}', path, c) for path, c in modules for k in range(functions_per_module)]
 
+    facts, card_rows = _card_rows(rng, cards, modules)
+    by_comp = {}
+    for card in card_rows: by_comp.setdefault(card.pop('_component'), []).append(card)
+    steps = _steps(card_rows)
+    ops, gaps = _ops_and_gaps(comps, layer, by_comp, modules_per_component)
+    scans = _scans(cards)
+    images, screens = _screens(comps, components)
+    total, done = len(card_rows), sum(c['state'] in ('done', 'resolved') for c in card_rows)
+    sections = {
+        'meta': {**HEAD, 'languages': [{'name': 'TypeScript', 'files': len(modules), 'share': 1.0}],
+                 'files': measure(len(modules), 'synthetic'), 'lines': measure(len(modules) * 120, 'synthetic', 'lines'),
+                 'stages': [{'id': 'S01', 'title': 'S01', 'state': 'done'}]},
+        'head': {**HEAD, 'scanned': {'commit': f'{29:07x}', 'branch': 'main', 'at': WHEN},
+                 'eaos': {'version': 'synthetic', 'commit': 'synthetic', 'digest': 'synthetic'}, 'freshness': 'fresh',
+                 'verdict': f'{total} problems; EAOS fixes {sum(c["fixable"] for c in card_rows)} of them by itself.',
+                 'next': {'action': 'Start a fix batch', 'tool': 'fix_start'}},
+        'health': _health(total, scans),
+        'cards': {**HEAD, 'cards': card_rows},
+        'evidence': {**HEAD, 'facts': facts},
+        'story': _story(comps, layer, gaps, components, modules_per_component),
+        'docs': {**HEAD, 'docs': _docs()},
+        'plans': {**HEAD, 'plans': [{'id': 'fix', 'title': 'Fix plan', 'kind': 'fix', 'parent': None, 'state': 'active', 'goal': '', 'indicators': [],
+                                     'steps': steps, 'progress': ratio(round(done / total, 4) if total else None, 'ledger')}]},
+        'decisions': {**HEAD, 'decisions': _decisions(comps, by_comp, components)},
+        'media': {**HEAD, 'images': images},
+        'functions': {**V2, 'modules': [{'id': path, 'component': comp, 'language': 'TypeScript', 'functions': functions_per_module}
+                                        for path, comp in modules], 'functions': _function_rows(fns)},
+        'screens': {**V2, 'screens': screens},
+        'gaps': {**V2, 'gaps': gaps},
+        'operations': {**V2, 'operations': ops},
+        'history': _history(scans, cards),
+    }
+    sections['paths'] = synthetic_paths(comps, layer, modules, card_rows)
+    sections.update(maps(comps, layer, card_rows))
+    data_paths, infra = data_maps(comps, layer, modules, rng)
+    sections.update(data_paths={**V2, **data_paths}, infra={**V2, **infra})
+    sections['pipeline'] = synthetic_pipeline(stages=max(components, 50))
+    sections['ideal'] = synthetic_ideal(comps, layer, card_rows)
+    sections['nodes'] = synthetic_nodes(card_rows)
+
+    sections['library'] = {**V2, 'documents': [{'id': d['id'], 'text': f"# {d['title']}\n\n## Summary\n\nSynthetic document {i} of {components} components.\n",
+                                                'chars': 60, 'truncated': False} for i, d in enumerate(sections['docs']['docs'])],
+                           'images': [], 'counts': {}}
+    written = list(sections)
+    sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
+    return sections
+
+
+def _card_rows(rng, cards, modules):
+    """The synthetic facts and cards, each card on a module of a component (its `_component`, taken out by build)."""
     facts, card_rows = [], []
     for i in range(cards):
         path, comp = modules[rng.randrange(len(modules))]
@@ -320,10 +370,11 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                           'place': path, 'paths': [path], 'evidence': [fact], 'state': STATES[i % len(STATES)],
                           'milestone': f'M{i % 12 + 1}', 'confidence': (1.0, 0.7, 0.4)[i % 3], '_component': comp,
                           'why': dict(zip(('ar', 'en'), WHY[kind]))})
-    by_comp = {}
-    for card in card_rows: by_comp.setdefault(card.pop('_component'), []).append(card)
-    closed = lambda rows: sum(c['state'] in ('done', 'resolved') for c in rows)
+    return facts, card_rows
 
+
+def _steps(card_rows):
+    """The fix plan's twelve steps, each with the cards of its milestone."""
     steps = []
     for n in range(12):
         tasks = [c for c in card_rows if c['milestone'] == f'M{n + 1}']
@@ -331,6 +382,12 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                       'gate': f'Every card of step {n + 1} closed', 'depends_on': [f'M{n}'] if n else [], 'sub_plan': None,
                       'tasks': [{'id': c['id'], 'title': c['title'], 'state': TASK_STATE[c['state']], 'acceptance': None, 'depends_on': []}
                                 for c in tasks]})
+    return steps
+
+
+def _ops_and_gaps(comps, layer, by_comp, files):
+    """An operation and a gap per component, its cards with them."""
+    closed = lambda rows: sum(c['state'] in ('done', 'resolved') for c in rows)
     ops, gaps = [], []
     for i, comp in enumerate(comps):
         op = OPERATIONS[i % len(OPERATIONS)]
@@ -340,9 +397,14 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                     'after': [f'op-{i}'] if i % 5 else [], 'gap': f'gap-{comp}', 'cards': [c['id'] for c in rows[:20]],
                     'branch': None, 'state': 'todo'})
         gaps.append({'id': f'gap-{comp}', 'component': comp, 'operation': op, 'to': f'{layer[comp]}/{comp}', 'responsibility': f'Owns {comp}.',
-                     'files': modules_per_component, 'cards': [c['id'] for c in rows], 'cards_closed': closed(rows),
+                     'files': files, 'cards': [c['id'] for c in rows], 'cards_closed': closed(rows),
                      'steps': [f'M{i % 12 + 1}'], 'operations': [f'op-{i + 1}'], 'decision': None,
                      'closed': ratio(round(closed(rows) / len(rows), 4) if rows else None, 'cards_closed / cards')})
+    return ops, gaps
+
+
+def _function_rows(fns):
+    """Each synthetic function, calling two others and called by those that call it."""
     callers = {fid: [] for fid, *_ in fns}
     function_rows = []
     for index, (fid, name, path, comp) in enumerate(fns):
@@ -354,11 +416,18 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                               'callers': [], 'callees': callees, 'reads': [], 'writes': [{'kind': 'table', 'name': comp.replace('-', '_')}],
                               'cards': []})
     for row in function_rows: row['callers'] = callers[row['id']][:20]
-    scans = []
-    for n in range(30):
-        scans.append({'id': f'scan{n:02d}', 'commit': f'{n:07x}', 'branch': 'main', 'at': f'2026-09-{n % 30 + 1:02d}T09:00:00+00:00',
+    return function_rows
+
+
+def _scans(cards):
+    """Thirty earlier checks, the open cards falling as they go."""
+    return [{'id': f'scan{n:02d}', 'commit': f'{n:07x}', 'branch': 'main', 'at': f'2026-09-{n % 30 + 1:02d}T09:00:00+00:00',
                       'score': round(0.4 + n / 100, 3), 'open': {s: cards // (5 * (1 + n // 10)) for s in SEVERITIES},
-                      'added': None if n == 0 else 10, 'resolved': None if n == 0 else 25, 'open_keys': []})
+             'added': None if n == 0 else 10, 'resolved': None if n == 0 else 25, 'open_keys': []} for n in range(30)]
+
+
+def _screens(comps, components):
+    """(the screen images, the screens): up to 200 screens, each shot once with one unlabelled field."""
     images = [{'id': f'screens/s{i}.png', 'path': f'screens/s{i}.png', 'title': f'Screen {i}', 'kind': 'screen', 'batch': None, 'phase': 'baseline',
                'route': f'/{DOMAINS[i % len(DOMAINS)]}', 'viewport': '390', 'pair': None} for i in range(40)]
     screens = [{'id': f'screen-{i}', 'route': f'/{DOMAINS[i % len(DOMAINS)]}/{i}', 'title': f'Screen {i}', 'component': comps[i % len(comps)],
@@ -367,61 +436,43 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                 'issues': [{'id': f'screen-{i}-1', 'rule': 'label', 'severity': 'high', 'summary': 'A field has no label.', 'element': 'input#q',
                             'width': 390, 'box': {'x': 16, 'y': 100, 'w': 358, 'h': 44}, 'card': None, 'state': 'open'}]}
                for i in range(min(200, components))]
-    total, done = len(card_rows), sum(c['state'] in ('done', 'resolved') for c in card_rows)
-    sections = {
-        'meta': {**HEAD, 'languages': [{'name': 'TypeScript', 'files': len(modules), 'share': 1.0}],
-                 'files': measure(len(modules), 'synthetic'), 'lines': measure(len(modules) * 120, 'synthetic', 'lines'),
-                 'stages': [{'id': 'S01', 'title': 'S01', 'state': 'done'}]},
-        'head': {**HEAD, 'scanned': {'commit': f'{29:07x}', 'branch': 'main', 'at': WHEN},
-                 'eaos': {'version': 'synthetic', 'commit': 'synthetic', 'digest': 'synthetic'}, 'freshness': 'fresh',
-                 'verdict': f'{total} problems; EAOS fixes {sum(c["fixable"] for c in card_rows)} of them by itself.',
-                 'next': {'action': 'Start a fix batch', 'tool': 'fix_start'}},
-        'health': {**HEAD, 'score': ratio(0.69, 'synthetic'), 'formula': 'synthetic',
-                   'domains': [{'id': area, 'name': area, 'score': ratio(0.7, 'synthetic'), 'cards': total // 4}
-                               for area in ('structure', 'security', 'performance', 'cleanup')],
-                   'history': [{'at': s['at'], 'commit': s['commit'], 'score': s['score']} for s in scans]},
-        'cards': {**HEAD, 'cards': card_rows},
-        'evidence': {**HEAD, 'facts': facts},
-        'story': {**HEAD, 'current': {'summary': f'{components} components.',
-                                      'components': [{'name': c, 'layer': layer[c], 'files': modules_per_component} for c in comps]},
-                  'target': {'summary': 'The same components, one owner each.',
-                             'components': [{'name': f'{layer[c]}/{c}', 'responsibility': f'Owns {c}.', 'layer': layer[c]} for c in comps]},
-                  'gap': [{'component': g['component'], 'relation': 'modify', 'to': g['to'], 'files': g['files'], 'cards': g['cards'][:50],
-                           'closed': g['cards_closed']} for g in gaps],
-                  'indicators': [{'id': 'S1', 'name': 'S1', 'today': measure(0.6, 'synthetic'), 'expected': measure(0.8, 'synthetic'),
-                                  'target': measure(0.9, 'synthetic')}]},
-        'docs': {**HEAD, 'docs': [{'id': f'docs/D{i}.md', 'title': f'Document {i}', 'path': f'docs/D{i}.md', 'group': ('start', 'story', 'plan', 'technical')[i % 4],
-                                   'bytes': 4000, 'order': i} for i in range(100)]},
-        'plans': {**HEAD, 'plans': [{'id': 'fix', 'title': 'Fix plan', 'kind': 'fix', 'parent': None, 'state': 'active', 'goal': '', 'indicators': [],
-                                     'steps': steps, 'progress': ratio(round(done / total, 4) if total else None, 'ledger')}]},
-        'decisions': {**HEAD, 'decisions': [{'id': f'decision-{i}', 'question': f'Approve the operation on {comps[i]}?',
-                                             'recommendation': 'Yes.', 'options': [{'id': 'yes', 'label': 'Yes'}, {'id': 'later', 'label': 'Later'}],
-                                             'blocks': [c['id'] for c in by_comp.get(comps[i], [])], 'state': 'waiting', 'answer': None,
-                                             'plan': 'fix', 'asked': WHEN, 'tool': None} for i in range(min(20, components))]},
-        'media': {**HEAD, 'images': images},
-        'functions': {**V2, 'modules': [{'id': path, 'component': comp, 'language': 'TypeScript', 'functions': functions_per_module}
-                                        for path, comp in modules], 'functions': function_rows},
-        'screens': {**V2, 'screens': screens},
-        'gaps': {**V2, 'gaps': gaps},
-        'operations': {**V2, 'operations': ops},
-        'history': {**V2, 'scans': scans, 'events': [{'at': s['at'], 'kind': 'scan', 'title': f'Check {s["id"]}', 'ref': s['commit']} for s in scans],
-                    'progress': [{'at': s['at'], 'event': 'recheck' if n else 'baseline', 'closed': min(cards, 25 * n), 'total': cards,
-                                  'percent': round(min(cards, 25 * n) / cards, 4), 'commit': s['commit']} for n, s in enumerate(scans)]},
-    }
-    sections['paths'] = synthetic_paths(comps, layer, modules, card_rows)
-    sections.update(maps(comps, layer, card_rows))
-    data_paths, infra = data_maps(comps, layer, modules, rng)
-    sections.update(data_paths={**V2, **data_paths}, infra={**V2, **infra})
-    sections['pipeline'] = synthetic_pipeline(stages=max(components, 50))
-    sections['ideal'] = synthetic_ideal(comps, layer, card_rows)
-    sections['nodes'] = synthetic_nodes(card_rows)
+    return images, screens
 
-    sections['library'] = {**V2, 'documents': [{'id': d['id'], 'text': f"# {d['title']}\n\n## Summary\n\nSynthetic document {i} of {components} components.\n",
-                                                'chars': 60, 'truncated': False} for i, d in enumerate(sections['docs']['docs'])],
-                           'images': [], 'counts': {}}
-    written = list(sections)
-    sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
-    return sections
+
+def _health(total, scans):
+    return {**HEAD, 'score': ratio(0.69, 'synthetic'), 'formula': 'synthetic',
+            'domains': [{'id': area, 'name': area, 'score': ratio(0.7, 'synthetic'), 'cards': total // 4}
+                        for area in ('structure', 'security', 'performance', 'cleanup')],
+            'history': [{'at': s['at'], 'commit': s['commit'], 'score': s['score']} for s in scans]}
+
+
+def _story(comps, layer, gaps, components, files):
+    return {**HEAD, 'current': {'summary': f'{components} components.',
+                                'components': [{'name': c, 'layer': layer[c], 'files': files} for c in comps]},
+            'target': {'summary': 'The same components, one owner each.',
+                       'components': [{'name': f'{layer[c]}/{c}', 'responsibility': f'Owns {c}.', 'layer': layer[c]} for c in comps]},
+            'gap': [{'component': g['component'], 'relation': 'modify', 'to': g['to'], 'files': g['files'], 'cards': g['cards'][:50],
+                     'closed': g['cards_closed']} for g in gaps],
+            'indicators': [{'id': 'S1', 'name': 'S1', 'today': measure(0.6, 'synthetic'), 'expected': measure(0.8, 'synthetic'),
+                            'target': measure(0.9, 'synthetic')}]}
+
+
+def _docs():
+    return [{'id': f'docs/D{i}.md', 'title': f'Document {i}', 'path': f'docs/D{i}.md', 'group': ('start', 'story', 'plan', 'technical')[i % 4],
+             'bytes': 4000, 'order': i} for i in range(100)]
+
+
+def _decisions(comps, by_comp, components):
+    return [{'id': f'decision-{i}', 'question': f'Approve the operation on {comps[i]}?',
+             'recommendation': 'Yes.', 'options': [{'id': 'yes', 'label': 'Yes'}, {'id': 'later', 'label': 'Later'}],
+             'blocks': [c['id'] for c in by_comp.get(comps[i], [])], 'state': 'waiting', 'answer': None,
+             'plan': 'fix', 'asked': WHEN, 'tool': None} for i in range(min(20, components))]
+
+
+def _history(scans, cards):
+    return {**V2, 'scans': scans, 'events': [{'at': s['at'], 'kind': 'scan', 'title': f'Check {s["id"]}', 'ref': s['commit']} for s in scans],
+            'progress': [{'at': s['at'], 'event': 'recheck' if n else 'baseline', 'closed': min(cards, 25 * n), 'total': cards,
+                          'percent': round(min(cards, 25 * n) / cards, 4), 'commit': s['commit']} for n, s in enumerate(scans)]}
 
 
 def maps(comps, layer, card_rows):
