@@ -1,6 +1,7 @@
 // What the map pages read from studio/system.json: neighbours of a component, the findings bins, the ranked list and
 // the counterpart of a component in the other map. Nothing here computes a number the exporter did not write.
 import type { CurrentNode, MapEdge, MapView, Operation, SystemMap, TargetNode } from '../data/system'
+import type { Relation } from '../data/types'
 
 export type MapMode = 'current' | 'change' | 'target'
 export const MODES: MapMode[] = ['current', 'change', 'target']
@@ -8,6 +9,16 @@ export const MODES: MapMode[] = ['current', 'change', 'target']
 /** The view a mode draws: today's map for current and change, the target's for target. */
 export function viewOf(system: SystemMap, mode: MapMode): MapView<CurrentNode> | MapView<TargetNode> {
   return mode === 'target' ? system.target : system.current
+}
+
+const HEAVIEST: Relation[] = ['rebuild', 'delete', 'modify', 'merge', 'introduce', 'retain']
+
+/** What changes, in the order every change list shows it: the heaviest operation first, then the most problems, the
+ * most files, then by name; `of` reads those four from a row. */
+export function heaviestFirst<T>(rows: readonly T[], of: (row: T) => [Relation, number, number, string]): T[] {
+  return rows.map((row) => [row, of(row)] as const)
+    .sort(([, a], [, b]) => HEAVIEST.indexOf(a[0]) - HEAVIEST.indexOf(b[0]) || b[1] - a[1] || b[2] - a[2] || a[3].localeCompare(b[3]))
+    .map(([row]) => row)
 }
 
 /** DESIGN.md §6: five bins of findings, 0, 1–3, 4–9, 10–19, 20+. */

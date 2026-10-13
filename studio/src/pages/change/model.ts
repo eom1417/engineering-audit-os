@@ -5,6 +5,7 @@
 import type { ChangeOp, Gap, Operation, OpState } from '../../data/change'
 import type { Plan, PlanStep, Relation, Story } from '../../data/types'
 import type { WordKey } from '../../i18n/catalog'
+import { heaviestFirst } from '../../map/model'
 import type { Timeline } from '../paths/model'
 
 /** The contract's operation as the operation chip names it (the chip predates contract v2's words). */
@@ -137,9 +138,7 @@ export function opsMix(gaps: Gap[]): [ChangeOp, number][] {
 
 /** The register's order: the operations that change most first, then the gaps with the most cards, then by name. */
 export function registerOrder(gaps: Gap[]): Gap[] {
-  const order: ChangeOp[] = ['rebuild', 'delete', 'refactor', 'merge', 'new', 'retain']
-  return [...gaps].sort((a, b) => order.indexOf(a.operation) - order.indexOf(b.operation) || b.cards.length - a.cards.length
-    || b.files - a.files || a.component.localeCompare(b.component))
+  return heaviestFirst(gaps, (g) => [RELATION_OF[g.operation], g.cards.length, g.files, g.component])
 }
 
 export function byId<T extends { id: string }>(rows: T[] | undefined): Map<string, T> {

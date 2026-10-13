@@ -7,15 +7,14 @@ import { OperationChip } from '../components/Chip'
 import { Go } from '../components/Go'
 import { Icon } from '../components/Icon'
 import { FoldList, Panel } from '../components/Panel'
-import type { CurrentNode, Operation, SystemMap } from '../data/system'
+import type { CurrentNode, SystemMap } from '../data/system'
 import { Id, N } from '../i18n/text'
-import { counterpart } from './model'
+import { counterpart, heaviestFirst } from './model'
 import { Legend, MapCanvas } from './parts'
 import { TerritoryMap } from './TerritoryMap'
 import { useMapWords } from './words'
 import css from './change.module.css'
 
-const ORDER: Operation[] = ['rebuild', 'delete', 'modify', 'merge', 'introduce', 'retain']
 
 function useCompare() {
   const search = useSearch({ strict: false }) as { focus?: string; side?: string }
@@ -74,8 +73,7 @@ export function CompareMaps({ system, phone }: { system: SystemMap; phone: boole
 /** Every component of today that changes, heaviest operation first, with where it goes. */
 export function GapList({ system }: { system: SystemMap }) {
   const w = useMapWords()
-  const rows = useMemo(() => system.current.nodes.filter((n) => n.op !== 'retain')
-    .sort((a, b) => ORDER.indexOf(a.op) - ORDER.indexOf(b.op) || b.findings.total - a.findings.total || b.files - a.files || a.id.localeCompare(b.id)), [system])
+  const rows = useMemo(() => heaviestFirst(system.current.nodes.filter((n) => n.op !== 'retain'), (n) => [n.op, n.findings.total, n.files, n.id]), [system])
   return (
     <Panel>
       <FoldList items={rows} first={8} label={w('gapList')} render={(n: CurrentNode) => (
