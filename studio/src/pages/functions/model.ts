@@ -2,13 +2,6 @@
 // page opens (it is the largest section, so the report's other pages never wait for it), the coverage row it is
 // shown with, the list's filters and orders, and the two-hop call graph around one function. The Studio computes no
 // fact here: every number is the exporter's, with its source.
-import { useEffect, useMemo, useState } from 'react'
-import { script } from '../../data/load'
-import { useReportLocale } from '../../data/context'
-import { localizeValue } from '../../data/localization'
-import { usePrefs } from '../../i18n/prefs'
-import { liveToken } from '../../data/live'
-import type { StudioData } from '../../data/types'
 import { normalize } from '../../search/normalize'
 
 export interface Measure { value: number | null; src: string; unit?: string }
@@ -44,42 +37,6 @@ export interface FunctionsData {
   languages?: LanguageRow[]
   missing?: Gap[]
   counts?: Record<string, Measure>
-}
-
-export interface CoverageRow { section: string; state: string; reason: string; detail: string; step: string | null; tool: string | null;
-  parts?: { id: string; state: string; detail?: string }[] }
-
-type Slot<T> = { kind: 'loading' } | { kind: 'absent' } | { kind: 'ready'; value: T }
-
-const listed = (data: StudioData, name: string) => data.manifest.sections.some((s) => (s.name as string) === name)
-const held = <T,>(name: string) => (window.EAOS_STUDIO?.[name] as T | undefined)
-
-/** One section of the report read when a page needs it: from the live server's API when the tab is live, else its
- * classic script beside index.html (already there when boot.js preloaded it). */
-export function useSection<T>(data: StudioData, name: string): Slot<T> {
-  const { lang } = usePrefs()
-  const locale = useReportLocale()
-  const has = listed(data, name)
-  const [slot, setSlot] = useState<Slot<T>>(() => !has ? { kind: 'absent' } : held<T>(name) ? { kind: 'ready', value: held<T>(name)! } : { kind: 'loading' })
-  const sha = data.manifest.sections.find((s) => (s.name as string) === name)?.sha256
-  useEffect(() => {
-    if (!has) { setSlot({ kind: 'absent' }); return }
-    let on = true
-    const token = liveToken()
-    const read: Promise<T | undefined> = token
-      ? fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
-        .then((r) => (r.ok ? (r.json() as Promise<T>) : undefined), () => undefined)
-      : held<T>(name) ? Promise.resolve(held<T>(name)) : script(name).then(() => held<T>(name))
-    read.then((value) => { if (on) setSlot(value ? { kind: 'ready', value } : { kind: 'absent' }) })
-    return () => { on = false }
-  }, [has, name, sha])
-  return useMemo(() => slot.kind === 'ready' ? { ...slot, value: localizeValue(slot.value, lang, locale) } : slot, [slot, lang, locale])
-}
-
-/** The coverage row of a section (studio/coverage.json), for the designed "not measured yet" states. */
-export function useCoverage(data: StudioData, section: string): CoverageRow | undefined {
-  const slot = useSection<{ sections?: CoverageRow[] }>(data, 'coverage')
-  return slot.kind === 'ready' ? (slot.value.sections ?? []).find((row) => row.section === section) : undefined
 }
 
 // ---------------------------------------------------------------- the list

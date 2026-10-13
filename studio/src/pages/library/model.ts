@@ -17,7 +17,8 @@ export interface LibraryData { documents: LibraryDoc[]; images: LibraryImage[] }
 export interface MediaImage { id: string; path: string; title: string; kind: 'screen' | 'diagram' | 'chart' }
 
 /** A row of studio/coverage.json: why a section is not there, and which step writes it. */
-export interface CoverageRow { section: string; state: string; detail?: string; step?: string | null; reason?: string }
+export interface CoverageRow { section: string; state: string; detail: string; step?: string | null; reason?: string; tool?: string | null;
+  parts?: { id: string; state: string; detail?: string }[] }
 
 export type Lazy<T> = { kind: 'loading' } | { kind: 'ready'; data: T } | { kind: 'absent' }
 
@@ -31,23 +32,25 @@ async function fetchSection<T>(name: string): Promise<T | undefined> {
     const answer = await fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
     return answer.ok ? ((await answer.json()) as T) : undefined
   }
-  await script(name)
+  if (!preset<T>(name)) await script(name)
   return preset<T>(name)
 }
 
-/** A section the start does not load (the library, the coverage rows): asked for once, from either data source. */
+/** A section the start does not load (the library, the functions, the coverage rows): read when a page needs it, from
+ * the live server's API when the tab is live, else its classic script beside index.html; read again when it changes. */
 export function useLazySection<T>(data: StudioData, name: string): Lazy<T> {
   const { lang } = usePrefs()
   const locale = useReportLocale()
-  const listed = data.manifest.sections.some((s) => (s.name as string) === name)
+  const entry = data.manifest.sections.find((s) => (s.name as string) === name)
+  const listed = Boolean(entry)
   const [state, setState] = useState<Lazy<T>>(() => !listed ? { kind: 'absent' } : preset<T>(name) ? { kind: 'ready', data: preset<T>(name)! } : { kind: 'loading' })
   useEffect(() => {
-    if (state.kind !== 'loading') return
+    if (!listed) { setState({ kind: 'absent' }); return }
     let live = true
     fetchSection<T>(name).then((found) => { if (live) setState(found ? { kind: 'ready', data: found } : { kind: 'absent' }) },
       () => { if (live) setState({ kind: 'absent' }) })
     return () => { live = false }
-  }, [state.kind, name])
+  }, [listed, name, entry?.sha256])
   return useMemo(() => state.kind === 'ready' ? { ...state, data: localizeValue(state.data, lang, locale) } : state, [state, lang, locale])
 }
 

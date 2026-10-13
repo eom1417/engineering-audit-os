@@ -18,7 +18,8 @@ import { usePhone } from '../SystemMap'
 import { SystemViews } from '../system/SystemViews'
 import { FunctionDetail } from './FunctionDetail'
 import { FnLink, Level, type ListSearch as Search } from './parts'
-import { filterFunctions, KINDS, searchText, SHOWS, SORTS, useCoverage, useSection, type CoverageRow, type Filter, type Fn,
+import { useCoverageRow, useLazySection, type CoverageRow } from '../library/model'
+import { filterFunctions, KINDS, searchText, SHOWS, SORTS, type Filter, type Fn,
   type FnKind, type FunctionsData, type LanguageRow, type Show, type Sort } from './model'
 import { useFunctionWords } from './words'
 import css from './Functions.module.css'
@@ -198,11 +199,11 @@ function Explorer({ data, selected }: { data: StudioData; selected?: string }) {
   const w = useFunctionWords()
   const { t } = usePrefs()
   const phone = usePhone()
-  const slot = useSection<FunctionsData>(data, 'functions')
-  const row = useCoverage(data, 'functions')
+  const slot = useLazySection<FunctionsData>(data, 'functions')
+  const row = useCoverageRow(data, 'functions')
   const [filter, set] = useFilter()
   const search = useSearch({ strict: false }) as Search
-  const fx = slot.kind === 'ready' ? slot.value : undefined
+  const fx = slot.kind === 'ready' ? slot.data : undefined
   const fn = fx && selected ? fx.functions.find((f) => f.id === selected) : undefined
   const title = fn ? fn.name : w('functions')
   usePageChrome(title, selected ? { to: '/system/functions', search, label: w('backToList') } : undefined, data.manifest.project.name)

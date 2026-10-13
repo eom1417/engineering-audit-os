@@ -19,7 +19,8 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, WithData } from '../../shell/Layout'
-import { useCoverage, useSection, type FunctionsData } from '../functions/model'
+import type { FunctionsData } from '../functions/model'
+import { useCoverageRow, useLazySection } from '../library/model'
 import { usePhone } from '../SystemMap'
 import { SystemViews } from '../system/SystemViews'
 import { FILTERS, filterScreens, gallery, marks, measured, pins, shotsAt, thumbnail, widths, type Issue, type PageFinding, type Picture, type PicturedPage,
@@ -436,7 +437,7 @@ function IssueList({ screen, numbered, picked }: { screen: Screen; numbered: (Is
 function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id: string }) {
   const w = useScreenWords()
   const { lang } = usePrefs()
-  const fx = useSection<FunctionsData>(data, 'functions')
+  const fx = useLazySection<FunctionsData>(data, 'functions')
   const screen = sx.screens.find((s) => s.id === id)
   if (!screen) {
     return (
@@ -445,7 +446,7 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
       </div>
     )
   }
-  const inFile = fx.kind === 'ready' && screen.file ? fx.value.functions.filter((f) => f.module === screen.file).length : 0
+  const inFile = fx.kind === 'ready' && screen.file ? fx.data.functions.filter((f) => f.module === screen.file).length : 0
   const issuesChecked = measured(sx, 'issues')
   return (
     <div className={layout.page}>
@@ -508,8 +509,8 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
 function Body({ data, id }: { data: StudioData; id?: string }) {
   const w = useScreenWords()
   const { t } = usePrefs()
-  const slot = useSection<ScreensData>(data, 'screens')
-  const sx = slot.kind === 'ready' ? slot.value : undefined
+  const slot = useLazySection<ScreensData>(data, 'screens')
+  const sx = slot.kind === 'ready' ? slot.data : undefined
   const screen = id && sx ? sx.screens.find((s) => s.id === id) : undefined
   usePageChrome(screen ? screen.title : w('screens'), id ? { to: '/screens', label: w('backToList') } : undefined, data.manifest.project.name)
   if (slot.kind === 'loading') return <div className={layout.page}><Heading data={data} /><Panel><Skeleton label={t('loading')} /></Panel></div>
@@ -520,7 +521,7 @@ function Body({ data, id }: { data: StudioData; id?: string }) {
 /** The report has no screens section: its coverage row says why and which step writes it. */
 function NotExported({ data }: { data: StudioData }) {
   const w = useScreenWords()
-  const row = useCoverage(data, 'screens')
+  const row = useCoverageRow(data, 'screens')
   return (
     <div className={layout.page}>
       <Heading data={data} />
