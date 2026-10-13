@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.12 (2026-10-13)
+
+- **EAOS fixed by EAOS**: a batch of 181 cards from EAOS's own check, run by the assistant with automatic accept;
+  160 kept, each its own commit. 137 complex functions split into small named helpers with the same behaviour
+  (functions above cyclomatic complexity 25 went from 360 to 94, the worst from 134 to 74); dead constants and
+  functions removed; `eaos/recheck.py` runs through the CLI's parser; katex upgraded; Studio fixes from the visual
+  review (right-to-left text, the phone top bar, empty states, small controls).
+- Left out: 8 cards the behaviour lock rejected, 13 the assistant judged need a redesign or the owner's design choice.
+- After the batch: a test imported a renamed helper and `eaos/fact_claims.py` was missing from the layering policy;
+  both fixed, the Studio rebuilt.
+
 ## 0.0.11 (2026-10-12)
 
 - **Branches under control from the Studio**: a group of fixes is built on a new branch named from the group, on an

@@ -24,6 +24,7 @@
     "ledger": [
       "eaos/ask.py",
       "eaos/claims.py",
+      "eaos/fact_claims.py",
       "eaos/decisions.py",
       "eaos/dossier.py",
       "eaos/debt_register.py",

@@ -3,7 +3,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from eaos import claims
-from eaos.claims import _engine_cluster_measurement, from_facts, naming
+from eaos.claims import from_facts, naming
+from eaos.fact_claims import engine_measurement
 from eaos.compose.labels import IMPACTS, impact_of
 from eaos.facts.run import collect
 from eaos.facts.store import read_set
@@ -100,7 +101,7 @@ class EngineClusterImpactTests(unittest.TestCase):
 
     def scenario(self, kind, facts, sets=None):
         sets = {'external': {'facts': facts}} if sets is None else sets
-        key, params = _engine_cluster_measurement(kind, cluster(facts), sets)
+        key, params = engine_measurement(kind, cluster(facts), sets)
         return IMPACTS['ar'][key].format(**params)
 
     def test_each_kind_cites_its_measurement(self):
@@ -126,13 +127,13 @@ class EngineClusterImpactTests(unittest.TestCase):
         complex_fact = fact('complexity', {'measurements': [
             {'name': 'function.complexity', 'value': 40.0, 'threshold': 15.0, 'unit': 'complexity'}]})
         plain = fact('complexity', {'measurements': [{'name': 'complexity', 'value': 9}]}, id_='FACT-plain')
-        key, params = _engine_cluster_measurement('complexity', cluster([plain, complex_fact]),
+        key, params = engine_measurement('complexity', cluster([plain, complex_fact]),
                                                   {'external': {'facts': [plain, complex_fact]}})
         self.assertEqual((key, params), ('engine_cluster_complexity', {'value': 40, 'threshold': 15}))
         literal = fact('literal_duplication', {
             'measurements': [{'name': 'group.size', 'value': 24.0, 'threshold': 12.0}],
             'sites': [{'path': 'a.py', 'line': None}] + [{'path': 'a.py', 'line': n} for n in range(34)]})
-        self.assertEqual(_engine_cluster_measurement('literal_duplication', cluster([literal]),
+        self.assertEqual(engine_measurement('literal_duplication', cluster([literal]),
                                                      {'external': {'facts': [literal]}}),
                          ('engine_cluster_literal_duplication', {'sites': 24}))
         render = {'key': 'engine_cluster', 'params': {'place': 'a.py', 'kind': 'complexity', 'engines': 'x, y',
