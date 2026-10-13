@@ -153,8 +153,6 @@
   "eaos/studio/model.py::score": 16,
   "eaos/studio/nodes/fix_reviewer.py::_cards": 20,
   "eaos/studio/nodes/ideal_planner.py::_decisions": 21,
-  "eaos/studio/nodes/plan_orderer.py::finish": 16,
-  "eaos/studio/nodes/plan_orderer.py::inputs": 36,
   "eaos/studio/nodes/triage.py::inputs": 17,
   "eaos/studio/nodes/triage.py::resolution": 16,
   "eaos/studio/paths.py::_Builder.onward": 19,
