@@ -3,20 +3,20 @@
 // list first, the overview as a preview that opens full screen. ?view=, ?cluster=, ?q=, ?filter=gaps|screens|server,
 // ?file= or ?part= (the paths through a file or a part: the links from a card, a component or a function).
 import { useSearch } from '@tanstack/react-router'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
 import { SearchField, Segmented } from '../../components/Controls'
 import { Go } from '../../components/Go'
 import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
-import { script } from '../../data/load'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, WithData } from '../../shell/Layout'
 import { useSearchPatch } from '../../shell/search'
+import { useCoverageRow } from '../library/model'
 import { usePhone } from '../SystemMap'
 import { drawOverview } from './draw'
 import { ModeSwitch } from './ModeSwitch'
@@ -29,23 +29,6 @@ import css from './paths.module.css'
 interface PathsSearch { view?: string; cluster?: string; q?: string; filter?: string; file?: string; part?: string }
 type Filter = 'all' | 'gaps' | 'screens' | 'server'
 const REASONS: GapReason[] = ['no_server_route', 'trace_stopped', 'component_not_found', 'handler_not_found']
-
-interface CoverageRow { section: string; state: string; detail: string; step: string | null; parts?: { id: string; state: string; detail?: string }[] }
-
-/** The coverage row of the paths section (studio/coverage.json), loaded on demand, for the designed empty state. */
-function useCoverageRow(data: StudioData, section: string): CoverageRow | undefined {
-  const listed = data.manifest.sections.some((s) => (s.name as string) === 'coverage')
-  const read = () => ((window.EAOS_STUDIO?.coverage as { sections?: CoverageRow[] } | undefined)?.sections ?? []).find((r) => r.section === section)
-  const [row, setRow] = useState<CoverageRow | undefined>(read)
-  useEffect(() => {
-    if (!listed || row) return
-    let live = true
-    script('coverage').then(() => { if (live) setRow(read()) })
-    return () => { live = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listed])
-  return row
-}
 
 /** The designed state when a report has no code paths: what is missing, why, and which step produces it. */
 export function NoPaths({ data }: { data: StudioData }) {
