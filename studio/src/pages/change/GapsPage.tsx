@@ -111,7 +111,7 @@ function GapBody({ data, id }: { data: StudioData; id: string }) {
   const cards = useMemo(() => byId(data.cards?.cards), [data.cards])
   const ops = useMemo(() => byId(data.operations?.operations), [data.operations])
   if (!data.gaps) return <div className={page.page}><ChangeNav /><NotMeasured data={data} section="gaps" title={w('gapsTitle')} /></div>
-  if (!gap) return <Missing title={w('gapNotFound')} back="/change/gaps" label="backToGaps" />
+  if (!gap) return <Missing title={w('gapNotFound')} back="/change/gaps" label="backToGaps" heading="gapsTitle" />
   const sources = gap.operations?.map((o) => ops.get(o)?.sources ?? []).flat() ?? []
   const current = !gap.id.startsWith('target:')
   return (
