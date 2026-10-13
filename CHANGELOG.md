@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.20 (2026-10-13)
+
+- **The check holds the project to the code laws**: every function past the complexity limit of 15 is a card, one per
+  file (it held to 60 and the three worst before: 6 cards for 105 such functions on EAOS).
+- **The score says only what was measured**: performance is scored only once the load ran on the running program.
+- **A closed batch hides nothing**: a batch closed without handing anything over no longer marks its cards skipped.
+- **Plain reasons**: a load on a server of the pages alone says so, and the setup asks the assistant for the real
+  server; an impossible engine measure (-1 lines) no longer breaks the functions section.
+
 ## 0.0.19 (2026-10-13)
 
 - **The Studio belongs to the computer, not to an assistant**: on a server run by systemd it is a service of its own
