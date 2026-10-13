@@ -34,7 +34,10 @@ PREFIX = 'studio-'
 NO_STORE = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
 TEXT_TYPES = ('.md', '.json', '.jsonl', '.txt', '.csv', '.html', '.yaml', '.yml', '.sarif', '.xml', '.log')
 MAX_FILE = 2 * 2 ** 20
+MAX_IMAGE = 8 * 2 ** 20
 SHOTS = 'behavior-lock/snapshots'
+PICTURES = 'live/screens'
+IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
 
 
 def section_schemas():
@@ -158,8 +161,8 @@ def routes(ctx):
 
 
 def progress_routes(ctx):
-    """The live map's routes: the progress of every flow, the check's alone, the files the check produced and the
-    screens the safety flow recorded."""
+    """The live map's routes: the progress of every flow, the check's alone, the files the check produced, the
+    screens the safety flow recorded and the check's screen pictures."""
     async def scan_progress(request):
         return JSONResponse(await run_in_threadpool(scan_state, ctx.report, ctx.feed.last_id()), headers=NO_STORE)
 
@@ -171,10 +174,13 @@ def progress_routes(ctx):
 
     async def screen(request):
         state = ctx.state()
-        return await run_in_threadpool(screen_file, guided.runtime_of(state) if state else None, request.query_params.get('path') or '')
+        return await run_in_threadpool(image_file, guided.runtime_of(state) if state else None, SHOTS, request.query_params.get('path') or '')
+
+    async def picture(request):
+        return await run_in_threadpool(image_file, ctx.report, PICTURES, request.query_params.get('path') or '')
 
     return [Route('/api/scan-progress', scan_progress), Route('/api/progress', all_progress), Route('/api/report-file', produced),
-            Route('/api/screen', screen)]
+            Route('/api/screen', screen), Route('/api/report-image', picture)]
 
 
 def declaration(flow):
@@ -235,15 +241,15 @@ def report_file(report, path):
     return Response(text, media_type='text/plain; charset=utf-8', headers={**NO_STORE, 'Content-Security-Policy': 'sandbox'})
 
 
-def screen_file(runtime, path):
-    """`/api/screen`: a screen the safety flow recorded (a step's `artifact`, relative to the runtime folder), a PNG
-    inside its behavior-lock/snapshots folder, at most MAX_FILE bytes."""
-    target = _inside(runtime, path) if runtime else None
-    if target is None or target.suffix.lower() != '.png' or not target.is_relative_to((Path(runtime) / SHOTS).resolve()):
-        return _refuse(400, 'path', 'only a recorded screen is served')
-    if not target.is_file(): return _refuse(404, 'not_found', 'no such screen')
-    if target.stat().st_size > MAX_FILE: return _refuse(413, 'size', 'the file is larger than 2 MB')
-    return Response(target.read_bytes(), media_type='image/png', headers=NO_STORE)
+def image_file(root, folder, path):
+    """A picture inside `root`/`folder` (`path` relative to `root`): a PNG, JPEG or WebP of at most MAX_IMAGE bytes.
+    `/api/screen` serves the safety flow's recorded screens with it, `/api/report-image` the check's screen pictures."""
+    target = _inside(root, path) if root else None
+    if target is None or target.suffix.lower() not in IMAGE_TYPES or not target.is_relative_to((Path(root) / folder).resolve()):
+        return _refuse(400, 'path', 'only a picture EAOS took is served')
+    if not target.is_file(): return _refuse(404, 'not_found', 'no such picture')
+    if target.stat().st_size > MAX_IMAGE: return _refuse(413, 'size', 'the picture is larger than 8 MB')
+    return Response(target.read_bytes(), media_type=IMAGE_TYPES[target.suffix.lower()], headers=NO_STORE)
 
 
 def _inside(root, path):

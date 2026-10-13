@@ -49,7 +49,8 @@ When the person types /eaos alone, or asks what EAOS can do here, call `menu` an
 (the recommended one first); once they chose, do what that option says at once. For questions about their code,
 `impact` (what changing a file touches) and `ask` answer from the check's records; `tools_check` says what is installed.
 Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). Keep every feature,
-route and behaviour when fixing: a fix that deletes what users reach is refused. Never invent results: report
+route and behaviour when fixing: a fix that deletes what users reach is refused, and so is one that changes a
+public function or class (its name, its parameters, the module it is defined in): split inside, keep the outside. Never invent results: report
 what the tools returned.
 
 """ + LAWS

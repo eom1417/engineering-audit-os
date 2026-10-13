@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.0.14 (2026-10-13)
+
+- **A fix keeps the code laws or is taken back**: after each card, `eaos.execute.new_debt` compares the files the card
+  touched with the check's facts: a new copied block or function, new dead code, or more decisions past the complexity
+  limit refuses the card, as a breakage does (splitting a function of 60 into three of 20 is less, so it is kept).
+- **The project's Python tests gate every batch**: a `tests/` suite beside the app runs with the profile's checks
+  (pytest when configured, else unittest), and only the tests a change newly breaks count against it.
+- **Each refused card carries its own reason**: the halving search keeps every run's verdict and logs, instead of
+  stamping the batch's first failure on every culprit. The fixing assistant is told to keep public functions'
+  names, parameters and modules: the lock compares them.
+- **The Studio**: the screen pictures show in the live Studio (`/api/report-image`, loaded with the launch token);
+  the decisions page shows only what waits for the person, the answered ones folded under one line; the assistant
+  writes every message of a run in the person's language.
+
 ## 0.0.13 (2026-10-13)
 
 - **The code laws, for every project and for EAOS itself**: least code for the best result, one home for every rule

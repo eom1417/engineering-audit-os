@@ -8,6 +8,7 @@ import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
 import { Props } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
+import { TokenImage } from '../../components/TokenImage'
 import { liveToken } from '../../data/live'
 import { ENDED, shownState, type ScanProgress, type ScanStage, type ScanStep } from '../../data/scan'
 import { usePrefs } from '../../i18n/prefs'
@@ -68,24 +69,11 @@ function Programs({ stage, skew }: { stage: ScanStage; skew: number }) {
   )
 }
 
-/** A screen the safety flow recorded, fetched with the launch token (an image address cannot carry it) and shown small
- * as a data address (the page's policy allows data: images, not blob:); its path until it has loaded or when it cannot
- * be read. */
+/** A screen the safety flow recorded, shown small; its path until it has loaded or when it cannot be read. */
 function Shot({ path, name }: { path: string; name: string }) {
-  const [src, setSrc] = useState<string | null>(null)
-  useEffect(() => {
-    let on = true
-    fetch(`/api/screen?path=${encodeURIComponent(path)}`, { headers: { 'X-EAOS-Token': liveToken() ?? '' }, cache: 'no-store', credentials: 'same-origin' })
-      .then(async (answer) => {
-        if (!answer.ok) return
-        const reader = new FileReader()
-        reader.onload = () => { if (on) setSrc(String(reader.result)) }
-        reader.readAsDataURL(await answer.blob())
-      })
-      .catch(() => undefined)
-    return () => { on = false }
-  }, [path])
-  return src ? <img className={css.shot} src={src} alt={name} data-shot="" /> : <Id value={path} className={css.stepWhy} />
+  const [failed, setFailed] = useState(false)
+  return failed ? <Id value={path} className={css.stepWhy} />
+    : <TokenImage api="/api/screen" path={path} className={css.shot} alt={name} data-shot="" onError={() => setFailed(true)} />
 }
 
 function StepRow({ step, unit }: { step: ScanStep; unit: string }) {

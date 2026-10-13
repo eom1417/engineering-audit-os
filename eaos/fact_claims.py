@@ -220,7 +220,7 @@ def external_writes(fact_sets, add, target):
                                 'module assigns into it directly.'})
 
 
-def _worth_a_claim(places, shared_size):
+def worth_a_claim(places, shared_size):
     """A duplicate cluster large enough to be a rule; UI noise stays a fact: the cluster is recorded, the claim is not."""
     if len(places) < DUPLICATE_MIN: return False
     languages = {(p.get('path') or '').rsplit('.', 1)[-1] for p in places}
@@ -232,7 +232,7 @@ def _worth_a_claim(places, shared_size):
 def structural_duplicates(fact_sets, add, target):
     for fact in _facts(fact_sets, 'fingerprint', 'duplicate_cluster'):
         places = fact['value']['occurrences']
-        if not _worth_a_claim(places, fact['value'].get('shared_size', 0)): continue
+        if not worth_a_claim(places, fact['value'].get('shared_size', 0)): continue
         where = ', '.join(f"{row['path']}:{row['start_line']} {row['symbol']}" for row in places[:4])
         add(f"{len(places)} symbols share the same structure up to identifier names ({where})",
             'business_rule', 'CONFIRMED', ['static_fact'],

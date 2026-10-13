@@ -103,7 +103,7 @@ class ProgressRoute(Project):
         self.assertEqual((body['journey'], list(body['flows'])), ([], ['check', 'tools']))
         http, keys, _ = self.client()
         self.assertEqual(http.get('/api/progress').status_code, 401)
-        for route in ('/api/report-file', '/api/screen'): self.assertEqual(http.get(route, params={'path': 'a.md'}).status_code, 401)
+        for route in ('/api/report-file', '/api/screen', '/api/report-image'): self.assertEqual(http.get(route, params={'path': 'a.md'}).status_code, 401)
         paths = http.get('/api/openapi.json', headers={'X-EAOS-Token': keys.token}).json()['paths']
         self.assertTrue({'/api/progress', '/api/scan-progress', '/api/report-file', '/api/screen'} <= set(paths))
         # The feed follows every progress file, each event naming its flow; history files are not followed.
@@ -181,6 +181,12 @@ class ReportFile(Project):
         for path, status in (('run.png', 400), ('behavior-lock/snapshots/home.spec.ts/notes.txt', 400),
                              ('behavior-lock/snapshots/../../run.png', 400), ('behavior-lock/snapshots/gone.png', 404)):
             self.assertEqual(self.get('/api/screen', path=path).status_code, status, path)
+        pictures = self.report / 'live' / 'screens' / 'screenshots'
+        pictures.mkdir(parents=True)
+        (pictures / 'home.jpg').write_bytes(b'\xff\xd8')
+        answer = self.get('/api/report-image', path='live/screens/screenshots/home.jpg')
+        self.assertEqual((answer.status_code, answer.headers['content-type']), (200, 'image/jpeg'), "the check's pictures too")
+        self.assertEqual(self.get('/api/report-image', path='studio/manifest.json').status_code, 400, 'nothing else')
 
 
 class Watch(Checked):

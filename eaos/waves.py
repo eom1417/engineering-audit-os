@@ -154,18 +154,17 @@ def gates(report, root, runtime, name, before, lock):
 
 
 def culprits(report, root, runtime, base, commits, before, lock, name, say, found=None):
-    """The commits that make the gates fail, by halving: each half is tested on `base` alone."""
-    found = [] if found is None else found
-    if not commits: return found
-    if len(commits) == 1:
-        found.append(commits[0])
-        return found
+    """{commit: why it fails the gates}, found by halving: each half is tested on `base` alone, and each run keeps its
+    own logs (named by its first commit and its size), so a culprit carries its own reason."""
+    found = {} if found is None else found
     half = len(commits) // 2
     for part in (commits[:half], commits[half:]):
+        if not part: continue
         rebuild(root, base, part)
         say('bisect')
-        if gates(report, root, runtime, f'{name}-bisect', before, lock):
-            culprits(report, root, runtime, base, part, before, lock, name, say, found)
+        why = gates(report, root, runtime, f'{name}-bisect-{part[0][:8]}-{len(part)}', before, lock)
+        if why and len(part) == 1: found[part[0]] = why
+        elif why: culprits(report, root, runtime, base, part, before, lock, name, say, found)
     return found
 
 
@@ -234,15 +233,15 @@ def _through_gates(batch, kept, failed):
         return kept
     progress.step('batch', 1, 1, 'failed', reason=str(why)[:200], reason_code='gates_failed')
     progress.begin('culprit')
-    return _without_culprits(batch, kept, failed, why)
+    return _without_culprits(batch, kept, failed)
 
 
-def _without_culprits(batch, kept, failed, why):
+def _without_culprits(batch, kept, failed):
     report, root, runtime, base = batch['report'], batch['root'], batch['runtime'], batch['base']
     name, before, lock = batch['name'], batch['before'], batch['lock']
     bad = culprits(report, root, runtime, base, list(kept.values()), before, lock, name, batch['say'])
     for card_id, sha in list(kept.items()):
-        if sha in bad: failed[card_id] = why
+        if sha in bad: failed[card_id] = bad[sha]
     kept = {c: s for c, s in kept.items() if c not in failed}
     rebuild(root, base, list(kept.values()))
     if kept and gates(report, root, runtime, name, before, lock):

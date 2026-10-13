@@ -60,9 +60,9 @@ class RebuildTests(unittest.TestCase):
         commits = [f'c{n}' for n in range(8)]
         applied = []
         with mock.patch.object(waves, 'rebuild', side_effect=lambda root, base, part: applied.append(list(part)) or []), \
-                mock.patch.object(waves, 'gates', side_effect=lambda *a, **k: 'broken' if 'c5' in applied[-1] else ''):
+                mock.patch.object(waves, 'gates', side_effect=lambda *a, **k: f'broken by {len(applied[-1])}' if 'c5' in applied[-1] else ''):
             found = waves.culprits('r', 'root', 'rt', 'base', commits, [], True, 'wave-1', lambda *a: None)
-        self.assertEqual(found, ['c5'])
+        self.assertEqual(found, {'c5': 'broken by 1'}, "the culprit's own reason, not the batch's")
         self.assertLessEqual(len(applied), 6, 'halving, not trying every card alone')
 
 
@@ -113,6 +113,46 @@ class FinishTests(unittest.TestCase):
                          'a card the assistant fixed is recorded like any other')
         self.assertEqual(len(list((runtime / 'waves/wave-1').glob('*.patch'))), 2)
         self.assertEqual(json.loads((runtime / 'waves/wave-1/wave.json').read_text())['branch'], 'eaos/wave-1')
+
+
+class CodeLawsGateTests(unittest.TestCase):
+    def test_a_change_that_copies_leaves_dead_code_or_adds_complexity_is_refused_and_a_partial_split_is_kept(self):
+        from eaos.execute import new_debt
+
+        def facts(folder, functions, clones=(), dead=()):
+            (Path(folder) / 'facts').mkdir(parents=True)
+            metrics = [{'kind': 'metric', 'location': {'path': path, 'symbol': name}, 'value': {'scope': 'function', 'branches': n}}
+                       for path, name, n in functions]
+            metrics += [{'kind': 'clone_cluster', 'input_sha': key, 'value': {'occurrences': [{'path': 'a.py'}, {'path': 'b.py'}]}}
+                        for key in clones]
+            dead_facts = [{'location': {'path': 'a.py', 'symbol': name}, 'value': {'rule': 'unused-function'}} for name in dead]
+            for name, rows in (('metrics', metrics), ('deadcode', dead_facts)):
+                (Path(folder) / 'facts' / f'{name}.json').write_text(json.dumps({'facts': rows}))
+            return folder
+
+        before = facts(tempfile.mkdtemp(), [('a.py', 'big', 60)])
+        split = facts(tempfile.mkdtemp(), [('a.py', 'one', 20), ('a.py', 'two', 20), ('a.py', 'three', 20)])
+        self.assertEqual(new_debt(before, split, ['a.py']), [], 'sixty split into three of twenty is less complexity')
+        worse = facts(tempfile.mkdtemp(), [('a.py', 'big', 60), ('a.py', 'new', 20)], clones=['k'], dead=['old'])
+        found = new_debt(before, worse, ['a.py'])
+        self.assertEqual(len(found), 3, found)
+        self.assertEqual(new_debt(before, worse, ['c.py']), [], 'only the files the change touched')
+
+
+class PythonSuiteGateTests(unittest.TestCase):
+    def test_a_python_suite_beside_the_app_is_a_gate_and_only_its_new_failures_count(self):
+        from eaos.execute import failing, python_tests, regressions
+        root = Path(tempfile.mkdtemp())
+        self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
+        (root / 'tests').mkdir()
+        (root / 'tests' / 'test_a.py').write_text('')
+        self.assertEqual(python_tests(root)[0][-3:], ['discover', '-s', 'tests'])
+        (root / 'conftest.py').write_text('')
+        self.assertEqual(python_tests(root)[0][-2:], ['pytest', '-q'])
+        argv = ['python', '-m', 'unittest']
+        before = [{'argv': argv, 'exit': 1, 'failing': failing('FAIL: test_old (tests.test_a.A.test_old)\n')}]
+        after = [{'argv': argv, 'exit': 1, 'failing': failing('FAIL: test_old (tests.test_a.A.test_old)\nERROR: test_new (tests.test_a.A.test_new)\n')}]
+        self.assertEqual(regressions(before, after), ['python -m unittest (1 new failing: test_new (tests.test_a.A.test_new))'])
 
 
 if __name__ == '__main__':

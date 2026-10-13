@@ -49,3 +49,6 @@
 @media (max-width: 767px) {
   .homePage { --section-gap: 8px; }
 }
+.decided { margin-block-start: 24px; max-inline-size: 720px; }
+.decided > summary { cursor: pointer; padding-block: 10px; color: var(--text-secondary); font-weight: 600; }
+.decided > .cards { margin-block-start: 12px; }

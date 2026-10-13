@@ -64,7 +64,7 @@ def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None
                 + (f', with these inputs from the person: {json.dumps(shown, ensure_ascii=False)}' if shown else '')
                 + '. Call `status` first; do what the step needs and no more.')
     return (f'{task}\n\nThe project is the current folder ({project.name}). This request comes from the EAOS Studio, where the '
-            f'person follows every step. {ASK}\nSpeak to the person in {language}.')
+            f'person follows every step. {ASK}\nWrite every message in {language}, the short notes between tools too: the person reads them live in the Studio.')
 
 
 def acts(question, option):

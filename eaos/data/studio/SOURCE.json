@@ -1,5 +1,5 @@
 {
- "source_sha256": "1f9e37c1161695f9bcf078fe9943db1a9c906879bf0bc226127ade4731f98b6c",
+ "source_sha256": "c3c5758bcd8adfaf0a33fc8f24749911076a9a52632dd6f03604093c1aadc46a",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -40,6 +40,7 @@
   "assets/SheetDialog.js",
   "assets/SystemMap.js",
   "assets/TimelinePage.js",
+  "assets/TokenImage.js",
   "assets/ToolsPage.js",
   "assets/diagram.js",
   "assets/diagramEngine.js",

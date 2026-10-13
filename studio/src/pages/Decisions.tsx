@@ -1,4 +1,5 @@
-// Decisions: every question waiting for the person, one card each (Calm), then the answered ones.
+// Decisions: every question waiting for the person, one card each (Calm); the answered ones folded under one line.
+import { useState, type ReactNode } from 'react'
 import { Panel, StateMessage } from '../components/Panel'
 import { DecisionCard } from '../components/Story'
 import type { StudioData } from '../data/types'
@@ -27,23 +28,37 @@ function RunQuestions() {
   )
 }
 
+/** The answered decisions, closed until the person opens them: they are a record, not a question. */
+function Decided({ count, children }: { count: number; children: ReactNode }) {
+  const { t } = usePrefs()
+  const [open, setOpen] = useState(false)
+  return (
+    <details className={css.decided} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>{t('decidedAlready', { n: count })}</summary>
+      {open && <div className={css.cards}>{children}</div>}
+    </details>
+  )
+}
+
 function DecisionsBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
   usePageChrome(t('decisions'), undefined, data.manifest.project.name)
   const responses = useActions().decisions
   const all = (data.decisions?.decisions ?? []).map((d) => responses.some((r) => r.id === d.id && r.response) ? { ...d, state: 'answered' as const } : d)
-  const ordered = [...all.filter((d) => d.state === 'waiting'), ...all.filter((d) => d.state !== 'waiting')]
+  const waiting = all.filter((d) => d.state === 'waiting')
+  const decided = all.filter((d) => d.state !== 'waiting')
+  const card = (d: (typeof all)[number]) => (
+    <DecisionCard key={d.id} decision={d} cardsTo={d.blocks.every((b) => b.startsWith('TASK-')) ? { to: '/problems', search: { who: 'you' } } : undefined} />
+  )
   const asked = useActions().questions.length
   return (
     <div className={layout.page}>
       <MissingBanner data={data} />
       <PageTitle title={t('waitingForYou')} />
       <RunQuestions />
-      {ordered.length === 0 && asked > 0 ? null : ordered.length === 0
-        ? <Panel><StateMessage icon="inbox" title={t('nothingWaits')} sub={t('nothingWaitsSub')} /></Panel>
-        : <div className={css.cards}>{ordered.map((d) => (
-          <DecisionCard key={d.id} decision={d} cardsTo={d.blocks.every((b) => b.startsWith('TASK-')) ? { to: '/problems', search: { who: 'you' } } : undefined} />
-        ))}</div>}
+      {waiting.length ? <div className={css.cards}>{waiting.map(card)}</div>
+        : asked > 0 ? null : <Panel><StateMessage icon="inbox" title={t('nothingWaits')} sub={t('nothingWaitsSub')} /></Panel>}
+      {decided.length > 0 && <Decided count={decided.length}>{decided.map(card)}</Decided>}
     </div>
   )
 }

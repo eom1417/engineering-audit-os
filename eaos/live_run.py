@@ -93,9 +93,9 @@ class LiveRun:
             self._extra.setdefault('AUTH_SECRET', secrets.token_urlsafe(48))   # generated for this run, never the owner's
         return self._extra
 
-    def run(self, argv, timeout=900, network=True, env=None):
-        """(exit, stdout, stderr) of argv in the app folder of the copy, with the run's environment."""
-        result = self.sandbox.run(argv, timeout=timeout, network=network, cwd=self.profile.get('app') or None,
+    def run(self, argv, timeout=900, network=True, env=None, at_root=False):
+        """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the run's environment."""
+        result = self.sandbox.run(argv, timeout=timeout, network=network, cwd=None if at_root else self.profile.get('app') or None,
                                   env={**self.extra(), **(env or {})})
         self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-2000:]})
         return result

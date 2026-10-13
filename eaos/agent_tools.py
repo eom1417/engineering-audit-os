@@ -1074,7 +1074,7 @@ def fix_edit(card, edits, summary='', project=None):
 
 def _fix_edit_job(project, arguments, progress):
     import tempfile
-    from .execute import new_breakage
+    from .execute import new_breakage, new_debt
     from .facts.run import collect
     from .waves import batch_acceptance, commit, drop_last, plan as read_plan
     state = guided.load(project)
@@ -1092,14 +1092,14 @@ def _fix_edit_job(project, arguments, progress):
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out)
-        broke = new_breakage(report, root, collected=out)
+        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed)
         exit_code = batch_acceptance(report, [card], root, collected=out).get(card_id)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     state = guided.load(project)
     wave = state['open_wave']
     if broke or exit_code not in (0, None):
         drop_last(root)
-        why = (f'it broke something: {"; ".join(broke[:3])}' if broke else
+        why = (f'it broke something or broke the code laws: {"; ".join(broke[:3])}' if broke else
                "the problem is still there: the card's own check still finds it" + (f' (exit {exit_code})' if exit_code else ''))
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}

@@ -1,6 +1,9 @@
 """The laws of good code EAOS holds every project to, and itself (AGENTS.md): written here once, and carried into every
 assistant's work, from the semantic reading and the planning to the triage, the review and the fix."""
 
+MAX_COMPLEXITY = 15     # decisions in one function
+MAX_LINES = 600         # lines in one module
+
 LAWS = '''THE CODE LAWS (the target of every plan and every fix, always under one condition: the program keeps doing its job,
 as well as it can):
 1. Least code for the best result: the shortest, most direct code that does the job best. No layer, option,

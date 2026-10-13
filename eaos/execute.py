@@ -74,18 +74,54 @@ def new_breakage(report, root, collected=None):
     return broke
 
 
+def new_debt(report, collected, paths):
+    """What a change added against the code laws (eaos/code_laws.py) in the files it touched (`paths`), from the facts
+    of the report (before) and `collected` (after): a copied block or function, dead code, or more decisions past
+    the complexity limit in a file (splitting a function of 60 into three of 20 is less; a new one of 20 is more).
+    A change that adds any is taken back like a breakage."""
+    from .code_laws import MAX_COMPLEXITY
+    from .fact_claims import worth_a_claim
+    paths = set(paths)
+    def facts(folder, name):
+        file = Path(folder) / 'facts' / f'{name}.json'
+        return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
+    def copies(folder):
+        found = {f['input_sha'] for f in facts(folder, 'metrics') if f['kind'] == 'clone_cluster'
+                 and paths & {o['path'] for o in f['value']['occurrences']}}
+        return found | {f['value']['shape_sha'] for f in facts(folder, 'fingerprint') if f['kind'] == 'duplicate_cluster'
+                        and paths & {o['path'] for o in f['value']['occurrences']}
+                        and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))}
+    def dead(folder):
+        return {(f['value']['rule'], f['location'].get('path'), f['location'].get('symbol')) for f in facts(folder, 'deadcode')
+                if f['location'].get('path') in paths}
+    def excess(folder):
+        over = dict.fromkeys(paths, 0)
+        for f in facts(folder, 'metrics'):
+            if f['kind'] == 'metric' and f['value']['scope'] != 'file' and f['location']['path'] in paths:
+                over[f['location']['path']] += max(0, f['value']['branches'] - MAX_COMPLEXITY)
+        return over
+    was, now = excess(report), excess(collected)
+    copied = copies(collected) - copies(report)
+    added = [f'{len(copied)} copied block(s) or function(s): call the one home instead'] if copied else []
+    added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(dead(collected) - dead(report))]
+    added += [f'{path} is more complex: {now[path] - was[path]} decisions more past the limit of {MAX_COMPLEXITY} per function'
+              for path in sorted(paths) if now[path] > was[path]]
+    return added
+
+
 def project_checks(target, runtime, stage, name):
-    """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy; [] when it declares none.
+    """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy, and its Python tests (the
+    profile's checks run in the app's folder; a Python suite beside it is the project's too); [] when there are none.
     Every command's output tail is kept in runtime/checks-<name>-log.json."""
     from .live_run import LiveRun
     live = LiveRun(target, runtime, stage)
-    checks = live.profile.get('checks') or []
+    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(target)]
     if not checks: return []
     try:
         live.setup()
         rows = []
-        for argv in checks:
-            code, out, err = live.run(argv, timeout=1800)
+        for argv, at_root in checks:
+            code, out, err = live.run(argv, timeout=1800, at_root=at_root)
             rows.append({'argv': argv, 'exit': code, 'failing': failing(out + err)})
         return rows
     finally:
@@ -108,11 +144,23 @@ def original_checks(target, runtime):
 
 
 TAP_FAILURE = re.compile(r'^\s*not ok \d+ - (.+?)(?:\s+#.*)?$', re.M)
+PYTHON_FAILURE = re.compile(r'^(?:(?:FAIL|ERROR): (\S+ \([^)]*\))|FAILED (\S+))', re.M)   # unittest, pytest -q
+
+
+def python_tests(target):
+    """The command that runs a Python project's tests from its root, as the coverage stage runs them (eaos/verify.py):
+    pytest when the project configures it, else unittest on tests/; [] without a tests/ folder of test_*.py."""
+    from .verify import DEFAULT_COMMANDS
+    root = Path(target)
+    if not any((root / 'tests').glob('test_*.py')): return []
+    configured = (root / 'pytest.ini').is_file() or (root / 'conftest.py').is_file() or '[tool.pytest' in (
+        (root / 'pyproject.toml').read_text(encoding='utf-8', errors='replace') if (root / 'pyproject.toml').is_file() else '')
+    return [DEFAULT_COMMANDS[0] if configured else DEFAULT_COMMANDS[1]]
 
 
 def failing(output):
-    """The names of the failing tests a TAP reporter printed (node --test, tap, and others): sorted, unique."""
-    return sorted(set(TAP_FAILURE.findall(output)))
+    """The names of the failing tests a TAP reporter (node --test, tap...), unittest or pytest printed: sorted, unique."""
+    return sorted(set(TAP_FAILURE.findall(output)) | {a or b for a, b in PYTHON_FAILURE.findall(output)})
 
 
 def regressions(before, after):

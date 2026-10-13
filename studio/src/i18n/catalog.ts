@@ -177,6 +177,7 @@ export const WORDS = {
   notFoundCard: ['هذه البطاقة غير موجودة في هذا التقرير.', 'This card is not in this report.'],
   // decisions page
   nothingWaits: ['لا شيء ينتظرك الآن.', 'Nothing waits for you now.'],
+  decidedAlready: ['حُسمت ({n}): اضغط لتراها', 'Already decided ({n}): open to see them'],
   nothingWaitsSub: ['حين يحتاج EAOS قرارك يظهر هنا سؤال واحد بتوصيته.', 'When EAOS needs your decision, one question with its recommendation appears here.'],
   // data states
   loading: ['يحمّل التقرير…', 'Loading the report…'],

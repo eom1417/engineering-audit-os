@@ -13,6 +13,7 @@ import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
 import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
+import { TokenImage } from '../../components/TokenImage'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
@@ -55,14 +56,11 @@ function Badge({ screen, checked }: { screen: Screen; checked: boolean }) {
   return open ? <span className={css.badgeIssues}>{w('issuesN', { n: open })}</span> : <span className={css.badgeOk}>{w('noIssues')}</span>
 }
 
-/** A shot's address from the Studio's folder: shot paths are relative to the report, one folder up (as media.json's). */
-const shotSrc = (shot: Shot) => `../${shot.path}`
-
 function Frame({ screen }: { screen: Screen }) {
   const w = useScreenWords()
   const shot = thumbnail(screen)
   const [broken, setBroken] = useState(false)
-  if (shot && !broken) return <img className={css.thumbImg} src={shotSrc(shot)} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />
+  if (shot && !broken) return <TokenImage className={css.thumbImg} path={shot.path} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />
   return (
     <span className={css.thumbEmpty} aria-hidden="true">
       <span className={css.thumbBar} /><span className={css.thumbRoute}><Id value={screen.route} /></span>
@@ -170,9 +168,6 @@ function ScreenGrid({ data, sx }: { data: StudioData; sx: ScreensData }) {
 
 // ---------------------------------------------------------------- the gallery of the pictured pages
 
-/** A picture's report-relative path from the Studio's folder (one folder down in the report). */
-const pictureSrc = (picture: Picture) => `../${picture.path}`
-
 function useKindWord() {
   const w = useScreenWords()
   return (kind?: string | null) => (kind && `kind_${kind}` in SCREEN_WORDS ? w(`kind_${kind}` as ScreenWord) : null)
@@ -201,7 +196,7 @@ function Marked({ picture, list, picked, onPick, onOpen, large }:
   return (
     <div className={large ? css.markedLarge : css.marked} dir="ltr">
       <div className={css.markedCanvas}>
-        <img className={css.shot} src={pictureSrc(picture)} alt={w('shotAlt', { r: picture.path, w: picture.width ?? '' })}
+        <TokenImage className={css.shot} path={picture.path} alt={w('shotAlt', { r: picture.path, w: picture.width ?? '' })}
           loading={large ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken(true)}
           onClick={onOpen} style={onOpen ? { cursor: 'zoom-in' } : undefined} />
         {list.filter((f) => f.region).map((f) => (
@@ -370,7 +365,7 @@ function Viewer({ screen }: { screen: Screen }) {
   const set = (patch: Search) => navigate({ to: '.', replace: true, search: (prev: Search) => ({ ...prev, ...patch }) })
   const list = pins(screen, vp)
   const img = (shot: Shot, extra?: string) => (
-    <img className={[css.shot, extra].filter(Boolean).join(' ')} src={shotSrc(shot)} width={shot.width} alt={w('shotAlt', { r: screen.route, w: shot.width })} onError={() => setFailed((f) => [...f, shot.path])} />
+    <TokenImage className={[css.shot, extra].filter(Boolean).join(' ')} path={shot.path} width={shot.width} alt={w('shotAlt', { r: screen.route, w: shot.width })} onError={() => setFailed((f) => [...f, shot.path])} />
   )
   const shown = mode === 'before' ? at.before : mode === 'after' ? at.after : at.one
   const broken = (mode === 'slider' ? [at.before, at.after] : [shown]).some((shot) => shot && failed.includes(shot.path))

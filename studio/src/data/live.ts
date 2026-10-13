@@ -141,3 +141,21 @@ export function subscribe(token: string, onEvent: (event: LiveEvent | null) => v
   void follow()
   return () => { stopped = true; controller?.abort() }
 }
+
+/** A picture the server gives only with the launch token (an image address cannot carry it), as a data address (the
+ * page's policy allows data: images, not blob:): undefined while it loads, null when it cannot be read. */
+export async function tokenImage(path: string): Promise<string | null> {
+  const token = liveToken()
+  if (!token) return null
+  try {
+    const answer = await get(token, path)
+    if (!answer.ok) return null
+    const blob = await answer.blob()
+    return await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch { return null }
+}

@@ -15,11 +15,12 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from eaos.code_laws import MAX_COMPLEXITY, MAX_LINES  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools' / 'code_limits.json'
 FOLDERS = ('eaos', 'tools')
-MAX_COMPLEXITY = 15
-MAX_LINES = 600
 BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.ExceptHandler, ast.match_case,
             ast.comprehension)
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
