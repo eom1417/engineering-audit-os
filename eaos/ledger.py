@@ -209,7 +209,10 @@ def _apply_wave(wave, cards, known):
     """What a batch did to its cards. One closed without handing anything over (abandoned, superseded) changed nothing:
     its cards stay open, whatever it failed on, and the next batch can pick them (EAOS on itself, 2026-10-13: the 7 module
     splits a gate bug had refused stayed "skipped" after their batch was abandoned, out of every later batch)."""
-    if wave.get('status') in CLOSED_UNUSED: return
+    if wave.get('status') in CLOSED_UNUSED:
+        for card in cards.values():                                       # skipped by it before this rule: open again
+            if card['state'] == 'skipped' and card.get('batch') == wave.get('number'): card.update(state='open', batch=None, why='')
+        return
     for card_id, reason in (wave.get('failed') or {}).items():
         card = cards.get(known.get(card_id))
         if card and card['state'] in ('open', 'in_batch'):

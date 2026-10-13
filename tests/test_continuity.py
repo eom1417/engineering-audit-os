@@ -213,6 +213,9 @@ class Continuity(Base):
         cards = {'k': {'state': 'open'}}
         ledger._apply_wave({'status': 'abandoned', 'failed': {'TASK-001': 'a gate refused it'}}, cards, {'TASK-001': 'k'})
         self.assertEqual(cards['k']['state'], 'open', 'an abandoned batch changed nothing: its cards can be picked again')
+        cards = {'k': {'state': 'skipped', 'batch': 2, 'why': 'a gate bug'}, 'j': {'state': 'skipped', 'batch': 1, 'why': 'lock'}}
+        ledger._apply_wave({'number': 2, 'status': 'abandoned', 'failed': {}}, cards, {})
+        self.assertEqual((cards['k']['state'], cards['j']['state']), ('open', 'skipped'), 'and the cards it had skipped open again')
         self.assertEqual(self.branches(), ['eaos/wave-2'], 'a branch that is not merged stays')
 
     def test_a_batch_opens_for_a_ready_card_closes_cleanly_and_the_next_waits_for_a_decision(self):
@@ -241,6 +244,9 @@ class Continuity(Base):
         cards = {'k': {'state': 'open'}}
         ledger._apply_wave({'status': 'abandoned', 'failed': {'TASK-001': 'a gate refused it'}}, cards, {'TASK-001': 'k'})
         self.assertEqual(cards['k']['state'], 'open', 'an abandoned batch changed nothing: its cards can be picked again')
+        cards = {'k': {'state': 'skipped', 'batch': 2, 'why': 'a gate bug'}, 'j': {'state': 'skipped', 'batch': 1, 'why': 'lock'}}
+        ledger._apply_wave({'number': 2, 'status': 'abandoned', 'failed': {}}, cards, {})
+        self.assertEqual((cards['k']['state'], cards['j']['state']), ('open', 'skipped'), 'and the cards it had skipped open again')
         self.batch(1, ['TASK-001'])
         state = guided.load(self.project)
         state['consent'] = {'run_and_fix': True}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.21 (2026-10-13)
+
+- **Cards a closed batch had skipped open again**: 0.0.20 stopped a batch closed without handing anything over from
+  skipping its cards, but the cards it had skipped before stayed skipped; they are open again (the 7 module splits).
+
 ## 0.0.20 (2026-10-13)
 
 - **The check holds the project to the code laws**: every function past the complexity limit of 15 is a card, one per
