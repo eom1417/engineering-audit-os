@@ -37,6 +37,9 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(links('src/components/sidebar/navigationItems.ts', menu), [(2, 'menu', '/app/drivers', False, False)])
         self.assertEqual(links('src/lib/Api.ts', 'const api = { url: "/Auth/login" };\n'), [],
                          'object entries are menu links only in navigation files')
+        # EAOS's Studio: its sections and its tabs are lists of { to } drawn as links, in sections.ts and SystemViews.tsx
+        self.assertEqual(links('src/shell/sections.ts', "export const SECTIONS = [\n  { id: 'history', to: '/history' },\n];\n"),
+                         [(2, 'menu', '/history', False, False)], 'the router\'s own word `to` is a link in any file')
         self.assertEqual(links('src/App.tsx', 'navigate(next);\nnavigate(`${base}/x`);\n'
                                               'window.location.href = "mailto:a@b.c";\n<Link to="#top" />\n'), [])
 

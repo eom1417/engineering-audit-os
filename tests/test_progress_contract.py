@@ -450,5 +450,19 @@ class GoldenFold(unittest.TestCase):
         self.assertEqual(progress_golden.main(['check']), 0)
 
 
+
+class TimeLeft(unittest.TestCase):
+    def test_a_stage_whose_work_changed_does_not_scale_the_others(self):
+        # EAOS on itself (2026-10-13): the live stages had stopped in seconds the check before and ran this time, and
+        # the time left read 104 to 141 minutes for about 45.
+        from eaos.progress.estimate import pace
+        same = {'facts': 100, 'engines': 200, 'claims': 50}
+        stages = [{'name': name, 'state': 'ok', 'seconds': seconds} for name, seconds in same.items()]
+        live = [{'name': 'crawl', 'state': 'ok', 'seconds': 350}, {'name': 'setup', 'state': 'ok', 'seconds': 80}]
+        self.assertEqual(pace({'previous': {**same, 'crawl': 3, 'setup': 2}, 'stages': stages + live}), 1.0)
+        slower = [{**stage, 'seconds': stage['seconds'] * 2} for stage in stages]
+        self.assertEqual(pace({'previous': same, 'stages': slower}), 2.0, 'a slower computer still scales them')
+
+
 if __name__ == '__main__':
     unittest.main()

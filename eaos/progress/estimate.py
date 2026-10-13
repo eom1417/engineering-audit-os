@@ -4,7 +4,8 @@
 the same flow and `previous_steps` each step's; nothing else is used:
 
 - the stages still waiting cost what they cost last time, scaled by how this run compares with the last one so far
-  (the stages both runs finished: this run's seconds over last run's, held between 0.25 and 4);
+  (the stages both runs finished: the median of this run's seconds over last run's, held between 0.25 and 4; a stage
+  whose work changed, a live stage that stopped in seconds last time and ran this time, does not scale the others);
 - a running stage with a counted step (`progress.count`, 37 of 156) costs the time its done items took, spread over
   the items left: the stage's own pace, measured now;
 - any other running stage costs what is left of its scaled last time (none when it already ran longer);
@@ -15,6 +16,7 @@ The answer is {'low', 'high'} in whole seconds (15% either side of the centre, a
 running, gives {'basis': 'first_run'} or None: the page then shows the elapsed time only and says why.
 """
 from datetime import datetime
+from statistics import median
 
 BAND = 0.15
 MIN_BAND = 10.0
@@ -29,17 +31,15 @@ def _at(text):
 
 
 def pace(state):
-    """This run's seconds over the last run's, for the stages both finished ok (1.0 until there is enough of them)."""
+    """The median of this run's seconds over the last run's, for the stages both finished ok (1.0 until there is
+    enough of them)."""
     previous = state.get('previous') or {}
-    now_seconds = then_seconds = 0.0
-    for stage in state.get('stages') or []:
-        before = previous.get(stage['name'])
-        if stage.get('state') == 'ok' and isinstance(before, (int, float)) and isinstance(stage.get('seconds'), (int, float)):
-            now_seconds += stage['seconds']
-            then_seconds += before
-    if then_seconds < PACE_AFTER: return 1.0
+    pairs = [(stage['seconds'], previous[stage['name']]) for stage in state.get('stages') or []
+             if stage.get('state') == 'ok' and isinstance(previous.get(stage['name']), (int, float))
+             and isinstance(stage.get('seconds'), (int, float)) and previous[stage['name']] > 0]
+    if sum(then for _, then in pairs) < PACE_AFTER: return 1.0
     low, high = PACE_LIMITS
-    return min(max(now_seconds / then_seconds, low), high)
+    return min(max(median(now / then for now, then in pairs), low), high)
 
 
 def _counted(stage, elapsed):

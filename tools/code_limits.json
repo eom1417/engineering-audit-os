@@ -114,7 +114,6 @@
   "eaos/studio/actions/runs.py::Manager._answer": 41,
   "eaos/studio/actions/runs.py::Manager._auto_accept": 24,
   "eaos/studio/actions/runs.py::Manager._end_turn": 35,
-  "eaos/studio/actions/runs.py::Manager._run_nodes": 16,
   "eaos/studio/actions/runs.py::Manager._watch_handoff": 20,
   "eaos/studio/actions/security.py::Locks.check": 17,
   "eaos/studio/actions/selection.py::resolve": 50,
@@ -137,7 +136,6 @@
   "eaos/studio/infra.py::_tables": 16,
   "eaos/studio/infra.py::infra": 18,
   "eaos/studio/journeys.py::_assemble": 23,
-  "eaos/studio/journeys.py::_shell": 16,
   "eaos/studio/journeys.py::from_records": 20,
   "eaos/studio/journeys.py::records": 17,
   "eaos/studio/model.py::_problem_row": 18,
@@ -183,7 +181,7 @@
   "tools/validate.py::packaged_errors": 16
  },
  "modules": {
-  "eaos/agent_tools.py": 1258,
+  "eaos/agent_tools.py": 1206,
   "eaos/dossier.py": 785,
   "eaos/facts/pipeline_frameworks.py": 630,
   "eaos/guided.py": 1315,
@@ -191,9 +189,9 @@
   "eaos/pipeline/runners.py": 603,
   "eaos/plan.py": 830,
   "eaos/studio/actions/branches.py": 1143,
-  "eaos/studio/actions/runs.py": 795,
-  "eaos/studio/export.py": 604,
-  "eaos/studio/journeys.py": 644,
+  "eaos/studio/actions/runs.py": 740,
+  "eaos/studio/export.py": 603,
+  "eaos/studio/journeys.py": 639,
   "eaos/target_architecture.py": 691,
   "eaos/toolchain.py": 702,
   "tools/make_contracts.py": 708

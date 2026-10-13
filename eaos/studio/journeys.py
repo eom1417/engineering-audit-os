@@ -12,8 +12,9 @@ Read only from records the check already wrote; nothing is invented, every eleme
                 whose handler holds it; a link in a file the router reaches without passing a screen (the sidebar,
                 the header) belongs to the menu, shown on every screen nested under the layout route; a link in a
                 file six or more screens render is the menu's too. A link no screen renders is counted, not drawn.
-    flags       broken: a link whose target matches no screen (a ":param" of the link matches only a ":param" of a
-                route; catch-all routes match nothing); no way in: a page no link reaches from the start ("/");
+    flags       broken: a link whose target matches no screen (a parameter of the link, :id, $id or {id}, matches only
+                a parameter of a route; catch-all routes match nothing); no way in: a page no link reaches from the
+                start ("/", and the root layout drawn around every page);
                 dead end: a page with no link out and no menu; duplicate: one route declared twice, or one
                 component file on several routes
     tasks       what a person does, as a path from the start: a route that creates or edits (…/new, …/edit, a
@@ -33,6 +34,7 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from .. import arch_map
+from ..lock_specs import PARAM, path_of
 
 DEPTH = 3
 SHARED = 6
@@ -74,13 +76,13 @@ def _segments(route):
 
 
 def matches(route, target):
-    """Whether a link's target opens this route: segment by segment, a route's :param takes any segment, a link's
-    :param only a route's :param; a catch-all never matches."""
+    """Whether a link's target opens this route: segment by segment, a route's parameter (:id, $id, {id}) takes any
+    segment, a link's parameter only a route's parameter; a catch-all never matches."""
     r, t = _segments(route), _segments(target)
     if '*' in route or len(r) != len(t): return False
     for a, b in zip(r, t):
-        if a.startswith(':'): continue
-        if b.startswith(':') or a != b: return False
+        if PARAM.fullmatch(a): continue
+        if PARAM.fullmatch(b) or a != b: return False
     return True
 
 
@@ -209,7 +211,7 @@ def _kind(page, routes):
     route = page['route']
     if page['handler'] in REDIRECT_HANDLERS: return 'redirect'
     if page['declared'] == '*' or (route.endswith('/*') and not any(r != route and r.startswith(route[:-1]) for r in routes)): return 'fallback'
-    if route.endswith('/*'): return 'layout'
+    if route.endswith('/*') or path_of(route) is None: return 'layout'     # /app/*, or a root or pathless layout route
     return 'page'
 
 
@@ -238,16 +240,21 @@ def _screens(r, routes):
     return screens
 
 
+def _outer(router, screens):
+    return min((s for s in screens if s['router'] == router and s['kind'] == 'layout' and s['route'].endswith('/*')),
+               key=lambda s: len(s['route']), default=None)
+
+
 def _shell(router, screens, imports, stop):
     """A router's menu: what it reaches without passing a screen, shown on the screens under its layout route."""
     files = _reach(router, imports, DEPTH + 1, stop=stop)
-    layouts = sorted((s for s in screens if s['router'] == router and s['kind'] == 'layout'), key=lambda s: len(s['route']))
-    prefix = layouts[0]['route'][:-2] if layouts else None
+    layout = _outer(router, screens)
+    prefix = layout['route'][:-2] if layout else None
     scope = sorted(s['id'] for s in screens if s['router'] == router and s['kind'] != 'layout'
                    and (prefix is None or s['route'] == prefix or s['route'].startswith(prefix + '/')))
     root = min((s for s in screens if s['id'] in scope and s['kind'] == 'page'), key=lambda s: (len(s['route']), s['route']), default=None)
     return {'id': f'menu:{router}', 'router': router, 'files': files, 'scope': scope,
-            'root': root['id'] if root else None, 'layout': layouts[0]['id'] if layouts else None}
+            'root': root['id'] if root else None, 'layout': layout['id'] if layout else None}
 
 
 def _connect(edges, froms, found, link):
@@ -321,23 +328,11 @@ def _hang_menus(shells, edges):
 
 
 def _starts(screens):
-    """The start: the "/" route, else the shortest page route."""
+    """The start: the "/" route, else the shortest page route; and a root layout (__root__, drawn around every page)."""
+    around = [s['id'] for s in screens if s['kind'] == 'layout' and path_of(s['route']) is None]
     starts = [s['id'] for s in screens if _norm(s['route']) == '/' and s['kind'] != 'fallback']
-    if starts or not screens: return starts
     best = min((s for s in screens if s['kind'] == 'page'), key=lambda s: (len(s['route']), s['route']), default=None)
-    return [best['id']] if best else []
-
-
-def _depths(starts, out):
-    """{node: clicks from the start} of every node a chain of links reaches."""
-    depth = {s: 0 for s in starts}
-    queue = deque(starts)
-    while queue:
-        cur = queue.popleft()
-        for nxt in (n for n in out[cur] if n not in depth):
-            depth[nxt] = depth[cur] + 1
-            queue.append(nxt)
-    return depth
+    return (starts or ([best['id']] if best else [])) + around
 
 
 def _flags_of(s, seen, by_file, broken):
@@ -379,10 +374,9 @@ def from_records(r, previous=None):
     out = defaultdict(list)
     for (a, b) in sorted(edges): out[a].append(b)
     starts = _starts(screens)
-    depth = _depths(starts, out)
+    paths, depth = _paths(starts, out)
     menu_of = {sid: sh['id'] for sh in shells.values() for sid in sh['scope'] if sh['id'] in nodes}
     _flag(screens, (depth, out, menu_of), broken)
-    paths = _paths(starts, out)
     tasks = _tasks(screens, renders, paths, sorted(r['imports']), r['dead'])
     layout = _layout(nodes, edges, starts, depth, previous)
     journey = {'screens': screens, 'shells': shells, 'nodes': nodes, 'edges': edges, 'broken': broken, 'unowned': unowned,
@@ -391,7 +385,8 @@ def from_records(r, previous=None):
 
 
 def _paths(starts, out):
-    """{node: [node…]}: the shortest chain of links from a start to each node."""
+    """({node: [node…]}, {node: clicks}): the shortest chain of links from a start to each node a chain reaches, and
+    its length."""
     prev, queue = {s: None for s in starts}, deque(starts)
     while queue:
         cur = queue.popleft()
@@ -406,7 +401,7 @@ def _paths(starts, out):
             chain.append(at)
             at = prev[at]
         paths[node] = chain[::-1]
-    return paths
+    return paths, {node: len(chain) - 1 for node, chain in paths.items()}
 
 
 def _name(verb, obj):

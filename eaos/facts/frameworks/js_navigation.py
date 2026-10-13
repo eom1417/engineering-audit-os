@@ -5,7 +5,8 @@ Each link becomes a ``navigation`` fact at the file and line that writes it:
     redirect   ``<Navigate to=…>`` or ``<Redirect to=…>``: the screen sends the person on without a click
     navigate   a call that moves the person: ``navigate("/x")``, ``navigate({ to: "/x" })``, ``router.push("/x")``,
                ``history.push("/x")``, ``redirect("/x")``
-    menu       an object entry ``url: "/x"`` (or href, to, link) in a navigation, menu or sidebar file
+    menu       an object entry ``to: "/x"``, the routers' own word, in any file (a list of tabs or sections drawn as
+               links); ``url``, ``href`` or ``link`` only in a navigation, menu or sidebar file
 A target written with a template keeps its fixed parts and marks each ``${…}`` as ``:param`` (``dynamic``); a query or
 a hash is dropped. A target that does not start with "/" is kept as written and marked ``relative``: the screen it is
 relative to is the reader's to resolve. Comments are blanked before matching, so a link commented out is not a link.
@@ -19,13 +20,13 @@ LANGUAGES = ('javascript', 'typescript', 'tsx')
 LIMITATIONS = [
     'Only links written in the source are read; a target held in a variable or assembled at runtime is not followed.',
     'A link inside a file is a link of every screen that renders that file; which button or state shows it is not read.',
-    'Object entries (url, href, to, link) count as menu links only in files named for navigation, menus or sidebars.',
+    'Object entries count as menu links when their key is `to`, or (url, href, link) in files named for navigation, menus or sidebars.',
 ]
 TARGET = r'''(?P<quote>['"`])(?P<target>[^'"`\n]*)(?P=quote)'''
 ATTRIBUTE = re.compile(r'''\b(?P<attr>to|href)\s*=\s*(?:\{\s*)?''' + TARGET)
 CALL = re.compile(r'''\b(?P<call>navigate|router\.push|router\.replace|history\.push|history\.replace|redirect|navigateTo)'''
                   r'''\s*\(\s*(?:\{\s*to\s*:\s*)?''' + TARGET)
-MENU_ENTRY = re.compile(r'''\b(?:url|href|to|link)\s*:\s*''' + TARGET)
+MENU_ENTRY = re.compile(r'''\b(?P<key>url|href|to|link)\s*:\s*''' + TARGET)
 MENU_FILE = re.compile(r'(?i)(nav|menu|sidebar|links?)[^/]*\.[jt]sx?$')
 TAG_BEFORE = re.compile(r'<(?P<tag>[A-Za-z][\w.]*)[^<]*\Z')
 REDIRECTS = ('Navigate', 'Redirect')
@@ -73,8 +74,8 @@ def detect(context):
         if not parsed: return
         target, dynamic, relative = parsed
         line = context.line_of(offset)
-        if (line, target, via) in seen: return
-        seen.add((line, target, via))
+        if (line, target) in seen: return          # navigate({ to: "/x" }) is one link, not a call and a menu entry
+        seen.add((line, target))
         found.append((offset, line, {'target': target, 'via': via, 'dynamic': dynamic, 'relative': relative,
                                      'symbol': context.symbol_at(line)}))
 
@@ -86,7 +87,7 @@ def detect(context):
         add(match.start(), match.group('target'), 'redirect' if name in REDIRECTS else 'link')
     for match in CALL.finditer(text):
         add(match.start(), match.group('target'), 'navigate')
-    if MENU_FILE.search(context.rel):
-        for match in MENU_ENTRY.finditer(text):
-            if match.group('target').startswith('/'): add(match.start(), match.group('target'), 'menu')
+    menu = bool(MENU_FILE.search(context.rel))
+    for match in MENU_ENTRY.finditer(text):
+        if match.group('target').startswith('/') and (menu or match.group('key') == 'to'): add(match.start(), match.group('target'), 'menu')
     return sorted(found, key=lambda row: row[0])
