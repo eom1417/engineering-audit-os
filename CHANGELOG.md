@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.16 (2026-10-13)
+
+- **The app starts again in the check**: 0.0.15 found the Studio's hash routes (`/#/system`...), and the setup probe
+  read a same-page navigation (no request, so no answer) as status 0: the app "did not start" and setup, record,
+  journeys, crawl, screens and baseline stood still. A hash route drawn in the loaded page now answers. A real
+  browser test on a small hash-routed app guards it, and the probe was run on EAOS itself with the beta-trial profile.
+
 ## 0.0.15 (2026-10-13)
 
 The check covers the code laws and the UI it had missed on EAOS itself:
