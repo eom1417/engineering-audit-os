@@ -61,10 +61,14 @@ export function gallery(pages: PicturedPage[]): { shown: PicturedPage[]; clean: 
   return { shown, clean: pages.filter((p) => p.state === 'clean'), notReviewed: pages.filter((p) => p.state === 'not_reviewed') }
 }
 
-/** A picture's findings numbered in reading order (top to bottom, then along the line); one without a region keeps
- * its number after them and draws no box. */
+/** Rows in reading order of their boxes: top to bottom, then along the line. */
+function inReadingOrder<T>(rows: T[], box: (row: T) => { x: number; y: number }): T[] {
+  return rows.sort((a, b) => box(a).y - box(b).y || box(a).x - box(b).x)
+}
+
+/** A picture's findings numbered in reading order; one without a region keeps its number after them and draws no box. */
 export function marks(picture: Picture): (PageFinding & { n: number })[] {
-  const placed = picture.findings.filter((f) => f.region).sort((a, b) => a.region!.y - b.region!.y || a.region!.x - b.region!.x)
+  const placed = inReadingOrder(picture.findings.filter((f) => f.region), (f) => f.region!)
   return [...placed, ...picture.findings.filter((f) => !f.region)].map((f, i) => ({ ...f, n: i + 1 }))
 }
 
@@ -95,10 +99,9 @@ export function shotsAt(screen: Screen, width: number): { before?: Shot; after?:
   return before && after ? { before, after } : { one: after ?? before ?? at[0] }
 }
 
-/** The issues pinned on a width's shot, numbered in reading order (top to bottom, then along the line). */
+/** The issues pinned on a width's shot, numbered in reading order. */
 export function pins(screen: Screen, width: number): (Issue & { n: number })[] {
-  return screen.issues.filter((i) => i.box && (i.width ?? width) === width)
-    .sort((a, b) => a.box!.y - b.box!.y || a.box!.x - b.box!.x)
+  return inReadingOrder(screen.issues.filter((i) => i.box && (i.width ?? width) === width), (i) => i.box!)
     .map((issue, index) => ({ ...issue, n: index + 1 }))
 }
 
