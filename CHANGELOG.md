@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.18 (2026-10-13)
+
+- **EAOS's own structure, fixed by EAOS** (the second fix batch, 45 of 55 cards kept): 23 copied functions merged into
+  one home each, oversized modules split along their responsibilities (Studio pages and `ideal`, `live_setup`,
+  `system_map`, `behavior_lock`), complex functions broken into small ones. Functions past complexity 15 went from 198
+  to 181, modules past 600 lines from 20 to 14. The combined checks found what single cards could not see (import
+  cycles between a split module and its new parts, one helper over the limit, new modules missing from the layer
+  policy, the Studio build): fixed on top, so no sound card was dropped.
+
 ## 0.0.17 (2026-10-13)
 
 - **EAOS's tests pass in the check's isolated copy as on this computer.** The check and every fix batch run the Python
