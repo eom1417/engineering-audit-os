@@ -43,7 +43,8 @@ function modeOf(view: string | undefined): MapMode {
   return MODES.includes(view as MapMode) ? (view as MapMode) : 'current'
 }
 
-function ModeSwitch({ mode, onChange, comfortable }: { mode: MapMode; onChange: (m: MapMode) => void; comfortable?: boolean }) {
+/** Today / Change / Target, shared by the system map and the journeys map. */
+export function ModeSwitch({ mode, onChange, comfortable }: { mode: MapMode; onChange: (m: MapMode) => void; comfortable?: boolean }) {
   const w = useMapWords()
   return (
     <Segmented label={w('mapView')} value={mode} onChange={onChange} comfortable={comfortable} options={[

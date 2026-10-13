@@ -15,7 +15,7 @@ import { usePrefs } from '../../../i18n/prefs'
 import { Id } from '../../../i18n/text'
 import { usePageChrome } from '../../../shell/chrome'
 import { MissingBanner, WithData } from '../../../shell/Layout'
-import { usePhone } from '../../SystemMap'
+import { ModeSwitch, usePhone } from '../../SystemMap'
 import { HiddenSwitch, SystemViews } from '../SystemViews'
 import { useJourneyWords } from '../words'
 import { CLUSTER_AT, FLAGS, JOURNEY_MODES, unseenBy, type JourneyMode } from './model'
@@ -24,15 +24,6 @@ import { JourneyMap } from './JourneyMap'
 import css from './Journeys.module.css'
 
 interface JourneySearch { view?: string; show?: string; task?: string; focus?: string; hidden?: string; flag?: string; area?: string }
-
-function ModeSwitch({ mode, onChange, comfortable }: { mode: JourneyMode; onChange: (m: JourneyMode) => void; comfortable?: boolean }) {
-  const w = useJourneyWords()
-  return (
-    <Segmented label={w('mapView')} value={mode} onChange={onChange} comfortable={comfortable} options={[
-      { id: 'current', label: w('mapToday') }, { id: 'change', label: w('mapChange') }, { id: 'target', label: w('mapTarget') },
-    ]} />
-  )
-}
 
 function TaskSelect({ j, value, onChange }: { j: Journeys; value?: string; onChange: (id: string | undefined) => void }) {
   const w = useJourneyWords()
