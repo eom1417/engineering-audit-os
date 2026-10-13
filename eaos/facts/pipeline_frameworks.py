@@ -40,9 +40,8 @@ def _dag(py, rel, tree):
 
 def _found(py, rel, call):
     dag_id = next((_str(k.value) for k in call.keywords if k.arg == 'dag_id'), None) or (_str(call.args[0]) if call.args else None)
-    if not dag_id: return None
     return Found(f'{rel}:{dag_id}', dag_id, 'airflow', site(rel, call.lineno, py.line(rel, call.lineno)),
-                 [site(rel, call.lineno, py.line(rel, call.lineno))])
+                 [site(rel, call.lineno, py.line(rel, call.lineno))]) if dag_id else None
 
 
 def _task_stage(py, found, rel, var, tasks, flows):
@@ -128,9 +127,7 @@ def _stream(found, sub, keys, where):
 
 def _chain(found, sub, keys, where):
     items = [_ends(arg, keys) for arg in sub.args]
-    for left, right in zip(items, items[1:]):
-        for a in left:
-            for b in right: found.edge(a, b, 'declared', where)
+    for a, b in [(a, b) for left, right in zip(items, items[1:]) for a in left for b in right]: found.edge(a, b, 'declared', where)
 
 
 def _xcom_edges(py, found, keys):
@@ -152,12 +149,9 @@ def _match_joins(found):
 def _branch_operator(py, found, key, target, tasks, rel, call):
     returns = sorted(((_strs(s.value) or [], s.lineno) for s in ast.walk(target[1]) if isinstance(s, ast.Return) and s.value is not None),
                      key=lambda row: row[1])
-    by_task = {task_id: None for task_id, _ in tasks.values()}
-    branches = []
-    for values, line in returns:
-        for value in values:
-            branches.append({'condition': f'returns {value!r}', 'to': f"{found.id}/{slug(value)}" if value in by_task else None,
-                             'evidence': site(target[0], line, py.line(target[0], line))})
+    known = {task_id for task_id, _ in tasks.values()}
+    branches = [{'condition': f'returns {value!r}', 'to': f"{found.id}/{slug(value)}" if value in known else None,
+                 'evidence': site(target[0], line, py.line(target[0], line))} for values, line in returns for value in values]
     found.stages[key]['kind'] = 'router'
     found.routers.append({'id': f'{key}:branch', 'pipeline': found.id, 'stage': key, 'kind': 'branch_operator',
                           'table': found.stages[key]['label'], 'on': f'{target[1].name}()',

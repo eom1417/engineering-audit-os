@@ -19,7 +19,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import digest, make
-from .pipeline_code import (declared_lists, registry_loops, phases, orchestrators)
+from .pipeline_code import (declared_lists, phases, orchestrators)
+from .pipeline_registry import registry_loops
 from .pipeline_frameworks import (airflow, celery, langgraph, luigi, github_actions, make_targets, npm_scripts, json_exports)
 from .pipeline_queues import queues
 from .pipeline_read import (slug, site, Py, _str, _unparse, KINDS, HOW, DETECTED_AT)
