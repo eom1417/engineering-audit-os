@@ -14,7 +14,7 @@ import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, PageTitle, WithData } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
 import { byId, cardState, OP_LABEL, opsMix, registerOrder, RELATION_OF } from './model'
-import { ChangeNav, Closure, GapLink, LinkList, NotMeasured, OpLink, StepLink } from './parts'
+import { ChangeNav, Closure, GapLink, LinkList, Missing, NotMeasured, OpLink, StepLink } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
@@ -111,7 +111,7 @@ function GapBody({ data, id }: { data: StudioData; id: string }) {
   const cards = useMemo(() => byId(data.cards?.cards), [data.cards])
   const ops = useMemo(() => byId(data.operations?.operations), [data.operations])
   if (!data.gaps) return <div className={page.page}><ChangeNav /><NotMeasured data={data} section="gaps" title={w('gapsTitle')} /></div>
-  if (!gap) return <div className={page.page}><ChangeNav /><Panel><StateMessage title={w('gapNotFound')} sub={<Id value={id} />} /></Panel></div>
+  if (!gap) return <Missing title={w('gapNotFound')} back="/change/gaps" label="backToGaps" />
   const sources = gap.operations?.map((o) => ops.get(o)?.sources ?? []).flat() ?? []
   const current = !gap.id.startsWith('target:')
   return (

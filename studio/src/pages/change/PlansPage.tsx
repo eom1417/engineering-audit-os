@@ -21,7 +21,7 @@ import { usePhone } from '../SystemMap'
 import { usePaths, type Timeline } from '../paths/model'
 import { StepGraph } from './StepGraph'
 import { nextStep, OP_LABEL, PLAN_STATES, RELATION_OF, stateCounts, stepLinks, type StepLink as Link } from './model'
-import { ChangeNav, NotMeasured, StateBar } from './parts'
+import { ChangeNav, Missing, NotMeasured, StateBar } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 

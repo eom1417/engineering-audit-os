@@ -4,13 +4,14 @@
 import type { ReactNode } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { Go } from '../../components/Go'
-import { Panel, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, StateMessage } from '../../components/Panel'
 import type { Gap, OpState } from '../../data/change'
 import type { StudioData } from '../../data/types'
 import { Id, N } from '../../i18n/text'
+import { layout } from '../../shell/Layout'
 import { useCoverageRow } from '../library/model'
 import { TASK_STATES } from './model'
-import { STATE_WORD, useChangeWords } from './words'
+import { STATE_WORD, useChangeWords, type ChangeWord } from './words'
 import css from './change.module.css'
 
 const NAV = [
@@ -31,6 +32,12 @@ export function ChangeNav() {
       ))}
     </nav>
   )
+}
+
+/** A plan, step, task, operation or gap the link names and this check does not have, with the way back. */
+export function Missing({ title, back = '/plans', label = 'backToPlans' }: { title: string; back?: string; label?: ChangeWord }) {
+  const w = useChangeWords()
+  return <div className={layout.page}><ChangeNav /><NotHere title={title} sub={w('oldLink')} back={back} label={w(label)} /></div>
 }
 
 /** A section the report does not hold: what is missing, and why. */

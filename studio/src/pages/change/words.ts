@@ -59,6 +59,7 @@ export const CHANGE_WORDS = {
   stays: ['يبقى كما هو', 'Stays as it is'],
   noGapsShown: ['لا فجوة بهذه العملية', 'No gap with this operation'],
   gapNotFound: ['هذه الفجوة ليست في هذا الفحص', 'This gap is not in this check'],
+  backToGaps: ['ارجع إلى سجل الفجوات', 'Back to the gap register'],
   why: ['لماذا هذه العملية', 'Why this operation'],
   responsibility: ['مسؤوليته في الهدف', 'Its responsibility in the target'],
   cover: ['تغطية البطاقات', 'Card coverage'],

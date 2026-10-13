@@ -10,7 +10,7 @@ import { DirectAction } from '../../command/Direct'
 import { useBranchWords } from '../../branches/words'
 import { OperationChip, SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
-import { FoldList, NotHere, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
+import { FoldList, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
 import { ListTools, SelectableRow } from '../../command/Selectable'
 import type { StudioData } from '../../data/types'
 import { Id, N, Txt } from '../../i18n/text'
@@ -18,17 +18,11 @@ import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, WithData } from '../../shell/Layout'
 import { usePaths } from '../paths/model'
 import { byId, cardState, comesBefore, RELATION_OF, stateCounts, stepLinks } from './model'
-import { ChangeNav, GapLink, LinkList, NotMeasured, OpLink, StateBar, StepLink } from './parts'
+import { ChangeNav, GapLink, LinkList, Missing, NotMeasured, OpLink, StateBar, StepLink } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
 type Row = [ReactNode, ReactNode]
-
-/** A plan, step, task or operation the link names and this check does not have. */
-export function Missing({ title }: { title: string }) {
-  const w = useChangeWords()
-  return <div className={page.page}><ChangeNav /><NotHere title={title} sub={w('oldLink')} back="/plans" label={w('backToPlans')} /></div>
-}
 
 function useTimeline(data: StudioData) {
   const paths = usePaths(data)
