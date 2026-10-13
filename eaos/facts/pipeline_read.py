@@ -37,7 +37,6 @@ CONSUMES = {'consumes', 'inputs', 'ins'}
 PIPELINE_WORDS = re.compile(r'(^|_)(pipelines?|etl|workflows?|orchestrators?|orchestrate|dags?)($|_)', re.I)
 PHASE_CALLS = {'phase', 'stage', 'step'}
 FLOW_DECORATORS = {'flow', 'dag', 'job', 'graph', 'pipeline', 'workflow'}
-TASK_DECORATORS = {'task', 'op', 'asset', 'shared_task', 'activity'}
 ERROR_STATES = {'failed': 'fail', 'failure': 'fail', 'error': 'fail', 'unavailable': 'skip', 'skipped': 'skip',
                 'not_reached': 'block', 'blocked': 'block', 'dead_letter': 'fail'}
 CONTEXT_PARAMS = {'context', 'ctx', 'state'}
