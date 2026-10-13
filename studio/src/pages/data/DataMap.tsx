@@ -2,7 +2,7 @@
 // stores on the other, an edge per (component, store) weighted by the modules behind it. Two hatched bands stand for
 // the tiers the records do not reach (input field, form and key before the callers; the server handler between
 // callers and stores), each with how many writes it knows. The geometry never mirrors with the page (DESIGN.md §6).
-import { useMemo, type RefObject } from 'react'
+import { useMemo, type ReactNode, type RefObject } from 'react'
 import type { DataPaths, DataView, Store } from '../../data/dataMap'
 import { isCluster, labelOf, membersOf, nodeOf, tierCounts, toneOf, touches, viewOf, type Mode } from './model'
 import { fit, pressKey } from '../../map/draw'
@@ -39,37 +39,20 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
   const total = dp.paths.length
   const gapX = BAND + 24 + bw + 56 // the server band sits in the middle of the room between the two lanes
   const gapW = view.size[0] - 2 * (24 + bw + 56)
-  const storeOf = (id: string): Store | undefined => stores.get(id)
   const manyIn = (id: string) => membersOf(view, id).some((m) => stores.get(m)?.multi_writer)
 
   const edges = view.edges.filter((e) => reads || e.kind === 'write')
-  const node = (id: string, lane: 'caller' | 'store') => {
-    const [x, y] = at(id)
+  const node = (id: string, lane: Lane) => {
     const cluster = isCluster(id)
-    const store = lane === 'store' && !cluster ? storeOf(id) : undefined
-    const tone = lane === 'store' ? (cluster ? (manyIn(id) && mode !== 'change' ? 'rebuild' : 'none') : toneOf(store, mode)) : 'none'
-    const label = lane === 'store' ? labelOf(id, stores) : (cluster ? id.slice(8) : id)
-    const count = cluster ? membersOf(view, id).length : store ? store.writers.length : 0
+    const store = lane === 'store' && !cluster ? stores.get(id) : undefined
     const on = focus === id
     const quiet = !reads && store !== undefined && store.writers.length === 0 // only read: its edges are hidden
-    const faded = (Boolean(focus) && !on && !lit.has(id)) || (!focus && quiet)
-    const name = lane === 'store'
-      ? `${label}${cluster ? ` (${count})` : ''}${store ? `, ${w(`kind_${store.kind}`)}, ${ownerWord(store, w)}` : ''}`
-      : `${label}${cluster ? ` (${count})` : ''}`
-    return (
-      <g key={id} className={[css.node, css[`tone_${tone}`], on && css.on, faded && css.faded, cluster && css.cluster].filter(Boolean).join(' ')}
-        role="button" tabIndex={0} aria-label={name} aria-pressed={on} onClick={() => onFocus(id)} onKeyDown={pressKey(() => onFocus(id))}>
-        {cluster && <rect className={css.stack} x={x + 4} y={y - 4} width={bw} height={bh} rx={8} />}
-        <rect className={css.box} x={x} y={y} width={bw} height={bh} rx={8} />
-        {lane === 'store' && <text className={css.kind} x={x + 10} y={y + bh / 2 + 4}>{store ? KIND_MARK[store.kind] : '⋯'}</text>}
-        <text className={css.label} x={x + (lane === 'store' ? 34 : 10)} y={y + bh / 2 + 4}>{fit(label, lane === 'store' ? 20 : 26)}</text>
-        {(cluster || (store && store.writers.length > 0)) && (
-          <text className={[css.count, store?.multi_writer && css.countMany].filter(Boolean).join(' ')} x={x + bw - 10} y={y + bh / 2 + 4} textAnchor="end">
-            {cluster ? count : `${store!.multi_writer ? '⚠ ' : ''}✎${count}`}
-          </text>
-        )}
-      </g>
-    )
+    const storeTone = cluster ? (manyIn(id) && mode !== 'change' ? 'rebuild' : 'none') : toneOf(store, mode)
+    return <MapNode key={id} id={id} lane={lane} at={at(id)} box={view.box} store={store} on={on} onFocus={onFocus}
+      tone={lane === 'store' ? storeTone : 'none'}
+      label={lane === 'store' ? labelOf(id, stores) : (cluster ? id.slice(8) : id)}
+      count={cluster ? membersOf(view, id).length : store?.writers.length ?? 0}
+      faded={(Boolean(focus) && !on && !lit.has(id)) || (!focus && quiet)} />
   }
 
   return (
@@ -81,16 +64,8 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
         </pattern>
       </defs>
       <g transform={transform}>
-        <rect className={css.band} x={8} y={HEAD - 8} width={BAND - 30} height={height - HEAD} rx={10} fill="url(#dp-hatch)" />
-        <text className={css.bandTitle} x={8 + (BAND - 30) / 2} y={HEAD + 18} textAnchor="middle">{w('band_entry')}</text>
-        <text className={css.bandSub} x={8 + (BAND - 30) / 2} y={HEAD + 36} textAnchor="middle">{w('band_known', { k: entry.known, n: total })}</text>
-        {gapW > 40 && (
-          <>
-            <rect className={css.band} x={gapX} y={HEAD - 8} width={gapW} height={height - HEAD} rx={10} fill="url(#dp-hatch)" />
-            <text className={css.bandTitle} x={gapX + gapW / 2} y={HEAD + 18} textAnchor="middle">{w('band_server')}</text>
-            <text className={css.bandSub} x={gapX + gapW / 2} y={HEAD + 36} textAnchor="middle">{w('band_known', { k: handler.known, n: total })}</text>
-          </>
-        )}
+        <Band x={8} width={BAND - 30} height={height} title={w('band_entry')} sub={w('band_known', { k: entry.known, n: total })} />
+        {gapW > 40 && <Band x={gapX} width={gapW} height={height} title={w('band_server')} sub={w('band_known', { k: handler.known, n: total })} />}
         <text className={css.laneTitle} x={BAND + 24} y={22}>{w(mode === 'target' ? 'lane_callerTarget' : 'lane_caller')}</text>
         <text className={css.laneTitle} x={BAND + view.size[0] - 24 - bw} y={22}>{w('lane_store')}</text>
         <g className={css.edges}>
@@ -111,6 +86,46 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
 }
 
 const KIND_MARK: Record<Store['kind'], string> = { table: '▦', resource: '⇄', bucket: '▤', rpc: 'ƒ', auth: '⚿' }
+
+/** A hatched tier the records do not reach, its title and how many writes it knows. */
+function Band({ x, width, height, title, sub }: { x: number; width: number; height: number; title: ReactNode; sub: ReactNode }) {
+  return (
+    <>
+      <rect className={css.band} x={x} y={HEAD - 8} width={width} height={height - HEAD} rx={10} fill="url(#dp-hatch)" />
+      <text className={css.bandTitle} x={x + width / 2} y={HEAD + 18} textAnchor="middle">{title}</text>
+      <text className={css.bandSub} x={x + width / 2} y={HEAD + 36} textAnchor="middle">{sub}</text>
+    </>
+  )
+}
+
+type Lane = 'caller' | 'store'
+
+interface MapNodeProps {
+  id: string; lane: Lane; at: readonly [number, number]; box: readonly [number, number]; store?: Store
+  tone: string; label: string; count: number; on: boolean; faded: boolean; onFocus: (id: string) => void
+}
+
+/** One caller or store box: a cluster stacked with its member count, a store with its kind and writers. */
+function MapNode({ id, lane, at: [x, y], box: [bw, bh], store, tone, label, count, on, faded, onFocus }: MapNodeProps) {
+  const w = useDataWords()
+  const cluster = isCluster(id)
+  const name = `${label}${cluster ? ` (${count})` : ''}${store ? `, ${w(`kind_${store.kind}`)}, ${ownerWord(store, w)}` : ''}`
+  const mid = y + bh / 2 + 4
+  return (
+    <g className={[css.node, css[`tone_${tone}`], on && css.on, faded && css.faded, cluster && css.cluster].filter(Boolean).join(' ')}
+      role="button" tabIndex={0} aria-label={name} aria-pressed={on} onClick={() => onFocus(id)} onKeyDown={pressKey(() => onFocus(id))}>
+      {cluster && <rect className={css.stack} x={x + 4} y={y - 4} width={bw} height={bh} rx={8} />}
+      <rect className={css.box} x={x} y={y} width={bw} height={bh} rx={8} />
+      {lane === 'store' && <text className={css.kind} x={x + 10} y={mid}>{store ? KIND_MARK[store.kind] : '⋯'}</text>}
+      <text className={css.label} x={x + (lane === 'store' ? 34 : 10)} y={mid}>{fit(label, lane === 'store' ? 20 : 26)}</text>
+      {(cluster || (store && store.writers.length > 0)) && (
+        <text className={[css.count, store?.multi_writer && css.countMany].filter(Boolean).join(' ')} x={x + bw - 10} y={mid} textAnchor="end">
+          {cluster ? count : `${store!.multi_writer ? '⚠ ' : ''}✎${count}`}
+        </text>
+      )}
+    </g>
+  )
+}
 
 /** The map's key: writes and reads, a gap, more than one writer; and the Change view's three colours. */
 export function DataLegend({ mode, inline }: { mode: Mode; inline?: boolean }) {
