@@ -306,7 +306,8 @@ def build():
     @server.tool(annotations=working, description='Make one card\'s change in the batch\'s copy, then check it at once: the card\'s problem '
                  'is gone, no new broken code, no endpoint gone. Edits: [{"path", "find", "replace"}] (find occurs exactly once), '
                  '[{"path", "content"}] for a whole or new file, [{"path", "delete": true}]. Any file of the project may change. A change '
-                 'that fails is taken back with the reason. Returns a job.')
+                 'that fails is taken back with the reason. card="REPAIR" when fix_finish asks for a repair on top of the batch. '
+                 'Returns a job.')
     @_answer
     def fix_edit(card: str, edits: list[dict], summary: str = '', project: str | None = None) -> str:
         return tools.fix_edit(card, edits, summary, project)
@@ -318,11 +319,12 @@ def build():
         return tools.fix_skip(card, reason, project)
 
     @server.tool(annotations=working, description='Close the batch: every kept change together through the project\'s own checks and every '
-                 'recorded screen (a change that breaks them is found and left out), then the branch eaos/<branch>/wave-N in the person\'s '
-                 'project. Their current branch and files are not touched. Returns a job.')
+                 'recorded screen, then the branch eaos/<branch>/wave-N in the person\'s project. Their current branch and files are '
+                 'not touched. When the changes fail the checks together, it asks for a repair on top (fix_edit with card="REPAIR"); '
+                 'leave_out=true finds the changes responsible and leaves them out instead. Returns a job.')
     @_answer
-    def fix_finish(project: str | None = None) -> str:
-        return tools.fix_finish(project)
+    def fix_finish(leave_out: bool = False, project: str | None = None) -> str:
+        return tools.fix_finish(project, leave_out)
 
     @server.tool(annotations=working, description='Close the open batch without handing anything over, when fix_finish cannot close it '
                  '(its reason says EAOS cannot check the changes): its copy is removed, the person\'s project is not touched, and '

@@ -359,6 +359,10 @@ class Manager:
             return self._ask(run, question)
         if isinstance(result, dict) and result.get('status') == 'needs_branch' and result.get('branches'):
             return self._ask(run, prompts.branch_question(result))
+        if isinstance(result, dict) and result.get('status') == 'gates_failed':
+            return self._fail(run, f"the changes fail the project's checks together: {result['why']}"[:500],
+                              {'en': 'Ask your assistant to repair them on top (Fix), or hand the batch over leaving the changes responsible out.',
+                               'ar': 'اطلب من مساعدك يصلحها فوقها (أصلح)، أو سلّم الدفعة مع ترك التغييرات المسؤولة برا.'})
         if isinstance(result, dict) and result.get('status') == 'assistant_not_ready':
             return self._ask(run, prompts.assistant_question(result))
         payload = self._outcome(run, answer=result)

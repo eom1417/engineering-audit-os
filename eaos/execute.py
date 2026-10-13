@@ -98,28 +98,25 @@ def _dead(folder, paths):
 
 
 def _excess(folder, paths):
-    """{path: the decisions its functions have past the complexity limit, summed}."""
+    """The decisions past the complexity limit of the functions and methods in `paths`, summed over all of them: code
+    moved between the files keeps its sum, and a class (the sum of its methods) is not one more function."""
     from .code_laws import MAX_COMPLEXITY
-    over = dict.fromkeys(paths, 0)
-    for f in _facts(folder, 'metrics'):
-        if f['kind'] == 'metric' and f['value']['scope'] != 'file' and f['location']['path'] in paths:
-            over[f['location']['path']] += max(0, f['value']['branches'] - MAX_COMPLEXITY)
-    return over
+    return sum(max(0, f['value']['branches'] - MAX_COMPLEXITY) for f in _facts(folder, 'metrics')
+               if f['kind'] == 'metric' and f['value']['scope'] in ('function', 'method') and f['location']['path'] in paths)
 
 
 def new_debt(report, collected, paths):
     """What a change added against the code laws (eaos/code_laws.py) in the files it touched (`paths`), from the facts
     of the report (before) and `collected` (after): a copied block or function, dead code, or more decisions past
-    the complexity limit in a file (splitting a function of 60 into three of 20 is less; a new one of 20 is more).
-    A change that adds any is taken back like a breakage."""
+    the complexity limit across those files (splitting a function of 60 into three of 20 is less; a new one of 20 is
+    more; moving one into a new module is neither). A change that adds any is taken back like a breakage."""
     from .code_laws import MAX_COMPLEXITY
     paths = set(paths)
     was, now = _excess(report, paths), _excess(collected, paths)
     copied = _copies(collected, paths) - _copies(report, paths)
     added = [f'{len(copied)} copied block(s) or function(s): call the one home instead'] if copied else []
     added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(_dead(collected, paths) - _dead(report, paths))]
-    added += [f'{path} is more complex: {now[path] - was[path]} decisions more past the limit of {MAX_COMPLEXITY} per function'
-              for path in sorted(paths) if now[path] > was[path]]
+    if now > was: added.append(f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} per function')
     return added
 
 

@@ -97,7 +97,7 @@ class LiveRun:
         """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the run's environment."""
         result = self.sandbox.run(argv, timeout=timeout, network=network, cwd=None if at_root else self.profile.get('app') or None,
                                   env={**self.extra(), **(env or {})})
-        self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-2000:]})
+        self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-6000:]})
         return result
 
     def seed(self, base, storage_state=None):

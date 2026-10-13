@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, guided, ledger, live_setup
+from eaos import agent_tools, batch_finish, guided, ledger, live_setup
 from eaos.pipeline import runners
 from eaos.pipeline.stages import SkipStage
 
@@ -99,12 +99,17 @@ class Journey(unittest.TestCase):
         cards = self.ready()
         self.assertEqual(sorted(cards), ['app/old_export.py', 'app/old_invoice.py', 'app/old_report.py'])
 
-        # A batch of three, fixed by their codemods; the project's own check fails on one, which is found and left out.
+        # A batch of three, fixed by their codemods; the project's own check fails on one: a repair is asked first, and
+        # when none can work the change responsible is found and left out.
         self.agree_and_record()
         batch = sorted(cards.values())
         opened = agent_tools._fix_start_job(self.where, {'cards': batch}, lambda *_: None)
         self.assertEqual(sorted(opened['fixed_automatically']), batch, opened)
-        finished = agent_tools._fix_finish_job(self.where, {}, lambda *_: None)
+        asked = batch_finish.finish_job(self.where, {}, lambda *_: None)
+        self.assertEqual(asked['status'], 'gates_failed', asked)
+        self.assertIn('test_monthly_report', asked['why'])
+        self.assertEqual(agent_tools.status(self.where)['next']['tool'], 'fix_edit card="REPAIR", then fix_finish')
+        finished = batch_finish.finish_job(self.where, {'leave_out': True}, lambda *_: None)
         self.assertEqual(sorted(finished['kept']), sorted([cards['app/old_export.py'], cards['app/old_invoice.py']]), finished)
         self.assertIn('test_monthly_report', finished['failed'][cards['app/old_report.py']])
         self.assertEqual(finished['branch'], 'eaos/main/wave-1', 'named after the branch: unique across branches')

@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, branches, guided, ledger, live_setup
+from eaos import agent_tools, batch_finish, branches, guided, ledger, live_setup
 from eaos.waves import commit as eaos_commit, plan as read_plan
 
 
@@ -193,7 +193,7 @@ class Branches(unittest.TestCase):
         guided.save(state)
         with mock.patch('eaos.waves.gates', return_value=''), mock.patch('eaos.waves.original_checks', return_value={}), \
                 mock.patch('eaos.waves.batch_acceptance', side_effect=lambda report, chosen, root, collected=None: {c['id']: None for c in chosen}):
-            return agent_tools._fix_finish_job(str(self.project), {}, lambda *_: None)
+            return batch_finish.finish_job(str(self.project), {}, lambda *_: None)
 
     def work_branches(self):
         return sorted(set(git(self.project, 'for-each-ref', '--format=%(refname:short)', 'refs/heads/eaos/').split()) - {'eaos/wave-9'})

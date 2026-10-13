@@ -114,6 +114,31 @@ class FinishTests(unittest.TestCase):
         self.assertEqual(len(list((runtime / 'waves/wave-1').glob('*.patch'))), 2)
         self.assertEqual(json.loads((runtime / 'waves/wave-1/wave.json').read_text())['branch'], 'eaos/wave-1')
 
+    def test_changes_that_fail_only_together_are_repaired_on_top_and_no_sound_card_is_left_out(self):
+        # Wave 2 on EAOS (2026-10-13): 45 cards passed one by one; together, a split module's parts imported each other.
+        # Halving would have left about 20 sound cards out; a repair on top kept all of them.
+        project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
+                  'verify_command': ['true']} for n in (1, 2)]
+        (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
+        root = Path(tempfile.mkdtemp()) / 'candidate'
+        subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
+        base = git(root, 'rev-parse', 'HEAD')
+        kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
+        together = lambda report, root, *rest: ('' if (Path(root) / 'repair.txt').exists() or not (Path(root) / '2.txt').exists()
+                                                else "the project's own check failed: a cycle")
+        finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2'], kept, {}, {},
+                                                           lock=False, repairs=repairs, bisect=bisect)
+        with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=together):
+            with self.assertRaises(waves.GatesFailed) as asked:
+                finish([], bisect=False)
+            self.assertIn('a cycle', asked.exception.why)
+            repair = commit_file(root, 'repair.txt', 'repair')
+            summary = finish([repair], bisect=False)
+        self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
+        self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt', 'repair.txt'])
+
 
 class CodeLawsGateTests(unittest.TestCase):
     def test_a_change_that_copies_leaves_dead_code_or_adds_complexity_is_refused_and_a_partial_split_is_kept(self):
@@ -121,8 +146,8 @@ class CodeLawsGateTests(unittest.TestCase):
 
         def facts(folder, functions, clones=(), dead=()):
             (Path(folder) / 'facts').mkdir(parents=True)
-            metrics = [{'kind': 'metric', 'location': {'path': path, 'symbol': name}, 'value': {'scope': 'function', 'branches': n}}
-                       for path, name, n in functions]
+            metrics = [{'kind': 'metric', 'location': {'path': path, 'symbol': name}, 'value': {'scope': scope, 'branches': n}}
+                       for path, name, n, scope in (row + ('function',) * (4 - len(row)) for row in functions)]
             metrics += [{'kind': 'clone_cluster', 'input_sha': key, 'value': {'occurrences': [{'path': 'a.py'}, {'path': 'b.py'}]}}
                         for key in clones]
             dead_facts = [{'location': {'path': 'a.py', 'symbol': name}, 'value': {'rule': 'unused-function'}} for name in dead]
@@ -137,6 +162,9 @@ class CodeLawsGateTests(unittest.TestCase):
         found = new_debt(before, worse, ['a.py'])
         self.assertEqual(len(found), 3, found)
         self.assertEqual(new_debt(before, worse, ['c.py']), [], 'only the files the change touched')
+        moved = facts(tempfile.mkdtemp(), [('b.py', 'big', 60), ('b.py', 'Owner', 60, 'class')])
+        self.assertEqual(new_debt(before, moved, ['a.py', 'b.py']), [],
+                         'a split that moves a complex function into a new module adds nothing, nor does its class')
 
 
 class PythonSuiteGateTests(unittest.TestCase):

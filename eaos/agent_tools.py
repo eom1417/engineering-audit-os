@@ -14,7 +14,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, guided, handover, jobs, plain, toolchain
+from . import batch_finish, branches, guided, handover, jobs, plain, toolchain
 from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
@@ -281,7 +281,7 @@ def status(project=None):
         step = ('fix_abandon', f"batch {wave['number']} cannot be closed: the safety net recorded nothing")
     elif wave and wave.get('last_error'):
         step = ('fix_abandon', f"batch {wave['number']} could not be finished ({wave['last_error'][:200]}): close it, its cards can be tried again")
-    elif wave: step = ('fix_edit, then fix_finish', f"batch {wave['number']} is open")
+    elif wave: step = batch_finish.open_step(wave)
     elif not _set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
     elif not setup.get('ok'): step = ('run_try', 'the app does not run yet: read the last failure and propose a fix')
     elif not guided.same_code(state, safety.get('commit'), head): step = ('safety_net', 'record the screens before any fix')
@@ -1066,21 +1066,20 @@ def _apply(root, edits):
 def fix_edit(card, edits, summary='', project=None):
     state = project_state(project)
     wave = _open(state)
-    if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
+    if card == batch_finish.REPAIR and not wave.get('gates_failed'): raise ValueError('no repair is asked: fix_finish asks for one when needed')
+    if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
     if card in wave['kept']: return {'status': 'already_kept', 'what_now': 'This card is already fixed in the batch.'}
     if not edits: raise ValueError('no edit was sent')
     return _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary})
 
 
 def _fix_edit_job(project, arguments, progress):
-    import tempfile
-    from .execute import new_breakage, new_debt
-    from .facts.run import collect
-    from .waves import batch_acceptance, commit, drop_last, plan as read_plan
+    from .waves import commit, drop_last, plan as read_plan
     state = guided.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
-    card = next(t for t in read_plan(report)['tasks'] if t['id'] == card_id)
+    repair = card_id == batch_finish.REPAIR
+    card = batch_finish.repair_card(wave) if repair else next(t for t in read_plan(report)['tasks'] if t['id'] == card_id)
     try:
         changed = _apply(root, arguments['edits'])
         commit(root, card, 'assistant')
@@ -1090,10 +1089,7 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
                 'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
-        collect(root.resolve(), out)
-        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed)
-        exit_code = batch_acceptance(report, [card], root, collected=out).get(card_id)
+    broke, exit_code = _checked(report, root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     state = guided.load(project)
     wave = state['open_wave']
@@ -1103,6 +1099,7 @@ def _fix_edit_job(project, arguments, progress):
                "the problem is still there: the card's own check still finds it" + (f' (exit {exit_code})' if exit_code else ''))
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
+    if repair: return batch_finish.repaired(state, root, changed, diff)
     wave['kept'][card_id] = guided._git(root, 'rev-parse', 'HEAD').stdout.strip()
     wave['tools'][card_id] = 'assistant'
     wave['failed'].pop(card_id, None)
@@ -1113,6 +1110,18 @@ def _fix_edit_job(project, arguments, progress):
             'what_now': 'Next card with fix_edit.' if left else 'Every card is done: call fix_finish.'}
 
 
+def _checked(report, root, card, changed, repair):
+    """(what the change broke or added against the code laws, the card's own check's exit: None for a repair)."""
+    import tempfile
+    from .execute import new_breakage, new_debt
+    from .facts.run import collect
+    from .waves import batch_acceptance
+    with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
+        collect(root.resolve(), out)
+        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed)
+        return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
+
+
 def fix_skip(card, reason, project=None):
     state = project_state(project)
     wave = _open(state)
@@ -1120,91 +1129,22 @@ def fix_skip(card, reason, project=None):
     if card in wave['kept']:
         from .waves import rebuild
         wave['kept'].pop(card)
-        rebuild(wave['root'], wave['base'], list(wave['kept'].values()))
+        rebuild(wave['root'], wave['base'], list(wave['kept'].values()) + (wave.get('repairs') or []))
     wave['failed'][card] = f'skipped: {reason}'[:300]
     guided.save(state)
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     return {'card': card, 'skipped': True, 'left': left}
 
 
-def fix_finish(project=None):
+def fix_finish(project=None, leave_out=False):
+    """Hand the batch over. When its changes pass one by one but fail the project's checks together, the answer asks
+    for a repair on top of them (fix_edit with card REPAIR) instead of leaving sound cards out; `leave_out`, or after
+    REPAIRS repairs, the cards responsible are found and left out."""
     state = project_state(project)
     wave = _open(state)
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     if left: return {'status': 'cards_left', 'left': left, 'what_now': 'Fix them with fix_edit or skip them with fix_skip first.'}
-    return _start('fix_finish', state, {})
-
-
-def _fix_finish_job(project, arguments, progress):
-    from .waves import apply as hand_over, finish_batch
-    state = guided.load(project)
-    wave = state['open_wave']
-    report, runtime = guided.report_of(state), guided.runtime_of(state)
-    steps = {'acceptance': (0, "every problem is gone, all changes together"), 'gates': (1, "the project's own checks and every screen"),
-             'bisect': (2, 'finding the change that broke something')}
-    was = guided._git(wave['root'], 'rev-parse', 'HEAD').stdout.strip()
-    try:
-        summary = finish_batch(report, guided.source(state), runtime, wave['number'], Path(wave['root']), wave['base'], wave['cards'],
-                               wave['kept'], wave['failed'], wave['tools'], lock=True,
-                               say=lambda kind, *_: progress(steps[kind][0], 3, steps[kind][1]) if kind in steps else None,
-                               branch=wave.get('deliver_as'))
-    except Exception as problem:       # the batch stays as it was: its copy back to its kept changes, the failure recorded
-        guided._git(wave['root'], 'cherry-pick', '--abort')
-        guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])
-        guided._git(wave['root'], 'clean', '-fdq')
-        state = guided.load(project)
-        state['open_wave']['last_error'] = f'{type(problem).__name__}: {problem}'[:500]
-        guided.save(state)
-        raise
-    state = guided.load(project)
-    record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
-              'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {},
-              **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch', 'direct', 'continues') if wave.get(k)}}
-    if summary['kept']:
-        hand_over(state['project'], summary)
-        record['status'] = 'applied'
-        record['tip'] = guided._git(state['project'], 'rev-parse', summary['branch']).stdout.strip()
-        state['applied'] = True
-    state.setdefault('waves', []).append(record)
-    state['tried'] = sorted(set(state.get('tried') or []) | set((wave.get('keys') or {}).values()))     # keys: ids move
-    state.pop('open_wave', None)
-    guided.save(state)
-    guided.publish_fixes(state, record)
-    guided.save(state)
-    files = guided._git(state['project'], 'diff', '--stat', f"{wave['base']}..{summary['branch']}").stdout.strip() if summary['kept'] else ''
-    if wave.get('direct') and record['status'] == 'applied':
-        return _land(state['project'], record, files)
-    return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
-            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:],
-            **({'continued_on': wave['continues']} if wave.get('continues') else {}),
-            'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
-                         "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
-                         "The report counts these fixes as done only once they are taken in."
-                         if summary['kept'] else 'No change passed every gate; nothing reached the project.')}
-
-
-def _land(project, record, files):
-    """A direct batch, its gates passed: its branch merged into the base branch at once (guided.merge: a fast-forward,
-    or a merge commit when git merges cleanly) and deleted, so no branch is left. When it cannot land (unsaved changes
-    in the checked-out base, or a conflict), the branch stays and waits for the person like any batch."""
-    state = guided.load(project)
-    wave = next(w for w in reversed(state['waves']) if w['number'] == record['number'] and w.get('branch') == record['branch'])
-    outcome = guided.merge(state, wave)
-    state = guided.load(project)
-    wave = next(w for w in reversed(state['waves']) if w['number'] == record['number'] and w.get('branch') == record['branch'])
-    base = wave['merge_into']
-    if outcome == 'merged':
-        return {'batch': wave['number'], 'branch': None, 'landed_on': base, 'kept': wave['kept'], 'failed': wave['failed'],
-                'changes': wave.get('stat'), 'files': files[-4000:], 'branch_deleted': not guided._branch_exists(state, wave['branch']),
-                'what_now': f"Tell the person, in plain words, what was fixed: it passed every check and is now on {base} itself, "
-                            'as they chose; no extra branch was left. The report counts these fixes as done.'}
-    wave['direct_failed'] = outcome
-    guided.save(state)
-    return {'batch': wave['number'], 'branch': wave['branch'], 'landed_on': None, 'kept': wave['kept'], 'failed': wave['failed'],
-            'changes': wave.get('stat'), 'files': files[-4000:], 'not_landed': outcome,
-            'what_now': f"The fixes passed every check but could not land on {base} directly ("
-                        + ('it has unsaved changes' if outcome == 'unsaved_changes' else 'it changed in the same places') +
-                        f"): they wait on the branch {wave['branch']}. Tell the person, then accept or undo as they decide."}
+    return _start('fix_finish', state, {'leave_out': bool(leave_out)})
 
 
 def accept(project=None, person_agreed=False, merge_into=None, delete_after=True):
@@ -1255,4 +1195,4 @@ def undo(project=None):
 
 
 JOBS = {'audit': _audit_job, 'run_try': _run_job, 'safety_net': _safety_job, 'fix_start': _fix_start_job,
-        'fix_edit': _fix_edit_job, 'fix_finish': _fix_finish_job}
+        'fix_edit': _fix_edit_job, 'fix_finish': batch_finish.finish_job}

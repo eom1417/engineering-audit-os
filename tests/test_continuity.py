@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, guided, handover, ledger
+from eaos import agent_tools, batch_finish, guided, handover, ledger
 from eaos.waves import commit as eaos_commit, plan as read_plan
 from tests.test_mcp import git_project
 
@@ -109,7 +109,7 @@ class Continuity(Base):
             git(copy, 'reset', '-q', '--hard', base)
             raise PermissionError('S09: the copy does not descend from the authorised commit')
         with mock.patch('eaos.waves.finish_batch', side_effect=refused), self.assertRaises(PermissionError):
-            agent_tools._fix_finish_job(str(self.project), {}, lambda *_: None)
+            batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         wave = guided.load(self.project)['open_wave']
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), list(wave['kept'])), (kept, ['TASK-001']), 'the batch as it was')
         self.assertIn('S09', wave['last_error'])

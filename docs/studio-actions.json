@@ -1079,8 +1079,8 @@
     "ar": "سلّم الدفعة"
    },
    "description": {
-    "en": "Every kept change through the project checks and screens, then a new branch eaos/<branch>/wave-N. Your branch is not touched.",
-    "ar": "كل تغيير محفوظ يمر على فحوص المشروع وشاشاته، ثم فرع جديد eaos/<branch>/wave-N. فرعك لا يُلمس."
+    "en": "Every kept change through the project checks and screens, then a new branch eaos/<branch>/wave-N. Your branch is not touched. If the changes fail together, your assistant repairs them on top first.",
+    "ar": "كل تغيير محفوظ يمر على فحوص المشروع وشاشاته، ثم فرع جديد eaos/<branch>/wave-N. فرعك لا يُلمس. وإذا فشلت التغييرات مع بعض، مساعدك يصلحها فوقها أول."
    },
    "mode": "direct",
    "needs_assistant": false,
@@ -1092,6 +1092,11 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
+     "leave_out": {
+      "type": "boolean",
+      "default": false,
+      "description": "When the changes pass one by one but fail the checks together: find the changes responsible and leave them out, instead of asking the assistant for a repair on top."
+     },
      "project": {
       "type": [
        "string",

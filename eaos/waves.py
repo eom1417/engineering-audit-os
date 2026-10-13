@@ -183,34 +183,43 @@ def drop_last(root):
     git(root, 'clean', '-fdq')
 
 
+class GatesFailed(Exception):
+    """The kept changes pass one by one but fail the project's checks together: `why`, and the failing commands' output,
+    for a repair on top of them before any card is left out."""
+    def __init__(self, why, output):
+        super().__init__(why)
+        self.why, self.output = why, output
+
+
 def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None,
-                 branch=None):
-    """Every kept change together: the acceptances from one collection of facts, then the project's checks and
-    the behaviour lock once, halving to the culprit when they fail. The kept commits become the wave's branch
+                 branch=None, repairs=(), bisect=True):
+    """Every kept change together, then `repairs` (commits made on top of them after a failure): the acceptances from
+    one collection of facts, then the project's checks and the behaviour lock once. When they fail, GatesFailed asks
+    for a repair, unless `bisect`: then halving finds the culprits, left out. The kept commits become the wave's branch
     in the candidate, its patches and wave.json beside the run, and one execution.json row per card."""
     report, runtime = Path(report), Path(runtime)
     cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
     kept, failed = dict(kept), dict(failed)
     say('acceptance')
     progress.begin('acceptance')
-    if kept: kept = _accepted(report, cards, root, base, kept, failed)
+    if kept: kept = _accepted(report, cards, root, base, kept, failed, list(repairs))
     else: progress.skip('acceptance', 'no change was kept to check', 'nothing_kept')
     progress.begin('gates')
     batch = {'report': report, 'root': root, 'runtime': runtime, 'base': base, 'name': f'wave-{number}',
-             'before': original_checks(target, runtime), 'lock': lock, 'say': say}
+             'before': original_checks(target, runtime), 'lock': lock, 'say': say, 'bisect': bisect}
     kept = _through_gates(batch, kept, failed)
     progress.begin('handover')
     _record_cards(runtime, card_ids, kept, failed, tools, number)
     return _write_wave(runtime, root, base, number, kept, failed, branch)
 
 
-def _accepted(report, cards, root, base, kept, failed):
-    """The kept cards whose problem is gone and whose commit still applies beside the others."""
+def _accepted(report, cards, root, base, kept, failed, repairs):
+    """The kept cards whose problem is gone and whose commit still applies beside the others (the repairs on top)."""
     exits = batch_acceptance(report, [cards[c] for c in kept], root)
     for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
         if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
     still = [kept[c] for c in kept if c not in failed]
-    for sha in rebuild(root, base, still):
+    for sha in set(rebuild(root, base, still + repairs)) - set(repairs):
         failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'
     for done, card_id in enumerate(kept, 1):
         code = '' if card_id not in failed else 'acceptance_failed' if exits.get(card_id) not in (0, None) else 'no_longer_applies'
@@ -232,8 +241,18 @@ def _through_gates(batch, kept, failed):
         progress.skip('culprit', 'the batch passed its checks', 'gates_passed')
         return kept
     progress.step('batch', 1, 1, 'failed', reason=str(why)[:200], reason_code='gates_failed')
+    if not batch['bisect']:
+        progress.skip('culprit', 'a repair on top of the changes comes first', 'repair_asked')
+        raise GatesFailed(why, failing_output(batch['runtime'], batch['name']))
     progress.begin('culprit')
     return _without_culprits(batch, kept, failed)
+
+
+def failing_output(runtime, name, size=6000):
+    """The end of what each failing command of the gates `name` printed (runtime/checks-<name>-log.json)."""
+    try: commands = json.loads((Path(runtime) / f'runtime/checks-{name}-log.json').read_text(encoding='utf-8'))['commands']
+    except (OSError, ValueError, KeyError): return []
+    return [{'command': ' '.join(c['argv']), 'output': (c.get('tail') or '')[-size:]} for c in commands if c.get('exit')]
 
 
 def _without_culprits(batch, kept, failed):

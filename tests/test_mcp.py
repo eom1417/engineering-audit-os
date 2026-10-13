@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, guided, jobs
+from eaos import agent_tools, batch_finish, guided, jobs
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -166,7 +166,7 @@ class ToolTests(Home):
         self.assertEqual(guided.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
         with mock.patch('eaos.waves.batch_acceptance', return_value={'TASK-001': 0}), \
                 mock.patch('eaos.waves.original_checks', return_value=[]), mock.patch('eaos.waves.gates', return_value=''):
-            done = agent_tools._fix_finish_job(str(self.project), {}, lambda *_: None)
+            done = batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         self.assertEqual((done['branch'], done['kept']), ('eaos/wave-1', ['TASK-001']))
         self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout, 'the fix arrives as a branch')
         self.assertEqual((self.project / 'src/a.js').read_text(), 'export const a = 1;\nexport const b = 2;\n',
