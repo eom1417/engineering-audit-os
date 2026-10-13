@@ -2,7 +2,7 @@
 // the map (who writes and reads → where it is kept, gaps hatched) or its steps view, beside a 360px inspector with the
 // chosen store's chain. Phone: the links, the steps view and the chosen store; the map opens as a full-screen sheet
 // with pan and pinch. ?view=current|change|target, ?store=<id>, ?show=steps, ?reads=1.
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { useMemo, useRef, useState } from 'react'
 import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
@@ -15,6 +15,7 @@ import { useZoom } from '../../map/useZoom'
 import mapCss from '../../map/parts.module.css'
 import { usePageChrome } from '../../shell/chrome'
 import { MissingBanner, WithData } from '../../shell/Layout'
+import { useSearchPatch } from '../../shell/search'
 import { usePhone } from '../SystemMap'
 import { DataLegend, DataMap } from './DataMap'
 import { isCluster, membersOf, modeOf, ranked, viewOf, type Mode } from './model'
@@ -61,7 +62,6 @@ function Overview({ dp, mode, focus, onFocus }: { dp: DataPaths; mode: Mode; foc
 function DataBody({ data, dp }: { data: StudioData; dp: DataPaths }) {
   const w = useDataWords()
   const phone = usePhone()
-  const navigate = useNavigate()
   const search = useSearch({ strict: false }) as DataSearch
   const mode = modeOf(search.view, dp)
   const stores = useMemo(() => new Map(dp.stores.map((s) => [s.id, s])), [dp])
@@ -75,10 +75,7 @@ function DataBody({ data, dp }: { data: StudioData; dp: DataPaths }) {
   const zoom = useZoom(svg, explore)
   usePageChrome(w('dataTitle'), { to: '/system', label: w('lensMap') }, data.manifest.project.name)
 
-  const go = (patch: Partial<DataSearch>) => navigate({
-    to: '/system/data', search: (prev: DataSearch) => Object.fromEntries(Object.entries({ ...prev, ...patch })
-      .filter(([, v]) => v !== undefined && v !== '')) as DataSearch,
-  })
+  const go = useSearchPatch<DataSearch>('/system/data')
   const pick = (id: string) => go({ store: id === focus ? undefined : id })
   const names = useMemo(() => dp.stores.map((s) => s.name), [dp])
   const byName = (name: string) => dp.stores.find((s) => s.name === name)?.id

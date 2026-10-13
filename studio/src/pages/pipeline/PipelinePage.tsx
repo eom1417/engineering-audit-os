@@ -2,7 +2,7 @@
 // steps) beside the inspector. Phone: the steps first, the flowchart as a preview that opens full screen, top to
 // bottom, with pan and pinch. When the project holds no pipeline the page says so, with what EAOS looked for.
 // ?p=<pipeline>, ?view=current|ideal|gap, ?show=map|steps, ?stage=<id>, ?hidden=1, ?follow=<data name>.
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
@@ -15,6 +15,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, WithData } from '../../shell/Layout'
+import { useSearchPatch } from '../../shell/search'
 import { usePhone } from '../SystemMap'
 import { Flowchart, Legend } from './Flowchart'
 import { GapPanel, LookedFor, PipelineSummary, PipelineTree, StageInspector } from './Inspector'
@@ -99,7 +100,6 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
   const w = usePipelineWords()
   const { t } = usePrefs()
   const phone = usePhone()
-  const navigate = useNavigate()
   const search = useSearch({ strict: false }) as PipelineSearch
   const id = search.p && data.pipelines.some((p) => p.id === search.p) ? search.p : firstPipeline(data)!
   const scope = useMemo(() => scopeOf(data, id)!, [data, id])
@@ -113,10 +113,7 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
   const [full, setFull] = useState(false)
   const [sheet, setSheet] = useState(false)
   usePageChrome(w('pipeline'), { to: '/system', label: t('system') }, studio.manifest.project.name)
-  const go = (patch: Partial<PipelineSearch>) => navigate({
-    to: '/system/pipeline', replace: true,
-    search: (prev: PipelineSearch) => Object.fromEntries(Object.entries({ ...prev, ...patch }).filter(([, v]) => v !== undefined && v !== '')) as PipelineSearch,
-  })
+  const go = useSearchPatch<PipelineSearch>('/system/pipeline', { replace: true })
   const pick = (sid: string) => { go({ stage: sid === stage ? undefined : sid }); if (phone) setSheet(sid !== stage) }
   const enter = (pid: string) => { go({ p: pid === firstPipeline(data) ? undefined : pid, stage: undefined, follow: undefined }); setSheet(false) }
   const setFollow = (name: string | undefined) => { go({ follow: name }); setSheet(false) }

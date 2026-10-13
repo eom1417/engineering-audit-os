@@ -2,7 +2,7 @@
 // Change) beside the list of paths and where EAOS stopped; choosing a cluster shows its steps and paths. Phone: the
 // list first, the overview as a preview that opens full screen. ?view=, ?cluster=, ?q=, ?filter=gaps|screens|server,
 // ?file= or ?part= (the paths through a file or a part: the links from a card, a component or a function).
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
@@ -16,6 +16,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id, N } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, WithData } from '../../shell/Layout'
+import { useSearchPatch } from '../../shell/search'
 import { usePhone } from '../SystemMap'
 import { drawOverview } from './draw'
 import { ModeSwitch } from './ModeSwitch'
@@ -130,17 +131,13 @@ function PathsView({ data, paths }: { data: StudioData; paths: PathsData }) {
   const w = usePathWords()
   const { t } = usePrefs()
   const phone = usePhone()
-  const navigate = useNavigate()
   const search = useSearch({ strict: false }) as PathsSearch
   const index = useMemo(() => indexOf(paths), [paths])
   const mode: PathMode = PATH_MODES.includes(search.view as PathMode) ? (search.view as PathMode) : 'current'
   const cluster = paths.overview.clusters.some((c) => c.id === search.cluster) ? search.cluster : undefined
   const [full, setFull] = useState(false)
   const [sheet, setSheet] = useState(false)
-  const go = (patch: Partial<PathsSearch>) => navigate({
-    to: '/system/paths', replace: true,
-    search: (prev: PathsSearch) => Object.fromEntries(Object.entries({ ...prev, ...patch }).filter(([, v]) => v !== undefined && v !== '')) as PathsSearch,
-  })
+  const go = useSearchPatch<PathsSearch>('/system/paths', { replace: true })
   const pick = (id: string) => { go({ cluster: id === cluster ? undefined : id }); if (phone) setSheet(id !== cluster) }
   const drawn = useMemo(() => drawOverview(paths, mode, w), [paths, mode, w])
   const label = w('overviewAria', { n: paths.overview.clusters.length })

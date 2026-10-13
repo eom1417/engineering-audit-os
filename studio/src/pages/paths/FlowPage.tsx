@@ -1,7 +1,7 @@
 // #/flows/<path>: one code path. Diagram (the swimlanes, Current / Target / Change), Sequence (lifelines and messages
 // in order) or Steps (the linear list, the phone's default and the screen reader's view); the inspector shows the
 // evidence of what is chosen. ?view=current|target|change, ?show=diagram|sequence|steps, ?node=<id>, ?traced=1.
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { useParams, useSearch } from '@tanstack/react-router'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
@@ -15,6 +15,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { MissingBanner, WithData } from '../../shell/Layout'
+import { useSearchPatch } from '../../shell/search'
 import { usePhone } from '../SystemMap'
 import { drawPath } from './draw'
 import { NodeInspector } from './Inspector'
@@ -57,7 +58,6 @@ function FlowView({ data, paths, path }: { data: StudioData; paths: PathsData; p
   const w = usePathWords()
   const { t } = usePrefs()
   const phone = usePhone()
-  const navigate = useNavigate()
   const search = useSearch({ strict: false }) as FlowSearch
   const index = useMemo(() => indexOf(paths), [paths])
   const mode: PathMode = PATH_MODES.includes(search.view as PathMode) ? (search.view as PathMode) : 'current'
@@ -67,10 +67,7 @@ function FlowView({ data, paths, path }: { data: StudioData; paths: PathsData; p
   const [full, setFull] = useState(false)
   const [sheet, setSheet] = useState(false)
   usePageChrome(path.title, { to: '/system/paths', label: w('codePaths') }, data.manifest.project.name)
-  const go = (patch: Partial<FlowSearch>) => navigate({
-    to: '/flows/$pathId', params: { pathId: path.id }, replace: true,
-    search: (prev: FlowSearch) => Object.fromEntries(Object.entries({ ...prev, ...patch }).filter(([, v]) => v !== undefined && v !== '')) as FlowSearch,
-  })
+  const go = useSearchPatch<FlowSearch>('/flows/$pathId', { replace: true, params: { pathId: path.id } })
   const pick = (id: string) => { go({ node: id === node ? undefined : id }); if (phone) setSheet(id !== node) }
   const drawn = useMemo(() => drawPath(paths, index, path, { mode, w, onlyTraced: traced }), [paths, index, path, mode, w, traced])
   const label = w('diagramAria', { t: path.title, n: path.columns.flat().length, l: path.columns.filter((c) => c.length).length, g: path.gaps })
