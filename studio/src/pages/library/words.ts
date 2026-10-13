@@ -43,6 +43,7 @@ export const LIBRARY_WORDS = {
   textMissingSub: ['تجدها في مجلد التقرير. يحمل الاستوديو نصوص الوثائق ابتداءً من هذا الإصدار من EAOS: افحص المشروع من جديد ليصل النص.',
     'It is in the report folder. The Studio carries the documents’ text from this version of EAOS on: check the project again to bring it here.'],
   truncated: ['الوثيقة طويلة: يظهر هنا أول {n} حرف، ونصها كاملًا في مجلد التقرير.', 'A long document: the first {n} characters are shown here; the whole text is in the report folder.'],
+  notHere: ['غير موجود', 'Not found'],
   notFound: ['لا وثيقة بهذا الاسم في التقرير', 'No document by that name in the report'],
   notFoundSub: ['ربما كُتب الرابط لفحص أقدم. ارجع إلى المكتبة لترى وثائق هذا الفحص.', 'The link may come from an older check. Go back to the Library to see the documents of this one.'],
   diagramNote: ['يرسم الاستوديو بنية المشروع أيضًا على خرائطه التفاعلية من الحقائق نفسها.', "The Studio also draws the project's structure on its interactive maps, from the same facts."],

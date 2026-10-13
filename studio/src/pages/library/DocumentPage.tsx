@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
 import { Chip } from '../../components/Chip'
 import { Go } from '../../components/Go'
-import { Panel, Skeleton, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
 import type { Doc, StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
@@ -141,12 +141,11 @@ function DocumentBody({ data }: { data: StudioData }) {
   const { h } = useSearch({ strict: false }) as { h?: string }
   const path = decoded(docId ?? '')
   const doc = (data.docs?.docs ?? []).find((d) => d.path === path)
-  usePageChrome(doc?.title ?? w('notFound'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
+  usePageChrome(doc?.title ?? w('notHere'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
   if (!doc) {
     return (
       <div className={layout.page}>
-        <Panel><StateMessage icon="book" title={w('notFound')} sub={<>{w('notFoundSub')} <Id value={path || '—'} /></>}
-          action={<div><Go to="/library/docs" className={css.groupChip}>{w('backToLibrary')}</Go></div>} /></Panel>
+        <NotHere title={w('notFound')} sub={<>{w('notFoundSub')} <Id value={path || '—'} /></>} back="/library/docs" label={w('backToLibrary')} />
       </div>
     )
   }

@@ -40,7 +40,7 @@ function ImageBody({ data }: { data: StudioData }) {
   const id = decoded(imageId ?? '')
   const image = mediaOf(data).find((i) => i.id === id)
   const library = useLazySection<LibraryData>(data, 'library')
-  usePageChrome(image ? diagramTitle(image, w) : w('imageNotFound'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
+  usePageChrome(image ? diagramTitle(image, w) : w('notHere'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
   if (!image) {
     return <div className={layout.page}><NotHere title={w('imageNotFound')} sub={w('imageNotFoundSub')} back="/library/docs" label={w('backToLibrary')} /></div>
   }
