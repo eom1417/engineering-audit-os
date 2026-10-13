@@ -187,6 +187,18 @@ def _uncovered(reachable, files):
 TEST_WORDS = re.compile(r'(^|[^a-z])(test|tests|pytest|unittest|vitest|jest|mocha)([^a-z]|$)')
 
 
+def python_tests(target, profile=None):
+    """The command that runs a Python project's tests from its root, as the coverage stage and the batch gates (eaos/execute.py) run them:
+    pytest when the project configures it, else unittest on tests/; [] without a tests/ folder of test_*.py, or when
+    the run profile already runs a Python suite."""
+    root = Path(target)
+    if any(Path(str(argv[0])).name in INTERPRETER_NAMES for argv in test_commands(profile)): return []   # the profile runs them
+    if not any((root / 'tests').glob('test_*.py')): return []
+    configured = (root / 'pytest.ini').is_file() or (root / 'conftest.py').is_file() or '[tool.pytest' in (
+        (root / 'pyproject.toml').read_text(encoding='utf-8', errors='replace') if (root / 'pyproject.toml').is_file() else '')
+    return [DEFAULT_COMMANDS[0] if configured else DEFAULT_COMMANDS[1]]
+
+
 def test_commands(profile):
     """The run profile's checks that run tests (npm test, pytest, vitest...), not its typecheck or lint."""
     return [argv for argv in (profile or {}).get('checks') or [] if any(TEST_WORDS.search(str(part).lower()) for part in argv)]
@@ -306,8 +318,9 @@ def run_profile(target, out, runtime, timeout=1800):
     target, out, runtime = Path(target).resolve(), Path(out).resolve(), Path(runtime)
     out.mkdir(parents=True, exist_ok=True)
     live = LiveRun(target, runtime, 'S05')
-    commands = test_commands(live.profile)
-    if not commands: raise LookupError("the run profile's checks name no test command")
+    # The profile's tests run in the app's folder; a Python suite beside it (eaos/execute.py python_tests) from the root.
+    suites = [(group, at_root) for group, at_root in ((test_commands(live.profile), False), (python_tests(target, live.profile), True)) if group]
+    if not suites: raise LookupError("the run profile's checks name no test command, and no Python suite was found")
     v8 = runtime / 'verify-v8'
     shutil.rmtree(v8, ignore_errors=True)
     v8.mkdir(parents=True)
@@ -316,14 +329,17 @@ def run_profile(target, out, runtime, timeout=1800):
     tests, covered = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered,
               'executed': False, 'limitations': LIMITATIONS, 'attempts': []}
-    files, contexts = {}, {}
+    files, health = {}, []
     try:
         live.setup()
-        app = live.sandbox.copy / (live.profile.get('app') or '')
-        (app / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
-        python = _run_tests(live, commands, app, v8, timeout, result['attempts'])
-        if python: files, contexts = _python_coverage(live, python, app)
-        result['suite'] = suite_health(app, contexts)
+        for commands, at_root in suites:
+            folder = live.sandbox.copy / ('' if at_root else live.profile.get('app') or '')
+            (folder / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
+            python = _run_tests(live, commands, folder, v8, timeout, result['attempts'], at_root)
+            covered, contexts = _python_coverage(live, python, folder, at_root) if python else ({}, {})
+            files.update(covered)
+            health.append(suite_health(folder, contexts))
+        result['suite'] = _one_suite(health)
         for path, row in v8_coverage(v8, live.sandbox.copy).items():
             files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'], 'percent': row['percent'],
                                     'unit': 'functions'})
@@ -332,7 +348,7 @@ def run_profile(target, out, runtime, timeout=1800):
         live.record('verify-log.json')
         shutil.rmtree(v8, ignore_errors=True)
     result['executed'] = bool(result['attempts'])
-    result['command'] = [str(a) for a in commands[0]]
+    result['command'] = [str(a) for a in suites[0][0][0]]
     result['passed'] = all(a['exit_code'] == 0 for a in result['attempts'])
     if files: result.update(_coverage_summary(files, sets))
     else:
@@ -343,29 +359,40 @@ def run_profile(target, out, runtime, timeout=1800):
     return result
 
 
-def _run_tests(live, commands, app, v8, timeout, attempts):
+def _one_suite(suites):
+    """The health of every suite the project has, as one: their tests and time added, the slowest and redundant of all."""
+    if len(suites) == 1: return suites[0]
+    slowest = sorted((row for s in suites for row in s['slowest']), key=lambda row: -row['seconds'])[:10]
+    redundant = [row for s in suites for row in s['redundant']]
+    tests = sum(s['tests'] for s in suites)
+    return {**suites[0], 'tests': tests, 'seconds': round(sum(s['seconds'] for s in suites), 1), 'slowest': slowest,
+            'redundant': redundant[:30], 'redundant_count': sum(s['redundant_count'] for s in suites),
+            'redundant_share': round(sum(s['redundant_count'] for s in suites) / tests, 3) if tests else None}
+
+
+def _run_tests(live, commands, app, v8, timeout, attempts, at_root=False):
     """Run each test command in the sandbox, Python ones under coverage when the project has it, each with its runner's
     per-test report and Node's V8 coverage on; every run goes to `attempts`. The Python that ran coverage, or None."""
     python = None
     for argv in commands:
         started = time.monotonic()
         run_argv = argv
-        if Path(str(argv[0])).name in INTERPRETER_NAMES and live.run([argv[0], '-c', 'import coverage'], timeout=60)[0] == 0:
+        if Path(str(argv[0])).name in INTERPRETER_NAMES | {Path(INTERPRETER).name} and live.run([argv[0], '-c', 'import coverage'], timeout=60, at_root=at_root)[0] == 0:
             run_argv, python = [argv[0], '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', *argv[1:]], argv[0]
-        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)})
+        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)}, at_root=at_root)
         attempts.append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
                          'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
     return python
 
 
-def _python_coverage(live, python, app):
+def _python_coverage(live, python, app, at_root=False):
     """({path: coverage row}, {test: lines it ran}) from Coverage.py's report with its contexts; empty when none was made."""
     files, contexts = {}, {}
     code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', '.eaos-coverage.json'],
-                          timeout=300)
+                          timeout=300, at_root=at_root)
     report = app / '.eaos-coverage.json'
     if code != 0 or not report.is_file(): return files, contexts
-    prefix = Path(live.profile.get('app') or '.').as_posix().strip('./')
+    prefix = '' if at_root else Path(live.profile.get('app') or '.').as_posix().strip('./')
     for name, entry in json.loads(report.read_text(encoding='utf-8')).get('files', {}).items():
         for line, tests in (entry.get('contexts') or {}).items():
             for test in filter(None, tests): contexts.setdefault(test, set()).add((name, line))

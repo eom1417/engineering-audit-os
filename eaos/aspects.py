@@ -236,8 +236,9 @@ def _findings(out):
     plan = _load(out, 'plan.json', {}) or {}
     cards = _load(out, 'cards.json', {}) or {}
     tasks = [t for t in plan.get('tasks') or [] if t.get('state', 'open') not in ('done', 'resolved')]
+    from .studio.model import classify          # the card's severity, as the Studio shows it
     severity = {}
-    for t in tasks: severity[t.get('severity') or '?'] = severity.get(t.get('severity') or '?', 0) + 1
+    for t in tasks: severity[classify(t)[1]] = severity.get(classify(t)[1], 0) + 1
     row = {'source': 'plan.json, cards.json', 'open_cards': len(tasks), 'by_severity': severity,
            'set_aside_by_the_triage': len(cards.get('set_aside') or []), 'doubted': len(cards.get('doubted') or [])}
     row['rules'] = (_verdict('improve', f'{len(tasks)} open card(s) with their evidence') if tasks else

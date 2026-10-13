@@ -115,7 +115,8 @@ def project_checks(target, runtime, stage, name):
     Every command's output tail is kept in runtime/checks-<name>-log.json."""
     from .live_run import LiveRun
     live = LiveRun(target, runtime, stage)
-    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(target)]
+    from .verify import python_tests
+    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(target, live.profile)]
     if not checks: return []
     try:
         live.setup()
@@ -145,17 +146,6 @@ def original_checks(target, runtime):
 
 TAP_FAILURE = re.compile(r'^\s*not ok \d+ - (.+?)(?:\s+#.*)?$', re.M)
 PYTHON_FAILURE = re.compile(r'^(?:(?:FAIL|ERROR): (\S+ \([^)]*\))|FAILED (\S+))', re.M)   # unittest, pytest -q
-
-
-def python_tests(target):
-    """The command that runs a Python project's tests from its root, as the coverage stage runs them (eaos/verify.py):
-    pytest when the project configures it, else unittest on tests/; [] without a tests/ folder of test_*.py."""
-    from .verify import DEFAULT_COMMANDS
-    root = Path(target)
-    if not any((root / 'tests').glob('test_*.py')): return []
-    configured = (root / 'pytest.ini').is_file() or (root / 'conftest.py').is_file() or '[tool.pytest' in (
-        (root / 'pyproject.toml').read_text(encoding='utf-8', errors='replace') if (root / 'pyproject.toml').is_file() else '')
-    return [DEFAULT_COMMANDS[0] if configured else DEFAULT_COMMANDS[1]]
 
 
 def failing(output):

@@ -210,7 +210,7 @@
   "eaos/human_report.py": 2174,
   "eaos/live_setup.py": 682,
   "eaos/pipeline/runners.py": 603,
-  "eaos/plan.py": 841,
+  "eaos/plan.py": 830,
   "eaos/studio/actions/branches.py": 1143,
   "eaos/studio/actions/runs.py": 795,
   "eaos/studio/export.py": 604,

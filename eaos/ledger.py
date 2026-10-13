@@ -76,18 +76,6 @@ def _save(state, ledger):
     temporary.replace(target)
 
 
-def merged_keys(project, ref='HEAD'):
-    """{key: commit} for every EAOS card commit in the branch `ref`; {subject: commit} for older ones. A commit reverted
-    later in the branch (`git revert`, "This reverts commit <sha>") is not there any more, unless its revert was itself
-    reverted."""
-    return _walk(project, ref)[:2]
-
-
-def reverted_keys(project, ref='HEAD'):
-    """The keys whose EAOS commit is in the branch `ref` but was reverted there, and not fixed again after."""
-    return _walk(project, ref)[2]
-
-
 def _walk(project, ref):
     done = _git(project, 'log', '--format=%H%x00%ae%x00%B%x1e', ref)
     by_key, legacy, reverted, undone = {}, {}, set(), set()

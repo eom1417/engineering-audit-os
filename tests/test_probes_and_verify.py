@@ -152,7 +152,7 @@ class VerificationTests(unittest.TestCase):
             def stop(self): pass
             def record(self, name): pass
 
-            def run(self, argv, timeout=900, env=None):
+            def run(self, argv, timeout=900, env=None, at_root=False):
                 ran.append([str(a) for a in argv])
                 argv = [sys.executable if a == 'python' else a for a in argv]
                 done = subprocess.run(argv, cwd=self.sandbox.copy, capture_output=True, text=True)

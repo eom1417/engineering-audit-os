@@ -509,7 +509,9 @@ def design_cards(findings, tasks):
 
 
 def _design_key(finding):
-    """(kind of page, kind of problem) of a design finding."""
+    """(kind of page, kind of problem) of a design finding; a problem of a shared part (the top bar, the language)
+    is one card for every page that shows it."""
+    if finding.get('part') not in (None, '', 'page'): return ('shared', finding['part'])
     return (finding.get('template') or template_of(finding.get('page')),
             finding.get('kind') or ' '.join(str(finding.get('title') or '').lower().split()))
 
@@ -577,9 +579,7 @@ def _design_cards(out, tasks):
 
 
 RESOLUTIONS = ('fix', 'keep', 'owner')
-OWNER_SHARE = 0.10          # at most this share of the cards asks the person (at least one)
 RESOLUTION_FIELDS = ('resolution', 'change', 'question', 'options', 'recommendation', 'note', 'checks')
-CARD_SEVERITY = {'critical': 5, 'high': 4, 'medium': 2, 'low': 1, 'info': 0.5}
 
 
 def apply_verdicts(out, tasks, verdicts, language='ar'):
@@ -627,32 +627,20 @@ def _design_resolution(card):
 def resolutions(tasks, verdicts, design):
     """{card: resolution} the assistant gave: the triage's for the code cards it confirmed (nodes/card_triage), the
     screen reviewer's for the design cards (a design card is the change it named, unless its finding asked the
-    person or kept it)."""
+    person or kept it). A card the triage doubted is kept as not proven, never fixed blind nor handed to the person:
+    the next check judges it again on its new evidence."""
     out = {}
     for task in tasks:
         verdict = verdicts.get(task['id']) or {}
+        reach = (task.get('blast_radius') or {}).get('total') or 0
         if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
             out[task['id']] = {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
-                               'severity': verdict.get('severity'), 'reach': (task.get('blast_radius') or {}).get('total') or 0}
+                               'severity': verdict.get('severity'), 'reach': reach}
+        elif verdict.get('decision') == 'doubt':
+            out[task['id']] = {'resolution': 'keep', 'severity': verdict.get('severity'), 'reach': reach,
+                               'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); the next check judges it again."}
     for card in design: out[card['id']] = _design_resolution(card)
     return out
-
-
-def cap_owner(resolved, cards):
-    """At most OWNER_SHARE of the `cards` ask the person: the questions that matter most (severity x reach) stay
-    `owner`; the others become `fix` with the assistant's own recommendation, saying so. Changes `resolved`; returns
-    the cards it turned."""
-    asked = [card for card, r in resolved.items() if r['resolution'] == 'owner']
-    room = max(1, int(cards * OWNER_SHARE))
-    if len(asked) <= room: return []
-    weight = lambda card: (-CARD_SEVERITY.get(resolved[card].get('severity'), 1) * (1 + (resolved[card].get('reach') or 0)), card)
-    turned = sorted(asked, key=weight)[room:]
-    for card in turned:
-        row = resolved[card]
-        row.update(resolution='fix', change=row['recommendation'], capped=True,
-                   note=(f'it would have asked you about "{row["question"]}"; with more questions than one in ten cards, '
-                         f'this one mattered less (severity x reach), so its own recommendation is taken'))
-    return turned
 
 
 def _fix_check(card, change, revision):
@@ -704,6 +692,7 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     design = _design_cards(out, [t for t in tasks if t['id'] not in rejected]) if reviewed else []
     resolved = resolutions([t for t in tasks if t['id'] not in rejected], verdicts, design)
     closed = {card for card, r in resolved.items() if r['resolution'] == 'keep'}
+    from .owner_share import cap_owner
     turned = cap_owner(resolved, len(tasks) - len(rejected) - len(closed) + len(design))
     revision = _fix_checks(target, resolved, verdicts)
     for card, row in resolved.items():

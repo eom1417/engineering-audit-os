@@ -141,7 +141,8 @@ class CodeLawsGateTests(unittest.TestCase):
 
 class PythonSuiteGateTests(unittest.TestCase):
     def test_a_python_suite_beside_the_app_is_a_gate_and_only_its_new_failures_count(self):
-        from eaos.execute import failing, python_tests, regressions
+        from eaos.execute import failing, regressions
+        from eaos.verify import python_tests
         root = Path(tempfile.mkdtemp())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
         (root / 'tests').mkdir()

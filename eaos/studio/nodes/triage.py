@@ -38,7 +38,7 @@ card may stand on more facts than the ones shown.
 
 WHAT TO RETURN
 One decision per card, subject = the card id: "confirm" when the evidence shows the problem the card names; "doubt" when
-it neither shows nor contradicts it (a probe will settle it before the person sees the card); "reject" when it
+it neither shows nor contradicts it (the card is kept as not proven, and the next check judges it again); "reject" when it
 contradicts it (a false alarm: the card is set aside and its rule is told). `why`: one or two plain sentences naming what
 in the evidence decided it. `detail.falsifier`: the observation that would show your decision wrong. `evidence`: the
 card id and the fact ids you relied on.

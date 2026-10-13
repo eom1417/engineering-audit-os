@@ -17,7 +17,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .. import artifact_contracts, build_info, indicators
+from .. import artifact_contracts, build_info, indicators, owner_share
 from ..compose.labels import impact_of
 from . import change as change_map
 from . import coverage as coverage_section
@@ -471,7 +471,7 @@ def _decision_rows(report, m, card_rows, lang):
         identity = {k: source.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
         row['revision'] = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         row['recommended_option'] = _recommended(source)
-    return rows
+    return owner_share.capped(rows, len(card_rows))
 
 
 def _published(built, stamps):

@@ -79,6 +79,8 @@
   .phoneChips > * { min-inline-size: 0; }
   .phoneChips .freshChip { flex: 0 3 auto; }
   .phoneChips .freshChip button { max-inline-size: 100%; overflow: hidden; }
+  .phoneChips .freshChip [data-long] { display: none; }
+  .phoneChips .freshChip [data-short] { display: inline; }
   .back { display: inline-flex; align-items: center; gap: 2px; min-block-size: 44px; padding-inline: 4px 10px; color: var(--accent-text); font-size: 16px; font-weight: 500; min-inline-size: 0; }
   .back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .main { padding-block-end: calc(var(--tabbar-h) + 24px + env(safe-area-inset-bottom)); }

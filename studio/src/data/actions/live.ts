@@ -28,10 +28,13 @@ export function takeToken(): string | null {
   try { return sessionStorage.getItem(TOKEN_KEY) || window.EAOS_BOOT_TOKEN || null } catch { return window.EAOS_BOOT_TOKEN || null }
 }
 
-/** A refused call; one with reasons is said in the page's language (i18n/prefs keeps <html lang>), not the server's English. */
+/** The language the person reads the page in (i18n/prefs keeps <html lang>). */
+const pageLang = (): 'ar' | 'en' => (globalThis.document?.documentElement.lang === 'en' ? 'en' : 'ar')
+
+/** A refused call; one with reasons is said in the page's language, not the server's English. */
 function refused(response: Response, payload: Record<string, unknown>): ActionError {
   const reasons = (payload.reasons ?? []) as Reason[]
-  const lang = globalThis.document?.documentElement.lang === 'en' ? 'en' : 'ar'
+  const lang = pageLang()
   const message = reasons.length ? reasons.map((r) => r[lang]).join(' ') : String(payload.error ?? response.statusText)
   return new ActionError(response.status, message, payload.needs as string | undefined, reasons)
 }
@@ -89,7 +92,8 @@ export function liveClient(token: string): ActionsClient {
     // a read-only server (no project known) has no action API: nothing to poll, nothing to start
     available: () => (mounted ??= request('GET', '/api/session').then((s) => (s as { actions?: boolean }).actions !== false, () => true)),
     preview: (id: string, body: PreviewBody) => post<Preview>(`/api/actions/${encodeURIComponent(id)}/preview`, body),
-    start: (body: StartBody) => post<{ run: Run }>('/api/runs', body).then(runOf),
+    // the run, and the check or fix it starts, write in the language the person reads
+    start: (body: StartBody) => post<{ run: Run }>('/api/runs', { ...body, lang: pageLang() }).then(runOf),
     runs: () => get<{ runs: Run[]; queue: string[] }>('/api/runs?all=1'),
     run: (id: string) => get<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}`).then(runOf),
     control: (id: string, op: Control) => post<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}/${op}`).then(runOf),

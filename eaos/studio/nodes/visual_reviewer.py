@@ -25,8 +25,8 @@ _REGION = {'type': 'object', 'additionalProperties': False, 'required': ['x', 'y
            'properties': {name: {'type': 'number'} for name in ('x', 'y', 'width', 'height')}}
 _SHOWS = {'type': 'object', 'additionalProperties': False, 'required': ['picture', 'region'],
           'properties': {'picture': {'type': 'string'}, 'region': _REGION}}
-_FINDING = {'type': 'object', 'additionalProperties': False, 'required': ['title', 'kind', 'severity', 'shows', 'why'],
-            'properties': {'title': {'type': 'string'}, 'kind': {'type': 'string', 'enum': list(KINDS)},
+_FINDING = {'type': 'object', 'additionalProperties': False, 'required': ['title', 'kind', 'part', 'severity', 'shows', 'why'],
+            'properties': {'title': {'type': 'string'}, 'kind': {'type': 'string', 'enum': list(KINDS)}, 'part': {'type': 'string'},
                            'severity': {'type': 'string', 'enum': list(SEVERITIES)},
                            'shows': {'type': 'array', 'items': _SHOWS}, 'why': {'type': 'string'}}}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['findings'],
@@ -48,7 +48,11 @@ One decision per page, subject = its id: "cards" with `detail.findings`, or "cle
 (`detail.findings` empty). A finding is one problem of the page, written once even when it shows on several of its
 pictures: a short title, its kind, its severity, why a person would notice it, and in `shows` each picture of this page
 it shows on (its id) with the region of that picture it is about, as fractions 0 to 1 of the picture's width and height,
-x and y its top-left corner. `evidence`: the ids of the pictures you opened.
+x and y its top-left corner. `part`: where the cause lives, so one cause is one card however many pages show it:
+`page` when only this page has it; else the shared part every page draws, one lowercase word from: top-bar,
+navigation, sidebar, footer, language (text in the wrong language or direction), typography, colours, buttons, cards,
+forms, tables, charts, icons, layout; another such word only when none fits. `evidence`: the ids of the pictures you
+opened.
 
 A GOOD ANSWER
 Every page decided once. A finding is specific to what is drawn in its regions and says what to change there. A
@@ -180,7 +184,7 @@ def _finding_row(row_id, page, finding, pictures):
             'image': first['image'], 'file': first['file'], 'viewport': first['viewport'], 'region': first['region'],
             'viewports': list(dict.fromkeys(s['viewport'] for s in shows)),
             'theme': pictures[first['image']][1]['theme'], 'pictures': shows,
-            **{k: finding[k] for k in ('title', 'kind', 'severity', 'why')}}
+            **{k: finding[k] for k in ('title', 'kind', 'severity', 'why')}, 'part': finding.get('part') or 'page'}
 
 
 def finish(report, record, data):

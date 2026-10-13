@@ -103,7 +103,6 @@ class JointDecision(TemporaryWorkspace):
         self.assertTrue(core)
         self.assertFalse(core.keys() & {t['id'] for t in plan['tasks']})
         self.assertEqual({row['card']: row['claim_id'] for row in cards['set_aside']}, core)
-        self.assertEqual(next(t for t in plan['tasks'] if t['id'] == 'TASK-002')['triage']['decision'], 'doubt')
         # Self-audit: the verdicts reached only the plan; the claims the assistant rejected stayed open and ranked among
         # the top risks, and a doubted card stayed "ready". Applied once, every later reader sees them.
         claims = {c['id']: c for c in self.read('joint', 'dossier.json')['claims']}
@@ -112,9 +111,10 @@ class JointDecision(TemporaryWorkspace):
         self.assertFalse(set(core.values()) & {i['claim_id'] for i in self.read('joint', 'debt-register.json')['items']})
         self.assertEqual({d['kind'] for d in self.read('joint', 'plan.json')['decisions']
                           if d['observation_uid'] in {claims[c]['uid'] for c in core.values()}}, {'retain'})
-        doubted = next(t for t in plan['tasks'] if t['id'] == 'TASK-002')
-        self.assertEqual((doubted['decision']['readiness'], doubted['triage']['rejudged']), ('needs_review', True))
-        self.assertIn('assistant doubted', ' '.join(doubted['decision']['blockers']))
+        # A doubted card is neither fixed blind nor handed to the person: it closes as not proven, judged again next check.
+        doubted = next(row for row in cards['closed'] if row['card'] == 'TASK-002')
+        self.assertTrue(doubted['why'].startswith('Not proven by its evidence'), doubted)
+        self.assertNotIn(doubted['claim_id'], {t['claim_id'] for t in plan['tasks']})
         gap = lambda run: {r['component']: r for r in self.read(run, 'target-architecture.json')['gap_matrix']}['T-core']
         self.assertTrue(core.keys() <= set(gap('rules')['blocking_tasks']))
         self.assertFalse(core.keys() & set(gap('joint')['blocking_tasks']))
@@ -160,6 +160,22 @@ class JointDecision(TemporaryWorkspace):
         self.assertEqual(len(self.read('stale', 'plan.json')['tasks']), len(self.read('rules', 'plan.json')['tasks']))
         self.assertEqual(self.read('stale', 'target-architecture.json')['decided']['by'], 'rules')
         self.assertEqual(self.read('stale', 'plan.json')['order']['source'], 'rules')
+
+
+class OwnerShareTests(unittest.TestCase):
+    def test_every_source_shares_one_owner_cap_and_a_doubted_card_is_kept_not_proven(self):
+        # The self-check asked the owner 20 questions for 123 cards (14 from the planner) and left 16 doubted cards to them.
+        from eaos.plan import resolutions
+        from eaos.owner_share import capped as _capped
+        rows = [{'id': 'target-architecture', 'state': 'waiting', 'recommended_option': 'review'},
+                {'id': 'ideal-OQ-a', 'state': 'waiting', 'recommended_option': 'o1'},
+                {'id': 'ideal-OQ-b', 'state': 'waiting', 'recommended_option': None},
+                {'id': 'node-x:Q', 'state': 'waiting', 'recommended_option': 'o2'}]
+        capped = {r['id']: (r['state'], r.get('answer')) for r in _capped(rows, 20)}
+        self.assertEqual(capped, {'target-architecture': ('waiting', None), 'ideal-OQ-a': ('answered', 'o1'),
+                                  'ideal-OQ-b': ('waiting', None), 'node-x:Q': ('answered', 'o2')})
+        doubted = resolutions([{'id': 'TASK-001'}], {'TASK-001': {'decision': 'doubt', 'why': 'only a line count'}}, [])
+        self.assertEqual(doubted['TASK-001']['resolution'], 'keep')
 
 
 if __name__ == '__main__':

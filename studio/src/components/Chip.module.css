@@ -58,3 +58,6 @@ button.chip[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-
 }
 
 .sevInfo { color: var(--text-secondary); }
+
+/* The freshness chip's short form (a count, or ✓): shown instead of its sentence where the top bar is narrow (Shell). */
+.chipShort { display: none; font-variant-numeric: tabular-nums; }

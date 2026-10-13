@@ -50,14 +50,6 @@ def _npm_test(target):
     return bool(scripts.get('test')) and 'no test specified' not in scripts['test'].lower()
 
 
-def _python_tests(target):
-    """True when a tests/ folder holds Python tests, or pyproject.toml names pytest."""
-    if not (target / 'tests').is_dir(): return False
-    pyproject = target / 'pyproject.toml'
-    text = pyproject.read_text(encoding='utf-8', errors='replace') if pyproject.is_file() else ''
-    return 'pytest' in text or any((target / 'tests').glob('test_*.py'))
-
-
 def _declared_test_command(out):
     run_path = Path(out) / 'facts' / 'run.json'
     if not run_path.is_file(): return None
@@ -65,7 +57,9 @@ def _declared_test_command(out):
     if _npm_test(target): return ['npm', 'test', '--silent'], 'project_manifest'
     declared = next((argv for name, argv in MANIFEST_TESTS if (target / name).is_file()), None)
     if declared: return declared, 'project_manifest'
-    if _python_tests(target): return [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-q'], 'discovered_tests'
+    from .verify import python_tests
+    found = python_tests(target)
+    if found: return found[0], 'discovered_tests'
     return None
 
 

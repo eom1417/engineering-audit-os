@@ -428,6 +428,14 @@ class Actions:
         handed = bool(needed) and action not in PLANNERS
         out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
 
+    def _speak(self, lang):
+        """The language the person reads the Studio in becomes the project's: the check and the fixes it starts write in it."""
+        from ... import guided
+        state = guided.load(self.project) if lang in ('ar', 'en') else None
+        if state and state.get('lang') != lang:
+            state['lang'] = lang
+            guided.save(state)
+
     def _has_commits(self):
         return self.branches.is_repo() and not self.branches.head()['unborn']
 
@@ -438,6 +446,7 @@ class Actions:
     def create(self, body):
         if not (body.get('action') or body.get('verb')): raise ValueError('say which action to run (action) or which verb (verb)')
         verb, action = self._kind(str(body.get('action') or body.get('verb')), body)
+        self._speak(body.get('lang'))
         inputs = self._inputs(action, body.get('inputs'), verb)
         auto = _auto_accept(verb, inputs)
         if verb: inputs = {}
