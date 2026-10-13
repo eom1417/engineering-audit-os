@@ -4,7 +4,7 @@
 .status { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .status > :first-child { border-inline-end: 1px solid var(--border-subtle); border-start-end-radius: 0; border-end-end-radius: 0; }
 .statusSide { padding: 14px 20px; display: flex; flex-direction: column; justify-content: center; }
-.cards { display: flex; flex-direction: column; gap: 16px; max-inline-size: 720px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); align-items: start; gap: 16px; }
 
 .areas { display: flex; flex-direction: column; gap: 10px; }
 .area { display: grid; grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 32px auto; gap: 12px; align-items: center; font-size: 14px; }
@@ -49,6 +49,6 @@
 @media (max-width: 767px) {
   .homePage { --section-gap: 8px; }
 }
-.decided { margin-block-start: 24px; max-inline-size: 720px; }
+.decided { margin-block-start: 24px; }
 .decided > summary { cursor: pointer; padding-block: 10px; color: var(--text-secondary); font-weight: 600; }
 .decided > .cards { margin-block-start: 12px; }
