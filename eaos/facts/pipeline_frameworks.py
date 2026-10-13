@@ -11,90 +11,142 @@ from . import call_name
 from .pipeline_read import (slug, site, Found, _str, _strs, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES)
 
 
+SHIFTS = (ast.RShift, ast.LShift)
+
+
 def airflow(py, out, flows):
     for rel, tree in py.trees.items():
         if not any((module or '').split('.')[0] == 'airflow' for module, _ in py.imports.get(rel, {}).values()): continue
-        found = None
-        tasks = {}
-        for sub in ast.walk(tree):
-            if isinstance(sub, ast.Call) and call_name(sub.func) == 'DAG':
-                dag_id = next((_str(k.value) for k in sub.keywords if k.arg == 'dag_id'), None) or (_str(sub.args[0]) if sub.args else None)
-                if dag_id and found is None:
-                    found = Found(f'{rel}:{dag_id}', dag_id, 'airflow', site(rel, sub.lineno, py.line(rel, sub.lineno)),
-                                  [site(rel, sub.lineno, py.line(rel, sub.lineno))])
-            if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
-                task_id = next((_str(k.value) for k in sub.value.keywords if k.arg == 'task_id'), None)
-                if task_id: tasks[sub.targets[0].id] = (task_id, sub.value)
+        found, tasks = _dag(py, rel, tree)
         if found is None or not tasks: continue
         found.functions.add((rel, '<dag>'))
-        keys = {}
-        for var, (task_id, call) in tasks.items():
-            line = next((k.value.lineno for k in call.keywords if k.arg == 'task_id'), call.lineno)
-            keys[var] = found.stage(task_id, site(rel, line, py.line(rel, line)), symbol=f"{rel[:-3].replace('/', '.')}.{var}", variable=var)
-            stage = found.stages[keys[var]]
-            stage['tools'] = [call_name(call.func) or 'Operator']
-            for keyword in call.keywords:
-                if keyword.arg == 'python_callable' and isinstance(keyword.value, ast.Name):
-                    target = py.resolve(rel, keyword.value.id)
-                    if target:
-                        flows.add((target[0], target[1].name))
-                        stage['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}"
-                        stage['callable'] = (target[0], target[1].name)
-                        describe(py, target[0], target[1], stage)
-                        if 'Branch' in (call_name(call.func) or ''): _branch_operator(py, found, keys[var], target, tasks, rel, call)
-                        for pull in ast.walk(target[1]):
-                            if isinstance(pull, ast.Call) and call_name(pull.func) == 'xcom_pull':
-                                for keyword2 in pull.keywords:
-                                    if keyword2.arg == 'task_ids':
-                                        for upstream in _strs(keyword2.value):
-                                            stage.setdefault('xcom', []).append((upstream, target[0], pull.lineno))
-                if keyword.arg in ('retries', 'retry_delay'):
-                    found.control.append({'id': f'{keys[var]}:retry', 'pipeline': found.id, 'stage': keys[var], 'kind': 'retry',
-                                          'condition': _unparse(keyword.value), 'evidence': site(rel, call.lineno, py.line(rel, call.lineno))})
-                if keyword.arg in TIMEOUT_WORDS: stage['timeout'] = True
-        by_task = {found.stages[k]['label']: k for k in keys.values()}
-
-        def ends(expr):
-            if isinstance(expr, ast.Name) and expr.id in keys: return [keys[expr.id]]
-            if isinstance(expr, (ast.List, ast.Tuple)): return [k for e in expr.elts for k in ends(e)]
-            if isinstance(expr, ast.BinOp) and isinstance(expr.op, (ast.RShift, ast.LShift)): return ends(expr.right if isinstance(expr.op, ast.RShift) else expr.left)
-            return []
-
-        def heads(expr):
-            if isinstance(expr, ast.BinOp) and isinstance(expr.op, (ast.RShift, ast.LShift)): return heads(expr.left if isinstance(expr.op, ast.RShift) else expr.right)
-            return ends(expr)
-
-        for sub in ast.walk(tree):
-            if isinstance(sub, ast.BinOp) and isinstance(sub.op, (ast.RShift, ast.LShift)):
-                left, right = (sub.left, sub.right) if isinstance(sub.op, ast.RShift) else (sub.right, sub.left)
-                where = site(rel, sub.lineno, py.line(rel, sub.lineno))
-                sources = ends(left)
-                targets = heads(right)
-                for a in sources:
-                    for b in targets: found.edge(a, b, 'declared', where, kind='data')
-                if len(targets) > 1:
-                    for a in sources:
-                        found.fans.append({'id': f'{a}:fan:{sub.lineno}', 'pipeline': found.id, 'fork': a, 'join': None,
-                                           'branches': targets, 'matched': False, 'kind': 'parallel', 'evidence': where})
-            elif isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr in ('set_downstream', 'set_upstream') \
-                    and isinstance(sub.func.value, ast.Name) and sub.func.value.id in keys:
-                for b in ends(sub.args[0]) if sub.args else []:
-                    a = keys[sub.func.value.id]
-                    found.edge(*((a, b) if sub.func.attr == 'set_downstream' else (b, a)), 'declared', site(rel, sub.lineno, py.line(rel, sub.lineno)))
-            elif isinstance(sub, ast.Call) and call_name(sub.func) == 'chain':
-                items = [ends(arg) for arg in sub.args]
-                for left, right in zip(items, items[1:]):
-                    for a in left:
-                        for b in right: found.edge(a, b, 'declared', site(rel, sub.lineno, py.line(rel, sub.lineno)))
-        for key in keys.values():
-            for upstream, path, line in found.stages[key].pop('xcom', []):
-                if upstream in by_task:
-                    found.edge(by_task[upstream], key, 'value', site(path, line, py.line(path, line)), names=['xcom'])
-        for fan in found.fans:
-            joins = {b for (a, b) in found.edges for branch in fan['branches'] if a == branch}
-            if len(joins) == 1 and all((branch, next(iter(joins))) in found.edges for branch in fan['branches']):
-                fan['join'], fan['matched'] = next(iter(joins)), True
+        keys = {var: _task_stage(py, found, rel, var, tasks, flows) for var in tasks}
+        _declared_order(py, found, rel, tree, keys)
+        _xcom_edges(py, found, keys)
+        _match_joins(found)
         out.append(found)
+
+
+def _dag(py, rel, tree):
+    """(the pipeline of the file's first DAG with an id, {variable: (task_id, operator call)})."""
+    found, tasks = None, {}
+    for sub in ast.walk(tree):
+        if found is None and isinstance(sub, ast.Call) and call_name(sub.func) == 'DAG': found = _found(py, rel, sub)
+        if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
+            task_id = next((_str(k.value) for k in sub.value.keywords if k.arg == 'task_id'), None)
+            if task_id: tasks[sub.targets[0].id] = (task_id, sub.value)
+    return found, tasks
+
+
+def _found(py, rel, call):
+    dag_id = next((_str(k.value) for k in call.keywords if k.arg == 'dag_id'), None) or (_str(call.args[0]) if call.args else None)
+    if not dag_id: return None
+    return Found(f'{rel}:{dag_id}', dag_id, 'airflow', site(rel, call.lineno, py.line(rel, call.lineno)),
+                 [site(rel, call.lineno, py.line(rel, call.lineno))])
+
+
+def _task_stage(py, found, rel, var, tasks, flows):
+    """The stage of one task: its operator, the callable it runs, its retries and timeout; returns its key."""
+    task_id, call = tasks[var]
+    line = next((k.value.lineno for k in call.keywords if k.arg == 'task_id'), call.lineno)
+    key = found.stage(task_id, site(rel, line, py.line(rel, line)), symbol=f"{rel[:-3].replace('/', '.')}.{var}", variable=var)
+    stage = found.stages[key]
+    stage['tools'] = [call_name(call.func) or 'Operator']
+    for keyword in call.keywords:
+        if keyword.arg == 'python_callable' and isinstance(keyword.value, ast.Name):
+            _callable(py, found, key, rel, call, keyword.value.id, tasks, flows)
+        if keyword.arg in ('retries', 'retry_delay'):
+            found.control.append({'id': f'{key}:retry', 'pipeline': found.id, 'stage': key, 'kind': 'retry',
+                                  'condition': _unparse(keyword.value), 'evidence': site(rel, call.lineno, py.line(rel, call.lineno))})
+        if keyword.arg in TIMEOUT_WORDS: stage['timeout'] = True
+    return key
+
+
+def _callable(py, found, key, rel, call, name, tasks, flows):
+    """The function a task runs, when it resolves: described on its stage, a branch operator's routes, its XCom pulls."""
+    target = py.resolve(rel, name)
+    if not target: return
+    stage = found.stages[key]
+    flows.add((target[0], target[1].name))
+    stage['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}"
+    stage['callable'] = (target[0], target[1].name)
+    describe(py, target[0], target[1], stage)
+    if 'Branch' in (call_name(call.func) or ''): _branch_operator(py, found, key, target, tasks, rel, call)
+    for upstream, line in _xcom_pulls(target[1]): stage.setdefault('xcom', []).append((upstream, target[0], line))
+
+
+def _xcom_pulls(function):
+    """(task id, line) of every `xcom_pull(task_ids=...)` in a function."""
+    return [(upstream, pull.lineno) for pull in ast.walk(function) if isinstance(pull, ast.Call) and call_name(pull.func) == 'xcom_pull'
+            for keyword in pull.keywords if keyword.arg == 'task_ids' for upstream in _strs(keyword.value)]
+
+
+def _ends(expr, keys):
+    """The stages an expression of the `>>` syntax ends on."""
+    if isinstance(expr, ast.Name) and expr.id in keys: return [keys[expr.id]]
+    if isinstance(expr, (ast.List, ast.Tuple)): return [k for e in expr.elts for k in _ends(e, keys)]
+    if isinstance(expr, ast.BinOp) and isinstance(expr.op, SHIFTS): return _ends(expr.right if isinstance(expr.op, ast.RShift) else expr.left, keys)
+    return []
+
+
+def _heads(expr, keys):
+    """The stages an expression of the `>>` syntax starts from."""
+    if isinstance(expr, ast.BinOp) and isinstance(expr.op, SHIFTS): return _heads(expr.left if isinstance(expr.op, ast.RShift) else expr.right, keys)
+    return _ends(expr, keys)
+
+
+def _declared_order(py, found, rel, tree, keys):
+    """The edges `a >> b`, `a.set_downstream(b)` and `chain(a, b, ...)` declare."""
+    at = lambda node: site(rel, node.lineno, py.line(rel, node.lineno))
+    for sub in ast.walk(tree):
+        if isinstance(sub, ast.BinOp) and isinstance(sub.op, SHIFTS): _shift(found, sub, keys, at(sub))
+        elif _sets_stream(sub, keys): _stream(found, sub, keys, at(sub))
+        elif isinstance(sub, ast.Call) and call_name(sub.func) == 'chain': _chain(found, sub, keys, at(sub))
+
+
+def _shift(found, sub, keys, where):
+    """`a >> b` (or `b << a`): an edge from each end of a to each head of b, and a fan when b holds several."""
+    left, right = (sub.left, sub.right) if isinstance(sub.op, ast.RShift) else (sub.right, sub.left)
+    sources, targets = _ends(left, keys), _heads(right, keys)
+    for a in sources:
+        for b in targets: found.edge(a, b, 'declared', where, kind='data')
+    if len(targets) > 1:
+        found.fans.extend({'id': f'{a}:fan:{sub.lineno}', 'pipeline': found.id, 'fork': a, 'join': None,
+                           'branches': targets, 'matched': False, 'kind': 'parallel', 'evidence': where} for a in sources)
+
+
+def _sets_stream(sub, keys):
+    return isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr in ('set_downstream', 'set_upstream') \
+        and isinstance(sub.func.value, ast.Name) and sub.func.value.id in keys
+
+
+def _stream(found, sub, keys, where):
+    a = keys[sub.func.value.id]
+    for b in _ends(sub.args[0], keys) if sub.args else []:
+        found.edge(*((a, b) if sub.func.attr == 'set_downstream' else (b, a)), 'declared', where)
+
+
+def _chain(found, sub, keys, where):
+    items = [_ends(arg, keys) for arg in sub.args]
+    for left, right in zip(items, items[1:]):
+        for a in left:
+            for b in right: found.edge(a, b, 'declared', where)
+
+
+def _xcom_edges(py, found, keys):
+    """An edge from the task whose value a callable pulls to the task that pulls it."""
+    by_task = {found.stages[k]['label']: k for k in keys.values()}
+    for key in keys.values():
+        for upstream, path, line in found.stages[key].pop('xcom', []):
+            if upstream in by_task: found.edge(by_task[upstream], key, 'value', site(path, line, py.line(path, line)), names=['xcom'])
+
+
+def _match_joins(found):
+    """A fan whose branches all feed one stage is joined there."""
+    for fan in found.fans:
+        joins = {b for (a, b) in found.edges for branch in fan['branches'] if a == branch}
+        if len(joins) == 1 and all((branch, next(iter(joins))) in found.edges for branch in fan['branches']):
+            fan['join'], fan['matched'] = next(iter(joins)), True
 
 
 def _branch_operator(py, found, key, target, tasks, rel, call):
@@ -396,54 +448,6 @@ def luigi(py, out):
             if isinstance(sub, ast.Call) and call_name(sub.func) in tasks:
                 found.edge(f'{found.id}/{slug(call_name(sub.func))}', f'{found.id}/{slug(name)}', 'declared', site(rel, sub.lineno, py.line(rel, sub.lineno)))
     if found.edges: out.append(found)
-
-
-QUEUE_MODULES = {'kafka', 'confluent_kafka', 'aiokafka', 'pika', 'aio_pika', 'nats', 'redis', 'google'}
-PRODUCE_CALLS = ('send', 'produce', 'publish', 'basic_publish', 'xadd')
-CONSUME_CALLS = ('subscribe', 'KafkaConsumer', 'basic_consume', 'xread', 'consume')
-
-
-def _topic_use(sub):
-    """('produced', [topic]) or ('consumed', [topics]) for a call that sends to or reads from a queue, else None."""
-    callee = call_name(sub.func) or ''
-    first = _str(sub.args[0]) if sub.args else None
-    keyword = {k.arg: _str(k.value) for k in sub.keywords}
-    topic = first or keyword.get('topic') or keyword.get('routing_key')
-    if callee in PRODUCE_CALLS and topic: return 'produced', [topic]
-    if callee in CONSUME_CALLS and (sub.args or keyword.get('queue')):
-        return 'consumed', [t for t in (_strs(sub.args[0]) if sub.args else []) or [keyword.get('queue')] if t]
-    return None
-
-
-def _queue_uses(py):
-    """({topic: [(file, function, node, line)]} produced, the same consumed) in the files that import a queue client."""
-    uses = {'produced': defaultdict(list), 'consumed': defaultdict(list)}
-    for rel, name, node in py.functions():
-        modules = {(m or '').split('.')[0] for m, _ in py.imports.get(rel, {}).values()}
-        if not modules & QUEUE_MODULES: continue
-        for sub in ast.walk(node):
-            use = _topic_use(sub) if isinstance(sub, ast.Call) else None
-            for topic in (use or (None, []))[1]: uses[use[0]][topic].append((rel, name, node, sub.lineno))
-    return uses['produced'], uses['consumed']
-
-
-def _topic_links(py, found, topic, produced, consumed):
-    """Every function on a topic as a stage, and a link from each producer to each consumer."""
-    for rel, name, node, line in produced + consumed:
-        found.stage(name, site(rel, node.lineno, py.line(rel, node.lineno)), symbol=f"{rel[:-3].replace('/', '.')}.{name}")
-    for a in produced:
-        for b in consumed:
-            found.edge(f'{found.id}/{slug(a[1])}', f'{found.id}/{slug(b[1])}', 'topic', site(b[0], b[3], py.line(b[0], b[3])), names=[topic])
-
-
-def queues(py, out):
-    produced, consumed = _queue_uses(py)
-    shared = sorted(set(produced) & set(consumed))
-    if not shared: return
-    first = produced[shared[0]][0]
-    found = Found(f'{first[0]}:topics', 'topics', 'queue', site(first[0], first[3], py.line(first[0], first[3])))
-    for topic in shared: _topic_links(py, found, topic, produced[topic], consumed[topic])
-    out.append(found)
 
 
 def _need_values(value):
