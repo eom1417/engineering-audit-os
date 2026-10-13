@@ -767,7 +767,7 @@ def _run_what_now(ok, mode):
 
 
 def _run_job(project, arguments, progress):
-    from . import live_setup
+    from . import live_assist, live_setup
     state = guided.load(project)
     runtime, report = guided.runtime_of(state), guided.report_of(state)
     mode, proposal = arguments.get('mode') or 'lock', arguments.get('proposal')
@@ -789,8 +789,7 @@ def _run_job(project, arguments, progress):
     if not record['ok']:
         answer['failure'] = (record.get('failure') or '')[-3000:]
         folder = profile.get('app') or '.'
-        from .live_assist import relevant_source
-        answer['code_that_raised_it'] = relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
+        answer['code_that_raised_it'] = live_assist.relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
     if record.get('seed_output'): answer['seed_output'] = record['seed_output'][-1500:]
     answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database', 'seed', 'checks', 'baseline', 'limitations')}
     answer['what_now'] = _run_what_now(record['ok'], mode)

@@ -35,8 +35,6 @@ OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
 SECTION_VIEWS = {'system': 'system', 'story': 'system', 'gaps': 'change', 'operations': 'plan_order', 'plans': 'plan_order',
                  'paths': 'paths', 'journeys': 'journeys', 'data_paths': 'data_paths', 'infra': 'infra', 'pipeline': 'pipeline'}
 EVIDENCE = re.compile(r'^(FACT|CLM|TASK|RULE)-[A-Za-z0-9_.:-]+$')
-RELATION_OP = {'retain': 'retain', 'modify': 'refactor', 'refactor': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete',
-               'retire': 'delete', 'introduce': 'new', 'new': 'new', 'merge': 'merge', 'unassessed': 'refactor'}
 LIMIT = {'elements': 160, 'cards': 140, 'facts': 50, 'doc_chars': 4000, 'docs_chars': 24000}
 DOCS = ('README.md', 'README', 'readme.md', 'ARCHITECTURE.md', 'CONTRIBUTING.md', 'docs/**/*.md', '*.md')
 WORDS = {
@@ -133,140 +131,16 @@ def rules(report):
     return out
 
 
-def _element(id_, kind, title, operation, subject=None, detail='', cites=(), rule_ids=()):
-    return {'id': str(id_), 'kind': kind, 'title': _short(title, 160) or str(id_), 'operation': RELATION_OP.get(operation, operation)
-            if RELATION_OP.get(operation, operation) in OPERATIONS else 'refactor', 'subject': subject, 'detail': _short(detail, 220),
-            'cites': [c for c in dict.fromkeys(cites) if isinstance(c, str) and EVIDENCE.match(c)][:8], 'rules': list(rule_ids)}
-
-
-def _rules_system(report, target, studio):
-    gap = {row.get('component'): row for row in target.get('gap_matrix') or [] if isinstance(row, dict)}
-    system = _load(studio / 'system.json', {}) or {}
-    current = {n.get('id'): n for n in (system.get('current') or {}).get('nodes') or [] if isinstance(n, dict)}
-    out = []
-    for comp in target.get('current_components') or []:
-        if not isinstance(comp, dict): continue
-        node = current.get(comp.get('name')) or {}
-        relation = comp.get('relation') or node.get('op') or 'unassessed'
-        out.append(_element(comp.get('id') or comp.get('name'), 'component', comp.get('name'), relation, node.get('target'),
-                            comp.get('reason'), (gap.get(comp.get('id')) or {}).get('evidence') or [],
-                            [f"RULE-disposition-{relation}"] if relation in ('delete', 'rebuild', 'retain', 'modify') else []))
-    for node in (system.get('target') or {}).get('nodes') or []:
-        if not isinstance(node, dict): continue
-        out.append(_element(f"TC-{_slug(node.get('id'))}", 'target_component', node.get('id'), node.get('op') or 'new', None,
-                            f"{node.get('responsibility') or ''} (from: {', '.join(node.get('sources') or []) or 'nothing today'})",
-                            (), [f"RULE-layer-{_slug(node.get('layer'))}"] if node.get('layer') else []))
-    if not (system.get('target') or {}).get('nodes'):
-        for comp in target.get('target_components') or []:
-            if isinstance(comp, dict) and comp.get('name'):
-                out.append(_element(f"TC-{_slug(comp['name'])}", 'target_component', comp['name'], 'new', None,
-                                    comp.get('responsibility'), (), [f"RULE-layer-{_slug(comp.get('layer'))}"] if comp.get('layer') else []))
-    return "Today's components with the rules' disposition, and the target components of the reference.", out
-
-
 def _rules_views(report):
-    """{view: (summary, [elements])}: the rules' target of every view, from the records the rules wrote."""
+    """{view: (summary, [elements])}: the rules' target of every view, from the records the rules wrote; each view's
+    reader is in eaos/studio/ideal_rules.py."""
+    from . import ideal_rules as read
     report = Path(report)
-    studio = report / 'studio'
-    target = _proposal(report)
-    views = {name: ('', []) for name in VIEWS}
-    views['system'] = _rules_system(report, target, studio)
-    changes = [dict(e, id=f"chg-{e['id']}", kind='change') for e in views['system'][1]
-               if e['kind'] == 'component' and e['operation'] != 'retain']
-    views['change'] = ("What changes from today to the rules' target: every component that is not retained.", changes)
-    journeys = _load(studio / 'journeys.json', {}) or {}
-    screens = [s for s in journeys.get('screens') or [] if isinstance(s, dict)]
-    if screens:
-        views['journeys'] = ("Every screen with its folder's operation toward the target (studio/journeys.json).",
-                             [_element(s.get('id') or s.get('route'), 'screen', s.get('route') or s.get('title') or s.get('id'),
-                                       s.get('op') or s.get('operation') or 'retain', s.get('target'), s.get('title') or '',
-                                       [s.get('fact')] + list(s.get('facts') or [])) for s in screens])
-    else:
-        pages = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'entry_point'
-                 and (f.get('value') or {}).get('surface') in ('page', 'route')]
-        views['journeys'] = ('Every page the user reaches, as the facts list them; the rules give screens no target yet.',
-                             [_element(f['id'], 'screen', (f.get('value') or {}).get('route'), 'retain', None,
-                                       (f.get('location') or {}).get('path'), [f['id']]) for f in pages])
-    paths = _load(studio / 'paths.json', {}) or {}
-    ops = {name: row.get('op') for name, row in (paths.get('components') or {}).items() if isinstance(row, dict)}
-    nodes = {n.get('id'): n for n in paths.get('nodes') or [] if isinstance(n, dict)}
-    rank = {op: i for i, op in enumerate(('retain', 'refactor', 'merge', 'rebuild', 'delete'))}
-    rows = []
-    for path in paths.get('paths') or []:
-        if not isinstance(path, dict): continue
-        members = [nodes.get(n) or {} for column in path.get('columns') or [] for n in column]
-        found = [ops.get(n.get('component')) for n in members if ops.get(n.get('component'))]
-        op = max(found, key=lambda o: rank.get(o, 0)) if found else 'retain'
-        rows.append(_element(path.get('id'), 'path', path.get('title'), op, path.get('entry'),
-                             f"{path.get('gaps') or 0} gap(s) where the records stop", [path.get('fact'), path.get('flow_fact')]
-                             + [n.get('fact') for n in members[:6]]))
-    views['paths'] = ('Every code path with the hardest operation the rules give the parts it crosses (studio/paths.json).', rows)
-    data = _load(studio / 'data_paths.json', {}) or {}
-    stores = [s for s in data.get('stores') or [] if isinstance(s, dict)]
-    change = {'single_already': 'retain', 'merged_in_target': 'merge', 'still_multiple': 'refactor'}
-    # A store's evidence is on its endpoints' call sites (studio/data_paths.json endpoints[].sites[].fact); `sites` on
-    # the store itself is their count.
-    sites = {}
-    for endpoint in data.get('endpoints') or []:
-        if not isinstance(endpoint, dict): continue
-        sites.setdefault(endpoint.get('store'), []).extend(x.get('fact') for x in endpoint.get('sites') or [] if isinstance(x, dict))
-    count = lambda value: len(value) if isinstance(value, list) else value if isinstance(value, int) else 0
-    if stores:
-        views['data_paths'] = ('Every store with its writers and its change toward one owner (studio/data_paths.json).',
-                               [_element(s.get('id') or s.get('name'), 'store', s.get('name') or s.get('id'),
-                                         change.get(s.get('change'), 'retain'), None,
-                                         f"{count(s.get('writers'))} writer(s), {count(s.get('readers'))} reader(s)",
-                                         [s.get('fact')] + [x.get('fact') for x in (s.get('sites') if isinstance(s.get('sites'), list) else []) if isinstance(x, dict)]
-                                         + sites.get(s.get('id'), []))
-                                for s in stores])
-    else:
-        stores = {}
-        for f in _facts(report, 'entrypoints'):
-            value = f.get('value') or {}
-            if f.get('kind') != 'data_access': continue
-            called = str(value.get('target') or value.get('route') or '')
-            called = called.split('://', 1)[-1].split('/', 1)[-1] if '://' in called else called
-            resource = next((part for part in re.split(r'[/?]', called) if part and not part.startswith((':', '$', '{'))), None)
-            name = value.get('table') or (f"{value.get('client') or 'api'}:{resource.lower()}" if resource else '?')
-            stores.setdefault(str(name), []).append(f)
-        views['data_paths'] = ('Every store the data calls reach, with the calls and the files they come from; the rules give '
-                               'data no target yet (one owner per store is the plan\'s to propose).',
-                               [_element(f'STORE-{_slug(name)}', 'store', name, 'retain', None,
-                                         f"{len(rows)} call(s) from {len({(r.get('location') or {}).get('path') for r in rows})} file(s): "
-                                         + ', '.join(sorted({str((r.get('location') or {}).get('path')) for r in rows}))[:160],
-                                         [r['id'] for r in rows]) for name, rows in sorted(stores.items())][:LIMIT['elements']])
-    infra = [i for i in target.get('infrastructure') or [] if isinstance(i, dict) and i.get('area')]
-    views['infra'] = ("The reference's infrastructure baseline: each area kept or introduced, with the tool that fits.",
-                      [_element(f"INFRA-{_slug(i['area'])}", 'infra', f"{i['area']}: {i.get('tool') or i.get('tool_reason') or ''}",
-                                'retain' if i.get('present') else 'new', i['area'], f"{i.get('decision') or ''} ({i.get('evidence') or ''})",
-                                (), [f"RULE-infra-{_slug(i['area'])}"]) for i in infra])
-    pipeline = _load(studio / 'pipeline.json', {}) or {}
-    # The pipeline section keeps its gap under views.gap (eaos/studio/pipeline.py section); a flat `gap` is the older shape.
-    gaps = [g for g in (pipeline.get('views') or {}).get('gap') or pipeline.get('gap') or pipeline.get('gaps') or [] if isinstance(g, dict)]
-    stages = [s for s in pipeline.get('stages') or [] if isinstance(s, dict) and s.get('kind') not in ('router', 'fork', 'join')]
-    fact = lambda row: (row.get('evidence') or {}).get('fact') if isinstance(row.get('evidence'), dict) else None
-    if gaps:
-        views['pipeline'] = ("The pipeline rules' gap: one entry per broken rule (studio/pipeline.json#views.gap).",
-                             [_element(g.get('id'), 'pipeline_gap', g.get('title') or g.get('detail') or g.get('rule'),
-                                       g.get('operation') or g.get('op') or 'refactor', g.get('stage') or g.get('subject'),
-                                       g.get('detail') or g.get('why') or '',
-                                       [g.get('fact'), fact(g), g.get('card')] + list(g.get('facts') or []) + list(g.get('cards') or []),
-                                       [f"RULE-pipeline-{_slug(g['rule'])}"] if g.get('rule') else []) for g in gaps])
-    elif pipeline.get('detected') and stages:
-        views['pipeline'] = ("A pipeline that breaks none of the pipeline rules: every stage is kept (studio/pipeline.json).",
-                             [_element(s.get('id'), 'stage', s.get('label') or s.get('title') or s.get('id'), 'retain', s.get('id'),
-                                       s.get('kind') or '', [fact(s)]) for s in stages][:LIMIT['elements']])
-    elif pipeline:
-        views['pipeline'] = ('The check looked for a pipeline and found none: there is no pipeline to plan.', [])
-    else:
-        views['pipeline'] = ('No pipeline map was written for this check.', [])
-    plan = _load(report / 'plan.json', {}) or {}
-    stones = [m for m in plan.get('milestones') or [] if isinstance(m, dict)]
-    views['plan_order'] = ("The fix plan's milestones in the rules' order.",
-                           [_element(m.get('id'), 'step', f"{m.get('id')}: {m.get('name') or m.get('goal') or ''}", 'retain', m.get('id'),
-                                     m.get('goal'), [t for t in m.get('tasks') or [] if isinstance(t, str)], ['RULE-plan-order'])
-                            for m in stones])
-    return views
+    studio, target = report / 'studio', _proposal(report)
+    system = read.system(target, studio)
+    return {'system': system, 'change': read.change(system), 'journeys': read.journeys(report, studio), 'paths': read.paths(studio),
+            'data_paths': read.data_paths(report, studio), 'infra': read.infra(target), 'pipeline': read.pipeline(studio),
+            'plan_order': read.plan_order(report)}
 
 
 # ---------------------------------------------------------------- the bundle the assistant reads
