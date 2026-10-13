@@ -19,8 +19,8 @@ It is not what EAOS tells the assistants of the projects it audits; that lives i
   Fix the cause, not the symptom; prove it with a real assistant trial, not only unit tests; keep the
   progress numbers honest.
 - **`main` is the owner's mother copy and is never touched**: no commit, push or merge into it; only the
-  owner decides about it. All work happens on `develop`: once a change is done and verified clean (full
-  suite, gates), commit and push to `origin/develop` (standing instruction since 2026-10-07).
+  owner decides about it. Work is built where the owner chooses (directly on `develop` or a new branch from it),
+  verified clean (full suite, gates), merged into `develop` and pushed: the whole flow is in "The development flow".
 
 ## The code laws (owner, 2026-10-13)
 
@@ -76,13 +76,24 @@ check again, fix, accept.
 (cd studio && npm run build)      # only when studio/ changed
 ```
 
-## Before any check in beta-trial (owner's order, 2026-10-12)
+## The development flow: EAOS develops EAOS (owner's order, 2026-10-13)
 
-Always in this order, every time, by `bash /workspace/eaos-beta-trial/update.sh` (it stops at the first failure):
-1. every update, tool and fix is merged and pushed on `develop` (clean, equal to `origin/develop`);
-2. `develop` is merged into `beta-trial` (fast-forward) and `beta-trial` is pushed;
-3. EAOS and its tools are installed locally from the `beta-trial` checkout, through EAOS itself;
-4. everything is checked up to date (version, commit, every tool ok, Claude Code ready);
-5. the test suite of that checkout passes;
-6. the Studio is restarted; only then the check of the `develop` branch, from the Studio.
+Here EAOS is built with EAOS itself, so it is developed as a tool apart from the project it checks: `beta-trial` is the
+working EAOS (its code, its tools, its Studio); `develop` is the project under check, as if it were anyone else's.
+Every piece of work follows these steps, in this order, every time:
+0. **Ask first where to build**: directly on `develop`, or on a new branch from it (`dev/<topic>`). Never start
+   without the owner's answer.
+1. **Develop and verify** there (full suite, `tools/validate.py`, the Studio built when `studio/` changed).
+2. **Merge into `develop`** when the work is done (a new branch: merged, then deleted), and push `origin/develop`.
+3. **`develop` goes into `beta-trial` only once the owner approved it**: then
+   `bash /workspace/eaos-beta-trial/update.sh --approved`, which stops at the first failure:
+   develop clean and pushed; develop merged into `beta-trial` (fast-forward) and pushed; EAOS and its tools
+   installed locally from the `beta-trial` checkout, through EAOS; version, commit, every tool and Claude Code up to
+   date; that checkout's suite passes; the Studio restarted on it.
+4. **Then the check**: of the `develop` branch, from the Studio that runs `beta-trial`, as an outside tool.
 A check started any other way does not count; if a fix lands during a check, stop it and start again from step 1.
+`main` is never touched (the hooks refuse it).
+
+This flow is ours, for developing EAOS. For everyone else EAOS lets the person choose (the Studio's fix preview):
+build on a new branch, continue an EAOS branch, or work directly on their branch; and they decide when and where to
+merge. EAOS never decides that for them.
