@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.19 (2026-10-13)
+
+- **The Studio belongs to the computer, not to an assistant**: on a server run by systemd it is a service of its own
+  (it outlives the assistant's session and comes back after a crash on its kept port and token), and told the routed
+  address once (`open_studio(address=)`) it answers there with a plain address. The MCP instructions send it at once.
+- **A batch survives its assistant**: a run whose assistant stopped (a limit, an expired sign-in, a crash) goes on by
+  itself from the card it stopped at, with another signed-in assistant first after a limit; the bar counts every card
+  the batch already tried.
+- **No sound card is lost**: changes that pass alone but fail together are repaired on top (fix_edit card REPAIR)
+  before any card is left out; a module split no longer reads as new complexity.
+- **Honest numbers**: readiness reads the load threshold as written; a load never measures a server of the pages
+  alone; journeys read the Studio's own links (60 broken links and 29 screens with no way in were false: now 0 and 4);
+  the time left is no longer inflated.
+- **The person's language**: card titles in the Studio's language, and texts an assistant writes in another language
+  are sent back once to be written again; the run page wraps on a phone; the assistant's fixes follow the filters.
+
 ## 0.0.18 (2026-10-13)
 
 - **EAOS's own structure, fixed by EAOS** (the second fix batch, 45 of 55 cards kept): 23 copied functions merged into
