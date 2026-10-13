@@ -42,14 +42,22 @@ function StepTitle({ s, scope, view, nos }: { s: Step; scope: Scope; view: View;
   )
 }
 
+/** A label and the first `first` names, comma separated; nothing when there are none. */
+function IdRow({ label, names, first }: { label: string; names: string[]; first: number }) {
+  if (!names.length) return null
+  return <span>{label}: {names.slice(0, first).map((name, i) => <span key={name}>{i > 0 && ', '}<Id value={name} /></span>)}</span>
+}
+
+const nameOf = (port: { name: string }) => port.name
+
 /** What the stage takes and gives, and its tools, the first few of each. */
 function StepIo({ s }: { s: Step }) {
   const w = usePipelineWords()
   return (
     <span className={css.stepIo}>
-      {s.inputs.length > 0 && <span>{w('takes')}: {s.inputs.slice(0, 3).map((p, i) => <span key={p.name}>{i > 0 && ', '}<Id value={p.name} /></span>)}</span>}
-      {s.outputs.length > 0 && <span>{w('gives')}: {s.outputs.slice(0, 3).map((p, i) => <span key={p.name}>{i > 0 && ', '}<Id value={p.name} /></span>)}</span>}
-      {s.tools.length > 0 && <span>{w('tools')}: {s.tools.slice(0, 4).map((t, i) => <span key={t}>{i > 0 && ', '}<Id value={t} /></span>)}</span>}
+      <IdRow label={w('takes')} names={s.inputs.map(nameOf)} first={3} />
+      <IdRow label={w('gives')} names={s.outputs.map(nameOf)} first={3} />
+      <IdRow label={w('tools')} names={s.tools} first={4} />
     </span>
   )
 }
