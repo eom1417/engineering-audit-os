@@ -43,18 +43,20 @@ function Decided({ count, children }: { count: number; children: ReactNode }) {
 function DecisionsBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
   usePageChrome(t('decisions'), undefined, data.manifest.project.name)
-  const responses = useActions().decisions
-  const all = (data.decisions?.decisions ?? []).map((d) => responses.some((r) => r.id === d.id && r.response) ? { ...d, state: 'answered' as const } : d)
+  const actions = useActions()
+  const snapshot = actions.mode !== 'live'
+  const all = (data.decisions?.decisions ?? []).map((d) => actions.decisions.some((r) => r.id === d.id && r.response) ? { ...d, state: 'answered' as const } : d)
   const waiting = all.filter((d) => d.state === 'waiting')
   const decided = all.filter((d) => d.state !== 'waiting')
   const card = (d: (typeof all)[number]) => (
-    <DecisionCard key={d.id} decision={d} cardsTo={d.blocks.every((b) => b.startsWith('TASK-')) ? { to: '/problems', search: { who: 'you' } } : undefined} />
+    <DecisionCard key={d.id} decision={d} noted={snapshot} cardsTo={d.blocks.every((b) => b.startsWith('TASK-')) ? { to: '/problems', search: { who: 'you' } } : undefined} />
   )
-  const asked = useActions().questions.length
+  const asked = actions.questions.length
   return (
     <div className={layout.page}>
       <MissingBanner data={data} />
       <PageTitle title={t('waitingForYou')} />
+      {snapshot && waiting.length > 0 && <Panel><StateMessage icon="info" title={t('readOnlyAnswers')} /></Panel>}
       <RunQuestions />
       {waiting.length ? <div className={css.cards}>{waiting.map(card)}</div>
         : asked > 0 ? null : <Panel><StateMessage icon="inbox" title={t('nothingWaits')} sub={t('nothingWaitsSub')} /></Panel>}

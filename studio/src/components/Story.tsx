@@ -70,7 +70,8 @@ export function recommendedOption(decision: Decision): Decision['options'][numbe
  * One question, its recommendation, large one-tap answers (the option the recommendation names is primary, first,
  * with a "Recommended" tag), durable live answers and the link to the cards it concerns.
  */
-export function DecisionCard({ decision, cardsTo, compact }: { decision: Decision; cardsTo?: { to: string; search?: Search }; compact?: boolean }) {
+export function DecisionCard({ decision, cardsTo, compact, noted }:
+  { decision: Decision; cardsTo?: { to: string; search?: Search }; compact?: boolean; noted?: boolean }) {
   const { t, lang } = usePrefs()
   const toast = useToast()
   const actions = useActions()
@@ -121,7 +122,7 @@ export function DecisionCard({ decision, cardsTo, compact }: { decision: Decisio
       {decision.recommendation && (
         <div className={css.decRec}><span className={css.decRecLabel}>{t('recommended')}</span><Txt block>{decision.recommendation}</Txt></div>
       )}
-      {!live && <p role="note">{t('readOnlyAnswers')}</p>}
+      {!live && !noted && <p role="note">{t('readOnlyAnswers')}</p>}
       {waiting && ordered.length > 0 && (
         <AnswerChoices decision={decision} ordered={ordered} recommended={recommended} all={allAnswers} onShowAll={() => setAllAnswers(true)}
           pressed={saved?.response?.option} disabled={disabled} busy={busy} onAnswer={(option) => answer(option)} />
