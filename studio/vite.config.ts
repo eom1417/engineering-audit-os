@@ -16,7 +16,7 @@ function reportData(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const name = (req.url || '').split('?')[0].replace(/^\//, '')
-        if (!folder || !/^[a-z]+\.js$/.test(name)) return next()
+        if (!folder || !/^[a-z_]+\.js$/.test(name)) return next()
         const file = path.join(folder, name)
         if (!fs.existsSync(file)) return next()
         res.setHeader('Content-Type', 'text/javascript; charset=utf-8')

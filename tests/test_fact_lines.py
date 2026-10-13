@@ -1,4 +1,5 @@
 """A fact's line is the line of the declaration it names, not the blank line before it."""
+import unittest
 import re
 from pathlib import Path
 
@@ -37,3 +38,14 @@ class DeclarationLineTests(Workspace):
                 if 're.M' in line and re.search(r"re\.compile\(r?['\"]\^\\s\*", line):
                     offenders.append(f'{path.name}:{number}')
         self.assertEqual(offenders, [])
+
+
+class StarletteRouteTests(unittest.TestCase):
+    def test_starlette_route_objects_are_http_entry_points_with_their_methods(self):
+        # Found on EAOS's own server: its /api routes are Route(...) objects, and no route was found, so no load test ran.
+        from eaos.facts.entrypoints import Context
+        text = ("from starlette.routing import Route\n"
+                "routes = [Route('/api/runs', runs, methods=['GET', 'POST']), Route('/health', health)]\n")
+        found = python_web.detect(Context('app/server.py', text, 'python', []))
+        self.assertEqual([(f['http_method'], f['route'], f['framework']) for f in found],
+                         [('GET', '/api/runs', 'starlette'), ('POST', '/api/runs', 'starlette'), ('GET', '/health', 'starlette')])

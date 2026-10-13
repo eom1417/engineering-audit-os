@@ -65,6 +65,16 @@ class OtherRouterTests(unittest.TestCase):
         self.assertEqual([(r['surface'], r['http_method']) for r in detect('src/routes/api/hooks/run.ts', server)],
                          [('http', 'POST')])
 
+    def test_tanstack_routes_built_in_code_are_pages_at_their_full_path_and_hash_history_serves_them_under_hash(self):
+        # Found on EAOS's own Studio: 38 createRoute pages were read as one root layout, so its UI went unaudited.
+        text = ("import { createRootRoute, createRoute, createRouter, createHashHistory } from '@tanstack/react-router'\n"
+                "const root = createRootRoute({ component: Shell })\n"
+                "const plans = createRoute({ getParentRoute: () => root, path: '/plans', component: PlansPage })\n"
+                "const tree = root.addChildren([plans, createRoute({ getParentRoute: () => plans, path: '$planId', component: PlanPage })])\n"
+                "export const router = createRouter({ routeTree: tree, history: createHashHistory() })\n")
+        self.assertEqual([(r['route'], r['handler']) for r in detect('src/router.tsx', text)],
+                         [('__root__', 'Shell'), ('/#/plans', 'PlansPage'), ('/#/plans/$planId', 'PlanPage')])
+
     def test_next_pages_are_routes_but_a_vite_pages_folder_is_not(self):
         [row] = detect('app/dashboard/page.tsx', 'export default function Dashboard() { return null }')
         self.assertEqual((row['route'], row['handler']), ('/dashboard', 'Dashboard'))

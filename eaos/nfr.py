@@ -37,7 +37,8 @@ def _loadable(surface, known, kind_of, path_of, param):
     """The path of a page or GET route that needs no fixture; None for any other surface."""
     kind, method, _ = kind_of(surface, known)
     path = path_of(surface) if surface != '*' else None
-    return path if kind in ('page', 'http') and method == 'GET' and path and not param.search(path) else None
+    # A hash route (/#/x) is drawn by the browser: a request only ever reaches the page that serves it.
+    return path if kind in ('page', 'http') and method == 'GET' and path and '#' not in path and not param.search(path) else None
 
 
 def dependencies(report):

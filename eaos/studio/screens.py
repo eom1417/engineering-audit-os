@@ -40,6 +40,9 @@ def _count(value, key):
     return {'value': value, 'src': SRC[key], 'unit': 'count'}
 
 
+SEVERITIES = ('critical', 'high', 'medium', 'low', 'info')
+
+
 def _load(path):
     try: return json.loads(Path(path).read_text(encoding='utf-8'))
     except (OSError, ValueError): return None
@@ -102,7 +105,7 @@ def screens(journeys, media=None, read=True, report=None):
         if not pages: return None
         journeys = {}
     images = [i for i in media or [] if isinstance(i, dict) and i.get('kind') == 'screen' and i.get('route')]
-    out = [_screen(s, images) for s in journeys.get('screens') or [] if s.get('kind') == 'page']
+    out = [_screen(s, images, pages) for s in journeys.get('screens') or [] if s.get('kind') == 'page']
     shot = sum(1 for s in out if s['shots'])
     return {'screens': out, 'missing': _missing(out, shot), 'pages': pages,
             'counts': {'screens': _count(len(out), 'screens'), 'shot': _count(shot, 'shots'),
@@ -114,10 +117,27 @@ def _shot(image):
             'phase': image.get('phase') if image.get('phase') in ('before', 'after', 'baseline') else None, 'batch': image.get('batch')}
 
 
-def _screen(s, images):
+def _screen(s, images, pages=()):
     return {'id': s['id'], 'route': s['route'], 'title': s.get('title') or s['route'], 'component': s.get('component'),
             'file': s.get('file'), 'router': s.get('router'), 'line': s.get('line'), 'fact': s.get('fact'),
-            'flags': list(s.get('flags') or []), 'shots': [_shot(i) for i in images if i['route'] == s['route']], 'inputs': [], 'issues': []}
+            'flags': list(s.get('flags') or []), 'shots': [_shot(i) for i in images if i['route'] == s['route']], 'inputs': [],
+            'issues': _issues([p for p in pages if p['path'].split('?', 1)[0] == s['route']])}
+
+
+def _issues(pages):
+    """The open issues of a screen from its pictured pages: what the visual reviewer found on each picture, and what the
+    automatic checks of the picture failed (overflow, clipped text, small targets, page errors, accessibility)."""
+    out = {}
+    for picture in (picture for page in pages for picture in page['pictures']):
+        for finding in picture['findings']:
+            out.setdefault(finding.get('id') or finding.get('title'), {
+                'id': str(finding.get('id') or finding.get('title')), 'rule': finding.get('kind') or 'design',
+                'severity': finding.get('severity') if finding.get('severity') in SEVERITIES else 'medium',
+                'summary': finding.get('title') or '', 'width': picture.get('width'), 'box': None, 'state': 'open'})
+        for check in picture['checks']:
+            out.setdefault(check, {'id': check[:80], 'rule': check.split(':', 1)[0], 'severity': 'medium', 'summary': check,
+                                   'width': picture.get('width'), 'box': None, 'state': 'open'})
+    return list(out.values())
 
 
 def _missing(out, shot):

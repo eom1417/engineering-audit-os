@@ -65,7 +65,9 @@ def _measure(value, src):
 
 
 def _norm(route):
+    """A route as links name it: a hash route (/#/x, served by a hash-history app) is the route /x."""
     route = str(route or '').strip()
+    if route == '/#' or route.startswith('/#/'): route = route[2:] or '/'
     return route.rstrip('/') or '/' if route.startswith('/') else route
 
 

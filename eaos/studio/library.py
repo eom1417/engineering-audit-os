@@ -77,13 +77,29 @@ def docs(report):
     return out
 
 
+def _pictured(report):
+    """{picture path: (route, viewport)} of the check's screen pictures (live/screens.json): the route is the page's
+    address without its host or query (/#/system for a hash route), so a picture belongs to its screen."""
+    from urllib.parse import urlsplit
+    from .model import _load
+    rows = (_load(Path(report) / 'live/screens.json', {}) or {}).get('rows') or []
+    out = {}
+    for row in rows:
+        if not row.get('screenshot'): continue
+        address = urlsplit(row.get('url') or '')
+        route = (address.path or '/') + ('#' + address.fragment.split('?', 1)[0] if address.fragment else '')
+        out[row['screenshot']] = (route, row.get('viewport'))
+    return out
+
+
 def media(report, lang='ar'):
-    out = []
+    out, pictured = [], _pictured(report)
     for path, name in _files(report, ('.mmd', *IMAGES)):
         known = DIAGRAMS.get(name)
-        title = (known[0] if lang == 'ar' else known[1]) if known else (name.rsplit('/', 2)[-2] if '/' in name else path.stem)
+        route, viewport = pictured.get(name, (None, None))
+        title = (known[0] if lang == 'ar' else known[1]) if known else f'{route} · {viewport}' if route else (name.rsplit('/', 2)[-2] if '/' in name else path.stem)
         out.append({'id': name, 'path': name, 'title': title, 'kind': 'diagram' if path.suffix in ('.mmd', '.svg') else 'screen',
-                    'batch': None, 'phase': None, 'route': None, 'viewport': None, 'pair': None})
+                    'batch': None, 'phase': None, 'route': route, 'viewport': viewport, 'pair': None})
     return out
 
 

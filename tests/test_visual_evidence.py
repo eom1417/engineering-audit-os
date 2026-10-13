@@ -101,6 +101,12 @@ class VisualReviewer(TemporaryWorkspace):
         self.assertEqual([(shot['viewport'], [f['region'] for f in shot['findings']]) for shot in pages['/']['pictures']],
                          [('phone', [region(0, 0, 1, 0.2)]), ('desktop', [region(0, 0, 1, 0.1)])])
         self.assertEqual((pages['/#/tasks/TASK-001']['template'], pages['/#/tasks/TASK-001']['same_as']), ('/#/tasks/:id', ['/#/tasks/TASK-004']))
+        # The self-check's screens were "not captured" though 54 pictures were taken: they now belong to their screen.
+        from eaos.studio import library, screens
+        media = library.media(self.out)
+        self.assertEqual({i['path']: i['route'] for i in media if i['kind'] == 'screen'}['live/screens/screenshots/00-phone.png'], '/')
+        home = screens.screens({'screens': [{'id': 'S-home', 'route': '/', 'kind': 'page'}]}, media, report=self.out)['screens'][0]
+        self.assertEqual((len(home['shots']), [i['state'] for i in home['issues']][:1]), (2, ['open']))
 
 
 class Crawl(unittest.TestCase):

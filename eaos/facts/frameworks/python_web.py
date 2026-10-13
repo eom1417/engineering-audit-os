@@ -1,10 +1,11 @@
-"""Flask, FastAPI and Django URL entry points."""
+"""Flask, FastAPI, Starlette and Django URL entry points."""
 import re
 
 LANGUAGES = ('python',)
 DECORATOR = re.compile(r'^[ \t]*@(?P<object>[\w.]+)\.(?P<method>get|post|put|patch|delete|head|options|route|websocket)\(\s*(?P<quote>[\'"])(?P<route>[^\'"]*)(?P=quote)(?P<rest>[^\n]*)', re.M)
 DJANGO = re.compile(r'^[ \t]*(?:re_)?path\(\s*(?P<quote>[\'"])(?P<route>[^\'"]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)', re.M)
 METHODS = re.compile(r'methods\s*=\s*\[([^\]]*)\]')
+STARLETTE = re.compile(r'''\bRoute\(\s*(?P<quote>['"])(?P<route>/[^'"]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)(?P<rest>[^)\n]*)''')
 
 
 def detect(context):
@@ -18,6 +19,13 @@ def detect(context):
         for method in methods:
             found.append({'surface': 'http', 'route': match.group('route'), 'http_method': method,
                           'handler': context.symbol_after(line), 'framework': framework, 'line': line})
+    if 'starlette' in context.text:
+        for match in STARLETTE.finditer(context.text):
+            line = context.line_of(match.start())
+            declared = METHODS.search(match.group('rest') or '')
+            methods = [v.strip(' \'"').upper() for v in declared.group(1).split(',') if v.strip()] if declared else ['GET']
+            found += [{'surface': 'http', 'route': match.group('route'), 'http_method': method, 'handler': match.group('handler'),
+                       'framework': 'starlette', 'line': line} for method in methods]
     if context.rel.endswith('urls.py'):
         for match in DJANGO.finditer(context.text):
             line = context.line_of(match.start())

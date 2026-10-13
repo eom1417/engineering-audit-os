@@ -8,6 +8,9 @@ A React Router route nested in another is reported at its full path: a child <Ro
 route of a descendant <Routes> drawn inside the parent's element (``<Route path="/app/*" element={...<Routes>...}>``),
 is joined to the parent's path, so ``/drivers`` under ``/app/*`` is the page ``/app/drivers`` a person opens. The path
 as written stays in ``declared``.
+
+A TanStack route built in code (``createRoute({ getParentRoute: () => parent, path: '/x', component: X })``) is
+reported at its path joined to its parent's; with hash history (``createHashHistory``) it is served at ``/#/x``.
 """
 import re
 
@@ -23,6 +26,9 @@ ELEMENT = re.compile(r'''\b(?:element\s*=\s*\{\s*<|Component\s*=\s*\{\s*)(?P<nam
 OBJECT_ROUTE = re.compile(r'''\{\s*path\s*:\s*(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote)(?P<rest>[^{}]*)''', re.S)
 OBJECT_ELEMENT = re.compile(r'''\b(?:element\s*:\s*<|Component\s*:\s*)(?P<name>[A-Z]\w*)''')
 TANSTACK = re.compile(r'''\bcreate(?:File|Root|Server|API)Route(?:WithContext)?\s*(?:<[^>]*>)?\s*\(\s*(?:(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote))?''')
+CODE_ROUTE = re.compile(r'''(?:\b(?:const|let|var)\s+(?P<var>\w+)\s*=\s*)?\bcreateRoute\s*\(\s*\{''')
+OBJECT_PATH = re.compile(r'''\bpath\s*:\s*(?P<quote>['"`])(?P<route>[^'"`]*)(?P=quote)''')
+OBJECT_PARENT = re.compile(r'''\bgetParentRoute\s*:\s*\(\)\s*=>\s*(?P<parent>\w+)''')
 TANSTACK_COMPONENT = re.compile(r'''\bcomponent\s*:\s*(?P<name>[A-Z]\w*)''')
 SERVER_METHOD = re.compile(r'''\b(?P<method>GET|POST|PUT|PATCH|DELETE)\s*:''')
 FUNCTION = re.compile(r'''\bfunction\s+(?P<name>[A-Z]\w*)\s*\(''')
@@ -102,7 +108,7 @@ def _full_of(tag, parent):
 
 
 def detect(context):
-    return [*_react_router(context), *_tanstack(context), *_nextjs(context)]
+    return [*_react_router(context), *_tanstack(context), *_tanstack_code(context), *_nextjs(context)]
 
 
 def _react_router(context):
@@ -135,6 +141,33 @@ def _tanstack(context):
                  'framework': 'tanstack_router', 'line': line} for method in methods]
     component = TANSTACK_COMPONENT.search(context.text) or FUNCTION.search(context.text)
     return [_page(context, route.start(), path, component and component.group('name'), 'tanstack_router')]
+
+
+def _object_at(text, start):
+    """The text of the object literal whose '{' is at `start`, to its matching '}'."""
+    depth = 0
+    for i in range(start, len(text)):
+        depth += {'{': 1, '}': -1}.get(text[i], 0)
+        if depth == 0: return text[start:i + 1]
+    return text[start:]
+
+
+def _tanstack_code(context):
+    """The pages of TanStack routes built in code, each at its full path (its parent's path joined in)."""
+    if '@tanstack/' not in context.text or 'createRoute(' not in context.text: return []
+    prefix = '/#' if 'createHashHistory' in context.text else ''
+    paths, found = {}, []
+    for match in CODE_ROUTE.finditer(context.text):
+        body = _object_at(context.text, match.end() - 1)
+        declared, parent = OBJECT_PATH.search(body), OBJECT_PARENT.search(body)
+        if not declared: continue
+        path = _join(paths.get(parent.group('parent'), '/') if parent else '/', declared.group('route'))
+        if match.group('var'): paths[match.group('var')] = path
+        component = TANSTACK_COMPONENT.search(body)
+        page = _page(context, match.start(), prefix + path, component and component.group('name'), 'tanstack_router')
+        if page['route'] != declared.group('route'): page['declared'] = declared.group('route')
+        found.append(page)
+    return found
 
 
 def _nextjs(context):
