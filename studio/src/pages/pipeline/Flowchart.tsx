@@ -5,6 +5,7 @@
 // the wheel, a pinch or the buttons (the map's useZoom); a long pipeline draws only what is in view.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
+import { fit } from '../../map/draw'
 import { FitIcon } from '../../map/parts'
 import zoomCss from '../../map/parts.module.css'
 import { useZoom } from '../../map/useZoom'
@@ -31,11 +32,6 @@ export interface FlowchartProps {
   head?: ReactNode
   legend?: boolean
   className?: string
-}
-
-/** The box a stage's text must fit in: a long identifier keeps its end. */
-function fit(text: string, room: number): string {
-  return text.length <= room ? text : '…' + text.slice(-(room - 1))
 }
 
 function clip(text: string, room: number): string {

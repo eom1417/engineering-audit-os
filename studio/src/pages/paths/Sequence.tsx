@@ -6,6 +6,7 @@ import { Button as AriaButton } from 'react-aria-components'
 import { Button } from '../../components/Button'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N } from '../../i18n/text'
+import { fit } from '../../map/draw'
 import { sequence, where, type CodePath, type Index, type Participant, type PathsData } from './model'
 import { GAP_WORD, HOW_WORD, LANE_WORD, usePathWords, type PathWord } from './words'
 import css from './paths.module.css'
@@ -17,10 +18,6 @@ const ROW = 48
 
 function participantWord(p: Participant, path: CodePath): PathWord {
   return p === 'actor' ? (path.surface === 'page' ? 'actor' : 'caller') : LANE_WORD[p]
-}
-
-function short(text: string, room: number): string {
-  return text.length <= room ? text : '…' + text.slice(-(room - 1))
 }
 
 export function SequenceDiagram({ data, index, path, selected, onSelect }:
@@ -57,7 +54,7 @@ export function SequenceDiagram({ data, index, path, selected, onSelect }:
               <rect className={css.msgHit} x={2} y={y - ROW / 2 - 4} width={width - 4} height={ROW - 2} rx={6} />
               <text x={NUM - 10} y={y + 4} textAnchor="end" className={css.msgN}>{m.n}</text>
               <path d={d} className={[css.msg, m.gap && css.msgGap].filter(Boolean).join(' ')} markerEnd="url(#seq-arrow)" />
-              <text x={self ? a + 36 : (a + b) / 2} y={y - 6} textAnchor={self ? 'start' : 'middle'} className={css.msgText}>{short(label, room)}</text>
+              <text x={self ? a + 36 : (a + b) / 2} y={y - 6} textAnchor={self ? 'start' : 'middle'} className={css.msgText}>{fit(label, room)}</text>
             </g>
           )
         })}
