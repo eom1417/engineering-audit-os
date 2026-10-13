@@ -41,7 +41,7 @@ def _header(record):
              '']
     for scenario in (record.get('measured') or {}).get('scenarios') or []:
         lines += [f"Measured under load ({scenario['id']}, k6 on the production build): p95 "
-                  f"{scenario.get('p95_ms')} ms against a threshold of {scenario.get('threshold')} ms (live/baseline.json).", '']
+                  f"{scenario.get('p95_ms')} ms against a threshold of {(scenario.get('threshold') or {}).get('p95_ms')} ms (live/baseline.json).", '']
     method = (record.get('projection') or {}).get('method', '')
     if method:
         lines += ['## Method', '', method, '']

@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 PAGE, HTTP = 'page', 'http'
-PARAM = re.compile(r'\$(\w+)|:(\w+)')
+PARAM = re.compile(r'\$(\w+)|:(\w+)|\{(\w+)(?::[^}]*)?\}')       # TanStack $id, Express :id, Starlette {id} / {id:int}
 SAFE = (ast.Import, ast.ImportFrom, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Assign, ast.AnnAssign)
 REQUIREMENTS = 'approvaltests==19.1.1\npytest==9.1.1\n'
 
@@ -103,8 +103,8 @@ def url(route):
     """A route as a TypeScript template literal, parameters read from E2E_<PARAM>; and the parameters."""
     if route == '*': return '`/__eaos_unknown_route__`', []
     route = path_of(route) or route
-    params = [a or b for a, b in PARAM.findall(route)]
-    literal = PARAM.sub(lambda m: '${process.env.E2E_' + (m.group(1) or m.group(2)).upper() + " ?? ''}", route)
+    params = [next(filter(None, names)) for names in PARAM.findall(route)]
+    literal = PARAM.sub(lambda m: '${process.env.E2E_' + next(filter(None, m.groups())).upper() + " ?? ''}", route)
     return '`' + literal.replace('`', '\\`') + '`', params
 
 

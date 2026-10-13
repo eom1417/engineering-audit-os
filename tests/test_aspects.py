@@ -46,9 +46,12 @@ class Readiness(Workspace):
         self.assertEqual(rows['RDY-security-authentication']['status'], 'gap')
         self.assertEqual((rows['RDY-observability-health']['status'], rows['RDY-observability-telemetry']['status']), ('ok', 'gap'))
         self.assertEqual(rows['RDY-performance-QS-001']['status'], 'unmeasured')
-        measured = build(self.report({'conditions': {}, 'scenarios': [{'id': 'QS-001', 'threshold': 800, 'before': {'p95_ms': 1250.0, 'error_rate': 0}}]}),
-                         measured=True)
-        self.assertEqual(next(f for f in measured['findings'] if f['id'] == 'RDY-performance-QS-001')['status'], 'gap')
+        # The threshold as the baseline stage writes it (runtime_baseline.shape): the readiness stage crashed on it.
+        speed = lambda before: next(f for f in build(self.report({'conditions': {}, 'scenarios': [
+            {'id': 'QS-001', 'threshold': {'p95_ms': 800.0, 'error_rate': 0.01}, 'before': before}]}), measured=True)['findings']
+            if f['id'] == 'RDY-performance-QS-001')['status']
+        self.assertEqual([speed({'p95_ms': 1250.0, 'error_rate': 0}), speed({'p95_ms': 8.0, 'error_rate': 0.2}),
+                          speed({'p95_ms': 8.0, 'error_rate': 0})], ['gap', 'gap', 'ok'])
 
     def test_the_city_and_the_clusters_are_read_into_hotspots_and_clusters(self):
         from eaos.engines.architecture import digest

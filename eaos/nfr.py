@@ -33,6 +33,15 @@ def routes(report):
     return found
 
 
+def server_routes(report):
+    """The GET server routes (not pages) a load can call without a fixture: what the program serves beside its pages."""
+    from .lock_specs import PARAM, kind_of, path_of, surfaces
+    known = surfaces(report)
+    return sorted({path for feature in (_load(Path(report) / 'features.json', {}) or {}).get('features') or []
+                   for surface in feature.get('surfaces') or [] if kind_of(surface, known)[0] == 'http'
+                   and (path := _loadable(surface, known, kind_of, path_of, PARAM))})
+
+
 def _loadable(surface, known, kind_of, path_of, param):
     """The path of a page or GET route that needs no fixture; None for any other surface."""
     kind, method, _ = kind_of(surface, known)

@@ -127,13 +127,14 @@ def _estimated_rows(load):
 
 
 def _baseline_row(scenario, conditions):
-    """One k6 baseline scenario: its p95 against its threshold."""
-    before = scenario.get('before') or {}
-    p95, threshold = before.get('p95_ms'), scenario.get('threshold')
-    status = 'unmeasured' if p95 is None else 'ok' if threshold is None or p95 <= threshold else 'gap'
+    """One k6 baseline scenario: its p95 and error rate against its threshold ({p95_ms, error_rate}, from its script)."""
+    before, limit = scenario.get('before') or {}, scenario.get('threshold') or {}
+    p95, errors = before.get('p95_ms'), before.get('error_rate')
+    over = any(limit.get(key) and before.get(key) is not None and before[key] > limit[key] for key in ('p95_ms', 'error_rate'))
+    status = 'unmeasured' if p95 is None else 'gap' if over else 'ok'
     return _row('performance', scenario.get('id'), status,
-                f"{scenario.get('id')}: p95 {p95} ms against a threshold of {threshold} ms",
-                f"error rate {before.get('error_rate')}; conditions: {json.dumps(conditions)[:200]}",
+                f"{scenario.get('id')}: p95 {p95} ms against a threshold of {limit.get('p95_ms')} ms",
+                f"error rate {errors} against {limit.get('error_rate')}; conditions: {json.dumps(conditions)[:200]}",
                 ['live/baseline.json'])
 
 

@@ -88,7 +88,8 @@ class LiveInTheCheck(unittest.TestCase):
 
     def test_a_running_app_is_recorded_pictured_and_measured_before_the_claims(self):
         lock = {'results': [{'path': 'a.spec.ts', 'status': 'passed'}, {'path': 'b.spec.ts', 'status': 'failed'}]}
-        speed = {'conditions': {'vus': 100}, 'scenarios': [{'id': 'QS-001', 'threshold': 800, 'before': {'p95_ms': 312.5, 'error_rate': 0}}]}
+        speed = {'conditions': {'vus': 100}, 'scenarios': [{'id': 'QS-001', 'threshold': {'p95_ms': 800.0, 'error_rate': 0.01},
+                                                                  'before': {'p95_ms': 312.5, 'error_rate': 0}}]}
         with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
                 mock.patch('eaos.behavior_lock.run_lock', return_value=lock), mock.patch('eaos.live_run.LiveRun', FakeRun), \
                 mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
@@ -109,3 +110,31 @@ class LiveInTheCheck(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LoadTarget(unittest.TestCase):
+    def test_a_load_on_a_server_of_the_pages_alone_is_refused_and_one_on_the_program_runs(self):
+        # EAOS on itself (2026-10-13): the baseline loaded `vite preview`, whose fallback answered /api/* with the page
+        # in 8 ms, and the Python server behind the Studio was never measured.
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from eaos import runtime_baseline
+
+        def serve(api):
+            class Handler(BaseHTTPRequestHandler):
+                def do_GET(self):
+                    body = b'{"ok": true}' if api and self.path.startswith('/api/') else b'<html>the app</html>'
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(body)
+
+                def log_message(self, *_): pass
+            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            self.addCleanup(server.shutdown)
+            return f'http://127.0.0.1:{server.server_address[1]}'
+
+        with mock.patch('eaos.nfr.server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
+            with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):
+                runtime_baseline.refuse_a_page_server('report', serve(api=False))
+            runtime_baseline.refuse_a_page_server('report', serve(api=True))

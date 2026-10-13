@@ -10,6 +10,7 @@ The project runs from its run profile (eaos/live_run.py); a profile may override
 import json
 import os
 import re
+import urllib.request
 from pathlib import Path
 
 from .artifact_contracts import contracts, validate
@@ -51,6 +52,23 @@ def summary(path):
             'error_rate': round(float(data.get('http_req_failed', {}).get('value', 0.0)), 4)}
 
 
+def _answer(url):
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response: return response.read()
+    except (OSError, ValueError): return None
+
+
+def refuse_a_page_server(report, base):
+    """The load must hit the program, not a server of its pages alone: when most server routes of the code answer
+    with the very page `/` answers (a front-end server's fallback), the baseline would measure the wrong program."""
+    from .nfr import server_routes
+    routes, page = [r for r in server_routes(report) if r != '/'], _answer(f'{base}/')
+    if page is not None and sum(_answer(f'{base}{route}') == page for route in routes) * 2 > len(routes):
+        raise RuntimeError(f'the started app serves only its pages: its {len(routes)} server routes ({", ".join(routes[:3])}...) '
+                           'answer with the page itself, so a load on it would not measure the program. Propose a baseline '
+                           'whose start runs the real server, serving the built pages and these routes (run_try with mode="baseline").')
+
+
 def run_baseline(report, target, runtime):
     """Run every nfr/k6 script of the report against the project's build; write runtime/performance.json."""
     report, runtime = Path(report), Path(runtime)
@@ -65,6 +83,7 @@ def run_baseline(report, target, runtime):
         live.setup()
         base = live.start()
         live.seed(base)
+        refuse_a_page_server(report, base)
         for script in scripts:
             threshold, vus, duration, warmup = shape(script)
             conditions = conditions or {'build': ' && '.join(' '.join(argv) for argv in live.profile['build']),
