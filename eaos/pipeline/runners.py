@@ -392,7 +392,7 @@ def ideal(context):
 def triage(context):
     """The card triage node (eaos/studio/nodes/triage.py): each open card confirmed, doubted or rejected on its own
     evidence, a doubted one judged again on all its facts, with why in the person's words; the cards stage then applies
-    the verdicts once (eaos/plan.py apply_verdicts) before anything ranks, plans or reports."""
+    the verdicts once (eaos/card_review.py apply_verdicts) before anything ranks, plans or reports."""
     record, detail = _node(context, 'card_triage')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 

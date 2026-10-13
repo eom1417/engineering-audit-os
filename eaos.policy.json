@@ -45,6 +45,7 @@
     ],
     "planning": [
       "eaos/acceptance.py",
+      "eaos/card_review.py",
       "eaos/plan.py",
       "eaos/remediation_patterns.py",
       "eaos/target_architecture.py",

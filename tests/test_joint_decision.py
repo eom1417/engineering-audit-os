@@ -165,7 +165,7 @@ class JointDecision(TemporaryWorkspace):
 class OwnerShareTests(unittest.TestCase):
     def test_every_source_shares_one_owner_cap_and_a_doubted_card_is_kept_not_proven(self):
         # The self-check asked the owner 20 questions for 123 cards (14 from the planner) and left 16 doubted cards to them.
-        from eaos.plan import resolutions
+        from eaos.card_review import resolutions
         from eaos.owner_share import capped as _capped
         rows = [{'id': 'target-architecture', 'state': 'waiting', 'recommended_option': 'review'},
                 {'id': 'ideal-OQ-a', 'state': 'waiting', 'recommended_option': 'o1'},

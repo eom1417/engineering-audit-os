@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
 from eaos import claims as ledger
-from eaos import plan as plan_module
+from eaos import card_review, plan as plan_module
 from eaos.compose import Document
 from eaos.compose.rules import validate
 from eaos.dossier import assemble
@@ -62,7 +62,7 @@ class TaskCardTests(TemporaryWorkspace):
             return {'title': 'Crowded header', 'kind': 'crowding', 'severity': severity, 'page': page, 'viewport': 'phone',
                     'theme': 'light', 'image': image, 'file': f'live/{image}.png', 'why': 'Four buttons on one line',
                     'region': {'x': 0, 'y': 0, 'width': 1, 'height': 0.2}}
-        cards = plan_module.design_cards([finding('http://127.0.0.1:9/', 'medium', 'IMG-001'), finding('http://127.0.0.1:9/#/', 'high', 'IMG-002'),
+        cards = card_review.design_cards([finding('http://127.0.0.1:9/', 'medium', 'IMG-001'), finding('http://127.0.0.1:9/#/', 'high', 'IMG-002'),
                                           finding('http://127.0.0.1:9/#/branches', 'low', 'IMG-003')], [{'priority': 0.366}, {'priority': 0.1}])
         self.assertEqual([(c['id'], c['design']['page'], c['design']['severity']) for c in cards],
                          [('TASK-V001', '/', 'high'), ('TASK-V002', '/branches', 'low')])

@@ -116,7 +116,7 @@ def _readiness(kind, doubted, reasons):
 
 
 def decide(claim):
-    """The claim's decision. The assistant's triage (claim `triage`, eaos/plan.py apply_verdicts), when it confirmed the
+    """The claim's decision. The assistant's triage (claim `triage`, eaos/card_review.py apply_verdicts), when it confirmed the
     card, settles it: `keep` retains it with its reason, `fix` makes it a repair checked by the claim's own checks or the
     triage's (`triage.checks`), `owner` leaves it an investigation for the person."""
     disposition = claim.get('disposition') or {}
