@@ -83,6 +83,7 @@ export const CMD_WORDS = {
   snapshotTitle: ['الأوامر تشتغل من الاستوديو الحي', 'Actions run from the live Studio'],
   snapshotStep1: ['افتح الطرفية في مجلد المشروع', 'Open a terminal in the project folder'],
   snapshotStep2: ['اكتب هذا الأمر، فيفتح الاستوديو الحي في متصفحك:', 'Type this command; the live Studio opens in your browser:'],
+  snapshotHow: ['افتح الطرفية في مجلد المشروع واكتب هذا الأمر، فيفتح الاستوديو الحي في متصفحك:', 'Open a terminal in the project folder and type this command; the live Studio opens in your browser:'],
   copyCommand: ['انسخ الأمر', 'Copy the command'],
   orAssistant: ['أو اطلبه من مساعدك مباشرة:', 'Or ask your assistant directly:'],
   // runs
