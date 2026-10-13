@@ -18,7 +18,7 @@ FAKE = FIXTURES / 'fake_assistant.py'
 
 from eaos.studio import actions  # noqa: E402
 from tests.shared_fixture import Workspace  # noqa: E402
-from eaos.studio.actions import adapters, handoff, prompts, runs, security, selection, store  # noqa: E402
+from eaos.studio.actions import adapters, handoff, prompts, resume, runs, security, selection, store  # noqa: E402
 
 
 def card(id, **extra):
@@ -40,7 +40,10 @@ class Base(Workspace):
                 else: os.environ[key] = value
         self.addCleanup(restore)
         os.environ.update(EAOS_HOME=str(self.base / 'home'), EAOS_OUTPUT=str(self.base / 'out'), FAKE_MODE='question',
-                          FAKE_ARGV=str(self.base / 'argv.jsonl'))
+                          FAKE_ARGV=str(self.base / 'argv.jsonl'), FAKE_ONCE=str(self.base / 'crashed-once'))
+        waits = mock.patch.object(resume, 'WAITS', (0, 0, 0))      # a stopped assistant's run goes on at once here
+        waits.start()
+        self.addCleanup(waits.stop)
         self.project = self.base / 'project'
         (self.project / 'src').mkdir(parents=True)
         subprocess.run(['git', 'init', '-q', str(self.project)], check=True)
@@ -422,6 +425,29 @@ class Runs(Base):
         self.assertEqual([(e['data']['done'], e['data']['total']) for e in events if e['kind'] == 'progress'], [(1, 2)])
         self.assertTrue(next(e for e in events if e['kind'] == 'result')['data']['nothing_changed'])
         self.assertNotIn('تم', ' '.join(e['text']['ar'] for e in events if e['kind'] == 'result'))
+
+    def test_a_fix_run_whose_assistant_stopped_goes_on_by_itself_and_counts_on_from_the_cards_already_tried(self):
+        """The owner's batch (2026-10-13): Claude Code's sign-in expired at card 7, the run stopped "failed", and after
+        Retry its bar read "2 of 55" though 12 cards were done."""
+        os.environ['FAKE_MODE'] = 'crash_once'
+        wave = {'open_wave': {'number': 1, 'cards': ['TASK-001', 'TASK-002'], 'kept': {'TASK-001': 'abc'}, 'failed': {}}}
+        with mock.patch('eaos.guided.load', return_value=wave):
+            run = self.start('fix', cards=('TASK-001', 'TASK-002'))
+            self.app.wait(run, ('done', 'failed'), 30)
+        events = self.app.store.events(run)
+        launches = [line for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '"-p"' in line]
+        self.assertEqual(len(launches), 2, 'it went on by itself once its assistant crashed')
+        self.assertIn('stopped before the end', json.loads(launches[1])[json.loads(launches[1]).index('-p') + 1][:300])
+        self.assertEqual([e['data'].get('resume') for e in events if e['kind'] == 'step' and e['data'].get('resume')], [1])
+        self.assertEqual({(e['data']['done'], e['data']['total']) for e in events if e['kind'] == 'progress'}, {(1, 2)})
+        self.assertNotIn('something broke', ' '.join(str(e['data'].get('reason')) for e in events if e['kind'] == 'error'))
+
+    def test_a_run_goes_on_with_another_signed_in_assistant_when_its_own_hit_its_limit(self):
+        ready = lambda adapter: adapter != 'signed-out'
+        three = {'claude': 'claude', 'codex': 'codex', 'third': 'signed-out'}
+        self.assertEqual(resume.next_assistant(three, 'claude', 'limit', ready), 'codex', 'another one first')
+        self.assertEqual(resume.next_assistant(three, 'claude', 'failed', ready), 'claude', 'a crash: the same one again')
+        self.assertIsNone(resume.next_assistant({'claude': 'signed-out'}, 'claude', 'not_signed_in', ready))
 
     def test_one_run_at_a_time_and_the_queue_is_reordered(self):
         os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='2')

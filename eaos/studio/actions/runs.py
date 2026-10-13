@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import adapters, handoff, prompts
+from . import adapters, handoff, planners, prompts, resume
 from .store import ACTIVE, TERMINAL, now
 
 STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
@@ -200,8 +200,8 @@ class Manager:
     def _start(self, run):
         record = self.store.load(run)
         try:
-            if record.get('action') == 'run_nodes': return self._run_nodes(run)
-            if record.get('action') in PLANNERS: return self._plan_ideal(run)
+            if record.get('action') == 'run_nodes': return planners.run_nodes(self, run)
+            if record.get('action') in PLANNERS: return planners.plan_ideal(self, run)
             if record['mode'] == 'direct': return self._direct(run)
             if record['mode'] == 'handoff': return self._handoff(run)
             adapter = self.adapters.get(record.get('assistant'))
@@ -234,96 +234,14 @@ class Manager:
                 prompts.build(record.get('verb'), record.get('cards_detail') or [], self.project, self.lang,
                              action=record.get('action'), inputs=record.get('inputs'), labels=self.labels, where=record.get('where')))
 
-    def _fail(self, run, reason, what_now=None):
+    def _fail(self, run, reason, what_now=None, resumable=False):
+        """The run could not go on: why, and what the person can do; `resumable` (its assistant stopped): it goes on by
+        itself instead while it may (eaos/studio/actions/resume.py)."""
+        if resumable and resume.after_failure(self, run, reason): return
         self.store.append(run, 'error', {'en': f'It could not go on: {reason}', 'ar': f'ما قدر يكمل: {reason}'},
                           {'reason': reason, 'recoverable': True, 'what_now': what_now or {'en': 'Press Retry, or look at the detail.', 'ar': 'اضغط «أعد»، أو شوف التفاصيل.'}})
         if self._restore_question(run): return
         if self.store.load(run).get('state') not in TERMINAL: self.set_state(run, 'failed', reason[:200])
-
-    # the planned ideal
-    def _plan_ideal(self, run):
-        """Re-plan the ideal of the latest check with the run's assistant (or the first one available): its steps are the
-        run's events, stop kills it, and a failure leaves the rules' target in place. The Studio's data is published again
-        from the ledger, so every page shows the new ideal."""
-        from ... import guided
-        from .. import ideal
-        from .selection import studio_folder
-        studio = studio_folder(self.project)
-        report = studio.parent if studio else None
-        if report is None or not (report / 'target-architecture.json').is_file():
-            return self._fail(run, 'there is no check to plan from yet', {'en': 'Run the check first, then re-plan the ideal.',
-                                                                          'ar': 'شغّل الفحص أولًا، ثم أعد تخطيط المثالي.'})
-        wanted = self.store.load(run).get('assistant')
-        adapters = {wanted: self.adapters[wanted]} if wanted in self.adapters else self.adapters
-        cancel = self.cancels[run] = threading.Event()
-        say = lambda en, ar: self.store.append(run, 'step', {'en': en, 'ar': ar}, {'tool': 'replan_ideal'})
-        try:
-            result = ideal.plan(report, project=self.project, lang=self.lang, adapters=adapters, cancel=cancel,
-                                started=lambda pid: self.store.update(run, pid=pid), say=say)
-        finally:
-            self.cancels.pop(run, None)
-            self.store.update(run, pid=None)
-        if self.store.load(run).get('state') in TERMINAL: return
-        words = result['message']
-        if result['state'] != 'planned':
-            return self._fail(run, words['ar' if self.lang == 'ar' else 'en'],
-                              {'en': 'The rules\' target stays in place. Press Retry, or log in to Claude Code or Codex first.',
-                               'ar': 'يبقى هدف القواعد مكانه. اضغط «أعد»، أو سجّل الدخول في Claude Code أو Codex أولًا.'})
-        try: guided.publish(guided.load(self.project), self.lang)
-        except Exception as problem:
-            say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
-        payload = {**self._outcome(run, answer=words['ar' if self.lang == 'ar' else 'en']),
-                   'ideal': {'elements': result['elements'], 'dropped': len(result['dropped']), 'share': result['share'],
-                             'departures': len(result['departures']), 'questions': len(result['open_questions']),
-                             'assistant': result['assistant'], 'model': result['model']}}
-        self.store.append(run, 'result', {'en': f"The ideal is planned: {result['elements']} elements, each with its evidence",
-                                          'ar': f"تم تخطيط المثالي: {result['elements']} عنصرًا، كل واحد بدليله"}, payload)
-        self.set_state(run, 'done', result=payload)
-
-    # the AI nodes
-    def _run_nodes(self, run):
-        """Run the AI nodes on the latest check (docs/STUDIO.md D11) with the run's assistant: each node's steps are the
-        run's events, the last batch of fixes is the fix reviewer's input, and the Studio's data is published again so the
-        pipeline map, the cards and the inbox show the decisions. Without an assistant every node decides by the rules."""
-        from ... import guided
-        from .. import nodes
-        from .selection import studio_folder
-        studio = studio_folder(self.project)
-        report = studio.parent if studio else None
-        if report is None or not (report / 'plan.json').is_file():
-            return self._fail(run, 'there is no check for the AI nodes to read yet', {'en': 'Run the check first, then the AI nodes.',
-                                                                                      'ar': 'شغّل الفحص أولًا، ثم عُقد الذكاء.'})
-        record = self.store.load(run)
-        inputs = record.get('inputs') or {}
-        names = inputs.get('nodes') or [n.name for n in nodes.NODES if n.name != 'ideal_planner']
-        wanted = record.get('assistant')
-        adapters = {wanted: self.adapters[wanted]} if wanted in self.adapters else self.adapters
-        wave = None
-        try:
-            state = guided.load(self.project)
-            if state.get('waves'): wave = guided.runtime_of(state) / 'waves' / f"wave-{len(state['waves'])}"
-        except Exception:
-            wave = None
-        cancel = self.cancels[run] = threading.Event()
-        say = lambda en, ar: self.store.append(run, 'step', {'en': en, 'ar': ar}, {'tool': 'run_nodes'})
-        try:
-            records = nodes.run(report, names=names, adapters=adapters, project=self.project, lang=self.lang, fresh=bool(inputs.get('fresh')),
-                                say=say, cancel=cancel, started=lambda pid: self.store.update(run, pid=pid), wave=wave)
-        finally:
-            self.cancels.pop(run, None)
-            self.store.update(run, pid=None)
-        if self.store.load(run).get('state') in TERMINAL: return
-        try: guided.publish(guided.load(self.project), self.lang)
-        except Exception as problem:
-            say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
-        summary = {name: {'state': r['state'], 'method': r['method'], 'model': r['model'], 'cached': r['cached'],
-                          'routes': {x['decision']: len(x['subjects']) for x in r['routes']}, 'dropped': len(r['dropped'])}
-                   for name, r in records.items()}
-        by_model = sum(r['method'] == 'model' for r in records.values())
-        payload = {**self._outcome(run, answer=None), 'nodes': summary}
-        self.store.append(run, 'result', {'en': f'{len(records)} AI nodes decided ({by_model} by your assistant, the rest by the rules only)',
-                                          'ar': f'قرّرت {len(records)} عُقد ذكاء ({by_model} بمساعدك، والباقي بالقواعد فقط)'}, payload)
-        self.set_state(run, 'done', result=payload)
 
     # direct calls
     def call(self, action, inputs):
@@ -425,6 +343,7 @@ class Manager:
         record = self.store.load(run)
         offset, pid = record.get('offset') or 0, record.get('pid')
         state = adapter.new_state()
+        state['cards_tried'] = self._count_on(run, record)
         state['session'] = record.get('session')
         state['resumed'] = bool(record.get('session'))     # this turn resumes the assistant's session with an answer
         buffer = b''
@@ -461,17 +380,28 @@ class Manager:
         """The assistant's events into the run. A Fix run's progress is its batch: the cards tried (kept, taken back or
         skipped) of the cards it was given, never a job's or the project's own count."""
         fixing = record.get('verb') == 'fix' and record.get('cards')
-        tried = state.setdefault('cards_tried', set())
         for kind, words, data, detail in parsed:
             if fixing and kind == 'progress': continue
             self.store.append(run, kind, words, data, detail)
             card = (data or {}).get('card')
             done = (kind == 'check' and (data or {}).get('name') == 'card gates') or (kind == 'step' and (data or {}).get('tool') == 'fix_skip')
-            if fixing and done and card in record['cards'] and card not in tried:
-                tried.add(card)
-                total = len(record['cards'])
-                self.store.append(run, 'progress', {'en': f'{len(tried)} of {total} cards tried', 'ar': f'جُرّبت {len(tried)} من {total} بطاقات'},
-                                  {'batch': None, 'done': len(tried), 'total': total, 'stage': 'cards'})
+            if fixing and done and card in record['cards'] and card not in state['cards_tried']:
+                state['cards_tried'].add(card)
+                self._cards_progress(run, state['cards_tried'], record['cards'])
+
+    def _count_on(self, run, record):
+        """A Fix run's cards its open batch already tried (kept or left out), whichever turn or assistant tried them:
+        a retry, or another assistant, counts on from there."""
+        from ... import guided
+        wave = (guided.load(self.project) or {}).get('open_wave') or {}
+        cards = record.get('cards') or [] if record.get('verb') == 'fix' else []
+        tried = {card for card in cards if card in (wave.get('kept') or {}) or card in (wave.get('failed') or {})}
+        if tried: self._cards_progress(run, tried, cards)
+        return tried
+
+    def _cards_progress(self, run, tried, cards):
+        self.store.append(run, 'progress', {'en': f'{len(tried)} of {len(cards)} cards tried', 'ar': f'جُرّبت {len(tried)} من {len(cards)} بطاقات'},
+                          {'batch': None, 'done': len(tried), 'total': len(cards), 'stage': 'cards'})
 
     def _end_turn(self, run, state, code):
         record = self.store.load(run)
@@ -498,7 +428,8 @@ class Manager:
             tail = ''
             try: tail = (self.store.path(run) / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-600:]
             except OSError: pass
-            return self._fail(run, self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else ''))
+            why = self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
+            return self._fail(run, why, resumable=True)
         payload = self._outcome(run, answer=words)
         if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
             # a Fix run that handed nothing over did not succeed, whatever the assistant said: the person reads why
@@ -785,7 +716,7 @@ class Manager:
     def retry(self, run):
         record = self.store.load(run)
         if record.get('state') not in ('failed', 'stopped'): raise LookupError('only a run that failed or was stopped can be tried again')
-        record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None,
+        record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0,
                                 question=None, queued_at=now(), mode='assistant' if record.get('assistant') else record.get('mode'),
                                 branches_before=None, waves_before=None)
         self.store.set_queue(self.store.queue())

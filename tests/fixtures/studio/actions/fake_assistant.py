@@ -2,7 +2,8 @@
 
 FAKE_MODE (environment) picks what it does: `replay` prints claude-stream.jsonl (a real recorded run, shortened);
 `question` asks one eaos-question and, once resumed, finishes; `slow` prints a step every 0.2 s for FAKE_SECONDS;
-`fail` ends with an error result; `crash` exits 3 with nothing on stdout. `--version` and `auth status` answer as
+`fail` ends with an error result; `crash` exits 3 with nothing on stdout; `crash_once` crashes the first time (it
+leaves the file FAKE_ONCE), then finishes. `--version` and `auth status` answer as
 the real CLI does. Every argv it got is appended to FAKE_ARGV when set.
 """
 import json
@@ -30,8 +31,11 @@ say({'type': 'system', 'subtype': 'init', 'session_id': 'fake-session'})
 if mode == 'replay':
     for line in (Path(__file__).parent / 'claude-stream.jsonl').read_text(encoding='utf-8').splitlines()[1:]:
         print(line, flush=True)
-elif mode == 'crash':
+elif mode == 'crash' or (mode == 'crash_once' and not Path(os.environ['FAKE_ONCE']).exists()):
+    if mode == 'crash_once': Path(os.environ['FAKE_ONCE']).write_text('crashed')
     sys.stderr.write('something broke\n'); sys.exit(3)
+elif mode == 'crash_once':
+    say({'type': 'result', 'subtype': 'success', 'is_error': False, 'result': 'went on', 'session_id': 'fake-session'})
 elif mode == 'fail':
     say({'type': 'result', 'subtype': 'error_during_execution', 'is_error': True, 'result': 'the model is not available', 'session_id': 'fake-session'})
 elif mode == 'slow':
