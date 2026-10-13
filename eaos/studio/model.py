@@ -250,7 +250,7 @@ def gap_totals(m, cards):
 def maps(report, target, pipeline_builder=None):
     """The architecture maps (eaos/arch_map.py) and the system map (eaos/system_map.py); a missing or broken fact
     record leaves its map None, and what failed is kept in map_errors for the page's warning and errors.json."""
-    from .. import arch_map, system_map
+    from .. import arch_map, system_drawing, system_map
     out = {'cmap': None, 'drill': None, 'flows': None, 'system': None, 'system_layout': None, 'pipeline': None, 'map_errors': []}
     def attempt(part, build):
         try: build()
@@ -260,7 +260,7 @@ def maps(report, target, pipeline_builder=None):
         out['drill'] = drill_counts(arch_map.drill_data(report, out['cmap']))
     def system():
         out['system'] = system_details(system_map.build(report))
-        out['system_layout'] = system_map.layout(out['system'])
+        out['system_layout'] = system_drawing.layout(out['system'])
     attempt('architecture map', components)
     attempt('page flows', lambda: out.update(flows=arch_map.flow_charts(report)))
     attempt('system map', system)

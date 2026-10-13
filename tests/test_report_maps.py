@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import arch_map, blueprint, c4, human_report, system_map
+from eaos import arch_map, blueprint, c4, human_report, system_drawing, system_map
 from test_human_report import report, section
 
 def node(path, depends, group=None):
@@ -213,13 +213,13 @@ class SystemMapTests(unittest.TestCase):
         self.assertEqual(kinds[('C:web/shared/api.ts', 'A:GET /api/me')], 'call')
         self.assertEqual(kinds[('M:T-data', 'T:users')], 'data')
         # The layout keeps every column apart.
-        lay = system_map.layout(self.sm)
+        lay = system_drawing.layout(self.sm)
         by_column = {}
         for column, y in lay['place'].values(): by_column.setdefault(column, []).append(y)
         for ys in by_column.values():
             ys.sort()
-            self.assertTrue(all(b - a >= system_map.BOX_H for a, b in zip(ys, ys[1:])), ys)
-            self.assertLessEqual(ys[-1] + system_map.BOX_H, lay['height'])
+            self.assertTrue(all(b - a >= system_drawing.BOX_H for a, b in zip(ys, ys[1:])), ys)
+            self.assertLessEqual(ys[-1] + system_drawing.BOX_H, lay['height'])
 
     def test_the_page_draws_the_system_map_or_says_why_there_is_none(self):
         page = human_report.write(self.out, 'ar').read_text(encoding='utf-8')

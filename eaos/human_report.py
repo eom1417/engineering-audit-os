@@ -1295,7 +1295,7 @@ METHOD_CLASS = {'GET': 'get', 'POST': 'post', 'PUT': 'put', 'PATCH': 'put', 'DEL
 def system_svg(sm, lay, rtl):
     """Five columns, right to left in Arabic: pages, APIs grouped by resource, the server files that answer them, the
     parts those use, and the tables and services reached. Every link is drawn faint; the JS lights one chain."""
-    from .system_map import COLUMNS, BOX_H, WIDTH
+    from .system_drawing import COLUMNS, BOX_H, WIDTH
     place, height = lay['place'], lay['height']
     X = lambda c: (WIDTH - COLUMNS[c][0] - COLUMNS[c][1]) if rtl else COLUMNS[c][0]
     mid = lambda i: place[i][1] + BOX_H / 2
@@ -1490,7 +1490,7 @@ def _system_legend():
 
 def _system_heads(metrics):
     """The columns' titles over the drawing, spaced as the drawing spaces its columns."""
-    from .system_map import COLUMNS, WIDTH
+    from .system_drawing import COLUMNS, WIDTH
     spans, edge = [], 0                          # the columns and the gaps between them, as the drawing has them
     for x, width in COLUMNS:
         spans += [x - edge, width]; edge = x + width

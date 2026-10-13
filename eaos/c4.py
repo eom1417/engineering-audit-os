@@ -189,8 +189,8 @@ def _write_model(folder, system, model):
 def _write_system_map(report):
     """architecture/system.mmd: pages, APIs, server handlers and data; never a reason to fail."""
     try:
-        from . import system_map
-        text = system_map.mermaid(system_map.build(report))
+        from . import system_drawing, system_map
+        text = system_drawing.mermaid(system_map.build(report))
         if text: (report / 'architecture' / 'system.mmd').write_text(text, encoding='utf-8')
     except Exception:
         pass
