@@ -217,11 +217,16 @@ def _module_size(specification, sets):
                     f"{lines} lines, now within the limit of {specification['max_lines']}")
 
 
+def _matching(sets, name, kind, specification, *keys):
+    """The facts of `kind` in the fact set `name`, at the specification's path, that agree with it on every key."""
+    return [fact for fact in sets.get(name, {}).get('facts', [])
+            if fact['kind'] == kind and fact['location']['path'] == specification['path']
+            and all(fact['value'][key] == specification[key] for key in keys)]
+
+
 def _mutable(specification, sets):
-    rows = [fact for fact in sets.get('domain', {}).get('facts', [])
-            if fact['kind'] == 'mutable_global' and fact['location']['path'] == specification['path']
-            and fact['value']['name'] == specification['name']
-            and fact['value'].get('mutation_scope') == 'function']
+    rows = [fact for fact in _matching(sets, 'domain', 'mutable_global', specification, 'name')
+            if fact['value'].get('mutation_scope') == 'function']
     return _verdict(rows, 'still mutated at runtime', 'no runtime mutation of this value remains')
 
 
@@ -241,11 +246,8 @@ def _access_gap(specification, sets):
 
 
 def _external_write(specification, sets):
-    rows = [fact for fact in sets.get('domain', {}).get('facts', [])
-            if fact['kind'] == 'external_state_write' and fact['location']['path'] == specification['path']
-            and fact['value']['module'] == specification['module']
-            and fact['value']['attribute'] == specification['attribute']]
-    return _verdict(rows, 'the cross-module assignment is still there', 'the assignment is gone')
+    return _verdict(_matching(sets, 'domain', 'external_state_write', specification, 'module', 'attribute'),
+                    'the cross-module assignment is still there', 'the assignment is gone')
 
 
 def _policy(specification, sets):
@@ -265,11 +267,8 @@ def _sequence(specification, sets):
 
 
 def _redundancy(specification, sets):
-    rows = [fact for fact in sets.get('redundancy', {}).get('facts', [])
-            if fact['kind'] == 'redundancy' and fact['location']['path'] == specification['path']
-            and fact['value']['kind'] == specification['kind']
-            and fact['value']['callee'] == specification['callee']]
-    return _verdict(rows, 'the redundant work is still there', 'the redundancy is gone')
+    return _verdict(_matching(sets, 'redundancy', 'redundancy', specification, 'kind', 'callee'),
+                    'the redundant work is still there', 'the redundancy is gone')
 
 
 def _no_dependency(specification, sets):
