@@ -31,27 +31,13 @@ MENU_FILE = re.compile(r'(?i)(nav|menu|sidebar|links?)[^/]*\.[jt]sx?$')
 TAG_BEFORE = re.compile(r'<(?P<tag>[A-Za-z][\w.]*)[^<]*\Z')
 REDIRECTS = ('Navigate', 'Redirect')
 SCHEME = re.compile(r'^(?:[a-z][a-z0-9+.-]*:|//|#|\$\{)', re.I)
+# A comment, or a string (a quoted one ends at its quote or the line's end; a template may span lines).
+TOKEN = re.compile(r'''//[^\n]*|/\*.*?(?:\*/|\Z)|(['"])(?:\\.|(?!\1)[^\\\n])*\1?|`(?:\\.|[^\\`])*`?''', re.S)
 
 
 def blank_comments(text):
     """The text with every // and /* */ comment replaced by spaces (newlines kept), strings left alone."""
-    out, i, quote, n = list(text), 0, None, len(text)
-    while i < n:
-        ch = text[i]
-        if quote:
-            if ch == '\\': i += 2; continue
-            if ch == quote or (ch == '\n' and quote != '`'): quote = None
-        elif ch in '\'"`':
-            quote = ch
-        elif ch == '/' and i + 1 < n and text[i + 1] in '/*':
-            end = text.find('\n', i) if text[i + 1] == '/' else text.find('*/', i + 2)
-            end = n if end < 0 else end + (0 if text[i + 1] == '/' else 2)
-            for j in range(i, end):
-                if out[j] != '\n': out[j] = ' '
-            i = end
-            continue
-        i += 1
-    return ''.join(out)
+    return TOKEN.sub(lambda m: m.group() if m.group()[0] != '/' else re.sub(r'[^\n]', ' ', m.group()), text)
 
 
 def target_of(raw):
@@ -65,29 +51,29 @@ def target_of(raw):
     return path, dynamic, not path.startswith('/')
 
 
-def detect(context):
-    text = blank_comments(context.text)
-    found, seen = [], set()
+def _links(text, rel):
+    """(offset, written target, via) of every link the text writes: attributes, then calls, then menu entries."""
+    for match in ATTRIBUTE.finditer(text):
+        tag = TAG_BEFORE.search(text, max(0, match.start() - 400), match.start())
+        if not tag or (match.group('attr') == 'href' and not match.group('target').startswith('/')): continue
+        yield match.start(), match.group('target'), 'redirect' if tag.group('tag').split('.')[-1] in REDIRECTS else 'link'
+    for match in CALL.finditer(text):
+        yield match.start(), match.group('target'), 'navigate'
+    menu = bool(MENU_FILE.search(rel))
+    for match in MENU_ENTRY.finditer(text):
+        if match.group('target').startswith('/') and (menu or match.group('key') == 'to'):
+            yield match.start(), match.group('target'), 'menu'
 
-    def add(offset, raw, via):
+
+def detect(context):
+    found, seen = [], set()
+    for offset, raw, via in _links(blank_comments(context.text), context.rel):
         parsed = target_of(raw)
-        if not parsed: return
+        if not parsed: continue
         target, dynamic, relative = parsed
         line = context.line_of(offset)
-        if (line, target) in seen: return          # navigate({ to: "/x" }) is one link, not a call and a menu entry
+        if (line, target) in seen: continue          # navigate({ to: "/x" }) is one link, not a call and a menu entry
         seen.add((line, target))
         found.append((offset, line, {'target': target, 'via': via, 'dynamic': dynamic, 'relative': relative,
                                      'symbol': context.symbol_at(line)}))
-
-    for match in ATTRIBUTE.finditer(text):
-        tag = TAG_BEFORE.search(text, max(0, match.start() - 400), match.start())
-        if not tag: continue
-        name = tag.group('tag').split('.')[-1]
-        if match.group('attr') == 'href' and not match.group('target').startswith('/'): continue
-        add(match.start(), match.group('target'), 'redirect' if name in REDIRECTS else 'link')
-    for match in CALL.finditer(text):
-        add(match.start(), match.group('target'), 'navigate')
-    menu = bool(MENU_FILE.search(context.rel))
-    for match in MENU_ENTRY.finditer(text):
-        if match.group('target').startswith('/') and (menu or match.group('key') == 'to'): add(match.start(), match.group('target'), 'menu')
     return sorted(found, key=lambda row: row[0])
