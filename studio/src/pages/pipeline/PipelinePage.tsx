@@ -6,7 +6,7 @@ import { useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
-import { Segmented } from '../../components/Controls'
+import { Segmented, WordSwitch } from '../../components/Controls'
 import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
 import { script } from '../../data/load'
@@ -28,11 +28,6 @@ import css from './panels.module.css'
 
 interface PipelineSearch { p?: string; view?: string; show?: string; stage?: string; hidden?: string; follow?: string }
 type Show = 'map' | 'steps'
-
-function ViewSwitch({ view, onChange, comfortable }: { view: View; onChange: (v: View) => void; comfortable?: boolean }) {
-  const w = usePipelineWords()
-  return <Segmented label={w('view')} value={view} onChange={onChange} comfortable={comfortable} options={VIEWS.map((v) => ({ id: v, label: w(VIEW_WORD[v]) }))} />
-}
 
 function ShowSwitch({ show, onChange, comfortable }: { show: Show; onChange: (s: Show) => void; comfortable?: boolean }) {
   const w = usePipelineWords()
@@ -161,7 +156,7 @@ function PhonePipeline({ c, sheet, setSheet, full, setFull }: { c: ViewCtx; shee
         <MissingBanner data={studio} />
         <Head data={data} scope={scope} onEnter={enter} compact />
         <PipelinePicker c={c} />
-        <div className={css.mobileControls}><ViewSwitch view={view} onChange={setView} comfortable /><ShowSwitch show={show} onChange={setShow} comfortable /></div>
+        <div className={css.mobileControls}><WordSwitch label={w('view')} ids={VIEWS} table={VIEW_WORD} w={w} value={view} onChange={setView} comfortable /><ShowSwitch show={show} onChange={setShow} comfortable /></div>
         <details className={css.explore}><summary>{lang === 'ar' ? 'تتبّع البيانات والمسارات الخفية' : 'Trace data and hidden paths'}</summary>
           <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
           <FollowPicker names={names} value={followed} onChange={setFollow} />
@@ -200,7 +195,7 @@ function FullDiagram({ c, open, onOpenChange, onInspect }: { c: ViewCtx; open: b
             <>
               <Flowchart scope={scope} view={view} down selected={stage} onSelect={(s) => go({ stage: s })} hidden={hidden} lit={lit} label={label} legend={false}
                 title={<div className={frame.titleRow}><IconButton icon="x" label={w('closeDiagram')} onPress={close} /><Heading slot="title" className={frame.sheetTitle}><Id value={scope.pipeline.title} /></Heading></div>}
-                head={<ViewSwitch view={view} onChange={setView} comfortable />} />
+                head={<WordSwitch label={w('view')} ids={VIEWS} table={VIEW_WORD} w={w} value={view} onChange={setView} comfortable />} />
               {stage && (
                 <div className={frame.sheetBar} role="status">
                   <Id value={scope.stage.get(stage)?.label ?? scope.ideal.get(stage)?.label ?? stage} />
@@ -226,7 +221,7 @@ function DesktopPipeline({ c }: { c: ViewCtx }) {
   const head: ReactNode = (
     <>
       <PipelinePicker c={c} />
-      <ViewSwitch view={view} onChange={setView} />
+      <WordSwitch label={w('view')} ids={VIEWS} table={VIEW_WORD} w={w} value={view} onChange={setView} />
       <ShowSwitch show={show} onChange={setShow} />
       <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
       <FollowPicker names={names} value={followed} onChange={setFollow} />

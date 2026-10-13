@@ -6,7 +6,7 @@ import { useSearch } from '@tanstack/react-router'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
-import { SearchField, Segmented } from '../../components/Controls'
+import { SearchField, Segmented, WordSwitch } from '../../components/Controls'
 import { Go } from '../../components/Go'
 import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
@@ -19,11 +19,10 @@ import { useSearchPatch } from '../../shell/search'
 import { useCoverageRow } from '../library/model'
 import { usePhone } from '../SystemMap'
 import { drawOverview } from './draw'
-import { ModeSwitch } from './ModeSwitch'
 import { ClusterInspector } from './Inspector'
 import { Lanes } from './Lanes'
 import { indexOf, LANES, PATH_MODES, pathsThrough, usePaths, type CodePath, type GapReason, type PathMode, type PathsData } from './model'
-import { GAP_WORD, LANE_WORD, usePathWords } from './words'
+import { GAP_WORD, LANE_WORD, MODE_WORD, usePathWords } from './words'
 import css from './paths.module.css'
 
 interface PathsSearch { view?: string; cluster?: string; q?: string; filter?: string; file?: string; part?: string }
@@ -162,7 +161,7 @@ function PathsView({ data, paths }: { data: StudioData; paths: PathsData }) {
                   <Lanes columns={paths.overview.columns} nodes={drawn.nodes} edges={drawn.edges} mode={mode} selected={cluster} onSelect={(id) => go({ cluster: id })}
                     label={label} legend="none"
                     title={<div className={css.titleRow}><IconButton icon="x" label={w('closeDiagram')} onPress={close} /><Heading slot="title" className={css.sheetTitle}>{w('overview')}</Heading></div>}
-                    head={<ModeSwitch mode={mode} onChange={setMode} comfortable />} />
+                    head={<WordSwitch label={w('view')} ids={PATH_MODES} table={MODE_WORD} w={w} value={mode} onChange={setMode} comfortable />} />
                   {cluster && (
                     <div className={css.sheetBar} role="status">
                       <Id value={paths.overview.clusters.find((c) => c.id === cluster)?.label ?? ''} />
@@ -184,7 +183,7 @@ function PathsView({ data, paths }: { data: StudioData; paths: PathsData }) {
       <section className={css.canvasCol} aria-label={w('overview')}>
         <MissingBanner data={data} />
         <Lanes columns={paths.overview.columns} nodes={drawn.nodes} edges={drawn.edges} mode={mode} selected={cluster} onSelect={pick} label={label}
-          title={title} head={<ModeSwitch mode={mode} onChange={setMode} />} />
+          title={title} head={<WordSwitch label={w('view')} ids={PATH_MODES} table={MODE_WORD} w={w} value={mode} onChange={setMode} />} />
         <p className={css.note}>{w('overviewHint')}</p>
       </section>
       <aside className={css.side} aria-label={t('inspector')}>

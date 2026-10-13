@@ -5,7 +5,7 @@ import { useParams, useSearch } from '@tanstack/react-router'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../components/Button'
-import { Segmented } from '../../components/Controls'
+import { Segmented, WordSwitch } from '../../components/Controls'
 import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
 import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
@@ -21,10 +21,9 @@ import { drawPath } from './draw'
 import { NodeInspector } from './Inspector'
 import { Lanes, Legend, type DrawNode } from './Lanes'
 import { indexOf, LANES, PATH_MODES, possible, usePaths, where, type CodePath, type PathMode, type PathOp, type PathsData } from './model'
-import { ModeSwitch } from './ModeSwitch'
 import { NoPaths } from './PathsPage'
 import { SequenceDiagram, StepList } from './Sequence'
-import { GAP_WORD, LANE_WORD, usePathWords } from './words'
+import { GAP_WORD, LANE_WORD, MODE_WORD, usePathWords } from './words'
 import css from './paths.module.css'
 
 interface FlowSearch { view?: string; show?: string; node?: string; traced?: string }
@@ -88,7 +87,7 @@ function FlowView({ data, paths, path }: { data: StudioData; paths: PathsData; p
         <MissingBanner data={data} />
         {back}
         <PathHead path={path} />
-        <ModeSwitch mode={mode} onChange={setMode} comfortable />
+        <WordSwitch label={w('view')} ids={PATH_MODES} table={MODE_WORD} w={w} value={mode} onChange={setMode} comfortable />
         <ShowSwitch show={show} onChange={setShow} comfortable />
         {show === 'diagram' && (
           <figure>
@@ -120,7 +119,7 @@ function FlowView({ data, paths, path }: { data: StudioData; paths: PathsData; p
                   <Lanes columns={path.columns} nodes={drawn.nodes} edges={drawn.edges} mode={mode} selected={node} onSelect={(id) => go({ node: id })}
                     label={label} legend="none"
                     title={<div className={css.titleRow}><IconButton icon="x" label={w('closeDiagram')} onPress={close} /><Heading slot="title" className={css.sheetTitle}><Id value={path.title} /></Heading></div>}
-                    head={<ModeSwitch mode={mode} onChange={setMode} comfortable />} />
+                    head={<WordSwitch label={w('view')} ids={PATH_MODES} table={MODE_WORD} w={w} value={mode} onChange={setMode} comfortable />} />
                   {node && (
                     <div className={css.sheetBar} role="status">
                       <Id value={index.node.get(node)?.label ?? node} />
@@ -138,7 +137,7 @@ function FlowView({ data, paths, path }: { data: StudioData; paths: PathsData; p
 
   const head: ReactNode = (
     <>
-      <ModeSwitch mode={mode} onChange={setMode} />
+      <WordSwitch label={w('view')} ids={PATH_MODES} table={MODE_WORD} w={w} value={mode} onChange={setMode} />
       <ShowSwitch show={show} onChange={setShow} />
       {show === 'diagram' && maybe.edges.size > 0 && <Traced on={traced} onChange={(on) => go({ traced: on ? '1' : undefined })} />}
     </>

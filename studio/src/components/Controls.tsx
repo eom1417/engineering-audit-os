@@ -18,6 +18,12 @@ export function Segmented<K extends string>({ label, value, onChange, options, c
   )
 }
 
+/** A segmented switch whose options are ids, each named by the page's words through `table` (a view, a mode). */
+export function WordSwitch<K extends string, W extends string>({ ids, table, w, ...rest }:
+  { label: string; value: K; onChange: (value: K) => void; ids: readonly K[]; table: Record<K, W>; w: (word: W) => string; comfortable?: boolean }) {
+  return <Segmented {...rest} options={ids.map((id) => ({ id, label: w(table[id]) }))} />
+}
+
 export function SearchField({ label, placeholder, value, onChange, autoFocus }:
   { label: string; placeholder?: string; value: string; onChange: (value: string) => void; autoFocus?: boolean }) {
   const { t } = usePrefs()
