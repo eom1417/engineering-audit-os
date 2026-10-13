@@ -207,7 +207,6 @@ def chromium_path():
 
 
 LIGHTHOUSE_CATEGORIES = ('performance', 'accessibility', 'best-practices')
-LIGHTHOUSE_MINIMUMS = {'performance': 90, 'accessibility': 100}
 
 
 
