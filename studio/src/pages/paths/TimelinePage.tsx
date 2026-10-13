@@ -178,7 +178,7 @@ function TimelineBody({ data }: { data: StudioData }) {
   const state = usePaths(data)
   usePageChrome(w('planTimeline'), { to: '/change', label: t('journeyAndPlan') }, data.manifest.project.name)
   if (state.kind === 'loading') return <div className={layout.page}><Panel><Skeleton label={t('loading')} /></Panel></div>
-  const timeline = state.kind === 'ready' ? state.paths.timeline : null
+  const timeline = state.kind === 'ready' ? state.data.timeline : null
   if (!timeline) {
     return <div className={layout.page}><PageTitle title={w('planTimeline')} /><Panel><StateMessage title={w('noTimeline')} sub={w('noTimelineSub')} /></Panel></div>
   }
@@ -193,7 +193,7 @@ export function TimelinePage() {
 export function TimelineEntry({ data }: { data: StudioData }) {
   const w = usePathWords()
   const state = usePaths(data)
-  const timeline = state.kind === 'ready' ? state.paths.timeline : null
+  const timeline = state.kind === 'ready' ? state.data.timeline : null
   if (!timeline) return null
   return (
     <Panel className={css.entryCard}>

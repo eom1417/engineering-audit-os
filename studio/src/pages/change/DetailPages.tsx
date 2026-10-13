@@ -30,7 +30,7 @@ function Missing({ title, id }: { title: string; id: string }) {
 
 function useTimeline(data: StudioData) {
   const paths = usePaths(data)
-  return paths.kind === 'ready' ? paths.paths.timeline : null
+  return paths.kind === 'ready' ? paths.data.timeline : null
 }
 
 function StepBody({ data, planId, stepId }: { data: StudioData; planId: string; stepId: string }) {

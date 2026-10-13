@@ -1,6 +1,7 @@
 // Loads the Studio's data with classic scripts (<name>.js beside index.html, written by eaos/studio/export.py): a
 // browser opening the Studio from a file refuses fetch(), but runs a script from the same folder. The content
 // security policy allows scripts from 'self' only, so nothing is ever loaded from elsewhere.
+import { useEffect, useState } from 'react'
 import { SECTIONS, type Manifest, type SectionName, type StudioData } from './types'
 
 declare global {
@@ -22,6 +23,28 @@ export function script(name: string): Promise<boolean> {
     tag.onerror = () => resolve(false)
     document.head.appendChild(tag)
   })
+}
+
+export type Section<T> = { kind: 'loading' } | { kind: 'ready'; data: T } | { kind: 'absent' }
+
+/** A section as the data source loaded it (the snapshot's script or the live server, whose events replace it), else
+ * loaded on demand from <name>.js beside the Studio (a classic script). */
+export function useScriptSection<T>(data: StudioData, name: SectionName): Section<T> {
+  const listed = data.manifest.sections.some((s) => (s.name as string) === name)
+  const preset = () => window.EAOS_STUDIO?.[name] as T | undefined
+  const [state, setState] = useState<Section<T>>(() => !listed ? { kind: 'absent' } : preset() ? { kind: 'ready', data: preset()! } : { kind: 'loading' })
+  useEffect(() => {
+    if (state.kind !== 'loading') return
+    let live = true
+    script(name).then(() => {
+      if (!live) return
+      const loaded = preset()
+      setState(loaded ? { kind: 'ready', data: loaded } : { kind: 'absent' })
+    })
+    return () => { live = false }
+  }, [state.kind, name])
+  const held = (data as unknown as Record<string, unknown>)[name] as T | undefined
+  return held ? { kind: 'ready', data: held } : state
 }
 
 export type Loaded =

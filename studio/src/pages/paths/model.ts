@@ -2,8 +2,7 @@
 // by EAOS (eaos/studio/paths.py), and the fix plan's timeline. This file reads it: the section is loaded only when a
 // paths page opens (it can be large), and the drawing's geometry turns EAOS's lane order into places. Nothing here
 // computes a number the exporter did not write, and no link is added that the data does not hold.
-import { useEffect, useState } from 'react'
-import { script } from '../../data/load'
+import { useScriptSection, type Section } from '../../data/load'
 import type { Measure, StudioData } from '../../data/types'
 
 export const LANES = ['screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data'] as const
@@ -78,30 +77,8 @@ export interface PathsData {
   timeline: Timeline | null
 }
 
-export type PathsState = { kind: 'loading' } | { kind: 'ready'; paths: PathsData } | { kind: 'absent' }
-
-declare global {
-  interface Window { EAOS_STUDIO?: Record<string, unknown> }
-}
-
-/** The paths section as the data source loaded it (the snapshot's script or the live server, whose events replace it),
- * else loaded on demand from paths.js beside the Studio (a classic script). */
-export function usePaths(data: StudioData): PathsState {
-  const listed = data.manifest.sections.some((s) => (s.name as string) === 'paths')
-  const preset = () => (window.EAOS_STUDIO?.paths as PathsData | undefined)
-  const [state, setState] = useState<PathsState>(() => !listed ? { kind: 'absent' } : preset() ? { kind: 'ready', paths: preset()! } : { kind: 'loading' })
-  useEffect(() => {
-    if (state.kind !== 'loading') return
-    let live = true
-    script('paths').then(() => {
-      if (!live) return
-      const loaded = preset()
-      setState(loaded ? { kind: 'ready', paths: loaded } : { kind: 'absent' })
-    })
-    return () => { live = false }
-  }, [state.kind])
-  return data.paths ? { kind: 'ready', paths: data.paths as PathsData } : state
-}
+/** The paths section (paths.js), loaded when a paths page opens. */
+export const usePaths = (data: StudioData): Section<PathsData> => useScriptSection<PathsData>(data, 'paths')
 
 export interface Index {
   node: Map<string, PathNode>

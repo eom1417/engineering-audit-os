@@ -244,7 +244,7 @@ function PathsBody({ data }: { data: StudioData }) {
   usePageChrome(w('codePaths'), undefined, data.manifest.project.name)
   if (state.kind === 'loading') return <div className={layout.page}><Panel><Skeleton label={t('loading')} /></Panel></div>
   if (state.kind === 'absent') return <NoPaths data={data} />
-  return <PathsView data={data} paths={state.paths} />
+  return <PathsView data={data} paths={state.data} />
 }
 
 export function PathsPage() {

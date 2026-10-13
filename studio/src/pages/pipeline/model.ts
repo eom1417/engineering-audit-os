@@ -2,8 +2,7 @@
 // (eaos/studio/pipeline.py), its stages laid out by EAOS (each stage's `layer` and `order`). This file reads it: the
 // section is loaded only when the pipeline page opens, and the drawing's geometry turns EAOS's layer and order into
 // places. Nothing here computes a number the exporter did not write, and no link is added that the data does not hold.
-import { useEffect, useState } from 'react'
-import { script } from '../../data/load'
+import { useScriptSection, type Section } from '../../data/load'
 import type { Measure, StudioData } from '../../data/types'
 
 export interface Site { path: string | null; line: number | null; fact?: string | null; text?: string | null }
@@ -113,26 +112,8 @@ export interface PipelineData {
   src: Record<string, string>
 }
 
-export type PipelineState = { kind: 'loading' } | { kind: 'ready'; pipeline: PipelineData } | { kind: 'absent' }
-
-/** The pipeline section as the data source loaded it (the snapshot's script or the live server, whose events replace it),
- * else loaded on demand from pipeline.js beside the Studio (a classic script). */
-export function usePipeline(data: StudioData): PipelineState {
-  const listed = data.manifest.sections.some((s) => (s.name as string) === 'pipeline')
-  const preset = () => (window.EAOS_STUDIO?.pipeline as PipelineData | undefined)
-  const [state, setState] = useState<PipelineState>(() => !listed ? { kind: 'absent' } : preset() ? { kind: 'ready', pipeline: preset()! } : { kind: 'loading' })
-  useEffect(() => {
-    if (state.kind !== 'loading') return
-    let live = true
-    script('pipeline').then(() => {
-      if (!live) return
-      const loaded = preset()
-      setState(loaded ? { kind: 'ready', pipeline: loaded } : { kind: 'absent' })
-    })
-    return () => { live = false }
-  }, [state.kind])
-  return data.pipeline ? { kind: 'ready', pipeline: data.pipeline as PipelineData } : state
-}
+/** The pipeline section (pipeline.js), loaded when the pipeline page opens. */
+export const usePipeline = (data: StudioData): Section<PipelineData> => useScriptSection<PipelineData>(data, 'pipeline')
 
 export type View = 'current' | 'ideal' | 'gap'
 export const VIEWS: View[] = ['current', 'ideal', 'gap']

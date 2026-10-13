@@ -228,7 +228,7 @@ function FlowBody({ data }: { data: StudioData }) {
   const state = usePaths(data)
   if (state.kind === 'loading') return <Titled data={data}><div className={css.phone}><Panel><Skeleton label={t('loading')} /></Panel></div></Titled>
   if (state.kind === 'absent') return <Titled data={data}><NoPaths data={data} /></Titled>
-  const path = state.paths.paths.find((p) => p.id === pathId)
+  const path = state.data.paths.find((p) => p.id === pathId)
   if (!path) {
     return (
       <Titled data={data}>
@@ -238,7 +238,7 @@ function FlowBody({ data }: { data: StudioData }) {
       </Titled>
     )
   }
-  return <FlowView data={data} paths={state.paths} path={path} />
+  return <FlowView data={data} paths={state.data} path={path} />
 }
 
 export function FlowPage() {

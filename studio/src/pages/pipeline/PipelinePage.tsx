@@ -306,8 +306,8 @@ function PipelineBody({ data }: { data: StudioData }) {
   const state = usePipeline(data)
   if (state.kind === 'loading') return <Chrome data={data}><div className={layout.page}><Panel><Skeleton label={t('loading')} /></Panel></div></Chrome>
   if (state.kind === 'absent') return <Chrome data={data}><NoMap studio={data} /></Chrome>
-  if (!state.pipeline.pipelines.length) return <Chrome data={data}><NoPipeline studio={data} data={state.pipeline} /></Chrome>
-  return <PipelineView studio={data} data={state.pipeline} />
+  if (!state.data.pipelines.length) return <Chrome data={data}><NoPipeline studio={data} data={state.data} /></Chrome>
+  return <PipelineView studio={data} data={state.data} />
 }
 
 /** The top bar's title and way back for the page's states that are not the map. */

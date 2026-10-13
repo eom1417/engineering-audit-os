@@ -193,7 +193,7 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
   const plan = data.plans?.plans.find((p) => p.id === id)
   usePageChrome(plan ? planTitle(plan, t) : w('plansTitle'), { to: '/plans', label: w('plansTitle') }, data.manifest.project.name)
   const paths = usePaths(data)
-  const timeline = paths.kind === 'ready' ? paths.paths.timeline : null
+  const timeline = paths.kind === 'ready' ? paths.data.timeline : null
   const links = useMemo(() => stepLinks(timeline), [timeline])
   if (!plan) return <div className={page.page}><ChangeNav /><Panel><StateMessage title={w('planNotFound')} sub={<Id value={id} />} /></Panel></div>
   const ops = (data.operations?.operations ?? []).filter((o) => (o.plan ?? plan.id) === plan.id)
