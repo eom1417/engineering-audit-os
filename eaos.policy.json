@@ -93,6 +93,7 @@
       "eaos/mcp_server.py",
       "eaos/agent_tools.py",
       "eaos/batch_finish.py",
+      "eaos/regenerate.py",
       "eaos/jobs.py",
       "eaos/plain.py",
       "eaos/language.py",

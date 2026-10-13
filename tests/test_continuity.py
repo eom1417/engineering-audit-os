@@ -108,6 +108,13 @@ class Continuity(Base):
         def refused(*_, **__):                                   # it rewrites the copy, then the gate refuses it
             git(copy, 'reset', '-q', '--hard', base)
             raise PermissionError('S09: the copy does not descend from the authorised commit')
+        def stopped(*_, **__):                                   # the person stops it while it halves the batch
+            git(copy, 'reset', '-q', '--hard', base)
+            raise KeyboardInterrupt
+        with mock.patch('eaos.waves.finish_batch', side_effect=stopped), self.assertRaises(KeyboardInterrupt):
+            batch_finish.finish_job(str(self.project), {}, lambda *_: None)
+        wave = guided.load(self.project)['open_wave']
+        self.assertEqual((git(copy, 'rev-parse', 'HEAD'), wave.get('last_error')), (kept, None), 'stopped: whole, and nothing failed')
         with mock.patch('eaos.waves.finish_batch', side_effect=refused), self.assertRaises(PermissionError):
             batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         wave = guided.load(self.project)['open_wave']

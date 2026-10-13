@@ -140,6 +140,40 @@ class FinishTests(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt', 'repair.txt'])
 
 
+class RegenerateTests(unittest.TestCase):
+    def test_what_the_build_makes_from_the_batchs_source_comes_back_as_one_commit_and_nothing_ignored(self):
+        # EAOS on itself (2026-10-13): Studio fixes changed studio/src, the shipped build in eaos/data/studio no longer
+        # matched it, and four sound fixes were about to be left out of the batch for it.
+        from eaos import regenerate
+        root, runtime = repository(), Path(tempfile.mkdtemp())
+        (root / 'app').mkdir(); (root / 'shipped').mkdir()
+        commit_file(root, 'app/src.ts', 'one')
+        commit_file(root, 'shipped/old.js', 'old')
+        base = git(root, 'rev-parse', 'HEAD')
+        (root / '.gitignore').write_text('app/dist/\n')
+        commit_file(root, 'app/src.ts', 'two')
+        copy = Path(tempfile.mkdtemp()) / 'project'
+        subprocess.run(['git', '-C', str(root), 'worktree', 'add', '-q', '--detach', str(copy)], check=True)
+
+        class Built:                                       # the build: one shipped file made, one gone, one ignored
+            sandbox = mock.Mock(copy=copy)
+            def __init__(self, *args, **kwargs): pass
+            def setup(self):
+                (copy / 'shipped/old.js').unlink()
+                (copy / 'shipped/new.js').write_text('built from two')
+                (copy / 'app/dist').mkdir(parents=True)
+                (copy / 'app/dist/out.js').write_text('local only')
+            def stop(self): pass
+            def record(self, name): pass
+        profile = {'app': 'app', 'build': [['npm', 'run', 'build']]}
+        with mock.patch.object(regenerate, 'LiveRun', Built), mock.patch.object(regenerate, 'load_profile', return_value=profile):
+            sha = regenerate.regenerate(root, runtime, base, 3)
+        self.assertEqual(sorted(git(root, 'show', '--name-only', '--format=', sha).split()), ['shipped/new.js', 'shipped/old.js'])
+        self.assertEqual(((root / 'shipped/new.js').read_text(), (root / 'shipped/old.js').exists()), ('built from two', False))
+        with mock.patch.object(regenerate, 'load_profile', return_value=profile):
+            self.assertIsNone(regenerate.regenerate(root, runtime, git(root, 'rev-parse', 'HEAD'), 4), 'the app did not change')
+
+
 class CodeLawsGateTests(unittest.TestCase):
     def test_a_change_that_copies_leaves_dead_code_or_adds_complexity_is_refused_and_a_partial_split_is_kept(self):
         from eaos.execute import new_debt

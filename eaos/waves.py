@@ -192,7 +192,7 @@ class GatesFailed(Exception):
 
 
 def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None,
-                 branch=None, repairs=(), bisect=True):
+                 branch=None, repairs=(), bisect=True, regenerate=lambda root: None):
     """Every kept change together, then `repairs` (commits made on top of them after a failure): the acceptances from
     one collection of facts, then the project's checks and the behaviour lock once. When they fail, GatesFailed asks
     for a repair, unless `bisect`: then halving finds the culprits, left out. The kept commits become the wave's branch
@@ -204,6 +204,9 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
     progress.begin('acceptance')
     if kept: kept = _accepted(report, cards, root, base, kept, failed, list(repairs))
     else: progress.skip('acceptance', 'no change was kept to check', 'nothing_kept')
+    if kept:                                    # the files the build makes, rebuilt from the batch's source
+        say('regenerate')
+        regenerate(root)
     progress.begin('gates')
     batch = {'report': report, 'root': root, 'runtime': runtime, 'base': base, 'name': f'wave-{number}',
              'before': original_checks(target, runtime), 'lock': lock, 'say': say, 'bisect': bisect}

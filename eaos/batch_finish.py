@@ -12,8 +12,8 @@ from . import guided
 
 REPAIR = 'REPAIR'        # the card of a repair on top of the batch
 REPAIRS = 3             # repairs tried before the cards responsible are left out
-STEPS = {'acceptance': (0, "every problem is gone, all changes together"), 'gates': (1, "the project's own checks and every screen"),
-         'bisect': (2, 'finding the change that broke something')}
+STEPS = {'acceptance': (0, "every problem is gone, all changes together"), 'regenerate': (1, 'rebuilding the files the build makes'),
+         'gates': (1, "the project's own checks and every screen"), 'bisect': (2, 'finding the change that broke something')}
 
 
 def open_step(wave):
@@ -40,6 +40,7 @@ def repaired(state, root, changed, diff):
 
 
 def finish_job(project, arguments, progress):
+    from .regenerate import regenerate
     from .waves import GatesFailed, finish_batch
     state = guided.load(project)
     wave = state['open_wave']
@@ -50,13 +51,15 @@ def finish_job(project, arguments, progress):
                                wave['base'], wave['cards'], wave['kept'], wave['failed'], wave['tools'], lock=True,
                                say=lambda kind, *_: progress(STEPS[kind][0], 3, STEPS[kind][1]) if kind in STEPS else None,
                                branch=wave.get('deliver_as'), repairs=repairs,
-                               bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS)
-    except Exception as problem:       # the batch stays as it was: its copy back to its kept changes, the failure recorded
+                               bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
+                               regenerate=lambda root: regenerate(root, guided.runtime_of(state), wave['base'], wave['number']))
+    except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
         guided._git(wave['root'], 'cherry-pick', '--abort')
         guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])
         guided._git(wave['root'], 'clean', '-fdq')
         state = guided.load(project)
         if isinstance(problem, GatesFailed): return _repair_asked(state, problem, len(repairs))
+        if not isinstance(problem, Exception): raise          # stopped by the person: nothing failed, the batch goes on
         state['open_wave']['last_error'] = f'{type(problem).__name__}: {problem}'[:500]
         guided.save(state)
         raise
