@@ -20,8 +20,8 @@ import { layout as page, MissingBanner, PageTitle, WithData } from '../../shell/
 import { usePhone } from '../SystemMap'
 import { usePaths, type Timeline } from '../paths/model'
 import { StepGraph } from './StepGraph'
-import { nextStep, OP_LABEL, PLAN_STATES, RELATION_OF, stateCounts, stepLinks, type StepLink as Link } from './model'
-import { ChangeNav, Missing, NotMeasured, StateBar } from './parts'
+import { nextStep, OP_LABEL, PLAN_STATES, RELATION_OF, stateCounts, stepLinks, taskCount, type StepLink as Link } from './model'
+import { ChangeNav, Meter, Missing, NotMeasured, StateBar } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
@@ -39,9 +39,8 @@ function planTitle(plan: Plan, t: ReturnType<typeof usePrefs>['t']): string {
 export function Progress({ plan }: { plan: Plan }) {
   const w = useChangeWords()
   const value = plan.progress.value
-  if (value === null || value === undefined) return <span className={css.muted}>{w('notMeasured')}</span>
-  if (value === 0) return <span className={css.muted}>{w('notStarted')}</span>
-  return <span>{w('donePct', { p: Math.round(value * 100) })}</span>
+  if (!value) return <span className={css.muted}>{w(value === 0 ? 'notStarted' : 'notMeasured')}</span>
+  return <Meter value={value}>{w('donePct', { p: Math.round(value * 100) })}</Meter>
 }
 
 function PlansBody({ data }: { data: StudioData }) {
@@ -60,8 +59,8 @@ function PlansBody({ data }: { data: StudioData }) {
             {plans.map((plan) => (
               <li key={plan.id}>
                 <RowLink to={`/plans/${encodeURIComponent(plan.id)}`} icon="plan" title={<Txt>{planTitle(plan, t)}</Txt>}
-                  sub={<>{planState(plan.state, w)} · {w('stepsN', { n: plan.steps.length })} · {w('tasksN', { n: plan.steps.reduce((s, x) => s + x.tasks.length, 0) })}</>}
-                  end={<Progress plan={plan} />} />
+                  sub={<><Progress plan={plan} /> · {w('stepsN', { n: plan.steps.length })} · {w('tasksN', { n: taskCount(plan) })}</>}
+                  end={planState(plan.state, w)} />
               </li>
             ))}
           </ul>
@@ -201,7 +200,6 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
   const view: View = phone && asked === 'graph' ? 'timeline' : asked
   const options = [{ id: 'timeline' as View, label: w('viewTimeline') }, ...(phone ? [] : [{ id: 'graph' as View, label: w('viewGraph') }]), { id: 'board' as View, label: w('viewBoard') }]
   const next = nextStep(plan, links)
-  const tasks = plan.steps.reduce((s, x) => s + x.tasks.length, 0)
   return (
     <div className={page.page}>
       <MissingBanner data={data} />
@@ -211,7 +209,7 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
         <h1 className={css.title}><Txt>{planTitle(plan, t)}</Txt></h1>
         <Stepper state={plan.state} />
         <span className={css.metaLine}>
-          <Progress plan={plan} /><span>{w('stepsN', { n: plan.steps.length })}</span><span>{w('tasksN', { n: tasks })}</span>
+          <Progress plan={plan} /><span>{w('stepsN', { n: plan.steps.length })}</span><span>{w('tasksN', { n: taskCount(plan) })}</span>
           {data.operations && <span>{w('opsN', { n: ops.length })}</span>}
         </span>
         {next && <DirectAction request={{ verb: 'fix', selection: { kind: 'step', step: next.id } }} label={`${b('startStep')}: ${next.id}`}

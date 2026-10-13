@@ -52,17 +52,22 @@ export function NotMeasured({ data, section, title }: { data: StudioData; sectio
   )
 }
 
+/** A share as a short bar with its words beside it. */
+export function Meter({ value, children }: { value: number; children: ReactNode }) {
+  return (
+    <span className={css.closure}>
+      <span className={css.meter} aria-hidden="true"><i style={{ inlineSize: `${Math.round(value * 100)}%` }} /></span>
+      <span>{children}</span>
+    </span>
+  )
+}
+
 /** How far a gap is closed by its cards; a gap no card closes says so (null is never drawn as 0). */
 export function Closure({ gap }: { gap: Gap }) {
   const w = useChangeWords()
   if (gap.operation === 'retain' && !gap.cards.length) return <span className={css.muted}>{w('stays')}</span>
   if (!gap.cards.length || gap.closed.value === null) return <span className={css.muted}>{w('noCard')}</span>
-  return (
-    <span className={css.closure}>
-      <span className={css.meter} aria-hidden="true"><i style={{ inlineSize: `${Math.round(gap.closed.value * 100)}%` }} /></span>
-      <span>{w('closedOf', { c: gap.cards_closed, n: gap.cards.length })}</span>
-    </span>
-  )
+  return <Meter value={gap.closed.value}>{w('closedOf', { c: gap.cards_closed, n: gap.cards.length })}</Meter>
 }
 
 /** A step's tasks by state, as one bar with the counts written beside it. */

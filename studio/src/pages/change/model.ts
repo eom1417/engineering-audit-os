@@ -217,6 +217,11 @@ export function cardState(state: string): OpState {
 
 export const TASK_STATES: OpState[] = ['done', 'active', 'todo', 'blocked']
 
+/** How many tasks a plan's steps hold. */
+export function taskCount(plan: Plan): number {
+  return plan.steps.reduce((sum, step) => sum + step.tasks.length, 0)
+}
+
 export function stateCounts(step: PlanStep): Record<OpState, number> {
   const out: Record<OpState, number> = { todo: 0, active: 0, done: 0, blocked: 0, regressed: 0 }
   for (const task of step.tasks) out[(task.state in out ? task.state : 'todo') as OpState] += 1
