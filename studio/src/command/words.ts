@@ -116,6 +116,7 @@ export const CMD_WORDS = {
   // the run page
   run: ['التشغيل', 'Run'],
   runNotFound: ['هذا التشغيل غير موجود', 'This run is not here'],
+  runSnapshotLead: ['هذه نسخة ثابتة من التقرير: حالة هذا التشغيل ونتيجته تظهران في الاستوديو الحي فقط.', 'This is a static copy of the report: the state and result of this run show in the live Studio only.'],
   runNotFoundSub: ['ربما بدأ من استوديو آخر أو حُذف سجله. ارجع إلى قائمة التشغيل.', 'It may have started from another Studio, or its log was removed. Go back to the runs.'],
   pause: ['إيقاف مؤقت', 'Pause'],
   resume: ['استئناف', 'Resume'],
