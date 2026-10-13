@@ -36,13 +36,26 @@ export interface Bridge { left: Side[]; right: Side[]; flows: Flow[]; files: num
  * the files they receive, sources by their target's place, then by size.
  */
 export function bridge(story: Story, fold = 0.02, rows_ = 24): Bridge {
-  const rows = story.gap.map((g) => {
+  const rows: BridgeRow[] = story.gap.map((g) => {
     const op = FROM_STORY[g.relation] ?? 'refactor'
     return { component: g.component, files: g.files, op, to: op === 'delete' || !g.to ? REMOVED : g.to }
   })
   const files = rows.reduce((sum, r) => sum + r.files, 0)
+  const flows = flowsOf(rows, files, fold, rows_)
+  const right = rightOf(story, rows, flows)
+  const place = new Map(right.map((s, i) => [s.id, i]))
+  const left = leftOf(flows, place)
+  const order = new Map(left.map((s, i) => [s.id, i]))
+  const sorted = [...flows].sort((a, b) => (order.get(a.from)! - order.get(b.from)!) || (place.get(a.to)! - place.get(b.to)!))
+  return { left, right, flows: sorted, files, components: rows.length, targets: story.target.components.length }
+}
+
+interface BridgeRow { component: string; files: number; op: ChangeOp; to: string }
+
+/** Today's components as flows to their targets, the smallest folded into "Other" when there are more than `rows_`. */
+function flowsOf(rows: BridgeRow[], files: number, fold: number, rows_: number): Flow[] {
   // Only as many of the components under `fold` of the files as it takes to keep `rows` sources, smallest first
-  const folded = new Set([...rows].filter((r) => files > 0 && r.files / files < fold)
+  const folded = new Set(rows.filter((r) => files > 0 && r.files / files < fold)
     .sort((a, b) => a.files - b.files || b.component.localeCompare(a.component))
     .slice(0, Math.max(rows.length - (rows_ - 1), 0)).map((r) => r.component))
   const small = (r: { component: string }) => rows.length > rows_ && folded.has(r.component)
@@ -55,8 +68,13 @@ export function bridge(story: Story, fold = 0.02, rows_ = 24): Bridge {
     flow.folded += from === OTHER ? 1 : 0
     flows.set(key, flow)
   }
+  return [...flows.values()]
+}
+
+/** The target column: every target component by the files it receives, those nothing flows into new; Removed last. */
+function rightOf(story: Story, rows: BridgeRow[], flows: Flow[]): Side[] {
   const into = new Map<string, Flow[]>()
-  for (const f of flows.values()) into.set(f.to, [...(into.get(f.to) ?? []), f])
+  for (const f of flows) into.set(f.to, [...(into.get(f.to) ?? []), f])
   const sources = (to: string) => new Set(rows.filter((r) => r.to === to).map((r) => r.component)).size
   const targets = story.target.components.map((t) => t.name)
   const known = [...new Set([...targets, ...rows.map((r) => r.to).filter((to) => to !== REMOVED)])]
@@ -69,20 +87,22 @@ export function bridge(story: Story, fold = 0.02, rows_ = 24): Bridge {
     })
     .sort((a, b) => b.files - a.files || a.id.localeCompare(b.id))
   if (into.has(REMOVED)) right.push({ id: REMOVED, files: weight(REMOVED), op: 'delete', components: sources(REMOVED) })
-  const place = new Map(right.map((s, i) => [s.id, i]))
+  return right
+}
+
+/** The source column, each by its first target's place so ribbons cross as little as they can, then by size. */
+function leftOf(flows: Flow[], place: Map<string, number>): Side[] {
   const out = new Map<string, Side>()
-  for (const f of flows.values()) {
+  for (const f of flows) {
     const side = out.get(f.from) ?? { id: f.from, files: 0, op: f.from === OTHER ? null : f.op, components: 0 }
     side.files += f.files
     side.components += f.from === OTHER ? f.folded : 1
     out.set(f.from, side)
   }
-  const first = (id: string) => Math.min(...[...flows.values()].filter((f) => f.from === id).map((f) => place.get(f.to) ?? 0))
+  const first = (id: string) => Math.min(...flows.filter((f) => f.from === id).map((f) => place.get(f.to) ?? 0))
   const left = [...out.values()].sort((a, b) => (a.id === OTHER ? 1 : 0) - (b.id === OTHER ? 1 : 0) || first(a.id) - first(b.id) || b.files - a.files || a.id.localeCompare(b.id))
   for (const side of left) if (side.id !== OTHER) side.components = 1
-  const order = new Map(left.map((s, i) => [s.id, i]))
-  const sorted = [...flows.values()].sort((a, b) => (order.get(a.from)! - order.get(b.from)!) || (place.get(a.to)! - place.get(b.to)!))
-  return { left, right, flows: sorted, files, components: rows.length, targets: targets.length }
+  return left
 }
 
 export interface Placed { id: string; y: number; h: number }
