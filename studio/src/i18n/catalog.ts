@@ -177,6 +177,7 @@ export const WORDS = {
   notFoundCard: ['هذه البطاقة غير موجودة في هذا التقرير.', 'This card is not in this report.'],
   // decisions page
   nothingWaits: ['لا شيء ينتظرك الآن.', 'Nothing waits for you now.'],
+  readOnlyAnswers: ['هذه نسخة للقراءة فقط، فأزرار الإجابة مقفلة. افتح المشروع في الاستوديو الحي لتحفظ إجابتك.', 'A read-only snapshot, so the answers are locked. Open this project in the live Studio to save your answer.'],
   decidedAlready: ['حُسمت ({n}): اضغط لتراها', 'Already decided ({n}): open to see them'],
   nothingWaitsSub: ['حين يحتاج EAOS قرارك يظهر هنا سؤال واحد بتوصيته.', 'When EAOS needs your decision, one question with its recommendation appears here.'],
   // data states
