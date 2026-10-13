@@ -26,6 +26,7 @@ import hashlib
 import json
 import re
 import time
+from ...code_laws import LAWS
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -171,7 +172,7 @@ def rules_of_the_answer(lang):
 
 def prompt(task, data):
     """A node's question: its task, the rules every answer keeps, and its bundle."""
-    return (task + '\n\n' + rules_of_the_answer(data['lang']) + '\n\n' + ANSWER + '\n\nThe bundle:\n'
+    return (task + '\n\n' + LAWS + '\n\n' + rules_of_the_answer(data['lang']) + '\n\n' + ANSWER + '\n\nThe bundle:\n'
             + json.dumps({k: v for k, v in data.items() if k != 'lang'}, ensure_ascii=False))
 
 
@@ -185,7 +186,7 @@ def critique_prompt(task, data, draft, lang):
             'A GOOD REVIEW\nChecks every decision against its cited evidence; keeps what was right as it was; each change '
             'it makes is named in `critique`.\n\n'
             'DO NOT\nReturn only the changes; drop a sound decision to be safe; add a decision the bundle does not support.\n\n'
-            + rules_of_the_answer(lang) + '\n\n' + ANSWER
+            + LAWS + '\n\n' + rules_of_the_answer(lang) + '\n\n' + ANSWER
             + '\n\nThe task:\n' + task + '\n\nThe draft:\n' + json.dumps(draft, ensure_ascii=False)
             + '\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))
 

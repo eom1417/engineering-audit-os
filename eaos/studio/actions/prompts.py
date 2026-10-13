@@ -27,7 +27,7 @@ ACTS = ('fix_abandon',)                    # what an answer may make the Studio 
 VERBS = {
     'fix': ('Use the eaos tools to fix these cards of this project safely, end to end, without coming back between steps. '
             'Follow `status`: audit if it says so, then run_setup, run_try until the app runs, safety_net, then fix_start with '
-            'exactly these cards, and for each card: finding and fix_read, then fix_edit. A card you cannot fix (its change '
+            'exactly these cards, and for each card: finding and fix_read, then fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead). A card you cannot fix (its change '
             'keeps failing the checks, or no safe change exists) gets fix_skip with its reason, and you go on with the next '
             'card: one card never stops the batch. When every card was tried, call fix_finish, even if some were skipped. If '
             'status says fix_abandon (a batch that cannot be closed), call it and start again. Change code only with fix_edit: '

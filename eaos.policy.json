@@ -61,6 +61,7 @@
     ],
     "core": [
       "eaos/__init__.py",
+      "eaos/code_laws.py",
       "eaos/architecture.py",
       "eaos/command_groups.py",
       "eaos/discovery.py",

@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 
 from . import __version__
+from .code_laws import LAWS
 
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
 performance problems with evidence, and fixes them safely: each fix is made in an isolated copy, checked (the
@@ -27,8 +28,8 @@ Work on your own until the job is done; do not come back to them between steps. 
 For a project that exists only as a plan (a PRD, notes, any file or pasted text), build it instead:
   blueprint_start -> blueprint_spec (until complete; research, recommend, ask only real choices) -> blueprint_design
   -> build_start (one agreement) -> build_edit per card -> build_finish, milestone after milestone -> accept.
-  Write the least code that meets each card, in the folder it names, reusing what exists; the gates refuse copies,
-  cycles, layer breaks and a vendor outside its adapter.
+  Write each card in the folder it names, reusing what exists; the gates refuse copies, cycles, layer breaks and a
+  vendor outside its adapter.
 
 The whole way for an existing project, in order (`status` always says the next tool):
   (when the project has several branches with different code, status first asks which one: ask the person, then
@@ -49,7 +50,9 @@ When the person types /eaos alone, or asks what EAOS can do here, call `menu` an
 `impact` (what changing a file touches) and `ask` answer from the check's records; `tools_check` says what is installed.
 Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). Keep every feature,
 route and behaviour when fixing: a fix that deletes what users reach is refused. Never invent results: report
-what the tools returned."""
+what the tools returned.
+
+""" + LAWS
 
 # Every capability of the guided way (eaos/guided.py STEPS and its commands), and the tool that gives it to the
 # assistant. X8 counts those registered and exercised by tests/test_mcp.py.

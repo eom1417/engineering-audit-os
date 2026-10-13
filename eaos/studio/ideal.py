@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..aspects import ASPECTS, VERDICTS
+from ..code_laws import LAWS
 from ..assistants.command import Stuck
 from .nodes.core import digest, launcher_of, lenient as _lenient, UNTRUSTED
 
@@ -485,10 +486,9 @@ def prompt_plan(data):
             'A GOOD ANSWER\nEvery view planned, or said empty with why. Each element is specific to this project, states its '
             'operation on a baseline element, and cites the ids that show it is needed. A departure says what the rule says, '
             'what the plan chose and because what. plan_order closes the cards in an order whose every step can start when '
-            'the steps before it are done.\n\n'
-            'DO NOT\nWrite an element without this project\'s evidence; repeat the baseline unchanged as if it were a plan; '
-            'decide for the person what the evidence leaves open.\n\n'
-            + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
+            'the steps before it are done; it keeps the code laws below: less code, one home per rule, nothing dead.\n\n'
+            'DO NOT\nWrite an element without this project\'s evidence; repeat the baseline unchanged as if it were a plan; decide for the person what the evidence leaves open.\n\n'
+            + LAWS + '\n\n' + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
             + '\n\nAnswer with the JSON object of the schema only.\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))
 
 
@@ -503,7 +503,7 @@ def prompt_critique(data, draft):
             'A GOOD REVIEW\nChecks every element against its cites; keeps what was right as it was; each change it makes '
             'is named in `critique`.\n\n'
             'DO NOT\nReturn only the changes; drop a sound element to be safe; add an element the bundle does not support.\n\n'
-            + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
+            + LAWS + '\n\n' + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
             + '\n\nAnswer with the JSON object of the schema only.\n\nThe draft:\n'
             + json.dumps(draft, ensure_ascii=False) + '\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))
 

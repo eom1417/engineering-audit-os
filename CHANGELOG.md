@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.13 (2026-10-13)
+
+- **The code laws, for every project and for EAOS itself**: least code for the best result, one home for every rule
+  (written once, called everywhere), nothing dead, small functions and modules with one job. Written once in
+  `eaos/code_laws.py` and carried into every assistant's work: the semantic reading looks for where the code breaks
+  them, the ideal planner plans toward them, the triage and the reviewers judge by them, and the fixing assistant
+  (MCP instructions and the Studio's fix prompt) keeps them.
+- EAOS holds itself to them: `tests/test_code_limits.py` refuses a function written twice, an unused import or
+  variable, a new function over complexity 15 or module over 600 lines, and any growth of today's listed ones.
+  Six duplicated helpers now have one home each; a re-export shim and the leftovers are gone.
+
 ## 0.0.12 (2026-10-13)
 
 - **EAOS fixed by EAOS**: a batch of 181 cards from EAOS's own check, run by the assistant with automatic accept;
