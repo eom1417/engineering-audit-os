@@ -2,7 +2,6 @@
 from collections import deque
 
 VERSION = 1
-RELATIONS = {'imports', 'calls', 'uses_contract', 'reads', 'writes', 'configures'}
 STATIC_RELATIONS = {'imports', 'uses_contract'}
 
 
