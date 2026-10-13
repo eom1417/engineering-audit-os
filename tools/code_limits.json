@@ -37,7 +37,6 @@
   "eaos/engines/sarif.py::read": 20,
   "eaos/engines/vulture.py::_stdlib_class_names": 18,
   "eaos/engines/vulture.py::called_by_framework": 22,
-  "eaos/engines_report.py::document": 21,
   "eaos/facts/deadcode.py::run": 31,
   "eaos/facts/frameworks/http_access.py::extract_calls": 17,
   "eaos/facts/frameworks/js_navigation.py::blank_comments": 16,
