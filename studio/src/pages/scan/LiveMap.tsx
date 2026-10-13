@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Button as AriaButton } from 'react-aria-components'
 import { shownState, type ScanProgress, type ScanStage } from '../../data/scan'
 import { usePrefs } from '../../i18n/prefs'
-import { clip } from '../../map/draw'
+import { clip, useBox } from '../../map/draw'
 import { FitIcon } from '../../map/parts'
 import zoomCss from '../../map/parts.module.css'
 import { useZoom, type ZoomState } from '../../map/useZoom'
@@ -21,18 +21,6 @@ import { follow, nextDue, release, still, type Light, type Motion } from './moti
 import { Ticker } from './Ticker'
 import { useScanWords } from './words'
 import css from './scan.module.css'
-
-function useBox(): [(el: HTMLDivElement | null) => void, { w: number; h: number }] {
-  const [size, setSize] = useState({ w: 0, h: 0 })
-  const watcher = useRef<ResizeObserver | null>(null)
-  const attach = useCallback((el: HTMLDivElement | null) => {
-    watcher.current?.disconnect()
-    if (!el) return
-    watcher.current = new ResizeObserver(([entry]) => setSize({ w: entry.contentRect.width, h: entry.contentRect.height }))
-    watcher.current.observe(el)
-  }, [])
-  return [attach, size]
-}
 
 /** True when the person asked their system for less motion. */
 export function useReducedMotion(): boolean {
