@@ -11,6 +11,8 @@ from . import progress
 from .compose import Document
 from .compose.labels import detail_artifact, impact_of, statement_of
 from .compose.rules import validate
+from .fact_documents import (contracts_document, describe, domain_document, flows_document, inventory_rows,
+                             provenance_document, semantic_claims, trust_grades)
 from .facts.store import read_set
 from .map import ARTIFACTS, generate
 from .workspace import read, write
@@ -278,34 +280,6 @@ def brief(target, dossier, language):
     return document
 
 
-def semantic_claims(dossier):
-    return sum(1 for claim in dossier['claims'] if 'model_inference' in claim.get('method', []))
-
-
-def trust_grades(dossier, sets, verification):
-    """How well each section is sourced, so a reader knows which parts to take at face value."""
-    flows = sets.get('flows', {}).get('summary', {})
-    history = sets.get('history', {})
-    commits = (history.get('summary') or {}).get('commits_analysed', 0) if history.get('available') else 0
-    return [
-        {'section': 'SYSTEM-MAP.md', 'source': 'deterministic extractors', 'grade': '⬤',
-         'note': 'reproducible byte for byte from the same snapshot'},
-        {'section': 'CONTRACTS.md', 'source': 'resolved imports and entry points', 'grade': '⬤', 'note': ''},
-        {'section': 'FLOWS.md', 'source': 'static trace', 'grade': '◐',
-         'note': f"{flows.get('unresolved_steps', 0)} unresolved steps declared"},
-        {'section': 'DOMAIN-AND-DATA.md', 'source': 'parsed definitions', 'grade': '⬤', 'note': ''},
-        {'section': 'COUPLING-ATLAS.md', 'source': 'graph and metrics', 'grade': '⬤',
-         'note': 'attention order is a declared convention, not a measured predictor'},
-        {'section': 'EVOLUTION.md', 'source': 'git history', 'grade': '⬤' if commits >= 50 else '◐',
-         'note': f'{commits} commits in scope'},
-        {'section': 'responsibilities, boundaries, internal contracts',
-         'source': 'model inference over facts' if semantic_claims(dossier) else '—',
-         'grade': '○',
-         'note': (f'{semantic_claims(dossier)} claims, none confirmed by inference alone'
-                  if semantic_claims(dossier) else 'not assessed: needs the model path')},
-    ]
-
-
 def onboarding_document(target, dossier, sets, verification, language):
     """What a new engineer needs on day one, assembled from manifests, entry points and the graph."""
     words = Document('', language).words
@@ -410,177 +384,12 @@ def index_document(target, dossier, sets, verification, language):
     return document
 
 
-def inventory_rows(language):
-    """Every declared document in reading order, with the reason a reader would open it.
-
-    Generated from the artifact contract, not written by hand, so a document that is added,
-    renamed or dropped appears here instead of being discoverable only by listing the directory.
-    Whether this particular run produced it is RUN.md's question, not this one's.
-    """
-    from .compose.artifacts import reading_order
-    rows = []
-    for position, artifact in enumerate(reading_order(), start=1):
-        note = artifact.purpose
-        if not artifact.required:
-            note += (' — يغيب حين: ' if language == 'ar' else ' — absent when: ') + artifact.absent_when
-        rows.append([str(position), f'[{artifact.name}]({artifact.name})', note])
-    return rows
-
-
 def write_register(out, dossier, language):
     """debt-register.json, and RISK-REGISTER.md rendered from it: one register (eaos/debt_register.py)."""
     from .debt_register import build, render
     record = build(out, dossier)
     write(Path(out) / 'debt-register.json', record)
     (Path(out) / 'RISK-REGISTER.md').write_text(render(record, language).render(), encoding='utf-8')
-
-
-def provenance_document(target, dossier, language):
-    document = Document(Document('', language).words['provenance'], language, budget_lines=80)
-    provenance = dossier['provenance']
-    document.table(['key', 'value'], [[key, str(value)] for key, value in sorted(provenance.items())])
-    document.section('reproduce')
-    document.bullets([f"eaos audit {target} --out <dir>",
-                      'Deterministic fact sets are byte-identical for the same snapshot and extractor versions.',
-                      'Model-derived claims are not deterministic and carry their provider configuration above.'])
-    return document
-
-
-def describe(sets, records):
-    syntax = sets['syntax']['summary']
-    entry = sets['entrypoints']['summary']
-    languages = ', '.join(f'{name} ({count})' for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
-    surfaces = ', '.join(f'{name} ({count})' for name, count in sorted(entry['by_surface'].items()))
-    line = (f"⬤ {syntax['source_files']} source files, {syntax['symbols']} symbols, languages: {languages}. "
-            f"Invocation surfaces: {surfaces or 'none detected'}.")
-    if not records['findings']:
-        line += ' ○ Responsibilities and contracts are not assessed in a facts-only run.'
-    return line
-
-
-def flows_document(dossier, sets, language):
-    words = Document('', language).words
-    document = Document(words['flows'], language, budget_lines=300)
-    document.header([words['flow_note']])
-    rows = sorted((f['value'] for f in sets['flows']['facts']),
-                  key=lambda flow: (-len({step['to_path'] for step in flow['steps']
-                                          if step['resolution'] in INFORMATIVE_STEPS and step['to_path']}),
-                                    flow['flow_id']))
-    if not rows:
-        document.text(words['no_rows'])
-        return document
-    summary = sets['flows']['summary']
-    shallow = [flow for flow in rows if not flow['in_codebase_steps']]
-    rows = [flow for flow in rows if flow['in_codebase_steps']]
-    document.section(words['coverage'])
-    document.table([words['flows'], 'steps', 'unresolved', 'stop at first boundary'],
-                   [[len(rows), summary['total_steps'], summary['unresolved_steps'], len(shallow)]])
-    if shallow: document.text(_shallow_note(shallow, language))
-    for flow in rows[:12]: _flow_section(document, words, flow, language)
-    return document
-
-
-INFORMATIVE_STEPS = {'local', 'imported'}
-
-
-def _shallow_note(shallow, language):
-    return (('هذه المداخل لم يصل تتبعها إلى كود آخر داخل المشروع (توزيع ديناميكي أو استدعاءات مكتبة فقط): '
-             if language == 'ar' else
-             'These entry points reach no further code in the project (dynamic dispatch or library calls only): ')
-            + ', '.join(f"{flow['entry']['path']}:{flow['entry']['line']}" for flow in shallow[:8])
-            + (' …' if len(shallow) > 8 else ''))
-
-
-def _flow_section(document, words, flow, language):
-    entry = flow['entry']
-    document.section(f"{flow['flow_id']} — {entry['surface']} {entry['http_method'] or ''} {entry['route']}".strip(), level=2)
-    document.bullets([f"{words['entry']}: {entry['path']}:{entry['line']} [{entry['framework']}]",
-                      f"{words['handler']}: {entry['handler']}",
-                      f"{words['touched']}: {', '.join(flow['touched_files'])}",
-                      (f"{words['env']}: {', '.join(flow['environment_reads'])}" if flow['environment_reads'] else None)])
-    # Calls into the codebase carry the behaviour; framework plumbing is counted, not listed.
-    traced = [step for step in flow['steps'] if step['resolution'] in INFORMATIVE_STEPS]
-    plumbing = len(flow['steps']) - len(traced)
-    document.table([words['step'], words['call'], words['location'], words['resolution']],
-                   [[step['from'], step['callee'],
-                     f"{step['to_path'] or step['from_path']}:{step['line']}", step['resolution']]
-                    for step in traced], limit=12)
-    if plumbing:
-        document.text(f"+{plumbing} library or method calls on this path (in the fact records)"
-                      if language != 'ar' else
-                      f"+{plumbing} استدعاء مكتبة أو دالة عضو على هذا المسار (في سجلات الحقائق)")
-
-
-def domain_document(dossier, sets, language):
-    words = Document('', language).words
-    document = Document(words['domain_data'], language, budget_lines=240)
-    domain, config = sets['domain'], sets['config']
-    document.header([domain['summary']['interpretation']])
-    document.section(words['duplicated_rule'])
-    document.table([words['constant'], words['defined_in'], 'values'],
-                   [[fact['value']['name'], ', '.join(f"{d['path']}:{d['line']}" for d in fact['value']['definitions']),
-                     fact['value']['distinct_values']]
-                    for fact in domain['facts'] if fact['kind'] == 'domain_constant' and fact['value']['duplicated']], limit=20)
-    document.section(words['data_models'])
-    document.table([words['name'], 'kind', words['location']],
-                   [[fact['value']['name'], fact['value'].get('kind', 'table'), f"{fact['location']['path']}:{fact['location']['start_line']}"]
-                    for fact in domain['facts'] if fact['kind'] in ledger.shown_kinds({'data_model', 'data_table'})], limit=25)
-    document.section(words['config_contract'])
-    reads = {}
-    for fact in config['facts']:
-        if fact['kind'] == 'env_read':
-            reads.setdefault(fact['value']['name'], []).append(f"{fact['location']['path']}:{fact['location']['start_line']}")
-    document.table([words['name'], words['read_in'], 'default'],
-                   [[name, ', '.join(sorted(places)[:3]), 'yes' if any(
-                       fact['value']['has_default'] for fact in config['facts']
-                       if fact['kind'] == 'env_read' and fact['value']['name'] == name) else 'no']
-                    for name, places in sorted(reads.items())], limit=25)
-    unread = config['summary']['unread_sensitive_config_files']
-    if unread: document.bullets([f"sensitive config listed but never read: {', '.join(unread)}"])
-    return document
-
-
-NODE_BUILTINS = {'fs', 'path', 'http', 'https', 'os', 'util', 'events', 'stream', 'crypto', 'url', 'zlib',
-                 'child_process', 'net', 'buffer', 'assert', 'querystring', 'tty', 'readline', 'process'}
-
-
-def dependency_kind(module, language):
-    """A standard-library import is not a third-party dependency, and mixing them hides the real surface."""
-    import sys
-    root = module.split('.')[0].split('/')[0]
-    if language == 'python': return 'standard library' if root in sys.stdlib_module_names else 'third party'
-    if language in {'javascript', 'typescript', 'tsx'}:
-        return 'standard library' if root in NODE_BUILTINS or module.startswith('node:') else 'third party'
-    if language == 'go': return 'standard library' if '.' not in root else 'third party'
-    return 'unknown'
-
-
-def contracts_document(dossier, sets, language):
-    words = Document('', language).words
-    document = Document(words['contracts_doc'], language, budget_lines=200)
-    document.header([words['signal_note']])
-    external, languages = {}, {}
-    for fact in sets['resolve']['facts']:
-        if fact['resolution'] == 'EXTERNAL':
-            external.setdefault(fact['value']['module'], set()).add(fact['location']['path'])
-            languages[fact['value']['module']] = fact['value'].get('language')
-    grouped = {}
-    for module, paths in external.items():
-        grouped.setdefault(dependency_kind(module, languages.get(module)), []).append((module, len(paths)))
-    document.section(words['external_deps'])
-    document.table([words['name'], words['language'], 'kind', 'used in'],
-                   [[module, languages.get(module) or '', kind, count]
-                    for kind in ['third party', 'unknown', 'standard library']
-                    for module, count in sorted(grouped.get(kind, []), key=lambda row: (-row[1], row[0]))], limit=30)
-    document.bullets([f"third party: {len(grouped.get('third party', []))} · "
-                      f"standard library: {len(grouped.get('standard library', []))}"])
-    document.section(words['entry_points'])
-    document.table([words['surface'], words['method'], words['route'], words['location']],
-                   [[f['value']['surface'], f['value']['http_method'] or '—', f['value']['route'] or '—',
-                     f"{f['location']['path']}:{f['location'].get('start_line') or 1}"]
-                    for f in sets['entrypoints']['facts'] if f.get('kind') == 'entry_point'], limit=30)
-    return document
-
 
 
 def refresh_views(out, language='ar'):

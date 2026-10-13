@@ -29,6 +29,7 @@
       "eaos/dossier.py",
       "eaos/debt_register.py",
       "eaos/engines_report.py",
+      "eaos/fact_documents.py",
       "eaos/features.py",
       "eaos/impact.py",
       "eaos/load_model.py",

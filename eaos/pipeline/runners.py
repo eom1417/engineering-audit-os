@@ -593,10 +593,6 @@ def steps(context):
     return {'steps': len(record['steps']), 'decided_by': record['source']}
 
 
-
-
-
-
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
 RUNNERS.update(verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
