@@ -18,23 +18,39 @@ RULES = Path(__file__).resolve().parent.parent / 'rules/sarif-rules.json'
 ORDER = ['low', 'medium', 'high', 'critical']
 
 
-def _severity(result, rule_properties):
-    raw = (result.get('properties') or {}).get('security-severity') or rule_properties.get('security-severity')
-    if raw is not None:
-        try: score = float(raw)
-        except (TypeError, ValueError): score = None
-        if score is not None:
-            return 'critical' if score >= 9 else 'high' if score >= 7 else 'medium' if score >= 4 else 'low'
-    return {'error': 'high', 'warning': 'medium'}.get(result.get('level'), 'low')
+def _results(data):
+    """(rule properties by id, result) for every result of every run."""
+    for run in data.get('runs') or []:
+        driver = (run.get('tool') or {}).get('driver') or {}
+        properties = {rule.get('id'): rule.get('properties') or {} for rule in driver.get('rules') or []}
+        for result in run.get('results') or []:
+            yield properties, result
+
+
+def _artifacts(result):
+    """(physicalLocation, artifactLocation) for every location of a result."""
+    for location in result.get('locations') or []:
+        physical = location.get('physicalLocation') or {}
+        yield physical, physical.get('artifactLocation') or {}
+
+
+def _score(raw):
+    try: return float(raw)
+    except (TypeError, ValueError): return None
+
+
+def _severity(result, rule_properties, floor):
+    score = _score((result.get('properties') or {}).get('security-severity') or rule_properties.get('security-severity'))
+    if score is not None:
+        severity = 'critical' if score >= 9 else 'high' if score >= 7 else 'medium' if score >= 4 else 'low'
+    else:
+        severity = {'error': 'high', 'warning': 'medium'}.get(result.get('level'), 'low')
+    return floor if floor and ORDER.index(floor) > ORDER.index(severity) else severity
 
 
 def _sites(result):
-    sites = []
-    for location in result.get('locations') or []:
-        physical = location.get('physicalLocation') or {}
-        path = (physical.get('artifactLocation') or {}).get('uri')
-        if path: sites.append({'path': path.removeprefix('file://'), 'line': (physical.get('region') or {}).get('startLine')})
-    return sites
+    return [{'path': artifact['uri'].removeprefix('file://'), 'line': (physical.get('region') or {}).get('startLine')}
+            for physical, artifact in _artifacts(result) if artifact.get('uri')]
 
 
 def read(path, engine, version, rules=None):
@@ -43,23 +59,18 @@ def read(path, engine, version, rules=None):
         rules = json.loads(RULES.read_text(encoding='utf-8')).get(engine, [])
     data = json.loads(Path(path).read_text(encoding='utf-8'))
     findings, unmapped = [], {}
-    for run in data.get('runs') or []:
-        driver = (run.get('tool') or {}).get('driver') or {}
-        properties = {rule.get('id'): rule.get('properties') or {} for rule in driver.get('rules') or []}
-        for result in run.get('results') or []:
-            rule_id = result.get('ruleId') or ''
-            row = next((row for row in rules if fnmatch(rule_id, row['match'])), None)
-            if row is None:
-                unmapped[rule_id] = unmapped.get(rule_id, 0) + 1
-                continue
-            severity = _severity(result, properties.get(rule_id, {}))
-            floor = row.get('severity_floor')
-            if floor and ORDER.index(floor) > ORDER.index(severity): severity = floor
-            sites = _sites(result) or [{'path': None, 'line': None}]
-            findings.append(finding(engine, version, rule_id, row['kind'],
-                                    subject('file', sites[0]['path'], sites[0]['path'], sites[0]['line']),
-                                    ((result.get('message') or {}).get('text') or rule_id)[:500],
-                                    measurements=[measurement('severity', severity)], sites=sites))
+    for properties, result in _results(data):
+        rule_id = result.get('ruleId') or ''
+        row = next((row for row in rules if fnmatch(rule_id, row['match'])), None)
+        if row is None:
+            unmapped[rule_id] = unmapped.get(rule_id, 0) + 1
+            continue
+        severity = _severity(result, properties.get(rule_id, {}), row.get('severity_floor'))
+        sites = _sites(result) or [{'path': None, 'line': None}]
+        findings.append(finding(engine, version, rule_id, row['kind'],
+                                subject('file', sites[0]['path'], sites[0]['path'], sites[0]['line']),
+                                ((result.get('message') or {}).get('text') or rule_id)[:500],
+                                measurements=[measurement('severity', severity)], sites=sites))
     return findings, unmapped
 
 
@@ -78,10 +89,8 @@ def relativise(path, target):
     """Rewrite every result location in a SARIF file to a project-relative path, in place, before any
     finding id is derived from it, so an id never depends on where the project was checked out."""
     data = json.loads(Path(path).read_text(encoding='utf-8'))
-    for run_ in data.get('runs') or []:
-        for result in run_.get('results') or []:
-            for location in result.get('locations') or []:
-                artifact = (location.get('physicalLocation') or {}).get('artifactLocation') or {}
-                if 'uri' in artifact: artifact['uri'] = relative(artifact['uri'], target)
+    for _, result in _results(data):
+        for _, artifact in _artifacts(result):
+            if 'uri' in artifact: artifact['uri'] = relative(artifact['uri'], target)
     Path(path).write_text(json.dumps(data), encoding='utf-8')
 
