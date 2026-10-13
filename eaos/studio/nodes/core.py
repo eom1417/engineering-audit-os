@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ...assistants.command import Stuck
+from ...language import foreign_texts, restate
 
 RULES_ONLY = 'rules only'
 LOG = 'runs.jsonl'
@@ -419,7 +420,8 @@ class _Run:
         for index, (part, part_schema, part_prompt) in enumerate(asks):
             batch = f' ({index + 1}/{len(asks)})' if len(asks) > 1 else ''
             self.tell(f'{node.title}: {who or "the assistant"} decides{batch}', f'{node.title}: {who or "المساعد"} يقرّر{batch}')
-            one = launcher(node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}', part_prompt, part_schema)
+            name = node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}'
+            one = self._in_language(launcher, launcher(name, part_prompt, part_schema), part_schema, name)
             _shape_problem(one, part_schema, 'answer')
             answers.append(one)
         answer = _joined(answers)
@@ -431,9 +433,20 @@ class _Run:
         self.tell(f'{node.title}: a second pass reviews the decisions', f'{node.title}: تمرير ثانٍ يراجع القرارات')
         second = critique_prompt(prompt, self.data, answer, self.settings['lang'])
         asked.append(second)
-        reviewed = launcher('critique', second, critique_schema(node, self.subjects, detail))
-        _shape_problem(reviewed, critique_schema(node, self.subjects, detail), 'review')
+        schema = critique_schema(node, self.subjects, detail)
+        reviewed = self._in_language(launcher, launcher('critique', second, schema), schema, 'critique')
+        _shape_problem(reviewed, schema, 'review')
         return reviewed, reviewed.get('critique')
+
+    def _in_language(self, launcher, answer, schema, name):
+        """The answer, its texts for the person in their language: sent back once when some are not (eaos/language.py)."""
+        lang = self.settings['lang']
+        texts = foreign_texts(answer, lang)
+        if not texts: return answer
+        self.tell(f'{self.node.title}: {len(texts)} texts are not in your language; the assistant writes them again',
+                  f'{self.node.title}: {len(texts)} نصوص مو بلغتك؛ المساعد يكتبها من جديد')
+        again = launcher(f'{name}-language', restate(answer, texts, lang), schema)
+        return again if isinstance(again, dict) and len(foreign_texts(again, lang)) < len(texts) else answer
 
     def _failed(self, problem, launcher, asks, asked):
         cancel = self.settings['cancel']

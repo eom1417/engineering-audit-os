@@ -7,7 +7,8 @@ the branch, the run consent), and ask the person with one `eaos-question` block,
 import json
 import re
 
-LANGS = {'ar': 'Arabic (plain, Gulf-friendly)', 'en': 'English'}
+from ...language import NAMES
+
 QUESTION = re.compile(r'```eaos-question\s*\n(.*?)\n\s*```', re.S)
 
 ASK = ('When you need the person (their agreement to run the app, a choice only they can make), end your turn with exactly '
@@ -50,7 +51,7 @@ VERBS = {
 def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None):
     """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
     chose to build and deliver it)."""
-    language = LANGS.get(lang, LANGS['en'])
+    language = NAMES.get(lang, NAMES['en'])
     if verb:
         listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()') for card in cards)
         task = f"{VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\nCard ids for the tools: {json.dumps([c['id'] for c in cards])}"

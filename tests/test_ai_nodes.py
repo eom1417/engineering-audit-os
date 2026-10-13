@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
+from eaos.language import foreign_texts
 from eaos.assistants.command import Provider
 from eaos.studio import ideal, ideal_base, nodes
 from eaos.studio.actions import adapters
@@ -145,6 +146,23 @@ class Base(unittest.TestCase):
 
     def triage(self, launcher, **options):
         return nodes.run(self.report, names=['card_triage'], launcher=launcher, **options)['card_triage']
+
+
+class Language(Base):
+    def test_texts_for_the_person_not_in_their_language_are_written_again_once_and_the_rest_kept(self):
+        # EAOS on itself (2026-10-13): two design titles in English in an Arabic Studio, though the prompt asked Arabic.
+        english = 'The card is a false alarm because the file is generated'
+        def make(name, schema):
+            why = 'البطاقة إنذار كاذب لأن الملف مولّد' if name.endswith('-language') else english
+            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], why=why)]}
+        ask = Answer(make)
+        record = nodes.run(self.report, names=['card_triage'], launcher=ask, lang='ar', fresh=True)['card_triage']
+        self.assertEqual([name for name, _ in ask.calls if name.endswith('-language')], [f"{ask.calls[0][0]}-language"])
+        self.assertIn(english, ask.calls[1][1], 'the answer goes back with the texts to write again')
+        self.assertEqual(next(d for d in record['decisions'] if d['subject'] == 'TASK-001')['why'], 'البطاقة إنذار كاذب لأن الملف مولّد')
+        nodes.run(self.report, names=['card_triage'], launcher=Answer(make), lang='en', fresh=True)
+        self.assertEqual(foreign_texts({'why': english, 'path': 'src/a_long_english_file_name.py'}, 'ar'), [english],
+                         'a path is no text for the person')
 
 
 class Launcher(unittest.TestCase):

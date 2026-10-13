@@ -58,8 +58,9 @@ function Segment({ head, items, search, order }: { head?: Item & { kind: 'group'
   )
 }
 
-/** What your assistant will fix: the cards it decided to fix itself, offered as one selection and one button that
- * opens the Fix preview over them (where the person may also let the batch be accepted when its checks pass). */
+/** What your assistant will fix: the cards it decided to fix itself among those the filters show, offered as one
+ * selection and one button that opens the Fix preview over them (where the person may also let the batch be accepted
+ * when its checks pass). */
 function AssistantFixes({ cards }: { cards: Card[] }) {
   const w = useProblemWords()
   const command = useCommandMaybe()
@@ -127,6 +128,7 @@ function ProblemsBody({ data }: { data: StudioData }) {
   const result = useMemo(() => filterRows(list, filters), [list, key])   // eslint-disable-line react-hooks/exhaustive-deps
   const items = useMemo(() => itemsOf(result.rows, filters.group, list.order), [result, filters.group, list])
   const ids = useMemo(() => result.rows.map((row) => row.card.id), [result])
+  const shown = useMemo(() => result.rows.map((row) => row.card), [result])
   const [limit, setLimit] = useState(FIRST)
   useEffect(() => setLimit(FIRST), [key])
   const [sheet, setSheet] = useState(false)
@@ -169,7 +171,7 @@ function ProblemsBody({ data }: { data: StudioData }) {
               <Button variant="secondary" icon="retry" onPress={() => setPinned(data.cards)}>{w('showChanges')}</Button>
             </div>
           )}
-          <AssistantFixes cards={all} />
+          <AssistantFixes cards={shown} />
           <SearchField label={t('search')} placeholder={t('search')} value={typed} onChange={setTyped} />
           <Controls who={filters.who} group={filters.group} chosen={chosen} active={active} onSet={onSet} onFilters={openSheet} />
           <ListTools shown={ids} />

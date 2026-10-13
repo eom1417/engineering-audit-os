@@ -19,6 +19,7 @@ from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators, owner_share
 from ..compose.labels import impact_of
+from ..plan import title_of
 from . import change as change_map
 from . import coverage as coverage_section
 from . import history as history_section
@@ -157,14 +158,11 @@ def health(m, history):
             'domains': domains, 'history': history}
 
 
-def cards(m, claims):
+def cards(m, claims, lang):
     rows = {r['id']: r for r in m['rows']}
     plan = {t.get('id'): t for t in m['plan'].get('tasks') or [] if isinstance(t, dict)}
-    out = []
-    for card in M.task_cards(m):
-        task = plan.get(card['id']) or {}
-        out.append(_card(card, rows.get(card['id']) or {}, task, claims.get(task.get('claim_id')) or {}))
-    return out
+    tasks = [(card, plan.get(card['id']) or {}) for card in M.task_cards(m)]
+    return [_card(card, rows.get(card['id']) or {}, task, claims.get(task.get('claim_id')) or {}, lang) for card, task in tasks]
 
 
 def _needs_decision(task, card):
@@ -173,11 +171,12 @@ def _needs_decision(task, card):
     return owner or card['state'] == 'skipped'
 
 
-def _card(card, row, task, claim):
+def _card(card, row, task, claim, lang):
     params = (claim.get('render') or task.get('render') or {}).get('params') or {}
     place = rel(params.get('place'))
     evidence = list((task.get('evidence') or {}).get('fact_ids') or claim.get('fact_ids') or [])
-    return {'id': card['id'], 'key': card['key'], 'title': card['title'], 'kind': card['pattern'],
+    title = title_of(task, lang) if task.get('render') else card['title']     # in the Studio's language when it has words for it
+    return {'id': card['id'], 'key': card['key'], 'title': title, 'kind': card['pattern'],
             'category': row.get('area') or M.classify({'pattern': card['pattern']})[0], 'severity': card['severity'],
             'fixable': bool(row.get('auto')),
             'needs_decision': _needs_decision(task, card),
@@ -528,7 +527,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         try: built[section] = make()
         except Exception as error: errors.append({'section': section, 'error': f'{type(error).__name__}: {error}'[:300]})
 
-    attempt('cards', lambda: cards(m, claims))
+    attempt('cards', lambda: cards(m, claims, lang))
     card_rows = built.get('cards') or []
     history = (((progress or {}).get('ledger') or {}).get('scores') or
                [{'at': scan['at'], 'commit': scan['commit'], 'score': None if m['score']['score'] is None else m['score']['score'] / 100}])

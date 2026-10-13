@@ -8,7 +8,6 @@
 li + li > .row { border-block-start: 1px solid var(--border-subtle); }
 .rowIcon { inline-size: 32px; block-size: 32px; display: grid; place-items: center; border-radius: var(--radius-8); background: var(--bg-sunken); color: var(--text-secondary); flex: none; }
 .rowMain { display: flex; flex-direction: column; min-inline-size: 0; flex: 1; line-height: 1.4; }
-.rowTitle bdi, .title bdi, .nowText bdi { white-space: nowrap; }
 .rowTitle { font-weight: 500; font-size: var(--text-row); overflow-wrap: anywhere; }
 .rowSub { font-size: 12px; color: var(--text-tertiary); }
 .rowEnd { flex: none; display: inline-flex; }

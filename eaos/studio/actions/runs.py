@@ -17,12 +17,14 @@ import threading
 import time
 from pathlib import Path
 
+from ...language import foreign, restate
 from . import adapters, handoff, planners, prompts, resume
 from .store import ACTIVE, TERMINAL, now
 
 STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
 
 STOP_GRACE = 5
+SAID = {'type': 'object', 'additionalProperties': False, 'required': ['text'], 'properties': {'text': {'type': 'string'}}}
 # Studio actions that are not an MCP tool: the planner of the ideal, which asks the person's assistant itself
 # (eaos/studio/ideal.py, docs/STUDIO.md D10).
 PLANNERS = ('replan_ideal', 'run_nodes')
@@ -430,7 +432,7 @@ class Manager:
             except OSError: pass
             why = self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
             return self._fail(run, why, resumable=True)
-        payload = self._outcome(run, answer=words)
+        payload = self._outcome(run, answer=self._readable(run, words))
         if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
             # a Fix run that handed nothing over did not succeed, whatever the assistant said: the person reads why
             self.store.append(run, 'result', {'en': 'Nothing changed: no fix was kept, so no branch waits for you',
@@ -446,6 +448,14 @@ class Manager:
                                                         f": الإصلاحات صارت في {payload['landed_on']} نفسه" if payload.get('landed_on') else '')}, payload)
         self.set_state(run, 'done', result=payload)
         self._auto_accept(run, payload)
+
+    def _readable(self, run, words):
+        """The assistant's last words in the person's language: asked of it again once when they are not (eaos/language.py)."""
+        adapter = self.adapters.get(self.store.load(run).get('assistant'))
+        if not foreign(words, self.lang) or adapter is None: return words
+        try: said = adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID, self.store.path(run) / 'language')
+        except Exception: return words
+        return str((said['answer'] or {}).get('text') or words)
 
     def _auto_accept(self, run, payload):
         """Accept this run's own batch when the person chose it in this run's Fix preview (auto_accept, bound to its
