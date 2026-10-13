@@ -3,10 +3,10 @@
 // flags; Change colours each frame by its folder's operation; Target ghosts what its folder deletes and marks every
 // screen the target has not decided. Hidden routes (layouts, redirects, catch-alls) are hatched and only drawn with
 // the "show hidden" lens. The SVG is direction neutral: the page mirrors the chrome around it, never the geometry.
-import { useId, type KeyboardEvent, type Ref } from 'react'
+import { useId, type Ref } from 'react'
 import type { Journeys, Screen, ScreenFlag, Task } from '../../../data/journeys'
 import { usePrefs } from '../../../i18n/prefs'
-import { fit } from '../../../map/draw'
+import { fit, pressKey } from '../../../map/draw'
 import type { ZoomState } from '../../../map/useZoom'
 import { useJourneyWords } from '../words'
 import { areaScreens, captions, clusters, edgeKey, litSet, pathEdges, shownEdges, shownScreens, type JourneyMode } from './model'
@@ -54,7 +54,7 @@ function pressable(interactive: boolean, id: string, label: string, pressed: boo
   return {
     role: 'button', tabIndex: 0, 'aria-label': label, ...(pressed === undefined ? {} : { 'aria-pressed': pressed }),
     onClick: () => onFocus?.(id),
-    onKeyDown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus?.(id) } },
+    onKeyDown: pressKey(() => onFocus?.(id)),
   }
 }
 

@@ -3,9 +3,9 @@
 // found; Target draws the target architecture's decision per area (keep, or introduce, dashed); Change draws today's
 // items with what the target adds. A lane with nothing found is dashed with its reason; a lane the target says nothing
 // about is hatched. Slots are fixed, so a lane keeps its place across views and scans; the geometry never mirrors.
-import type { KeyboardEvent, RefObject } from 'react'
+import type { RefObject } from 'react'
 import type { Infra, Lane } from '../../data/dataMap'
-import { clip } from '../../map/draw'
+import { clip, pressKey } from '../../map/draw'
 import { useDataWords, type DataWord } from '../data/words'
 import { MAX_ROWS, nodeName, rowsOf, type Mode, type Row } from './model'
 import css from './Infra.module.css'
@@ -32,7 +32,6 @@ export interface InfraMapProps {
 
 export function InfraMap({ infra, mode, focus, onFocus, svgRef, transform, className }: InfraMapProps) {
   const w = useDataWords()
-  const key = (id: string) => (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus(id) } }
   const rowText = (row: Row) => row.kind === 'node' ? nodeName(row.node, w) : row.kind === 'item' ? w(`area_${row.item.area}` as DataWord) : w('moreN', { n: row.more })
   return (
     <svg ref={svgRef} className={[css.map, className].filter(Boolean).join(' ')} viewBox={`0 0 ${WORLD.w} ${WORLD.h}`} role="group"
@@ -85,7 +84,7 @@ export function InfraMap({ infra, mode, focus, onFocus, svgRef, transform, class
                 const tone = row.kind === 'item' ? row.item.op : 'none'
                 return (
                   <g key={id} className={[css.row, css[`op_${tone}`], focus === id && css.on].filter(Boolean).join(' ')}
-                    role="button" tabIndex={0} aria-label={rowText(row)} aria-pressed={focus === id} onClick={() => onFocus(id)} onKeyDown={key(id)}>
+                    role="button" tabIndex={0} aria-label={rowText(row)} aria-pressed={focus === id} onClick={() => onFocus(id)} onKeyDown={pressKey(() => onFocus(id))}>
                     <rect className={css.rowBox} x={x + 8} y={ry} width={LANE_W - 16} height={ROW_H - 4} rx={6} />
                     {row.kind === 'item' && <text className={css.opMark} x={x + 18} y={ry + 18}>{row.item.op === 'keep' ? '●' : '+'}</text>}
                     <text className={row.kind === 'node' && row.node.kind === 'host' ? css.rowMono : css.rowText} x={x + (row.kind === 'item' ? 34 : 18)} y={ry + 18}>

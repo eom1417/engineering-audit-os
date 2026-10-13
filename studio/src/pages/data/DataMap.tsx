@@ -2,10 +2,10 @@
 // stores on the other, an edge per (component, store) weighted by the modules behind it. Two hatched bands stand for
 // the tiers the records do not reach (input field, form and key before the callers; the server handler between
 // callers and stores), each with how many writes it knows. The geometry never mirrors with the page (DESIGN.md §6).
-import { useMemo, type KeyboardEvent, type RefObject } from 'react'
+import { useMemo, type RefObject } from 'react'
 import type { DataPaths, DataView, Store } from '../../data/dataMap'
 import { isCluster, labelOf, membersOf, nodeOf, tierCounts, toneOf, touches, viewOf, type Mode } from './model'
-import { fit } from '../../map/draw'
+import { fit, pressKey } from '../../map/draw'
 import { ownerWord } from './parts'
 import { useDataWords } from './words'
 import css from './Data.module.css'
@@ -41,7 +41,6 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
   const gapW = view.size[0] - 2 * (24 + bw + 56)
   const storeOf = (id: string): Store | undefined => stores.get(id)
   const manyIn = (id: string) => membersOf(view, id).some((m) => stores.get(m)?.multi_writer)
-  const key = (id: string) => (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus(id) } }
 
   const edges = view.edges.filter((e) => reads || e.kind === 'write')
   const node = (id: string, lane: 'caller' | 'store') => {
@@ -59,7 +58,7 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
       : `${label}${cluster ? ` (${count})` : ''}`
     return (
       <g key={id} className={[css.node, css[`tone_${tone}`], on && css.on, faded && css.faded, cluster && css.cluster].filter(Boolean).join(' ')}
-        role="button" tabIndex={0} aria-label={name} aria-pressed={on} onClick={() => onFocus(id)} onKeyDown={key(id)}>
+        role="button" tabIndex={0} aria-label={name} aria-pressed={on} onClick={() => onFocus(id)} onKeyDown={pressKey(() => onFocus(id))}>
         {cluster && <rect className={css.stack} x={x + 4} y={y - 4} width={bw} height={bh} rx={8} />}
         <rect className={css.box} x={x} y={y} width={bw} height={bh} rx={8} />
         {lane === 'store' && <text className={css.kind} x={x + 10} y={y + bh / 2 + 4}>{store ? KIND_MARK[store.kind] : '⋯'}</text>}
