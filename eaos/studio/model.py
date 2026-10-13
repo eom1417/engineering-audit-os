@@ -73,10 +73,11 @@ PATTERNS = {
 CATEGORY_AREA = {'security': 'security', 'supply_chain': 'security', 'architecture': 'structure', 'data': 'structure',
                  'dead_code': 'quality', 'reliability': 'maintainability', 'maintainability': 'maintainability'}
 # The stage whose failure leaves an area unmeasured.
-AREA_STAGE = {'security': 'facts', 'structure': 'facts', 'quality': 'facts', 'performance': 'load', 'ux': 'visual',
+AREA_STAGE = {'security': 'facts', 'structure': 'facts', 'quality': 'facts', 'performance': 'baseline', 'ux': 'visual',
               'maintainability': 'measure'}
-# Areas whose stage is optional: measured only when that stage ran, never scored 100 for having looked at nothing.
-AREA_OPTIONAL = {'ux'}
+# Areas whose stage is optional: measured only when that stage ran, never scored 100 for having looked at nothing
+# (performance: the speed under load measured on the running program, not the code read alone).
+AREA_OPTIONAL = {'ux', 'performance'}
 GRADES = ((90, 'excellent'), (75, 'good'), (60, 'fair'), (40, 'weak'), (0, 'critical'))
 CLOSED = ('done',)
 # eaos/ledger.py; 'resolved' is an older ledger's state (a problem no longer found), counted nowhere and shown nowhere.

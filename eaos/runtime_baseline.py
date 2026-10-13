@@ -58,13 +58,18 @@ def _answer(url):
     except (OSError, ValueError): return None
 
 
+class PagesOnly(RuntimeError):
+    """The started app serves its pages only: a load on it would not measure the program."""
+
+
 def refuse_a_page_server(report, base):
     """The load must hit the program, not a server of its pages alone: when most server routes of the code answer
     with the very page `/` answers (a front-end server's fallback), the baseline would measure the wrong program."""
     from .nfr import server_routes
+    if not report: return
     routes, page = [r for r in server_routes(report) if r != '/'], _answer(f'{base}/')
     if page is not None and sum(_answer(f'{base}{route}') == page for route in routes) * 2 > len(routes):
-        raise RuntimeError(f'the started app serves only its pages: its {len(routes)} server routes ({", ".join(routes[:3])}...) '
+        raise PagesOnly(f'the started app serves only its pages: its {len(routes)} server routes ({", ".join(routes[:3])}...) '
                            'answer with the page itself, so a load on it would not measure the program. Propose a baseline '
                            'whose start runs the real server, serving the built pages and these routes (run_try with mode="baseline").')
 

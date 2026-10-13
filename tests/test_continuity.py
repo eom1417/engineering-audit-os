@@ -210,6 +210,9 @@ class Continuity(Base):
         head = git(self.project, 'rev-parse', 'HEAD')
         self.assertEqual(agent_tools.accept(str(self.project), person_agreed=True)['status'], 'conflict')
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'status', '--porcelain')), (head, ''))
+        cards = {'k': {'state': 'open'}}
+        ledger._apply_wave({'status': 'abandoned', 'failed': {'TASK-001': 'a gate refused it'}}, cards, {'TASK-001': 'k'})
+        self.assertEqual(cards['k']['state'], 'open', 'an abandoned batch changed nothing: its cards can be picked again')
         self.assertEqual(self.branches(), ['eaos/wave-2'], 'a branch that is not merged stays')
 
     def test_a_batch_opens_for_a_ready_card_closes_cleanly_and_the_next_waits_for_a_decision(self):
@@ -235,6 +238,9 @@ class Continuity(Base):
         self.assertNotIn('open_wave', state)
         self.assertEqual((state['waves'][-1]['status'], root.exists()), ('abandoned', False))
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'status', '--porcelain')), (head, ''))
+        cards = {'k': {'state': 'open'}}
+        ledger._apply_wave({'status': 'abandoned', 'failed': {'TASK-001': 'a gate refused it'}}, cards, {'TASK-001': 'k'})
+        self.assertEqual(cards['k']['state'], 'open', 'an abandoned batch changed nothing: its cards can be picked again')
         self.batch(1, ['TASK-001'])
         state = guided.load(self.project)
         state['consent'] = {'run_and_fix': True}

@@ -241,16 +241,15 @@ def baseline(context):
         raise SkipStage('the production build of the app did not start in the isolated copy, so its speed was not measured',
                         code='no_production_run')
     from ..nfr import write as scenarios
-    from ..runtime_baseline import run_baseline
+    from ..runtime_baseline import PagesOnly, run_baseline
     scenarios(context.out)
     if not list((context.out / 'nfr/k6').glob('*.js')):
         raise SkipStage("the intake's load scenarios name no route of the app a load test can request", code='no_load_scenario')
-    record = run_baseline(context.out, context.target, runtime)
+    try: record = run_baseline(context.out, context.target, runtime)
+    except PagesOnly as problem: raise SkipStage(str(problem), code='baseline_pages_only') from problem
     _keep(context, 'baseline.json', record)
     return {'scenarios': len(record['scenarios']),
             'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
-
-
 
 
 def readiness(context):

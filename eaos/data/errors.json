@@ -610,6 +610,10 @@
    "ar": "برنامجك ليس له أمر بناء لنسخة الإنتاج، فلم أقس السرعة.",
    "en": "Your app has no production build command, so speed is not measured."
   },
+  "baseline_pages_only": {
+   "ar": "البرنامج اللي اشتغل يقدّم الصفحات بس، ومسارات الخادم ترجع نفس الصفحة، فما قست السرعة حتى ما أعطيك رقمًا غلط.",
+   "en": "The app that started serves its pages only: its server routes answer with the page itself, so speed is not measured rather than measured wrong."
+  },
   "baseline_failed": {
    "ar": "لم تعمل نسخة الإنتاج من برنامجك هنا.",
    "en": "The production build of your app did not run here."

@@ -355,11 +355,13 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
     from .live_run import LiveRun
     runtime = Path(runtime)
     live = LiveRun(project, runtime, 'S05', mode=mode)
-    if mode == 'baseline': report = None           # the load test opens the pages anonymously: the first page is enough
+    served, report = (report, None) if mode == 'baseline' else (None, report)    # the load opens the pages anonymously
     record = {'attempt': attempt, 'fixtures': {}}
     try:
         live.setup()
         base = live.start()
+        from .runtime_baseline import refuse_a_page_server
+        refuse_a_page_server(served, base)
         state = runtime / 'setup' / 'storage-state.json'
         if state.exists(): state.unlink()
         record['fixtures'] = dict(live.seed(base, state))
@@ -473,15 +475,16 @@ FLOW = (
                       'for the speed test'),
 )
 
-def setup_baseline(project, runtime, detected, provider, say, attempts=3):
-    """The production run the load baseline needs: built, started from the build, the first page answering.
-    Marked in run.json -> baseline.verified, so the load test only runs on a production run that works."""
+def setup_baseline(project, runtime, detected, provider, say, report=None, attempts=3):
+    """The production run the load baseline needs: built, started from the build, the first page answering, and the
+    server routes of the code (`report`) served, not answered with the page. Marked in run.json -> baseline.verified,
+    so the load test only runs on a production run that works; the assistant reads why an attempt failed."""
     runtime, record, refusal = Path(runtime), {'ok': False, 'failure': ''}, ''
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     for attempt in range(1, attempts + 1):
         say(f'baseline-{attempt}')
         progress.step(f'attempt {attempt}', attempt - 1, attempts, 'running')
-        record = verify(project, runtime, attempt, mode='baseline')
+        record = verify(project, runtime, attempt, report, mode='baseline')
         progress.step(f'attempt {attempt}', attempt, attempts, 'ok' if record['ok'] else 'failed',
                       reason=(record.get('failure') or '')[:200], reason_code='' if record['ok'] else 'baseline_failed')
         if record['ok'] or provider is None: break
@@ -494,7 +497,7 @@ def setup_baseline(project, runtime, detected, provider, say, attempts=3):
             json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         if not refused: apply(runtime, proposal, mode='baseline')
         if attempt == attempts:
-            record = verify(project, runtime, attempt + 1, mode='baseline')
+            record = verify(project, runtime, attempt + 1, report, mode='baseline')
             if refused and not record['ok']: record['failure'] = 'the assistant proposed something unsafe, which was refused: ' + refused[0]
     profile = json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
     profile['baseline']['verified'] = record['ok']
@@ -572,7 +575,7 @@ def _setup(project, runtime, report, provider, say):
                        'no_assistant' if provider is None else 'app_not_answering')
     if ok and (detected['profile'].get('baseline') or {}).get('build'):
         progress.begin('baseline')
-        speed = setup_baseline(project, runtime, detected, provider, say)
+        speed = setup_baseline(project, runtime, detected, provider, say, report)
         if not speed['ok']: limitations.append('speed cannot be measured: ' + speed['failure'][:300])
         if speed['ok']: progress.end('baseline')
         else: progress.end('baseline', 'failed', speed['failure'][:300], 'baseline_failed')

@@ -204,8 +204,8 @@ def _metric(specification, sets):
             and fact['location']['path'] == specification['path']]
     if not rows: return 'INCONCLUSIVE', 'the symbol is no longer present under that name'
     branches = rows[0]['value']['branches']
-    return _verdict(branches >= specification['max_branches'], f"{branches} branches, threshold {specification['max_branches']}",
-                    f"{branches} branches, now below the threshold of {specification['max_branches']}")
+    return _verdict(branches > specification['max_branches'], f"{branches} branches, limit {specification['max_branches']}",
+                    f"{branches} branches, now within the limit of {specification['max_branches']}")
 
 
 def _module_size(specification, sets):

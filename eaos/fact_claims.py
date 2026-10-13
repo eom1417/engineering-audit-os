@@ -11,8 +11,6 @@ import re
 # live in the fact, so the sentence names enough of them to recognise and says how many more.
 NAMED_IN_A_STATEMENT = 6
 
-# Maintenance hotspot: complexity that sits where change and dependency already concentrate.
-BRANCH_THRESHOLD, ATTENTION_TOP, MAX_HOTSPOTS = 60, 10, 3
 # Sustainability observations reach the same ledger as everything else: one record, one decision.
 DUPLICATE_MIN, REDUNDANCY_MAX = 6, 10  # structural duplicates below 6 are common noise in shared-method code
 # UI components share boilerplate by construction: an arrow function that calls setState
@@ -112,45 +110,35 @@ def duplicated_rules(fact_sets, add, target):
                                 + (' — and they already hold different values.' if differs else '.')})
 
 
-def _hotspot_of(fact, graph_nodes, worst):
-    """(graph node, central) of a function dense enough to be a hotspot where attention already is; None otherwise."""
-    node = graph_nodes.get(fact['location']['path'])
-    if not node: return None
-    central = (node.get('attention_rank') or 999) <= ATTENTION_TOP
-    if not central and fact['id'] not in worst: return None
-    if (fact['value'].get('branches') or 0) < BRANCH_THRESHOLD: return None
-    return node, central
-
-
 def hotspots(fact_sets, add, target):
-    # Rank alone is unstable: adding modules pushed the most complex function in the project out of
-    # the top ten and silently dropped the finding. The worst offenders stay visible on their own merit.
-    # A hotspot is one function: a class's metric sums the branches of all its methods, which no single change carries.
-    ranked = sorted((fact for fact in _facts(fact_sets, 'metrics', 'metric') if fact['value'].get('scope') == 'function'),
-                    key=lambda fact: -(fact['value'].get('branches') or 0))
-    worst = {fact['id'] for fact in ranked[:MAX_HOTSPOTS]}
-    graph_nodes = {fact['location']['path']: fact['value'] for fact in _facts(fact_sets, 'graph', 'graph_node')}
-    found = [(fact, *made) for fact in ranked for made in [_hotspot_of(fact, graph_nodes, worst)] if made]
-    for fact, node, central in found[:MAX_HOTSPOTS]: _hotspot(fact, node, central, add)
+    """Every production function or method past the complexity limit of the code laws (eaos/code_laws.py), each a
+    claim; those of one file become one card (eaos/plan.py GROUPED). It held to 60 branches and the three worst before,
+    so a project's check named 3 of its 105 functions past the limit and scored its structure as sound."""
+    from .code_laws import MAX_COMPLEXITY
+    from .system_map import is_test
+    nodes = {fact['location']['path']: fact['value'] for fact in _facts(fact_sets, 'graph', 'graph_node')}
+    for fact in sorted(_facts(fact_sets, 'metrics', 'metric'), key=lambda fact: -(fact['value'].get('branches') or 0)):
+        value, path = fact['value'], fact['location']['path']
+        if value.get('scope') in ('function', 'method') and (value.get('branches') or 0) > MAX_COMPLEXITY and not is_test(path):
+            _hotspot(fact, (nodes.get(path) or {}).get('attention_rank'), MAX_COMPLEXITY, add)
 
 
-def _hotspot(fact, node, central, add):
+def _hotspot(fact, rank, limit, add):
     path, symbol = fact['location']['path'], fact['location'].get('symbol')
     add(f"{symbol} in {path} carries {fact['value']['branches']} branches over "
-        f"{fact['value']['lines']} lines, in a file ranked {node['attention_rank']} for attention",
+        f"{fact['value']['lines']} lines, in a file ranked {rank or '-'} for attention",
         'structure', 'CONFIRMED', ['static_fact'],
-        'A measurement showing the branching is below the declared threshold, or evidence that the '
+        'A measurement showing the branching is within the limit, or evidence that the '
         'complexity is inherent to the problem and isolated behind a tested contract.',
         fact_ids=[fact['id']],
         render={'key': 'hotspot', 'params': {'symbol': symbol, 'path': path,
                                              'branches': fact['value']['branches'],
                                              'lines': fact['value']['lines'],
-                                             'rank': node['attention_rank']}},
-        probe_spec=_graph_query('metric_threshold', path=path, symbol=symbol, max_branches=BRANCH_THRESHOLD,
-                                expected='The symbol still exceeds the declared branch threshold.'),
-        impact={'scenario': 'Every change to this path passes through one dense function; '
-                            'it is the most concentrated maintenance risk in the module.'
-                            + ('' if central else ' It is among the most branching functions in the project.')})
+                                             'rank': rank or '-'}},
+        probe_spec=_graph_query('metric_threshold', path=path, symbol=symbol, max_branches=limit,
+                                expected='The symbol is still past the complexity limit.'),
+        impact={'scenario': f'Every change to this path passes through one function of more than {limit} decisions: '
+                            'hard to read, to test and to change without breaking it.'})
 
 
 def large_modules(fact_sets, add, target):

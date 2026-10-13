@@ -235,7 +235,9 @@ def _signature(short, value, component):
 
 
 def _lines(row, liz, metric):
-    if liz and liz.get('nloc') is not None: return {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
+    """An engine's measure when it is a possible one (lizard said -1 for eaos/blueprint.py page, and the whole section
+    failed its contract); else EAOS's own."""
+    if liz and (liz.get('nloc') or -1) >= 0: return {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
     if metric.get('lines') is not None: return {'value': metric['lines'], 'src': 'facts/metrics.json#metric.value.lines', 'unit': 'lines'}
     span = (row['end'] - row['start'] + 1) if row['end'] else None
     return {'value': span, 'src': 'facts/syntax.json#symbol end_line - start_line + 1', 'unit': 'lines'}

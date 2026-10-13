@@ -181,3 +181,12 @@ class HotspotTests(unittest.TestCase):
         ranked = rank(list(engine.values()), sets, {})
         self.assertEqual([c['render']['params']['place'] for c in ranked], ['d.py', 'c.py'])
         self.assertEqual(ranked[0]['priority_factors']['severity']['factor'], 3.0)
+
+    def test_every_function_past_the_code_laws_limit_is_a_hotspot_not_the_three_worst_past_sixty(self):
+        # EAOS on itself (2026-10-13): 3 of 105 functions past the limit of 15 were named, and structure scored 100.
+        sets = {'graph': {'facts': []}, 'history': {'facts': [], 'summary': {'commits_analysed': 0}},
+                'metrics': {'facts': [metric('a.py', f'f{n}', 'function', 16 + n) for n in range(5)]
+                            + [metric('a.py', 'edge', 'function', 15), metric('a.py', 'Owner.go', 'method', 20),
+                               metric('tests/test_a.py', 'test_x', 'function', 40)]}}
+        hotspots = sorted(c['render']['params']['symbol'] for c in from_facts(sets) if c['render']['key'] == 'hotspot')
+        self.assertEqual(hotspots, ['Owner.go', 'f0', 'f1', 'f2', 'f3', 'f4'], 'past 15, methods too, never a test')

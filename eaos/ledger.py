@@ -206,11 +206,18 @@ def _apply_kept(wave, card):
 
 
 def _apply_wave(wave, cards, known):
+    """What a batch did to its cards. One closed without handing anything over (abandoned, superseded) changed nothing:
+    its cards stay open, whatever it failed on, and the next batch can pick them (EAOS on itself, 2026-10-13: the 7 module
+    splits a gate bug had refused stayed "skipped" after their batch was abandoned, out of every later batch)."""
+    if wave.get('status') in CLOSED_UNUSED: return
     for card_id, reason in (wave.get('failed') or {}).items():
         card = cards.get(known.get(card_id))
         if card and card['state'] in ('open', 'in_batch'):
             card.update(state='skipped', why=str(reason)[:300], batch=wave.get('number'))
     for card_id in wave.get('kept') or []: _apply_kept(wave, cards.get(known.get(card_id)))
+
+
+CLOSED_UNUSED = ('abandoned', 'superseded')
 
 
 def _apply_history(cards, in_branch, undone):
