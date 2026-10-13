@@ -39,24 +39,34 @@ def forms(word):
     return found
 
 
+def _by_phrase(text, intents):
+    """(length, intent, phrase) of the longest phrase found whole in the text (the first of equals), or None."""
+    found = [(len(wanted), intent, phrase) for intent in intents for phrase in intent['ar'] + intent['en']
+             if (wanted := normalise(phrase)) and f' {wanted} ' in text]
+    return max(found, key=lambda row: row[0], default=None)
+
+
+def _score(words, intent):
+    """How strongly the words, in any of their forms, name the intent's keywords."""
+    keywords = {normalise(k): v for k, v in (intent.get('keywords') or {}).items()}
+    return sum(max((keywords.get(f, 0) for f in word), default=0) for word in words)
+
+
+def _by_keywords(text, intents):
+    """The intent the words score highest, when it reaches the threshold alone; else None."""
+    words = [forms(word) for word in text.split()]
+    scores = sorted(((_score(words, intent), intent) for intent in intents), key=lambda row: -row[0])
+    clear = scores and scores[0][0] >= THRESHOLD and (len(scores) == 1 or scores[1][0] != scores[0][0])
+    return scores[0][1] if clear else None
+
+
 def understand(request):
     """(intent, how) for a request in plain words, or (None, None). A whole phrase wins, the longest first;
     otherwise the words are scored against each intent's keywords, and only a clear winner counts."""
     text = f' {normalise(request)} '
-    best = (None, None, 0)
-    for intent in catalog():
-        for phrase in intent['ar'] + intent['en']:
-            wanted = normalise(phrase)
-            if wanted and f' {wanted} ' in text and len(wanted) > best[2]:
-                best = (intent, phrase, len(wanted))
-    if best[0]: return best[0], best[1]
-    words = [forms(word) for word in text.split()]
-    scores = []
-    for intent in catalog():
-        keywords = {normalise(k): v for k, v in (intent.get('keywords') or {}).items()}
-        hits = [max((keywords.get(f, 0) for f in word), default=0) for word in words]
-        scores.append((sum(hits), intent))
-    scores.sort(key=lambda row: -row[0])
-    if not scores or scores[0][0] < THRESHOLD or (len(scores) > 1 and scores[1][0] == scores[0][0]): return None, None
-    return scores[0][1], 'keywords'
+    intents = catalog()
+    phrase = _by_phrase(text, intents)
+    if phrase: return phrase[1], phrase[2]
+    intent = _by_keywords(text, intents)
+    return (intent, 'keywords') if intent else (None, None)
 
