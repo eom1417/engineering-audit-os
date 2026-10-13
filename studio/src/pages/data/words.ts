@@ -1,6 +1,6 @@
 // The words of the data paths map and the infrastructure lens, Arabic first and English equally finished. Kept with
 // the pages so they travel as one module; a key missing in one language is a type error.
-import { usePrefs } from '../../i18n/prefs'
+import { makeWords } from '../../map/words'
 
 export const DATA_WORDS = {
   dataTitle: ['مسارات البيانات', 'Data paths'],
@@ -178,13 +178,5 @@ export const DATA_WORDS = {
 
 export type DataWord = keyof typeof DATA_WORDS
 
-/** The words in the current language, with {name} placeholders filled in (numbers in the page's digits). */
-export function useDataWords() {
-  const { lang, num } = usePrefs()
-  const index = lang === 'ar' ? 0 : 1
-  return (key: DataWord, vars?: Record<string, string | number>) =>
-    DATA_WORDS[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
-      const value = vars?.[name]
-      return value === undefined ? '' : typeof value === 'number' ? num(value) : value
-    })
-}
+/** The data pages' words in the current language. */
+export const useDataWords = makeWords<DataWord>(DATA_WORDS)

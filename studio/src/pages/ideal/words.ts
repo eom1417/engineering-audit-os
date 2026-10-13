@@ -1,6 +1,6 @@
 // The words of the planned ideal page, Arabic first and English equally finished; a key missing in one language is a
 // type error.
-import { usePrefs } from '../../i18n/prefs'
+import { makeWords } from '../../map/words'
 
 export const IDEAL_WORDS = {
   title: ['هدف القواعد مقابل المثالي المخطَّط', 'Rules target against the planned ideal'],
@@ -51,13 +51,5 @@ export const IDEAL_WORDS = {
 
 export type IdealWord = keyof typeof IDEAL_WORDS
 
-/** The words in the current language, with {name} placeholders filled in (numbers in the page's digits). */
-export function useIdealWords() {
-  const { lang, num } = usePrefs()
-  const index = lang === 'ar' ? 0 : 1
-  return (key: IdealWord, vars?: Record<string, string | number>) =>
-    IDEAL_WORDS[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
-      const value = vars?.[name]
-      return value === undefined ? '' : typeof value === 'number' ? num(value) : value
-    })
-}
+/** The planned ideal page's words in the current language. */
+export const useIdealWords = makeWords<IdealWord>(IDEAL_WORDS)
