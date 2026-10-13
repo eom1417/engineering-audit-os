@@ -92,6 +92,7 @@
       "eaos/batch_finish.py",
       "eaos/jobs.py",
       "eaos/plain.py",
+      "eaos/language.py",
       "eaos/start_here.py",
       "eaos/human_report.py",
       "eaos/studio/**",
