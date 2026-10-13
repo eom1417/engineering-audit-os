@@ -10,7 +10,7 @@ import { OperationChip } from '../../components/Chip'
 import { Go, type Search } from '../../components/Go'
 import { Icon } from '../../components/Icon'
 import type { Relation } from '../../data/types'
-import { Id, N, Txt } from '../../i18n/text'
+import { Id, Ids, N, Txt } from '../../i18n/text'
 import { gapsAbout, ordered, where, type GapEntry, type Op, type PipelineData, type Scope, type Site, type View } from './model'
 import { KIND_WORD, usePipelineWords } from './words'
 import { useNodeRuns } from './aiNodes'
@@ -321,8 +321,8 @@ function Contract({ ideal }: { ideal: { contract?: { inputs: string[]; outputs: 
   if (!ideal.contract || (!ideal.contract.inputs.length && !ideal.contract.outputs.length)) return null
   return (
     <dl className={frame.evid}>
-      <dt>{w('takes')}</dt><dd>{ideal.contract.inputs.length ? ideal.contract.inputs.map((n, i) => <span key={n}>{i > 0 && ' · '}<Id value={n} /></span>) : w('nothingDeclared')}</dd>
-      <dt>{w('gives')}</dt><dd>{ideal.contract.outputs.length ? ideal.contract.outputs.map((n, i) => <span key={n}>{i > 0 && ' · '}<Id value={n} /></span>) : w('nothingDeclared')}</dd>
+      <dt>{w('takes')}</dt><dd>{ideal.contract.inputs.length ? <Ids values={ideal.contract.inputs} sep=" · " /> : w('nothingDeclared')}</dd>
+      <dt>{w('gives')}</dt><dd>{ideal.contract.outputs.length ? <Ids values={ideal.contract.outputs} sep=" · " /> : w('nothingDeclared')}</dd>
     </dl>
   )
 }

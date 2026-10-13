@@ -64,6 +64,11 @@ export function Id({ value, keep, className }: { value: string; keep?: number; c
   )
 }
 
+/** Identifiers in a row, `sep` between each two. */
+export function Ids({ values, sep }: { values: readonly string[]; sep: string }) {
+  return <>{values.map((value, i) => <span key={i}>{i > 0 && sep}<Id value={value} /></span>)}</>
+}
+
 /** A number: Western digits, the language's grouping, tabular */
 export function N({ value, className }: { value: number; className?: string }) {
   const { num } = usePrefs()

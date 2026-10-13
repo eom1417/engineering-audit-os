@@ -7,7 +7,7 @@ import { Button } from '../../components/Button'
 import { OperationChip } from '../../components/Chip'
 import { stageTitle } from './names'
 import { usePrefs } from '../../i18n/prefs'
-import { Id } from '../../i18n/text'
+import { Id, Ids } from '../../i18n/text'
 import { ordered, where, type Scope, type View } from './model'
 import { RELATION } from './Inspector'
 import type { Lit } from './Flowchart'
@@ -45,7 +45,7 @@ function StepTitle({ s, scope, view, nos }: { s: Step; scope: Scope; view: View;
 /** A label and the first `first` names, comma separated; nothing when there are none. */
 function IdRow({ label, names, first }: { label: string; names: string[]; first: number }) {
   if (!names.length) return null
-  return <span>{label}: {names.slice(0, first).map((name, i) => <span key={name}>{i > 0 && ', '}<Id value={name} /></span>)}</span>
+  return <span>{label}: <Ids values={names.slice(0, first)} sep=", " /></span>
 }
 
 const nameOf = (port: { name: string }) => port.name
@@ -69,7 +69,7 @@ function StepRouter({ scope, id }: { scope: Scope; id: string }) {
   if (!router) return null
   return (
     <span className={css.stepIo}>
-      {w('routesOn')} <Id value={router.on} />: {router.branches.slice(0, 6).map((b, i) => <span key={i}>{i > 0 && ' · '}<Id value={b.condition} /></span>)}{router.branches.length > 6 && ' …'}
+      {w('routesOn')} <Id value={router.on} />: <Ids values={router.branches.slice(0, 6).map((b) => b.condition)} sep=" · " />{router.branches.length > 6 && ' …'}
     </span>
   )
 }

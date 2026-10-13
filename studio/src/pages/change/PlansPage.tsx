@@ -14,7 +14,7 @@ import { FoldList, Panel, RowLink, Section, StateMessage } from '../../component
 import type { ChangeOp, Operation } from '../../data/change'
 import type { Plan, PlanStep, StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
-import { Id, N, Txt } from '../../i18n/text'
+import { Id, Ids, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, PageTitle, WithData } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
@@ -110,8 +110,8 @@ function StepRow({ plan, step, links, timeline }: { plan: Plan; step: PlanStep; 
         <StateBar counts={stateCounts(step)} />
         <span className={css.stepMeta}>
           {span && <span>{span.first === span.last ? w('waveOne', { a: span.first! }) : w('wavesSpan', { a: span.first!, b: span.last! })}</span>}
-          <span>{waits.length ? <>{w('waitsFor')}: {waits.map((l, i) => <span key={l.from}>{i ? w('sep') : ''}<Id value={l.from} /></span>)}</> : w('waitsNone')}</span>
-          {before.length > 0 && <span>{w('comesBefore')}: {before.map((l, i) => <span key={l.to}>{i ? w('sep') : ''}<Id value={l.to} /></span>)}</span>}
+          <span>{waits.length ? <>{w('waitsFor')}: <Ids values={waits.map((l) => l.from)} sep={w('sep')} /></> : w('waitsNone')}</span>
+          {before.length > 0 && <span>{w('comesBefore')}: <Ids values={before.map((l) => l.to)} sep={w('sep')} /></span>}
         </span>
       </span>
     </Go>
