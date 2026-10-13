@@ -112,6 +112,7 @@ export const LIBRARY_WORDS = {
   imageMissing: ['محتوى هذه الصورة ليس في بيانات الاستوديو', 'The content of this image is not in the Studio data'],
   imageTooLarge: ['الصورة أكبر من أن تُحمل في الاستوديو ({n} كيلوبايت)؛ تجدها في مجلد التقرير.', 'The image is too large to carry in the Studio ({n} kB); it is in the report folder.'],
   imageNotFound: ['لا صورة بهذا الاسم في التقرير', 'No image by that name in the report'],
+  imageNotFoundSub: ['ربما كُتب الرابط لفحص أقدم. ارجع إلى المكتبة لترى صور هذا الفحص ورسومه.', 'The link may come from an older check. Go back to the Library to see the images and diagrams of this one.'],
   noImages: ['لا صور ولا رسوم في هذا الفحص', 'No images or diagrams in this check'],
   lines: ['{n} سطرًا', '{n} lines'],
 } as const
