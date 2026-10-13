@@ -195,7 +195,7 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
   const paths = usePaths(data)
   const timeline = paths.kind === 'ready' ? paths.data.timeline : null
   const links = useMemo(() => stepLinks(timeline), [timeline])
-  if (!plan) return <div className={page.page}><ChangeNav /><Panel><StateMessage title={w('planNotFound')} sub={<Id value={id} />} /></Panel></div>
+  if (!plan) return <Missing title={w('planNotFound')} />
   const ops = (data.operations?.operations ?? []).filter((o) => (o.plan ?? plan.id) === plan.id)
   const asked: View = search.view === 'graph' || search.view === 'board' ? search.view : 'timeline'
   const view: View = phone && asked === 'graph' ? 'timeline' : asked

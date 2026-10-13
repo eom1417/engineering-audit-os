@@ -10,7 +10,7 @@ import { DirectAction } from '../../command/Direct'
 import { useBranchWords } from '../../branches/words'
 import { OperationChip, SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
-import { FoldList, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
+import { FoldList, NotHere, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
 import { ListTools, SelectableRow } from '../../command/Selectable'
 import type { StudioData } from '../../data/types'
 import { Id, N, Txt } from '../../i18n/text'
@@ -24,8 +24,10 @@ import css from './change.module.css'
 
 type Row = [ReactNode, ReactNode]
 
-function Missing({ title, id }: { title: string; id: string }) {
-  return <div className={page.page}><ChangeNav /><Panel><StateMessage title={title} sub={<Id value={id} />} /></Panel></div>
+/** A plan, step, task or operation the link names and this check does not have. */
+export function Missing({ title }: { title: string }) {
+  const w = useChangeWords()
+  return <div className={page.page}><ChangeNav /><NotHere title={title} sub={w('oldLink')} back="/plans" label={w('backToPlans')} /></div>
 }
 
 function useTimeline(data: StudioData) {
@@ -41,7 +43,7 @@ function StepBody({ data, planId, stepId }: { data: StudioData; planId: string; 
   usePageChrome(w('stepKicker', { id: stepId }), { to: `/plans/${encodeURIComponent(planId)}`, label: plan?.title ?? w('plansTitle') }, data.manifest.project.name)
   const timeline = useTimeline(data)
   const links = useMemo(() => stepLinks(timeline), [timeline])
-  if (!plan || !step) return <Missing title={w('stepNotFound')} id={stepId} />
+  if (!plan || !step) return <Missing title={w('stepNotFound')} />
   const ops = (data.operations?.operations ?? []).filter((o) => o.step === step.id).sort((a, b) => a.order - b.order)
   const span = timeline?.steps.find((s) => s.id === step.id)
   const ids = step.tasks.map((t) => t.id)
@@ -112,7 +114,7 @@ function TaskBody({ data, id }: { data: StudioData; id: string }) {
   usePageChrome(id, step && plan ? { to: `/plans/${encodeURIComponent(plan.id)}/${encodeURIComponent(step.id)}`, label: w('stepKicker', { id: step.id }) } : { to: '/plans', label: w('plansTitle') }, data.manifest.project.name)
   const timeline = useTimeline(data)
   const row = timeline?.tasks.find((t) => t.id === id)
-  if (!card) return <Missing title={w('taskNotFound')} id={id} />
+  if (!card) return <Missing title={w('taskNotFound')} />
   const ops = (data.operations?.operations ?? []).filter((o) => o.op !== 'merge' && o.cards?.includes(id))
   const gaps = (data.gaps?.gaps ?? []).filter((g) => !g.id.startsWith('target:') && g.cards.includes(id))
   return (
@@ -169,7 +171,7 @@ function OpBody({ data, id }: { data: StudioData; id: string }) {
   usePageChrome(op?.subject ?? w('operations'), { to: `/plans/${encodeURIComponent(op?.plan ?? 'fix')}`, search: { view: 'board' }, label: w('viewBoard') }, data.manifest.project.name)
   const cards = useMemo(() => byId(data.cards?.cards), [data.cards])
   if (!data.operations) return <div className={page.page}><ChangeNav /><NotMeasured data={data} section="operations" title={w('noOps')} /></div>
-  if (!op) return <Missing title={w('opNotFound')} id={id} />
+  if (!op) return <Missing title={w('opNotFound')} />
   const before = comesBefore(op, all)
   const own = op.cards ?? []
   return (
