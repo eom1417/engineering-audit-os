@@ -24,6 +24,9 @@ UI_LANGUAGES = {'typescript', 'tsx', 'javascript', 'jsx'}
 UI_PATH_PARTS = {'components', 'pages', 'views', 'screens'}
 SHARED_SIZE_FOR_UI = 30  # tokens of shared shape, not occurrence count
 UI_MIN_OCCURRENCES = 4
+# A shared shape this large is a function copied whole, not an idiom: precise enough to be its own detector
+# (structural_duplicate, all sizes together, falls under the precision bar; eaos/data/detector-verdicts.json).
+COPIED_SIZE = 50
 
 DEAD_REASONS = {'unreachable-module': ('لا تصله أي نقطة دخول إنتاجية', 'no production entry point reaches it'),
                 'unused-symbol': ('لا يُذكر اسمه خارج تعريفه', 'its name appears nowhere outside its definition'),
@@ -150,6 +153,30 @@ def _hotspot(fact, node, central, add):
                             + ('' if central else ' It is among the most branching functions in the project.')})
 
 
+def large_modules(fact_sets, add, target):
+    """A production module past the line limit of the code laws: it holds more than one responsibility, so a change to
+    one of them reads and risks the others. The card splits it along its responsibilities, its outside kept."""
+    from .code_laws import MAX_LINES
+    from .system_map import is_test
+    nodes = {fact['location']['path']: fact['value'] for fact in _facts(fact_sets, 'graph', 'graph_node')}
+    for fact in sorted(_facts(fact_sets, 'metrics', 'metric'), key=lambda f: -(f['value'].get('lines') or 0)):
+        value, path = fact['value'], fact['location']['path']
+        if value.get('scope') != 'file' or (value.get('lines') or 0) <= MAX_LINES or is_test(path): continue
+        node = nodes.get(path) or {}
+        params = {'path': path, 'lines': value['lines'], 'symbols': value.get('symbols') or 0, 'limit': MAX_LINES,
+                  'fan_in': node.get('fan_in') or 0, 'fan_out': node.get('fan_out') or 0}
+        add(f"{path} has {params['lines']} lines and {params['symbols']} definitions, past the limit of {MAX_LINES} lines "
+            f"for one module; {params['fan_in']} modules import it and it imports {params['fan_out']}",
+            'structure', 'CONFIRMED', ['static_fact'],
+            'A measurement showing the module is within the line limit, or that its definitions serve one responsibility '
+            'no split would make clearer.',
+            fact_ids=[fact['id']], render={'key': 'large_module', 'params': params},
+            probe_spec=_graph_query('module_size', path=path, max_lines=MAX_LINES,
+                                    expected='The module is still past the line limit.'),
+            impact={'scenario': 'Every change to one of its responsibilities reads and risks the others; '
+                                'it grows wherever a new feature lands.'})
+
+
 def mutable_globals(fact_sets, add, target):
     for fact in [f for f in _facts(fact_sets, 'domain', 'mutable_global') if f['value'].get('mutation_scope') == 'function']:
         # State private to its module has an owner: its own functions. Whether it may stay per-process (a
@@ -230,16 +257,19 @@ def worth_a_claim(places, shared_size):
 
 
 def structural_duplicates(fact_sets, add, target):
+    from .system_map import is_test
     for fact in _facts(fact_sets, 'fingerprint', 'duplicate_cluster'):
-        places = fact['value']['occurrences']
-        if not worth_a_claim(places, fact['value'].get('shared_size', 0)): continue
+        places, size = fact['value']['occurrences'], fact['value'].get('shared_size', 0)
+        copied = size >= COPIED_SIZE and not all(is_test(row['path']) for row in places)
+        if not (copied or worth_a_claim(places, size)): continue
         where = ', '.join(f"{row['path']}:{row['start_line']} {row['symbol']}" for row in places[:4])
-        add(f"{len(places)} symbols share the same structure up to identifier names ({where})",
+        add(f"{len(places)} functions are one function copied whole, up to identifier names ({where})" if copied else
+            f"{len(places)} symbols share the same structure up to identifier names ({where})",
             'business_rule', 'CONFIRMED', ['static_fact'],
             'Evidence that the occurrences encode different rules that evolve for different reasons, '
             'which would make a single definition wrong rather than missing.',
             fact_ids=[fact['id']],
-            render={'key': 'structural_duplicate', 'params': {'count': len(places), 'where': where}},
+            render={'key': 'copied_function' if copied else 'structural_duplicate', 'params': {'count': len(places), 'where': where}},
             probe_spec=_graph_query('duplicate_cluster_present', shape_sha=fact['value']['shape_sha'],
                                     expected='The same structural cluster is still present.'),
             impact={'scenario': 'Changing the rule in one occurrence and not the others makes the paths '
@@ -395,7 +425,7 @@ def _vulnerable(fact, add):
 
 
 # The builders in ledger order: the claims are numbered in this order.
-BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, mutable_globals, access_gaps, external_writes,
+BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, access_gaps, external_writes,
             structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
             vulnerable_dependencies)
 

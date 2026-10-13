@@ -9,26 +9,35 @@ STARLETTE = re.compile(r'''\bRoute\(\s*(?P<quote>['"])(?P<route>/[^'"]*)(?P=quot
 
 
 def detect(context):
+    found = _decorated(context)
+    if 'starlette' in context.text: found += _starlette(context)
+    if context.rel.endswith('urls.py'): found += _django(context)
+    return found
+
+
+def _methods(rest, default):
+    declared = METHODS.search(rest or '')
+    return [v.strip(' \'"').upper() for v in declared.group(1).split(',') if v.strip()] if declared else default
+
+
+def _decorated(context):
     found = []
     for match in DECORATOR.finditer(context.text):
         line = context.line_of(match.start())
         verb = match.group('method').upper()
-        declared = METHODS.search(match.group('rest') or '')
-        methods = [v.strip(' \'"').upper() for v in declared.group(1).split(',') if v.strip()] if declared else ([verb] if verb != 'ROUTE' else ['GET'])
+        methods = _methods(match.group('rest'), [verb] if verb != 'ROUTE' else ['GET'])
         framework = 'fastapi' if 'router' in match.group('object').lower() or 'websocket' in match.group('method') else 'flask_or_fastapi'
-        for method in methods:
-            found.append({'surface': 'http', 'route': match.group('route'), 'http_method': method,
-                          'handler': context.symbol_after(line), 'framework': framework, 'line': line})
-    if 'starlette' in context.text:
-        for match in STARLETTE.finditer(context.text):
-            line = context.line_of(match.start())
-            declared = METHODS.search(match.group('rest') or '')
-            methods = [v.strip(' \'"').upper() for v in declared.group(1).split(',') if v.strip()] if declared else ['GET']
-            found += [{'surface': 'http', 'route': match.group('route'), 'http_method': method, 'handler': match.group('handler'),
-                       'framework': 'starlette', 'line': line} for method in methods]
-    if context.rel.endswith('urls.py'):
-        for match in DJANGO.finditer(context.text):
-            line = context.line_of(match.start())
-            found.append({'surface': 'http', 'route': match.group('route'), 'http_method': 'ANY',
-                          'handler': match.group('handler'), 'framework': 'django', 'line': line})
+        found += [{'surface': 'http', 'route': match.group('route'), 'http_method': method,
+                   'handler': context.symbol_after(line), 'framework': framework, 'line': line} for method in methods]
     return found
+
+
+def _starlette(context):
+    return [{'surface': 'http', 'route': match.group('route'), 'http_method': method, 'handler': match.group('handler'),
+             'framework': 'starlette', 'line': context.line_of(match.start())}
+            for match in STARLETTE.finditer(context.text) for method in _methods(match.group('rest'), ['GET'])]
+
+
+def _django(context):
+    return [{'surface': 'http', 'route': match.group('route'), 'http_method': 'ANY', 'handler': match.group('handler'),
+             'framework': 'django', 'line': context.line_of(match.start())} for match in DJANGO.finditer(context.text)]

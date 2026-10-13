@@ -17,12 +17,16 @@ from .engagement import rules_for
 
 # render key (or probe query) -> (engagement rule, invariant, what "after" looks like)
 FAMILIES = {
+    'copied_function': ('consolidate_duplicates', 'One behaviour has one definition that every caller uses.',
+                        'the copies are one function every former copy calls; the audit finds no such cluster.'),
     'structural_duplicate': ('consolidate_duplicates', 'One behaviour has one definition that every caller uses.',
                              'the shared shape lives in one function every former copy calls; the audit finds no such cluster.'),
     'duplicated_rule': ('consolidate_duplicates', 'A rule value is defined once and imported where it is used.',
                         'one module defines the value and every other place imports it.'),
     'hotspot': ('reduce_hotspots', 'No function carries more branches than its declared threshold.',
                 'the function is split so that no part exceeds the threshold; its behaviour lock still passes.'),
+    'large_module': ('reduce_hotspots', 'No module is past the line limit of one responsibility.',
+                     'the module is split along its responsibilities, each within the limit; its behaviour lock still passes.'),
     'load_blocker': ('bound_load_paths', 'Every user-facing entry point bounds its cost under load.',
                      'the entry point bounds the read, protects the call or caches it; the load model no longer flags it.'),
     'redundant_work': ('bound_load_paths', 'A flow does not repeat work its result does not need.',

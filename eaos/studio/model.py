@@ -66,7 +66,7 @@ PATTERNS = {
     'hidden_coupling': ('structure', 'low'), 'external_write': ('structure', 'medium'),
     'policy_violation': ('structure', 'medium'),
     'load_blocker': ('performance', 'medium'), 'redundant_work': ('performance', 'medium'),
-    'hotspot': ('maintainability', 'medium'), 'trace_gap': ('maintainability', 'low'),
+    'hotspot': ('maintainability', 'medium'), 'split_module': ('maintainability', 'medium'), 'trace_gap': ('maintainability', 'low'),
     'untested_path': ('maintainability', 'medium'), 'generic': ('maintainability', 'medium'),
     'design_review': ('ux', 'medium'), 'investigation': ('maintainability', 'low'),
 }

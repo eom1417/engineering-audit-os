@@ -34,14 +34,16 @@ BODY = ('    total = sum(x.amount for x in items)\n'
 
 
 class StructuralDuplicateThresholdTests(unittest.TestCase):
-    """Six or more occurrences make the cluster an engineering claim; fewer stay a fact."""
+    """A function copied whole is a claim from two copies; a small shared shape needs six (common noise below that)."""
 
-    def test_six_copies_become_a_claim_and_five_are_still_too_few(self):
-        for copies, expected in ((5, 0), (6, 1)):
-            with self.subTest(copies=copies), tempfile.TemporaryDirectory() as tmp:
-                _, out = _setup(tmp, copies, BODY)
+    def test_a_function_copied_whole_is_a_claim_from_two_copies_and_a_small_shape_needs_six(self):
+        small = '    total = sum(x.amount for x in items)\n    return total\n'
+        for body, copies, statement, expected in ((BODY, 2, 'copied whole', 1), (small, 5, 'same structure', 0),
+                                                  (small, 6, 'same structure', 1)):
+            with self.subTest(copies=copies, statement=statement), tempfile.TemporaryDirectory() as tmp:
+                _, out = _setup(tmp, copies, body)
                 claims = json.loads((out / 'dossier.json').read_text())['claims']
-                dups = [c for c in claims if 'same structure' in c.get('statement', '')]
+                dups = [c for c in claims if statement in c.get('statement', '')]
                 self.assertEqual(len(dups), expected)
                 self.assertTrue(all(c['confidence'] == 'CONFIRMED' for c in dups))
 

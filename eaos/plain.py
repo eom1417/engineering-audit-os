@@ -28,6 +28,8 @@ PROBLEMS = (
                          'en': ('Hidden links', 'Files that always change together, with nothing in the code that shows why.')}),
     ('hotspot', {'ar': ('أجزاء معقدة جدًا', 'دوال كبيرة يمر بها كل تعديل، فيصعب فهمها ويسهل كسرها.'),
                  'en': ('Very complex parts', 'Large functions every change goes through: hard to understand, easy to break.')}),
+    ('split_module', {'ar': ('ملفات ضخمة', 'ملفات تحمل أكثر من مسؤولية: يصعب فهمها، وتكبر مع كل ميزة.'),
+                      'en': ('Oversized files', 'Files that hold several responsibilities: hard to read, and they grow with every feature.')}),
     ('canonicalize', {'ar': ('كود منسوخ', 'المنطق نفسه منسوخ في أكثر من ملف.'),
                       'en': ('Copied code', 'The same logic is copied into several files.')}),
     ('remove_dead', {'ar': ('كود ميت', 'كود لا يستخدمه أحد: يثقل القراءة والصيانة.'),

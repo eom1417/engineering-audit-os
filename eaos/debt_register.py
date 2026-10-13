@@ -30,7 +30,8 @@ KEYS = {
     'dead_code': ('dead_code', 'low'), 'dead_code_review': ('dead_code', 'low'), 'leftover': ('dead_code', 'low'),
     'load_blocker': ('reliability', 'medium'), 'trace_gap': ('reliability', 'low'), 'mutable_global': ('reliability', 'medium'),
     'cycle': ('architecture', 'medium'), 'cochange': ('architecture', 'low'), 'hotspot': ('maintainability', 'medium'),
-    'structural_duplicate': ('maintainability', 'low'), 'sequence_duplicate': ('maintainability', 'low'),
+    'large_module': ('maintainability', 'medium'),
+    'structural_duplicate': ('maintainability', 'low'), 'copied_function': ('maintainability', 'medium'), 'sequence_duplicate': ('maintainability', 'low'),
     'duplicated_rule': ('maintainability', 'medium'), 'redundant_work': ('reliability', 'medium'),
     'policy': ('architecture', 'medium'), 'untested': ('reliability', 'medium'),
 }

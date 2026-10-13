@@ -53,20 +53,33 @@ def _structure(out, ran):
     hot = [{k: h.get(k) for k in ('path', 'complexity', 'commits', 'rloc')} for h in (digest.get('hotspots') or [])[:LIMIT['rows']]]
     clusters = [{'id': c.get('id'), 'files': c.get('files'), 'members': (c.get('members') or [])[:LIMIT['members']],
                  'most_depended_on': c.get('most_depended_on')} for c in (digest.get('clusters') or [])[:LIMIT['rows']]]
-    row = {'source': 'architecture/map.json, facts/graph.json, facts/policy.json', 'city_hotspots': hot, 'clusters': clusters,
-           'modularity': digest.get('modularity'), 'cycles': graph.get('cycles'),
+    row = {'source': 'architecture/map.json, facts/graph.json, facts/policy.json, facts/metrics.json', 'city_hotspots': hot,
+           'clusters': clusters, 'large_modules': _large_modules(out), 'modularity': digest.get('modularity'), 'cycles': graph.get('cycles'),
            'policy_violations': policy.get('violations') if policy.get('declared') else None,
            'map': {k: (arch.get(k) or {}).get('status') for k in ('city', 'clusters')} if arch else None}
-    row['rules'] = _structure_verdict(graph.get('cycles'), row['policy_violations'], arch)
+    row['rules'] = _structure_verdict(graph.get('cycles'), row['policy_violations'], arch, row['large_modules'])
     return row
 
 
-def _structure_verdict(cycles, violations, arch):
+def _large_modules(out):
+    """The production modules past the code laws' line limit, largest first: each holds more than one responsibility."""
+    from .code_laws import MAX_LINES
+    from .system_map import is_test
+    metrics = (_load(out, 'facts/metrics.json', {}) or {}).get('facts') or []
+    rows = sorted(({'path': f['location']['path'], 'lines': f['value'].get('lines'), 'definitions': f['value'].get('symbols')}
+                   for f in metrics if f.get('kind') == 'metric' and f['value'].get('scope') == 'file'
+                   and (f['value'].get('lines') or 0) > MAX_LINES and not is_test(f['location']['path'])), key=lambda r: -r['lines'])
+    return {'limit': MAX_LINES, 'count': len(rows), 'largest': rows[:LIMIT['rows']]}
+
+
+def _structure_verdict(cycles, violations, arch, large=None):
     if cycles is None and not arch:
         return _verdict('unmeasured', 'neither the dependency graph nor the architecture map was drawn in this check')
-    if cycles or violations:
-        return _verdict('improve', f"{cycles or 0} import cycle(s) and {violations or 0} breach(es) of the declared layering")
-    return _verdict('keep', 'no import cycle and no breach of a declared layering')
+    oversized = (large or {}).get('count') or 0
+    if cycles or violations or oversized:
+        return _verdict('improve', f"{cycles or 0} import cycle(s), {violations or 0} breach(es) of the declared layering and "
+                                   f"{oversized} module(s) past {(large or {}).get('limit')} lines")
+    return _verdict('keep', 'no import cycle, no breach of a declared layering and no module past the line limit')
 
 
 def _sustainability(out):

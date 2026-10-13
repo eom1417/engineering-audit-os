@@ -165,7 +165,7 @@ def build_tasks(target, out, dossier, sets):
 
 
 # Kinds of card whose findings in one file are fixed by one change there: one card per (kind, file).
-GROUPED = {'hotspot', 'dead_code', 'remove_dead', 'duplicated_rule'}
+GROUPED = {'hotspot', 'split_module', 'dead_code', 'remove_dead', 'duplicated_rule', 'canonicalize'}
 
 
 def grouped(tasks):

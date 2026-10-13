@@ -116,7 +116,7 @@ def linking_import(name, sites, sets):
 # refuting a claim because the evidence was not loaded is the worst failure this tool can make.
 QUERY_REQUIRES = {
     'cycle_present': 'graph', 'flow_has_unresolved_steps': 'flows', 'no_code_dependency': 'graph',
-    'metric_threshold': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
+    'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
     'engine_cluster_present': 'external', 'load_blocker_present': 'load_model', 'access_gap_present': 'domain',
@@ -208,6 +208,15 @@ def _metric(specification, sets):
                     f"{branches} branches, now below the threshold of {specification['max_branches']}")
 
 
+def _module_size(specification, sets):
+    rows = [fact for fact in sets.get('metrics', {}).get('facts', [])
+            if fact['location']['path'] == specification['path'] and fact['value'].get('scope') == 'file']
+    if not rows: return 'INCONCLUSIVE', 'the module is no longer present under that name'
+    lines = rows[0]['value']['lines']
+    return _verdict(lines > specification['max_lines'], f"{lines} lines, limit {specification['max_lines']}",
+                    f"{lines} lines, now within the limit of {specification['max_lines']}")
+
+
 def _mutable(specification, sets):
     rows = [fact for fact in sets.get('domain', {}).get('facts', [])
             if fact['kind'] == 'mutable_global' and fact['location']['path'] == specification['path']
@@ -280,7 +289,7 @@ def _no_dependency(specification, sets):
 QUERIES = {
     'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved, 'load_blocker_present': _load_blocker,
     'vulnerable_dependency_present': _vulnerable, 'broken_code_present': _broken, 'dead_code_present': _dead,
-    'engine_cluster_present': _engine_cluster, 'metric_threshold': _metric, 'mutable_global_present': _mutable,
+    'engine_cluster_present': _engine_cluster, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
     'access_gap_present': _access_gap, 'external_write_present': _external_write, 'policy_violation_present': _policy,
     'duplicate_cluster_present': _duplicate, 'sequence_cluster_present': _sequence, 'redundancy_present': _redundancy,
     'no_code_dependency': _no_dependency,
