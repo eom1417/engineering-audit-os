@@ -265,7 +265,6 @@ def _lighthouse_result(data, url, kept):
 
 
 STYLE = re.compile(r'<style[^>]*>(.*?)</style>', re.S | re.I)
-SPACING = re.compile(r'(?:^|[;{\s])(?:margin|padding|gap|row-gap|column-gap)(?:-[a-z-]+)?\s*:\s*([^;}!]+)', re.I)
 
 
 
