@@ -95,8 +95,10 @@ class PlatformTests(unittest.TestCase):
 
 class PortabilityTests(unittest.TestCase):
     def test_one_version_everywhere_and_no_code_points_at_the_machine_eaos_was_built_on(self):
-        tracked = subprocess.run(['git', 'ls-files', 'eaos', 'tools', 'tests', 'install.sh'], cwd=ROOT,
-                                 capture_output=True, text=True, check=True).stdout.split()
+        listed = subprocess.run(['git', 'ls-files', 'eaos', 'tools', 'tests', 'install.sh'], cwd=ROOT, capture_output=True, text=True)
+        # Outside a git checkout (the check's isolated copy has no .git) the files on disk are the ones to read.
+        tracked = listed.stdout.split() if listed.returncode == 0 else [
+            p.relative_to(ROOT).as_posix() for folder in ('eaos', 'tools', 'tests') for p in (ROOT / folder).rglob('*')] + ['install.sh']
         found = [name for name in tracked if name.endswith(('.py', '.sh')) and (ROOT / name).is_file()
                  and '/workspace/' in (ROOT / name).read_text(encoding='utf-8', errors='replace')
                  and name != 'tests/test_platforms.py']

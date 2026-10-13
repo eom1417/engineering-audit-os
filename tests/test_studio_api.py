@@ -362,6 +362,10 @@ class LiveServer(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.report = report_with_data(self.tmp.name)
+        # The feed also tails the tools' install (eaos/api/events.py): this test's own folder, not the computer's.
+        patcher = mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': str(Path(self.tmp.name) / 'tools')})
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.app = server.create_app(self.report, name='shop')
         self.ctx = self.app.state.ctx
         sock = server.bind(0)
@@ -479,7 +483,8 @@ class Commands(unittest.TestCase):
         self.stop_later(saved['pid'])
         self.assertEqual(done.returncode, 0, done.stderr)
         address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
-        self.assertEqual(address, f"https://shop--{saved['port']}.dev.remote.e-m.sa/", 'the Remote address carries no token')
+        # The page it opens depends on this computer (the tools page where they are not installed); the address does not.
+        self.assertEqual(address.split('#', 1)[0], f"https://shop--{saved['port']}.dev.remote.e-m.sa/", 'the Remote address carries no token')
         host = {'Host': f"shop--{saved['port']}.dev.remote.e-m.sa"}
         status, page = _fetch(f"http://127.0.0.1:{saved['port']}/", host)
         self.assertEqual(status, 200, 'it answers to its Remote name')
