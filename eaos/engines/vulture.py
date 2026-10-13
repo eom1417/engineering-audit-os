@@ -97,30 +97,37 @@ def registered(definition):
     return False
 
 
+def _stdlib_tree(module):
+    """The parsed source of a standard-library module, read and never imported; None when it has none to read."""
+    try:
+        spec = importlib.util.find_spec(module)
+        return ast.parse(Path(spec.origin).read_text(encoding='utf-8')) if spec and spec.origin and spec.origin.endswith('.py') else None
+    except (ImportError, ValueError, OSError, SyntaxError):
+        return None
+
+
+def _base_names(module, base, imported, seen):
+    """The names a base of a class in `module` defines, when the base is defined there or imported from the stdlib."""
+    base_name = _dotted(base)
+    if not base_name: return set()
+    origin = imported.get(base_name.split('.')[0])
+    if origin: return _stdlib_class_names(*_resolve(origin, base_name), seen)
+    return _stdlib_class_names(module, base_name, seen) if '.' not in base_name else set()
+
+
 def _stdlib_class_names(module, name, seen=None):
     """Every name a standard-library class defines, read from its source (never imported), following bases
     defined in the same module or imported into it from another standard-library module."""
     seen = set() if seen is None else seen
     if (module, name) in seen or module.split('.')[0] not in sys.stdlib_module_names: return set()
     seen.add((module, name))
-    try:
-        spec = importlib.util.find_spec(module)
-        tree = ast.parse(Path(spec.origin).read_text(encoding='utf-8')) if spec and spec.origin and spec.origin.endswith('.py') else None
-    except (ImportError, ValueError, OSError, SyntaxError):
-        return set()
-    if tree is None: return set()
+    tree = _stdlib_tree(module)
+    cls = next((node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == name), None) if tree else None
+    if cls is None: return set()
     imported = _imports(tree)
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == name:
-            names = {item.name for item in node.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))}
-            for base in node.bases:
-                base_name = _dotted(base)
-                if not base_name: continue
-                origin = imported.get(base_name.split('.')[0])
-                if origin: names |= _stdlib_class_names(*_resolve(origin, base_name), seen)
-                elif '.' not in base_name: names |= _stdlib_class_names(module, base_name, seen)
-            return names
-    return set()
+    names = {item.name for item in cls.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    for base in cls.bases: names |= _base_names(module, base, imported, seen)
+    return names
 
 
 def _imports(tree):
@@ -151,29 +158,32 @@ def hooks(definition, cls, imported):
     return False
 
 
+def _tree(target, path, cache):
+    """A file of the target parsed once; None when it cannot be read or parsed."""
+    if path not in cache:
+        try: cache[path] = ast.parse((Path(target) / path).read_text(encoding='utf-8'))
+        except (OSError, UnicodeDecodeError, SyntaxError, ValueError): cache[path] = None
+    return cache[path]
+
+
+def _spans(node, row):
+    """Whether `node` is the function the candidate names, its line between the first decorator and the `def`."""
+    return isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == row['name'] \
+        and min([node.lineno, *(d.lineno for d in node.decorator_list)]) <= row['line'] <= node.lineno
+
+
 def called_by_framework(target, row, cache):
     """Whether the definition a candidate names is registered by a decorator or overrides a standard-library hook,
     read from its source. A file that cannot be read or parsed answers False: the candidate is reported."""
     if row['type'] not in ('function', 'method') or not row['name']: return False
-    if row['path'] not in cache:
-        try: cache[row['path']] = ast.parse((Path(target) / row['path']).read_text(encoding='utf-8'))
-        except (OSError, UnicodeDecodeError, SyntaxError, ValueError): cache[row['path']] = None
-    tree = cache[row['path']]
+    tree = _tree(target, row['path'], cache)
     if tree is None: return False
     imported = _imports(tree)
     for cls in [None, *(node for node in ast.walk(tree) if isinstance(node, ast.ClassDef))]:
-        body = tree.body if cls is None else cls.body
-        for node in body:
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or node.name != row['name']: continue
-            first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
-            if not first <= row['line'] <= node.lineno: continue
-            return registered(node) or (cls is not None and hooks(node, cls, imported))
+        node = next((node for node in (tree.body if cls is None else cls.body) if _spans(node, row)), None)
+        if node: return registered(node) or (cls is not None and hooks(node, cls, imported))
     # A function nested in another function (`@server.prompt` inside a `build_server()`) is found by line.
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == row['name'] \
-                and min([node.lineno, *(d.lineno for d in node.decorator_list)]) <= row['line'] <= node.lineno:
-            return registered(node)
-    return False
+    return next((registered(node) for node in ast.walk(tree) if _spans(node, row)), False)
 
 
 def normalise(rows, found, target=None):
