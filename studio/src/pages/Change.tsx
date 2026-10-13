@@ -4,7 +4,7 @@ import { Panel, RowLink, Section } from '../components/Panel'
 import { Journey, PlanStrip } from '../components/Story'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
-import { Id, N, Txt } from '../i18n/text'
+import { Id, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
 import css from './Pages.module.css'
@@ -73,8 +73,7 @@ function ChangeBody({ data }: { data: StudioData }) {
                 <li key={step.id} className={[css.step, cmd.stepRow].join(' ')}>
                   <GroupBox ids={stepCards(data, step.id)} group={{ by: 'step', value: step.id, label: step.title ?? step.id }} label={cw('selectStep', { id: step.id })} />
                   <Id value={step.id} className={css.stepId} />
-                  <span className={css.stepTitle}><Txt block>{step.title ?? step.gate}</Txt></span>
-                  <span className={css.muted}><N value={step.tasks.length} /></span>
+                  <span className={css.stepTitle}><Txt block>{step.title ?? step.gate}</Txt><span className={css.muted}>{cw2('tasksN', { n: step.tasks.length })}</span></span>
                 </li>
               ))}
             </ol>
