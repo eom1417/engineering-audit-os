@@ -48,6 +48,31 @@ def version():
         return None
 
 
+def _read(insights, found):
+    """(findings, unmapped) from enola's insights."""
+    findings, unmapped = [], {}
+    for insight in insights:
+        kind = KIND_BY_SOURCE.get(insight['source'])
+        if kind is None:
+            unmapped[insight['source']] = unmapped.get(insight['source'], 0) + 1
+            continue
+        evidence = (insight.get('evidence') or [{}])[0]
+        key = evidence.get('symbol') or evidence.get('fact') or evidence.get('file')
+        if not key:
+            # A roll-up line ("127 more…") names nothing to act on; it is a summary, not a finding.
+            unmapped[insight['source'] + ':summary'] = unmapped.get(insight['source'] + ':summary', 0) + 1
+            continue
+        complexity = COMPLEXITY.search(evidence.get('detail') or '')
+        findings.append(finding(
+            NAME, found, insight['source'], kind,
+            subject('symbol' if evidence.get('symbol') else 'module', key, evidence.get('file'), evidence.get('line')),
+            insight['title'],
+            # The only number enola states structurally is in prose; parsed here, pinned by version.
+            measurements=[measurement('cyclomatic_complexity', int(complexity.group(1)))] if complexity else (),
+            engine_confidence=insight.get('confidence'), raw_ref='enola/insights.json'))
+    return findings, unmapped
+
+
 def analyze(target, workdir, exclude=(), formats=None):
     found = version()
     if found is None:
@@ -67,27 +92,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     kept.mkdir(parents=True, exist_ok=True)
     for name in ('insights.json', 'receipt.json'):
         (kept / name).write_text((produced / name).read_text(encoding='utf-8'), encoding='utf-8')
-    findings, unmapped = [], {}
-    for insight in insights:
-        kind = KIND_BY_SOURCE.get(insight['source'])
-        if kind is None:
-            unmapped[insight['source']] = unmapped.get(insight['source'], 0) + 1
-            continue
-        evidence = (insight.get('evidence') or [{}])[0]
-        key = evidence.get('symbol') or evidence.get('fact') or evidence.get('file')
-        if not key:
-            # A roll-up line ("127 more…") names nothing to act on; it is a summary, not a finding.
-            unmapped[insight['source'] + ':summary'] = unmapped.get(insight['source'] + ':summary', 0) + 1
-            continue
-        detail = evidence.get('detail') or ''
-        complexity = COMPLEXITY.search(detail)
-        findings.append(finding(
-            NAME, found, insight['source'], kind,
-            subject('symbol' if evidence.get('symbol') else 'module', key, evidence.get('file'), evidence.get('line')),
-            insight['title'],
-            # The only number enola states structurally is in prose; parsed here, pinned by version.
-            measurements=[measurement('cyclomatic_complexity', int(complexity.group(1)))] if complexity else (),
-            engine_confidence=insight.get('confidence'), raw_ref='enola/insights.json'))
+    findings, unmapped = _read(insights, found)
     evaluated = {KIND_BY_SOURCE[name]: {'status': 'observed', 'granularity': GRANULARITY.get(KIND_BY_SOURCE[name], SYMBOL)}
                  for name in receipt.get('explainers', []) if name in KIND_BY_SOURCE}
     coverage = {'status': 'observed', 'extractors': receipt.get('extractors', []),
