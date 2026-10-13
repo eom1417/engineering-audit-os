@@ -7,7 +7,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../../components/Button'
-import { Go } from '../../../components/Go'
+import { Go, IdLinks } from '../../../components/Go'
 import { FoldList, Panel, StateMessage } from '../../../components/Panel'
 import type { Hidden, HiddenGroupId, HiddenItem } from '../../../data/journeys'
 import type { StudioData } from '../../../data/types'
@@ -79,7 +79,7 @@ function AreaPanel({ h, id }: { h: Hidden; id: string }) {
       <div className={jcss.kicker}>{w('seenSide')}</div>
       <h2 className={jcss.panelTitle}>{a.name === '/' ? w('startArea') : a.name === 'public' ? w('public') : <Id value={a.name} />}</h2>
       <p className={jcss.note}>{w('areaSub', { s: a.screens.length, d: a.dialog_count })}</p>
-      <ul className={jcss.list}>{a.screens.map((s) => <li key={s}><Go to="/system/journeys" search={{ focus: s }} className={jcss.inline}><Id value={s} /></Go></li>)}</ul>
+      <ul className={jcss.list}><IdLinks ids={a.screens} to="/system/journeys" param="focus" className={jcss.inline} /></ul>
       {a.dialogs.length > 0 && <p className={jcss.muted}>{a.dialogs.join(' · ')}</p>}
       <div className={jcss.block}>
         <div className={jcss.blockTitle}>{w('linksFromArea')}</div>

@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
-import { Go } from '../../components/Go'
+import { Go, IdLinks } from '../../components/Go'
 import { Icon, type IconName } from '../../components/Icon'
 import { STATE_WORDS } from '../../data/actions/contract'
 import { duration, labelOf, share, type Batch, type Item, type Screens } from '../../data/actions/derive'
@@ -281,7 +281,7 @@ function ClosedCards({ ids, w }: { ids: string[]; w: CmdWords }) {
     <section className={css.closed} aria-label={w('cardsClosed', { n: ids.length })}>
       <h3 className={css.subTitle}>{w('cardsClosed', { n: ids.length })}</h3>
       <ul className={css.chips}>
-        {ids.map((id) => <li key={id}><Go to="/problems" search={{ card: id }} className={css.cardLink}><Id value={id} /></Go></li>)}
+        <IdLinks ids={ids} to="/problems" param="card" className={css.cardLink} />
       </ul>
     </section>
   )
