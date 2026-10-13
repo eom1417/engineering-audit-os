@@ -7,6 +7,13 @@ export function pressKey(press: () => void) {
   return (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); press() } }
 }
 
+/** What a drawn node carries when the map is interactive: a button in the focus order, its label, Enter and Space press it. */
+export function pressable(interactive: boolean, id: string, label: string, pressed: boolean | undefined, onFocus?: (id: string) => void) {
+  if (!interactive) return {}
+  const press = () => onFocus?.(id)
+  return { role: 'button', tabIndex: 0, 'aria-label': label, ...(pressed === undefined ? {} : { 'aria-pressed': pressed }), onClick: press, onKeyDown: pressKey(press) }
+}
+
 /** The pixel size of the drawing's box, followed as it changes. */
 export function useBox(): [(el: HTMLDivElement | null) => void, { w: number; h: number }] {
   const [size, setSize] = useState({ w: 0, h: 0 })

@@ -2,11 +2,12 @@
 // the other (hatched, dashed), and a curve from an area to each group it sets in motion, as thick as the items. The
 // layout is fixed by the data's order (areas by name, groups in the contract's order), so it never moves between
 // scans. The SVG is direction neutral; the page mirrors its chrome, never the geometry.
-import { useId, type KeyboardEvent, type Ref } from 'react'
+import { useId, type Ref } from 'react'
 import type { Hidden, HiddenGroupId } from '../../../data/journeys'
 import { usePrefs } from '../../../i18n/prefs'
 import type { ZoomState } from '../../../map/useZoom'
-import { fit } from '../../../map/draw'
+import { fit, pressable } from '../../../map/draw'
+import { byId } from '../../change/model'
 import { useJourneyWords } from '../words'
 import css from './Hidden.module.css'
 
@@ -48,29 +49,33 @@ export interface HiddenMapProps {
   className?: string
 }
 
+/** What a box of the map needs from the map around it. */
+interface BoxCtx {
+  w: ReturnType<typeof useJourneyWords>
+  lang: string
+  dir: 'rtl' | 'ltr'
+  focus?: string
+  lit: Set<string> | null
+  props: (id: string, name: string) => ReturnType<typeof pressable>
+}
+
+/** Where a box's text starts, 12px in from the side its language reads from; `far`: from the other side. SVG anchors
+ * follow the text's own direction: right-to-left text starts at its right end. */
+const inset = (p: Placed, lang: string, far = false) => ((lang === 'ar') !== far ? p.x + p.w - 12 : p.x + 12)
+
 export function HiddenMap({ hidden: h, variant, focus, onlyNoScreen, showHidden, onFocus, transform, svgRef, dragging, label, className }: HiddenMapProps) {
   const w = useJourneyWords()
   const { lang } = usePrefs()
   const uid = useId().replace(/:/g, '')
   const place = layout(h, showHidden)
-  const at = new Map([...place.areas, ...place.groups].map((p) => [p.id, p]))
   const interactive = variant === 'full' && Boolean(onFocus)
-  const items = new Map(h.items.map((i) => [i.id, i]))
-  const links = showHidden && !onlyNoScreen ? h.links : []
   const lit = focus ? new Set([focus, ...h.links.filter((l) => l.from === focus || l.to === focus).flatMap((l) => [l.from, l.to])]) : null
   const tf = transform ? { transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})` } : undefined
-  const press = (id: string) => onFocus?.(id)
-  const key = (e: KeyboardEvent, id: string) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); press(id) } }
-  const button = (id: string, name: string, pressed: boolean) => interactive
-    ? { role: 'button', tabIndex: 0, 'aria-label': name, 'aria-pressed': pressed, onClick: () => press(id), onKeyDown: (e: KeyboardEvent) => key(e, id) }
-    : {}
-  const areaName = (name: string) => name === '/' ? w('startArea') : name === 'public' ? w('public') : name
   const dir = lang === 'ar' ? 'rtl' : 'ltr'
-  const cx = (p: Placed) => (lang === 'ar' ? p.x + p.w - 12 : p.x + 12)
-  // SVG anchors follow the text's own direction: right-to-left text starts at its right end
-  const anchor = 'start'
-  const identAnchor = lang === 'ar' ? 'end' : 'start'
-  const farAnchor = 'end'
+  const c: BoxCtx = { w, lang, dir, focus, lit, props: (id, name) => pressable(interactive, id, name, focus === id, onFocus) }
+  const seen = byId(h.seen)
+  const groups = byId(h.groups)
+  const items = byId(h.items)
   return (
     <svg ref={svgRef} viewBox={`-16 -44 ${place.width + 32} ${place.height + 60}`} preserveAspectRatio="xMidYMid meet" direction="ltr"
       className={[css.map, css[variant], lit && css.dim, dragging && css.dragging, className].filter(Boolean).join(' ')}
@@ -82,8 +87,19 @@ export function HiddenMap({ hidden: h, variant, focus, onlyNoScreen, showHidden,
       </defs>
       <rect className={css.water} x={-4000} y={-4000} width={place.width + 8000} height={place.height + 8000} />
       <g style={tf} className={css.world}>
-        <text x={lang === 'ar' ? AREA_W : 0} y={-20} className={css.side} direction={dir} textAnchor={anchor}>{w('seenSide')}</text>
-        {showHidden && <text x={lang === 'ar' ? X_GROUP + GROUP_W : X_GROUP} y={-20} className={css.side} direction={dir} textAnchor={anchor}>{w('unseenSide')}</text>}
+        <text x={lang === 'ar' ? AREA_W : 0} y={-20} className={css.side} direction={dir} textAnchor="start">{w('seenSide')}</text>
+        {showHidden && <text x={lang === 'ar' ? X_GROUP + GROUP_W : X_GROUP} y={-20} className={css.side} direction={dir} textAnchor="start">{w('unseenSide')}</text>}
+        <HiddenLinks links={showHidden && !onlyNoScreen ? h.links : []} at={byId([...place.areas, ...place.groups])} lit={lit} focus={focus} />
+        {place.areas.map((p) => <AreaBox key={p.id} p={p} a={seen.get(p.id)!} c={c} />)}
+        {place.groups.map((p) => <GroupBox key={p.id} p={p} g={groups.get(p.id)!} items={items} c={c} uid={uid} onlyNoScreen={onlyNoScreen} />)}
+      </g>
+    </svg>
+  )
+}
+
+/** A curve from an area to each group it sets in motion, as thick as the items. */
+function HiddenLinks({ links, at, lit, focus }: { links: Hidden['links']; at: Map<string, Placed>; lit: Set<string> | null; focus?: string }) {
+  return (
         <g className={css.links}>
           {links.map((l) => {
             const a = at.get(l.from)
@@ -101,40 +117,43 @@ export function HiddenMap({ hidden: h, variant, focus, onlyNoScreen, showHidden,
             )
           })}
         </g>
-        {place.areas.map((p) => {
-          const a = h.seen.find((x) => x.id === p.id)!
-          const off = lit && !lit.has(p.id)
-          return (
-            <g key={p.id} className={[css.area, focus === p.id && css.sel, off && css.faded].filter(Boolean).join(' ')}
-              {...button(p.id, `${areaName(a.name)}: ${w('areaSub', { s: a.screens.length, d: a.dialog_count })}`, focus === p.id)}>
-              <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.box} />
-              <text x={cx(p)} y={p.y + 25} className={a.name === '/' || a.name === 'public' ? css.name : css.ident} direction={a.name === '/' || a.name === 'public' ? dir : 'ltr'} textAnchor={a.name === '/' || a.name === 'public' ? anchor : identAnchor}>{fit(areaName(a.name), 18)}</text>
-              <text x={lang === 'ar' ? p.x + 12 : p.x + p.w - 12} y={p.y + 25} className={css.sub} direction={dir} textAnchor={farAnchor}>{w('areaSub', { s: a.screens.length, d: a.dialog_count })}</text>
-            </g>
-          )
-        })}
-        {place.groups.map((p) => {
-          const g = h.groups.find((x) => x.id === p.id)!
-          const n = onlyNoScreen ? g.no_screen : g.count.value ?? 0
-          const top = g.items.map((id) => items.get(id)).filter((i) => i && (!onlyNoScreen || i.no_screen)).slice(0, 1)
-          const off = lit && !lit.has(p.id)
-          return (
-            <g key={p.id} className={[css.group, n === 0 && css.empty, focus === p.id && css.sel, off && css.faded].filter(Boolean).join(' ')}
-              {...button(p.id, `${w(`group_${g.id as HiddenGroupId}`)}: ${w('groupSub', { n })}`, focus === p.id)}>
-              <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.hatch} style={{ fill: `url(#h${uid})` }} />
-              <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.gbox} />
-              <text x={cx(p)} y={p.y + 22} className={css.name} direction={dir} textAnchor={anchor}>{w(`group_${g.id as HiddenGroupId}`)}</text>
-              <text x={lang === 'ar' ? p.x + 12 : p.x + p.w - 12} y={p.y + 22} className={css.count} textAnchor={lang === 'ar' ? 'start' : 'end'}>{n}</text>
-              {top.map((i, k) => (
-                <text key={i!.id} x={p.x + 12} y={p.y + 47 + k * 18} className={[css.item, i!.no_screen && css.itemAlone].filter(Boolean).join(' ')}>{fit(i!.name, 36)}</text>
-              ))}
-              {g.no_screen > 0 && !onlyNoScreen && (
-                <text x={cx(p)} y={p.y + p.h - 9} className={css.alone} direction={dir} textAnchor={anchor}>{`${w('noScreen')}: ${g.no_screen}`}</text>
-              )}
-            </g>
-          )
-        })}
-      </g>
-    </svg>
+  )
+}
+
+/** A screen area: its name (a word for the start and the public area, else its path) and its screens and dialogs. */
+function AreaBox({ p, a, c }: { p: Placed; a: Hidden['seen'][number]; c: BoxCtx }) {
+  const named = a.name === '/' || a.name === 'public'
+  const title = a.name === '/' ? c.w('startArea') : a.name === 'public' ? c.w('public') : a.name
+  const sub = c.w('areaSub', { s: a.screens.length, d: a.dialog_count })
+  return (
+    <g className={[css.area, c.focus === p.id && css.sel, c.lit && !c.lit.has(p.id) && css.faded].filter(Boolean).join(' ')} {...c.props(p.id, `${title}: ${sub}`)}>
+      <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.box} />
+      <text x={inset(p, c.lang)} y={p.y + 25} className={named ? css.name : css.ident} direction={named ? c.dir : 'ltr'}
+        textAnchor={named || c.lang !== 'ar' ? 'start' : 'end'}>{fit(title, 18)}</text>
+      <text x={inset(p, c.lang, true)} y={p.y + 25} className={css.sub} direction={c.dir} textAnchor="end">{sub}</text>
+    </g>
+  )
+}
+
+/** An unseen group, hatched: its name, its count, its first item, and how many items no screen sets in motion. */
+function GroupBox({ p, g, items, c, uid, onlyNoScreen }:
+  { p: Placed; g: Hidden['groups'][number]; items: Map<string, Hidden['items'][number]>; c: BoxCtx; uid: string; onlyNoScreen?: boolean }) {
+  const n = onlyNoScreen ? g.no_screen : g.count.value ?? 0
+  const top = g.items.map((id) => items.get(id)).filter((i) => i && (!onlyNoScreen || i.no_screen)).slice(0, 1)
+  const name = c.w(`group_${g.id as HiddenGroupId}`)
+  return (
+    <g className={[css.group, n === 0 && css.empty, c.focus === p.id && css.sel, c.lit && !c.lit.has(p.id) && css.faded].filter(Boolean).join(' ')}
+      {...c.props(p.id, `${name}: ${c.w('groupSub', { n })}`)}>
+      <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.hatch} style={{ fill: `url(#h${uid})` }} />
+      <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={8} className={css.gbox} />
+      <text x={inset(p, c.lang)} y={p.y + 22} className={css.name} direction={c.dir} textAnchor="start">{name}</text>
+      <text x={inset(p, c.lang, true)} y={p.y + 22} className={css.count} textAnchor={c.lang === 'ar' ? 'start' : 'end'}>{n}</text>
+      {top.map((i, k) => (
+        <text key={i!.id} x={p.x + 12} y={p.y + 47 + k * 18} className={[css.item, i!.no_screen && css.itemAlone].filter(Boolean).join(' ')}>{fit(i!.name, 36)}</text>
+      ))}
+      {g.no_screen > 0 && !onlyNoScreen && (
+        <text x={inset(p, c.lang)} y={p.y + p.h - 9} className={css.alone} direction={c.dir} textAnchor="start">{`${c.w('noScreen')}: ${g.no_screen}`}</text>
+      )}
+    </g>
   )
 }

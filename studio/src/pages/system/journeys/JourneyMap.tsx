@@ -6,7 +6,7 @@
 import { useId, type Ref } from 'react'
 import type { Journeys, Screen, ScreenFlag, Task } from '../../../data/journeys'
 import { usePrefs } from '../../../i18n/prefs'
-import { fit, pressKey } from '../../../map/draw'
+import { fit, pressable } from '../../../map/draw'
 import type { ZoomState } from '../../../map/useZoom'
 import { useJourneyWords } from '../words'
 import { areaScreens, captions, clusters, edgeKey, litSet, pathEdges, shownEdges, shownScreens, type JourneyMode } from './model'
@@ -46,16 +46,6 @@ const TOP = 56
 
 export function JourneyMap(props: JourneyMapProps) {
   return props.clustered ? <ClusterMap {...props} /> : <ScreenMap {...props} />
-}
-
-/** What a node carries when the map is interactive: a button in the focus order, its label, Enter and Space press it. */
-function pressable(interactive: boolean, id: string, label: string, pressed: boolean | undefined, onFocus?: (id: string) => void) {
-  if (!interactive) return {}
-  return {
-    role: 'button', tabIndex: 0, 'aria-label': label, ...(pressed === undefined ? {} : { 'aria-pressed': pressed }),
-    onClick: () => onFocus?.(id),
-    onKeyDown: pressKey(() => onFocus?.(id)),
-  }
 }
 
 function zoomStyle(transform?: ZoomState) {
