@@ -86,6 +86,21 @@ def answer(question, option, text, lang='ar', done=None):
     return ' '.join(parts)
 
 
+def _both(words):
+    """{'en', 'ar'} from a string (the same in both) or a dict with either, each language falling back to the other."""
+    if isinstance(words, str): words = {'en': words, 'ar': words}
+    if not isinstance(words, dict): return None
+    return {'en': words.get('en') or words.get('ar'), 'ar': words.get('ar') or words.get('en')}
+
+
+def _option(index, option):
+    """One option normalised: its id, its label in both languages, and the EAOS action it means; None when unreadable."""
+    if isinstance(option, str): option = {'id': f'o{index + 1}', 'label': option}
+    if not isinstance(option, dict): return None
+    return {'id': str(option.get('id') or f'o{index + 1}'), 'label': _both(option.get('label') or option.get('id')),
+            **({'action': option['action']} if option.get('action') in ACTS else {})}
+
+
 def question_in(text):
     """The question block at the end of the assistant's words, normalised; None when there is none."""
     found = QUESTION.findall(text or '')
@@ -93,18 +108,9 @@ def question_in(text):
     try: data = json.loads(found[-1])
     except ValueError: return None
     if not isinstance(data, dict): return None
-    words = data.get('text')
-    if isinstance(words, str): words = {'en': words, 'ar': words}
-    if not isinstance(words, dict) or not (words.get('en') or words.get('ar')): return None
-    words = {'en': words.get('en') or words.get('ar'), 'ar': words.get('ar') or words.get('en')}
-    options = []
-    for index, option in enumerate(data.get('options') or []):
-        if isinstance(option, str): option = {'id': f'o{index + 1}', 'label': {'en': option, 'ar': option}}
-        if not isinstance(option, dict): continue
-        label = option.get('label') or option.get('id')
-        if isinstance(label, str): label = {'en': label, 'ar': label}
-        options.append({'id': str(option.get('id') or f'o{index + 1}'), 'label': {'en': label.get('en') or label.get('ar'), 'ar': label.get('ar') or label.get('en')},
-                        **({'action': option['action']} if option.get('action') in ACTS else {})})
+    words = _both(data.get('text'))
+    if not words or not words['en']: return None
+    options = [row for index, option in enumerate(data.get('options') or []) if (row := _option(index, option))]
     recommendation = data.get('recommendation')
     if recommendation not in {o['id'] for o in options}: recommendation = None
     return {'text': words, 'options': options, 'recommendation': recommendation}
@@ -113,8 +119,7 @@ def question_in(text):
 def consent_question(payload):
     """run_setup's own question, when the assistant ended its turn on it without asking with a block."""
     ask = payload.get('ask_the_person') or payload.get('question') or ''
-    if isinstance(ask, dict): words = {'en': ask.get('en') or ask.get('ar'), 'ar': ask.get('ar') or ask.get('en')}
-    else: words = {'en': str(ask), 'ar': str(ask)}
+    words = _both(ask if isinstance(ask, dict) else str(ask))
     if not words['en']:
         words = {'en': 'May EAOS run your app in an isolated copy to prepare and check the fixes?',
                  'ar': 'تسمح لـ EAOS يشغّل تطبيقك في نسخة معزولة عشان يجهّز الإصلاحات ويفحصها؟'}
