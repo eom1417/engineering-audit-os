@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 from . import digest, make
 from .source import language_of
+from .yaml_lite import yaml_load
 
 
 KINDS = ('cache_policy', 'ci_step', 'connection_pool', 'data_model', 'deployment_target',
@@ -41,10 +42,7 @@ HOSTING_MANIFESTS = {'vercel.json': 'Vercel', 'netlify.toml': 'Netlify', 'fly.to
 
 def _dockerfile_ports(text):
     """EXPOSE instructions: deployment-target hints."""
-    ports = []
-    for match in re.finditer(r'^\s*EXPOSE\s+(\d+)(?:/(?:tcp|udp))?', text, re.MULTILINE):
-        ports.append(match.group(1))
-    return ports
+    return re.findall(r'^\s*EXPOSE\s+(\d+)(?:/(?:tcp|udp))?', text, re.MULTILINE)
 
 
 def _compose_services(text):
@@ -130,110 +128,6 @@ def _orm_models(text):
 
 def _migration_files(name):
     return 'migrate' in name or 'migration' in name or name.endswith('0001_initial.py')
-
-
-class UnsupportedYaml(ValueError):
-    """What this reader will not guess at. The caller records the file as unparsed."""
-
-
-def yaml_load(text):
-    """A minimal YAML reader for the simple structures we encounter. We never
-    rely on it for completeness; the parser raises on the rest and we leave it
-    as unparsed in the output."""
-    text = re.sub(r'#[^\n]*', '', text)
-    _refuse_unsupported(text)
-    return _yaml_reader(text)
-
-
-def _refuse_unsupported(text):
-    """Raise on the constructs this reader cannot represent faithfully.
-
-    Without this it returned a partial answer instead: `a: [unclosed` became the string
-    "[unclosed", and a document with a broken sequence lost its items silently. A parser that
-    guesses turns an unreadable file into fabricated facts, which is worse than no facts.
-    """
-    for number, line in enumerate(text.splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if line[:len(line) - len(line.lstrip())].count('\t'):
-            raise UnsupportedYaml(f'line {number}: tab indentation is not valid YAML')
-        for opener, closer in (('[', ']'), ('{', '}')):
-            if stripped.count(opener) != stripped.count(closer):
-                raise UnsupportedYaml(f'line {number}: unbalanced {opener}{closer} — flow style is '
-                                      f'only read when it closes on its own line')
-        if stripped.startswith(('&', '*', '<<', '!', '|', '>')) or stripped.endswith(('|', '>')):
-            raise UnsupportedYaml(f'line {number}: anchors, tags and block scalars are not read')
-
-
-def _yaml_reader(text, indent=0):
-    """Read a YAML mapping or sequence at the given indent level."""
-    out = {} if _yaml_indent_level(text, indent) in {'map', None} else []
-    lines = [line for line in text.splitlines()]
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.strip()
-        if not stripped or stripped.startswith('#'): i += 1; continue
-        current_indent = len(line) - len(line.lstrip())
-        if current_indent < indent: return out
-        if stripped.startswith('- '):
-            value = stripped[2:].strip()
-            if ':' in value and not value.startswith('"'):
-                key, val = value.split(':', 1)
-                item = {key.strip(): _yaml_scalar(val.strip())}
-                i += 1
-                while i < len(lines):
-                    nxt = lines[i]
-                    if not nxt.strip(): i += 1; continue
-                    nxt_indent = len(nxt) - len(nxt.lstrip())
-                    if nxt_indent <= current_indent: break
-                    sub = _yaml_reader('\n'.join(lines[i:]), nxt_indent)
-                    item.update(sub) if isinstance(sub, dict) else None
-                    i += sum(1 for _ in [None])
-                    break
-                if isinstance(out, list): out.append(item)
-            else:
-                if isinstance(out, list): out.append(_yaml_scalar(value))
-                i += 1
-        elif ':' in stripped:
-            key, _, val = stripped.partition(':')
-            key = key.strip(); val = val.strip()
-            if val == '':
-                i += 1
-                sub_lines = []
-                while i < len(lines):
-                    nxt = lines[i]
-                    if not nxt.strip(): i += 1; continue
-                    nxt_indent = len(nxt) - len(nxt.lstrip())
-                    if nxt_indent <= current_indent: break
-                    sub_lines.append(nxt); i += 1
-                if isinstance(out, dict):
-                    out[key] = _yaml_reader('\n'.join(sub_lines), current_indent + 2)
-            else:
-                if isinstance(out, dict): out[key] = _yaml_scalar(val)
-                i += 1
-        else:
-            i += 1
-    return out
-
-
-def _yaml_indent_level(text, indent):
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith('#'): continue
-        current = len(line) - len(line.lstrip())
-        if current < indent: return None
-        if current == indent: return 'map' if ':' in stripped else 'seq'
-    return None
-
-
-def _yaml_scalar(value):
-    value = value.strip().strip('"\'')
-    if value in {'true', 'yes'}: return True
-    if value in {'false', 'no'}: return False
-    if re.match(r'^-?\d+$', value): return int(value)
-    return value
 
 
 # Bounded-query detection: a chain or call that could return a result set must declare a bound.
