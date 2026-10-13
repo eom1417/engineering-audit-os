@@ -195,7 +195,6 @@
   "eaos/studio/actions/branches.py": 1143,
   "eaos/studio/actions/runs.py": 795,
   "eaos/studio/export.py": 604,
-  "eaos/studio/ideal.py": 784,
   "eaos/studio/journeys.py": 644,
   "eaos/target_architecture.py": 691,
   "eaos/toolchain.py": 702,

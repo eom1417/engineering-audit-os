@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
-from eaos.studio import ideal
+from eaos.studio import ideal, ideal_prompts
 from eaos.studio.actions import adapters
 from eaos.studio.nodes import core
 
@@ -174,7 +174,7 @@ class Planning(unittest.TestCase):
         self.assertEqual([e['id'] for e in one['baseline']['change']['elements']], ['chg-T-src', 'chg-T-old'])
         self.assertEqual(one['baseline']['infra']['elements'][0]['operation'], 'new')
         self.assertIn('FACT-page1', json.dumps(one['baseline']['journeys']))
-        self.assertIn('UNTRUSTED DATA', ideal.prompt_plan(one))
+        self.assertIn('UNTRUSTED DATA', ideal_prompts.prompt_plan(one))
 
     def test_two_passes_then_the_check_then_the_plan_is_kept_with_the_provenance_of_every_view(self):
         launcher = Launcher()
@@ -182,8 +182,8 @@ class Planning(unittest.TestCase):
         result = ideal.plan(self.report, launcher=launcher, lang='en', say=lambda en, ar: said.append((en, ar)))
         self.assertEqual(result['state'], 'planned')
         self.assertEqual([c[0] for c in launcher.calls], ['plan', 'critique'])
-        self.assertIs(launcher.calls[0][2], ideal.IDEAL_SCHEMA)
-        self.assertIs(launcher.calls[1][2], ideal.CRITIQUE_SCHEMA)
+        self.assertIs(launcher.calls[0][2], ideal_prompts.IDEAL_SCHEMA)
+        self.assertIs(launcher.calls[1][2], ideal_prompts.CRITIQUE_SCHEMA)
         record = json.loads((self.report / 'ideal/plan.json').read_text(encoding='utf-8'))
         self.assertEqual((record['share'], record['raw_share'], record['elements']), (1.0, 0.75, 3))
         self.assertEqual([d['id'] for d in record['dropped']], ['s9'])
@@ -264,7 +264,7 @@ class Ask(unittest.TestCase):
 
     def ask(self, mode='ok', prompt='plan', **options):
         with mock.patch.dict(os.environ, {'FAKE_MODE': mode, 'FAKE_SEEN': str(self.seen)}):
-            return adapters.ask(self.adapter, prompt, ideal.IDEAL_SCHEMA, self.folder, **options)
+            return adapters.ask(self.adapter, prompt, ideal_prompts.IDEAL_SCHEMA, self.folder, **options)
 
     def test_the_prompt_goes_on_standard_input_and_the_answer_and_model_come_from_the_stream(self):
         big = 'x' * 400_000
@@ -275,7 +275,7 @@ class Ask(unittest.TestCase):
         self.assertNotIn(big, ' '.join(seen['argv']))
         self.assertEqual(Path(seen['cwd']).resolve(), self.folder.resolve())
         argv = seen['argv']
-        self.assertEqual(json.loads(argv[argv.index('--json-schema') + 1]), ideal.IDEAL_SCHEMA)
+        self.assertEqual(json.loads(argv[argv.index('--json-schema') + 1]), ideal_prompts.IDEAL_SCHEMA)
         self.assertEqual(argv[argv.index('--tools') + 1], '')
         self.assertIn('--strict-mcp-config', argv)
         self.assertTrue((self.folder / 'stream.jsonl').is_file())
@@ -284,13 +284,13 @@ class Ask(unittest.TestCase):
         self.assertEqual(len(pids), 1)
         with mock.patch.dict(os.environ, {'FAKE_MODE': 'ok', 'FAKE_SEEN': str(self.seen)}):
             launcher = core.AdapterLauncher(self.adapter, self.folder)
-            self.assertEqual(launcher('plan', 'p', ideal.IDEAL_SCHEMA)['confidence'], 0.5)
+            self.assertEqual(launcher('plan', 'p', ideal_prompts.IDEAL_SCHEMA)['confidence'], 0.5)
         self.assertEqual((launcher.assistant, launcher.model), ('Claude Code', 'fake-model-1'))
         self.assertTrue((self.folder / 'plan' / 'stream.jsonl').is_file())
         codex = adapters.Codex(command=['codex'])
-        argv = codex.ask_argv(ideal.IDEAL_SCHEMA, Path(self.tmp.name))
+        argv = codex.ask_argv(ideal_prompts.IDEAL_SCHEMA, Path(self.tmp.name))
         self.assertEqual(argv[-1], '-')
-        self.assertEqual(json.loads(Path(argv[argv.index('--output-schema') + 1]).read_text(encoding='utf-8')), ideal.IDEAL_SCHEMA)
+        self.assertEqual(json.loads(Path(argv[argv.index('--output-schema') + 1]).read_text(encoding='utf-8')), ideal_prompts.IDEAL_SCHEMA)
         self.assertIn('sandbox_mode="read-only"', argv)
         lines = [json.dumps({'type': 'item.completed', 'item': {'type': 'agent_message', 'text': '```json\n{"a": 1}\n```'}})]
         self.assertEqual(codex.answer(lines)[0], {'a': 1})

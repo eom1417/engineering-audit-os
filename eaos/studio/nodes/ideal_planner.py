@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 from . import core
-from .. import ideal
+from .. import ideal, ideal_prompts
 
 SUBJECT = 'ideal'
 
@@ -51,10 +51,10 @@ def _dropped(plan_record):
 def run(node, report, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None, cancel=None, started=None, **_):
     report = Path(report)
     data = ideal.bundle(report, project, lang)
-    prompt, at, began = ideal.prompt_plan(data), core.now(), time.monotonic()
+    prompt, at, began = ideal_prompts.prompt_plan(data), core.now(), time.monotonic()
     base = {'at': at, 'inputs': core.digest(data), 'passes': list(node.passes), 'summary': ''}
     asked = core.digest([prompt])
-    schema = core.digest([ideal.IDEAL_SCHEMA, ideal.CRITIQUE_SCHEMA])
+    schema = core.digest([ideal_prompts.IDEAL_SCHEMA, ideal_prompts.CRITIQUE_SCHEMA])
     current, state = ideal.current(report)
     if not fresh and state == 'planned' and current.get('inputs') == base['inputs']:
         return core.keep(report, node, core.record(node, {**base, 'state': 'decided', 'method': 'model', 'assistant': current.get('assistant'),

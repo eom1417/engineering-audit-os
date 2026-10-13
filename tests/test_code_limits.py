@@ -27,12 +27,12 @@ class CodeLimits(unittest.TestCase):
     def test_every_assistant_works_to_the_code_laws(self):
         from eaos import mcp_server, semantic
         from eaos.code_laws import LAWS
-        from eaos.studio import ideal
+        from eaos.studio import ideal_prompts
         from eaos.studio.nodes import core
         data = {'lang': 'en', 'project': {'language': 'English'}}
         carried = {'semantic reading': semantic.SYSTEM, 'fixing (MCP)': mcp_server.INSTRUCTIONS,
                    'every node': core.prompt('task', data), 'node critique': core.critique_prompt('task', data, {}, 'en'),
-                   'ideal plan': ideal.prompt_plan(data), 'ideal critique': ideal.prompt_critique(data, {})}
+                   'ideal plan': ideal_prompts.prompt_plan(data), 'ideal critique': ideal_prompts.prompt_critique(data, {})}
         self.assertEqual([name for name, text in carried.items() if LAWS not in text], [])
 
     def test_complexity_counts_decisions_and_skips_nested_functions(self):
