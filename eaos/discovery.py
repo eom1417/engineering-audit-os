@@ -35,23 +35,25 @@ def observe_text(path,text):
         return {'parser':'js_ts_lexical_hints','imports':[{'module':m.group(1),'line':text.count('\n',0,m.start())+1,'status':'HYPOTHESIS'} for m in re.finditer(patterns,text)],'limitations':['Not an AST parser. Comments, strings, aliases, exports and framework routing can produce false positives or omissions.']}
     return {'parser':'inventory_only','limitations':['No language parser available. Agent must read this surface; no automatic pass.']}
 
+def _observe_file(target,item):
+    """One inventory file's row: what was observed in it, or why it was not read."""
+    rel=item['path'];row={'path':rel,'category':classify(rel),'sha256':item['sha256'],'capture':item['capture'],'parse_status':'NOT_PARSED','observations':{}}
+    if item['capture']!='hashed' or row['category'] not in {'source','test','manifest'}:return row
+    try:
+        raw=safe_file(target,rel).read_bytes()
+        if digest(raw)!=item['sha256']:raise ValueError('File changed during scan')
+        text=raw.decode('utf-8')
+        if '\x00' in text:raise ValueError('Binary content')
+        row['observations']=observe_text(rel,text)
+        row['parse_status']='OBSERVED' if row['observations']['parser']!='inventory_only' else 'UNSUPPORTED'
+    except (ValueError,SyntaxError,UnicodeError,OSError,RecursionError) as exc:
+        row['parse_status']='BLOCKED';row['reason']=type(exc).__name__+'; inspect source locally (raw error withheld)'
+    return row
+
 def scan(path):
     run,state=load_run(path);inv=read(run/'inventory.json')
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed or incomplete; create a new run before discovery')
-    records=[]
-    for item in inv['files']:
-        rel=item['path'];row={'path':rel,'category':classify(rel),'sha256':item['sha256'],'capture':item['capture'],'parse_status':'NOT_PARSED','observations':{}}
-        if item['capture']=='hashed' and row['category'] in {'source','test','manifest'}:
-            try:
-                raw=safe_file(Path(state['target']),rel).read_bytes()
-                if digest(raw)!=item['sha256']:raise ValueError('File changed during scan')
-                text=raw.decode('utf-8')
-                if '\x00' in text:raise ValueError('Binary content')
-                row['observations']=observe_text(rel,text)
-                row['parse_status']='OBSERVED' if row['observations']['parser']!='inventory_only' else 'UNSUPPORTED'
-            except (ValueError,SyntaxError,UnicodeError,OSError,RecursionError) as exc:
-                row['parse_status']='BLOCKED';row['reason']=type(exc).__name__+'; inspect source locally (raw error withheld)'
-        records.append(row)
+    records=[_observe_file(Path(state['target']),item) for item in inv['files']]
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed during scan; observations discarded')
     result={'schema_version':1,'revision':state['revision'],'created_at':now(),'files':records,'counts':dict(Counter(r['parse_status'] for r in records)), 'limitations':['Static observations only. No architecture, responsibility or finding is inferred automatically.','Unsupported and blocked files remain in the review denominator.','Filename-based secret exclusion is not a comprehensive secret scanner. Do not upload unreviewed source packets.']}
     write(run/'discovery.json',result)
