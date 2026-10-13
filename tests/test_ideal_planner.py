@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
-from eaos.studio import ideal, ideal_prompts
+from eaos.studio import ideal, ideal_base, ideal_prompts
 from eaos.studio.actions import adapters
 from eaos.studio.nodes import core
 
@@ -122,7 +122,7 @@ class EvidenceCheck(unittest.TestCase):
         kept, _ = ideal.check(an_ideal(), {'FACT-graph1', 'TASK-001'})
         self.assertEqual([(d['element'], d['because'], d['cites']) for d in kept['departures']], [('s1', 'two writers', ['TASK-001'])])
         self.assertEqual(kept['open_questions'][0]['id'], 'q1')
-        self.assertEqual(set(kept['views']), set(ideal.VIEWS))
+        self.assertEqual(set(kept['views']), set(ideal_base.VIEWS))
         self.assertEqual(ideal.share(an_ideal(element('s9', ['FACT-x'])), {'FACT-graph1', 'TASK-001'}), 0.75)
         self.assertIsNone(ideal.share({'views': {}}, set()))
 

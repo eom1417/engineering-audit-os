@@ -28,6 +28,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import progress
+from .live_assist import ENV_EXAMPLES, assist_messages, read_json
 from .progress.flow import OPTIONAL, Stage
 
 ATTEMPTS = 5
@@ -44,16 +45,10 @@ DATABASES = {
     'mongodb': ('mongodb', 'mongoose'),
     'supabase': ('@supabase/supabase-js', '@supabase/ssr', '@supabase/auth-helpers-nextjs'),
 }
-ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example', 'example.env')
 ENV_IN_CODE = re.compile(r'(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]{2,})|process\.env\[[\'"]([A-Z][A-Z0-9_]{2,})[\'"]\]')
 SECRETISH = re.compile(r'(SECRET|TOKEN|KEY|PASSWORD|PASS|SALT|PRIVATE|CREDENTIAL)', re.I)
 URLISH = re.compile(r'(URL|URI|HOST|ENDPOINT|DSN|ORIGIN|DOMAIN)$', re.I)
 DB_NAMES = re.compile(r'^(DATABASE_URL|POSTGRES_URL|POSTGRES_PRISMA_URL|POSTGRES_URL_NON_POOLING|DIRECT_URL|PG_?URL|DB_URL|NEON_DATABASE_URL)$')
-
-
-def read_json(path):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return {}
 
 
 def free_port():
@@ -481,7 +476,6 @@ FLOW = (
 def setup_baseline(project, runtime, detected, provider, say, attempts=3):
     """The production run the load baseline needs: built, started from the build, the first page answering.
     Marked in run.json -> baseline.verified, so the load test only runs on a production run that works."""
-    from .live_assist import assist_messages
     runtime, record, refusal = Path(runtime), {'ok': False, 'failure': ''}, ''
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     for attempt in range(1, attempts + 1):
@@ -531,7 +525,6 @@ def setup(project, runtime, report=None, provider=None, say=print):
 
 
 def _setup(project, runtime, report, provider, say):
-    from .live_assist import assist_messages
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     progress.begin('detect')
     detected = detect(project, report)

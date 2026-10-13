@@ -12,7 +12,7 @@ from unittest import mock
 
 from eaos import artifact_contracts
 from eaos.assistants.command import Provider
-from eaos.studio import ideal, nodes
+from eaos.studio import ideal, ideal_base, nodes
 from eaos.studio.actions import adapters
 from eaos.studio.nodes import core, triage, view
 ROOT = Path(__file__).resolve().parent.parent
@@ -341,7 +341,7 @@ class IdealNode(Base):
     def plan_answer(self, name, schema):
         element = {'id': 's1', 'kind': 'component', 'title': 'One client', 'operation': 'refactor', 'subject': 'T-src', 'detail': '',
                    'cites': ['TASK-001']}
-        views = {v: {'summary': '', 'confidence': 0.7, 'elements': [element] if v == 'system' else []} for v in ideal.VIEWS}
+        views = {v: {'summary': '', 'confidence': 0.7, 'elements': [element] if v == 'system' else []} for v in ideal_base.VIEWS}
         planned = {'views': views, 'departures': [], 'confidence': 0.7,
                    'open_questions': [{'id': 'q1', 'view': 'system', 'question': 'Keep it?', 'options': ['yes', 'no'], 'recommendation': 'yes', 'why': ''}]}
         return planned if name == 'plan' else {'critique': {'missed': [], 'risks': [], 'order': []}, 'ideal': planned}

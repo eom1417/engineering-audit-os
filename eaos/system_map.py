@@ -569,14 +569,22 @@ def _api_counts(apis):
             'how': sorted({h['how'] for a in apis for h in a['handlers']})}
 
 
+def _drawn_pages(pages, links, uses, ids, kept_apis):
+    return [{k: v for k, v in p.items() if k != 'reach'} | {'calls': sorted(links[p['id']] & kept_apis), 'shared': sorted(uses[p['id']] & ids)}
+            for p in pages]
+
+
+def _drawn_callers(callers, links, kept_apis, prefix):
+    return [dict(c, calls=sorted(links[c['id']] & kept_apis), short=_short(c['path'], prefix)) for c in callers]
+
+
 def _drawn(view):
     """The system map as the report and the Studio read it."""
     cols, links, uses, ids, kept_apis, root = view['cols'], view['links'], view['uses'], view['ids'], view['kept_apis'], view['root']
     server, client = _common([h['path'] for h in cols['handlers']]), _common([c['path'] for c in cols['callers']])
     parts = _common([m['name'] + '/' for m in cols['modules']]) if len(cols['modules']) > 1 else ''
-    return {'pages': [{k: v for k, v in p.items() if k != 'reach'} | {'calls': sorted(links[p['id']] & kept_apis), 'shared': sorted(uses[p['id']] & ids)}
-                      for p in cols['pages']],
-            'callers': [dict(c, calls=sorted(links[c['id']] & kept_apis), short=_short(c['path'], client or root)) for c in cols['callers']],
+    return {'pages': _drawn_pages(cols['pages'], links, uses, ids, kept_apis),
+            'callers': _drawn_callers(cols['callers'], links, kept_apis, client or root),
             'apis': [{k: (sorted(v) if isinstance(v, set) else v) for k, v in a.items()} for a in cols['apis']],
             'handlers': _drawn_handlers(cols['handlers'], kept_apis, server or root),
             'modules': [dict(m, short=_module_short(m['name'], parts)) for m in cols['modules']], 'data': cols['data'],

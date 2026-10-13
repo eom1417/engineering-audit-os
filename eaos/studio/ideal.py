@@ -20,21 +20,17 @@ questions to the Decisions inbox.
 """
 import hashlib
 import json
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ..aspects import ASPECTS, VERDICTS
 from ..assistants.command import Stuck
+from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug
 from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short, UNTRUSTED
 
-VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
-OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
 # The studio sections that draw a target, and the view whose provenance each carries (tools/make_contracts.py).
 SECTION_VIEWS = {'system': 'system', 'story': 'system', 'gaps': 'change', 'operations': 'plan_order', 'plans': 'plan_order',
                  'paths': 'paths', 'journeys': 'journeys', 'data_paths': 'data_paths', 'infra': 'infra', 'pipeline': 'pipeline'}
-EVIDENCE = re.compile(r'^(FACT|CLM|TASK|RULE)-[A-Za-z0-9_.:-]+$')
-LIMIT = {'elements': 160, 'cards': 140, 'facts': 50, 'doc_chars': 4000, 'docs_chars': 24000}
 DOCS = ('README.md', 'README', 'readme.md', 'ARCHITECTURE.md', 'CONTRIBUTING.md', 'docs/**/*.md', '*.md')
 WORDS = {
     'not_planned': ("The ideal shown is the rules' target. It is not planned yet: re-plan it from the command centre "
@@ -58,21 +54,11 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
-def _load(path, default=None):
-    try: return json.loads(Path(path).read_text(encoding='utf-8'))
-    except (OSError, ValueError): return default
-
-
 def _words(key, lang=None, **values):
     en, ar = WORDS[key]
     pick = lambda index: {k: WORDS[v][index] if isinstance(v, str) and v in WORDS else v for k, v in values.items()}
     words = {'en': en.format(**pick(0)), 'ar': ar.format(**pick(1))}
     return words if lang is None else words['ar' if lang == 'ar' else 'en']
-
-
-def _facts(report, name):
-    data = _load(Path(report) / 'facts' / f'{name}.json', {}) or {}
-    return [f for f in data.get('facts') or [] if isinstance(f, dict) and f.get('id')]
 
 
 def _proposal(report):
@@ -93,10 +79,6 @@ def _cards(report):
     cards = (_load(Path(report) / 'studio/cards.json', {}) or {}).get('cards')
     if isinstance(cards, list): return [c for c in cards if isinstance(c, dict) and c.get('id')]
     return [t for t in (_load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [] if isinstance(t, dict) and t.get('id')]
-
-
-def _slug(text):
-    return re.sub(r'[^A-Za-z0-9_.:-]+', '-', str(text)).strip('-') or 'root'
 
 
 # ---------------------------------------------------------------- the rules: their ids and their target per view

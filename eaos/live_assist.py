@@ -4,7 +4,13 @@ import json
 import re
 from pathlib import Path
 
-from .live_setup import ENV_EXAMPLES, read_json
+ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example', 'example.env')
+
+
+def read_json(path):
+    try: return json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError): return {}
+
 
 ASSIST_SYSTEM = """You set up a web app to run on this computer for automated checks, in an isolated copy, with a
 local database EAOS provides. You do not change the app. You answer with one JSON object:

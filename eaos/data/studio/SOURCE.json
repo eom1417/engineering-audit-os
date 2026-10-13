@@ -1,5 +1,5 @@
 {
- "source_sha256": "0c75d797f68cf4e2cb1734e89637b53b9734eff0ebb41bf261ddec7c53b05f2d",
+ "source_sha256": "4e5ad9f70ae3039581d38c10a6f984d00562c93b7205ec34ca3fe1761c9a70f4",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -157,6 +157,7 @@
   "assets/plex-latin-600.woff2",
   "assets/plex-mono-400.woff2",
   "assets/plex-mono-500.woff2",
+  "assets/search.js",
   "assets/studio.js",
   "assets/style.css",
   "assets/words.js",

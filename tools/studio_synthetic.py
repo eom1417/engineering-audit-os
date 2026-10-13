@@ -257,7 +257,7 @@ def synthetic_nodes(card_rows):
 def synthetic_ideal(comps, layer, card_rows):
     """studio/ideal.json at scale: every view's rules target, the system and the plan order planned, each planned element
     citing cards and facts that exist, and the rest of the views on the rules with their plain "not planned" state."""
-    from eaos.studio import ideal
+    from eaos.studio import ideal_base
     by_comp = {}
     for card in card_rows: by_comp.setdefault(card['paths'][0].split('/')[2], []).append(card)
     message = {'en': 'Planned by Claude Code (synthetic) on top of the rules.', 'ar': 'خطّطه Claude Code (اصطناعي) فوق القواعد.'}
@@ -279,7 +279,7 @@ def synthetic_ideal(comps, layer, card_rows):
                                'element': e['id'], 'cites': e['cites'][:1]} for e in planned_system[:10]],
                'open_questions': [{'id': q['id'], 'question': q['question'], 'recommendation': q['recommendation']} for q in questions]}
     views = {}
-    for name in ideal.VIEWS:
+    for name in ideal_base.VIEWS:
         rows = rules_system if name == 'system' else []
         mine = planned_system if name == 'system' else []
         views[name] = {'provenance': planned if mine else rules_provenance(),

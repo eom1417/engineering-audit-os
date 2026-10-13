@@ -2,7 +2,7 @@
 _rules_views puts the views together. The assistant plans on top of it; without one it is the ideal shown."""
 import re
 
-from .ideal import EVIDENCE, LIMIT, OPERATIONS, _facts, _load, _slug
+from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, _facts, _load, _slug
 from .nodes.core import short
 
 RELATION_OP = {'retain': 'retain', 'modify': 'refactor', 'refactor': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete',

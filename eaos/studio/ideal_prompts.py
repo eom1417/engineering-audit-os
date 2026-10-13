@@ -4,7 +4,7 @@ import json
 
 from ..aspects import ASPECTS, VERDICTS
 from ..code_laws import LAWS
-from .ideal import OPERATIONS, VIEWS
+from .ideal_base import OPERATIONS, VIEWS
 from .nodes.core import UNTRUSTED, _STR, _STRS, _strict
 
 _ELEMENT = _strict({'id': _STR, 'kind': _STR, 'title': _STR, 'operation': {'type': 'string', 'enum': list(OPERATIONS)},
