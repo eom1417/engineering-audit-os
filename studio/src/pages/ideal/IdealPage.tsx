@@ -129,7 +129,7 @@ function IdealBody({ data, ideal }: { data: StudioData; ideal: Ideal }) {
       {view.planned ? <Counts view={view} /> : <Panel pad><StateMessage title={w('notPlanned')} sub={message} /></Panel>}
       <div className={css.sides}>
         {view.planned && <Side title={w('plannedSide')} summary={view.planned.summary} elements={view.planned.elements} view={view} planned empty={w('nothing')} />}
-        <Side title={w('rulesSide')} summary={view.rules.summary} elements={view.rules.elements} view={view} planned={false} empty={w('nothing')} />
+        <Side title={w('rulesSide')} summary={w(`rulesAbout_${name}` as IdealWord)} elements={view.rules.elements} view={view} planned={false} empty={w('nothing')} />
       </div>
       {p.departures.length > 0 && (
         <Section title={w('departures')} count={p.departures.length}>
