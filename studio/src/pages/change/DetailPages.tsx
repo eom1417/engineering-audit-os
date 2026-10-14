@@ -162,7 +162,7 @@ function OpBody({ data, id }: { data: StudioData; id: string }) {
   const w = useChangeWords()
   const all = useMemo(() => [...(data.operations?.operations ?? [])].sort((a, b) => a.order - b.order), [data.operations])
   const op = all.find((o) => o.id === id)
-  usePageChrome(op?.subject ?? w('operations'), { to: `/plans/${encodeURIComponent(op?.plan ?? 'fix')}`, search: { view: 'board' }, label: w('viewBoard') }, data.manifest.project.name)
+  usePageChrome(op?.subject ?? w('opNotFound'), { to: `/plans/${encodeURIComponent(op?.plan ?? 'fix')}`, search: { view: 'board' }, label: w('viewBoard') }, data.manifest.project.name)
   const cards = useMemo(() => byId(data.cards?.cards), [data.cards])
   if (!data.operations) return <div className={page.page}><ChangeNav /><NotMeasured data={data} section="operations" title={w('noOps')} /></div>
   if (!op) return <Missing title={w('opNotFound')} />

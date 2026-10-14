@@ -18,7 +18,7 @@ const NAV = [
   { to: '/change', word: 'navOverview', match: (p: string) => p === '/change' || p === '/change/timeline' },
   { to: '/change/bridge', word: 'navBridge', match: (p: string) => p === '/change/bridge' },
   { to: '/change/gaps', word: 'navGaps', match: (p: string) => p.startsWith('/change/gaps') },
-  { to: '/plans', word: 'navPlans', match: (p: string) => /^\/(plans|tasks)(\/|$)/.test(p) },
+  { to: '/plans', word: 'navPlans', match: (p: string) => /^\/(plans|tasks|ops)(\/|$)/.test(p) },
 ] as const
 
 /** Change's places as one row of links, the current one marked (C-experience 2.3: Bridge / Gaps / Plans). */
