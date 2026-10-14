@@ -37,31 +37,43 @@ def redact(path):
     rule, the file and the line are enough to act on, and the raw file kept in the report holds no more."""
     data = json.loads(path.read_text(encoding='utf-8'))
     for run_ in data.get('runs') or []:
-        # A secret rule's description repeats the matched line; only its short name is kept.
-        for rule in (run_.get('tool') or {}).get('driver', {}).get('rules') or []:
-            if rule.get('name') == 'Secret':
-                short = (rule.get('shortDescription') or {}).get('text', 'secret')
-                rule['fullDescription'] = {'text': short}
-                if 'help' in rule: rule['help'] = {'text': short, 'markdown': short}
-        for result in run_.get('results') or []:
-            message = result.get('message') or {}
-            if 'text' in message: message['text'] = MATCH.sub('Match: [not recorded]', message['text'])
+        _redact_rules((run_.get('tool') or {}).get('driver', {}).get('rules') or [])
+        _redact_messages(run_.get('results') or [])
     path.write_text(json.dumps(data), encoding='utf-8')
+
+
+def _redact_rules(rules):
+    """A secret rule's description repeats the matched line; only its short name is kept."""
+    for rule in rules:
+        if rule.get('name') != 'Secret': continue
+        short = (rule.get('shortDescription') or {}).get('text', 'secret')
+        rule['fullDescription'] = {'text': short}
+        if 'help' in rule: rule['help'] = {'text': short, 'markdown': short}
+
+
+def _redact_messages(results):
+    for result in results:
+        message = result.get('message') or {}
+        if 'text' in message: message['text'] = MATCH.sub('Match: [not recorded]', message['text'])
+
+
+def _command(output, exclude):
+    from ..toolchain import TRIVY_CACHE, home, trivy_db
+    command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'vuln,secret,misconfig', '--quiet',
+               '--cache-dir', str(home() / TRIVY_CACHE), '--output', str(output)]
+    # A database already here is used as it is: the install refreshes it daily in the background, never in a check
+    if trivy_db(): command.append('--skip-db-update')
+    for directory in EXCLUDED + tuple(exclude): command += ['--skip-dirs', directory]
+    return command
 
 
 def analyze(target, workdir, exclude=(), formats=None):
     declined = tool.declined(NAME, BINARY, target)
     if declined: return declined
     found = version()
-    from ..toolchain import TRIVY_CACHE, home, trivy_db
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
-    command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'vuln,secret,misconfig', '--quiet',
-               '--cache-dir', str(home() / TRIVY_CACHE), '--output', str(output)]
-    # A database already here is used as it is: the install refreshes it daily in the background, never in a check
-    if trivy_db(): command.append('--skip-db-update')
-    for directory in EXCLUDED + tuple(exclude): command += ['--skip-dirs', directory]
-    code, _, error, seconds = run(command + [str(target)])
+    code, _, error, seconds = run(_command(output, exclude) + [str(target)])
     if code or not output.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     redact(output)
