@@ -468,84 +468,121 @@ def _longest(found, among=None):
     finally: sys.setrecursionlimit(limit)
 
 
+def _collects(statement):
+    """`values.append(x)` and its kind: a statement that adds to a named collection."""
+    call = statement.value if isinstance(statement, ast.Expr) else None
+    return (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr in ('append', 'extend', 'add', 'update')
+            and isinstance(call.func.value, ast.Name))
+
+
+class _Chain:
+    """One function's data flow: the stages each name's value comes from, so a value passed to a stage draws an edge."""
+
+    def __init__(self, py, rel, tasks, found):
+        self.py, self.rel, self.tasks, self.found = py, rel, tasks, found
+        self.origins, self.depth = {}, 0
+
+    def flow(self, expr):
+        """The stages the value of `expr` comes from."""
+        if expr is None: return set()
+        if isinstance(expr, ast.Name): return set(self.origins.get(expr.id, set()))
+        if isinstance(expr, ast.Call): return self._call(expr)
+        out = set()
+        nested = isinstance(expr, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp, ast.Lambda))
+        self.depth += nested
+        for child in ast.iter_child_nodes(expr):
+            if isinstance(child, ast.expr): out |= self.flow(child)
+            elif isinstance(child, ast.comprehension): out |= self.flow(child.iter)
+        self.depth -= nested
+        return out
+
+    def _call(self, expr):
+        """A call: the stage it runs, else the stages its arguments (and its object) come from."""
+        stage = _stage_call(self.py, self.rel, expr, self.tasks)
+        inputs = {}
+        for arg in [*expr.args, *[k.value for k in expr.keywords]]:
+            for source in self.flow(arg):
+                inputs.setdefault(source, set()).update(n.id for n in ast.walk(arg) if isinstance(n, ast.Name) and n.id in self.origins)
+        if not stage:
+            return set(inputs) | (self.flow(expr.func.value) if isinstance(expr.func, ast.Attribute) else set())
+        return {self._stage(expr, stage, inputs)}
+
+    def _stage(self, expr, stage, inputs):
+        """The stage a call runs, and an edge from each stage a value it takes comes from; its key."""
+        found, (label, target) = self.found, stage
+        where = site(self.rel, expr.lineno, self.py.line(self.rel, expr.lineno))
+        key = found.stage(label, where, symbol=f"{target[0][:-3].replace('/', '.')}.{target[1].name}" if target else None)
+        if self.depth == 0: found.stages[key]['top'] = True
+        if target: self._describe(found.stages[key], expr, target)
+        for source, names in inputs.items():
+            found.edge(source, key, 'value', where, names=sorted(names))
+            for value in sorted(names):
+                if value not in {i['name'] for i in found.stages[key]['inputs']}:
+                    found.stages[key]['inputs'].append({'name': value, 'kind': 'value', 'shape': None})
+        return key
+
+    def _describe(self, stage_row, expr, target):
+        """A stage first seen at this call starts at its function, described from its body."""
+        if stage_row['entry']['line'] == expr.lineno and stage_row['entry']['path'] == self.rel:
+            stage_row['entry'] = site(target[0], target[1].lineno, self.py.line(target[0], target[1].lineno))
+            describe(self.py, target[0], target[1], stage_row)
+
+    def bind(self, target, values):
+        if isinstance(target, ast.Name): self.origins[target.id] = set(values)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for item in target.elts: self.bind(item, values)
+        elif isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+            self.origins[target.value.id] = self.origins.get(target.value.id, set()) | set(values)
+
+    def walk(self, statements):
+        for statement in statements:
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): continue
+            if isinstance(statement, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Expr, ast.Return)): self._assign(statement)
+            else: self._block(statement)
+
+    def _assign(self, statement):
+        """A statement that gives a name a value, or adds to a collection."""
+        if isinstance(statement, ast.Assign):
+            values = self.flow(statement.value)
+            for target in statement.targets: self.bind(target, values)
+        elif isinstance(statement, (ast.AnnAssign, ast.AugAssign)) and statement.value is not None:
+            self.bind(statement.target, self.flow(statement.value) | (self.flow(statement.target) if isinstance(statement, ast.AugAssign) else set()))
+        elif isinstance(statement, (ast.Expr, ast.Return)):
+            values = self.flow(statement.value)
+            if _collects(statement): self.bind(ast.Subscript(value=statement.value.func.value), values)
+
+    def _block(self, statement):
+        """A statement holding others: a loop, a branch, a with, a try."""
+        if isinstance(statement, (ast.For, ast.AsyncFor)):
+            self.bind(statement.target, self.flow(statement.iter))
+            self._loop(statement)
+        elif isinstance(statement, ast.While):
+            self.flow(statement.test)
+            self._loop(statement)
+        elif isinstance(statement, ast.If): self.flow(statement.test); self.walk(statement.body); self.walk(statement.orelse)
+        elif isinstance(statement, (ast.With, ast.AsyncWith)):
+            for item in statement.items:
+                values = self.flow(item.context_expr)
+                if item.optional_vars is not None: self.bind(item.optional_vars, values)
+            self.walk(statement.body)
+        elif isinstance(statement, ast.Try):
+            self.walk(statement.body)
+            for handler in statement.handlers: self.walk(handler.body)
+            self.walk(statement.orelse); self.walk(statement.finalbody)
+
+    def _loop(self, statement):
+        """A loop's body runs one level deeper: a stage there is not a top stage."""
+        self.depth += 1
+        self.walk(statement.body)
+        self.depth -= 1
+        self.walk(statement.orelse)
+
+
 def _chain(py, rel, name, node, tasks):
     found = Found(f'{rel}:{name}', f'{name} ({rel})', 'orchestrator', site(rel, node.lineno, py.line(rel, node.lineno)),
                   [site(rel, node.lineno, py.line(rel, node.lineno))])
     found.functions.add((rel, name))
-    origins, depth = {}, [0]
-
-    def flow(expr):
-        if expr is None: return set()
-        if isinstance(expr, ast.Name): return set(origins.get(expr.id, set()))
-        if isinstance(expr, ast.Call):
-            stage = _stage_call(py, rel, expr, tasks)
-            inputs = {}
-            for arg in [*expr.args, *[k.value for k in expr.keywords]]:
-                for source in flow(arg):
-                    inputs.setdefault(source, set()).update(n.id for n in ast.walk(arg) if isinstance(n, ast.Name) and n.id in origins)
-            if isinstance(expr.func, ast.Attribute) and not stage: inputs_from_object = flow(expr.func.value)
-            else: inputs_from_object = set()
-            if not stage:
-                return set(inputs) | inputs_from_object
-            label, target = stage
-            where = site(rel, expr.lineno, py.line(rel, expr.lineno))
-            key = found.stage(label, where, symbol=f"{target[0][:-3].replace('/', '.')}.{target[1].name}" if target else None)
-            if depth[0] == 0: found.stages[key]['top'] = True
-            if target:
-                stage_row = found.stages[key]
-                if stage_row['entry']['line'] == expr.lineno and stage_row['entry']['path'] == rel:
-                    stage_row['entry'] = site(target[0], target[1].lineno, py.line(target[0], target[1].lineno))
-                    describe(py, target[0], target[1], stage_row)
-            for source, names in inputs.items():
-                found.edge(source, key, 'value', where, names=sorted(names))
-                for value in sorted(names):
-                    if value not in {i['name'] for i in found.stages[key]['inputs']}:
-                        found.stages[key]['inputs'].append({'name': value, 'kind': 'value', 'shape': None})
-            return {key}
-        out = set()
-        nested = isinstance(expr, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp, ast.Lambda))
-        depth[0] += nested
-        for child in ast.iter_child_nodes(expr):
-            if isinstance(child, ast.expr): out |= flow(child)
-            elif isinstance(child, ast.comprehension): out |= flow(child.iter)
-        depth[0] -= nested
-        return out
-
-    def bind(target, values):
-        if isinstance(target, ast.Name): origins[target.id] = set(values)
-        elif isinstance(target, (ast.Tuple, ast.List)):
-            for item in target.elts: bind(item, values)
-        elif isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
-            origins[target.value.id] = origins.get(target.value.id, set()) | set(values)
-
-    def walk(statements):
-        for statement in statements:
-            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): continue
-            if isinstance(statement, ast.Assign):
-                values = flow(statement.value)
-                for target in statement.targets: bind(target, values)
-            elif isinstance(statement, (ast.AnnAssign, ast.AugAssign)) and statement.value is not None:
-                bind(statement.target, flow(statement.value) | (flow(statement.target) if isinstance(statement, ast.AugAssign) else set()))
-            elif isinstance(statement, (ast.Expr, ast.Return)):
-                values = flow(statement.value)
-                if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call) and isinstance(statement.value.func, ast.Attribute) \
-                        and statement.value.func.attr in ('append', 'extend', 'add', 'update') and isinstance(statement.value.func.value, ast.Name):
-                    bind(ast.Subscript(value=statement.value.func.value), values)
-            elif isinstance(statement, (ast.For, ast.AsyncFor)):
-                bind(statement.target, flow(statement.iter)); depth[0] += 1; walk(statement.body); depth[0] -= 1; walk(statement.orelse)
-            elif isinstance(statement, ast.While): flow(statement.test); depth[0] += 1; walk(statement.body); depth[0] -= 1; walk(statement.orelse)
-            elif isinstance(statement, ast.If): flow(statement.test); walk(statement.body); walk(statement.orelse)
-            elif isinstance(statement, (ast.With, ast.AsyncWith)):
-                for item in statement.items:
-                    values = flow(item.context_expr)
-                    if item.optional_vars is not None: bind(item.optional_vars, values)
-                walk(statement.body)
-            elif isinstance(statement, ast.Try):
-                walk(statement.body)
-                for handler in statement.handlers: walk(handler.body)
-                walk(statement.orelse); walk(statement.finalbody)
-
-    walk(node.body)
+    _Chain(py, rel, tasks, found).walk(node.body)
     for handler in (s for s in ast.walk(node) if isinstance(s, ast.ExceptHandler)):
         found.errors.append({'id': f'{found.id}:error:{handler.lineno}', 'pipeline': found.id, 'from': '*', 'to': 'raised',
                              'kind': 'catch', 'condition': _unparse(handler.type) if handler.type else 'any exception',
