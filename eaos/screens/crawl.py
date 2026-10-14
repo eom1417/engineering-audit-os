@@ -42,19 +42,29 @@ def templates(paths):
     split = {path: _parts(path) for path in paths}
     marked = {path: (prefix, [':id' if i and DATA.search(s) else s for i, s in enumerate(segments)])
               for path, (prefix, segments) in split.items()}
+    leaves = _leaves(split, marked)
+    return {path: _template(prefix, segments, leaves) for path, (prefix, segments) in marked.items()}
+
+
+def _leaves(split, marked):
+    """{(prefix, parent): {last segments}} of the pages with no page under them."""
     shapes = {(prefix, tuple(segments)) for prefix, segments in marked.values()}
     leaves = {}
     for path, (prefix, segments) in marked.items():
-        if len(segments) < 2: continue
-        if any(other[0] == prefix and len(other[1]) > len(segments) and other[1][:len(segments)] == tuple(segments) for other in shapes):
-            continue                                           # it has pages under it: a section, not a leaf
+        if len(segments) < 2 or _has_pages_under(prefix, segments, shapes): continue     # a section, not a leaf
         leaves.setdefault((prefix, tuple(segments[:-1])), set()).add(split[path][1][-1])
-    out = {}
-    for path, (prefix, segments) in marked.items():
-        if len(segments) >= 2 and len(leaves.get((prefix, tuple(segments[:-1])), ())) >= SIBLINGS:
-            segments = segments[:-1] + [':id']
-        out[path] = prefix + '/' + '/'.join(segments)
-    return out
+    return leaves
+
+
+def _has_pages_under(prefix, segments, shapes):
+    return any(other[0] == prefix and len(other[1]) > len(segments) and other[1][:len(segments)] == tuple(segments) for other in shapes)
+
+
+def _template(prefix, segments, leaves):
+    """A page's template: its last segment is a parameter when it has SIBLINGS or more sibling leaves."""
+    if len(segments) >= 2 and len(leaves.get((prefix, tuple(segments[:-1])), ())) >= SIBLINGS:
+        segments = segments[:-1] + [':id']
+    return prefix + '/' + '/'.join(segments)
 
 
 def distinct(paths):
@@ -74,6 +84,16 @@ def discover(base, max_routes=200, timeout=1800):
     return (result or {}).get('routes'), error
 
 
+def _measure(row, base, out, number):
+    """Lighthouse on one page: its scores into the row, else why it could not be measured."""
+    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}')
+    if speed.get('status') != 'observed':
+        row['reason'] = speed.get('reason')
+        return
+    row.update(measured=True, scores=speed['scores'], lcp_ms=speed['lcp_ms'], cls=speed['cls'],
+               report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
+
+
 def crawl(base, out, max_routes=200, measured=MEASURED):
     routes, error = discover(base, max_routes)
     if routes is None:
@@ -86,13 +106,7 @@ def crawl(base, out, max_routes=200, measured=MEASURED):
     rows = []
     for route in routes:
         row = {'path': route['path'], 'template': shapes[route['path']], 'depth': route.get('depth'), 'measured': False}
-        if route['path'] in chosen:
-            folder = out / 'lighthouse' / f"{chosen.index(route['path']):02d}"
-            speed = lighthouse(base.rstrip('/') + route['path'], out=folder)
-            if speed.get('status') == 'observed':
-                row.update(measured=True, scores=speed['scores'], lcp_ms=speed['lcp_ms'], cls=speed['cls'],
-                           report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
-            else: row['reason'] = speed.get('reason')
+        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']))
         rows.append(row)
     return {'status': 'observed', 'routes': rows, 'templates': len(set(shapes.values())),
             'measured': sum(r['measured'] for r in rows)}
