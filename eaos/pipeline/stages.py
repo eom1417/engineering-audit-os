@@ -160,23 +160,25 @@ def errors():
     """Structural problems in the declaration itself. An empty list means the pipeline is sane."""
     found, seen, produced = [], set(), {}
     for stage in STAGES:
-        if stage.name in seen:
-            found.append(f'{stage.name}: declared twice')
+        if stage.name in seen: found.append(f'{stage.name}: declared twice')
         seen.add(stage.name)
-        for need in stage.requires:
-            if need not in seen:
-                found.append(f'{stage.name}: requires {need}, which no earlier stage provides')
-        if stage.necessity == OPTIONAL and not stage.absent_when.strip():
-            found.append(f'{stage.name}: optional without saying when it may be absent')
-        if stage.necessity not in (REQUIRED, OPTIONAL):
-            found.append(f'{stage.name}: unknown necessity {stage.necessity!r}')
-        if not stage.produces:
-            found.append(f'{stage.name}: produces nothing, so nothing can depend on it')
-        for artifact in stage.produces:
-            if artifact in produced:
-                found.append(f'{stage.name}: {artifact} is already produced by {produced[artifact]}')
-            produced[artifact] = stage.name
+        found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires if need not in seen]
+        found += [f'{stage.name}: {artifact} is already produced by {produced[artifact]}' for artifact in stage.produces if artifact in produced]
+        produced.update(dict.fromkeys(stage.produces, stage.name))
+        found += _stage_errors(stage)
     return sorted(found)
+
+
+def _stage_errors(stage):
+    """What is wrong with one stage's declaration on its own: its necessity, and what it produces."""
+    found = []
+    if stage.necessity == OPTIONAL and not stage.absent_when.strip():
+        found.append(f'{stage.name}: optional without saying when it may be absent')
+    if stage.necessity not in (REQUIRED, OPTIONAL):
+        found.append(f'{stage.name}: unknown necessity {stage.necessity!r}')
+    if not stage.produces:
+        found.append(f'{stage.name}: produces nothing, so nothing can depend on it')
+    return found
 
 
 def dependents(name):
