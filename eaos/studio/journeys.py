@@ -509,44 +509,64 @@ def _missing(pages, shot_count, relative):
     return missing
 
 
+def _prefixes(screens, shells):
+    """{menu: the route prefix of the layout it belongs to, '' for none}."""
+    route_of = {s['id']: s['route'][:-2] for s in reversed(screens)}      # the first screen of an id, as next() found it
+    return {sh['id']: route_of.get(sh['layout'], '') if sh['layout'] else '' for sh in shells.values()}
+
+
+def _out_edges(edges, cells):
+    """Every link between two screens, drawn, with up to six of its sites."""
+    return [{'from': e['from'], 'to': e['to'], 'via': e['via'], 'back': cells[e['to']][0] <= cells[e['from']][0],
+             'evidence': sorted(e['evidence'], key=lambda v: (v['file'], v['line'] or 0))[:6], 'count': len(e['evidence']),
+             'd': curve(cells[e['from']], cells[e['to']])}
+            for e in sorted(edges.values(), key=lambda e: (e['from'], e['to']))]
+
+
+def _journey_counts(out_screens, pages, out_edges, journey, tasks, shot_count):
+    broken, unowned = journey['broken'], journey['unowned']
+    count = lambda flag: sum(flag in s['flags'] for s in pages)
+    links = [e for e in out_edges if e['via'] != 'menu_of']
+    return {
+        'screens': _measure(len(pages), SRC['screens'] + ', kind page'),
+        'hidden_screens': _measure(len(out_screens) - len(pages), SRC['screens'] + ', kind layout, redirect or fallback'),
+        'links': _measure(len(links), SRC['links'] + ' (screen pairs)'),
+        'link_sites': _measure(sum(e['count'] for e in links), SRC['links']),
+        'broken': _measure(len(broken), SRC['broken']),
+        'no_way_in': _measure(count('no_way_in'), SRC['no_way_in']),
+        'dead_ends': _measure(count('dead_end'), SRC['dead_ends']),
+        'duplicates': _measure(count('duplicate'), SRC['duplicates']),
+        'tasks': _measure(len(tasks), SRC['tasks']),
+        'unowned_links': _measure(len(unowned), SRC['unowned_links']),
+        'unowned_dead': _measure(sum(u['dead'] for u in unowned), SRC['unowned_links'] + ', in an unreachable module'),
+        'without_target': _measure(len(pages), SRC['without_target']),
+        'shots': _measure(shot_count, SRC['shots']),
+    }
+
+
+def _grid(cells):
+    cols = max((c[0] for c in cells.values()), default=-1) + 1
+    rows = max((c[1] for c in cells.values()), default=-1) + 1
+    return {'cols': cols, 'rows': rows, 'col_w': COL_W, 'row_h': ROW_H, 'box_w': BOX_W, 'box_h': BOX_H, 'pad': PAD,
+            'width': PAD * 2 + max(cols - 1, 0) * COL_W + BOX_W, 'height': PAD * 2 + max(rows - 1, 0) * ROW_H + BOX_H}
+
+
 def _assemble(r, journey, tasks, cells):
     """The section's body; `journey`: the screens, menus, nodes, edges, broken, unowned and relative links, the starts,
     the depths and each screen's menu, as from_records found them."""
     screens, shells, edges = journey['screens'], journey['shells'], journey['edges']
     broken, unowned, relative, starts = journey['broken'], journey['unowned'], journey['relative'], journey['starts']
-    prefixes = {sh['id']: (next((s['route'][:-2] for s in screens if s['id'] == sh['layout']), '') if sh['layout'] else '') for sh in shells.values()}
-    out_screens = [_out_screen(s, r, journey, (cells, prefixes)) for s in screens]
+    out_screens = [_out_screen(s, r, journey, (cells, _prefixes(screens, shells))) for s in screens]
     menus = [_out_menu(sh, edges, cells) for sh in shells.values() if sh['id'] in journey['nodes']]
-    out_edges = [{'from': e['from'], 'to': e['to'], 'via': e['via'], 'back': cells[e['to']][0] <= cells[e['from']][0],
-                  'evidence': sorted(e['evidence'], key=lambda v: (v['file'], v['line'] or 0))[:6], 'count': len(e['evidence']),
-                  'd': curve(cells[e['from']], cells[e['to']])}
-                 for e in sorted(edges.values(), key=lambda e: (e['from'], e['to']))]
+    out_edges = _out_edges(edges, cells)
     pages = [s for s in out_screens if s['kind'] == 'page']
-    count = lambda flag: sum(flag in s['flags'] for s in pages)
-    cols = max((c[0] for c in cells.values()), default=-1) + 1
-    rows = max((c[1] for c in cells.values()), default=-1) + 1
     shot_count = sum(1 for s in out_screens if s['shots'])
     groups = defaultdict(list)
     for s in out_screens: groups[s['group']].append(s['id'])
     return {
-        'counts': {
-            'screens': _measure(len(pages), SRC['screens'] + ', kind page'),
-            'hidden_screens': _measure(len(out_screens) - len(pages), SRC['screens'] + ', kind layout, redirect or fallback'),
-            'links': _measure(len([e for e in out_edges if e['via'] != 'menu_of']), SRC['links'] + ' (screen pairs)'),
-            'link_sites': _measure(sum(e['count'] for e in out_edges if e['via'] != 'menu_of'), SRC['links']),
-            'broken': _measure(len(broken), SRC['broken']),
-            'no_way_in': _measure(count('no_way_in'), SRC['no_way_in']),
-            'dead_ends': _measure(count('dead_end'), SRC['dead_ends']),
-            'duplicates': _measure(count('duplicate'), SRC['duplicates']),
-            'tasks': _measure(len(tasks), SRC['tasks']),
-            'unowned_links': _measure(len(unowned), SRC['unowned_links']),
-            'unowned_dead': _measure(sum(u['dead'] for u in unowned), SRC['unowned_links'] + ', in an unreachable module'),
-            'without_target': _measure(len(pages) if pages else 0, SRC['without_target']),
-            'shots': _measure(shot_count, SRC['shots']),
-        },
+        'counts': _journey_counts(out_screens, pages, out_edges, journey, tasks, shot_count),
         'src': SRC,
-        'grid': {'cols': cols, 'rows': rows, 'col_w': COL_W, 'row_h': ROW_H, 'box_w': BOX_W, 'box_h': BOX_H, 'pad': PAD,
-                 'width': PAD * 2 + max(cols - 1, 0) * COL_W + BOX_W, 'height': PAD * 2 + max(rows - 1, 0) * ROW_H + BOX_H},
+        'grid': _grid(cells),
         'starts': starts,
         'screens': out_screens,
         'menus': menus,
