@@ -3,7 +3,7 @@
 // but never below a readable scale: a large map then pans inside its box. Its toolbar zooms, opens it full screen
 // (DiagramViewer, its own chunk), shows its source and copies it. A diagram the engine cannot read shows its source
 // and why, never a broken page.
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { copyText, IconButton } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
@@ -36,29 +36,55 @@ function Source({ source, label }: { source: string; label: string }) {
   return <pre className={css.pre} dir="ltr" tabIndex={0} aria-label={label}><code>{source}</code></pre>
 }
 
-export function Diagram({ source, n }: { source: string; n: number }) {
-  const w = useLibraryWords()
-  const kindWord = useKindWord()
-  const { theme, num } = usePrefs()
-  const toast = useToast()
-  const kind = diagramKind(source)
-  const name = w('diagramN', { n, kind: kindWord(kind) })
-  const figure = useRef<HTMLElement>(null)
-  const box = useRef<HTMLDivElement>(null)
+/** The diagram as the engine draws it in the page's theme, drawn again when the source or the theme changes. */
+function useDrawing(figure: RefObject<HTMLElement | null>, source: string, dark: boolean): State {
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [showSource, setShowSource] = useState(false)
-  const [full, setFull] = useState(false)
-  const opened = useOpenedOnce(full)
-
   useEffect(() => {
     let live = true
     const el = figure.current
     if (!el) return
     // the theme is read once the engine has arrived, after the page has applied the new theme
-    loadEngine().then((engine) => engine.draw(source, readTheme(el, theme === 'dark')))
+    loadEngine().then((engine) => engine.draw(source, readTheme(el, dark)))
       .then((drawing) => { if (live) setState({ kind: 'drawn', drawing }) }, (error: unknown) => { if (live) setState({ kind: 'failed', why: reason(error) }) })
     return () => { live = false }
-  }, [source, theme])
+  }, [figure, source, dark])
+  return state
+}
+
+function ZoomTools({ view, onFull }: { view: ReturnType<typeof usePanZoom>; onFull: () => void }) {
+  const w = useLibraryWords()
+  const { num } = usePrefs()
+  return <>
+    <IconButton small icon="zoomOut" label={w('zoomOut')} onPress={() => view.zoomBy(1 / ZOOM.step)} />
+    <span className={css.zoomLevel} aria-live="polite">{view.k === null ? '' : `${num(Math.round(view.k * 100))}%`}</span>
+    <IconButton small icon="zoomIn" label={w('zoomIn')} onPress={() => view.zoomBy(ZOOM.step)} />
+    <IconButton small icon="fullScreen" label={w('fullScreen')} onPress={onFull} data-open="diagram" />
+  </>
+}
+
+function Failed({ why }: { why: string }) {
+  const w = useLibraryWords()
+  return (
+    <div className={css.diagramFailed} role="note">
+      <Icon name="info" />
+      <span>{w('diagramFailed')}{why && <> <span className={css.diagramWhy}>{w('diagramWhy', { why: '' })}<bdi dir="ltr">{why}</bdi></span></>}</span>
+    </div>
+  )
+}
+
+export function Diagram({ source, n }: { source: string; n: number }) {
+  const w = useLibraryWords()
+  const kindWord = useKindWord()
+  const { theme } = usePrefs()
+  const toast = useToast()
+  const kind = diagramKind(source)
+  const name = w('diagramN', { n, kind: kindWord(kind) })
+  const figure = useRef<HTMLElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const state = useDrawing(figure, source, theme === 'dark')
+  const [showSource, setShowSource] = useState(false)
+  const [full, setFull] = useState(false)
+  const opened = useOpenedOnce(full)
 
   const drawing = state.kind === 'drawn' ? state.drawing : null
   const natural = useMemo(() => (drawing && drawing.width > 0 ? { width: drawing.width, height: drawing.height } : null), [drawing])
@@ -70,12 +96,7 @@ export function Diagram({ source, n }: { source: string; n: number }) {
       <div className={css.diagramBar}>
         <span className={css.diagramName}><Icon name="flow" />{name}</span>
         <span className={css.diagramTools}>
-          {drawing && natural && <>
-            <IconButton small icon="zoomOut" label={w('zoomOut')} onPress={() => view.zoomBy(1 / ZOOM.step)} />
-            <span className={css.zoomLevel} aria-live="polite">{view.k === null ? '' : `${num(Math.round(view.k * 100))}%`}</span>
-            <IconButton small icon="zoomIn" label={w('zoomIn')} onPress={() => view.zoomBy(ZOOM.step)} />
-            <IconButton small icon="fullScreen" label={w('fullScreen')} onPress={() => setFull(true)} data-open="diagram" />
-          </>}
+          {drawing && natural && <ZoomTools view={view} onFull={() => setFull(true)} />}
           {state.kind !== 'failed' && (
             <IconButton small icon="code" label={w('showSourceLong')} onPress={() => setShowSource((on) => !on)} aria-pressed={showSource} />
           )}
@@ -85,12 +106,7 @@ export function Diagram({ source, n }: { source: string; n: number }) {
       {state.kind === 'loading' && <div className={css.diagramLoading} role="status">{w('diagramLoading')}</div>}
       {drawing && natural && <DrawingBox svg={drawing.svg} natural={natural} k={view.k} box={box} label={name} pans={view.pans} />}
       {drawing && view.pans && <p className={css.diagramHint}>{w('diagramPan')}</p>}
-      {state.kind === 'failed' && (
-        <div className={css.diagramFailed} role="note">
-          <Icon name="info" />
-          <span>{w('diagramFailed')}{state.why && <> <span className={css.diagramWhy}>{w('diagramWhy', { why: '' })}<bdi dir="ltr">{state.why}</bdi></span></>}</span>
-        </div>
-      )}
+      {state.kind === 'failed' && <Failed why={state.why} />}
       {(showSource || state.kind === 'failed') && <Source source={source} label={w('sourceOf', { name })} />}
       {opened && drawing && natural && (
         <Suspense fallback={null}>
