@@ -42,10 +42,12 @@ function LibraryBody({ data }: { data: StudioData }) {
   const images = mediaOf(data)
   const groups = useMemo(() => grouped(docs), [docs])
   const first = useMemo(() => readingList(docs).filter((d) => d.order !== null), [docs])
+  // Unfiltered, a document of "Read first" is listed there only (the owner's choice), not again in its group
+  const others = useMemo(() => grouped(docs.filter((d) => d.order === null)), [docs])
   const query = search.q ?? ''
   const phone = usePhone()
   const hits = useMemo(() => searchDocs(docs, query), [docs, query])
-  const shown = search.group ? groups.filter(([group]) => group === search.group) : groups
+  const shown = search.group ? groups.filter(([group]) => group === search.group) : others
   const setQuery = (q: string) => navigate({ to: '/library/docs', search: { ...(search.group ? { group: search.group } : {}), ...(q ? { q } : {}) }, replace: true })
 
   if (!docs.length && !images.length) {
@@ -83,6 +85,11 @@ function LibraryBody({ data }: { data: StudioData }) {
       ) : (
         <div className={css.columns}>
           <div className={css.col}>
+            {!search.group && first.length > 0 && (
+              <Section title={w('readFirst')} count={first.length} id="s-read-first">
+                <Panel><FoldList items={first} first={phone ? 5 : 8} render={(doc, i) => <DocRow doc={doc} numbered={i + 1} />} label={w('readFirst')} /></Panel>
+              </Section>
+            )}
             {shown.map(([group, rows]) => (
               <Section key={group} title={groupWord(w, group)} count={rows.length} id={`g-${group}`}>
                 <Panel><FoldList items={rows} first={phone && !search.group ? 3 : 6} render={(doc) => <DocRow doc={doc} />} label={groupWord(w, group)} /></Panel>
@@ -90,11 +97,6 @@ function LibraryBody({ data }: { data: StudioData }) {
             ))}
           </div>
           <div className={[css.col, css.side].join(' ')}>
-            {!search.group && first.length > 0 && (
-              <Section title={w('readFirst')} count={first.length} id="s-read-first">
-                <Panel><FoldList items={first} first={phone ? 5 : 8} render={(doc, i) => <DocRow doc={doc} numbered={i + 1} />} label={w('readFirst')} /></Panel>
-              </Section>
-            )}
             <Section title={w('images')} count={images.length} id="s-images">
               <Panel>
                 {images.length ? <FoldList items={images} first={6} render={(image) => (
