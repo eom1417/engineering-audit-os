@@ -514,7 +514,10 @@ def _timeline_rows(waves, tasks, step_of, card):
     rows, wave_of, last = [], {}, {}
     for wave in waves:
         members = [tid for tid in wave.get('tasks') or [] if tid in tasks]
-        for tid in members: rows.append(_timeline_row(tid, tasks[tid], wave['wave'], step_of, card, _waits(tasks[tid], wave_of, last)))
+        for tid in members:
+            task, shown, waits = tasks[tid], card.get(tid) or {}, _waits(tasks[tid], wave_of, last)
+            rows.append({'id': tid, 'step': step_of.get(tid), 'wave': wave['wave'], 'title': str(shown.get('title') or task.get('title') or tid)[:300],
+                         'state': shown.get('state') or 'open', 'waits': waits[:MAX_WAITS], 'more': max(len(waits) - MAX_WAITS, 0)})
         for tid in members:
             wave_of[tid] = wave['wave']
             for path in tasks[tid].get('paths') or []:
@@ -526,15 +529,8 @@ def _waits(task, wave_of, last):
     waits = [{'task': ref['task_id'], 'why': 'prerequisite', 'detail': str(ref.get('reason') or '')[:200]}
              for ref in task.get('prerequisites') or [] if isinstance(ref, dict) and ref.get('task_id') in wave_of]
     for path in sorted({p for p in task.get('paths') or [] if isinstance(p, str)}):
-        before = last.get(path)
-        if before and before not in {w['task'] for w in waits}: waits.append({'task': before, 'why': 'same_file', 'detail': path})
+        if (before := last.get(path)) and before not in {w['task'] for w in waits}: waits.append({'task': before, 'why': 'same_file', 'detail': path})
     return waits
-
-
-def _timeline_row(tid, task, wave, step_of, card, waits):
-    shown = card.get(tid) or {}
-    return {'id': tid, 'step': step_of.get(tid), 'wave': wave, 'title': str(shown.get('title') or task.get('title') or tid)[:300],
-            'state': shown.get('state') or 'open', 'waits': waits[:MAX_WAITS], 'more': max(len(waits) - MAX_WAITS, 0)}
 
 
 def _timeline_steps(stones, rows, lang):

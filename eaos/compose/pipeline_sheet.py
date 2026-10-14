@@ -4,7 +4,7 @@ report and System -> Pipeline show the same stages, places and numbers (docs/STU
 records or computes a number: the section is given, once per language, by the caller.
 """
 from ..studio import model as M
-from .markup import both, esc
+from .markup import both, esc, fit
 
 NODE_W, NODE_H, STEP_X, STEP_Y, PAD = 150, 46, 200, 66, 16
 MOST_DRAWN = 60      # a longer pipeline is a table here; the Studio draws it with pan and zoom
@@ -24,11 +24,6 @@ def where(site):
     return f"{site['path']}:{site['line']}" if site.get('path') and site.get('line') else site.get('path') or ''
 
 
-def fit(text, room):
-    text = str(text)
-    return text if len(text) <= room else '…' + text[-(room - 1):]
-
-
 def number(value, meaning):
     cls = "" if meaning in ("pipeline verdict", "pipeline gap explanation") else "n"
     return f'<span class="{cls}" data-meaning="{esc(meaning)}">{esc(value)}</span>'
@@ -41,35 +36,40 @@ def flowchart(section, pipeline):
     at = {s['id']: (PAD + s['layer'] * STEP_X, PAD + s['order'] * STEP_Y) for s in stages}
     width = PAD * 2 + NODE_W + max([s['layer'] for s in stages] + [0]) * STEP_X
     height = PAD * 2 + NODE_H + max([s['order'] for s in stages] + [0]) * STEP_Y
-    parts = []
-    for e in section['edges']:
-        if e['pipeline'] != pipeline['id'] or e['from'] not in at or e['to'] not in at: continue
-        (ax, ay), (bx, by) = at[e['from']], at[e['to']]
-        x1, y1, x2, y2 = ax + NODE_W, ay + NODE_H / 2, bx, by + NODE_H / 2
-        if x2 > x1:
-            m = (x1 + x2) / 2
-            d = f'M{x1},{y1} C{m},{y1} {m},{y2} {x2},{y2}'
-        else:
-            bow = max(ay, by) + NODE_H + 18
-            d = f'M{ax + NODE_W / 2},{ay + NODE_H} C{ax + NODE_W / 2},{bow} {bx + NODE_W / 2},{bow} {bx + NODE_W / 2},{by + NODE_H}'
-        shape = (e.get('data') or {}).get('shape') or ''
-        parts.append(f'<path d="{d}" class="ps-e ps-{esc(e["kind"])}" marker-end="url(#ps-arrow)"><title>{esc(shape)}</title></path>')
-    for s in stages:
-        x, y = at[s['id']]
-        if s['kind'] == 'router':
-            box = f'<polygon points="{x + NODE_W / 2},{y - 5} {x + NODE_W + 4},{y + NODE_H / 2} {x + NODE_W / 2},{y + NODE_H + 5} {x - 4},{y + NODE_H / 2}" class="ps-box ps-router"/>'
-            anchor, tx = 'middle', x + NODE_W / 2
-        else:
-            box = f'<rect x="{x}" y="{y}" width="{NODE_W}" height="{NODE_H}" rx="9" class="ps-box ps-{esc(s["kind"])}"/>'
-            anchor, tx = 'start', x + 10
-        sub = ' · '.join(s.get('tools') or []) or where(s.get('entry')).rsplit('/', 1)[-1]
-        parts.append(f'<g>{box}<text x="{tx}" y="{y + 20}" text-anchor="{anchor}" class="ps-t">{esc(fit(s["label"], 17))}</text>'
-                     f'<text x="{tx}" y="{y + 36}" text-anchor="{anchor}" class="ps-s">{esc(fit(sub, 24))}</text>'
-                     f'<title>{esc(s["label"])} · {esc(where(s.get("entry")))}</title></g>')
+    parts = [_edge(e, at) for e in section['edges'] if e['pipeline'] == pipeline['id'] and e['from'] in at and e['to'] in at]
+    parts += [_stage_box(s, *at[s['id']]) for s in stages]
     return (f'<svg class="ps-svg" data-literal="pipeline stage labels and evidence" viewBox="0 0 {width} {height}" role="img" direction="ltr" '
             f'aria-label="{esc(pipeline["title"])}: {M.pipeline_counts(section)['drawn'][pipeline['id']]} stages">'
             '<defs><marker id="ps-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'
             '<path d="M0,0 L8,4 L0,8 z" class="ps-arrow"/></marker></defs>' + ''.join(parts) + '</svg>')
+
+
+def _edge(e, at):
+    """A link: a curve forward to the next layer, or a bow under both stages back to an earlier one."""
+    (ax, ay), (bx, by) = at[e['from']], at[e['to']]
+    x1, y1, x2, y2 = ax + NODE_W, ay + NODE_H / 2, bx, by + NODE_H / 2
+    if x2 > x1:
+        m = (x1 + x2) / 2
+        d = f'M{x1},{y1} C{m},{y1} {m},{y2} {x2},{y2}'
+    else:
+        bow = max(ay, by) + NODE_H + 18
+        d = f'M{ax + NODE_W / 2},{ay + NODE_H} C{ax + NODE_W / 2},{bow} {bx + NODE_W / 2},{bow} {bx + NODE_W / 2},{by + NODE_H}'
+    shape = (e.get('data') or {}).get('shape') or ''
+    return f'<path d="{d}" class="ps-e ps-{esc(e["kind"])}" marker-end="url(#ps-arrow)"><title>{esc(shape)}</title></path>'
+
+
+def _stage_box(s, x, y):
+    """A stage: a diamond for a router, else a box, with its name and its tools (or its file) under it."""
+    if s['kind'] == 'router':
+        box = f'<polygon points="{x + NODE_W / 2},{y - 5} {x + NODE_W + 4},{y + NODE_H / 2} {x + NODE_W / 2},{y + NODE_H + 5} {x - 4},{y + NODE_H / 2}" class="ps-box ps-router"/>'
+        anchor, tx = 'middle', x + NODE_W / 2
+    else:
+        box = f'<rect x="{x}" y="{y}" width="{NODE_W}" height="{NODE_H}" rx="9" class="ps-box ps-{esc(s["kind"])}"/>'
+        anchor, tx = 'start', x + 10
+    sub = ' · '.join(s.get('tools') or []) or where(s.get('entry')).rsplit('/', 1)[-1]
+    return (f'<g>{box}<text x="{tx}" y="{y + 20}" text-anchor="{anchor}" class="ps-t">{esc(fit(s["label"], 17))}</text>'
+            f'<text x="{tx}" y="{y + 36}" text-anchor="{anchor}" class="ps-s">{esc(fit(sub, 24))}</text>'
+            f'<title>{esc(s["label"])} · {esc(where(s.get("entry")))}</title></g>')
 
 
 def stage_table(section, pipelines):
@@ -119,6 +119,11 @@ def sheet(sections):
                      'Too long to draw on one page: open it in the Studio (System → Pipeline).', 'p', 'muted small'))
         return f'<figure class="ps-fig"><figcaption>{code(p["title"])} · {both(f"{label} مرحلة", f"{label} stages")}</figcaption>{body}</figure>'
     drawn = ''.join(figure(p) for p in top)
+    return _sheet_body(ar, en, product, counts, drawn)
+
+
+def _sheet_body(ar, en, product, counts, drawn):
+    """The sheet around the drawn pipelines: those inside stages, the numbers, the stage table and the gap."""
     subs = [p for p in product if p.get('parent')]
     sub_line = (f'<p class="small">{both("خطوط معالجة داخل مراحلها:", "Pipelines inside its stages:")} '
                 + ', '.join(f'{code(p["title"])} ({number(counts['stages'][p['id']], "stages in this pipeline")})' for p in subs) + '</p>') if subs else ''

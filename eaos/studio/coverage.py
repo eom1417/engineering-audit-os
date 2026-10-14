@@ -281,7 +281,8 @@ def _parts_of(section, body, gaps, lang):
 
 def _standing(empty, gaps, tiers):
     """{state, reason, step, tool} of a written section: empty, partial (and the step that would complete it), or measured."""
-    if empty: return {'state': 'empty', 'reason': 'nothing_found', 'step': gaps[0]['step'] if gaps else None, 'tool': None}
+    if empty: return {'state': 'empty', 'reason': 'nothing_found', 'step': gaps[0]['step'] if gaps else 'NS40.T2' if tiers else None,
+                      'tool': 'audit' if tiers and not gaps else None}
     if gaps: return {'state': 'partial', 'reason': 'some_parts_missing', 'step': gaps[0]['step'], 'tool': None}
     if tiers: return {'state': 'partial', 'reason': 'some_parts_missing', 'step': 'NS40.T2', 'tool': 'audit'}
     return {'state': 'measured', 'reason': 'written', 'step': None, 'tool': None}

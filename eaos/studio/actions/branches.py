@@ -393,8 +393,7 @@ class BranchControl:
     def _fix_choices(self, blocked):
         """The local branches (name, tip, when), and the person's own offered (no EAOS, bot or archive branch)."""
         locals_ = [(name, tip, when) for kind, _, name, _, tip, when, *_ in self.refs() if kind == 'local']
-        persons = [row for row in locals_ if reading._persons(row[0]) and not row[0].startswith(reading.ARCHIVED)]
-        return locals_, [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in persons]
+        return locals_, [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in locals_ if reading._persons(name) and not name.startswith(reading.ARCHIVED)]
 
     def _fix_view(self, state, base, working):
         """The state as fix_start sees it once the base is chosen: that branch's own batches give the next number."""
