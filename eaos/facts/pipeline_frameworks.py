@@ -8,6 +8,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import call_name
+from .pipeline_langgraph import graphs_of
 from .pipeline_read import (slug, site, Found, _str, _strs, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES)
 
 
@@ -321,106 +322,11 @@ def _task_routes(py, out, tasks):
                     break
 
 
-def _loop_values(tree):
-    """A function giving, for a node, {name: [literal strings]} of the `for name in <literal list>` loops around it (the list
-    written in place or assigned to a name), so `add_edge('a', name)` in such a loop means each listed value."""
-    parents, lists = _parents(tree), _literal_lists(tree)
-
-    def values(node):
-        found, current = {}, parents.get(id(node))
-        while current is not None:
-            if isinstance(current, ast.For) and isinstance(current.target, ast.Name):
-                items = _loop_items(current, lists)
-                if items: found.setdefault(current.target.id, items)
-            current = parents.get(id(current))
-        return found
-    return values
-
-
-def _parents(tree):
-    """{id(node): its parent} over the whole tree."""
-    return {id(child): parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
-
-
-def _literal_lists(tree):
-    """{name: [strings]} of the names assigned a list or tuple of string literals."""
-    lists = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and \
-                isinstance(node.value, (ast.List, ast.Tuple)) and node.value.elts and all(_str(e) is not None for e in node.value.elts):
-            lists[node.targets[0].id] = _strs(node.value)
-    return lists
-
-
-def _loop_items(loop, lists):
-    """The strings a `for` loop walks: a list written in place, or one assigned to the name it iterates."""
-    if isinstance(loop.iter, (ast.List, ast.Tuple)): return _strs(loop.iter)
-    return lists.get(loop.iter.id) if isinstance(loop.iter, ast.Name) else None
-
-
 def langgraph(py, out):
+    """The LangGraph graphs of every module that imports LangGraph (eaos/facts/pipeline_langgraph.py reads them)."""
     for rel, tree in py.trees.items():
-        if not any((module or '').split('.')[0] == 'langgraph' for module, _ in py.imports.get(rel, {}).values()): continue
-        graphs = {}
-        for sub in ast.walk(tree):
-            if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and call_name(sub.value.func) in ('StateGraph', 'Graph', 'MessageGraph') \
-                    and len(sub.targets) == 1 and isinstance(sub.targets[0], (ast.Name, ast.Attribute)):
-                name = _unparse(sub.targets[0])
-                graphs[name] = Found(f'{rel}:{name}', f'{name} ({rel})', 'langgraph', site(rel, sub.lineno, py.line(rel, sub.lineno)),
-                                     [site(rel, sub.lineno, py.line(rel, sub.lineno))])
-        if not graphs: continue
-        loops = _loop_values(tree)
-        calls = sorted((s for s in ast.walk(tree) if isinstance(s, ast.Call) and isinstance(s.func, ast.Attribute)
-                        and _unparse(s.func.value) in graphs), key=lambda s: s.lineno)
-        for call in calls:
-            found, method, where = graphs[_unparse(call.func.value)], call.func.attr, site(rel, call.lineno, py.line(rel, call.lineno))
-            bound = loops(call)
-            node_key = lambda label: found.stage(label, where, kind='source' if label == 'START' else 'sink' if label == 'END' else 'stage')
-
-            def labels(expr):
-                if _str(expr) is not None: return [_str(expr)]
-                if isinstance(expr, ast.Name): return bound.get(expr.id) or [expr.id]
-                if isinstance(expr, (ast.List, ast.Tuple)): return [l for e in expr.elts for l in labels(e)]
-                return []
-
-            label_of = lambda expr: (labels(expr) or [None])[0]
-            if method == 'add_node' and call.args:
-                key = node_key(label_of(call.args[0]))
-                fn = call.args[1] if len(call.args) > 1 else call.args[0]
-                target = py.resolve(rel, fn.id) if isinstance(fn, ast.Name) else None
-                found.stages[key]['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}" if target else _unparse(fn, 120)
-                if target: describe(py, target[0], target[1], found.stages[key])
-            elif method == 'add_edge' and len(call.args) >= 2:
-                for a in labels(call.args[0]):
-                    for b in labels(call.args[1]):
-                        found.edge(node_key(a), node_key(b), 'declared', where, kind='data')
-            elif method in ('set_entry_point', 'set_finish_point') and call.args:
-                ends = (node_key('START'), node_key(label_of(call.args[0]))) if method == 'set_entry_point' else (node_key(label_of(call.args[0])), node_key('END'))
-                found.edge(*ends, 'declared', where)
-            elif method == 'add_conditional_edges' and len(call.args) >= 2:
-                source = node_key(label_of(call.args[0]))
-                mapping = call.args[2] if len(call.args) > 2 else next((k.value for k in call.keywords if k.arg in ('path_map', 'conditional_edge_mapping')), None)
-                branches = []
-                if isinstance(mapping, ast.Dict):
-                    for key, value in zip(mapping.keys, mapping.values):
-                        to = node_key(label_of(value))
-                        branches.append({'condition': _str(key) or _unparse(key), 'to': to, 'evidence': site(rel, key.lineno if key else call.lineno, py.line(rel, key.lineno if key else call.lineno))})
-                        found.edge(source, to, 'declared', where, kind='control', condition=_str(key) or _unparse(key))
-                elif isinstance(mapping, (ast.List, ast.Tuple)):
-                    for value in mapping.elts:
-                        to = node_key(label_of(value))
-                        branches.append({'condition': label_of(value), 'to': to, 'evidence': where})
-                        found.edge(source, to, 'declared', where, kind='control', condition=label_of(value))
-                else:
-                    found.unresolved.append({'id': f'{source}:route:{call.lineno}', 'pipeline': found.id, 'stage': source,
-                                             'call': _unparse(call.args[1]), 'reason': 'the router returns node names EAOS cannot list', 'evidence': where})
-                router_fn = label_of(call.args[1]) or _unparse(call.args[1], 40) or 'router'
-                router = found.stage(router_fn, where, kind='router')
-                found.edge(source, router, 'declared', where, kind='control')
-                found.routers.append({'id': f'{found.id}:{slug(router_fn)}:{call.lineno}', 'pipeline': found.id, 'stage': router,
-                                      'kind': 'conditional_edges', 'table': router_fn, 'on': f'{router_fn}(state)', 'entry': where,
-                                      'branches': branches, 'total': None if branches else False, 'default': None, 'unhandled': []})
-        out.extend(f for f in graphs.values() if f.stages)
+        if any((module or '').split('.')[0] == 'langgraph' for module, _ in py.imports.get(rel, {}).values()):
+            out.extend(graphs_of(py, rel, tree))
 
 
 def luigi(py, out):
