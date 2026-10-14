@@ -30,6 +30,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ... import branches as reading
 from .store import ACTIVE, TERMINAL, _read_json, _write_json, now
 
 RECOVERY = 'refs/eaos-recovery/'
@@ -139,7 +140,6 @@ class BranchControl:
 
     def _worktrees(self):
         """Every worktree of the repository: path, branch (or detached), head, and its unsaved changes."""
-        from ... import branches as reading
         done = git(self.project, 'worktree', 'list', '--porcelain')
         rows, row = [], {}
         for line in done.stdout.splitlines() + ['']:
@@ -288,7 +288,6 @@ class BranchControl:
     def context(self, state=None, head=None):
         """The four branches the Studio never mixes up: the checkout, the analysis branch, the report's branch and the
         base the person compares against (the analysis branch unless they choose another)."""
-        from ... import branches as reading
         state = state if state is not None else self.state()
         head = head or self.head()
         analysis = state.get('branch') or head['branch']
@@ -349,18 +348,15 @@ class BranchControl:
         archive branch); a protected one is shown with its reason, never as a base or a target. The base commit is what the
         confirm token pins, so a branch that moves after the preview is caught before anything runs."""
         from ... import batch_branch
-        from ... import branches as reading
         wanted = wanted if isinstance(wanted, dict) else {}
-        state = self.state()
-        head = self.head()
+        state, head = self.state(), self.head()
         working = state.get('branch') or head['branch']
         base = str(wanted.get('base') or '').strip() or working
-        locals_ = [(name, tip, when) for kind, _, name, _, tip, when, *_ in self.refs() if kind == 'local']
         protected = self.policy()['protected']
         blocked = lambda name: self.blocked_target(name, protected, head)
-        persons = [row for row in locals_ if reading._persons(row[0]) and not row[0].startswith(reading.ARCHIVED)]
+        locals_, offered = self._fix_choices(blocked)
         out = {'base': None, 'mode': 'new', 'deliver_as': None, 'merge_into': None, 'problem': None, 'direct_blocked': None,
-               'continuable': [], 'branches': [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in persons]}
+               'continuable': [], 'branches': offered}
         row = next((r for r in locals_ if r[0] == base), None)
         if row is None:
             out['problem'] = say(f'There is no branch named {base} in this project.', f'ما فيه فرع اسمه {base} في هذا المشروع.', 'no_base')
@@ -370,18 +366,23 @@ class BranchControl:
         tips = {name: tip for name, tip, _ in locals_}
         out['continuable'] = [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in batch_branch.work_branches(view)]
         out['direct_blocked'] = self._direct_blocked(base, blocked(base))
+        return self._fix_delivery(out, view, base, wanted, hint, head, blocked)
+
+    def _fix_delivery(self, out, view, base, wanted, hint, head, blocked):
+        """Where the batch goes: on the base itself, on an EAOS branch waiting for a decision, or on a new one."""
+        from ... import batch_branch
         asked = str(wanted.get('deliver_as') or '').strip()
-        if asked == base and out['direct_blocked']:
-            out.update(mode='direct', deliver_as=base, merge_into=base, problem=out['direct_blocked'])
-            return out
+        merge = str(wanted.get('merge_into') or '') or head['branch']
+        if asked == base and out['direct_blocked']: return out | {'mode': 'direct', 'deliver_as': base, 'merge_into': base, 'problem': out['direct_blocked']}
         named = self._named_after(view, base, hint) if hint and not asked else ''
         try:
-            out['deliver_as'], out['merge_into'] = batch_branch.delivery(view, asked or named or None, wanted.get('merge_into') or head['branch'])
+            out['deliver_as'], out['merge_into'] = batch_branch.delivery(view, asked or named or None, merge)
         except ValueError as problem:
-            out['problem'] = say(str(problem), str(problem), 'delivery')
-            out['deliver_as'], out['merge_into'] = asked or None, str(wanted.get('merge_into') or '') or head['branch']
-            out['mode'] = 'direct' if asked == base else 'new'
-            return out
+            return out | {'problem': say(str(problem), str(problem), 'delivery'), 'deliver_as': asked or None, 'merge_into': merge, 'mode': 'direct' if asked == base else 'new'}
+        return self._fix_merge(out, base, blocked)
+
+    def _fix_merge(self, out, base, blocked):
+        """The mode the delivery means, and a problem when the branch to merge into is protected."""
         out['mode'] = 'direct' if out['deliver_as'] == base else 'continue' if out['deliver_as'] in {c['name'] for c in out['continuable']} else 'new'
         target = blocked(out['merge_into'])
         if target:
@@ -389,9 +390,14 @@ class BranchControl:
                                  f"{out['merge_into']} محمي ({target['ar']}): اختر فرعًا ثانيًا يُدمج فيه.", 'protected_target')
         return out
 
+    def _fix_choices(self, blocked):
+        """The local branches (name, tip, when), and the person's own offered (no EAOS, bot or archive branch)."""
+        locals_ = [(name, tip, when) for kind, _, name, _, tip, when, *_ in self.refs() if kind == 'local']
+        persons = [row for row in locals_ if reading._persons(row[0]) and not row[0].startswith(reading.ARCHIVED)]
+        return locals_, [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in persons]
+
     def _fix_view(self, state, base, working):
         """The state as fix_start sees it once the base is chosen: that branch's own batches give the next number."""
-        from ... import branches as reading
         view = dict(state, project=self.project)
         if base != working and state:
             view = {k: v for k, v in view.items() if k not in reading.KEYS}
@@ -401,7 +407,6 @@ class BranchControl:
 
     def _direct_blocked(self, base, blocked):
         """Why fixes may not land on the base directly (a protected branch, or the project's main), or None."""
-        from ... import branches as reading
         why = blocked or ({'code': 'main', 'en': reading.protected(self.project, base), 'ar': 'الفرع الرئيسي'} if reading.protected(self.project, base) else None)
         if not why: return None
         return say(f"{base} is protected ({why['en']}): fixes never land on it directly.",
@@ -410,7 +415,6 @@ class BranchControl:
     def _named_after(self, view, base, hint):
         """`eaos/<base>/<group>` for a group of cards, when that name is free and git takes it; else ''."""
         from ... import agent_tools
-        from ... import branches as reading
         named = f"eaos/{reading.slug(base)}/{reading.slug(str(hint)).lower()[:40]}"
         if agent_tools.guided._branch_exists(view, named) or git(self.project, 'check-ref-format', '--branch', named).returncode: return ''
         return named
@@ -419,7 +423,6 @@ class BranchControl:
         """What Accept shows before it merges: the waiting branch, the branch it merges into (the fix preview's choice,
         else the branch open in the project folder), the person's branches to choose from (a protected one shown with its
         reason, not choosable) and the choice to delete the branch after merging (on by default)."""
-        from ... import branches as reading
         state = self.state()
         head = self.head()
         wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
@@ -788,7 +791,6 @@ class BranchControl:
         message = f'Merge {source} into {target} (EAOS Studio, run {run})'
         held = next((w for w in self._worktrees() if w['branch'] == target), None)
         if held:
-            from ... import branches as reading
             folder = Path(held['path'])
             changes = reading.dirty(folder)
             if changes is None or changes['tracked']: return {'error': 'the checked-out target has unsaved changes'}
@@ -1122,7 +1124,6 @@ class BranchControl:
     # ------------------------------------------------------------------ freshness
     def freshness(self):
         """The live answer to "is the check current?" for the branch EAOS works on (eaos/branches.py freshness)."""
-        from ... import branches as reading
         from ...build_info import digest
         state = self.state()
         if not state: return {'state': 'unknown', 'reason': 'not_scanned', 'checked_at': now(), 'eaos_updated': False}
