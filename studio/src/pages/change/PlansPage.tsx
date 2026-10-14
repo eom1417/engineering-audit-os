@@ -58,9 +58,10 @@ function PlansBody({ data }: { data: StudioData }) {
           <ul aria-label={w('plansTitle')}>
             {plans.map((plan) => (
               <li key={plan.id}>
-                <RowLink to={`/plans/${encodeURIComponent(plan.id)}`} icon="plan" title={<Txt>{planTitle(plan, t)}</Txt>}
+                <RowLink to={`/plans/${encodeURIComponent(plan.id)}`} icon="plan"
+                  title={<><Txt>{planTitle(plan, t)}</Txt> <span className={css.stateTag}>{planState(plan.state, w)}</span></>}
                   sub={<span className={css.planFacts}><Progress plan={plan} /><span>{w('stepsN', { n: plan.steps.length })}</span><span>{w('tasksN', { n: taskCount(plan) })}</span></span>}
-                  end={planState(plan.state, w)} />
+                />
               </li>
             ))}
           </ul>

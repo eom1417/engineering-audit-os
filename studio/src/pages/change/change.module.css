@@ -18,6 +18,7 @@
 /* A plan row's facts: the progress on its own line, then the counts, wrapping between them with no separator */
 .planFacts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-block-start: 4px; }
 .planFacts > :first-child { flex-basis: 100%; }
+.stateTag { display: inline-block; margin-inline-start: 6px; padding: 1px 8px; border-radius: 999px; background: var(--bg-sunken); color: var(--text-secondary); font-size: 12px; font-weight: 500; vertical-align: middle; }
 .inlineLink { display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--target); min-inline-size: var(--target); color: var(--accent-text); font-weight: 500; }
 .inlineLink:hover { text-decoration: underline; }
 .links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 10px; }
