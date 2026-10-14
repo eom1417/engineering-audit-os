@@ -150,128 +150,142 @@ function soleImage(tokens: Token[] | undefined): Tokens.Image | null {
 /** The document drawn, and its headings (for the table of contents), in one walk. */
 export function drawMarkdown(source: string, ctx: Context): Drawn {
   const { text, notes: texts } = footnotes(source)
-  const notes: Notes = { texts, order: new Map() }
-  const tokens = lexer(text, { gfm: true })
-  const headings: Heading[] = []
-  let tables = 0
-  let codes = 0
-  let diagrams = 0
-  let skippedTitle = false
-  const ins = (list: Token[] | undefined, key: string) => inline(list, ctx, key, notes)
+  const w: Walk = { ctx, notes: { texts, order: new Map() }, headings: [], tables: 0, codes: 0, diagrams: 0, skippedTitle: false }
+  const body = blocks(w, lexer(text, { gfm: true }), 'b')
+  const notes = drawNotes(w)
+  if (notes) body.push(notes)
+  return { body, headings: w.headings }
+}
 
-  function blocks(list: Token[], key: string): ReactNode[] {
-    return list.map((token, i) => block(token, `${key}.${i}`)).filter((node) => node !== null)
+/** One document's walk: its context and footnotes, its headings, and the counts that number its tables, code and diagrams. */
+interface Walk { ctx: Context; notes: Notes; headings: Heading[]; tables: number; codes: number; diagrams: number; skippedTitle: boolean }
+
+const ins = (w: Walk, list: Token[] | undefined, key: string) => inline(list, w.ctx, key, w.notes)
+
+/** A text token's words: its inline tokens drawn, else its text. */
+const textOf = (w: Walk, token: Tokens.Text, key: string) => ('tokens' in token && token.tokens ? ins(w, token.tokens, key) : unescape(token.text))
+
+function blocks(w: Walk, list: Token[], key: string): ReactNode[] {
+  return list.map((token, i) => block(w, token, `${key}.${i}`)).filter((node) => node !== null)
+}
+
+function block(w: Walk, token: Token, key: string): ReactNode {
+  switch (token.type) {
+    case 'space': case 'def': return null
+    case 'heading': return drawHeading(w, token as Tokens.Heading, key)
+    case 'paragraph': return drawParagraph(w, token as Tokens.Paragraph, key)
+    case 'text': return <p key={key} dir="auto">{textOf(w, token as Tokens.Text, key)}</p>
+    case 'blockquote': return drawQuote(w, token as Tokens.Blockquote, key)
+    case 'hr': return <hr key={key} className={css.hr} />
+    case 'list': return drawList(w, token as Tokens.List, key)
+    case 'code': return drawCode(w, token as Tokens.Code, key)
+    case 'table': return drawTable(w, token as Tokens.Table, key)
+    case 'html': return <p key={key} dir="auto" className={css.raw}>{unescape(String((token as Tokens.HTML).text ?? ''))}</p>
+    default: return 'tokens' in token && token.tokens ? <p key={key} dir="auto">{ins(w, token.tokens, key)}</p> : null
   }
+}
 
-  function block(token: Token, key: string): ReactNode {
-    switch (token.type) {
-      case 'space': case 'def': return null
-      case 'heading': {
-        const h = token as Tokens.Heading
-        const name = unescape(plain(h.tokens)).trim()
-        if (!skippedTitle && h.depth === 1 && headings.length === 0 && name === ctx.title.trim()) { skippedTitle = true; return null }
-        const depth = Math.min(4, Math.max(2, h.depth))
-        const id = `h-${headings.length + 1}`
-        headings.push({ id, depth, text: name.replace(FOOTNOTE_REF, '').trim() })
-        const Tag = `h${depth}` as 'h2' | 'h3' | 'h4'
-        return <Tag key={key} id={id} dir="auto" className={css[`h${depth}`]} tabIndex={-1}>{ins(h.tokens, key)}</Tag>
-      }
-      case 'paragraph': {
-        const p = token as Tokens.Paragraph
-        const alone = soleImage(p.tokens)
-        if (alone) return figure(alone, key)
-        return <p key={key} dir="auto">{ins(p.tokens, key)}</p>
-      }
-      case 'text': return <p key={key} dir="auto">{'tokens' in token && token.tokens ? ins(token.tokens, key) : unescape(token.text)}</p>
-      case 'blockquote': {
-        const quote = token as Tokens.Blockquote
-        const alert = alertOf(quote.text)
-        if (!alert) return <blockquote key={key} className={css.quote}>{blocks(quote.tokens, key)}</blockquote>
-        const title = ctx.w(`alert_${alert.kind}`)
-        return (
-          <div key={key} className={css.alert} data-kind={alert.kind} role="note" aria-label={title} dir={dirOf(alert.body || title)}>
-            <p className={css.alertTitle}><Icon name={ALERT_ICONS[alert.kind]} />{title}</p>
-            {blocks(lexer(alert.body, { gfm: true }), key)}
-          </div>
-        )
-      }
-      case 'hr': return <hr key={key} className={css.hr} />
-      case 'list': {
-        const list = token as Tokens.List
-        const items = list.items.map((item, j) => (
-          <li key={j} className={item.task ? css.task : undefined}>
-            {item.task && <span className={css.check} data-checked={item.checked ? '' : undefined} role="img"
-              aria-label={ctx.w(item.checked ? 'taskDone' : 'taskOpen')} />}
-            {item.loose ? blocks(item.tokens.filter((t) => t.type !== 'checkbox'), `${key}.${j}`) : item.tokens.map((t, n) => t.type === 'checkbox' ? null : t.type === 'text'
-              ? <Fragment key={n}>{'tokens' in t && t.tokens ? ins(t.tokens, `${key}.${j}.${n}`) : unescape(t.text)}</Fragment>
-              : block(t, `${key}.${j}.${n}`))}
+function drawHeading(w: Walk, h: Tokens.Heading, key: string): ReactNode {
+  const name = unescape(plain(h.tokens)).trim()
+  if (!w.skippedTitle && h.depth === 1 && w.headings.length === 0 && name === w.ctx.title.trim()) { w.skippedTitle = true; return null }
+  const depth = Math.min(4, Math.max(2, h.depth))
+  const id = `h-${w.headings.length + 1}`
+  w.headings.push({ id, depth, text: name.replace(FOOTNOTE_REF, '').trim() })
+  const Tag = `h${depth}` as 'h2' | 'h3' | 'h4'
+  return <Tag key={key} id={id} dir="auto" className={css[`h${depth}`]} tabIndex={-1}>{ins(w, h.tokens, key)}</Tag>
+}
+
+function drawParagraph(w: Walk, p: Tokens.Paragraph, key: string): ReactNode {
+  const alone = soleImage(p.tokens)
+  return alone ? drawFigure(w, alone, key) : <p key={key} dir="auto">{ins(w, p.tokens, key)}</p>
+}
+
+function drawQuote(w: Walk, quote: Tokens.Blockquote, key: string): ReactNode {
+  const alert = alertOf(quote.text)
+  if (!alert) return <blockquote key={key} className={css.quote}>{blocks(w, quote.tokens, key)}</blockquote>
+  const title = w.ctx.w(`alert_${alert.kind}`)
+  return (
+    <div key={key} className={css.alert} data-kind={alert.kind} role="note" aria-label={title} dir={dirOf(alert.body || title)}>
+      <p className={css.alertTitle}><Icon name={ALERT_ICONS[alert.kind]} />{title}</p>
+      {blocks(w, lexer(alert.body, { gfm: true }), key)}
+    </div>
+  )
+}
+
+function drawList(w: Walk, list: Tokens.List, key: string): ReactNode {
+  const items = list.items.map((item, j) => drawItem(w, item, j, key))
+  return list.ordered
+    ? <ol key={key} dir={dirOf(list.raw)} className={css.list} start={typeof list.start === 'number' ? list.start : undefined}>{items}</ol>
+    : <ul key={key} dir={dirOf(list.raw)} className={css.list}>{items}</ul>
+}
+
+function drawItem(w: Walk, item: Tokens.ListItem, j: number, key: string): ReactNode {
+  return (
+    <li key={j} className={item.task ? css.task : undefined}>
+      {item.task && <span className={css.check} data-checked={item.checked ? '' : undefined} role="img"
+        aria-label={w.ctx.w(item.checked ? 'taskDone' : 'taskOpen')} />}
+      {item.loose ? blocks(w, item.tokens.filter((t) => t.type !== 'checkbox'), `${key}.${j}`) : item.tokens.map((t, n) => t.type === 'checkbox' ? null : t.type === 'text'
+        ? <Fragment key={n}>{textOf(w, t as Tokens.Text, `${key}.${j}.${n}`)}</Fragment>
+        : block(w, t, `${key}.${j}.${n}`))}
+    </li>
+  )
+}
+
+function drawCode(w: Walk, code: Tokens.Code, key: string): ReactNode {
+  if ((code.lang ?? '').trim().toLowerCase() === 'mermaid') {
+    w.diagrams += 1
+    return <Diagram key={key} source={code.text} n={w.diagrams} />
+  }
+  w.codes += 1
+  return <CodeBlock key={key} code={code.text} info={code.lang} label={w.ctx.w('codeN', { n: w.codes })} />
+}
+
+function drawTable(w: Walk, table: Tokens.Table, key: string): ReactNode {
+  w.tables += 1
+  const numbers = numericColumns(table.rows.map((row) => row.map((cell) => unescape(cell.text))), table.header.length)
+  const align = (a: string | null, j: number) => [numbers[j] && css.num, a === 'right' ? css.end : a === 'center' ? css.center : a === 'left' ? css.start : undefined]
+    .filter(Boolean).join(' ') || undefined
+  const cell = (tokens: Token[], j: number, k: string) => (numbers[j] ? <bdi dir="ltr">{ins(w, tokens, k)}</bdi> : ins(w, tokens, k))
+  return (
+    <div key={key} className={css.tableWrap} role="region" tabIndex={0} aria-label={w.ctx.w('tableN', { n: w.tables })} dir={dirOf(table.raw)}>
+      <table className={css.table}>
+        <thead><tr>{table.header.map((head, j) => <th key={j} scope="col" dir={numbers[j] ? undefined : 'auto'} className={align(head.align, j)}>{ins(w, head.tokens, `${key}.h${j}`)}</th>)}</tr></thead>
+        <tbody>{table.rows.map((row, r) => (
+          <tr key={r}>{row.map((c, j) => <td key={j} dir={numbers[j] ? undefined : 'auto'} className={align(c.align, j)}>{cell(c.tokens, j, `${key}.${r}.${j}`)}</td>)}</tr>
+        ))}</tbody>
+      </table>
+    </div>
+  )
+}
+
+function drawFigure(w: Walk, token: Tokens.Image, key: string): ReactNode {
+  const caption = (token.title || token.text || '').trim()
+  return (
+    <figure key={key} className={css.figureInline}>
+      {image(token, w.ctx, `${key}.img`)}
+      {caption && <figcaption className={css.caption} dir="auto">{caption}</figcaption>}
+    </figure>
+  )
+}
+
+/** The footnotes in the order they are first cited, then any never cited; null when there are none. */
+function drawNotes(w: Walk): ReactNode {
+  const { texts, order } = w.notes
+  const citations = order.size
+  for (const label of texts.keys()) if (!order.has(label)) order.set(label, order.size + 1)
+  const listed = [...order].sort((a, b) => a[1] - b[1])
+  if (!listed.length) return null
+  return (
+    <section key="footnotes" className={css.footnotes} aria-label={w.ctx.w('footnotes')}>
+      <ol className={css.footnoteList}>
+        {listed.map(([label, n]) => (
+          <li key={label} id={`fn-${n}`} tabIndex={-1} dir={dirOf(texts.get(label) ?? '')}>
+            <span className={css.footnoteN}>{n}</span>
+            <div className={css.footnoteText}>{blocks(w, lexer(texts.get(label) ?? '', { gfm: true }), `fn${n}`)}</div>
+            {n <= citations && <button type="button" className={css.footnoteBack} aria-label={w.ctx.w('footnoteBack', { n })} onClick={() => jump(`fnref-${n}`)}>↩</button>}
           </li>
-        ))
-        return list.ordered
-          ? <ol key={key} dir={dirOf(list.raw)} className={css.list} start={typeof list.start === 'number' ? list.start : undefined}>{items}</ol>
-          : <ul key={key} dir={dirOf(list.raw)} className={css.list}>{items}</ul>
-      }
-      case 'code': {
-        const code = token as Tokens.Code
-        if ((code.lang ?? '').trim().toLowerCase() === 'mermaid') {
-          diagrams += 1
-          return <Diagram key={key} source={code.text} n={diagrams} />
-        }
-        codes += 1
-        return <CodeBlock key={key} code={code.text} info={code.lang} label={ctx.w('codeN', { n: codes })} />
-      }
-      case 'table': {
-        const table = token as Tokens.Table
-        tables += 1
-        const numbers = numericColumns(table.rows.map((row) => row.map((cell) => unescape(cell.text))), table.header.length)
-        const align = (a: string | null, j: number) => [numbers[j] && css.num, a === 'right' ? css.end : a === 'center' ? css.center : a === 'left' ? css.start : undefined]
-          .filter(Boolean).join(' ') || undefined
-        const cell = (tokens: Token[], j: number, k: string) => (numbers[j] ? <bdi dir="ltr">{ins(tokens, k)}</bdi> : ins(tokens, k))
-        return (
-          <div key={key} className={css.tableWrap} role="region" tabIndex={0} aria-label={ctx.w('tableN', { n: tables })} dir={dirOf(table.raw)}>
-            <table className={css.table}>
-              <thead><tr>{table.header.map((head, j) => <th key={j} scope="col" dir={numbers[j] ? undefined : 'auto'} className={align(head.align, j)}>{ins(head.tokens, `${key}.h${j}`)}</th>)}</tr></thead>
-              <tbody>{table.rows.map((row, r) => (
-                <tr key={r}>{row.map((c, j) => <td key={j} dir={numbers[j] ? undefined : 'auto'} className={align(c.align, j)}>{cell(c.tokens, j, `${key}.${r}.${j}`)}</td>)}</tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )
-      }
-      case 'html': return <p key={key} dir="auto" className={css.raw}>{unescape(String((token as Tokens.HTML).text ?? ''))}</p>
-      default: return 'tokens' in token && token.tokens ? <p key={key} dir="auto">{ins(token.tokens, key)}</p> : null
-    }
-  }
-
-  function figure(token: Tokens.Image, key: string): ReactNode {
-    const caption = (token.title || token.text || '').trim()
-    return (
-      <figure key={key} className={css.figureInline}>
-        {image(token, ctx, `${key}.img`)}
-        {caption && <figcaption className={css.caption} dir="auto">{caption}</figcaption>}
-      </figure>
-    )
-  }
-
-  const body = blocks(tokens, 'b')
-  // the notes in the order they are first cited, then any never cited
-  const citations = notes.order.size
-  for (const label of texts.keys()) if (!notes.order.has(label)) notes.order.set(label, notes.order.size + 1)
-  const listed = [...notes.order].sort((a, b) => a[1] - b[1])
-  if (listed.length) {
-    body.push(
-      <section key="footnotes" className={css.footnotes} aria-label={ctx.w('footnotes')}>
-        <ol className={css.footnoteList}>
-          {listed.map(([label, n]) => (
-            <li key={label} id={`fn-${n}`} tabIndex={-1} dir={dirOf(texts.get(label) ?? '')}>
-              <span className={css.footnoteN}>{n}</span>
-              <div className={css.footnoteText}>{blocks(lexer(texts.get(label) ?? '', { gfm: true }), `fn${n}`)}</div>
-              {n <= citations && <button type="button" className={css.footnoteBack} aria-label={ctx.w('footnoteBack', { n })} onClick={() => jump(`fnref-${n}`)}>↩</button>}
-            </li>
-          ))}
-        </ol>
-      </section>,
-    )
-  }
-  return { body, headings }
+        ))}
+      </ol>
+    </section>
+  )
 }
