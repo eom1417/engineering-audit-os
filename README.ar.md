@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.27" src="https://img.shields.io/badge/version-0.0.27-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.28" src="https://img.shields.io/badge/version-0.0.28-3987e5"></a>
   <img alt="الحالة: تجريبي" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="الرخصة: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -194,7 +194,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 
 ## الأدوات
 
-ينسّق EAOS ولا يعيد البناء: 36 أداة مفتوحة المصدر، لكل منها إصدار مثبّت ببصمته ورخصته
+ينسّق EAOS ولا يعيد البناء: 36 أداة مفتوحة المصدر ومكتبات تصميم مجانية، لكل منها إصدار مثبّت ببصمته ورخصته
 ([`upstreams/toolchain.json`](upstreams/toolchain.json)، [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | المجال | الأدوات |
@@ -205,6 +205,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 | العقود والبيانات | Spectral · oasdiff · SQLFluff |
 | تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 |
 | التغييرات الآلية | jscodeshift |
+| التصميم (شكل البناء أو إعادة التصميم) | UI UX Pro Max · awesome-design-md · tweakcn themes · frontend-design من Anthropic · shadcn/ui · Fontsource |
 
 <sub>¹ يعمل CodeQL على المشاريع مفتوحة المصدر المنشورة علنًا على GitHub فقط، كما تسمح شروطه.</sub>
 

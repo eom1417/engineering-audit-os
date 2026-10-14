@@ -58,6 +58,9 @@ A GOOD ANSWER
 Every page decided once. A finding is specific to what is drawn in its regions and says what to change there. A
 finding the checks already state (an axe violation) is kept only if the pictures show how it hurts the person.
 
+When `design` is given, it is the look the person chose (a DESIGN.md): judge every page against it too. A colour,
+font, spacing, radius, component or layout that departs from it is a finding, and its why names the DESIGN.md rule.
+
 DO NOT
 Judge a page whose pictures you did not open; repeat one problem as several findings of the page; point at a picture
 of another page; describe a region the picture does not have; write a generic design rule without pointing at where
@@ -79,7 +82,10 @@ def inputs(report, project=None, lang='en', **_):
         page['pictures'].append(_picture(report, row, count))
         _add_found(page, row)
     if not pages: return None
-    return {'lang': lang, 'project': {'name': (project and Path(project).name) or report.name}, 'pages': list(pages.values())}
+    from ...design import target
+    # `design`: the person's chosen look, or None; a redesign's departures from it are findings (eaos/design.py).
+    return {'lang': lang, 'project': {'name': (project and Path(project).name) or report.name}, 'pages': list(pages.values()),
+            'design': target(report)}
 
 
 def _new_page(row, same, number):

@@ -188,6 +188,7 @@ assistant "change the database to …" and it knows where.
 | "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
 | "Build my project from this plan" | Build from a plan (step 6) |
 | "A tool failed in the check: run it again" | Goes on from that stage alone, keeping the rest of the check |
+| "I don't like my app's look: redesign it" | Suggests two or three directions from free design libraries, saves the one you choose as DESIGN.md, and the screen review turns every departure into a design card to fix |
 | `/eaos` alone (or `$eaos` in Codex) | A menu of what fits your project now, to pick from |
 | "What is affected if I change this file?" | The files that import it, the tests that cover it, and the files that usually change with it, from the check's records |
 

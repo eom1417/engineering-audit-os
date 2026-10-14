@@ -48,6 +48,12 @@ how to change it later.
 **The look is built once:** the shared-look card turns the spec's `look` into design tokens in `web/src/ui/theme.css`
 that no screen overrides, and each feature's card says which screen and picture it follows.
 
+**The look costs almost no tokens:** `blueprint_start` returns a design brief (`eaos/design.py`): the EAOS design
+standard (phone first, both directions, one theme, readable contrast), a catalogue of Arabic fonts, free pinned design
+libraries (UI UX Pro Max, awesome-design-md, tweakcn themes, Anthropic's frontend-design) and the design system UI UX
+Pro Max suggests for the product, found offline. The assistant spends its judgement on taste alone and writes the
+result as one DESIGN.md (`look.design_md`); components come from shadcn/ui and fonts from Fontsource.
+
 **The order of the build:** the skeleton and its checks first (typecheck, lint and test run from the first card), then
 the shared foundations (one home each for errors, validation, configuration, the look and the client), then part after
 part in data order (the data's owner before those that use it), then every journey end to end in a browser.

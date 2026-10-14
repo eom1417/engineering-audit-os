@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "description": "The EAOS design standard and its free sources (eaos/design.py): every look EAOS draws or reviews, built from pinned libraries (upstreams/toolchain.json, stage S06) and held to the same rules.",
+  "standard": [
+    "Phone first: every screen is designed at 375 px wide first, then widened; nothing needs sideways scrolling.",
+    "Touch targets of at least 44 by 44 px; primary actions within thumb reach on a phone (a bottom bar for the main sections).",
+    "Both directions: layouts use logical properties (start and end, never left and right), so Arabic and English share one design.",
+    "One theme, as design tokens: colours, type scale, spacing, radii and shadows are tokens; no screen sets its own colour or font.",
+    "Light and dark from the same tokens, each with text contrast of at least 4.5:1 (WCAG AA).",
+    "Arabic text: no letter-spacing, a line height of 1.6 or more, a font made for Arabic, never a Latin font's fallback.",
+    "Fonts served from the app itself (Fontsource), only the subsets used: no third-party font request.",
+    "Components from shadcn/ui (Radix underneath: keyboard and screen-reader ready), added with its CLI, rtl true when the app speaks Arabic.",
+    "Motion that respects reduced-motion, and visible focus on everything that can be reached by keyboard."
+  ],
+  "components": {
+    "init": "npx shadcn@latest init",
+    "add": "npx shadcn@latest add <component>",
+    "rtl": "set \"rtl\": true in components.json before adding components (or npx shadcn@latest migrate rtl)"
+  },
+  "fonts": {
+    "install": "npm install @fontsource/<id>",
+    "arabic": [
+      {
+        "id": "ibm-plex-sans-arabic",
+        "name": "IBM Plex Sans Arabic",
+        "kind": "sans",
+        "for": "interfaces, dashboards, technical products",
+        "latin": "built in"
+      },
+      {
+        "id": "noto-sans-arabic",
+        "name": "Noto Sans Arabic",
+        "kind": "sans",
+        "for": "interfaces needing many weights and widths",
+        "latin": "Noto Sans"
+      },
+      {
+        "id": "tajawal",
+        "name": "Tajawal",
+        "kind": "sans",
+        "for": "friendly consumer apps",
+        "latin": "built in"
+      },
+      {
+        "id": "cairo",
+        "name": "Cairo",
+        "kind": "sans",
+        "for": "bold headings and marketing pages",
+        "latin": "built in"
+      },
+      {
+        "id": "almarai",
+        "name": "Almarai",
+        "kind": "sans",
+        "for": "clean commerce and services",
+        "latin": "Inter"
+      },
+      {
+        "id": "readex-pro",
+        "name": "Readex Pro",
+        "kind": "sans",
+        "for": "readable long text in apps",
+        "latin": "built in"
+      },
+      {
+        "id": "rubik",
+        "name": "Rubik",
+        "kind": "rounded sans",
+        "for": "playful and approachable products",
+        "latin": "built in"
+      },
+      {
+        "id": "alexandria",
+        "name": "Alexandria",
+        "kind": "geometric sans",
+        "for": "modern brands and landing pages",
+        "latin": "built in"
+      },
+      {
+        "id": "noto-kufi-arabic",
+        "name": "Noto Kufi Arabic",
+        "kind": "kufi",
+        "for": "headings with character",
+        "latin": "Noto Sans"
+      },
+      {
+        "id": "reem-kufi",
+        "name": "Reem Kufi",
+        "kind": "kufi",
+        "for": "display headings and logos",
+        "latin": "Inter"
+      },
+      {
+        "id": "el-messiri",
+        "name": "El Messiri",
+        "kind": "display",
+        "for": "elegant headings, hospitality and culture",
+        "latin": "built in"
+      },
+      {
+        "id": "noto-naskh-arabic",
+        "name": "Noto Naskh Arabic",
+        "kind": "naskh",
+        "for": "long reading: articles, news, documents",
+        "latin": "Noto Serif"
+      },
+      {
+        "id": "amiri",
+        "name": "Amiri",
+        "kind": "naskh",
+        "for": "classical, literary and religious text",
+        "latin": "built in"
+      },
+      {
+        "id": "markazi-text",
+        "name": "Markazi Text",
+        "kind": "serif",
+        "for": "editorial and publishing",
+        "latin": "built in"
+      }
+    ]
+  }
+}

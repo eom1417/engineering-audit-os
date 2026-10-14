@@ -109,6 +109,7 @@
       "eaos/api/**",
       "eaos/blueprint.py",
       "eaos/plan_source.py",
+      "eaos/design.py",
       "eaos/build_tools.py",
       "eaos/menu.py",
       "eaos/ledger.py",

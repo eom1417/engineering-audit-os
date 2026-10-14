@@ -59,3 +59,18 @@ Two projects were evaluated and deliberately not used:
   copyleft obligation would buy nothing. Not integrated.
 - **ArchMind** — ships no LICENSE file, so every right is reserved by default. Its architectural
   ideas informed our thinking; none of its code is present here.
+
+## Design sources
+
+Read when a look is drawn or reviewed (`eaos/design.py`): fetched to the operator's machine at a pinned commit, never
+copied into this repository or redistributed. Components and fonts are installed into the built project by their own
+package managers.
+
+| Source | Copyright | Licence | Used how |
+| --- | --- | --- | --- |
+| [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | nextlevelbuilder | MIT | its offline search script and CSV data read |
+| [awesome-design-md](https://github.com/voltagent/awesome-design-md) | VoltAgent | MIT | reference DESIGN.md files read as directions, never copied as a brand |
+| [tweakcn-theme-picker](https://github.com/BankkRoll/tweakcn-theme-picker) | BankkRoll | MIT | theme token files read |
+| [frontend-design (Anthropic skills)](https://github.com/anthropics/skills) | Anthropic, PBC | Apache-2.0 | its SKILL.md read as guidance; the repository's other skills are not used |
+| [shadcn/ui](https://github.com/shadcn-ui/ui) | shadcn | MIT | installed into a built project by its own CLI |
+| [Fontsource](https://github.com/fontsource/fontsource) and the fonts it serves | their authors | MIT (tooling), OFL-1.1 (fonts) | installed into a built project by npm |

@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version 0.0.27" src="https://img.shields.io/badge/version-0.0.27-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="Version 0.0.28" src="https://img.shields.io/badge/version-0.0.28-3987e5"></a>
   <img alt="Status: pilot" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -182,7 +182,7 @@ EAOS treats your project as untrusted input, and your decisions as final.
 
 ## The toolchain
 
-EAOS orchestrates rather than rebuilds: 36 open-source tools, each at a pinned version with its checksum and licence
+EAOS orchestrates rather than rebuilds: 36 open-source tools and free design libraries, each at a pinned version with its checksum and licence
 ([`upstreams/toolchain.json`](upstreams/toolchain.json), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | Area | Tools |
@@ -193,6 +193,7 @@ EAOS orchestrates rather than rebuilds: 36 open-source tools, each at a pinned v
 | Contracts and data | Spectral · oasdiff · SQLFluff |
 | Your running app | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 |
 | Automatic changes | jscodeshift |
+| Design (the look of a build or a redesign) | UI UX Pro Max · awesome-design-md · tweakcn themes · Anthropic's frontend-design · shadcn/ui · Fontsource |
 
 <sub>¹ CodeQL runs only on open-source projects hosted publicly on GitHub, as its terms allow.</sub>
 

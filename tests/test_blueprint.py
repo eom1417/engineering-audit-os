@@ -24,6 +24,7 @@ def spec(**changes):
             'roles': [{'id': 'staff', 'name': 'Staff', 'can': ['F1', 'F2']}],
             'flows': [{'id': 'FL1', 'name': 'First booking', 'actor': 'staff', 'features': ['F1', 'F2'], 'steps': ['add', 'book']}],
             'look': {'theme': 'light', 'colors': {'primary': '#0F766E'}, 'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'table'],
+                     'design_md': '# Clinic\n\nCalm teal on white, IBM Plex Sans Arabic.',
                      'screens': [{'id': 'S1', 'name': 'Visits', 'features': ['F2'], 'picture': 'screens/visits.png'}]}}
     base.update(changes)
     return base
@@ -172,3 +173,20 @@ class BuildTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LookTests(unittest.TestCase):
+    def test_a_chosen_design_is_kept_beside_the_report_and_the_screen_review_judges_against_it(self):
+        from eaos import design
+        from eaos.studio.nodes import visual_reviewer
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': tmp}):
+            self.assertIn('tools install --only ui-ux-pro-max', design.brief()['sources']['ui-ux-pro-max']['install'],
+                          'a source not fetched says how to fetch it')
+            report = Path(tmp) / 'out' / 'technical'
+            (report / 'live/screens').mkdir(parents=True)
+            (report / 'live/screens/home.png').write_bytes(b'png')
+            (report / 'live/screens.json').write_text('{"rows": [{"url": "/", "screenshot": "live/screens/home.png", '
+                                                      '"viewport": "phone", "variant": "light"}]}', encoding='utf-8')
+            with self.assertRaises(ValueError): design.choose(report, 'no title')
+            design.choose(report, '# Clinic\n\nCalm teal on white.')
+            self.assertEqual(visual_reviewer.inputs(report)['design'], '# Clinic\n\nCalm teal on white.\n')

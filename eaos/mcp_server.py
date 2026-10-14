@@ -256,6 +256,22 @@ def _fix_tools(server, reading, working):
     def plan(milestone: str | None = None, project: str | None = None) -> str:
         return tools.plan(project, milestone)
 
+    @server.tool(annotations=reading, description='The look, at almost no tokens: the EAOS design standard (phone first, both '
+                 'directions, one theme), the Arabic font catalogue, the free pinned design libraries on this computer, the '
+                 'design system UI UX Pro Max suggests for `product` (for example "clinic booking app"), and the project\'s '
+                 'look today. For a redesign, or the look of a build.')
+    @_answer
+    def design_brief(product: str = '', project: str | None = None) -> str:
+        from . import design, guided
+        return design.for_report(guided.report_of(tools.project_state(project)), product)
+
+    @server.tool(annotations=working, description='Save the look the person chose, one DESIGN.md (Google Stitch\'s format), beside the '
+                 'report: the screen review then judges every page against it (audit again_from="visual").')
+    @_answer
+    def design_choose(content: str, project: str | None = None) -> str:
+        from . import design, guided
+        return design.choose(guided.report_of(tools.project_state(project)), content)
+
     @server.tool(annotations=reading, description='A file of the report (for example START-HERE.md, TARGET-ARCHITECTURE.md, '
                  'CURRENT-STATE.md, LOAD-MODEL.md); with no name, the list of files.')
     @_answer

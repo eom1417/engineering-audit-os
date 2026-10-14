@@ -22,7 +22,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import agent_tools, blueprint, guided
+from . import agent_tools, blueprint, design, guided
 from .plan_source import read_plan
 
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
@@ -66,14 +66,14 @@ def blueprint_start(source=None, text=None, project=None):
     (where / 'SOURCE.md').write_text(plan + '\n', encoding='utf-8')
     catalogue = blueprint.stacks()['concerns']
     return {'saved': str(where / 'SOURCE.md'), 'characters': len(plan), 'plan_text': plan[:40000], 'more': len(plan) > 40000,
-            'pictures': pictures, 'spec_format': blueprint.SPEC,
+            'pictures': pictures, 'spec_format': blueprint.SPEC, 'design': design.brief(plan.strip().splitlines()[0][:120] if plan.strip() else ''),
             'stack_catalogue': {concern: {'title': entry['title'], 'recommended': entry['recommended'],
                                           'options': {key: option['why'] for key, option in entry['options'].items()}}
                                 for concern, entry in catalogue.items()},
             'what_now': 'Read the plan whole, and look at every one of its pictures (open each file): they show the screens and '
-                        'the look. Write the product spec in spec_format, its `look` from the pictures (the one theme, colours, '
-                        'fonts, shared components, each screen with its features and picture) or, without pictures, the look '
-                        'that suits the product: group the features into modules with one '
+                        'the look. Write the product spec in spec_format. Its `look` comes from the pictures and from `design`: '
+                        'the suggestion and the free sources, held to its standard (fonts from fonts.arabic when the app speaks '
+                        'Arabic); look.design_md is the whole DESIGN.md (Google Stitch\'s format). Group the features into modules with one '
                         'responsibility each, give every piece of data one owning module, turn each feature into checkable '
                         'acceptance criteria. Where the plan is thin, research what products of this kind need and add it as a '
                         'decision with options and your recommendation. Ask the person only what they must decide (choices, '

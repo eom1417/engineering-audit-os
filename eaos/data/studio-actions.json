@@ -598,6 +598,82 @@
    }
   },
   {
+   "id": "design_brief",
+   "tool": "design_brief",
+   "group": "understand",
+   "label": {
+    "en": "The design sources",
+    "ar": "مصادر التصميم"
+   },
+   "description": {
+    "en": "The design standard, the Arabic fonts, the free design libraries, and a suggested design system for the product.",
+    "ar": "معيار التصميم، والخطوط العربية، ومكتبات التصميم المجانية، ونظام تصميم مقترح للمنتج."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "product": {
+      "type": "string",
+      "description": "What the product is, in a few words (for example \"clinic booking app\")."
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "design_choose",
+   "tool": "design_choose",
+   "group": "understand",
+   "label": {
+    "en": "Adopt this design",
+    "ar": "اعتمد هذا التصميم"
+   },
+   "description": {
+    "en": "Saves the chosen look (DESIGN.md) beside the report; the screen review then judges every page against it.",
+    "ar": "يحفظ الشكل المختار (DESIGN.md) بجانب التقرير، ثم تقارن مراجعة الشاشات كل صفحة به."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "content": {
+      "type": "string",
+      "description": "The whole DESIGN.md."
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "content"
+    ]
+   }
+  },
+  {
    "id": "plan",
    "tool": "plan",
    "group": "understand",

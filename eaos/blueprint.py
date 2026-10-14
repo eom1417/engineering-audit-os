@@ -51,6 +51,7 @@ SPEC = {
                       'platforms': ['web', 'mobile web']},
     'look': {'theme': 'the one theme: light or dark', 'colors': {'primary': '#0F766E', 'background': '#FFFFFF', 'text': '#111827'},
              'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'input', 'table', 'card', 'message'],
+             'design_md': 'the whole DESIGN.md (Google Stitch format), from the design brief\'s sources and standard',
              'screens': [{'id': 'S1', 'name': 'Orders', 'features': ['F1'], 'picture': 'the path of its picture in the plan, or empty'}]},
     'stack_preferences': {'database': 'an option id from the catalogue, or empty to take the recommendation'},
     'decisions': [{'id': 'D1', 'question': 'an open product question', 'options': ['A', 'B'], 'recommendation': 'A',
@@ -113,7 +114,7 @@ def _look_problems(look, features):
     if not isinstance(look, dict) or not look.get('screens'):
         return ['`look` is empty: write the one theme, its colours, fonts and shared components, and the screens with their '
                 'features (from the pictures when the plan has them)']
-    problems = [f'`look.{key}` is empty' for key in ('theme', 'colors', 'fonts') if not look.get(key)]
+    problems = [f'`look.{key}` is empty' for key in ('theme', 'colors', 'fonts', 'design_md') if not look.get(key)]
     for screen in look['screens']:
         unknown = [f for f in screen.get('features') or [] if f not in features]
         if not screen.get('features') or unknown:
@@ -270,7 +271,11 @@ def _foundations(cards, stack, look):
     tokens = ', '.join(f'{name} {value}' for name, value in (look.get('colors') or {}).items())
     foundations.append(cards.add('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
                                  ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
-                                 ['every screen uses the shared components in web/src/ui (' + ', '.join(look.get('components') or
+                                 ['web/DESIGN.md is the spec\'s look.design_md; the shared components come from shadcn/ui through its '
+                                  'CLI (rtl true when the app speaks Arabic) and the fonts from Fontsource, served by the app',
+                                  'every screen works at 375 px wide first, with touch targets of 44 px, logical start/end layout and '
+                                  'text contrast of 4.5:1 in light and dark (eaos/data/design.json)',
+                                  'every screen uses the shared components in web/src/ui (' + ', '.join(look.get('components') or
                                   ['buttons', 'inputs', 'forms', 'tables', 'messages']) + ')',
                                   f"the one {look.get('theme') or 'light'} theme is design tokens in web/src/ui/theme.css" + (f' ({tokens})' if tokens else '')
                                   + (f" with the fonts {', '.join(look['fonts'])}" if look.get('fonts') else '') + '; no screen sets its own colour or font',

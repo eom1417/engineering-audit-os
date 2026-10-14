@@ -977,6 +977,70 @@
       "version_args": [
         "--help"
       ]
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "role": "read",
+      "stages": [
+        "S06"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+      "version": "7246805992a42b7bba37d4cac83b01416f0c6c44",
+      "install": {
+        "method": "git",
+        "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+        "dir": "ui-ux-pro-max"
+      },
+      "license_note": "Styles, palettes, font pairings and UX rules by product type, searched offline by its own script; read when a look is drawn. Fetched to this machine, never copied into the EAOS repository."
+    },
+    {
+      "name": "awesome-design-md",
+      "role": "read",
+      "stages": [
+        "S06"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/voltagent/awesome-design-md",
+      "version": "3b605329240ce735b510037cca322f1831fdd7f8",
+      "install": {
+        "method": "git",
+        "repository": "https://github.com/voltagent/awesome-design-md",
+        "dir": "awesome-design-md"
+      },
+      "license_note": "Reference design systems as DESIGN.md files (Google Stitch format), each with a light and dark preview; read as directions, never copied as a brand. Fetched to this machine, never copied into the EAOS repository."
+    },
+    {
+      "name": "tweakcn-themes",
+      "role": "read",
+      "stages": [
+        "S06"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
+      "version": "7b261a42335d474a6be93ac77ec3f8186db70af7",
+      "install": {
+        "method": "git",
+        "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
+        "dir": "tweakcn-themes"
+      },
+      "license_note": "Light and dark themes in the shadcn/ui token format. Fetched to this machine, never copied into the EAOS repository."
+    },
+    {
+      "name": "anthropic-skills",
+      "role": "read",
+      "stages": [
+        "S06"
+      ],
+      "license": "Apache-2.0 (frontend-design)",
+      "repository": "https://github.com/anthropics/skills",
+      "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+      "install": {
+        "method": "git",
+        "repository": "https://github.com/anthropics/skills",
+        "dir": "anthropic-skills"
+      },
+      "license_note": "Only its frontend-design skill (Apache-2.0) is read: craft guidance for the assistant that builds the screens; the other skills keep their own terms and are not used. Fetched to this machine, never copied into the EAOS repository."
     }
   ]
 }

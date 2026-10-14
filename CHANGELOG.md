@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.28 (2026-10-14)
+
+- **A design library at almost no tokens**: four free, pinned design sources join the toolchain (UI UX Pro Max's
+  styles, palettes, font pairings and UX rules by product type, searched offline by its own script; awesome-design-md's
+  reference design systems; tweakcn's themes; Anthropic's frontend-design guidance), with shadcn/ui components (right
+  to left included) and Fontsource fonts installed into a built project by their own tools. One EAOS design standard
+  holds them together (`eaos/data/design.json`): phone first, both directions, one theme as tokens, readable contrast
+  in light and dark, Arabic typography, and a catalogue of fourteen Arabic fonts with what each suits.
+- **The look of a build**: `blueprint_start` returns the design brief with the design system suggested for the
+  product; the spec's look carries the whole DESIGN.md, and the shared-look card installs it with the components and
+  fonts, held to the standard.
+- **A redesign, the person's choice**: `design_brief` and `design_choose` let the assistant propose directions from the
+  same sources and save the chosen DESIGN.md beside the report; the screen review then judges every page against it
+  (going on from the visual stage, the rest of the check kept), and every departure is a design card fixed in a batch.
+
 ## 0.0.27 (2026-10-14)
 
 - **A check goes on from where it went wrong, never a whole new one for one stage**: the check map's stage panel has

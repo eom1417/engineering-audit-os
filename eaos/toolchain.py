@@ -115,13 +115,13 @@ def binary_path(tool):
     return shutil.which(tool['binary'])
 
 
-def _checkout(tool):
+def checkout(tool):
     return home() / tool['install']['dir']
 
 
 def _git_version(tool):
     # A pinned repository of data (rules), not a program: its version is the commit it is at.
-    done = subprocess.run(['git', '-C', str(_checkout(tool)), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    done = subprocess.run(['git', '-C', str(checkout(tool)), 'rev-parse', 'HEAD'], capture_output=True, text=True)
     return (done.stdout.strip(), '') if done.returncode == 0 else (None, 'not installed')
 
 
@@ -468,7 +468,7 @@ def _npm(tool):
 
 def _git(tool):
     """Fetch exactly the pinned commit of a repository into its own directory under the tools home."""
-    folder, spec = _checkout(tool), tool['install']
+    folder, spec = checkout(tool), tool['install']
     folder.mkdir(parents=True, exist_ok=True)
     for argv in (['init', '-q'], ['remote', 'remove', 'origin'], ['remote', 'add', 'origin', spec['repository']],
                  ['fetch', '-q', '--depth', '1', 'origin', tool['version']], ['checkout', '-q', '--force', 'FETCH_HEAD']):
