@@ -419,8 +419,10 @@ class Runs(Base):
         run = self.start('fix', cards=('TASK-001', 'TASK-002'))
         question = self.app.wait(run, ('waiting_for_person', 'failed'), 30)['question']
         self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'yes'})[0], 200)
-        ended = self.app.wait(run, ('done', 'failed'), 30)
-        self.assertEqual((ended['state'], ended['result']['nothing_changed']), ('failed', True), self.app.store.events(run))
+        ended = self.app.wait(run, ('done', 'failed', 'unchanged'), 30)
+        # neither done nor failed: nothing reached the project, nothing broke, and it may be tried again
+        self.assertEqual((ended['state'], ended['result']['nothing_changed']), ('unchanged', True), self.app.store.events(run))
+        self.assertEqual(self.post(f'/api/runs/{run}/retry')[1]['run']['state'], 'queued')
         events = self.app.store.events(run)
         self.assertEqual([(e['data']['done'], e['data']['total']) for e in events if e['kind'] == 'progress'], [(1, 2)])
         self.assertTrue(next(e for e in events if e['kind'] == 'result')['data']['nothing_changed'])

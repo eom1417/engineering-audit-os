@@ -9,6 +9,7 @@ goes on reading an assistant that is still alive, follows a job that is still ru
 stopped with the server.
 """
 import fcntl
+import functools
 import json
 import os
 import signal
@@ -19,7 +20,7 @@ from pathlib import Path
 
 from ...language import foreign, restate
 from . import adapters, handoff, planners, prompts, resume
-from .store import ACTIVE, TERMINAL, now
+from .store import ACTIVE, RETRYABLE, TERMINAL, now
 
 STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
 
@@ -49,15 +50,11 @@ def _signal(pid, number):
         except (ProcessLookupError, PermissionError, OSError): pass
 
 
-TEXT = {
-    'queued': ({'en': 'Waiting its turn', 'ar': 'ينتظر دوره'}),
-    'running': ({'en': 'Running', 'ar': 'يشتغل'}),
-    'paused': ({'en': 'Paused', 'ar': 'متوقف مؤقتًا'}),
-    'waiting_for_person': ({'en': 'Waiting for you', 'ar': 'ينتظرك'}),
-    'done': ({'en': 'Done', 'ar': 'انتهى'}),
-    'failed': ({'en': 'Did not finish', 'ar': 'ما اكتمل'}),
-    'stopped': ({'en': 'Stopped', 'ar': 'أوقفته'}),
-}
+@functools.cache
+def _words():
+    """Each run state in both languages, from the contract (docs/studio-actions.json `lifecycle.states`)."""
+    from . import contract
+    return contract()['lifecycle']['states']
 
 
 def _read_from(path, offset):
@@ -127,7 +124,8 @@ class Manager:
             if to in TERMINAL: record['ended'] = now()
             # the event first: a stream that ends when it sees a final state has then already read its last event
             if before != to:
-                self.store.append(run, 'state', {'en': TEXT[to]['en'] + (f': {why}' if why else ''), 'ar': TEXT[to]['ar'] + (f': {why}' if why else '')},
+                said = _words()[to]
+                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why}' if why else '')},
                                   {'from': before, 'to': to, 'why': why})
             self.store.save(record)
         return record
@@ -434,14 +432,13 @@ class Manager:
             return self._fail(run, why, resumable=True)
         payload = self._outcome(run, answer=self._readable(run, words))
         if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
-            # a Fix run that handed nothing over did not succeed, whatever the assistant said: the person reads why
-            self.store.append(run, 'result', {'en': 'Nothing changed: no fix was kept, so no branch waits for you',
-                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك'}, {**payload, 'nothing_changed': True})
-            self.store.append(run, 'error', {'en': 'Nothing changed: no fix was kept', 'ar': 'ما تغيّر شي: ما انقبل أي إصلاح'},
-                              {'reason': 'nothing changed: no fix was kept', 'recoverable': True,
-                               'what_now': {'en': 'Read the assistant\'s words for why, then try again or pick other cards.',
-                                            'ar': 'اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}})
-            return self.set_state(run, 'failed', 'nothing changed', result={**payload, 'nothing_changed': True})
+            # a Fix run that handed nothing over did not succeed, whatever the assistant said; nor did it break anything:
+            # it ends unchanged, and the person reads why and what to do
+            self.store.append(run, 'result', {'en': 'Nothing changed: no fix was kept, so no branch waits for you. Read the '
+                                                    "assistant's words for why, then try again or pick other cards.",
+                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. اقرأ كلام المساعد لتعرف '
+                                                    'السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}, {**payload, 'nothing_changed': True})
+            return self.set_state(run, 'unchanged', 'nothing changed', result={**payload, 'nothing_changed': True})
         self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else
                                                           f": the fixes are on {payload['landed_on']} itself" if payload.get('landed_on') else ''),
                                           'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch') else
@@ -725,7 +722,7 @@ class Manager:
 
     def retry(self, run):
         record = self.store.load(run)
-        if record.get('state') not in ('failed', 'stopped'): raise LookupError('only a run that failed or was stopped can be tried again')
+        if record.get('state') not in RETRYABLE: raise LookupError('only a run that failed, was stopped or changed nothing can be tried again')
         record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0,
                                 question=None, queued_at=now(), mode='assistant' if record.get('assistant') else record.get('mode'),
                                 branches_before=None, waves_before=None)

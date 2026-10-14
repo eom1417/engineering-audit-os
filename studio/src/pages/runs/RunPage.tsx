@@ -16,7 +16,7 @@ import { useCmdWords } from '../../command/words'
 import { verbOf } from '../../data/actions/contract'
 import { duration, labelOf } from '../../data/actions/derive'
 import { useActions, useRun } from '../../data/actions/store'
-import { ActionError, TERMINAL, type AcceptWhere, type Control, type Run } from '../../data/actions/types'
+import { ActionError, RETRYABLE, TERMINAL, type AcceptWhere, type Control, type Run } from '../../data/actions/types'
 import { useStudio } from '../../data/context'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
@@ -141,7 +141,7 @@ function Controls({ run, onRun }: { run: Run; onRun: (next: Run) => void }) {
   }
   const can = {
     pause: run.state === 'running', resume: run.state === 'paused',
-    stop: !TERMINAL.includes(run.state), retry: run.state === 'failed' || run.state === 'stopped',
+    stop: !TERMINAL.includes(run.state), retry: RETRYABLE.includes(run.state),
   }
   if (!Object.values(can).some(Boolean)) return null
   return (

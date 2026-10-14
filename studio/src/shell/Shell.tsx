@@ -19,6 +19,7 @@ import { useBranchWords } from '../branches/words'
 import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { useActions } from '../data/actions/store'
+import { TERMINAL } from '../data/actions/types'
 import { counts, useLoaded, useSections, useStudio, type Counts } from '../data/context'
 import { COUNT_NEEDS } from '../data/stages'
 import { deviceZone, usePrefs } from '../i18n/prefs'
@@ -44,7 +45,7 @@ function useCounts(): Counts | null {
 /** The command centre's counts beside the report's: questions from runs join the inbox, and runs that are not over. */
 function useLiveCounts(): Record<string, number> {
   const { questions, runs } = useActions()
-  return { decisions: questions.length, runs: runs.filter((run) => !['done', 'failed', 'stopped'].includes(run.state)).length }
+  return { decisions: questions.length, runs: runs.filter((run) => !TERMINAL.includes(run.state)).length }
 }
 
 function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {

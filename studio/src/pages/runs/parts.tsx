@@ -18,6 +18,7 @@ import css from './runs.module.css'
 
 const TONE: Record<RunState, Tone> = {
   queued: 'neutral', running: 'accent', paused: 'neutral', waiting_for_person: 'warning', done: 'good', failed: 'critical', stopped: 'neutral',
+  unchanged: 'neutral',
 }
 
 export function StateChip({ state }: { state: RunState }) {

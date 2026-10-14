@@ -21,8 +21,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ZERO = '0' * 64
-STATES = ('queued', 'running', 'paused', 'waiting_for_person', 'done', 'failed', 'stopped')
-TERMINAL = ('done', 'failed', 'stopped')
+STATES = ('queued', 'running', 'paused', 'waiting_for_person', 'done', 'failed', 'stopped', 'unchanged')
+TERMINAL = ('done', 'failed', 'stopped', 'unchanged')
+# A run that may be tried again: one that did not finish, was stopped, or kept no change.
+RETRYABLE = ('failed', 'stopped', 'unchanged')
 ACTIVE = ('running', 'paused', 'waiting_for_person')
 DIFF_LIMIT = 64 * 1024
 SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'
