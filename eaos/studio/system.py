@@ -198,19 +198,30 @@ def _current_view(current, links, findings, context):
     by_name = {c['name']: c for c in current}
     nodes = [{'id': c['name'], 'short': short(c['name'], by_region[region_of[c['name']]]), 'files': int(c.get('files') or 0),
               'region': region_of[c['name']]} for c in current]
-    family = [(a, b) for a in names for b in names if a != b and b.startswith(a + '/') and b.count('/') == a.count('/') + 1
-              and region_of[a] == region_of[b]]
     edges = [(a, b, n) for (a, b), n in sorted(between.items())]
-    pic = territory.draw(nodes, edges, regions, family)
+    pic = territory.draw(nodes, edges, regions, _family(names, region_of))
     cur_nodes = [_current_node(n, by_name[n['id']], pic['nodes'][n['id']], findings[n['id']], context) for n in nodes]
-    cur_edges = [{'from': a, 'to': b, 'imports': n, 'cycle': groups.get(a) is not None and groups.get(a) == groups.get(b),
-                  **pic['edges'][(a, b)]} for a, b, n in edges if (a, b) in pic['edges']]
-    return {'regions': [{**r, 'components': sum(region_of[x] == r['id'] for x in names),
-                         'files': sum(n['files'] for n in nodes if n['region'] == r['id']),
-                         'findings': sum(sum(findings[x].values()) for x in names if region_of[x] == r['id']),
-                         'lead': max((n for n in nodes if n['region'] == r['id']), key=lambda n: (n['files'], n['id']))['id'],
-                         **pic['regions'][r['id']]} for r in regions if r['id'] in pic['regions']],
-            'nodes': cur_nodes, 'edges': cur_edges, 'scale': pic['scale'], 'bounds': pic['bounds']}
+    return {'regions': [{**_region_row(r['id'], nodes, findings), **r, **pic['regions'][r['id']]} for r in regions if r['id'] in pic['regions']],
+            'nodes': cur_nodes, 'edges': _drawn_edges(edges, groups, pic), 'scale': pic['scale'], 'bounds': pic['bounds']}
+
+
+def _family(names, region_of):
+    """(parent, child) pairs one folder apart in one region: drawn side by side."""
+    return [(a, b) for a in names for b in names if a != b and b.startswith(a + '/') and b.count('/') == a.count('/') + 1
+            and region_of[a] == region_of[b]]
+
+
+def _drawn_edges(edges, groups, pic):
+    """The links the picture drew, each marked when its two ends share an import cycle."""
+    return [{'from': a, 'to': b, 'imports': n, 'cycle': groups.get(a) is not None and groups.get(a) == groups.get(b),
+             **pic['edges'][(a, b)]} for a, b, n in edges if (a, b) in pic['edges']]
+
+
+def _region_row(region, nodes, findings):
+    """A region's components, files and findings, and its largest component."""
+    mine = [n for n in nodes if n['region'] == region]
+    return {'components': len(mine), 'files': sum(n['files'] for n in mine), 'findings': sum(sum(findings[n['id']].values()) for n in mine),
+            'lead': max(mine, key=lambda n: (n['files'], n['id']))['id']}
 
 
 def _target_node(t, n, g, feeds, known):
