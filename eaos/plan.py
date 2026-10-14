@@ -239,6 +239,15 @@ def title_of(task, language):
 
 def card(task, language):
     document = Document(f"{task['id']} — {title_of(task, language)}", language, budget_lines=140)
+    _card_head(document, task, language)
+    if _card_radius(document, task, language):
+        _card_options(document, task, language)
+        _card_steps(document, task, language)
+    return document
+
+
+def _card_head(document, task, language):
+    """The card's header and decision, the problem and its evidence."""
     marker = (' [كود اختبارات]' if language == 'ar' and task['origin'] == 'test' else
               ' [كود مؤرشف]' if language == 'ar' and task['origin'] == 'archive' else '')
     document.header([f"الادعاء: {task['claim_id']} · النمط: {task['pattern']} · الأولوية: {task['priority']}{marker}"
@@ -255,6 +264,10 @@ def card(task, language):
                       f"probes: {', '.join(task['evidence']['probe_ids']) or '—'}",
                       f"falsifier: {falsifier_of({'falsifier': task['evidence']['falsifier'],
                                                   'render': task.get('render')}, language)}"])
+
+
+def _card_radius(document, task, language):
+    """The blast radius; False when the claim names no file, so the card says so and ends there."""
     document.section('نطاق الأثر' if language == 'ar' else 'Blast radius')
     radius = task['blast_radius']
     if not task['paths']:
@@ -262,7 +275,7 @@ def card(task, language):
                       'حدّد الملفات المعنية أثناء التحقيق.' if language == 'ar' else
                       'This claim is about the product as a whole and names no file, so there is no computed '
                       'blast radius; identify the affected files during the investigation.')
-        return document
+        return False
     document.bullets([
         f"الملفات المعنية: {capped(task['paths'])}" if language == 'ar' else f"files: {capped(task['paths'])}",
         f"مستوردون مباشرون ({len(radius['direct_dependents'])}): {capped(radius['direct_dependents'])}",
@@ -272,6 +285,11 @@ def card(task, language):
         coverage_line(radius['coverage'], language),
         f"شركاء التغيير: {capped([partner['path'] for partner in radius['change_partners']], 5)}",
     ])
+    return True
+
+
+def _card_options(document, task, language):
+    """The options and their verdicts, and the card's before and after."""
     document.section('الخيارات' if language == 'ar' else 'Options')
     document.table(['الخيار' if language == 'ar' else 'Option', 'الكلفة' if language == 'ar' else 'Cost',
                     'الحكم' if language == 'ar' else 'Verdict'],
@@ -282,6 +300,10 @@ def card(task, language):
     if task.get('before') or task.get('after'):
         document.section('قبل وبعد' if language == 'ar' else 'Before and after')
         document.bullets([str(task.get('before')), str(task.get('after'))])
+
+
+def _card_steps(document, task, language):
+    """The change proposed, how it is accepted, how it is rolled back, and its effort."""
     document.section('التغيير المقترح' if language == 'ar' else 'Proposed change')
     localized = falsifier_of({'falsifier': task['evidence']['falsifier'],
                               'render': task.get('render')}, language)
@@ -297,7 +319,6 @@ def card(task, language):
     document.section('التقدير' if language == 'ar' else 'Effort')
     document.text(f"{task['effort']} · ثقة التقدير: {task['effort_confidence']}" if language == 'ar'
                   else f"{task['effort']} · estimate confidence: {task['effort_confidence']}")
-    return document
 
 
 def _compact_waves(document, plan, by_id, language):
