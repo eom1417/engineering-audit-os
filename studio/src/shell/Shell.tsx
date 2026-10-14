@@ -153,7 +153,7 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
           <Go to="/" className={css.crumb}>{project}</Go>
           {current?.id !== 'home' && <><span className={css.crumbSep} aria-hidden="true">/</span>
             {back ? <Go to={back.to} search={back.search} className={css.crumb}>{sectionTitle}</Go> : <span aria-current="page">{sectionTitle}</span>}</>}
-          {back && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast} title={chrome.title} data-truncate>{chrome.title}</span></>}
+          {back && chrome.title !== sectionTitle && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast} title={chrome.title} data-truncate>{chrome.title}</span></>}
         </nav>
         <div className={css.deskEnd}>
           <BranchChip onPress={onBranches} />
