@@ -117,68 +117,89 @@ def layout(nodes, edges, room, family=()):
     ids = [n['id'] for n in nodes]
     if not ids: return {}
     by = {n['id']: n for n in nodes}
-    pos = {}
-    for n in nodes:
-        rnd = random.Random(_seed(n['id']))
-        cx, cy, rx, ry = room[n['region']]
-        angle, dist = rnd.uniform(0, 2 * math.pi), math.sqrt(rnd.uniform(0, 1)) * 0.7
-        pos[n['id']] = [cx + math.cos(angle) * rx * dist, cy + math.sin(angle) * ry * dist]
+    pos = {n['id']: _start(n, room) for n in nodes}
     links = [(a, b, 0.0015 * math.log1p(n)) for a, b, n in edges if a in by and b in by and a != b and by[a]['region'] == by[b]['region']]
     iters = max(160, min(700, int(500000 / max(len(ids), 1) ** 2)))
     members = defaultdict(int)
     for n in nodes: members[n['region']] += 1
     # a region of few dots is held closer to its centre, so it stays one island instead of scattered rocks
     pull = {r: 0.005 + 0.03 / count for r, count in members.items()}
-    count = len(ids)
     for it in range(iters):
-        t = 1.0 - it / iters
         force = {i: [0.0, 0.0] for i in ids}
-        for i in range(count):
-            a = ids[i]
-            pa, na = pos[a], by[a]
-            for j in range(i + 1, count):
-                b = ids[j]
-                pb, nb = pos[b], by[b]
-                dx, dy = pb[0] - pa[0], pb[1] - pa[1]
-                if abs(dx) > 220 or abs(dy) > 220: continue
-                d = math.hypot(dx, dy) or 0.01
-                same = na['region'] == nb['region']
-                push = 0.0
-                if same and d < 190: push += 34.0 / d
-                want = na['r'] + nb['r'] + (40 if same else 70)
-                if d < want: push += (want - d) * 0.5
-                if push:
-                    ux, uy = dx / d * push, dy / d * push
-                    force[a][0] -= ux; force[a][1] -= uy
-                    force[b][0] += ux; force[b][1] += uy
-        for a, b, k in links:
-            dx, dy = pos[b][0] - pos[a][0], pos[b][1] - pos[a][1]
-            force[a][0] += dx * k; force[a][1] += dy * k
-            force[b][0] -= dx * k; force[b][1] -= dy * k
-        for a, b in family:
-            dx, dy = pos[b][0] - pos[a][0], pos[b][1] - pos[a][1]
-            d = math.hypot(dx, dy) or 0.01
-            k = 0.08 * (d - (by[a]['r'] + by[b]['r'] + 24)) / d
-            force[a][0] += dx * k; force[a][1] += dy * k
-            force[b][0] -= dx * k; force[b][1] -= dy * k
-        step, cap = 0.6 + 0.4 * t, 12 * t + 1
-        for i in ids:
-            cx, cy, rx, ry = room[by[i]['region']]
-            p, f = pos[i], force[i]
-            k = pull[by[i]['region']]
-            f[0] += (cx - p[0]) * k
-            f[1] += (cy - p[1]) * k
-            ex, ey = (p[0] - cx) / rx, (p[1] - cy) / ry
-            ed = math.hypot(ex, ey)
-            if ed > 1:
-                f[0] -= (p[0] - cx) * (ed - 1) * 0.8
-                f[1] -= (p[1] - cy) * (ed - 1) * 0.8
-            mag = math.hypot(f[0], f[1])
-            if mag > cap: f[0], f[1] = f[0] / mag * cap, f[1] / mag * cap
-            r = by[i]['r']
-            p[0] = min(max(p[0] + f[0] * step, r + 24), W - r - 24)
-            p[1] = min(max(p[1] + f[1] * step, r + 30), H - r - 24)
+        _repel(ids, pos, by, force)
+        _attract(pos, by, force, links, family)
+        _move(ids, pos, by, force, room, pull, 1.0 - it / iters)
     return {k: (round(v[0], 1), round(v[1], 1)) for k, v in pos.items()}
+
+
+def _start(n, room):
+    """A dot's first place: seeded by its id, somewhere in the inner part of its region's ellipse."""
+    rnd = random.Random(_seed(n['id']))
+    cx, cy, rx, ry = room[n['region']]
+    angle, dist = rnd.uniform(0, 2 * math.pi), math.sqrt(rnd.uniform(0, 1)) * 0.7
+    return [cx + math.cos(angle) * rx * dist, cy + math.sin(angle) * ry * dist]
+
+
+def _push(na, nb, d):
+    """How hard two dots this far apart push each other: dots of one region keep a little room, every dot its size."""
+    same = na['region'] == nb['region']
+    push = 0.0
+    if same and d < 190: push += 34.0 / d
+    want = na['r'] + nb['r'] + (40 if same else 70)
+    if d < want: push += (want - d) * 0.5
+    return push
+
+
+def _repel(ids, pos, by, force):
+    count = len(ids)
+    for i in range(count):
+        a = ids[i]
+        pa = pos[a]
+        for j in range(i + 1, count):
+            b = ids[j]
+            dx, dy = pos[b][0] - pa[0], pos[b][1] - pa[1]
+            if abs(dx) > 220 or abs(dy) > 220: continue
+            d = math.hypot(dx, dy) or 0.01
+            push = _push(by[a], by[b], d)
+            if push:
+                ux, uy = dx / d * push, dy / d * push
+                force[a][0] -= ux; force[a][1] -= uy
+                force[b][0] += ux; force[b][1] += uy
+
+
+def _attract(pos, by, force, links, family):
+    """Linked dots pull together by their links' weight; a folder and its subfolder towards a set distance."""
+    for a, b, k in links:
+        dx, dy = pos[b][0] - pos[a][0], pos[b][1] - pos[a][1]
+        force[a][0] += dx * k; force[a][1] += dy * k
+        force[b][0] -= dx * k; force[b][1] -= dy * k
+    for a, b in family:
+        dx, dy = pos[b][0] - pos[a][0], pos[b][1] - pos[a][1]
+        d = math.hypot(dx, dy) or 0.01
+        k = 0.08 * (d - (by[a]['r'] + by[b]['r'] + 24)) / d
+        force[a][0] += dx * k; force[a][1] += dy * k
+        force[b][0] -= dx * k; force[b][1] -= dy * k
+
+
+def _move(ids, pos, by, force, room, pull, t):
+    """One step, smaller as the walk cools (t from 1 to 0): each dot pulled to its region's centre, held inside it."""
+    step, cap = 0.6 + 0.4 * t, 12 * t + 1
+    for i in ids:
+        cx, cy, rx, ry = room[by[i]['region']]
+        p, f = pos[i], force[i]
+        k = pull[by[i]['region']]
+        f[0] += (cx - p[0]) * k
+        f[1] += (cy - p[1]) * k
+        ex, ey = (p[0] - cx) / rx, (p[1] - cy) / ry
+        ed = math.hypot(ex, ey)
+        if ed > 1:
+            f[0] -= (p[0] - cx) * (ed - 1) * 0.8
+            f[1] -= (p[1] - cy) * (ed - 1) * 0.8
+        mag = math.hypot(f[0], f[1])
+        if mag > cap: f[0], f[1] = f[0] / mag * cap, f[1] / mag * cap
+        r = by[i]['r']
+        p[0] = min(max(p[0] + f[0] * step, r + 24), W - r - 24)
+        p[1] = min(max(p[1] + f[1] * step, r + 30), H - r - 24)
 
 
 # ---------------------------------------------------------------- land
