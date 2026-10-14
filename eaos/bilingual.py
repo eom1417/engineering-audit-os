@@ -6,14 +6,15 @@ out mixed. Translating what is written is small, and kept small this way (EAOS's
 24 calls, 54 minutes, $2.19, 77% of the output the model's thinking):
 - The unit is a whole piece: a heading, a list item, a paragraph with its wrapped lines joined (a line cut mid
   sentence translates badly), or one table cell. Only the pieces in the wrong language are sent; fenced code, rule
-  lines, and a piece in the right language stay as written.
-- Every number, path, code span, link target, id and identifier becomes a numbered slot (⟦1⟧) before sending and is
-  put back after, so it is never altered, and two pieces that differ only by them share one template: the 2818 lines
-  became 861 templates.
-- A translation memory keeps every template once translated: EAOS's own (eaos/data/translation-memory.json, its
-  sentences translated once for every project), then the report's (translation-memory.json beside it), so the next
-  check sends only what is new.
-- The rest goes in batches of BATCH characters to the smallest model the assistant offers, without thinking, told the
+  lines, command lines, and a piece in the right language stay as written.
+- Every number, path, code span, link target, id, package version and identifier (snake_case or camelCase) becomes a numbered slot (⟦1⟧) before
+  sending and is put back after, so it is never altered, and two pieces that differ only by them share one template:
+  the 2818 lines became 633 templates.
+- A translation memory keeps every template once translated: EAOS's own (eaos/data/translation-memory.json: what the
+  reports of different projects share, translated once by a strong model and reviewed, tools/translation_seed.py),
+  then the report's (translation-memory.json beside it), so the next check sends only what is new.
+- The rest, the project's own words, goes in batches of BATCH characters to the smallest model of the assistant the
+  person already uses (no other account or key), without thinking, keyed item by item, told the
   terms EAOS uses (its labels in eaos/compose/labels.py and TERMS). An answer whose slots are not exactly the template's,
   or still in the wrong language, is asked once more, then left as written.
 """
@@ -26,7 +27,7 @@ from .compose.labels import LABELS
 
 LANGS = ('ar', 'en')
 NAMES = {'ar': 'Arabic (Modern Standard, plain)', 'en': 'English'}
-BATCH = 8000
+BATCH = 16000        # characters a call: fewer calls, each one's fixed start counted fewer times
 WORKERS = 3          # batches asked at once: each call spends most of its time starting the assistant
 ROUNDS = 2           # an answer that came back unsound is asked once more
 MEMORY = 'translation-memory.json'
@@ -35,9 +36,10 @@ ARABIC = re.compile('[؀-ۿ]')
 LATIN_WORD = re.compile(r'\b[A-Za-z][a-z]{2,}\b')
 ARABIC_WORD = re.compile('[؀-ۿ]{2,}')
 UNSENT = re.compile(r'`[^`]*`|\]\([^)]*\)|https?://\S+|\b[\w.-]+/[\w./-]+|\b\w+\.(?:py|ts|tsx|js|json|md|mjs|css)\b')
-TOKEN = (UNSENT.pattern + r'|(?<!\S)/\S+|\b\w+\.(?:sh|toml|ya?ml|txt|html|cfg|ini|lock)\b|\b\w+(?:\.\w+){2,}'
-         r'|\b[\w-]*\d[\w-]*%?|\b\w*_\w+\b')
+TOKEN = (UNSENT.pattern + r'|\b[\w./-]+@[\w.^~<>=*-]+|(?<!\S)/\S+|\b\w+\.(?:sh|toml|ya?ml|txt|html|cfg|ini|lock)\b|\b\w+(?:\.\w+){2,}'
+         r'|\b[\w-]*\d[\w-]*%?|\b\w*_\w+\b|\b[A-Za-z][a-z]+[A-Z][A-Za-z]*\b')
 KEPT = re.compile(f'(?:{TOKEN})(?:, (?:{TOKEN}))*')     # a list of them is one slot: "facts: A, B" and "facts: A, B, C" share one
+COMMAND = re.compile(r'(?:\$ )?\.?(?:(?:npm|npx|pnpm|yarn|python3?|pip|git|eaos|bash|node|uv)\s|⟦\d+⟧ -)')     # a command line
 PROSE = re.compile(r'[A-Za-z]{2,} [A-Za-z]{2,} [A-Za-z]{2,}')    # three words in a row: a sentence, not a list of names
 SLOT = re.compile('⟦(\\d+)⟧')
 LEAD = re.compile(r'\s*(?:#{1,6}\s+|[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+|>\s*)*')
@@ -100,10 +102,15 @@ def rewrite(text, change):
     return '\n'.join(out)
 
 
+def needed(source, lang):
+    """Whether a template is to be translated: in the wrong language, and not a command line."""
+    return wrong(source, lang) and not COMMAND.match(source)
+
+
 def pieces_to_send(text, lang):
     """The pieces of a document in the wrong language for `lang`, beyond what their slots hold."""
     found = []
-    rewrite(text, lambda piece: found.append(piece) if wrong(template(piece)[0], lang) else None)
+    rewrite(text, lambda piece: found.append(piece) if needed(template(piece)[0], lang) else None)
     return found
 
 
@@ -154,13 +161,13 @@ def _ask_all(provider, missing, memory, say):
             batches = list(_batches(missing))
             for done, (batch, answered) in enumerate(zip(batches, pool.map(lambda batch: _ask(provider, batch), batches))):
                 say(done + 1, len(batches))
-                _keep(memory, batch, answered or ())
+                keep(memory, batch, answered or ())
             calls += len(batches)
             missing = [pair for pair in missing if pair[1] not in memory[pair[0]]]
     return {'calls': calls, 'failed': len(missing)}
 
 
-def _keep(memory, batch, answered):
+def keep(memory, batch, answered):
     """Keep each sound answer: the template's slots exactly once each, and in the language asked (or, for a piece
     with no sentence in it, the template itself: names and commands, which have nothing to translate)."""
     for (lang, source), answer in zip(batch, answered):
@@ -172,7 +179,7 @@ def _keep(memory, batch, answered):
 
 def _translated(piece, memory, lang):
     source, kept = template(piece)
-    answer = memory.get(source) if wrong(source, lang) else None
+    answer = memory.get(source) if needed(source, lang) else None
     return SLOT.sub(lambda match: kept[int(match.group(1)) - 1], answer) if answer else None
 
 

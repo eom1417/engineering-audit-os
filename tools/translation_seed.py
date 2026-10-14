@@ -1,11 +1,13 @@
-"""EAOS's own translation memory (eaos/data/translation-memory.json), from a check's: the templates every project's
-report shares, translated once and shipped, so a first check spends nothing on EAOS's own sentences.
+"""EAOS's own translation memory (eaos/data/translation-memory.json): the templates every project's report shares,
+translated once, reviewed and shipped, so no check spends anything on EAOS's own sentences.
 
-    python tools/translation_seed.py <the report folder of a check, translated>
+    python tools/translation_seed.py todo <report> <report> ... > todo.json
+    python tools/translation_seed.py merge translated.json
 
-A template is EAOS's when it has a slot (a sentence EAOS writes with numbers, paths or names in it) or is met in more
-than one place of the report; one met once, without a slot, is that project's own words and stays out. What the seed
-already holds is kept, a new translation of the same template wins.
+`todo`: the reports are of different projects, in either language; a template met in two of them is EAOS's (a project's
+own words are met in one), and those the seed has no translation for are printed, {lang: [template, ...]}. Translate
+them with the strongest model at hand and review them (the slots ⟦n⟧ kept, EAOS's terms in bilingual.TERMS), as
+{lang: {template: translation}}; `merge` keeps the sound ones (bilingual's own test of an answer) in the seed.
 """
 import json
 import sys
@@ -16,18 +18,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from eaos import bilingual  # noqa: E402
 
 
-def seed(report):
-    report = Path(report)
-    memory = json.loads((report.parent / bilingual.MEMORY).read_text(encoding='utf-8'))
-    met = Counter((lang, bilingual.template(piece)[0]) for path, _ in bilingual.documents(report)
-                  for lang in bilingual.LANGS for piece in bilingual.pieces_to_send(path.read_text(encoding='utf-8'), lang))
-    shipped = json.loads(bilingual.SEED.read_text(encoding='utf-8')) if bilingual.SEED.is_file() else {}
-    for lang, entries in memory.items():
-        kept = {source: answer for source, answer in entries.items() if bilingual.SLOT.search(source) or met[(lang, source)] > 1}
-        shipped[lang] = dict(sorted({**shipped.get(lang, {}), **kept}.items()))
+def _shipped():
+    return json.loads(bilingual.SEED.read_text(encoding='utf-8')) if bilingual.SEED.is_file() else {}
+
+
+def todo(reports):
+    met = Counter(pair for report in reports for pair in {
+        (lang, bilingual.template(piece)[0]) for path, _ in bilingual.documents(report)
+        for lang in bilingual.LANGS for piece in bilingual.pieces_to_send(path.read_text(encoding='utf-8', errors='replace'), lang)})
+    shipped = _shipped()
+    return {lang: sorted(source for (one, source), count in met.items()
+                         if one == lang and count > 1 and source not in shipped.get(lang, {})) for lang in bilingual.LANGS}
+
+
+def merge(translated):
+    shipped = {lang: dict(entries) for lang, entries in _shipped().items()}
+    for lang, entries in translated.items():
+        shipped.setdefault(lang, {})
+        bilingual.keep(shipped, [(lang, source) for source in entries], list(entries.values()))
+        shipped[lang] = dict(sorted(shipped[lang].items()))
     bilingual.SEED.write_text(json.dumps(shipped, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return {lang: len(entries) for lang, entries in shipped.items()}
 
 
 if __name__ == '__main__':
-    print(seed(sys.argv[1]))
+    if sys.argv[1] == 'todo': print(json.dumps(todo(sys.argv[2:]), ensure_ascii=False, indent=1))
+    else: print(merge(json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))))

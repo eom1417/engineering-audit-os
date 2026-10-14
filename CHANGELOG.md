@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.31 (2026-10-14)
+
+- **EAOS's own sentences translated professionally, once, for everyone**: the shipped memory
+  (`eaos/data/translation-memory.json`) now holds what the reports of different projects share (a template met in
+  two projects' reports is EAOS's), translated by a strong model and reviewed: the cheap model had 205 of 374 Arabic
+  and 309 of 507 English translations wrong (code names translated, meanings reversed, terms inconsistent). It holds
+  509 Arabic and 654 English templates; `tools/translation_seed.py` lists what to add from new reports and merges
+  the reviewed translations.
+- **Less is sent**: command lines are never sent; package versions (`name@1.2.3`) and camelCase names become slots
+  too, so one sentence about many functions is one template; batches are twice as large, so the fixed start of
+  each call is paid half as often.
+- On a project EAOS never saw (RendaPerene): 52% of its templates come from the shipped memory, and the rest took
+  6 calls, 2 minutes and $0.28 with the person's own assistant, 9 pieces left as written. No other account, key or
+  service is needed.
+
 ## 0.0.30 (2026-10-14)
 
 - **Translation at a fraction of its cost** (`eaos/bilingual.py`): on EAOS's own check it took 24 calls, 54 minutes
