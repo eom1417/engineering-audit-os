@@ -420,6 +420,10 @@ def apply(runtime, proposal, mode='lock'):
         profile['env'] = {k: v for k, v in profile['env'].items() if '{database_url}' not in v}
     elif proposal.get('database') == 'postgres' and 'database' not in profile:
         profile['database'] = {'kind': 'postgres', 'name': 'app'}
+    if isinstance(proposal.get('screens'), dict) and mode == 'lock':     # how the app keeps its language and theme
+        from .screens.audit import variants
+        known = variants.__code__.co_varnames[:variants.__code__.co_argcount]
+        profile['screens'] = {k: v for k, v in proposal['screens'].items() if k in known}
     if proposal.get('seed_script') and mode == 'lock':
         seed = Path(runtime) / 'setup' / 'seed.cjs'
         seed.parent.mkdir(parents=True, exist_ok=True)

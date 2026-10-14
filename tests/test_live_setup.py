@@ -113,8 +113,12 @@ class ProposalTests(unittest.TestCase):
                                            'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
                                            'prepare': [['npm', 'run', 'migrate']], 'database': {'kind': 'postgres', 'name': 'x'},
                                            'baseline': {'build': [['npm', 'run', 'build']], 'start': ['npm', 'start'], 'env': {'OLD': '1'}}})
+        # EAOS on itself (2026-10-14): no proposal could say where the app keeps its language, so every screen of every
+        # project was pictured in one language only
         profile = live_setup.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'}, 'prepare': [], 'database': 'none',
-                                             'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)'})
+                                             'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
+                                             'screens': {'lang_key': 'eaos.studio', 'lang_field': 'lang', 'shell': 'rm'}})
+        self.assertEqual(profile['screens'], {'lang_key': 'eaos.studio', 'lang_field': 'lang'})
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'})
         self.assertNotIn('prepare', profile)
         self.assertNotIn('database', profile)
