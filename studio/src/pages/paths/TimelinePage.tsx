@@ -120,7 +120,6 @@ function Grid({ timeline, step, wave, onPick }: { timeline: Timeline; step?: str
 
 function TimelineView({ data, timeline }: { data: StudioData; timeline: Timeline }) {
   const w = usePathWords()
-  const { t } = usePrefs()
   const phone = usePhone()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as TimelineSearch
@@ -141,7 +140,6 @@ function TimelineView({ data, timeline }: { data: StudioData; timeline: Timeline
   return (
     <div className={layout.page}>
       <MissingBanner data={data} />
-      <Go to="/change" className={css.back}><Icon name="back" />{t('journeyAndPlan')}</Go>
       <PageTitle title={w('planTimeline')} lead={w('timelineLead')} />
       <p className={css.lead}>{w('timelineCount', { n: count('waves'), t: count('tasks'), w: count('waits') })}</p>
       {phone ? (
