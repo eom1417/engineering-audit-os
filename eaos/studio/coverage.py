@@ -268,21 +268,35 @@ def _gaps(body, empty):
             if isinstance(g, dict) and g.get('state') in ('not_measured', 'partial', 'failed')]
 
 
+def _listed_count(body, items):
+    """How many items the section lists (its body, or its `items` field); None when it lists none."""
+    listed = body.get(items) if isinstance(body, dict) and items else body if isinstance(body, list) else None
+    return len(listed) if isinstance(listed, list) else None
+
+
+def _parts_of(section, body, gaps, lang):
+    if section in PARTS: return PARTS[section](body, lang)
+    return [{'id': g['id'], 'state': g['state'], 'detail': (g.get('detail') or {}).get(lang) or g['id']} for g in gaps]
+
+
+def _standing(empty, gaps, tiers):
+    """{state, reason, step, tool} of a written section: empty, partial (and the step that would complete it), or measured."""
+    if empty: return {'state': 'empty', 'reason': 'nothing_found', 'step': gaps[0]['step'] if gaps else None, 'tool': None}
+    if gaps: return {'state': 'partial', 'reason': 'some_parts_missing', 'step': gaps[0]['step'], 'tool': None}
+    if tiers: return {'state': 'partial', 'reason': 'some_parts_missing', 'step': 'NS40.T2', 'tool': 'audit'}
+    return {'state': 'measured', 'reason': 'written', 'step': None, 'tool': None}
+
+
 def _written_row(section, body, lang):
     """A section that met its contract: measured, empty, or partial when parts of it are not measured yet."""
     items = PLANNED.get(section)
-    listed = body.get(items) if isinstance(body, dict) and items else body if isinstance(body, list) else None
-    count = len(listed) if isinstance(listed, list) else None
+    count = _listed_count(body, items)
     empty = count == 0
     gaps = _gaps(body, empty)
-    parts = PARTS[section](body, lang) if section in PARTS else \
-        [{'id': g['id'], 'state': g['state'], 'detail': (g.get('detail') or {}).get(lang) or g['id']} for g in gaps]
+    parts = _parts_of(section, body, gaps, lang)
     # A map whose own tiers stop short (no form extractor yet, a payload sent as a variable) is partial, not measured.
     tiers = section == 'data_paths' and any(part['state'] in ('partial', 'not_measured') for part in parts)
-    row = {'section': section, 'state': 'empty' if empty else 'partial' if gaps or tiers else 'measured',
-           'reason': 'nothing_found' if empty else 'some_parts_missing' if gaps or tiers else 'written',
-           'detail': _written_detail(lang, empty, gaps, tiers, parts),
-           'step': gaps[0]['step'] if gaps else 'NS40.T2' if tiers else None, 'tool': 'audit' if tiers and not gaps else None,
+    row = {'section': section, **_standing(empty, gaps, tiers), 'detail': _written_detail(lang, empty, gaps, tiers, parts),
            'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': parts}
     if section == 'ideal': row.update(_ideal_row(body, lang))
     if section == 'nodes': row.update(_nodes_row(body, lang))
