@@ -25,6 +25,7 @@ const WORDS = {
   measures: ['مؤشرات التحسين', 'What to improve'],
   perCard: ['تكلفة البطاقة المُصلحة', 'Cost per fixed card'], checkCost: ['تكلفة الفحص الأخير', 'Cost of the last check'],
   reread: ['إعادة قراءة السياق', 'Context read again'], thinkingShare: ['نسبة التفكير من الكتابة', 'Thinking in the output'],
+  chatCost: ['المحادثات مع المساعد', 'Conversations with the assistant'],
   lastCheck: ['الفحص الأخير، مرحلة مرحلة', 'The last check, stage by stage'],
   runs: ['التشغيلات', 'Runs'],
   stage: ['المرحلة', 'Stage'], run: ['التشغيل', 'Run'], cost: ['التكلفة (API)', 'Cost (API)'], written: ['كتابة', 'Written'],
@@ -96,7 +97,7 @@ function Head({ first, cards }: { first: string; cards?: boolean }) {
 function Measures({ report }: { report: UsageReport }) {
   const w = useWords()
   const fixed = report.runs.find((r) => r.verb === 'fix' && r.cards > 0 && typeof r.usage?.cost_usd === 'number')
-  const all = [report.check?.total, ...report.runs.map((r) => r.usage)].filter((u): u is Usage => !!u)
+  const all = [report.check?.total, report.chat, ...report.runs.map((r) => r.usage)].filter((u): u is Usage => !!u)
   const sum = (field: keyof Usage) => all.reduce((n, u) => n + (u[field] as number), 0)
   return (
     <div className={css.tiles}>
@@ -104,6 +105,7 @@ function Measures({ report }: { report: UsageReport }) {
       <Tile label={w('checkCost')}>{dollars(report.check?.total?.cost_usd)}</Tile>
       <Tile label={w('reread')}>{share(sum('cache_read'), all.reduce((n, u) => n + read(u), 0))}</Tile>
       <Tile label={w('thinkingShare')}>{share(sum('thinking'), sum('output'))}</Tile>
+      <Tile label={w('chatCost')}>{dollars(report.chat?.cost_usd)}</Tile>
     </div>
   )
 }

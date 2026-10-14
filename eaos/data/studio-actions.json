@@ -2358,7 +2358,12 @@
   {
    "method": "GET",
    "path": "/api/usage",
-   "does": "What the assistant used (eaos/usage.py): the last check stage by stage, and every run (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
+   "does": "What the assistant used (eaos/usage.py): the last check stage by stage, and every run and the conversations with the assistant (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
+  },
+  {
+   "method": "POST",
+   "path": "/api/chat",
+   "does": "One turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): {message, session?, context?} -> {session, answer, proposals}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control the person confirms."
   },
   {
    "method": "POST",

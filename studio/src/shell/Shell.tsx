@@ -18,6 +18,7 @@ import { BranchChip, BranchSwitcher } from '../branches/Switcher'
 import { useBranchWords } from '../branches/words'
 import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
+import { ChatDock } from '../chat/ChatDock'
 import { useActions } from '../data/actions/store'
 import { TERMINAL } from '../data/actions/types'
 import { counts, useLoaded, useSections, useStudio, type Counts } from '../data/context'
@@ -295,6 +296,7 @@ export function Shell() {
       <ScanSheet isOpen={scanSheet} onOpenChange={setScanSheet} />
       <BranchSwitcher isOpen={branchSheet} onOpenChange={setBranchSheet} />
       <CommandHost />
+      <ChatDock />
     </BranchLiveProvider>
     </CommandProvider>
   )

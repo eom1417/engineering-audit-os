@@ -3,7 +3,7 @@
 // returned for this launch; the browser adds the Origin the server checks. A run's events come over SSE read with
 // fetch, and a dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed.
 import { frameSplitter } from './sse'
-import { ActionError, TERMINAL, type AcceptChoice, type ActionsClient, type Assistant, type UsageReport, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
+import { ActionError, TERMINAL, type AcceptChoice, type ActionsClient, type Assistant, type ChatTurn, type UsageReport, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
   type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Reason, type Run, type RunEvent,
   type StartBody, type StreamStatus, type ReportDecision } from './types'
 
@@ -163,6 +163,7 @@ export function liveClient(token: string): ActionsClient {
     branches,
     assistants: () => get<{ assistants: Assistant[] }>('/api/assistants').then((r) => r.assistants),
     usage: () => get<UsageReport>('/api/usage'),
+    chat: (message, session, context, deep) => post<ChatTurn>('/api/chat', { message, session, context, deep }),
     follow: (id, after, onEvent, onStatus) => followRun(token, id, after, onEvent, onStatus),
   }
 }

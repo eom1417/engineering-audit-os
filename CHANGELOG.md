@@ -11,6 +11,12 @@
 - **A card that adds a module past the line limit, or one in no declared layer, is refused on the card**, not found
   when a batch's changes meet.
 - A run proposal's safety and its merge into run.json live in `eaos/run_profile.py`.
+- **The assistant beside the work**: a button in a corner of every page opens a small panel that moves to any corner
+  and keeps the conversation across pages (eaos/studio/actions/chat.py, POST /api/chat). It reads with EAOS's reading
+  tools only and the project's files; what it would do comes back as a card: an action opens the command centre's own
+  preview, a run's control waits for the person's press. Quick answers by Claude's Haiku (about $0.09 a diagnosis),
+  a deep diagnosis by the assistant's own model; a failed run's page asks it why ("Diagnose with the assistant"),
+  with the run's last events and log. Its use shows on the Assistant page.
 - **The Assistant page**: which assistants are on this computer (installed, signed in, model), and what the work used
   (eaos/usage.py, /api/usage): the last check stage by stage, every run (a run still going by its messages so far),
   tokens, the cost at API prices, time, turns, and the measures to improve it: the cost per fixed card, the share of

@@ -58,7 +58,11 @@ export interface Usage { input: number; cache_write: number; cache_read: number;
   cost_usd: number | null; duration_ms: number; turns: number; calls: number; models: string[] }
 export interface UsageRun { id: string; verb?: string | null; action?: string | null; label?: Bi | null; state?: RunState
   assistant?: string | null; created?: string | null; cards: number; usage: Usage | null }
-export interface UsageReport { check: { stages: Record<string, Usage>; total: Usage | null } | null; runs: UsageRun[] }
+export interface UsageReport { check: { stages: Record<string, Usage>; total: Usage | null } | null; runs: UsageRun[]; chat?: Usage | null }
+
+/** One turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): it proposes, the person runs. */
+export interface ChatProposal { kind: 'action' | 'control'; action: string; inputs?: Record<string, unknown>; run?: string; why: string }
+export interface ChatTurn { session: string | null; answer: string; proposals: ChatProposal[]; assistant: string; usage: Usage | null }
 
 export interface Question {
   id: string
@@ -243,6 +247,7 @@ export interface ActionsClient {
   /** The assistants on this computer and what they used (live only) */
   assistants?(): Promise<Assistant[]>
   usage?(): Promise<UsageReport>
+  chat?(message: string, session: string | null, context: Record<string, unknown>, deep: boolean): Promise<ChatTurn>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

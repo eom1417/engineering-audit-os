@@ -122,6 +122,8 @@ export const CMD_WORDS = {
   resume: ['استئناف', 'Resume'],
   stop: ['إيقاف', 'Stop'],
   retry: ['أعد المحاولة', 'Retry'],
+  diagnose: ['شخّص مع المساعد', 'Diagnose with the assistant'],
+  diagnoseAsk: ['هذا التشغيل ما اكتمل. اقرأ سجله وقل لي وش السبب بكلام بسيط، واقترح الإصلاح.', 'This run did not finish. Read its log, tell me why in plain words, and propose the fix.'],
   stopConfirm: ['أوقف هذا التشغيل؟ ما انتهى منه يبقى في سجله، ولا يصل شيء لفرعك.', 'Stop this run? What it did stays in its log, and nothing reaches your branch.'],
   stopYes: ['نعم، أوقفه', 'Yes, stop it'],
   progress: ['التقدم', 'Progress'],

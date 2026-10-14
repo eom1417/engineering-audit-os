@@ -21,7 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
-from . import handoff, selection as selecting
+from . import chat, handoff, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
@@ -215,6 +215,7 @@ class Actions:
         if rest[:1] == ['branches']: return self._branch_change(rest, body, route)
         if rest == ['runs']: return {'run': self.public(self.create(body))}
         if rest == ['runs', 'reorder']: return {'queue': self.manager.reorder(body.get('order'))}
+        if rest == ['chat']: return chat.reply(self, body)
         if len(rest) == 3: return self._post_on(rest, body, route)
         raise KeyError(route)
 
@@ -257,7 +258,7 @@ class Actions:
     def usage(self):
         """What the assistant used (eaos/usage.py): the last check, stage by stage, and every run, newest first; a run that
         ended keeps its use in its record, counted once."""
-        from ...usage import of_check, of_run
+        from ...usage import of_check, of_run, total
         folder = self._studio()
         runs = []
         for record in self.store.all():
@@ -266,7 +267,9 @@ class Actions:
             runs.append({'id': record['id'], 'verb': record.get('verb'), 'action': record.get('action'), 'label': record.get('label'),
                          'state': record.get('state'), 'assistant': record.get('assistant'), 'created': record.get('created'),
                          'cards': len((record.get('result') or {}).get('cards_closed') or []), 'usage': found})
-        return {'check': of_check(folder.parent) if folder else None, 'runs': runs}
+        talked = [json.loads(line).get('usage') for path in (self.store.folder / 'chat').glob('*/turns.jsonl')
+                  for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+        return {'check': of_check(folder.parent) if folder else None, 'runs': runs, 'chat': total(talked)}
 
     def public(self, record):
         hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before', 'waves_before')
