@@ -72,16 +72,22 @@ def spec_for(claim, fact_sets):
     return {'probe_type': spec['probe_type'], 'specification': specification}
 
 
+def _assessable(claim, name, fact_sets):
+    """Whether a rule may decide this claim: a confirmed, unassessed claim of the product, of a mechanical family, with
+    a probe, whose evidence settles it."""
+    if (name is None or claim.get('confidence') != 'CONFIRMED' or claim.get('assessment')
+            or claim.get('origin', 'source') in ('test', 'archive') or not claim.get('probe_spec')):
+        return False
+    if name == 'duplicated_rule': return same_value(claim, fact_sets)
+    # An import of a file that is not there has two fixes: restore the file, or remove what uses it. Only a person
+    # knows which; removing it made a server compile by deleting two admin routes (endomap, 2026-09-27).
+    return not (name == 'broken_code' and (claim['probe_spec'].get('specification') or {}).get('rule') == 'missing-import')
+
+
 def build_assessment(claim, fact_sets, target):
     """{'assessment', 'checks'} for a confirmed product claim of a mechanical family under its rule, else None."""
     name = family(claim)
-    if (target is None or name is None or claim.get('confidence') != 'CONFIRMED' or claim.get('assessment')
-            or claim.get('origin', 'source') in ('test', 'archive') or not claim.get('probe_spec')):
-        return None
-    if name == 'duplicated_rule' and not same_value(claim, fact_sets): return None
-    # An import of a file that is not there has two fixes: restore the file, or remove what uses it. Only a person
-    # knows which; removing it made a server compile by deleting two admin routes (endomap, 2026-09-27).
-    if name == 'broken_code' and ((claim.get('probe_spec') or {}).get('specification') or {}).get('rule') == 'missing-import': return None
+    if target is None or not _assessable(claim, name, fact_sets): return None
     rule_name, invariant, after = FAMILIES[name]
     rules, _ = rules_for(target)
     rule = rules[rule_name]
