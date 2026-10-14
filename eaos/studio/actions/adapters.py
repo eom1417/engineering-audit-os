@@ -226,28 +226,40 @@ class ClaudeCode(Adapter):
         if kind == 'system' and event.get('subtype') == 'init':
             out.append(('step', {'en': 'Claude Code went on', 'ar': 'Claude Code كمّل'} if state['resumed'] else {'en': 'Claude Code started', 'ar': 'بدأ Claude Code'},
                         {'tool': None, 'assistant': self.name}, None))
-        elif kind == 'assistant':
-            for block in (event.get('message') or {}).get('content') or []:
-                if block.get('type') == 'tool_use':
-                    tool = str(block.get('name') or '')
-                    short = tool[len('mcp__eaos__'):] if tool.startswith('mcp__eaos__') else tool
-                    state['pending'][block.get('id')] = (short, block.get('input') or {})
-                    if tool.startswith('mcp__eaos__') or short in READS: out += tool_events(short, block.get('input'), labels)
-                elif block.get('type') == 'text' and str(block.get('text') or '').strip():
-                    state['texts'].append(block['text'])
-                    out += said(block['text'])
-        elif kind == 'user':
-            for block in (event.get('message') or {}).get('content') or []:
-                if not isinstance(block, dict) or block.get('type') != 'tool_result': continue
-                tool, arguments = state['pending'].pop(block.get('tool_use_id'), (None, {}))
-                if tool and tool in labels:
-                    payload = _json_text(block.get('content'))
-                    state['eaos_results'].append((tool, payload))
-                    out += result_events(tool, arguments, payload, labels)
+        elif kind == 'assistant': out += self._said_and_called(event, state, labels)
+        elif kind == 'user': out += self._results(event, state, labels)
         elif kind == 'result':
             state['final'] = str(event.get('result') or '')
             if event.get('is_error') or event.get('subtype') not in (None, 'success'):
                 state['failed'] = state['final'] or str(event.get('subtype'))
+        return out
+
+    @staticmethod
+    def _said_and_called(event, state, labels):
+        """The events of an assistant message: its words, and each tool it calls (kept pending for its result)."""
+        out = []
+        for block in (event.get('message') or {}).get('content') or []:
+            if block.get('type') == 'tool_use':
+                tool = str(block.get('name') or '')
+                short = tool[len('mcp__eaos__'):] if tool.startswith('mcp__eaos__') else tool
+                state['pending'][block.get('id')] = (short, block.get('input') or {})
+                if tool.startswith('mcp__eaos__') or short in READS: out += tool_events(short, block.get('input'), labels)
+            elif block.get('type') == 'text' and str(block.get('text') or '').strip():
+                state['texts'].append(block['text'])
+                out += said(block['text'])
+        return out
+
+    @staticmethod
+    def _results(event, state, labels):
+        """The events of the EAOS tools' results a user message carries back."""
+        out = []
+        for block in (event.get('message') or {}).get('content') or []:
+            if not isinstance(block, dict) or block.get('type') != 'tool_result': continue
+            tool, arguments = state['pending'].pop(block.get('tool_use_id'), (None, {}))
+            if tool and tool in labels:
+                payload = _json_text(block.get('content'))
+                state['eaos_results'].append((tool, payload))
+                out += result_events(tool, arguments, payload, labels)
         return out
 
 
