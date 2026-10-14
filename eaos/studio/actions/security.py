@@ -30,6 +30,22 @@ def header(headers, name):
     return None
 
 
+def _token_of(method, path, headers):
+    """The launch token a call carries: its header, or for a GET (an EventSource cannot set headers) `token=` in the query."""
+    token = header(headers, 'X-EAOS-Token')
+    if token is None and method == 'GET':
+        token = (parse_qs(urlsplit(path).query).get('token') or [None])[0]
+    return token
+
+
+def _origin_of(headers):
+    """The page a call comes from: its Origin, else the scheme and host of its Referer; '' when neither says."""
+    origin = header(headers, 'Origin')
+    if origin: return origin
+    parts = urlsplit(header(headers, 'Referer') or '')
+    return f'{parts.scheme}://{parts.netloc}' if parts.scheme and parts.netloc else ''
+
+
 class Locks:
     def __init__(self, port, token=None, remote_origin=None):
         self.port = int(port)
@@ -50,23 +66,17 @@ class Locks:
     def check(self, method, path, headers):
         """None when the call may go on, else (status, reason). GET needs the token (in the header, or `token=` in the
         query for an EventSource, which cannot set headers); POST also the CSRF token and the Studio's origin."""
-        host = (header(headers, 'Host') or '').strip().lower()
-        if host not in {f'{name}:{self.port}' for name in LOOPBACK} | ({urlsplit(self.remote_origin).netloc} if self.remote_origin else set()):
-            return 403, 'the Host is not this computer\'s Studio'
-        token = header(headers, 'X-EAOS-Token')
-        if token is None and method == 'GET':
-            token = (parse_qs(urlsplit(path).query).get('token') or [None])[0]
-        if not same(token, self.token): return 401, 'the launch token is missing or wrong'
+        if (header(headers, 'Host') or '').strip().lower() not in self._hosts(): return 403, 'the Host is not this computer\'s Studio'
+        if not same(_token_of(method, path, headers), self.token): return 401, 'the launch token is missing or wrong'
         if method == 'GET': return None
         if method != 'POST': return 405, 'only GET and POST'
         if not same(header(headers, 'X-EAOS-CSRF'), self.csrf): return 403, 'the CSRF token is missing or wrong'
-        origin = header(headers, 'Origin')
-        if not origin:
-            referer = header(headers, 'Referer') or ''
-            parts = urlsplit(referer)
-            origin = f'{parts.scheme}://{parts.netloc}' if parts.scheme and parts.netloc else ''
-        if origin not in self.origins(): return 403, 'the request does not come from the Studio\'s own page'
+        if _origin_of(headers) not in self.origins(): return 403, 'the request does not come from the Studio\'s own page'
         return None
+
+    def _hosts(self):
+        """The Host values the Studio answers: this computer on its port, and the remote address it was given."""
+        return {f'{name}:{self.port}' for name in LOOPBACK} | ({urlsplit(self.remote_origin).netloc} if self.remote_origin else set())
 
     # confirm tokens
     def _bound(self, action, selection, project):
