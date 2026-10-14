@@ -64,8 +64,8 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
         </pattern>
       </defs>
       <g transform={transform}>
-        <Band x={8} width={BAND - 30} height={height} title={w('band_entry')} sub={w('band_known', { k: entry.known, n: total })} />
-        {gapW > 40 && <Band x={gapX} width={gapW} height={height} title={w('band_server')} sub={w('band_known', { k: handler.known, n: total })} />}
+        <Band x={8} width={BAND - 30} title={w('band_entry')} sub={w('band_known', { k: entry.known, n: total })} />
+        {gapW > 40 && <Band x={gapX} width={gapW} title={w('band_server')} sub={w('band_known', { k: handler.known, n: total })} />}
         <text className={css.laneTitle} x={BAND + 24} y={22}>{w(mode === 'target' ? 'lane_callerTarget' : 'lane_caller')}</text>
         <text className={css.laneTitle} x={BAND + view.size[0] - 24 - bw} y={22}>{w('lane_store')}</text>
         <g className={css.edges}>
@@ -88,12 +88,12 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
 const KIND_MARK: Record<Store['kind'], string> = { table: '▦', resource: '⇄', bucket: '▤', rpc: 'ƒ', auth: '⚿' }
 
 /** A hatched tier the records do not reach, its title (a line per tier, broken at its arrows, so it fits the band) and
- * how many writes it knows. */
-function Band({ x, width, height, title, sub }: { x: number; width: number; height: number; title: string; sub: ReactNode }) {
+ * how many writes it knows: as tall as its words, not a column down the whole map with nothing in it. */
+function Band({ x, width, title, sub }: { x: number; width: number; title: string; sub: ReactNode }) {
   const lines = title.split(/\s*[←→]\s*/)
   return (
     <>
-      <rect className={css.band} x={x} y={HEAD - 8} width={width} height={height - HEAD} rx={10} fill="url(#dp-hatch)" />
+      <rect className={css.band} x={x} y={HEAD - 8} width={width} height={56 + 16 * (lines.length - 1)} rx={10} fill="url(#dp-hatch)" />
       <text className={css.bandTitle} y={HEAD + 18} textAnchor="middle">
         {lines.map((line, i) => <tspan key={i} x={x + width / 2} dy={i ? 16 : 0}>{line}</tspan>)}
       </text>
