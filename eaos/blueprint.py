@@ -227,23 +227,42 @@ def policy(stack):
 
 def design(spec, stack):
     """{'architecture', 'policy', 'plan'}: the target and the build, from the spec and the stack alone."""
-    server = stack['api']['id'] != 'none'
-    modules = [m for m in spec['modules']]
-    features = spec['features']
     entities = spec.get('entities') or []
-    cards, milestones = [], []
+    cards = _Cards()
+    foundations = _foundations(cards, stack)
+    ordered, uses = _module_order(spec['modules'], spec['features'], entities)
+    last_of = {}
+    for index, module in enumerate(ordered, start=3):
+        base = [foundations[-1]] + [last_of[other] for other in sorted(uses[module['id']]) if other in last_of]
+        last_of[module['id']] = _module_cards(cards, f'M{index:02d}', module, base, spec['features'], entities, stack)
+    # The last milestone: every journey end to end in a real browser.
+    flows = spec.get('flows') or []
+    for flow in flows:
+        cards.add(f'M{len(ordered) + 3:02d}', 'flow', f"Journey: {flow['name']}", None, ['e2e/'],
+                  [f"a {flow.get('actor') or 'user'} completes it in the browser: " + ' → '.join(map(str, flow.get('steps') or []))[:400]],
+                  [f"e2e/{slug(flow['name'])[:40]}.spec.ts"], [last_of[m['id']] for m in ordered if m['id'] in last_of][-1:])
+    return {'architecture': target(spec, stack, ordered), 'policy': policy(stack),
+            'plan': {'contract_version': 1, 'kind': 'blueprint', 'tasks': cards, 'milestones': _milestones(cards, ordered, flows), 'waves': [],
+                     'sections': [], 'decisions': []}}
 
-    def card(milestone, kind, title, module, paths, acceptance, tests, depends=(), feature=None, why=''):
-        number = len(cards) + 1
-        row = {'id': f'BLD-{number:03d}', 'kind': 'build', 'pattern': f'build_{kind}', 'milestone': milestone, 'title': title,
+
+class _Cards(list):
+    """The build's cards in order: each one added gets the next number."""
+
+    def add(self, milestone, kind, title, module, paths, acceptance, tests, depends=(), feature=None, why=''):
+        row = {'id': f'BLD-{len(self) + 1:03d}', 'kind': 'build', 'pattern': f'build_{kind}', 'milestone': milestone, 'title': title,
                'module': module, 'paths': paths, 'acceptance': acceptance, 'tests': tests, 'depends_on': list(depends),
                'feature': feature, 'why': why, 'budget_lines': LINE_BUDGET[kind],
                'decision': {'kind': 'build', 'readiness': 'ready'}, 'status': 'planned'}
-        cards.append(row)
+        self.append(row)
         return row['id']
 
+
+def _foundations(cards, stack):
+    """M01, the skeleton, and M02, one home for each shared concept: their card ids, the skeleton first."""
+    server = stack['api']['id'] != 'none'
     # M01: the skeleton, with every check running from the first commit.
-    skeleton = card('M01', 'skeleton', 'The project skeleton: workspaces, strict TypeScript, lint, tests, and one smoke test per part', None,
+    skeleton = cards.add('M01', 'skeleton', 'The project skeleton: workspaces, strict TypeScript, lint, tests, and one smoke test per part', None,
                     ['package.json', 'tsconfig.base.json', 'eslint.config.js', '.gitignore', 'shared/', 'web/'] + (['server/'] if server else []),
                     ['npm install, then npm run typecheck, npm run lint and npm test all pass at the root',
                      'the web app shows its shell page' + ('; the server answers GET /health with ok' if server else '')],
@@ -251,36 +270,41 @@ def design(spec, stack):
                     why='Every later card is checked by these scripts, so they exist before any feature.')
     # M02: one home for each shared concept, so nothing is written twice later.
     foundations = [skeleton]
-    foundations.append(card('M02', 'foundation', 'One home for errors and input validation', None,
+    foundations.append(cards.add('M02', 'foundation', 'One home for errors and input validation', None,
                             ['shared/src/errors.ts', 'shared/src/validation.ts'],
                             ['every error the app shows has one type and one place that builds it',
                              'input is validated by the one schema helper, on the server and in the screens alike'],
                             ['shared/src/validation.test.ts'], [skeleton],
                             why='Validation and errors are where copied code starts; one home keeps them single.'))
     if server:
-        foundations.append(card('M02', 'foundation', 'One home for configuration', None, ['server/src/config.ts'],
+        foundations.append(cards.add('M02', 'foundation', 'One home for configuration', None, ['server/src/config.ts'],
                                 ['the environment is read once, typed, in config.ts; nothing else reads process.env',
                                  'a missing required value stops the server at start with its name'],
                                 ['server/src/config.test.ts'], [skeleton]))
     if stack['database']['id'] != 'none':
-        foundations.append(card('M02', 'foundation', f"The database adapter ({stack['database']['name']})", None,
+        foundations.append(cards.add('M02', 'foundation', f"The database adapter ({stack['database']['name']})", None,
                                 [adapter_folder(stack, 'database')],
                                 ['the connection and migrations live only in the database adapter folder',
                                  'a repository port is declared in application/ and implemented here'],
                                 [adapter_folder(stack, 'database') + 'database.test.ts'], [skeleton],
                                 why='Only this folder knows the database, so changing it later is replacing one folder.'))
     if stack['auth']['id'] != 'none':
-        foundations.append(card('M02', 'foundation', f"Sign-in ({stack['auth']['name']})", None,
+        foundations.append(cards.add('M02', 'foundation', f"Sign-in ({stack['auth']['name']})", None,
                                 [adapter_folder(stack, 'auth'), 'web/src/features/auth/'] + (['server/src/interface/http/auth/'] if server else []),
                                 ['a person can sign up, sign in and sign out',
                                  'one function answers who the current user is, and every protected route uses it'],
                                 ['web/src/features/auth/auth.test.tsx'], foundations[-1:] if stack['database']['id'] != 'none' else [skeleton]))
-    foundations.append(card('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
-                            ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
-                            ['every screen uses the shared components in web/src/ui (buttons, inputs, forms, tables, messages)',
-                             'every call to the server goes through web/src/api'],
-                            ['web/src/ui/ui.test.tsx'], [skeleton]))
-    # M03…: one milestone per module, in the order its data allows: owners of data another module uses come first.
+    foundations.append(cards.add('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
+                                 ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
+                                 ['every screen uses the shared components in web/src/ui (buttons, inputs, forms, tables, messages)',
+                                  'every call to the server goes through web/src/api'],
+                                 ['web/src/ui/ui.test.tsx'], [skeleton]))
+    return foundations
+
+
+def _module_order(modules, features, entities):
+    """M03…: one milestone per module, in the order its data allows: owners of data another module uses come first.
+    (the modules in that order, {module: the modules whose data it uses})."""
     uses = {m['id']: set() for m in modules}
     owner = {e['id']: e['module'] for e in entities}
     for feature in features:
@@ -291,49 +315,52 @@ def design(spec, stack):
         ready = [m for m in modules if m['id'] not in placed and uses[m['id']] <= placed] or \
                 [m for m in modules if m['id'] not in placed][:1]           # a cycle between modules: the plan breaks it in order
         for m in ready: ordered.append(m); placed.add(m['id'])
-    last_of = {}
-    for index, module in enumerate(ordered, start=3):
-        mid = f'M{index:02d}'
-        base = [foundations[-1]] + [last_of[other] for other in sorted(uses[module['id']]) if other in last_of]
-        owned = [e for e in entities if e['module'] == module['id']]
-        folder = slug(module['id'])
-        data_card = None
-        if owned:
-            paths = [f'shared/src/{folder}/'] + ([f'server/src/domain/{folder}/', f'server/src/application/{folder}/'] if server else [])
-            if stack['database']['id'] != 'none': paths.append(adapter_folder(stack, 'database') + f'{folder}.ts')
-            data_card = card(mid, 'module', f"{module['name']}: its data and rules ({', '.join(e['name'] for e in owned)})", module['id'], paths,
-                             [f"{e['name']} is defined once (shared types and one schema), stored by this module's repository only" for e in owned]
-                             + [f"only the {module['name']} module writes {', '.join(e['name'] for e in owned)}; others ask it"],
-                             [f'shared/src/{folder}/{folder}.test.ts'], base,
-                             why='The data has one owner: other modules call it rather than touching its tables.')
-        previous = data_card or base[-1]
-        for feature in [f for f in features if f['module'] == module['id']]:
-            fslug = slug(feature['name'])[:40]
-            paths = [f'web/src/features/{folder}/{fslug}/'] + ([f'server/src/application/{folder}/{fslug}.ts', f'server/src/interface/http/{folder}/'] if server else [])
-            previous = card(mid, 'feature', f"{module['name']}: {feature['name']}", module['id'], paths,
-                            list(feature.get('acceptance') or []), [f'web/src/features/{folder}/{fslug}/{fslug}.test.tsx']
-                            + ([f'server/src/application/{folder}/{fslug}.test.ts'] if server else []),
-                            [previous] + ([data_card] if data_card and data_card != previous else []), feature=feature['id'],
-                            why=feature.get('description') or '')
-        last_of[module['id']] = previous
-    # The last milestone: every journey end to end in a real browser.
-    flows = spec.get('flows') or []
-    if flows:
-        mid = f'M{len(ordered) + 3:02d}'
-        for flow in flows:
-            card(mid, 'flow', f"Journey: {flow['name']}", None, ['e2e/'],
-                 [f"a {flow.get('actor') or 'user'} completes it in the browser: " + ' → '.join(map(str, flow.get('steps') or []))[:400]],
-                 [f"e2e/{slug(flow['name'])[:40]}.spec.ts"], [last_of[m['id']] for m in ordered if m['id'] in last_of][-1:])
+    return ordered, uses
+
+
+def _module_cards(cards, mid, module, base, features, entities, stack):
+    """A module's milestone: its data card when it owns data, then a card per feature, each after the one before.
+    The id of its last card, which later modules wait for."""
+    owned = [e for e in entities if e['module'] == module['id']]
+    data_card = _data_card(cards, mid, module, owned, base, stack) if owned else None
+    previous = data_card or base[-1]
+    for feature in [f for f in features if f['module'] == module['id']]:
+        previous = _feature_card(cards, mid, module, feature, [previous] + ([data_card] if data_card and data_card != previous else []), stack)
+    return previous
+
+
+def _data_card(cards, mid, module, owned, base, stack):
+    folder = slug(module['id'])
+    paths = [f'shared/src/{folder}/'] + ([f'server/src/domain/{folder}/', f'server/src/application/{folder}/'] if stack['api']['id'] != 'none' else [])
+    if stack['database']['id'] != 'none': paths.append(adapter_folder(stack, 'database') + f'{folder}.ts')
+    return cards.add(mid, 'module', f"{module['name']}: its data and rules ({', '.join(e['name'] for e in owned)})", module['id'], paths,
+                     [f"{e['name']} is defined once (shared types and one schema), stored by this module's repository only" for e in owned]
+                     + [f"only the {module['name']} module writes {', '.join(e['name'] for e in owned)}; others ask it"],
+                     [f'shared/src/{folder}/{folder}.test.ts'], base,
+                     why='The data has one owner: other modules call it rather than touching its tables.')
+
+
+def _feature_card(cards, mid, module, feature, depends, stack):
+    server = stack['api']['id'] != 'none'
+    folder, fslug = slug(module['id']), slug(feature['name'])[:40]
+    paths = [f'web/src/features/{folder}/{fslug}/'] + ([f'server/src/application/{folder}/{fslug}.ts', f'server/src/interface/http/{folder}/'] if server else [])
+    return cards.add(mid, 'feature', f"{module['name']}: {feature['name']}", module['id'], paths,
+                     list(feature.get('acceptance') or []), [f'web/src/features/{folder}/{fslug}/{fslug}.test.tsx']
+                     + ([f'server/src/application/{folder}/{fslug}.test.ts'] if server else []),
+                     depends, feature=feature['id'], why=feature.get('description') or '')
+
+
+def _milestones(cards, ordered, flows):
+    """The plan's milestones, each with its cards: the skeleton, the foundations, one per module, and the journeys."""
     names = {'M01': ('الهيكل', 'The skeleton'), 'M02': ('الأساسات المشتركة', 'Shared foundations')}
     for index, module in enumerate(ordered, start=3): names[f'M{index:02d}'] = (module['name'], module['name'])
     if flows: names[f'M{len(ordered) + 3:02d}'] = ('الرحلات كاملة', 'Journeys end to end')
+    milestones = []
     for mid, (ar, en) in names.items():
         ids = [c['id'] for c in cards if c['milestone'] == mid]
         if ids: milestones.append({'id': mid, 'name': en, 'name_ar': ar, 'tasks': ids,
                                    'goal': f'{en}: built, every card through its gates.', 'exit': 'every card here passes its gates and its tests'})
-    architecture = target(spec, stack, ordered)
-    return {'architecture': architecture, 'policy': policy(stack),
-            'plan': {'contract_version': 1, 'kind': 'blueprint', 'tasks': cards, 'milestones': milestones, 'waves': [], 'sections': [], 'decisions': []}}
+    return milestones
 
 
 def target(spec, stack, modules):
