@@ -59,7 +59,7 @@ function PlansBody({ data }: { data: StudioData }) {
             {plans.map((plan) => (
               <li key={plan.id}>
                 <RowLink to={`/plans/${encodeURIComponent(plan.id)}`} icon="plan" title={<Txt>{planTitle(plan, t)}</Txt>}
-                  sub={<><Progress plan={plan} /> · {w('stepsN', { n: plan.steps.length })} · {w('tasksN', { n: taskCount(plan) })}</>}
+                  sub={<span className={css.planFacts}><Progress plan={plan} /><span>{w('stepsN', { n: plan.steps.length })}</span><span>{w('tasksN', { n: taskCount(plan) })}</span></span>}
                   end={planState(plan.state, w)} />
               </li>
             ))}
