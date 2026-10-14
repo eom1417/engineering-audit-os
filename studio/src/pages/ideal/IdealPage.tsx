@@ -139,14 +139,17 @@ function IdealBody({ data, ideal }: { data: StudioData; ideal: Ideal }) {
       {view.planned ? <Counts view={view} /> : <Panel pad><StateMessage title={w('notPlanned')} sub={message} /></Panel>}
       <div className={css.sides}>
         {view.planned && <Side title={w('plannedSide')} summary={view.planned.summary} elements={view.planned.elements} view={view} planned empty={w('nothing')} />}
-        <Side title={w('rulesSide')} summary={w(`rulesAbout_${name}` as IdealWord)} elements={view.rules.elements} view={view} planned={false} empty={w('nothing')} />
+        {/* Where the plan departs from the rules sits under the rules' side, the shorter column, so the two stay even */}
+        <div className={css.sideCol}>
+          <Side title={w('rulesSide')} summary={w(`rulesAbout_${name}` as IdealWord)} elements={view.rules.elements} view={view} planned={false} empty={w('nothing')} />
+          {p.departures.length > 0 && (
+            <Section title={w('departures')} count={p.departures.length}>
+              {phone ? <FoldList items={p.departures} first={1} render={departure} label={w('departures')} />
+                : <div className={css.cards}>{p.departures.map(departure)}</div>}
+            </Section>
+          )}
+        </div>
       </div>
-      {p.departures.length > 0 && (
-        <Section title={w('departures')} count={p.departures.length}>
-          {phone ? <FoldList items={p.departures} first={1} render={departure} label={w('departures')} />
-            : <div className={css.cards}>{p.departures.map(departure)}</div>}
-        </Section>
-      )}
       {questions.length > 0 && (
         <Section title={w('questions')} count={questions.length}>
           <div className={css.cards}>
