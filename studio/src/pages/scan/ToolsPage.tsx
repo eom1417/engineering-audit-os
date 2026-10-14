@@ -28,7 +28,7 @@ export function ToolsPage() {
   const { mode } = useLive()
   const { all, skew } = useScan()
   const actions = useActions()
-  usePageChrome(w('toolsTitle'))
+  usePageChrome(w('toolsTitle'), { to: '/scan', label: w('title') })
   useInstallAsked(all, actions)
   useMapOnceChecking(all)
   if (mode !== 'live') return <div className={layout.page}><Head lead={w('toolsSnapshotLead')} /><SnapshotPanel /></div>
