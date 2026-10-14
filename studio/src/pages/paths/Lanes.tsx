@@ -129,7 +129,7 @@ type At = Parameters<typeof curve>[0]
 type Zoom = ReturnType<typeof useZoom>
 
 /** The rows above the canvas, with the zoom buttons at the end. */
-function LanesToolbar({ title, head, zoom, fitView }: { title?: ReactNode; head?: ReactNode; zoom: Zoom; fitView: { k: number; x: number; y: number } }) {
+export function LanesToolbar({ title, head, zoom, fitView }: { title?: ReactNode; head?: ReactNode; zoom: Zoom; fitView: { k: number; x: number; y: number } }) {
   const mw = useMapWords()
   return (
     <div className={css.toolbar}>
