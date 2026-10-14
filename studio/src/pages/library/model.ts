@@ -73,7 +73,7 @@ export function useCoverageRow(data: StudioData, section: string): CoverageRow |
 // ---------------------------------------------------------------- documents
 
 /** The groups in the order a person meets them; a group the report adds later comes after these, by name. */
-export const GROUPS = ['start', 'story', 'plan', 'PLAN', 'adr', 'technical', 'handover'] as const
+export const GROUPS = ['start', 'look', 'story', 'plan', 'PLAN', 'adr', 'technical', 'handover'] as const
 
 export function groupRank(group: string): number {
   const at = (GROUPS as readonly string[]).indexOf(group)

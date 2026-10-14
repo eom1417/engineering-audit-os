@@ -1,0 +1,63 @@
+{
+ "schema_version": 1,
+ "about": "The three journeys of one engine (eaos/journeys.py): each step, in order, with the flow whose progress draws it on the live map (eaos/progress), or the Studio page that shows it when it has no flow; `essential` false marks a step the journey can go without. The state's mode picks the journey: build from a plan, extend the project, else check and fix.",
+ "journeys": {
+  "check": {
+   "title": {"ar": "افحص وأصلح", "en": "Check and fix"},
+   "steps": [
+    {"id": "scan", "flow": "check", "essential": true,
+     "title": {"ar": "فحص المشروع وكتابة التقرير", "en": "Check the project and write the report"},
+     "later": {"ar": "تبدأ حين تطلب فحص مشروعك.", "en": "Starts when you ask for a check of your project."}},
+    {"id": "ready", "flow": "setup", "essential": false,
+     "title": {"ar": "تجهيز تشغيل برنامجك في نسخة منفصلة", "en": "Set up your app to run in a separate copy"},
+     "later": {"ar": "تأتي بعد الفحص: تجهّز برنامجك ليعمل في نسخة منفصلة.", "en": "Comes after the check: sets your app up to run in a separate copy."}},
+    {"id": "safety", "flow": "safety", "essential": false,
+     "title": {"ar": "تصوير برنامجك وقياس سرعته قبل أي تغيير", "en": "Record your app and measure its speed before any change"},
+     "later": {"ar": "تأتي بعد تجهيز برنامجك: تصوّر شاشاته وتقيس سرعته.", "en": "Comes after your app is set up: records its screens and measures its speed."}},
+    {"id": "fix", "flow": "fix", "essential": true,
+     "title": {"ar": "إصلاح دفعة وتسليمها فرعًا في مشروعك", "en": "Fix a batch and hand it over as a branch in your project"},
+     "later": {"ar": "تأتي بعد التصوير: تصلح دفعة وتسلّمها فرعًا.", "en": "Comes after the recording: fixes a batch and hands it over as a branch."}}
+   ]
+  },
+  "build": {
+   "title": {"ar": "ابنِ من خطة", "en": "Build from a plan"},
+   "steps": [
+    {"id": "plan", "flow": null, "page": "/library/docs?group=look", "essential": true,
+     "title": {"ar": "قراءة الخطة وصورها", "en": "Read the plan and its pictures"},
+     "later": {"ar": "تبدأ حين تعطي مساعدك خطة مشروعك.", "en": "Starts when you give your assistant the plan of your project."}},
+    {"id": "spec", "flow": null, "page": "/library/docs?group=look", "essential": true,
+     "title": {"ar": "المواصفات والشكل", "en": "The spec and the look"},
+     "later": {"ar": "تأتي بعد قراءة الخطة: مساعدك يكتب المواصفات والشكل ويسألك الخيارات الحقيقية فقط.", "en": "Comes after the plan is read: your assistant writes the spec and the look, asking you only real choices."}},
+    {"id": "blueprint", "flow": null, "page": "/library/docs?group=look", "essential": true,
+     "title": {"ar": "المخطط: البنية والتقنيات ومراحل البناء", "en": "The blueprint: the structure, the technologies and the milestones"},
+     "later": {"ar": "تأتي بعد المواصفات: ترسم البنية والتقنيات وخطة البناء.", "en": "Comes after the spec: draws the structure, the technologies and the build plan."}},
+    {"id": "build", "flow": "build", "essential": true,
+     "title": {"ar": "البناء مرحلة مرحلة", "en": "Build milestone by milestone"},
+     "later": {"ar": "تأتي بعد موافقتك على المخطط: كل مرحلة فرع، وكل بطاقة تمر ببواباتها.", "en": "Comes once you agree to the blueprint: each milestone a branch, each card through its gates."}},
+    {"id": "accept", "flow": "check", "essential": true,
+     "title": {"ar": "فحص الاستلام", "en": "The acceptance check"},
+     "later": {"ar": "تأتي بعد آخر مرحلة: فحص كامل للمشروع المبني، ثم يكمل في «افحص وأصلح».", "en": "Comes after the last milestone: a whole check of the built project, which then goes on as \"Check and fix\"."}}
+   ]
+  },
+  "extend": {
+   "title": {"ar": "وسّع المشروع", "en": "Extend the project"},
+   "steps": [
+    {"id": "feature", "flow": null, "page": "/library/docs?group=look", "essential": true,
+     "title": {"ar": "خطة الميزة داخل المشروع", "en": "The feature planned into the project"},
+     "later": {"ar": "تبدأ حين تعطي مساعدك خطة ميزة أو صفحة أو جزء.", "en": "Starts when you give your assistant the plan of a feature, a page or a part."}},
+    {"id": "ready", "flow": "setup", "essential": false,
+     "title": {"ar": "تجهيز تشغيل برنامجك في نسخة منفصلة", "en": "Set up your app to run in a separate copy"},
+     "later": {"ar": "تأتي بعد الخطة: تجهّز برنامجك ليعمل في نسخة منفصلة.", "en": "Comes after the plan: sets your app up to run in a separate copy."}},
+    {"id": "safety", "flow": "safety", "essential": false,
+     "title": {"ar": "تصوير برنامجك وقياس سرعته قبل أي تغيير", "en": "Record your app and measure its speed before any change"},
+     "later": {"ar": "تأتي بعد تجهيز برنامجك: تصوّر شاشاته وتقيس سرعته.", "en": "Comes after your app is set up: records its screens and measures its speed."}},
+    {"id": "build", "flow": "fix", "essential": true,
+     "title": {"ar": "بناء الميزة دفعات", "en": "Build the feature in batches"},
+     "later": {"ar": "تأتي بعد موافقتك: دفعة ببوابات الإصلاح كلها، تُسلَّم فرعًا.", "en": "Comes once you agree: a batch through every gate of a fix, handed over as a branch."}},
+    {"id": "recheck", "flow": "check", "essential": true,
+     "title": {"ar": "إكمال الفحص بعد الدمج", "en": "The check, once it is merged"},
+     "later": {"ar": "تأتي بعد دمج الميزة: الفحص يكمل على المشروع الجديد.", "en": "Comes once the feature is merged: the check goes on over the project as it is now."}}
+   ]
+  }
+ }
+}

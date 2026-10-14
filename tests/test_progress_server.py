@@ -13,7 +13,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tests'))
 
-from eaos import agent_tools, behavior_lock, cli, guided, jobs, live_setup, progress, run_profile, toolchain, waves  # noqa: E402
+from eaos import agent_tools, behavior_lock, cli, guided, jobs, journeys, live_setup, progress, run_profile, toolchain, waves  # noqa: E402
 from eaos.api import launch, server  # noqa: E402
 from eaos.pipeline import STAGES  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
@@ -80,7 +80,7 @@ class ProgressRoute(Project):
         log.started(live_setup.FLOW, [s.name for s in live_setup.FLOW], {})
         log.emit('stage.started', stage='detect')
         body = self.get('/api/progress').json()
-        self.assertEqual([(s['id'], s['flow']) for s in body['journey']], list(guided.FLOWS.items()))
+        self.assertEqual([(s['id'], s['flow']) for s in body['journey']], [(s['id'], s['flow']) for s in journeys.steps('check')])
         self.assertEqual(sorted(body['flows']), sorted(FLOWS))
         for flow, declared in FLOWS.items():
             self.assert_drawn(body['flows'][flow]['stages'], declared, flow)

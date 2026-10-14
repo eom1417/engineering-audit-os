@@ -129,7 +129,8 @@ def stage_rows(stages):
     """The declaration as data, in its order: what a reader needs to draw the map and explain each stage."""
     return [{'name': s.name, 'requires': list(s.requires), 'produces': list(getattr(s, 'produces', ()) or ()),
              'necessity': getattr(s, 'necessity', 'required'), 'description': getattr(s, 'description', ''),
-             'absent_when': getattr(s, 'absent_when', ''), 'ai': getattr(s, 'ai', False)} for s in stages]
+             'absent_when': getattr(s, 'absent_when', ''), 'ai': getattr(s, 'ai', False),
+             **({'title': s.title} if getattr(s, 'title', None) else {})} for s in stages]
 
 
 def previous_seconds(out):
@@ -218,9 +219,10 @@ class ProgressLog:
                 self.stop.set()
             return row
 
-    def started(self, stages, requested, previous, steps=None):
+    def started(self, stages, requested, previous, steps=None, process=True):
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
-        run replaces unless `steps` gives them. Starts the background thread."""
+        run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
+        (one drawn from a state, eaos/journeys.py), so none is named and a reader never judges it gone."""
         rows = stage_rows(stages)
         with self.lock:
             self.declared = {row['name']: row['necessity'] for row in rows}
@@ -228,8 +230,8 @@ class ProgressLog:
             try: steps = previous_steps(self.path)
             except Exception: steps = {}
         row = self.emit('run.started', flow=self.flow, schema=SCHEMA, stages=rows, requested=list(requested),
-                        previous=previous or {}, previous_steps=steps, alive_every=self.alive_every,
-                        pid=os.getpid(), host=socket.gethostname())
+                        previous=previous or {}, previous_steps=steps, **({'alive_every': self.alive_every} if self.alive_every else {}),
+                        pid=os.getpid() if process else None, host=socket.gethostname() if process else None)
         if self.pulse and not self.broken:
             self.thread = threading.Thread(target=self._beat, name=f'eaos-progress-{self.flow}', daemon=True)
             self.thread.start()

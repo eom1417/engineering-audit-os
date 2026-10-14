@@ -12,6 +12,7 @@ export const LIBRARY_WORDS = {
   allGroups: ['الكل', 'All'],
   groupFilter: ['المجموعة', 'Group'],
   group_start: ['ابدأ هنا', 'Start here'],
+  group_look: ['المخطط والشكل', 'The blueprint and the look'],
   group_story: ['القصة: اليوم والهدف والفجوة', 'The story: today, the target, the gap'],
   group_plan: ['خطة التنفيذ', 'The execution plan'],
   group_PLAN: ['مهام الخطة', 'Plan tasks'],

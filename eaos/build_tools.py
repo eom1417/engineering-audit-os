@@ -22,7 +22,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import agent_tools, blueprint, design, guided
+from . import agent_tools, blueprint, design, guided, journeys
 from .plan_source import read_plan
 
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
@@ -124,7 +124,11 @@ def blueprint_design(stack=None, project=None):
 
 
 def publish(state, spec=None, stack=None, built=None):
-    """BLUEPRINT.html in the outputs folder, beside README.md: the blueprint and the build's progress for a person."""
+    """BLUEPRINT.html in the outputs folder, beside README.md: the blueprint and the build's progress for a person; and
+    the same in the Studio: the progress on its live map (journeys.draw_build), the blueprint and the look in its library
+    while no check of the project exists yet (after one, the check's own publishing keeps the Studio)."""
+    journeys.draw_build(state)
+    if not guided.scan_done(state): _studio(state)
     where = folder(state)
     spec = spec or _read(where / 'product-spec.json')
     stack = stack or _read(where / 'stack.json')
@@ -133,6 +137,18 @@ def publish(state, spec=None, stack=None, built=None):
     target = guided.outputs(state) / 'BLUEPRINT.html'
     target.write_text(blueprint.page(spec, stack, built, state.get('built')), encoding='utf-8')
     return target
+
+
+def _studio(state):
+    """The Studio's data of a project not checked yet (eaos/studio/export.py): its library shows the blueprint and the
+    look. Never a reason for a build step to fail: a failure is logged and the step goes on."""
+    from .studio.export import export
+    try:
+        report = guided.report_of(state)
+        report.mkdir(parents=True, exist_ok=True)
+        export(report, state.get('lang') or 'en', Path(state['project']).name, state['project'], None, state)
+    except Exception as problem:
+        guided.log_failure(guided.outputs(state), problem)
 
 
 guided.PUBLISHERS['build'] = lambda state: publish(state)
@@ -227,6 +243,7 @@ def build_start(project=None, person_agreed=False):
              'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None}
     state['open_build'] = build
     guided.save(state)
+    publish(state)
     cards = _cards(state)
     return {'status': 'opened', 'milestone': {'id': milestone['id'], 'name': milestone['name']}, 'copy': str(root),
             'git_started': started, 'cards': [_brief(cards[c]) for c in milestone['tasks']],
@@ -377,6 +394,7 @@ def _build_edit_job(project, arguments, progress):
                             'card again with build_edit, whole.'}
     if card != 'FIX': state['open_build']['kept'][card] = _git(root, 'rev-parse', 'HEAD').stdout.strip()
     guided.save(state)
+    publish(state)
     left = _left(state['open_build'])
     return {'card': card, 'kept': True, 'files': changed, 'left': left,
             'what_now': 'Next card with build_edit.' if left else 'Every card of this milestone is built: call build_finish.'}
@@ -388,6 +406,7 @@ def build_skip(card, reason, project=None):
     if card not in build['cards']: raise ValueError(f"{card} is not in milestone {build['milestone']}")
     build['skipped'][card] = reason[:300]
     guided.save(state)
+    publish(state)
     return {'card': card, 'skipped': True, 'left': _left(build)}
 
 
@@ -457,8 +476,12 @@ def _next_step(state, plan, bp, build, done):
 
 
 def status_of(project=None):
-    """The status of the project's way: building from a plan, or checking and fixing."""
+    """The status of the project's way: building from a plan, or checking and fixing. A build whose acceptance check is
+    done goes on as check and fix (its mode becomes the check's)."""
     state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+    if (state or {}).get('mode') == 'build' and journeys.which(state) != 'build':
+        state['mode'] = 'check'
+        guided.save(state)
     return status(project) if (state or {}).get('mode') == 'build' else agent_tools.status(project)
 
 

@@ -92,6 +92,23 @@
     },
     "ai": {
      "type": "boolean"
+    },
+    "title": {
+     "type": "object",
+     "description": "the stage's name in the person's language, for a stage declared at run time (a build's milestone, eaos/journeys.py)",
+     "required": [
+      "ar",
+      "en"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "ar": {
+       "type": "string"
+      },
+      "en": {
+       "type": "string"
+      }
+     }
     }
    }
   },
@@ -171,11 +188,18 @@
      "description": "the writer adds run.alive after this many seconds of silence"
     },
     "pid": {
-     "type": "integer",
-     "minimum": 1
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 1,
+     "description": "the process that writes the run; null for a run no process holds, drawn again from a state after each step (a build, eaos/journeys.py), which a reader never judges gone"
     },
     "host": {
-     "type": "string"
+     "type": [
+      "string",
+      "null"
+     ]
     }
    },
    "required": [

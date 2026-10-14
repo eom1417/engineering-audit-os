@@ -18,10 +18,6 @@ export const SCAN_WORDS = {
   stepRunning: ['تعمل الآن', 'Running now'],
   stepStopped: ['توقّفت', 'Stopped'],
   stepNotYet: ['لم تبدأ', 'Not started'],
-  notYet_scan: ['تبدأ حين تطلب فحص مشروعك.', 'Starts when you ask for a check of your project.'],
-  notYet_ready: ['تأتي بعد الفحص: تجهّز برنامجك ليعمل في نسخة منفصلة.', 'Comes after the check: sets your app up to run in a separate copy.'],
-  notYet_safety: ['تأتي بعد تجهيز برنامجك: تصوّر شاشاته وتقيس سرعته.', 'Comes after your app is set up: records its screens and measures its speed.'],
-  notYet_fix: ['تأتي بعد التصوير: تصلح دفعة وتسلّمها فرعًا.', 'Comes after the recording: fixes a batch and hands it over as a branch.'],
   starting: ['يبدأ الفحص الآن…', 'The check is starting…'],
   run_none: ['لم تعمل بعد', 'Not run yet'],
   run_running: ['تعمل الآن', 'Running'],
@@ -273,7 +269,11 @@ export function useScanWords() {
     const key = `${kind}_${flow === 'check' ? '' : `${flow}_`}${name}`
     return has(key) ? w(key) : fallback
   }
-  const stageTitle = (name: string, flow = 'check') => of('stage', name, flow, name.replace(/_/g, ' '))
+  /** A stage's name: its word, else the title it was declared with (a build's milestone), else its id */
+  const stageTitle = (stage: string | { name: string; title?: { ar: string; en: string } }, flow = 'check') => {
+    const { name, title } = typeof stage === 'string' ? { name: stage, title: undefined } : stage
+    return of('stage', name, flow, title?.[lang] ?? name.replace(/_/g, ' '))
+  }
   const about = (name: string, flow: string, fallback: string) => of('about', name, flow, fallback)
   const absent = (name: string, flow: string, fallback: string) => of('absent', name, flow, fallback)
   const reason = (code: string, fallback: string) => (reasons as Record<string, { ar: string; en: string }>)[code]?.[lang] ?? fallback

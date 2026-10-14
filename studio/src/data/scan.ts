@@ -24,6 +24,8 @@ export interface ScanStep {
 /** An external program the run started, running now (`since`: when it started). */
 export interface Program { name: string; pid: number; since: string }
 
+type Words = { ar: string; en: string }
+
 export interface ScanStage {
   name: string
   requires: string[]
@@ -33,6 +35,8 @@ export interface ScanStage {
   absent_when: string
   /** done by the person's assistant (eaos/pipeline/stages.py `ai`) */
   ai?: boolean
+  /** the name of a stage declared at run time (a build's milestone, eaos/journeys.py), which no word holds */
+  title?: Words
   requested: boolean
   state: StageState
   started_at: string | null
@@ -77,8 +81,12 @@ export interface ScanProgress {
   estimate?: Estimate | null
 }
 
-/** One step of the journey (eaos/guided.py journey): its flow, whether it is done, and its flow's judged state. */
-export interface JourneyStep { id: string; title: { ar: string; en: string }; flow: string; done: boolean; state: RunState }
+/** One step of the person's journey (eaos/journeys.py journey, eaos/data/journeys.json): its words, the flow that draws
+ *  it on the map or the page that shows it, whether it is done, and its flow's judged state. */
+export interface JourneyStep {
+  id: string; title: Words; later?: Words; flow: string | null; page?: string; essential?: boolean
+  journey?: { id: string; title: Words }; done: boolean; state: RunState
+}
 
 /** `GET /api/progress`; `tools_needed`: the tools the check needs on this project (eaos/toolchain.py needed). */
 export interface AllProgress { journey: JourneyStep[]; flows: Record<string, ScanProgress>; tools_needed?: string[]; now?: string }

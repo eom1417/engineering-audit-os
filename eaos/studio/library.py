@@ -4,6 +4,8 @@
 - docs: every Markdown document of the report, grouped by purpose, in the reading order the report's own index
   (README.md) gives, with its headings for search. The engines' working copies of the project (engines/) are not
   documents EAOS wrote, and are left out.
+- beside them, the documents kept next to the report (BESIDE): the look the person chose (DESIGN.md), a build's
+  blueprint (its parts, technologies and milestones) and the plan of a feature added to the project, in one group.
 - media: the report's diagrams and images, the same way. The thumbnails an older crawl's Unlighthouse kept
   (`__screenshot-thumbnails__`, 760 of them on EAOS's own Studio) are its working files, not pictures of the check.
 - Each document in both languages when the check wrote them (report/i18n/<lang>/, eaos/bilingual.py): its title
@@ -19,6 +21,7 @@ from pathlib import Path
 DOC_GROUPS = (('START-HERE.md', 'start'), ('README.md', 'start'), ('CURRENT-STATE.md', 'story'),
               ('TARGET-STATE.md', 'story'), ('GAP-AND-STRATEGY.md', 'story'), ('EXECUTION-PLAN.md', 'plan'))
 SKIP = ('studio/', 'engines/')
+BESIDE = ('blueprint/BLUEPRINT.md', 'DESIGN.md', 'extend/SOURCE.md')     # beside the report: the group `look`
 SKIP_PARTS = ('__screenshot-thumbnails__',)
 LINK = re.compile(r'\]\(([^)#\s]+\.md)(?:#[^)]*)?\)')
 HEADING = re.compile(r'^(#{1,3})\s+(.+?)\s*#*\s*$')
@@ -39,6 +42,16 @@ def _files(report, suffixes):
         name = path.relative_to(report).as_posix()
         if name.startswith(SKIP) or any(part in name for part in SKIP_PARTS) or not path.is_file(): continue
         yield path, name
+
+
+def _beside(report):
+    for name in BESIDE:
+        if (Path(report).parent / name).is_file(): yield Path(report).parent / name, name
+
+
+def _source(report, name):
+    """The file of a document: beside the report for BESIDE, else in it."""
+    return Path(report).parent / name if name in BESIDE else Path(report) / name
 
 
 def _headings(text):
@@ -68,11 +81,11 @@ def docs(report):
     groups, first = dict(DOC_GROUPS), {name: i for i, (name, _) in enumerate(DOC_GROUPS)}
     indexed = reading_order(report)
     out = []
-    for path, name in _files(report, ('.md',)):
+    for path, name in [*_beside(report), *_files(report, ('.md',))]:
         text = path.read_text(encoding='utf-8', errors='replace')
         lines = text.lstrip().split('\n', 1)
         title = lines[0].lstrip('#').strip() if lines[0].startswith('#') else path.stem
-        group = groups.get(name) or (name.split('/', 1)[0] if '/' in name else 'technical')
+        group = 'look' if name in BESIDE else groups.get(name) or (name.split('/', 1)[0] if '/' in name else 'technical')
         order = first.get(name, len(first) + indexed[name] if name in indexed else None)
         out.append({'id': name, 'title': title[:200] or path.stem, 'path': name, 'group': group, 'bytes': path.stat().st_size,
                     'order': order, 'headings': [h for h in _headings(text) if h['level'] > 1][:60],
@@ -142,7 +155,7 @@ def library(report, doc_rows, image_rows, project=None):
     report = Path(report)
     documents, images = [], []
     for row in doc_rows:
-        text = _private((report / row['path']).read_text(encoding='utf-8', errors='replace'), project)
+        text = _private(_source(report, row['path']).read_text(encoding='utf-8', errors='replace'), project)
         texts = {lang: _private(body, project)[:TEXT_LIMIT] for lang, body in _versions(report, row['path']).items()}
         documents.append({'id': row['id'], 'text': text[:TEXT_LIMIT], 'chars': len(text), 'truncated': len(text) > TEXT_LIMIT,
                           **({'texts': texts} if texts else {})})

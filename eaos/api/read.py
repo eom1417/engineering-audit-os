@@ -27,7 +27,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from .. import __version__, artifact_contracts, guided
+from .. import __version__, artifact_contracts, guided, journeys
 from ..studio.pipeline import SAFE, layout
 
 PREFIX = 'studio-'
@@ -188,7 +188,7 @@ def declaration(flow):
     from .. import behavior_lock, live_setup, toolchain, waves
     from ..pipeline.stages import STAGES
     if flow == toolchain.FLOW: return toolchain.stages(toolchain.ordered(toolchain.registry()['tools']))
-    return {'check': STAGES, 'setup': live_setup.FLOW, 'safety': behavior_lock.FLOW, 'fix': waves.FLOW}[flow]
+    return {'check': STAGES, 'setup': live_setup.FLOW, 'safety': behavior_lock.FLOW, 'fix': waves.FLOW, journeys.BUILD: ()}[flow]
 
 
 def flow_state(folder, flow='check'):
@@ -223,9 +223,9 @@ def progress_state(report, state, last_id=None):
     from .. import toolchain
     from .events import now
     flows = {'check': flow_state(report), toolchain.FLOW: flow_state(toolchain.home(), toolchain.FLOW)}
-    if state: flows.update((flow, flow_state(guided.runtime_of(state), flow)) for flow in guided.FLOWS.values() if flow != 'check')
+    if state: flows.update((flow, flow_state(journeys.folder(state, flow), flow)) for flow in journeys.flows(state)[1:])
     needed = toolchain.needed(toolchain.project_files(state['project']) if state else ())
-    return {'journey': guided.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now(), 'feed_last': last_id}
+    return {'journey': journeys.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now(), 'feed_last': last_id}
 
 
 def report_file(report, path):

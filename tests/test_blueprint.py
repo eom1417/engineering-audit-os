@@ -169,6 +169,14 @@ class BuildTests(unittest.TestCase):
         self.assertTrue((Path(nxt['copy']) / 'package.json').is_file(), 'it starts where the last milestone ended')
         state = guided.load(Path(self.project).resolve())
         self.assertEqual([w['status'] for w in state['waves']], ['applied'])
+        from eaos import journeys, progress
+        steps = {s['id']: s for s in journeys.journey(state)}
+        self.assertEqual(list(steps), ['plan', 'spec', 'blueprint', 'build', 'accept'], 'the build journey, as declared')
+        self.assertTrue(steps['blueprint']['done'] and not steps['build']['done'])
+        self.assertEqual(steps['build']['state'], 'running', 'a build no process holds is not judged gone')
+        drawn = {s['name']: s for s in progress.fold(progress.read(guided.runtime_of(state), 'build'))['stages']}
+        self.assertEqual((drawn['M01']['state'], drawn['M02']['state']), ('ok', 'running'))
+        self.assertEqual([(c['name'], c['status']) for c in drawn['M01']['steps']], [('BLD-001', 'ok')])
 
 
 if __name__ == '__main__':

@@ -164,7 +164,7 @@ function whereWords(progress: ScanProgress, w: ReturnType<typeof useScanWords>):
 /** What the map's picture says to a screen reader: the flow's state, its running stage, where it is. */
 function mapSummary(progress: ScanProgress, w: ReturnType<typeof useScanWords>): string {
   const running = progress.stages.find((s) => s.state === 'running')
-  const now = running ? w.stageTitle(running.name, progress.flow ?? 'check') + ': ' + w('state_running') + '. ' : ''
+  const now = running ? w.stageTitle(running, progress.flow ?? 'check') + ': ' + w('state_running') + '. ' : ''
   return w.known('run_', progress.state) + '. ' + now + whereWords(progress, w)
 }
 
@@ -173,7 +173,7 @@ function StageSide({ stage, picked, progress, skew, select }: StageSideProps) {
   const w = useScanWords()
   const phone = usePhone()
   const panel = <StagePanel stage={stage} progress={progress} skew={skew} onSelect={select} />
-  const title = w.stageTitle(stage.name, progress.flow ?? 'check')
+  const title = w.stageTitle(stage, progress.flow ?? 'check')
   if (phone) return <Sheet isOpen={picked} onOpenChange={(open) => { if (!open) select(undefined) }} title={title}>{panel}</Sheet>
   return <Panel className={css.stagePanel} label={title}>{panel}</Panel>
 }
@@ -246,7 +246,7 @@ function StageList({ progress, selected, onSelect }: StageListProps) {
                 aria-pressed={s.name === selected} data-list-stage={s.name} data-list-state={state}>
                 <span className={[css.listDot, css[`dot_${state}`]].join(' ')} aria-hidden="true" />
                 <span className={css.listMain}>
-                  <span className={css.listTitle}>{w.stageTitle(s.name, flow)}</span>
+                  <span className={css.listTitle}>{w.stageTitle(s, flow)}</span>
                   <span className={css.listSub}>{w.known('state_', state)}{state === 'ok' && s.seconds !== null ? ` · ${s.seconds}${lang === 'ar' ? ' ث' : ' s'}` : ''}
                     {counted ? <> · <bdi dir="ltr">{counted.done}/{counted.total}</bdi></> : null}</span>
                 </span>
@@ -267,8 +267,8 @@ function latest(progress: ScanProgress, journey: JourneyStep[], w: ReturnType<ty
     return w('announceRun', { f: step ? step.title[lang] : flow, w: w.known('status_', progress.status ?? '') })
   }
   const moments = progress.stages.filter((s) => s.requested && s.state !== 'skipped')
-    .flatMap((s) => [{ at: s.started_at, text: w('announceStarted', { s: w.stageTitle(s.name, flow) }) },
-      { at: s.ended_at, text: w('announceEnded', { s: w.stageTitle(s.name, flow), w: w.known('state_', s.state) }) }])
+    .flatMap((s) => [{ at: s.started_at, text: w('announceStarted', { s: w.stageTitle(s, flow) }) },
+      { at: s.ended_at, text: w('announceEnded', { s: w.stageTitle(s, flow), w: w.known('state_', s.state) }) }])
     .filter((m) => m.at)
   return moments.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? '')).pop()?.text ?? ''
 }

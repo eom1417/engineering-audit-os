@@ -146,16 +146,16 @@ function Time({ stage, state, skew, last, unit }: { stage: ScanStage; state: str
   )
 }
 
-interface FactsProps { stage: ScanStage; state: string; flow: string; skew: number; last: number | undefined; unit: string; onSelect: (name: string) => void }
+interface FactsProps { stage: ScanStage; stages: ScanStage[]; state: string; flow: string; skew: number; last: number | undefined; unit: string; onSelect: (name: string) => void }
 
-function Facts({ stage, state, flow, skew, last, unit, onSelect }: FactsProps) {
+function Facts({ stage, stages, state, flow, skew, last, unit, onSelect }: FactsProps) {
   const w = useScanWords()
   const optional = stage.necessity === 'optional'
   return (
     <Props rows={[
       [w('needs'), stage.requires.length
         ? <span className={css.needs}>{stage.requires.map((name) => (
-            <AriaButton key={name} className={css.needLink} onPress={() => onSelect(name)}>{w.stageTitle(name, flow)}</AriaButton>))}</span>
+            <AriaButton key={name} className={css.needLink} onPress={() => onSelect(name)}>{w.stageTitle(stages.find((s) => s.name === name) ?? name, flow)}</AriaButton>))}</span>
         : w('needsNothing')],
       [w('necessity'), <>{w(optional ? 'optional' : 'required')}{optional && stage.absent_when
         ? <span className={css.muted}> · {w('absentWhen')}: <Txt>{w.absent(stage.name, flow, stage.absent_when)}</Txt></span> : null}</>],
@@ -205,7 +205,7 @@ export function StagePanel({ stage, progress, skew, onSelect }: StagePanelProps)
   return (
     <>
       <div className={css.stageHead} data-hook="scan-stage-panel" data-stage={stage.name}>
-        <h2 className={css.stageTitle}>{w.stageTitle(stage.name, flow)} <Id value={stage.name} className={css.stageId} /></h2>
+        <h2 className={css.stageTitle}>{w.stageTitle(stage, flow)} <Id value={stage.name} className={css.stageId} /></h2>
         <Chip tone={STATE_TONE[state] ?? 'neutral'}>{w.known('state_', state)}</Chip>
       </div>
       <p className={css.about}>{w.about(stage.name, flow, stage.description)}</p>
@@ -215,7 +215,7 @@ export function StagePanel({ stage, progress, skew, onSelect }: StagePanelProps)
           <strong>{w('why')}:</strong> <Txt>{w.reason(stage.reason_code, stage.reason)}</Txt>
         </div>
       )}
-      <Facts stage={stage} state={state} flow={flow} skew={skew} last={progress.previous[stage.name]} unit={unit} onSelect={onSelect} />
+      <Facts stage={stage} stages={progress.stages} state={state} flow={flow} skew={skew} last={progress.previous[stage.name]} unit={unit} onSelect={onSelect} />
       {state === 'running' && <Programs stage={stage} skew={skew} />}
       <Steps key={stage.name} steps={stage.steps} unit={unit} />
       <Produced stage={stage} state={state} readable={flow === 'check'} />

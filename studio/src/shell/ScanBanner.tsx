@@ -34,7 +34,7 @@ export function ScanBanner() {
   if (!flow || !sum || here) return null
   const step = all?.journey.find((s) => s.flow === flow)
   const running = sum.running[0]
-  const text = w('banner', { f: step ? step.title[lang] : w('toolsTitle'), s: running ? w.stageTitle(running.name, flow) : '' })
+  const text = w('banner', { f: step ? step.title[lang] : w('toolsTitle'), s: running ? w.stageTitle(running, flow) : '' })
   const of = w('bannerOf', { n: flow === TOOLS ? sum.ended : sum.position, t: sum.total })
   return (
     <div data-scan-banner="">

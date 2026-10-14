@@ -40,6 +40,7 @@ class Stage:
     absent_when: str = ''
     necessity: str = REQUIRED
     produces: tuple = ()
+    title: dict = None          # {ar, en}: the name of a stage declared at run time, which no word of the Studio holds
 
 
 def errors(stages):

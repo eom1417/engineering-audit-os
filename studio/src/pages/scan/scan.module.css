@@ -18,7 +18,8 @@
 .listPanel { grid-area: list; padding: 12px 8px; }
 
 /* ---------------------------------------------------------------- the journey */
-.journeyList { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.journeyName { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.journeyList { display: grid; grid-template-columns: repeat(var(--steps, 4), minmax(0, 1fr)); gap: 8px; }
 .journeyStep { display: flex; align-items: flex-start; gap: 10px; inline-size: 100%; block-size: 100%; min-block-size: 56px; padding: 10px 12px;
   border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--bg-surface); color: inherit; text-align: start; cursor: pointer; }
 .journeyStep[data-hovered] { background: var(--bg-hover); }
@@ -185,7 +186,7 @@
   .mapWrap { scroll-margin-block: calc(var(--topbar-h-phone) + 8px) calc(var(--tabbar-h) + 8px); }
   /* While a flow runs the journey is one compact row, so the map is on the first screen */
   .page[data-run-state="running"] .lead, .page[data-run-state="running"] .journeySub { display: none; }
-  .page[data-run-state="running"] .journeyList { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .page[data-run-state="running"] .journeyList { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(104px, 1fr); gap: 4px; overflow-x: auto; }
   .page[data-run-state="running"] .journeyStep { min-block-size: 44px; padding: 6px; gap: 6px; }
 }
 

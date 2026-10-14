@@ -23,7 +23,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, plain
+from . import branches, journeys, plain
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
 from .places import home, workspace  # noqa: F401  (one home: eaos/places.py; guided.home and guided.workspace stay its API)
 
@@ -1106,47 +1106,14 @@ def assistant(args):
     return 0
 
 
-# (id, Arabic title, English title, done(state), run(state, args)).
-STEPS = [
-    ('scan', 'فحص المشروع وكتابة التقرير', 'Check the project and write the report', scan_done, scan),
-    ('ready', 'تجهيز تشغيل برنامجك في نسخة منفصلة', 'Set up your app to run in a separate copy', ready_done, ready),
-    ('safety', 'تصوير برنامجك وقياس سرعته قبل أي تغيير', 'Record your app and measure its speed before any change', safety_done, safety),
-    ('fix', 'إصلاح دفعة وتسليمها فرعًا في مشروعك', 'Fix a batch and hand it over as a branch in your project', fix_done, fix),
-]
+# (id, Arabic title, English title, done(state), run(state, args)): the check-and-fix journey's steps, their words in
+# eaos/data/journeys.json (the other journeys, eaos/journeys.py).
+STEPS = [(step['id'], step['title']['ar'], step['title']['en'], done, action) for step, (done, action) in
+         zip(journeys.steps('check'), ((scan_done, scan), (ready_done, ready), (safety_done, safety), (fix_done, fix)))]
 
 
 def next_step(state):
     return next((step for step in STEPS if not step[3](state)), None)
-
-
-# The live map's journey: each step of STEPS and the flow whose progress file draws it (eaos/progress).
-FLOWS = {'scan': 'check', 'ready': 'setup', 'safety': 'safety', 'fix': 'fix'}
-
-
-def flow_folder(state, flow):
-    """The folder a flow writes its progress under: the report for the check, the runtime for the others."""
-    return report_of(state) if flow == 'check' else runtime_of(state)
-
-
-def journey(state, now=None):
-    """STEPS as data for the live map: [{id, title: {ar, en}, flow, done, state}], `state` being the judged state of the
-    step's flow (none, running, stalled, interrupted, done; eaos/progress/liveness.py). `done` comes from the step's
-    own *_done(state), and only once every earlier step is done and not running again; a step whose done check cannot
-    be read is not done."""
-    import time
-    from . import progress
-    rows, clear = [], True
-    for name, title_ar, title_en, done, _ in STEPS:
-        flow = FLOWS[name]
-        folder = flow_folder(state, flow)
-        folded = progress.fold(progress.read(folder, flow))
-        judged = progress.judge(folded, progress.heard_at(progress.path_for(folder, flow)),
-                                time.time() if now is None else now, progress.alive(folded))
-        try: finished = clear and bool(done(state))
-        except Exception: finished = False
-        clear = finished and judged not in ('running', 'stalled')
-        rows.append({'id': name, 'title': {'ar': title_ar, 'en': title_en}, 'flow': flow, 'done': finished, 'state': judged})
-    return rows
 
 
 # ---------------------------------------------------------------- the user commands
