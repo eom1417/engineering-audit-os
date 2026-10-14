@@ -411,9 +411,7 @@ def refresh_views(out, language='ar'):
     from .ranking import rank
     for claim in dossier['claims']: _settle_disposition(claim)
     dossier['claims'] = rank(dossier['claims'], sets, fact_index_of(sets))
-    counts = {}
-    for claim in dossier['claims']: counts[claim['confidence']] = counts.get(claim['confidence'], 0) + 1
-    dossier['claim_counts'] = counts
+    dossier['claim_counts'] = _counts(dossier['claims'])
     if verification and verification.get('executed'):
         dossier['coverage']['runtime_confirmation'] = sum(
             1 for claim in dossier['claims'] if {'test_evidence', 'runtime_probe'} & set(claim.get('method', [])))
@@ -471,6 +469,32 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
+    rows, withheld = _claims(target, out, sets, records, verification, exclude)
+    progress.count('claim steps', 3, CLAIM_STEPS)
+    problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
+                             {f['id'] for data in sets.values() for f in data['facts']})
+    if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
+    dossier = _dossier(target, out, run, language, version, exclude, map_result, sets, records, verification, rows, withheld)
+    from .decisions import decide, identity
+    for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
+    dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
+    write(out / 'dossier.json', dossier)
+    progress.count('claim steps', 4, CLAIM_STEPS)
+    (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
+    for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
+        (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
+    write_register(out, dossier, language)
+    (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
+    (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
+    (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
+    violations = validate(out, dossier)
+    result = write_verdict(out, dossier, violations, target=str(target), facts=map_result['facts'])
+    progress.count('claim steps', CLAIM_STEPS, CLAIM_STEPS)
+    return result
+
+
+def _claims(target, out, sets, records, verification, exclude):
+    """(ranked claims, withheld claims): the facts' claims and the runtime ones, outside the excluded paths."""
     # The load record lives beside the fact sets, not among them: it has a different shape, so it
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
     load_record = read(out / 'load-model.json') if (out / 'load-model.json').is_file() else None
@@ -489,16 +513,13 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [BRIEF])
         row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
-    rows += runtime
     from .ranking import rank
-    rows = rank(rows, sets, fact_index)
-    progress.count('claim steps', 3, CLAIM_STEPS)
-    problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
-                             {f['id'] for data in sets.values() for f in data['facts']})
-    if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
-    counts = {}
-    for row in rows: counts[row['confidence']] = counts.get(row['confidence'], 0) + 1
-    dossier = {
+    return rank(rows + runtime, sets, fact_index), withheld
+
+
+def _dossier(target, out, run, language, version, exclude, map_result, sets, records, verification, rows, withheld):
+    tasks = tasks_of(records)
+    return {
         'schema_version': 1,
         'provenance': {'target': str(target), 'tool_version': version or __version__,
                        'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
@@ -512,14 +533,13 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
                      'executed_verification': bool(verification and verification.get('executed')),
                      'executed_coverage_percent': (verification or {}).get('overall_percent')},
         'description': describe(sets, records),
-        'claim_counts': counts,
+        'claim_counts': _counts(rows),
         'claims': rows,
         'withheld_claims': withheld,
         'questions': questions_of(records, sets),
-        'tasks': tasks_of(records),
-        'legacy_tasks': tasks_of(records),
-        'compatibility': {'source': 'legacy' if run else 'native',
-                          'legacy_tasks_require_revalidation': bool(tasks_of(records))},
+        'tasks': tasks,
+        'legacy_tasks': tasks,
+        'compatibility': {'source': 'legacy' if run else 'native', 'legacy_tasks_require_revalidation': bool(tasks)},
         'do_not': ['لا تعتمد هذا المخرج كمراجعة أمنية أو شهادة جاهزية إنتاج.',
                    'لا تقرأ ترتيب الانتباه كترتيب خطورة؛ هو اصطلاح معلن للأولوية في القراءة.',
                    'لا تعتبر غياب نتيجة دليلًا على سلامة؛ الغياب يعني عدم الفحص ما لم يُصرَّح ببحث عن الغياب.']
@@ -532,22 +552,6 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
                             + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])
                             + (['ENGINES.md'] if (out / 'facts/external.json').is_file() else [])),
     }
-    from .decisions import decide, identity
-    for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
-    dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
-    write(out / 'dossier.json', dossier)
-    progress.count('claim steps', 4, CLAIM_STEPS)
-    (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
-    for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
-        (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
-    write_register(out, dossier, language)
-    (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
-    (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
-    (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
-    violations = validate(out, dossier)
-    result = write_verdict(out, dossier, violations, target=str(target), facts=map_result['facts'])
-    progress.count('claim steps', CLAIM_STEPS, CLAIM_STEPS)
-    return result
 
 
 VERDICT = 'report-result.json'
