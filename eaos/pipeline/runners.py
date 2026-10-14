@@ -48,8 +48,6 @@ def engines(context):
     return {'findings': external_entry['facts']}
 
 
-
-
 def _index_engines(context, entries, add_to_index):
     """Index the engines' sets and join them to the facts stage's list; the `external` set's entry. SkipStage when no
     engine is installed."""
@@ -419,10 +417,6 @@ def load(context):
             'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
 
 
-
-
-
-
 def plan(context):
     from ..plan import build
     result = build(context.target, context.out, context.language)
@@ -445,10 +439,6 @@ def reports(context):
     return write(context.out, context.language)
 
 
-
-
-
-
 def measure(context):
     from ..measurements import run
     return run(context.out, context.language)
@@ -458,16 +448,6 @@ def intake(context):
     from ..intake import write
     record = write(context.target, context.out, context.get('intake'))
     return {'answered': sum(q['status'] == 'answered' for q in record['questions']), 'scenarios': len(record['scenarios'])}
-
-
-
-
-
-
-
-
-
-
 
 
 def _feature_block(feature):
@@ -595,5 +575,14 @@ def steps(context):
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
-RUNNERS.update(verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
+def translate(context):
+    """Every document in both languages (eaos/bilingual.py), START-HERE.md written first when nothing wrote it."""
+    if not context.provider: raise _absent(context.provider)
+    from ..bilingual import translate as both
+    from ..start_here import start_here
+    if not (context.out / 'START-HERE.md').is_file(): start_here(context.out, context.language, Path(context.target).name)
+    return both(context.out, context.provider)
+
+
+RUNNERS.update(translate=translate, verify=verify, journeys=journeys, readiness=readiness, architecture=architecture,
                sustainability=sustainability, transform=transform)

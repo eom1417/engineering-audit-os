@@ -52,7 +52,7 @@ class Provider:
         # Cache identity omits secret values; changing model/endpoint/adapter changes jobs.
         return {k:v for k,v in self.config.items() if k in {'kind','model','endpoint','argv','max_completion_tokens'}}
 
-    def complete(self,messages):
+    def complete(self,messages,small=False):
         # A user-selected adapter receives JSON on stdin and emits JSON on stdout; it may work as long as it needs
         # while it writes anything (its progress on stderr counts): only silence for STUCK seconds ends it.
         # CWD is empty so repository code cannot be imported accidentally by the adapter.
@@ -60,7 +60,7 @@ class Provider:
             try:
                 p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,start_new_session=(os.name=='posix'))
                 try:
-                    with p.stdin:p.stdin.write(json.dumps({'messages':messages}).encode())
+                    with p.stdin:p.stdin.write(json.dumps({'messages':messages,**({'small':True} if small else {})}).encode())
                 except BrokenPipeError:pass   # it ended before reading: its exit code says why
                 wait(p,(out,err))
             except OSError:raise ValueError('Model adapter could not start; no raw stderr exposed') from None

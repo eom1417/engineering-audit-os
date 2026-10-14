@@ -102,6 +102,7 @@
       "eaos/plain.py",
       "eaos/language.py",
       "eaos/start_here.py",
+      "eaos/bilingual.py",
       "eaos/human_report.py",
       "eaos/studio/**",
       "eaos/api/**",

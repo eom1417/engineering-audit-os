@@ -16,7 +16,7 @@ import time
 from .claude_adapter import ANSWER, parse, record, render, serve
 
 
-def call(messages):
+def call(messages, small=False):     # one model: the one the person signed in with
     system, conversation = render(messages)
     with tempfile.TemporaryDirectory(prefix='eaos-codex-') as empty:
         answer = os.path.join(empty, 'answer.txt')

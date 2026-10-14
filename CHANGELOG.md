@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.26 (2026-10-14)
+
+- **Every document in both languages, switched with the Studio's**: the documents came out mixed (on EAOS, the median
+  42% Arabic in an Arabic report, START-HERE wholly English). The check's last step translates only the lines in the
+  other language, by the smallest model (Claude's Haiku: the whole report about half a dollar the first time), keeps
+  them in a translation memory so the next check sends only what is new, and leaves code, paths and names as written.
+  The reader shows each document and its title in the person's language at once.
+- **A run proposal may say where the app keeps its language**, so every screen is pictured in each language.
+- **A card that adds a module past the line limit, or one in no declared layer, is refused on the card**, not found
+  when a batch's changes meet.
+- A run proposal's safety and its merge into run.json live in `eaos/run_profile.py`.
+
 ## 0.0.25 (2026-10-14)
 
 - **Every security finding reaches a card**: Bandit (Python's syntax tree) and Gitleaks (secrets) join Semgrep, and

@@ -14,7 +14,7 @@ import { dirOf, Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, WithData } from '../../shell/Layout'
 import { drawMarkdown, type Heading } from './markdown'
-import { decoded, docPath, minutes, readingList, sameHeading, useLazySection, type LibraryData } from './model'
+import { decoded, docPath, docsIn, minutes, readingList, sameHeading, textIn, useLazySection, type LibraryData } from './model'
 import { groupWord, useLibraryWords } from './words'
 import css from './library.module.css'
 
@@ -68,12 +68,13 @@ function Reader({ data, doc, h }: { data: StudioData; doc: Doc; h?: string }) {
   const w = useLibraryWords()
   const navigate = useNavigate()
   const library = useLazySection<LibraryData>(data, 'library')
-  const docs = useMemo(() => data.docs?.docs ?? [], [data.docs])
+  const { lang } = usePrefs()
+  const docs = useMemo(() => docsIn(data, lang), [data, lang])
   const list = useMemo(() => readingList(docs), [docs])
-  const text = library.kind === 'ready' ? library.data.documents.find((d) => d.id === doc.id) : undefined
+  const found = library.kind === 'ready' ? library.data.documents.find((d) => d.id === doc.id) : undefined
+  const text = useMemo(() => (found ? { ...found, text: textIn(found, lang) } : undefined), [found, lang])
   // the words change with the language only: the document is drawn again then, not on every render (a scroll that
   // moves the contents' mark would otherwise redraw it and bring ?h= back)
-  const { lang } = usePrefs()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const words = useMemo(() => w, [lang])
   const ctx = useMemo(() => ({
@@ -140,7 +141,8 @@ function DocumentBody({ data }: { data: StudioData }) {
   const { docId } = useParams({ strict: false }) as { docId?: string }
   const { h } = useSearch({ strict: false }) as { h?: string }
   const path = decoded(docId ?? '')
-  const doc = (data.docs?.docs ?? []).find((d) => d.path === path)
+  const { lang } = usePrefs()
+  const doc = docsIn(data, lang).find((d) => d.path === path)
   usePageChrome(doc?.title ?? w('notHere'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
   if (!doc) {
     return (

@@ -11,7 +11,17 @@ import type { Doc, StudioData } from '../../data/types'
 import { normalize } from '../../search'
 import { terms } from '../../search/normalize'
 
-export interface LibraryDoc { id: string; text: string; chars?: number; truncated: boolean }
+export interface LibraryDoc { id: string; text: string; chars?: number; truncated: boolean; texts?: Partial<Record<'ar' | 'en', string>> }
+
+/** The document's text in the person's language when the check wrote it in both (eaos/bilingual.py), else as written. */
+export function textIn(doc: LibraryDoc, lang: string): string {
+  return doc.texts?.[lang as 'ar' | 'en'] ?? doc.text
+}
+
+/** The documents with their titles in the person's language. */
+export function docsIn(data: StudioData, lang: string): Doc[] {
+  return (data.docs?.docs ?? []).map((d) => ({ ...d, title: d.titles?.[lang as 'ar' | 'en'] || d.title }))
+}
 export interface LibraryImage { id: string; format: string; data: string | null; source: string | null; bytes?: number; embedded: boolean; reason: string | null }
 export interface LibraryData { documents: LibraryDoc[]; images: LibraryImage[] }
 export interface MediaImage { id: string; path: string; title: string; kind: 'screen' | 'diagram' | 'chart' }
