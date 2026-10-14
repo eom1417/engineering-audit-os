@@ -16,7 +16,7 @@ import time
 from .claude_adapter import ANSWER, parse, record, render, serve
 
 
-def call(messages):
+def call(messages, small=False):     # one model: the one the person signed in with
     system, conversation = render(messages)
     with tempfile.TemporaryDirectory(prefix='eaos-codex-') as empty:
         answer = os.path.join(empty, 'answer.txt')
@@ -28,7 +28,8 @@ def call(messages):
                               text=True, cwd=empty)
         if done.returncode != 0: raise RuntimeError(f'codex exited {done.returncode}')
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''
-    record({'assistant': 'codex', 'duration_ms': round((time.monotonic() - began) * 1000)})
+    from ..usage import row
+    record(row({}, duration_ms=round((time.monotonic() - began) * 1000)))     # codex exec -o leaves no token count
     return parse(text)
 
 

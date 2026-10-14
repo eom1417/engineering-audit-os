@@ -44,6 +44,7 @@ const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage
 const LiveCheckPage = lazyRouteComponent(() => import('./pages/scan/LiveCheckPage'), 'LiveCheckPage')
 const ToolsPage = lazyRouteComponent(() => import('./pages/scan/ToolsPage'), 'ToolsPage')
 const RunsPage = lazyRouteComponent(() => import('./pages/runs/RunsPage'), 'RunsPage')
+const AssistantPage = lazyRouteComponent(() => import('./pages/assistant/AssistantPage'), 'AssistantPage')
 const BranchesPage = lazyRouteComponent(() => import('./pages/branches/BranchesPage'), 'BranchesPage')
 
 type Params = Record<string, string | undefined>
@@ -96,6 +97,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/scan', component: LiveCheckPage, validateSearch: params('flow', 'stage') }),
   createRoute({ getParentRoute: () => root, path: '/tools', component: ToolsPage }),
   createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show') }),
+  createRoute({ getParentRoute: () => root, path: '/assistant', component: AssistantPage }),
   createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage }),
   createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, validateSearch: params('group', 'q') }),
   createRoute({ getParentRoute: () => root, path: '/library/docs', component: LibraryPage, validateSearch: params('group', 'q') }),

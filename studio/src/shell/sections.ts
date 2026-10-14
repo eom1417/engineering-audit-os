@@ -33,6 +33,7 @@ export const SECTIONS: SectionDef[] = [
   { id: 'branches', to: '/branches', icon: 'branch', tab: 'branches', nav: 'branches', group: 'groupChange', tabbar: false },
   { id: 'scan', to: '/scan', icon: 'live', tab: 'liveCheck', nav: 'liveCheck', group: 'groupInbox', tabbar: false },
   { id: 'runs', to: '/runs', icon: 'pulse', tab: 'runs', nav: 'runs', group: 'groupInbox', tabbar: false },
+  { id: 'assistant', to: '/assistant', icon: 'assistant', tab: 'assistant', nav: 'assistant', group: 'groupInbox', tabbar: false },
   { id: 'decisions', to: '/decisions', icon: 'inbox', tab: 'decisions', nav: 'waitingForYou', group: 'groupInbox', tabbar: true, count: (c) => c.decisionsWaiting, countFrom: 'decisions', badge: (c) => c.decisionsWaiting },
   { id: 'library', to: '/library', icon: 'book', tab: 'library', nav: 'documents', group: 'groupLibrary', tabbar: false, count: (c) => c.docs, countFrom: 'docs' },
   { id: 'history', to: '/history', icon: 'clock', tab: 'history', nav: 'history', group: 'groupLibrary', tabbar: false },

@@ -11,7 +11,8 @@ import { Id, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
-import { docPath, grouped, imagePath, minutes, readingList, searchDocs, type MediaImage } from './model'
+import { usePrefs } from '../../i18n/prefs'
+import { docPath, docsIn, grouped, imagePath, minutes, readingList, searchDocs, type MediaImage } from './model'
 import { groupWord, useLibraryWords } from './words'
 import css from './library.module.css'
 
@@ -38,7 +39,8 @@ function LibraryBody({ data }: { data: StudioData }) {
   usePageChrome(w('library'), undefined, data.manifest.project.name)
   const search = useSearch({ strict: false }) as LibrarySearch
   const navigate = useNavigate()
-  const docs = useMemo(() => data.docs?.docs ?? [], [data.docs])
+  const { lang } = usePrefs()
+  const docs = useMemo(() => docsIn(data, lang), [data, lang])
   const images = mediaOf(data)
   const groups = useMemo(() => grouped(docs), [docs])
   const first = useMemo(() => readingList(docs).filter((d) => d.order !== null), [docs])

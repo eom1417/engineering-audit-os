@@ -3,7 +3,7 @@
 // returned for this launch; the browser adds the Origin the server checks. A run's events come over SSE read with
 // fetch, and a dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed.
 import { frameSplitter } from './sse'
-import { ActionError, TERMINAL, type AcceptChoice, type ActionsClient, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
+import { ActionError, TERMINAL, type AcceptChoice, type ActionsClient, type Assistant, type ChatControl, type ChatProgress, type UsageReport, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
   type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Reason, type Run, type RunEvent,
   type StartBody, type StreamStatus, type ReportDecision } from './types'
 
@@ -161,6 +161,11 @@ export function liveClient(token: string): ActionsClient {
       post<{ run: Run }>(`/api/questions/${encodeURIComponent(question)}/answer`, { option, text: text ?? null }).then(runOf),
     decide: (id: string, op: 'accept' | 'undo', confirm: string, choice?: AcceptChoice) => post<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}/${op}`, { confirm, ...(choice ?? {}) }).then(runOf),
     branches,
+    assistants: () => get<{ assistants: Assistant[] }>('/api/assistants').then((r) => r.assistants),
+    usage: () => get<UsageReport>('/api/usage'),
+    chat: (message, session, context, model) => post<{ turn: string }>('/api/chat', { message, session, context, model }),
+    chatProgress: (turn) => get<ChatProgress>(`/api/chat/${encodeURIComponent(turn)}`),
+    chatControl: (on) => (on === undefined ? get<ChatControl>('/api/chat/control') : post<ChatControl>('/api/chat/control', { on })),
     follow: (id, after, onEvent, onStatus) => followRun(token, id, after, onEvent, onStatus),
   }
 }

@@ -6,6 +6,8 @@
   documents EAOS wrote, and are left out.
 - media: the report's diagrams and images, the same way. The thumbnails an older crawl's Unlighthouse kept
   (`__screenshot-thumbnails__`, 760 of them on EAOS's own Studio) are its working files, not pictures of the check.
+- Each document in both languages when the check wrote them (report/i18n/<lang>/, eaos/bilingual.py): its title
+  (docs `titles`) and its text (library `texts`), so the reader switches with the person's language at once.
 - library: each document's text, and each image as a data URI (an <img> runs no script from it) or a diagram's source.
   A file too large to carry is listed with the reason; nothing is cut silently. The machine's own folders in the text
   (the project's absolute path, the home folder) are replaced by the project's name and `~`.
@@ -73,8 +75,20 @@ def docs(report):
         group = groups.get(name) or (name.split('/', 1)[0] if '/' in name else 'technical')
         order = first.get(name, len(first) + indexed[name] if name in indexed else None)
         out.append({'id': name, 'title': title[:200] or path.stem, 'path': name, 'group': group, 'bytes': path.stat().st_size,
-                    'order': order, 'headings': [h for h in _headings(text) if h['level'] > 1][:60]})
+                    'order': order, 'headings': [h for h in _headings(text) if h['level'] > 1][:60],
+                    'titles': {lang: _title(text)[:200] for lang, text in _versions(report, name).items()}})
     return out
+
+
+def _versions(report, name):
+    """{lang: the document's text in that language}, for the languages the check wrote it in."""
+    return {lang: path.read_text(encoding='utf-8', errors='replace') for lang in ('ar', 'en')
+            if (path := Path(report) / 'i18n' / lang / name).is_file()}
+
+
+def _title(text):
+    first = text.lstrip().split('\n', 1)[0]
+    return first.lstrip('#').strip() if first.startswith('#') else ''
 
 
 def _pictured(report):
@@ -129,7 +143,9 @@ def library(report, doc_rows, image_rows, project=None):
     documents, images = [], []
     for row in doc_rows:
         text = _private((report / row['path']).read_text(encoding='utf-8', errors='replace'), project)
-        documents.append({'id': row['id'], 'text': text[:TEXT_LIMIT], 'chars': len(text), 'truncated': len(text) > TEXT_LIMIT})
+        texts = {lang: _private(body, project)[:TEXT_LIMIT] for lang, body in _versions(report, row['path']).items()}
+        documents.append({'id': row['id'], 'text': text[:TEXT_LIMIT], 'chars': len(text), 'truncated': len(text) > TEXT_LIMIT,
+                          **({'texts': texts} if texts else {})})
     for row in image_rows:
         path = report / row['path']
         size = path.stat().st_size

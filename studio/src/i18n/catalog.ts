@@ -27,6 +27,7 @@ export const WORDS = {
   groupChange: ['التغيير', 'Change'],
   groupInbox: ['القرارات', 'Inbox'],
   runs: ['التشغيل', 'Runs'],
+  assistant: ['المساعد', 'Assistant'],
   liveCheck: ['الفحص الآن', 'Live check'],
   branches: ['الفروع', 'Branches'],
   kindAction: ['أمر', 'Action'],

@@ -120,13 +120,25 @@
       }
     },
     "screens": {
-      "description": "How the app keeps its theme in localStorage, for the dark pictures (eaos/screens/audit.py variants).",
+      "description": "How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/screens/audit.py variants).",
       "type": "object",
       "properties": {
+        "lang_key": {
+          "type": "string"
+        },
+        "lang_field": {
+          "type": "string"
+        },
+        "lang_param": {
+          "type": "string"
+        },
         "theme_key": {
           "type": "string"
         },
         "theme_field": {
+          "type": "string"
+        },
+        "theme_param": {
           "type": "string"
         }
       }

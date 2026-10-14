@@ -103,7 +103,8 @@ export interface Story {
   gap: { component: string; relation: Relation; to: string | null; files: number; cards: string[]; closed: number }[]
 }
 
-export interface Doc { id: string; title: string; group: string; order: number | null; path: string; bytes: number; headings?: { level: number; text: string }[] }
+export interface Doc { id: string; title: string; group: string; order: number | null; path: string; bytes: number; headings?: { level: number; text: string }[]
+  titles?: Partial<Record<'ar' | 'en', string>> }
 
 export interface PlanStep { id: string; state: string; title?: string; gate: string; tasks: { id: string; state: string; title: string }[] }
 export interface Plan { id: string; kind: string; title?: string; state: string; progress: Measure; steps: PlanStep[] }

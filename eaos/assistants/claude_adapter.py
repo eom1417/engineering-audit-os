@@ -53,29 +53,31 @@ def stream(argv, conversation):
     return result
 
 
-def call(messages):
+def call(messages, small=False):
+    """`small`: the work is plain (a translation), and the smallest model does it as well for less."""
     system, conversation = render(messages)
     argv = ['claude', '-p', '--tools', '', '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
             '--include-partial-messages', '--system-prompt', system]
-    if os.environ.get('EAOS_CLAUDE_MODEL'): argv += ['--model', os.environ['EAOS_CLAUDE_MODEL']]
+    model = 'haiku' if small else os.environ.get('EAOS_CLAUDE_MODEL')
+    if model: argv += ['--model', model]
     envelope = stream(argv, conversation)
     if envelope.get('is_error'): raise RuntimeError('claude reported an error: ' + str(envelope.get('result'))[:200])
-    record({'cost_usd': envelope.get('total_cost_usd'), 'models': list(envelope.get('modelUsage') or {}),
-            'duration_ms': envelope.get('duration_ms')})
+    from ..usage import from_stream
+    record(from_stream([json.dumps(envelope)]))
     return parse(envelope.get('result') or '')
 
 
 def record(row):
-    """One call's row appended to $EAOS_MODEL_USAGE when that names a file."""
+    """One call's use (eaos/usage.py) appended to $EAOS_MODEL_USAGE when that names a file, under $EAOS_MODEL_STAGE."""
     usage = os.environ.get('EAOS_MODEL_USAGE')
-    if usage:
-        with open(usage, 'a', encoding='utf-8') as log: log.write(json.dumps(row) + '\n')
+    if usage and row:
+        with open(usage, 'a', encoding='utf-8') as log: log.write(json.dumps({**row, 'stage': os.environ.get('EAOS_MODEL_STAGE')}) + '\n')
 
 
 def serve(call, name):
     """An adapter's process: the request on stdin, one JSON object on stdout, or exit 1 with the reason on stderr."""
     request = json.loads(sys.stdin.read())
-    try: answer = call(request['messages'])
+    try: answer = call(request['messages'], small=bool(request.get('small')))
     except Exception as problem:   # the provider sees a failed exit; the reason goes to stderr, never to stdout
         print(f'{name} adapter: {problem}', file=sys.stderr)
         return 1

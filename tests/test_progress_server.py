@@ -13,7 +13,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tests'))
 
-from eaos import agent_tools, behavior_lock, cli, guided, jobs, live_setup, progress, toolchain, waves  # noqa: E402
+from eaos import agent_tools, behavior_lock, cli, guided, jobs, live_setup, progress, run_profile, toolchain, waves  # noqa: E402
 from eaos.api import launch, server  # noqa: E402
 from eaos.pipeline import STAGES  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
@@ -225,7 +225,7 @@ class Watch(Checked):
         self.ready()
         detected = {'profile': {'start': [['npm', 'run', 'dev']]}, 'limitations': []}
         with mock.patch.object(live_setup, 'authorize'), mock.patch.object(live_setup, 'detect', return_value=detected), \
-                mock.patch.object(live_setup, 'write_profile'):
+                mock.patch.object(run_profile, 'write_profile'):
             answers = {'run_setup': agent_tools.run_setup(str(self.project), person_agreed=True),
                        'safety_net': agent_tools.safety_net(str(self.project)),
                        'fix_start': agent_tools.fix_start(str(self.project), cards=['TASK-001']),

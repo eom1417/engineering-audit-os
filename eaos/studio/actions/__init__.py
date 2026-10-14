@@ -21,7 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
-from . import handoff, selection as selecting
+from . import chat, handoff, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
@@ -87,6 +87,8 @@ GET_ROUTES = {
     ('session',): lambda a, q: a.session(),
     ('actions',): lambda a, q: a.contract,
     ('assistants',): lambda a, q: {'assistants': a.assistants()},
+    ('usage',): lambda a, q: a.usage(),
+    ('chat', 'control'): lambda a, q: chat.control(a),
     ('runs',): lambda a, q: a.runs(q),
     ('questions',): lambda a, q: {'questions': a.questions()},
     ('decisions',): lambda a, q: {'decisions': a.report_decisions()},
@@ -205,6 +207,7 @@ class Actions:
         answer = GET_ROUTES.get(tuple(rest))
         if answer: return answer(self, query)
         if len(rest) == 2 and rest[0] == 'runs': return {'run': self.public(self.store.load(rest[1]))}
+        if len(rest) == 2 and rest[0] == 'chat': return chat.progress(self, rest[1])
         if len(rest) == 3 and rest[0] == 'runs' and rest[2] == 'events':
             self.store.load(rest[1])
             return {'events': self.store.events(rest[1], int(query.get('after') or 0))}
@@ -214,6 +217,8 @@ class Actions:
         if rest[:1] == ['branches']: return self._branch_change(rest, body, route)
         if rest == ['runs']: return {'run': self.public(self.create(body))}
         if rest == ['runs', 'reorder']: return {'queue': self.manager.reorder(body.get('order'))}
+        if rest == ['chat']: return chat.start(self, body)
+        if rest == ['chat', 'control']: return chat.control(self, body)
         if len(rest) == 3: return self._post_on(rest, body, route)
         raise KeyError(route)
 
@@ -251,7 +256,23 @@ class Actions:
                 'assistants': self.assistants(), 'lang': self.lang, 'branch_control': True}
 
     def assistants(self):
-        return [adapter.detect() for adapter in self.adapters.values()]
+        return [{**adapter.detect(), 'model': adapter.model()} for adapter in self.adapters.values()]
+
+    def usage(self):
+        """What the assistant used (eaos/usage.py): the last check, stage by stage, and every run, newest first; a run that
+        ended keeps its use in its record, counted once."""
+        from ...usage import of_check, of_run, total
+        folder = self._studio()
+        runs = []
+        for record in self.store.all():
+            found = record.get('usage') or of_run(self.store.path(record['id']))
+            if found and record.get('state') in TERMINAL and not record.get('usage'): self.store.update(record['id'], usage=found)
+            runs.append({'id': record['id'], 'verb': record.get('verb'), 'action': record.get('action'), 'label': record.get('label'),
+                         'state': record.get('state'), 'assistant': record.get('assistant'), 'created': record.get('created'),
+                         'cards': len((record.get('result') or {}).get('cards_closed') or []), 'usage': found})
+        talked = [json.loads(line).get('usage') for path in (self.store.folder / 'chat').glob('*/turns.jsonl')
+                  for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+        return {'check': of_check(folder.parent) if folder else None, 'runs': runs, 'chat': total(talked)}
 
     def public(self, record):
         hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before', 'waves_before')

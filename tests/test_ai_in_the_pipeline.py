@@ -32,7 +32,7 @@ class ScriptedSemanticProvider:
 
     def identity(self): return {'kind': 'SCRIPTED_TEST_FIXTURE', 'stage': 'semantic'}
 
-    def complete(self, messages):
+    def complete(self, messages, **_):
         self.calls += 1
         payload = json.loads(messages[1]['content'])
         return self.builder(payload['instructions']['digest'], self.calls)
@@ -103,7 +103,7 @@ class IdealStage(unittest.TestCase):
         self.assertEqual(state, 'planned')
         self.assertEqual([row['id'] for row in record['dropped']], ['s9'])
         self.assertEqual(ideal.section(self.report, 'en')['views']['system']['provenance']['method'], 'planned')
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order'])
+        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
         self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'pipeline_gaps')}, {('proposals',)})
         self.assertEqual(BY_NAME['order'].requires, ('cards',))
 

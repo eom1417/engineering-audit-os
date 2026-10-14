@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.0.26 (2026-10-14)
+
+- **Every document in both languages, switched with the Studio's**: the documents came out mixed (on EAOS, the median
+  42% Arabic in an Arabic report, START-HERE wholly English). The check's last step translates only the lines in the
+  other language, by the smallest model (Claude's Haiku: the whole report about half a dollar the first time), keeps
+  them in a translation memory so the next check sends only what is new, and leaves code, paths and names as written.
+  The reader shows each document and its title in the person's language at once.
+- **A run proposal may say where the app keeps its language**, so every screen is pictured in each language.
+- **A card that adds a module past the line limit, or one in no declared layer, is refused on the card**, not found
+  when a batch's changes meet.
+- A run proposal's safety and its merge into run.json live in `eaos/run_profile.py`.
+- **The assistant beside the work**: a button in a corner of every page opens a small panel that moves to any corner
+  and keeps the conversation across pages (eaos/studio/actions/chat.py, POST /api/chat). It reads with EAOS's reading
+  tools only and the project's files; what it would do comes back as a card: an action opens the command centre's own
+  preview, a run's control waits for the person's press. Quick answers by Claude's Haiku (about $0.09 a diagnosis),
+  a deep diagnosis by the assistant's own model; a failed run's page asks it why ("Diagnose with the assistant"),
+  with the run's last events and log. Its use shows on the Assistant page.
+  The answer shows as it is written, with what the assistant reads now; the person picks the model (quick, balanced,
+  deep) and sees each answer's cost. **Direct control**, turned on by the person for an hour and kept by the server:
+  the Studio runs at once the assistant's proposals of a check, running the app, its speed or its nodes, and the runs'
+  controls, through its own preview and queue; accepting, undoing, choosing a branch and editing code stay the person's.
+- **The Assistant page**: which assistants are on this computer (installed, signed in, model), and what the work used
+  (eaos/usage.py, /api/usage): the last check stage by stage, every run (a run still going by its messages so far),
+  tokens, the cost at API prices, time, turns, and the measures to improve it: the cost per fixed card, the share of
+  the conversation read again, the share of thinking. Read from what every call already leaves; nothing estimated. On
+  EAOS: the last check's AI stages $10 (card triage $4.6), batch 5 $48 with 138 of 140 million tokens read again.
+
 ## 0.0.25 (2026-10-14)
 
 - **Every security finding reaches a card**: Bandit (Python's syntax tree) and Gitleaks (secrets) join Semgrep, and

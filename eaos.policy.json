@@ -20,7 +20,8 @@
       "eaos/compose/**"
     ],
     "runtime": [
-      "eaos/assistants/**"
+      "eaos/assistants/**",
+      "eaos/usage.py"
     ],
     "ledger": [
       "eaos/ask.py",
@@ -87,6 +88,7 @@
       "eaos/places.py",
       "eaos/progress/**",
       "eaos/live_setup.py",
+      "eaos/run_profile.py",
       "eaos/live_assist.py",
       "eaos/local_db.py",
       "eaos/waves.py",
@@ -101,6 +103,7 @@
       "eaos/plain.py",
       "eaos/language.py",
       "eaos/start_here.py",
+      "eaos/bilingual.py",
       "eaos/human_report.py",
       "eaos/studio/**",
       "eaos/api/**",

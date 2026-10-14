@@ -21,7 +21,7 @@ class ScriptedSemanticProvider:
 
     def identity(self): return {'kind': 'SCRIPTED_TEST_FIXTURE', 'stage': 'semantic'}
 
-    def complete(self, messages):
+    def complete(self, messages, **_):
         self.calls += 1
         payload = json.loads(messages[1]['content'])
         self.last_feedback = payload['instructions']['feedback']
@@ -110,7 +110,7 @@ class GoalAndBasisTests(unittest.TestCase):
             def identity(self):
                 return {'kind': 'recorder'}
 
-            def complete(self, messages):
+            def complete(self, messages, **_):
                 captured['digest'] = json.loads(messages[1]['content'])['instructions']['digest']
                 raise AssertionError('stop after the first request')
 

@@ -51,7 +51,23 @@ export interface ActionDef {
 
 export interface VerbDef { id: VerbId; label: Bi; needs_assistant: boolean; changes_code: boolean; tools: string[]; result: Bi; inputs?: JsonSchema }
 
-export interface Assistant { id: string; name: string; installed: boolean; logged_in: boolean; version?: string | null }
+export interface Assistant { id: string; name: string; installed: boolean; logged_in: boolean; version?: string | null; model?: string | null }
+
+/** What the assistant used (eaos/usage.py): tokens, the cost at API prices when the assistant gives it, time, turns. */
+export interface Usage { input: number; cache_write: number; cache_read: number; output: number; thinking: number
+  cost_usd: number | null; duration_ms: number; turns: number; calls: number; models: string[] }
+export interface UsageRun { id: string; verb?: string | null; action?: string | null; label?: Bi | null; state?: RunState
+  assistant?: string | null; created?: string | null; cards: number; usage: Usage | null }
+export interface UsageReport { check: { stages: Record<string, Usage>; total: Usage | null } | null; runs: UsageRun[]; chat?: Usage | null }
+
+/** One turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): it proposes, the person runs. */
+export interface ChatProposal { kind: 'action' | 'control'; action: string; inputs?: Record<string, unknown>; run?: string; why: string }
+export interface ChatTurn { session: string | null; answer: string; proposals: ChatProposal[]; assistant: string; usage: Usage | null
+  /** What direct control set going: each proposal's run, or why it could not */
+  done: { proposal: ChatProposal; run?: string; error?: string }[] }
+export interface ChatProgress { done: boolean; reading: string[]; partial: string; result: ChatTurn | null; error: string | null }
+export interface ChatControl { on: boolean; until: string | null; actions: string[] }
+export type ChatModel = 'quick' | 'balanced' | 'deep'
 
 export interface Question {
   id: string
@@ -233,6 +249,12 @@ export interface ActionsClient {
   questions(): Promise<Question[]>
   answer(question: string, option: string | null, text?: string | null): Promise<Run>
   decide(id: string, op: 'accept' | 'undo', confirm: string, choice?: AcceptChoice): Promise<Run>
+  /** The assistants on this computer and what they used (live only) */
+  assistants?(): Promise<Assistant[]>
+  usage?(): Promise<UsageReport>
+  chat?(message: string, session: string | null, context: Record<string, unknown>, model: ChatModel): Promise<{ turn: string }>
+  chatProgress?(turn: string): Promise<ChatProgress>
+  chatControl?(on?: boolean): Promise<ChatControl>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

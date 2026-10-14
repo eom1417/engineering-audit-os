@@ -1,6 +1,7 @@
 {
- "source_sha256": "8f7c96f55d3e589debc23dfa06fca88809f5724216f28947bd0cb310f4035f4a",
+ "source_sha256": "6d4519fb12dcf5d0ddbf5d7901e304564aed62bd7bc3e74b4c48a70c830a71e5",
  "files": [
+  "assets/AssistantPage.js",
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
   "assets/Change.js",
