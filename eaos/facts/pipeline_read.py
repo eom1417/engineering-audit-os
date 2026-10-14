@@ -221,40 +221,59 @@ def _unparse(node, limit=80):
 def describe(py, rel, node, found_stage):
     """Fill a stage's tools, side effects and marks from its entry function's body (one level, no guessing)."""
     if node is None: return
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-        params = [a for a in [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs] if a.arg not in ('self', 'cls')]
-        found_stage['annotated'] = node.returns is not None and all(a.annotation is not None for a in params)
-        found_stage['shared_context'] = len(params) == 1 and params[0].arg in CONTEXT_PARAMS
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)): _signature(node, found_stage)
     imports = py.imports.get(rel, {})
     tools, effects, marks = [], [], set(found_stage['marks'])
     for sub in ast.walk(node):
         if isinstance(sub, ast.Call):
             root = _root(sub.func)
-            if root and root in imports:
-                module = imports[root][0] or ''
-                top = (module or root).split('.')[0]
-                if top and not py.module_rel(module) and not any(m.startswith(top + '.') or m == top for m in py.modules):
-                    if top not in tools: tools.append(top)
-                    if top in NETWORK or root in NETWORK: marks.add('external'); marks.add('slow')
-                    if top in ('subprocess',): marks.add('slow'); marks.add('risky'); effects.append(('process', top, sub.lineno))
-            callee = call_name(sub.func) or ''
-            if callee in ('write_text', 'write_bytes', 'dump', 'to_csv', 'to_parquet', 'savefig'):
-                effects.append(('file', _unparse(sub.func, 60), sub.lineno))
-            if callee == 'open' and len(sub.args) > 1 and (_str(sub.args[1]) or '').startswith(('w', 'a')):
-                effects.append(('file', _unparse(sub.args[0], 60), sub.lineno))
-            if callee in DB_CALLS and root not in ('self',) and isinstance(sub.func, ast.Attribute):
-                effects.append(('db', _unparse(sub.func, 60), sub.lineno)); marks.add('risky')
-            if callee in ('setdefault', 'putenv') and _unparse(sub.func).startswith('os.environ'):
-                effects.append(('env', _unparse(sub, 60), sub.lineno))
-            if callee in ('post', 'put', 'get', 'request', 'urlopen') and root in NETWORK:
-                effects.append(('network', _unparse(sub.func, 60), sub.lineno))
-            for keyword in sub.keywords:
-                if keyword.arg in TIMEOUT_WORDS: found_stage['timeout'] = True
+            if root and root in imports: _outside_tool(py, imports, root, sub, tools, effects, marks)
+            effects += _call_effects(sub, root, marks)
+            if any(keyword.arg in TIMEOUT_WORDS for keyword in sub.keywords): found_stage['timeout'] = True
         elif isinstance(sub, ast.Global):
-            for name in sub.names: effects.append(('global', name, sub.lineno))
-        elif isinstance(sub, (ast.Name, ast.Attribute)):
-            word = sub.id if isinstance(sub, ast.Name) else sub.attr
-            if MODEL_WORDS.search(word): marks.add('ai')
+            effects += [('global', name, sub.lineno) for name in sub.names]
+        elif isinstance(sub, (ast.Name, ast.Attribute)) and MODEL_WORDS.search(sub.id if isinstance(sub, ast.Name) else sub.attr):
+            marks.add('ai')
+    _fill(found_stage, rel, tools, effects, marks)
+
+
+def _signature(node, found_stage):
+    """Whether the entry function is fully annotated, and whether it takes one shared context."""
+    params = [a for a in [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs] if a.arg not in ('self', 'cls')]
+    found_stage['annotated'] = node.returns is not None and all(a.annotation is not None for a in params)
+    found_stage['shared_context'] = len(params) == 1 and params[0].arg in CONTEXT_PARAMS
+
+
+def _outside_tool(py, imports, root, sub, tools, effects, marks):
+    """A call into a library from outside the project: a tool of the stage, slow or risky by what it is."""
+    module = imports[root][0] or ''
+    top = (module or root).split('.')[0]
+    if not top or py.module_rel(module) or any(m.startswith(top + '.') or m == top for m in py.modules): return
+    if top not in tools: tools.append(top)
+    if top in NETWORK or root in NETWORK: marks.update(('external', 'slow'))
+    if top in ('subprocess',):
+        marks.update(('slow', 'risky'))
+        effects.append(('process', top, sub.lineno))
+
+
+def _call_effects(sub, root, marks):
+    """The side effects one call has: a file written, a database reached, the environment set, the network called."""
+    callee, out = call_name(sub.func) or '', []
+    if callee in ('write_text', 'write_bytes', 'dump', 'to_csv', 'to_parquet', 'savefig'):
+        out.append(('file', _unparse(sub.func, 60), sub.lineno))
+    if callee == 'open' and len(sub.args) > 1 and (_str(sub.args[1]) or '').startswith(('w', 'a')):
+        out.append(('file', _unparse(sub.args[0], 60), sub.lineno))
+    if callee in DB_CALLS and root not in ('self',) and isinstance(sub.func, ast.Attribute):
+        out.append(('db', _unparse(sub.func, 60), sub.lineno))
+        marks.add('risky')
+    if callee in ('setdefault', 'putenv') and _unparse(sub.func).startswith('os.environ'):
+        out.append(('env', _unparse(sub, 60), sub.lineno))
+    if callee in ('post', 'put', 'get', 'request', 'urlopen') and root in NETWORK:
+        out.append(('network', _unparse(sub.func, 60), sub.lineno))
+    return out
+
+
+def _fill(found_stage, rel, tools, effects, marks):
     for kind, name, line in effects[:12]:
         found_stage['side_effects'].append({'kind': kind, 'name': name, 'path': rel, 'line': line, 'text': None})
     found_stage['tools'] = sorted(set(found_stage['tools']) | set(tools))[:12]
