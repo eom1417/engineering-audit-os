@@ -24,23 +24,39 @@ def _decisions(node, report, plan_record, why=None):
     """The node's one decision from the ideal's plan record (None: not planned)."""
     kept = (plan_record or {}).get('ideal') or {}
     evidence = _evidence(kept)
-    if not plan_record or not evidence:
-        rule_ids = sorted(ideal.rules(report))[:8] or ['RULE-plan-order']
-        reason = why or "The ideal is not planned, so the rules' target stands."
-        return [{'subject': SUBJECT, 'decision': core.RULES_ONLY, 'options': core.choices(node), 'evidence': rule_ids, 'confidence': 0.5,
-                 'why': core.short(reason, 600), 'open_questions': [], 'source': 'rules', 'detail': {}}]
-    questions = [{'id': core.short(q.get('id'), 60), 'question': core.short(q.get('question'), 400), 'options': list(q.get('options') or [])[:6],
-                  'recommendation': q.get('recommendation')} for q in kept.get('open_questions') or [] if q.get('question')]
+    if not plan_record or not evidence: return [_rules_only(node, report, why)]
+    return [_planned(node, plan_record, kept, evidence)]
+
+
+def _rules_only(node, report, why):
+    """Nothing planned on evidence: the rules' target stands, on the rules it applied."""
+    rule_ids = sorted(ideal.rules(report))[:8] or ['RULE-plan-order']
+    reason = why or "The ideal is not planned, so the rules' target stands."
+    return {'subject': SUBJECT, 'decision': core.RULES_ONLY, 'options': core.choices(node), 'evidence': rule_ids, 'confidence': 0.5,
+            'why': core.short(reason, 600), 'open_questions': [], 'source': 'rules', 'detail': {}}
+
+
+def _questions(kept):
+    return [{'id': core.short(q.get('id'), 60), 'question': core.short(q.get('question'), 400), 'options': list(q.get('options') or [])[:6],
+             'recommendation': q.get('recommendation')} for q in kept.get('open_questions') or [] if q.get('question')]
+
+
+def _planned(node, plan_record, kept, evidence):
+    """The planned ideal: accepted, or asking the person its open questions."""
+    questions = _questions(kept)
     views = [name for name, view in (kept.get('views') or {}).items() if view.get('elements')]
     confidence = kept.get('confidence')
-    return [{'subject': SUBJECT, 'decision': 'ask' if questions else 'accept', 'options': core.choices(node), 'evidence': evidence,
-             'confidence': float(confidence) if isinstance(confidence, (int, float)) else 0.5,
-             'why': core.short(f"{plan_record.get('elements', 0)} elements planned on evidence over {len(views)} views, "
-                               f"{len(kept.get('aspects') or [])} aspects judged, "
-                               f"{len(kept.get('departures') or [])} departures from the rules, {len(questions)} questions for the person.", 600),
-             'open_questions': questions, 'source': 'model',
-             'detail': {'views': views, 'elements': plan_record.get('elements', 0), 'dropped': len(plan_record.get('dropped') or []),
-                        'aspects': {row['aspect']: row['verdict'] for row in kept.get('aspects') or []}}}]
+    return {'subject': SUBJECT, 'decision': 'ask' if questions else 'accept', 'options': core.choices(node), 'evidence': evidence,
+            'confidence': float(confidence) if isinstance(confidence, (int, float)) else 0.5,
+            'why': _planned_why(plan_record, kept, views, questions), 'open_questions': questions, 'source': 'model',
+            'detail': {'views': views, 'elements': plan_record.get('elements', 0), 'dropped': len(plan_record.get('dropped') or []),
+                       'aspects': {row['aspect']: row['verdict'] for row in kept.get('aspects') or []}}}
+
+
+def _planned_why(plan_record, kept, views, questions):
+    return core.short(f"{plan_record.get('elements', 0)} elements planned on evidence over {len(views)} views, "
+                      f"{len(kept.get('aspects') or [])} aspects judged, "
+                      f"{len(kept.get('departures') or [])} departures from the rules, {len(questions)} questions for the person.", 600)
 
 
 def _dropped(plan_record):
