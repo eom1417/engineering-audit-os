@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
-from eaos.studio import coverage, export, model
+from eaos.studio import coverage, evidence, export, model
 from eaos.studio.localization import publish
 from tests.shared_fixture import Workspace
 from tests.test_human_report import report
@@ -108,8 +108,8 @@ class Export(Workspace):
         docs = {d['path']: d for d in self.load('docs')['docs']}
         self.assertEqual((docs['START-HERE.md']['group'], docs['START-HERE.md']['title']), ('start', 'Start here'))
         for outside in ('/etc/passwd', '../secret', '~/x'):
-            self.assertIsNone(export.rel(outside), outside)
-        self.assertEqual(export.rel('src/a.ts'), 'src/a.ts')
+            self.assertIsNone(evidence.rel(outside), outside)
+        self.assertEqual(evidence.rel('src/a.ts'), 'src/a.ts')
         self.assertNotIn(self.tmp, ''.join((self.folder / f'{n}.json').read_text(encoding='utf-8') for n in SECTIONS))
         ledger = {'cards': [{'id': 'TASK-1', 'key': 'k1', 'state': 'done'}, {'id': 'TASK-2', 'key': 'k2', 'state': 'open'}]}
         export.export(self.out, 'en', 'shop', progress={'ledger': ledger})
@@ -180,14 +180,14 @@ class Evidence(unittest.TestCase):
         return {'src/a.ts': self.TEXT, 'bin.dat': 'x\0y'}.get(path)
 
     def test_the_code_around_a_line_is_written_with_its_numbers_and_a_secret_line_never(self):
-        code = export.code_excerpt(self.source, 'src/a.ts', 5, 'complexity')
+        code = evidence.code_excerpt(self.source, 'src/a.ts', 5, 'complexity')
         self.assertEqual(code, {'start': 3, 'line': 5, 'lines': ['const KEY = "sk_live_123"', 'function f() {', '  return 1', '}'], 'hidden': []})
-        self.assertEqual(export.code_excerpt(self.source, 'src/a.ts', 1, 'complexity')['lines'][0], 'import a')
-        self.assertEqual(len(export.code_excerpt(lambda path: 'x' * 1000, 'min.js', 1, 'complexity')['lines'][0]), export.CODE_WIDTH)
+        self.assertEqual(evidence.code_excerpt(self.source, 'src/a.ts', 1, 'complexity')['lines'][0], 'import a')
+        self.assertEqual(len(evidence.code_excerpt(lambda path: 'x' * 1000, 'min.js', 1, 'complexity')['lines'][0]), evidence.CODE_WIDTH)
         for args in (('src/a.ts', 3, 'secret'), ('src/a.ts', None, 'complexity'), ('src/a.ts', 99, 'complexity'),
                      ('gone.ts', 1, 'complexity'), ('bin.dat', 1, 'complexity')):
-            self.assertIsNone(export.code_excerpt(self.source, *args), args)
-        code = export.code_excerpt(self.source, 'src/a.ts', 4, 'complexity', {('src/a.ts', 3)})
+            self.assertIsNone(evidence.code_excerpt(self.source, *args), args)
+        code = evidence.code_excerpt(self.source, 'src/a.ts', 4, 'complexity', {('src/a.ts', 3)})
         self.assertEqual(code['hidden'], [3])
         self.assertEqual(code['lines'][code['hidden'][0] - code['start']], '')
         self.assertNotIn('sk_live', ''.join(code['lines']))
@@ -195,8 +195,8 @@ class Evidence(unittest.TestCase):
     def test_the_evidence_section_hides_secret_lines_and_a_card_says_why_in_both_languages(self):
         facts = [{'id': 'F1', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts', 'line': 4}, 'value': {'kind': 'complexity', 'message': 'complex'}},
                  {'id': 'F2', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'}, 'value': {'kind': 'secret', 'sites': [{'path': 'src/a.ts', 'line': 3}]}}]
-        with mock.patch.object(export.indicators, 'facts', return_value=facts):
-            rows = {f['id']: f for f in export.evidence('report', {'F1', 'F2'}, self.source)}
+        with mock.patch.object(evidence.indicators, 'facts', return_value=facts):
+            rows = {f['id']: f for f in evidence.evidence('report', {'F1', 'F2'}, self.source)}
         self.assertEqual((rows['F1']['line'], rows['F1']['code']['hidden']), (4, [3]))
         self.assertIsNone(rows['F2']['code'])
         self.assertNotIn('sk_live', json.dumps(rows))
@@ -217,10 +217,10 @@ class Evidence(unittest.TestCase):
             git('init', '-q'); git('add', '.'); git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one')
             commit = git('rev-parse', 'HEAD')
             (project / 'src/a.ts').write_text('new\n', encoding='utf-8')
-            self.assertEqual(export.sources(project, commit)('src/a.ts'), 'old\n')
-            self.assertEqual(export.sources(project, None)('src/a.ts'), 'new\n')
-            self.assertIsNone(export.sources(project, None)('../outside.txt'))
-            self.assertIsNone(export.sources(None, None)('src/a.ts'))
+            self.assertEqual(evidence.sources(project, commit)('src/a.ts'), 'old\n')
+            self.assertEqual(evidence.sources(project, None)('src/a.ts'), 'new\n')
+            self.assertIsNone(evidence.sources(project, None)('../outside.txt'))
+            self.assertIsNone(evidence.sources(None, None)('src/a.ts'))
 
 
 class Contract(unittest.TestCase):
