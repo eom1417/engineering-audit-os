@@ -19,6 +19,18 @@
 - **A module is split after its complex functions are simplified**, and an oversized module counts in the structure
   score.
 - **Large tools install from disk, not memory** (the CodeQL bundle is 1.2 GB on a Mac).
+- **Speed is measured on the real program**: a run proposal may start a Python server (python, pip, uv, uvicorn,
+  gunicorn), not only JavaScript tools; a baseline may name the folder its server starts in and the headers a load
+  sends (a token the program writes to a file). Each route is asked once first: a stream that never ends, or a route
+  refusing without a value it needs, is left out and named. On EAOS's own server: 7 routes loaded with its token, no
+  error, where before every API route answered 401.
+- **Skipping a kept card keeps the batch true**: the other changes take their new commits, and one that no longer
+  applies without it fails with why, instead of staying kept with a commit the copy lacks.
+- **A fix run that kept no change ends "nothing changed"**, not failed, and may be tried again.
+- **The inbox merges two askings of one topic by who asks**: two of one asker's questions are two topics however
+  alike they read; across askers, the same thing named in quotes is one.
+- **Less code**: the ledger's support for commits made before 0.0.8, which nothing uses, is gone; two modules left the
+  over-600-lines list (`plan.py`, `studio/export.py`).
 
 ## 0.0.24 (2026-10-14)
 
