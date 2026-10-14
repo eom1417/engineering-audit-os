@@ -104,6 +104,7 @@
 .noteWhy { font-size: 13px; color: var(--text-secondary); line-height: 1.55; overflow-wrap: anywhere; }
 .checks { font-size: 12px; color: var(--text-tertiary); }
 .checks > summary { cursor: pointer; padding-block: 4px; }
+@media (max-width: 767px) { .checks > summary { display: flex; align-items: center; min-block-size: 44px; font-size: 14px; } }
 .checks ul { display: flex; flex-direction: column; gap: 4px; padding-block-start: 4px; overflow-wrap: anywhere; }
 .largeBody { display: flex; flex-direction: column; gap: 14px; }
 

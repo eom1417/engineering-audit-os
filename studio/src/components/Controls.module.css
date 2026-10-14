@@ -4,6 +4,8 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 28px; padding-inline: 10px; border-radius: 6px;
   font-size: 13px; color: var(--text-secondary); cursor: pointer;
 }
+/* an option not chosen still reads as a button: a faint outline, the chosen one raised */
+.segBtn:not([data-selected]) { box-shadow: inset 0 0 0 1px var(--border-subtle); }
 .segBtn[data-hovered] { color: var(--text-primary); }
 .segBtn[data-selected] { background: var(--bg-raised); color: var(--text-primary); box-shadow: 0 0 0 1px var(--border-default); font-weight: 500; }
 .segBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
