@@ -4,7 +4,7 @@
 import { useMemo } from 'react'
 import { SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
-import { FoldList, NotHere, Panel, Section } from '../../components/Panel'
+import { FoldList, NotHere, Panel, Section, StateMessage } from '../../components/Panel'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
@@ -111,7 +111,9 @@ export function FunctionDetail({ data, fx, id }: { data: StudioData; fx: Functio
   const byId = useMemo(() => new Map(fx.functions.map((f) => [f.id, f])), [fx])
   const fn = byId.get(id)
   if (!fn) {
-    return <NotHere title={w('notFound')} sub={w('notFoundSub')} back="/system/functions" label={w('backToFunctions')} />
+    // On a wide screen the list stands beside this pane: point at it instead of a button back to it
+    return phone ? <NotHere title={w('notFound')} sub={w('notFoundSub')} back="/system/functions" label={w('backToFunctions')} />
+      : <Panel><StateMessage icon="search" title={w('notFound')} sub={w('pickFromList')} /></Panel>
   }
   const module = fx.modules.find((m) => m.id === fn.module)
   const firstCard = fn.cards?.[0]
