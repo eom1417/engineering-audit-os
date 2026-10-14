@@ -233,13 +233,16 @@ def _group(g, items):
             'capped': max(len(mine) - MAX_ITEMS, 0)}
 
 
-def assemble(items, journeys, reach, owners, card_rows=()):
-    """The body from the unseen items, the screens' reach ({screen id: files}) and the owner component of each file."""
-    screens = [s for s in journeys.get('screens') or [] if s['kind'] == 'page']
-    seen, area_files = _seen(screens, reach)
+def _card_of(card_rows):
+    """{fact id: the first card citing it}."""
     card_of = {}
     for card in card_rows or []:
         for fid in card.get('evidence') or []: card_of.setdefault(fid, card.get('id'))
+    return card_of
+
+
+def _tally(items, area_files, owners, card_of):
+    """Place every item, then ({(screen area, group): its count and first items}, {component: {group: count}})."""
     links = defaultdict(lambda: {'items': [], 'count': 0})
     components = defaultdict(lambda: defaultdict(int))
     for item in items:
@@ -249,6 +252,14 @@ def assemble(items, journeys, reach, owners, card_rows=()):
             link = links[(a, item['group'])]
             link['count'] += 1
             if len(link['items']) < 12: link['items'].append(item['id'])
+    return links, components
+
+
+def assemble(items, journeys, reach, owners, card_rows=()):
+    """The body from the unseen items, the screens' reach ({screen id: files}) and the owner component of each file."""
+    screens = [s for s in journeys.get('screens') or [] if s['kind'] == 'page']
+    seen, area_files = _seen(screens, reach)
+    links, components = _tally(items, area_files, owners, _card_of(card_rows))
     groups = [_group(g, items) for g in GROUPS]
     shown = {i for g in groups for i in g['items']}
     missing = [{'id': 'controls', 'state': 'not_measured', 'step': 'NS40.T1', 'count': _measure(None, 'screens.json#screens[].inputs'),
