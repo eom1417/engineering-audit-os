@@ -302,6 +302,9 @@ def run_graph_query(specification, sets):
     required = QUERY_REQUIRES.get(query)
     if required and required not in sets:
         return 'INCONCLUSIVE', f'the {required} facts are not present in this run, so this probe cannot decide'
+    # Silence from an engine that never looked proves nothing: a probe naming its engines needs every one to have run.
+    missing = set(specification.get('engines') or []) - weaknesses.observed(sets)
+    if missing: return 'INCONCLUSIVE', f"{', '.join(sorted(missing))} did not run here, so this probe cannot decide"
     decide = QUERIES.get(query)
     return decide(specification, sets) if decide else ('INCONCLUSIVE', 'unknown query')
 

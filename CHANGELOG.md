@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.0.25 (2026-10-14)
+
+- **Every security finding reaches a card**: Bandit (Python's syntax tree) and Gitleaks (secrets) join Semgrep, and
+  CodeQL (data traced across the program) runs on open-source projects public on GitHub.com, the only ones its terms
+  allow. Two engines reporting a weakness within five lines of each other make a likely card; a finding no other engine
+  confirms is a card the assistant's triage decides on the code. Findings group by file and weakness, audit hints by
+  weakness across the project: on EAOS, 103 findings make 27 cards, 12 of them agreed. Before, a finding only one
+  engine reported stayed a fact, and EAOS read its own security as 100 with 82 of them.
+- **Semgrep's severity is read**: it writes the level on the rule, and every one of its findings was read as low.
+- **A known risk kept counts**: a vulnerable library with no fixed version, closed by the assistant, still weighs on
+  the security score, counted apart as accepted.
+- **A fix may not bring a weakness in**: every change a batch makes is read by Bandit and Gitleaks, and one that adds a
+  finding in the files it touched is taken back. A security card passes only when the engines that found it, asked
+  again on the changed copy, no longer do; an engine that did not run never passes it.
+- **No triaged fix is checked by "human review"**: a card the assistant decided to fix is accepted by its own probe
+  asked again on the changed copy.
+- **A module is split after its complex functions are simplified**, and an oversized module counts in the structure
+  score.
+- **Large tools install from disk, not memory** (the CodeQL bundle is 1.2 GB on a Mac).
+
 ## 0.0.24 (2026-10-14)
 
 - **A batch is no longer blamed for its surroundings**: when its changes fail the checks together, the same checks run

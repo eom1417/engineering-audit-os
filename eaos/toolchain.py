@@ -13,7 +13,6 @@ eaos/progress/log.py), its download as a counted step: the Studio's "Preparing t
 """
 import fcntl
 import hashlib
-import io
 import json
 import os
 import re
@@ -25,6 +24,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -266,8 +266,7 @@ def _doctor_row(tool):
     ok = found == tool['version']
     if found and not ok: reason = f'found {found}, pinned {tool["version"]}'
     ok, reason = _with_browsers(tool, ok, reason)
-    unavailable = False
-    if not ok and tool['install']['method'] == 'release': reason, unavailable = _release_unavailable(tool, reason)
+    reason, unavailable = _release_unavailable(tool, reason) if not ok and tool['install']['method'] == 'release' else (reason, False)
     row = {'name': tool['name'], 'role': tool['role'], 'stages': tool['stages'], 'pinned': tool['version'],
            'found': found, 'ok': ok, 'reason': reason, 'unavailable': unavailable}
     if tool.get('license_note'): row['license_note'] = tool['license_note']
@@ -339,18 +338,17 @@ def _unavailable(tool):
 
 
 def _download(url, part, step):
-    """The file at `url`, carried on from what an earlier attempt left in `part` (an HTTP range), `step(done, total)`
-    in bytes as it comes."""
+    """The file at `url` written to `part` (never held in memory: a CodeQL bundle is 1.2 GB), carried on from what an
+    earlier attempt left there (an HTTP range), `step(done, total)` in bytes as it comes."""
     have = part.stat().st_size if part.exists() else 0
     request = urllib.request.Request(url, headers={'Range': f'bytes={have}-'} if have else {})
     try: response = urllib.request.urlopen(request, timeout=300)
     except urllib.error.HTTPError as problem:
-        if problem.code == 416 and have: return part.read_bytes()      # the earlier attempt had it all
+        if problem.code == 416 and have: return                         # the earlier attempt had it all
         raise
     with response:
         if have and response.status != 206: have = 0                   # the server sends it whole
         _write(response, part, have, step)
-    return part.read_bytes()
 
 
 def _write(response, part, have, step):
@@ -366,50 +364,52 @@ def _release(tool, step=lambda done, total: None):
     spec = release_spec(tool)
     part = home() / 'downloads' / f"{tool['name']}-{tool['version']}.part"
     part.parent.mkdir(parents=True, exist_ok=True)
-    blob = _download(spec['url'], part, step)
-    part.unlink()
-    digest = hashlib.sha256(blob).hexdigest()
-    if digest != spec['sha256']:
-        raise RuntimeError(f"{tool['name']}: sha256 {digest} does not match the pinned {spec['sha256']}; nothing installed")
+    _download(spec['url'], part, step)
+    try:
+        with part.open('rb') as blob:
+            digest = hashlib.sha256()
+            while chunk := blob.read(CHUNK): digest.update(chunk)
+            if (digest := digest.hexdigest()) != spec['sha256']:
+                raise RuntimeError(f"{tool['name']}: sha256 {digest} does not match the pinned {spec['sha256']}; nothing installed")
+            blob.seek(0)
+            _unpack(tool, spec, blob)
+    finally:
+        part.unlink(missing_ok=True)
+
+
+def _unpack(tool, spec, blob):
+    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked."""
     folder = home() / 'releases' / f"{tool['name']}-{tool['version']}"
     folder.mkdir(parents=True, exist_ok=True)
     if spec.get('tree'):
         # A whole directory (a JRE, a CLI with its jars): extracted with no path escaping the folder.
         if spec['archive'] == 'zip':
-            import zipfile
-            with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+            with zipfile.ZipFile(blob) as archive:
                 for name in archive.namelist():
                     if name.startswith('/') or '..' in Path(name).parts:
                         raise RuntimeError(f"{tool['name']}: unsafe path {name!r} in the archive; nothing installed")
                 archive.extractall(folder)
         else:
-            with tarfile.open(fileobj=io.BytesIO(blob), mode=TAR_MODES[spec['archive']]) as archive:
+            with tarfile.open(fileobj=blob, mode=TAR_MODES[spec['archive']]) as archive:
                 archive.extractall(folder, filter='data')
         target = folder / spec['entry']
         if not target.is_file(): raise RuntimeError(f"{tool['name']}: {spec['entry']} is not in the archive")
-        target.chmod(0o755)
-        _link(target, tool['binary'])
-        return
-    target = folder / tool['binary']
-    if spec['archive'] == 'binary':
-        target.write_bytes(blob)
     else:
-        target.write_bytes(_member(tool, spec, blob))
+        (target := folder / tool['binary']).write_bytes(blob.read() if spec['archive'] == 'binary' else _member(tool, spec, blob))
     target.chmod(0o755)
     _link(target, tool['binary'])
 
 
 def _member(tool, spec, blob):
-    """The tool's file inside a tar or zip archive: the path the pin names, compared by its last part, so
-    `./reforge`, `k6-v2.3.0-macos-arm64/k6` and `reforge` all find the same file."""
+    """The tool's file inside a tar or zip archive (an open file): the path the pin names, compared by its last part,
+    so `./reforge`, `k6-v2.3.0-macos-arm64/k6` and `reforge` all find the same file."""
     wanted = spec['member'].rsplit('/', 1)[-1]
     if spec['archive'] == 'zip':
-        import zipfile
-        with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+        with zipfile.ZipFile(blob) as archive:
             name = next((n for n in archive.namelist() if not n.endswith('/') and n.rsplit('/', 1)[-1] == wanted), None)
             if name is None: raise RuntimeError(f"{tool['name']}: {spec['member']} is not in the archive")
             return archive.read(name)
-    with tarfile.open(fileobj=io.BytesIO(blob), mode=TAR_MODES[spec['archive']]) as archive:
+    with tarfile.open(fileobj=blob, mode=TAR_MODES[spec['archive']]) as archive:
         member = next((m for m in archive.getmembers() if m.isfile() and m.name.rsplit('/', 1)[-1] == wanted), None)
         if member is None: raise RuntimeError(f"{tool['name']}: {spec['member']} is not in the archive")
         return archive.extractfile(member).read()

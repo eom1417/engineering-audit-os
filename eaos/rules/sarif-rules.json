@@ -111,5 +111,15 @@
       "kind": "secret",
       "severity_floor": "high"
     }
+  ],
+  "codeql": [
+    {
+      "match": "*/hardcoded-credentials",
+      "kind": "secret"
+    },
+    {
+      "match": "*",
+      "kind": "vulnerability"
+    }
   ]
 }

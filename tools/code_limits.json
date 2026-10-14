@@ -136,7 +136,6 @@
   "eaos/studio/journeys.py::from_records": 20,
   "eaos/studio/journeys.py::records": 17,
   "eaos/studio/model.py::_problem_row": 18,
-  "eaos/studio/model.py::problems": 20,
   "eaos/studio/model.py::score": 16,
   "eaos/studio/nodes/fix_reviewer.py::_cards": 20,
   "eaos/studio/nodes/ideal_planner.py::_decisions": 21,

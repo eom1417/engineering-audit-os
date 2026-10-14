@@ -409,7 +409,7 @@ def _vulnerable(fact, add):
                        'params': {'package': package, 'installed': installed, 'count': len(ids),
                                   'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
                                   'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—'}},
-               probe_spec=_graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'),
+               probe_spec=_graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'), engines=[value['engine']],
                                        expected='The same package version is still reported vulnerable.'),
                impact={'scenario': 'Every user runs a version with a published vulnerability; the fix is published too.'})
 

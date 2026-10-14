@@ -78,13 +78,25 @@ def next_batch(report, done, size=SIZE):
 
 # ---------------------------------------------------------------- one collection, every acceptance
 
+def engines_for(cards):
+    """The engines a collection of facts on a changed copy runs: the security gate's (eaos/execute.py GATE_ENGINES),
+    and those a card's own recheck asks again (a security card names the engines that found it)."""
+    from .execute import GATE_ENGINES
+    named = set()
+    for card in cards:
+        argv = card.get('verify_command') or []
+        if 'recheck' in argv and '--spec' in argv:
+            named |= set((json.loads(argv[argv.index('--spec') + 1]).get('specification') or {}).get('engines') or [])
+    return sorted(set(GATE_ENGINES) | named)
+
+
 def batch_acceptance(report, cards, root, collected=None):
     """{card id: exit code} for every card's acceptance, from one collection of facts on `root` (`collected`,
-    when the caller already made it). A `recheck --spec` acceptance and the dead-code check are read from that
-    collection; anything else runs as written."""
+    when the caller already made it, with engines_for(cards)). A `recheck --spec` acceptance and the dead-code check
+    are read from that collection; anything else runs as written."""
     from .facts.run import collect, read_available
     out = Path(collected) if collected else Path(tempfile.mkdtemp(prefix='eaos-wave-facts-'))
-    if not collected: collect(Path(root).resolve(), out)
+    if not collected: collect(Path(root).resolve(), out, engines=engines_for(cards))
     sets = read_available(out)
     dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
             for f in (sets.get('deadcode') or {}).get('facts', [])}

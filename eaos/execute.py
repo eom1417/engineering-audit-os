@@ -78,6 +78,10 @@ def new_breakage(report, root, collected=None):
     return broke
 
 
+# The security engines that answer in seconds: they run on every change a batch makes (eaos/agent_tools.py _checked).
+GATE_ENGINES = ('bandit', 'gitleaks')
+
+
 def _facts(folder, name):
     file = Path(folder) / 'facts' / f'{name}.json'
     return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
@@ -107,16 +111,20 @@ def _excess(folder, paths):
 
 def new_debt(report, collected, paths):
     """What a change added against the code laws (eaos/code_laws.py) in the files it touched (`paths`), from the facts
-    of the report (before) and `collected` (after): a copied block or function, dead code, or more decisions past
-    the complexity limit across those files (splitting a function of 60 into three of 20 is less; a new one of 20 is
-    more; moving one into a new module is neither). A change that adds any is taken back like a breakage."""
+    of the report (before) and `collected` (after): a copied block or function, dead code, more decisions past the
+    complexity limit across those files (splitting a function of 60 into three of 20 is less; a new one of 20 is
+    more; moving one into a new module is neither), or a security finding of an engine both ran (GATE_ENGINES, fast
+    enough for every change). A change that adds any is taken back like a breakage."""
     from .code_laws import MAX_COMPLEXITY
+    from .weaknesses import new as new_weaknesses
     paths = set(paths)
     was, now = _excess(report, paths), _excess(collected, paths)
     copied = _copies(collected, paths) - _copies(report, paths)
     added = [f'{len(copied)} copied block(s) or function(s): call the one home instead'] if copied else []
     added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(_dead(collected, paths) - _dead(report, paths))]
     if now > was: added.append(f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} per function')
+    added += [f'a security finding: {rule} ({engine}) in {path}'
+              for engine, rule, path in new_weaknesses(report, collected, paths)]
     return added
 
 

@@ -20,6 +20,9 @@ and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
 | [vulture](https://github.com/jendrikseipp/vulture) | Jendrik Seipp | MIT | separate process; text report read |
 | [knip](https://github.com/webpro-nl/knip) | Lars Kappert | ISC | separate process, every plugin off; JSON report read |
 | [react-docgen](https://github.com/reactjs/react-docgen) (`@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | separate process; JSON report read |
+| [Bandit](https://github.com/PyCQA/bandit) | PyCQA | Apache-2.0 | separate process; SARIF read |
+| [Gitleaks](https://github.com/gitleaks/gitleaks) | Zachary Rice | MIT | separate process, secrets redacted; SARIF read |
+| [CodeQL](https://github.com/github/codeql-action) (the CodeQL bundle) | GitHub, Inc. | GitHub CodeQL Terms and Conditions | separate process, run only on an open-source codebase public on GitHub.com, as its terms allow; SARIF read |
 
 ### Visual evidence tools (pipeline v2)
 

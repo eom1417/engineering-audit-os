@@ -1123,9 +1123,9 @@ def _checked(report, root, card, changed, repair):
     import tempfile
     from .execute import new_breakage, new_debt
     from .facts.run import collect
-    from .waves import batch_acceptance
+    from .waves import batch_acceptance, engines_for
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
-        collect(root.resolve(), out)
+        collect(root.resolve(), out, engines=engines_for([card]))
         broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed)
         return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
 

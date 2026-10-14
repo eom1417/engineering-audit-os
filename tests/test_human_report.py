@@ -93,6 +93,10 @@ class HumanReportTests(unittest.TestCase):
         self.assertEqual((result['areas']['security']['light'], result['areas']['performance']['light']), ('red', 'grey'))
         rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]
         self.assertEqual(model.score(rows, 50)['score'], model.CRITICAL_CAP)
+        # A vulnerable library the assistant kept (no fixed version) still weighs: EAOS read security 100 with one known.
+        (self.out / 'cards.json').write_text(json.dumps({'closed': [{'card': 'TASK-9', 'claim_id': 'CLM-1', 'title': 'braces'}]}))
+        security = human_report.model(self.out)['score']['areas']['security']
+        self.assertEqual((security['score'], security['accepted']), (65, 1))     # 9 + the kept medium 2: 100 x 20 / 31
         # A serious problem is never called low priority.
         self.assertIn('Urgent because of its severity', priority_words(90, 'high'))
         self.assertIn('Low priority', priority_words(90, 'low'))

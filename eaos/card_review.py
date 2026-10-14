@@ -216,12 +216,39 @@ def resolutions(tasks, verdicts, design):
     return out
 
 
-def fix_check(card, change, revision):
-    """The check of a change the assistant decided: the project's own checks gate it (eaos/waves.py: a card with no
-    command of its own is kept on the gates) and the next check tells whether it is gone."""
+def fix_check(card, change, revision, spec=None):
+    """The check of a change the assistant decided: its claim's own probe asked again on the changed copy (`eaos
+    recheck`, passing only when the problem is gone), when the claim has one; else the project's own checks gate it
+    (eaos/waves.py: a card with no command of its own is kept on the gates) and the next check tells whether it is gone."""
+    if spec:
+        import json, sys
+        return {'id': 'TRIAGE-' + card, 'kind': 'command', 'invariant': 'The problem this card names is gone and nothing else changed.',
+                'expected': "the card's own probe refutes it on the changed copy", 'expected_exit': 0, 'cwd': '.',
+                'argv': [sys.executable, '-m', 'eaos', 'recheck', '--spec', json.dumps(spec, ensure_ascii=False), '.'],
+                'source_revision': revision}
     return {'id': 'TRIAGE-' + card, 'kind': 'human', 'invariant': 'The problem this card names is gone and nothing else changed.',
             'expected': change, 'cwd': '.', 'source_revision': revision,
             'rubric': "The change your assistant decided is made, the project's own checks pass, and the next check no longer finds it."}
+
+
+def fix_checks(where, tasks, resolved, verdicts):
+    """The revision the fixes the assistant decided are checked against, each triaged one with its check (its claim's
+    own probe, eaos/mechanical_assessment.py spec_for, when it has one); None when nothing is to be fixed."""
+    if not any(r['resolution'] == 'fix' for r in resolved.values()): return None
+    from .acceptance import fingerprint
+    from .facts.run import read_available
+    from .mechanical_assessment import spec_for
+    target, out = where
+    revision = fingerprint(target)
+    claims = {c['id']: c for c in read(out / 'dossier.json').get('claims') or []}
+    of_card = {t['id']: claims.get(t.get('claim_id')) for t in tasks}
+    sets = read_available(out)
+    for card, row in resolved.items():
+        if row['resolution'] != 'fix' or card not in verdicts: continue
+        claim = of_card.get(card)
+        spec = spec_for(claim, sets) if claim and claim.get('probe_spec') else None
+        row['checks'] = [fix_check(card, row['change'], revision, spec)]
+    return revision
 
 
 def resolve(task, resolution, claim, target, out, revision):

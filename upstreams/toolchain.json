@@ -431,6 +431,59 @@
       }
     },
     {
+      "name": "codeql",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "applies": "all",
+      "check": "engines",
+      "license": "GitHub CodeQL Terms and Conditions (open-source codebases only)",
+      "repository": "https://github.com/github/codeql-action",
+      "version": "2.27.2",
+      "binary": "codeql",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
+        "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
+        "archive": "tar.gz",
+        "tree": true,
+        "entry": "codeql/codeql",
+        "platforms": {
+          "linux-x86_64": {
+            "method": "release",
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
+            "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          },
+          "linux-arm64": {
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux-arm64.tar.gz",
+            "sha256": "c1779ce6335606ef86fce4aae0db2ac4d7da869527d6a67bf055d9135695473c",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          },
+          "darwin-arm64": {
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
+            "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          },
+          "darwin-x86_64": {
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
+            "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          }
+        }
+      }
+    },
+    {
       "name": "dependency-cruiser",
       "role": "read",
       "stages": [

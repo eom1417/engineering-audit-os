@@ -15,7 +15,7 @@ is written: a real key in a test file leaks like any other. A vulnerable depende
 """
 from .vocabulary import classify
 SECURITY = ('secret', 'vulnerability')
-LINE_WINDOW = 2
+LINE_WINDOW = 5      # one statement: Bandit names its first line, CodeQL the expression inside it
 SEVERITIES = ('low', 'medium', 'high', 'critical')
 PROJECT = '*'
 
@@ -47,29 +47,35 @@ def _agree(one, other):
 def groups(sets):
     """[{key, kind, place, labels, engines, agreed, severity, paths, fact_ids}], the most severe first."""
     facts = _findings(sets)
-    parent = list(range(len(facts)))
+    pairs = [(i, j) for i in range(len(facts)) for j in range(i + 1, len(facts)) if _agree(facts[i], facts[j])]
+    agreed = {i for pair in pairs for i in pair}
+    keys = _keys(facts, agreed)
+    first = {}
+    links = pairs + [(first.setdefault(key, i), i) for i, key in enumerate(keys)]
+    built = [_group([facts[i] for i in rows], bool(agreed & set(rows))) for rows in _components(len(facts), links)]
+    return sorted(built, key=lambda g: (-SEVERITIES.index(g['severity']), not g['agreed'], g['key']))
+
+
+def _keys(facts, agreed):
+    """The card each finding belongs to: its file and weakness, or the project's for a weak one no engine confirms,
+    unless a sound finding of the same weakness is in the same file."""
+    weak = {i for i, fact in enumerate(facts) if i not in agreed
+            and (_severity(fact) == 'low' or fact['value'].get('engine_confidence') == 'low')}
+    keys = [(fact['location']['path'], _label(fact)) for fact in facts]
+    sound = {key for i, key in enumerate(keys) if i not in weak}
+    return [(PROJECT, key[1]) if i in weak and key not in sound else key for i, key in enumerate(keys)]
+
+
+def _components(size, links):
+    """The indices 0..size-1 grouped by the links between them."""
+    parent = list(range(size))
     def root(i):
         while parent[i] != i: parent[i] = parent[parent[i]]; i = parent[i]
         return i
-    agreed = set()
-    for i, one in enumerate(facts):
-        for j in range(i + 1, len(facts)):
-            if _agree(one, facts[j]):
-                parent[root(j)] = root(i)
-                agreed |= {i, j}
-    weak = {i for i, fact in enumerate(facts) if i not in agreed
-            and (_severity(fact) == 'low' or fact['value'].get('engine_confidence') == 'low')}
-    # A weak finding beside a sound one of the same weakness in the same file is that file's card, not the project's.
-    sound = {(fact['location']['path'], _label(fact)) for i, fact in enumerate(facts) if i not in weak}
-    first = {}
-    for i, fact in enumerate(facts):
-        key = (fact['location']['path'], _label(fact))
-        if i in weak and key not in sound: key = (PROJECT, key[1])
-        parent[root(i)] = root(first.setdefault(key, i))
-    members = {}
-    for i in range(len(facts)): members.setdefault(root(i), []).append(i)
-    built = [_group([facts[i] for i in rows], any(i in agreed for i in rows)) for rows in members.values()]
-    return sorted(built, key=lambda g: (-SEVERITIES.index(g['severity']), not g['agreed'], g['key']))
+    for one, other in links: parent[root(other)] = root(one)
+    found = {}
+    for i in range(size): found.setdefault(root(i), []).append(i)
+    return list(found.values())
 
 
 def _group(facts, agreed):
@@ -82,14 +88,34 @@ def _group(facts, agreed):
             'rules': sorted({f['value']['rule'] for f in facts}), 'fact_ids': sorted(f['id'] for f in facts)}
 
 
+def observed(sets):
+    """The engines that ran and answered in this collection of facts."""
+    return set(((sets.get('external') or {}).get('summary') or {}).get('engines_observed') or [])
+
+
 def present(specification, sets):
-    """The probe of a weakness card: CONFIRMED while an engine still reports its weakness at its files."""
+    """The probe of a weakness card (eaos/probes.py, which first makes sure its engines ran): CONFIRMED while an engine
+    still reports its weakness at its files."""
     labels, paths = set(specification['labels']), set(specification['paths'])
     left = [f for f in _findings(sets) if _label(f) in labels and f['location']['path'] in paths]
     if left:
         return 'CONFIRMED', f"{len(left)} finding(s) of {', '.join(sorted(labels))} still reported at " + \
                ', '.join(sorted({f['location']['path'] for f in left})[:5])
     return 'REFUTED', f"no engine reports {', '.join(sorted(labels))} at these files any more"
+
+
+def new(before, after, paths):
+    """The security findings in `paths` that the facts in folder `after` have and those in `before` had not, from the
+    engines both ran: the gate that refuses a change bringing a weakness in (eaos/execute.py new_debt)."""
+    from pathlib import Path
+    from .facts.store import read_set
+    before, after = ({'external': read_set(folder, 'external')} if (Path(folder) / 'facts/external.json').is_file() else {}
+                     for folder in (before, after))
+    engines = observed(before) & observed(after)
+    def found(sets):
+        return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets)
+                if f['value']['engine'] in engines and f['location']['path'] in paths}
+    return sorted(found(after) - found(before))
 
 
 def claims(fact_sets, add, target):

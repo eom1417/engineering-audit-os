@@ -301,7 +301,7 @@ def _engine_claim(index, kind, cluster, detail, said):
                                    'engines': engines, 'verdict': detail['verdict'],
                                    **said['measured'], **({'impact_key': impact_key} if impact_key else {})}},
                 probe_spec={'probe_type': 'graph_query',
-                            'specification': {'query': 'engine_cluster_present',
+                            'specification': {'query': 'engine_cluster_present', 'engines': detail['asserted_by'],
                                               'place': cluster['place'], 'kind': kind,
                                               'expected': 'The same engines still report this kind at this place.'}},
                 impact=said['impact'])

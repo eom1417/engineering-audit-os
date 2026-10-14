@@ -161,13 +161,13 @@ TASK-003 — complexity 83 (threshold 15) in eaos/human_report.py
 ## 🧰 The tools
 
 EAOS **orchestrates rather than rebuilds**: it runs open-source tools, each at a pinned version with a sha256 and a
-recorded licence, in `~/.eaos/tools`. A missing tool is stated in the report and never stops it. **30 tools**:
+recorded licence, in `~/.eaos/tools`. A missing tool is stated in the report and never stops it. **33 tools**:
 
 | Area | Tools |
 |---|---|
 | Understanding the code and its structure | CodeGraph · Enola · Reforge · GitNexus · ast-grep · dependency-cruiser · react-docgen |
 | Complexity, duplication and dead code | Lizard · complexipy · jscpd · scc · vulture · knip |
-| Security and dependencies | Semgrep (and its rules) · OSV-Scanner · Syft · Trivy · Checkov |
+| Security and dependencies | Semgrep (and its rules) · Bandit · Gitleaks · CodeQL (open-source projects only, as its terms allow) · OSV-Scanner · Syft · Trivy · Checkov |
 | Contracts and data | Spectral · oasdiff · SQLFluff |
 | Running the app and its screens | Playwright · Unlighthouse · Lighthouse · axe-core · css-analyzer · pytest · k6 |
 | Automatic fixes | jscodeshift |

@@ -65,11 +65,11 @@ class PlatformTests(unittest.TestCase):
         buffer = io.BytesIO()
         with tarfile.open(fileobj=buffer, mode='w:gz') as archive:        # reforge's Mac archive: ./demo
             info = tarfile.TarInfo('./demo'); data = b'binary'; info.size = len(data); archive.addfile(info, io.BytesIO(data))
-        self.assertEqual(toolchain._member(tool, {'archive': 'tar.gz', 'member': './demo'}, buffer.getvalue()), b'binary')
+        self.assertEqual(toolchain._member(tool, {'archive': 'tar.gz', 'member': './demo'}, io.BytesIO(buffer.getvalue())), b'binary')
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, 'w') as archive:                      # k6's Mac build is a zip
             archive.writestr('demo-v1-macos-arm64/demo', b'zipped')
-        self.assertEqual(toolchain._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, buffer.getvalue()), b'zipped')
+        self.assertEqual(toolchain._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, io.BytesIO(buffer.getvalue())), b'zipped')
         tools = [{'name': 'first', 'version': '1', 'stages': ['S01'], 'install': {'method': 'release'}},
                  {'name': 'second', 'version': '1', 'stages': ['S01'], 'install': {'method': 'pip'}}]
         installed = []
