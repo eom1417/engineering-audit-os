@@ -10,6 +10,8 @@ PROBLEMS = (
                      'en': ('Broken code', 'Parts that will fail the first time they run: an import of a missing file, or a documented command that no longer exists.')}),
     ('access_gap', {'ar': ('بيانات مكشوفة', 'بيانات المستخدمين يمكن قراءتها أو تعديلها من غير أصحابها.'),
                     'en': ('Exposed data', "Users' data can be read or changed by people who do not own it.")}),
+    ('security_weakness', {'ar': ('ثغرات أمان في الكود', 'مواضع في كود مشروعك قد يستغلها أحد: أمر أو استعلام يُبنى من مدخل، أو سر مكتوب في الكود.'),
+                           'en': ('Security weaknesses in the code', 'Places in your code someone may exploit: a command or query built from input, or a secret written in the code.')}),
     ('upgrade_dependency', {'ar': ('مكتبات فيها ثغرات معروفة', 'مكتبات يستخدمها مشروعك فيها ثغرات أمنية منشورة، ولها إصدار مُصلَح.'),
                             'en': ('Libraries with known security holes', 'Libraries your project uses have published security holes, and a fixed version exists.')}),
     ('load_blocker', {'ar': ('بطء متوقع مع كثرة المستخدمين', 'أماكن تزيد كلفتها كلما زاد المستخدمون أو البيانات.'),

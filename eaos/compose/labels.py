@@ -88,6 +88,7 @@ TEMPLATES = {
         'sequence_duplicate': '{count} دوال تنفّذ التسلسل نفسه من النداءات ({where})',
         'redundant_work': 'عمل زائد ({kind}) في {symbol} عند {location}: {callee}',
         'engine_cluster': '{engines} يبلّغ عن {kind} في {place} ({verdict})',
+        'security_weakness': 'ثغرة أمان محتملة ({labels}) في {place}، {count} موضع، حسب {engines}',
         'load_blocker': '{where}: {statement} — عائق حمل ({kind})',
     },
     'en': {
@@ -113,6 +114,7 @@ TEMPLATES = {
         'sequence_duplicate': '{count} functions perform the same ordered sequence of calls ({where})',
         'redundant_work': 'redundant work ({kind}) in {symbol} at {location}: {callee}',
         'engine_cluster': '{engines} report {kind} at {place} ({verdict})',
+        'security_weakness': 'Possible security weakness ({labels}) in {place}, {count} finding(s), reported by {engines}',
         'load_blocker': '{where}: {statement} — load blocker ({kind})',
     },
 }
@@ -120,6 +122,7 @@ IMPACTS = {
     'ar': {
         'load_blocker': 'الكلفة تنمو مع الحركة أو مع البيانات عند هذه النقطة؛ ما يعمل اليوم قد لا يعمل عند مضاعفة الحمل.',
         'engine_cluster': 'أدلة من أكثر من محرك على موضع واحد؛ مرشّح للمراجعة، لا حكم بوجود عيب.',
+        'security_weakness': 'إن وصل إليها مدخل من مستخدم أو كان السر حقيقيًا، يقدر غيرك يشغّل أوامر أو يقرأ بيانات أو يدخل بصلاحيات ليست له.',
         'engine_cluster_complexity': 'التعقيد {value} (العتبة {threshold}) في هذا الموضع حسب قياس المحرك؛ كل تغيير هنا يمرّ بهذه التفريعات كلها.',
         'engine_cluster_complexity_value': 'التعقيد {value} في هذا الموضع حسب قياس المحرك، ولم يعلن المحرك عتبته؛ كل تغيير هنا يمرّ بهذه التفريعات كلها.',
         'engine_cluster_literal_duplication': 'تكرار حرفي في {sites} مواضع متطابقة على الأقل؛ أول تعديل في أحدها دون البقية يجعلها تختلف.',
@@ -153,6 +156,7 @@ IMPACTS = {
     'en': {
         'load_blocker': 'Cost grows with traffic or data at this entry point; current behavior may not survive higher load.',
         'engine_cluster': 'More than one engine points at the same place: a review candidate, not a verdict that a defect exists.',
+        'security_weakness': 'If user input reaches it, or the secret is real, someone else can run commands, read data or act with rights that are not theirs.',
         'engine_cluster_complexity': 'Complexity {value} (threshold {threshold}) at this place as the engine measured it; every change here runs through all of these branches.',
         'engine_cluster_complexity_value': 'Complexity {value} at this place as the engine measured it, with no threshold declared; every change here runs through all of these branches.',
         'engine_cluster_literal_duplication': 'The same literal text at {sites} sites at least; the first edit to one and not the others makes them disagree.',
@@ -207,6 +211,7 @@ FALSIFIERS = {
         'trace_gap': 'محلِّل أو تتبّع زمن تشغيل يتبع تلك النداءات إلى أهدافها.',
         'load_blocker': 'مهلة أو سياسة إعادة محاولة أو قاطع دائرة على النداء، أو دليل على أن النداء محلي.',
         'engine_cluster': 'إظهار أن القياس الذي يبلّغ عنه كل محرك دون العتبة التي يعلنها، أو أن المحركات تتشارك تنفيذًا واحدًا فهي شاهد واحد.',
+        'security_weakness': 'إظهار من الكود عند كل موضع أن لا مدخل غير موثوق يصل إليه، أو أن السر ليس مفتاحًا حقيقيًا (قيمة اختبار أو مثال موثّق).',
         'mutable_global': 'أن تصير القيمة غير قابلة للتعديل، أو أن ينتقل التعديل خلف مالك ينظّم الوصول إليه.',
         'access_gap_no_rls': 'هجرة لاحقة تفعّل أمان الصفوف على الجدول.',
         'access_gap_open_write': 'استبدال شرط السياسة بشرط يربط كل صف بصاحبه.',
@@ -242,7 +247,7 @@ DETAIL_ARTIFACT = {
     'structural_duplicate': 'DOMAIN-AND-DATA.md', 'copied_function': 'DOMAIN-AND-DATA.md', 'sequence_duplicate': 'DOMAIN-AND-DATA.md',
     'redundant_work': 'DOMAIN-AND-DATA.md', 'engine_cluster': 'ENGINES.md', 'load_blocker': 'LOAD-MODEL.md',
     'dead_code': 'SYSTEM-MAP.md', 'dead_code_review': 'SYSTEM-MAP.md', 'broken_code': 'SYSTEM-MAP.md',
-    'vulnerable_dependency': 'ENGINES.md',
+    'vulnerable_dependency': 'ENGINES.md', 'security_weakness': 'RISK-REGISTER.md',
 }
 
 

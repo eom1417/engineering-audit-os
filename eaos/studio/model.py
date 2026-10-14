@@ -7,6 +7,7 @@ What a problem is: one task card of plan.json. Its area and severity come from o
     pattern             area             default severity
     access_gap          security         critical
     upgrade_dependency  security         high
+    security_weakness   security         high
     broken_code         quality          high
     remove_dead         quality          low
     dead_code           quality          low
@@ -59,7 +60,7 @@ CRITICAL_CAP = 39
 # ux: how the screens look, from the visual reviewer's design cards; measured only in a check that pictured them.
 AREAS = ('security', 'structure', 'quality', 'performance', 'ux', 'maintainability')
 PATTERNS = {
-    'access_gap': ('security', 'critical'), 'upgrade_dependency': ('security', 'high'),
+    'access_gap': ('security', 'critical'), 'upgrade_dependency': ('security', 'high'), 'security_weakness': ('security', 'high'),
     'broken_code': ('quality', 'high'), 'remove_dead': ('quality', 'low'), 'dead_code': ('quality', 'low'),
     'canonicalize': ('quality', 'low'), 'duplicated_rule': ('quality', 'medium'),
     'import_cycle': ('structure', 'medium'), 'mutable_state': ('structure', 'medium'), 'mutable_state_private': ('structure', 'low'),

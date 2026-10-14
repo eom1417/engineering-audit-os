@@ -25,7 +25,7 @@ SEVERITIES = ('low', 'medium', 'high', 'critical')
 DETERMINISTIC_FACTS = ('committed_credential', 'broken_code')
 # render key (or engine kind) -> (category, severity when the evidence says nothing more precise)
 KEYS = {
-    'vulnerable_dependency': ('supply_chain', None), 'broken_code': ('reliability', None),
+    'vulnerable_dependency': ('supply_chain', None), 'security_weakness': ('security', None), 'broken_code': ('reliability', None),
     'access_gap_no_rls': ('security', 'high'), 'access_gap_open_write': ('security', 'critical'),
     'dead_code': ('dead_code', 'low'), 'dead_code_review': ('dead_code', 'low'), 'leftover': ('dead_code', 'low'),
     'load_blocker': ('reliability', 'medium'), 'trace_gap': ('reliability', 'low'), 'mutable_global': ('reliability', 'medium'),
@@ -137,7 +137,7 @@ def _severity(claim, key, default, facts):
     params = (claim.get('render') or {}).get('params') or {}
     # Archived code does not run: whatever it breaks is a leftover to remove, not a product defect.
     if claim.get('origin') == 'archive' and key != 'vulnerable_dependency': return 'low'
-    if key == 'vulnerable_dependency': return params.get('severity') or 'medium'
+    if key in ('vulnerable_dependency', 'security_weakness'): return params.get('severity') or 'medium'
     if key == 'broken_code': return 'high' if claim.get('claim_type') == 'risk' else 'medium'
     if key == 'engine_cluster':
         kind = ((claim.get('probe_spec') or {}).get('specification') or {}).get('kind')

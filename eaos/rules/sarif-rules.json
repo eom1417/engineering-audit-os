@@ -60,6 +60,11 @@
   ],
   "checkov": [
     {
+      "match": "CKV_SECRET_*",
+      "kind": "secret",
+      "severity_floor": "high"
+    },
+    {
       "match": "CKV*",
       "kind": "misconfiguration"
     }
@@ -80,6 +85,31 @@
     {
       "match": "*",
       "kind": "vulnerability"
+    }
+  ],
+  "bandit": [
+    {
+      "match": "B105",
+      "kind": "secret"
+    },
+    {
+      "match": "B106",
+      "kind": "secret"
+    },
+    {
+      "match": "B107",
+      "kind": "secret"
+    },
+    {
+      "match": "B*",
+      "kind": "vulnerability"
+    }
+  ],
+  "gitleaks": [
+    {
+      "match": "*",
+      "kind": "secret",
+      "severity_floor": "high"
     }
   ]
 }

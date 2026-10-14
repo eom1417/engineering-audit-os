@@ -11,14 +11,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import (ast_grep, checkov, codegraph, complexipy, dependency_cruiser, enola, gitnexus, jscpd, knip, lizard, oasdiff,
-               osv_scanner, react_docgen, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
+from . import (ast_grep, bandit, checkov, codegraph, complexipy, dependency_cruiser, enola, gitleaks, gitnexus, jscpd, knip,
+               lizard, oasdiff, osv_scanner, react_docgen, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from .. import progress
 
 ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov,
-                                               dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
+                                               bandit, gitleaks, dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
                                                ast_grep, lizard, complexipy, vulture, knip, react_docgen)}
 # CodeGraph takes about half the stage (147 of 308 s on EAOS itself) and reads no other engine's output: it runs on
 # a second thread beside the others, which still run one after another, so at most two engines share the memory.

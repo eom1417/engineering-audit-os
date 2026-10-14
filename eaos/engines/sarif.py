@@ -5,10 +5,20 @@ data, in eaos/rules/sarif-rules.json, not code: the first row whose `match` (fnm
 A result no row matches is counted in `unmapped` by ruleId, never dropped silently.
 
 Severity: properties.security-severity (the CVSS-like score SARIF producers publish) decides when present:
->= 9 critical, >= 7 high, >= 4 medium, else low. Without it the SARIF level decides: error high, warning
-medium, note or none low. A row's severity_floor raises it and never lowers it.
+>= 9 critical, >= 7 high, >= 4 medium, else low. Without it the SARIF level decides: error high, warning medium,
+note or none low; a result that names no level has its rule's (defaultConfiguration, as Semgrep writes it), else
+SARIF's default, warning. A row's severity_floor raises it and never lowers it.
+
+Confidence, how sure the engine is of its own rule (engine_confidence: high, medium or low; None when it does not
+say): the result's issue_confidence (Bandit), else a `LOW CONFIDENCE` tag (Semgrep, whose precision property says
+very-high on every rule), else the rule's precision (CodeQL).
+
+The weaknesses a rule names (CWE-78, ...) are read from its tags and the result's, in whichever spelling the tool
+writes them (Semgrep `CWE-78: ...`, Bandit `external/cwe/cwe-78`, CodeQL `external/cwe/cwe-078`), so two engines
+reporting the same weakness can be told apart from two reporting different ones at the same file.
 """
 import json
+import re
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -16,15 +26,16 @@ from .contract import finding, measurement, subject
 
 RULES = Path(__file__).resolve().parent.parent / 'rules/sarif-rules.json'
 ORDER = ['low', 'medium', 'high', 'critical']
+CWE = re.compile(r'\bcwe[-/:]?0*(\d+)', re.IGNORECASE)
 
 
 def _results(data):
-    """(rule properties by id, result) for every result of every run."""
+    """(rules by id, result) for every result of every run."""
     for run in data.get('runs') or []:
         driver = (run.get('tool') or {}).get('driver') or {}
-        properties = {rule.get('id'): rule.get('properties') or {} for rule in driver.get('rules') or []}
+        rules = {rule.get('id'): rule for rule in driver.get('rules') or []}
         for result in run.get('results') or []:
-            yield properties, result
+            yield rules, result
 
 
 def _artifacts(result):
@@ -39,13 +50,31 @@ def _score(raw):
     except (TypeError, ValueError): return None
 
 
-def _severity(result, rule_properties, floor):
-    score = _score((result.get('properties') or {}).get('security-severity') or rule_properties.get('security-severity'))
+def _severity(result, rule, floor):
+    score = _score((result.get('properties') or {}).get('security-severity') or (rule.get('properties') or {}).get('security-severity'))
     if score is not None:
         severity = 'critical' if score >= 9 else 'high' if score >= 7 else 'medium' if score >= 4 else 'low'
     else:
-        severity = {'error': 'high', 'warning': 'medium'}.get(result.get('level'), 'low')
+        level = result.get('level') or (rule.get('defaultConfiguration') or {}).get('level') or 'warning'
+        severity = {'error': 'high', 'warning': 'medium'}.get(level, 'low')
     return floor if floor and ORDER.index(floor) > ORDER.index(severity) else severity
+
+
+def _tags(result, rule):
+    return [tag for tag in ((rule.get('properties') or {}).get('tags') or []) + ((result.get('properties') or {}).get('tags') or [])
+            if isinstance(tag, str)]
+
+
+def _cwe(result, rule):
+    return {f'CWE-{int(found)}' for tag in _tags(result, rule) for found in CWE.findall(tag)}
+
+
+def _confidence(result, rule):
+    said = ((result.get('properties') or {}).get('issue_confidence')
+            or next((tag.split()[0] for tag in _tags(result, rule) if tag.upper().endswith(' CONFIDENCE')), None)
+            or (rule.get('properties') or {}).get('precision'))
+    said = str(said or '').lower().replace('very-', '')
+    return said if said in ('high', 'medium', 'low') else None
 
 
 def _sites(result):
@@ -59,18 +88,20 @@ def read(path, engine, version, rules=None):
         rules = json.loads(RULES.read_text(encoding='utf-8')).get(engine, [])
     data = json.loads(Path(path).read_text(encoding='utf-8'))
     findings, unmapped = [], {}
-    for properties, result in _results(data):
+    for known, result in _results(data):
         rule_id = result.get('ruleId') or ''
         row = next((row for row in rules if fnmatch(rule_id, row['match'])), None)
         if row is None:
             unmapped[rule_id] = unmapped.get(rule_id, 0) + 1
             continue
-        severity = _severity(result, properties.get(rule_id, {}), row.get('severity_floor'))
+        rule = known.get(rule_id) or {}
+        severity = _severity(result, rule, row.get('severity_floor'))
         sites = _sites(result) or [{'path': None, 'line': None}]
         findings.append(finding(engine, version, rule_id, row['kind'],
                                 subject('file', sites[0]['path'], sites[0]['path'], sites[0]['line']),
                                 ((result.get('message') or {}).get('text') or rule_id)[:500],
-                                measurements=[measurement('severity', severity)], sites=sites))
+                                measurements=[measurement('severity', severity)], sites=sites,
+                                engine_confidence=_confidence(result, rule), cwe=_cwe(result, rule)))
     return findings, unmapped
 
 

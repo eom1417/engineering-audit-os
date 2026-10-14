@@ -6,6 +6,8 @@ root, or None in a fixture. Also here: how a corroborated engine finding names t
 """
 import re
 
+from .weaknesses import claims as weaknesses
+
 # A claim statement is one decidable sentence, and the schema caps it at 600 characters. An
 # eighty-module cycle listed every member and the whole dossier failed to assemble; the members
 # live in the fact, so the sentence names enough of them to recognise and says how many more.
@@ -415,7 +417,7 @@ def _vulnerable(fact, add):
 # The builders in ledger order: the claims are numbered in this order.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, access_gaps, external_writes,
             structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies)
+            vulnerable_dependencies, weaknesses)
 
 
 # ---------------------------------------------------------------- what a corroborated engine finding measured

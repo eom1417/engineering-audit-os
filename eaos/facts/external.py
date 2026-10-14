@@ -82,7 +82,7 @@ def _finding_fact(item, input_sha):
                 {'engine': item['engine'], 'engine_version': item['engine_version'], 'rule': item['rule'],
                  'kind': item['kind'], 'method': item['method'], 'message': item['message'],
                  'measurements': item['measurements'], 'engine_confidence': item['engine_confidence'],
-                 'subject_kind': subject.get('kind'),
+                 'subject_kind': subject.get('kind'), 'cwe': item.get('cwe') or [],
                  'sites': [{'path': path, 'line': line} for path, line in item.get('sites', [])]},
                 limitations=LIMITATIONS[:1])
 
