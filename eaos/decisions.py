@@ -135,6 +135,11 @@ def decide(claim):
             'allowed_outcomes': ['repair', 'retain', 'blocked_missing_requirement'] if kind == 'investigate' else []}
 
 
+def ready(card):
+    """Whether a batch may take the card without a person's decision: a fix, or a planned part to build (eaos/extend.py)."""
+    return card.get('kind') in ('remediate', 'build') and (card.get('decision') or {}).get('readiness') == 'ready'
+
+
 def _ready_errors(decision):
     errors = []
     if decision.get('kind') != 'repair': errors.append('only repairs can be executable ready')

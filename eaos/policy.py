@@ -78,6 +78,11 @@ def _breaks(rule, source_layer, target_layer):
     return target_layer not in (allow_only.get('to') or []) and target_layer != source_layer
 
 
+def allowed(policy, source_layer, target_layer):
+    """Whether the policy's rules let one layer use another."""
+    return not any(_breaks(rule, source_layer, target_layer) for rule in policy.get('rules', []))
+
+
 def _edge_violations(edge, policy, layers, unmatched):
     """The rules one resolved import breaks; a path in no layer is noted in `unmatched` instead."""
     if edge['resolution'] != 'RESOLVED': return []

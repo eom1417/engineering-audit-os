@@ -8,6 +8,7 @@ from .card_review import (RESOLUTION_FIELDS, acceptance_for, apply_verdicts, des
                           resolutions, resolve, verify_command_for, what_to_do)
 from .compose import Document
 from .compose.labels import falsifier_of, impact_of, statement_of
+from .decisions import decide, ready
 from .impact import assess, load
 from .ranking import claim_paths
 from .remediation_patterns import pattern_for
@@ -117,7 +118,6 @@ def build_tasks(target, out, dossier, sets):
     tasks = []
     for claim in sorted(dossier['claims'], key=lambda row: (-row.get('priority', 0), row['id'])):
         if claim['confidence'] not in ACTIONABLE: continue
-        from .decisions import decide
         decision = decide(claim)
         if decision['kind'] != 'retain': tasks.append(_task(len(tasks) + 1, claim, decision, (target, out, sets)))
     tasks = grouped(tasks)
@@ -425,7 +425,6 @@ def build(target, out, language='ar'):
     publish(directory, tasks, plan, language)
     dossier['tasks'], dossier['waves'], dossier['plan_contract_version'] = tasks, plan, 1
     write(dossier_path, dossier)
-    from .decisions import decide
     from .codemods import attach
     attach(tasks, out, target)
     plan_milestones, plan_sections = schedule(out, target, tasks, language)
@@ -493,7 +492,6 @@ def _apply_triage(out, plan, verdicts, how):
     """The triage's verdicts on the ledger, and each standing card's decision and priority drawn again from its claim;
     `how`: (the rejected cards, the language). {claim id: claim}, {} without verdicts."""
     if not verdicts: return {}
-    from .decisions import decide
     rejected, language = how
     claims = apply_verdicts(out, plan['tasks'], verdicts, language)
     for task in plan['tasks']:
@@ -537,7 +535,7 @@ def _cards_record(cards, verdicts, resolved, outcome):
             'resolved': {'fix': sum((t.get('resolution') or {}).get('resolution') == 'fix' for t in kept), 'keep': len(closed),
                          'owner': len(owner), 'turned_to_fix': len(turned)},
             'owner': [t['id'] for t in owner],
-            'ready': sum(t.get('kind') == 'remediate' and (t.get('decision') or {}).get('readiness') == 'ready' for t in kept),
+            'ready': sum(map(ready, kept)),
             'why': ('The assistant triaged every card on its own evidence: the rejected ones left the plan, the ones it '
                     'resolved are fixed, closed or asked of you.' if verdicts else
                     'No triage by an assistant in this check: every card stands as the rules wrote it.')}

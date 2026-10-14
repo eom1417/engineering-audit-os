@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import progress
+from .decisions import ready
 from .ledger import TRAILER, key, keys
 from .progress.flow import OPTIONAL, Stage
 from .execute import candidate, git, original_checks, project_checks, record, regressions, run_codemod
@@ -54,10 +55,6 @@ def plan(report):
     ids = keys(data.get('tasks') or [])
     for card in data.get('tasks') or []: card['key'] = ids[card['id']]
     return data
-
-
-def ready(card):
-    return card.get('kind') == 'remediate' and (card.get('decision') or {}).get('readiness') == 'ready'
 
 
 def ready_cards(report, skip=()):

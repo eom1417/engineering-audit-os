@@ -255,8 +255,9 @@ export interface ActionsClient {
   chat?(message: string, session: string | null, context: Record<string, unknown>, model: ChatModel): Promise<{ turn: string }>
   chatProgress?(turn: string): Promise<ChatProgress>
   chatControl?(on?: boolean): Promise<ChatControl>
-  /** A new project from its plan, its blueprint drawn by the person's assistant (live only) */
-  plan?(body: { name: string; text: string; files: { name: string; data: string }[] }): Promise<Run>
+  /** A new project from its plan, its blueprint drawn by the person's assistant; or, with mode extend, a feature planned
+   *  into this project (live only) */
+  plan?(body: { name: string; text: string; files: { name: string; data: string }[]; mode?: 'extend' }): Promise<Run>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

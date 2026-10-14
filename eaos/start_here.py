@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import plain
 from .compose.labels import who_decided
+from .decisions import ready as is_ready
 
 
 def _read_json(path, empty):
@@ -18,7 +19,7 @@ def _read_json(path, empty):
 def summary_counts(report):
     plan = _read_json(Path(report) / 'plan.json', {'tasks': []})
     tasks = plan.get('tasks') or []
-    ready = [t for t in tasks if t.get('kind') == 'remediate' and (t.get('decision') or {}).get('readiness') == 'ready']
+    ready = [t for t in tasks if is_ready(t)]
     # A tool that broke, said with the counts: the check goes on from it (audit again_from=engines engines=[...]).
     engines = _read_json(Path(report) / 'run-manifest.json', {}).get('stages', {}).get('engines') or {}
     return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready),
@@ -48,7 +49,7 @@ def _summary_lines(counts, ar):
 
 def _pattern_lines(index, pattern, rows, lang, ar):
     title, why = plain.problem(pattern, lang)
-    ready = sum((t.get('decision') or {}).get('readiness') == 'ready' and t.get('kind') == 'remediate' for t in rows)
+    ready = sum(map(is_ready, rows))
     example = next((p for t in rows for p in t.get('paths') or []), '')
     shown = f" · {_say(ar, 'مثال', 'example')}: `{example}`" if example else ''
     return [f"{index}. **{title}** ({len(rows)})", f"   {why}",

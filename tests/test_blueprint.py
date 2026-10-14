@@ -190,3 +190,39 @@ class LookTests(unittest.TestCase):
             with self.assertRaises(ValueError): design.choose(report, 'no title')
             design.choose(report, '# Clinic\n\nCalm teal on white.')
             self.assertEqual(visual_reviewer.inputs(report)['design'], '# Clinic\n\nCalm teal on white.\n')
+
+
+class ExtendTests(unittest.TestCase):
+    def test_a_feature_is_planned_into_the_checked_project_reusing_it_and_built_as_a_batch(self):
+        import json
+        from eaos import agent_tools, decisions, extend
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):
+            project = Path(tmp) / 'shop'
+            (project / 'src/domain').mkdir(parents=True)
+            (project / 'src/domain/money.ts').write_text('export const formatMoney = (n: number) => n.toFixed(2)\n')
+            (project / 'eaos.policy.json').write_text(json.dumps({'schema_version': 1, 'layers': {
+                'domain': ['src/domain/**'], 'ui': ['src/ui/**']}, 'rules': [
+                {'allow_only': {'from': 'domain', 'to': []}, 'reason': 'rules are pure'}]}))
+            subprocess.run(['git', 'init', '-q', str(project)], check=True)
+            state = agent_tools.project_state(str(project))
+            report = guided.report_of(state)
+            (report / 'studio').mkdir(parents=True)
+            (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))
+            (report / 'studio/functions.json').write_text(json.dumps({'functions': [
+                {'id': 'src/domain/money.ts#formatMoney', 'name': 'formatMoney', 'module': 'src/domain/money.ts', 'kind': 'function'}]}))
+            started = extend.extend_start(state, text='Show the cart total on every page.')
+            self.assertEqual(started['project']['functions'][0]['id'], 'src/domain/money.ts#formatMoney')
+            feature = {'id': 'F1', 'name': 'Cart total', 'module': 'cart', 'acceptance': ['the total shows on every page'],
+                       'paths': ['src/ui/total.tsx', 'web/total.tsx'], 'functions': ['formatMoney'], 'reuses': ['src/x.ts#nope']}
+            wanted = spec(modules=[{'id': 'cart', 'name': 'Cart', 'responsibility': 'what is bought'}], entities=[], roles=[],
+                          flows=[{'id': 'FL1', 'name': 'Buy', 'features': ['F1']}], features=[feature], look=None)
+            problems = '\n'.join(extend.extend_plan(state, wanted)['problems'])
+            for expected in ('web/total.tsx is in no layer', 'formatMoney already exists', 'src/x.ts#nope is not a function'):
+                self.assertIn(expected, problems)
+            feature.update(paths=['src/domain/total.ts'], functions=['cartTotal'], reuses=[], tests=['src/domain/total.test.ts'])
+            planned = extend.extend_plan(state, wanted)
+            self.assertEqual(planned['status'], 'planned', planned)
+            cards = json.loads((report / 'plan.json').read_text())['tasks']
+            self.assertEqual([(c['id'], c['milestone'], decisions.ready(c)) for c in cards], [('EXT-001', 'X01', True)])
+            (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))     # a new check
+            self.assertEqual(extend.carry(project, report), 1, 'a card not built yet is kept by the next check')

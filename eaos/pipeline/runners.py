@@ -543,8 +543,9 @@ def _ran(context, name):
 
 def cards(context):
     from ..plan import confirm
+    from ..extend import carry
     record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
-    return {'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
+    return {'extension': carry(context.target, context.out), 'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
             'design': len(record['design']), 'decided_by': record['decided_by']}
 
 

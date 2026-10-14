@@ -52,7 +52,10 @@ VERBS = {
 # A step whose answer leads straight on, done through to where the person decides.
 CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_design (the spec, blueprint_spec until it '
                              'is complete, asking the person only real choices), always with the same project; stop there: the '
-                             'person reads the blueprint and agrees to build it (build_start).'}
+                             'person reads the blueprint and agrees to build it (build_start).',
+          'extend_start': 'then write the spec and call extend_plan until it fits the project, always with the same project, '
+                          'asking the person only real choices; stop there: the person reads what will be added and agrees to '
+                          'build it (fix_start with its cards).'}
 
 
 def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None):

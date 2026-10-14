@@ -1482,6 +1482,89 @@
    }
   },
   {
+   "id": "extend_start",
+   "tool": "extend_start",
+   "group": "build",
+   "label": {
+    "en": "Read a feature's plan to add",
+    "ar": "اقرأ خطة ميزة تُضاف"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "source": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "text": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "extend_plan",
+   "tool": "extend_plan",
+   "group": "build",
+   "label": {
+    "en": "Plan the feature into the project",
+    "ar": "خطّط الميزة داخل المشروع"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "spec": {
+      "type": "object"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "spec"
+    ]
+   }
+  },
+  {
    "id": "build_start",
    "tool": "build_start",
    "group": "build",

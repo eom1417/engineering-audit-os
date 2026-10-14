@@ -48,6 +48,7 @@ import json
 import math
 from pathlib import Path
 
+from ..decisions import ready
 from ..plain import kind as plain_kind
 from ..ranking import CONFIDENCE_WEIGHT
 
@@ -144,7 +145,7 @@ def _problem_row(task, claim, item):
     decision = task.get('decision') or {}
     return {'id': task.get('id', ''), 'pattern': plain_kind(task), 'area': area, 'severity': severity,
             'confidence': claim.get('confidence') or task.get('confidence') or 'CONFIRMED',
-            'auto': task.get('kind') == 'remediate' and decision.get('readiness') == 'ready',
+            'auto': ready(task),
             'outcomes': decision.get('allowed_outcomes') or [], 'options': task.get('options') or [],
             'effort': task.get('effort'), 'change': assessment.get('proposed_change') or task.get('change') or '', 'priority': task.get('priority') or 0,
             'title': task.get('title') or claim.get('statement') or '', 'paths': task.get('paths') or [],

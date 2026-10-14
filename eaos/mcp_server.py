@@ -30,6 +30,8 @@ For a project that exists only as a plan (a PRD, notes, any file or pasted text)
   -> build_start (one agreement) -> build_edit per card -> build_finish, milestone after milestone -> accept.
   Write each card in the folder it names, reusing what exists; the gates refuse copies, cycles, layer breaks and a
   vendor outside its adapter.
+To add a feature, a page or a part to a project already checked: extend_start -> extend_plan (until it fits the
+  project) -> the person agrees -> fix_start with its cards, built and checked as any fix.
 
 The whole way for an existing project, in order (`status` always says the next tool):
   (when the project has several branches with different code, status first asks which one: ask the person, then
@@ -61,7 +63,7 @@ what the tools returned.
 # Every capability of the guided way (eaos/guided.py STEPS and its commands), and the tool that gives it to the
 # assistant. X8 counts those registered and exercised by tests/test_mcp.py.
 CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_start', 'check the product spec': 'blueprint_spec',
-                'draw the target and the build plan': 'blueprint_design', 'build a milestone': 'build_edit',
+                'draw the target and the build plan': 'blueprint_design', 'plan a feature into the project': 'extend_plan', 'build a milestone': 'build_edit',
                 'hand a milestone over': 'build_finish', 'check the project': 'audit', 'follow long work': 'wait',
                 'show the report for people': 'open_report', 'offer what EAOS can do now': 'menu',
                 'what a change touches': 'impact', 'answer from the records': 'ask', 'check the tools': 'tools_check',
@@ -424,6 +426,23 @@ def _build_tools(server, reading, working):
     @_answer
     def blueprint_design(stack: dict | None = None, project: str | None = None) -> str:
         return build.blueprint_design(stack, project)
+
+    @server.tool(annotations=working, description='Extend this checked project with a feature, a page or a part, from its plan (a '
+                 'file, a folder with pictures of its screens, or the pasted text): returns the plan, the project as its check '
+                 'read it (its parts, layers and rules, the functions to reuse, its look) and the spec format. Then write the '
+                 'spec and call extend_plan.')
+    @_answer
+    def extend_start(source: str | None = None, text: str | None = None, project: str | None = None) -> str:
+        from . import agent_tools, extend
+        return extend.extend_start(agent_tools.project_state(project), source, text)
+
+    @server.tool(annotations=working, description='Check the feature\'s spec against itself and against the project (every file in '
+                 'a layer it allows, reusing its functions, none written again), then add its cards to the project\'s plan as '
+                 'one milestone, ready for a batch: fix_start builds them through every gate of a fix.')
+    @_answer
+    def extend_plan(spec: dict, project: str | None = None) -> str:
+        from . import agent_tools, extend
+        return extend.extend_plan(agent_tools.project_state(project), spec)
 
     @server.tool(annotations=working, description='Open the next milestone of the build in an isolated copy (the first time it asks '
                  'the person\'s agreement: person_agreed=true only after their yes). Returns the cards to build.')

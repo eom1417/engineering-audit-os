@@ -76,7 +76,7 @@ def _save(state, ledger):
     temporary.replace(target)
 
 
-def _walk(project, ref):
+def walk(project, ref):
     done = _git(project, 'log', '--format=%H%x00%B%x1e', ref)
     by_key, reverted, undone = {}, set(), set()
     if done.returncode: return by_key, undone
@@ -132,7 +132,7 @@ def sync(state, event=None, report=None):
         ledger['plan_stamp'] = stamp
         event = event or 'recheck'
     project = state['project']
-    in_branch, undone = _walk(project, branches.ref(state))
+    in_branch, undone = walk(project, branches.ref(state))
     by_id = {c['id']: c for c in cards.values() if c['id']}
     for wave in state.get('waves') or []:                                    # what each batch did, by key
         _apply_wave(wave, cards, wave.get('keys') or {})

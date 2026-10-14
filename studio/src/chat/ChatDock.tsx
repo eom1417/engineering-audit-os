@@ -21,6 +21,7 @@ const WORDS = {
   title: ['المساعد', 'Assistant'], open: ['افتح المساعد', 'Open the assistant'], close: ['صغّر', 'Minimise'],
   move: ['انقل للزاوية الثانية', 'Move to another corner'], fresh: ['محادثة جديدة', 'New conversation'],
   plan: ['ابنِ من خطة', 'Build from a plan'],
+  extend: ['وسّع المشروع', 'Extend the project'],
   placeholder: ['اكتب سؤالك أو اطلب شي…', 'Ask, or ask for something…'], send: ['أرسل', 'Send'],
   thinking: ['يفكر…', 'Thinking…'], reading: ['يقرأ', 'Reading'],
   models: { quick: ['سريع', 'Quick'], balanced: ['متوازن', 'Balanced'], deep: ['عميق', 'Deep'] },
@@ -84,7 +85,7 @@ export function ChatDock() {
   const [busy, setBusy] = useState(false)
   const [live, setLive] = useState<{ reading: string[]; partial: string }>({ reading: [], partial: '' })
   const [control, setControl] = useState<ChatControl | null>(null)
-  const [planning, setPlanning] = useState(false)
+  const [planning, setPlanning] = useState<'' | 'new' | 'extend'>('')
   const list = useRef<HTMLDivElement>(null)
 
   useEffect(() => { if (open && client?.chatControl) void client.chatControl().then(setControl).catch(() => undefined) }, [open, client])
@@ -146,7 +147,9 @@ export function ChatDock() {
         <Icon name="assistant" />
         <span className={css.title}>{WORDS.title[at]}</span>
         <button type="button" className={css.tool} onClick={() => { setLines([]); setSession(null) }}>{WORDS.fresh[at]}</button>
-        {client.plan && <button type="button" className={css.tool} aria-pressed={planning} onClick={() => setPlanning(!planning)}>{WORDS.plan[at]}</button>}
+        {client.plan && (['new', 'extend'] as const).map((way) => (
+          <button key={way} type="button" className={css.tool} aria-pressed={planning === way} onClick={() => setPlanning(planning === way ? '' : way)}>{WORDS[way === 'new' ? 'plan' : 'extend'][at]}</button>
+        ))}
         <button type="button" className={css.tool} aria-label={WORDS.move[at]} title={WORDS.move[at]} onClick={move}><Icon name="arrow" /></button>
         <button type="button" className={css.tool} aria-label={WORDS.close[at]} title={WORDS.close[at]} onClick={() => setOpen(false)}><Icon name="x" /></button>
       </header>
@@ -163,7 +166,7 @@ export function ChatDock() {
       </div>
       {control?.on && <p className={css.warn}>{WORDS.controlWhy[at]}</p>}
       <div className={css.list} ref={list} aria-live="polite">
-        {planning && <PlanForm />}
+        {planning && <PlanForm key={planning} extend={planning === 'extend'} />}
         {!lines.length && !planning && <span className={css.hint}>{WORDS.hello[at]}</span>}
         {lines.map((line, index) => (
           <div key={index} style={{ display: 'contents' }}>

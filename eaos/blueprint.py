@@ -59,8 +59,9 @@ SPEC = {
 }
 
 
-def validate_spec(spec):
-    """(problems, questions): what makes the spec unbuildable, and what the person should decide."""
+def validate_spec(spec, look=True):
+    """(problems, questions): what makes the spec unbuildable, and what the person should decide. `look` false: the
+    project's own look holds (a feature added to it, eaos/extend.py), so the spec draws none."""
     problems, questions = [], []
     if not isinstance(spec, dict): return ['the spec must be one JSON object shaped like the example'], []
     for key in ('name', 'summary'):
@@ -92,7 +93,7 @@ def validate_spec(spec):
     for flow in spec.get('flows') or []:
         for feature_id in flow.get('features') or []:
             if feature_id not in features: problems.append(f"flow {flow.get('id')}: uses {feature_id}, which is not a feature")
-    problems += _look_problems(spec.get('look'), features)
+    problems += _look_problems(spec.get('look'), features, look)
     catalogue = stacks()['concerns']
     for concern, choice in (spec.get('stack_preferences') or {}).items():
         if concern in catalogue and choice and choice not in catalogue[concern]['options']:
@@ -109,8 +110,10 @@ def validate_spec(spec):
     return problems, questions
 
 
-def _look_problems(look, features):
-    """What keeps the look from being built once: one theme, its colours and fonts, and every screen tied to features."""
+def _look_problems(look, features, drawn=True):
+    """What keeps the look from being built once: one theme, its colours and fonts, and every screen tied to features;
+    nothing when the spec draws no look (`drawn` false)."""
+    if not drawn: return []
     if not isinstance(look, dict) or not look.get('screens'):
         return ['`look` is empty: write the one theme, its colours, fonts and shared components, and the screens with their '
                 'features (from the pictures when the plan has them)']

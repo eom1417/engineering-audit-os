@@ -1,5 +1,6 @@
-// A new project from its plan (eaos/studio/actions/plan.py): its name, its files (documents and the pictures of its
-// screens) or its pasted text; the person's assistant then reads it and draws the blueprint, followed in Runs.
+// A new project from its plan, or a feature for this one (eaos/studio/actions/plan.py): its name (a new project only),
+// its files (documents and the pictures of its screens) or its pasted text; the person's assistant then reads it and draws
+// the blueprint, or plans the feature into this project's plan, followed in Runs.
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '../components/Button'
@@ -12,6 +13,9 @@ const WORDS = {
   files: ['ملفات الخطة وصور الشاشات (PDF، Word، HTML، Markdown، نص، صور)', 'The plan\'s files and screen pictures (PDF, Word, HTML, Markdown, text, pictures)'],
   text: ['أو الصق نص الخطة هنا', 'Or paste the plan here'],
   go: ['ارسم البنية والخطة', 'Draw the structure and the plan'],
+  goExtend: ['خطّط الميزة داخل المشروع', 'Plan the feature into the project'],
+  noteExtend: ['ميزة أو صفحة أو جزء يُضاف لهذا المشروع. المساعد يقرأ الخطة مع فحص المشروع: أجزاءه وطبقاته ودواله وشكله، فيضعها في مكانها ويعيد استخدام الموجود بدل تكراره، ثم تظهر بطاقاتها في الخطة كمرحلة «توسعة». البناء يبدأ بعد موافقتك، بدفعة إصلاح عادية ببواباتها كلها.',
+    'A feature, a page or a part added to this project. The assistant reads the plan with the project\'s check: its parts, layers, functions and look, puts it where it belongs and reuses what exists instead of copying it; its cards then join the plan as an "Extension" milestone. The build starts once you agree, as a normal batch with every gate.'],
   note: ['يُبنى في مجلد جديد جنب هذا المشروع. المساعد يقرأ الخطة والصور، ويسألك الخيارات الحقيقية فقط، ويرسم البنية والشكل وخطة البناء كاملة. البناء نفسه يبدأ بعد موافقتك.',
     'It is made in a new folder beside this project. The assistant reads the plan and pictures, asks you only real choices, and draws the structure, the look and the whole build plan. The build itself starts once you agree.'],
 } as const
@@ -24,7 +28,7 @@ const base64 = (file: File) => new Promise<string>((resolve, reject) => {
   reader.readAsDataURL(file)
 })
 
-export function PlanForm() {
+export function PlanForm({ extend = false }: { extend?: boolean }) {
   const { lang } = usePrefs()
   const at = lang === 'ar' ? 0 : 1
   const { client } = useActions()
@@ -40,24 +44,26 @@ export function PlanForm() {
     setProblem('')
     try {
       const sent = await Promise.all(files.map(async (file) => ({ name: file.name, data: await base64(file) })))
-      const run = await client.plan!({ name, text, files: sent })
+      const run = await client.plan!({ name, text, files: sent, ...(extend ? { mode: 'extend' as const } : {}) })
       navigate({ to: `/runs/${encodeURIComponent(run.id)}` })
     } catch (error) {
       setProblem(error instanceof Error ? error.message : String(error))
     } finally { setBusy(false) }
   }
   return (
-    <div className={css.card} data-plan-form="">
-      <label className={css.field}>{WORDS.name[at]}
-        <input className={css.input} value={name} dir="ltr" onChange={(e) => setName(e.target.value)} />
-      </label>
+    <div className={css.card} data-plan-form={extend ? 'extend' : ''}>
+      {!extend && (
+        <label className={css.field}>{WORDS.name[at]}
+          <input className={css.input} value={name} dir="ltr" onChange={(e) => setName(e.target.value)} />
+        </label>
+      )}
       <label className={css.field}>{WORDS.files[at]}
         <input type="file" multiple accept={ACCEPT} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
       </label>
       <textarea className={css.input} rows={3} value={text} placeholder={WORDS.text[at]} onChange={(e) => setText(e.target.value)} />
-      <span className={css.hint}>{WORDS.note[at]}</span>
+      <span className={css.hint}>{WORDS[extend ? 'noteExtend' : 'note'][at]}</span>
       {problem && <span className={css.error} role="alert">{problem}</span>}
-      <div><Button variant="primary" icon="plan" busy={busy} isDisabled={!name.trim() || (!files.length && !text.trim())} onPress={() => void go()}>{WORDS.go[at]}</Button></div>
+      <div><Button variant="primary" icon="plan" busy={busy} isDisabled={(!extend && !name.trim()) || (!files.length && !text.trim())} onPress={() => void go()}>{WORDS[extend ? 'goExtend' : 'go'][at]}</Button></div>
     </div>
   )
 }

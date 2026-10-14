@@ -447,7 +447,7 @@ def overview(project=None):
 
 
 def _ready(task):
-    from .waves import ready
+    from .decisions import ready
     return ready(task)
 
 
@@ -924,13 +924,13 @@ def _not_ready(state, deliver_as):
 
 def _chosen(state, cards, size):
     """(why nothing opens, or None; the batch's cards): those asked for, else the next ready ones."""
-    from .waves import next_batch, plan as read_plan, ready
+    from .waves import next_batch, plan as read_plan
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
     chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state.get('tried') or [], size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
-    undecided = [c for c in chosen if not ready(known[c])]
+    undecided = [c for c in chosen if not _ready(known[c])]
     if undecided:
         return {'error': f'{", ".join(undecided[:5])} need(s) a decision by the person before any fix (not ready): no batch '
                          'was opened', 'needs_decision': undecided,
