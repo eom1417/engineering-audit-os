@@ -138,3 +138,30 @@ class LoadTarget(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):
                 runtime_baseline.refuse_a_page_server('report', serve(api=False))
             runtime_baseline.refuse_a_page_server('report', serve(api=True))
+
+    def test_the_load_sends_the_programs_token_and_leaves_out_what_a_plain_request_cannot_load(self):
+        # EAOS on itself (2026-10-14): its routes answered 401 without the Studio's token, /api/events streams forever,
+        # and four routes need a value: the load measured refusals and timeouts, never the program.
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from eaos import runtime_baseline
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == '/api/events':
+                    self.send_response(200); self.send_header('Content-Type', 'text/event-stream'); self.end_headers()
+                    return
+                code = 400 if self.path == '/api/file' else 200 if self.headers.get('X-Token') == 'secret' or self.path == '/' else 401
+                self.send_response(code); self.end_headers()
+
+            def log_message(self, *_): pass
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        with tempfile.TemporaryDirectory() as copy:
+            Path(copy, 'token').write_text('secret\n')
+            live = mock.Mock(profile={'app': '.', 'baseline': {'headers': {'X-Token': {'file': 'token'}}}}, sandbox=mock.Mock(copy=Path(copy)))
+            sent = runtime_baseline.headers(live)
+        kept, left = runtime_baseline.loadable(f'http://127.0.0.1:{server.server_address[1]}', ['/', '/api/runs', '/api/events', '/api/file'], sent)
+        self.assertEqual((sent, kept, sorted(left)), ({'X-Token': 'secret'}, ['/', '/api/runs'], ['/api/events', '/api/file']))

@@ -278,7 +278,9 @@ def build():
                  '[argv], "install": [[argv]], "prepare": [[argv]], "database": "postgres"|"none", "seed_script": "<Node script run '
                  'after start with BASE_URL and EAOS_STORAGE_STATE: signs in the way the app allows locally, adds a little data, saves '
                  'context.storageState, prints a last JSON line of E2E_* fixture values>", "fixtures": {..}}; null keeps a field, [] '
-                 'removes prepare. mode="baseline" is the production build (add "build": [[argv]]). Use "{database_url}" and '
+                 'removes prepare. mode="baseline" is the production build (add "build": [[argv]]; "app": the folder it starts in, "." for '
+                 'a server at the root; "headers": {name: value or {"file": path it writes}} sent with every load request, a '
+                 'token). Commands start with npm, npx, node, python, pip, uv, uvicorn or the like. Use "{database_url}" and '
                  '"{run_dir}". Unsafe proposals are refused with the reason. Returns a job.')
     @_answer
     def run_try(proposal: dict | None = None, mode: str = 'lock', project: str | None = None) -> str:

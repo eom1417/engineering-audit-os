@@ -4,17 +4,24 @@ A number without its conditions cannot be compared, so the file carries them: th
 never the development server), the warm-up, the virtual users, the duration and the machine. `after`
 (NS22) is written by record_after() only beside a `before` taken under the same conditions.
 
-The project runs from its run profile (eaos/live_run.py); a profile may override build, start and env under
-`baseline`, for a project whose lock runs on its development server but whose load must hit its build.
+The project runs from its run profile (eaos/live_run.py); a profile may override build, start, env and the folder it
+starts in under `baseline`, for a project whose lock runs on its development server but whose load must hit its build.
+`baseline.headers` are sent with every request, each a value or {"file": path} the started program wrote (a session's
+token, read once it answers), so a route behind a sign-in is loaded as a user would load it, not as a refusal. Each
+route is asked once first: one that answers with a stream (text/event-stream, it never ends) or refuses without a
+value it needs (a 4xx: a file's name, an id) is left out, and the record says which and why; a load on it would measure
+its own timeout or refusal, not the program.
 """
 import json
 import os
 import re
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 from .artifact_contracts import contracts, validate
 from .live_run import LiveRun
+from .nfr import load_paths
 
 THRESHOLD = re.compile(r"p\(95\)<(\d+(?:\.\d+)?)")
 FAILED = re.compile(r"rate<(\d+(?:\.\d+)?)")
@@ -58,6 +65,35 @@ def _answer(url):
     except (OSError, ValueError): return None
 
 
+def headers(live):
+    """{name: value} of the profile's baseline.headers, a file's value read from the started copy's app folder."""
+    folder = (live.sandbox.copy / (live.profile.get('app') or '.')).resolve()
+    sent = {}
+    for name, value in ((live.profile.get('baseline') or {}).get('headers') or {}).items():
+        if isinstance(value, dict):
+            path = (folder / value['file']).resolve()
+            if not path.is_relative_to(live.sandbox.copy.resolve()): raise RuntimeError(f'baseline header {name}: {path} is outside the copy')
+            value = path.read_text(encoding='utf-8').strip()
+        sent[name] = str(value)
+    return sent
+
+
+def loadable(base, paths, sent):
+    """(the paths a load requests, {path left out: why}), from asking each once (module docstring)."""
+    kept, left = [], {}
+    for path in paths:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(f'{base}{path}', headers=sent), timeout=10) as response:
+                if response.headers.get_content_type() == 'text/event-stream': left[path] = 'a stream that never ends'
+                else: kept.append(path)
+        except urllib.error.HTTPError as answer:
+            if answer.code < 500: left[path] = f'answers {answer.code} without a value it needs'
+            else: kept.append(path)                       # a server error is what the load must measure
+        except (OSError, ValueError) as problem:
+            left[path] = f'no answer ({problem})'[:120]
+    return kept, left
+
+
 class PagesOnly(RuntimeError):
     """The started app serves its pages only: a load on it would not measure the program."""
 
@@ -71,7 +107,8 @@ def refuse_a_page_server(report, base):
     if page is not None and sum(_answer(f'{base}{route}') == page for route in routes) * 2 > len(routes):
         raise PagesOnly(f'the started app serves only its pages: its {len(routes)} server routes ({", ".join(routes[:3])}...) '
                            'answer with the page itself, so a load on it would not measure the program. Propose a baseline '
-                           'whose start runs the real server, serving the built pages and these routes (run_try with mode="baseline").')
+                           'whose start runs the real server, serving the built pages and these routes (run_try with mode="baseline", '
+                           'its "app" the folder that server starts in, and "headers" the token its routes need).')
 
 
 def run_baseline(report, target, runtime):
@@ -89,21 +126,26 @@ def run_baseline(report, target, runtime):
         base = live.start()
         live.seed(base)
         refuse_a_page_server(report, base)
+        sent = headers(live)
+        paths, left = loadable(base, load_paths(report), sent)
+        if not paths: raise RuntimeError(f'no route answers a plain request: {left}')
         for script in scripts:
             threshold, vus, duration, warmup = shape(script)
             conditions = conditions or {'build': ' && '.join(' '.join(argv) for argv in live.profile['build']),
                                         'warmup_s': warmup, 'vus': vus, 'duration_s': duration, 'machine': machine()}
             export = out / f'k6-{script.stem}.json'
             live.sandbox.run(['k6', 'run', '--quiet', '--summary-export', str(export), str(script)], timeout=duration + 600,
-                             network=True, env={**live.extra(), 'BASE_URL': base})
+                             network=True, env={**live.extra(), 'BASE_URL': base, 'PATHS': json.dumps(paths), 'HEADERS': json.dumps(sent)})
             scenarios.append({'id': script.stem.upper(), 'script': f'nfr/k6/{script.name}', 'threshold': threshold,
                               'before': summary(export), 'after': None})
     finally:
         live.stop()
         live.record('runtime/baseline-log.json')
     record = {'schema_version': 1, 'conditions': conditions, 'scenarios': scenarios,
-              'limitations': ["each scenario requests the paths its k6 script lists (the application's pages); an endpoint "
-                              'that needs a signed-in session answers what it answers without one, and is not loaded as a user would'],
+              'limitations': [f"each scenario requests {len(paths)} paths the program serves" +
+                              (f", with the headers {', '.join(sorted(sent))}" if sent else "; an endpoint that needs a signed-in "
+                               "session answers what it answers without one, and is not loaded as a user would")] +
+                             [f'left out: {path}, {why}' for path, why in left.items()],
               'run': {'start': ' '.join(live.profile['start']), 'env': sorted(live.profile.get('env') or {})}}
     problems = validate(record, contracts()['runtime-performance'])
     if problems: raise RuntimeError(f'runtime/performance.json would break its contract: {problems[0]}')

@@ -83,6 +83,11 @@ def _hosts(report, unreachable):
     return hosts
 
 
+def load_paths(report):
+    """The paths a load scenario requests: the first 50 routes."""
+    return routes(report)[:50]
+
+
 def scenarios(report):
     return [s for s in (_load(Path(report) / 'intake.json', {}) or {}).get('scenarios') or []]
 
@@ -95,7 +100,7 @@ def write(report):
     rows = scenarios(report)
     load = [s for s in rows if s['kind'] == 'load']
     error_rate = next((s['measure']['threshold'] for s in rows if s['kind'] == 'latency'), 0.01)
-    paths = routes(report)
+    paths = load_paths(report)
     if load and paths:
         (folder / 'k6').mkdir(parents=True, exist_ok=True)
         users = next((int(d) for d in re.findall(r'^(\d+)', load[0]['stimulus'])), 100)
@@ -105,6 +110,6 @@ def write(report):
             script.write_text(template.substitute(scenario=scenario['id'], source=scenario['source'],
                                                   stimulus=scenario['stimulus'].replace('*/', ''), users=users,
                                                   p95=scenario['measure']['threshold'], error_rate=error_rate,
-                                                  paths=json.dumps(paths[:50])), encoding='utf-8')
+                                                  paths=json.dumps(paths)), encoding='utf-8')
             written.append(script.relative_to(report).as_posix())
     return written

@@ -45,8 +45,9 @@ def load_profile(runtime):
 class LiveRun:
     """One authorised run: install, build, prepare and start the project in a sandbox copy, then stop it."""
 
-    # The keys a profile's `baseline` may override: the load baseline runs the build, not the dev server.
-    BASELINE_KEYS = ('install', 'build', 'prepare', 'start', 'port', 'health', 'env', 'seed', 'start_timeout')
+    # The keys a profile's `baseline` may override: the load baseline runs the build, not the dev server, and may run it
+    # from another folder (`app`: a program whose server sits at the root, its pages in a folder it builds).
+    BASELINE_KEYS = ('app', 'install', 'build', 'prepare', 'start', 'port', 'health', 'env', 'seed', 'start_timeout')
 
     def __init__(self, target, runtime, stage, mode='lock'):
         self.runtime = Path(runtime)

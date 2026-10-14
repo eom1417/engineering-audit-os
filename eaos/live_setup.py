@@ -395,6 +395,12 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
 
 # ---------------------------------------------------------------- 3. assist (what the assistant is told: eaos/live_assist.py)
 
+# What a proposal's commands may start with: a JavaScript or Python package manager, node, python, or a Python web server
+# (a project's own virtual environment's, `.venv/bin/python`, counts by its name).
+RUNNERS = ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'true',
+           'python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')
+
+
 def safe(proposal):
     """Reasons a proposal may not run; empty when it may."""
     problems = []
@@ -407,8 +413,8 @@ def safe(proposal):
     for argv in [c for c in commands if c]:
         text = ' '.join(map(str, argv))
         if DANGER.search(text): problems.append(f'refused: {text[:120]}')
-        if argv and Path(str(argv[0])).name not in ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'true'):
-            problems.append(f'refused, not a package manager or node: {text[:120]}')
+        if argv and Path(str(argv[0])).name not in RUNNERS:
+            problems.append(f'refused, not a package manager, node or python: {text[:120]}')
     script = proposal.get('seed_script') or ''
     if DANGER.search(script): problems.append(f"the seed script mentions {DANGER.search(script)[0]!r}, which a run never reaches")
     for host in re.findall(r'https?://([^:/\s\'"`]+)', script):
@@ -425,7 +431,7 @@ def apply(runtime, proposal, mode='lock'):
     if proposal.get('env') is not None:          # the complete environment: what it leaves out is dropped
         target['env'] = {k: str(v) for k, v in proposal['env'].items()}
     target.setdefault('env', {}).update({k: str(v) for k, v in (proposal.get('fixtures') or {}).items()})
-    for key in ('start', 'install', 'prepare') + (('build',) if mode == 'baseline' else ()):
+    for key in ('start', 'install', 'prepare') + (('build', 'app', 'headers') if mode == 'baseline' else ()):
         if proposal.get(key) is None: continue
         if proposal[key]: target[key] = proposal[key]
         elif key == 'prepare': target.pop('prepare', None)    # [] removes; start and install are never empty
