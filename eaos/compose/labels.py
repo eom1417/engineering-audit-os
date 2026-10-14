@@ -87,7 +87,7 @@ TEMPLATES = {
         'copied_function': '{count} دوال منسوخة كاملة باختلاف الأسماء فقط ({where})',
         'sequence_duplicate': '{count} دوال تنفّذ التسلسل نفسه من النداءات ({where})',
         'redundant_work': 'عمل زائد ({kind}) في {symbol} عند {location}: {callee}',
-        'engine_cluster': '{engines} يبلّغ عن {kind} في {place} ({verdict})',
+        'engine_cluster': '{kind} في {place}',
         'security_weakness': 'ثغرة أمان محتملة ({labels}) في {place}، {count} موضع، حسب {engines}',
         'load_blocker': '{where}: {statement} — عائق حمل ({kind})',
     },
@@ -113,7 +113,7 @@ TEMPLATES = {
         'copied_function': '{count} functions are one function copied whole, up to identifier names ({where})',
         'sequence_duplicate': '{count} functions perform the same ordered sequence of calls ({where})',
         'redundant_work': 'redundant work ({kind}) in {symbol} at {location}: {callee}',
-        'engine_cluster': '{engines} report {kind} at {place} ({verdict})',
+        'engine_cluster': '{kind} at {place}',
         'security_weakness': 'Possible security weakness ({labels}) in {place}, {count} finding(s), reported by {engines}',
         'load_blocker': '{where}: {statement} — load blocker ({kind})',
     },
@@ -251,6 +251,14 @@ DETAIL_ARTIFACT = {
 }
 
 
+# The kinds external engines report, in Arabic: an engine-cluster title names the kind, not the engines' own word.
+ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
+                     'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
+                     'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
+                     'boundary': 'خرق حد', 'naming': 'انحراف تسمية', 'test_quality': 'جودة اختبار',
+                     'unused_dependency': 'اعتمادية غير مستخدمة'}
+
+
 def statement_of(claim, language):
     """Render a claim in the reader language when it declares a template; otherwise keep it verbatim."""
     render = claim.get('render') or {}
@@ -259,8 +267,9 @@ def statement_of(claim, language):
     if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes': key = 'duplicated_rule_differs'
     template = TEMPLATES.get(language, TEMPLATES['ar']).get(key)
     if not template: return claim['statement']
-    params = render.get('params_en') if language == 'en' else render.get('params')
-    try: return template.format(**(params or render.get('params', {})))
+    params = (render.get('params_en') if language == 'en' else render.get('params')) or render.get('params', {})
+    if key == 'engine_cluster' and language == 'ar': params = {**params, 'kind': ENGINE_KIND_WORDS.get(params.get('kind'), params.get('kind'))}
+    try: return template.format(**params)
     except (KeyError, IndexError): return claim['statement']
 
 

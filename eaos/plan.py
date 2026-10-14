@@ -249,7 +249,7 @@ def title_of(task, language):
 
 
 def card(task, language):
-    document = Document(f"{task['id']} — {title_of(task, language)}", language, budget_lines=140)
+    document = Document(f"{task['id']}: {title_of(task, language)}", language, budget_lines=140)
     _card_head(document, task, language)
     if _card_radius(document, task, language):
         _card_options(document, task, language)

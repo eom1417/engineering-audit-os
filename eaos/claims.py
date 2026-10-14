@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-from .compose.labels import IMPACTS
+from .compose.labels import ENGINE_KIND_WORDS, IMPACTS
 from .fact_claims import BUILDERS, engine_measurement
 from .vocabulary import schema_errors
 from .weaknesses import SECURITY
@@ -247,13 +247,6 @@ def from_load_model(fact_sets, offset=0):
                                                                    'same way for this entry point.'}},
                          impact={'scenario': blocker['scenario']}))
     return made
-
-
-ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
-                     'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
-                     'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
-                     'boundary': 'خرق حد', 'naming': 'انحراف تسمية', 'test_quality': 'جودة اختبار',
-                     'unused_dependency': 'اعتمادية غير مستخدمة'}
 
 
 def _corroborated(kind, detail, cluster, fact_sets):
