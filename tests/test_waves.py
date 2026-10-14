@@ -237,6 +237,25 @@ class CodeLawsGateTests(unittest.TestCase):
                          'a split that moves a complex function into a new module adds nothing, nor does its class')
 
 
+    def test_a_module_past_the_line_limit_or_outside_the_declared_layers_is_refused_on_the_card(self):
+        # EAOS, batch 5 (2026-10-14): a new module in no layer of eaos.policy.json and modules grown past their limit were
+        # found only when the 51 changes met, by the project's own suite
+        from eaos import execute
+
+        def lines(folder, sizes):
+            (Path(folder) / 'facts').mkdir(parents=True, exist_ok=True)
+            rows = [{'kind': 'metric', 'location': {'path': path}, 'value': {'scope': 'file', 'lines': n}} for path, n in sizes.items()]
+            (Path(folder) / 'facts/metrics.json').write_text(json.dumps({'facts': rows}))
+            return folder
+
+        before, after = lines(tempfile.mkdtemp(), {'big.py': 700, 'a.py': 100}), lines(tempfile.mkdtemp(), {'big.py': 650, 'a.py': 640})
+        self.assertEqual(execute.new_debt(before, after, ['big.py', 'a.py']), ['a.py grew to 640 lines, past the limit of 600: split it'])
+        (Path(before) / 'facts/policy.json').write_text(json.dumps({'summary': {'declared': True, 'paths_outside_every_layer': ['old.py'], 'violations': 1}}))
+        with mock.patch('eaos.policy.run', return_value={'summary': {'declared': True, 'paths_outside_every_layer': ['old.py', 'eaos/new.py'], 'violations': 1}}):
+            self.assertEqual(execute._against_policy(before, 'root', after),
+                             ['eaos/new.py is in no layer of the declared policy (eaos.policy.json): add it to one'])
+
+
 class PythonSuiteGateTests(unittest.TestCase):
     def test_a_change_to_the_apps_files_runs_the_apps_checks_on_the_card_itself(self):
         # EAOS, batch 5 (2026-10-14): an unused import in studio/ broke its type check and its build; no card's gate ran
