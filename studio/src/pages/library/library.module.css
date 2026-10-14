@@ -176,7 +176,7 @@ ol.list { list-style: decimal; }
 
 @media (max-width: 767px) {
   .groupChips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .groupChip { min-block-size: 44px; padding: 0 14px; }
+  .groupChip { min-block-size: 44px; padding: 0 14px; flex: none; white-space: nowrap; }
   .metaLink { min-block-size: 44px; }
   .h2 { font-size: 19px; }
   .pre { font-size: 12px; }
