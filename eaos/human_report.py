@@ -27,7 +27,7 @@ from . import plain
 from .studio import model as M
 from .compose import pipeline_sheet
 from .compose.markup import both as T, esc, fit, svg_text
-from .system_drawing import system_svg
+from .system_drawing import COLUMNS, WIDTH, svg_edge, svg_heads, svg_nodes
 from .studio.model import (AREAS, CLOSED, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, gap_totals, ledger_of, records,
                           score, task_cards, waves_state)
 
@@ -1279,6 +1279,16 @@ SM_HEADS = (('الصفحات', 'Pages'), ('نقاط API', 'APIs'), ('ما يجي
             ('الأجزاء التي يستخدمها', 'Parts it uses'), ('الجداول والخدمات', 'Tables and services'))
 
 
+def system_svg(sm, lay, rtl):
+    """Five columns, right to left in Arabic: pages, APIs grouped by resource, the server files that answer them, the
+    parts those use, and the tables and services reached. Every link is drawn faint; the JS lights one chain."""
+    place = lay['place']
+    label = 'خريطة النظام: الصفحات ونقاط API والخادم والبيانات' if rtl else 'The system map: pages, APIs, server and data'
+    edges = ''.join(svg_edge(e, place, rtl) for e in sm['edges'] if e['from'] in place and e['to'] in place)
+    return (f'<svg viewBox="0 0 {WIDTH} {lay["height"]}" direction="ltr" role="img" class="chart smap {"l-ar" if rtl else "l-en"}" aria-label="{esc(label)}">'
+            + ''.join(svg_heads(lay, rtl)) + f'<g class="sm-edges">{edges}</g>' + ''.join(svg_nodes(sm, place, rtl)) + '</svg>')
+
+
 def api_table(sm):
     """Every API, collapsed: its method and path, who calls it, the server file that answers it, what it reaches."""
     pages = {p['id']: p for p in sm['pages']}
@@ -1411,7 +1421,6 @@ def _system_legend():
 
 def _system_heads(metrics):
     """The columns' titles over the drawing, spaced as the drawing spaces its columns."""
-    from .system_drawing import COLUMNS, WIDTH
     spans, edge = [], 0                          # the columns and the gaps between them, as the drawing has them
     for x, width in COLUMNS:
         spans += [x - edge, width]; edge = x + width

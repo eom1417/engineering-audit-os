@@ -88,22 +88,12 @@ def layout(sm):
 METHOD_CLASS = {'GET': 'get', 'POST': 'post', 'PUT': 'put', 'PATCH': 'put', 'DELETE': 'del'}
 
 
-def system_svg(sm, lay, rtl):
-    """Five columns, right to left in Arabic: pages, APIs grouped by resource, the server files that answer them, the
-    parts those use, and the tables and services reached. Every link is drawn faint; the JS lights one chain."""
-    place = lay['place']
-    label = 'خريطة النظام: الصفحات ونقاط API والخادم والبيانات' if rtl else 'The system map: pages, APIs, server and data'
-    edges = ''.join(_edge(e, place, rtl) for e in sm['edges'] if e['from'] in place and e['to'] in place)
-    return (f'<svg viewBox="0 0 {WIDTH} {lay["height"]}" direction="ltr" role="img" class="chart smap {"l-ar" if rtl else "l-en"}" aria-label="{esc(label)}">'
-            + ''.join(_heads(lay, rtl)) + f'<g class="sm-edges">{edges}</g>' + ''.join(_nodes(sm, place, rtl)) + '</svg>')
-
-
 def _x(c, rtl):
     """The left edge of column `c`, mirrored in Arabic."""
     return (WIDTH - COLUMNS[c][0] - COLUMNS[c][1]) if rtl else COLUMNS[c][0]
 
 
-def _heads(lay, rtl):
+def svg_heads(lay, rtl):
     """The band behind each group of APIs, and the head over the shared code that calls the server."""
     out = []
     for band in lay['bands']:
@@ -117,7 +107,7 @@ def _heads(lay, rtl):
     return out
 
 
-def _edge(e, place, rtl):
+def svg_edge(e, place, rtl):
     (ca, ya), (cb, yb) = place[e['from']], place[e['to']]
     ya, yb = ya + BOX_H / 2, yb + BOX_H / 2
     if ca == cb:                                    # a page and the shared code it reaches: an arc on the outer side
@@ -146,7 +136,7 @@ def _node(place, rtl, i, c, first, second='', cls='', tip='', search='', tag='',
             f'<text x="{tx}" y="{y + 13:.1f}" text-anchor="{anchor}" direction="{"rtl" if words and rtl else "ltr"}" data-literal="1">{spans}</text></g>')
 
 
-def _nodes(sm, place, rtl):
+def svg_nodes(sm, place, rtl):
     """The boxes of the five columns: pages and their callers, APIs, server handlers, parts, tables and services."""
     node = lambda *args, **named: _node(place, rtl, *args, **named)
     out = []
@@ -159,12 +149,15 @@ def _nodes(sm, place, rtl):
         out.append(node(a['id'], 1, a['path'], '', cls, a['key'], a['key'] + ' ' + ' '.join(a['features']), a['method']))
     out += [node(h['id'], 2, h['short'], '', 'n-handler' + ('' if h['apis'] else ' idle'), h['path'], h['path']) for h in sm['handlers']]
     out += [node(mo['id'], 3, mo['short'], '', 'n-module', mo['name'], mo['name']) for mo in sm['modules']]
-    for d in sm['data']:
-        table = d['id'].startswith('T:')
-        text = d['name'] if table or not rtl else d.get('ar') or d['name']
-        out.append(node(d['id'], 4, text, '', 'n-table' if table else 'n-service', d['name'] + (' — ' + ', '.join(d.get('files') or []) if table else ''),
-                        d['name'] + ' ' + (d.get('ar') or ''), words=not table))
-    return out
+    return out + [_data_node(node, d, rtl) for d in sm['data']]
+
+
+def _data_node(node, d, rtl):
+    """A table, with the files that use it, or a service, named in Arabic when the drawing is."""
+    table = d['id'].startswith('T:')
+    text = d['name'] if table or not rtl else d.get('ar') or d['name']
+    return node(d['id'], 4, text, '', 'n-table' if table else 'n-service', d['name'] + (' — ' + ', '.join(d.get('files') or []) if table else ''),
+                d['name'] + ' ' + (d.get('ar') or ''), words=not table)
 
 
 # ---------------------------------------------------------------- Mermaid

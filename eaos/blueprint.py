@@ -309,7 +309,7 @@ def _module_order(modules, features, entities):
     owner = {e['id']: e['module'] for e in entities}
     for feature in features:
         for entity_id in feature.get('entities') or []:
-            if owner.get(entity_id) and owner[entity_id] != feature['module']: uses[feature['module']].add(owner[entity_id])
+            if owner.get(entity_id) not in (None, '', feature['module']): uses[feature['module']].add(owner[entity_id])
     ordered, placed = [], set()
     while len(ordered) < len(modules):
         ready = [m for m in modules if m['id'] not in placed and uses[m['id']] <= placed] or \

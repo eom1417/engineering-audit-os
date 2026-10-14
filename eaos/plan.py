@@ -262,8 +262,7 @@ def _card_head(document, task, language):
     document.section('الدليل' if language == 'ar' else 'Evidence')
     document.bullets([f"facts: {', '.join(task['evidence']['fact_ids']) or '—'}",
                       f"probes: {', '.join(task['evidence']['probe_ids']) or '—'}",
-                      f"falsifier: {falsifier_of({'falsifier': task['evidence']['falsifier'],
-                                                  'render': task.get('render')}, language)}"])
+                      f"falsifier: {falsifier_of({'falsifier': task['evidence']['falsifier'], 'render': task.get('render')}, language)}"])
 
 
 def _card_radius(document, task, language):
@@ -273,8 +272,7 @@ def _card_radius(document, task, language):
     if not task['paths']:
         document.text('هذا الادعاء يخص المنتج ككل ولا يشير إلى ملف بعينه، فلا نطاق أثر محسوبًا له؛ '
                       'حدّد الملفات المعنية أثناء التحقيق.' if language == 'ar' else
-                      'This claim is about the product as a whole and names no file, so there is no computed '
-                      'blast radius; identify the affected files during the investigation.')
+                      'This claim is about the product as a whole and names no file, so there is no computed blast radius; identify the affected files during the investigation.')
         return False
     document.bullets([
         f"الملفات المعنية: {capped(task['paths'])}" if language == 'ar' else f"files: {capped(task['paths'])}",
@@ -305,12 +303,9 @@ def _card_options(document, task, language):
 def _card_steps(document, task, language):
     """The change proposed, how it is accepted, how it is rolled back, and its effort."""
     document.section('التغيير المقترح' if language == 'ar' else 'Proposed change')
-    localized = falsifier_of({'falsifier': task['evidence']['falsifier'],
-                              'render': task.get('render')}, language)
-    document.text(('Establish or refute this observation before changing code: ' + localized)
-                  if language == 'en' and task['kind'] == 'investigate'
-                  else (('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + localized)
-                        if task['kind'] == 'investigate' else task['change']))
+    localized = falsifier_of({'falsifier': task['evidence']['falsifier'], 'render': task.get('render')}, language)
+    prefix = 'Establish or refute this observation before changing code: ' if language == 'en' else 'أثبت هذا الادعاء أو انقضه قبل أي تغيير: '
+    document.text(prefix + localized if task['kind'] == 'investigate' else task['change'])
     document.section('معيار القبول' if language == 'ar' else 'Acceptance criterion')
     document.table(['الأمر' if language == 'ar' else 'Command', 'المتوقع' if language == 'ar' else 'Expected'],
                    [[step['command'], step['expect']] for step in task['acceptance']])
@@ -403,8 +398,7 @@ def rebuild(out, dossier, language='ar', target=None):
     from .codemods import attach
     attach(tasks, out, source)
     plan_milestones, plan_sections = schedule(out, source, tasks, language)
-    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones,
-                              'sections': plan_sections, 'decisions': dossier.get('decisions', [])})
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones, 'sections': plan_sections, 'decisions': dossier.get('decisions', [])})
     return len(tasks)
 
 
@@ -418,22 +412,18 @@ def build(target, out, language='ar'):
     plan = waves(tasks)
     directory = out / PLAN_DIR
     publish(directory, tasks, plan, language)
-    dossier['plan_contract_version'] = 1
-    dossier['tasks'] = tasks
-    dossier['waves'] = plan
+    dossier['tasks'], dossier['waves'], dossier['plan_contract_version'] = tasks, plan, 1
     write(dossier_path, dossier)
     from .decisions import decide
     from .codemods import attach
     attach(tasks, out, target)
     plan_milestones, plan_sections = schedule(out, target, tasks, language)
-    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones,
-                             'sections': plan_sections, 'decisions': [decide(claim) for claim in dossier['claims']]})
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones, 'sections': plan_sections, 'decisions': [decide(claim) for claim in dossier['claims']]})
     from .dossier import refresh_views
     refresh_views(out, language)
     return {'target': str(target), 'out': str(out), 'tasks': len(tasks), 'waves': len(plan),
             'cards': [str(directory / (task['id'] + '.md')) for task in tasks],
-            'limits': 'Repairs require evidenced violations and independent checks. Investigations may conclude no change. '
-                      'Effort is an estimate with declared confidence, not a commitment.'}
+            'limits': 'Repairs require evidenced violations and independent checks. Investigations may conclude no change. Effort is an estimate with declared confidence, not a commitment.'}
 
 
 def _load(path, default):

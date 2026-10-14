@@ -349,9 +349,7 @@ def _plan_sections(page, L, plan, tasks, ar):
     page.heading(('المعالم' if ar else 'Milestones'))
     for milestone in plan.get('milestones') or []: _milestone_section(page, milestone, by_id, ar)
     page.heading(('الأقسام' if ar else 'Sections'))
-    page.items([f"{s['section']}: {len(s['tasks'])} " + ('بطاقة' if ar else 'cards')
-                + (f", {'تنتظر' if ar else 'waits for'} {', '.join(s['depends_on'])}" if s['depends_on'] else '')
-                for s in plan.get('sections') or []])
+    page.items([_section_line(s, ar) for s in plan.get('sections') or []])
     page.heading(L['recommendation'])
     page.para(('نفّذ كل بطاقة في نسخة معزولة، وشغّل أمر قبولها، ثم أعد التدقيق؛ التراجع لكل بطاقة مكتوب فيها.' if ar else
                'Run each card in an isolated copy, run its acceptance command, then audit again; each card states its rollback.'))
@@ -360,6 +358,12 @@ def _plan_sections(page, L, plan, tasks, ar):
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
     page.heading(L['appendices'])
     page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)'])
+
+
+def _section_line(s, ar):
+    """One section of the plan: its cards, and the sections it waits for."""
+    waits = f", {'تنتظر' if ar else 'waits for'} {', '.join(s['depends_on'])}" if s['depends_on'] else ''
+    return f"{s['section']}: {len(s['tasks'])} " + ('بطاقة' if ar else 'cards') + waits
 
 
 def _plan_numbers(plan, tasks, cards):

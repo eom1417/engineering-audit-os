@@ -9,6 +9,8 @@ from pathlib import Path
 BATCH = 10                                  # fix_start's default batch size
 OPEN = ('open',)
 GROUPS = {'area': 'category', 'severity': 'severity'}
+LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'component', 'the gap register'),     # (file, field, words)
+          'operation': ('operations', 'id', 'the operations')}
 
 
 class SelectionError(ValueError):
@@ -70,15 +72,11 @@ def _grouped(group, cards, folder):
     by, value = group.get('by'), str(group.get('value') or '')
     if by in GROUPS:
         return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
-    if by in ('component', 'gap'):
-        gaps = (_load(folder, 'gaps') or {}).get('gaps')
-        if gaps is None: raise SelectionError('this check did not write the gap register (gaps.json) yet')
-        return {c for gap in gaps if str(gap.get('component' if by == 'component' else 'id')) == value for c in gap.get('cards') or []}
-    if by == 'operation':
-        operations = (_load(folder, 'operations') or {}).get('operations')
-        if operations is None: raise SelectionError('this check did not write the operations (operations.json) yet')
-        return {c for op in operations if str(op.get('id')) == value for c in op.get('cards') or []}
-    raise SelectionError('a group is by area, severity, component, gap or operation')
+    if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation')
+    name, field, words = LISTED[by]
+    rows = (_load(folder, name) or {}).get(name)
+    if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet')
+    return {c for row in rows if str(row.get(field)) == value for c in row.get('cards') or []}
 
 
 def _split(chosen):

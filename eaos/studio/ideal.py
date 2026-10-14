@@ -298,9 +298,7 @@ def _check_view(name, view, known, context, dropped, alive):
         eid = str(element.get('id') or '')
         cites = [c for c in element.get('cites') or [] if isinstance(c, str)]
         evidence = [c for c in cites if c in known]
-        why = ('no id' if not eid else 'repeated id' if eid in seen else
-               'unknown operation' if element.get('operation') not in OPERATIONS else
-               'no citation resolves to a fact, claim, card or rule of this report' if not evidence else None)
+        why = _drop_reason(eid, seen, element, evidence)
         if why:
             dropped.append({'view': name, 'id': eid or '?', 'title': _short(element.get('title'), 160), 'why': why, 'cites': cites[:8]})
             continue
@@ -308,6 +306,13 @@ def _check_view(name, view, known, context, dropped, alive):
         alive.add((name, eid))
         elements.append(_element_row(eid, element, cites, evidence, known, context))
     return {'summary': _short(view.get('summary'), 600), 'confidence': _confidence(view.get('confidence')), 'elements': elements}
+
+
+def _drop_reason(eid, seen, element, evidence):
+    """Why an element cannot stand, or None when it can."""
+    return ('no id' if not eid else 'repeated id' if eid in seen else
+            'unknown operation' if element.get('operation') not in OPERATIONS else
+            'no citation resolves to a fact, claim, card or rule of this report' if not evidence else None)
 
 
 def _element_row(eid, element, cites, evidence, known, context):
@@ -329,11 +334,15 @@ def _check_aspects(ideal, known, context):
         if not isinstance(row, dict) or row.get('aspect') not in ASPECTS or row.get('verdict') not in VERDICTS: continue
         if row['aspect'] in judged or not str(row.get('why') or '').strip(): continue
         judged.add(row['aspect'])
-        out.append({'aspect': row['aspect'], 'verdict': row['verdict'], 'why': _short(row.get('why'), 600),
-                    'plan': _short(row.get('plan'), 800) if row['verdict'] == 'improve' else '',
-                    'cards': [c for c in row.get('cards') or [] if c in cards][:12],
-                    'cites': [c for c in row.get('cites') or [] if c in known or c in context][:8]})
+        out.append(_aspect_row(row, cards, known, context))
     return out
+
+
+def _aspect_row(row, cards, known, context):
+    return {'aspect': row['aspect'], 'verdict': row['verdict'], 'why': _short(row.get('why'), 600),
+            'plan': _short(row.get('plan'), 800) if row['verdict'] == 'improve' else '',
+            'cards': [c for c in row.get('cards') or [] if c in cards][:12],
+            'cites': [c for c in row.get('cites') or [] if c in known or c in context][:8]}
 
 
 def _question(index, q):

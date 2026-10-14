@@ -522,8 +522,7 @@ def _dossier(target, out, run, language, version, exclude, map_result, sets, rec
     return {
         'schema_version': 1,
         'provenance': {'target': str(target), 'tool_version': version or __version__,
-                       'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
-                       'snapshot_fingerprint': sets['syntax']['input_sha'],
+                       'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'), 'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
@@ -547,11 +546,13 @@ def _dossier(target, out, run, language, version, exclude, map_result, sets, rec
         ['Do not treat this as a security review or a production-readiness certificate.',
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
-        'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
-                             'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
-                            + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])
-                            + (['ENGINES.md'] if (out / 'facts/external.json').is_file() else [])),
+        'artifacts': _artifacts(target, out),
     }
+
+
+def _artifacts(target, out):
+    return sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
+                  + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else []) + (['ENGINES.md'] if (out / 'facts/external.json').is_file() else []))
 
 
 VERDICT = 'report-result.json'
