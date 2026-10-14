@@ -41,6 +41,81 @@ function refused(response: Response, payload: Record<string, unknown>): ActionEr
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+type Get = <T>(path: string) => Promise<T>
+type Post = <T>(path: string, body?: unknown) => Promise<T>
+
+/** The branch actions (eaos/studio/actions/branches.py): reads, previews, and the changes a preview confirmed. */
+function branchApi(get: Get, post: Post): BranchApi {
+  const query = (values: Record<string, string | null | undefined>) =>
+    Object.entries(values).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
+  return {
+    freshness: () => get<{ freshness: LiveFreshness }>('/api/freshness').then((r) => r.freshness),
+    context: () => get<{ context: BranchContext | null }>('/api/context').then((r) => r.context),
+    inventory: (base) => get<Inventory>(`/api/branches?${query({ base })}`),
+    detail: (name, kind, remote, base) => get<BranchDetail>(`/api/branches/detail?${query({ name, kind, remote, base })}`),
+    select: (branch, scan, expectedTip) => post('/api/branches/analysis', { branch, scan, expected_tip: expectedTip ?? null }),
+    previewMerge: (source, target) => post<MergePreview>('/api/branches/merge/preview', { source, target: target ?? null }),
+    merge: (p, uncheckedAck) => post('/api/branches/merge', { source: p.source, target: p.target, source_head: p.source_head, target_head: p.target_head,
+      unchecked: p.needs_unchecked_ack, unchecked_ack: uncheckedAck, confirm: p.confirm?.token ?? null }),
+    proposeResolution: (source, target, assistant) => post('/api/branches/conflict', { source, target, assistant: assistant ?? null }),
+    previewDelete: (branch, where, remote) => post<DeletePreview>('/api/branches/delete/preview', { branch, where, remote: remote ?? null }),
+    remove: (p, second) => post('/api/branches/delete', { branch: p.branch, where: p.where, remote: p.remote ?? null, tip: p.tip, unmerged: Boolean(p.unmerged), worktree: Boolean(p.worktree),
+      confirm: p.confirm?.token ?? null, confirm_unmerged: second ? p.confirm_unmerged?.token ?? null : null }),
+    restore: (recovery, as) => post('/api/branches/restore', { recovery, as: as ?? null }),
+    previewCleanup: () => post<CleanupPreview>('/api/branches/cleanup/preview', {}),
+    cleanup: (p) => post('/api/branches/cleanup', { digest: p.digest, confirm: p.confirm?.token ?? null }),
+    fetch: (remote) => post('/api/branches/fetch', { remote: remote ?? 'origin' }),
+  }
+}
+
+/** Follow a run's events over SSE from `after`; a dropped stream reconnects with Last-Event-ID. Returns the stop. */
+function followRun(token: string, id: string, after: number, onEvent: (event: RunEvent) => void, onStatus: (status: StreamStatus) => void): () => void {
+  let last = after
+  let stopped = false
+  let controller: AbortController | null = null
+  let ended = false
+  async function stream() {
+    let delay = 500
+    while (!stopped && !ended) {
+      controller = new AbortController()
+      try {
+        const headers: Record<string, string> = { 'X-EAOS-Token': token, Accept: 'text/event-stream' }
+        if (last > 0) headers['Last-Event-ID'] = String(last)
+        const response = await fetch(`/api/runs/${encodeURIComponent(id)}/events`, { headers, cache: 'no-store', credentials: 'same-origin', signal: controller.signal })
+        if (response.status === 401 || response.status === 404) { onStatus('closed'); return }
+        if (!response.ok || !response.body) throw new Error(`events: ${response.status}`)
+        onStatus('open')
+        delay = 500
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+        const feed = frameSplitter((frame) => {
+          let event: RunEvent
+          try { event = JSON.parse(frame.data) as RunEvent } catch { return }
+          if (typeof event.seq !== 'number' || event.seq <= last) return // a replayed event already shown
+          last = event.seq
+          if (event.kind === 'state' && TERMINAL.includes(event.data.to as never)) ended = true
+          onEvent(event)
+        })
+        for (;;) {
+          const { value, done } = await reader.read()
+          if (done) break
+          feed(value)
+        }
+      } catch {
+        if (stopped) return
+      }
+      if (stopped) return
+      if (ended) break
+      onStatus('reconnecting')
+      await wait(delay)
+      delay = Math.min(delay * 2, 8000)
+    }
+    if (!stopped) onStatus('closed')
+  }
+  onStatus('connecting')
+  void stream()
+  return () => { stopped = true; controller?.abort() }
+}
+
 export function liveClient(token: string): ActionsClient {
   let csrf: Promise<string> | null = null
   const session = () => (csrf ??= request('GET', '/api/session').then((s) => String((s as { csrf: string }).csrf)))
@@ -66,26 +141,7 @@ export function liveClient(token: string): ActionsClient {
   const post = <T>(path: string, body?: unknown) => request('POST', path, body) as Promise<T>
   const get = <T>(path: string) => request('GET', path) as Promise<T>
   const runOf = (payload: { run: Run }) => payload.run
-  const query = (values: Record<string, string | null | undefined>) =>
-    Object.entries(values).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
-  const branches: BranchApi = {
-    freshness: () => get<{ freshness: LiveFreshness }>('/api/freshness').then((r) => r.freshness),
-    context: () => get<{ context: BranchContext | null }>('/api/context').then((r) => r.context),
-    inventory: (base) => get<Inventory>(`/api/branches?${query({ base })}`),
-    detail: (name, kind, remote, base) => get<BranchDetail>(`/api/branches/detail?${query({ name, kind, remote, base })}`),
-    select: (branch, scan, expectedTip) => post('/api/branches/analysis', { branch, scan, expected_tip: expectedTip ?? null }),
-    previewMerge: (source, target) => post<MergePreview>('/api/branches/merge/preview', { source, target: target ?? null }),
-    merge: (p, uncheckedAck) => post('/api/branches/merge', { source: p.source, target: p.target, source_head: p.source_head, target_head: p.target_head,
-      unchecked: p.needs_unchecked_ack, unchecked_ack: uncheckedAck, confirm: p.confirm?.token ?? null }),
-    proposeResolution: (source, target, assistant) => post('/api/branches/conflict', { source, target, assistant: assistant ?? null }),
-    previewDelete: (branch, where, remote) => post<DeletePreview>('/api/branches/delete/preview', { branch, where, remote: remote ?? null }),
-    remove: (p, second) => post('/api/branches/delete', { branch: p.branch, where: p.where, remote: p.remote ?? null, tip: p.tip, unmerged: Boolean(p.unmerged), worktree: Boolean(p.worktree),
-      confirm: p.confirm?.token ?? null, confirm_unmerged: second ? p.confirm_unmerged?.token ?? null : null }),
-    restore: (recovery, as) => post('/api/branches/restore', { recovery, as: as ?? null }),
-    previewCleanup: () => post<CleanupPreview>('/api/branches/cleanup/preview', {}),
-    cleanup: (p) => post('/api/branches/cleanup', { digest: p.digest, confirm: p.confirm?.token ?? null }),
-    fetch: (remote) => post('/api/branches/fetch', { remote: remote ?? 'origin' }),
-  }
+  const branches = branchApi(get, post)
 
   return {
     mode: 'live',
@@ -105,52 +161,6 @@ export function liveClient(token: string): ActionsClient {
       post<{ run: Run }>(`/api/questions/${encodeURIComponent(question)}/answer`, { option, text: text ?? null }).then(runOf),
     decide: (id: string, op: 'accept' | 'undo', confirm: string, choice?: AcceptChoice) => post<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}/${op}`, { confirm, ...(choice ?? {}) }).then(runOf),
     branches,
-
-    follow(id: string, after: number, onEvent: (event: RunEvent) => void, onStatus: (status: StreamStatus) => void) {
-      let last = after
-      let stopped = false
-      let controller: AbortController | null = null
-      let ended = false
-      async function stream() {
-        let delay = 500
-        while (!stopped && !ended) {
-          controller = new AbortController()
-          try {
-            const headers: Record<string, string> = { 'X-EAOS-Token': token, Accept: 'text/event-stream' }
-            if (last > 0) headers['Last-Event-ID'] = String(last)
-            const response = await fetch(`/api/runs/${encodeURIComponent(id)}/events`, { headers, cache: 'no-store', credentials: 'same-origin', signal: controller.signal })
-            if (response.status === 401 || response.status === 404) { onStatus('closed'); return }
-            if (!response.ok || !response.body) throw new Error(`events: ${response.status}`)
-            onStatus('open')
-            delay = 500
-            const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
-            const feed = frameSplitter((frame) => {
-              let event: RunEvent
-              try { event = JSON.parse(frame.data) as RunEvent } catch { return }
-              if (typeof event.seq !== 'number' || event.seq <= last) return // a replayed event already shown
-              last = event.seq
-              if (event.kind === 'state' && TERMINAL.includes(event.data.to as never)) ended = true
-              onEvent(event)
-            })
-            for (;;) {
-              const { value, done } = await reader.read()
-              if (done) break
-              feed(value)
-            }
-          } catch {
-            if (stopped) return
-          }
-          if (stopped) return
-          if (ended) break
-          onStatus('reconnecting')
-          await wait(delay)
-          delay = Math.min(delay * 2, 8000)
-        }
-        if (!stopped) onStatus('closed')
-      }
-      onStatus('connecting')
-      void stream()
-      return () => { stopped = true; controller?.abort() }
-    },
+    follow: (id, after, onEvent, onStatus) => followRun(token, id, after, onEvent, onStatus),
   }
 }
