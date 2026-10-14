@@ -16,7 +16,7 @@ import { useCmdWords } from '../../command/words'
 import { verbOf } from '../../data/actions/contract'
 import { duration, labelOf } from '../../data/actions/derive'
 import { useActions, useRun } from '../../data/actions/store'
-import { ActionError, TERMINAL, type AcceptWhere, type Control, type Run } from '../../data/actions/types'
+import { ActionError, TERMINAL, type AcceptChoice, type AcceptWhere, type Control, type Run } from '../../data/actions/types'
 import { useStudio } from '../../data/context'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
@@ -35,6 +35,14 @@ function useNow(on: boolean): number {
   }, [on])
   return now
 }
+
+/** What accept sends: the branch to merge into, when one is chosen, and whether the branch goes after; undo sends nothing. */
+const acceptChoice = (op: 'accept' | 'undo', target: string, remove: boolean): AcceptChoice | undefined =>
+  (op === 'accept' ? { ...(target ? { merge_into: target } : {}), delete_after: remove } : undefined)
+
+/** The confirm button's words: the branch accept merges into, else a plain yes. */
+const decideWord = (w: ReturnType<typeof useCmdWords>, op: 'accept' | 'undo', target: string) =>
+  (op === 'accept' && target ? w('mergeIntoB', { b: target }) : w(op === 'accept' ? 'acceptYes' : 'undoYes'))
 
 /** Accept or undo, behind an explicit confirm. Accept shows where it merges (one of the person's branches, the fix
  * preview's choice first; a protected one shown with its reason, never choosable) and "delete the branch after
@@ -68,7 +76,7 @@ function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'u
     if (!client || !token) return
     setBusy(true)
     try {
-      const next = await client.decide(run.id, op, token, op === 'accept' ? { ...(target ? { merge_into: target } : {}), delete_after: remove } : undefined)
+      const next = await client.decide(run.id, op, token, acceptChoice(op, target, remove))
       toast(w('decided', { what: op === 'accept' ? w('outcomeAccepted') : w('outcomeUndone') }))
       onDone(next)
       onClose()
@@ -87,7 +95,7 @@ function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'u
       <div className={css.decideFoot}>
         <Button variant="secondary" onPress={onClose}>{w('cancel')}</Button>
         <Button variant="primary" busy={busy || (!token && !problem)} isDisabled={!token || Boolean(blocked)} onPress={decide} data-confirm="decide">
-          {op === 'accept' && target ? w('mergeIntoB', { b: target }) : w(op === 'accept' ? 'acceptYes' : 'undoYes')}
+          {decideWord(w, op, target)}
         </Button>
       </div>
     </Sheet>
