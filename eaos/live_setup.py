@@ -539,56 +539,81 @@ def _setup(project, runtime, report, provider, say):
     needs = fixtures_needed(report)
     write_profile(runtime, detected['profile'])
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    limitations, attempts, record, refusal = list(detected['limitations']), 0, None, ''
+    limitations = list(detected['limitations'])
     progress.begin('attempt')
-    while attempts < ATTEMPTS:
-        attempts += 1
+    record, attempts, missing = _attempts(project, runtime, report, provider, say, detected, needs, limitations)
+    ok = bool(record['ok'])
+    if ok: progress.end('attempt')
+    else: progress.end('attempt', 'failed', (record.get('failure') or 'the app did not answer')[:300],
+                       'no_assistant' if provider is None else 'app_not_answering')
+    _baseline(project, runtime, report, provider, say, detected, ok, limitations)
+    if not ok and record.get('failure') and not any(record['failure'] in text for text in limitations):
+        limitations.append('the app could not be made to answer: ' + record['failure'][:300])
+    return _close(runtime, detected, ok, attempts, record, missing, limitations)
+
+
+def _attempts(project, runtime, report, provider, say, detected, needs, limitations):
+    """Verify the run, and while it fails ask the assistant for a safe change, at most ATTEMPTS times.
+    (the last record, the attempts made, the fixtures still missing)."""
+    refusal = ''
+    for attempts in range(1, ATTEMPTS + 1):
         say(attempts)
         progress.step(f'attempt {attempts}', attempts - 1, ATTEMPTS, 'running')
         record = verify(project, runtime, attempts, report)
         known = {**json.loads((runtime / 'run.json').read_text())['env'], **record['fixtures']}
         missing = [name for name in needs if name not in known]
-        progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'ok' if record['ok'] and not missing else 'failed',
-                      reason=(record.get('failure') or ('the checks need fixture values: ' + ', '.join(missing)))[:200]
-                      if not (record['ok'] and not missing) else '',
-                      reason_code='' if record['ok'] and not missing else 'app_not_answering' if not record['ok'] else 'fixtures_missing')
-        if record['ok'] and not missing: break
+        failure = '' if record['ok'] and not missing else \
+            record.get('failure') or 'the checks need fixture values: ' + ', '.join(missing)
+        progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed' if failure else 'ok', reason=failure[:200],
+                      reason_code='' if not failure else 'app_not_answering' if not record['ok'] else 'fixtures_missing')
+        if not failure: break
         if provider is None:
             limitations.append('no AI assistant was available to work out: ' + (record.get('failure') or 'the fixtures ' + ', '.join(missing)))
             break
-        failure = record.get('failure') or ('the checks need fixture values: ' + ', '.join(missing))
-        if refusal: failure += f'. Your previous proposal was refused and not applied: {refusal}'
-        answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs))
-        proposal = answer.get('result') or {}
-        refused = safe(proposal)
-        (runtime / f'setup/proposal-{attempts}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused},
-                                                                           ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-        refusal = '; '.join(refused)
-        if refused:
-            limitations.append('the assistant proposed something unsafe, which was refused: ' + refused[0])
-            progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed', reason=refused[0][:200], reason_code='proposal_refused')
-            continue
+        refusal = _propose(project, runtime, provider, detected, needs, attempts, failure, refusal, limitations)
+    return record, attempts, missing
+
+
+def _propose(project, runtime, provider, detected, needs, attempt, failure, refusal, limitations):
+    """Ask the assistant for a change and apply it when safe. The refusal it met ('' when none), told on the next ask."""
+    if refusal: failure += f'. Your previous proposal was refused and not applied: {refusal}'
+    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs))
+    proposal = answer.get('result') or {}
+    refused = safe(proposal)
+    (runtime / f'setup/proposal-{attempt}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused},
+                                                                      ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    if refused:
+        limitations.append('the assistant proposed something unsafe, which was refused: ' + refused[0])
+        progress.step(f'attempt {attempt}', attempt, ATTEMPTS, 'failed', reason=refused[0][:200], reason_code='proposal_refused')
+    else:
         apply(runtime, proposal)
-    ok = bool(record and record['ok'])
-    if ok: progress.end('attempt')
-    else: progress.end('attempt', 'failed', ((record or {}).get('failure') or 'the app did not answer')[:300],
-                       'no_assistant' if provider is None else 'app_not_answering')
-    if ok and (detected['profile'].get('baseline') or {}).get('build'):
+    return '; '.join(refused)
+
+
+def _baseline(project, runtime, report, provider, say, detected, ok, limitations):
+    """The stage `baseline`: the production run, once the app answered in development and has a build."""
+    if not ok:
+        progress.skip('baseline', 'the app did not start in development, so its production build was not tried', 'app_not_answering')
+    elif not (detected['profile'].get('baseline') or {}).get('build'):
+        progress.skip('baseline', 'the app has no production build command', 'no_build')
+    else:
         progress.begin('baseline')
         speed = setup_baseline(project, runtime, detected, provider, say, report)
-        if not speed['ok']: limitations.append('speed cannot be measured: ' + speed['failure'][:300])
-        if speed['ok']: progress.end('baseline')
-        else: progress.end('baseline', 'failed', speed['failure'][:300], 'baseline_failed')
-    elif ok: progress.skip('baseline', 'the app has no production build command', 'no_build')
-    else: progress.skip('baseline', 'the app did not start in development, so its production build was not tried', 'app_not_answering')
-    if record and not ok and record.get('failure') and not any(record['failure'] in l for l in limitations):
-        limitations.append('the app could not be made to answer: ' + record['failure'][:300])
+        if speed['ok']:
+            progress.end('baseline')
+        else:
+            limitations.append('speed cannot be measured: ' + speed['failure'][:300])
+            progress.end('baseline', 'failed', speed['failure'][:300], 'baseline_failed')
+
+
+def _close(runtime, detected, ok, attempts, record, missing, limitations):
+    """Write the run's final limitations into run.json, and the setup's answer."""
     profile = json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
     # Names the first draft left without a value may have one now.
     unset = [n for n in detected['facts']['env_names'] if n not in profile['env'] and n != 'NODE_ENV']
-    limitations = [l for l in limitations if not l.startswith('no value was chosen for')]
+    limitations = [text for text in limitations if not text.startswith('no value was chosen for')]
     if unset and ok: limitations.append('run without a value for: ' + ', '.join(unset[:12]) + (' …' if len(unset) > 12 else ''))
-    if record and missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
+    if missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
     profile['limitations'] = sorted(set(limitations))
     write_profile(runtime, profile)
-    return {'ok': ok, 'attempts': attempts, 'limitations': profile['limitations'], 'page': (record or {}).get('page')}
+    return {'ok': ok, 'attempts': attempts, 'limitations': profile['limitations'], 'page': record.get('page')}
