@@ -77,8 +77,8 @@ function Grid({ timeline, step, wave, onPick }: { timeline: Timeline; step?: str
             <th scope="col" className={css.tlCorner}>{w('step')}</th>
             {timeline.waves.map((wv) => (
               <th key={wv.wave} scope="col" className={css.tlWave} data-on={wave === wv.wave && !step ? '' : undefined}>
-                <AriaButton className={css.tlBtn} aria-label={w('wave', { n: wv.wave })} aria-pressed={wave === wv.wave && !step} onPress={() => onPick(undefined, wv.wave)}>
-                  <span aria-hidden="true">{wv.wave}</span>
+                <AriaButton className={css.tlBtn} aria-pressed={wave === wv.wave && !step} onPress={() => onPick(undefined, wv.wave)}>
+                  {w('wave', { n: wv.wave })}
                 </AriaButton>
               </th>
             ))}
