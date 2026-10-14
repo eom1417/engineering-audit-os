@@ -13,7 +13,7 @@ import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { SNAPSHOT } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
-import { ActionError, type Bi, type LiveFreshness, type Run } from '../data/actions/types'
+import { ActionError, TERMINAL, type Bi, type LiveFreshness, type Run } from '../data/actions/types'
 import { useStudio } from '../data/context'
 import { usePrefs } from '../i18n/prefs'
 import { Id, When } from '../i18n/text'
@@ -195,7 +195,7 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
           <Button variant="primary" icon="retry" busy={rescan.busy} onPress={async () => {
             if (await rescan.start()) { onOpenChange(false); void navigate({ to: '/scan', search: { flow: 'check' } }) }
           }}
-            isDisabled={Boolean(rescan.run && !['done', 'failed', 'stopped'].includes(rescan.run.state))}>
+            isDisabled={Boolean(rescan.run && !TERMINAL.includes(rescan.run.state))}>
             {otherBranch ? w('rescanBranch', { b: fresh.branch as string }) : w('rescanNow')}
           </Button>
           <SelectError error={rescan.error} />

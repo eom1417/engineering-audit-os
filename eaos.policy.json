@@ -4,11 +4,12 @@
     "exclude": [
       "build",
       "eaos/data/studio",
+      "eaos/rules/semgrep",
       "tests/fixtures",
       "upstream-src",
       "upstreams"
     ],
-    "reason": "مستودعات التثبيت ومجموعة القياس بيانات اختبار للأداة، وليست جزءًا من النظام قيد المراجعة؛ و build/ و upstream-src/ نسخ مبنية أو منسوخة من مصدر آخر، وقياسها يقيس شيئًا آخر. و eaos/data/studio هو الاستوديو بعد بنائه وضغطه من studio/src (ملفات مولَّدة)، فمصدره studio/src هو ما يُراجع."
+    "reason": "مستودعات التثبيت ومجموعة القياس بيانات اختبار للأداة، وليست جزءًا من النظام قيد المراجعة؛ و build/ و upstream-src/ نسخ مبنية أو منسوخة من مصدر آخر، وقياسها يقيس شيئًا آخر. و eaos/data/studio هو الاستوديو بعد بنائه وضغطه من studio/src (ملفات مولَّدة)، فمصدره studio/src هو ما يُراجع. و eaos/rules/semgrep أمثلة مكتوبة عمدًا بالثغرة التي تكشفها كل قاعدة، يختبر بها semgrep --test القواعد، وليست كودًا يعمل."
   },
   "layers": {
     "facts": [
@@ -41,7 +42,8 @@
       "eaos/semantic.py",
       "eaos/semantic_source.py",
       "eaos/sustainability.py",
-      "eaos/verify.py"
+      "eaos/verify.py",
+      "eaos/weaknesses.py"
     ],
     "planning": [
       "eaos/acceptance.py",

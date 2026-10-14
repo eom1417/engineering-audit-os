@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
-from eaos.studio import coverage, evidence, export, model
+from eaos.studio import coverage, evidence, export, inbox, model
 from eaos.studio.localization import publish
 from tests.shared_fixture import Workspace
 from tests.test_human_report import report
@@ -122,14 +122,20 @@ class Export(Workspace):
         # The incident (decisions inbox, 2026-10-12): one topic asked twice, a fact asked of the person, and the target
         # approval offered as 51 ADR sentences
         ask = lambda id, question: {'id': id, 'question': question, 'options': [], 'state': 'waiting'}
-        rows = export.tidy_decisions([ask('ideal-Q-search', 'هل خانتا البحث (في الشريط العلوي وفي القائمة الجانبية) تؤديان العمل نفسه؟'),
+        rows = inbox.tidy([ask('ideal-Q-search', 'هل خانتا البحث (في الشريط العلوي وفي القائمة الجانبية) تؤديان العمل نفسه؟'),
                                       ask('node-visual_reviewer:IMG-014:Q-014-1', 'هل خانتين البحث (فوق وفي القائمة الجانبية) لهم نفس الوظيفة؟'),
                                       ask('node-plan_orderer:plan:Q-cli-split', 'Split eaos/cli.py after the stage contracts?'),
                                       ask('ideal-Q-cli-split', 'هل نقسّم eaos/cli.py إلى وحدات حسب مجموعات الأوامر؟'),
                                       ask('node-card_triage:TASK-164:Q-164', 'هل في eaos/api/events.py دالة واحدة على الأقل تعقيدها فوق 15؟'),
-                                      ask('ideal-Q-types', 'هل تُولَّد studio/src/data/types.ts من eaos/artifact_contracts.py؟')])
+                                      ask('ideal-Q-types', 'هل تُولَّد studio/src/data/types.ts من eaos/artifact_contracts.py؟'),
+                                      # 2026-10-14: two of the planner's questions ending in one sentence were read as one
+                                      ask('ideal-Q-reach', 'هل يُفتح الاستوديو لشخص واحد؟ جواب الاستلام كان القيمة الافتراضية.'),
+                                      ask('ideal-Q-personal-data', 'هل يخزن EAOS بيانات شخصية؟ جواب الاستلام كان القيمة الافتراضية.'),
+                                      ask('ideal-Q-read-first', 'قسم «اقرأ أولًا» في المكتبة يكرر وثائق المجموعات. ما الذي نبقيه؟'),
+                                      ask('node-visual_reviewer:PAGE-015:Q-1', 'هل تبقى «اقرأ أولًا» قائمة كاملة أم تُختصر؟')])
         self.assertEqual([(r['id'], r.get('merged')) for r in rows], [('ideal-Q-search', ['node-visual_reviewer:IMG-014:Q-014-1']),
-                         ('node-plan_orderer:plan:Q-cli-split', ['ideal-Q-cli-split']), ('ideal-Q-types', None)])
+                         ('node-plan_orderer:plan:Q-cli-split', ['ideal-Q-cli-split']), ('ideal-Q-types', None), ('ideal-Q-reach', None),
+                         ('ideal-Q-personal-data', None), ('ideal-Q-read-first', ['node-visual_reviewer:PAGE-015:Q-1'])])
         target = export.decisions({**m, 'target': {'status': 'REVIEW_REQUIRED', 'decisions': [{'id': f'ADR-{i}', 'chosen': 'x'} for i in range(51)]}}, [], 'ar')[0]
         self.assertEqual(([o['id'] for o in target['options']], target['decisions_count']), (['approve', 'changes', 'review'], 51))
 

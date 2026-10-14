@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.0.25 (2026-10-14)
+
+- **Every security finding reaches a card**: Bandit (Python's syntax tree) and Gitleaks (secrets) join Semgrep, and
+  CodeQL (data traced across the program) runs on open-source projects public on GitHub.com, the only ones its terms
+  allow. Two engines reporting a weakness within five lines of each other make a likely card; a finding no other engine
+  confirms is a card the assistant's triage decides on the code. Findings group by file and weakness, audit hints by
+  weakness across the project: on EAOS, 103 findings make 27 cards, 12 of them agreed. Before, a finding only one
+  engine reported stayed a fact, and EAOS read its own security as 100 with 82 of them.
+- **Semgrep's severity is read**: it writes the level on the rule, and every one of its findings was read as low.
+- **A known risk kept counts**: a vulnerable library with no fixed version, closed by the assistant, still weighs on
+  the security score, counted apart as accepted.
+- **A fix may not bring a weakness in**: every change a batch makes is read by Bandit and Gitleaks, and one that adds a
+  finding in the files it touched is taken back. A security card passes only when the engines that found it, asked
+  again on the changed copy, no longer do; an engine that did not run never passes it.
+- **No triaged fix is checked by "human review"**: a card the assistant decided to fix is accepted by its own probe
+  asked again on the changed copy.
+- **A module is split after its complex functions are simplified**, and an oversized module counts in the structure
+  score.
+- **Large tools install from disk, not memory** (the CodeQL bundle is 1.2 GB on a Mac).
+- **Speed is measured on the real program**: a run proposal may start a Python server (python, pip, uv, uvicorn,
+  gunicorn), not only JavaScript tools; a baseline may name the folder its server starts in and the headers a load
+  sends (a token the program writes to a file). Each route is asked once first: a stream that never ends, or a route
+  refusing without a value it needs, is left out and named. On EAOS's own server: 7 routes loaded with its token, no
+  error, where before every API route answered 401.
+- **Skipping a kept card keeps the batch true**: the other changes take their new commits, and one that no longer
+  applies without it fails with why, instead of staying kept with a commit the copy lacks.
+- **A fix run that kept no change ends "nothing changed"**, not failed, and may be tried again.
+- **The inbox merges two askings of one topic by who asks**: two of one asker's questions are two topics however
+  alike they read; across askers, the same thing named in quotes is one.
+- **A change to the app's files runs the app's own checks on the card itself** (its type check, lint and tests,
+  seconds): in batch 5 an unused import in one Studio file broke the type check and the build, and was found only
+  when all 51 changes met.
+- **Less code**: the ledger's support for commits made before 0.0.8, which nothing uses, is gone; two modules left the
+  over-600-lines list (`plan.py`, `studio/export.py`).
+
 ## 0.0.24 (2026-10-14)
 
 - **A batch is no longer blamed for its surroundings**: when its changes fail the checks together, the same checks run

@@ -371,6 +371,119 @@
       }
     },
     {
+      "name": "bandit",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "applies": "python",
+      "check": "engines",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/PyCQA/bandit",
+      "version": "1.9.4",
+      "binary": "bandit",
+      "install": {
+        "method": "pip",
+        "package": "bandit[sarif]"
+      }
+    },
+    {
+      "name": "gitleaks",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "applies": "all",
+      "check": "engines",
+      "license": "MIT",
+      "repository": "https://github.com/gitleaks/gitleaks",
+      "version": "8.30.1",
+      "binary": "gitleaks",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+        "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+        "archive": "tar.gz",
+        "member": "gitleaks",
+        "platforms": {
+          "linux-x86_64": {
+            "method": "release",
+            "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+            "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+            "archive": "tar.gz",
+            "member": "gitleaks"
+          },
+          "darwin-arm64": {
+            "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_arm64.tar.gz",
+            "sha256": "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5",
+            "archive": "tar.gz",
+            "member": "gitleaks"
+          },
+          "darwin-x86_64": {
+            "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_x64.tar.gz",
+            "sha256": "dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709",
+            "archive": "tar.gz",
+            "member": "gitleaks"
+          }
+        }
+      }
+    },
+    {
+      "name": "codeql",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "applies": "all",
+      "check": "engines",
+      "license": "GitHub CodeQL Terms and Conditions (open-source codebases only)",
+      "repository": "https://github.com/github/codeql-action",
+      "version": "2.27.2",
+      "binary": "codeql",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
+        "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
+        "archive": "tar.gz",
+        "tree": true,
+        "entry": "codeql/codeql",
+        "platforms": {
+          "linux-x86_64": {
+            "method": "release",
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
+            "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          },
+          "linux-arm64": {
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux-arm64.tar.gz",
+            "sha256": "c1779ce6335606ef86fce4aae0db2ac4d7da869527d6a67bf055d9135695473c",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          },
+          "darwin-arm64": {
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
+            "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          },
+          "darwin-x86_64": {
+            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
+            "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
+            "archive": "tar.gz",
+            "tree": true,
+            "entry": "codeql/codeql"
+          }
+        }
+      }
+    },
+    {
       "name": "dependency-cruiser",
       "role": "read",
       "stages": [

@@ -158,13 +158,13 @@ TASK-003 — التعقيد 83 (العتبة 15) في eaos/human_report.py
 ## 🧰 الأدوات
 
 EAOS **ينسّق ولا يعيد البناء**: يشغّل أدوات مفتوحة المصدر، كل واحدة بإصدار مثبّت وبصمة sha256 ورخصة مسجلة، في
-`~/.eaos/tools`. غياب أداة يُعلن في التقرير ولا يوقفه. **30 أداة**:
+`~/.eaos/tools`. غياب أداة يُعلن في التقرير ولا يوقفه. **33 أداة**:
 
 | المجال | الأدوات |
 |---|---|
 | فهم الكود وبنيته | CodeGraph · Enola · Reforge · GitNexus · ast-grep · dependency-cruiser · react-docgen |
 | التعقيد والتكرار والكود الميت | Lizard · complexipy · jscpd · scc · vulture · knip |
-| الأمن والاعتماديات | Semgrep (وقواعده) · OSV-Scanner · Syft · Trivy · Checkov |
+| الأمن والاعتماديات | Semgrep (وقواعده) · Bandit · Gitleaks · CodeQL (للمشاريع مفتوحة المصدر فقط، كما تسمح شروطها) · OSV-Scanner · Syft · Trivy · Checkov |
 | العقود والبيانات | Spectral · oasdiff · SQLFluff |
 | تشغيل البرنامج وشاشاته | Playwright · Unlighthouse · Lighthouse · axe-core · css-analyzer · pytest · k6 |
 | الإصلاح الآلي | jscodeshift |

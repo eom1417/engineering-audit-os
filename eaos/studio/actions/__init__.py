@@ -25,17 +25,12 @@ from . import handoff, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
-from .store import TERMINAL, Scrubber, Store, now, _read_json, _write_json
+from .store import TERMINAL, Scrubber, Store, contract, now, _read_json, _write_json
 
-CONTRACT = Path(__file__).resolve().parents[2] / 'data/studio-actions.json'
 VERBS = ('fix', 'verify', 'explain', 'plan')
 HEARTBEAT = 15
 
 
-@functools.lru_cache(maxsize=1)
-def contract():
-    """The packaged contract (a byte-identical copy of docs/studio-actions.json)."""
-    return json.loads(CONTRACT.read_text(encoding='utf-8'))
 
 
 @functools.lru_cache(maxsize=1)

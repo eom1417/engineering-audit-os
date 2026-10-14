@@ -11,12 +11,8 @@ fake assistant: check → change → check again → fix three cards with one fa
 
 ## Known imperfections (from the fifteen fixes, 0.0.8)
 
-- `fix_skip` rebuilds the batch's copy without updating the commit ids of the other kept cards.
-- A fix run that kept nothing ends as `failed` with the reason; there is no separate "nothing changed" state.
-- Decisions are merged by a word-overlap heuristic; it is not exact.
 - On EAOS's first check its Studio has no report data yet, so live setup refuses the empty page (later checks use the
   previous report); no English screen pictures are taken yet.
-- Batches and merged commits made before 0.0.8 carry title keys and do not match the new uid keys.
 
 ## Then
 

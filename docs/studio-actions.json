@@ -1898,12 +1898,17 @@
    "stopped": {
     "en": "Stopped",
     "ar": "أوقفته"
+   },
+   "unchanged": {
+    "en": "Nothing changed",
+    "ar": "ما تغيّر شي"
    }
   },
   "terminal": [
    "done",
    "failed",
-   "stopped"
+   "stopped",
+   "unchanged"
   ],
   "transitions": [
    [
@@ -1962,12 +1967,22 @@
     "stop"
    ],
    [
+    "running",
+    "unchanged",
+    "a fix run that kept no change: nothing reached the project"
+   ],
+   [
     "failed",
     "queued",
     "retry (a new attempt of the same run, same selection)"
    ],
    [
     "stopped",
+    "queued",
+    "retry"
+   ],
+   [
+    "unchanged",
     "queued",
     "retry"
    ],

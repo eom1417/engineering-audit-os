@@ -1081,7 +1081,7 @@ def fix_edit(card, edits, summary='', project=None):
 
 
 def _fix_edit_job(project, arguments, progress):
-    from .waves import commit, drop_last, plan as read_plan
+    from .waves import commit, drop_last, edit_gates, plan as read_plan
     state = guided.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
@@ -1096,7 +1096,7 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
                 'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    broke, exit_code = _checked(report, root, card, changed, repair)
+    broke, exit_code = edit_gates((report, guided.source(state), guided.runtime_of(state)), root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     state = guided.load(project)
     wave = state['open_wave']
@@ -1117,26 +1117,13 @@ def _fix_edit_job(project, arguments, progress):
             'what_now': 'Next card with fix_edit.' if left else 'Every card is done: call fix_finish.'}
 
 
-def _checked(report, root, card, changed, repair):
-    """(what the change broke or added against the code laws, the card's own check's exit: None for a repair)."""
-    import tempfile
-    from .execute import new_breakage, new_debt
-    from .facts.run import collect
-    from .waves import batch_acceptance
-    with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
-        collect(root.resolve(), out)
-        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed)
-        return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
-
-
 def fix_skip(card, reason, project=None):
     state = project_state(project)
     wave = _open(state)
     if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
     if card in wave['kept']:
-        from .waves import rebuild
-        wave['kept'].pop(card)
-        rebuild(wave['root'], wave['base'], list(wave['kept'].values()) + (wave.get('repairs') or []))
+        from .waves import without
+        without(wave, card)
     wave['failed'][card] = f'skipped: {reason}'[:300]
     guided.save(state)
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]

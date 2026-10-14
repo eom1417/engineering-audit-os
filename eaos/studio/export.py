@@ -12,7 +12,6 @@ the project; an absolute path, a home directory or `..` is never written.
 import hashlib
 import json
 import os
-import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +30,7 @@ from . import functions as function_explorer
 from .evidence import evidence, rel, sources
 from . import infra as infra_map
 from . import ideal as planned_ideal
+from . import inbox
 from .nodes import view as ai_nodes
 from . import model as M
 from . import paths as code_paths
@@ -146,7 +146,7 @@ def health(m, history):
     s = m['score']
     domains = [{'id': area, 'name': area,
                 'score': ratio(None if a['score'] is None else a['score'] / 100, f'model.score areas.{area}'),
-                'cards': a['total']} for area, a in s['areas'].items()]
+                'cards': a['total'], 'accepted': a['accepted']} for area, a in s['areas'].items()]
     return {'score': ratio(None if s['score'] is None else s['score'] / 100, 'model.score: mean of measured areas, capped at 39 by a confirmed critical problem'),
             'formula': f'area = 100 x {M.HALF_POINT} / ({M.HALF_POINT} + weighted points per 100 files); score = mean of measured areas',
             'domains': domains, 'history': history}
@@ -295,60 +295,11 @@ def decisions(m, card_rows, lang):
     return out
 
 
-STOP = frozenset('هل في وفي فيه اذا إذا اللي عليه كل شي من على إلى الى او أو أم و ما ماذا كيف وين أين لما لها له لهم هذا هذه نفس نفسه the a an of in on to is are do does or and what which how where should we it'.split())
-
-
-def _words(text):
-    """The content words of a question, for telling two askings of one topic apart: Arabic's article and its letter
-    variants folded, short and common words left out."""
-    text = re.sub('[\u064b-\u0652]', '', str(text or '').lower()).translate(str.maketrans('أإآةى', 'اااهي'))
-    words = set()
-    for word in re.findall(r'[\w./-]+', text):
-        for prefix in ('وال', 'بال', 'لل', 'ال'):
-            if word.startswith(prefix) and len(word) > len(prefix) + 2: word = word[len(prefix):]; break
-        if len(word) > 2 and word not in STOP: words.add(word)
-    return words
-
-
-def tidy_decisions(rows):
-    """The inbox asks each thing once and only what the person decides: a card_triage question is a fact about the
-    code the assistant checks itself (the `investigations` row already offers that), so it never reaches the person;
-    two questions on one topic (the same key, or most of the same words, as the planner and a screen reviewer ask
-    about the phone's tab bar) become one, the first kept with the others' ids in `merged`."""
-    kept = []
-    for row in rows:
-        if str(row.get('id', '')).startswith('node-card_triage:'): continue
-        if row.get('state') == 'waiting': row = _first_asking(row, kept)
-        if row is not None: kept.append(row)
-    return [{k: v for k, v in row.items() if k != '_words'} for row in kept]
-
-
-def _topic_key(row):
-    return str(row.get('id', '')).rsplit(':', 1)[-1].removeprefix('ideal-')
-
-
-def _same_topic(kept, key, words):
-    """A waiting question already kept with the same key, or most of the same words."""
-    if kept.get('state') != 'waiting': return False
-    if key and _topic_key(kept) == key: return True
-    mine = kept['_words']
-    return len(words) >= 3 and len(mine) >= 3 and len(words & mine) / min(len(words), len(mine)) >= 0.5
-
-
-def _first_asking(row, kept):
-    """The row with its words, when it is the first asking of its topic; None when an earlier one takes it in."""
-    key, words = _topic_key(row), _words(row.get('question'))
-    same = next((k for k in kept if _same_topic(k, key, words)), None)
-    if same is None: return {**row, '_words': words}
-    same.setdefault('merged', []).append(row['id'])
-    return None
-
-
 # ---------------------------------------------------------------- writing
 
 def _asked(report, m, card_rows, lang):
     """Every question of the inbox in one language, each asked once."""
-    return tidy_decisions(decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
+    return inbox.tidy(decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
                           + planned_ideal.disagreements(report, lang))
 
 

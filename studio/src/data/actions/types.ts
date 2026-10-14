@@ -4,8 +4,10 @@
 /** A sentence in both languages: every event and label carries one. */
 export interface Bi { en: string; ar: string }
 
-export type RunState = 'queued' | 'running' | 'paused' | 'waiting_for_person' | 'done' | 'failed' | 'stopped'
-export const TERMINAL: readonly RunState[] = ['done', 'failed', 'stopped']
+export type RunState = 'queued' | 'running' | 'paused' | 'waiting_for_person' | 'done' | 'failed' | 'stopped' | 'unchanged'
+export const TERMINAL: readonly RunState[] = ['done', 'failed', 'stopped', 'unchanged']
+/** A run that may be tried again: one that did not finish, was stopped, or kept no change. */
+export const RETRYABLE: readonly RunState[] = ['failed', 'stopped', 'unchanged']
 /** A run that holds the project's one slot: running, paused or waiting for the person. */
 export const ACTIVE: readonly RunState[] = ['running', 'paused', 'waiting_for_person']
 

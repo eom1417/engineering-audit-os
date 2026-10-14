@@ -77,11 +77,12 @@ def measurement(name, value, threshold=None, unit=None):
 
 
 def finding(engine, version, rule, kind, subj, message, measurements=(), engine_confidence=None,
-            method=HEURISTIC, raw_ref=None, sites=()):
+            method=HEURISTIC, raw_ref=None, sites=(), cwe=()):
     """One normalised finding. Its id is content-derived, so two runs of the same engine agree.
 
     A finding about several places carries all of them in `sites`; `subject` is only its anchor.
     Anchoring a five-file duplicate at one file would hide four of the five from correlation.
+    `cwe`: the weaknesses (CWE-78, ...) the rule names, so two engines can be seen to report the same one.
     """
     if kind not in KINDS:
         raise ValueError(f'{engine}: unknown finding kind {kind!r}')
@@ -92,4 +93,4 @@ def finding(engine, version, rule, kind, subj, message, measurements=(), engine_
             'sites': sorted({(site.get('path'), site.get('line')) for site in sites} or
                             {(subj.get('path'), subj.get('line'))},
                             key=lambda spot: (str(spot[0]), spot[1] if spot[1] is not None else -1)),
-            'engine_confidence': engine_confidence, 'raw_ref': raw_ref}
+            'engine_confidence': engine_confidence, 'raw_ref': raw_ref, 'cwe': sorted(set(cwe))}

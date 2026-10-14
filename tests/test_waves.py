@@ -68,6 +68,16 @@ class RebuildTests(unittest.TestCase):
         # Wave 4 on EAOS (2026-10-13): without the Studio rebuilt, every half failed alike, 56 runs over three hours
         self.assertEqual(len(regenerated), len(applied), 'each half is checked with the files its build makes')
 
+    def test_skipping_a_kept_card_gives_the_others_their_new_commits_and_fails_one_that_no_longer_applies(self):
+        root = repository()
+        base = git(root, 'rev-parse', 'HEAD')
+        one, two = commit_file(root, 'one.txt', 'one'), commit_file(root, 'b.txt', 'two\n')
+        three = commit_file(root, 'b.txt', 'two\nthree\n')                  # stands on two's change
+        wave = {'root': str(root), 'base': base, 'kept': {'T1': one, 'T2': two, 'T3': three}, 'failed': {}}
+        waves.without(wave, 'T2')
+        self.assertEqual((wave['kept'], wave['failed']),
+                         ({'T1': git(root, 'rev-parse', 'HEAD')}, {'T3': 'its change no longer applies once T2 was skipped'}))
+
 
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
@@ -228,6 +238,19 @@ class CodeLawsGateTests(unittest.TestCase):
 
 
 class PythonSuiteGateTests(unittest.TestCase):
+    def test_a_change_to_the_apps_files_runs_the_apps_checks_on_the_card_itself(self):
+        # EAOS, batch 5 (2026-10-14): an unused import in studio/ broke its type check and its build; no card's gate ran
+        # them, and it was found only when the 51 changes met
+        from eaos import execute
+        typecheck = {'argv': ['npm', 'run', 'typecheck'], 'exit': 0, 'failing': []}
+        with mock.patch('eaos.live_run.load_profile', return_value={'app': 'studio'}), \
+                mock.patch.object(execute, 'original_checks', return_value=[typecheck]), \
+                mock.patch.object(execute, 'project_checks', return_value=[{**typecheck, 'exit': 2}]) as ran:
+            self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['eaos/plan.py']), [])
+            self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['studio/src/x.tsx']),
+                             ["the app's own check failed: npm run typecheck"])
+        self.assertEqual(ran.call_args.kwargs, {'python': False}, 'the whole Python suite stays for the batch')
+
     def test_a_python_suite_beside_the_app_is_a_gate_and_only_its_new_failures_count(self):
         from eaos.execute import failing, regressions
         from eaos.verify import python_tests

@@ -10,6 +10,7 @@ from pathlib import Path
 from .compose.labels import IMPACTS
 from .fact_claims import BUILDERS, engine_measurement
 from .vocabulary import schema_errors
+from .weaknesses import SECURITY
 from .workspace import DATA, read, write
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
@@ -300,7 +301,7 @@ def _engine_claim(index, kind, cluster, detail, said):
                                    'engines': engines, 'verdict': detail['verdict'],
                                    **said['measured'], **({'impact_key': impact_key} if impact_key else {})}},
                 probe_spec={'probe_type': 'graph_query',
-                            'specification': {'query': 'engine_cluster_present',
+                            'specification': {'query': 'engine_cluster_present', 'engines': detail['asserted_by'],
                                               'place': cluster['place'], 'kind': kind,
                                               'expected': 'The same engines still report this kind at this place.'}},
                 impact=said['impact'])
@@ -321,8 +322,8 @@ def from_engines(fact_sets, offset=0):
     made, index = [], offset
     for cluster in clusters(fact_sets):
         for kind, detail in sorted(cluster['corroboration'].items()):
-            # A vulnerable dependency already has its own claim (from_facts); a second scanner is a witness, not a claim.
-            if kind == 'vulnerability' or detail['verdict'] not in says:
+            # Security findings are cards of their own, alone or agreed (eaos/weaknesses.py), a vulnerable dependency too.
+            if kind in SECURITY or detail['verdict'] not in says:
                 continue
             index += 1
             made.append(_engine_claim(index, kind, cluster, detail, says[detail['verdict']](kind, detail, cluster, fact_sets)))

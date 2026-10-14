@@ -78,13 +78,39 @@ def next_batch(report, done, size=SIZE):
 
 # ---------------------------------------------------------------- one collection, every acceptance
 
+def engines_for(cards):
+    """The engines a collection of facts on a changed copy runs: the security gate's (eaos/execute.py GATE_ENGINES),
+    and those a card's own recheck asks again (a security card names the engines that found it)."""
+    from .execute import GATE_ENGINES
+    named = set()
+    for card in cards:
+        argv = card.get('verify_command') or []
+        if 'recheck' in argv and '--spec' in argv:
+            named |= set((json.loads(argv[argv.index('--spec') + 1]).get('specification') or {}).get('engines') or [])
+    return sorted(set(GATE_ENGINES) | named)
+
+
+def edit_gates(where, root, card, changed, repair):
+    """(what one change of a batch broke or added against the code laws, the card's own check's exit: None for a
+    repair), from one collection of facts on the copy `root`; `where`: (report, project, runtime). A change to the app's
+    files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
+    its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14)."""
+    from .execute import app_breakage, new_breakage, new_debt
+    from .facts.run import collect
+    report, project, runtime = where
+    with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
+        collect(root.resolve(), out, engines=engines_for([card]))
+        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed) + app_breakage(project, runtime, root, changed)
+        return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
+
+
 def batch_acceptance(report, cards, root, collected=None):
     """{card id: exit code} for every card's acceptance, from one collection of facts on `root` (`collected`,
-    when the caller already made it). A `recheck --spec` acceptance and the dead-code check are read from that
-    collection; anything else runs as written."""
+    when the caller already made it, with engines_for(cards)). A `recheck --spec` acceptance and the dead-code check
+    are read from that collection; anything else runs as written."""
     from .facts.run import collect, read_available
     out = Path(collected) if collected else Path(tempfile.mkdtemp(prefix='eaos-wave-facts-'))
-    if not collected: collect(Path(root).resolve(), out)
+    if not collected: collect(Path(root).resolve(), out, engines=engines_for(cards))
     sets = read_available(out)
     dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
             for f in (sets.get('deadcode') or {}).get('facts', [])}
@@ -139,6 +165,21 @@ def rebuild(root, base, commits):
             git(root, 'cherry-pick', '--abort')
             dropped.append(sha)
     return dropped
+
+
+def without(wave, card):
+    """An open batch's copy rebuilt without a kept card: every other kept change and repair takes its new commit, and
+    one that no longer applies without it fails, saying so, instead of staying kept with a commit the copy lacks."""
+    wave['kept'].pop(card)
+    repairs = wave.get('repairs') or []
+    dropped = set(rebuild(wave['root'], wave['base'], list(wave['kept'].values()) + repairs))
+    made = iter(git(wave['root'], 'rev-list', '--reverse', f"{wave['base']}..HEAD").stdout.split())
+    for other, sha in list(wave['kept'].items()):
+        if sha in dropped:
+            wave['kept'].pop(other)
+            wave['failed'][other] = f'its change no longer applies once {card} was skipped'
+        else: wave['kept'][other] = next(made)
+    if repairs: wave['repairs'] = [next(made) for sha in repairs if sha not in dropped]
 
 
 def gates(batch, name):

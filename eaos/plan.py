@@ -4,7 +4,7 @@ An observed pattern does not establish a violation. Repairs need sourced require
 review and independent acceptance; investigations may conclude no change.
 """
 from pathlib import Path
-from .card_review import (RESOLUTION_FIELDS, acceptance_for, apply_verdicts, design_cards, fix_check, invariants_of,
+from .card_review import (RESOLUTION_FIELDS, acceptance_for, apply_verdicts, design_cards, fix_checks, invariants_of,
                           resolutions, resolve, verify_command_for, what_to_do)
 from .compose import Document
 from .compose.labels import falsifier_of, impact_of, statement_of
@@ -124,11 +124,22 @@ def build_tasks(target, out, dossier, sets):
     from .roadmap import section
     for task in tasks: task['section'] = section(task)
     _link_prerequisites(tasks, dossier)
+    _split_last(tasks)
     from .decisions import task_errors
     for task in tasks:
         errors = task_errors(task)
         if errors: raise ValueError('Invalid task: ' + '; '.join(errors))
     return tasks
+
+
+def _split_last(tasks):
+    """A module is split after its complex functions are simplified: split first, those functions move to new files
+    and their cards no longer find them (EAOS, 2026-10-14: four files over 1000 lines with complexity cards)."""
+    for split in (t for t in tasks if t.get('pattern') == 'split_module'):
+        for task in tasks:
+            if task.get('pattern') == 'hotspot' and set(task['paths']) & set(split['paths']):
+                split['prerequisites'].append({'task_id': task['id'],
+                                               'reason': 'its complex functions are simplified before the module is split'})
 
 
 # Kinds of card whose findings in one file are fixed by one change there: one card per (kind, file).
@@ -464,7 +475,7 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     closed = {card for card, r in resolved.items() if r['resolution'] == 'keep'}
     from .owner_share import cap_owner
     turned = cap_owner(resolved, len(tasks) - len(rejected) - len(closed) + len(design))
-    revision = _fix_checks(target, resolved, verdicts)
+    revision = fix_checks((target, out), tasks, resolved, verdicts)
     for card, row in resolved.items():
         if card in verdicts: verdicts[card] = {**verdicts[card], **{k: row[k] for k in RESOLUTION_FIELDS if k in row}}
     claims = _apply_triage(out, plan, verdicts, (rejected, language))
@@ -476,17 +487,6 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     record = _cards_record((tasks, design, kept), verdicts, resolved, (rejected, closed, turned))
     write(out / 'cards.json', record)
     return record
-
-
-def _fix_checks(target, resolved, verdicts):
-    """The revision the fixes the assistant decided are checked against, each triaged one with its check; None when
-    nothing is to be fixed."""
-    if not any(r['resolution'] == 'fix' for r in resolved.values()): return None
-    from .acceptance import fingerprint
-    revision = fingerprint(target)
-    for card, row in resolved.items():
-        if row['resolution'] == 'fix' and card in verdicts: row['checks'] = [fix_check(card, row['change'], revision)]
-    return revision
 
 
 def _apply_triage(out, plan, verdicts, how):

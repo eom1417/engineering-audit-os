@@ -143,17 +143,6 @@ class Continuity(Base):
         cards = self.check(again)['cards'].values()
         self.assertEqual([c['title'] for c in cards if c['state'] == 'on_branch'], [FIRST[0]['title']])
 
-    def test_fixes_merged_before_the_ledger_existed_are_read_from_git(self):
-        """The owner's project: the batch merged by hand, then a new check numbered everything again."""
-        cards = {c['id']: c for c in read_plan(guided.report_of(self.state))['tasks']}
-        (self.project / 'src/x.js').write_text('// fixed\n')
-        subprocess.run(['git', '-C', str(self.project), 'add', '-A'], check=True)
-        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-qm',
-                        f"TASK-001: {cards['TASK-001']['title']}\n\nExecuted by EAOS (assistant)."], check=True)
-        ledger.path(self.state).unlink()
-        totals = self.check([dict(c, id=f'TASK-{i:03d}') for i, c in enumerate(FIRST[1:], 1)])['totals']
-        self.assertEqual((totals['done'], totals['total']), (1, 5))
-
     def test_accept_merges_deletes_the_branch_and_updates_the_report_at_once(self):
         self.batch(1, ['TASK-001', 'TASK-003'], {'TASK-004': 'skipped: needs a product decision'})
         before = ledger.sync(self.state)['totals']

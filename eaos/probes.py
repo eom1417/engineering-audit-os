@@ -6,6 +6,7 @@ that fails turns its claim into REFUTED instead of quietly disappearing.
 from datetime import datetime, timezone
 from pathlib import Path
 import re
+from . import weaknesses
 from .workspace import read, write
 
 KINDS = ['absence_search', 'graph_query', 'execution', 'coverage', 'falsification']
@@ -121,6 +122,7 @@ QUERY_REQUIRES = {
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
     'engine_cluster_present': 'external', 'load_blocker_present': 'load_model', 'access_gap_present': 'domain',
     'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
+    'weakness_present': 'external',
 }
 
 
@@ -288,7 +290,7 @@ def _no_dependency(specification, sets):
 QUERIES = {
     'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved, 'load_blocker_present': _load_blocker,
     'vulnerable_dependency_present': _vulnerable, 'broken_code_present': _broken, 'dead_code_present': _dead,
-    'engine_cluster_present': _engine_cluster, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
+    'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
     'access_gap_present': _access_gap, 'external_write_present': _external_write, 'policy_violation_present': _policy,
     'duplicate_cluster_present': _duplicate, 'sequence_cluster_present': _sequence, 'redundancy_present': _redundancy,
     'no_code_dependency': _no_dependency,
@@ -300,6 +302,9 @@ def run_graph_query(specification, sets):
     required = QUERY_REQUIRES.get(query)
     if required and required not in sets:
         return 'INCONCLUSIVE', f'the {required} facts are not present in this run, so this probe cannot decide'
+    # Silence from an engine that never looked proves nothing: a probe naming its engines needs every one to have run.
+    missing = set(specification.get('engines') or []) - weaknesses.observed(sets)
+    if missing: return 'INCONCLUSIVE', f"{', '.join(sorted(missing))} did not run here, so this probe cannot decide"
     decide = QUERIES.get(query)
     return decide(specification, sets) if decide else ('INCONCLUSIVE', 'unknown query')
 

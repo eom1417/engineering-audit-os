@@ -78,6 +78,10 @@ def new_breakage(report, root, collected=None):
     return broke
 
 
+# The security engines that answer in seconds: they run on every change a batch makes (eaos/waves.py edit_gates).
+GATE_ENGINES = ('bandit', 'gitleaks')
+
+
 def _facts(folder, name):
     file = Path(folder) / 'facts' / f'{name}.json'
     return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
@@ -107,27 +111,45 @@ def _excess(folder, paths):
 
 def new_debt(report, collected, paths):
     """What a change added against the code laws (eaos/code_laws.py) in the files it touched (`paths`), from the facts
-    of the report (before) and `collected` (after): a copied block or function, dead code, or more decisions past
-    the complexity limit across those files (splitting a function of 60 into three of 20 is less; a new one of 20 is
-    more; moving one into a new module is neither). A change that adds any is taken back like a breakage."""
+    of the report (before) and `collected` (after): a copied block or function, dead code, more decisions past the
+    complexity limit across those files (splitting a function of 60 into three of 20 is less; a new one of 20 is
+    more; moving one into a new module is neither), or a security finding of an engine both ran (GATE_ENGINES, fast
+    enough for every change). A change that adds any is taken back like a breakage."""
     from .code_laws import MAX_COMPLEXITY
+    from .weaknesses import new as new_weaknesses
     paths = set(paths)
     was, now = _excess(report, paths), _excess(collected, paths)
     copied = _copies(collected, paths) - _copies(report, paths)
     added = [f'{len(copied)} copied block(s) or function(s): call the one home instead'] if copied else []
     added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(_dead(collected, paths) - _dead(report, paths))]
     if now > was: added.append(f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} per function')
+    added += [f'a security finding: {rule} ({engine}) in {path}'
+              for engine, rule, path in new_weaknesses(report, collected, paths)]
     return added
 
 
-def project_checks(target, runtime, stage, name):
+def app_breakage(project, runtime, root, changed):
+    """The run profile's checks (a type check, a lint, the app's tests: seconds, not the whole suite) that a change to
+    files of the app broke on the copy `root`, against the same checks on the authorised commit; [] when it touches no
+    file of the app, or the app may not run here."""
+    from .live_run import load_profile
+    from .sandbox import AuthorizationError
+    try: app = (load_profile(runtime).get('app') or '.').strip('/')
+    except AuthorizationError: return []
+    if app != '.' and not any(path.startswith(app + '/') for path in changed): return []
+    return [f'the app\'s own check failed: {check}' for check in
+            regressions(original_checks(project, runtime), project_checks(root, runtime, 'S09', 'edit', python=False))]
+
+
+def project_checks(target, runtime, stage, name, python=True):
     """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy, and its Python tests (the
-    profile's checks run in the app's folder; a Python suite beside it is the project's too); [] when there are none.
-    Every command's output tail is kept in runtime/checks-<name>-log.json."""
+    profile's checks run in the app's folder; a Python suite beside it is the project's too; `python` false: the
+    profile's alone); [] when there are none. Every command's output tail is kept in runtime/checks-<name>-log.json."""
     from .live_run import LiveRun
     live = LiveRun(target, runtime, stage)
     from .verify import python_tests
-    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(target, live.profile)]
+    checks = [(argv, False) for argv in live.profile.get('checks') or []] + \
+        [(argv, True) for argv in (python_tests(target, live.profile) if python else [])]
     if not checks: return []
     try:
         live.setup()

@@ -11,18 +11,20 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import (ast_grep, checkov, codegraph, complexipy, dependency_cruiser, enola, gitnexus, jscpd, knip, lizard, oasdiff,
-               osv_scanner, react_docgen, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
+from . import (ast_grep, bandit, checkov, codegraph, codeql, complexipy, dependency_cruiser, enola, gitleaks, gitnexus, jscpd,
+               knip, lizard, oasdiff, osv_scanner, react_docgen, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from .. import progress
 
 ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov,
-                                               dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
+                                               bandit, gitleaks, codeql, dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
                                                ast_grep, lizard, complexipy, vulture, knip, react_docgen)}
 # CodeGraph takes about half the stage (147 of 308 s on EAOS itself) and reads no other engine's output: it runs on
 # a second thread beside the others, which still run one after another, so at most two engines share the memory.
 BESIDE = codegraph.NAME
+# CodeQL holds up to codeql.MEMORY megabytes for its database: it runs alone, once every other engine is done.
+ALONE = codeql.NAME
 
 
 def health():
@@ -71,8 +73,9 @@ def _run_all(selected, target, workdir, exclude, formats):
     with ThreadPoolExecutor(1) as pool:
         beside = [pool.submit(contextvars.copy_context().run, _run_one, name, *args) for name in selected if name == BESIDE]
         for name in selected:
-            if name != BESIDE: _run_one(name, *args)
+            if name not in (BESIDE, ALONE): _run_one(name, *args)
         for future in beside: future.result()
+    if ALONE in selected: _run_one(ALONE, *args)
     return {name: reports[name] for name in selected}
 
 

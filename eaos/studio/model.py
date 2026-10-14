@@ -7,6 +7,7 @@ What a problem is: one task card of plan.json. Its area and severity come from o
     pattern             area             default severity
     access_gap          security         critical
     upgrade_dependency  security         high
+    security_weakness   security         high
     broken_code         quality          high
     remove_dead         quality          low
     dead_code           quality          low
@@ -20,6 +21,7 @@ What a problem is: one task card of plan.json. Its area and severity come from o
     load_blocker        performance      medium
     redundant_work      performance      medium
     hotspot             maintainability  medium
+    split_module        structure        medium    (a module past one responsibility is the structure's)
     trace_gap           maintainability  low
     untested_path       maintainability  medium
     generic             by the debt register's category (CATEGORY_AREA), else maintainability; medium
@@ -33,6 +35,9 @@ The health score, derived only from those cards:
     area score            = 100 x 20 / (20 + density)   (20 weighted points per 100 files halve the score)
     health score          = the mean of the measured areas' scores; a confirmed critical problem caps it at 39
 An area whose checking stage failed or was not reached is left out of the mean and shown as not measured.
+A security card the assistant closed as not worth changing (cards.json `closed`: a vulnerable library with no fixed
+version) is an accepted risk, not a solved one: it is no longer work, but it still weighs on the security score, and
+the area counts it apart (`accepted`), so the score never reads as if no risk were known.
 Grades: 90 and above excellent, 75 good, 60 fair, 40 weak, below 40 critical. An area's light is green
 from 80 with no high or critical problem, red below 50 or with a critical problem, amber otherwise.
 
@@ -59,14 +64,14 @@ CRITICAL_CAP = 39
 # ux: how the screens look, from the visual reviewer's design cards; measured only in a check that pictured them.
 AREAS = ('security', 'structure', 'quality', 'performance', 'ux', 'maintainability')
 PATTERNS = {
-    'access_gap': ('security', 'critical'), 'upgrade_dependency': ('security', 'high'),
+    'access_gap': ('security', 'critical'), 'upgrade_dependency': ('security', 'high'), 'security_weakness': ('security', 'high'),
     'broken_code': ('quality', 'high'), 'remove_dead': ('quality', 'low'), 'dead_code': ('quality', 'low'),
     'canonicalize': ('quality', 'low'), 'duplicated_rule': ('quality', 'medium'),
     'import_cycle': ('structure', 'medium'), 'mutable_state': ('structure', 'medium'), 'mutable_state_private': ('structure', 'low'),
     'hidden_coupling': ('structure', 'low'), 'external_write': ('structure', 'medium'),
     'policy_violation': ('structure', 'medium'),
     'load_blocker': ('performance', 'medium'), 'redundant_work': ('performance', 'medium'),
-    'hotspot': ('maintainability', 'medium'), 'split_module': ('maintainability', 'medium'), 'trace_gap': ('maintainability', 'low'),
+    'hotspot': ('maintainability', 'medium'), 'split_module': ('structure', 'medium'), 'trace_gap': ('maintainability', 'low'),
     'untested_path': ('maintainability', 'medium'), 'generic': ('maintainability', 'medium'),
     'design_review': ('ux', 'medium'), 'investigation': ('maintainability', 'low'),
 }
@@ -101,14 +106,19 @@ def classify(task, debt=None, category=None):
     return area, severity
 
 
+def _ledger(report):
+    """({claim id: claim}, {claim id: debt register item}) of a report."""
+    dossier = _load(report / 'dossier.json', {}) or {}
+    register = _load(report / 'debt-register.json', {}) or {}
+    return ({c.get('id'): c for c in dossier.get('claims') or [] if isinstance(c, dict)},
+            {i.get('claim_id'): i for i in register.get('items') or [] if isinstance(i, dict) and i.get('claim_id')})
+
+
 def problems(report):
     """One row per plan card, with its area, severity, confidence and plain words."""
     report = Path(report)
     plan = _load(report / 'plan.json', {}) or {}
-    dossier = _load(report / 'dossier.json', {}) or {}
-    register = _load(report / 'debt-register.json', {}) or {}
-    claims = {c.get('id'): c for c in dossier.get('claims') or [] if isinstance(c, dict)}
-    debt = {i.get('claim_id'): i for i in register.get('items') or [] if isinstance(i, dict) and i.get('claim_id')}
+    claims, debt = _ledger(report)
     rows = [_problem_row(task, claims.get(task.get('claim_id')) or {}, debt.get(task.get('claim_id')) or {})
             for task in plan.get('tasks') or [] if isinstance(task, dict)]
     ranked = sorted((r['priority'] for r in rows), reverse=True)
@@ -116,6 +126,16 @@ def problems(report):
         above = sum(1 for p in ranked if p > row['priority'])
         row['top'] = max(1, math.ceil((above + 1) * 100 / len(ranked)))
     return rows
+
+
+def accepted_risks(report):
+    """The security cards the assistant closed, as problem rows of the score only (module docstring)."""
+    report = Path(report)
+    closed = [c for c in (_load(report / 'cards.json', {}) or {}).get('closed') or [] if isinstance(c, dict)]
+    claims, debt = _ledger(report) if closed else ({}, {})
+    rows = [_problem_row({'id': c.get('card'), 'title': c.get('title')}, claims.get(c.get('claim_id')) or {},
+                         debt.get(c.get('claim_id')) or {}) for c in closed]
+    return [{**row, 'accepted': True} for row in rows if row['area'] == 'security']
 
 
 def _problem_row(task, claim, item):
@@ -170,7 +190,8 @@ def _area_score(area, rows, size, measured):
     value = round(100 * HALF_POINT / (HALF_POINT + density))
     counts = {s: sum(r['severity'] == s for r in mine) for s in SEVERITIES}
     return {'score': value if measured else None, 'points': round(points), 'density': round(density),
-            'counts': counts, 'total': len(mine), 'light': _light(value, counts) if measured else 'grey', 'measured': measured}
+            'counts': counts, 'total': len(mine), 'accepted': sum(bool(r.get('accepted')) for r in mine),
+            'light': _light(value, counts) if measured else 'grey', 'measured': measured}
 
 
 def records(report, progress=None):
@@ -184,7 +205,7 @@ def records(report, progress=None):
     known = isinstance(plan.get('tasks'), list)
     target = _load(report / 'target-architecture.json', {}) or {}
     return {'rows': rows, 'statuses': statuses, 'coverage': coverage,
-            'score': score(rows, coverage.get('source_files'), statuses, known), 'plan': plan, 'target': target,
+            'score': score(rows + accepted_risks(report), coverage.get('source_files'), statuses, known), 'plan': plan, 'target': target,
             'gap_matrix': {'rows': target.get('gap_matrix') or []}, 'manifest': _load(report / 'run-manifest.json', {}) or {},
             'dossier': dossier, 'progress': progress or {}}
 

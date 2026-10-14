@@ -2,8 +2,9 @@
 
 `python -m eaos recheck --spec '<probe json>' [ROOT]` is the acceptance command of a mechanical repair card.
 It runs in the candidate copy (ROOT, default the working directory), collects the facts into a private
-directory (and the load model, when the probe reads it), and applies eaos.probes.decide_probe, the same
-function the audit's probe stage uses. Exit 0: REFUTED, the observation is gone. Exit 1: it is still there.
+directory (and the load model, when the probe reads it; the engines the probe names, when it names them, so a
+security finding is asked of the same engines again), and applies eaos.probes.decide_probe, the same function the
+audit's probe stage uses. Exit 0: REFUTED, the observation is gone. Exit 1: it is still there.
 Exit 2: the probe could not decide, which is never a pass.
 """
 import json
@@ -15,7 +16,7 @@ def recheck(root, spec):
     from .facts.run import collect, read_available
     from .probes import decide_probe
     out = Path(tempfile.mkdtemp(prefix='eaos-recheck-'))
-    collect(Path(root).resolve(), out)
+    collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines'))
     sets = read_available(out)
     if (spec.get('specification') or {}).get('query') == 'load_blocker_present':
         from .load_model import compute, project
