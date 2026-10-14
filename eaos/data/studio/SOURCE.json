@@ -1,5 +1,5 @@
 {
- "source_sha256": "aa1baa18c301ed2812a6afb954dc356988a499645dc9526645087dfddebaea8f",
+ "source_sha256": "44eb0b0ebebda69e0ccf632df2659ae8c4fb5301901e25fa2ecd40b7c17b2805",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -24,6 +24,7 @@
   "assets/ImagePage.js",
   "assets/InfraLens.js",
   "assets/JourneysPage.js",
+  "assets/Lanes.js",
   "assets/LibraryPage.js",
   "assets/ListBox.js",
   "assets/LiveCheckPage.js",
