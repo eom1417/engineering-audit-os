@@ -3,7 +3,7 @@
 // with a second "I understand" for what cannot be undone. An action with inputs asks for them first. In a snapshot
 // (opened from a file) it explains how to start the live Studio, and offers the request to copy to an assistant.
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { Input, Label, TextArea, TextField } from 'react-aria-components'
 import { Button, CopyRequestButton, copyText } from '../components/Button'
 import { Chip, SeverityGlyph, type Tone } from '../components/Chip'
@@ -13,7 +13,7 @@ import { Sheet, SheetSub } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { actionOf, personInputs, SNAPSHOT, verbOf } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
-import { ActionError, type Bi, type FixWhere, type JsonSchema, type Preview, type Selection, type WhereChoice } from '../data/actions/types'
+import { ActionError, type ActionsClient, type Bi, type FixWhere, type JsonSchema, type Preview, type PreviewBody, type Selection, type StartBody, type WhereChoice } from '../data/actions/types'
 import type { Severity } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
@@ -334,18 +334,169 @@ function AssistantBlock({ preview, request }: { preview: Preview; request: Comma
   )
 }
 
-export function PreviewSheet() {
+type Action = ReturnType<typeof actionOf>
+type Words = ReturnType<typeof useCmdWords>
+type Lang = ReturnType<typeof usePrefs>['lang']
+type Inputs = Record<string, unknown>
+/** What the person chose around the request: the assistant, the place of a Fix, and a Fix's own option. */
+interface Asked { assistant: string | null; place: WhereChoice; verbInputs?: { auto_accept: boolean }; inputs?: Inputs }
+
+/** The form's first values: the cards the person selected, then the inputs the request carries. */
+function startValues(request: CommandRequest | null | undefined, action: Action | undefined, fields: Field[]): Record<string, string | boolean> {
+  const start: Record<string, string | boolean> = {}
+  if (action && request?.selection?.cards && fields.some(([name]) => name === 'cards')) start.cards = request.selection.cards.join('\n')
+  if (action && request?.selection?.cards?.length === 1 && fields.some(([name]) => name === 'card')) start.card = request.selection.cards[0]
+  return { ...start, ...Object.fromEntries(Object.entries(request?.inputs ?? {}).map(([k, v]) => [k, typeof v === 'boolean' ? v : Array.isArray(v) ? v.join('\n') : String(v)])) }
+}
+
+/** An action asks for its inputs first; a verb never does. */
+const formNeeded = (action: Action | undefined, fields: Field[], request: CommandRequest | null | undefined) => Boolean(action && fields.length && !request?.verb)
+
+/** Fix only: the person's choice to accept the batch by itself when its checks pass; previewed again when it changes,
+ * since the confirmation is bound to it. */
+const verbInputsOf = (request: CommandRequest | null | undefined, autoAccept: boolean) => (request?.verb === 'fix' && autoAccept ? { auto_accept: true } : undefined)
+
+/** What the preview is asked: a verb on the selection (a Fix with its place), or an action with its inputs. */
+function previewRequest(request: CommandRequest, a: Asked): PreviewBody {
+  return request.verb
+    ? { verb: request.verb, selection: request.selection ?? undefined, assistant: a.assistant ?? undefined, where: request.verb === 'fix' ? a.place : undefined, inputs: a.verbInputs }
+    : { inputs: a.inputs, assistant: a.assistant ?? undefined }
+}
+
+/** What starts the run, as the preview showed it. */
+function startRequest(request: CommandRequest, preview: Preview, a: Asked): StartBody {
+  return { action: request.verb ?? request.action ?? '', verb: request.verb, selection: (request.selection ?? undefined) as Selection | undefined,
+    // The assistant the preview showed, never the server's own pick at start time (it may differ a minute later)
+    inputs: (request.verb ? a.verbInputs : a.inputs) ?? undefined, assistant: a.assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null,
+    // The place the preview showed, its base commit pinned: a branch that moved since is refused, never built on
+    where: preview.where?.base ? { ...a.place, base: preview.where.base.branch, base_commit: preview.where.base.commit,
+      deliver_as: preview.where.deliver_as ?? undefined, merge_into: preview.where.merge_into ?? undefined } : undefined }
+}
+
+function sheetTitle(request: CommandRequest, action: Action | undefined, preview: Preview | null, w: Words, lang: Lang): string {
+  return request.verb
+    ? `${verbOf(request.verb).label[lang]} · ${w('cardsCount', { n: request.selection?.cards?.length ?? preview?.cards.length ?? 0 })}`
+    : action?.label[lang] ?? request.action ?? ''
+}
+
+/** The start button's words, and whether it is locked: no preview yet, busy, not understood, no card, or a place problem. */
+function confirmOf(c: { request: CommandRequest; action: Action | undefined; preview: Preview | null; busy: boolean; understood: boolean; w: Words; lang: Lang }) {
+  const { request, preview, w, lang } = c
+  const n = request.verb ? preview?.cards.length ?? request.selection?.cards?.length ?? 0 : 0
+  const label = request.verb ? w('startVerb', { verb: verbOf(request.verb).label[lang], n }) : w('startAction', { label: c.action?.label[lang] ?? '' })
+  const blocked = !preview || c.busy || (preview.irreversible && !c.understood) || (request.verb && preview.cards.length === 0) || Boolean(preview.where?.problem)
+  return { label, blocked: Boolean(blocked) }
+}
+
+/** The preview of what the person chose, asked again whenever the choice changes; a failure goes to `problem`. */
+function usePreview(c: { request: CommandRequest | null | undefined; asked: boolean; inputsOf: () => Inputs | null; a: Asked; autoAccept: boolean;
+  setPreview: (preview: Preview | null) => void; setProblem: (problem: string | null) => void }) {
+  const actions = useActions()
+  const { request, asked, a } = c
+  useEffect(() => {
+    if (!request || !asked || !actions.client) return
+    let on = true
+    const inputs = request.verb ? undefined : c.inputsOf()
+    if (inputs === null) return
+    c.setPreview(null); c.setProblem(null)
+    actions.client.preview(request.verb ?? request.action ?? '', previewRequest(request, { ...a, inputs })).then((next) => { if (on) c.setPreview(next) },
+      (error) => { if (on) c.setProblem(error instanceof ActionError ? error.message : String(error)) })
+    return () => { on = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request, asked, actions.client, a.assistant, a.place, c.autoAccept])
+}
+
+/** Starting the run the preview showed: the run page (or the live check) opens; a branch that moved since asks for the
+ * preview again. */
+function useStart(c: { request: CommandRequest | null | undefined; preview: Preview | null; inputsOf: () => Inputs | null; a: Asked; setBusy: (busy: boolean) => void;
+  setMoved: (moved: boolean) => void; setPlace: Dispatch<SetStateAction<WhereChoice>>; setProblem: (problem: string | null) => void }) {
   const command = useCommand()
   const actions = useActions()
   const navigate = useNavigate()
   const toast = useToast()
   const w = useCmdWords()
   const { lang } = usePrefs()
+  return async () => {
+    const { request, preview } = c
+    if (!actions.client || !preview || !request) return
+    c.setBusy(true)
+    try {
+      const inputs = request.verb ? undefined : c.inputsOf()
+      if (inputs === null) { c.setBusy(false); return }
+      const run = await actions.client.start(startRequest(request, preview, { ...c.a, inputs }))
+      command.close()
+      if (request.verb) command.clear()
+      toast(run.state === 'queued' && run.position ? w('queuedToast', { label: run.label[lang] }) : w('started', { label: run.label[lang] }))
+      void actions.refresh()
+      navigate(run.action === 'audit' ? { to: '/scan', search: { flow: 'check' } } : { to: `/runs/${encodeURIComponent(run.id)}` })
+    } catch (error) {
+      c.setBusy(false)
+      if (error instanceof ActionError && error.needs === 'preview') { c.setMoved(true); c.setPlace((was) => ({ ...was })); return }
+      c.setProblem(error instanceof ActionError ? error.message : String(error))
+    }
+  }
+}
+
+function InputsBlock({ fields, required, values, asked, onChange, onAsk }:
+  { fields: Field[]; required: string[]; values: Record<string, string | boolean>; asked: boolean; onChange: (name: string, value: string | boolean) => void; onAsk: () => void }) {
+  const w = useCmdWords()
+  return (
+    <Block title={w('inputs')}>
+      <InputsForm fields={fields} required={required} values={values} onChange={onChange} />
+      {!asked && <Button variant="secondary" icon="eye" block data-confirm="preview" isDisabled={required.some((name) => !values[name])} onPress={onAsk}>{w('previewIt')}</Button>}
+    </Block>
+  )
+}
+
+/** What the sheet says while it works: the preview loading, a failure, or a branch that moved since. */
+function SheetStatus({ asked, preview, problem, moved }: { asked: boolean; preview: Preview | null; problem: string | null; moved: boolean }) {
+  const w = useCmdWords()
+  return <>
+    {asked && !preview && !problem && <StateMessage icon="clock" title={w('loadingPreview')} />}
+    {problem && <StateMessage kind="error" title={w(preview ? 'startFailed' : 'previewFailed')} sub={<Txt>{problem}</Txt>} />}
+    {moved && <p className={css.pvWarn} role="status">{w('branchMoved')}</p>}
+  </>
+}
+
+/** The assistant to run it, when more than one is ready. */
+function AssistantChoice({ preview, assistant, onChange }: { preview: Preview; assistant: string | null; onChange: (id: string) => void }) {
+  const w = useCmdWords()
+  const installed = (preview.assistants ?? []).filter((a) => a.installed && a.logged_in)
+  if (installed.length < 2) return null
+  return <Segmented label={w('assistant')} value={assistant ?? preview.assistant?.id ?? installed[0].id} onChange={onChange} comfortable
+    options={installed.map((a) => ({ id: a.id, label: a.name }))} />
+}
+
+/** A Fix's choice to accept the batch by itself, and the second "I understand" for what cannot be undone. */
+function Checks({ fix, autoAccept, onAutoAccept, irreversible, understood, onUnderstood }:
+  { fix: boolean; autoAccept: boolean; onAutoAccept: () => void; irreversible: boolean; understood: boolean; onUnderstood: () => void }) {
+  const w = useCmdWords()
+  return <>
+    {fix && (
+      <div className={css.check} data-confirm="auto-accept">
+        <SelectBox checked={autoAccept} label={w('autoAccept')} onToggle={onAutoAccept} />
+        <span>{w('autoAccept')}<span className={css.hint}>{w('autoAcceptHint')}</span></span>
+      </div>
+    )}
+    {irreversible && (
+      <div className={css.check}>
+        <SelectBox checked={understood} label={w('understand')} onToggle={onUnderstood} />
+        <span>{w('understand')}</span>
+      </div>
+    )}
+  </>
+}
+
+export function PreviewSheet() {
+  const command = useCommand()
+  const actions = useActions()
+  const w = useCmdWords()
+  const { lang } = usePrefs()
   const request = command.request
   const action = request?.action ? actionOf(request.action) : undefined
   const fields = useMemo<Field[]>(() => (action ? personInputs(action) : []), [action])
   const required = action?.inputs.required ?? []
-  const needsForm = Boolean(action && fields.length && !request?.verb)
+  const needsForm = formNeeded(action, fields, request)
   const [values, setValues] = useState<Record<string, string | boolean>>({})
   const [preview, setPreview] = useState<Preview | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
@@ -355,107 +506,38 @@ export function PreviewSheet() {
   const [asked, setAsked] = useState(false)
   const [place, setPlace] = useState<WhereChoice>({})
   const [moved, setMoved] = useState(false)
-  // Fix only: the person's choice to accept the batch by itself when its checks pass; previewed again when it changes,
-  // since the confirmation is bound to it
   const [autoAccept, setAutoAccept] = useState(false)
-  const verbInputs = request?.verb === 'fix' && autoAccept ? { auto_accept: true } : undefined
+  const a: Asked = { assistant, place, verbInputs: verbInputsOf(request, autoAccept) }
 
   // A new request starts clean; one with no inputs to fill is previewed at once
   useEffect(() => {
     setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false); setPlace({}); setMoved(false); setAutoAccept(false)
-    const start: Record<string, string | boolean> = {}
-    if (action && request?.selection?.cards && fields.some(([name]) => name === 'cards')) start.cards = request.selection.cards.join('\n')
-    if (action && request?.selection?.cards?.length === 1 && fields.some(([name]) => name === 'card')) start.card = request.selection.cards[0]
-    setValues({ ...start, ...Object.fromEntries(Object.entries(request?.inputs ?? {}).map(([k, v]) => [k, typeof v === 'boolean' ? v : Array.isArray(v) ? v.join('\n') : String(v)])) })
+    setValues(startValues(request, action, fields))
     setAsked(Boolean(request) && !needsForm)
   }, [request, action, fields, needsForm])
 
-  const inputsOf = (): Record<string, unknown> | null => {
+  const inputsOf = (): Inputs | null => {
     try { return parse(fields, values) } catch { setProblem('JSON'); return null }
   }
-
-  useEffect(() => {
-    if (!request || !asked || !actions.client) return
-    let on = true
-    const inputs = request.verb ? undefined : inputsOf()
-    if (inputs === null) return
-    const id = request.verb ?? request.action ?? ''
-    const body = request.verb ? { verb: request.verb, selection: request.selection ?? undefined, assistant: assistant ?? undefined, where: request.verb === 'fix' ? place : undefined, inputs: verbInputs } : { inputs, assistant: assistant ?? undefined }
-    setPreview(null); setProblem(null)
-    actions.client.preview(id, body).then((next) => { if (on) setPreview(next) },
-      (error) => { if (on) setProblem(error instanceof ActionError ? error.message : String(error)) })
-    return () => { on = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, asked, actions.client, assistant, place, autoAccept])
+  usePreview({ request, asked, inputsOf, a, autoAccept, setPreview, setProblem })
+  const start = useStart({ request, preview, inputsOf, a, setBusy, setMoved, setPlace, setProblem })
 
   if (!request) return null
-  const title = request.verb
-    ? `${verbOf(request.verb).label[lang]} · ${w('cardsCount', { n: request.selection?.cards?.length ?? preview?.cards.length ?? 0 })}`
-    : action?.label[lang] ?? request.action ?? ''
-  const close = (open: boolean) => { if (!open) command.close() }
-
-  const start = async () => {
-    if (!actions.client || !preview) return
-    setBusy(true)
-    try {
-      const inputs = request.verb ? undefined : inputsOf()
-      if (inputs === null) { setBusy(false); return }
-      const run = await actions.client.start({ action: request.verb ?? request.action ?? '', verb: request.verb, selection: (request.selection ?? undefined) as Selection | undefined,
-        // The assistant the preview showed, never the server's own pick at start time (it may differ a minute later)
-        inputs: (request.verb ? verbInputs : inputs) ?? undefined, assistant: assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null,
-        // The place the preview showed, its base commit pinned: a branch that moved since is refused, never built on
-        where: preview.where?.base ? { ...place, base: preview.where.base.branch, base_commit: preview.where.base.commit,
-          deliver_as: preview.where.deliver_as ?? undefined, merge_into: preview.where.merge_into ?? undefined } : undefined })
-      command.close()
-      if (request.verb) command.clear()
-      toast(run.state === 'queued' && run.position ? w('queuedToast', { label: run.label[lang] }) : w('started', { label: run.label[lang] }))
-      void actions.refresh()
-      navigate(run.action === 'audit' ? { to: '/scan', search: { flow: 'check' } } : { to: `/runs/${encodeURIComponent(run.id)}` })
-    } catch (error) {
-      setBusy(false)
-      if (error instanceof ActionError && error.needs === 'preview') { setMoved(true); setPlace((was) => ({ ...was })); return }
-      setProblem(error instanceof ActionError ? error.message : String(error))
-    }
-  }
-
-  const installed = (preview?.assistants ?? []).filter((a) => a.installed && a.logged_in)
-  const n = request.verb ? preview?.cards.length ?? request.selection?.cards?.length ?? 0 : 0
-  const confirmLabel = request.verb ? w('startVerb', { verb: verbOf(request.verb).label[lang], n }) : w('startAction', { label: action?.label[lang] ?? '' })
-  const blocked = !preview || busy || (preview.irreversible && !understood) || (request.verb && preview.cards.length === 0) || Boolean(preview.where?.problem)
-
+  const confirm = confirmOf({ request, action, preview, busy, understood, w, lang })
   return (
-    <Sheet isOpen onOpenChange={close} title={title}>
+    <Sheet isOpen onOpenChange={(open) => { if (!open) command.close() }} title={sheetTitle(request, action, preview, w, lang)}>
       {actions.mode === 'snapshot' ? <SnapshotBody request={request} /> : (
         <>
-          {needsForm && (
-            <Block title={w('inputs')}>
-              <InputsForm fields={fields} required={required} values={values} onChange={(name, value) => { setValues((was) => ({ ...was, [name]: value })); setAsked(false) }} />
-              {!asked && <Button variant="secondary" icon="eye" block data-confirm="preview" isDisabled={required.some((name) => !values[name])} onPress={() => setAsked(true)}>{w('previewIt')}</Button>}
-            </Block>
-          )}
-          {asked && !preview && !problem && <StateMessage icon="clock" title={w('loadingPreview')} />}
-          {problem && <StateMessage kind="error" title={w(preview ? 'startFailed' : 'previewFailed')} sub={<Txt>{problem}</Txt>} />}
-          {moved && <p className={css.pvWarn} role="status">{w('branchMoved')}</p>}
+          {needsForm && <InputsBlock fields={fields} required={required} values={values} asked={asked} onAsk={() => setAsked(true)}
+            onChange={(name, value) => { setValues((was) => ({ ...was, [name]: value })); setAsked(false) }} />}
+          <SheetStatus asked={asked} preview={preview} problem={problem} moved={moved} />
           {preview && <PreviewBody preview={preview} request={request} onWhere={(next) => { setMoved(false); setPlace((was) => ({ ...was, ...next })) }} />}
-          {preview && installed.length > 1 && (
-            <Segmented label={w('assistant')} value={assistant ?? preview.assistant?.id ?? installed[0].id} onChange={setAssistant} comfortable
-              options={installed.map((a) => ({ id: a.id, label: a.name }))} />
-          )}
-          {request.verb === 'fix' && (
-            <div className={css.check} data-confirm="auto-accept">
-              <SelectBox checked={autoAccept} label={w('autoAccept')} onToggle={() => setAutoAccept(!autoAccept)} />
-              <span>{w('autoAccept')}<span className={css.hint}>{w('autoAcceptHint')}</span></span>
-            </div>
-          )}
-          {preview?.irreversible && (
-            <div className={css.check}>
-              <SelectBox checked={understood} label={w('understand')} onToggle={() => setUnderstood(!understood)} />
-              <span>{w('understand')}</span>
-            </div>
-          )}
+          {preview && <AssistantChoice preview={preview} assistant={assistant} onChange={setAssistant} />}
+          <Checks fix={request.verb === 'fix'} autoAccept={autoAccept} onAutoAccept={() => setAutoAccept(!autoAccept)}
+            irreversible={Boolean(preview?.irreversible)} understood={understood} onUnderstood={() => setUnderstood(!understood)} />
           <div className={css.pvFoot}>
             <Button variant="secondary" onPress={() => command.close()}>{w('cancel')}</Button>
-            <Button variant="primary" icon="play" busy={busy} isDisabled={Boolean(blocked)} onPress={start} className={css.pvGo} data-confirm="start">{confirmLabel}</Button>
+            <Button variant="primary" icon="play" busy={busy} isDisabled={confirm.blocked} onPress={start} className={css.pvGo} data-confirm="start">{confirm.label}</Button>
           </div>
         </>
       )}
