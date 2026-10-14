@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.24 (2026-10-14)
+
+- **A batch is no longer blamed for its surroundings**: when its changes fail the checks together, the same checks run
+  once on the code before the batch; what fails there too is set aside, and no sound fix is left out for it.
+- **Screens are compared on the data they were recorded on**: the folders the app reads outside the project are kept
+  as they were when the screens were recorded.
+
 ## 0.0.23 (2026-10-13)
 
 - **Design fixes may change the screens they are about**: the behaviour lock accepts a different look on the screens
