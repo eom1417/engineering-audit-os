@@ -76,21 +76,30 @@ def subset(source: Path, ranges: str, target: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--check', action='store_true', help='verify the sources and outputs against SOURCE.json')
-    args = parser.parse_args()
+    return check() if parser.parse_args().check else generate()
+
+
+def check() -> int:
+    """0 when every face is recorded, its source unchanged and its committed file the one recorded; else 1, saying why."""
     record = json.loads(RECORD.read_text(encoding='utf-8')) if RECORD.is_file() else {}
-    if args.check:
-        problems = []
-        for name, (source, _) in faces().items():
-            entry = record.get('files', {}).get(name)
-            if not entry:
-                problems.append(f'{name}: not recorded')
-                continue
-            if (FONTSOURCE / source).is_file() and digest(FONTSOURCE / source) != entry['source_sha256']:
-                problems.append(f'{name}: {source} changed; regenerate')
-            if digest(OUT / f'{name}.woff2') != entry['sha256']:
-                problems.append(f'{name}: the committed file differs from the record')
-        print('\n'.join(problems) or 'fonts OK')
-        return 1 if problems else 0
+    problems = [problem for name, (source, _) in faces().items()
+                for problem in _problems(name, source, record.get('files', {}).get(name))]
+    print('\n'.join(problems) or 'fonts OK')
+    return 1 if problems else 0
+
+
+def _problems(name: str, source: str, entry: dict | None) -> list[str]:
+    if not entry: return [f'{name}: not recorded']
+    problems = []
+    if (FONTSOURCE / source).is_file() and digest(FONTSOURCE / source) != entry['source_sha256']:
+        problems.append(f'{name}: {source} changed; regenerate')
+    if digest(OUT / f'{name}.woff2') != entry['sha256']:
+        problems.append(f'{name}: the committed file differs from the record')
+    return problems
+
+
+def generate() -> int:
+    """Subset every face with the pinned fontTools and write SOURCE.json."""
     import fontTools
     if fontTools.version != FONTTOOLS:
         print(f'fontTools {FONTTOOLS} is pinned (found {fontTools.version}); run tools/dev_setup.sh', file=sys.stderr)
