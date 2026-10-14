@@ -342,12 +342,12 @@ class BranchControl:
         {base: {branch, commit, short, when, checked_out}, mode, deliver_as, merge_into, branches: [{name, short, blocked}],
         continuable: [{name, short}], direct_blocked, problem}. base defaults to the analysis branch; mode is `new` (a new
         branch, by default `eaos/<base>/<group>` for a group of cards when that name is free, else `eaos/<base>/wave-N`:
-        batch_branch.delivery), `continue` (an EAOS work branch still waiting for a decision: deliver_as names it) or
+        agent_tools.delivery), `continue` (an EAOS work branch still waiting for a decision: deliver_as names it) or
         `direct` (deliver_as is the base itself: the batch lands on it once it passes; never a protected one); merge_into
         defaults to the branch open in the project folder. The branches offered are the person's own (no EAOS, bot or
         archive branch); a protected one is shown with its reason, never as a base or a target. The base commit is what the
         confirm token pins, so a branch that moves after the preview is caught before anything runs."""
-        from ... import batch_branch
+        from ... import agent_tools
         wanted = wanted if isinstance(wanted, dict) else {}
         state, head = self.state(), self.head()
         working = state.get('branch') or head['branch']
@@ -364,19 +364,19 @@ class BranchControl:
         out['base'] = {'branch': base, 'commit': row[1], 'short': row[1][:7], 'when': row[2] or None, 'checked_out': base == head['branch']}
         view = self._fix_view(state, base, working)
         tips = {name: tip for name, tip, _ in locals_}
-        out['continuable'] = [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in batch_branch.work_branches(view)]
+        out['continuable'] = [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in agent_tools.work_branches(view)]
         out['direct_blocked'] = self._direct_blocked(base, blocked(base))
         return self._fix_delivery(out, view, base, wanted, hint, head, blocked)
 
     def _fix_delivery(self, out, view, base, wanted, hint, head, blocked):
         """Where the batch goes: on the base itself, on an EAOS branch waiting for a decision, or on a new one."""
-        from ... import batch_branch
+        from ... import agent_tools
         asked = str(wanted.get('deliver_as') or '').strip()
         merge = str(wanted.get('merge_into') or '') or head['branch']
         if asked == base and out['direct_blocked']: return out | {'mode': 'direct', 'deliver_as': base, 'merge_into': base, 'problem': out['direct_blocked']}
         named = self._named_after(view, base, hint) if hint and not asked else ''
         try:
-            out['deliver_as'], out['merge_into'] = batch_branch.delivery(view, asked or named or None, merge)
+            out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, asked or named or None, merge)
         except ValueError as problem:
             return out | {'problem': say(str(problem), str(problem), 'delivery'), 'deliver_as': asked or None, 'merge_into': merge, 'mode': 'direct' if asked == base else 'new'}
         return self._fix_merge(out, base, blocked)

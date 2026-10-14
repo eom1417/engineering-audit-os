@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, batch_branch, batch_finish, branches, guided, ledger, live_setup
+from eaos import agent_tools, batch_finish, branches, guided, ledger, live_setup
 from eaos.waves import commit as eaos_commit, plan as read_plan
 
 
@@ -155,7 +155,7 @@ class Branches(unittest.TestCase):
             agent_tools.fix_start(str(self.project), base='develop', base_commit=develop[:7], merge_into='develop')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001', 'TASK-002', 'TASK-003', 'TASK-004', 'TASK-005'],
                                                    'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'develop'})
-        self.assertEqual(batch_branch.delivery(guided.load(self.project)), ('eaos/develop/wave-1', 'main'),
+        self.assertEqual(agent_tools.delivery(guided.load(self.project)), ('eaos/develop/wave-1', 'main'),
                          'by default it merges into the branch open in the project folder')
         # Accept merges into the branch the preview named, here release, a branch neither checked out nor worked on.
         git(self.project, 'branch', 'release', 'develop')
@@ -221,7 +221,7 @@ class Branches(unittest.TestCase):
 
     def test_a_direct_group_lands_on_the_base_branch_and_leaves_no_branch(self):
         self.ready_to_fix()
-        with self.assertRaises(ValueError): batch_branch.delivery({**guided.load(self.project), 'branch': 'main'}, 'main')
+        with self.assertRaises(ValueError): agent_tools.delivery({**guided.load(self.project), 'branch': 'main'}, 'main')
         main = git(self.project, 'rev-parse', 'main')
         done = self.batch('TASK-001', deliver_as='develop', merge_into='develop')
         self.assertEqual((done['branch'], done['landed_on'], done['kept']), (None, 'develop', ['TASK-001']), done)

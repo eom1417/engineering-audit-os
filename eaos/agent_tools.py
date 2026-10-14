@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import batch_finish, branches, guided, handover, jobs, plain, toolchain
-from .batch_branch import commit_of, delivery, waiting_batch, waiting_on
+from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
 from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
@@ -830,6 +830,39 @@ def _open(state):
 def _brief(card):
     return {'id': card['id'], 'title': card.get('title'), 'kind': card.get('pattern'), 'paths': card.get('paths'),
             'before': card.get('before'), 'after': card.get('after'), 'impact': card.get('impact')}
+
+
+def waiting_on(state, name):
+    """The batch waiting for the person's decision on the EAOS work branch `name` (applied, its branch still there and
+    not merged): a new batch may continue on it. None otherwise."""
+    if not name or not guided._branch_exists(state, name): return None
+    return next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied' and w.get('branch') == name), None)
+
+
+def work_branches(state):
+    """The EAOS work branches of the branch EAOS works on that wait for the person's decision: a new batch may continue
+    on any of them (the fix preview offers them)."""
+    names = dict.fromkeys(w.get('branch') for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch'))
+    return [name for name in names if waiting_on(state, name)]
+
+
+def delivery(state, deliver_as=None, merge_into=None):
+    """Where a new batch goes, as the fix preview shows it: (deliver_as, merge_into). deliver_as is
+    `eaos/<branch>/wave-N` by default: N counts the batches of the branch EAOS works on, and the branch's name keeps a
+    second branch's batch 1 from overwriting the first's waiting one; merge_into is the branch open in the project
+    folder (else the branch EAOS works on). deliver_as may also be an EAOS work branch waiting for the person's decision
+    (the batch continues on it, on top of its commits; it merges where that batch was to merge), or the branch EAOS
+    works on itself: direct, the batch lands on it once every gate passed (never on a protected branch), so merge_into
+    is that branch. ValueError for a name git refuses, a branch that already exists, or a protected direct target."""
+    project = state['project']
+    working = state.get('branch') or branches.checked_out(project) or 'HEAD'
+    name = (deliver_as or '').strip() or f"eaos/{branches.slug(working)}/wave-{len(state.get('waves') or []) + 1}"
+    if guided._git(project, 'check-ref-format', '--branch', name).returncode: raise ValueError(f'{name} is not a valid branch name')
+    if name == working: return direct_target(project, name)
+    continued = waiting_on(state, name)
+    if guided._branch_exists(state, name) and not continued:
+        raise ValueError(f'a branch named {name} already exists and is not an EAOS work branch waiting for a decision: choose another name')
+    return name, merge_target(state, merge_into, continued)
 
 
 def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None):
