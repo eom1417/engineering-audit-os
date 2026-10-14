@@ -490,102 +490,66 @@ def _detect_connection_pools(text):
     return rows
 
 
+# A file's facts are (kind, line, value) rows: line is None for a fact about the whole file.
+_COMPOSE_FILES = {'docker-compose.yml', 'docker-compose.yaml', 'compose.yml'}
+_CODE_LANGUAGES = {'python', 'javascript', 'typescript', 'go', 'ruby'}
+
+
+def _line_rows(kind, rows, keys):
+    """Detector rows that carry a line, as fact rows holding only `keys`."""
+    return [(kind, row['line'], {key: row[key] for key in keys}) for row in rows]
+
+
+def _manifest_rows(rel, name, text):
+    """The rows of the one manifest this file is, by its name."""
+    if name == 'Dockerfile' or name.endswith('.dockerfile'):
+        return [('deployment_target', None, {'kind': 'dockerfile', 'port': port, 'language': 'dockerfile'})
+                for port in _dockerfile_ports(text)]
+    if name in _COMPOSE_FILES:
+        return [('deployment_target', None, {'kind': 'compose', 'service': service}) for service in _compose_services(text)]
+    if name in HOSTING_MANIFESTS:
+        return [('deployment_target', None, {'kind': 'hosting', 'host': HOSTING_MANIFESTS[name]})]
+    if '.github/workflows/' in rel and name.endswith(('.yml', '.yaml')):
+        return [('ci_step', None, {'name': step[:120]}) for step in _github_actions(text)[:40]]
+    if name == 'package.json':
+        return [('ci_step', None, {'name': 'npm:' + script}) for script in _package_scripts(text)]
+    return []
+
+
+def _code_rows(text, language):
+    """The rows of a source file: its auth hints, signals, outbound hosts and their guards, caches, models, queries."""
+    rows = [('security_surface', None, {'hint': hint, 'language': language}) for hint in _auth_hints(text)]
+    rows += [('observability_signal', None, {'kind': signal, 'language': language}) for signal in _observability_signals(text)]
+    for host in _outbound_hosts(text):
+        rows.append(('integration_target', None, {'host': host, 'language': language}))
+        rows.append(('resilience_policy', None, _detect_resilience_for_integration(text, host, language)))
+    rows += _line_rows('cache_policy', _detect_cache_policies(text), ('scope', 'mechanism', 'ttl_declared'))
+    rows += [('data_model', None, model) for model in _orm_models(text)]
+    return rows + _line_rows('query_bound', _detect_query_bounds(text, language), ('bounded', 'mechanism', 'kind', 'snippet'))
+
+
+def _file_rows(rel, text):
+    name = Path(rel).name
+    language = language_of(rel)
+    rows = _manifest_rows(rel, name, text)
+    if language in _CODE_LANGUAGES:
+        rows += _code_rows(text, language)
+    rows += _line_rows('rate_limit', _detect_rate_limits(text, rel, name), ('scope', 'mechanism', 'declared_limit', 'source'))
+    rows += _line_rows('connection_pool', _detect_connection_pools(text), ('resource', 'declared_size', 'source'))
+    if _migration_files(name):
+        rows.append(('migration_step', None, {'name': name}))
+    return rows
+
+
 def run(target, source, symbols=None, **options):
     facts, fingerprints = [], []
-    seen = set()
     for item in source.readable():
         rel = item['path']; text = source.text(rel)
         if text is None: continue
         fingerprints.append(item['sha256'])
-        name = Path(rel).name
-        if name == 'Dockerfile' or name.endswith('.dockerfile'):
-            for port in _dockerfile_ports(text):
-                facts.append(make('deployment_target', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'kind': 'dockerfile', 'port': port,
-                                                    'language': 'dockerfile'},
-                                   limitations=LIMITATIONS))
-        elif name in {'docker-compose.yml', 'docker-compose.yaml', 'compose.yml'}:
-            for service in _compose_services(text):
-                facts.append(make('deployment_target', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'kind': 'compose', 'service': service},
-                                   limitations=LIMITATIONS))
-        elif name in HOSTING_MANIFESTS:
-            facts.append(make('deployment_target', NAME, VERSION, item['sha256'],
-                               {'path': rel}, {'kind': 'hosting', 'host': HOSTING_MANIFESTS[name]},
-                               limitations=LIMITATIONS))
-        elif '.github/workflows/' in rel and (name.endswith('.yml') or name.endswith('.yaml')):
-            for step in _github_actions(text)[:40]:
-                facts.append(make('ci_step', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'name': step[:120]},
-                                   limitations=LIMITATIONS))
-        elif name == 'package.json':
-            for script in _package_scripts(text):
-                facts.append(make('ci_step', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'name': 'npm:' + script},
-                                   limitations=LIMITATIONS))
-        if language_of(rel) in {'python', 'javascript', 'typescript', 'go', 'ruby'}:
-            for hint in _auth_hints(text):
-                key = ('security', rel, hint)
-                if key in seen: continue
-                seen.add(key)
-                facts.append(make('security_surface', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'hint': hint,
-                                                    'language': language_of(rel)},
-                                   limitations=LIMITATIONS))
-            for signal in _observability_signals(text):
-                key = ('observability', rel, signal)
-                if key in seen: continue
-                seen.add(key)
-                facts.append(make('observability_signal', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'kind': signal,
-                                                    'language': language_of(rel)},
-                                   limitations=LIMITATIONS))
-            for host in _outbound_hosts(text):
-                key = ('integration', rel, host)
-                if key in seen: continue
-                seen.add(key)
-                facts.append(make('integration_target', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'host': host,
-                                                    'language': language_of(rel)},
-                                   limitations=LIMITATIONS))
-                policy = _detect_resilience_for_integration(text, host, language_of(rel))
-                facts.append(make('resilience_policy', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, policy, limitations=LIMITATIONS))
-            for cache in _detect_cache_policies(text):
-                facts.append(make('cache_policy', NAME, VERSION, item['sha256'],
-                                   {'path': rel, 'start_line': cache['line']},
-                                   {'scope': cache['scope'], 'mechanism': cache['mechanism'],
-                                    'ttl_declared': cache['ttl_declared']},
-                                   limitations=LIMITATIONS))
-            for model in _orm_models(text):
-                facts.append(make('data_model', NAME, VERSION, item['sha256'],
-                                   {'path': rel}, {'name': model['name'],
-                                                    'framework': model['framework']},
-                                   limitations=LIMITATIONS))
-            for bound in _detect_query_bounds(text, language_of(rel)):
-                facts.append(make('query_bound', NAME, VERSION, item['sha256'],
-                                   {'path': rel, 'start_line': bound['line']},
-                                   {'bounded': bound['bounded'], 'mechanism': bound['mechanism'],
-                                    'kind': bound['kind'], 'snippet': bound['snippet']},
-                                   limitations=LIMITATIONS))
-        for limit in _detect_rate_limits(text, rel, name):
-            facts.append(make('rate_limit', NAME, VERSION, item['sha256'],
-                               {'path': rel, 'start_line': limit['line']},
-                               {'scope': limit['scope'], 'mechanism': limit['mechanism'],
-                                'declared_limit': limit['declared_limit'],
-                                'source': limit['source']},
-                               limitations=LIMITATIONS))
-        for pool in _detect_connection_pools(text):
-            facts.append(make('connection_pool', NAME, VERSION, item['sha256'],
-                               {'path': rel, 'start_line': pool['line']},
-                               {'resource': pool['resource'],
-                                'declared_size': pool['declared_size'],
-                                'source': pool['source']},
-                               limitations=LIMITATIONS))
-        if _migration_files(name):
-            facts.append(make('migration_step', NAME, VERSION, item['sha256'],
-                               {'path': rel}, {'name': name},
-                               limitations=LIMITATIONS))
+        for kind, line, value in _file_rows(rel, text):
+            location = {'path': rel} if line is None else {'path': rel, 'start_line': line}
+            facts.append(make(kind, NAME, VERSION, item['sha256'], location, value, limitations=LIMITATIONS))
     summary = {'files_observed': len(fingerprints), 'facts': len(facts),
                # Iterating a set orders by hash, which Python randomises per process: two runs over
                # an unchanged tree wrote the same counts in a different order and the fact set was
