@@ -35,10 +35,9 @@ export function ChangeNav() {
 }
 
 /** A plan, step, task, operation or gap the link names and this check does not have, with the way back. */
-export function Missing({ title, back = '/plans', label = 'backToPlans', heading = 'plansTitle' }:
-  { title: string; back?: string; label?: ChangeWord; heading?: ChangeWord }) {
+export function Missing({ title, back = '/plans', label = 'backToPlans' }: { title: string; back?: string; label?: ChangeWord }) {
   const w = useChangeWords()
-  return <div className={layout.page}><ChangeNav /><PageTitle title={w(heading)} /><NotHere title={title} sub={w('oldLink')} back={back} label={w(label)} /></div>
+  return <div className={layout.page}><ChangeNav /><PageTitle title={title} /><NotHere title={w('oldLink')} sub={null} back={back} label={w(label)} /></div>
 }
 
 /** A section the report does not hold: what is missing, and why. */
