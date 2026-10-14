@@ -216,7 +216,8 @@ function SavedAnswer({ decision, saved, busy, say, onRetryDelivery, onRetryAssis
 export function NextStep({ action, sub, tool, request }: { action: string; sub?: string; tool: string | null; request: string }) {
   return (
     <Panel className={css.next}>
-      <p className={css.nextText}><Txt>{action}</Txt></p>
+      {/* With a tool the button itself says the step; written above it too, it would be read twice */}
+      {!tool && <p className={css.nextText}><Txt>{action}</Txt></p>}
       {sub && <p className={css.nextSub}><Txt>{sub}</Txt></p>}
       {tool ? <DirectAction request={{ action: tool }} label={action} block copy={{ request, tool }} /> : <CopyRequestButton request={request} tool={tool} block />}
     </Panel>
