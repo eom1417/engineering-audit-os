@@ -68,6 +68,16 @@ class RebuildTests(unittest.TestCase):
         # Wave 4 on EAOS (2026-10-13): without the Studio rebuilt, every half failed alike, 56 runs over three hours
         self.assertEqual(len(regenerated), len(applied), 'each half is checked with the files its build makes')
 
+    def test_skipping_a_kept_card_gives_the_others_their_new_commits_and_fails_one_that_no_longer_applies(self):
+        root = repository()
+        base = git(root, 'rev-parse', 'HEAD')
+        one, two = commit_file(root, 'one.txt', 'one'), commit_file(root, 'b.txt', 'two\n')
+        three = commit_file(root, 'b.txt', 'two\nthree\n')                  # stands on two's change
+        wave = {'root': str(root), 'base': base, 'kept': {'T1': one, 'T2': two, 'T3': three}, 'failed': {}}
+        waves.without(wave, 'T2')
+        self.assertEqual((wave['kept'], wave['failed']),
+                         ({'T1': git(root, 'rev-parse', 'HEAD')}, {'T3': 'its change no longer applies once T2 was skipped'}))
+
 
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):

@@ -153,6 +153,21 @@ def rebuild(root, base, commits):
     return dropped
 
 
+def without(wave, card):
+    """An open batch's copy rebuilt without a kept card: every other kept change and repair takes its new commit, and
+    one that no longer applies without it fails, saying so, instead of staying kept with a commit the copy lacks."""
+    wave['kept'].pop(card)
+    repairs = wave.get('repairs') or []
+    dropped = set(rebuild(wave['root'], wave['base'], list(wave['kept'].values()) + repairs))
+    made = iter(git(wave['root'], 'rev-list', '--reverse', f"{wave['base']}..HEAD").stdout.split())
+    for other, sha in list(wave['kept'].items()):
+        if sha in dropped:
+            wave['kept'].pop(other)
+            wave['failed'][other] = f'its change no longer applies once {card} was skipped'
+        else: wave['kept'][other] = next(made)
+    if repairs: wave['repairs'] = [next(made) for sha in repairs if sha not in dropped]
+
+
 def gates(batch, name):
     """'' when the project's checks and the lock pass on the batch's copy as it is now, else why not. A screen the
     batch's design cards declare may look different (`declared`, eaos/behavior_lock.py): that is their change."""

@@ -1135,9 +1135,8 @@ def fix_skip(card, reason, project=None):
     wave = _open(state)
     if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
     if card in wave['kept']:
-        from .waves import rebuild
-        wave['kept'].pop(card)
-        rebuild(wave['root'], wave['base'], list(wave['kept'].values()) + (wave.get('repairs') or []))
+        from .waves import without
+        without(wave, card)
     wave['failed'][card] = f'skipped: {reason}'[:300]
     guided.save(state)
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
