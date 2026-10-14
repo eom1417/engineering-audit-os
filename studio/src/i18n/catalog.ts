@@ -163,6 +163,8 @@ export const WORDS = {
   // system
   components: ['المكوّنات', 'Components'],
   rankedComponents: ['المكوّنات بحسب ما تحتاجه', 'Components by what they need'],
+  plannedComponents: ['المكوّنات المخطّطة: لم تُبنَ بعد', 'Planned components: not built yet'],
+  responsibility: ['مهمته', 'Its job'],
   filesCount: ['{n} ملف', '{n} files'],
   findingsCount: ['{n} مشكلة', '{n} findings'],
   operation: ['العملية', 'Operation'],

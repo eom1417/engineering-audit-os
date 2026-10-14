@@ -15,12 +15,19 @@ import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
 import css from './Pages.module.css'
 
-interface Component { name: string; files: number; relation: Relation; to: string | null; cards: Card[]; weight: number; bySeverity: Record<Severity, number> }
+interface Component { name: string; files: number; relation: Relation; to: string | null; cards: Card[]; weight: number; bySeverity: Record<Severity, number>; responsibility?: string }
 
 const WEIGHT: Record<Severity, number> = { critical: 8, high: 4, medium: 2, low: 1, info: 0 }
 
-/** Components with their cards (a card belongs to the deepest component holding its first path), by severity weight. */
+const NONE: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
+
+/** Components with their cards (a card belongs to the deepest component holding its first path), by severity weight.
+ * A project built from a plan has no code yet: its components are then the target's, each one to be built. */
 export function components(data: StudioData): Component[] {
+  if (!data.story?.current.components.length) {
+    return (data.story?.target.components ?? []).map((c) => ({ name: c.name, files: 0, relation: 'introduce', to: null, cards: [],
+      weight: 0, bySeverity: NONE, responsibility: c.responsibility }))
+  }
   const gap = new Map((data.story?.gap ?? []).map((row) => [row.component, row]))
   const names = (data.story?.current.components ?? []).map((c) => c.name).sort((a, b) => b.length - a.length)
   const owner = (path: string) => names.find((name) => name === '(root)' ? false : path === name || path.startsWith(name + '/')) ?? '(root)'
@@ -31,7 +38,7 @@ export function components(data: StudioData): Component[] {
   }
   return (data.story?.current.components ?? []).map((c) => {
     const cards = cardsOf.get(c.name) ?? []
-    const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
+    const bySeverity = { ...NONE }
     for (const card of cards) bySeverity[card.severity] += 1
     const row = gap.get(c.name)
     return { name: c.name, files: c.files, relation: row?.relation ?? 'retain', to: row?.to ?? null, cards, bySeverity,
@@ -49,6 +56,7 @@ function Inspector({ component }: { component: Component }) {
         <OperationChip relation={component.relation} to={component.to} />
       </div>
       <Props rows={[
+        ...(component.responsibility ? [[t('responsibility'), component.responsibility] as [React.ReactNode, React.ReactNode]] : []),
         [t('files'), <N value={component.files} />],
         [t('problems'), <N value={component.cards.length} />],
         ...(['critical', 'high', 'medium', 'low'] as const).filter((s) => component.bySeverity[s]).map((s) => [<SeverityGlyph severity={s} />, <N value={component.bySeverity[s]} />] as [React.ReactNode, React.ReactNode]),
@@ -71,7 +79,7 @@ function SystemBody({ data }: { data: StudioData }) {
   usePageChrome(focused ? focused.name : t('system'), focused ? { to: '/system', label: t('system') } : undefined, data.manifest.project.name)
 
   const list = (
-    <Section title={t('rankedComponents')} count={all.length}>
+    <Section title={t(data.story?.current.components.length ? 'rankedComponents' : 'plannedComponents')} count={all.length}>
       <Panel>
         <FoldList items={all} first={12} label={t('rankedComponents')} render={(c) => (
           <RowButton pressed={c.name === focus} onPress={() => navigate({ to: '/system', search: { focus: c.name } })}

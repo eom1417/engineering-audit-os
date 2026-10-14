@@ -12,6 +12,7 @@ import { Icon } from '../components/Icon'
 import { useCommandMaybe } from '../command/command'
 import { actionOf } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
+import { useStudio } from '../data/context'
 import type { ChatControl, ChatModel, ChatProposal, ChatTurn } from '../data/actions/types'
 import { usePrefs } from '../i18n/prefs'
 import { PlanForm } from './PlanForm'
@@ -86,6 +87,7 @@ export function ChatDock() {
   const [live, setLive] = useState<{ reading: string[]; partial: string }>({ reading: [], partial: '' })
   const [control, setControl] = useState<ChatControl | null>(null)
   const [planning, setPlanning] = useState<'' | 'new' | 'extend'>('')
+  const checked = useStudio() !== null     // extending reads the check: offered once there is one
   const list = useRef<HTMLDivElement>(null)
 
   useEffect(() => { if (open && client?.chatControl) void client.chatControl().then(setControl).catch(() => undefined) }, [open, client])
@@ -147,7 +149,7 @@ export function ChatDock() {
         <Icon name="assistant" />
         <span className={css.title}>{WORDS.title[at]}</span>
         <button type="button" className={css.tool} onClick={() => { setLines([]); setSession(null) }}>{WORDS.fresh[at]}</button>
-        {client.plan && (['new', 'extend'] as const).map((way) => (
+        {client.plan && (checked ? ['new', 'extend'] as const : ['new'] as const).map((way) => (
           <button key={way} type="button" className={css.tool} aria-pressed={planning === way} onClick={() => setPlanning(planning === way ? '' : way)}>{WORDS[way === 'new' ? 'plan' : 'extend'][at]}</button>
         ))}
         <button type="button" className={css.tool} aria-label={WORDS.move[at]} title={WORDS.move[at]} onClick={move}><Icon name="arrow" /></button>

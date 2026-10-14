@@ -16,13 +16,14 @@ import time
 from .claude_adapter import ANSWER, parse, record, render, serve
 
 
-def call(messages, small=False):     # one model: the one the person signed in with
+def call(messages, small=False):     # one model, the one signed in with; plain work (`small`) reasons the least
     system, conversation = render(messages)
     with tempfile.TemporaryDirectory(prefix='eaos-codex-') as empty:
         answer = os.path.join(empty, 'answer.txt')
         argv = ['codex', 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',
                 '-s', 'read-only', '--color', 'never', '-C', empty, '-o', answer]
         if os.environ.get('EAOS_CODEX_MODEL'): argv += ['-m', os.environ['EAOS_CODEX_MODEL']]
+        if small: argv += ['-c', 'model_reasoning_effort="low"']
         began = time.monotonic()
         done = subprocess.run(argv + ['-'], input=f'{system}\n\n{conversation}\n\n{ANSWER}', stdout=sys.stderr, stderr=sys.stderr,
                               text=True, cwd=empty)

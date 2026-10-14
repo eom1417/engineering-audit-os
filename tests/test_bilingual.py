@@ -1,35 +1,44 @@
-"""Every document whole in each language: only the lines in the other language are sent, once, and kept."""
+"""Every document whole in each language: only the pieces in the other language are sent, as templates, once, and kept."""
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from eaos import bilingual
 
 
 class Dictionary:
     """A model that translates by a table and counts what it was sent."""
-    def __init__(self, table, broken=False): self.table, self.broken, self.sent = table, broken, []
+    def __init__(self, table): self.table, self.sent = table, []
 
     def complete(self, messages, small=False, stage=None):
-        lines = json.loads(messages[-1]['content'])['lines']
-        self.sent += lines
-        return ({'lines': []} if self.broken else {'lines': [self.table[line] for line in lines]}), {}
+        items = json.loads(messages[-1]['content'])['items']
+        self.sent += items.values()
+        return {'items': {key: self.table.get(item, item) for key, item in items.items()}}, {}
 
 
 class BilingualTests(unittest.TestCase):
-    def test_only_the_lines_in_the_other_language_are_sent_once_and_the_rest_stay_as_written(self):
-        # EAOS's own report, 2026-10-14: 153 documents, the median 42% Arabic in an Arabic report, START-HERE wholly English
+    def test_whole_pieces_are_sent_as_templates_once_and_the_rest_stay_as_written(self):
+        # EAOS's own check, 2026-10-14: 2818 lines cut mid sentence, sent one by one, 54 minutes and $2.19
         report = Path(tempfile.mkdtemp()) / 'technical'
         report.mkdir()
-        (report / 'START-HERE.md').write_text('# Start here\n\nسطر عربي فيه `plan.py`\n\n```\nkeep this code\n```\n| --- |\n')
-        model = Dictionary({'# Start here': '# ابدأ هنا', 'سطر عربي فيه `plan.py`': 'An Arabic line with `plan.py`'})
-        self.assertEqual(bilingual.translate(report, model), {'lines': 2, 'remembered': 0, 'failed': 0, 'calls': 2})
-        self.assertEqual((report / 'i18n/ar/START-HERE.md').read_text(), '# ابدأ هنا\n\nسطر عربي فيه `plan.py`\n\n```\nkeep this code\n```\n| --- |\n')
-        self.assertEqual((report / 'i18n/en/START-HERE.md').read_text().split('\n')[2], 'An Arabic line with `plan.py`')
-        again = Dictionary({})
-        self.assertEqual(bilingual.translate(report, again)['remembered'], 2)
-        self.assertEqual(again.sent, [], 'the next check sends nothing it translated before')
-        (report.parent / bilingual.MEMORY).unlink()
-        self.assertEqual(bilingual.translate(report, Dictionary({}, broken=True))['failed'], 2)
-        self.assertEqual((report / 'i18n/ar/START-HERE.md').read_text().split('\n')[0], '# Start here', 'a failed batch keeps its lines')
+        (report / 'START-HERE.md').write_text(
+            '# Start here\n\nThe component has 2 live claims\nin `plan.py`.\n\n```\nkeep this code\n```\n'
+            '| a | --- |\n| local | eaos/x.py |\n- The component has 7 live claims in `cli.py`.\n')
+        model = Dictionary({'Start here': 'ابدأ هنا', 'local': 'محلي',
+                            'The component has ⟦1⟧ live claims in ⟦2⟧.': 'للمكوّن ⟦1⟧ ادعاءات قائمة في ⟦2⟧.'})
+        with mock.patch.object(bilingual, 'SEED', report / 'none.json'):
+            counts = bilingual.translate(report, model)
+            self.assertEqual(counts, {'pieces': 3, 'remembered': 0, 'calls': 1, 'failed': 0})
+            self.assertEqual((report / 'i18n/ar/START-HERE.md').read_text(),
+                             '# ابدأ هنا\n\nللمكوّن 2 ادعاءات قائمة في `plan.py`.\n\n```\nkeep this code\n```\n'
+                             '| a | --- |\n| محلي | eaos/x.py |\n- للمكوّن 7 ادعاءات قائمة في `cli.py`.\n')
+            again = Dictionary({})
+            self.assertEqual(bilingual.translate(report, again)['remembered'], 3)
+            self.assertEqual(again.sent, [], 'the next check sends nothing it translated before')
+            (report.parent / bilingual.MEMORY).unlink()
+            unsound = Dictionary({'The component has ⟦1⟧ live claims in ⟦2⟧.': 'للمكوّن ادعاءات قائمة.'})
+            self.assertEqual(bilingual.translate(report, unsound)['failed'], 1, 'an answer that lost a slot is not kept')
+            self.assertEqual(unsound.sent.count('The component has ⟦1⟧ live claims in ⟦2⟧.'), 2, 'it is asked once more')
+            self.assertIn('- The component has 7 live claims in `cli.py`.', (report / 'i18n/ar/START-HERE.md').read_text())

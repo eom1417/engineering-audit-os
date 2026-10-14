@@ -134,9 +134,10 @@ def draw_build(state):
     stages = [Stage(m['id'], requires=(previous['id'],) if previous else (),
                     title={'ar': m.get('name_ar') or m['name'], 'en': m['name']})
               for previous, m in zip([None] + plan['milestones'], plan['milestones'])]
-    log.started(stages, [s.name for s in stages], {}, steps={}, process=False)
     records = {r['milestone']: r for r in state.get('built') or []}
     if state.get('open_build'): records.setdefault(state['open_build']['milestone'], state['open_build'])
+    began = min((r['began'] for r in records.values() if r.get('began')), default=None)
+    log.started(stages, [s.name for s in stages], {}, steps={}, process=False, at=began)
     for milestone in plan['milestones']:
         if milestone['id'] in records: _draw_milestone(log, milestone, records[milestone['id']])
     if _built(state): log.finish('COMPLETE')
@@ -145,11 +146,11 @@ def draw_build(state):
 
 
 def _draw_milestone(log, milestone, record):
-    log.stage_started(milestone['id'])
+    log.stage_started(milestone['id'], at=record.get('began'))
     step, cards = log.stepper(milestone['id']), milestone['tasks']
     for done, card in enumerate(cards, 1):
         if card in record['kept']: step(card, done, len(cards), 'ok', seconds=0)
         elif card in record['skipped']: step(card, done, len(cards), 'skipped', reason=record['skipped'][card])
     if record.get('branch'):
         log.ended({'stage': milestone['id'], 'status': 'ok', 'reason': f"delivered as {record['branch']}", 'seconds': None,
-                   'necessity': 'required', 'artifacts': [record['branch']]})
+                   'necessity': 'required', 'artifacts': [record['branch']]}, **({'at': record['ended']} if record.get('ended') else {}))

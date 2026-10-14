@@ -149,8 +149,9 @@ STAGES = (
                       'document is an appendix to them'),
     Stage('translate', produces=('i18n/ar/START-HERE.md', 'i18n/en/START-HERE.md'), requires=('reports',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed: each document stays as it was written',
-          description="Every document whole in Arabic and in English (eaos/bilingual.py): only the lines in the other "
-                      'language are translated, by the smallest model, and kept for the next check', ai=True),
+          description="Every document whole in Arabic and in English (eaos/bilingual.py): only the pieces in the other "
+                      'language, as templates without their numbers and paths, by the smallest model without thinking, '
+                      'once: EAOS ships its own sentences translated, and the rest is kept for the next check', ai=True),
 )
 
 BY_NAME = {stage.name: stage for stage in STAGES}

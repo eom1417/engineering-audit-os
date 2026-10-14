@@ -182,6 +182,10 @@ class BuildTests(unittest.TestCase):
         drawn = {s['name']: s for s in progress.fold(progress.read(guided.runtime_of(state), 'build'))['stages']}
         self.assertEqual((drawn['M01']['state'], drawn['M02']['state']), ('ok', 'running'))
         self.assertEqual([(c['name'], c['status']) for c in drawn['M01']['steps']], [('BLD-001', 'ok')])
+        journeys.draw_build(state)
+        again = progress.fold(progress.read(guided.runtime_of(state), 'build'))
+        self.assertEqual((again['started_at'], {s['name']: s['started_at'] for s in again['stages']}['M02']),
+                         (state['built'][0]['began'], state['open_build']['began']), 'drawn again, the build keeps its own times')
 
 
 if __name__ == '__main__':

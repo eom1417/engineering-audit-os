@@ -40,9 +40,9 @@ def parse(text):
     return value
 
 
-def stream(argv, conversation):
+def stream(argv, conversation, env=None):
     """Run `claude` on the conversation, copying its stream to stderr as it comes; return the stream's result event."""
-    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env)
     with process.stdin: process.stdin.write(conversation)
     result = {}
     for line in process.stdout:
@@ -54,13 +54,14 @@ def stream(argv, conversation):
 
 
 def call(messages, small=False):
-    """`small`: the work is plain (a translation), and the smallest model does it as well for less."""
+    """`small`: the work is plain (a translation): the smallest model does it as well for less, and without thinking,
+    which was 77% of a translation's output (EAOS's own check, 2026-10-14) and 20 times its time."""
     system, conversation = render(messages)
     argv = ['claude', '-p', '--tools', '', '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
             '--include-partial-messages', '--system-prompt', system]
     model = 'haiku' if small else os.environ.get('EAOS_CLAUDE_MODEL')
     if model: argv += ['--model', model]
-    envelope = stream(argv, conversation)
+    envelope = stream(argv, conversation, {**os.environ, 'MAX_THINKING_TOKENS': '0'} if small else None)
     if envelope.get('is_error'): raise RuntimeError('claude reported an error: ' + str(envelope.get('result'))[:200])
     from ..usage import from_stream
     record(from_stream([json.dumps(envelope)]))

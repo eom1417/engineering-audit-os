@@ -24,6 +24,7 @@ from pathlib import Path
 
 from . import agent_tools, blueprint, design, guided, journeys
 from .plan_source import read_plan
+from .progress.log import now
 
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
            'step, and hand each milestone to your project as a new branch (nothing else in your project changes)?')
@@ -243,7 +244,7 @@ def build_start(project=None, person_agreed=False):
     number = len(state.get('built') or []) + 1
     root = _milestone_copy(state, runtime, number)
     build = {'number': number, 'milestone': milestone['id'], 'root': str(root), 'base': _git(root, 'rev-parse', 'HEAD').stdout.strip(),
-             'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None}
+             'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None, 'began': now()}
     state['open_build'] = build
     guided.save(state)
     publish(state)
@@ -435,7 +436,8 @@ def _build_finish_job(project, arguments, progress):
     fetched = _git(state['project'], 'fetch', '-q', str(root), f'+{branch}:{branch}')
     if fetched.returncode: raise RuntimeError(f'could not create {branch}: {fetched.stderr[-300:]}')
     record = {'number': build['number'], 'milestone': build['milestone'], 'branch': branch, 'base': build['base'],
-              'kept': list(build['kept']), 'skipped': build['skipped'], 'stat': _git(root, 'diff', '--shortstat', f"{build['base']}..HEAD").stdout.strip()}
+              'kept': list(build['kept']), 'skipped': build['skipped'], 'stat': _git(root, 'diff', '--shortstat', f"{build['base']}..HEAD").stdout.strip(),
+              'began': build.get('began'), 'ended': now()}
     state.setdefault('built', []).append(record)
     state.setdefault('waves', []).append({'number': build['number'], 'branch': branch, 'base': build['base'], 'kept': record['kept'],
                                           'failed': build['skipped'], 'stat': record['stat'], 'status': 'applied', 'via': 'build'})

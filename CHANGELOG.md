@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.0.30 (2026-10-14)
+
+- **Translation at a fraction of its cost** (`eaos/bilingual.py`): on EAOS's own check it took 24 calls, 54 minutes
+  and $2.19, 77% of its output the model's thinking, and left 1009 pieces in English in the Arabic report. Now:
+  - the smallest model translates without thinking (Claude: `MAX_THINKING_TOKENS=0`; Codex: low reasoning);
+  - the unit is a whole piece, a heading, a list item, a paragraph with its wrapped lines joined, or a table cell, not
+    a line cut mid sentence;
+  - numbers, paths, code, ids and identifiers (a list of them as one) become numbered slots, put back after: never
+    altered, and two pieces that differ only by them are one template, translated once (2818 lines became 633);
+  - each item goes and comes back under its own key, so an item left out cannot move the answers after it; an answer
+    that lost a slot or is still in the wrong language is asked once more, then left as written;
+  - the model is told the terms EAOS uses (its labels and a short list);
+  - EAOS ships its own sentences translated (`eaos/data/translation-memory.json`, made by
+    `tools/translation_seed.py` from its own check and reviewed), so a first check spends nothing on them.
+  On the same report: 14 calls, 4 minutes, $0.59, no thinking, 25 pieces left unsound, and the English left in the
+  Arabic report is names and commands. The next check sends only what is new.
+- **The build keeps its own times on the live map**: drawn again after each step, a build no longer starts its time
+  over; each milestone keeps when it began and ended.
+- **"Extend the project" is offered once the project is checked**, since extending reads the check.
+- **System components of a project not built yet**: the page lists the target's planned components, each with its job,
+  where it showed nothing.
+
 ## 0.0.29 (2026-10-14)
 
 - **Three journeys on one engine**: check and fix, build from a plan, and the new extend the project are declared as

@@ -69,6 +69,11 @@ def now():
     return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
 
 
+def _at(at):
+    """An event's own time, when it is not now (a run drawn again from a state)."""
+    return {'at': at} if at else {}
+
+
 def path_for(folder, flow='check'):
     """Where a flow writes its progress: the check in `<report>/run-progress.jsonl`, any other flow in
     `<folder>/progress/<flow>.jsonl`."""
@@ -219,10 +224,11 @@ class ProgressLog:
                 self.stop.set()
             return row
 
-    def started(self, stages, requested, previous, steps=None, process=True):
+    def started(self, stages, requested, previous, steps=None, process=True, at=None):
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
         run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
-        (one drawn from a state, eaos/journeys.py), so none is named and a reader never judges it gone."""
+        (one drawn from a state, eaos/journeys.py), so none is named and a reader never judges it gone; `at`: when such a
+        run truly began, so drawing it again does not start its time over."""
         rows = stage_rows(stages)
         with self.lock:
             self.declared = {row['name']: row['necessity'] for row in rows}
@@ -231,14 +237,14 @@ class ProgressLog:
             except Exception: steps = {}
         row = self.emit('run.started', flow=self.flow, schema=SCHEMA, stages=rows, requested=list(requested),
                         previous=previous or {}, previous_steps=steps, **({'alive_every': self.alive_every} if self.alive_every else {}),
-                        pid=os.getpid() if process else None, host=socket.gethostname() if process else None)
+                        pid=os.getpid() if process else None, host=socket.gethostname() if process else None, **_at(at))
         if self.pulse and not self.broken:
             self.thread = threading.Thread(target=self._beat, name=f'eaos-progress-{self.flow}', daemon=True)
             self.thread.start()
         return row
 
-    def stage_started(self, stage):
-        return self.emit('stage.started', stage=stage)
+    def stage_started(self, stage, at=None):
+        return self.emit('stage.started', stage=stage, **_at(at))
 
     def stepper(self, stage):
         """`step(name, done, total, status='running', seconds=None, reason='', reason_code='', kind='', artifact='')`
