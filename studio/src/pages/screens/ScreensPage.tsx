@@ -228,7 +228,8 @@ function Notes({ picture, list, picked, onPick }: { picture: Picture; list: (Pag
                   {kindWord(f.kind) ? <> · {kindWord(f.kind)}</> : null}
                   {!f.region ? <> · {w('noRegion')}</> : null}
                 </span>
-                {f.why && <span className={css.noteWhy}><Txt block>{f.why}</Txt></span>}
+                {/* The explanation opens on demand, for the problem picked, so a card stays a list of titles */}
+                {f.why && picked === f.n && <span className={css.noteWhy}><Txt block>{f.why}</Txt></span>}
               </span>
             </button>
           </li>
