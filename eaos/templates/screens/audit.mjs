@@ -165,10 +165,22 @@ async function act(page, actions) {
   }
 }
 
-async function auditOne(browser, entry, viewport, variant, index) {
-  const page_url = entry.url;
-  const base = new URL(page_url);
-  const url = withQuery(page_url, variant.query);
+// Runs inside the page before its own scripts: a string is the whole value; an object is merged into the JSON object
+// the key already holds.
+function seedStorage(pairs) {
+  try {
+    for (const [key, value] of Object.entries(pairs)) {
+      if (value && typeof value === 'object') {
+        let held = {};
+        try { held = JSON.parse(window.localStorage.getItem(key) || '{}') || {}; } catch {}
+        window.localStorage.setItem(key, JSON.stringify({ ...(typeof held === 'object' ? held : {}), ...value }));
+      } else window.localStorage.setItem(key, value);
+    }
+  } catch {}
+}
+
+// The browser context of one viewport and variant: requests to another origin are aborted and counted in `blocked`.
+async function openContext(browser, viewport, variant, base, blocked) {
   const mobile = viewport.mobile ?? viewport.width <= config.phone_width;
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1,
@@ -176,26 +188,61 @@ async function auditOne(browser, entry, viewport, variant, index) {
     isMobile: mobile, hasTouch: mobile,
     colorScheme: variant.color_scheme || 'light', serviceWorkers: 'block',
   });
-  const blocked = [];
   await context.route('**/*', (route) => {
     if (allowed(route.request(), base)) return route.continue();
     blocked.push(route.request().url());
     return route.abort('blockedbyclient');
   });
-  if (variant.storage && Object.keys(variant.storage).length) {
-    await context.addInitScript((pairs) => {
-      // A string is the whole value; an object is merged into the JSON object the key already holds.
-      try {
-        for (const [key, value] of Object.entries(pairs)) {
-          if (value && typeof value === 'object') {
-            let held = {};
-            try { held = JSON.parse(window.localStorage.getItem(key) || '{}') || {}; } catch {}
-            window.localStorage.setItem(key, JSON.stringify({ ...(typeof held === 'object' ? held : {}), ...value }));
-          } else window.localStorage.setItem(key, value);
-        }
-      } catch {}
-    }, variant.storage);
+  if (variant.storage && Object.keys(variant.storage).length) await context.addInitScript(seedStorage, variant.storage);
+  return { context, mobile };
+}
+
+// The page loaded and settled: the network quiet, the selector it waits for, the fonts, then its actions.
+async function settle(page, url, entry) {
+  await page.goto(url, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
+  try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
+  const ready = entry.wait_for || config.wait_for;
+  if (ready) await page.waitForSelector(ready, { timeout: 10000 });
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+  await page.waitForTimeout(config.settle_ms ?? 300);
+  if (entry.actions) { await act(page, entry.actions); await page.waitForTimeout(config.settle_ms ?? 300); }
+}
+
+async function axeOf(page) {
+  const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+  return {
+    version: axe.testEngine && axe.testEngine.version,
+    violations: axe.violations.map((v) => ({
+      id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length,
+      targets: v.nodes.slice(0, 10).map((n) => n.target.flat().join(' ')),
+    })),
+    passes: axe.passes.length, incomplete: axe.incomplete.length,
+  };
+}
+
+// The screenshot of the page; its file.
+async function shoot(page, entry, base, viewport, variant, index, row) {
+  mkdirSync(config.screenshots_dir, { recursive: true });
+  // A hash-routed app (#/problems) is named by its route; any other page by the last part of its path.
+  const route = base.hash.startsWith('#/') ? base.hash.slice(2).split('?')[0].replace(/\/+/g, '-').replace(/^-|-$/g, '') : '';
+  const page_name = entry.name || route || (base.pathname.split('/').pop() || 'index').replace(/\.html?$/, '');
+  const file = join(config.screenshots_dir, `${String(index).padStart(2, '0')}-${page_name}-${variant.name || 'default'}-${viewport.name}.png`
+    .replace(/[^A-Za-z0-9._-]+/g, '_'));
+  // Measured at the real viewport; the picture grows the viewport to the page, so bars fixed to the bottom of
+  // the screen are drawn at the bottom of the page, where a person scrolling down meets them.
+  if (!entry.actions && row.page_height > viewport.height) {
+    await page.setViewportSize({ width: viewport.width, height: Math.min(row.page_height, 12000) });
+    await page.waitForTimeout(150);
   }
+  await page.screenshot({ path: file, fullPage: !entry.actions });
+  return file;
+}
+
+async function auditOne(browser, entry, viewport, variant, index) {
+  const base = new URL(entry.url);
+  const url = withQuery(entry.url, variant.query);
+  const blocked = [];
+  const { context, mobile } = await openContext(browser, viewport, variant, base, blocked);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error.message || error).slice(0, 300)));
@@ -203,42 +250,13 @@ async function auditOne(browser, entry, viewport, variant, index) {
   const row = { url, page: entry.name || null, viewport: viewport.name, width: viewport.width, height: viewport.height,
     variant: variant.name, mobile, expect: variant.expect || null };
   try {
-    await page.goto(url, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
-    try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
-    const ready = entry.wait_for || config.wait_for;
-    if (ready) await page.waitForSelector(ready, { timeout: 10000 });
-    await page.evaluate(() => document.fonts && document.fonts.ready);
-    await page.waitForTimeout(config.settle_ms ?? 300);
-    if (entry.actions) { await act(page, entry.actions); await page.waitForTimeout(config.settle_ms ?? 300); }
+    await settle(page, url, entry);
     // The page's own errors, counted before axe runs (on file:// axe reads stylesheets the page's policy may refuse)
     row.page_errors = errors.slice(0, 10);
     Object.assign(row, await page.evaluate(measure, { phoneWidth: config.phone_width, targetMin: config.target_min,
       viewportWidth: viewport.width }));
-    const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    row.axe = {
-      version: axe.testEngine && axe.testEngine.version,
-      violations: axe.violations.map((v) => ({
-        id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length,
-        targets: v.nodes.slice(0, 10).map((n) => n.target.flat().join(' ')),
-      })),
-      passes: axe.passes.length, incomplete: axe.incomplete.length,
-    };
-    if (config.screenshots_dir) {
-      mkdirSync(config.screenshots_dir, { recursive: true });
-      // A hash-routed app (#/problems) is named by its route; any other page by the last part of its path.
-      const route = base.hash.startsWith('#/') ? base.hash.slice(2).split('?')[0].replace(/\/+/g, '-').replace(/^-|-$/g, '') : '';
-      const page_name = entry.name || route || (base.pathname.split('/').pop() || 'index').replace(/\.html?$/, '');
-      const file = join(config.screenshots_dir, `${String(index).padStart(2, '0')}-${page_name}-${variant.name || 'default'}-${viewport.name}.png`
-        .replace(/[^A-Za-z0-9._-]+/g, '_'));
-      // Measured at the real viewport; the picture grows the viewport to the page, so bars fixed to the bottom of
-      // the screen are drawn at the bottom of the page, where a person scrolling down meets them.
-      if (!entry.actions && row.page_height > viewport.height) {
-        await page.setViewportSize({ width: viewport.width, height: Math.min(row.page_height, 12000) });
-        await page.waitForTimeout(150);
-      }
-      await page.screenshot({ path: file, fullPage: !entry.actions });
-      row.screenshot = file;
-    }
+    row.axe = await axeOf(page);
+    if (config.screenshots_dir) row.screenshot = await shoot(page, entry, base, viewport, variant, index, row);
     row.status = 'observed';
   } catch (error) {
     row.status = 'error';
