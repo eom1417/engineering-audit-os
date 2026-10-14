@@ -119,11 +119,20 @@ def _answer(function):
 def build():
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
-    from . import agent_tools as tools
 
     server = MCPServer(name='eaos', title='Engineering Audit OS', version=__version__, instructions=INSTRUCTIONS)
     reading = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
     working = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
+    _check_tools(server, reading, working)
+    _fix_tools(server, reading, working)
+    _build_tools(server, reading, working)
+    _prompts(server)
+    return server
+
+
+def _check_tools(server, reading, working):
+    """The tools of the check: where things stand, the branches, the menu, the tools, the check and its overview."""
+    from . import agent_tools as tools
     project_doc = 'The project folder (default: the folder the assistant was opened in).'
 
     @server.tool(annotations=reading, description='Where this project is in the EAOS way, the next tool to call, the progress, and the '
@@ -214,6 +223,11 @@ def build():
     @_answer
     def overview(project: str | None = None) -> str:
         return tools.overview(project)
+
+
+def _fix_tools(server, reading, working):
+    """The tools of the findings, the plan, the run, the fixes and the person's decision on them."""
+    from . import agent_tools as tools
 
     @server.tool(annotations=reading, description='The problems found, most important first, filtered by kind, file path (part of it), '
                  'text in the title, or only those EAOS can fix; paged with limit and offset.')
@@ -362,6 +376,9 @@ def build():
     def undo(project: str | None = None) -> str:
         return tools.undo(project)
 
+
+def _build_tools(server, reading, working):
+    """The tools that build a new project from its plan, milestone after milestone."""
     from . import build_tools as build
 
     @server.tool(annotations=working, description='Build a new project from its plan (a PRD, notes, any file: Markdown, text, PDF, '
@@ -416,6 +433,9 @@ def build():
     def build_finish(project: str | None = None) -> str:
         return build.build_finish(project)
 
+
+def _prompts(server):
+    """The prompts, and the /eaos:<option> shortcuts of Claude Code."""
     @server.prompt(name='build', description='Build a new project from its plan, with the best structure · ابنِ مشروعًا من خطة')
     def build_prompt() -> str:
         return ('Use the eaos tools to build my project from its plan, end to end: blueprint_start with my plan file (or the text '
@@ -459,7 +479,6 @@ def build():
     shortcut('tasks', 'What is done and what comes next · المنجز والقادم')
     shortcut('ask', 'Ask about your code: what a change touches, where a thing is used · اسأل عن مشروعك')
     shortcut('tools', 'Which EAOS and tools are installed, what is missing · الأدوات والمحركات')
-    return server
 
 
 def functions():
