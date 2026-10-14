@@ -62,7 +62,7 @@ function ScanBody({ data }: { data: StudioData }) {
   const open = openTotal(scan)
   const nextAt = next?.at ?? '9999'
   const around = history.events.filter((e) => e.at >= scan.at && e.at < nextAt)
-  const notRecorded = <span className={css.tileMuted}>{w('notRecorded')}</span>
+  const notRecorded = w('notRecorded')
   return (
     <div className={layout.page}>
       <header className={css.head}>
@@ -84,7 +84,7 @@ function ScanBody({ data }: { data: StudioData }) {
             <Panel pad>
               <Props rows={[
                 [w('scanned'), date(scan.at, true)],
-                [w('score'), <ScoreTag score={scan.score} />],
+                [w('score'), scan.score === null ? notRecorded : <ScoreTag score={scan.score} />, scan.score === null],
                 [w('open'), open === null ? notRecorded : <N value={open} />, open === null],
                 [w('total'), typeof scan.total === 'number' ? <N value={scan.total} /> : notRecorded, typeof scan.total !== 'number'],
                 [w('fixed'), typeof scan.closed === 'number' ? <N value={scan.closed} /> : notRecorded, typeof scan.closed !== 'number'],
