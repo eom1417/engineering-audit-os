@@ -1,0 +1,51 @@
+name: Bug report · بلاغ عن خطأ
+description: Something in EAOS does not work as it should · شيء في EAOS لا يعمل كما يجب
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Please never paste secrets, tokens or private code.
+        شكرًا على البلاغ. لا تلصق أسرارًا أو مفاتيح أو كودًا خاصًا.
+  - type: input
+    id: version
+    attributes:
+      label: EAOS version · الإصدار
+      description: "`eaos --version`"
+      placeholder: "0.0.27"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen? · أين حدث؟
+      options:
+        - The check · الفحص
+        - A batch of fixes · دفعة الإصلاحات
+        - Build from a plan · البناء من خطة
+        - The Studio · الاستوديو
+        - The assistant (Claude Code / Codex) · المساعد
+        - Installing · التثبيت
+        - Other · غير ذلك
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect? · ماذا حدث، وماذا توقعت؟
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce · خطوات تكرار الخطأ
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment · البيئة
+      description: "`eaos doctor` output, the OS, and the assistant you use · ناتج `eaos doctor`، ونظام التشغيل، والمساعد"
+      render: text

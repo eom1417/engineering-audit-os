@@ -6,13 +6,13 @@ fake assistant: check → change → check again → fix three cards with one fa
 
 ## Now
 
-- **The final proof**: one full check of EAOS from the Studio with the assistant, and one real fix batch of 5–10 ready
-  cards on the trial project; then the owner's review.
-
-## Known imperfections (from the fifteen fixes, 0.0.8)
-
-- On EAOS's first check its Studio has no report data yet, so live setup refuses the empty page (later checks use the
-  previous report); no English screen pictures are taken yet.
+- **The design library for building from a plan**: free, pinned design sources (styles and UX rules by product type,
+  reference design systems, shadcn/ui components and blocks with right-to-left support, themes, the Arabic fonts of
+  Google Fonts, and craft guidance for the assistant) unified by one EAOS design standard: phone first, both
+  directions, one theme, readable contrast. A redesign of an existing project, offered when the screen review finds
+  the look weak, is the person's choice.
+- **The proof of 0.0.27 and the design library**: one full check of EAOS from the Studio with the assistant, a real fix
+  batch, and a real build from a plan; then the owner's review.
 
 ## Then
 

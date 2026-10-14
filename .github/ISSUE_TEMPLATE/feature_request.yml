@@ -1,0 +1,22 @@
+name: Feature request · طلب ميزة
+description: An idea that would make EAOS better · فكرة تجعل EAOS أفضل
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem it solves · المشكلة التي تحلها
+      description: What are you trying to do, and what stops you today? · ماذا تحاول أن تفعل، وما الذي يمنعك اليوم؟
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea · الفكرة
+      description: How would it work, in your words · كيف تعمل، بكلماتك
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered · بدائل فكرت فيها

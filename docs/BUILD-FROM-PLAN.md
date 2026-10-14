@@ -1,76 +1,91 @@
-# البناء من خطة
+# Build from a plan
 
-## الفكرة
+**English** · [العربية](BUILD-FROM-PLAN.ar.md)
 
-الفحص يقرأ ما هو موجود، ويرسم الهدف، ويخطط الطريق بينهما. مشروع لم يُبنَ بعد ليس له «وضع حالي»، فالهدف يُرسم من
-الخطة نفسها، والفجوة هي البناء كله. وما تبحث عنه الفحوص في مشروع قائم (التكرار، والكود الميت، والتشابك، وخلط
-الطبقات) يُمنع من أول سطر بدل أن يُطارد بعدين.
+## The idea
 
-## الطريق
+A check reads what exists, draws the target, and plans the way between them. A project not built yet has no current
+state: the target is drawn from the plan itself, and the gap is the whole build. What checks hunt for in an existing
+project (duplication, dead code, tangled files, mixed layers, security weaknesses) is kept out from the first line
+instead of chased later.
 
-المستخدم يكتب لمساعده: «عندي خطة مشروع في هذا الملف، ابنه بـ EAOS بأفضل هيكلة». أو من الاستوديو: «ابنِ من خطة» في
-لوحة المساعد، باسم المشروع الجديد وملفات الخطة وصور شاشاته (أو نص ملصوق)، فيُرسم المخطط في مجلد جديد بجانب المشروع
-(`POST /api/plan`، `eaos/studio/actions/plan.py`)، والبناء يبدأ بعد موافقة الشخص.
+## The way
 
-| # | الأداة | ما يحدث |
+The person writes to their assistant: "I have my project's plan in this file, build it with EAOS with the best
+structure". Or, from the Studio: **"Build from a plan"** in the assistant's panel, with the new project's name, the
+plan's files and pictures of its screens (or pasted text); the blueprint is drawn in a new folder beside the project
+(`POST /api/plan`, `eaos/studio/actions/plan.py`), and the build starts once the person agrees.
+
+| # | Tool | What happens |
 | --- | --- | --- |
-| 1 | `blueprint_start` | يقرأ الخطة بأي صيغة (Markdown، نص، HTML، Word، PDF، نص ملصوق، أو مجلد منها) مع مسارات صور الشاشات ليراها المساعد (`eaos/plan_source.py`)، ويرجعها مع صيغة المواصفات وكتالوج التقنيات |
-| 2 | `blueprint_spec` | المساعد يكتب المواصفات، ومعها الشكل (`look`: ثيم واحد وألوانه وخطوطه ومكوناته المشتركة، وكل شاشة بميزاتها وصورتها): الأجزاء بمسؤولية واحدة، والبيانات بمالك واحد، والميزات بمعايير قبول. EAOS يرد بما ينقص، وبأسئلة اختيار مع توصية. المساعد يبحث عمّا تحتاجه تطبيقات من هذا النوع، ويوصي، ويسأل الشخص الخيارات الحقيقية فقط (ومنها تفضيلات التقنية) |
-| 3 | `blueprint_design` | التقنيات (اختيار الشخص، وإلا التوصية)، والبنية المستهدفة، وقواعد الطبقات، وخطة البناء بمراحل وبطاقات |
-| 4 | `build_start` | موافقة واحدة، ثم أول مرحلة في نسخة معزولة. المخطط وقواعده يدخلان المشروع نفسه (`eaos.policy.json` و`docs/blueprint/`) |
-| 5 | `build_edit` | المساعد يكتب بطاقة بطاقة، وكل بطاقة تُحفظ فقط إن مرّت من البوابات، ومنها الأمان (Bandit وGitleaks على كل بطاقة، وCodeQL مع إغلاق المرحلة حيث يُسمح له) |
-| 6 | `build_finish` | فحوص المرحلة كلها، ثم فرع `eaos/build-N` فوق السابق، والمرحلة التالية بلا سؤال جديد |
-| 7 | `accept` | في النهاية الشخص يقرر: يعتمد الفرع الأخير (فيه كل المراحل) أو يتراجع |
+| 1 | `blueprint_start` | Reads the plan in any format (Markdown, text, HTML, Word, PDF, pasted words, or a folder of them) with the paths of its screen pictures for the assistant to look at (`eaos/plan_source.py`), and returns it with the spec format and the stack catalogue |
+| 2 | `blueprint_spec` | The assistant writes the spec, its look included (`look`: one theme, its colours, fonts and shared components, and each screen with its features and picture): parts with one responsibility, data with one owner, features with acceptance criteria. EAOS answers with what is missing and with choices, each with a recommendation. The assistant researches what products of this kind need, recommends, and asks the person only real choices (technology preferences among them) |
+| 3 | `blueprint_design` | The stack (the person's choice, else the recommendation), the target structure, the layer rules, and the build plan in milestones and cards |
+| 4 | `build_start` | One agreement, then the first milestone in an isolated copy. The blueprint and its rules enter the project itself (`eaos.policy.json` and `docs/blueprint/`) |
+| 5 | `build_edit` | The assistant writes card by card; a card is kept only if it passes the gates, security among them (Bandit and Gitleaks on every card, CodeQL when a milestone closes, where it may run) |
+| 6 | `build_finish` | The whole milestone's checks, then a branch `eaos/build-N` on top of the last one, and the next milestone with no new question |
+| 7 | `accept` | At the end the person decides: take the last branch (it holds every milestone) or throw it away |
 
-## البنية التي يرسمها
+## The structure it draws
 
-| المجلد | الطبقة | يعتمد على |
+| Folder | Layer | Depends on |
 | --- | --- | --- |
-| `shared/src/` | الأنواع والتحقق المشتركة | لا شيء |
-| `server/src/domain/` | قواعد العمل | shared فقط |
-| `server/src/application/` | حالات الاستخدام والمنافذ | domain وshared |
-| `server/src/infrastructure/<الجانب>/` | المحوّلات: قاعدة البيانات، والدخول، والتكاملات | application وdomain وshared |
-| `server/src/interface/http/` | المسارات | application وshared |
-| `web/src/ui/` | الشكل المشترك | shared |
-| `web/src/api/` | العميل الوحيد للخادم | shared |
-| `web/src/features/<الجزء>/` | الشاشات | ui وapi وshared |
-| `web/src/app/` | هيكل التطبيق | الكل |
+| `shared/src/` | Shared types and validation | nothing |
+| `server/src/domain/` | Business rules | shared only |
+| `server/src/application/` | Use cases and ports | domain and shared |
+| `server/src/infrastructure/<concern>/` | Adapters: the database, sign-in, integrations | application, domain and shared |
+| `server/src/interface/http/` | Routes | application and shared |
+| `web/src/ui/` | The shared look | shared |
+| `web/src/api/` | The one client of the server | shared |
+| `web/src/features/<part>/` | The screens | ui, api and shared |
+| `web/src/app/` | The app shell | all |
 
-**كل تقنية في مكان واحد:** مكتبة قاعدة البيانات أو الدخول لا يستوردها إلا مجلد محوّلها (وعميل الخادم في الواجهة).
-تغيير Supabase إلى PostgreSQL مثلًا يعني استبدال مجلد واحد، والباقي يطلب البيانات بالطريقة نفسها. وكل خيار في
-الكتالوج (`eaos/data/stacks.json`) مكتوب معه لماذا يُختار، وكيف يُغيَّر لاحقًا.
+**Each technology lives in one place:** a database or sign-in library is imported only by its adapter folder (and,
+for its browser half, by the server's one client). Changing Supabase to PostgreSQL, say, means replacing one folder;
+the rest asks for data the same way. Every option in the catalogue (`eaos/data/stacks.json`) says why it is chosen and
+how to change it later.
 
-**ترتيب البناء:** الهيكل وأدواته أولًا (typecheck وlint وtest تعمل من أول بطاقة)، ثم الأساسات المشتركة (مكان
-واحد للأخطاء والتحقق والإعدادات والشكل والعميل)، ثم جزء بعد جزء بترتيب البيانات (مالك البيانات قبل من يستخدمها)،
-ثم الرحلات كاملة في المتصفح.
+**The look is built once:** the shared-look card turns the spec's `look` into design tokens in `web/src/ui/theme.css`
+that no screen overrides, and each feature's card says which screen and picture it follows.
 
-## البوابات بعد كل بطاقة
+**The order of the build:** the skeleton and its checks first (typecheck, lint and test run from the first card), then
+the shared foundations (one home each for errors, validation, configuration, the look and the client), then part after
+part in data order (the data's owner before those that use it), then every journey end to end in a browser.
 
-| البوابة | تمنع |
+## The gates after every card
+
+| Gate | Keeps out |
 | --- | --- |
-| الطبقات | طبقة تستخدم ما لا يحق لها (قواعد العمل تستورد قاعدة البيانات مثلًا) |
-| الهيكل | ملف خارج المجلدات المخططة |
-| التقنية | مكتبة تقنية معزولة مستخدمة خارج مجلدها |
-| الحلقات | ملفات يستورد بعضها بعضًا |
-| المراجع | استيراد لملف غير موجود |
-| النسخ | الأسطر نفسها في أكثر من مكان |
-| الاختبار | بطاقة بلا اختبار لمعايير قبولها |
-| فحوص المشروع | typecheck وlint وtest |
-| الكود الميت | في المرحلة الأخيرة: ما لا يستخدمه شيء |
+| Layers | A layer using what it may not (business rules importing the database, say) |
+| Structure | A file outside the planned folders |
+| Technology | An isolated technology's library used outside its folder |
+| Cycles | Files importing each other |
+| References | An import of a file that does not exist |
+| Copies | The same lines in more than one place |
+| Security | A weakness or an exposed secret: Bandit and Gitleaks on every card, CodeQL when a milestone closes, where it may run |
+| Tests | A card without a test for its acceptance criteria |
+| Project checks | typecheck, lint and test |
+| Dead code | At the last milestone: what nothing uses |
 
-البطاقة التي تكسر بوابة تُرجع للمساعد بأسبابها، فيصلحها ويرسلها من جديد.
+A card that breaks a gate goes back to the assistant with the reasons; it fixes it and sends it again.
 
-## المخرجات
+## What it produces
 
-في مجلد المخرجات نفسه (`~/EAOS/<المشروع>/blueprint/`): `SOURCE.md` (الخطة كما قُرئت)، و`product-spec.json`،
-و`stack.json`، و`target-architecture.json`، و`eaos.policy.json`، و`plan.json`، و`BLUEPRINT.md` (المخطط بكلام
-يقرؤه الإنسان: الأجزاء، والتقنيات ولماذا وكيف تُغيَّر، والقواعد، وترتيب البناء).
+In the outputs folder (`~/EAOS/<project>/blueprint/`): `SOURCE.md` (the plan as read), `product-spec.json`,
+`stack.json`, `target-architecture.json`, `eaos.policy.json`, `plan.json`, and `BLUEPRINT.md` (the blueprint in words a
+person reads: the parts, the technologies with why and how to change them, the rules, and the order of the build).
 
-## المؤشرات
+## Measures
 
-| المؤشر | ما يقيسه | الهدف |
+| Measure | What it measures | Goal |
 | --- | --- | --- |
-| B1 | صيغ الخطة التي تُقرأ إلى نصها | 1.0 |
-| B2 | فحوص المخطط على مواصفات العيّنة | 1.0 |
-| B3 | مشاريع مبنية من خطة يجدها فحص EAOS نظيفة | 1.0 |
-| B4 | ميزات الخطط المبنية عبر بواباتها باختباراتها | 1.0 |
+| B1 | Plan formats read into their text | 1.0 |
+| B2 | Blueprint checks on the sample specs | 1.0 |
+| B3 | Projects built from a plan that an EAOS check finds clean | 1.0 |
+| B4 | Features of built plans that passed their gates with their tests | 1.0 |
+
+## Limits
+
+The build lays out web products in TypeScript: React or Next.js on the web, optionally a Hono, Express or Fastify
+server, PostgreSQL, Supabase or SQLite for data, and Better Auth, Supabase Auth or Clerk for sign-in. Native mobile apps
+and other server languages are not laid out yet.

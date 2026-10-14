@@ -1,191 +1,214 @@
-# من الصفر إلى أول إصلاح
+# From nothing to your first fix
 
-دليل لمن بنى برنامجه مع مساعد ذكي (Claude Code أو Codex) ولا يعرف تفاصيل البرمجة.
-تكتب سطرًا واحدًا مرة واحدة، ثم تكلّم مساعدك بكلامك، وهو يكمل الشغل كله.
+**English** · [العربية](GUIDE.ar.md) · [Back to the README](../README.md)
+
+A guide for people who built their app with an AI assistant (Claude Code or Codex) and do not know the
+details of programming. You paste one line once, then talk to your assistant in your own words, and it does
+the rest.
 
 ---
 
-## ١. ثبّت EAOS (مرة واحدة)
+## 1. Install EAOS (once)
 
-افتح الطرفية (Terminal) **داخل مجلد مشروعك**، والصق هذا السطر، واضغط Enter:
+Open the Terminal **in your project folder**, paste this line, and press Enter:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
 
-- **المتوقع:** ✅ «تم تثبيت EAOS»، ثم «وصار EAOS داخل مساعدك الذكي: Claude Code»، ثم يفتح لك **الاستوديو** في
-  المتصفح على صفحة «تجهيز الأدوات» (انظر «تابع من الاستوديو» تحت).
-- **يحتاج:** git، وClaude Code أو Codex مثبّتًا ومسجّل الدخول. إن نقص شيء، يقول لك السطر من أين تثبّته.
-- **أحدث نسخة:** السطر يثبّت من الفرع `main`. لتجربة الأحدث قبل وصوله إلى `main`، استعمل:
+- **You should see:** ✅ "EAOS is installed", then "EAOS is now inside your AI assistant: Claude Code", and then
+  **the Studio** opens in your browser on "Preparing the tools" (see "Follow it in the Studio" below).
+- **Needs:** git, and Claude Code or Codex installed and signed in. If something is missing, the line says where to get it.
+- **The newest version:** the line installs from the `main` branch. To try the newest before it reaches `main`, use:
   `curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/develop/install.sh | EAOS_SOURCE=git+https://github.com/eom1417/engineering-audit-os@develop bash`
 
-## ٢. افتح مساعدك في مجلد مشروعك
+## 2. Open your assistant in your project folder
 
-- **Claude Code:** افتح الطرفية في مجلد مشروعك واكتب `claude` (أو افتح المجلد في تطبيق Claude).
-- **Codex:** افتح المجلد في Codex.
+- **Claude Code:** open the Terminal in your project folder and type `claude` (or open the folder in the Claude app).
+- **Codex:** open the folder in Codex.
 
-إن كان مساعدك مفتوحًا قبل التثبيت، أغلقه وافتحه من جديد حتى يرى EAOS.
+If your assistant was open before the install, close it and open it again so it sees EAOS.
 
-> **كيف أفتح الطرفية في مجلد مشروعي؟** اكتب `cd` ثم مسافة، واسحب مجلد المشروع من Finder إلى نافذة الطرفية، واضغط Enter.
+> **How do I open the Terminal in my project folder?** Type `cd` and a space, drag the project folder from Finder into the Terminal window, and press Enter.
 
-## ٣. اطلب بكلامك، أو اختر من القائمة
+## 3. Ask in your own words, or pick from the menu
 
-**لا تعرف من أين تبدأ؟** اكتب `/eaos` وحدها واضغط Enter (في Codex: اكتب `$eaos`). تظهر لك قائمة بما يقدر EAOS أن
-يفعله لمشروعك الآن، وأولها الخطوة المناسبة (عليها «موصى به»): افحص، تابع من حيث توقفنا، راجع الإصلاحات الجاهزة، افتح
-التقرير، المنجز والقادم، اسأل عن مشروعك، الأدوات. في Claude Code تتنقل بالأسهم وتختار بـEnter؛ وفي Codex ترد برقم
-الخيار. و«خيارات أخرى…» تعرض البقية.
+**Not sure where to start?** Type `/eaos` alone and press Enter (in Codex: `$eaos`). A menu shows what EAOS can do
+for your project now, the fitting step first (marked "recommended"): check, continue where we stopped, review the
+ready fixes, open the report, done and coming next, ask about your project, tools. In Claude Code you move with the
+arrows and pick with Enter; in Codex you reply with the option's number. "More options…" shows the rest.
 
-أو اكتب لمساعدك:
+Or write to your assistant:
 
-> **افحص مشروعي بـ EAOS وأصلح مشاكله**
+> **Check my project with EAOS and fix its problems**
 
-ماذا يحدث بعدها:
+What happens next:
 
-| الخطوة | ما يحدث |
+| Step | What happens |
 | --- | --- |
-| سؤالان | «أستخدم مساعدك في الحكم على النتائج؟» و«أشغّل برنامجك في نسخة منفصلة، بقاعدة بيانات مؤقتة وبلا أسرارك؟» أجب: **نعم** |
-| الأدلة | الأدوات تقرأ الكود كله. وبموافقتك يشغّل برنامجك في النسخة المنفصلة، ويسجّل رحلات المستخدم، ويصوّر كل شاشة فاتحة وداكنة على الجوال والحاسب، ويقيس السرعة |
-| الحكم | الأدوات تقترح المشاكل والبطاقات والبنية المستهدفة، ومساعدك يحكم على كل اقتراح بدليله: يقبله أو يعدّله أو يرفضه. ويرى صور الشاشات ويكتب ملاحظاته عليها |
-| الشرح | يشرح لك أهم المشاكل بكلام بسيط |
-| الإصلاح | يكتب الإصلاحات، وEAOS يفحص كل واحد: المشكلة اختفت، لا شيء انكسر، الشاشات كما هي. ما يفشل يُترك |
-| التسليم | يضع ما نجح في فرع جديد في مشروعك (`eaos/wave-1`)، ويقول لك ماذا تغيّر |
+| Two questions | "May I use your assistant to judge the findings?" and "May I run your app in a separate copy, with a temporary database and none of your secrets?" Answer: **yes** |
+| Evidence | The tools read the whole code. With your consent it runs your app in the separate copy, records the user journeys, pictures every screen light and dark at phone and desktop width, and measures its speed |
+| Judgement | The tools propose the problems, the cards and the target structure, and your assistant judges each proposal on its evidence: accepts, changes or rejects it. It also looks at the screen pictures and notes what it sees |
+| Explanation | It explains the main problems in plain words |
+| Fix | It writes the fixes; EAOS checks each one: the problem is gone, nothing broke, every screen is the same. What fails is left out |
+| Hand over | It puts what passed on a new branch in your project (`eaos/wave-1`) and tells you what changed |
 
-المدة تعتمد على حجم مشروعك. لا تحتاج أن تخمّن: الاستوديو يعرض لك كل مرحلة وهي تعمل، وما انتهى منها وما بقي.
-وإن قلت «لا» لأي سؤال من السؤالين، يكمل الفحص بدونه، ويقول التقرير بصراحة ماذا لم يُفعل ولماذا.
+How long it takes depends on your project's size. You do not need to guess: the Studio shows every stage as it runs,
+what is finished and what is left. If you say "no" to either question, the check goes on without it, and the report
+says plainly what was not done and why.
 
-**إذا كان لمشروعك أكثر من فرع** (مثلًا `main` في الإنتاج، وفرع تطوير متقدّم عليه)، يسألك أولًا: **أي فرع أفحص
-وأصلح؟** ويعرض لك الفروع: متى تغيّر كل فرع آخر مرة، وكم هو متقدّم على الفرع الرئيسي، وأيها ينصح به ولماذا. اختر،
-أو قل «الفرع اللي تنصح فيه». بعدها كل شيء يتبع هذا الفرع: الفحص، والإصلاحات، والدمج، والتقدم، والتقرير (واسم الفرع
-مكتوب أعلى التقرير). لا يغيّر الفرع المفتوح عندك: يعمل على نسخة منه. ولكل فرع تقريره وتقدمه؛ لتنتقل قل «اشتغل على
-فرع main».
+At the end it asks: **take the fixes in, or throw them away?** Tell it what you want. Your current branch and
+files do not change until you agree.
 
-في النهاية يسألك: **تعتمد الإصلاحات أو تتراجع عنها؟** قل له ما تريد. فرعك الحالي وملفاتك لا تتغير حتى توافق.
-حين تقول **«ادمجها»** يدمجها في فرعك، ويحذف فرع الإصلاحات، ويحدّث التقرير والتقدم في الخطوة نفسها، ثم يقول لك
-كم أُغلق من المجموع. لا تحتاج أن تطلب حذف الفرع ولا تحديث التقرير.
+## Follow it in the Studio
 
-## تابع من الاستوديو
+The Studio is a page in your browser that shows everything about your project, updated as it happens:
 
-الاستوديو صفحة في متصفحك تعرض كل شيء عن مشروعك وهو يتحدّث لحظة بلحظة:
+- **Preparing the tools:** every tool with its state. "Start the check" unlocks by itself once your project's tools are ready.
+- **The live map:** the check's stages as they run: what each does, how long it took, what it produced, and why it was skipped if it was.
+- **The project:** the current state, the ideal picture, the screens, the cards with their evidence, and the plan.
+- **Decisions:** what waits for you, and every disagreement between the rules and your assistant, with both views, for you to settle.
+- **Go on from any stage:** choose a stage on the live map and press **"Redo this stage and what depends on it"**. If a
+  tool failed in it, **"Run the tools that failed again"** runs only those tools. Both run on the very code that was
+  checked and keep every other stage as it was: never a whole new check for one stage.
+- **The assistant beside the work:** the round button in a corner opens your assistant on any page. Ask about your
+  project in your own words; what it would do comes back as a card you confirm. The Assistant page shows what every
+  check and batch used.
+- **Both languages:** the Studio and every document of the report, in English and in Arabic, switched with one button.
 
-- **تجهيز الأدوات:** كل أداة وحالتها. زر «ابدأ الفحص» يُفتح وحده حين تجهز أدوات مشروعك.
-- **الخريطة الحية:** مراحل الفحص وهي تعمل: ماذا تفعل كل مرحلة، وكم أخذت، وماذا أنتجت، ولماذا تخطّاها إن تخطّاها.
-- **المشروع:** الوضع الراهن، والصورة المثالية، والشاشات، والبطاقات بأدلتها، والخطة.
-- **القرارات:** ما ينتظر رأيك، وكل خلاف بين القواعد ومساعدك برأييهما، لتقرر أنت.
+**How to open it:** it opens by itself after the install. To open it any time, say "open the Studio" to your
+assistant, or type `eaos studio` in the Terminal inside your project folder.
 
-**كيف تفتحه:** يفتح وحده بعد التثبيت. ولتفتحه في أي وقت، قل لمساعدك «افتح الاستوديو»، أو اكتب في الطرفية داخل
-مجلد مشروعك `eaos studio`.
-
-| أين تعمل | الرابط |
+| Where you work | The address |
 | --- | --- |
-| على جهازك | `http://127.0.0.1:<رقم>/`: رابط بسيط بلا رمز في آخره، يبقى نفسه بعد إعادة التشغيل، فاحفظه في المفضلة |
-| على خادم عن بعد | رابط الخادم نفسه، بلا رمز في آخره، ويحميه تسجيل الدخول الذي أمام الخادم. اكتب قالبه مرة واحدة في الملف `~/.eaos/remote-origin` (مثلًا `https://<project>--{port}.dev.remote.e-m.sa`) |
+| On your own computer | `http://127.0.0.1:<number>/`: a plain address with no token at its end, the same after a restart, so bookmark it |
+| On a remote server | the server's own address, with no token at its end, guarded by the sign-in in front of the server. Write its pattern once in the file `~/.eaos/remote-origin` (for example `https://<project>--{port}.dev.remote.e-m.sa`) |
 
-## ٤. اقرأ التقرير
+## 4. Read the report
 
-قل لمساعدك: **«افتح لي التقرير»**. يفتح لك صفحة واحدة في المتصفح فيها خمسة أقسام:
+Say to your assistant: **"Open the report"**. It opens one page in your browser with five parts:
 
-1. **ملخص المشروع:** صحته من 100، وكم أُغلق من الفجوة ومنحنى التقدم عبر الوقت، وأهم المشاكل.
-2. **الفجوات والمخاطر:** أين أنت الآن، وأين يجب أن تكون، وخطورة كل فجوة بالكلمات.
-3. **خريطة البنية:** رسم لأجزاء مشروعك والعلاقات بينها (سُمك الخط بقوة الارتباط، والأحمر حلقات تشابك). اختر جزءًا
-   لترى ملفاته، ثم ملفًا لترى دواله ومن يستدعيها، واختر صفحة لترى مسار ندائها من الرابط إلى آخر دالة.
-4. **البنية المستهدفة:** الطبقات كما يجب أن تكون، وأين يذهب كل جزء من اليوم، وكم أُغلق من فجوة كل جزء.
-5. **الخطة والتقدم:** المراحل وما أُنجز، والقرارات المطلوبة منك، و**كل بطاقات المهام** مطوية: افتحها لترى كل
-   بطاقة وحالتها (أُصلحت ودُمجت، على فرع ينتظرك، مفتوحة، تحتاج قرارك) وتفاصيلها.
+1. **Project summary:** its health out of 100, how much of the gap is closed with its curve over time, the main problems.
+2. **Gaps and risks:** where you are, where you should be, and how serious each gap is, in words.
+3. **Structure map:** a drawing of your project's parts and how they depend on each other (thicker = stronger, red =
+   tangled in a loop). Pick a part to see its files, a file to see its functions and who calls them, and a page to see
+   its call path from the route to the last function.
+4. **Target structure:** the layers as they should be, where each part of today goes, and how much of each gap is closed.
+5. **Plan and progress:** the stages and what is done, the decisions that need you, and **every task card**, folded:
+   open one to see its state (fixed and merged, on a branch waiting for you, open, needs your decision) and details.
 
-التقرير يتحدّث بنفسه بعد كل دمج، ولا يحسب إلا ما صار في فرعك. وكل قرار فيه يقول **من اتخذه**: اتفقت عليه الأدوات
-ومساعدك، أو عدّله مساعدك بدليل، أو القواعد وحدها، أو خلاف بقي فيه رأي القواعد.
+The report updates itself after every merge, and counts only what is in your branch. Every decision in it says
+**who made it**: the tools and your assistant agreed, your assistant changed it with evidence, the rules alone, or a
+disagreement where the rules' view was kept.
 
-كل مخرجات EAOS في مجلد واحد: **`~/EAOS/<اسم مشروعك>/`**
+Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 
-| فيه | ما هو |
+| In it | What it is |
 | --- | --- |
-| `REPORT.html` | التقرير لك: افتحه بالنقر عليه مرتين |
-| `HANDOVER.md` | أين توقف العمل وماذا بقي، لتكمل مع أي مساعد |
-| `technical/` | التقرير الفني الكامل، لمساعدك وللمطوّرين |
-| `fixes/` | كل دفعة إصلاحات: ما تغيّر، وما لم ينجح ولماذا |
-| `logs/` | سجلات تقنية، لمن يساعدك إن ظهرت مشكلة |
+| `REPORT.html` | The report for you: double-click to open |
+| `HANDOVER.md` | Where the work stopped and what is left, to carry on with any assistant |
+| `technical/` | The full technical report, for your assistant and developers |
+| `fixes/` | Every batch of fixes: what changed, what did not pass and why |
+| `logs/` | Technical logs, for whoever helps you if something goes wrong |
 
-## ٥. الدفعة التالية
+**When your project has more than one branch** (say `main` in production, and a development branch ahead of it), it
+first asks: **which branch should I check and fix?**, listing when each branch last changed, how far each is ahead of
+the main branch, and which it recommends and why. Choose, or say "the one you recommend". From then on everything
+follows that branch: the check, the fixes, the merges, the progress and the report (whose top names the branch). The
+branch you have open is not switched: EAOS works on a copy of it. Each branch has its own report and progress; to move,
+say "work on the main branch".
 
-قل لمساعدك: **«كمّل الإصلاح»**. كل دفعة فرع جديد (`eaos/wave-2`، …)، وأنت تقرر في كل مرة. لا تبدأ دفعة جديدة
-وفرع السابقة ينتظر قرارك، ولا يلزم فحص جديد بعد دمج إصلاحات EAOS.
+## 5. The next batch
 
-**التقدم في التقرير صادق:** البطاقة تُحسب منجزة فقط حين تصير في فرعك (بعد الدمج)؛ ما زال على فرع ينتظرك يظهر
-«ينتظر قرارك». ولكل بطاقة مفتاح ثابت، فحتى لو فُحص المشروع من جديد ورُقّمت البطاقات من جديد، يبقى المنجز منجزًا.
+Say: **"Continue fixing"**. Each batch is a new branch (`eaos/wave-2`, …), and you decide every time. A new batch
+does not start while the last one's branch waits for you, and no new check is needed after EAOS's fixes are merged.
 
-## إذا انتهى حد مساعدك في منتصف العمل
+When you say **"merge it"**, the assistant merges the fixes into your branch, deletes the branch of fixes, and brings
+the report and the progress up to date in the same step, then tells you how much of the total is closed.
 
-العمل الطويل قد يتجاوز حد الاستخدام (مثلًا حد الخمس ساعات). لا يضيع شيء: كل ما يعمله EAOS يُحفظ لحظة بلحظة، وكل
-خطوة يسجّلها مع اسم المساعد الذي عملها. انتقل لأي مساعد آخر مثبّت عندك (من Codex إلى Claude Code أو العكس):
+**The progress in the report is true:** a card counts as done only once it is in your branch (merged); one still on
+a branch waiting for you shows as "waiting for your decision". Every card has a key that does not change, so even
+when the project is checked again and the cards are numbered again, what is done stays done.
 
-1. افتح المساعد الآخر في **نفس مجلد مشروعك**.
-2. اكتب له: **«كمّل»**. يعرف وحده أن هناك عمل EAOS مفتوحًا هنا، لأن EAOS يخبره بذلك لحظة بداية الجلسة.
+## If your assistant's usage limit runs out in the middle
 
-**أول مرة تفتح Codex بعد التثبيت** يعرض لك «New hook – review required» (إضافة جديدة تحتاج موافقتك): وافق عليها مرة
-واحدة (Trust). هي التي تخبر Codex بما توقف عنده العمل. Claude Code لا يسأل.
+Long work can outlast a usage limit (for example the five-hour one). Nothing is lost: everything EAOS does is saved as
+it happens, and every step is recorded with the name of the assistant that did it. Move to any other assistant you
+have installed (from Codex to Claude Code, or the other way):
 
-**تريد أن ترى بنفسك أين وقف العمل؟** اكتب في الطرفية داخل مجلد مشروعك: `eaos handover`. يقول لك الفرع، والدفعة، وما حُفظ
-وما بقي، والبطاقة التي كان المساعد يعمل عليها، ومن آخر مساعد ومتى، والجملة التي تكتبها للمساعد الآخر. ونفس الشيء
-في التقرير، في قسم «سجل العمل».
+1. Open the other assistant in **the same project folder**.
+2. Write: **"Continue"**. It knows by itself that EAOS work is open here: EAOS tells it the moment the session starts.
 
-يقرأ أولًا ما سُلّم له: أين توقف الأول، وأي دفعة مفتوحة، وما حُفظ منها وما بقي، وما أجبت عنه من قبل. ثم يكمل من
-النقطة نفسها، ولا يسألك ما أجبت عنه، ولا يعيد ما حُفظ. نفس الملخص مكتوب لك في `~/EAOS/<مشروعك>/HANDOVER.md`.
+**The first time you open Codex after installing**, it shows "New hook – review required": approve it once (Trust). It is
+what tells Codex where the work stopped. Claude Code does not ask.
 
-## ٦. مشروع جديد من خطة (اختياري)
+**Want to see for yourself where it stopped?** In the terminal, in your project folder: `eaos handover`. It tells you the
+branch, the batch, what was kept and what is left, the card the assistant was on, the last assistant and when, and the line
+to write to the other assistant. The same is in the report, in the "Work log" section.
 
-عندك فكرة وخطة مكتوبة ولم تبنِ شيئًا بعد؟ اصنع مجلدًا فارغًا للمشروع، وافتح مساعدك فيه، واكتب:
+It first reads what was handed over: where the first one stopped, which batch is open, what of it was kept and what
+is left, and what you already answered. Then it goes on from that point, without asking you again and without redoing
+what was kept. The same summary is written for you in `~/EAOS/<your project>/HANDOVER.md`.
 
-> عندي خطة مشروع في هذا الملف: `‎/مسار/الخطة.pdf`، ابنه بـ EAOS بأفضل هيكلة
+## 6. A new project from a plan (optional)
 
-(أي صيغة تنفع: Markdown أو Word أو PDF أو نص، أو الصق نص الخطة مباشرة في الرسالة.)
+Have an idea and a written plan, but nothing built yet? **From the Studio:** open the assistant's panel, press
+**"Build from a plan"**, name the new project and add its files (PDF, Word, HTML, Markdown, text) and pictures of its
+screens, or paste the plan. The new project is made in a folder beside the current one. **Or from your assistant:**
+make an empty folder for the project, open your assistant in it, and write:
 
-| الخطوة | ما يفعله المساعد |
+> I have my project's plan in this file: `/path/to/plan.pdf`. Build it with EAOS, with the best structure
+
+(Any format works: Markdown, Word, PDF, text, or paste the plan's text straight into the message.)
+
+| Step | What the assistant does |
 | --- | --- |
-| فهم الخطة | يقرأها، ويرتّبها أجزاء وبيانات وميزات، ويبحث عمّا تحتاجه تطبيقات من هذا النوع |
-| أسئلة قليلة | يسألك اختيارات فقط، مع توصيته: مثل «هل عندك تفضيل لقاعدة البيانات؟». إن لم يكن عندك قل: «خذ توصياتك» |
-| المخطط | يشرح لك الأجزاء، والتقنيات ولماذا اختارها وكيف تُغيَّر لاحقًا، وترتيب البناء. تجده في `~/EAOS/<المشروع>/blueprint/BLUEPRINT.md` |
-| سؤال واحد | «أبني مشروعك في نسخة منفصلة وأسلّمه لك مرحلة مرحلة؟» أجب: **نعم** |
-| البناء | يبني بطاقة بطاقة، وEAOS يرفض أي بطاقة فيها تكرار أو كود ميت أو تشابك أو خلط طبقات أو اختبار ناقص |
-| التسليم | كل مرحلة فرع (`eaos/build-1`، `eaos/build-2`…). في النهاية تقرر: تعتمد أو تتراجع |
+| Understand | Reads it and looks at every picture, orders it into parts, data and features, and researches what apps of this kind need |
+| A few questions | Asks only choices, with its recommendation: "any preference for the database?". If none, say: "take your recommendations" |
+| The blueprint | Explains the parts, the technologies (why each, and how to change it later), the look (one theme, its colours, fonts and screens) and the order of the build. It is in `~/EAOS/<project>/blueprint/BLUEPRINT.md` |
+| One question | "May I build your project in a separate copy and hand it to you milestone by milestone?" Answer: **yes** |
+| The build | Builds card by card; EAOS refuses any card with copied code, dead code, tangled files, mixed layers, a security weakness or a missing test |
+| Hand-over | Each milestone is a branch (`eaos/build-1`, `eaos/build-2`, …). At the end you decide: take it in or throw it away |
 
-تغيير تقنية لاحقًا (مثلًا من Supabase إلى PostgreSQL) سهل، لأن كل تقنية في مجلد واحد: قل لمساعدك «غيّر قاعدة البيانات
-إلى …» وهو يعرف أين.
+Changing a technology later (Supabase to PostgreSQL, say) is easy, because each one lives in one folder: tell your
+assistant "change the database to …" and it knows where.
 
 ---
 
-## طلبات تنفعك في أي وقت
+## Requests that help at any time
 
-| اكتب لمساعدك | ماذا يفعل |
+| Write to your assistant | What it does |
 | --- | --- |
-| «وين وصلنا؟» | يقول لك أين المشروع وما التالي |
-| «افتح الاستوديو» | يفتح لك الواجهة الحية، ويعطيك رابطها |
-| «افتح لي التقرير» | يفتح REPORT.html |
-| «وش أهم مشكلة؟ وريني الدليل» | يشرح مشكلة واحدة بالدليل والكود |
-| «اعتمد الإصلاحات» أو «ادمجها» | يدمج فرع الإصلاحات في فرعك، ويحذف الفرع، ويحدّث التقرير |
-| «كمّل شغل EAOS» | يكمل من حيث توقف هو أو مساعد آخر |
-| «تراجع عن الإصلاحات» | يحذف فرع الإصلاحات؛ مشروعك كما كان |
-| «ابنِ مشروعي من هذه الخطة» | البناء من خطة (الخطوة ٦) |
-| `/eaos` وحدها (أو `$eaos` في Codex) | قائمة بما يناسب مشروعك الآن، تختار منها |
-| «وش يتأثر لو غيّرت هذا الملف؟» | الملفات التي تستورده، والاختبارات التي تغطيه، والملفات التي تتغير معه عادة، من سجلات الفحص |
+| "Where are we?" | Where the project is and what comes next |
+| "Open the Studio" | Opens the live interface and gives you its address |
+| "Open the report" | Opens REPORT.html |
+| "What is the most important problem? Show me the evidence" | Explains one problem with its evidence and code |
+| "Take the fixes in" or "Merge it" | Merges the branch of fixes into yours, deletes the branch, updates the report |
+| "Continue the EAOS work" | Goes on from where it, or another assistant, stopped |
+| "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
+| "Build my project from this plan" | Build from a plan (step 6) |
+| "A tool failed in the check: run it again" | Goes on from that stage alone, keeping the rest of the check |
+| `/eaos` alone (or `$eaos` in Codex) | A menu of what fits your project now, to pick from |
+| "What is affected if I change this file?" | The files that import it, the tests that cover it, and the files that usually change with it, from the check's records |
 
-## إذا ظهر لك…
+## If you see…
 
-| الحالة | ماذا تفعل |
+| Situation | What to do |
 | --- | --- |
-| المساعد لا يعرف EAOS | أغلق المساعد وافتحه من جديد. إن بقي، شغّل سطر التثبيت مرة أخرى |
-| «هذا المجلد ليس مشروعًا» | افتح المساعد في مجلد مشروعك (الخطوة ٢) |
-| «مشروعك غير محفوظ في git بعد» | قل لمساعدك: «احفظ مشروعي في git» |
-| «عندك تعديلات لم تُحفظ» | ليست مشكلة: EAOS يعمل على آخر نسخة محفوظة. لتدخل تعديلاتك قل: «احفظ تعديلاتي في git» |
-| «Node.js قديم أو غير مثبّت» | ثبّت نسخة LTS من https://nodejs.org ثم اطلب من جديد |
-| أي مشكلة أخرى | قل لمساعدك: «وش صار؟». وإن تكررت، أرسل مجلد `logs/` لمن يساعدك |
+| The assistant does not know EAOS | Close the assistant and open it again. If it still does not, run the install line again |
+| "This folder is not a project" | Open the assistant in your project folder (step 2) |
+| "Your project is not saved in git yet" | Tell your assistant: "save my project in git" |
+| "You have changes that are not saved" | Not a problem: EAOS works on the last saved version. To include them say: "save my changes in git" |
+| "Node.js is too old or not installed" | Install the LTS version from https://nodejs.org and ask again |
+| Anything else | Ask your assistant: "what happened?". If it happens again, send the `logs/` folder to whoever helps you |
 
-## بلا مساعد ذكي؟
+## No AI assistant?
 
-الأوامر نفسها تعمل في الطرفية: `eaos start .` ثم `eaos next` بعد كل خطوة (`eaos status` يقول أين أنت).
+The same way works as commands in the Terminal: `eaos start .`, then `eaos next` after each step (`eaos status` says where you are).
 
-## ما لا يفعله EAOS أبدًا
+## What EAOS never does
 
-- لا يغيّر ملفات مشروعك ولا فرعك الحالي. الإصلاحات تصلك فرعًا منفصلًا، وأنت تقرر.
-- لا يشغّل برنامجك بلا موافقتك، ولا يستعمل أسرارك ولا ملف `.env`، ولا يتصل بقاعدة بياناتك الحقيقية.
-- لا ينشر شيئًا، ولا يلمس الإنتاج (Railway أو Vercel أو غيرهما).
-- لا يحذف ميزة أو شاشة ليخفي مشكلة: إصلاح يفعل ذلك يُرفض.
+- It does not change your project's files or your current branch. Fixes reach you as a separate branch, and you decide.
+- It does not run your app without your consent, does not use your secrets or your `.env` file, and never connects to your real database.
+- It publishes nothing and never touches production (Railway, Vercel or any other).
+- It does not delete a feature or a screen to hide a problem: a fix that does is refused.

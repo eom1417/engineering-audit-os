@@ -28,6 +28,10 @@
   pictures kept for the assistant (`eaos/plan_source.py`).
 - **A build never builds a weakness in**: every build card passes Bandit and Gitleaks as a fix does, and a milestone
   closes with CodeQL too where it may run (tried: a shell command built from input and an AWS key are refused).
+- **The repository's face, in English first and in Arabic**: a new README in each language with the EAOS mark,
+  banners for light and dark, and pictures of a real check of an open-source example app; the guide and "build from a
+  plan" in both languages; issue and pull-request templates, a code of conduct, and an up-to-date security model and
+  contributing guide.
 
 ## 0.0.26 (2026-10-14)
 

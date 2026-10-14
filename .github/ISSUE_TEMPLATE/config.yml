@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability · الإبلاغ عن ثغرة أمنية
+    url: https://github.com/eom1417/engineering-audit-os/security/advisories/new
+    about: Privately, never in a public issue · بشكل خاص، لا في بلاغ علني
+  - name: Read the guide · اقرأ الدليل
+    url: https://github.com/eom1417/engineering-audit-os/blob/main/docs/GUIDE.md
+    about: Step by step, with what to do when something goes wrong · خطوة بخطوة، مع ما تفعله عند الخطأ

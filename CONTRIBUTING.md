@@ -1,17 +1,49 @@
-# المساهمة
+# Contributing to EAOS
 
-## قبل أي التزام
+Thank you for helping. EAOS checks other people's code, so its own code is held to the bar it sets for them.
+
+## The workflow
+
+1. **Open an issue first** for anything larger than a small fix, so the approach is agreed before the work.
+2. **Branch from `develop`** (`dev/<topic>`); `main` holds released versions only.
+3. **Open the pull request into `develop`**, filling in its template.
+
+## Set up
+
+```bash
+bash tools/dev_setup.sh          # .venv, every external tool at its pinned version, the development material
+```
+
+## Before every commit
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd studio && npm run build)      # فقط إذا تغيّر studio/
+(cd studio && npm run build)     # only when studio/ changed: style, types, tests, then the build
 ```
 
-## قواعد الكود
+## The code laws
 
-1. **كل وحدة `.py` جديدة تُعلن في `eaos.policy.json`** في طبقتها، وإلا فشلت بوابة السياسة.
-2. **كل نص يظهر للقارئ يُضاف للغتين معًا** في `eaos/compose/labels.py`.
-3. **كل وثيقة تقرير جديدة تُعلن في `eaos/compose/artifacts.py`** بمالك وغرض وميزانية أسطر.
-4. **الفحص يكتب فقط ما يقرؤه الاستوديو أو التقارير الأربعة أو أدوات الإصلاح.**
-5. **اختبار جديد فقط حين يعيد إنتاج عطل حقيقي**، واختبار واحد لكل سلوك.
-6. **اطبع الحقيقة قبل أن تكتب join:** اختبر ما يقرؤه القارئ، لا ما كتبه المنتِج فقط.
+1. **Least code, best performance.** The shortest, most direct code that does the job best; a change that adds lines
+   must earn them.
+2. **One source of truth.** Anything needed in more than one place is written once and called from everywhere else.
+3. **Clear and clean.** No dead code, no unused import, small functions with one job, modules with one responsibility.
+
+`tests/test_code_limits.py` enforces what can be measured: no function over cyclomatic complexity 15, no module over
+600 lines (today's exceptions may only shrink), no function written twice, no pyflakes finding.
+
+## The rules of the codebase
+
+- **A new Python module is declared in `eaos.policy.json`**, in its layer, or the policy gate fails.
+- **Every text a person reads exists in English and in Arabic**, added to both at once.
+- **A new report document is declared in `eaos/compose/artifacts.py`**, with its owner, purpose and line budget.
+- **A test is added only when it reproduces a real failure**, one test per real behaviour.
+- **Never write a path of one machine in code**: `tests/test_platforms.py` fails if you do.
+
+## Commits
+
+Commit messages are in English and say what changed and why, in plain sentences. Bump the patch version
+(`pyproject.toml`, `eaos/__init__.py`) and add a `CHANGELOG.md` entry with each published update.
+
+## Licence
+
+By contributing you agree that your contribution is licensed under the [MIT License](LICENSE).
