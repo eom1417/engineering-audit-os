@@ -13,6 +13,7 @@ import { Go } from '../../components/Go'
 import { FoldList, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
 import { ListTools, SelectableRow } from '../../command/Selectable'
 import type { StudioData } from '../../data/types'
+import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, WithData } from '../../shell/Layout'
@@ -162,7 +163,10 @@ function OpBody({ data, id }: { data: StudioData; id: string }) {
   const w = useChangeWords()
   const all = useMemo(() => [...(data.operations?.operations ?? [])].sort((a, b) => a.order - b.order), [data.operations])
   const op = all.find((o) => o.id === id)
-  usePageChrome(op?.subject ?? w('opNotFound'), { to: `/plans/${encodeURIComponent(op?.plan ?? 'fix')}`, search: { view: 'board' }, label: w('viewBoard') }, data.manifest.project.name)
+  const { t } = usePrefs()
+  usePageChrome(op?.subject ?? w('opNotFound'), op
+    ? { to: `/plans/${encodeURIComponent(op.plan ?? 'fix')}`, search: { view: 'board' }, label: w('viewBoard') }
+    : { to: '/change', label: t('journeyAndPlan') }, data.manifest.project.name)
   const cards = useMemo(() => byId(data.cards?.cards), [data.cards])
   if (!data.operations) return <div className={page.page}><ChangeNav /><NotMeasured data={data} section="operations" title={w('noOps')} /></div>
   if (!op) return <Missing title={w('opNotFound')} />
