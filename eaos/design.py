@@ -34,9 +34,10 @@ def brief(product=''):
 
 
 def _suggest(source, product):
+    from .toolchain import tool_env
     if source.get('missing'): return None
     done = subprocess.run(['python3', source['path'], product, '--design-system', '--format', 'markdown'],
-                          capture_output=True, text=True, timeout=120)
+                          capture_output=True, text=True, timeout=120, env=tool_env())
     return done.stdout.strip()[:8000] if done.returncode == 0 else None
 
 
