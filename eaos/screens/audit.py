@@ -264,7 +264,6 @@ def _lighthouse_result(data, url, kept):
             'report': str(kept) if kept else None}
 
 
-STYLE = re.compile(r'<style[^>]*>(.*?)</style>', re.S | re.I)
 
 
 
