@@ -316,13 +316,19 @@ def execution_plan(out, ar):
     L = _labels(ar)
     plan = _load(out, 'plan.json', {}) or {}
     tasks = plan.get('tasks') or []
-    by_id = {t['id']: t for t in tasks}
     numbers = _plan_numbers(plan, tasks, _load(out, 'cards.json', {}) or {})
-    ready, sizes = numbers['ready'][0], numbers['sizes'][0]
     page = Page('خطة التنفيذ' if ar else 'Execution plan')
     page.heading(L['summary'])
     page.para(f"{L['decision']}: " + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else
                                        f"staff the first milestone ({(plan.get('milestones') or [{}])[0].get('name', '—')})."))
+    _numbers_section(page, L, tasks, numbers, ar)
+    _plan_sections(page, L, plan, tasks, ar)
+    return page.text(), numbers
+
+
+def _numbers_section(page, L, tasks, numbers, ar):
+    """The plan's numbers: its cards, the ready ones, their sizes, the cards left out or added, and who ordered them."""
+    ready, sizes = numbers['ready'][0], numbers['sizes'][0]
     page.heading(L['numbers'], 3)
     page.items([f"{len(tasks)} " + ('بطاقة' if ar else 'cards') + f" ({numbers['cards'][1]})",
                 f"{ready} " + ('جاهزة بأمر قبول يقرر' if ar else 'ready, with an acceptance command that decides') + f" ({numbers['ready'][1]})",
@@ -331,6 +337,11 @@ def execution_plan(out, ar):
                  f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; {numbers['design'][0]} design cards came from the screens")
                 + f" ({numbers['set_aside'][1]}, {numbers['design'][1]})",
                 _order_line(numbers['order'][0] == 'assistant', ar) + f" ({numbers['order'][1]}, PLAN/STEPS.md)"])
+
+
+def _plan_sections(page, L, plan, tasks, ar):
+    """The risks, the milestones and sections, the recommendation, what was not examined, and the appendices."""
+    by_id = {t['id']: t for t in tasks}
     page.heading(L['risks'], 3)
     investigations = [t for t in tasks if t.get('kind') == 'investigate']
     page.items([(f"{len(investigations)} بطاقة تحقيق تنتظر قرارًا مسجلًا (eaos decision-review)." if ar else
@@ -349,7 +360,6 @@ def execution_plan(out, ar):
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
     page.heading(L['appendices'])
     page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)'])
-    return page.text(), numbers
 
 
 def _plan_numbers(plan, tasks, cards):
