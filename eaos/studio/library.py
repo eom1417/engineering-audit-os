@@ -92,12 +92,23 @@ def _pictured(report):
     return out
 
 
+VIEWPORTS = {'phone': ('جوال', 'phone'), 'desktop': ('سطح المكتب', 'desktop')}
+
+
+def _shot_title(route, viewport, lang):
+    """A screen picture's title in the reader's words: its page (the address without the router's '/#', the home page by
+    name) and the device, not the raw route and viewport id."""
+    at = 0 if lang == 'ar' else 1
+    page = route.lstrip('/#') or ('الصفحة الرئيسية', 'Home page')[at]
+    return f'{page} · {VIEWPORTS.get(viewport, (viewport, viewport))[at]}'
+
+
 def media(report, lang='ar'):
     out, pictured = [], _pictured(report)
     for path, name in _files(report, ('.mmd', *IMAGES)):
         known = DIAGRAMS.get(name)
         route, viewport = pictured.get(name, (None, None))
-        title = (known[0] if lang == 'ar' else known[1]) if known else f'{route} · {viewport}' if route else (name.rsplit('/', 2)[-2] if '/' in name else path.stem)
+        title = (known[0] if lang == 'ar' else known[1]) if known else _shot_title(route, viewport, lang) if route else (name.rsplit('/', 2)[-2] if '/' in name else path.stem)
         out.append({'id': name, 'path': name, 'title': title, 'kind': 'diagram' if path.suffix in ('.mmd', '.svg') else 'screen',
                     'batch': None, 'phase': None, 'route': route, 'viewport': viewport, 'pair': None})
     return out
