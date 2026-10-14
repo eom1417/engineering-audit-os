@@ -145,7 +145,7 @@ function DocumentBody({ data }: { data: StudioData }) {
   if (!doc) {
     return (
       <div className={layout.page}>
-        <NotHere title={w('notFound')} sub={<>{w('notFoundSub')} <Id value={path || '—'} /></>} back="/library/docs" label={w('backToLibrary')} />
+        <NotHere title={w('notFound')} sub={w('notFoundSub')} back="/library/docs" label={w('backToLibrary')} />
       </div>
     )
   }
