@@ -13,7 +13,6 @@ fake assistant: check → change → check again → fix three cards with one fa
 
 - On EAOS's first check its Studio has no report data yet, so live setup refuses the empty page (later checks use the
   previous report); no English screen pictures are taken yet.
-- Batches and merged commits made before 0.0.8 carry title keys and do not match the new uid keys.
 
 ## Then
 
