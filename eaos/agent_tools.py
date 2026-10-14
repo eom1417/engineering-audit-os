@@ -1082,6 +1082,7 @@ def fix_edit(card, edits, summary='', project=None):
 
 
 def _fix_edit_job(project, arguments, progress):
+    from .execute import edit_gates
     from .waves import commit, drop_last, plan as read_plan
     state = guided.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
@@ -1097,7 +1098,7 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
                 'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    broke, exit_code = _checked(report, root, card, changed, repair)
+    broke, exit_code = edit_gates((report, guided.source(state), guided.runtime_of(state)), root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     state = guided.load(project)
     wave = state['open_wave']
@@ -1116,18 +1117,6 @@ def _fix_edit_job(project, arguments, progress):
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left,
             'what_now': 'Next card with fix_edit.' if left else 'Every card is done: call fix_finish.'}
-
-
-def _checked(report, root, card, changed, repair):
-    """(what the change broke or added against the code laws, the card's own check's exit: None for a repair)."""
-    import tempfile
-    from .execute import new_breakage, new_debt
-    from .facts.run import collect
-    from .waves import batch_acceptance, engines_for
-    with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
-        collect(root.resolve(), out, engines=engines_for([card]))
-        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed)
-        return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
 
 
 def fix_skip(card, reason, project=None):

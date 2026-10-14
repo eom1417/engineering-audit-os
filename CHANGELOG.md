@@ -29,6 +29,9 @@
 - **A fix run that kept no change ends "nothing changed"**, not failed, and may be tried again.
 - **The inbox merges two askings of one topic by who asks**: two of one asker's questions are two topics however
   alike they read; across askers, the same thing named in quotes is one.
+- **A change to the app's files runs the app's own checks on the card itself** (its type check, lint and tests,
+  seconds): in batch 5 an unused import in one Studio file broke the type check and the build, and was found only
+  when all 51 changes met.
 - **Less code**: the ledger's support for commits made before 0.0.8, which nothing uses, is gone; two modules left the
   over-600-lines list (`plan.py`, `studio/export.py`).
 

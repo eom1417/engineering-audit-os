@@ -78,7 +78,7 @@ def new_breakage(report, root, collected=None):
     return broke
 
 
-# The security engines that answer in seconds: they run on every change a batch makes (eaos/agent_tools.py _checked).
+# The security engines that answer in seconds: they run on every change a batch makes (edit_gates).
 GATE_ENGINES = ('bandit', 'gitleaks')
 
 
@@ -128,14 +128,43 @@ def new_debt(report, collected, paths):
     return added
 
 
-def project_checks(target, runtime, stage, name):
+def edit_gates(where, root, card, changed, repair):
+    """(what one change of a batch broke or added against the code laws, the card's own check's exit: None for a
+    repair), from one collection of facts on the copy `root`; `where`: (report, project, runtime). A change to the app's
+    files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
+    its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14)."""
+    import tempfile
+    from .facts.run import collect
+    from .waves import batch_acceptance, engines_for
+    report, project, runtime = where
+    with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
+        collect(root.resolve(), out, engines=engines_for([card]))
+        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed) + app_breakage(project, runtime, root, changed)
+        return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
+
+
+def app_breakage(project, runtime, root, changed):
+    """The run profile's checks (a type check, a lint, the app's tests: seconds, not the whole suite) that a change to
+    files of the app broke on the copy `root`, against the same checks on the authorised commit; [] when it touches no
+    file of the app, or the app may not run here."""
+    from .live_run import load_profile
+    from .sandbox import AuthorizationError
+    try: app = (load_profile(runtime).get('app') or '.').strip('/')
+    except AuthorizationError: return []
+    if app != '.' and not any(path.startswith(app + '/') for path in changed): return []
+    return [f'the app\'s own check failed: {check}' for check in
+            regressions(original_checks(project, runtime), project_checks(root, runtime, 'S09', 'edit', python=False))]
+
+
+def project_checks(target, runtime, stage, name, python=True):
     """[{argv, exit}] of the run profile's checks on target, installed in a sandbox copy, and its Python tests (the
-    profile's checks run in the app's folder; a Python suite beside it is the project's too); [] when there are none.
-    Every command's output tail is kept in runtime/checks-<name>-log.json."""
+    profile's checks run in the app's folder; a Python suite beside it is the project's too; `python` false: the
+    profile's alone); [] when there are none. Every command's output tail is kept in runtime/checks-<name>-log.json."""
     from .live_run import LiveRun
     live = LiveRun(target, runtime, stage)
     from .verify import python_tests
-    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(target, live.profile)]
+    checks = [(argv, False) for argv in live.profile.get('checks') or []] + \
+        [(argv, True) for argv in (python_tests(target, live.profile) if python else [])]
     if not checks: return []
     try:
         live.setup()

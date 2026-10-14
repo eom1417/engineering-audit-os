@@ -177,7 +177,7 @@
   "tools/validate.py::packaged_errors": 16
  },
  "modules": {
-  "eaos/agent_tools.py": 1205,
+  "eaos/agent_tools.py": 1194,
   "eaos/facts/pipeline_frameworks.py": 630,
   "eaos/guided.py": 1315,
   "eaos/human_report.py": 2174,
