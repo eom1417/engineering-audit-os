@@ -24,7 +24,7 @@
 
 .foldMore { display: flex; justify-content: center; padding: 4px; border-block-start: 1px solid var(--border-subtle); }
 
-.props { display: flex; flex-direction: column; }
+.props { display: flex; flex-direction: column; max-inline-size: 640px; }
 .props > div { display: flex; justify-content: space-between; gap: 16px; padding-block: 8px; border-block-end: 1px solid var(--border-subtle); font-size: 14px; }
 .props dt { color: var(--text-tertiary); }
 .props dd { text-align: end; min-inline-size: 0; }
