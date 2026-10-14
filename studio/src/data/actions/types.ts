@@ -62,7 +62,12 @@ export interface UsageReport { check: { stages: Record<string, Usage>; total: Us
 
 /** One turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): it proposes, the person runs. */
 export interface ChatProposal { kind: 'action' | 'control'; action: string; inputs?: Record<string, unknown>; run?: string; why: string }
-export interface ChatTurn { session: string | null; answer: string; proposals: ChatProposal[]; assistant: string; usage: Usage | null }
+export interface ChatTurn { session: string | null; answer: string; proposals: ChatProposal[]; assistant: string; usage: Usage | null
+  /** What direct control set going: each proposal's run, or why it could not */
+  done: { proposal: ChatProposal; run?: string; error?: string }[] }
+export interface ChatProgress { done: boolean; reading: string[]; partial: string; result: ChatTurn | null; error: string | null }
+export interface ChatControl { on: boolean; until: string | null; actions: string[] }
+export type ChatModel = 'quick' | 'balanced' | 'deep'
 
 export interface Question {
   id: string
@@ -247,7 +252,9 @@ export interface ActionsClient {
   /** The assistants on this computer and what they used (live only) */
   assistants?(): Promise<Assistant[]>
   usage?(): Promise<UsageReport>
-  chat?(message: string, session: string | null, context: Record<string, unknown>, deep: boolean): Promise<ChatTurn>
+  chat?(message: string, session: string | null, context: Record<string, unknown>, model: ChatModel): Promise<{ turn: string }>
+  chatProgress?(turn: string): Promise<ChatProgress>
+  chatControl?(on?: boolean): Promise<ChatControl>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

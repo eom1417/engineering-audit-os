@@ -88,6 +88,7 @@ GET_ROUTES = {
     ('actions',): lambda a, q: a.contract,
     ('assistants',): lambda a, q: {'assistants': a.assistants()},
     ('usage',): lambda a, q: a.usage(),
+    ('chat', 'control'): lambda a, q: chat.control(a),
     ('runs',): lambda a, q: a.runs(q),
     ('questions',): lambda a, q: {'questions': a.questions()},
     ('decisions',): lambda a, q: {'decisions': a.report_decisions()},
@@ -206,6 +207,7 @@ class Actions:
         answer = GET_ROUTES.get(tuple(rest))
         if answer: return answer(self, query)
         if len(rest) == 2 and rest[0] == 'runs': return {'run': self.public(self.store.load(rest[1]))}
+        if len(rest) == 2 and rest[0] == 'chat': return chat.progress(self, rest[1])
         if len(rest) == 3 and rest[0] == 'runs' and rest[2] == 'events':
             self.store.load(rest[1])
             return {'events': self.store.events(rest[1], int(query.get('after') or 0))}
@@ -215,7 +217,8 @@ class Actions:
         if rest[:1] == ['branches']: return self._branch_change(rest, body, route)
         if rest == ['runs']: return {'run': self.public(self.create(body))}
         if rest == ['runs', 'reorder']: return {'queue': self.manager.reorder(body.get('order'))}
-        if rest == ['chat']: return chat.reply(self, body)
+        if rest == ['chat']: return chat.start(self, body)
+        if rest == ['chat', 'control']: return chat.control(self, body)
         if len(rest) == 3: return self._post_on(rest, body, route)
         raise KeyError(route)
 

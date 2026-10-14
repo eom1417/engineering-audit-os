@@ -25,3 +25,7 @@ class ChatTests(unittest.TestCase):
                                         {'kind': 'control', 'action': 'retry', 'run': 'r9', 'why': 'unknown run'},
                                         {'kind': 'control', 'action': 'accept', 'run': 'r1', 'why': 'only the person'}])
         self.assertEqual([(p['kind'], p['action']) for p in found], [('action', 'run_try'), ('control', 'retry')])
+        # direct control runs by itself only a few actions and the runs' controls; never the person's own steps
+        self.assertTrue(set(chat.DIRECT).isdisjoint({'accept', 'undo', 'choose_branch', 'fix_edit', 'build_edit'}))
+        self.assertEqual([chat._direct(p) for p in found], [True, True])
+        self.assertFalse(chat._direct({'kind': 'action', 'action': 'accept'}))

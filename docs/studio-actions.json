@@ -2363,7 +2363,22 @@
   {
    "method": "POST",
    "path": "/api/chat",
-   "does": "One turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): {message, session?, context?} -> {session, answer, proposals}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control the person confirms."
+   "does": "Begin one turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): {message, session?, context?, model?: quick|balanced|deep} -> {turn}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control, which the person confirms, or which direct control runs at once."
+  },
+  {
+   "method": "GET",
+   "path": "/api/chat/<id>",
+   "does": "A turn as it goes: {done, reading (the tools it calls now), partial (its answer so far), result, error}."
+  },
+  {
+   "method": "GET",
+   "path": "/api/chat/control",
+   "does": "Direct control: {on, until, actions}."
+  },
+  {
+   "method": "POST",
+   "path": "/api/chat/control",
+   "does": "Turn direct control on for an hour ({on: true}), or off: while it is on, the Studio runs the assistant's proposals of a few actions and the runs' controls at once, through its own preview and queue; never the person's own steps, never an edit."
   },
   {
    "method": "POST",

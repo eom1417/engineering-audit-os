@@ -158,7 +158,7 @@ function Controls({ run, onRun }: { run: Run; onRun: (next: Run) => void }) {
       {can.pause && <Button variant="secondary" icon="pause" data-control="pause" busy={busy === 'pause'} onPress={() => press('pause')}>{w('pause')}</Button>}
       {can.resume && <Button variant="primary" icon="play" data-control="resume" busy={busy === 'resume'} onPress={() => press('resume')}>{w('resume')}</Button>}
       {can.retry && <Button variant="primary" icon="retry" data-control="retry" busy={busy === 'retry'} onPress={() => press('retry')}>{w('retry')}</Button>}
-      {can.retry && <Button variant="secondary" icon="assistant" onPress={() => askAssistant({ message: w('diagnoseAsk'), context: { run: run.id }, deep: true })}>{w('diagnose')}</Button>}
+      {can.retry && <Button variant="secondary" icon="assistant" onPress={() => askAssistant({ message: w('diagnoseAsk'), context: { run: run.id }, model: 'deep' })}>{w('diagnose')}</Button>}
       {can.stop && <Button variant="ghost" icon="stop" data-control="stop" busy={busy === 'stop'} onPress={() => press('stop')}>{w('stop')}</Button>}
     </div>
   )

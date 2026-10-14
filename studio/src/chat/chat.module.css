@@ -24,7 +24,6 @@
 .row { display: flex; gap: 6px; align-items: flex-end; }
 .input { flex: 1; resize: none; min-block-size: 40px; max-block-size: 120px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-subtle);
   background: var(--bg-surface); color: inherit; font: inherit; }
-.deep { display: flex; align-items: center; gap: 6px; font-size: var(--text-meta); color: var(--text-secondary); }
 /* A phone: above the tab bar, and the open panel nearly the whole width and most of the height. */
 @media (max-width: 767px) {
   .bottomStart, .bottomEnd { inset-block-end: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom)); }
@@ -33,3 +32,8 @@
   .panel.bottomEnd, .panel.topEnd { inset-inline-end: 8px; }
   .input { font-size: 16px; }
 }
+.settings { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-block-end: 1px solid var(--border-subtle); font-size: var(--text-meta); color: var(--text-secondary); }
+.setting { display: flex; align-items: center; gap: 6px; }
+.setting select { font: inherit; border-radius: var(--radius-8); border: 1px solid var(--border-subtle); background: var(--bg-surface); color: inherit; padding: 2px 6px; }
+.warn { margin: 0; padding: 6px 12px; font-size: var(--text-meta); background: var(--bg-sunken); color: var(--alert-caution-text); }
+.cost { align-self: flex-start; color: var(--text-tertiary); font-size: 11px; }

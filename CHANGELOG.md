@@ -17,6 +17,10 @@
   preview, a run's control waits for the person's press. Quick answers by Claude's Haiku (about $0.09 a diagnosis),
   a deep diagnosis by the assistant's own model; a failed run's page asks it why ("Diagnose with the assistant"),
   with the run's last events and log. Its use shows on the Assistant page.
+  The answer shows as it is written, with what the assistant reads now; the person picks the model (quick, balanced,
+  deep) and sees each answer's cost. **Direct control**, turned on by the person for an hour and kept by the server:
+  the Studio runs at once the assistant's proposals of a check, running the app, its speed or its nodes, and the runs'
+  controls, through its own preview and queue; accepting, undoing, choosing a branch and editing code stay the person's.
 - **The Assistant page**: which assistants are on this computer (installed, signed in, model), and what the work used
   (eaos/usage.py, /api/usage): the last check stage by stage, every run (a run still going by its messages so far),
   tokens, the cost at API prices, time, turns, and the measures to improve it: the cost per fixed card, the share of
