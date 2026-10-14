@@ -11,6 +11,9 @@
 - **A card that adds a module past the line limit, or one in no declared layer, is refused on the card**, not found
   when a batch's changes meet.
 - A run proposal's safety and its merge into run.json live in `eaos/run_profile.py`.
+- **An app that keeps a live connection open starts in the check**: the setup's probe waited for the network to go
+  idle, which a page holding a server-sent stream never does (EAOS's own Studio: 60 s, then failed); it now waits for
+  the page to load and gives the network five seconds (200 in 6 s).
 - **The assistant beside the work**: a button in a corner of every page opens a small panel that moves to any corner
   and keeps the conversation across pages (eaos/studio/actions/chat.py, POST /api/chat). It reads with EAOS's reading
   tools only and the project's files; what it would do comes back as a card: an action opens the command centre's own
