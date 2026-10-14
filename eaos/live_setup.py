@@ -291,28 +291,8 @@ def detect(project, report=None):
 
 # ---------------------------------------------------------------- 2. verify
 
-PROBE = r"""
-const { chromium } = require('playwright');
-(async () => {
-  const browser = await chromium.launch({ args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] });
-  const page = await browser.newPage(process.env.EAOS_STORAGE_STATE ? { storageState: process.env.EAOS_STORAGE_STATE } : {});
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 300)));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 300)); });
-  const visit = async (path) => {   // a hash route (/#/x) is drawn in the page already loaded: no request, so goto answers null
-    let status = 0;
-    try { const href = new URL(path, process.env.BASE_URL).href, r = await page.goto(href, { waitUntil: 'networkidle', timeout: 60000 }); status = r ? r.status() : new URL(href).hash ? 200 : 0; }
-    catch (e) { errors.push(String(e.message).slice(0, 300)); }
-    return { path, status, url: page.url(), password: await page.locator('input[type=password]').count().catch(() => 0),
-             text: (await page.locator('body').innerText().catch(() => '')).slice(0, 1500) };
-  };
-  const first = await visit('/');
-  const others = [];
-  for (const path of JSON.parse(process.env.EAOS_ROUTES || '[]')) others.push(await visit(path));
-  console.log(JSON.stringify({ ...first, others, errors: errors.slice(0, 10) }));
-  await browser.close();
-})();
-"""
+# The page a verify opens in a browser that reaches 127.0.0.1 only: the first page and a few screens, as JSON.
+PROBE = (Path(__file__).resolve().parent / 'templates/setup/probe.cjs').read_text(encoding='utf-8')
 
 
 def routes(report, limit=4):
@@ -488,14 +468,8 @@ def setup_baseline(project, runtime, detected, provider, say, report=None, attem
         progress.step(f'attempt {attempt}', attempt, attempts, 'ok' if record['ok'] else 'failed',
                       reason=(record.get('failure') or '')[:200], reason_code='' if record['ok'] else 'baseline_failed')
         if record['ok'] or provider is None: break
-        failure = record['failure'] + (f'. Your previous proposal was refused and not applied: {refusal}' if refusal else '')
-        answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, [], mode='baseline'))
-        proposal = answer.get('result') or {}
-        refused = safe(proposal)
+        refused = _ask(project, runtime, provider, detected, record['failure'], refusal, [], f'baseline-proposal-{attempt}', 'baseline')
         refusal = '; '.join(refused)
-        (runtime / f'setup/baseline-proposal-{attempt}.json').write_text(
-            json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-        if not refused: apply(runtime, proposal, mode='baseline')
         if attempt == attempts:
             record = verify(project, runtime, attempt + 1, report, mode='baseline')
             if refused and not record['ok']: record['failure'] = 'the assistant proposed something unsafe, which was refused: ' + refused[0]
@@ -570,24 +544,25 @@ def _attempts(project, runtime, report, provider, say, detected, needs, limitati
         if provider is None:
             limitations.append('no AI assistant was available to work out: ' + (record.get('failure') or 'the fixtures ' + ', '.join(missing)))
             break
-        refusal = _propose(project, runtime, provider, detected, needs, attempts, failure, refusal, limitations)
+        refused = _ask(project, runtime, provider, detected, failure, refusal, needs, f'proposal-{attempts}')
+        refusal = '; '.join(refused)
+        if refused:
+            limitations.append('the assistant proposed something unsafe, which was refused: ' + refused[0])
+            progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed', reason=refused[0][:200], reason_code='proposal_refused')
     return record, attempts, missing
 
 
-def _propose(project, runtime, provider, detected, needs, attempt, failure, refusal, limitations):
-    """Ask the assistant for a change and apply it when safe. The refusal it met ('' when none), told on the next ask."""
+def _ask(project, runtime, provider, detected, failure, refusal, needs, name, mode='lock'):
+    """Ask the assistant for a change, write it with what safe() refused to setup/<name>.json, and apply it when safe.
+    The refusals, none when it was applied; the last refusal is told on the next ask."""
     if refusal: failure += f'. Your previous proposal was refused and not applied: {refusal}'
-    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs))
+    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs, mode=mode))
     proposal = answer.get('result') or {}
     refused = safe(proposal)
-    (runtime / f'setup/proposal-{attempt}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused},
-                                                                      ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    if refused:
-        limitations.append('the assistant proposed something unsafe, which was refused: ' + refused[0])
-        progress.step(f'attempt {attempt}', attempt, ATTEMPTS, 'failed', reason=refused[0][:200], reason_code='proposal_refused')
-    else:
-        apply(runtime, proposal)
-    return '; '.join(refused)
+    (runtime / f'setup/{name}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n',
+                                               encoding='utf-8')
+    if not refused: apply(runtime, proposal, mode=mode)
+    return refused
 
 
 def _baseline(project, runtime, report, provider, say, detected, ok, limitations):

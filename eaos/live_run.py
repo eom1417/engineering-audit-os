@@ -42,6 +42,16 @@ def load_profile(runtime):
     return profile
 
 
+def _printed_fixtures(out):
+    """The E2E_* values of the last JSON object a seed printed that holds any, wherever it is; {} when none."""
+    for line in reversed(out.strip().splitlines()):
+        try: printed = json.loads(line)
+        except ValueError: continue
+        fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))} if isinstance(printed, dict) else {}
+        if fixtures: return fixtures
+    return {}
+
+
 class LiveRun:
     """One authorised run: install, build, prepare and start the project in a sandbox copy, then stop it."""
 
@@ -132,15 +142,9 @@ class LiveRun:
             code, out, err = self.run(argv, env=env)
             if code: raise RuntimeError(f"seed failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
             self.seed_output = (out + err)[-3000:]
-            for line in reversed(out.strip().splitlines()):     # the last JSON object printed, wherever it is
-                try: printed = json.loads(line)
-                except ValueError: continue
-                if not isinstance(printed, dict): continue
-                fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))}
-                if not fixtures: continue
-                self.extra().update(fixtures)
-                self.fixtures.update(fixtures)
-                break
+            fixtures = _printed_fixtures(out)
+            self.extra().update(fixtures)
+            self.fixtures.update(fixtures)
         return self.fixtures
 
     def setup(self):
