@@ -396,35 +396,40 @@ def _constant_findings(path, scope):
     return out
 
 
-def run(target, source, symbols=None, resolved=None, entry_points=None, **options):
-    symbols = [f for f in (symbols or []) if f.get('kind') == 'symbol']
-    known = {item['path'] for item in source.readable()}
-    code = {path for path in known if language_of(path) in ('python', 'javascript', 'typescript', 'tsx')}
-    refs = References(source)
-    graph, test_importers = _edges(resolved or [])
-    seeds = _seeds(source, known, entry_points or [])
-    # A tool configuration (vite.config.ts, next.config.mjs) is loaded by the tool itself whenever it runs; what it
-    # imports (a dev-server plugin, the API it mounts) is reached through it. It is a root to walk from, not an entry
-    # point: a library with only a test-runner config still has no production entry, and is judged as a library.
-    # A program a CI step or a document says to run is walked from the same way.
+def _walk(source, known, code, refs, resolved, entry_points):
+    """(seeds, reached, whole, texts, test_importers): what the product reaches from its roots, and the files read whole."""
+    graph, test_importers = _edges(resolved)
+    seeds = _seeds(source, known, entry_points)
     texts = {p: refs.texts[p] for p in code if p in refs.texts}
     reached = _reachable(_roots(source, known, seeds), graph, texts)
     # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,
-    # a codemod engine): they are reached, and their names are not judged one by one. A semgrep rule test is a
-    # fixture for its rule: it is never a candidate.
+    # a codemod engine): they are reached, and their names are not judged one by one.
     whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path, texts[path], texts)}
-    reached |= whole
+    return seeds, reached | whole, whole, texts, test_importers
+
+
+def _symbol_findings(symbols, scope):
+    """Unused functions and classes, then unread constants, outside dead modules and the files read whole."""
+    facts = [found for fact in symbols if fact.get('kind') == 'symbol' and (found := _symbol_finding(fact, scope))]
+    for path in sorted(scope['code'] - scope['dead_modules'] - scope['skipped']):
+        if _candidate_file(path): facts += _constant_findings(path, scope)
+    return facts
+
+
+def run(target, source, symbols=None, resolved=None, entry_points=None, **options):
+    known = {item['path'] for item in source.readable()}
+    code = {path for path in known if language_of(path) in ('python', 'javascript', 'typescript', 'tsx')}
+    refs = References(source)
+    seeds, reached, whole, texts, test_importers = _walk(source, known, code, refs, resolved or [], entry_points or [])
+    # A semgrep rule test is a fixture for its rule: it is never a candidate.
     fixtures = {path for path in code if RULE_FIXTURE.search(texts.get(path) or '')}
     sha = source.content_fingerprint
     # With no production entry point, nothing says who uses the code: a library's public names serve callers
     # outside the snapshot. Then only what is private by convention (`_name`) is judged, and no module is.
     judged = (lambda name: True) if seeds else (lambda name: name.startswith('_'))
     unreachable = sorted(path for path in code if seeds and path not in reached and path not in fixtures and _candidate_file(path))
-    facts = [_module_finding(path, test_importers, seeds, sha) for path in unreachable]
     scope = {'code': code, 'dead_modules': set(unreachable), 'skipped': whole | fixtures, 'judged': judged, 'refs': refs, 'sha': sha}
-    facts += [found for found in (_symbol_finding(fact, scope) for fact in symbols) if found]
-    for path in sorted(code - scope['dead_modules'] - scope['skipped']):
-        if _candidate_file(path): facts += _constant_findings(path, scope)
+    facts = [_module_finding(path, test_importers, seeds, sha) for path in unreachable] + _symbol_findings(symbols or [], scope)
     summary = {'production_entry_points': len(seeds), 'modules_reached': len(reached & code), 'code_modules': len(code),
                'unreachable_modules': len(unreachable),
                'unused_symbols': sum(f['value']['rule'] == 'unused-symbol' for f in facts),
