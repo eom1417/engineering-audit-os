@@ -418,7 +418,6 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     folder = report / 'studio'
     folder.mkdir(parents=True, exist_ok=True)
     lang = 'ar' if lang == 'ar' else 'en'
-    contracts = artifact_contracts.contracts()
     try: m = M.records(report, progress)
     except Exception as error:              # no record to build from: say so, and leave no stale manifest behind
         errors = [{'section': 'records', 'error': f'{type(error).__name__}: {error}'[:300]}]
@@ -428,13 +427,23 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     stamp = {**build_info.stamp(datetime.now(timezone.utc).isoformat(timespec='seconds')), 'studio_digest': build_info.studio_digest()}
     scan = scan_of(project, state)
     if not scan['at']: scan['at'] = str((m['manifest'] or {}).get('started_at') or '')
+    built, errors = {}, []
+    card_rows = _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors)
+    _build_maps(report, m, lang, project, progress, scan, card_rows, built, errors)
+    entries = _publish_all(folder, report, built, errors, lang, name, project, scan, stamp)
+    return {'written': [e['name'] for e in entries], 'errors': errors}
+
+
+def _attempt(built, errors, section, make):
+    """Build one section; one that cannot be built is named in `errors`, and the others go on."""
+    try: built[section] = make()
+    except Exception as error: errors.append({'section': section, 'error': f'{type(error).__name__}: {error}'[:300]})
+
+
+def _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors):
+    """The contract v1 sections, into `built`; returns the cards every later section reads."""
+    attempt = lambda section, make: _attempt(built, errors, section, make)
     claims = {c.get('id'): c for c in m['dossier'].get('claims') or [] if isinstance(c, dict)}
-    built, errors, entries = {}, [], []
-
-    def attempt(section, make):
-        try: built[section] = make()
-        except Exception as error: errors.append({'section': section, 'error': f'{type(error).__name__}: {error}'[:300]})
-
     attempt('cards', lambda: cards(m, claims, lang))
     card_rows = built.get('cards') or []
     history = (((progress or {}).get('ledger') or {}).get('scores') or
@@ -449,6 +458,12 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('decisions', lambda: _decision_rows(report, m, card_rows, lang))
     attempt('media', lambda: library_section.media(report, lang))
     attempt('system', lambda: system_map.system(report, card_rows))
+    return card_rows
+
+
+def _build_maps(report, m, lang, project, progress, scan, card_rows, built, errors):
+    """The contract v2 sections, into `built`: the maps, the history, the library, the ideal and the change."""
+    attempt = lambda section, make: _attempt(built, errors, section, make)
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
     attempt('journeys', lambda: journeys_map.journeys(report, built.get('media')))
     if 'journeys' in built: attempt('hidden', lambda: hidden_map.hidden(report, built['journeys'], card_rows))
@@ -462,8 +477,6 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     if built.get('pipeline', False) is None: built.pop('pipeline')   # the check wrote no facts/pipeline.json
     attempt('ideal', lambda: planned_ideal.section(report, lang))
     attempt('nodes', lambda: ai_nodes.section(report, lang))
-    # Every section that draws a target says how its ideal was made: the rules only, or planned with a model (D10).
-    stamps = planned_ideal.provenance_of(built.get('ideal'))
     attempt('change', lambda: change_map.change(m, card_rows, lang))
     for section, body in zip(('gaps', 'operations'), built.pop('change', None) or (None, None)):
         if body is not None: built[section] = body                    # no target: coverage says why
@@ -471,6 +484,13 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('screens', lambda: screens_gallery.screens(built.get('journeys'), built.get('media'), (report / 'facts/entrypoints.json').is_file(), report))
     for section in ('functions', 'screens'):                         # nothing was read to build it from
         if built.get(section, False) is None: built.pop(section)
+
+
+def _publish_all(folder, report, built, errors, lang, name, project, scan, stamp):
+    """Write every section that keeps its contract, then coverage, the locales, errors.json and the manifest last;
+    returns the manifest's entries."""
+    contracts, entries = artifact_contracts.contracts(), []
+
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])
         if problems:
@@ -479,9 +499,10 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         blob = _write(folder, section, data)
         entries.append({'name': section, 'file': f'{section}.json', 'sha256': hashlib.sha256(blob).hexdigest(), 'bytes': len(blob)})
 
-    for section, body in _published(built, stamps): publish(section, body)
+    # Every section that draws a target says how its ideal was made: the rules only, or planned with a model (D10).
+    for section, body in _published(built, planned_ideal.provenance_of(built.get('ideal'))): publish(section, body)
     # Last of the sections: it says which of the others were written, and what is not measured yet.
-    attempt('coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
+    _attempt(built, errors, 'coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
     if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})
     from .localization import publish as publish_locales
     locales = None
@@ -495,7 +516,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     if locales:
         manifest['locales'] = locales
     if entries and not artifact_contracts.validate(manifest, contracts['studio-manifest']): _write(folder, 'manifest', manifest)
-    return {'written': [e['name'] for e in entries], 'errors': errors}
+    return entries
 
 
 def freshness(project, state):
