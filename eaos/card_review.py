@@ -12,6 +12,9 @@ from .workspace import read, write
 SEVERITY_SHARE = {'high': 1.0, 'medium': 0.5, 'low': 0.25}
 SEVERITY_ORDER = ('high', 'medium', 'low')
 RESOLUTIONS = ('fix', 'keep', 'owner')
+# The probes a changed copy can answer by reading its facts again (eaos/probes.py decide_probe); one that runs the
+# program is not, and would fail every fix.
+RECHECKED = ('graph_query', 'absence_search')
 RESOLUTION_FIELDS = ('resolution', 'change', 'question', 'options', 'recommendation', 'note', 'checks')
 
 
@@ -246,7 +249,8 @@ def fix_checks(where, tasks, resolved, verdicts):
     for card, row in resolved.items():
         if row['resolution'] != 'fix' or card not in verdicts: continue
         claim = of_card.get(card)
-        spec = spec_for(claim, sets) if claim and claim.get('probe_spec') else None
+        decidable = claim and (claim.get('probe_spec') or {}).get('probe_type') in RECHECKED
+        spec = spec_for(claim, sets) if decidable else None
         row['checks'] = [fix_check(card, row['change'], revision, spec)]
     return revision
 

@@ -43,7 +43,7 @@ export interface Head {
 export interface Health {
   score: Measure
   formula: string
-  domains: { id: string; name: string; cards: number; score: Measure }[]
+  domains: { id: string; name: string; cards: number; accepted?: number; score: Measure }[]
   history: { at: string; commit: string | null; score: number | null }[]
 }
 

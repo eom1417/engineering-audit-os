@@ -152,7 +152,7 @@ def health(m, history):
     s = m['score']
     domains = [{'id': area, 'name': area,
                 'score': ratio(None if a['score'] is None else a['score'] / 100, f'model.score areas.{area}'),
-                'cards': a['total']} for area, a in s['areas'].items()]
+                'cards': a['total'], 'accepted': a['accepted']} for area, a in s['areas'].items()]
     return {'score': ratio(None if s['score'] is None else s['score'] / 100, 'model.score: mean of measured areas, capped at 39 by a confirmed critical problem'),
             'formula': f'area = 100 x {M.HALF_POINT} / ({M.HALF_POINT} + weighted points per 100 files); score = mean of measured areas',
             'domains': domains, 'history': history}

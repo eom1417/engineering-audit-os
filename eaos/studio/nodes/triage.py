@@ -55,6 +55,10 @@ A GOOD ANSWER
 Every card decided once. A confirm points at the fact (its message, measurement or how the engine knows) and the code
 line that show the problem. A doubt says exactly what is missing or what in the code questions it (a name used
 dynamically, a generic name, a number the facts do not give). A reject names the fact or line that contradicts the card.
+A security card (a command, a query or code built from a value, a secret written in the code) is shown when something
+from outside the program (a request, a user's file or text, an environment another person controls) can reach that
+line, or when the secret is a real credential; a value built only from the program's own constants and paths, or a
+test value or documented example, contradicts it. Read the code around the line before deciding.
 
 DO NOT
 Confirm a card on its title alone or because it is plausible or common. Reject a card only because the facts shown are

@@ -110,6 +110,7 @@ export const WORDS = {
   health: ['الصحة', 'Health'],
   outOf100: ['/100', '/100'],
   notMeasured: ['لم يُقس', 'Not measured'],
+  acceptedRisk: ['مخاطرة مقبولة محسوبة', 'accepted risk, counted'],
   oneScanHint: ['فحص واحد حتى الآن: يظهر الاتجاه بعد الفحص التالي.', 'One scan so far: the trend appears after the next scan.'],
   bandExcellent: ['ممتاز', 'Excellent'],
   bandGood: ['جيد', 'Good'],

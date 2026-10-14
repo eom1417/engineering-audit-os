@@ -38,6 +38,7 @@ function HealthSheet({ data, isOpen, onOpenChange }: { data: StudioData; isOpen:
               <span>{(AREA[domain.id] ?? [domain.name, domain.name])[lang === 'ar' ? 0 : 1]}</span>
               <span className={css.areaBar} aria-hidden="true"><i style={{ inlineSize: `${score ?? 0}%` }} /></span>
               {score === null ? <span className={css.muted}>{t('notMeasured')}</span> : <><N value={score} className={css.areaScore} /><BandChip score={score} /></>}
+              {domain.accepted ? <span className={css.muted}><N value={domain.accepted} /> {t('acceptedRisk')}</span> : null}
             </li>
           )
         })}
