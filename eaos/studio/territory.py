@@ -348,6 +348,10 @@ def _step_down(x, y, half, height, placed):
     return y, box
 
 
+# The height of a region's large name on the preview: (above, below) its baseline
+THUMB_NAME = (40, 10)
+
+
 def region_labels(regions, nodes, pos):
     """Per region: {x, y} of its name on the full map (with its counts below) and {tx, ty} on the preview (large type),
     each kept clear of the other names of its map."""
@@ -363,7 +367,7 @@ def region_labels(regions, nodes, pos):
         y, box = _step_down(x, max(top - 26, 22), half, (17, 19), placed)
         thumb_half = max(text_width(reg['name']['ar'], 40, 'ar'), text_width(reg['name']['en'].upper(), 30, 'caps')) / 2
         tx = _clamp_x(x, thumb_half)
-        ty, _ = _step_down(tx, max(y + 6, 44), thumb_half, (40, 10), thumbs)
+        ty, _ = _step_down(tx, max(y + 6, 44), thumb_half, THUMB_NAME, thumbs)
         out[reg['id']] = {'x': round(x), 'y': round(y), 'tx': round(tx), 'ty': round(ty), 'box': box, 'half': thumb_half}
     return out
 
@@ -462,7 +466,10 @@ def _bounds(nodes, pos, names):
 
 
 def _fit_names(names, bounds):
-    """The preview's large names stay inside the drawn land's frame."""
+    """The preview's large names stay inside the drawn land's frame; a name moved in from the edge onto another steps
+    down clear of it again, so no two names overlap."""
+    placed = []
     for v in names.values():
         lo, hi = bounds[0] + v['half'] + 6, bounds[2] - v['half'] - 6
         v['tx'] = round(min(max(v['tx'], lo), hi) if lo <= hi else (bounds[0] + bounds[2]) / 2)
+        v['ty'], _ = _step_down(v['tx'], v['ty'], v['half'], THUMB_NAME, placed)
