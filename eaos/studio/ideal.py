@@ -270,58 +270,76 @@ def check(ideal, known, context=()):
     project's documents, are kept but are not evidence); an element with no resolving citation, an unknown operation
     or a repeated id is dropped and listed with why. Departures stay only on a kept element."""
     known, context = set(known), set(context)
-    kept, dropped, alive = {'views': {}}, [], set()
-    for name in VIEWS:
-        view = ((ideal or {}).get('views') or {}).get(name) or {}
-        seen, elements = set(), []
-        for element in view.get('elements') or []:
-            if not isinstance(element, dict): continue
-            eid = str(element.get('id') or '')
-            cites = [c for c in element.get('cites') or [] if isinstance(c, str)]
-            evidence = [c for c in cites if c in known]
-            why = ('no id' if not eid else 'repeated id' if eid in seen else
-                   'unknown operation' if element.get('operation') not in OPERATIONS else
-                   'no citation resolves to a fact, claim, card or rule of this report' if not evidence else None)
-            if why:
-                dropped.append({'view': name, 'id': eid or '?', 'title': _short(element.get('title'), 160), 'why': why,
-                                'cites': cites[:8]})
-                continue
-            seen.add(eid)
-            alive.add((name, eid))
-            row = {'id': eid, 'kind': str(element.get('kind') or 'element'), 'title': _short(element.get('title'), 200),
-                   'operation': element['operation'], 'subject': element.get('subject') if isinstance(element.get('subject'), str) else None,
-                   'detail': _short(element.get('detail'), 600), 'cites': list(dict.fromkeys(evidence))}
-            read = [c for c in cites if c in context]
-            unresolved = [c for c in cites if c not in known and c not in context]
-            if read: row['context'] = read[:8]
-            if unresolved: row['unresolved'] = unresolved[:8]
-            elements.append(row)
-        confidence = view.get('confidence')
-        kept['views'][name] = {'summary': _short(view.get('summary'), 600),
-                               'confidence': min(1.0, max(0.0, float(confidence))) if isinstance(confidence, (int, float)) else None,
-                               'elements': elements}
-    cards = {i for i in known if i.startswith('TASK-')}
-    kept['aspects'], judged = [], set()
-    for row in (ideal or {}).get('aspects') or []:
-        if not isinstance(row, dict) or row.get('aspect') not in ASPECTS or row.get('verdict') not in VERDICTS: continue
-        if row['aspect'] in judged or not str(row.get('why') or '').strip(): continue
-        judged.add(row['aspect'])
-        kept['aspects'].append({'aspect': row['aspect'], 'verdict': row['verdict'], 'why': _short(row.get('why'), 600),
-                                'plan': _short(row.get('plan'), 800) if row['verdict'] == 'improve' else '',
-                                'cards': [c for c in row.get('cards') or [] if c in cards][:12],
-                                'cites': [c for c in row.get('cites') or [] if c in known or c in context][:8]})
+    ideal = ideal or {}
+    dropped, alive = [], set()
+    views = {name: _check_view(name, (ideal.get('views') or {}).get(name) or {}, known, context, dropped, alive) for name in VIEWS}
+    kept = {'views': views, 'aspects': _check_aspects(ideal, known, context)}
     kept['departures'] = [{'view': d.get('view'), 'element': d.get('element'), 'rule_says': _short(d.get('rule_says'), 400),
                            'plan_chose': _short(d.get('plan_chose'), 400), 'because': _short(d.get('because'), 600),
                            'cites': [c for c in d.get('cites') or [] if c in known or c in context]}
-                          for d in (ideal or {}).get('departures') or []
+                          for d in ideal.get('departures') or []
                           if isinstance(d, dict) and (d.get('view'), str(d.get('element'))) in alive and d.get('because')]
-    kept['open_questions'] = [{'id': str(q.get('id') or f'q{i + 1}'), 'view': q.get('view') if q.get('view') in VIEWS else 'system',
-                               'question': _short(q.get('question'), 400), 'options': [_short(o, 120) for o in q.get('options') or []][:6],
-                               'recommendation': _short(q.get('recommendation'), 200) or None, 'why': _short(q.get('why'), 400)}
-                              for i, q in enumerate((ideal or {}).get('open_questions') or []) if isinstance(q, dict) and q.get('question')]
-    confidence = (ideal or {}).get('confidence')
-    kept['confidence'] = min(1.0, max(0.0, float(confidence))) if isinstance(confidence, (int, float)) else None
+    kept['open_questions'] = [_question(i, q) for i, q in enumerate(ideal.get('open_questions') or [])
+                              if isinstance(q, dict) and q.get('question')]
+    kept['confidence'] = _confidence(ideal.get('confidence'))
     return kept, dropped
+
+
+def _confidence(value):
+    """A confidence within 0..1, or None when the assistant gave no number."""
+    return min(1.0, max(0.0, float(value))) if isinstance(value, (int, float)) else None
+
+
+def _check_view(name, view, known, context, dropped, alive):
+    """One view's elements that stand on evidence; each one dropped is added to `dropped`, each one kept to `alive`."""
+    seen, elements = set(), []
+    for element in view.get('elements') or []:
+        if not isinstance(element, dict): continue
+        eid = str(element.get('id') or '')
+        cites = [c for c in element.get('cites') or [] if isinstance(c, str)]
+        evidence = [c for c in cites if c in known]
+        why = ('no id' if not eid else 'repeated id' if eid in seen else
+               'unknown operation' if element.get('operation') not in OPERATIONS else
+               'no citation resolves to a fact, claim, card or rule of this report' if not evidence else None)
+        if why:
+            dropped.append({'view': name, 'id': eid or '?', 'title': _short(element.get('title'), 160), 'why': why, 'cites': cites[:8]})
+            continue
+        seen.add(eid)
+        alive.add((name, eid))
+        elements.append(_element_row(eid, element, cites, evidence, known, context))
+    return {'summary': _short(view.get('summary'), 600), 'confidence': _confidence(view.get('confidence')), 'elements': elements}
+
+
+def _element_row(eid, element, cites, evidence, known, context):
+    row = {'id': eid, 'kind': str(element.get('kind') or 'element'), 'title': _short(element.get('title'), 200),
+           'operation': element['operation'], 'subject': element.get('subject') if isinstance(element.get('subject'), str) else None,
+           'detail': _short(element.get('detail'), 600), 'cites': list(dict.fromkeys(evidence))}
+    read = [c for c in cites if c in context]
+    unresolved = [c for c in cites if c not in known and c not in context]
+    if read: row['context'] = read[:8]
+    if unresolved: row['unresolved'] = unresolved[:8]
+    return row
+
+
+def _check_aspects(ideal, known, context):
+    """The assistant's verdict on each known aspect, once, when it says why; cards and citations kept when they resolve."""
+    cards = {i for i in known if i.startswith('TASK-')}
+    out, judged = [], set()
+    for row in ideal.get('aspects') or []:
+        if not isinstance(row, dict) or row.get('aspect') not in ASPECTS or row.get('verdict') not in VERDICTS: continue
+        if row['aspect'] in judged or not str(row.get('why') or '').strip(): continue
+        judged.add(row['aspect'])
+        out.append({'aspect': row['aspect'], 'verdict': row['verdict'], 'why': _short(row.get('why'), 600),
+                    'plan': _short(row.get('plan'), 800) if row['verdict'] == 'improve' else '',
+                    'cards': [c for c in row.get('cards') or [] if c in cards][:12],
+                    'cites': [c for c in row.get('cites') or [] if c in known or c in context][:8]})
+    return out
+
+
+def _question(index, q):
+    return {'id': str(q.get('id') or f'q{index + 1}'), 'view': q.get('view') if q.get('view') in VIEWS else 'system',
+            'question': _short(q.get('question'), 400), 'options': [_short(o, 120) for o in q.get('options') or []][:6],
+            'recommendation': _short(q.get('recommendation'), 200) or None, 'why': _short(q.get('why'), 400)}
 
 
 def share(ideal, known):
