@@ -11,7 +11,7 @@ import { Chip } from '../../components/Chip'
 import { Segmented } from '../../components/Controls'
 import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
-import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
 import { TokenImage } from '../../components/TokenImage'
 import type { StudioData } from '../../data/types'
@@ -445,7 +445,7 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
   if (!screen) {
     return (
       <div className={layout.page}>
-        <Panel><StateMessage title={w('notFound')} sub={w('notFoundSub')} action={<div><Go to="/screens" className={css.inlineLink}>{w('backToList')}</Go></div>} /></Panel>
+        <NotHere title={w('notFound')} sub={w('notFoundSub')} back="/screens" label={w('backToList')} />
       </div>
     )
   }
