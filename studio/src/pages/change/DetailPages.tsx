@@ -106,7 +106,7 @@ function TaskBody({ data, id }: { data: StudioData; id: string }) {
   const card = data.cards?.cards.find((c) => c.id === id)
   const plan = data.plans?.plans.find((p) => p.steps.some((s) => s.tasks.some((t) => t.id === id))) ?? data.plans?.plans[0]
   const step = plan?.steps.find((s) => s.tasks.some((t) => t.id === id))
-  usePageChrome(id, step && plan ? { to: `/plans/${encodeURIComponent(plan.id)}/${encodeURIComponent(step.id)}`, label: w('stepKicker', { id: step.id }) } : { to: '/plans', label: w('plansTitle') }, data.manifest.project.name)
+  usePageChrome(card ? id : w('taskNotFound'), step && plan ? { to: `/plans/${encodeURIComponent(plan.id)}/${encodeURIComponent(step.id)}`, label: w('stepKicker', { id: step.id }) } : { to: '/plans', label: w('plansTitle') }, data.manifest.project.name)
   const timeline = useTimeline(data)
   const row = timeline?.tasks.find((t) => t.id === id)
   if (!card) return <Missing title={w('taskNotFound')} />
