@@ -27,60 +27,74 @@ const NOW_KINDS = new Set(['step', 'read', 'edit', 'check', 'say', 'question', '
 /** Kinds the timeline leaves out: progress is drawn as bars, screenshots as pairs. */
 const HIDDEN = new Set(['progress', 'screenshot'])
 
+/** The fold's running state: the view, every batch's progress, and the batch the last progress named. */
+interface Fold { view: RunView; batches: Map<number, Batch>; batch: number | null }
+
+function onState(f: Fold, event: RunEvent): void {
+  const to = event.data.to
+  f.view.state = to as RunState
+  if (to === 'running' || to === 'queued') f.view.error = null
+  if (to !== 'waiting_for_person') f.view.question = null
+  if (to === 'queued') { f.view.result = null; f.batches.clear(); f.view.screens = [] }
+}
+
+function onProgress(f: Fold, event: RunEvent): void {
+  const data = event.data
+  const number = typeof data.batch === 'number' ? data.batch : 0
+  f.batch = number || null
+  f.batches.set(number, { number, done: Number(data.done) || 0, total: Number(data.total) || 0 })
+}
+
+function onError(f: Fold, event: RunEvent): void {
+  const data = event.data
+  const what = data.what_now as Bi | undefined
+  f.view.error = { text: event.text, reason: String(data.reason ?? ''), what_now: what && (what.en || what.ar) ? what : null,
+    recoverable: data.recoverable !== false, detail: event.detail ?? null }
+}
+
+function onScreenshot(f: Fold, event: RunEvent): void {
+  const data = event.data
+  const key = typeof data.batch === 'number' ? data.batch : f.batch
+  const before = data.when === 'before'
+  let pair = f.view.screens.find((s) => s.batch === key && !(before ? s.before : s.after))
+  if (!pair) { pair = { batch: key }; f.view.screens.push(pair) }
+  if (before) pair.before = event
+  else pair.after = event
+}
+
+const APPLY: Partial<Record<string, (f: Fold, event: RunEvent) => void>> = {
+  state: onState,
+  progress: onProgress,
+  question: (f, e) => { f.view.question = e.data as unknown as Question },
+  answer: (f) => { f.view.question = null },
+  // accept or undo recorded on a done run: the handed-over result stays
+  result: (f, e) => { if (!('outcome' in e.data)) f.view.result = e.data as unknown as RunResult },
+  error: onError,
+  edit: (f) => { f.view.edits += 1 },
+  check: (f, e) => { f.view.checks[e.data.passed === false ? 'failed' : 'passed'] += 1 },
+  screenshot: onScreenshot,
+}
+
+/** The timeline line of an event: consecutive reads fold into one. */
+function addItem(items: Item[], event: RunEvent): void {
+  if (HIDDEN.has(event.kind)) return
+  const previous = items[items.length - 1]
+  if (event.kind !== 'read') items.push({ kind: 'event', event })
+  else if (previous?.kind === 'reads') previous.events.push(event)
+  else items.push({ kind: 'reads', events: [event] })
+}
+
 export function deriveRun(events: RunEvent[], run?: Run | null): RunView {
   const view: RunView = { state: run?.state ?? null, now: null, batches: [], question: run?.question ?? null, result: run?.result ?? null,
     error: null, screens: [], items: [], edits: 0, checks: { passed: 0, failed: 0 }, last: 0 }
-  const batches = new Map<number, Batch>()
-  let batch: number | null = null
+  const fold: Fold = { view, batches: new Map(), batch: null }
   for (const event of events) {
     view.last = Math.max(view.last, event.seq)
-    const data = event.data
     if (NOW_KINDS.has(event.kind)) view.now = event.text
-    switch (event.kind) {
-      case 'state': {
-        view.state = data.to as RunState
-        if (data.to === 'running' || data.to === 'queued') view.error = null
-        if (data.to !== 'waiting_for_person') view.question = null
-        if (data.to === 'queued') { view.result = null; batches.clear(); view.screens = [] }
-        break
-      }
-      case 'progress': {
-        const number = typeof data.batch === 'number' ? data.batch : 0
-        batch = number || null
-        batches.set(number, { number, done: Number(data.done) || 0, total: Number(data.total) || 0 })
-        break
-      }
-      case 'question': view.question = data as unknown as Question; break
-      case 'answer': view.question = null; break
-      case 'result':
-        if ('outcome' in data) break // accept or undo recorded on a done run: the handed-over result stays
-        view.result = data as unknown as RunResult
-        break
-      case 'error': {
-        const what = data.what_now as Bi | undefined
-        view.error = { text: event.text, reason: String(data.reason ?? ''), what_now: what && (what.en || what.ar) ? what : null,
-          recoverable: data.recoverable !== false, detail: event.detail ?? null }
-        break
-      }
-      case 'edit': view.edits += 1; break
-      case 'check': if (data.passed === false) view.checks.failed += 1; else view.checks.passed += 1; break
-      case 'screenshot': {
-        const key = typeof data.batch === 'number' ? data.batch : batch
-        let pair = view.screens.find((s) => s.batch === key && !(data.when === 'before' ? s.before : s.after))
-        if (!pair) { pair = { batch: key }; view.screens.push(pair) }
-        if (data.when === 'before') pair.before = event
-        else pair.after = event
-        break
-      }
-      default: break
-    }
-    if (HIDDEN.has(event.kind)) continue
-    const previous = view.items[view.items.length - 1]
-    if (event.kind === 'read' && previous?.kind === 'reads') previous.events.push(event)
-    else if (event.kind === 'read') view.items.push({ kind: 'reads', events: [event] })
-    else view.items.push({ kind: 'event', event })
+    APPLY[event.kind]?.(fold, event)
+    addItem(view.items, event)
   }
-  view.batches = [...batches.values()].sort((a, b) => a.number - b.number)
+  view.batches = [...fold.batches.values()].sort((a, b) => a.number - b.number)
   return view
 }
 
