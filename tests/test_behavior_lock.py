@@ -127,6 +127,10 @@ class ApprovalResultTests(Workspace):
         self.assertEqual({k: s for k, (s, _) in spec_statuses(report, {'change', 'broken'}).items()},
                          {'root.spec.ts': 'passed', 'other.spec.ts': 'failed', 'broken.spec.ts': 'failed'},
                          'a declared screen may look different; an undeclared one, or any other failure, still counts')
+        report = playwright_report(('root.spec.ts', [('failed', looks('problems'))]))
+        report['suites'][0]['specs'][0]['title'] = '/#/problems renders as it does today'
+        self.assertEqual(spec_statuses(report, (), {'/#/problems renders as it does today'})['root.spec.ts'][0], 'passed',
+                         'a test failing on the code before the batch too says nothing of the batch')
         from eaos.behavior_lock import _results
         (Path(self.tmp) / 'behavior-lock').mkdir()
         (Path(self.tmp) / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [

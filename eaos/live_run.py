@@ -87,11 +87,34 @@ class LiveRun:
                 folder = self.runtime / 'run-data'      # the run's own folder outside the app: backups, uploads
                 folder.mkdir(parents=True, exist_ok=True)
             fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder))
-            self._extra = {**{k: fill(v) for k, v in (self.profile.get('env') or {}).items()},
+            self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}
             self._extra.setdefault('AUTH_SECRET', secrets.token_urlsafe(48))   # generated for this run, never the owner's
         return self._extra
+
+    def _outside(self, value):
+        """A folder outside the project and the run that the app reads (its data), named by an absolute path."""
+        path = Path(str(value))
+        return path.is_absolute() and path.is_dir() and self.runtime.resolve() not in path.resolve().parents
+
+    def _frozen(self, name, value):
+        """The copy of such a folder kept when the screens were recorded (freeze), so every later run reads the data
+        they were recorded on; the folder itself when none was kept."""
+        copy = self.runtime / 'frozen' / name
+        return str(copy) if self._outside(value) and copy.is_dir() else value
+
+    def freeze(self):
+        """Keep a copy of every folder outside the project the app reads, for this recording and every run after it:
+        a live folder changes under the runs (EAOS's Studio reads the report a batch rewrites), and a screen compared
+        on other data differs whatever the change (EAOS on itself, 2026-10-13: every card of a batch failed so)."""
+        import shutil
+        for name, value in (self.profile.get('env') or {}).items():
+            if not self._outside(value): continue
+            copy = self.runtime / 'frozen' / name
+            shutil.rmtree(copy, ignore_errors=True)
+            shutil.copytree(value, copy)
+        self.__dict__.pop('_extra', None)
 
     def run(self, argv, timeout=900, network=True, env=None, at_root=False):
         """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the run's environment."""

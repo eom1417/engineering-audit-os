@@ -50,7 +50,8 @@ class Journey(unittest.TestCase):
                       mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
                       mock.patch('eaos.waves.original_checks', return_value={}),
-                      mock.patch('eaos.waves.gates', side_effect=project_checks)):
+                      mock.patch('eaos.waves.gates', side_effect=project_checks),
+                      mock.patch('eaos.waves._against_control', return_value=False)):   # the base passes: nothing set aside
             patch.start()
             self.addCleanup(patch.stop)
         os.environ.pop('EAOS_DETECTOR_VERDICTS', None)      # the product's own detector verdicts, as a person gets them

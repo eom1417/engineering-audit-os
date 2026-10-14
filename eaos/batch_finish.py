@@ -13,7 +13,9 @@ from . import guided
 REPAIR = 'REPAIR'        # the card of a repair on top of the batch
 REPAIRS = 3             # repairs tried before the cards responsible are left out
 STEPS = {'acceptance': (0, "every problem is gone, all changes together"), 'regenerate': (1, 'rebuilding the files the build makes'),
-         'gates': (1, "the project's own checks and every screen"), 'bisect': (2, 'finding the change that broke something')}
+         'gates': (1, "the project's own checks and every screen"),
+         'control': (1, 'the same checks on the code before the batch, to tell its changes from their surroundings'),
+         'bisect': (2, 'finding the change that broke something')}
 
 
 def open_step(wave):

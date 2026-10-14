@@ -104,7 +104,8 @@ class FinishTests(unittest.TestCase):
         broken = lambda batch, name: 'the project\'s own check failed: test' if (Path(batch['root']) / '2.txt').exists() else ''
         with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
                                | {'T4': 1}), \
-                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=broken):
+                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=broken), \
+                mock.patch.object(waves, '_against_control', return_value=False):
             summary = waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2', 'T3', 'T4'], kept, {}, {}, lock=False)
         self.assertEqual(summary['kept'], ['T1', 'T3'])
         self.assertIn("own check failed", summary['failed']['T2'])
@@ -133,7 +134,8 @@ class FinishTests(unittest.TestCase):
         finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2'], kept, {}, {},
                                                            lock=False, repairs=repairs, bisect=bisect)
         with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
-                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=together):
+                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=together), \
+                mock.patch.object(waves, '_against_control', return_value=False):
             with self.assertRaises(waves.GatesFailed) as asked:
                 finish([], bisect=False)
             self.assertIn('a cycle', asked.exception.why)
@@ -141,6 +143,27 @@ class FinishTests(unittest.TestCase):
             summary = finish([repair], bisect=False)
         self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt', 'repair.txt'])
+
+    def test_what_fails_on_the_base_too_is_set_aside_and_the_batch_is_kept_whole(self):
+        # Wave 4 on EAOS (2026-10-14): the Studio page of the problems read live data the batch itself rewrote, so it
+        # differed with every card alone and with none; all 31 sound fixes were left out for it.
+        project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
+                  'verify_command': ['true']} for n in (1, 2)]
+        (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
+        root = Path(tempfile.mkdtemp()) / 'candidate'
+        subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
+        base = git(root, 'rev-parse', 'HEAD')
+        kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
+        live_page = lambda batch, name: '' if 'problems' in (batch.get('known') or ()) else 'the behaviour lock broke on 1 of 2 specs'
+        with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+                mock.patch.object(waves, 'original_checks', return_value=[]), mock.patch.object(waves, 'gates', side_effect=live_page), \
+                mock.patch('eaos.behavior_lock.verify_lock') as control, \
+                mock.patch('eaos.behavior_lock.failing_tests', return_value={'problems'}):
+            summary = waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2'], kept, {}, {}, lock=True)
+        self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
+        self.assertEqual(control.call_args.kwargs['name'], 'wave-1-control', 'checked once on the base alone')
+        self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt'], 'and the batch back whole after it')
 
 
 class RegenerateTests(unittest.TestCase):

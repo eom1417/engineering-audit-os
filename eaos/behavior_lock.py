@@ -65,6 +65,20 @@ SCREENSHOT = re.compile(r'toHaveScreenshot.*?Snapshot: ([\w.-]+)\.png', re.S)
 ANSI = re.compile(r'\x1b\[[0-9;]*m')
 
 
+def failing_tests(runtime, name):
+    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json)."""
+    try: report = json.loads((Path(runtime) / 'behavior-lock' / f'playwright-{name}.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError): return set()
+    found = set()
+
+    def walk(suite):
+        for spec in suite.get('specs') or []:
+            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ())): found.add(spec.get('title'))
+        for child in suite.get('suites') or []: walk(child)
+    for suite in report.get('suites') or []: walk(suite)
+    return found
+
+
 def _declared(status, message, declared):
     """A test failed only because its screen looks different, on a screen the batch's design cards say they change
     (`declared` snapshot names, eaos/waves.py declared_screens): their change, not a breakage."""
@@ -72,7 +86,7 @@ def _declared(status, message, declared):
     return 'passed' if found and found.group(1) in declared else status
 
 
-def spec_statuses(report, declared=()):
+def spec_statuses(report, declared=(), known=()):
     """{spec path: (status, reason)} from a Playwright JSON report: a spec passes when none of its tests failed
     and at least one ran; one whose every test was skipped is quarantined with the skip's reason."""
     found = {}
@@ -80,17 +94,18 @@ def spec_statuses(report, declared=()):
     def walk(suite, file=None):
         file = suite.get('file') or file
         for spec in suite.get('specs') or []:
-            found.setdefault(file, []).extend(_outcomes(spec, declared))
+            found.setdefault(file, []).extend(_outcomes(spec, declared, spec.get('title') in known))
         for child in suite.get('suites') or []: walk(child, file)
     for suite in report.get('suites') or []: walk(suite)
     return _verdicts(found)
 
 
-def _outcomes(spec, declared):
-    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason."""
+def _outcomes(spec, declared, known=False):
+    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `known`: it fails on the
+    code before the batch too (eaos/waves.py _against_control), so it says nothing of the batch."""
     tests = spec.get('tests') or []
     ran = [(result.get('status'), (result.get('error') or {}).get('message', '')) for test in tests for result in test.get('results') or []]
-    return ([(_declared(status, message, declared), message) for status, message in ran] or
+    return ([('passed' if known else _declared(status, message, declared), message) for status, message in ran] or
             [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in tests])
 
 
@@ -232,12 +247,12 @@ def _approved(lock, statuses):
             for name, status in statuses.items()}
 
 
-def _run_specs(live, lock, base, recorded, stem, update, declared=()):
+def _run_specs(live, lock, base, recorded, stem, update, declared=(), known=()):
     """{spec file: (status, reason)} of one pass of every spec the lock holds: the screens with Playwright, the
     interfaces of the code with pytest; their reports are playwright-<stem>.json and approvals-<stem>.xml in `recorded`."""
     statuses = {}
     if (lock / 'playwright.config.ts').is_file():
-        statuses.update(spec_statuses(_pass(live, lock, base, recorded / f'playwright-{stem}.json', update=update), declared))
+        statuses.update(spec_statuses(_pass(live, lock, base, recorded / f'playwright-{stem}.json', update=update), declared, known))
     if (lock / 'approvals').is_dir():
         statuses.update(_approvals(live, lock, recorded / f'approvals-{stem}.xml', update))
     return statuses
@@ -386,6 +401,7 @@ def run_lock(report, target, runtime):
     recorded = runtime / 'behavior-lock'
     progress.begin('prepare')
     live = LiveRun(target, runtime, 'S05')
+    live.freeze()
     lock = _prepare(live, report)
     try:
         progress.begin('start')
@@ -467,7 +483,7 @@ def run_journeys(report, target, runtime, folder):
     return {'specs': len(statuses), 'walked': walked, 'failed': sum(w['status'] == 'failed' for w in walked), **cap_journeys(folder)}
 
 
-def verify_lock(report, target, runtime, name='results-after', declared=()):
+def verify_lock(report, target, runtime, name='results-after', declared=(), known=()):
     """The lock recorded on the original, run once on `target` (a candidate EAOS committed on the granted commit):
     behavior-lock/<name>.json, and {specs, passed, failed}. Needs what the original recorded, screens or interfaces of
     the code. No recording is ever updated here; a screen in `declared` may look different (spec_statuses)."""
@@ -481,7 +497,7 @@ def verify_lock(report, target, runtime, name='results-after', declared=()):
     lock = _prepare(live, report, recorded)
     try:
         base = _start(live, lock)
-        results = _results(report, _run_specs(live, lock, base, recorded, name, update=False, declared=declared))
+        results = _results(report, _run_specs(live, lock, base, recorded, name, update=False, declared=declared, known=known))
     finally:
         live.stop()
         live.record(f'behavior-lock/run-log-{name}.json')
