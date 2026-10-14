@@ -87,6 +87,7 @@
       "eaos/places.py",
       "eaos/progress/**",
       "eaos/live_setup.py",
+      "eaos/run_profile.py",
       "eaos/live_assist.py",
       "eaos/local_db.py",
       "eaos/waves.py",

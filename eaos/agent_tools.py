@@ -683,7 +683,7 @@ def run_setup(project=None, person_agreed=False):
     if not person_agreed and not _consented(state):
         return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                 'what_now': 'Ask the person this, in their language. Only if they say yes, call run_setup again with person_agreed=true.'}
-    from . import live_setup
+    from . import live_setup, run_profile
     head = _head(state)
     if not head: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
     state['consent'] = {'run_and_fix': True, 'at': _now()}
@@ -699,18 +699,18 @@ def run_setup(project=None, person_agreed=False):
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     if detected['profile'] is None:
         return {'status': 'cannot_run', 'limitations': detected['limitations']}
-    live_setup.write_profile(runtime, detected['profile'])
+    run_profile.write_profile(runtime, detected['profile'])
     return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
 
 
 def run_try(proposal=None, mode='lock', project=None):
     """Try the assistant's proposal (see live_assist.ASSIST_SYSTEM for its fields), refused when unsafe."""
-    from . import live_setup
+    from . import run_profile
     state = project_state(project)
     runtime = guided.runtime_of(state)
     if not (runtime / 'run.json').is_file(): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     if mode not in ('lock', 'baseline'): raise ValueError("mode is 'lock' (the app as developers run it) or 'baseline' (the production build)")
-    refused = live_setup.safe(proposal or {})
+    refused = run_profile.safe(proposal or {})
     if refused:
         return {'status': 'refused', 'reasons': refused,
                 'rules': 'Every address is 127.0.0.1 or localhost; commands are npm, npx, pnpm, yarn, bun, node or corepack only; '
@@ -731,14 +731,14 @@ def _limitations(profile, record, runtime, missing):
 def _lock_run(project, runtime, report, record, profile, attempt):
     """After a run as developers run it: the profile's values and limitations, and the project's setup record.
     The fixtures the screens need and nobody gave."""
-    from . import live_setup
+    from . import live_setup, run_profile
     needs = live_setup.fixtures_needed(report) if (report / 'plan.json').is_file() else []
     known = {**profile.get('env', {}), **record.get('fixtures', {})}
     missing = [name for name in needs if name not in known]
     if record.get('fixtures'):
         profile.setdefault('env', {}).update({k: str(v) for k, v in record['fixtures'].items()})
     profile['limitations'] = _limitations(profile, record, runtime, missing)
-    live_setup.write_profile(runtime, profile)
+    run_profile.write_profile(runtime, profile)
     state = guided.load(project)
     state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': attempt, 'limitations': profile['limitations']}
     state.pop('safety', None)
@@ -748,12 +748,12 @@ def _lock_run(project, runtime, report, record, profile, attempt):
 
 def _production_build(source, runtime, answer, progress):
     """Build and start the production version once, to measure speed later; the profile as it is after."""
-    from . import live_setup
+    from . import live_setup, run_profile
     progress(1, 2, 'building and starting the production version, to measure speed later')
     base = live_setup.verify(source, runtime, 1, mode='baseline')
     profile = _read(runtime / 'run.json')
     profile['baseline']['verified'] = base['ok']
-    live_setup.write_profile(runtime, profile)
+    run_profile.write_profile(runtime, profile)
     answer['production_build_runs'] = base['ok']
     if not base['ok']: answer['production_failure'] = (base.get('failure') or '')[-2500:]
     return profile
@@ -776,11 +776,11 @@ def _run_what_now(ok, mode):
 
 
 def _run_job(project, arguments, progress):
-    from . import live_assist, live_setup
+    from . import live_assist, live_setup, run_profile
     state = guided.load(project)
     runtime, report = guided.runtime_of(state), guided.report_of(state)
     mode, proposal = arguments.get('mode') or 'lock', arguments.get('proposal')
-    if proposal: live_setup.apply(runtime, proposal, mode=mode)
+    if proposal: run_profile.apply(runtime, proposal, mode=mode)
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
     progress(0, 1, 'installing and starting the app in the isolated copy')
     source = guided.source(state)
@@ -789,7 +789,7 @@ def _run_job(project, arguments, progress):
     answer = {'mode': mode, 'attempt': attempt, 'runs': record['ok']}
     if mode == 'baseline':
         profile.setdefault('baseline', {})['verified'] = record['ok']
-        live_setup.write_profile(runtime, profile)
+        run_profile.write_profile(runtime, profile)
     else:
         answer['fixtures_missing'] = _lock_run(project, runtime, report, record, profile, attempt)
         if record['ok'] and (profile.get('baseline') or {}).get('build') and 'verified' not in profile['baseline']:

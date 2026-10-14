@@ -30,13 +30,10 @@ from pathlib import Path
 from . import progress
 from .live_assist import ENV_EXAMPLES, assist_messages, read_json
 from .progress.flow import OPTIONAL, Stage
+from .run_profile import DANGER, apply, safe, write_profile
 
 ATTEMPTS = 5
 APP_FOLDERS = ('.', 'app', 'web', 'client', 'frontend', 'apps/web', 'apps/app', 'apps/frontend', 'packages/web')
-# A script that deploys, publishes or reaches a hosted environment never runs, whatever it is called.
-DANGER = re.compile(r'\b(deploy\w*|railway|vercel|netlify|flyctl|heroku|firebase|gh-pages|publish|wrangler|surge|'
-                    r'kubectl|terraform|pulumi|gcloud|aws|azure|az\s|ssh|scp|rsync|docker\s+push|'
-                    r'supabase\s+(db\s+push|link|functions\s+deploy)|release|staging|production|prod)\b', re.I)
 LOCKFILES = (('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'), ('bun.lockb', 'bun'), ('bun.lock', 'bun'), ('package-lock.json', 'npm'))
 DATABASES = {
     'postgres': ('pg', 'postgres', 'pg-promise', '@neondatabase/serverless', '@vercel/postgres', 'postgresql'),
@@ -374,74 +371,6 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
 
 
 # ---------------------------------------------------------------- 3. assist (what the assistant is told: eaos/live_assist.py)
-
-# What a proposal's commands may start with: a JavaScript or Python package manager, node, python, or a Python web server
-# (a project's own virtual environment's, `.venv/bin/python`, counts by its name).
-RUNNERS = ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'true',
-           'python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')
-
-
-def safe(proposal):
-    """Reasons a proposal may not run; empty when it may."""
-    problems = []
-    for name, value in (proposal.get('env') or {}).items():
-        for host in re.findall(r'[a-z][a-z0-9+.-]*://(?:[^@/\s]*@)?([^:/\s?#]+)', str(value), re.I):
-            if host not in ('127.0.0.1', 'localhost', '{database_url}') and not str(value).startswith('{database_url}'):
-                problems.append(f'{name} points at {host}, not at this computer')
-    commands = ([proposal.get('start')] + list(proposal.get('install') or []) + list(proposal.get('prepare') or [])
-                + list(proposal.get('build') or []))
-    for argv in [c for c in commands if c]:
-        text = ' '.join(map(str, argv))
-        if DANGER.search(text): problems.append(f'refused: {text[:120]}')
-        if argv and Path(str(argv[0])).name not in RUNNERS:
-            problems.append(f'refused, not a package manager, node or python: {text[:120]}')
-    script = proposal.get('seed_script') or ''
-    if DANGER.search(script): problems.append(f"the seed script mentions {DANGER.search(script)[0]!r}, which a run never reaches")
-    for host in re.findall(r'https?://([^:/\s\'"`]+)', script):
-        if host not in ('127.0.0.1', 'localhost'): problems.append(f'the seed script reaches {host}')
-    return problems
-
-
-def apply(runtime, proposal, mode='lock'):
-    """Merge a safe proposal into run.json (into its `baseline` for the production run); a seed script is
-    written beside it, never into the project."""
-    path = Path(runtime) / 'run.json'
-    profile = json.loads(path.read_text(encoding='utf-8'))
-    target = profile.setdefault('baseline', {}) if mode == 'baseline' else profile
-    if proposal.get('env') is not None:          # the complete environment: what it leaves out is dropped
-        target['env'] = {k: str(v) for k, v in proposal['env'].items()}
-    target.setdefault('env', {}).update({k: str(v) for k, v in (proposal.get('fixtures') or {}).items()})
-    for key in ('start', 'install', 'prepare') + (('build', 'app', 'headers') if mode == 'baseline' else ()):
-        if proposal.get(key) is None: continue
-        if proposal[key]: target[key] = proposal[key]
-        elif key == 'prepare': target.pop('prepare', None)    # [] removes; start and install are never empty
-    if proposal.get('database') == 'none' and mode == 'lock':
-        profile.pop('database', None)
-        profile['env'] = {k: v for k, v in profile['env'].items() if '{database_url}' not in v}
-    elif proposal.get('database') == 'postgres' and 'database' not in profile:
-        profile['database'] = {'kind': 'postgres', 'name': 'app'}
-    if isinstance(proposal.get('screens'), dict) and mode == 'lock':     # how the app keeps its language and theme
-        from .screens.audit import variants
-        known = variants.__code__.co_varnames[:variants.__code__.co_argcount]
-        profile['screens'] = {k: v for k, v in proposal['screens'].items() if k in known}
-    if proposal.get('seed_script') and mode == 'lock':
-        seed = Path(runtime) / 'setup' / 'seed.cjs'
-        seed.parent.mkdir(parents=True, exist_ok=True)
-        seed.write_text(proposal['seed_script'], encoding='utf-8')
-        profile['seed'] = [['node', str(seed)]]
-    write_profile(runtime, profile)
-    return profile
-
-
-def write_profile(runtime, profile):
-    from .artifact_contracts import contracts, validate
-    problems = validate(profile, contracts()['run-profile'])
-    if problems: raise ValueError(f'run.json would break its contract: {problems[0]}')
-    path = Path(runtime) / 'run.json'
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(profile, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    path.chmod(0o600)       # generated secrets live here: the run's own, but still nobody else's business
-
 
 def fixtures_needed(report):
     """The E2E_* names the lock's specs skip without."""

