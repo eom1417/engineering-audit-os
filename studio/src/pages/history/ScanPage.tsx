@@ -6,12 +6,12 @@ import { buttonClass } from '../../components/Button'
 import { SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
-import { FoldList, Panel, Props, Section, StateMessage } from '../../components/Panel'
+import { FoldList, NotHere, Panel, Props, Section, StateMessage } from '../../components/Panel'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
-import { layout, WithData } from '../../shell/Layout'
+import { layout, PageTitle, WithData } from '../../shell/Layout'
 import { decoded } from '../library/model'
 import { EventRow, NoHistory, ScoreTag } from './HistoryPage'
 import { historyOf, openKnown, openTotal, rangePath, scanPath, SEVERITIES, type Scan } from './model'
@@ -52,8 +52,8 @@ function ScanBody({ data }: { data: StudioData }) {
   if (!scan) {
     return (
       <div className={layout.page}>
-        <Panel><StateMessage title={w('scanNotFound')} sub={w('scanNotFoundSub')}
-          action={<div><Go to="/history" className={buttonClass('secondary')}>{w('backToHistory')}</Go></div>} /></Panel>
+        <PageTitle title={w('scanNotFound')} />
+        <NotHere title={w('scanNotFoundSub')} sub={null} back="/history" label={w('backToHistory')} />
       </div>
     )
   }
