@@ -182,21 +182,17 @@ class Manager:
         for record in self.store.all():
             run, state = record['id'], record.get('state')
             if state not in ('running', 'paused') or run in self.watched: continue
-            if record.get('mode') == 'assistant' and alive(record.get('pid')):
-                self._follow_assistant(run, None)
-            elif record.get('mode') == 'direct' and record.get('job') and self._job_running(record['job']):
-                threading.Thread(target=self._follow_job, args=(run, record['job']), daemon=True).start()
-            elif record.get('mode') == 'handoff':
-                threading.Thread(target=self._watch_handoff, args=(run,), daemon=True).start()
+            if record.get('mode') == 'assistant' and alive(record.get('pid')): self._follow_assistant(run, None)
+            elif record.get('mode') == 'direct' and record.get('job') and self._job_running(record['job']): threading.Thread(target=self._follow_job, args=(run, record['job']), daemon=True).start()
+            elif record.get('mode') == 'handoff': threading.Thread(target=self._watch_handoff, args=(run,), daemon=True).start()
             else:
                 self.store.append(run, 'error', {'en': 'The Studio server stopped while this ran, and the work did not finish. Try it again.',
                                                  'ar': 'خادم الاستوديو توقف أثناء التشغيل، وما اكتمل الشغل. أعد المحاولة.'},
                                   {'reason': 'server restarted', 'recoverable': True,
                                    'what_now': {'en': 'Press Retry.', 'ar': 'اضغط «أعد».'}})
                 self.set_state(run, 'failed', 'the server restarted')
-        for record in self.store.all():
-            if record.get('state') == 'waiting_for_person' and record.get('mode') == 'handoff' and record['id'] not in self.watched:
-                threading.Thread(target=self._watch_handoff, args=(record['id'],), daemon=True).start()
+        for record in (r for r in self.store.all() if r.get('state') == 'waiting_for_person' and r.get('mode') == 'handoff' and r['id'] not in self.watched):
+            threading.Thread(target=self._watch_handoff, args=(record['id'],), daemon=True).start()
 
     # starting
     def _start(self, run):
@@ -518,60 +514,63 @@ class Manager:
             return self._answer(question_id, option, text)
 
     def _answer(self, question_id, option=None, text=None):
-        if option is not None and text is not None:
-            raise ValueError('send either an option or a custom answer, not both')
-        if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000):
-            raise ValueError('text must contain 1 to 4000 characters')
-        run = str(question_id).rsplit('-q', 1)[0]
-        record = self.store.load(run)
-        question = record.get('question') or {}
-        if record.get('state') != 'waiting_for_person' or question.get('id') != question_id:
-            raise LookupError('this question is not waiting for an answer')
-        if option is not None and (not isinstance(option, str) or option not in {o['id'] for o in question.get('options', [])}):
-            raise ValueError('invalid option')
-        if option is None and not text:
-            raise ValueError('choose one of the options')
+        run, record, question = self._checked(question_id, option, text)
         chosen = next((o for o in question.get('options') or [] if o['id'] == option), None)
         label = (chosen or {}).get('label') or {'en': text or '', 'ar': text or ''}
         self.store.append(run, 'answer', {'en': f"You answered: {label['en']}", 'ar': f"جاوبت: {label['ar']}"},
                           {'question': question_id, 'option': option, 'text': text, 'by': 'person'})
         self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
         self.set_state(run, 'running', 'answered')
-        if option is None:
-            assistant = record.get('assistant') or next((key for key, a in self.adapters.items() if a.available()), None)
-            self.store.update(run, pending_question={'question': question, 'mode': record.get('mode'),
-                                                   'assistant': record.get('assistant'), 'session': record.get('session')}, mode='assistant' if assistant else 'handoff', assistant=assistant,
-                              owner_decision={'question': question, 'answer': {'text': text}, 'requires_explicit_consent': True})
-            if assistant:
-                threading.Thread(target=self._launch, args=(run, self.adapters[assistant], self.prompt_of(self.store.load(run))), daemon=True).start()
-            else:
-                threading.Thread(target=self._handoff, args=(run,), daemon=True).start()
-            return self.store.load(run)
+        if option is None: return self._custom_answer(run, record, question, text)
         if question.get('why') == 'branch':
             # The person picked the branch in the Studio (their own press, behind the token, CSRF and Origin checks): it
             # is recorded as their choice whoever asked, then the step runs again on that branch. Recorded for direct runs
             # only, an assistant asking it got the answer as text and status kept asking for the branch.
             self._choose_branch(option, label['en'])
-        if record.get('mode') == 'direct':
-            if question.get('why') == 'branch':
-                threading.Thread(target=self._direct, args=(run,), daemon=True).start()
-            elif question.get('why') == 'assistant' and option in ('retry', 'without_ai'):
-                # asked again on retry; without_ai is this one check with the rules alone, the person's choice kept
-                inputs = {**(record.get('inputs') or {}), **({'without_ai': True} if option == 'without_ai' else {})}
-                self.store.update(run, inputs=inputs)
-                threading.Thread(target=self._direct, args=(run,), daemon=True).start()
-            elif question.get('why') == 'run consent' and option == 'yes':
-                inputs = {**(record.get('inputs') or {}), 'person_agreed': True}
-                self.store.update(run, inputs=inputs)
-                threading.Thread(target=self._direct, args=(run,), daemon=True).start()
-            else:
-                self.store.append(run, 'result', {'en': 'Nothing was done: you said no.', 'ar': 'ما سوينا شي: قلت لا.'}, self._outcome(run))
-                self.set_state(run, 'done')
-            return self.store.load(run)
+        if record.get('mode') == 'direct': return self._direct_answer(run, record, question, option)
         done = self._act_on(run, question, option)
         adapter = self.adapters.get(record.get('assistant'))
         if adapter is None: self._fail(run, 'the assistant of this run is not available any more')
         else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang, done), record.get('session')), daemon=True).start()
+        return self.store.load(run)
+
+    @staticmethod
+    def _well_formed(option, text):
+        if option is not None and text is not None: raise ValueError('send either an option or a custom answer, not both')
+        if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000): raise ValueError('text must contain 1 to 4000 characters')
+
+    def _checked(self, question_id, option, text):
+        """(run, record, question) of the question waiting for this answer; an error when the answer cannot be taken."""
+        self._well_formed(option, text)
+        run = str(question_id).rsplit('-q', 1)[0]
+        question = (record := self.store.load(run)).get('question') or {}
+        if record.get('state') != 'waiting_for_person' or question.get('id') != question_id: raise LookupError('this question is not waiting for an answer')
+        if option is not None and (not isinstance(option, str) or option not in {o['id'] for o in question.get('options', [])}): raise ValueError('invalid option')
+        if option is None and not text: raise ValueError('choose one of the options')
+        return run, record, question
+
+    def _custom_answer(self, run, record, question, text):
+        """A custom answer: the run's assistant, else the first one ready, takes it on; with none, the run is handed off."""
+        assistant = record.get('assistant') or next((key for key, a in self.adapters.items() if a.available()), None)
+        self.store.update(run, pending_question={'question': question, 'mode': record.get('mode'), 'assistant': record.get('assistant'), 'session': record.get('session')},
+                          mode='assistant' if assistant else 'handoff', assistant=assistant, owner_decision={'question': question, 'answer': {'text': text}, 'requires_explicit_consent': True})
+        target, args = (self._launch, (run, self.adapters[assistant], self.prompt_of(self.store.load(run)))) if assistant else (self._handoff, (run,))
+        threading.Thread(target=target, args=args, daemon=True).start()
+        return self.store.load(run)
+
+    def _direct_answer(self, run, record, question, option):
+        """A direct run: the step runs again (on the chosen branch, retried, without the assistant, or agreed), else it ends."""
+        why, inputs = question.get('why'), dict(record.get('inputs') or {})
+        if why == 'assistant' and option in ('retry', 'without_ai'):
+            # asked again on retry; without_ai is this one check with the rules alone, the person's choice kept
+            if option == 'without_ai': inputs['without_ai'] = True
+        elif why == 'run consent' and option == 'yes': inputs['person_agreed'] = True
+        elif why != 'branch':
+            self.store.append(run, 'result', {'en': 'Nothing was done: you said no.', 'ar': 'ما سوينا شي: قلت لا.'}, self._outcome(run))
+            self.set_state(run, 'done')
+            return self.store.load(run)
+        if why != 'branch': self.store.update(run, inputs=inputs)
+        threading.Thread(target=self._direct, args=(run,), daemon=True).start()
         return self.store.load(run)
 
     def _act_on(self, run, question, option):
@@ -651,9 +650,8 @@ class Manager:
 
     def newest_waiting(self):
         """The branch accept and undo act on: the newest wave still waiting for the person, or None."""
-        from ... import guided
-        state = guided.load(self.project) or {}
-        return next((w.get('branch') for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+        from ... import batch_branch, guided
+        return (batch_branch.waiting_batch(guided.load(self.project) or {}) or {}).get('branch')
 
     def _outcome(self, run, answer=None):
         """The result event's data: the new branch, its diff and its checks, the cards it closes, and the assistant's words."""
