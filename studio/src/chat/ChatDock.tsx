@@ -10,6 +10,7 @@ import { useRouterState } from '@tanstack/react-router'
 import { Button } from '../components/Button'
 import { Icon } from '../components/Icon'
 import { useCommandMaybe } from '../command/command'
+import { actionOf } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
 import type { ChatControl, ChatModel, ChatProposal, ChatTurn } from '../data/actions/types'
 import { usePrefs } from '../i18n/prefs'
@@ -31,7 +32,8 @@ const WORDS = {
   run: ['نفّذ', 'Run it'], sent: ['تم: افتح التشغيل لتتابعه', 'Done: follow it in Runs'],
   controls: { retry: ['أعد التشغيل', 'Retry the run'], stop: ['أوقف التشغيل', 'Stop the run'], pause: ['أوقف مؤقتًا', 'Pause the run'], resume: ['كمّل التشغيل', 'Resume the run'] },
 } as const
-const CORNERS = ['bottomStart', 'bottomEnd', 'topEnd', 'topStart'] as const
+// the end side first: the sidebar holds the start side on a computer
+const CORNERS = ['bottomEnd', 'topEnd', 'topStart', 'bottomStart'] as const
 type Corner = typeof CORNERS[number]
 interface Line { who: 'person' | 'assistant' | 'error'; text: string; proposals?: ChatProposal[]; done?: ChatTurn['done']; cost?: number | null }
 export interface ChatRequest { message?: string; context?: Record<string, unknown>; model?: ChatModel }
@@ -48,7 +50,8 @@ function Proposal({ item }: { item: ChatProposal }) {
   const command = useCommandMaybe()
   const { client, refresh } = useActions()
   const [done, setDone] = useState(false)
-  const title = item.kind === 'control' ? WORDS.controls[item.action as keyof typeof WORDS.controls]?.[at] ?? item.action : item.action
+  const title = item.kind === 'control' ? WORDS.controls[item.action as keyof typeof WORDS.controls]?.[at] ?? item.action
+    : actionOf(item.action)?.label[lang === 'ar' ? 'ar' : 'en'] ?? item.action
   const go = async () => {
     if (item.kind === 'action') { command?.open({ action: item.action, inputs: item.inputs }); return }
     if (!client || !item.run) return
@@ -71,7 +74,7 @@ export function ChatDock() {
   const { client } = useActions()
   const location = useRouterState({ select: (s) => s.location })
   const [open, setOpen] = useState(false)
-  const [corner, setCorner] = useState<Corner>(() => (CORNERS as readonly string[]).includes(localStorage.getItem('eaos.chat.corner') ?? '') ? localStorage.getItem('eaos.chat.corner') as Corner : 'bottomStart')
+  const [corner, setCorner] = useState<Corner>(() => (CORNERS as readonly string[]).includes(localStorage.getItem('eaos.chat.corner') ?? '') ? localStorage.getItem('eaos.chat.corner') as Corner : 'bottomEnd')
   const [lines, setLines] = useState<Line[]>([])
   const [session, setSession] = useState<string | null>(null)
   const [text, setText] = useState('')
