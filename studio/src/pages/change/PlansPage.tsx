@@ -95,6 +95,12 @@ function waves(timeline: Timeline | null, step: string) {
   return row && row.first !== null && row.last !== null ? row : null
 }
 
+/** The exit gates several steps share: written once above the steps instead of in each of them. */
+function sharedGates(steps: PlanStep[]): string[] {
+  const gates = steps.flatMap((s) => (s.gate ? [s.gate] : []))
+  return gates.filter((g, i) => gates.indexOf(g) !== i && gates.indexOf(g, i + 1) === -1)
+}
+
 /** One step of the timeline: its place, title, exit gate, task states, waves and the steps it waits for. */
 function StepRow({ plan, step, links, timeline }: { plan: Plan; step: PlanStep; links: Link[]; timeline: Timeline | null }) {
   const w = useChangeWords()
@@ -106,7 +112,7 @@ function StepRow({ plan, step, links, timeline }: { plan: Plan; step: PlanStep; 
       <Id value={step.id} className={css.stepId} />
       <span className={css.stepMain}>
         <span className={css.stepTitle}><Txt>{step.title ?? step.id}</Txt></span>
-        {step.gate && <span className={css.stepGate}><Txt>{step.gate}</Txt></span>}
+        {step.gate && !sharedGates(plan.steps).includes(step.gate) && <span className={css.stepGate}><Txt>{step.gate}</Txt></span>}
         <StateBar counts={stateCounts(step)} />
         <span className={css.stepMeta}>
           {span && <span>{span.first === span.last ? w('waveOne', { a: span.first! }) : w('wavesSpan', { a: span.first!, b: span.last! })}</span>}
@@ -123,6 +129,7 @@ function TimelineView({ plan, links, timeline }: { plan: Plan; links: Link[]; ti
   return (
     <Section title={w('viewTimeline')} count={plan.steps.length}>
       <p className={css.muted}>{w('timelineLead')}</p>
+      {sharedGates(plan.steps).map((gate) => <p key={gate} className={css.stepGate}><Txt>{gate}</Txt></p>)}
       <Panel>
         <ol className={css.stepList} aria-label={w('viewTimeline')}>
           {plan.steps.map((step) => <li key={step.id}><StepRow plan={plan} step={step} links={links} timeline={timeline} /></li>)}
