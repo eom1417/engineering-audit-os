@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.0.29 (2026-10-14)
+
+- **Three journeys on one engine**: check and fix, build from a plan, and the new extend the project are declared as
+  data (`eaos/data/journeys.json`): each step, in order, with the flow that draws it on the live map or the page that
+  shows it. `eaos/journeys.py` picks the journey from the project's state and judges each step; the journey and its
+  flows left `guided.py`, whose check steps read their words from the same file.
+- **Extend a checked project**: `extend_start` reads the plan of a feature, a page or a part with the project as its
+  check read it (its parts, layers and rules, the functions to reuse, its look); `extend_plan` holds the spec to the
+  project (every file in a layer it allows, every reuse a function it has and may use, no function written again) and
+  adds its cards to the project's plan as one "Extension" milestone, built by the usual batches through every gate. A
+  later check keeps the cards not built yet. In the Studio: "Extend the project" beside "Build from a plan".
+- **The build in the Studio**: a build draws its progress as the flow `build` (a stage per milestone, a step per card),
+  so the journey strip, the live map and the stage panel show it as they show a check; the library's "The blueprint
+  and the look" group shows BLUEPRINT.md, DESIGN.md and a feature's plan before any check exists.
+- **One set of gates** (`eaos/gates.py`): a fix, a build card and a feature's card pass the same gates (layers, files
+  in no layer, vendors outside their adapter, import cycles, broken references, copies, dead code, complexity, size,
+  security), a fix against its check, a build against nothing. A fix now also refuses a new import cycle and names
+  each forbidden import instead of counting them.
+- **One shape for the target**: a check and a build write `target-architecture.json` alike, in the same place (its
+  parts are the layers), so the reports and the Studio draw both the same way; BLUEPRINT.html keeps its layer drawing
+  after the first update.
+- **Each milestone's screens reviewed against its look**: after a milestone with screens, the check's own stages
+  (facts, features, setup, screens, visual) picture them on its copy and the assistant reviews them against DESIGN.md
+  (now kept from the spec where the review reads it); what departs is fixed first in the next milestone. Once the
+  acceptance check is done, a build goes on as check and fix.
+- **Card readiness has one home** (`decisions.ready`), read by the batches, the Studio, START-HERE and cards.json.
+- **The design suggestion returns in the Studio**: UI UX Pro Max's search now runs in the tools' environment, so
+  PYTHONSAFEPATH no longer breaks it.
+
 ## 0.0.28 (2026-10-14)
 
 - **A design library at almost no tokens**: four free, pinned design sources join the toolchain (UI UX Pro Max's

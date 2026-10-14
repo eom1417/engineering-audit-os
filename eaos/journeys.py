@@ -84,11 +84,10 @@ def _built(state):
 
 def _extension(state):
     """{card key: the commit that holds it in the branch EAOS works on, or None} of the extension's cards."""
-    from . import branches, extend, guided
-    from .ledger import key, walk
-    kept = _read(extend.folder(guided.report_of(state)) / 'cards.json') or {}
+    from . import branches
+    from .ledger import walk
     held = walk(state['project'], branches.ref(state))[0]
-    return {key(card): held.get(key(card)) for card in kept.get('tasks') or [] if card['id'] in state['extend'].get('cards', [])}
+    return {k: held.get(k) for k in state['extend'].get('keys') or []}
 
 
 def _feature_built(state):

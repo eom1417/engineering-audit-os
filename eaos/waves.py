@@ -92,12 +92,13 @@ def edit_gates(where, root, card, changed, repair):
     repair), from one collection of facts on the copy `root`; `where`: (report, project, runtime). A change to the app's
     files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
     its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14)."""
-    from .execute import app_breakage, new_breakage, new_debt
+    from .execute import app_breakage, new_breakage
     from .facts.run import collect
+    from .gates import debt, words
     report, project, runtime = where
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out, engines=engines_for([card]))
-        broke = new_breakage(report, root, collected=out) + new_debt(report, out, changed) + app_breakage(project, runtime, root, changed)
+        broke = new_breakage(report, root, collected=out) + words(debt(report, out, changed)) + app_breakage(project, runtime, root, changed)
         return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
 
 

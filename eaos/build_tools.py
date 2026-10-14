@@ -104,7 +104,9 @@ def blueprint_design(stack=None, project=None):
     built = blueprint.design(spec, chosen)
     where = folder(state)
     _write(where / 'stack.json', chosen)
-    _write(where / 'target-architecture.json', built['architecture'])
+    _write(guided.report_of(state) / 'target-architecture.json', built['architecture'])     # where a check keeps its own
+    look = str((spec.get('look') or {}).get('design_md') or '').strip()
+    if look.startswith('#'): design.choose(guided.report_of(state), look)       # the one home of the look: the screen review reads it
     _write(where / 'eaos.policy.json', built['policy'])
     _write(where / 'plan.json', built['plan'])
     (where / 'BLUEPRINT.md').write_text(blueprint.document(spec, chosen, built) + '\n', encoding='utf-8')
@@ -133,7 +135,8 @@ def publish(state, spec=None, stack=None, built=None):
     spec = spec or _read(where / 'product-spec.json')
     stack = stack or _read(where / 'stack.json')
     if not (spec and stack): return None
-    built = built or {'policy': _read(where / 'eaos.policy.json'), 'plan': _read(where / 'plan.json')}
+    built = built or {'policy': _read(where / 'eaos.policy.json'), 'plan': _read(where / 'plan.json'),
+                      'architecture': _read(guided.report_of(state) / 'target-architecture.json', {})}
     target = guided.outputs(state) / 'BLUEPRINT.html'
     target.write_text(blueprint.page(spec, stack, built, state.get('built')), encoding='utf-8')
     return target
@@ -260,8 +263,9 @@ def _commit_blueprint(state, root):
     shutil.copyfile(where / 'eaos.policy.json', Path(root) / 'eaos.policy.json')
     docs = Path(root) / 'docs' / 'blueprint'
     docs.mkdir(parents=True, exist_ok=True)
-    for name in ('BLUEPRINT.md', 'product-spec.json', 'stack.json', 'target-architecture.json', 'plan.json'):
-        if (where / name).is_file(): shutil.copyfile(where / name, docs / name)
+    for source in [where / name for name in ('BLUEPRINT.md', 'product-spec.json', 'stack.json', 'plan.json')] + \
+            [guided.report_of(state) / 'target-architecture.json']:
+        if source.is_file(): shutil.copyfile(source, docs / source.name)
     _git(root, 'add', '-A')
     _git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-q', '-m',
          'The blueprint: target structure, policy and build plan (EAOS)')
@@ -348,11 +352,12 @@ def _run_script(root, env, scripts, script, say):
 
 
 def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
-    """The build's gates on the copy: its own scripts, the structure, and security as a fix is held to it (the fast
-    engines on every card, CodeQL too when a milestone closes, where it may run): a weakness is never built in."""
+    """The build's gates on the copy: its own scripts, then the gates every change passes (eaos/gates.py) against
+    nothing before it, held to the blueprint's policy: the fast security engines on every card, CodeQL too when a
+    milestone closes, where it may run; dead code once the milestone closes, when the cards after can no longer use it."""
     from .execute import GATE_ENGINES
     from .facts.run import collect
-    from .weaknesses import new
+    from .gates import found
     rules = _read(Path(root) / 'eaos.policy.json') or _read(folder(state) / 'eaos.policy.json')
     problems, build = _checks(root, state['open_build'], progress)
     state['open_build'] = build
@@ -360,9 +365,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
     with tempfile.TemporaryDirectory(prefix='eaos-build-facts-') as out:
         progress(3, 4, 'reading the structure and security: layers, cycles, copies, weaknesses' + (', dead code' if closing else ''))
         collect(Path(root).resolve(), out, engines=list(GATE_ENGINES) + (['codeql'] if closing else []))
-        problems += blueprint.build_problems(root, out, rules, closing=closing)
-        problems += [{'gate': 'security', 'where': path, 'what': f'{rule} ({engine}): fix the weakness, never build it in'}
-                     for engine, rule, path in new(None, out, set(changed))]
+        problems += found(None, out, changed, rules, dead=closing)
     if card and card != 'FIX':
         added = _git(root, 'diff', '--name-only', '--diff-filter=A', 'HEAD~1', 'HEAD').stdout.split()
         kind = _cards(state)[card]['pattern']
@@ -442,10 +445,34 @@ def _build_finish_job(project, arguments, progress):
     guided.save(state)
     publish(state)
     remaining = [m['id'] for m in _plan(state)['milestones'] if m['id'] not in {r['milestone'] for r in state['built']}]
+    screens = any(p.startswith('web/') for c in build['kept'] for p in _cards(state)[c]['paths'])
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
-            'what_now': ('Call build_start for the next milestone, without asking the person again.' if remaining else
+            'look': _look(state, root, progress) if screens else None,
+            'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found departing '
+                         'from DESIGN.md is fixed there first, with build_edit card="FIX".' if remaining else
                          f'Every milestone is built, on {branch}. Tell the person simply what was built and ask whether to take it in '
                          '(accept with person_agreed=true). Then offer the audit of the finished project.')}
+
+
+LOOK = ('facts', 'features', 'setup', 'screens', 'visual')      # the check's own stages that picture and review the screens
+
+
+def _look(state, root, progress):
+    """The delivered milestone's screens, pictured and reviewed against DESIGN.md by the check's own stages (LOOK), on its
+    copy, in look/ beside the report (so the review reads the same DESIGN.md): what departs from the look, for the next
+    milestone to fix first. A stage that could not run says why; the milestone stays delivered."""
+    from .pipeline import execute
+    out = guided.report_of(state).parent / 'look'
+    shutil.rmtree(out, ignore_errors=True)
+    progress(4, 5, 'picturing the screens and reviewing them against DESIGN.md')
+    try:
+        stages = execute(str(root), out, only=LOOK, language=state.get('lang') or 'en', runtime=guided.runtime_of(state) / 'look',
+                         provider=guided.check_provider(state))['stages']
+    except Exception as problem:              # the review is a help to the build, never a reason it fails
+        return {'not_done': f'{type(problem).__name__}: {problem}'[:300]}
+    findings = (_read(out / 'nodes/visual_reviewer/findings.json') or {}).get('findings') or []
+    return {'screens': (stages.get('screens', {}).get('detail') or {}).get('screens', 0), 'departures': findings[:25],
+            'not_done': {name: stages[name].get('reason') for name in LOOK if stages[name]['status'] != 'ok'}}
 
 
 def status(project=None):

@@ -212,7 +212,8 @@ class RegenerateTests(unittest.TestCase):
 
 class CodeLawsGateTests(unittest.TestCase):
     def test_a_change_that_copies_leaves_dead_code_or_adds_complexity_is_refused_and_a_partial_split_is_kept(self):
-        from eaos.execute import new_debt
+        from eaos.gates import debt, words
+        new_debt = lambda before, after, paths: words(debt(before, after, paths))
 
         def facts(folder, functions, clones=(), dead=()):
             (Path(folder) / 'facts').mkdir(parents=True)
@@ -240,7 +241,7 @@ class CodeLawsGateTests(unittest.TestCase):
     def test_a_module_past_the_line_limit_or_outside_the_declared_layers_is_refused_on_the_card(self):
         # EAOS, batch 5 (2026-10-14): a new module in no layer of eaos.policy.json and modules grown past their limit were
         # found only when the 51 changes met, by the project's own suite
-        from eaos import execute
+        from eaos import gates
 
         def lines(folder, sizes):
             (Path(folder) / 'facts').mkdir(parents=True, exist_ok=True)
@@ -249,11 +250,13 @@ class CodeLawsGateTests(unittest.TestCase):
             return folder
 
         before, after = lines(tempfile.mkdtemp(), {'big.py': 700, 'a.py': 100}), lines(tempfile.mkdtemp(), {'big.py': 650, 'a.py': 640})
-        self.assertEqual(execute.new_debt(before, after, ['big.py', 'a.py']), ['a.py grew to 640 lines, past the limit of 600: split it'])
-        (Path(before) / 'facts/policy.json').write_text(json.dumps({'summary': {'declared': True, 'paths_outside_every_layer': ['old.py'], 'violations': 1}}))
-        with mock.patch('eaos.policy.run', return_value={'summary': {'declared': True, 'paths_outside_every_layer': ['old.py', 'eaos/new.py'], 'violations': 1}}):
-            self.assertEqual(execute._against_policy(before, 'root', after),
-                             ['eaos/new.py is in no layer of the declared policy (eaos.policy.json): add it to one'])
+        self.assertEqual(gates.words(gates.debt(before, after, ['big.py', 'a.py'])), ['a.py grew to 640 lines, past the limit of 600: split it'])
+        for folder, files in ((before, ['eaos/a.py', 'old.py']), (after, ['eaos/a.py', 'old.py', 'eaos/new.py'])):
+            nodes = [{'kind': 'graph_node', 'location': {'path': path}} for path in files]
+            (Path(folder) / 'facts/graph.json').write_text(json.dumps({'facts': nodes}))
+            (Path(folder) / 'facts/resolve.json').write_text(json.dumps({'facts': []}))
+        policy = {'layers': {'core': ['eaos/a.py']}, 'rules': []}
+        self.assertEqual([p['where'] for p in gates.structure(before, after, policy)], ['eaos/new.py'], 'only the file the change added')
 
 
 class PythonSuiteGateTests(unittest.TestCase):

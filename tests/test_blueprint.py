@@ -85,7 +85,8 @@ class DesignTests(unittest.TestCase):
         rules = {rule['allow_only']['from']: rule['allow_only']['to'] for rule in built['policy']['rules']}
         self.assertEqual(rules['domain'], ['shared'], 'business rules use nothing but the shared types')
         target = built['architecture']
-        self.assertEqual({c['name'] for c in target['target_components'] if c['kind'] == 'module'}, {'Patients', 'Appointments'})
+        self.assertEqual({c['name'] for c in target['parts'] if c['kind'] == 'module'}, {'Patients', 'Appointments'})
+        self.assertIn('domain', {c['layer'] for c in target['target_components']}, "the target's parts are its layers, as a check's are")
         self.assertTrue(all(d['how_to_change_later'] for d in target['decisions']))
 
 
@@ -114,7 +115,8 @@ class GateTests(unittest.TestCase):
                 'server/src/application/patients/two.ts': f'export function two(input, rate, offset) {{\n{copied}  return 1;\n}}\n',
                 'server/src/stray/thing.ts': 'export const t = 1;\n'})
             collect(root.resolve(), out)
-            gates = {problem['gate'] for problem in blueprint.build_problems(root, out, rules)}
+            from eaos.gates import found
+            gates = {problem['gate'] for problem in found(None, out, [p.relative_to(root).as_posix() for p in root.rglob('*.ts')], rules)}
         self.assertTrue({'layers', 'structure', 'vendor', 'cycle', 'copy'} <= gates, gates)
 
 
@@ -156,11 +158,14 @@ class BuildTests(unittest.TestCase):
             refused = build_tools._build_edit_job(self.project, edit, lambda *_: None)
         self.assertFalse(refused['kept'])
         self.assertFalse((root / 'package.json').exists(), 'a refused card is taken back')
-        with mock.patch.object(build_tools, '_gates', return_value=[]):
+        with mock.patch.object(build_tools, '_gates', return_value=[]), \
+                mock.patch.object(build_tools, '_look', return_value={'screens': 2, 'departures': []}) as looked:
             kept = build_tools._build_edit_job(self.project, edit, lambda *_: None)
             self.assertTrue(kept['kept'])
             finished = build_tools._build_finish_job(self.project, {}, lambda *_: None)
         self.assertEqual((finished['delivered'], finished['branch']), (True, 'eaos/build-1'))
+        self.assertEqual((looked.call_count, finished['look']['screens']), (1, 2), "a milestone with screens has them pictured and reviewed")
+        self.assertTrue((guided.report_of(guided.load(Path(self.project).resolve())).parent / 'DESIGN.md').is_file(), "the spec's look is kept where the review reads it")
         branches = subprocess.run(['git', '-C', self.project, 'branch', '--list', 'eaos/*'], capture_output=True, text=True).stdout
         self.assertIn('eaos/build-1', branches)
         self.assertEqual(finished['milestones_left'][0], 'M02')
@@ -218,17 +223,17 @@ class ExtendTests(unittest.TestCase):
             (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))
             (report / 'studio/functions.json').write_text(json.dumps({'functions': [
                 {'id': 'src/domain/money.ts#formatMoney', 'name': 'formatMoney', 'module': 'src/domain/money.ts', 'kind': 'function'}]}))
-            started = extend.extend_start(state, text='Show the cart total on every page.')
+            started = extend.extend_start(state, report, text='Show the cart total on every page.')
             self.assertEqual(started['project']['functions'][0]['id'], 'src/domain/money.ts#formatMoney')
             feature = {'id': 'F1', 'name': 'Cart total', 'module': 'cart', 'acceptance': ['the total shows on every page'],
                        'paths': ['src/ui/total.tsx', 'web/total.tsx'], 'functions': ['formatMoney'], 'reuses': ['src/x.ts#nope']}
             wanted = spec(modules=[{'id': 'cart', 'name': 'Cart', 'responsibility': 'what is bought'}], entities=[], roles=[],
                           flows=[{'id': 'FL1', 'name': 'Buy', 'features': ['F1']}], features=[feature], look=None)
-            problems = '\n'.join(extend.extend_plan(state, wanted)['problems'])
+            problems = '\n'.join(extend.extend_plan(state, report, wanted)['problems'])
             for expected in ('web/total.tsx is in no layer', 'formatMoney already exists', 'src/x.ts#nope is not a function'):
                 self.assertIn(expected, problems)
             feature.update(paths=['src/domain/total.ts'], functions=['cartTotal'], reuses=[], tests=['src/domain/total.test.ts'])
-            planned = extend.extend_plan(state, wanted)
+            planned = extend.extend_plan(state, report, wanted)
             self.assertEqual(planned['status'], 'planned', planned)
             cards = json.loads((report / 'plan.json').read_text())['tasks']
             self.assertEqual([(c['id'], c['milestone'], decisions.ready(c)) for c in cards], [('EXT-001', 'X01', True)])

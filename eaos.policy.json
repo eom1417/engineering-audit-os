@@ -112,6 +112,8 @@
       "eaos/design.py",
       "eaos/build_tools.py",
       "eaos/extend.py",
+      "eaos/gates.py",
+      "eaos/journeys.py",
       "eaos/menu.py",
       "eaos/ledger.py",
       "eaos/handover.py",

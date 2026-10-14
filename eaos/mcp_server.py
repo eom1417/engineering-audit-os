@@ -433,16 +433,22 @@ def _build_tools(server, reading, working):
                  'spec and call extend_plan.')
     @_answer
     def extend_start(source: str | None = None, text: str | None = None, project: str | None = None) -> str:
-        from . import agent_tools, extend
-        return extend.extend_start(agent_tools.project_state(project), source, text)
+        from . import agent_tools, extend, guided
+        state = agent_tools.project_state(project)
+        return extend.extend_start(state, guided.report_of(state), source, text)
 
     @server.tool(annotations=working, description='Check the feature\'s spec against itself and against the project (every file in '
                  'a layer it allows, reusing its functions, none written again), then add its cards to the project\'s plan as '
                  'one milestone, ready for a batch: fix_start builds them through every gate of a fix.')
     @_answer
     def extend_plan(spec: dict, project: str | None = None) -> str:
-        from . import agent_tools, extend
-        return extend.extend_plan(agent_tools.project_state(project), spec)
+        from . import agent_tools, extend, guided
+        state = agent_tools.project_state(project)
+        answer = extend.extend_plan(state, guided.report_of(state), spec)
+        if answer['status'] == 'planned':
+            guided.save(state)
+            guided.publish(state)
+        return answer
 
     @server.tool(annotations=working, description='Open the next milestone of the build in an isolated copy (the first time it asks '
                  'the person\'s agreement: person_agreed=true only after their yes). Returns the cards to build.')

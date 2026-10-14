@@ -58,99 +58,30 @@ def surfaces(facts):
 
 
 def new_breakage(report, root, collected=None):
-    """What the change broke: broken-code findings of severity high the report did not have, and any HTTP endpoint
-    or mount that is gone. A fix that makes a problem disappear by deleting what users reach is not a fix.
-    `collected` is a collection of facts on `root` the caller already made."""
+    """What the change broke (eaos/gates.py structure, against the report): a forbidden import, a file in no layer of the
+    project's policy, an import cycle, a broken reference of high severity; and any HTTP endpoint or mount that is gone.
+    A fix that makes a problem disappear by deleting what users reach is not a fix. `collected` is a collection of facts
+    on `root` the caller already made."""
     import tempfile
     from .facts.run import collect
-    key = lambda f: (f['value']['rule'], f['location'].get('path'), f['location'].get('symbol'))
-    before = {key(f) for f in json.loads((Path(report) / 'facts/broken.json').read_text(encoding='utf-8'))['facts']}
+    from .gates import structure, words
+    from .policy import load_policy
     entry_file = Path(report) / 'facts/entrypoints.json'
     had = surfaces(json.loads(entry_file.read_text(encoding='utf-8'))['facts']) if entry_file.is_file() else None
+    try: policy = load_policy(root)[0]
+    except (ValueError, OSError): policy = None
     with tempfile.TemporaryDirectory(prefix='eaos-breakage-') as out:
         if collected: out = str(collected)
-        else: collect(root, out, ['syntax', 'resolve', 'broken'] + (['entrypoints'] if had is not None else []))
-        after = json.loads((Path(out) / 'facts/broken.json').read_text(encoding='utf-8'))['facts']
+        else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken'] + (['entrypoints'] if had is not None else []))
+        broke = words(structure(report, out, policy))
         has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
-        broke = _against_policy(report, root, out)
-    broke += sorted(f['value']['message'] for f in after if f['value'].get('severity') == 'high' and key(f) not in before)
     if had is not None:
         broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
     return broke
 
 
-def _against_policy(report, root, out):
-    """What a change broke of the project's declared layering (eaos.policy.json), against the report's: a file in no
-    layer (a new module nobody placed: batch 5's batch_branch.py, found only when its 51 changes met) or an import it
-    forbids. Nothing when the report has no policy to compare with."""
-    from .policy import run
-    file = Path(report) / 'facts/policy.json'
-    was = json.loads(file.read_text(encoding='utf-8')).get('summary') if file.is_file() else None
-    try: now = run(root, out)['summary'] if was and was.get('declared') else None
-    except (ValueError, OSError): now = None
-    if not now or not now.get('declared'): return []
-    unplaced = set(now.get('paths_outside_every_layer') or []) - set(was.get('paths_outside_every_layer') or [])
-    broke = [f'{path} is in no layer of the declared policy (eaos.policy.json): add it to one' for path in sorted(unplaced)]
-    more = (now.get('violations') or 0) - (was.get('violations') or 0)
-    return broke + ([f'{more} import(s) the declared policy forbids'] if more > 0 else [])
-
-
 # The security engines that answer in seconds: they run on every change a batch makes (eaos/waves.py edit_gates).
 GATE_ENGINES = ('bandit', 'gitleaks')
-
-
-def _facts(folder, name):
-    file = Path(folder) / 'facts' / f'{name}.json'
-    return json.loads(file.read_text(encoding='utf-8'))['facts'] if file.is_file() else []
-
-
-def _copies(folder, paths):
-    """The copied blocks and functions with an occurrence in `paths`."""
-    from .fact_claims import worth_a_claim
-    touches = lambda f: paths & {o['path'] for o in f['value']['occurrences']}
-    found = {f['input_sha'] for f in _facts(folder, 'metrics') if f['kind'] == 'clone_cluster' and touches(f)}
-    return found | {f['value']['shape_sha'] for f in _facts(folder, 'fingerprint') if f['kind'] == 'duplicate_cluster' and touches(f)
-                    and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))}
-
-
-def _dead(folder, paths):
-    return {(f['value']['rule'], f['location'].get('path'), f['location'].get('symbol')) for f in _facts(folder, 'deadcode')
-            if f['location'].get('path') in paths}
-
-
-def _lines(folder, paths):
-    return {f['location']['path']: f['value']['lines'] for f in _facts(folder, 'metrics')
-            if f['kind'] == 'metric' and f['value']['scope'] == 'file' and f['location']['path'] in paths}
-
-
-def _excess(folder, paths):
-    """The decisions past the complexity limit of the functions and methods in `paths`, summed over all of them: code
-    moved between the files keeps its sum, and a class (the sum of its methods) is not one more function."""
-    from .code_laws import MAX_COMPLEXITY
-    return sum(max(0, f['value']['branches'] - MAX_COMPLEXITY) for f in _facts(folder, 'metrics')
-               if f['kind'] == 'metric' and f['value']['scope'] in ('function', 'method') and f['location']['path'] in paths)
-
-
-def new_debt(report, collected, paths):
-    """What a change added against the code laws (eaos/code_laws.py) in the files it touched (`paths`), from the facts
-    of the report (before) and `collected` (after): a copied block or function, dead code, more decisions past the
-    complexity limit across those files (splitting a function of 60 into three of 20 is less; a new one of 20 is
-    more; moving one into a new module is neither), a module grown past the line limit, or a security finding of an
-    engine both ran (GATE_ENGINES, fast enough for every change). A change that adds any is taken back like a breakage."""
-    from .code_laws import MAX_COMPLEXITY, MAX_LINES
-    from .weaknesses import new as new_weaknesses
-    paths = set(paths)
-    was, now = _excess(report, paths), _excess(collected, paths)
-    copied = _copies(collected, paths) - _copies(report, paths)
-    added = [f'{len(copied)} copied block(s) or function(s): call the one home instead'] if copied else []
-    added += [f'dead code: {symbol or path} ({rule})' for rule, path, symbol in sorted(_dead(collected, paths) - _dead(report, paths))]
-    if now > was: added.append(f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} per function')
-    had = _lines(report, paths)
-    added += [f'{path} grew to {lines} lines, past the limit of {MAX_LINES}: split it' for path, lines in sorted(_lines(collected, paths).items())
-              if lines > MAX_LINES and lines > had.get(path, 0)]
-    added += [f'a security finding: {rule} ({engine}) in {path}'
-              for engine, rule, path in new_weaknesses(report, collected, paths)]
-    return added
 
 
 def app_breakage(project, runtime, root, changed):

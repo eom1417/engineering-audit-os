@@ -23,7 +23,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, journeys, plain
+from . import branches, plain
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
 from .places import home, workspace  # noqa: F401  (one home: eaos/places.py; guided.home and guided.workspace stay its API)
 
@@ -1106,10 +1106,10 @@ def assistant(args):
     return 0
 
 
-# (id, Arabic title, English title, done(state), run(state, args)): the check-and-fix journey's steps, their words in
-# eaos/data/journeys.json (the other journeys, eaos/journeys.py).
-STEPS = [(step['id'], step['title']['ar'], step['title']['en'], done, action) for step, (done, action) in
-         zip(journeys.steps('check'), ((scan_done, scan), (ready_done, ready), (safety_done, safety), (fix_done, fix)))]
+# (id, Arabic title, English title, done(state), run(state, args)): check and fix, its words in eaos/data/journeys.json
+STEPS = [(step['id'], step['title']['ar'], step['title']['en'], done, run) for step, (done, run) in zip(
+    json.loads((Path(__file__).parent / 'data/journeys.json').read_text(encoding='utf-8'))['journeys']['check']['steps'],
+    ((scan_done, scan), (ready_done, ready), (safety_done, safety), (fix_done, fix)))]
 
 
 def next_step(state):

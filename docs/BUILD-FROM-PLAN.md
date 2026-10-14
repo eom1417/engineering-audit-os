@@ -23,8 +23,14 @@ plan's files and pictures of its screens (or pasted text); the blueprint is draw
 | 3 | `blueprint_design` | The stack (the person's choice, else the recommendation), the target structure, the layer rules, and the build plan in milestones and cards |
 | 4 | `build_start` | One agreement, then the first milestone in an isolated copy. The blueprint and its rules enter the project itself (`eaos.policy.json` and `docs/blueprint/`) |
 | 5 | `build_edit` | The assistant writes card by card; a card is kept only if it passes the gates, security among them (Bandit and Gitleaks on every card, CodeQL when a milestone closes, where it may run) |
-| 6 | `build_finish` | The whole milestone's checks, then a branch `eaos/build-N` on top of the last one, and the next milestone with no new question |
+| 6 | `build_finish` | The whole milestone's checks, then a branch `eaos/build-N` on top of the last one; a milestone with screens has them pictured and reviewed against DESIGN.md by the check's own stages (`facts`, `features`, `setup`, `screens`, `visual`, in `look/` beside the report), and what departs is fixed first in the next milestone. Then the next milestone with no new question |
 | 7 | `accept` | At the end the person decides: take the last branch (it holds every milestone) or throw it away |
+| 8 | `audit` | The acceptance check of the built project; once it is done the project goes on as "Check and fix" |
+
+**In the Studio** the build is a journey of its own (`eaos/data/journeys.json`): read the plan, the spec and the look,
+the blueprint, build milestone by milestone, the acceptance check. The live map draws each milestone as a stage and
+each card as its step (`eaos/journeys.py`), and the library's "The blueprint and the look" group shows BLUEPRINT.md and
+DESIGN.md before any check exists.
 
 ## The structure it draws
 
@@ -60,6 +66,9 @@ part in data order (the data's owner before those that use it), then every journ
 
 ## The gates after every card
 
+They are the gates every change passes, in all three journeys (`eaos/gates.py`): a fix holds them against the check
+of the code it changes, a build against nothing (everything found is the card's), each held to the policy in force.
+
 | Gate | Keeps out |
 | --- | --- |
 | Layers | A layer using what it may not (business rules importing the database, say) |
@@ -67,7 +76,8 @@ part in data order (the data's owner before those that use it), then every journ
 | Technology | An isolated technology's library used outside its folder |
 | Cycles | Files importing each other |
 | References | An import of a file that does not exist |
-| Copies | The same lines in more than one place |
+| Copies | The same lines in more than one place (outside tests and configuration) |
+| Complexity and size | A function past the complexity limit, a module past the line limit |
 | Security | A weakness or an exposed secret: Bandit and Gitleaks on every card, CodeQL when a milestone closes, where it may run |
 | Tests | A card without a test for its acceptance criteria |
 | Project checks | typecheck, lint and test |
@@ -78,8 +88,24 @@ A card that breaks a gate goes back to the assistant with the reasons; it fixes 
 ## What it produces
 
 In the outputs folder (`~/EAOS/<project>/blueprint/`): `SOURCE.md` (the plan as read), `product-spec.json`,
-`stack.json`, `target-architecture.json`, `eaos.policy.json`, `plan.json`, and `BLUEPRINT.md` (the blueprint in words a
-person reads: the parts, the technologies with why and how to change them, the rules, and the order of the build).
+`stack.json`, `eaos.policy.json`, `plan.json`, and `BLUEPRINT.md` (the blueprint in words a person reads: the parts, the
+technologies with why and how to change them, the rules, and the order of the build). The target structure is
+`technical/target-architecture.json`, where a check keeps its own and in the same shape (its parts are the layers), so
+the report and the Studio draw both alike; the look is `DESIGN.md` beside it, where the screen review reads it.
+
+## Extend a project
+
+A project already checked grows the same way: a feature, a page or a part, planned against what the project is, and
+built by the batches that fix it. From the Studio: **"Extend the project"** in the assistant's panel (the same form,
+without a name); or ask the assistant: "add this feature to my project with EAOS".
+
+| # | Tool | What happens |
+| --- | --- | --- |
+| 1 | `extend_start` | Reads the feature's plan (`read_plan`, any format, with pictures) and returns it with the project as its check read it: its parts, its layers and their rules (its `eaos.policy.json`, else the check's target), the functions to reuse, and its look (`DESIGN.md`) |
+| 2 | `extend_plan` | Checks the spec (the build's own, with `touches`, and for each feature its `paths`, `functions` and `reuses`), then holds it to the project: every file in a layer it allows (a new file names the layer it joins, `layers`), every reused function one the project has and its layer may use, and no function written again that the project already has. Its cards then join the project's plan as one milestone, "Extension: <name>", ready for a batch |
+| 3 | `fix_start` … `fix_finish` | Once the person agrees, the cards are built as any fix, through every gate, and handed over as a branch the person takes in or not |
+| 4 | `audit` | The check goes on over the project as it is now; a card not built yet stays in the plan after it |
+
 
 ## Measures
 

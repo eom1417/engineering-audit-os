@@ -71,7 +71,8 @@ and a tech lead would, together, and every conclusion links back to the facts be
     <td width="50%" valign="top">
       <h3>🏗️ Build</h3>
       Start from a plan instead of code: a PRD, notes, a PDF or Word file, or pictures of the screens. EAOS draws the
-      structure, the look and the whole build plan, then builds it card by card through the same gates.
+      structure, the look and the whole build plan, then builds it card by card through the same gates. A checked
+      project grows the same way: a feature planned against what it already is, built as a batch.
     </td>
   </tr>
 </table>
@@ -202,7 +203,7 @@ EAOS orchestrates rather than rebuilds: 36 open-source tools and free design lib
 | | |
 |---|---|
 | [Guide](docs/GUIDE.md) · [دليل](docs/GUIDE.ar.md) | From nothing to your first fix, step by step |
-| [Build from a plan](docs/BUILD-FROM-PLAN.md) · [عربي](docs/BUILD-FROM-PLAN.ar.md) | A new project from its plan, with the best structure |
+| [Build from a plan](docs/BUILD-FROM-PLAN.md) · [عربي](docs/BUILD-FROM-PLAN.ar.md) | A new project from its plan, with the best structure; a feature added to a checked one |
 | [AI in the pipeline](docs/AI-IN-THE-PIPELINE.md) | Where your assistant decides, and how its decisions are checked |
 | [MCP tools](docs/MCP.md) | The tools EAOS gives your AI assistant |
 | [Reference](docs/REFERENCE.md) | Every command and option |

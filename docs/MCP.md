@@ -51,6 +51,7 @@ EAOS لا يستدعي نموذجًا بنفسه في هذا الطريق: عق�
 
 | البناء من خطة | `blueprint_start` و`blueprint_spec` و`blueprint_design` | يقرأ أي خطة، ويفحص المواصفات، ويرسم البنية والتقنيات وخطة البناء ([`docs/BUILD-FROM-PLAN.md`](BUILD-FROM-PLAN.md)) |
 | | `build_start` و`build_read` و`build_edit` و`build_skip` و`build_finish` | يبني مرحلة مرحلة، وكل بطاقة خلف البوابات، وكل مرحلة فرع `eaos/build-N` |
+| توسيع المشروع | `extend_start` و`extend_plan` | يقرأ خطة ميزة مع المشروع كما قرأه فحصه، ويقيس مواصفاتها على طبقاته ودواله، ويضيف بطاقاتها لخطته مرحلةً تبنيها `fix_start` ([`docs/BUILD-FROM-PLAN.md`](BUILD-FROM-PLAN.md)) |
 
 **القائمة:** من يكتب `/eaos` وحدها في Claude Code (أو `$eaos` في Codex) يرى قائمة `menu`: في Claude Code اختيارًا
 بالأسهم مثل `/model`، وفي Codex قائمة مرقمة يرد عليها برقم. وتظهر مع `/eaos` في Claude Code أوامر جاهزة (prompts) لكل

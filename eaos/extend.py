@@ -14,7 +14,7 @@ fix_finish in eaos/agent_tools.py: the tests, the app's own checks, the layers, 
 import json
 from pathlib import Path
 
-from . import blueprint, design, guided
+from . import blueprint, design
 from .ledger import key, walk
 from .plan_source import read_plan
 from .policy import allowed, layer_of, load_policy
@@ -37,9 +37,9 @@ def folder(report):
     return Path(report).parent / FOLDER
 
 
-def extend_start(state, source=None, text=None):
+def extend_start(state, report, source=None, text=None):
     """The feature's plan and the project it joins, for the assistant to write the spec from."""
-    report = guided.report_of(state)
+    report = Path(report)
     if not (report / 'plan.json').is_file(): raise LookupError('no check of this project yet: audit it first, then extend it')
     plan, pictures = read_plan(source, text)
     folder(report).mkdir(parents=True, exist_ok=True)
@@ -73,9 +73,9 @@ def _layers(policy, target):
             'layers': [{k: c.get(k) for k in ('name', 'layer', 'responsibility')} for c in target.get('target_components') or []]}
 
 
-def extend_plan(state, spec):
+def extend_plan(state, report, spec):
     """The spec checked against itself and against the project; when it holds, its cards in the project's plan."""
-    report = guided.report_of(state)
+    report = Path(report)
     problems, questions = blueprint.validate_spec(spec, look=False)
     if not problems: problems = fit(spec, load_policy(state['project'])[0], _functions(report), _known(report))
     folder(report).mkdir(parents=True, exist_ok=True)
@@ -86,9 +86,7 @@ def extend_plan(state, spec):
                             'Ask the person these questions (your recommendation first), put the answers in the spec, and call '
                             'extend_plan again.'}
     cards = add(report, spec, design.target(report) is not None)
-    state['extend'] = {'name': spec['name'], 'cards': [c['id'] for c in cards]}
-    guided.save(state)
-    guided.publish(state)
+    state['extend'] = {'name': spec['name'], 'cards': [c['id'] for c in cards], 'keys': [key(c) for c in cards]}     # the caller saves it
     return {'status': 'planned', 'milestone': cards[0]['milestone'], 'cards': [{k: c[k] for k in ('id', 'title', 'paths')} for c in cards],
             'what_now': 'Tell the person simply what will be added and where, and ask their agreement to build it. Then build it as '
                         'any fix, through every gate: run_setup and safety_net when status asks, fix_start with cards='

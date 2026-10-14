@@ -13,9 +13,7 @@ is the whole build. EAOS lays it out so that what its audits look for never gets
   design          the target architecture (layers, one home per concept, each vendor behind one adapter folder), the
                   project's own eaos.policy.json, and plan.json: milestones of build cards, each with its files,
                   acceptance and tests, in the order that lets each card use only what exists.
-  build_problems  the gates after every card, from one collection of facts on the built copy: layering, files outside
-                  the plan, a vendor imported outside its adapter, import cycles, broken references, copied code; and,
-                  when a milestone closes, dead code.
+The gates after every card are the ones every change passes (eaos/gates.py), held to the policy `design` drew.
 
 Nothing here calls a model: the assistant reads, researches and writes; EAOS gives the shape and the gates.
 """
@@ -352,97 +350,30 @@ def _milestones(cards, ordered, flows):
 
 
 def target(spec, stack, modules):
-    """target-architecture.json for a project not built yet: the same shape an audit writes, so the report for people
-    and the `structure` tool read it the same way."""
-    server = stack['api']['id'] != 'none'
-    components = []
+    """target-architecture.json for a project not built yet, in the shape a check writes (target_architecture.document):
+    the policy's layers are the target's parts, each with what it may use; the plan's modules, and the adapter that keeps
+    each vendor in one place, are listed beside them. Nothing exists yet, so every part is to be built."""
+    from .target_architecture import document
+    server, drawn = stack['api']['id'] != 'none', policy(stack)
+    reasons = {rule['allow_only']['from']: rule['reason'] for rule in drawn['rules']}
+    layers = [{'id': f'TL-{name}', 'name': name, 'layer': name, 'kind': 'layer', 'relation': 'build', 'files': 0, 'paths': globs,
+               'responsibility': reasons.get(name, '')} for name, globs in drawn['layers'].items() if not name.startswith('_')]
+    parts = []
     for module in modules:
         folder = slug(module['id'])
         paths = [f'shared/src/{folder}/', f'web/src/features/{folder}/'] + ([f'server/src/domain/{folder}/', f'server/src/application/{folder}/',
                                                                             f'server/src/interface/http/{folder}/'] if server else [])
-        components.append({'id': f'T-{folder}', 'name': module['name'], 'kind': 'module', 'relation': 'build',
-                           'responsibility': module.get('responsibility') or '', 'paths': paths, 'files': 0,
-                           'reason': 'A part of the product with one responsibility (from the plan).'})
-    for concern in ISOLATED:
-        if stack[concern]['id'] != 'none':
-            components.append({'id': f'T-{concern}', 'name': stack[concern]['name'], 'kind': 'adapter', 'relation': 'build',
-                               'responsibility': f'the only place that uses {stack[concern]["name"]}', 'paths': [adapter_folder(stack, concern)],
-                               'files': 0, 'reason': stack[concern]['switch']})
-    layers, rules = layout(stack)
-    return {'schema_version': 1, 'status': 'blueprint', 'current_components': [], 'components': components,
-            'target_components': components, 'target_edges': [{'from': rule['from'], 'to': to} for rule, _ in rules for to in rule['to']],
-            'forbidden_edges': [{'from': rule['from'], 'rule': 'only ' + (', '.join(rule['to']) or 'nothing'), 'reason': why} for rule, why in rules],
-            'decisions': [{'id': f'ADR-{concern}', 'concern': stack[concern]['title'], 'chosen': stack[concern]['name'], 'why': stack[concern]['why'],
-                           'alternatives': stack[concern]['alternatives'], 'how_to_change_later': stack[concern]['switch']} for concern in stack],
-            'gap_matrix': [], 'limits': 'A target drawn from a plan: nothing exists yet, so every part is to be built.'}
-
-
-# ---------------------------------------------------------------- 5. the gates
-
-def build_problems(root, out, rules, closing=False):
-    """What a built copy breaks, from the facts collected into `out`: [{'gate', 'where', 'what'}]."""
-    sets = _gate_sets(out)
-    found = []
-    if 'resolve' in sets and 'graph' in sets: found += _layer_problems(rules, sets) + _vendor_problems(rules, sets)
-    found += _cycle_problems(sets) + _broken_problems(sets) + _copy_problems(sets)
-    if closing:
-        found += [{'gate': 'dead', 'where': fact['location'].get('path'), 'what': fact['value'].get('message')}
-                  for fact in (sets.get('deadcode') or {}).get('facts', [])]
-    return found
-
-
-def _gate_sets(out):
-    from .facts.store import read_set
-    return {name: read_set(out, name) for name in ('resolve', 'graph', 'broken', 'metrics', 'deadcode')
-            if (Path(out) / 'facts' / f'{name}.json').is_file()}
-
-
-def _layer_problems(rules, sets):
-    """Each import a layer rule forbids, and each file outside every planned folder."""
-    from .policy import violations
-    broken, outside = violations(rules, sets)
-    return ([{'gate': 'layers', 'where': f"{row['from_path']}:{row['line'] or 1}",
-              'what': f"{row['from_layer']} may not use {row['to_layer']} ({row['to_path']}): {row['reason']}"} for row in broken]
-            + [{'gate': 'structure', 'where': path, 'what': 'this file is outside every planned folder: put it where the plan says'}
-               for path in outside])
-
-
-def _vendor_problems(rules, sets):
-    """Each import of a vendor's package outside its adapter (tests aside)."""
-    found = []
-    for concern, vendor in (rules.get('vendors') or {}).items():
-        homes = [vendor['only_in']] if isinstance(vendor['only_in'], str) else vendor['only_in']
-        for edge in sets['resolve']['facts']:
-            module, source = edge['value'].get('module') or '', edge['location']['path']
-            named = any(module == package or module.startswith(package + '/') for package in vendor['packages'])
-            if named and not any(source.startswith(home) for home in homes) and not re.search(r'\.test\.tsx?$', source):
-                found.append({'gate': 'vendor', 'where': f"{source}:{edge['location'].get('start_line') or 1}",
-                              'what': f"{module} is used outside {' and '.join(homes)}: only the {concern} adapter may use it, "
-                                      'so it can be changed in one place'})
-    return found
-
-
-def _cycle_problems(sets):
-    return [{'gate': 'cycle', 'where': fact['value']['members'][0], 'what': 'these files import each other in a loop: '
-             + ', '.join(fact['value']['members'][:6])}
-            for fact in (sets.get('graph') or {}).get('facts', []) if fact['kind'] == 'graph_cycle']
-
-
-def _broken_problems(sets):
-    return [{'gate': 'broken', 'where': fact['location'].get('path'), 'what': fact['value']['message']}
-            for fact in (sets.get('broken') or {}).get('facts', []) if fact['value'].get('severity') == 'high']
-
-
-def _copy_problems(sets):
-    """Each block of lines written twice or more outside tests and configuration."""
-    found = []
-    for fact in (sets.get('metrics') or {}).get('facts', []):
-        if fact['kind'] != 'clone_cluster': continue
-        places = [o for o in fact['value']['occurrences'] if not re.search(r'(\.test\.|/tests?/|e2e/|\.config\.)', o['path'])]
-        if len(places) >= 2:
-            found.append({'gate': 'copy', 'where': places[0]['path'], 'what': 'the same lines are written in '
-                          + ', '.join(f"{o['path']}:{o['start_line']}" for o in places[:4]) + ': give them one home and call it'})
-    return found
+        parts.append({'id': f'T-{folder}', 'name': module['name'], 'kind': 'module', 'relation': 'build',
+                      'responsibility': module.get('responsibility') or '', 'paths': paths, 'files': 0,
+                      'reason': 'A part of the product with one responsibility (from the plan).'})
+    parts += [{'id': f'T-{concern}', 'name': stack[concern]['name'], 'kind': 'adapter', 'relation': 'build',
+               'responsibility': f'the only place that uses {stack[concern]["name"]}', 'paths': [adapter_folder(stack, concern)],
+               'files': 0, 'reason': stack[concern]['switch']} for concern in ISOLATED if stack[concern]['id'] != 'none']
+    decided = [{'id': f'ADR-{concern}', 'concern': stack[concern]['title'], 'chosen': stack[concern]['name'], 'why': stack[concern]['why'],
+                'alternatives': stack[concern]['alternatives'], 'how_to_change_later': stack[concern]['switch']} for concern in stack]
+    edges = [{'from': rule['allow_only']['from'], 'to': to} for rule in drawn['rules'] for to in rule['allow_only']['to']]
+    return document([], layers, decided, [], 'A target drawn from a plan: nothing exists yet, so every part is to be built.',
+                    status='blueprint', parts=parts, target_edges=edges, forbidden_edges=0)
 
 
 def document(spec, stack, built):

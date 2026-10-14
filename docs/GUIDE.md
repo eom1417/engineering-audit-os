@@ -65,7 +65,7 @@ files do not change until you agree.
 The Studio is a page in your browser that shows everything about your project, updated as it happens:
 
 - **Preparing the tools:** every tool with its state. "Start the check" unlocks by itself once your project's tools are ready.
-- **The live map:** the check's stages as they run: what each does, how long it took, what it produced, and why it was skipped if it was.
+- **The live map:** the stages of your journey as they run (check and fix, build from a plan, or extend the project, each with its own steps at the top): what each does, how long it took, what it produced, and why it was skipped if it was.
 - **The project:** the current state, the ideal picture, the screens, the cards with their evidence, and the plan.
 - **Decisions:** what waits for you, and every disagreement between the rules and your assistant, with both views, for you to settle.
 - **Go on from any stage:** choose a stage on the live map and press **"Redo this stage and what depends on it"**. If a
@@ -168,10 +168,28 @@ make an empty folder for the project, open your assistant in it, and write:
 | The blueprint | Explains the parts, the technologies (why each, and how to change it later), the look (one theme, its colours, fonts and screens) and the order of the build. It is in `~/EAOS/<project>/blueprint/BLUEPRINT.md` |
 | One question | "May I build your project in a separate copy and hand it to you milestone by milestone?" Answer: **yes** |
 | The build | Builds card by card; EAOS refuses any card with copied code, dead code, tangled files, mixed layers, a security weakness or a missing test |
+| The look | After each milestone with screens, EAOS pictures them and your assistant compares them with the chosen look (DESIGN.md); what departs is fixed first in the next milestone |
 | Hand-over | Each milestone is a branch (`eaos/build-1`, `eaos/build-2`, …). At the end you decide: take it in or throw it away |
+| Acceptance | A whole check of the built project; from then on it is checked and fixed like any project |
+
+In the Studio, "Live check" shows the build as its own journey: every milestone and every card, as it happens, and the
+library's "The blueprint and the look" holds the blueprint and DESIGN.md.
 
 Changing a technology later (Supabase to PostgreSQL, say) is easy, because each one lives in one folder: tell your
 assistant "change the database to …" and it knows where.
+
+## 7. Add a feature to your project (optional)
+
+A new page, a feature or a whole part, in a project EAOS has checked: **from the Studio**, press **"Extend the project"**
+in the assistant's panel and add its plan (files, pictures, or pasted text); **or** write to your assistant:
+
+> Add this feature to my project with EAOS: `/path/to/feature.md`
+
+The assistant reads it with what the check knows of your project: its parts, its layers, the functions it already has and
+its look. It puts every file where such code belongs, reuses what exists instead of writing it again, and EAOS refuses a
+plan that breaks the layers or copies a function. The feature's cards join your plan as one "Extension" milestone; once
+you agree they are built as a batch of fixes, through every gate, on a branch you take in or not. Then the check goes on
+over the project as it is.
 
 ---
 
@@ -187,6 +205,7 @@ assistant "change the database to …" and it knows where.
 | "Continue the EAOS work" | Goes on from where it, or another assistant, stopped |
 | "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
 | "Build my project from this plan" | Build from a plan (step 6) |
+| "Add this feature to my project" | Extend the project (step 7) |
 | "A tool failed in the check: run it again" | Goes on from that stage alone, keeping the rest of the check |
 | "I don't like my app's look: redesign it" | Suggests two or three directions from free design libraries, saves the one you choose as DESIGN.md, and the screen review turns every departure into a design card to fix |
 | `/eaos` alone (or `$eaos` in Codex) | A menu of what fits your project now, to pick from |

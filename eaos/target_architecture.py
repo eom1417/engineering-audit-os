@@ -289,6 +289,14 @@ def gap_matrix(current_components, target_components, claims=None, tasks=None, s
     return rows
 
 
+def document(current, targets, decided, gaps, limits, status='REVIEW_REQUIRED', **more):
+    """target-architecture.json, whichever journey drew it: a check, from today's code (build), or a build, from its plan
+    (eaos/blueprint.py target). One shape for the reports, the Studio's maps and the assistant's `structure` tool: the
+    target's parts are its layers, `target_edges` what each may use, `forbidden_edges` how many imports go against them."""
+    return {'schema_version': 2, 'status': status, 'current_components': current, 'components': targets or current,
+            'target_components': targets, 'decisions': decided, 'gap_matrix': gaps, 'limits': limits, **more}
+
+
 def build(out, contracts_by_path=None, target_components=None, target=None):
     """A source inventory is not a target design. Only explicit proposals enter the matrix."""
     import json
@@ -346,13 +354,8 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
             row['target_component'] = source['target_component']
             row['files_to_move'] = (source.get('projection') or {}).get('moved', 0)
             row['forbidden_imports'] = (source.get('projection') or {}).get('forbidden', 0)
-    architectural_decisions = decisions([*current, *target_components])
-    result = {'schema_version': 2, 'status': 'REVIEW_REQUIRED',
-              'retained_structure': 'Source inventory is shown below. Missing target decisions remain explicit gaps.',
-              'current_components': current, 'components': target_components or current,
-              'target_components': target_components,
-              'decisions': architectural_decisions, 'gap_matrix': matrix,
-              'limits': ' '.join(LIMITATIONS)}
+    result = document(current, target_components, decisions([*current, *target_components]), matrix, ' '.join(LIMITATIONS),
+                      retained_structure='Source inventory is shown below. Missing target decisions remain explicit gaps.')
     if projection:
         result.update(reference=projection['reference'], root=projection.get('root', ''), target_components=projection['target_components'],
                       infrastructure=projection['infrastructure'], forbidden_edges=len(projection['forbidden_edges']),
