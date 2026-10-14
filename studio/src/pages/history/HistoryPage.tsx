@@ -163,6 +163,13 @@ function HistoryBody({ data }: { data: StudioData }) {
       <div className={css.columns}>
         <div className={css.col}>
           <HistoryCharts history={history} project={data.manifest.project.name} />
+          {/* What happened sits under the charts, so the two columns end near each other on a wide screen */}
+          <Section title={w('events')} count={events.length} id="s-events">
+            <Panel>
+              {events.length ? <FoldList items={events} first={6} render={(event) => <EventRow event={event} />} label={w('events')} />
+                : <StateMessage title={w('noEvents')} />}
+            </Panel>
+          </Section>
         </div>
         <div className={css.col}>
           <Section title={w('checks')} count={history.scans.length} id="s-checks">
@@ -172,12 +179,6 @@ function HistoryBody({ data }: { data: StudioData }) {
             {history.scans.length >= 2 && (
               <Panel label={w('compareTwo')}><ComparePicker scans={history.scans} /></Panel>
             )}
-          </Section>
-          <Section title={w('events')} count={events.length} id="s-events">
-            <Panel>
-              {events.length ? <FoldList items={events} first={6} render={(event) => <EventRow event={event} />} label={w('events')} />
-                : <StateMessage title={w('noEvents')} />}
-            </Panel>
           </Section>
         </div>
       </div>
