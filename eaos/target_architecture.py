@@ -98,47 +98,23 @@ def assess(component, sets, claims=None, load_record=None):
     extraction reached, and it carries the reason. A verdict with no evidence is refused by
     the tests, because a target architecture whose every entry is a guess is worse than none.
     """
-    claims = claims or []
-    paths = set(component['paths'])
-    touching = [claim for claim in claims
-                if paths & set((claim.get('priority_factors') or {}).get('paths') or [])]
-    live = [claim for claim in touching
-            if claim.get('confidence') in ('CONFIRMED', 'LIKELY') and claim.get('status') != 'withdrawn']
-    cycles = [fact for fact in sets.get('graph', {}).get('facts', [])
-              if fact['kind'] == 'graph_cycle' and paths & set(fact['value'].get('members') or [])]
-    violations = [fact for fact in sets.get('policy', {}).get('facts', [])
-                  if fact['kind'] == 'policy_violation' and fact['location']['path'] in paths]
-    blockers = []
-    if load_record:
-        from .load_model import blockers as load_blockers
-        blockers = [row for row in load_blockers(load_record) if row.get('path') in paths]
     if not component['symbols'] and not component['files']:
         return 'unassessed', 'no extractor reached this component', []
-    reasons, evidence = [], []
-    if cycles:
-        reasons.append(f'{len(cycles)} dependency cycle(s) pass through it')
-        evidence += [fact['id'] for fact in cycles]
-    if violations:
-        reasons.append(f'{len(violations)} declared policy violation(s)')
-        evidence += [fact['id'] for fact in violations]
-    if blockers:
-        reasons.append(f'{len(blockers)} load blocker(s) on its entry points')
-        evidence += [reference for row in blockers for reference in row['evidence']]
-    if live:
-        reasons.append(f'{len(live)} live claim(s) about it')
-        evidence += [claim['id'] for claim in live]
+    live, cycles, violations, blockers = _signals(component, sets, claims, load_record)
+    found = [(cycles, '{} dependency cycle(s) pass through it', [fact['id'] for fact in cycles]),
+             (violations, '{} declared policy violation(s)', [fact['id'] for fact in violations]),
+             (blockers, '{} load blocker(s) on its entry points', [reference for row in blockers for reference in row['evidence']]),
+             (live, '{} live claim(s) about it', [claim['id'] for claim in live])]
+    reasons = [words.format(len(rows)) for rows, words, _ in found if rows]
     if reasons:
-        return 'modify', '; '.join(reasons), sorted(set(evidence))
+        return 'modify', '; '.join(reasons), sorted({ref for _, _, ids in found for ref in ids})
     return 'retain', ('no cycle, no policy violation, no load blocker and no live claim touches it; '
                       'the evidence for keeping it is the absence of each'), sorted(component['evidence_ids'])
 
 
-def assessment_details(component, sets, claims=None, load_record=None):
-    claims = claims or []
+def _signals(component, sets, claims, load_record):
+    """(live claims, dependency cycles, policy violations, load blockers) that touch the component's files."""
     paths = set(component.get('paths') or [])
-    live = [claim for claim in claims
-            if paths & set((claim.get('priority_factors') or {}).get('paths') or [])
-            and claim.get('confidence') in ('CONFIRMED', 'LIKELY') and claim.get('status') != 'withdrawn']
     cycles = [fact for fact in sets.get('graph', {}).get('facts', [])
               if fact['kind'] == 'graph_cycle' and paths & set(fact['value'].get('members') or [])]
     violations = [fact for fact in sets.get('policy', {}).get('facts', [])
@@ -147,6 +123,18 @@ def assessment_details(component, sets, claims=None, load_record=None):
     if load_record:
         from .load_model import blockers as load_blockers
         blockers = [row for row in load_blockers(load_record) if row.get('path') in paths]
+    return _live_claims(claims or [], paths), cycles, violations, blockers
+
+
+def _live_claims(claims, paths):
+    """The confirmed or likely claims, not withdrawn, about any of these files."""
+    return [claim for claim in claims
+            if paths & set((claim.get('priority_factors') or {}).get('paths') or [])
+            and claim.get('confidence') in ('CONFIRMED', 'LIKELY') and claim.get('status') != 'withdrawn']
+
+
+def assessment_details(component, sets, claims=None, load_record=None):
+    live, cycles, violations, blockers = _signals(component, sets, claims, load_record)
     return {'live_claims': len(live), 'policy_violations': len(violations),
             'dependency_cycles': len(cycles), 'load_blockers': len(blockers)}
 
