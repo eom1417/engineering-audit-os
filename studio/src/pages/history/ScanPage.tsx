@@ -2,6 +2,7 @@
 // severity (or "not recorded"), the cards closed and found, what happened around it, and the way to the previous and
 // next checks and to the comparison with the previous one.
 import { useParams } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { buttonClass } from '../../components/Button'
 import { SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
@@ -20,21 +21,24 @@ import css from './history.module.css'
 
 const BAR_CLASS = { critical: css.sev4, high: css.sev3, medium: css.sev2, low: css.sev1, info: css.sevOff }
 
+/** The open problems by severity; those the ledger counted without a severity get their own row, so the rows add up to the open total. */
 export function SeverityBars({ scan }: { scan: Scan }) {
   const w = useHistoryWords()
-  const top = Math.max(1, ...SEVERITIES.map((s) => scan.open[s] ?? 0))
+  const known = SEVERITIES.reduce((sum, s) => sum + (scan.open[s] ?? 0), 0)
+  const rest = (openTotal(scan) ?? known) - known
+  const bars: { key: string; label: ReactNode; n?: number | null; bar: string }[] = SEVERITIES.map((sev) => (
+    { key: sev, label: sev === 'info' ? <span>{w('info')}</span> : <SeverityGlyph severity={sev} />, n: scan.open[sev], bar: BAR_CLASS[sev] }))
+  if (rest > 0) bars.push({ key: 'none', label: <span>{w('noSeverity')}</span>, n: rest, bar: css.sevOff })
+  const top = Math.max(1, ...bars.map((b) => b.n ?? 0))
   return (
     <div className={css.sevRows}>
-      {SEVERITIES.map((sev) => {
-        const n = scan.open[sev]
-        return (
-          <div key={sev} className={css.sevRow}>
-            {sev === 'info' ? <span>{w('info')}</span> : <SeverityGlyph severity={sev} />}
-            <span className={css.bar} aria-hidden="true"><i className={BAR_CLASS[sev]} style={{ inlineSize: `${((n ?? 0) / top) * 100}%` }} /></span>
-            <span className={css.sevCount}>{typeof n === 'number' ? <N value={n} /> : '—'}</span>
-          </div>
-        )
-      })}
+      {bars.map(({ key, label, n, bar }) => (
+        <div key={key} className={css.sevRow}>
+          {label}
+          <span className={css.bar} aria-hidden="true"><i className={bar} style={{ inlineSize: `${((n ?? 0) / top) * 100}%` }} /></span>
+          <span className={css.sevCount}>{typeof n === 'number' ? <N value={n} /> : '—'}</span>
+        </div>
+      ))}
     </div>
   )
 }

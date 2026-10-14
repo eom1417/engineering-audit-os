@@ -62,6 +62,7 @@ export const HISTORY_WORDS = {
   resolved: ['لم يعد موجودًا', 'No longer found'],
   bySeverity: ['المفتوح حسب الخطورة', 'Open by severity'],
   info: ['معلومة', 'Info'],
+  noSeverity: ['بلا خطورة مسجّلة', 'No severity recorded'],
   previousCheck: ['الفحص السابق', 'Previous check'],
   nextCheck: ['الفحص التالي', 'Next check'],
   compareWithPrevious: ['قارن بالفحص السابق', 'Compare with the previous check'],
