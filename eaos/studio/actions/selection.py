@@ -32,39 +32,57 @@ def studio_folder(project):
 
 def resolve(selection, folder):
     """(cards to run, cards left out with why): every card the selection names, in the order of cards.json."""
+    cards = _checked_cards(selection, folder)
+    wanted = _wanted(selection, cards, folder)
+    return _split([card for card in cards if card['id'] in wanted])
+
+
+def _checked_cards(selection, folder):
+    """The cards of the latest check, for a selection that says its kind."""
     if not isinstance(selection, dict) or selection.get('kind') not in ('card', 'cards', 'group', 'step'):
         raise SelectionError('the selection must say its kind: card, cards, group or step')
     data = _load(folder, 'cards') if folder else None
     if not data: raise SelectionError('this project has no check yet: run the check first (audit)')
-    cards = data.get('cards') or []
-    by_id = {card['id']: card for card in cards}
-    kind = selection['kind']
-    if kind in ('card', 'cards'):
-        ids = [str(i) for i in selection.get('cards') or []]
-        if kind == 'card': ids = ids[:1]
-        if len(ids) > 500: raise SelectionError('at most 500 cards at once')
-        unknown = [i for i in ids if i not in by_id]
-        if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check")
-        wanted = set(ids)
-    elif kind == 'step':
+    return data.get('cards') or []
+
+
+def _wanted(selection, cards, folder):
+    """The ids the selection names: its cards, a step's cards, or a group's."""
+    if selection['kind'] in ('card', 'cards'): return _named(selection, {card['id'] for card in cards})
+    if selection['kind'] == 'step':
         step = str(selection.get('step') or '')
-        wanted = {card['id'] for card in cards if str(card.get('milestone') or '') == step}
-    else:
-        group = selection.get('group') or {}
-        by, value = group.get('by'), str(group.get('value') or '')
-        if by in GROUPS:
-            wanted = {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
-        elif by in ('component', 'gap'):
-            gaps = (_load(folder, 'gaps') or {}).get('gaps')
-            if gaps is None: raise SelectionError('this check did not write the gap register (gaps.json) yet')
-            wanted = {c for gap in gaps if str(gap.get('component' if by == 'component' else 'id')) == value for c in gap.get('cards') or []}
-        elif by == 'operation':
-            operations = (_load(folder, 'operations') or {}).get('operations')
-            if operations is None: raise SelectionError('this check did not write the operations (operations.json) yet')
-            wanted = {c for op in operations if str(op.get('id')) == value for c in op.get('cards') or []}
-        else:
-            raise SelectionError('a group is by area, severity, component, gap or operation')
-    chosen = [card for card in cards if card['id'] in wanted]
+        return {card['id'] for card in cards if str(card.get('milestone') or '') == step}
+    return _grouped(selection.get('group') or {}, cards, folder)
+
+
+def _named(selection, known):
+    """The ids a card or cards selection names, each a card of the latest check."""
+    ids = [str(i) for i in selection.get('cards') or []]
+    if selection['kind'] == 'card': ids = ids[:1]
+    if len(ids) > 500: raise SelectionError('at most 500 cards at once')
+    unknown = [i for i in ids if i not in known]
+    if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check")
+    return set(ids)
+
+
+def _grouped(group, cards, folder):
+    """The ids of a group: by a card field (area, severity), or by a gap, component or operation of the Studio data."""
+    by, value = group.get('by'), str(group.get('value') or '')
+    if by in GROUPS:
+        return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
+    if by in ('component', 'gap'):
+        gaps = (_load(folder, 'gaps') or {}).get('gaps')
+        if gaps is None: raise SelectionError('this check did not write the gap register (gaps.json) yet')
+        return {c for gap in gaps if str(gap.get('component' if by == 'component' else 'id')) == value for c in gap.get('cards') or []}
+    if by == 'operation':
+        operations = (_load(folder, 'operations') or {}).get('operations')
+        if operations is None: raise SelectionError('this check did not write the operations (operations.json) yet')
+        return {c for op in operations if str(op.get('id')) == value for c in op.get('cards') or []}
+    raise SelectionError('a group is by area, severity, component, gap or operation')
+
+
+def _split(chosen):
+    """(open cards to run, the others with why they are left out); an error when none is left to run."""
     if not chosen: raise SelectionError('the selection names no card')
     run = [card for card in chosen if card.get('state', 'open') in OPEN]
     left = [{'id': card['id'], 'why': f"already {card.get('state')}"} for card in chosen if card not in run]
