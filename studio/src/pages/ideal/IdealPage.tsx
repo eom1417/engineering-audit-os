@@ -32,7 +32,7 @@ function ElementRow({ element, view, planned }: { element: Element; view: View; 
       {planned && element.detail && <p className={css.detail}><Txt block>{element.detail}</Txt></p>}
       {diff?.kind === 'changed' && diff.rules && <p className={css.muted}>{w('rulesSaid', { o: w(`op_${diff.rules}` as IdealWord) })}</p>}
       {planned && element.cites.length > 0 && (
-        <p className={css.cites}><span className={css.citesWord}>{w('cites')}:</span> {element.cites.slice(0, 4).map((c) => <Id key={c} value={c} className={css.cite} />)}
+        <p className={css.cites}><span className={css.citesWord}>{w('cites')}:</span> {element.cites.slice(0, 4).map((c, i) => <Go key={c} to={`/evidence/${encodeURIComponent(c)}`} className={css.cite} label={c}>{w('citeN', { n: i + 1 })}</Go>)}
           {element.cites.length > 4 && <span className={css.muted}> +{element.cites.length - 4}</span>}</p>
       )}
       {!planned && <p className={css.muted}><Id value={element.id} keep={2} /></p>}

@@ -39,6 +39,7 @@ export const IDEAL_WORDS = {
   rulesOnly: ['في القواعد فقط', 'Rules only'],
   rulesSaid: ['القواعد قالت: {o}', 'The rules said: {o}'],
   cites: ['الدليل', 'Evidence'],
+  citeN: ['دليل {n}', 'evidence {n}'],
   departures: ['أين خالف التخطيط القواعد ولماذا', 'Where the plan departs from the rules, and why'],
   ruleSays: ['القواعد تقول', 'The rules say'],
   planChose: ['التخطيط اختار', 'The plan chose'],
