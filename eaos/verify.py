@@ -272,20 +272,22 @@ def with_timing(argv, app):
 
 def test_times(app):
     """[(test, file, seconds)] from a JUnit XML (pytest) or a Jest-format JSON (vitest, jest) report, if one was written."""
-    rows, app = [], Path(app)
-    junit = app / '.eaos-junit.xml'
-    if junit.is_file():
-        import xml.etree.ElementTree as ET
-        for case in ET.parse(junit).iter('testcase'):
-            rows.append((f"{case.get('classname', '')}::{case.get('name', '')}", case.get('file') or case.get('classname', ''),
-                         float(case.get('time') or 0)))
-    report = app / '.eaos-tests.json'
-    if report.is_file():
-        for suite in json.loads(report.read_text(encoding='utf-8')).get('testResults') or []:
-            for case in suite.get('assertionResults') or []:
-                rows.append((case.get('fullName') or case.get('title') or '', os.path.relpath(suite.get('name') or '', app),
-                             (case.get('duration') or 0) / 1000))
-    return rows
+    app = Path(app)
+    return _junit_times(app / '.eaos-junit.xml') + _jest_times(app / '.eaos-tests.json', app)
+
+
+def _junit_times(junit):
+    if not junit.is_file(): return []
+    import xml.etree.ElementTree as ET
+    return [(f"{case.get('classname', '')}::{case.get('name', '')}", case.get('file') or case.get('classname', ''), float(case.get('time') or 0))
+            for case in ET.parse(junit).iter('testcase')]
+
+
+def _jest_times(report, app):
+    if not report.is_file(): return []
+    return [(case.get('fullName') or case.get('title') or '', os.path.relpath(suite.get('name') or '', app), (case.get('duration') or 0) / 1000)
+            for suite in json.loads(report.read_text(encoding='utf-8')).get('testResults') or []
+            for case in suite.get('assertionResults') or []]
 
 
 def redundant_tests(contexts):
