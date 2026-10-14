@@ -1,7 +1,7 @@
 /* The assistant beside the work: a button in a corner, a panel that never covers the whole screen and moves to any corner. */
-.fab { position: fixed; z-index: 60; inline-size: 48px; block-size: 48px; border-radius: 50%; border: none; cursor: pointer;
+.fab { position: fixed; z-index: var(--z-overlay); inline-size: 48px; block-size: 48px; border-radius: 50%; border: none; cursor: pointer;
   background: var(--accent-solid); color: var(--text-on-accent); display: grid; place-items: center; box-shadow: var(--shadow-float); }
-.panel { position: fixed; z-index: 60; inline-size: min(400px, calc(100vw - 24px)); block-size: min(560px, calc(100vh - 96px));
+.panel { position: fixed; z-index: var(--z-overlay); inline-size: min(400px, calc(100vw - 24px)); block-size: min(560px, calc(100vh - 96px));
   display: flex; flex-direction: column; background: var(--bg-raised); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-12); box-shadow: var(--shadow-float); overflow: hidden; }
 .bottomStart { inset-block-end: 16px; inset-inline-start: 16px; }
@@ -25,3 +25,11 @@
 .input { flex: 1; resize: none; min-block-size: 40px; max-block-size: 120px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-subtle);
   background: var(--bg-surface); color: inherit; font: inherit; }
 .deep { display: flex; align-items: center; gap: 6px; font-size: var(--text-meta); color: var(--text-secondary); }
+/* A phone: above the tab bar, and the open panel nearly the whole width and most of the height. */
+@media (max-width: 767px) {
+  .bottomStart, .bottomEnd { inset-block-end: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom)); }
+  .panel { inline-size: calc(100vw - 16px); block-size: calc(100dvh - var(--tabbar-h) - var(--topbar-h) - 40px - env(safe-area-inset-bottom)); }
+  .panel.bottomStart, .panel.topStart { inset-inline-start: 8px; }
+  .panel.bottomEnd, .panel.topEnd { inset-inline-end: 8px; }
+  .input { font-size: 16px; }
+}
