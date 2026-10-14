@@ -63,6 +63,7 @@ export const WORDS = {
   freshEaosUpdated: ['EAOS تحدّث بعد الفحص', 'EAOS updated since the scan'],
   freshUnknown: ['حداثة الفحص غير معروفة', 'Freshness unknown'],
   freshBehind: ['{n} commit بعد الفحص', '{n} commits since the scan'],
+  freshBehindShort: ['+{n} تغيير', '+{n} new'],
   freshRewritten: ['تاريخ الفرع أُعيدت كتابته', 'Branch history rewritten'],
   freshDirty: ['تعديلات غير محفوظة بعد الفحص', 'Unsaved changes since the scan'],
   freshOtherBranch: ['الفحص لفرع آخر', 'Scan is of another branch'],
