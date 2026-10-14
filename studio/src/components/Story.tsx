@@ -70,7 +70,8 @@ export function recommendedOption(decision: Decision): Decision['options'][numbe
  * One question, its recommendation, large one-tap answers (the option the recommendation names is primary, first,
  * with a "Recommended" tag), durable live answers and the link to the cards it concerns.
  */
-export function DecisionCard({ decision, cardsTo, compact }: { decision: Decision; cardsTo?: { to: string; search?: Search }; compact?: boolean }) {
+export function DecisionCard({ decision, cardsTo, compact, noted }:
+  { decision: Decision; cardsTo?: { to: string; search?: Search }; compact?: boolean; noted?: boolean }) {
   const { t, lang } = usePrefs()
   const toast = useToast()
   const actions = useActions()
@@ -121,12 +122,12 @@ export function DecisionCard({ decision, cardsTo, compact }: { decision: Decisio
       {decision.recommendation && (
         <div className={css.decRec}><span className={css.decRecLabel}>{t('recommended')}</span><Txt block>{decision.recommendation}</Txt></div>
       )}
+      {!live && !noted && <p role="note">{t('readOnlyAnswers')}</p>}
       {waiting && ordered.length > 0 && (
         <AnswerChoices decision={decision} ordered={ordered} recommended={recommended} all={allAnswers} onShowAll={() => setAllAnswers(true)}
           pressed={saved?.response?.option} disabled={disabled} busy={busy} onAnswer={(option) => answer(option)} />
       )}
       {live && !saved && <p role="status">{say('Connecting to live decision storage…', 'جاري الاتصال بحفظ القرارات…')}</p>}
-      {!live && <p>{say('Read-only snapshot. Open this project in live Studio to save an answer.', 'هذه نسخة للقراءة. افتح المشروع في الاستوديو الحي لحفظ الإجابة.')}</p>}
       {waiting && (!writing ? <Button isDisabled={disabled} onPress={() => setWriting(true)} data-write-answer>{say('Write a different answer', 'اكتب إجابة مختلفة')}</Button> :
         <WriteAnswer text={text} setText={setText} busy={busy} canSend={!busy && !!saved && !!text.trim()} onSend={() => answer(null)} say={say} />)}
       <SavedAnswer decision={decision} saved={saved} busy={busy} say={say} onRetryDelivery={retryDelivery} onRetryAssistant={retryAssistant} />

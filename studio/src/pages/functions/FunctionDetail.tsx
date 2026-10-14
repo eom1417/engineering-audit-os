@@ -4,7 +4,7 @@
 import { useMemo } from 'react'
 import { SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
-import { FoldList, Panel, Section, StateMessage } from '../../components/Panel'
+import { FoldList, NotHere, Panel, Section } from '../../components/Panel'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
@@ -111,11 +111,7 @@ export function FunctionDetail({ data, fx, id }: { data: StudioData; fx: Functio
   const byId = useMemo(() => new Map(fx.functions.map((f) => [f.id, f])), [fx])
   const fn = byId.get(id)
   if (!fn) {
-    return (
-      <Panel>
-        <StateMessage title={w('notFound')} sub={w('notFoundSub')} action={<div><Go to="/system/functions" className={css.inlineLink}>{w('backToList')}</Go></div>} />
-      </Panel>
-    )
+    return <NotHere title={w('notFound')} sub={w('notFoundSub')} back="/system/functions" label={w('backToFunctions')} />
   }
   const module = fx.modules.find((m) => m.id === fn.module)
   const firstCard = fn.cards?.[0]

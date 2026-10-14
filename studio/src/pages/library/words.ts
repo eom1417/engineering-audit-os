@@ -43,6 +43,7 @@ export const LIBRARY_WORDS = {
   textMissingSub: ['تجدها في مجلد التقرير. يحمل الاستوديو نصوص الوثائق ابتداءً من هذا الإصدار من EAOS: افحص المشروع من جديد ليصل النص.',
     'It is in the report folder. The Studio carries the documents’ text from this version of EAOS on: check the project again to bring it here.'],
   truncated: ['الوثيقة طويلة: يظهر هنا أول {n} حرف، ونصها كاملًا في مجلد التقرير.', 'A long document: the first {n} characters are shown here; the whole text is in the report folder.'],
+  notHere: ['غير موجود', 'Not found'],
   notFound: ['لا وثيقة بهذا الاسم في التقرير', 'No document by that name in the report'],
   notFoundSub: ['ربما كُتب الرابط لفحص أقدم. ارجع إلى المكتبة لترى وثائق هذا الفحص.', 'The link may come from an older check. Go back to the Library to see the documents of this one.'],
   diagramNote: ['يرسم الاستوديو بنية المشروع أيضًا على خرائطه التفاعلية من الحقائق نفسها.', "The Studio also draws the project's structure on its interactive maps, from the same facts."],
@@ -112,6 +113,7 @@ export const LIBRARY_WORDS = {
   imageMissing: ['محتوى هذه الصورة ليس في بيانات الاستوديو', 'The content of this image is not in the Studio data'],
   imageTooLarge: ['الصورة أكبر من أن تُحمل في الاستوديو ({n} كيلوبايت)؛ تجدها في مجلد التقرير.', 'The image is too large to carry in the Studio ({n} kB); it is in the report folder.'],
   imageNotFound: ['لا صورة بهذا الاسم في التقرير', 'No image by that name in the report'],
+  imageNotFoundSub: ['ربما كُتب الرابط لفحص أقدم. ارجع إلى المكتبة لترى صور هذا الفحص ورسومه.', 'The link may come from an older check. Go back to the Library to see the images and diagrams of this one.'],
   noImages: ['لا صور ولا رسوم في هذا الفحص', 'No images or diagrams in this check'],
   lines: ['{n} سطرًا', '{n} lines'],
 } as const

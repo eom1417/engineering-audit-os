@@ -58,6 +58,8 @@ export const FUNCTION_WORDS = {
   notFound: ['هذه الدالة ليست في هذا الفحص', 'This function is not in this check'],
   notFoundSub: ['ربما حُذفت أو تغيّر اسمها منذ الرابط. افتح قائمة الدوال.', 'It may have been removed or renamed since the link. Open the function list.'],
   backToList: ['الدوال', 'Functions'],
+  backToFunctions: ['ارجع إلى قائمة الدوال', 'Back to the function list'],
+  sectionMissingSub: ['قياسات الدوال في هذا الفحص ناقصة أو تالفة، فلا تظهر هنا. تظهر بعد الفحص التالي.', 'The function measures of this check are missing or damaged, so they are not shown here. They appear after the next check.'],
   allInFile: ['كل دوال هذا الملف ({n})', 'Every function of this file ({n})'],
   component: ['المكوّن', 'Component'],
   openOnMap: ['افتحه على الخريطة', 'Open it on the map'],

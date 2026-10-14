@@ -21,7 +21,7 @@ import { useStudio } from '../../data/context'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
-import { layout } from '../../shell/Layout'
+import { layout, PageTitle } from '../../shell/Layout'
 import { Batches, ResultFacts, RunBranches, ScreenPairs, StateChip, Timeline } from './parts'
 import { SnapshotPanel } from './RunsPage'
 import css from './runs.module.css'
@@ -290,14 +290,18 @@ function RunSide({ view, run, state, progress }: { view: View; run: Run; state: 
 export function RunPage() {
   const { runId } = useParams({ strict: false }) as { runId: string }
   const actions = useActions()
-  const w = useCmdWords()
   const data = useStudio()
-  if (actions.mode === 'snapshot') return <SnapshotRun title={w('run')} project={data?.manifest.project.name} />
+  if (actions.mode === 'snapshot') return <SnapshotRun id={runId} project={data?.manifest.project.name} />
   return <RunBody key={runId} id={runId} />
 }
 
-function SnapshotRun({ title, project }: { title: string; project?: string }) {
+function SnapshotRun({ id, project }: { id: string; project?: string }) {
   const w = useCmdWords()
-  usePageChrome(title, { to: '/runs', label: w('runs') }, project)
-  return <div className={layout.page}><SnapshotPanel /></div>
+  usePageChrome(w('run'), { to: '/runs', label: w('runs') }, project)
+  return (
+    <div className={layout.page}>
+      <PageTitle title={<>{w('run')} <Id value={id} /></>} lead={w('runSnapshotLead')} />
+      <SnapshotPanel />
+    </div>
+  )
 }

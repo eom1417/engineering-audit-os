@@ -4,7 +4,7 @@
 import { useParams } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { FindingRow } from '../../components/Finding'
-import { Panel, Props, Section, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, Props, Section, StateMessage } from '../../components/Panel'
 import type { StudioData } from '../../data/types'
 import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
@@ -20,7 +20,7 @@ function EvidenceBody({ data, id }: { data: StudioData; id: string }) {
   const citing = useMemo(() => (data.cards?.cards ?? []).filter((c) => c.evidence.includes(id)), [data, id])
   usePageChrome(fact ? fact.id : w('evidenceTitle'), { to: '/problems', label: w('backToProblems') }, data.manifest.project.name)
   if (!fact) {
-    return <div className={layout.page}><Panel><StateMessage kind="error" title={w('evidenceMissing', { id })} /></Panel></div>
+    return <div className={layout.page}><NotHere title={w('evidenceMissing', { id })} sub={w('evidenceMissingSub')} back="/problems" label={w('backToProblemsLong')} /></div>
   }
   const others = fact.sites.filter((s) => !(s.path === fact.path && (s.line ?? null) === fact.line))
   return (

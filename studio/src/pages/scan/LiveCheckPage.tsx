@@ -45,11 +45,11 @@ function blocked(mode: string, all: AllProgress | null, flow: string): 'snapshot
 function Blocked({ why }: { why: 'snapshot' | 'loading' | 'none' }) {
   const w = useScanWords()
   if (why === 'loading') return <div className={layout.page}><Head /><Panel><Skeleton label={w('loading')} /></Panel></div>
+  if (why === 'snapshot') return <div className={layout.page}><Head lead={w('snapshotLead')} /><SnapshotPanel /></div>
   return (
     <div className={layout.page}>
-      <Head lead={why === 'snapshot' ? w('snapshotLead') : undefined} />
-      <Panel><StateMessage icon="live" title={w(`${why}Title`)} sub={w(`${why}Sub`)} /></Panel>
-      {why === 'snapshot' && <SnapshotPanel />}
+      <Head />
+      <Panel><StateMessage icon="live" title={w('noneTitle')} sub={w('noneSub')} /></Panel>
     </div>
   )
 }

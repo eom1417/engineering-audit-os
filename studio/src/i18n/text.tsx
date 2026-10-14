@@ -50,12 +50,13 @@ function breakable(path: string): ReactNode[] {
 }
 
 /**
- * An identifier, path, tool name, commit or id: LTR-isolated, mono. keep=N shows only the last N segments
- * ("…/a/b"), with the full value in the title.
+ * An identifier, path, tool name, commit or id: LTR-isolated, mono. keep=N shows N segments, the first (where it
+ * lives) and the last N-1 ("src/…/a/b"); keep=1 only the last ("…/b"). The full value is in the title.
  */
 export function Id({ value, keep, className }: { value: string; keep?: number; className?: string }) {
   let shown = value
-  if (keep && value.split('/').length > keep) shown = '…/' + value.split('/').slice(-keep).join('/')
+  const parts = value.split('/')
+  if (keep && parts.length > keep) shown = [...(keep > 1 ? [parts[0]] : []), '…', ...parts.slice(-Math.max(keep - 1, 1))].join('/')
   const cut = shown !== value
   return (
     <bdi dir="ltr" className={['id', className].filter(Boolean).join(' ')} title={cut ? value : undefined} data-truncate={cut ? '' : undefined}>

@@ -70,6 +70,7 @@ export const SCREEN_WORDS = {
   shotAlt: ['صورة شاشة {r} بعرض {w} بكسل', 'Screen {r} at {w} px'],
   shotMissing: ['هذه الشاشة لم تُصوَّر بعد', 'This screen is not captured yet'],
   shotUnreadable: ['صورة هذه الشاشة لم تُفتح', 'The shot of this screen could not be opened'],
+  shotsUnreadable: ['صور الشاشات لم تُفتح، فتظهر هنا مشاكل كل صفحة بدون صورتها', 'The pictures of the screens could not be opened, so each page shows its problems without its picture'],
   shotUnreadableSub: ['الصورة ليست في مكانها من التقرير؛ أعد التصوير لتظهر هنا', 'The picture is not where the report keeps it; capture the screens again to show it here'],
   issues: ['مشاكل الاستخدام', 'Usability issues'],
   issuesNotChecked: ['لم تُفحص بعد: مشاكل الاستخدام تُفحص على صور الشاشات.', 'Not checked yet: usability issues are checked on the screen shots.'],

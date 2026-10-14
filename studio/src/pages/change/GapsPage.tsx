@@ -2,7 +2,7 @@
 // operation, target, files, closed by its cards, steps, decision); the phone: the same as rows. #/change/gaps/<id>:
 // one gap with its target and responsibility, why, the cards that close it, its operations, steps and decision.
 import { useParams, useSearch } from '@tanstack/react-router'
-import { useMemo, type ReactNode } from 'react'
+import { Fragment, useMemo, type ReactNode } from 'react'
 import { OperationChip } from '../../components/Chip'
 import { Go } from '../../components/Go'
 import { FoldList, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
@@ -14,7 +14,7 @@ import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, PageTitle, WithData } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
 import { byId, cardState, OP_LABEL, opsMix, registerOrder, RELATION_OF } from './model'
-import { ChangeNav, Closure, GapLink, LinkList, NotMeasured, OpLink, StepLink } from './parts'
+import { ChangeNav, Closure, GapLink, LinkList, Missing, NotMeasured, OpLink, StepLink } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
@@ -37,6 +37,7 @@ function Filter({ gaps, chosen }: { gaps: Gap[]; chosen?: ChangeOp }) {
 
 function GapTable({ gaps }: { gaps: Gap[] }) {
   const w = useChangeWords()
+  const { t } = usePrefs()
   return (
     <div className={css.tableBox} data-scroll-x="">
       <table className={css.table}>
@@ -48,8 +49,10 @@ function GapTable({ gaps }: { gaps: Gap[] }) {
           </tr>
         </thead>
         <tbody>
-          {gaps.map((g) => (
-            <tr key={g.id}>
+          {gaps.map((g, i) => (
+            <Fragment key={g.id}>
+            {g.operation !== gaps[i - 1]?.operation && <tr className={css.opRow}><th colSpan={7} scope="colgroup">{t(OP_LABEL[g.operation])}</th></tr>}
+            <tr>
               <th scope="row"><GapLink id={g.id}><Id value={g.component} keep={3} /></GapLink></th>
               <td><OperationChip relation={RELATION_OF[g.operation]} /></td>
               <td>{g.to ? <Id value={g.to} /> : null}</td>
@@ -58,6 +61,7 @@ function GapTable({ gaps }: { gaps: Gap[] }) {
               <td><LinkList>{(g.steps ?? []).map((s) => <StepLink key={s} plan={PLAN} step={s} />)}</LinkList></td>
               <td style={{ whiteSpace: 'nowrap' }}>{g.decision ? <Id value={g.decision} /> : null}</td>
             </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -111,7 +115,7 @@ function GapBody({ data, id }: { data: StudioData; id: string }) {
   const cards = useMemo(() => byId(data.cards?.cards), [data.cards])
   const ops = useMemo(() => byId(data.operations?.operations), [data.operations])
   if (!data.gaps) return <div className={page.page}><ChangeNav /><NotMeasured data={data} section="gaps" title={w('gapsTitle')} /></div>
-  if (!gap) return <div className={page.page}><ChangeNav /><Panel><StateMessage title={w('gapNotFound')} sub={<Id value={id} />} /></Panel></div>
+  if (!gap) return <Missing title={w('gapNotFound')} back="/change/gaps" label="backToGaps" heading="gapsTitle" />
   const sources = gap.operations?.map((o) => ops.get(o)?.sources ?? []).flat() ?? []
   const current = !gap.id.startsWith('target:')
   return (

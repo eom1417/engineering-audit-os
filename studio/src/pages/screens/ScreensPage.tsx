@@ -4,7 +4,7 @@
 // issues pinned (390 / 1440, before / after / slider when a batch changed it), its issues, inputs, file and route.
 // What EAOS has not measured (shots, issues, inputs) is said, with the step that brings it, never shown as "none".
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useMemo, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { DirectAction } from '../../command/Direct'
 import { Chip } from '../../components/Chip'
@@ -169,6 +169,9 @@ function ScreenGrid({ data, sx }: { data: StudioData; sx: ScreensData }) {
 
 // ---------------------------------------------------------------- the gallery of the pictured pages
 
+/** Tells the gallery that a picture could not be opened, so it says so once instead of on every card. */
+const Unreadable = createContext<() => void>(() => undefined)
+
 function useKindWord() {
   const w = useScreenWords()
   return (kind?: string | null) => (kind && `kind_${kind}` in SCREEN_WORDS ? w(`kind_${kind}` as ScreenWord) : null)
@@ -186,19 +189,13 @@ function Marked({ picture, list, picked, onPick, onOpen, large }:
   { picture: Picture; list: (PageFinding & { n: number })[]; picked?: number; onPick: (n: number) => void; onOpen?: () => void; large?: boolean }) {
   const w = useScreenWords()
   const [broken, setBroken] = useState(false)
-  if (broken) {
-    return (
-      <div className={css.noShot}>
-        <span className={css.noShotFrame} aria-hidden="true"><Icon name="eye" size={20} /></span>
-        <div><p className={css.noShotTitle}>{w('shotUnreadable')}</p><p className={css.noShotSub}>{w('shotUnreadableSub')}</p></div>
-      </div>
-    )
-  }
+  const unread = useContext(Unreadable)
+  if (broken) return null                                   // the gallery says it once, above the cards
   return (
     <div className={large ? css.markedLarge : css.marked} dir="ltr">
       <div className={css.markedCanvas}>
         <TokenImage className={css.shot} path={picture.path} alt={w('shotAlt', { r: picture.path, w: picture.width ?? '' })}
-          loading={large ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken(true)}
+          loading={large ? 'eager' : 'lazy'} decoding="async" onError={() => { setBroken(true); unread() }}
           onClick={onOpen} style={onOpen ? { cursor: 'zoom-in' } : undefined} />
         {list.filter((f) => f.region).map((f) => (
           <button key={f.n} type="button" data-mark={f.n} className={[css.box, picked === f.n && css.pinOn].filter(Boolean).join(' ')}
@@ -251,6 +248,7 @@ function Notes({ picture, list, picked, onPick }: { picture: Picture; list: (Pag
  * picture and explained beside it; the picture opens large. */
 function PageCard({ page }: { page: PicturedPage }) {
   const w = useScreenWords()
+  const phone = usePhone()
   const pictures = useMemo(() => [...page.pictures].sort((a, b) => (a.width ?? 0) - (b.width ?? 0)), [page])
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number>()
@@ -279,7 +277,8 @@ function PageCard({ page }: { page: PicturedPage }) {
           <Marked key={picture.path} picture={picture} list={list} picked={picked} onPick={pick} onOpen={() => setLarge(true)} />
           <Button variant="ghost" icon="eye" onPress={() => setLarge(true)}>{w('openLarge')}</Button>
         </div>
-        <Notes picture={picture} list={list} picked={picked} onPick={pick} />
+        {phone ? <details className={css.checks}><summary>{w('issuesN', { n: found })}</summary><Notes picture={picture} list={list} picked={picked} onPick={pick} /></details>
+          : <Notes picture={picture} list={list} picked={picked} onPick={pick} />}
       </div>
       <Sheet isOpen={large} onOpenChange={setLarge} title={`${page.path} · ${viewportWord(w, picture)} · ${w('issuesN', { n: found })}`}>
         <div className={css.largeBody}>
@@ -311,17 +310,21 @@ function PicturedGallery({ data, sx }: { data: StudioData; sx: ScreensData }) {
   const pages = sx.pages ?? []
   const { shown, clean, notReviewed } = useMemo(() => gallery(pages), [pages])
   const [all, setAll] = useState(false)
+  const [unreadable, setUnreadable] = useState(false)
   const first = 12
   return (
     <div className={layout.page}>
       <Heading data={data} pictured={{ total: pages.length, found: shown.length }} />
+      {unreadable && <Panel><StateMessage icon="eye" title={w('shotsUnreadable')} sub={w('shotUnreadableSub')} /></Panel>}
       <div className={css.summary}>
         <PagesLine pages={clean} words={w('cleanLine', { n: clean.length })} />
         <PagesLine pages={notReviewed} words={w('notReviewedLine', { n: notReviewed.length })} />
       </div>
       {shown.length ? (
         <>
-          <div className={css.pages}>{shown.slice(0, all ? shown.length : first).map((page) => <PageCard key={page.path} page={page} />)}</div>
+          <Unreadable.Provider value={() => setUnreadable(true)}>
+            <div className={css.pages}>{shown.slice(0, all ? shown.length : first).map((page) => <PageCard key={page.path} page={page} />)}</div>
+          </Unreadable.Provider>
           {shown.length > first && (
             <div className={css.more}><Button variant="ghost" onPress={() => setAll(!all)} aria-expanded={all}>{all ? t('showLess') : t('showAllN', { n: shown.length })}</Button></div>
           )}

@@ -25,12 +25,11 @@ interface RunsSearch { q?: string; show?: Show }
 /** What a snapshot says instead of running: the command that starts the live Studio. */
 export function SnapshotPanel() {
   const w = useCmdWords()
-  const { lang } = usePrefs()
   const toast = useToast()
   return (
     <Panel className={css.snapshot} label={w('snapshotTitle')}>
       <h2 className={css.panelTitle}>{w('snapshotTitle')}</h2>
-      <p className={css.snapLead}>{SNAPSHOT.text[lang]}</p>
+      <p className={css.snapLead}>{w('snapshotHow')}</p>
       <div className={css.command}>
         <code><bdi dir="ltr">{SNAPSHOT.command}</bdi></code>
         <Button variant="secondary" icon="copy" onPress={async () => toast((await copyText(SNAPSHOT.command)) ? `${w('copyCommand')} ✓` : '')}>{w('copyCommand')}</Button>

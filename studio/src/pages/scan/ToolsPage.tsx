@@ -8,7 +8,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
-import { Panel, Skeleton, StateMessage } from '../../components/Panel'
+import { Panel, Skeleton } from '../../components/Panel'
 import { useActions, type Actions } from '../../data/actions/store'
 import { useLive } from '../../data/context'
 import { TOOLS, toolsOf, type AllProgress, type ToolRow, type Tools } from '../../data/scan'
@@ -17,6 +17,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { usePageChrome } from '../../shell/chrome'
 import { layout } from '../../shell/Layout'
 import { refusal } from '../../branches/ScanSheet'
+import { SnapshotPanel } from '../runs/RunsPage'
 import { useScanWords } from './words'
 import css from './scan.module.css'
 
@@ -30,10 +31,8 @@ export function ToolsPage() {
   usePageChrome(w('toolsTitle'))
   useInstallAsked(all, actions)
   useMapOnceChecking(all)
-  if (mode !== 'live' || !all?.flows[TOOLS]) {
-    return <div className={layout.page}><Head /><Panel>{mode === 'live' ? <Skeleton label={w('loading')} />
-      : <StateMessage icon="live" title={w('snapshotTitle')} sub={w('snapshotSub')} />}</Panel></div>
-  }
+  if (mode !== 'live') return <div className={layout.page}><Head lead={w('toolsSnapshotLead')} /><SnapshotPanel /></div>
+  if (!all?.flows[TOOLS]) return <div className={layout.page}><Head /><Panel><Skeleton label={w('loading')} /></Panel></div>
   const tools = toolsOf(all.flows[TOOLS], all.tools_needed ?? [], Date.now() + skew)
   return (
     <div className={[layout.page, css.page].join(' ')} data-unlocked={tools.unlocked} data-tools-ready={tools.all.ready}>
@@ -45,12 +44,12 @@ export function ToolsPage() {
   )
 }
 
-function Head() {
+function Head({ lead }: { lead?: string }) {
   const w = useScanWords()
   return (
     <div className={css.head}>
       <h1 className={css.title}>{w('toolsTitle')}</h1>
-      <p className={css.lead}>{w('toolsLead')}</p>
+      <p className={css.lead}>{lead ?? w('toolsLead')}</p>
     </div>
   )
 }

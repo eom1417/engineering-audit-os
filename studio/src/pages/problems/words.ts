@@ -71,6 +71,8 @@ export const PROBLEM_WORDS = {
   openEvidence: ['افتح الدليل', 'Open the evidence'],
   noEvidence: ['لا دليل مسجّل لهذه المشكلة في هذا التقرير.', 'This report records no evidence for this problem.'],
   evidenceMissing: ['الدليل {id} غير موجود في هذا التقرير.', 'The evidence {id} is not in this report.'],
+  evidenceMissingSub: ['ربما جاء الرابط من فحص أقدم. افتح المشاكل لترى أدلة هذا الفحص.', 'The link may come from an older check. Open the problems to see the evidence of this one.'],
+  backToProblemsLong: ['ارجع إلى المشاكل', 'Back to the problems'],
   askAbout: ['اطلب من المساعد شرحها', 'Ask the assistant to explain it'],
   askRequest: ['اشرح لي المشكلة {id} من فحص EAOS: ما دليلها، ولماذا تهم، وماذا سيتغير لو أصلحناها.', 'Explain EAOS problem {id} to me: its evidence, why it matters, and what fixing it changes.'],
   // the code

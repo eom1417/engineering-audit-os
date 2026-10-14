@@ -38,9 +38,18 @@ export const SECTIONS: SectionDef[] = [
   { id: 'history', to: '/history', icon: 'clock', tab: 'history', nav: 'history', group: 'groupLibrary', tabbar: false },
 ]
 
-/** The section a path belongs to ("/problems?card=…" → problems) */
+/** Pages under another section's address: a code path belongs to Code paths, evidence to Problems, the tools to the
+ * live check, a plan's pages to Change. */
+const UNDER: Record<string, string> = { '/flows': '/system/paths', '/evidence': '/problems', '/tools': '/scan', '/plans': '/change', '/tasks': '/change', '/ops': '/change' }
+
+/** The most specific section a path belongs to ("/system/paths" → paths, "/problems?card=…" → problems) */
 export function sectionOf(pathname: string): SectionDef | undefined {
-  const first = '/' + (pathname.split('/')[1] ?? '')
-  const head = first === '/flows' || first === '/screens' ? '/system' : first === '/evidence' ? '/problems' : first === '/tools' ? '/scan' : ['/plans', '/tasks', '/ops'].includes(first) ? '/change' : first   // a code path belongs to System, evidence to Problems
-  return SECTIONS.find((section) => section.to === head) ?? (head === '/' ? SECTIONS[0] : undefined)
+  const path = UNDER['/' + (pathname.split('/')[1] ?? '')] ?? pathname
+  if (path === '/') return SECTIONS[0]
+  return SECTIONS.filter((s) => s.to !== '/' && (path === s.to || path.startsWith(s.to + '/'))).sort((a, b) => b.to.length - a.to.length)[0]
+}
+
+/** The phone tab a section shows under: its own, else the tab of its sidebar group. */
+export function tabOf(section?: SectionDef): SectionDef | undefined {
+  return section?.tabbar ? section : SECTIONS.find((s) => s.tabbar && s.group && s.group === section?.group)
 }

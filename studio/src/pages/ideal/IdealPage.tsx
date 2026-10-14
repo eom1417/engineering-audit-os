@@ -116,6 +116,16 @@ function IdealBody({ data, ideal }: { data: StudioData; ideal: Ideal }) {
   const p = view.provenance
   const questions = ideal.questions.filter((q) => q.view === name)
   const message = lang === 'ar' ? p.message.ar : p.message.en
+  const phone = usePhone()
+  const departure = (d: View['provenance']['departures'][number], i: number) => (
+    <Panel pad key={i}>
+      <dl className={css.departure}>
+        <dt>{w('ruleSays')}</dt><dd><Txt block>{d.rule_says}</Txt></dd>
+        <dt>{w('planChose')}</dt><dd><Txt block>{d.plan_chose}</Txt></dd>
+        <dt>{w('because')}</dt><dd><Txt block>{d.because}</Txt></dd>
+      </dl>
+    </Panel>
+  )
   return (
     <div className={layout.page}>
       <MissingBanner data={data} />
@@ -129,21 +139,12 @@ function IdealBody({ data, ideal }: { data: StudioData; ideal: Ideal }) {
       {view.planned ? <Counts view={view} /> : <Panel pad><StateMessage title={w('notPlanned')} sub={message} /></Panel>}
       <div className={css.sides}>
         {view.planned && <Side title={w('plannedSide')} summary={view.planned.summary} elements={view.planned.elements} view={view} planned empty={w('nothing')} />}
-        <Side title={w('rulesSide')} summary={view.rules.summary} elements={view.rules.elements} view={view} planned={false} empty={w('nothing')} />
+        <Side title={w('rulesSide')} summary={w(`rulesAbout_${name}` as IdealWord)} elements={view.rules.elements} view={view} planned={false} empty={w('nothing')} />
       </div>
       {p.departures.length > 0 && (
         <Section title={w('departures')} count={p.departures.length}>
-          <div className={css.cards}>
-            {p.departures.map((d, i) => (
-              <Panel pad key={i}>
-                <dl className={css.departure}>
-                  <dt>{w('ruleSays')}</dt><dd><Txt block>{d.rule_says}</Txt></dd>
-                  <dt>{w('planChose')}</dt><dd><Txt block>{d.plan_chose}</Txt></dd>
-                  <dt>{w('because')}</dt><dd><Txt block>{d.because}</Txt></dd>
-                </dl>
-              </Panel>
-            ))}
-          </div>
+          {phone ? <FoldList items={p.departures} first={1} render={departure} label={w('departures')} />
+            : <div className={css.cards}>{p.departures.map(departure)}</div>}
         </Section>
       )}
       {questions.length > 0 && (

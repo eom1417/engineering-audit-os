@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
 import { Segmented, SearchField } from '../../components/Controls'
-import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
@@ -213,7 +213,8 @@ function Explorer({ data, selected }: { data: StudioData; selected?: string }) {
     return (
       <div className={layout.page}>
         <Heading data={data} />
-        <Panel><StateMessage title={w('lang_not_measured')} sub={<>{row?.detail ? <Txt>{row.detail}</Txt> : null}</>} /></Panel>
+        {selected ? <NotHere title={w('lang_not_measured')} sub={w('sectionMissingSub')} back="/system/functions" label={w('backToFunctions')} />
+          : <Panel><StateMessage title={w('lang_not_measured')} sub={w('sectionMissingSub')} /></Panel>}
       </div>
     )
   }

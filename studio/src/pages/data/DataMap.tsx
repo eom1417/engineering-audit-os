@@ -52,7 +52,7 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
       tone={lane === 'store' ? storeTone : 'none'}
       label={lane === 'store' ? labelOf(id, stores) : (cluster ? id.slice(8) : id)}
       count={cluster ? membersOf(view, id).length : store?.writers.length ?? 0}
-      faded={(Boolean(focus) && !on && !lit.has(id)) || (!focus && quiet)} />
+      faded={Boolean(focus) && !on && !lit.has(id)} quiet={quiet} />
   }
 
   return (
@@ -87,13 +87,17 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
 
 const KIND_MARK: Record<Store['kind'], string> = { table: '▦', resource: '⇄', bucket: '▤', rpc: 'ƒ', auth: '⚿' }
 
-/** A hatched tier the records do not reach, its title and how many writes it knows. */
-function Band({ x, width, height, title, sub }: { x: number; width: number; height: number; title: ReactNode; sub: ReactNode }) {
+/** A hatched tier the records do not reach, its title (a line per tier, broken at its arrows, so it fits the band) and
+ * how many writes it knows. */
+function Band({ x, width, height, title, sub }: { x: number; width: number; height: number; title: string; sub: ReactNode }) {
+  const lines = title.split(/\s*[←→]\s*/)
   return (
     <>
       <rect className={css.band} x={x} y={HEAD - 8} width={width} height={height - HEAD} rx={10} fill="url(#dp-hatch)" />
-      <text className={css.bandTitle} x={x + width / 2} y={HEAD + 18} textAnchor="middle">{title}</text>
-      <text className={css.bandSub} x={x + width / 2} y={HEAD + 36} textAnchor="middle">{sub}</text>
+      <text className={css.bandTitle} y={HEAD + 18} textAnchor="middle">
+        {lines.map((line, i) => <tspan key={i} x={x + width / 2} dy={i ? 16 : 0}>{line}</tspan>)}
+      </text>
+      <text className={css.bandSub} x={x + width / 2} y={HEAD + 36 + 16 * (lines.length - 1)} textAnchor="middle">{sub}</text>
     </>
   )
 }
@@ -102,17 +106,17 @@ type Lane = 'caller' | 'store'
 
 interface MapNodeProps {
   id: string; lane: Lane; at: readonly [number, number]; box: readonly [number, number]; store?: Store
-  tone: string; label: string; count: number; on: boolean; faded: boolean; onFocus: (id: string) => void
+  tone: string; label: string; count: number; on: boolean; faded: boolean; quiet: boolean; onFocus: (id: string) => void
 }
 
 /** One caller or store box: a cluster stacked with its member count, a store with its kind and writers. */
-function MapNode({ id, lane, at: [x, y], box: [bw, bh], store, tone, label, count, on, faded, onFocus }: MapNodeProps) {
+function MapNode({ id, lane, at: [x, y], box: [bw, bh], store, tone, label, count, on, faded, quiet, onFocus }: MapNodeProps) {
   const w = useDataWords()
   const cluster = isCluster(id)
   const name = `${label}${cluster ? ` (${count})` : ''}${store ? `, ${w(`kind_${store.kind}`)}, ${ownerWord(store, w)}` : ''}`
   const mid = y + bh / 2 + 4
   return (
-    <g className={[css.node, css[`tone_${tone}`], on && css.on, faded && css.faded, cluster && css.cluster].filter(Boolean).join(' ')}
+    <g className={[css.node, css[`tone_${tone}`], on && css.on, faded && css.faded, quiet && css.quiet, cluster && css.cluster].filter(Boolean).join(' ')}
       role="button" tabIndex={0} aria-label={name} aria-pressed={on} onClick={() => onFocus(id)} onKeyDown={pressKey(() => onFocus(id))}>
       {cluster && <rect className={css.stack} x={x + 4} y={y - 4} width={bw} height={bh} rx={8} />}
       <rect className={css.box} x={x} y={y} width={bw} height={bh} rx={8} />

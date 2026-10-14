@@ -83,6 +83,7 @@ export const CMD_WORDS = {
   snapshotTitle: ['الأوامر تشتغل من الاستوديو الحي', 'Actions run from the live Studio'],
   snapshotStep1: ['افتح الطرفية في مجلد المشروع', 'Open a terminal in the project folder'],
   snapshotStep2: ['اكتب هذا الأمر، فيفتح الاستوديو الحي في متصفحك:', 'Type this command; the live Studio opens in your browser:'],
+  snapshotHow: ['افتح الطرفية في مجلد المشروع واكتب هذا الأمر، فيفتح الاستوديو الحي في متصفحك:', 'Open a terminal in the project folder and type this command; the live Studio opens in your browser:'],
   copyCommand: ['انسخ الأمر', 'Copy the command'],
   orAssistant: ['أو اطلبه من مساعدك مباشرة:', 'Or ask your assistant directly:'],
   // runs
@@ -115,6 +116,7 @@ export const CMD_WORDS = {
   // the run page
   run: ['التشغيل', 'Run'],
   runNotFound: ['هذا التشغيل غير موجود', 'This run is not here'],
+  runSnapshotLead: ['هذه نسخة ثابتة من التقرير: حالة هذا التشغيل ونتيجته تظهران في الاستوديو الحي فقط.', 'This is a static copy of the report: the state and result of this run show in the live Studio only.'],
   runNotFoundSub: ['ربما بدأ من استوديو آخر أو حُذف سجله. ارجع إلى قائمة التشغيل.', 'It may have started from another Studio, or its log was removed. Go back to the runs.'],
   pause: ['إيقاف مؤقت', 'Pause'],
   resume: ['استئناف', 'Resume'],

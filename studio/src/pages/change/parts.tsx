@@ -4,20 +4,21 @@
 import type { ReactNode } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { Go } from '../../components/Go'
-import { Panel, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, StateMessage } from '../../components/Panel'
 import type { Gap, OpState } from '../../data/change'
 import type { StudioData } from '../../data/types'
 import { Id, N } from '../../i18n/text'
+import { layout, PageTitle } from '../../shell/Layout'
 import { useCoverageRow } from '../library/model'
 import { TASK_STATES } from './model'
-import { STATE_WORD, useChangeWords } from './words'
+import { STATE_WORD, useChangeWords, type ChangeWord } from './words'
 import css from './change.module.css'
 
 const NAV = [
   { to: '/change', word: 'navOverview', match: (p: string) => p === '/change' || p === '/change/timeline' },
   { to: '/change/bridge', word: 'navBridge', match: (p: string) => p === '/change/bridge' },
   { to: '/change/gaps', word: 'navGaps', match: (p: string) => p.startsWith('/change/gaps') },
-  { to: '/plans', word: 'navPlans', match: (p: string) => /^\/(plans|tasks|ops)(\/|$)/.test(p) },
+  { to: '/plans', word: 'navPlans', match: (p: string) => /^\/(plans|tasks)(\/|$)/.test(p) },
 ] as const
 
 /** Change's places as one row of links, the current one marked (C-experience 2.3: Bridge / Gaps / Plans). */
@@ -33,6 +34,13 @@ export function ChangeNav() {
   )
 }
 
+/** A plan, step, task, operation or gap the link names and this check does not have, with the way back. */
+export function Missing({ title, back = '/plans', label = 'backToPlans', heading = 'plansTitle' }:
+  { title: string; back?: string; label?: ChangeWord; heading?: ChangeWord }) {
+  const w = useChangeWords()
+  return <div className={layout.page}><ChangeNav /><PageTitle title={w(heading)} /><NotHere title={title} sub={w('oldLink')} back={back} label={w(label)} /></div>
+}
+
 /** A section the report does not hold: what is missing, and why. */
 export function NotMeasured({ data, section, title }: { data: StudioData; section: string; title: string }) {
   const w = useChangeWords()
@@ -44,17 +52,22 @@ export function NotMeasured({ data, section, title }: { data: StudioData; sectio
   )
 }
 
+/** A share as a short bar with its words beside it. */
+export function Meter({ value, children }: { value: number; children: ReactNode }) {
+  return (
+    <span className={css.closure}>
+      <span className={css.meter} aria-hidden="true"><i style={{ inlineSize: `${Math.round(value * 100)}%` }} /></span>
+      <span>{children}</span>
+    </span>
+  )
+}
+
 /** How far a gap is closed by its cards; a gap no card closes says so (null is never drawn as 0). */
 export function Closure({ gap }: { gap: Gap }) {
   const w = useChangeWords()
   if (gap.operation === 'retain' && !gap.cards.length) return <span className={css.muted}>{w('stays')}</span>
   if (!gap.cards.length || gap.closed.value === null) return <span className={css.muted}>{w('noCard')}</span>
-  return (
-    <span className={css.closure}>
-      <span className={css.meter} aria-hidden="true"><i style={{ inlineSize: `${Math.round(gap.closed.value * 100)}%` }} /></span>
-      <span>{w('closedOf', { c: gap.cards_closed, n: gap.cards.length })}</span>
-    </span>
-  )
+  return <Meter value={gap.closed.value}>{w('closedOf', { c: gap.cards_closed, n: gap.cards.length })}</Meter>
 }
 
 /** A step's tasks by state, as one bar with the counts written beside it. */

@@ -83,6 +83,7 @@
 .table tbody tr:last-child > * { border-block-end: 0; }
 .table tbody tr:hover { background: var(--bg-hover); }
 .table tbody th { font-weight: 500; }
+.table .opRow th { padding-block-start: 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); background: var(--bg-sunken); }
 .table .links { justify-content: flex-start; }
 .numCol { text-align: end; }
 .table .numCol { text-align: end; }

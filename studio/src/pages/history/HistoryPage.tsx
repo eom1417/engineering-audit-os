@@ -56,7 +56,7 @@ function ScanRow({ scan }: { scan: Scan }) {
   const { date } = usePrefs()
   const open = openTotal(scan)
   return (
-    <RowLink to={scanPath(scan)} icon="verify" title={w('checkOf', { d: date(scan.at) })}
+    <RowLink to={scanPath(scan)} icon="verify" title={w('checkOf', { d: date(scan.at, false) })}
       sub={<>{scan.commit ? <Id value={scan.commit.slice(0, 12)} /> : w('notRecorded')}{open !== null && <> · {w('open')} <N value={open} /></>}</>}
       end={<ScoreTag score={scan.score} />} />
   )
@@ -115,7 +115,7 @@ function HistoryCharts({ history, project }: { history: HistoryData; project: st
   )
 }
 
-function ComparePicker({ scans }: { scans: Scan[] }) {
+export function ComparePicker({ scans }: { scans: Scan[] }) {
   const w = useHistoryWords()
   const { date } = usePrefs()
   const [from, setFrom] = useState(scans[0].id)

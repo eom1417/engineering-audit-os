@@ -5,7 +5,7 @@ import { useParams } from '@tanstack/react-router'
 import { Chip } from '../../components/Chip'
 import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
-import { Panel, Skeleton, StateMessage } from '../../components/Panel'
+import { NotHere, Panel, Skeleton, StateMessage } from '../../components/Panel'
 import { buttonClass } from '../../components/Button'
 import type { StudioData } from '../../data/types'
 import { Id, Txt } from '../../i18n/text'
@@ -40,9 +40,9 @@ function ImageBody({ data }: { data: StudioData }) {
   const id = decoded(imageId ?? '')
   const image = mediaOf(data).find((i) => i.id === id)
   const library = useLazySection<LibraryData>(data, 'library')
-  usePageChrome(image ? diagramTitle(image, w) : w('imageNotFound'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
+  usePageChrome(image ? diagramTitle(image, w) : w('notHere'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
   if (!image) {
-    return <div className={layout.page}><Panel><StateMessage icon="eye" title={w('imageNotFound')} sub={<Id value={id || '—'} />} /></Panel></div>
+    return <div className={layout.page}><NotHere title={w('imageNotFound')} sub={w('imageNotFoundSub')} back="/library/docs" label={w('backToLibrary')} /></div>
   }
   const content = library.kind === 'ready' ? library.data.images.find((i) => i.id === image.id) : undefined
   const map = drawnBy(image.id)

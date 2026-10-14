@@ -60,6 +60,7 @@
 .node:focus-visible .box { stroke: var(--focus-ring); stroke-width: 2.5; }
 .on .box { stroke: var(--accent-solid); stroke-width: 2.5; fill: var(--accent-subtle); }
 .faded { opacity: .38; }
+.quiet .box { stroke-dasharray: 4 3; }
 .label { font-family: var(--font-mono); font-size: 12px; fill: var(--text-primary); }
 .kind { font-size: 13px; fill: var(--text-tertiary); }
 .count { font-family: var(--font-mono); font-size: 11px; fill: var(--text-tertiary); font-variant-numeric: tabular-nums; }

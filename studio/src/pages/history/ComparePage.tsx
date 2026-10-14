@@ -14,7 +14,7 @@ import { Id, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, WithData } from '../../shell/Layout'
 import { decoded } from '../library/model'
-import { NoHistory } from './HistoryPage'
+import { ComparePicker, NoHistory } from './HistoryPage'
 import { compare, historyOf, openTotal, parseRange, scanPath, SEVERITIES, type ChangedCard } from './model'
 import { useHistoryWords, type HistoryWord } from './words'
 import css from './history.module.css'
@@ -65,11 +65,12 @@ function CompareBody({ data }: { data: StudioData }) {
   usePageChrome(w('comparing'), { to: '/history', label: w('history') }, data.manifest.project.name)
   if (!history) return <div className={layout.page}><NoHistory data={data} /></div>
   if (!found) {
+    const two = history.scans.length >= 2
     return (
       <div className={layout.page}>
         <h1 className={css.title}>{w('comparing')}</h1>
-        <Panel><StateMessage icon="change" title={w('compareNeedsTwo')} sub={w('compareNeedsTwoSub')}
-          action={<div><Go to="/history" className={buttonClass('secondary')}>{w('backToHistory')}</Go></div>} /></Panel>
+        <Panel><StateMessage icon="change" title={two ? w('compareBadLink') : w('compareNeedsTwo')} sub={two ? w('compareBadLinkSub') : w('oneScanSub')}
+          action={two ? <ComparePicker scans={history.scans} /> : <div><Go to="/history" className={buttonClass('secondary')}>{w('backToHistory')}</Go></div>} /></Panel>
       </div>
     )
   }

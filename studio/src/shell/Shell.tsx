@@ -27,7 +27,7 @@ import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
 import { ScanBanner } from './ScanBanner'
 import { useWaitingDecisions } from './waiting'
-import { SECTIONS, sectionOf, type SectionDef } from './sections'
+import { SECTIONS, sectionOf, tabOf, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SystemViews } from '../pages/system/SystemViews'
 
@@ -86,7 +86,7 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
     <aside className={css.sidebar} aria-label={t('navigation')}>
       <AriaButton className={css.proj} onPress={onProject} data-open="project" aria-label={`${project}: ${t('projectAndDisplay')}`}>
         <span className={css.projMark} aria-hidden="true">{project.slice(0, 1).toUpperCase()}</span>
-        <span className={css.projText}><span className={css.projName} title={project} data-truncate>{project}</span><span className={css.projSub}>{t('studio')}</span></span>
+        <span className={css.projText}><span className={css.projName} title={project} dir="auto" data-truncate>{project}</span><span className={css.projSub}>{t('studio')}</span></span>
         <Icon name="chevronDown" className={css.projChev} />
       </AriaButton>
       <AriaButton className={css.navSearch} onPress={onPalette} aria-label={t('searchCommands')}>
@@ -115,12 +115,13 @@ function TabBar({ current }: { current?: SectionDef }) {
   const c = useCounts()
   const live = useLiveCounts()
   const pending = useStudio()?.pending ?? []
+  const tab = tabOf(current)
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
       {SECTIONS.filter((s) => s.tabbar).map((s) => {
         const badge = (c && s.badge && !(s.countFrom && pending.includes(s.countFrom)) ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
         return (
-          <Go key={s.id} to={s.to} className={css.tab} current={current?.id === s.id}>
+          <Go key={s.id} to={s.to} className={css.tab} current={tab?.id === s.id}>
             <span className={css.tabIcon}><Icon name={s.icon} size={22} />{badge > 0 && <span className={css.tabBadge}><Badge count={badge} /></span>}</span>
             <span className={css.tabLabel}>{t(s.tab)}{badge > 0 && <span className="sr"> ({badge})</span>}</span>
           </Go>
