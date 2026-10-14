@@ -167,7 +167,7 @@ def request(provider, digest, feedback=None, language='ar'):
                                                      'language': LANGUAGE_NAMES.get(language, 'Arabic')}}
     system = SYSTEM.replace('{language}', LANGUAGE_NAMES.get(language, 'Arabic'))
     messages = [{'role': 'system', 'content': system}, {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
-    response = provider.complete(messages)
+    response = provider.complete(messages, stage='semantic')
     if isinstance(response, tuple): response = response[0]
     if isinstance(response, dict) and 'result' in response and 'claims' not in response: response = response['result']
     return response

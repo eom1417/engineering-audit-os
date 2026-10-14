@@ -11,7 +11,7 @@ class Dictionary:
     """A model that translates by a table and counts what it was sent."""
     def __init__(self, table, broken=False): self.table, self.broken, self.sent = table, broken, []
 
-    def complete(self, messages, small=False):
+    def complete(self, messages, small=False, stage=None):
         lines = json.loads(messages[-1]['content'])['lines']
         self.sent += lines
         return ({'lines': []} if self.broken else {'lines': [self.table[line] for line in lines]}), {}

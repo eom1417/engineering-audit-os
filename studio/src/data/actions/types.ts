@@ -51,7 +51,14 @@ export interface ActionDef {
 
 export interface VerbDef { id: VerbId; label: Bi; needs_assistant: boolean; changes_code: boolean; tools: string[]; result: Bi; inputs?: JsonSchema }
 
-export interface Assistant { id: string; name: string; installed: boolean; logged_in: boolean; version?: string | null }
+export interface Assistant { id: string; name: string; installed: boolean; logged_in: boolean; version?: string | null; model?: string | null }
+
+/** What the assistant used (eaos/usage.py): tokens, the cost at API prices when the assistant gives it, time, turns. */
+export interface Usage { input: number; cache_write: number; cache_read: number; output: number; thinking: number
+  cost_usd: number | null; duration_ms: number; turns: number; calls: number; models: string[] }
+export interface UsageRun { id: string; verb?: string | null; action?: string | null; label?: Bi | null; state?: RunState
+  assistant?: string | null; created?: string | null; cards: number; usage: Usage | null }
+export interface UsageReport { check: { stages: Record<string, Usage>; total: Usage | null } | null; runs: UsageRun[] }
 
 export interface Question {
   id: string
@@ -233,6 +240,9 @@ export interface ActionsClient {
   questions(): Promise<Question[]>
   answer(question: string, option: string | null, text?: string | null): Promise<Run>
   decide(id: string, op: 'accept' | 'undo', confirm: string, choice?: AcceptChoice): Promise<Run>
+  /** The assistants on this computer and what they used (live only) */
+  assistants?(): Promise<Assistant[]>
+  usage?(): Promise<UsageReport>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

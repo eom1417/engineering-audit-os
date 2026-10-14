@@ -20,7 +20,8 @@
       "eaos/compose/**"
     ],
     "runtime": [
-      "eaos/assistants/**"
+      "eaos/assistants/**",
+      "eaos/usage.py"
     ],
     "ledger": [
       "eaos/ask.py",

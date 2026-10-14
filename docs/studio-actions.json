@@ -2353,7 +2353,12 @@
   {
    "method": "GET",
    "path": "/api/assistants",
-   "does": "Each adapter: installed, logged in, version."
+   "does": "Each adapter: installed, logged in, version, and the model it uses."
+  },
+  {
+   "method": "GET",
+   "path": "/api/usage",
+   "does": "What the assistant used (eaos/usage.py): the last check stage by stage, and every run (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
   },
   {
    "method": "POST",

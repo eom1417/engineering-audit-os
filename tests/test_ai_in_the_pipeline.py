@@ -32,7 +32,7 @@ class ScriptedSemanticProvider:
 
     def identity(self): return {'kind': 'SCRIPTED_TEST_FIXTURE', 'stage': 'semantic'}
 
-    def complete(self, messages):
+    def complete(self, messages, **_):
         self.calls += 1
         payload = json.loads(messages[1]['content'])
         return self.builder(payload['instructions']['digest'], self.calls)

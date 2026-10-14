@@ -111,7 +111,7 @@ def _ask(provider, batch):
     lang = batch[0][1]
     messages = [{'role': 'system', 'content': TASK.format(lang=NAMES[lang])},
                 {'role': 'user', 'content': json.dumps({'lines': [line for line, _ in batch]}, ensure_ascii=False)}]
-    try: answer, _ = provider.complete(messages, small=True)
+    try: answer, _ = provider.complete(messages, small=True, stage='translate')
     except Exception: return None                          # the documents keep these lines as written
     lines = answer.get('lines') if isinstance(answer, dict) else None
     ok = isinstance(lines, list) and len(lines) == len(batch) and all(isinstance(line, str) for line in lines)

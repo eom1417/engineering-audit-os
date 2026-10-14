@@ -495,7 +495,7 @@ def _ask(project, runtime, provider, detected, failure, refusal, needs, name, mo
     """Ask the assistant for a change, write it with what safe() refused to setup/<name>.json, and apply it when safe.
     The refusals, none when it was applied; the last refusal is told on the next ask."""
     if refusal: failure += f'. Your previous proposal was refused and not applied: {refusal}'
-    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs, mode=mode))
+    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs, mode=mode), stage='setup')
     proposal = answer.get('result') or {}
     refused = safe(proposal)
     (runtime / f'setup/{name}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n',

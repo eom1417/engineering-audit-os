@@ -62,16 +62,16 @@ def call(messages, small=False):
     if model: argv += ['--model', model]
     envelope = stream(argv, conversation)
     if envelope.get('is_error'): raise RuntimeError('claude reported an error: ' + str(envelope.get('result'))[:200])
-    record({'cost_usd': envelope.get('total_cost_usd'), 'models': list(envelope.get('modelUsage') or {}),
-            'duration_ms': envelope.get('duration_ms')})
+    from ..usage import from_stream
+    record(from_stream([json.dumps(envelope)]))
     return parse(envelope.get('result') or '')
 
 
 def record(row):
-    """One call's row appended to $EAOS_MODEL_USAGE when that names a file."""
+    """One call's use (eaos/usage.py) appended to $EAOS_MODEL_USAGE when that names a file, under $EAOS_MODEL_STAGE."""
     usage = os.environ.get('EAOS_MODEL_USAGE')
-    if usage:
-        with open(usage, 'a', encoding='utf-8') as log: log.write(json.dumps(row) + '\n')
+    if usage and row:
+        with open(usage, 'a', encoding='utf-8') as log: log.write(json.dumps({**row, 'stage': os.environ.get('EAOS_MODEL_STAGE')}) + '\n')
 
 
 def serve(call, name):

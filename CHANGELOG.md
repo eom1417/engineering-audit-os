@@ -11,6 +11,11 @@
 - **A card that adds a module past the line limit, or one in no declared layer, is refused on the card**, not found
   when a batch's changes meet.
 - A run proposal's safety and its merge into run.json live in `eaos/run_profile.py`.
+- **The Assistant page**: which assistants are on this computer (installed, signed in, model), and what the work used
+  (eaos/usage.py, /api/usage): the last check stage by stage, every run (a run still going by its messages so far),
+  tokens, the cost at API prices, time, turns, and the measures to improve it: the cost per fixed card, the share of
+  the conversation read again, the share of thinking. Read from what every call already leaves; nothing estimated. On
+  EAOS: the last check's AI stages $10 (card triage $4.6), batch 5 $48 with 138 of 140 million tokens read again.
 
 ## 0.0.25 (2026-10-14)
 

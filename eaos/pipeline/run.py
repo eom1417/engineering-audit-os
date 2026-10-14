@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..progress import ProgressLog, previous_seconds, using
+from ..usage import FILE as USAGE
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
@@ -49,6 +50,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     While a stage runs it is the current stage of eaos/progress/context.py, so `progress.count()` anywhere below it
     reports into it."""
     target, out = _outside(target, out)
+    if isinstance(getattr(provider, 'config', None), dict): provider.config['usage'] = str(out / USAGE)    # eaos/usage.py
     runners = runners if runners is not None else _runners()
     _refuse_unknown(only, skip)
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
@@ -282,6 +284,7 @@ def check(target, out, **options):
         try: return resume(target, out, **options)
         except ValueError: pass                         # the source or the options changed since: its evidence is stale
     if not options.get('only'): clear(out)
+    (Path(out) / USAGE).unlink(missing_ok=True)        # a fresh run counts its own use from nothing
     return execute(target, out, **options)
 
 
