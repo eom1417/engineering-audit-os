@@ -274,7 +274,7 @@ class Manager:
         if isinstance(result, dict) and result.get('status') == 'assistant_not_ready':
             return self._ask(run, prompts.assistant_question(result))
         payload = self._outcome(run, answer=result)
-        self.store.append(run, 'result', {'en': 'Done', 'ar': 'تم'}, payload)
+        self.store.append(run, 'result', prompts.done(result), payload)
         self.set_state(run, 'done', result=payload)
 
     def _follow_job(self, run, job):

@@ -773,18 +773,18 @@ def tip(state):
     return done.stdout.strip() if done.returncode == 0 else ''
 
 
-def source(state):
-    """A folder whose checkout is the branch EAOS works on, for everything that reads or runs the original: the
-    project itself when that branch is the one checked out there, else EAOS's own copy of it beside state.json, brought
-    to the branch's last commit (the project's own checkout is never switched)."""
+def source(state, commit=None):
+    """A folder whose checkout is the branch EAOS works on, for everything that reads or runs the original: the project
+    itself when that branch is checked out there, else EAOS's own copy beside state.json at the branch's last commit, or
+    at `commit` (the checked one, a check going on: eaos/pipeline/run.py again); the project's checkout is never switched."""
     branch = state.get('branch')
-    if not branch or branches.checked_out(state['project']) == branch: return Path(state['project'])
+    if not branch or (branches.checked_out(state['project']) == branch and commit in (None, tip(state))): return Path(state['project'])
     copy = Path(state['workspace']) / ('checkout' + branches.suffix(state))
     if not (copy / '.git').is_dir():
         shutil.rmtree(copy, ignore_errors=True)
         done = _git(state['project'], 'clone', '--quiet', '--no-checkout', '--no-hardlinks', '.', str(copy))
         if done.returncode: raise RuntimeError(f'could not copy the branch {branch}: {done.stderr[-300:]}')
-    commit = tip(state)
+    commit = commit or tip(state)
     if not commit: raise RuntimeError(f'the branch {branch} is not in the project any more: choose another one')
     if _git(copy, 'rev-parse', 'HEAD').stdout.strip() != commit:
         _git(copy, 'fetch', '--quiet', str(state['project']), f'+{branches.ref(state)}:refs/remotes/source/{branch}')

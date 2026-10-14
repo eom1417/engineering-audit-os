@@ -58,7 +58,10 @@ def license_of(target):
 def public_repository(target):
     """`owner/name` when the project's origin is a public repository on GitHub.com, else None."""
     done = subprocess.run(['git', '-C', str(target), 'remote', 'get-url', 'origin'], capture_output=True, text=True)
-    found = GITHUB.search(done.stdout.strip()) if done.returncode == 0 else None
+    url = done.stdout.strip() if done.returncode == 0 else ''
+    # EAOS's own copy of the project (eaos/guided.py source) has the project's folder as origin: the project's own counts.
+    if url and Path(url).is_dir() and Path(url).resolve() != Path(target).resolve(): return public_repository(url)
+    found = GITHUB.search(url)
     if not found: return None
     try:
         with urllib.request.urlopen(f"https://api.github.com/repos/{found.group('repo')}", timeout=20) as response:  # nosec B310: GitHub's https API

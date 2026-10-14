@@ -372,6 +372,23 @@
      "without_ai": {
       "type": "boolean",
       "description": "This one check with the rules alone, when the person's assistant does not answer; their choice is kept for the next."
+     },
+     "again_from": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The last check goes on from this stage: it and the stages reading it run again on the checked commit, the rest is kept."
+     },
+     "engines": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "description": "With again_from engines: only these tools run again, beside the others' results."
      }
     },
     "required": []
@@ -2364,6 +2381,11 @@
    "method": "POST",
    "path": "/api/chat",
    "does": "Begin one turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): {message, session?, context?, model?: quick|balanced|deep} -> {turn}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control, which the person confirms, or which direct control runs at once."
+  },
+  {
+   "method": "POST",
+   "path": "/api/plan",
+   "does": "A new project from its plan: {name, text, files: [{name, data (base64)}]} (documents and screen pictures, up to 32 MB); the plan is kept beside the new folder and the person's assistant draws the blueprint (blueprint_start through blueprint_design)."
   },
   {
    "method": "GET",

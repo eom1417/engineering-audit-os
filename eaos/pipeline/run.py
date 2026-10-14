@@ -59,6 +59,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                       intake=_resolved(intake), runtime=str(runtime) if runtime else None)
     requested = _requested(only, skip)
     completed = _completed or {}
+    context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
     todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
@@ -204,7 +205,8 @@ def completion_status(results):
     if any(row['status'] in {FAILED, NOT_REACHED} or
            (row['necessity'] == 'required' and row['status'] == UNAVAILABLE) for row in results.values()):
         return 'INCOMPLETE'
-    if any(row['necessity'] == 'required' and row['status'] == SKIPPED for row in results.values()):
+    if any((row['necessity'] == 'required' and row['status'] == SKIPPED) or row.get('reason_code') == 'tools_failed'
+           for row in results.values()):
         return 'PARTIAL'
     return 'COMPLETE'
 
@@ -236,6 +238,8 @@ def _one(stage, context, runners, results):
     if missing:
         return _row(stage, FAILED, 'declared artifacts were not written: ' + ', '.join(missing),
                     seconds, present, outcome, code='artifacts_missing')
+    failed = outcome.get('tools_failed')
+    if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present, outcome, code='tools_failed')
     return _row(stage, OK, '', seconds, present, outcome)
 
 
@@ -249,7 +253,8 @@ def _previous(out):
 # A new complete check replaces these of the previous one: its pictures and crawl, the engines' working folders and
 # the assistant's raw runs and cached decisions (the cache keys on the prompt, which names a picture, not what it shows).
 # The ledger, the history and the state stay. 230 MB of pictures and 130 MB of runs piled up on EAOS's own report.
-BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache')
+# START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
+BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'START-HERE.md')
 PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs')     # what `eaos clean --pictures` removes from every report
 
 
@@ -276,10 +281,12 @@ def clear(out, patterns=None):
     return freed
 
 
-def check(target, out, **options):
+def check(target, out, again_from=None, checked=False, **options):
     """A check the person asked for: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
     goes on from that checkpoint; otherwise, or when the source changed since, a fresh full run, which first clears
-    the previous check's bulky data (clear) unless it runs some stages only."""
+    the previous check's bulky data (clear) unless it runs some stages only. `again_from`: the last check goes on from
+    that stage (again)."""
+    if again_from: return again(target, out, again_from, checked=checked, **options)
     if (Path(out) / CHECKPOINT).is_file():
         try: return resume(target, out, **options)
         except ValueError: pass                         # the source or the options changed since: its evidence is stale
@@ -288,14 +295,24 @@ def check(target, out, **options):
     return execute(target, out, **options)
 
 
-def resume(target, out, **options):
+def again(target, out, stage, checked=False, **options):
+    """The last check with `stage` and every stage that reads what it makes run again (a tool that failed, a step to
+    redo), the rest kept as it was: never a whole new check for one stage. `engines` names the tools to run again.
+    `checked`: `target` is the very commit the check read clean (eaos/guided.py source), so the same code whatever
+    caches lay beside it then (.cache, egg-info), and the files' fingerprint is not asked."""
+    if stage not in BY_NAME: raise ValueError(f'there is no stage named {stage}')
+    if _previous(out) is None: raise ValueError('there is no check to go on from: run a check first')
+    return resume(target, out, redo=(stage, *dependents(stage, reading=True)), checked=checked, **options)
+
+
+def resume(target, out, redo=(), checked=False, **options):
     """Re-run only what a previous attempt did not complete: a run stopped or killed midway from the checkpoint it
-    left after its last stage, else the last manifest."""
+    left after its last stage, else the last manifest; and the stages in `redo` (again)."""
     previous = _previous(out)
     if previous is None:
         return execute(target, out, **options)
-    _merge_options(_resumable(target, previous), options)
-    done = _done_stages(previous, out)
+    _merge_options(previous.get('options', {}) if checked else _resumable(target, previous), options)
+    done = _done_stages(previous, out) - set(redo)
     remaining = [name for name in ORDER if name not in done]
     if not remaining:
         return previous
@@ -311,11 +328,9 @@ def resume(target, out, **options):
 
 
 def _resumable(target, previous):
-    """The previous run's options, once it is shown to be about this target at this source."""
+    """The previous run's options, once it is shown to be about this source: the same files, wherever the copy is."""
     from ..workspace import inventory
     stored = previous.get('options', {})
-    if str(Path(target).resolve()) != previous['target']:
-        raise ValueError('Resume target differs from the original target')
     fingerprint = inventory(target, max_files=stored.get('max_files', 100000), max_bytes=stored.get('max_bytes', 2_000_000))['fingerprint']
     if fingerprint != previous.get('source_fingerprint'):
         raise ValueError('Source changed; start a fresh run instead of resuming stale evidence')

@@ -79,11 +79,13 @@ def _run_all(selected, target, workdir, exclude, formats):
     return {name: reports[name] for name in selected}
 
 
-def analyze(target, workdir, exclude=(), only=None, formats=None):
+def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
     Each engine of the registry is reported as a step of the running stage (eaos/progress/context.py), from waiting
-    to its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs."""
+    to its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs. `keep`:
+    the engines named in `only` are run again within the same check (one that failed), beside the others' results kept
+    from it."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
     selected = ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
@@ -91,6 +93,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None):
     before = state_digest(target)
     reports = _run_all(selected, target, workdir, exclude, formats)
     after = state_digest(target)
+    if keep: selected, reports = _with_kept(workdir, selected, reports)
     manifest = {
         'contract_version': 1,
         'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -109,6 +112,14 @@ def analyze(target, workdir, exclude=(), only=None, formats=None):
                   'finding enters as heuristic evidence and needs corroboration or a probe to rise above it.'}
     (workdir / 'engines.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding='utf-8')
     return manifest
+
+
+def _with_kept(workdir, selected, reports):
+    """(every engine, every report): the ones run now and the others of the check's last engines.json."""
+    try: previous = json.loads((workdir / 'engines.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError): return selected, reports
+    kept = {name: row for name, row in (previous.get('engines') or {}).items() if name in ADAPTERS and name not in reports}
+    return ordered([*kept, *selected]), {**kept, **reports}
 
 
 def observed(manifest):

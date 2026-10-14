@@ -172,6 +172,7 @@ def _card_evidence(cited, measured, facts, project, most):
 
 
 BATCH = 40
+LIST = 'cards'          # each card's verdict kept under its own evidence (core._judged): only new or changed ones are asked
 
 
 def batches(data):

@@ -4,7 +4,8 @@ An audit reads what exists, draws the target, and plans the way from one to the 
 as a plan (a PRD, notes, a pasted text) has no current state: the target is drawn from the plan itself, and the gap
 is the whole build. EAOS lays it out so that what its audits look for never gets in:
 
-  read_source     any plan the person has (Markdown, text, PDF, Word, HTML, or pasted words) as plain text.
+  read_plan       any plan the person has (Markdown, text, PDF, Word, HTML, pasted words, a folder of them, and pictures
+                  of its screens), eaos/plan_source.py.
   validate_spec   the product spec the assistant writes from it (SPEC below): every feature has a module, its data and
                   a way to check it; every piece of data has one owner. What is missing or undecided comes back as
                   questions with choices, for the assistant to research, recommend, and ask.
@@ -18,63 +19,17 @@ is the whole build. EAOS lays it out so that what its audits look for never gets
 
 Nothing here calls a model: the assistant reads, researches and writes; EAOS gives the shape and the gates.
 """
-import html
 import json
 import re
-import subprocess
-import zipfile
 from pathlib import Path
 
 DATA = Path(__file__).resolve().parent / 'data'
-SOURCE_SUFFIXES = ('.md', '.markdown', '.txt', '.text', '.rst', '.pdf', '.docx', '.html', '.htm', '.json', '.yaml', '.yml')
 ISOLATED = ('database', 'auth')          # concerns whose packages only their adapter folder may import
 LINE_BUDGET = {'skeleton': 250, 'foundation': 200, 'module': 250, 'feature': 200, 'flow': 150}
 
 
 def stacks():
     return json.loads((DATA / 'stacks.json').read_text(encoding='utf-8'))
-
-
-# ---------------------------------------------------------------- 1. any plan, as text
-
-def read_source(path=None, text=None):
-    """The plan as plain text: pasted words as they are, or a file of any common kind."""
-    if text and text.strip(): return text.strip()
-    if not path: raise ValueError('no plan was given: pass the file path or paste its text')
-    path = Path(path).expanduser()
-    if not path.is_file(): raise ValueError(f'the plan file was not found: {path}')
-    suffix = path.suffix.lower()
-    if suffix == '.pdf': return _pdf(path)
-    if suffix == '.docx': return _docx(path)
-    raw = path.read_text(encoding='utf-8', errors='replace')
-    if suffix in ('.html', '.htm'):
-        raw = re.sub(r'(?is)<(script|style)\b.*?</\1>', '', raw)
-        raw = re.sub(r'(?i)<br\s*/?>|</(p|div|li|h\d|tr)>', '\n', raw)
-        raw = html.unescape(re.sub(r'<[^>]+>', '', raw))
-    return re.sub(r'\n{3,}', '\n\n', raw).strip()
-
-
-def _pdf(path):
-    try:
-        from pypdf import PdfReader        # when installed; the command-line tool otherwise
-        return '\n\n'.join((page.extract_text() or '') for page in PdfReader(str(path)).pages).strip()
-    except ImportError:
-        pass
-    try:
-        done = subprocess.run(['pdftotext', '-layout', str(path), '-'], capture_output=True, text=True, timeout=120)
-    except FileNotFoundError:
-        raise ValueError('this PDF cannot be read here (no pypdf, no pdftotext): paste its text instead') from None
-    if done.returncode: raise ValueError(f'the PDF could not be read: {done.stderr[-300:]}')
-    return done.stdout.strip()
-
-
-def _docx(path):
-    """Word's text: the paragraphs of word/document.xml, one per line, tables row by row."""
-    with zipfile.ZipFile(path) as archive:
-        xml = archive.read('word/document.xml').decode('utf-8', errors='replace')
-    xml = re.sub(r'</w:p>', '\n', xml)
-    xml = re.sub(r'</w:tc>', ' | ', xml)
-    return html.unescape(re.sub(r'<[^>]+>', '', xml)).strip()
 
 
 # ---------------------------------------------------------------- 2. the product spec
@@ -94,6 +49,9 @@ SPEC = {
     'integrations': [{'id': 'payments', 'name': 'Stripe', 'purpose': 'take payments'}],
     'nonfunctional': {'expected_users': 1000, 'languages': ['ar', 'en'], 'data_sensitivity': 'personal | health | payment | none',
                       'platforms': ['web', 'mobile web']},
+    'look': {'theme': 'the one theme: light or dark', 'colors': {'primary': '#0F766E', 'background': '#FFFFFF', 'text': '#111827'},
+             'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'input', 'table', 'card', 'message'],
+             'screens': [{'id': 'S1', 'name': 'Orders', 'features': ['F1'], 'picture': 'the path of its picture in the plan, or empty'}]},
     'stack_preferences': {'database': 'an option id from the catalogue, or empty to take the recommendation'},
     'decisions': [{'id': 'D1', 'question': 'an open product question', 'options': ['A', 'B'], 'recommendation': 'A',
                    'why': 'the research behind it', 'chosen': 'A, once the person chose (empty until then)'}],
@@ -133,6 +91,7 @@ def validate_spec(spec):
     for flow in spec.get('flows') or []:
         for feature_id in flow.get('features') or []:
             if feature_id not in features: problems.append(f"flow {flow.get('id')}: uses {feature_id}, which is not a feature")
+    problems += _look_problems(spec.get('look'), features)
     catalogue = stacks()['concerns']
     for concern, choice in (spec.get('stack_preferences') or {}).items():
         if concern in catalogue and choice and choice not in catalogue[concern]['options']:
@@ -147,6 +106,19 @@ def validate_spec(spec):
     if not spec.get('flows'): questions.append({'id': 'flows', 'kind': 'yes_no', 'text': 'The plan names no user journey from start to finish. '
                                                 'May the assistant write the main ones from the features?', 'recommendation': 'yes'})
     return problems, questions
+
+
+def _look_problems(look, features):
+    """What keeps the look from being built once: one theme, its colours and fonts, and every screen tied to features."""
+    if not isinstance(look, dict) or not look.get('screens'):
+        return ['`look` is empty: write the one theme, its colours, fonts and shared components, and the screens with their '
+                'features (from the pictures when the plan has them)']
+    problems = [f'`look.{key}` is empty' for key in ('theme', 'colors', 'fonts') if not look.get(key)]
+    for screen in look['screens']:
+        unknown = [f for f in screen.get('features') or [] if f not in features]
+        if not screen.get('features') or unknown:
+            problems.append(f"screen {screen.get('id')}: name the features it shows" + (f" ({', '.join(unknown)} are not features)" if unknown else ''))
+    return problems
 
 
 # ---------------------------------------------------------------- 3. the stack
@@ -229,12 +201,13 @@ def design(spec, stack):
     """{'architecture', 'policy', 'plan'}: the target and the build, from the spec and the stack alone."""
     entities = spec.get('entities') or []
     cards = _Cards()
-    foundations = _foundations(cards, stack)
+    look = spec.get('look') or {}
+    foundations = _foundations(cards, stack, look)
     ordered, uses = _module_order(spec['modules'], spec['features'], entities)
     last_of = {}
     for index, module in enumerate(ordered, start=3):
         base = [foundations[-1]] + [last_of[other] for other in sorted(uses[module['id']]) if other in last_of]
-        last_of[module['id']] = _module_cards(cards, f'M{index:02d}', module, base, spec['features'], entities, stack)
+        last_of[module['id']] = _module_cards(cards, f'M{index:02d}', module, base, spec['features'], entities, stack, look)
     # The last milestone: every journey end to end in a real browser.
     flows = spec.get('flows') or []
     for flow in flows:
@@ -258,7 +231,7 @@ class _Cards(list):
         return row['id']
 
 
-def _foundations(cards, stack):
+def _foundations(cards, stack, look):
     """M01, the skeleton, and M02, one home for each shared concept: their card ids, the skeleton first."""
     server = stack['api']['id'] != 'none'
     # M01: the skeleton, with every check running from the first commit.
@@ -294,9 +267,13 @@ def _foundations(cards, stack):
                                 ['a person can sign up, sign in and sign out',
                                  'one function answers who the current user is, and every protected route uses it'],
                                 ['web/src/features/auth/auth.test.tsx'], foundations[-1:] if stack['database']['id'] != 'none' else [skeleton]))
+    tokens = ', '.join(f'{name} {value}' for name, value in (look.get('colors') or {}).items())
     foundations.append(cards.add('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
                                  ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
-                                 ['every screen uses the shared components in web/src/ui (buttons, inputs, forms, tables, messages)',
+                                 ['every screen uses the shared components in web/src/ui (' + ', '.join(look.get('components') or
+                                  ['buttons', 'inputs', 'forms', 'tables', 'messages']) + ')',
+                                  f"the one {look.get('theme') or 'light'} theme is design tokens in web/src/ui/theme.css" + (f' ({tokens})' if tokens else '')
+                                  + (f" with the fonts {', '.join(look['fonts'])}" if look.get('fonts') else '') + '; no screen sets its own colour or font',
                                   'every call to the server goes through web/src/api'],
                                  ['web/src/ui/ui.test.tsx'], [skeleton]))
     return foundations
@@ -318,14 +295,15 @@ def _module_order(modules, features, entities):
     return ordered, uses
 
 
-def _module_cards(cards, mid, module, base, features, entities, stack):
+def _module_cards(cards, mid, module, base, features, entities, stack, look):
     """A module's milestone: its data card when it owns data, then a card per feature, each after the one before.
     The id of its last card, which later modules wait for."""
     owned = [e for e in entities if e['module'] == module['id']]
     data_card = _data_card(cards, mid, module, owned, base, stack) if owned else None
     previous = data_card or base[-1]
     for feature in [f for f in features if f['module'] == module['id']]:
-        previous = _feature_card(cards, mid, module, feature, [previous] + ([data_card] if data_card and data_card != previous else []), stack)
+        screens = [x for x in look.get('screens') or [] if feature['id'] in (x.get('features') or [])]
+        previous = _feature_card(cards, mid, module, feature, [previous] + ([data_card] if data_card and data_card != previous else []), stack, screens)
     return previous
 
 
@@ -340,12 +318,14 @@ def _data_card(cards, mid, module, owned, base, stack):
                      why='The data has one owner: other modules call it rather than touching its tables.')
 
 
-def _feature_card(cards, mid, module, feature, depends, stack):
+def _feature_card(cards, mid, module, feature, depends, stack, screens):
     server = stack['api']['id'] != 'none'
     folder, fslug = slug(module['id']), slug(feature['name'])[:40]
     paths = [f'web/src/features/{folder}/{fslug}/'] + ([f'server/src/application/{folder}/{fslug}.ts', f'server/src/interface/http/{folder}/'] if server else [])
+    looks = [f"the screen {x['name']} follows its picture {x['picture']}, with the shared look only" if x.get('picture') else
+             f"the screen {x['name']} is built from the shared look only" for x in screens]
     return cards.add(mid, 'feature', f"{module['name']}: {feature['name']}", module['id'], paths,
-                     list(feature.get('acceptance') or []), [f'web/src/features/{folder}/{fslug}/{fslug}.test.tsx']
+                     list(feature.get('acceptance') or []) + looks, [f'web/src/features/{folder}/{fslug}/{fslug}.test.tsx']
                      + ([f'server/src/application/{folder}/{fslug}.test.ts'] if server else []),
                      depends, feature=feature['id'], why=feature.get('description') or '')
 

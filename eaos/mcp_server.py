@@ -188,7 +188,7 @@ def _check_tools(server, reading, working):
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
 
-    @server.tool(annotations=working, description='Check the whole project (29 stages: files, features, tools, tests, structure, '
+    @server.tool(annotations=working, description='Check the whole project (35 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once, also when the code moved on since (it says so): fresh=true checks again from the '
                  'start, only when the person asks for a new check. A started check answers with `watch`, '
@@ -198,11 +198,13 @@ def _check_tools(server, reading, working):
                  'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. assistant: which one '
                  '(claude or codex), when they say; `assistant_check` shows which is ready. A chosen assistant that is not ready '
                  'stops the check before it starts (status assistant_not_ready, with the reason and its fix). without_tools=true: '
-                 'only when the person chose to start without tools whose install failed (the report records it). ' + project_doc)
+                 'only when the person chose to start without tools whose install failed (the report records it). again_from=<stage>: '
+                 'the last check goes on from that stage (one whose tool failed, or one to redo): it and the stages reading it run '
+                 'again on the checked commit, the rest is kept; engines=[names] with again_from=engines runs only those tools. ' + project_doc)
     @_answer
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
-              assistant: str | None = None, without_ai: bool = False) -> str:
-        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai)
+              assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None) -> str:
+        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines)
 
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '

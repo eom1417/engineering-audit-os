@@ -386,26 +386,60 @@ class _Run:
                                 rules_decisions(node, self.spec, self.data, why), []))
 
     def go(self):
-        node, spec, data = self.node, self.spec, self.data
+        node, spec = self.node, self.spec
         if not self.subjects:
             return self.rules_only('rules_only', 'There was nothing for the node to decide.')
         detail = getattr(spec, 'DETAIL', None)
+        before, left = self._judged()
         # A long list is asked in batches (spec.batches), one question each; a planning node, whose critique reviews the
         # whole draft, is asked at once.
-        parts = spec.batches(data) if hasattr(spec, 'batches') and 'critique' not in node.passes else [data]
+        parts = [] if left is None else spec.batches(left) if hasattr(spec, 'batches') and 'critique' not in node.passes else [left]
         asks = [(part, answer_schema(node, spec.subjects(part), detail), spec.prompt(part)) for part in parts]
-        key = digest([node.name, node.version, getattr(spec, 'VERSION', '1'), [digest(p) for _, _, p in asks], [digest(s) for _, s, _ in asks]])
+        key = digest([node.name, node.version, getattr(spec, 'VERSION', '1'), [digest(p) for _, _, p in asks], [digest(s) for _, s, _ in asks],
+                      before])
         hit = None if self.settings['fresh'] else cached(self.report, node, key)
         if hit:
             self.tell(f'{node.title}: the same inputs as before, the cached decision stands', f'{node.title}: المدخلات نفسها، فيبقى القرار المحفوظ')
             return self.done({**hit, 'at': self.at, 'cached': True})
+        if not asks: return self._decided(None, ({'decisions': before}, None), asks, [], key, cached=True)
         launcher = self._launcher()
         if launcher is None: return self.rules_only('rules_only', WORDS['no_assistant'])
         asked = [p for _, _, p in asks]
         try: answer, critique = self._ask(launcher, asks, asked, detail)
         except Exception as problem:   # noqa: BLE001 - every failure falls back to the rules, with its reason
             return self._failed(problem, launcher, asks, asked)
-        return self._decided(launcher, (answer, critique), asks, asked, key)
+        self._remember(answer)
+        return self._decided(launcher, ({**answer, 'decisions': before + (answer.get('decisions') or [])}, critique), asks, asked, key)
+
+    def _judged(self):
+        """(the decisions kept, the data left to ask, None when nothing is): a subject of the node's list (spec.LIST)
+        judged before on the very same input keeps its decision, so a check gone on from a stage asks only what is new
+        or changed. A fresh check clears them with the other caches (eaos/pipeline/run.py BULKY)."""
+        field = getattr(self.spec, 'LIST', None)
+        if not field or self.settings['fresh']: return [], self.data
+        self.frame = digest(self.spec.prompt({**self.data, field: []}))     # the task itself: new words ask every subject again
+        before, left = [], []
+        for item in self.data[field]:
+            hit = cached(self.report, self.node, self._item_key(item))
+            if hit: before.append(hit)
+            else: left.append(item)
+        if before: self.tell(f'{self.node.title}: {len(before)} judged before on the same evidence, kept',
+                             f'{self.node.title}: {len(before)} حُكم عليها قبل على نفس الدليل، فيبقى حكمها')
+        return before, ({**self.data, field: left} if left else None)
+
+    def _item_key(self, item):
+        return 'one-' + digest([self.node.name, self.node.version, getattr(self.spec, 'VERSION', '1'), self.frame, item])
+
+    def _remember(self, answer):
+        """Each decision on a subject of the node's list, kept under its own input (_judged)."""
+        field = getattr(self.spec, 'LIST', None)
+        if not field or self.settings['fresh']: return
+        items = {item['id']: item for item in self.data[field]}
+        folder = folder_of(self.report, self.node) / 'cache'
+        folder.mkdir(parents=True, exist_ok=True)
+        for row in answer.get('decisions') or []:
+            item = items.get(row.get('subject')) if isinstance(row, dict) else None
+            if item: (folder / f'{self._item_key(item)}.json').write_text(json.dumps(row, ensure_ascii=False) + '\n', encoding='utf-8')
 
     def _launcher(self):
         s = self.settings
@@ -456,7 +490,7 @@ class _Run:
                                prompt=digest(asked), schema=digest([s for _, s, _ in asks]),
                                seconds=round(time.monotonic() - self.began, 1), cost=spent(launcher))
 
-    def _decided(self, launcher, answered, asks, asked, key):
+    def _decided(self, launcher, answered, asks, asked, key, cached=False):
         node, spec, data = self.node, self.spec, self.data
         answer, critique = answered
         self.tell(f'{node.title}: checking that every decision stands on evidence', f'{node.title}: يتحقق أن كل قرار قائم على دليل')
@@ -465,7 +499,7 @@ class _Run:
         left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
         row = record(node, {**self.base, 'state': 'decided', 'method': 'model', 'assistant': getattr(launcher, 'assistant', None),
                             'model': getattr(launcher, 'model', None),
-                            'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': False, 'calls': len(asked),
+                            'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': cached, 'calls': len(asked),
                             'seconds': round(time.monotonic() - self.began, 1),
                             'cost_usd': spent(launcher), 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
                      kept + left, dropped, critique=critique if isinstance(critique, dict) else None)

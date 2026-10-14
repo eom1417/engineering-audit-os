@@ -1,9 +1,10 @@
 """START-HERE.md: the first page of every report, in plain words (eaos/plain.py).
 
-Written by the compose stage for every audit, and read by the guided commands. Counts come from plan.json;
+Written by the reports stage of every check, and read by the guided commands. Counts come from plan.json;
 nothing is scored or invented. Its own module, because both the pipeline and eaos/guided.py need it.
 """
 import json
+import subprocess
 from pathlib import Path
 
 from . import plain
@@ -18,7 +19,10 @@ def summary_counts(report):
     plan = _read_json(Path(report) / 'plan.json', {'tasks': []})
     tasks = plan.get('tasks') or []
     ready = [t for t in tasks if t.get('kind') == 'remediate' and (t.get('decision') or {}).get('readiness') == 'ready']
-    return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready)}
+    # A tool that broke, said with the counts: the check goes on from it (audit again_from=engines engines=[...]).
+    engines = _read_json(Path(report) / 'run-manifest.json', {}).get('stages', {}).get('engines') or {}
+    return {'problems': len(tasks), 'ready': len(ready), 'decide': len(tasks) - len(ready),
+            'failed_tools': sorted((engines.get('detail') or {}).get('tools_failed') or {})}
 
 
 def _say(ar, arabic, english): return arabic if ar else english
@@ -89,6 +93,14 @@ def _closing_lines(ar):
             '## ' + _say(ar, 'للتفاصيل التقنية', 'Technical detail'), '',
             _say(ar, 'للمطوّر أو لمساعدك الذكي: ', 'For a developer or your AI assistant: ')
             + '`CURRENT-STATE.md` · `TARGET-STATE.md` · `GAP-AND-STRATEGY.md` · `EXECUTION-PLAN.md` · `plan.json`', '']
+
+
+def project_name(folder):
+    """The project's name: its folder's, or the project's for EAOS's own copy of a branch (eaos/guided.py source)."""
+    folder = Path(folder)
+    if not folder.name.startswith('checkout'): return folder.name
+    origin = subprocess.run(['git', '-C', str(folder), 'config', '--get', 'remote.origin.url'], capture_output=True, text=True).stdout.strip()
+    return Path(origin).name if origin else folder.name
 
 
 def start_here(report, lang, name):

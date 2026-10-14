@@ -446,6 +446,10 @@
    "ar": "الأدوات الخارجية لم تُطلب في هذا الفحص.",
    "en": "The external tools were not asked for in this run."
   },
+  "tools_failed": {
+   "ar": "بعض الأدوات فشلت في هذه المرحلة، فنتيجة الفحص ناقصة: أعد تشغيلها من هنا بدون فحص كامل جديد.",
+   "en": "Some tools failed in this stage, so the check is partial: run them again from here, without a whole new check."
+  },
   "no_engine_installed": {
    "ar": "لا توجد أداة خارجية مثبّتة على هذا الجهاز.",
    "en": "No external tool is installed on this computer."

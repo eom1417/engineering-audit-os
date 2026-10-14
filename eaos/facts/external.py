@@ -7,6 +7,7 @@ tree produce the same bytes.
 """
 from . import digest, make
 from .source import LANGUAGE_BY_SUFFIX
+from ..engines.contract import ERROR, SCHEMA_MISMATCH
 from pathlib import Path
 
 NAME = 'external'
@@ -104,6 +105,9 @@ def _summary(manifest, facts, present, absent, edge_merge):
     # kind for it, and keeps one missing key from taking the whole stage down.
     counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     return {'engines_observed': present, 'engines_unavailable': absent,
+            # An engine that ran and broke: the check says so instead of reading its silence as clean.
+            'engines_failed': {name: detail.get('reason') or detail['status'] for name, detail in manifest['coverage'].items()
+                               if detail['status'] in (ERROR, SCHEMA_MISMATCH)},
             'engines_not_applicable': not_applicable(manifest),
             # Candidate boundaries of today's components (GitNexus communities), for the map and the target.
             'communities': ((manifest['coverage'].get('gitnexus') or {}).get('detail') or {}).get('communities') or [],
@@ -123,13 +127,13 @@ NO_CODEGRAPH = {'status': 'not_available', 'reason': 'codegraph was not observed
                 'call_edges': 0, 'module_edges': 0}
 
 
-def run(target, source, out=None, only=None):
+def run(target, source, out=None, only=None, keep=False):
     from ..engines import analyze, missing, observed
     workdir = str(out) if out else None
     if workdir is None:
         return {'facts': [], 'input_sha': digest(b'external:no-workdir'), 'summary': {}, 'available': False,
                 'reason': 'external engines need a report directory to write their raw artifacts into'}
-    manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats())
+    manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats(), keep=keep)
     _copy_artifacts(manifest, out)
     versions = ''.join(f"{name}={detail.get('version')};" for name, detail in sorted(manifest['coverage'].items()))
     input_sha = digest((source.content_fingerprint + '|' + versions).encode('utf-8'))

@@ -317,22 +317,22 @@ def _fresh_report(state):
 
 # ---------------------------------------------------------------- diagnosis
 
-def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False):
-    """`use_assistant` and `assistant` (claude or codex) are the person's choice for the check's AI, kept for the
-    project. When they chose an assistant that is not ready (eaos/assistants/readiness.py), the check does not start: the
-    answer says why and how to fix it, and the person decides: fix it and call again (the assistant is asked again), or
-    `without_ai`, this one check with the rules alone, their choice kept for the next."""
+def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None):
+    """`use_assistant`, `assistant` (claude or codex): the person's choice for the check's AI, kept. One not ready
+    (eaos/assistants/readiness.py) stops the check before it starts, with why and the fix; `without_ai`: this one check with
+    the rules alone. `again_from`: the last check goes on from that stage on the checked commit, it and the stages reading
+    it run again and the rest is kept (`engines`: only those tools), never a whole new check for one stage."""
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
     state = _keep_choice(state, use_assistant, assistant)
     # A check on record stands until the person asks for a new one (fresh): a check takes up to an hour, and one started
     # because the code moved on stopped the person's fixes midway (owner, 2026-10-10).
-    if guided.scan_done(state) and not fresh:
+    if guided.scan_done(state) and not fresh and not again_from:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     blocked = None if without_ai else _assistant_not_ready(state)
     if blocked: return blocked
-    arguments = {**({'without_tools': True} if without_tools else {}), **({'without_ai': True} if without_ai else {})}
+    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines).items() if v}
     return _start('audit', state, arguments, watch=True)
 
 
@@ -404,12 +404,12 @@ def _audit_job(project, arguments, progress):
         from .assistants.readiness import NoAssistant
         provider = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
     else: provider = guided.check_provider(state)
-    options = dict(language=state.get('lang') or 'en', engines=[], progress=progress,
+    options = dict(language=state.get('lang') or 'en', engines=arguments.get('engines') or [], progress=progress,
                    provider=provider, runtime=guided.check_runtime(state), without_tools=sorted(failed))
-    source = guided.source(state)
+    source = guided.source(state, state.get('scanned_commit') if arguments.get('again_from') else None)   # going on: the checked code
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
-    read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
-    check(str(source), out, **options)
+    read = {} if arguments.get('again_from') else {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
+    check(str(source), out, again_from=arguments.get('again_from'), checked=state.get('scanned_dirty') is False, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_with=tool_digest(), **read)

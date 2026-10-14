@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
+import { DirectAction } from '../../command/Direct'
 import { Props } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
 import { TokenImage } from '../../components/TokenImage'
@@ -175,6 +176,24 @@ function Reported({ detail }: { detail: Record<string, string | number> }) {
   )
 }
 
+/** Once the check is over: it goes on from this stage (it and the stages reading it run again, the rest is kept), or
+ * runs again only the tools that broke in it, never a whole new check for one stage. */
+function Again({ stage, progress }: { stage: ScanStage; progress: ScanProgress }) {
+  const w = useScanWords()
+  if (progress.flow !== 'check' || progress.state !== 'done' || !['ok', 'failed'].includes(stage.state)) return null
+  const broke = stage.steps.filter((step) => ['error', 'failed'].includes(step.status)).map((step) => step.name)
+  return (
+    <section className={css.block} aria-label={w('again')} data-again={stage.name}>
+      <h3 className={css.blockTitle}>{w('again')}</h3>
+      {broke.length > 0 && <DirectAction icon="retry" request={{ action: 'audit', inputs: { again_from: stage.name, engines: broke } }}
+        label={w('againTools', { t: broke.join(', ') })} />}
+      <DirectAction icon="retry" variant={broke.length ? 'secondary' : 'primary'} request={{ action: 'audit', inputs: { again_from: stage.name } }}
+        label={w('againFrom')} />
+      <p className={css.muted}>{w('againNote')}</p>
+    </section>
+  )
+}
+
 interface StagePanelProps { stage: ScanStage; progress: ScanProgress; skew: number; onSelect: (name: string) => void }
 
 export function StagePanel({ stage, progress, skew, onSelect }: StagePanelProps) {
@@ -191,7 +210,7 @@ export function StagePanel({ stage, progress, skew, onSelect }: StagePanelProps)
       </div>
       <p className={css.about}>{w.about(stage.name, flow, stage.description)}</p>
       {stage.resumed && <p className={css.muted}>{w('keptFromBefore')}</p>}
-      {stage.reason && state !== 'ok' && (
+      {stage.reason && (state !== 'ok' || stage.reason_code === 'tools_failed') && (
         <div className={state === 'failed' ? css.reasonBad : css.reason} data-reason-code={stage.reason_code}>
           <strong>{w('why')}:</strong> <Txt>{w.reason(stage.reason_code, stage.reason)}</Txt>
         </div>
@@ -201,6 +220,7 @@ export function StagePanel({ stage, progress, skew, onSelect }: StagePanelProps)
       <Steps key={stage.name} steps={stage.steps} unit={unit} />
       <Produced stage={stage} state={state} readable={flow === 'check'} />
       <Reported detail={stage.detail} />
+      <Again stage={stage} progress={progress} />
     </>
   )
 }

@@ -165,6 +165,7 @@ export function liveClient(token: string): ActionsClient {
     usage: () => get<UsageReport>('/api/usage'),
     chat: (message, session, context, model) => post<{ turn: string }>('/api/chat', { message, session, context, model }),
     chatProgress: (turn) => get<ChatProgress>(`/api/chat/${encodeURIComponent(turn)}`),
+    plan: (body) => post<{ run: Run }>('/api/plan', body).then(runOf),
     chatControl: (on) => (on === undefined ? get<ChatControl>('/api/chat/control') : post<ChatControl>('/api/chat/control', { on })),
     follow: (id, after, onEvent, onStatus) => followRun(token, id, after, onEvent, onStatus),
   }

@@ -12,6 +12,7 @@ server, for the trial and for a computer without Starlette: it binds 127.0.0.1 a
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
+from . import plan
 
 LOOPBACK = '127.0.0.1'
 HEADERS = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer'}
@@ -82,7 +83,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length') or 0)
-        if length > 4 * 1024 * 1024: return self._send(413, {'error': 'too large'})
+        if length > (plan.MAX_BYTES if self.path.split('?')[0] == '/api/plan' else 4 * 1024 * 1024): return self._send(413, {'error': 'too large'})
         try: body = json.loads(self.rfile.read(length) or b'{}')
         except ValueError: return self._send(400, {'error': 'the body must be JSON'})
         self._send(*self.actions.handle('POST', self.path, dict(self.headers.items()), body))

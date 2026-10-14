@@ -54,7 +54,7 @@ class C4Tests(Workspace):
         from types import SimpleNamespace
         from eaos.pipeline.runners import reports
         (out / 'architecture/current/diagram.mmd').write_text('flowchart LR\n  stale["eaos/data/studio/assets"]\n')
-        reports(SimpleNamespace(out=out, language='en'))
+        reports(SimpleNamespace(out=out, language='en', target=out.parent))
         page = (out / 'CURRENT-STATE.md').read_text()
         self.assertNotIn('studio/assets', page)
         self.assertIn((out / 'architecture/current/diagram.mmd').read_text().strip().splitlines()[1].strip(), page)

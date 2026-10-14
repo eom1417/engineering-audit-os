@@ -683,6 +683,22 @@ class Direct(Base):
         self.assertEqual(calls, [('accept', {'person_agreed': True, 'project': str(self.project.resolve())})])
         self.assertTrue(next(e for e in reversed(self.app.store.events('r-chosen')) if e['kind'] == 'result')['data']['auto_accept'])
 
+class Plan(Base):
+    def test_a_plan_given_in_the_studio_draws_the_blueprint_of_a_new_folder_beside_the_project(self):
+        import base64
+        files = [{'name': 'plan.md', 'data': base64.b64encode(b'# Clinic\nBook visits.').decode()},
+                 {'name': 'visits.png', 'data': base64.b64encode(b'png').decode()}]
+        status, payload = self.post('/api/plan', {'name': 'My Clinic', 'files': files})
+        self.assertEqual(status, 200, payload)
+        record = self.app.store.load(payload['run']['id'])
+        self.assertEqual(record['action'], 'blueprint_start')
+        self.assertEqual(record['inputs']['project'], str(self.project.parent / 'my-clinic'))
+        self.assertEqual(sorted(p.name for p in Path(record['inputs']['source']).iterdir()), ['plan.md', 'visits.png'])
+        status, payload = self.post('/api/plan', {'name': 'project', 'text': 'a plan'})
+        self.assertEqual(status, 400, 'never into a folder that already holds a project')
+        self.assertIn('not empty', payload['error'])
+
+
 class Handoff(Base):
     def test_with_no_assistant_the_next_status_call_takes_the_request_and_a_note_closes_it(self):
         app = self.make(adapters_={})

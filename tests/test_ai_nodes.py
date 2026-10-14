@@ -230,6 +230,13 @@ class Framework(Base):
         with mock.patch.object(triage, 'TASK', triage.TASK + ' Be brief.'):
             self.assertFalse(self.triage(launcher)['cached'])
         self.assertEqual(len(launcher.calls), 4)
+        # A check gone on from a stage brings one new card (CodeQL's): only it is asked, every other verdict is kept.
+        cards['cards'].append(dict(cards['cards'][0], id='TASK-999', title='a new one'))
+        (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
+        record = self.triage(launcher)
+        self.assertEqual(len(launcher.calls), 5)
+        self.assertEqual(len(record['decisions']), 4 + triage.BATCH)
+        self.assertEqual({d['source'] for d in record['decisions']}, {'model'})
 
 
 class Triage(Base):

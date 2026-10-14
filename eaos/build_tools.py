@@ -23,6 +23,7 @@ import tempfile
 from pathlib import Path
 
 from . import agent_tools, blueprint, guided
+from .plan_source import read_plan
 
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
            'step, and hand each milestone to your project as a new branch (nothing else in your project changes)?')
@@ -59,17 +60,20 @@ def _state(project):
 
 def blueprint_start(source=None, text=None, project=None):
     state = _state(project)
-    plan = blueprint.read_source(source, text)
+    plan, pictures = read_plan(source, text)
     where = folder(state)
     where.mkdir(parents=True, exist_ok=True)
     (where / 'SOURCE.md').write_text(plan + '\n', encoding='utf-8')
     catalogue = blueprint.stacks()['concerns']
     return {'saved': str(where / 'SOURCE.md'), 'characters': len(plan), 'plan_text': plan[:40000], 'more': len(plan) > 40000,
-            'spec_format': blueprint.SPEC,
+            'pictures': pictures, 'spec_format': blueprint.SPEC,
             'stack_catalogue': {concern: {'title': entry['title'], 'recommended': entry['recommended'],
                                           'options': {key: option['why'] for key, option in entry['options'].items()}}
                                 for concern, entry in catalogue.items()},
-            'what_now': 'Read the plan whole. Write the product spec in spec_format: group the features into modules with one '
+            'what_now': 'Read the plan whole, and look at every one of its pictures (open each file): they show the screens and '
+                        'the look. Write the product spec in spec_format, its `look` from the pictures (the one theme, colours, '
+                        'fonts, shared components, each screen with its features and picture) or, without pictures, the look '
+                        'that suits the product: group the features into modules with one '
                         'responsibility each, give every piece of data one owning module, turn each feature into checkable '
                         'acceptance criteria. Where the plan is thin, research what products of this kind need and add it as a '
                         'decision with options and your recommendation. Ask the person only what they must decide (choices, '
@@ -327,14 +331,21 @@ def _run_script(root, env, scripts, script, say):
 
 
 def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
+    """The build's gates on the copy: its own scripts, the structure, and security as a fix is held to it (the fast
+    engines on every card, CodeQL too when a milestone closes, where it may run): a weakness is never built in."""
+    from .execute import GATE_ENGINES
     from .facts.run import collect
+    from .weaknesses import new
     rules = _read(Path(root) / 'eaos.policy.json') or _read(folder(state) / 'eaos.policy.json')
     problems, build = _checks(root, state['open_build'], progress)
     state['open_build'] = build
+    changed = _git(root, 'ls-files').stdout.split() if closing else _git(root, 'diff', '--name-only', 'HEAD~1', 'HEAD').stdout.split()
     with tempfile.TemporaryDirectory(prefix='eaos-build-facts-') as out:
-        progress(3, 4, 'reading the structure: layers, cycles, copies' + (', dead code' if closing else ''))
-        collect(Path(root).resolve(), out)
+        progress(3, 4, 'reading the structure and security: layers, cycles, copies, weaknesses' + (', dead code' if closing else ''))
+        collect(Path(root).resolve(), out, engines=list(GATE_ENGINES) + (['codeql'] if closing else []))
         problems += blueprint.build_problems(root, out, rules, closing=closing)
+        problems += [{'gate': 'security', 'where': path, 'what': f'{rule} ({engine}): fix the weakness, never build it in'}
+                     for engine, rule, path in new(None, out, set(changed))]
     if card and card != 'FIX':
         added = _git(root, 'diff', '--name-only', '--diff-filter=A', 'HEAD~1', 'HEAD').stdout.split()
         kind = _cards(state)[card]['pattern']

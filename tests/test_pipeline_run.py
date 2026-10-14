@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from eaos import pipeline
-from eaos.pipeline import STAGES, SkipStage, check, execute, resume
+from eaos.pipeline import STAGES, SkipStage, again, check, execute, resume
 from eaos.pipeline.run import MANIFEST
 from eaos.pipeline import stages as module
 from eaos.pipeline.stages import OPTIONAL, REQUIRED, Stage
@@ -114,6 +114,25 @@ class ExecutionTests(unittest.TestCase):
 
 
 class ResumeTests(unittest.TestCase):
+    def test_a_tool_that_failed_is_said_and_run_again_alone_with_what_reads_it(self):
+        # CodeQL failed in a 1 h 46 min check while the engines stage said ok: the check is partial and says which,
+        # then the engines and the stages reading them run again, and the screens, the app and the rest are kept.
+        runners = fake_runners()
+        engines = runners['engines']
+        runners['engines'] = lambda context: {**engines(context), 'tools_failed': {'codeql': 'autobuild exit 1'}}
+        with tempfile.TemporaryDirectory() as directory:
+            first = execute('.', directory, runners=runners)
+            self.assertEqual(first['status'], 'PARTIAL')
+            self.assertEqual(first['stages']['engines']['reason_code'], 'tools_failed')
+            self.assertIn('codeql', first['stages']['engines']['reason'])
+            ran = []
+            second = again('.', directory, 'engines', runners=recording(ran))
+        self.assertEqual(set(ran), {'engines', *pipeline.dependents('engines', reading=True)})
+        self.assertIn('triage', ran)
+        self.assertNotIn('screens', ran)
+        self.assertEqual(second['status'], 'COMPLETE')
+        self.assertEqual(second['counts'][OK], len(STAGES))
+
     def test_a_failed_or_stopped_run_resumes_where_it_did_not_complete(self):
         with tempfile.TemporaryDirectory() as directory:
             execute('.', directory, runners=fake_runners(probe=RuntimeError('boom')))

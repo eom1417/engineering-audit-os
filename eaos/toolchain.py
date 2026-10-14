@@ -428,10 +428,10 @@ def _pip(tool):
 
 
 def tool_env():
-    """The environment a pinned tool runs or installs in: without the PYTHONPATH that points at this EAOS's own
-    packages. With it, pip took a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh
-    tools folder missed it and the tool failed once run on its own."""
-    return {name: value for name, value in os.environ.items() if name != 'PYTHONPATH'}
+    """The environment a pinned tool runs or installs in: without EAOS's own Python settings. With PYTHONPATH, pip took
+    a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh tools folder missed it; with
+    PYTHONSAFEPATH, a tool's script no longer imports its sibling modules (CodeQL's Python extractor failed)."""
+    return {name: value for name, value in os.environ.items() if name not in ('PYTHONPATH', 'PYTHONSAFEPATH')}
 
 
 def _pip_one(tool):

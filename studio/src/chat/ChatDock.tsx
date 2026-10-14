@@ -14,11 +14,13 @@ import { actionOf } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
 import type { ChatControl, ChatModel, ChatProposal, ChatTurn } from '../data/actions/types'
 import { usePrefs } from '../i18n/prefs'
+import { PlanForm } from './PlanForm'
 import css from './chat.module.css'
 
 const WORDS = {
   title: ['المساعد', 'Assistant'], open: ['افتح المساعد', 'Open the assistant'], close: ['صغّر', 'Minimise'],
   move: ['انقل للزاوية الثانية', 'Move to another corner'], fresh: ['محادثة جديدة', 'New conversation'],
+  plan: ['ابنِ من خطة', 'Build from a plan'],
   placeholder: ['اكتب سؤالك أو اطلب شي…', 'Ask, or ask for something…'], send: ['أرسل', 'Send'],
   thinking: ['يفكر…', 'Thinking…'], reading: ['يقرأ', 'Reading'],
   models: { quick: ['سريع', 'Quick'], balanced: ['متوازن', 'Balanced'], deep: ['عميق', 'Deep'] },
@@ -82,6 +84,7 @@ export function ChatDock() {
   const [busy, setBusy] = useState(false)
   const [live, setLive] = useState<{ reading: string[]; partial: string }>({ reading: [], partial: '' })
   const [control, setControl] = useState<ChatControl | null>(null)
+  const [planning, setPlanning] = useState(false)
   const list = useRef<HTMLDivElement>(null)
 
   useEffect(() => { if (open && client?.chatControl) void client.chatControl().then(setControl).catch(() => undefined) }, [open, client])
@@ -143,6 +146,7 @@ export function ChatDock() {
         <Icon name="assistant" />
         <span className={css.title}>{WORDS.title[at]}</span>
         <button type="button" className={css.tool} onClick={() => { setLines([]); setSession(null) }}>{WORDS.fresh[at]}</button>
+        {client.plan && <button type="button" className={css.tool} aria-pressed={planning} onClick={() => setPlanning(!planning)}>{WORDS.plan[at]}</button>}
         <button type="button" className={css.tool} aria-label={WORDS.move[at]} title={WORDS.move[at]} onClick={move}><Icon name="arrow" /></button>
         <button type="button" className={css.tool} aria-label={WORDS.close[at]} title={WORDS.close[at]} onClick={() => setOpen(false)}><Icon name="x" /></button>
       </header>
@@ -159,7 +163,8 @@ export function ChatDock() {
       </div>
       {control?.on && <p className={css.warn}>{WORDS.controlWhy[at]}</p>}
       <div className={css.list} ref={list} aria-live="polite">
-        {!lines.length && <span className={css.hint}>{WORDS.hello[at]}</span>}
+        {planning && <PlanForm />}
+        {!lines.length && !planning && <span className={css.hint}>{WORDS.hello[at]}</span>}
         {lines.map((line, index) => (
           <div key={index} style={{ display: 'contents' }}>
             <div className={css[line.who]}><bdi>{line.text}</bdi></div>

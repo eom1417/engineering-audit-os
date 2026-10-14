@@ -31,6 +31,8 @@ ARTIFACTS = (
              mutated_by=('target',)),
     Artifact('FEATURES.md', 'features', DOCUMENT, 'What the program does for a user, named by the routes that deliver it', 7, 200,
              record='features.json'),
+    Artifact('START-HERE.md', 'reports', DOCUMENT, 'The first page in plain words: what was found, what EAOS fixes alone', 1, 200,
+             record='plan.json'),
     Artifact('CURRENT-STATE.md', 'reports', DOCUMENT, 'What the program is today: features, data, measured risk', 2, 200, record='reports.json'),
     Artifact('TARGET-STATE.md', 'reports', DOCUMENT, 'The same features on the reference type, with its infrastructure', 2, 200, record='reports.json'),
     Artifact('GAP-AND-STRATEGY.md', 'reports', DOCUMENT, 'The distance component by component, and the order to close it', 2, 200, record='reports.json'),

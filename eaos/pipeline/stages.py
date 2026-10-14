@@ -26,6 +26,8 @@ class Stage:
     name: str
     produces: tuple
     requires: tuple = ()
+    # Optional stages whose output it reads when they ran, never waits for: run again with them (again), never held back.
+    reads: tuple = ()
     necessity: str = REQUIRED
     # Why a run may legitimately lack this stage. An optional stage with no reason is a required
     # stage somebody did not want to pay for.
@@ -89,7 +91,7 @@ STAGES = (
     Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),
-    Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts',),
+    Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts',), reads=('engines',),
           description='A cost record per entry point, with a stated projection at 1000x'),
     Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'load'),
           description='Facts interpreted into a ledger of falsifiable claims'),
@@ -141,7 +143,7 @@ STAGES = (
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
     Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',),
           description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
-    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json'),
+    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json', 'START-HERE.md'),
           requires=('reconcile', 'steps'),
           description='The four reports a client reads first, written from the final target and plan; every other '
                       'document is an appendix to them'),
@@ -166,7 +168,7 @@ def errors():
     for stage in STAGES:
         if stage.name in seen: found.append(f'{stage.name}: declared twice')
         seen.add(stage.name)
-        found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires if need not in seen]
+        found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires + stage.reads if need not in seen]
         found += [f'{stage.name}: {artifact} is already produced by {produced[artifact]}' for artifact in stage.produces if artifact in produced]
         produced.update(dict.fromkeys(stage.produces, stage.name))
         found += _stage_errors(stage)
@@ -185,13 +187,13 @@ def _stage_errors(stage):
     return found
 
 
-def dependents(name):
-    """Every stage that cannot run once this one has failed."""
+def dependents(name, reading=False):
+    """Every stage that cannot run once this one has failed; `reading`: also those that read what it makes."""
     blocked, frontier = set(), {name}
     while frontier:
         current = frontier.pop()
         for stage in STAGES:
-            if current in stage.requires and stage.name not in blocked:
+            if current in stage.requires + (stage.reads if reading else ()) and stage.name not in blocked:
                 blocked.add(stage.name)
                 frontier.add(stage.name)
     return sorted(blocked)

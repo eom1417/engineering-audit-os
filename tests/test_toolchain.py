@@ -119,7 +119,8 @@ class ToolEnvironment(unittest.TestCase):
         from eaos.engines import process
         tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'method': 'pip', 'package': 'semgrep'}}
         done = mock.Mock(returncode=0, stdout='1.0.0', stderr='')
-        with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages'}), \
+        # PYTHONSAFEPATH, set where the Studio runs, kept CodeQL's Python extractor from importing its own modules.
+        with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages', 'PYTHONSAFEPATH': '1'}), \
                 mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
                 mock.patch.object(toolchain, 'binary_path', return_value='/tools/bin/semgrep'), \
                 mock.patch('subprocess.run', return_value=done) as run:
@@ -128,7 +129,7 @@ class ToolEnvironment(unittest.TestCase):
             process.run(['semgrep', '--version'])
         self.assertGreaterEqual(len(run.call_args_list), 3, 'pip, the version check and the engine run')
         for call in run.call_args_list:
-            self.assertNotIn('PYTHONPATH', call.kwargs['env'])
+            self.assertFalse({'PYTHONPATH', 'PYTHONSAFEPATH'} & set(call.kwargs['env']))
         # The lock's pytest needs ApprovalTests beside it in the same virtualenv.
         import tempfile
         tool = {'name': 'pytest', 'version': '9.1.1', 'binary': 'pytest',

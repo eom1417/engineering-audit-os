@@ -21,7 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
-from . import chat, handoff, selection as selecting
+from . import chat, handoff, plan, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
@@ -219,6 +219,7 @@ class Actions:
         if rest == ['runs', 'reorder']: return {'queue': self.manager.reorder(body.get('order'))}
         if rest == ['chat']: return chat.start(self, body)
         if rest == ['chat', 'control']: return chat.control(self, body)
+        if rest == ['plan']: return plan.start(self, body)
         if len(rest) == 3: return self._post_on(rest, body, route)
         raise KeyError(route)
 
@@ -364,15 +365,16 @@ class Actions:
         if name not in self.actions: raise KeyError(name)
         return None, name
 
-    def _inputs(self, action, inputs, verb=None):
-        """The inputs of an action, or of a verb that declares any (a Fix's auto_accept), checked against the contract."""
+    def _inputs(self, action, inputs, verb=None, project=None):
+        """The inputs of an action, or of a verb that declares any (a Fix's auto_accept), checked against the contract;
+        the project is the server's own (create), never the page's."""
         from ...artifact_contracts import validate
         inputs = {key: value for key, value in (inputs or {}).items() if key != 'project'}
         schema = self.verbs[verb].get('inputs') if verb else self.actions[action]['inputs']
         if verb and not schema: return {}
         problems = validate(inputs, schema)
         if problems: raise ValueError('; '.join(problems[:5]))
-        return inputs
+        return {**inputs, 'project': project} if project else inputs
 
     def _assistant(self, wanted, needed):
         if not needed: return None
@@ -459,11 +461,12 @@ class Actions:
         return self.studio if self.studio else selecting.studio_folder(self.project)
 
     # running
-    def create(self, body):
+    def create(self, body, project=None):
+        """A run; `project`: another folder, chosen by the server itself (a new project from its plan, plan.py), never by the page."""
         if not (body.get('action') or body.get('verb')): raise ValueError('say which action to run (action) or which verb (verb)')
         verb, action = self._kind(str(body.get('action') or body.get('verb')), body)
         self._speak(body.get('lang'))
-        inputs = self._inputs(action, body.get('inputs'), verb)
+        inputs = self._inputs(action, body.get('inputs'), verb, project)
         auto = _auto_accept(verb, inputs)
         if verb: inputs = {}
         selection = body.get('selection') if verb else None

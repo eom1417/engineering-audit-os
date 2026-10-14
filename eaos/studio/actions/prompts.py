@@ -49,6 +49,12 @@ VERBS = {
 }
 
 
+# A step whose answer leads straight on, done through to where the person decides.
+CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_design (the spec, blueprint_spec until it '
+                             'is complete, asking the person only real choices), always with the same project; stop there: the '
+                             'person reads the blueprint and agrees to build it (build_start).'}
+
+
 def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None):
     """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
     chose to build and deliver it)."""
@@ -63,12 +69,20 @@ def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None
                      'branch moved: they preview the fix again.')
     else:
         label = (labels or {}).get(action, {}).get('en', action)
-        shown = {k: v for k, v in (inputs or {}).items() if k != 'project'}
+        shown = {k: v for k, v in (inputs or {}).items() if v is not None and not (k == 'project' and v == str(project))}
         task = (f'Use the eaos tools for this one step of the EAOS way: {label} (the `{action}` tool)'
                 + (f', with these inputs from the person: {json.dumps(shown, ensure_ascii=False)}' if shown else '')
-                + '. Call `status` first; do what the step needs and no more.')
+                + '. Call `status` first; ' + CHAINS.get(action, 'do what the step needs and no more.'))
     return (f'{task}\n\nThe project is the current folder ({project.name}). This request comes from the EAOS Studio, where the '
             f'person follows every step. {ASK}\nWrite every message in {language}, the short notes between tools too: the person reads them live in the Studio.')
+
+
+def done(result):
+    """The words of a direct step that ended: a check whose tools broke says which, and where it goes on from."""
+    broke = ', '.join(((result.get('counts') or {}).get('failed_tools') or []) if isinstance(result, dict) else [])
+    if not broke: return {'en': 'Done', 'ar': 'تم'}
+    return {'en': f'Done, but these tools failed: {broke}. Run them again from the check map.',
+            'ar': f'تم، لكن هذه الأدوات فشلت: {broke}. أعد تشغيلها من خريطة الفحص.'}
 
 
 def acts(question, option):

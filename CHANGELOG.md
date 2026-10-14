@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.0.27 (2026-10-14)
+
+- **A check goes on from where it went wrong, never a whole new one for one stage**: the check map's stage panel has
+  "Redo this stage and what depends on it" and, when tools failed in it, "Run the tools that failed again". It runs on
+  the very commit that was checked, the stage and every stage reading what it makes run again (a stage now declares
+  what it reads besides what it waits for: the load model reads the engines), and the rest is kept as it was
+  (`audit again_from=<stage> engines=[...]`, `eaos/pipeline/run.py again`). A tool run again alone joins the other
+  tools' results of the same check instead of replacing them.
+- **A tool that fails is said, never read as clean**: CodeQL failed on EAOS's Python in a 1 h 46 min check while the
+  engines stage said ok. The stage now names the tools that failed, the check is PARTIAL, and its result says
+  "Done, but these tools failed: ..." with where to run them again.
+- **CodeQL reads Python where the Studio runs**: the Studio's PYTHONSAFEPATH kept CodeQL's Python extractor from
+  importing its own modules; the tools now run without EAOS's own Python settings.
+- **START-HERE.md is this check's**: it was written only when missing, so the page of a check in the morning (177
+  problems, 156 to decide) stood over the afternoon's (79, all fixed alone), translated as it was. The reports stage
+  writes it every check, and a new check clears the old one.
+- **The triage asks only what is new or changed**: each card's verdict is kept under its own evidence and the task's
+  words, so a check gone on from a stage (CodeQL's new cards) pays for those cards alone, not every card again.
+- **Build from a plan in the Studio**: "Build from a plan" in the assistant's panel takes the new project's name, its
+  files (PDF, Word, HTML, Markdown, text) and the pictures of its screens, or pasted words; the person's assistant
+  reads them, looks at every picture, asks only real choices and draws the structure, the look and the whole build
+  plan in a new folder beside the project (POST /api/plan). The build starts once the person agrees.
+- **The plan's look is built once**: the spec carries the one theme, its colours, fonts, shared components and the
+  screens with their features and pictures (`look`); the shared-look card makes them design tokens no screen
+  overrides, and each feature's card says which screen and picture it follows. A plan is read from a folder too, its
+  pictures kept for the assistant (`eaos/plan_source.py`).
+- **A build never builds a weakness in**: every build card passes Bandit and Gitleaks as a fix does, and a milestone
+  closes with CodeQL too where it may run (tried: a shell command built from input and an AWS key are refused).
+
 ## 0.0.26 (2026-10-14)
 
 - **Every document in both languages, switched with the Studio's**: the documents came out mixed (on EAOS, the median

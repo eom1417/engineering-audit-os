@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
-from eaos import blueprint, build_tools, guided
+from eaos import blueprint, build_tools, guided, plan_source
 
 
 def spec(**changes):
@@ -22,7 +22,9 @@ def spec(**changes):
                          {'id': 'F2', 'name': 'Book a visit', 'module': 'appointments', 'entities': ['appointment', 'patient'],
                           'roles': ['staff'], 'acceptance': ['a booked visit shows on its day']}],
             'roles': [{'id': 'staff', 'name': 'Staff', 'can': ['F1', 'F2']}],
-            'flows': [{'id': 'FL1', 'name': 'First booking', 'actor': 'staff', 'features': ['F1', 'F2'], 'steps': ['add', 'book']}]}
+            'flows': [{'id': 'FL1', 'name': 'First booking', 'actor': 'staff', 'features': ['F1', 'F2'], 'steps': ['add', 'book']}],
+            'look': {'theme': 'light', 'colors': {'primary': '#0F766E'}, 'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'table'],
+                     'screens': [{'id': 'S1', 'name': 'Visits', 'features': ['F2'], 'picture': 'screens/visits.png'}]}}
     base.update(changes)
     return base
 
@@ -30,16 +32,22 @@ def spec(**changes):
 class SpecTests(unittest.TestCase):
     def test_any_plan_is_read_and_what_makes_its_spec_unbuildable_or_open_is_named(self):
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(blueprint.read_source(text='  a pasted plan  '), 'a pasted plan')
+            self.assertEqual(plan_source.read_source(text='  a pasted plan  '), 'a pasted plan')
             (Path(tmp) / 'plan.md').write_text('# Plan\n\nBook visits.\n')
-            self.assertIn('Book visits.', blueprint.read_source(Path(tmp) / 'plan.md'))
+            self.assertIn('Book visits.', plan_source.read_source(Path(tmp) / 'plan.md'))
             (Path(tmp) / 'plan.html').write_text('<html><style>x{}</style><h1>Plan</h1><p>Book&nbsp;visits</p></html>')
-            self.assertEqual(blueprint.read_source(Path(tmp) / 'plan.html').split(), ['Plan', 'Book', 'visits'])
+            self.assertEqual(plan_source.read_source(Path(tmp) / 'plan.html').split(), ['Plan', 'Book', 'visits'])
             with zipfile.ZipFile(Path(tmp) / 'plan.docx', 'w') as word:
                 word.writestr('word/document.xml', '<w:document><w:body><w:p><w:r><w:t>حجز المواعيد</w:t></w:r></w:p>'
                                                    '<w:p><w:r><w:t>Staff book visits</w:t></w:r></w:p></w:body></w:document>')
-            self.assertEqual(blueprint.read_source(Path(tmp) / 'plan.docx').splitlines(), ['حجز المواعيد', 'Staff book visits'])
-            with self.assertRaises(ValueError): blueprint.read_source(Path(tmp) / 'missing.pdf')
+            self.assertEqual(plan_source.read_source(Path(tmp) / 'plan.docx').splitlines(), ['حجز المواعيد', 'Staff book visits'])
+            with self.assertRaises(ValueError): plan_source.read_source(Path(tmp) / 'missing.pdf')
+            # A folder of them, with the pictures of its screens kept as files for the assistant to look at.
+            (Path(tmp) / 'screens').mkdir()
+            (Path(tmp) / 'screens/visits.png').write_bytes(b'png')
+            text, pictures = plan_source.read_plan(tmp)
+            self.assertIn('Book visits.', text)
+            self.assertEqual(pictures, [str(Path(tmp) / 'screens/visits.png')])
         self.assertEqual(blueprint.validate_spec(spec()), ([], []))
         broken = spec(features=[{'id': 'F1', 'name': 'x', 'module': 'patients', 'entities': ['patient', 'ghost'], 'acceptance': []}],
                       entities=spec()['entities'] + [{'id': 'orphan', 'name': 'O', 'module': 'nowhere', 'fields': []}])
@@ -48,6 +56,7 @@ class SpecTests(unittest.TestCase):
         for expected in ('no acceptance criterion', 'uses ghost, which is not an entity', 'entity orphan: its owning module',
                          'entity orphan: no feature uses it', 'module appointments: no feature belongs to it'):
             self.assertIn(expected, text)
+        self.assertIn('`look` is empty', '\n'.join(blueprint.validate_spec(spec(look=None))[0]))
         _, questions = blueprint.validate_spec(spec(stack_preferences={'database': 'mongodb'},
                                                     decisions=[{'id': 'D1', 'question': 'Reminders by SMS or e-mail?',
                                                                 'options': ['sms', 'email'], 'recommendation': 'email'}]))
@@ -68,7 +77,8 @@ class DesignTests(unittest.TestCase):
                          'appointments use patients, so patients are built first')
         cards = {c['id']: c for c in built['plan']['tasks']}
         feature = next(c for c in cards.values() if c['feature'] == 'F2')
-        self.assertEqual(feature['acceptance'], ['a booked visit shows on its day'])
+        self.assertEqual(feature['acceptance'], ['a booked visit shows on its day',
+                                                 'the screen Visits follows its picture screens/visits.png, with the shared look only'])
         self.assertTrue(all(cards[d]['milestone'] <= feature['milestone'] for d in feature['depends_on']))
         self.assertIn('server/src/infrastructure/database/', built['policy']['vendors']['database']['only_in'])
         rules = {rule['allow_only']['from']: rule['allow_only']['to'] for rule in built['policy']['rules']}

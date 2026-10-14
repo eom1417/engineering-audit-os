@@ -106,12 +106,14 @@ def present(specification, sets):
 
 def new(before, after, paths):
     """The security findings in `paths` that the facts in folder `after` have and those in `before` had not, from the
-    engines both ran: the gate that refuses a change bringing a weakness in (eaos/execute.py new_debt)."""
+    engines both ran: the gate that refuses a change bringing a weakness in (eaos/execute.py new_debt). `before` None:
+    nothing was there before, a project built from its plan (eaos/build_tools.py)."""
     from pathlib import Path
     from .facts.store import read_set
-    before, after = ({'external': read_set(folder, 'external')} if (Path(folder) / 'facts/external.json').is_file() else {}
+    built = before is None
+    before, after = ({'external': read_set(folder, 'external')} if folder and (Path(folder) / 'facts/external.json').is_file() else {}
                      for folder in (before, after))
-    engines = observed(before) & observed(after)
+    engines = observed(after) & (observed(after) if built else observed(before))
     def found(sets):
         return {(f['value']['engine'], f['value']['rule'], f['location']['path']) for f in _findings(sets)
                 if f['value']['engine'] in engines and f['location']['path'] in paths}

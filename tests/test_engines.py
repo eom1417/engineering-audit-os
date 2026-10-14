@@ -50,14 +50,22 @@ class DegradationTests(unittest.TestCase):
             NAME, PINNED = 'exploding', '0'
             @staticmethod
             def analyze(*_args, **_kwargs): raise RuntimeError('engine crashed')
-        ADAPTERS['exploding'] = Exploding
+        class Calm:
+            NAME, PINNED = 'calm', '0'
+            @staticmethod
+            def analyze(*_args, **_kwargs): return Report('calm', None, '0', UNAVAILABLE, reason='nothing here')
+        ADAPTERS.update(exploding=Exploding, calm=Calm)
         try:
             with tempfile.TemporaryDirectory() as workdir:
-                manifest = analyze('.', workdir, only=['exploding', 'imaginary'])
+                manifest = analyze('.', workdir, only=['exploding', 'calm', 'imaginary'])
+                # Run again alone within the same check, the one that failed joins the others' results kept from it.
+                Exploding.analyze = staticmethod(lambda *_a, **_k: Report('exploding', None, '0', UNAVAILABLE, reason='fixed'))
+                again = analyze('.', workdir, only=['exploding'], keep=True)
         finally:
-            del ADAPTERS['exploding']
+            del ADAPTERS['exploding'], ADAPTERS['calm']
         self.assertEqual(manifest['coverage']['exploding']['status'], 'error')
         self.assertIn('engine crashed', manifest['coverage']['exploding']['reason'])
+        self.assertEqual({name: row['reason'] for name, row in again['coverage'].items()}, {'calm': 'nothing here', 'exploding': 'fixed'})
         self.assertEqual((manifest['unknown_engines'], manifest['findings']), (['imaginary'], []))
         # A tool with nothing to read is not applicable, not absent.
         from unittest import mock

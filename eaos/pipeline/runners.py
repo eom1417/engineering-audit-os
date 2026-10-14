@@ -39,13 +39,15 @@ def engines(context):
     if 'source' not in context:
         from ..facts.source import Source
         context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
-    entries = collect_external(context.target, context.out, context['source'], only=context.engines or None)
+    # Run again within the same check (eaos/pipeline/run.py again), the engines named join the others' results.
+    entries = collect_external(context.target, context.out, context['source'], only=context.engines or None,
+                               keep=bool(context.get('again')))
     external_entry = _index_engines(context, entries if isinstance(entries, list) else [entries], add_to_index)
     from ..engines_report import document
     from ..facts.store import read_set
-    (context.out / 'ENGINES.md').write_text(
-        document({'external': read_set(context.out, 'external')}, context.language).render(), encoding='utf-8')
-    return {'findings': external_entry['facts']}
+    external = read_set(context.out, 'external')
+    (context.out / 'ENGINES.md').write_text(document({'external': external}, context.language).render(), encoding='utf-8')
+    return {'findings': external_entry['facts'], 'tools_failed': external['summary'].get('engines_failed') or {}}
 
 
 def _index_engines(context, entries, add_to_index):
@@ -432,10 +434,12 @@ def lock(context):
 
 
 def reports(context):
-    # The C4 diagrams first: CURRENT-STATE and TARGET-STATE embed them.
+    # The C4 diagrams first: CURRENT-STATE and TARGET-STATE embed them; START-HERE.md counts this check's plan.
     from ..c4 import write as diagrams
     from ..compose.four_reports import write
+    from ..start_here import project_name, start_here
     diagrams(context.out)
+    start_here(context.out, context.language, project_name(context.target))
     return write(context.out, context.language)
 
 
@@ -576,11 +580,9 @@ def steps(context):
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
 def translate(context):
-    """Every document in both languages (eaos/bilingual.py), START-HERE.md written first when nothing wrote it."""
+    """Every document in both languages (eaos/bilingual.py)."""
     if not context.provider: raise _absent(context.provider)
     from ..bilingual import translate as both
-    from ..start_here import start_here
-    if not (context.out / 'START-HERE.md').is_file(): start_here(context.out, context.language, Path(context.target).name)
     return both(context.out, context.provider)
 
 
