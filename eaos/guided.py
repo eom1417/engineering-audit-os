@@ -328,17 +328,11 @@ def _pip_install(*packages):
 
 def doctor(args):
     lang = language(args.lang)
-    project = Path(args.project).resolve() if args.project else None
-    rows = doctor_rows(project, probe=True)
+    rows = doctor_rows(Path(args.project).resolve() if args.project else None, probe=True)
     from . import __version__
     from .build_info import commit
     say(f"ℹ️ EAOS {__version__} · {commit() or ('commit غير معروف' if lang == 'ar' else 'commit unknown')}")
-    for row in rows:
-        mark = '✅' if row['ok'] else {'now': '❌', 'optional': '⚠️'}.get(row['when'], '⬜')
-        later = ('' if row['ok'] or row['when'] == 'now' else
-                 (' (الفحص يعمل بدونها، والتقرير يذكر ما لم يُفحص)' if lang == 'ar' else ' (the check runs without them; the report names what was not checked)')
-                 if row['when'] == 'optional' else (' (لاحقًا)' if lang == 'ar' else ' (later)'))
-        say(f"{mark} {row[lang]}{later}" + ('' if row['ok'] else f"\n     → {row['fix']}"))
+    for row in rows: say(_doctor_line(row, lang))
     tools_missing = [row for row in rows if not row['ok'] and row['fix'] == 'eaos doctor --fix']
     if args.fix and tools_missing:
         from .toolchain import install
@@ -348,6 +342,17 @@ def doctor(args):
         say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
         install(echo=lambda line: say('   ' + str(line)))
         return doctor(type(args)(project=args.project, lang=lang, fix=False))
+    return _doctor_verdict(rows, lang, args.project)
+
+
+def _doctor_line(row, lang):
+    mark = '✅' if row['ok'] else {'now': '❌', 'optional': '⚠️'}.get(row['when'], '⬜')
+    later = ('' if row['ok'] or row['when'] == 'now' else (' (الفحص يعمل بدونها، والتقرير يذكر ما لم يُفحص)' if lang == 'ar' else ' (the check runs without them; the report names what was not checked)')
+             if row['when'] == 'optional' else (' (لاحقًا)' if lang == 'ar' else ' (later)'))
+    return f"{mark} {row[lang]}{later}" + ('' if row['ok'] else f"\n     → {row['fix']}")
+
+
+def _doctor_verdict(rows, lang, project):
     blocking = [row for row in rows if not row['ok'] and row['when'] == 'now']
     if blocking:
         fixable = all(row['fix'] == 'eaos doctor --fix' for row in blocking)
@@ -355,15 +360,10 @@ def doctor(args):
             commands=['eaos doctor --fix'] if fixable else [blocking[0]['fix'], 'eaos doctor'], status='fail')
         return 1
     box(lang, ('جهازك جاهز للفحص' if lang == 'ar' else 'Your computer is ready to check a project'),
-        commands=[_start_command(args.project)], status='ok',
-        note=None if all(row['ok'] for row in rows) else (
-            ('ما تبقى لا يمنع الفحص. لتثبيته: eaos doctor --fix' if lang == 'ar'
-             else 'What is left does not stop the check. To install it: eaos doctor --fix')))
+        commands=[f"eaos start {project}" if project and project != '.' else 'eaos start .'], status='ok',
+        note=None if all(row['ok'] for row in rows) else ('ما تبقى لا يمنع الفحص. لتثبيته: eaos doctor --fix' if lang == 'ar'
+                                                          else 'What is left does not stop the check. To install it: eaos doctor --fix'))
     return 0
-
-
-def _start_command(project):
-    return f"eaos start {project}" if project and project != '.' else 'eaos start .'
 
 
 # ---------------------------------------------------------------- the steps `next` walks through
