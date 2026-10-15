@@ -81,6 +81,12 @@ export function recommendedOption(decision: Decision): Decision['options'][numbe
   return rec && top * 2 >= rec.length && leaders.length === 1 ? leaders[0] : undefined
 }
 
+/** The recommendation as the card says it: a bare "لا" gives no reason, so the option it opens is said whole
+ * ("لا، يخزن حقائق الكود فقط"). */
+function recommendationText(decision: Decision, recommended?: Decision['options'][number]): string {
+  return recommended && opensWith(recommended.label.trim(), decision.recommendation.trim()) ? recommended.label : decision.recommendation
+}
+
 /**
  * One question, its recommendation, large one-tap answers (the option the recommendation names is primary, first,
  * with a "Recommended" tag), durable live answers and the link to the cards it concerns.
@@ -100,6 +106,7 @@ export function DecisionCard({ decision, cardsTo, compact, noted }:
   const [allAnswers, setAllAnswers] = useState(false)
   const recommended = recommendedOption(decision)
   const ordered = recommended ? [recommended, ...decision.options.filter((o) => o !== recommended)] : decision.options
+  const recommendation = recommendationText(decision, recommended)
   const blocks = decision.blocks.length
   const tasks = decision.blocks.every((b) => b.startsWith('TASK-'))
   const blocksText = blocks === 1 ? t(tasks ? 'blocksOneTask' : 'blocksOneStep') : t(tasks ? 'blocksTasks' : 'blocksSteps', { n: blocks })
@@ -134,8 +141,8 @@ export function DecisionCard({ decision, cardsTo, compact, noted }:
     <Panel as="article" emphasis className={[css.decision, compact && css.compactDecision].filter(Boolean).join(' ')} label={decision.question} hook={`decision:${decision.id}`}>
       <DecisionHead waiting={waiting} blocks={blocks} blocksText={blocksText} cardsTo={cardsTo} />
       <h3 className={css.decQ}><Txt block>{decision.question}</Txt></h3>
-      {decision.recommendation && (
-        <div className={css.decRec}><span className={css.decRecLabel}>{t('recommended')}</span><Txt block>{decision.recommendation}</Txt></div>
+      {recommendation && (
+        <div className={css.decRec}><span className={css.decRecLabel}>{t('recommended')}</span><Txt block>{recommendation}</Txt></div>
       )}
       {!live && !noted && <p role="note">{t('readOnlyAnswers')}</p>}
       {waiting && ordered.length > 0 && (
