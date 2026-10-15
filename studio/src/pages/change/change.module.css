@@ -144,6 +144,8 @@
 }
 
 @media (max-width: 767px) {
+  .stepper { display: grid; grid-template-columns: repeat(3, max-content); }
+  .metaLine { display: grid; grid-template-columns: repeat(2, max-content); }
   .nav { inline-size: 100%; }
   .navLink { flex: 1; min-block-size: var(--target); padding-inline: 6px; }
   .filter { min-block-size: var(--target); }
