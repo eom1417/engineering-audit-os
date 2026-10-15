@@ -106,7 +106,6 @@
   "eaos/studio/nodes/triage.py::resolution": 16,
   "eaos/studio/paths.py::_Builder.onward": 19,
   "eaos/studio/paths.py::_Builder.trace_gap": 16,
-  "eaos/studio/paths.py::_read": 64,
   "eaos/studio/paths.py::components": 16,
   "eaos/studio/paths.py::overview": 25,
   "eaos/studio/pipeline.py::_stage_row": 16,
