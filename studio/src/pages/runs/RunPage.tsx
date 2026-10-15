@@ -301,17 +301,17 @@ export function RunPage() {
   const { runId } = useParams({ strict: false }) as { runId: string }
   const actions = useActions()
   const data = useStudio()
-  if (actions.mode === 'snapshot') return <SnapshotRun project={data?.manifest.project.name} />
+  if (actions.mode === 'snapshot') return <SnapshotRun id={runId} project={data?.manifest.project.name} />
   return <RunBody key={runId} id={runId} />
 }
 
 /** A static copy knows no runs: the address's id is unverified, so the title stays generic. */
-function SnapshotRun({ project }: { project?: string }) {
+function SnapshotRun({ id, project }: { id: string; project?: string }) {
   const w = useCmdWords()
-  usePageChrome(w('run'), { to: '/runs', label: w('runs') }, project)
+  usePageChrome(`${w('run')} ${id}`, { to: '/runs', label: w('runs') }, project)
   return (
     <div className={layout.page}>
-      <PageTitle title={w('run')} lead={w('runSnapshotLead')} />
+      <PageTitle title={<>{w('run')} <Id value={id} /></>} lead={w('runSnapshotLead')} />
       <SnapshotPanel />
     </div>
   )
