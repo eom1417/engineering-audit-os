@@ -97,8 +97,6 @@
   "eaos/studio/model.py::_problem_row": 17,
   "eaos/studio/model.py::score": 16,
   "eaos/studio/nodes/fix_reviewer.py::_cards": 20,
-  "eaos/studio/nodes/triage.py::inputs": 17,
-  "eaos/studio/nodes/triage.py::resolution": 16,
   "eaos/studio/paths.py::_Builder.onward": 19,
   "eaos/studio/paths.py::_Builder.trace_gap": 16,
   "eaos/studio/paths.py::components": 16,
