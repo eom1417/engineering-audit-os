@@ -244,7 +244,10 @@ def gates(batch, name):
         from .behavior_lock import verify_lock
         verdict = verify_lock(batch['report'], batch['root'], batch['runtime'], name=name, declared=batch['declared'],
                               known=batch.get('known') or ())
-        if verdict['failed']: return f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs"
+        if verdict['failed']:      # every screen that differs, at once: one per run cost a batch hours
+            from .behavior_lock import failing_tests
+            return (f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
+                    + '; '.join(sorted(failing_tests(batch['runtime'], name)))[:600])
     return ''
 
 
@@ -271,11 +274,11 @@ def _rebuilt(batch, commits):
 
 
 def declared_screens(cards):
-    """The snapshot names (eaos/lock_specs.py) of the screens the design cards say they change: their findings' pages."""
-    from .lock_specs import path_of, slug
-    pages = {re.sub(r'^https?://[^/]+/?#?', '', f.get('page') or '') or '/' for card in cards
-             for f in (card.get('design') or {}).get('findings') or []}
-    return {slug(path_of(page) or page) for page in pages}
+    """The screens a batch may change the look of: every one ('*') when it holds a design card, else none. A design card
+    changes a shared part (a font, a card, a strip) that shows on pages its finding never named: by those pages, each run
+    found one more screen and 33 sound design cards were left out (EAOS, 2026-10-15). Their pictures are the next check's
+    to review; a page's errors and its server's answers stay locked."""
+    return {'*'} if any((card.get('design') or {}).get('findings') for card in cards) else set()
 
 
 def open_batch(target, runtime, number):

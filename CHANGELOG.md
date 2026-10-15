@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.0.34 (2026-10-15)
+
+- **A batch with a design card is not refused for how its screens look**: a design card changes a shared part (a font,
+  a card, a strip) that shows on pages its finding never named, so each run of batch 8 found one more such page and 33
+  sound design cards were left out. Such a batch may now change any screen's look (`waves.declared_screens`); a page's
+  errors and its server's answers stay locked, and a batch of code changes keeps every screen locked. When the lock
+  breaks, it names every screen that differs at once, not one per run.
+- **The speed baseline measures the program, found at setup**: a route that answers "not found" no longer counts as
+  served (`runtime_baseline._answer`), so a server of the pages alone (`vite preview`) is refused at setup, where the
+  assistant is asked for the real server, not only later by the check. A production run that worked is tried first by
+  the next setup instead of being detected away (the assistant had found EAOS's real server, and each setup lost it).
+- **Filter strips look like the System maps' tabs**: one global style for every row of filters (the library, functions,
+  screens, gaps, the problems' filter sheet and the System tabs): one line sliding sideways, plain text, a light
+  highlight, the chosen item on the accent.
+- CodeQL on Python, which failed in the last check, works: run under the Studio's PYTHONSAFEPATH, it analysed Python and
+  JavaScript and reported 7 findings (the fix shipped in 0.0.29's day, after that check).
+
 ## 0.0.33 (2026-10-15)
 
 - **A large module is split once its complex functions are simplified, never before**: the plan already said a split

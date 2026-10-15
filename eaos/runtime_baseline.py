@@ -59,9 +59,14 @@ def summary(path):
             'error_rate': round(float(data.get('http_req_failed', {}).get('value', 0.0)), 4)}
 
 
+NOT_FOUND = b'404'
+
+
 def _answer(url):
+    """The body a GET answers; NOT_FOUND when the route is not served; None when it answers otherwise (a sign-in asked)."""
     try:
         with urllib.request.urlopen(url, timeout=10) as response: return response.read()
+    except urllib.error.HTTPError as answer: return NOT_FOUND if answer.code == 404 else None
     except (OSError, ValueError): return None
 
 
@@ -100,11 +105,13 @@ class PagesOnly(RuntimeError):
 
 def refuse_a_page_server(report, base):
     """The load must hit the program, not a server of its pages alone: when most server routes of the code answer
-    with the very page `/` answers (a front-end server's fallback), the baseline would measure the wrong program."""
+    with the very page `/` answers (a front-end server's fallback), or are not found, the baseline would measure the
+    wrong program. Counted as served, a route vite preview did not find let it pass the setup, and the check, knowing more
+    routes, refused it too late to ask the assistant (EAOS, 2026-10-15)."""
     from .nfr import server_routes
     if not report: return
     routes, page = [r for r in server_routes(report) if r != '/'], _answer(f'{base}/')
-    if page is not None and sum(_answer(f'{base}{route}') == page for route in routes) * 2 > len(routes):
+    if page is not None and sum(_answer(f'{base}{route}') in (page, NOT_FOUND) for route in routes) * 2 > len(routes):
         raise PagesOnly(f'the started app serves only its pages: its {len(routes)} server routes ({", ".join(routes[:3])}...) '
                            'answer with the page itself, so a load on it would not measure the program. Propose a baseline '
                            'whose start runs the real server, serving the built pages and these routes (run_try with mode="baseline", '

@@ -83,7 +83,7 @@ def _declared(status, message, declared):
     """A test failed only because its screen looks different, on a screen the batch's design cards say they change
     (`declared` snapshot names, eaos/waves.py declared_screens): their change, not a breakage."""
     found = SCREENSHOT.search(ANSI.sub('', message or '')) if status == 'failed' else None
-    return 'passed' if found and found.group(1) in declared else status
+    return 'passed' if found and ('*' in declared or found.group(1) in declared) else status
 
 
 def spec_statuses(report, declared=(), known=()):

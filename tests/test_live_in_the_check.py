@@ -124,6 +124,8 @@ class LoadTarget(unittest.TestCase):
             class Handler(BaseHTTPRequestHandler):
                 def do_GET(self):
                     body = b'{"ok": true}' if api and self.path.startswith('/api/') else b'<html>the app</html>'
+                    if api == 'signin' and self.path.startswith('/api/'): return self.send_error(401)
+                    if api == 'missing' and self.path.startswith('/api/'): return self.send_error(404)
                     self.send_response(200)
                     self.end_headers()
                     self.wfile.write(body)
@@ -137,7 +139,10 @@ class LoadTarget(unittest.TestCase):
         with mock.patch('eaos.nfr.server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
             with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):
                 runtime_baseline.refuse_a_page_server('report', serve(api=False))
+            with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):    # its routes not found: still the pages
+                runtime_baseline.refuse_a_page_server('report', serve(api='missing'))
             runtime_baseline.refuse_a_page_server('report', serve(api=True))
+            runtime_baseline.refuse_a_page_server('report', serve(api='signin'))        # the program, behind its sign-in
 
     def test_the_load_sends_the_programs_token_and_leaves_out_what_a_plain_request_cannot_load(self):
         # EAOS on itself (2026-10-14): its routes answered 401 without the Studio's token, /api/events streams forever,

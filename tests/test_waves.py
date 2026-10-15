@@ -30,6 +30,16 @@ def commit_file(root, name, text):
 
 
 class OrderTests(unittest.TestCase):
+    def test_a_batch_with_a_design_card_may_change_any_screens_look_but_not_its_errors(self):
+        # EAOS, 2026-10-15: a design card's shared change showed on pages its finding never named; each run found one more
+        from eaos.behavior_lock import _declared
+        self.assertEqual(waves.declared_screens([{'design': {'findings': [{'page': '/library'}]}}, {}]), {'*'})
+        self.assertEqual(waves.declared_screens([{'id': 'TASK-1'}]), set(), 'a batch of code changes keeps every screen locked')
+        shot = 'expect(page).toHaveScreenshot(expected) failed\n  Snapshot: change-ideal.png'
+        self.assertEqual(_declared('failed', shot, {'*'}), 'passed')
+        self.assertEqual(_declared('failed', 'console: TypeError: x is undefined', {'*'}), 'failed', 'a page error still breaks it')
+        self.assertEqual(_declared('failed', shot, set()), 'failed')
+
     def test_a_failure_that_names_a_file_finds_its_culprit_in_one_run_and_a_change_is_sized_against_the_copy(self):
         # EAOS, 2026-10-15: halving 68 changes ran the whole suite for hours though the failure named the one file; a
         # repair was refused for growing an 876-line file that the check on record knew at 861
