@@ -14,6 +14,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { N } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, PageTitle } from '../../shell/Layout'
+import { SnapshotPanel } from '../runs/RunsPage'
 import css from './assistant.module.css'
 
 const WORDS = {
@@ -122,7 +123,7 @@ function Body() {
     void client.usage().then(setReport).catch(() => setReport({ check: null, runs: [] }))
   }, [client])
   useEffect(load, [load])
-  if (!client?.usage) return <Panel><StateMessage icon="assistant" title={w('snapshot')} /></Panel>
+  if (!client?.usage) return <><Panel><StateMessage icon="assistant" title={w('snapshot')} /></Panel><SnapshotPanel /></>
   const stages = Object.entries(report?.check?.stages ?? {})
   const runs = (report?.runs ?? []).filter((r: UsageRun) => r.usage)
   return (
