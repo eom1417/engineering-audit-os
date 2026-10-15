@@ -134,6 +134,12 @@ export function bands(scans: Scan[], plot: Plot, rtl: boolean): { sev: Sev; poin
   return out
 }
 
+/** The points worth a value label: those `shown`, but never the same value as the point just before (one "0%" for a
+ * run of them). */
+export function valueLabels(values: number[], shown: Set<number>): Set<number> {
+  return new Set([...shown].filter((i) => i === 0 || values[i - 1] !== values[i]))
+}
+
 /** The labels a line can carry without crowding: every point up to `most`, else evenly picked, always the last. */
 export function labelled(count: number, most = 8): Set<number> {
   if (count <= most) return new Set(Array.from({ length: count }, (_, i) => i))

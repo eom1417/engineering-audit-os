@@ -24,6 +24,7 @@ export const HISTORY_WORDS = {
   progressTitle: ['الإصلاحات التي دخلت فرعك', 'Fixes taken into your branch'],
   noFixesYet: ['لم تُغلق الإصلاحات أي بطاقة بعد.', 'No fix has closed a card yet.'],
   progressLead: ['نسبة ما أُغلق من كل البطاقات بعد كل فحص وكل دمج.', 'The share of all cards closed after every check and every merge.'],
+  countRestarted: ['فحص جديد: العدّ بدأ من جديد', 'A new check: the count started again'],
   progressAria: ['ما أُغلق عبر {n} نقطة، من {a}٪ إلى {b}٪', 'Closed over {n} points, from {a}% to {b}%'],
   oneScan: ['فحص واحد حتى الآن', 'One check so far'],
   oneScanSub: ['الخط والمقارنة يظهران مع الفحص الثاني. افحص المشروع من جديد بعد التغيير التالي لترى هل تحسّن.',

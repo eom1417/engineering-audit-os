@@ -3,7 +3,7 @@
 // geometry is model.ts's; a chart is only drawn with two points or more, which the pages check before using one.
 import { useCallback, useState } from 'react'
 import { usePrefs } from '../../i18n/prefs'
-import { bands, labelled, place, SEVERITIES, type Plot, type Scan, type Sev } from './model'
+import { bands, labelled, place, SEVERITIES, valueLabels, type Plot, type Scan, type Sev } from './model'
 import { useHistoryWords } from './words'
 import css from './history.module.css'
 
@@ -48,20 +48,23 @@ function Axes({ plot, rtl, ticks, first, last }: { plot: Plot; rtl: boolean; tic
   )
 }
 
-/** A value from 0 to 1 over time: the score, or the share of cards closed. */
-export function LineChart({ values, label, format, ticks }:
-  { values: { at: string; value: number }[]; label: string; format: (value: number) => string; ticks: { at: number; label: string }[] }) {
+/** A value from 0 to 1 over time: the score, or the share of cards closed. `fall`: what a fall of half the scale or
+ * more means, written above the point it falls to. */
+export function LineChart({ values, label, format, ticks, fall }:
+  { values: { at: string; value: number }[]; label: string; format: (value: number) => string; ticks: { at: number; label: string }[]; fall?: string }) {
   const { dir, date } = usePrefs()
   const rtl = dir === 'rtl'
   const [ref, width] = useWidth()
   const plot = plotOf(width)
   const points = place(values, plot, rtl)
-  const shown = labelled(points.length, plot.width < 560 ? 5 : 9)
+  const shown = valueLabels(values.map((v) => v.value), labelled(points.length, plot.width < 560 ? 5 : 9))
+  const falls = fall ? points.filter((_, i) => i > 0 && values[i - 1].value - values[i].value >= 0.5) : []
   return (
     <div ref={ref} className={css.chart} style={{ blockSize: plot.height }}>
       {width > 0 && (
         <svg width={plot.width} height={plot.height} role="img" aria-label={label} direction="ltr" className={css.svg}>
           <Axes plot={plot} rtl={rtl} ticks={ticks} first={date(values[0].at)} last={date(values[values.length - 1].at)} />
+          {falls.map((p) => <text key={p.x} x={p.x} y={p.y - 24} textAnchor={rtl ? 'start' : 'end'} className={css.tick}>{fall}</text>)}
           <polyline points={points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} className={css.line} />
           {points.map((p, i) => (
             <g key={i}>
