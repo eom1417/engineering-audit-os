@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { usePrefs } from '../i18n/prefs'
 import { N } from '../i18n/text'
-import { Button, buttonClass } from './Button'
+import { Button } from './Button'
 import { Go, type Search } from './Go'
 import { Icon, type IconName } from './Icon'
 import css from './Panel.module.css'
@@ -90,11 +90,6 @@ export function Skeleton({ label }: { label: string }) {
       <span className={css.bone} /><span className={css.bone} /><span className={css.bone} />
     </div>
   )
-}
-
-/** A link names what this check does not have: why, and the way back; the same on every page. */
-export function NotHere({ title, sub, back, label }: { title: string; sub: ReactNode; back: string; label: string }) {
-  return <Panel><StateMessage icon="search" title={title} sub={sub} action={<div><Go to={back} className={buttonClass()}>{label}</Go></div>} /></Panel>
 }
 
 export function StateMessage({ kind = 'empty', icon, title, sub, action }:

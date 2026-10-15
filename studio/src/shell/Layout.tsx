@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../components/Icon'
 import { Panel, Skeleton, StateMessage } from '../components/Panel'
-import { Button, CopyRequestButton } from '../components/Button'
+import { Button, CopyRequestButton, buttonClass } from '../components/Button'
+import { Go } from '../components/Go'
 import { useCommandMaybe } from '../command/command'
 import { useActionsMaybe } from '../data/actions/store'
 import { useLoaded, useSections } from '../data/context'
@@ -78,4 +79,10 @@ export function PageTitle({ title, kicker, lead }: { title: ReactNode; kicker?: 
       {lead && <p className={css.lead}>{lead}</p>}
     </div>
   )
+}
+
+/** A link names what this check does not have: the page says what is missing as its title, why under it, and the way
+ * back; the same on every page. */
+export function NotHere({ title, sub, back, label }: { title: string; sub: ReactNode; back: string; label: string }) {
+  return <><PageTitle title={title} lead={sub} /><div><Go to={back} className={buttonClass()}>{label}</Go></div></>
 }
