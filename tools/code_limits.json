@@ -34,7 +34,6 @@
   "eaos/facts/pipeline_code.py::phases": 27,
   "eaos/facts/pipeline_frameworks.py::_read_jobs": 16,
   "eaos/facts/pipeline_frameworks.py::_task_options": 21,
-  "eaos/facts/pipeline_frameworks.py::_task_routes": 28,
   "eaos/facts/pipeline_frameworks.py::celery": 24,
   "eaos/facts/pipeline_frameworks.py::json_exports": 17,
   "eaos/facts/pipeline_frameworks.py::luigi": 19,

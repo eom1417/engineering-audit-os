@@ -299,27 +299,38 @@ def _task_routes(py, out, tasks):
         for sub in ast.walk(tree):
             if isinstance(sub, ast.Assign) and len(sub.targets) == 1 and _unparse(sub.targets[0]).endswith('task_routes') \
                     and isinstance(sub.value, ast.Dict):
-                for found in out:
-                    if found.kind != 'celery': continue
-                    by_symbol = {(s['symbol'] or '').split('.', 1)[-1]: k for k, s in found.stages.items()}
-                    by_symbol.update({(s['symbol'] or ''): k for k, s in found.stages.items()})
-                    branches = []
-                    for key, value in zip(sub.value.keys, sub.value.values):
-                        label = _str(key)
-                        if label is None: continue
-                        queue = next((_str(v) for k, v in zip(value.keys, value.values) if _str(k) == 'queue'), None) if isinstance(value, ast.Dict) else None
-                        to = next((k for symbol, k in by_symbol.items() if symbol and (label == symbol or label.endswith('.' + found.stages[k]['label'])
-                                                                                   and symbol.endswith(found.stages[k]['label']))), None)
-                        branches.append({'condition': label, 'to': to, 'evidence': site(rel, key.lineno, py.line(rel, key.lineno)), 'queue': queue})
-                    if not any(b['to'] for b in branches): continue
-                    router = found.stage('task_routes', site(rel, sub.lineno, py.line(rel, sub.lineno)), kind='router')
-                    found.routers.append({'id': f'{found.id}:task_routes', 'pipeline': found.id, 'stage': router, 'kind': 'dict_dispatch',
-                                          'table': 'task_routes', 'on': 'task name',
-                                          'entry': site(rel, sub.lineno, py.line(rel, sub.lineno)),
-                                          'branches': [{k: v for k, v in b.items() if k != 'queue'} | {'condition': b['condition']} for b in branches],
-                                          'total': True, 'default': 'default queue', 'unhandled': []})
-                    found.evidence.append(site(rel, sub.lineno, py.line(rel, sub.lineno)))
-                    break
+                _route_table(py, out, rel, sub)
+
+
+def _route_table(py, out, rel, sub):
+    """The first Celery pipeline whose stages a task_routes table names gets the table as its router."""
+    for found in out:
+        if found.kind != 'celery': continue
+        branches = _route_branches(py, rel, sub, found)
+        if not any(b['to'] for b in branches): continue
+        router = found.stage('task_routes', site(rel, sub.lineno, py.line(rel, sub.lineno)), kind='router')
+        found.routers.append({'id': f'{found.id}:task_routes', 'pipeline': found.id, 'stage': router, 'kind': 'dict_dispatch',
+                              'table': 'task_routes', 'on': 'task name',
+                              'entry': site(rel, sub.lineno, py.line(rel, sub.lineno)),
+                              'branches': [{k: v for k, v in b.items() if k != 'queue'} | {'condition': b['condition']} for b in branches],
+                              'total': True, 'default': 'default queue', 'unhandled': []})
+        found.evidence.append(site(rel, sub.lineno, py.line(rel, sub.lineno)))
+        return
+
+
+def _route_branches(py, rel, sub, found):
+    """Each task name of the table, the stage it names (None when none) and its queue."""
+    by_symbol = {(s['symbol'] or '').split('.', 1)[-1]: k for k, s in found.stages.items()}
+    by_symbol.update({(s['symbol'] or ''): k for k, s in found.stages.items()})
+    branches = []
+    for key, value in zip(sub.value.keys, sub.value.values):
+        label = _str(key)
+        if label is None: continue
+        queue = next((_str(v) for k, v in zip(value.keys, value.values) if _str(k) == 'queue'), None) if isinstance(value, ast.Dict) else None
+        to = next((k for symbol, k in by_symbol.items() if symbol and (label == symbol or label.endswith('.' + found.stages[k]['label'])
+                                                                       and symbol.endswith(found.stages[k]['label']))), None)
+        branches.append({'condition': label, 'to': to, 'evidence': site(rel, key.lineno, py.line(rel, key.lineno)), 'queue': queue})
+    return branches
 
 
 def langgraph(py, out):
