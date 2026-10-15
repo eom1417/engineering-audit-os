@@ -78,6 +78,24 @@ class Base(unittest.TestCase):
 
 
 class Continuity(Base):
+    def test_a_batch_is_drawn_on_the_live_map_from_its_state_card_by_card_to_its_handover(self):
+        # owner, 2026-10-15: no batch ever showed on the live map, nothing wrote the flow `fix`, it read "waiting" throughout
+        from eaos import progress
+        state = guided.load(self.project)
+        state['open_wave'] = {'number': 9, 'cards': ['TASK-001', 'TASK-002', 'TASK-003'], 'kept': {'TASK-001': 'a1'},
+                              'failed': {'TASK-002': 'skipped: too large'}, 'opened': '2026-10-15T09:00:00+00:00'}
+        guided.save(state)
+        read = lambda: {s['name']: s for s in progress.fold(progress.read(guided.runtime_of(state), 'fix'))['stages']}
+        drawn = read()
+        self.assertEqual((drawn['open']['state'], drawn['change']['state']), ('ok', 'running'))
+        self.assertEqual([(c['name'], c['status']) for c in drawn['change']['steps']], [('TASK-001', 'ok'), ('TASK-002', 'skipped')])
+        state['open_wave']['phases'] = {'acceptance': '2026-10-15T09:20:00+00:00'}
+        guided.save(state)
+        self.assertEqual((read()['change']['state'], read()['acceptance']['state']), ('ok', 'running'))
+        state['waves'] = (state.get('waves') or []) + [{**state.pop('open_wave'), 'status': 'applied', 'branch': 'eaos/wave-9'}]
+        guided.save(state)
+        self.assertEqual(progress.fold(progress.read(guided.runtime_of(state), 'fix'))['status'], 'COMPLETE')
+
     def test_a_card_keeps_its_key_across_checks_and_one_no_longer_found_leaves_the_ledger(self):
         again = [dict(c, id=f'TASK-{100 - i:03d}', title=c['title'].replace('line 3', 'line 7')) for i, c in enumerate(reversed(FIRST))]
         self.assertEqual(sorted(ledger.keys(FIRST).values()), sorted(ledger.keys(again).values()))

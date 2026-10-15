@@ -18,6 +18,10 @@
   targets, four become questions. The assistant sees the finish line before it starts and, when the check still fails,
   what is left; it sees up to 24 facts behind a card instead of 6. Older cards' probes count only their own engines and
   what is past its threshold.
+- **A batch is seen live on the map, card by card**: nothing wrote the flow `fix`, so the live map and the journey
+  strip read "waiting" through every batch. A batch is now drawn from its state at each save (`waves.draw`,
+  called by `guided.save`): the copy opened, a step per card kept or set aside, the end checks as they are reached
+  (`batch_finish._phase`), then its handover, or its stop.
 - **Each batch says how it did on the first try**, and a card failing in a second batch is reported as a defect of EAOS,
   not of the project (the ledger counts each card's failed batches).
 - **Moving a complex function in a split keeps its allowance** (`tools/code_limits.py`): it may not grow, but moving it

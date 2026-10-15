@@ -23,7 +23,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, plain
+from . import branches, plain, waves
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
 from .places import home, workspace  # noqa: F401  (one home: eaos/places.py; guided.home and guided.workspace stay its API)
 
@@ -112,9 +112,9 @@ def load(project):
 
 
 def save(state):
-    where = Path(state['workspace'])
-    where.mkdir(parents=True, exist_ok=True)
+    (where := Path(state['workspace'])).mkdir(parents=True, exist_ok=True)
     state['updated'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    waves.draw(state, runtime_of(state))        # a batch on the live map, drawn from what is saved
     (where / 'state.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 

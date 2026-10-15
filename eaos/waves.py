@@ -16,8 +16,8 @@ holds more than a hundred. So a batch (a wave) is executed together, and the exp
 apply() fetches that branch into the person's project without touching their current branch or files;
 undo() deletes it again while it is not merged. Nothing else in the project is written.
 
-A wave is the flow `fix` of the live map (FLOW; eaos/guided.py:fix writes it to <runtime>/progress/fix.jsonl): each
-card is a step of `change`, each acceptance a step of `acceptance`, beside the messages `say` already gives.
+A wave is the flow `fix` of the live map (FLOW), drawn from the state at each save (draw, called by guided.save) to
+<runtime>/progress/fix.jsonl: each card a step of `change`, then the end checks as they are reached, then the handover.
 """
 import json
 import re
@@ -47,6 +47,9 @@ FLOW = (
     Stage('handover', requires=('gates',),
           description='Write down every card\'s result and hand the kept changes over as a branch in your project'),
 )
+FIX = 'fix'                     # the flow a batch draws (draw)
+PHASES = {'acceptance': 'acceptance', 'regenerate': 'gates', 'gates': 'gates', 'control': 'gates', 'bisect': 'culprit'}
+HANDED = ('applied', 'accepted', 'empty')
 DEADCODE = re.compile(r"== \('([^']+)', '([^']*)', '([\w-]+)'\)")
 
 
@@ -432,3 +435,55 @@ def undo(project, branch):
     if merged(project, branch): return 'merged'
     git(project, 'branch', '-D', branch)
     return 'deleted'
+
+
+# ---------------------------------------------------------------- the batch, on the live map
+
+def draw(state, runtime):
+    """The open batch as the flow `fix` (waves.FLOW), drawn again from the state at each of its saves, and once more when it
+    closes. No process holds a batch, the assistant's tool calls work it card by card, so nothing drew it and the live map
+    read "waiting" through every batch (owner, 2026-10-15). Called by guided.save; None when there is nothing to draw."""
+    wave, last = state.get('open_wave'), (state.get('waves') or [None])[-1]
+    if not wave:
+        if not (last or {}).get('cards') or state.get('fix_drawn') == last['number']: return None   # a build's: draw_build
+        wave, state['fix_drawn'] = last, last['number']
+    progress.path_for(runtime, FIX).unlink(missing_ok=True)       # a drawing, not a run
+    log = progress.ProgressLog(runtime, FIX, pulse=False, sampler=None, alive_every=None)
+    log.started(FLOW, [s.name for s in FLOW], {}, steps={}, process=False, at=wave.get('opened'))
+    _draw_cards(log, wave)
+    _draw_phases(log, wave)
+    if wave.get('status') in HANDED:
+        log.stage_started('handover')
+        _end(log, 'handover', 'ok', None, wave.get('branch') or '')
+        log.finish('COMPLETE')
+    elif wave.get('status'): log.finish('STOPPED', reason=wave.get('why') or wave['status'])
+    else: log.close()
+    return progress.path_for(runtime, FIX)
+
+
+def _draw_phases(log, wave):
+    """The checks at the batch's end, each from when it was reached (batch_finish._phase) to when the next one was."""
+    reached = {}
+    for kind, at in (wave.get('phases') or {}).items(): reached.setdefault(PHASES.get(kind, kind), at)
+    phases = list(reached.items())
+    for (stage, at), after in zip(phases, phases[1:] + [None]):
+        log.stage_started(stage, at=at)
+        if after or wave.get('status'): _end(log, stage, 'ok', after[1] if after else None)
+
+
+def _draw_cards(log, wave):
+    """The copy opened, then a step per card: kept, or set aside with why; the change ends once the checks begin."""
+    log.stage_started('open', at=wave.get('opened'))
+    _end(log, 'open', 'ok', wave.get('opened'))
+    log.stage_started('change', at=wave.get('opened'))
+    step, cards = log.stepper('change'), wave['cards']
+    for done, card in enumerate(cards, 1):
+        if card in wave['kept']: step(card, done, len(cards), 'ok', seconds=0)
+        elif card in wave['failed']: step(card, done, len(cards), 'skipped', reason=str(wave['failed'][card]))
+    if wave.get('phases') or wave.get('status'):
+        _end(log, 'change', 'ok', next(iter((wave.get('phases') or {}).values()), None))
+
+
+def _end(log, stage, status, at, artifact=''):
+    log.ended({'stage': stage, 'status': status, 'reason': '', 'seconds': None, 'necessity': 'required',
+               'artifacts': [artifact] if artifact else []}, **({'at': at} if at else {}))

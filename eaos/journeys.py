@@ -154,3 +154,4 @@ def _draw_milestone(log, milestone, record):
     if record.get('branch'):
         log.ended({'stage': milestone['id'], 'status': 'ok', 'reason': f"delivered as {record['branch']}", 'seconds': None,
                    'necessity': 'required', 'artifacts': [record['branch']]}, **({'at': record['ended']} if record.get('ended') else {}))
+

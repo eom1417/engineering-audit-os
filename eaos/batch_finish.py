@@ -6,6 +6,7 @@ them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAI
 them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands
 on its base branch when the person chose so.
 """
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import guided
@@ -51,7 +52,7 @@ def finish_job(project, arguments, progress):
     try:
         summary = finish_batch(guided.report_of(state), guided.source(state), guided.runtime_of(state), wave['number'], Path(wave['root']),
                                wave['base'], wave['cards'], wave['kept'], wave['failed'], wave['tools'], lock=True,
-                               say=lambda kind, *_: progress(STEPS[kind][0], 3, STEPS[kind][1]) if kind in STEPS else None,
+                               say=lambda kind, *_: _phase(project, kind, progress),
                                branch=wave.get('deliver_as'), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
                                regenerate=lambda root: regenerate(root, guided.runtime_of(state), wave['base'], wave['number']))
@@ -66,6 +67,15 @@ def finish_job(project, arguments, progress):
         guided.save(state)
         raise
     return _handed_over(project, wave, summary)
+
+
+def _phase(project, kind, progress):
+    """A phase of the batch's end reached: told to the job, and kept on the open batch so the live map shows it."""
+    if kind not in STEPS: return
+    progress(STEPS[kind][0], 3, STEPS[kind][1])
+    state = guided.load(project)
+    state['open_wave'].setdefault('phases', {}).setdefault(kind, datetime.now(timezone.utc).isoformat(timespec='milliseconds'))
+    guided.save(state)
 
 
 def _repair_asked(state, failure, repaired_already):
@@ -96,6 +106,7 @@ def _handed_over(project, wave, summary):
     state = guided.load(project)
     score = _score(state, wave, summary)
     record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
+              'opened': wave.get('opened'), 'phases': (state.get('open_wave') or {}).get('phases') or {},
               'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {},
               **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch', 'direct', 'continues') if wave.get(k)}}
     if summary['kept']:
