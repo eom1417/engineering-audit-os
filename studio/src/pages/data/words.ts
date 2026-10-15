@@ -70,6 +70,7 @@ export const DATA_WORDS = {
   noTargetSub: ['البنية المستهدفة تُحسب مع الفحص الكامل. حين توجد، تظهر هنا: أين يذهب كل كاتب، وهل يصبح لكل معلومة مصدر واحد.', 'The target architecture comes with a full check. When it exists, this shows where each writer goes and whether each piece of data gets one source.'],
   chooseStore: ['اختر جدولًا أو موردًا على الخريطة لترى سلسلته.', 'Choose a table or resource on the map to see its chain.'],
   topStores: ['ما يحتاج انتباهك أولًا', 'What needs your attention first'],
+  nothingFirst: ['لا مخزن يكتب فيه أكثر من كاتب. ما يستحق المتابعة هنا هو الفجوات المعدودة أعلاه: المربعات المخططة في سلسلة الكتابة.', 'No store has more than one writer. What deserves a look here are the gaps counted above: the hatched boxes of the write chain.'],
   clusterOf: ['مجموعة: {n} عنصر', 'Group: {n} items'],
   openGroup: ['افتح المجموعة', 'Open the group'],
   members: ['ما فيها', 'What it holds'],

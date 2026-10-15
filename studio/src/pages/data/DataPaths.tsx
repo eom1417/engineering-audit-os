@@ -52,9 +52,11 @@ function Overview({ dp, mode, focus, onFocus }: { dp: DataPaths; mode: Mode; foc
     <div className={css.overview}>
       {members ? <p className={css.hint}>{w('clusterOf', { n: members.length })}</p> : <p className={css.hint}>{w('chooseStore')}</p>}
       <p className={css.gapsLine}>{w('gapsCounted', { n: dp.counts.gaps?.value ?? 0 })}</p>
-      <Section title={members ? w('members') : w('topStores')} count={shown.length}>
-        <StepsList dp={{ ...dp, stores: shown }} mode={mode} onFocus={onFocus} first={8} />
-      </Section>
+      {members || shown.length ? (
+        <Section title={members ? w('members') : w('topStores')} count={shown.length}>
+          <StepsList dp={{ ...dp, stores: shown }} mode={mode} onFocus={onFocus} first={8} />
+        </Section>
+      ) : <p className={css.hint}>{w('nothingFirst')}</p>}
     </div>
   )
 }
