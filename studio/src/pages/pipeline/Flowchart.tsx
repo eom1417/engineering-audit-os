@@ -4,13 +4,13 @@
 // dotted and appear only when asked; what EAOS could not follow is a gap beside its stage. Pan with a drag, zoom with
 // the wheel, a pinch or the buttons (the map's useZoom); a long pipeline draws only what is in view.
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { clip, fit, useBox } from '../../map/draw'
+import { clip, fit, useBox, useLinked } from '../../map/draw'
 import { useZoom } from '../../map/useZoom'
 import { usePrefs } from '../../i18n/prefs'
 import { LanesToolbar } from '../paths/Lanes'
 import { stageTitle } from './names'
 import { geometry, link, NODE_H, NODE_W, PILL_W, type At, type Op, type Scope, type Stage, type View } from './model'
-import { KIND_WORD, OP_WORD, usePipelineWords } from './words'
+import { KIND_WORD, OP_WORD, usePipelineWords, type PipelineWord } from './words'
 import frame from '../paths/paths.module.css'
 import css from './pipeline.module.css'
 
@@ -84,15 +84,6 @@ function useFirstView(g: Geometry, added: Map<string, At>, size: Size, down: boo
   }, [size.w, size.h, world.w, world.h, down])
 }
 
-/** The links next to the chosen stage. */
-function useNear(edges: Scope['edges'], selected: string | undefined) {
-  return useMemo(() => {
-    const on = new Set<string>()
-    if (selected) for (const e of edges) if (e.from === selected || e.to === selected) on.add(e.id)
-    return on
-  }, [edges, selected])
-}
-
 interface Marks { outLabels: Map<string, string[]>; forks: Map<string, Scope['fans'][number]>; joins: Set<string> }
 
 /** The forks and joins on the stages' sides, and the data each stage gives, written once beside its output port. */
@@ -139,7 +130,7 @@ interface Ctx {
   dead: Set<string>
   place: (id: string) => At | undefined
   inView: (p: At | undefined) => boolean
-  target: (p: At, label: string, pressed: boolean | undefined, act: () => void, w?: number, h?: number) => ReturnType<typeof targetOf>
+  target: (p: At, label: string, act: () => void, opts?: { pressed?: boolean; w?: number; h?: number }) => ReturnType<typeof targetOf>
   dim: (id: string) => boolean
 }
 
@@ -154,7 +145,7 @@ function drawContext({ added, t, size, ...c }: CtxParts): Ctx {
     culled: c.scope.stages.length > 200,
     place: (id) => c.g.at.get(id) ?? added.get(id),
     inView: (p) => !!p && p.x + NODE_W >= v.x0 && p.x <= v.x1 && p.y + NODE_H >= v.y0 && p.y <= v.y1,
-    target: (p, label, pressed, act, w, h) => targetOf(whole(p, w, h), label, pressed, act),
+    target: (p, label, act, opts = {}) => targetOf(whole(p, opts.w, opts.h), label, opts.pressed, act),
     dim: (id) => Boolean((c.lit && !c.lit.stages.has(id)) || (c.view === 'gap' && c.gapNo.size > 0 && !c.gapNo.has(id))),
   }
 }
@@ -172,7 +163,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
   const added = useAdded(scope, view, down, g)
   const { fitView, wholeView } = useFirstView(g, added, size, down)
   useEffect(() => { setT(fitView) }, [fitView, setT])
-  const near = useNear(scope.edges, selected)
+  const near = useLinked(scope.edges, selected, 'id')
   const dead = useMemo(() => new Set(scope.hidden.filter((h) => h.kind === 'dead_stage').flatMap((h) => h.stages)), [scope.hidden])
   const marks = useMarks(scope)
 
@@ -230,38 +221,43 @@ function Defs() {
 /** The links drawn so far, and the conditions written beside them (drawn last, over the stages). */
 interface Drawn { edges: ReactNode[]; labels: ReactNode[] }
 
-function drawLink(c: Ctx, out: Drawn, key: string, from: string, to: string, cls: string, marker: string, extra?: { condition?: string | null; title?: string }) {
-  const a = c.place(from)
-  const b = c.place(to)
-  if (!a || !b) return
-  if (c.culled && !c.inView(a) && !c.inView(b)) return
-  const { g } = c
-  const { d } = link(g, a, b)
-  out.edges.push(<path key={key} d={d} className={cls} markerEnd={marker ? `url(#${marker})` : undefined}>{extra?.title && <title>{extra.title}</title>}</path>)
-  if (extra?.condition) {
-    const x = g.across ? b.x - 6 : b.x + NODE_W / 2 + 6
-    const y = g.across ? b.y + NODE_H / 2 - 7 : b.y - 8
-    out.labels.push(<text key={`c${key}`} x={x} y={y} textAnchor={g.across ? 'end' : 'start'} className={css.cond}>{clip(extra.condition, 18)}</text>)
-  }
+/** One link to draw: its two stages, its look and arrow, and the condition or title it carries. */
+interface LinkSpec { key: string; from: string; to: string; cls: string; marker: string; condition?: string | null; title?: string }
+
+function drawLink(c: Ctx, out: Drawn, l: LinkSpec) {
+  const a = c.place(l.from)
+  const b = c.place(l.to)
+  if (!a || !b || (c.culled && !c.inView(a) && !c.inView(b))) return
+  out.edges.push(<path key={l.key} d={link(c.g, a, b).d} className={l.cls} markerEnd={'url(#' + l.marker + ')'}>{l.title && <title>{l.title}</title>}</path>)
+  if (l.condition) out.labels.push(conditionLabel(c.g, b, l.key, l.condition))
+}
+
+/** A branch's condition, written beside the stage it leads to. */
+function conditionLabel(g: Geometry, b: At, key: string, condition: string): ReactNode {
+  const [x, y, anchor] = g.across ? [b.x - 6, b.y + NODE_H / 2 - 7, 'end'] as const : [b.x + NODE_W / 2 + 6, b.y - 8, 'start'] as const
+  return <text key={'c' + key} x={x} y={y} textAnchor={anchor} className={css.cond}>{clip(condition, 18)}</text>
 }
 
 function drawIdealEdges(c: Ctx, out: Drawn) {
   c.scope.idealEdges.forEach((e, i) => {
     const on = c.selected && (e.from === c.selected || e.to === c.selected)
-    drawLink(c, out, `i${i}`, e.from, e.to, [css.edge, e.op !== 'retain' && css[`eop_${e.op}`], on && css.on].filter(Boolean).join(' '), on ? 'pp-arrow-on' : e.op === 'new' ? 'pp-arrow-new' : 'pp-arrow')
+    drawLink(c, out, { key: 'i' + i, from: e.from, to: e.to, cls: [css.edge, e.op !== 'retain' && css['eop_' + e.op], on && css.on].filter(Boolean).join(' '),
+      marker: on ? 'pp-arrow-on' : e.op === 'new' ? 'pp-arrow-new' : 'pp-arrow' })
   })
 }
 
 function drawCurrentEdges(c: Ctx, out: Drawn, near: Set<string>) {
+  for (const e of c.scope.edges) if (e.kind !== 'hidden' || c.showHidden) drawLink(c, out, currentLink(c, e, near))
+}
+
+/** A link of today: lit when chosen or on the lit path, dimmed when something else is. */
+function currentLink(c: Ctx, e: Scope['edges'][number], near: Set<string>): LinkSpec {
   const { lit, selected } = c
-  for (const e of c.scope.edges) {
-    if (e.kind === 'hidden' && !c.showHidden) continue
-    const on = near.has(e.id) || (lit?.edges.has(e.id) ?? false)
-    const off = (lit && !lit.edges.has(e.id)) || (selected && !near.has(e.id) && !lit)
-    const cls = [css.edge, css[`ek_${e.kind}`], e.matched_by === 'order' && css.orderOnly, on && css.on, off && css.edgeDim].filter(Boolean).join(' ')
-    drawLink(c, out, e.id, e.from, e.to, cls, on ? 'pp-arrow-on' : e.kind === 'error' ? 'pp-arrow-err' : 'pp-arrow',
-      { title: [e.data.shape, ...e.data.names].filter(Boolean).join(' · ') })
-  }
+  const on = near.has(e.id) || (lit?.edges.has(e.id) ?? false)
+  const off = (lit && !lit.edges.has(e.id)) || (selected && !near.has(e.id) && !lit)
+  const cls = [css.edge, css['ek_' + e.kind], e.matched_by === 'order' && css.orderOnly, on && css.on, off && css.edgeDim].filter(Boolean).join(' ')
+  const marker = on ? 'pp-arrow-on' : e.kind === 'error' ? 'pp-arrow-err' : 'pp-arrow'
+  return { key: e.id, from: e.from, to: e.to, cls, marker, title: [e.data.shape, ...e.data.names].filter(Boolean).join(' · ') }
 }
 
 /** Router branches: drawn when few, or when the router is chosen (a crowded router folds, DESIGN: above 8). */
@@ -271,8 +267,8 @@ function drawBranches(c: Ctx, out: Drawn) {
     r.branches.forEach((b, i) => {
       if (!b.to || b.to === r.stage) return
       const on = c.selected === r.stage
-      drawLink(c, out, `${r.id}#${i}`, r.stage, b.to, [css.branch, on && css.on, c.lit && !c.lit.stages.has(b.to) && css.edgeDim].filter(Boolean).join(' '),
-        on ? 'pp-arrow-on' : 'pp-arrow', { condition: b.condition })
+      drawLink(c, out, { key: r.id + '#' + i, from: r.stage, to: b.to, cls: [css.branch, on && css.on, c.lit && !c.lit.stages.has(b.to) && css.edgeDim].filter(Boolean).join(' '),
+        marker: on ? 'pp-arrow-on' : 'pp-arrow', condition: b.condition })
     })
   }
 }
@@ -373,7 +369,7 @@ function gapNode(c: Ctx, u: Scope['unresolved'][number], p: At): ReactNode {
   const gx = across ? p.x + 18 : p.x + NODE_W + 14
   const gy = across ? p.y + NODE_H + 14 : p.y + 8
   return (
-    <g key={u.id} className={css.gapNode} {...c.target({ x: gx, y: gy }, `${c.w('gapNode')}: ${u.call}. ${u.reason}`, undefined, () => c.onSelect(u.stage), NODE_W - 36, 28)} onClick={() => c.onSelect(u.stage)}>
+    <g key={u.id} className={css.gapNode} {...c.target({ x: gx, y: gy }, `${c.w('gapNode')}: ${u.call}. ${u.reason}`, () => c.onSelect(u.stage), { w: NODE_W - 36, h: 28 })} onClick={() => c.onSelect(u.stage)}>
       <path d={across ? `M${p.x + 30},${p.y + NODE_H} L${gx + 12},${gy}` : `M${p.x + NODE_W},${p.y + NODE_H / 2} L${gx},${gy + 14}`} className={css.gapLink} />
       <rect x={gx} y={gy} width={NODE_W - 36} height={28} rx={6} />
       <text x={gx + 10} y={gy + 18} className={css.gapText}>? {fit(u.call, 15)}</text>
@@ -417,8 +413,18 @@ function ports(c: Ctx, s: Stage, m: Marks): ReactNode[] {
 }
 
 /** An AI node's card: its corners cut by `c`, inset by `i` (docs/STUDIO.md D11). */
-const chamfer = (i: number, c: number) => [[i + c, i], [NODE_W - i - c, i], [NODE_W - i, i + c], [NODE_W - i, NODE_H - i - c], [NODE_W - i - c, NODE_H - i],
-  [i + c, NODE_H - i], [i, NODE_H - i - c], [i, i + c]].map(([x, y]) => `${x},${y}`).join(' ')
+function chamfer(i: number, c: number): string {
+  const corners = [[i + c, i], [NODE_W - i - c, i], [NODE_W - i, i + c], [NODE_W - i, NODE_H - i - c], [NODE_W - i - c, NODE_H - i],
+    [i + c, NODE_H - i], [i, NODE_H - i - c], [i, i + c]]
+  return corners.map(String).join(' ')
+}
+
+/** Where a stage starts in the code: its file's name, and its line when known. */
+function entryOf(s: Stage): string | null {
+  if (!s.entry.path) return null
+  const file = s.entry.path.split('/').pop() ?? ''
+  return s.entry.line ? file + ':' + s.entry.line : file
+}
 
 interface StageDraw { id: string; s: Stage | null; label: string; kind: Stage['kind']; at: At; sub: string | null; op: Op | undefined; isNew?: boolean }
 
@@ -439,7 +445,7 @@ function drawNodes(c: Ctx, added: Map<string, At>, m: Marks): ReactNode[] {
 function stageDraw(c: Ctx, s: Stage, at: At): StageDraw {
   const ideal = c.view === 'ideal' ? c.scope.ideal.get(s.id) : undefined
   const router = s.kind === 'router' ? c.scope.routerOf.get(s.id) : undefined
-  const sub = router ? `${router.on} · ${c.w('branchesN', { n: router.branches.length })}` : s.tools.length ? s.tools.join(' · ') : (s.entry.path ? `${s.entry.path.split('/').pop()}${s.entry.line ? `:${s.entry.line}` : ''}` : null)
+  const sub = router ? `${router.on} · ${c.w('branchesN', { n: router.branches.length })}` : s.tools.length ? s.tools.join(' · ') : entryOf(s)
   return { id: s.id, s, label: ideal?.label && ideal.label !== s.label ? ideal.label : stageTitle(s, c.lang), kind: s.kind, at, sub, op: c.op.get(s.id) }
 }
 
@@ -447,7 +453,7 @@ function drawStage(c: Ctx, m: Marks, d: StageDraw): ReactNode {
   const { id, at } = d
   if (c.culled && !c.inView(at)) return null
   return (
-    <g key={id} className={stageClass(c, d)} transform={`translate(${at.x},${at.y})`} {...c.target(at, stageAria(c, d), id === c.selected, () => c.onSelect(id))} onClick={() => c.onSelect(id)}>
+    <g key={id} className={stageClass(c, d)} transform={`translate(${at.x},${at.y})`} {...c.target(at, stageAria(c, d), () => c.onSelect(id), { pressed: id === c.selected })} onClick={() => c.onSelect(id)}>
       {stageShape(d.kind)}
       {d.kind === 'ai' && <polygon className={css.aiRing} points={chamfer(3, 10)} />}
       {d.op === 'delete' && <rect width={NODE_W} height={NODE_H} rx={10} fill="url(#pp-hatch)" opacity={0.5} />}
@@ -515,24 +521,32 @@ function Wrap({ inline, label, children }: { inline?: boolean; label: string; ch
   )
 }
 
+/** The legend's rows in order: whether this drawing holds it, its word and its sample. */
+function legendRows(kinds: Set<string>, scope: Scope, view: View, hidden: boolean): [boolean, PipelineWord, ReactNode][] {
+  const line = (cls: string) => <svg className={frame.lgLine} aria-hidden="true"><path d="M1,5h28" className={cls} /></svg>
+  const box = (...cls: string[]) => <span className={cls.join(' ')} />
+  return [
+    [true, 'lgStage', box(css.lgBox)],
+    [kinds.has('router'), 'lgRouter', box(css.lgDiamond)],
+    [kinds.has('ai'), 'lgAi', box(css.lgBox, css.lgAi)],
+    [scope.fans.length > 0, 'lgFork', box(css.lgFork)],
+    [scope.stages.some((s) => s.sub_pipeline), 'lgSub', box(css.lgSub)],
+    [true, 'lgData', line(css.lgData)],
+    [scope.routers.length > 0 || scope.edges.some((e) => e.kind === 'control' || e.matched_by === 'order'), 'lgControl', line(css.lgControl)],
+    [scope.errors.length > 0, 'lgError', line(css.lgError)],
+    [hidden && scope.hidden.some((h) => h.kind !== 'dead_stage'), 'lgHidden', line(css.lgHidden)],
+    [hidden && scope.hidden.some((h) => h.kind === 'dead_stage'), 'lgDead', box(css.lgBox, css.lgDead)],
+    [scope.unresolved.length > 0 && view !== 'ideal', 'lgGap', box(css.lgGap)],
+  ]
+}
+
 /** The legend: only what this drawing holds. */
 export function Legend({ kinds, scope, view, hidden, inline }: { kinds: Set<string>; scope: Scope; view: View; hidden: boolean; inline?: boolean }) {
   const w = usePipelineWords()
   const ops = view === 'current' ? [] : [...new Set([...(view === 'ideal' ? [...scope.ideal.values()].map((s) => s.op) : scope.gap.map((g) => g.operation))])].filter((o) => o !== 'retain')
-  const line = (cls: string) => <svg className={frame.lgLine} aria-hidden="true"><path d="M1,5h28" className={cls} /></svg>
   return (
     <Wrap inline={inline} label={w('legend')}>
-      <div className={frame.lgRow}><span className={css.lgBox} />{w('lgStage')}</div>
-      {kinds.has('router') && <div className={frame.lgRow}><span className={css.lgDiamond} />{w('lgRouter')}</div>}
-      {kinds.has('ai') && <div className={frame.lgRow}><span className={[css.lgBox, css.lgAi].join(' ')} />{w('lgAi')}</div>}
-      {scope.fans.length > 0 && <div className={frame.lgRow}><span className={css.lgFork} />{w('lgFork')}</div>}
-      {scope.stages.some((s) => s.sub_pipeline) && <div className={frame.lgRow}><span className={css.lgSub} />{w('lgSub')}</div>}
-      <div className={frame.lgRow}>{line(css.lgData)}{w('lgData')}</div>
-      {(scope.edges.some((e) => e.kind === 'control' || e.matched_by === 'order') || scope.routers.length > 0) && <div className={frame.lgRow}>{line(css.lgControl)}{w('lgControl')}</div>}
-      {scope.errors.length > 0 && <div className={frame.lgRow}>{line(css.lgError)}{w('lgError')}</div>}
-      {hidden && scope.hidden.some((h) => h.kind !== 'dead_stage') && <div className={frame.lgRow}>{line(css.lgHidden)}{w('lgHidden')}</div>}
-      {hidden && scope.hidden.some((h) => h.kind === 'dead_stage') && <div className={frame.lgRow}><span className={[css.lgBox, css.lgDead].join(' ')} />{w('lgDead')}</div>}
-      {scope.unresolved.length > 0 && view !== 'ideal' && <div className={frame.lgRow}><span className={css.lgGap} />{w('lgGap')}</div>}
+      {legendRows(kinds, scope, view, hidden).map(([shown, word, sample]) => shown && <div key={word} className={frame.lgRow}>{sample}{w(word)}</div>)}
       {ops.map((o) => <div key={o} className={frame.lgRow}><span className={[frame.sw, css[`sw_${o}`] ?? frame[`sw_${o}`]].join(' ')} />{w(OP_WORD[o])}</div>)}
     </Wrap>
   )

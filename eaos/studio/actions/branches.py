@@ -907,40 +907,38 @@ class BranchControl:
             plan = self._cleanup_plan()
             if plan['digest'] != body.get('digest'):
                 raise Blocked([say('The branches changed since the preview: look again.', 'الفروع تغيّرت بعد المعاينة: شوف من جديد.', 'stale')], needs='refresh')
-            busy = self._busy([])
-            if busy: raise Blocked(busy, needs='blocked')
+            if busy := self._busy([]): raise Blocked(busy, needs='blocked')
             names = [b['branch'] for b in plan['branches']]
             run = self._start('branch_cleanup', {'en': f'Clean up {len(names)} merged branch(es) and {len(plan["worktrees"])} old worktree(s)',
                                                  'ar': f'نظّف {len(names)} فرعًا مدموجًا و{len(plan["worktrees"])} نسخة عمل قديمة'}, names,
                               {'branches': names, 'worktrees': [w['path'] for w in plan['worktrees']]})
-            deleted, failed, removed = [], [], []
-            for worktree in plan['worktrees']:
-                done = git(self.project, 'worktree', 'prune') if worktree['prunable'] else git(self.project, 'worktree', 'remove', worktree['_path'])
-                (removed if done.returncode == 0 else failed).append({'worktree': worktree['path'], **({} if done.returncode == 0 else {'reason': done.stderr.strip()[-200:]})})
-            for branch in plan['branches']:
-                kept = self._keep(branch['branch'], 'local', None, branch['tip'], run)
-                if branch['_worktree']:
-                    out = self._remove_worktree_of(branch['branch'])
-                    if out and out.get('error'):
-                        failed.append({'branch': branch['branch'], 'reason': out['error'], 'recovery': kept['id']})
-                        continue
-                    if out: removed.append({'worktree': out['path']})
-                gone = git(self.project, 'update-ref', '-m', f"EAOS Studio: clean up {branch['branch']} (run {run})", '-d', f"refs/heads/{branch['branch']}", branch['tip'])
-                if gone.returncode:
-                    failed.append({'branch': branch['branch'], 'reason': 'the branch moved', 'recovery': kept['id']})
-                    continue
-                self.record(branch['branch'], history={'at': now(), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id'], 'via': 'cleanup'})
-                deleted.append({'branch': branch['branch'], 'tip': branch['tip'], 'merged_into': branch['merged_into'], 'recovery': kept['id']})
+            done = {'deleted': [], 'worktrees_removed': [], 'failed': []}
+            for worktree in plan['worktrees']: self._remove_old_worktree(worktree, done)
+            for branch in plan['branches']: self._delete_merged(branch, run, done)
             git(self.project, 'worktree', 'prune')
-            ok = not failed
-            text = {'en': f"Deleted {len(deleted)} merged branch(es) and removed {len(removed)} worktree(s); each branch can be restored."
-                          + (f" {len(failed)} could not be done." if failed else ''),
-                    'ar': f"حُذف {len(deleted)} فرع مدموج وأُزيلت {len(removed)} نسخة عمل، وكل فرع يمكن استرجاعه."
-                          + (f" وما تم {len(failed)}." if failed else '')}
-            return {'run': self._finish(run, ok, text, {'deleted': deleted, 'worktrees_removed': removed, 'failed': failed, 'branches': names,
-                                                        'reason': None if ok else f'{len(failed)} item(s) could not be removed'}, outcome='cleaned' if ok else None)}
+            deleted, removed, failed = done['deleted'], done['worktrees_removed'], done['failed']
+            text = {'en': f"Deleted {len(deleted)} merged branch(es) and removed {len(removed)} worktree(s); each branch can be restored." + (f" {len(failed)} could not be done." if failed else ''),
+                    'ar': f"حُذف {len(deleted)} فرع مدموج وأُزيلت {len(removed)} نسخة عمل، وكل فرع يمكن استرجاعه." + (f" وما تم {len(failed)}." if failed else '')}
+            return {'run': self._finish(run, not failed, text, {**done, 'branches': names, 'reason': f'{len(failed)} item(s) could not be removed' if failed else None},
+                                        outcome=None if failed else 'cleaned')}
         finally:
             handle.close()
+
+    def _remove_old_worktree(self, worktree, done):
+        out = git(self.project, 'worktree', 'prune') if worktree['prunable'] else git(self.project, 'worktree', 'remove', worktree['_path'])
+        done['failed' if out.returncode else 'worktrees_removed'].append({'worktree': worktree['path'], **({'reason': out.stderr.strip()[-200:]} if out.returncode else {})})
+
+    def _delete_merged(self, branch, run, done):
+        kept = self._keep(branch['branch'], 'local', None, branch['tip'], run)
+        out = self._remove_worktree_of(branch['branch']) if branch['_worktree'] else None
+        if out and out.get('error'):
+            done['failed'].append({'branch': branch['branch'], 'reason': out['error'], 'recovery': kept['id']})
+            return
+        if out: done['worktrees_removed'].append({'worktree': out['path']})
+        gone = git(self.project, 'update-ref', '-m', f"EAOS Studio: clean up {branch['branch']} (run {run})", '-d', f"refs/heads/{branch['branch']}", branch['tip'])
+        if gone.returncode: return done['failed'].append({'branch': branch['branch'], 'reason': 'the branch moved', 'recovery': kept['id']})
+        self.record(branch['branch'], history={'at': now(), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id'], 'via': 'cleanup'})
+        done['deleted'].append({'branch': branch['branch'], 'tip': branch['tip'], 'merged_into': branch['merged_into'], 'recovery': kept['id']})
 
     def recoveries(self):
         return _read_json(self.store.folder / 'branch-recovery.json', []) or []

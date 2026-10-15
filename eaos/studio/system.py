@@ -235,23 +235,38 @@ def _target_node(t, n, g, feeds, known):
             'x': g['x'], 'y': g['y'], 'r': g['r'], 'label': g['label']}
 
 
+def _target_layers(target):
+    """The target's named components, and one region per layer, the most populated first."""
+    tcomps = [t for t in target.get('target_components') or [] if isinstance(t, dict) and t.get('name')]
+    layers = sorted({t.get('layer') or '' for t in tcomps}, key=lambda l: (-sum((t.get('layer') or '') == l for t in tcomps), l))
+    return tcomps, [{'id': f'layer:{l}', 'kind': 'layer', 'folder': None, 'name': layer_name(l)} for l in layers]
+
+
+def _target_nodes(tcomps):
+    return [{'id': t['name'], 'short': t['name'] if len(t['name']) <= 22 else '…' + t['name'][-21:],
+             'files': int(t.get('files') or 0), 'region': f"layer:{t.get('layer') or ''}"} for t in tcomps]
+
+
+def _target_edges(target, tnames):
+    return [(e['from'], e['to'], int(e.get('imports') or 1)) for e in target.get('target_edges') or []
+            if isinstance(e, dict) and e.get('from') in tnames and e.get('to') in tnames]
+
+
+def _target_regions(tregions, tnodes, tpic):
+    return [{**r, 'components': sum(n['region'] == r['id'] for n in tnodes),
+             'files': sum(n['files'] for n in tnodes if n['region'] == r['id']), 'findings': None,
+             'lead': max((n for n in tnodes if n['region'] == r['id']), key=lambda n: (n['files'], n['id']))['id'],
+             **tpic['regions'][r['id']]} for r in tregions if r['id'] in tpic['regions']]
+
+
 def _target_view(target, sources, by_name, findings):
     # the target: its own territory, one region per layer
-    tcomps = [t for t in target.get('target_components') or [] if isinstance(t, dict) and t.get('name')]
-    tnames = {t['name'] for t in tcomps}
-    layers = sorted({t.get('layer') or '' for t in tcomps}, key=lambda l: (-sum((t.get('layer') or '') == l for t in tcomps), l))
-    tregions = [{'id': f'layer:{l}', 'kind': 'layer', 'folder': None, 'name': layer_name(l)} for l in layers]
-    tnodes = [{'id': t['name'], 'short': t['name'] if len(t['name']) <= 22 else '…' + t['name'][-21:],
-               'files': int(t.get('files') or 0), 'region': f"layer:{t.get('layer') or ''}"} for t in tcomps]
-    tedges = [(e['from'], e['to'], int(e.get('imports') or 1)) for e in target.get('target_edges') or []
-              if isinstance(e, dict) and e.get('from') in tnames and e.get('to') in tnames]
+    tcomps, tregions = _target_layers(target)
+    tnodes, tedges = _target_nodes(tcomps), _target_edges(target, {t['name'] for t in tcomps})
     tpic = territory.draw(tnodes, tedges, tregions)
     out_t = [_target_node(t, n, tpic['nodes'][t['name']], sorted(sources.get(t['name'], [])), (by_name, findings))
              for t, n in zip(tcomps, tnodes)]
-    return {'regions': [{**r, 'components': sum(n['region'] == r['id'] for n in tnodes),
-                                'files': sum(n['files'] for n in tnodes if n['region'] == r['id']), 'findings': None,
-                                'lead': max((n for n in tnodes if n['region'] == r['id']), key=lambda n: (n['files'], n['id']))['id'],
-                                **tpic['regions'][r['id']]} for r in tregions if r['id'] in tpic['regions']],
+    return {'regions': _target_regions(tregions, tnodes, tpic),
                    'nodes': out_t,
                    'edges': [{'from': a, 'to': b, 'imports': n, 'cycle': False, **tpic['edges'][(a, b)]}
                              for a, b, n in tedges if (a, b) in tpic['edges']],

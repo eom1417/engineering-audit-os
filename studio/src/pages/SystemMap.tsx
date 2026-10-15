@@ -3,7 +3,7 @@
 // about). Desktop: the canvas (zoom, pan, fit, legend, minimap) beside a 360px inspector; or the ranked list in its
 // place. Phone: the map's preview, a full-screen explorer, the focused component and the ranked list. A report with
 // no map (studio/system.json) keeps the list page (pages/System.tsx).
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../components/Button'
@@ -21,6 +21,7 @@ import { TerritoryMap } from '../map/TerritoryMap'
 import { OP_WORD, useMapWords } from '../map/words'
 import { usePageChrome } from '../shell/chrome'
 import { MissingBanner, WithData } from '../shell/Layout'
+import { useSearchPatch } from '../shell/search'
 import { SystemPage } from './System'
 import { HiddenSwitch, SystemViews } from './system/SystemViews'
 import css from './SystemMap.module.css'
@@ -168,7 +169,6 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
   const w = useMapWords()
   const phone = usePhone()
   const search = useSearch({ strict: false }) as SystemSearch
-  const navigate = useNavigate()
   const mode = modeOf(search.view)
   const view = mode === 'target' ? system.target : system.current
   const focus = view.nodes.some((n) => n.id === search.focus) ? search.focus : undefined
@@ -180,12 +180,7 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
   const [centre, setCentre] = useState<string | undefined>()
   usePageChrome(t('system'), undefined, data.manifest.project.name)
 
-  const go = (patch: Partial<SystemSearch>) => navigate({
-    to: '/system', search: (prev: SystemSearch) => {
-      const next = { ...prev, ...patch }
-      return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined && v !== '')) as SystemSearch
-    },
-  })
+  const go = useSearchPatch<SystemSearch>('/system')
   const setFocus = (id: string) => go({ focus: id === focus ? undefined : id })
   const pick = (id: string) => { go({ focus: id }); setCentre(id) }
   const setMode = (m: MapMode) => go({ view: m === 'current' ? undefined : m, focus: undefined, op: undefined })

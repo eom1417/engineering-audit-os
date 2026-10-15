@@ -60,26 +60,44 @@ SPEC = {
 def validate_spec(spec, look=True):
     """(problems, questions): what makes the spec unbuildable, and what the person should decide. `look` false: the
     project's own look holds (a feature added to it, eaos/extend.py), so the spec draws none."""
-    problems, questions = [], []
     if not isinstance(spec, dict): return ['the spec must be one JSON object shaped like the example'], []
-    for key in ('name', 'summary'):
-        if not str(spec.get(key) or '').strip(): problems.append(f'`{key}` is empty')
-    modules = {m.get('id') for m in spec.get('modules') or [] if isinstance(m, dict)}
-    entities = {e.get('id'): e for e in spec.get('entities') or [] if isinstance(e, dict)}
-    features = {f.get('id'): f for f in spec.get('features') or [] if isinstance(f, dict)}
-    roles = {r.get('id') for r in spec.get('roles') or [] if isinstance(r, dict)}
+    problems = [f'`{key}` is empty' for key in ('name', 'summary') if not str(spec.get(key) or '').strip()]
+    modules, entities, features, roles = set(_by_id(spec, 'modules')), _by_id(spec, 'entities'), _by_id(spec, 'features'), set(_by_id(spec, 'roles'))
     if not modules: problems.append('no module: group the features into parts, each with one responsibility')
     if not features: problems.append('no feature: list what a user can do')
-    for module in spec.get('modules') or []:
+    problems += (_module_problems(spec.get('modules') or [], features) + _entity_problems(entities, modules, features)
+                 + _feature_problems(features, entities, modules, roles) + _flow_problems(spec.get('flows') or [], features)
+                 + _look_problems(spec.get('look'), features, look))
+    return problems, _spec_questions(spec)
+
+
+def _by_id(spec, key):
+    """The spec's `key` list as {id: item}, what is not an object dropped."""
+    return {item.get('id'): item for item in spec.get(key) or [] if isinstance(item, dict)}
+
+
+def _module_problems(modules, features):
+    problems = []
+    for module in modules:
         if not str(module.get('responsibility') or '').strip(): problems.append(f"module {module.get('id')}: its responsibility is empty")
         if not any(f.get('module') == module.get('id') for f in features.values()):
             problems.append(f"module {module.get('id')}: no feature belongs to it (merge it, or give it one)")
+    return problems
+
+
+def _entity_problems(entities, modules, features):
+    problems = []
     for entity_id, entity in entities.items():
         if entity.get('module') not in modules:
             problems.append(f'entity {entity_id}: its owning module is not one of the modules (every piece of data has one owner)')
         if not entity.get('fields'): problems.append(f'entity {entity_id}: it has no fields')
         if not any(entity_id in (f.get('entities') or []) for f in features.values()):
             problems.append(f'entity {entity_id}: no feature uses it (remove it, or say which feature needs it)')
+    return problems
+
+
+def _feature_problems(features, entities, modules, roles):
+    problems = []
     for feature_id, feature in features.items():
         if feature.get('module') not in modules: problems.append(f'feature {feature_id}: its module is not one of the modules')
         for entity_id in feature.get('entities') or []:
@@ -88,10 +106,17 @@ def validate_spec(spec, look=True):
             if roles and role not in roles: problems.append(f'feature {feature_id}: role {role} is not one of the roles')
         if not [a for a in feature.get('acceptance') or [] if str(a).strip()]:
             problems.append(f'feature {feature_id}: no acceptance criterion (how do we know it works? each becomes a test)')
-    for flow in spec.get('flows') or []:
-        for feature_id in flow.get('features') or []:
-            if feature_id not in features: problems.append(f"flow {flow.get('id')}: uses {feature_id}, which is not a feature")
-    problems += _look_problems(spec.get('look'), features, look)
+    return problems
+
+
+def _flow_problems(flows, features):
+    return [f"flow {flow.get('id')}: uses {feature_id}, which is not a feature"
+            for flow in flows for feature_id in flow.get('features') or [] if feature_id not in features]
+
+
+def _spec_questions(spec):
+    """What the person should decide: a stack choice EAOS does not lay out, an open product decision, the journeys."""
+    questions = []
     catalogue = stacks()['concerns']
     for concern, choice in (spec.get('stack_preferences') or {}).items():
         if concern in catalogue and choice and choice not in catalogue[concern]['options']:
@@ -105,7 +130,7 @@ def validate_spec(spec, look=True):
                               'why': decision.get('why')})
     if not spec.get('flows'): questions.append({'id': 'flows', 'kind': 'yes_no', 'text': 'The plan names no user journey from start to finish. '
                                                 'May the assistant write the main ones from the features?', 'recommendation': 'yes'})
-    return problems, questions
+    return questions
 
 
 def _look_problems(look, features, drawn=True):

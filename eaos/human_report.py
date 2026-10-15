@@ -1125,63 +1125,63 @@ def target_rows(tcomps, order=None):
     return [(name, sorted(layers[name], key=lambda c: (c.get('name') != name, -(c.get('files') or 0), c.get('name') or ''))) for name in names]
 
 
-def target_svg(rows, edges, progress, rtl, done=('أُغلق', 'closed')):
-    """The target as layers of boxes; every allowed link drawn faint, strong for the part under the pointer.
-    A component may bring its own second line as c['sub'] = (Arabic, English); `done` names what its bar counts."""
+def _target_layout(rows, rtl):
+    """Where every box stands, {name: (x, y)}, the layer bands behind them, and the height of it all."""
     per_line = (TWIDTH - TLABEL) // (TBOX_W + TBOX_GAP)
-    boxes, y, parts, labels = {}, 8, [], []
+    boxes, y, bands = {}, 8, []
     for layer, comps in rows:
         lines = [comps[i:i + per_line] for i in range(0, len(comps), per_line)] or [[]]
         band = len(lines) * (TBOX_H + TBOX_GAP) - TBOX_GAP
-        labels.append(f'<rect x="0" y="{y - 4}" width="{TWIDTH}" height="{band + 8}" rx="8" class="t-band"/>'
-                      + svg_text(TWIDTH - 10 if rtl else 10, y + band / 2 + 5, layer, 't-layer', 'right' if rtl else 'left', attrs=' data-literal="1"'))
+        bands.append(f'<rect x="0" y="{y - 4}" width="{TWIDTH}" height="{band + 8}" rx="8" class="t-band"/>'
+                     + svg_text(TWIDTH - 10 if rtl else 10, y + band / 2 + 5, layer, 't-layer', 'right' if rtl else 'left', attrs=' data-literal="1"'))
         for line in lines:
             for p, c in enumerate(line):
                 x = TLABEL + p * (TBOX_W + TBOX_GAP)
                 boxes[c.get('name')] = ((TWIDTH - x - TBOX_W) if rtl else x, y)
             y += TBOX_H + TBOX_GAP
         y += TROW_GAP - TBOX_GAP
-    height = y
-    suffix = 't-ar' if rtl else 't-en'
-    label = 'البنية المستهدفة طبقة طبقة' if rtl else 'The target structure, layer by layer'
-    parts.append(f'<svg viewBox="0 0 {TWIDTH} {height}" direction="ltr" role="img" class="chart tgraph hl-graph {"l-ar" if rtl else "l-en"}" '
-                 f'aria-label="{esc(label)}"><defs>{arrow_defs(suffix)}</defs>{"".join(labels)}<g class="edges">')
-    for e in edges:
-        if e.get('from') not in boxes or e.get('to') not in boxes: continue
-        (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
-        sx, ex = ax + TBOX_W / 2, bx + TBOX_W / 2
-        if by > ay + 1: d = f'M{sx:.1f},{ay + TBOX_H:.1f} C{sx:.1f},{ay + TBOX_H + 40:.1f} {ex:.1f},{by - 40:.1f} {ex:.1f},{by:.1f}'
-        elif by < ay - 1: d = f'M{sx:.1f},{ay:.1f} C{sx:.1f},{ay - 40:.1f} {ex:.1f},{by + TBOX_H + 40:.1f} {ex:.1f},{by + TBOX_H:.1f}'
-        else: d = f'M{sx:.1f},{ay + TBOX_H:.1f} C{sx:.1f},{ay + TBOX_H + 22:.1f} {ex:.1f},{by + TBOX_H + 22:.1f} {ex:.1f},{by + TBOX_H:.1f}'
-        count = e.get('imports') or 1
-        words = f'{e["from"]} → {e["to"]}' + (f': {count}' if e.get('imports') else '')
-        parts.append(f'<path d="{d}" class="edge t-edge" style="stroke-width:{1 + math.log2(count):.1f}" marker-end="url(#arr-{suffix})" '
-                     f'data-from="{esc(e["from"])}" data-to="{esc(e["to"])}" data-meaning="{count} imports the target allows along this link">'
-                     f'<title>{esc(words)}</title></path>')
-    parts.append('</g>')
-    for layer, comps in rows:
-        for c in comps:
-            name = c.get('name') or ''
-            x, y0 = boxes[name]
-            closed, total = progress.get(name, (0, 0))
-            files = c.get('files') or 0
-            side, edge = ('right', x + TBOX_W - 8) if rtl else ('left', x + 8)
-            if total:
-                words = f'{done[0]} {closed} من {total}' if rtl else f'{closed} of {total} {done[1]}'
-            else:
-                words = 'لا مشاكل فيه' if rtl else 'no problem in it'
-            sub = (c['sub'][0 if rtl else 1] if c.get('sub') else f'ملفات {files}' if rtl else f'{files} {files_word(files)}')
-            share = (TBOX_W - 16) * closed / total if total else 0
-            meaning = f'{files} files; {closed} of the {total} problems in its files are closed'
-            tip = f'{name}: {c.get("responsibility") or ""}'
-            parts.append(f'<g class="t-node{" empty" if not files and not c.get("sub") else ""}" data-node="{esc(name)}" tabindex="0" data-meaning="{esc(meaning)}"><title>{esc(tip)}</title>'
-                         f'<rect x="{x:.1f}" y="{y0:.1f}" width="{TBOX_W}" height="{TBOX_H}" rx="7"/>'
-                         + svg_text(edge, y0 + 17, fit(name, 19), 't-name', side, attrs=' data-literal="1"')
-                         + svg_text(edge, y0 + 33, sub + ' · ' + words, 't-sub', side, rtl)
-                         + f'<rect x="{x + 8:.1f}" y="{y0 + TBOX_H - 16:.1f}" width="{TBOX_W - 16}" height="6" rx="3" class="t-track"/>'
-                         + (f'<rect x="{(x + TBOX_W - 8 - share) if rtl else x + 8:.1f}" y="{y0 + TBOX_H - 16:.1f}" width="{share:.1f}" height="6" rx="3" class="t-fill"/>' if share else '')
-                         + '</g>')
-    return ''.join(parts) + '</svg>'
+    return boxes, bands, y
+
+
+def _target_edge(e, boxes, suffix):
+    (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
+    sx, ex = ax + TBOX_W / 2, bx + TBOX_W / 2
+    if by > ay + 1: d = f'M{sx:.1f},{ay + TBOX_H:.1f} C{sx:.1f},{ay + TBOX_H + 40:.1f} {ex:.1f},{by - 40:.1f} {ex:.1f},{by:.1f}'
+    elif by < ay - 1: d = f'M{sx:.1f},{ay:.1f} C{sx:.1f},{ay - 40:.1f} {ex:.1f},{by + TBOX_H + 40:.1f} {ex:.1f},{by + TBOX_H:.1f}'
+    else: d = f'M{sx:.1f},{ay + TBOX_H:.1f} C{sx:.1f},{ay + TBOX_H + 22:.1f} {ex:.1f},{by + TBOX_H + 22:.1f} {ex:.1f},{by + TBOX_H:.1f}'
+    count = e.get('imports') or 1
+    words = f'{e["from"]} → {e["to"]}' + (f': {count}' if e.get('imports') else '')
+    return (f'<path d="{d}" class="edge t-edge" style="stroke-width:{1 + math.log2(count):.1f}" marker-end="url(#arr-{suffix})" '
+            f'data-from="{esc(e["from"])}" data-to="{esc(e["to"])}" data-meaning="{count} imports the target allows along this link">'
+            f'<title>{esc(words)}</title></path>')
+
+
+def _target_node(c, box, progress, rtl, done):
+    name, files, (x, y0) = c.get('name') or '', c.get('files') or 0, box
+    closed, total = progress.get(name, (0, 0))
+    side, edge = ('right', x + TBOX_W - 8) if rtl else ('left', x + 8)
+    words = ((f'{done[0]} {closed} من {total}' if rtl else f'{closed} of {total} {done[1]}') if total
+             else 'لا مشاكل فيه' if rtl else 'no problem in it')
+    sub = (c['sub'][int(not rtl)] if c.get('sub') else f'ملفات {files}' if rtl else f'{files} {files_word(files)}')
+    share, meaning = (TBOX_W - 16) * closed / total if total else 0, f'{files} files; {closed} of the {total} problems in its files are closed'
+    return (f'<g class="t-node{" empty" if not files and not c.get("sub") else ""}" data-node="{esc(name)}" tabindex="0" data-meaning="{esc(meaning)}">'
+            f'<title>{esc(name + ": " + (c.get("responsibility") or ""))}</title><rect x="{x:.1f}" y="{y0:.1f}" width="{TBOX_W}" height="{TBOX_H}" rx="7"/>'
+            + svg_text(edge, y0 + 17, fit(name, 19), 't-name', side, attrs=' data-literal="1"')
+            + svg_text(edge, y0 + 33, sub + ' · ' + words, 't-sub', side, rtl)
+            + f'<rect x="{x + 8:.1f}" y="{y0 + TBOX_H - 16:.1f}" width="{TBOX_W - 16}" height="6" rx="3" class="t-track"/>'
+            + (f'<rect x="{(x + TBOX_W - 8 - share) if rtl else x + 8:.1f}" y="{y0 + TBOX_H - 16:.1f}" width="{share:.1f}" height="6" rx="3" class="t-fill"/>' if share else '')
+            + '</g>')
+
+
+def target_svg(rows, edges, progress, rtl, done=('أُغلق', 'closed')):
+    """The target as layers of boxes; every allowed link drawn faint, strong for the part under the pointer.
+    A component may bring its own second line as c['sub'] = (Arabic, English); `done` names what its bar counts."""
+    boxes, bands, height = _target_layout(rows, rtl)
+    suffix, label = ('t-ar', 'البنية المستهدفة طبقة طبقة') if rtl else ('t-en', 'The target structure, layer by layer')
+    return (f'<svg viewBox="0 0 {TWIDTH} {height}" direction="ltr" role="img" class="chart tgraph hl-graph {"l-ar" if rtl else "l-en"}" '
+            f'aria-label="{esc(label)}"><defs>{arrow_defs(suffix)}</defs>{"".join(bands)}<g class="edges">'
+            + ''.join(_target_edge(e, boxes, suffix) for e in edges if e.get('from') in boxes and e.get('to') in boxes) + '</g>'
+            + ''.join(_target_node(c, boxes[c.get('name') or ''], progress, rtl, done) for _, comps in rows for c in comps) + '</svg>')
 
 
 def target_detail(c, progress, sources):

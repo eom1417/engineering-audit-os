@@ -50,43 +50,51 @@ def _drivers(py, list_rel, list_var):
     return out
 
 
+def _element_parts(element):
+    if isinstance(element, ast.Call): first, keywords, rest = (element.args[:1] or [None])[0], element.keywords, element.args[1:]
+    elif isinstance(element, ast.Tuple): first, keywords, rest = (element.elts[:1] or [None])[0], [], element.elts[1:]
+    else: return None
+    label = _str(first) if first is not None else None
+    if label is None: label = next((_str(k.value) for k in keywords if k.arg in ('name', 'id', 'task_id')), None)
+    return None if label is None else (label, keywords, rest)
+
+
+def _is_ai(py, rel, element, keywords):
+    return any(k.arg == 'kind' and _str(k.value) == 'ai' for k in keywords) or (any(k.arg == 'routes' for k in keywords) and _default_kind(py, rel, element) == 'ai')
+
+
+def _kw_strings(keywords, names):
+    return [s for k in keywords if k.arg in names for s in _strs(k.value)]
+
+
+def _declared_row(py, rel, element):
+    label, keywords, rest = _element_parts(element) or (None, None, None)
+    if label is None: return None
+    return {'label': label, 'line': element.lineno, 'requires': _kw_strings(keywords, REQUIRES),
+            'produces': _kw_strings(keywords, PRODUCES), 'consumes': _kw_strings(keywords, CONSUMES),
+            'functions': [item.id for item in [*rest, *[k.value for k in keywords]] if isinstance(item, ast.Name) and py.resolve(rel, item.id)],
+            'optional': any(k.arg == 'necessity' and 'optional' in _unparse(k.value).lower() for k in keywords), 'ai': _is_ai(py, rel, element, keywords),
+            'routes': [r for k in keywords if k.arg in ROUTES for r in _routes(k.value)], 'timeout': any(k.arg in TIMEOUT_WORDS for k in keywords)}
+
+
 def declared_lists(py, out):
     for rel, assigns in py.assigns.items():
         for var, node in assigns.items():
-            value = node.value
-            if not isinstance(value, (ast.List, ast.Tuple)) or len(value.elts) < 3: continue
-            rows = []
-            for element in value.elts:
-                if isinstance(element, ast.Call): first, keywords, rest = (element.args[:1] or [None])[0], element.keywords, element.args[1:]
-                elif isinstance(element, ast.Tuple): first, keywords, rest = (element.elts[:1] or [None])[0], [], element.elts[1:]
-                else: break
-                label = _str(first) if first is not None else None
-                if label is None:
-                    label = next((_str(k.value) for k in keywords if k.arg in ('name', 'id', 'task_id')), None)
-                if label is None: break
-                requires = [s for k in keywords if k.arg in REQUIRES for s in _strs(k.value)]
-                produces = [s for k in keywords if k.arg in PRODUCES for s in _strs(k.value)]
-                consumes = [s for k in keywords if k.arg in CONSUMES for s in _strs(k.value)]
-                functions = [item.id for item in [*rest, *[k.value for k in keywords]]
-                             if isinstance(item, ast.Name) and py.resolve(rel, item.id)]
-                optional = any(k.arg == 'necessity' and 'optional' in _unparse(k.value).lower() for k in keywords)
-                ai = any(k.arg == 'kind' and _str(k.value) == 'ai' for k in keywords) or (
-                    any(k.arg == 'routes' for k in keywords) and _default_kind(py, rel, element) == 'ai')
-                rows.append({'label': label, 'line': element.lineno, 'requires': requires, 'produces': produces,
-                             'consumes': consumes, 'functions': functions, 'optional': optional, 'ai': ai,
-                             'routes': [r for k in keywords if k.arg in ROUTES for r in _routes(k.value)],
-                             'timeout': any(k.arg in TIMEOUT_WORDS for k in keywords)})
-            else:
-                names = [r['label'] for r in rows]
-                if len(set(names)) != len(names): continue
-                dag = sum(bool(set(r['requires']) & set(names)) for r in rows) >= 2
-                drivers = _drivers(py, rel, var)
-                called = any(isinstance(call, ast.Call) and isinstance(call.func, (ast.Subscript, ast.Attribute))
-                             and _root(call.func) == target
-                             for _, _, fn, _, target in drivers for call in ast.walk(fn) if target)
-                sequence = not dag and all(r['functions'] for r in rows) and called
-                if dag: _declared_dag(py, (rel, var, node), rows, drivers, out)
-                elif sequence: _declared_sequence(py, rel, var, node, rows, drivers, out)
+            if not isinstance(node.value, (ast.List, ast.Tuple)) or len(node.value.elts) < 3: continue
+            rows = [_declared_row(py, rel, element) for element in node.value.elts]
+            if None not in rows: _declare(py, rel, var, node, rows, out)
+
+
+def _declare(py, rel, var, node, rows, out):
+    names = [r['label'] for r in rows]
+    if len(set(names)) != len(names): return
+    dag = sum(bool(set(r['requires']) & set(names)) for r in rows) >= 2
+    drivers = _drivers(py, rel, var)
+    called = any(isinstance(call, ast.Call) and isinstance(call.func, (ast.Subscript, ast.Attribute))
+                 and _root(call.func) == target
+                 for _, _, fn, _, target in drivers for call in ast.walk(fn) if target)
+    if dag: _declared_dag(py, (rel, var, node), rows, drivers, out)
+    elif all(r['functions'] for r in rows) and called: _declared_sequence(py, rel, var, node, rows, drivers, out)
 
 
 ROUTES = {'routes', 'branches'}

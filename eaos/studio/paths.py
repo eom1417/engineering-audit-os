@@ -40,12 +40,11 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from .. import arch_map, system_map as sm
-from . import system as system_section
+from . import path_records, system as system_section
+from .path_records import line_number
 
 LANES = ('screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data')
 OPERATION = {'retain': 'retain', 'modify': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete', 'retire': 'delete'}
-SERVER = ('http', 'endpoint', 'api', 'route', 'rpc', 'job', 'queue', 'cli', 'worker', 'webhook', 'cron', 'tool')
-FUNCTIONS = ('function', 'method')
 IMPORT_STEPS = 2          # a component reaches the files that make its calls through at most two imports
 SERVER_STEPS = 3          # a handler reaches the parts behind it through at most three imports
 MAX_CALLS = 60            # calls drawn per path; the rest are counted in the path's `capped`
@@ -71,10 +70,6 @@ def _measure(value, src):
     return {'value': value, 'src': src, 'unit': 'count'}
 
 
-def _line(value):
-    return value if isinstance(value, int) and value >= 0 else None
-
-
 def _slug(text):
     return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-') or 'root'
 
@@ -83,77 +78,13 @@ def _fact_id(fact):
     return fact.get('id') if isinstance(fact, dict) and isinstance(fact.get('id'), str) else None
 
 
-# ---------------------------------------------------------------- reading
-
-def _enclosing(functions, path, line):
-    """The function holding a line: the outermost top-level function around it, else the innermost one; None outside."""
-    around = [f for f in functions.get(path, ()) if f['start'] <= (line or 0) <= f['end']]
-    top = [f for f in around if not f['parent']]
-    pick = min(top, key=lambda f: f['start']) if top else (max(around, key=lambda f: f['start']) if around else None)
-    return pick['name'] if pick else None
-
-
 def _read(report):
-    """The records the paths read, each piece empty when its record is missing or broken."""
+    """The records the paths read (eaos/studio/path_records.py), each piece empty when its record is missing or broken."""
     report = Path(report)
     r = {'pages': [], 'servers': [], 'routes': [], 'calls': defaultdict(list), 'flows': {}, 'flow_of': {}, 'flow_list': [],
          'functions': defaultdict(list), 'names': defaultdict(set), 'methods': defaultdict(set), 'packages': defaultdict(set),
          'imports': {}, 'tables': defaultdict(list)}
-    for fact in sm._facts(report, 'syntax', 'symbol', 'import_edge'):
-        value, loc, path = fact.get('value') or {}, fact.get('location') or {}, sm._path(fact)
-        if sm.is_test(path): continue
-        if fact['kind'] == 'import_edge':
-            if value.get('style') == 'absolute' and value.get('module'): r['packages'][path].add(str(value['module']))
-            continue
-        name = str(value.get('name') or '')
-        if value.get('exported') and name.upper() in sm.METHODS and name.isupper(): r['methods'][path].add(name)
-        if name and not value.get('parent'): r['names'][name].add(path)
-        if value.get('kind') in FUNCTIONS and isinstance(loc.get('start_line'), int):
-            r['functions'][path].append({'name': name, 'parent': value.get('parent'), 'start': loc['start_line'],
-                                         'end': loc.get('end_line') or loc['start_line']})
-    for node in sm._facts(report, 'graph', 'graph_node'):
-        r['imports'][sm._path(node)] = [d for d in (node.get('value') or {}).get('depends_on') or [] if isinstance(d, str)]
-    for fact in sm._facts(report, 'entrypoints', 'entry_point', 'data_access'):
-        value, path, loc = fact.get('value') or {}, sm._path(fact), fact.get('location') or {}
-        if not isinstance(value, dict) or not path or sm.is_test(path) or value.get('category') == 'test': continue
-        line = _line(loc.get('start_line'))
-        if fact['kind'] == 'entry_point':
-            entry = {'fact': fact, 'path': path, 'line': line, 'surface': str(value.get('surface') or ''),
-                     'route': str(value.get('route') or ''), 'method': value.get('http_method'), 'handler': value.get('handler')}
-            if entry['surface'] == 'page': r['pages'].append(entry)
-            elif entry['surface'] in SERVER or entry['method']:
-                if entry['surface'] in ('http', 'endpoint', 'api', 'route', 'rpc') or entry['method']:
-                    r['routes'].append({'route': sm.clean_path(entry['route']), 'method': str(entry['method'] or 'ANY').upper(),
-                                        'handler': entry['handler'], 'file': path, 'fact': fact})
-                if entry['handler']: r['servers'].append(entry)
-            continue
-        if not value.get('target'): continue
-        client = str(value.get('client') or 'http')
-        if client in ('http', 'fetch', 'axios'):
-            method = str(value.get('operation') or 'get').upper()
-            method = method if method in sm.METHODS else 'GET'
-            url = sm.clean_path(value['target']) or '…'      # a URL built at run time: the call stays, its route unknown
-            call = {'id': f'A:{method} {url}', 'label': f'{method} {url}', 'url': url, 'method': method, 'table': None,
-                    'group': sm.api_group(url)}
-        else:
-            operation, table = str(value.get('operation') or 'query'), str(value['target'])
-            call = {'id': f'A:{client} {operation} {table}', 'label': f'{client} {operation} {table}', 'url': None,
-                    'method': operation, 'table': table, 'group': client}
-        r['calls'][path].append({**call, 'fact': fact, 'path': path, 'line': line,
-                                 'function': _enclosing(r['functions'], path, line)})
-    for rows in r['calls'].values(): rows.sort(key=lambda c: (c['line'] or 0, c['id']))
-    for fact in sm._facts(report, 'flows', 'flow'):
-        value = fact.get('value') or {}
-        entry = value.get('entry') or {}
-        for route in [entry.get('route')] + [a.get('route') for a in value.get('also_reached_by') or [] if isinstance(a, dict)]:
-            r['flows'].setdefault((entry.get('path'), entry.get('handler'), route), fact)
-        r['flow_of'].setdefault((entry.get('path'), entry.get('handler')), fact)
-        first = next((s.get('from_path') for s in value.get('steps') or [] if isinstance(s, dict) and s.get('from') == entry.get('handler')), None)
-        r['flow_list'].append({'surface': entry.get('surface'), 'route': entry.get('route'), 'handler': entry.get('handler'),
-                               'file': first})
-    for fact in sm._facts(report, 'domain', 'data_table'):
-        name, path = str((fact.get('value') or {}).get('name') or ''), sm._path(fact)
-        if len(name) > 1 and name.lower() not in sm.NOT_TABLES and not sm.is_test(path): r['tables'][path].append((name, fact))
+    for reader in path_records.READERS: reader(report, r)
     return r
 
 
@@ -193,7 +124,7 @@ class _Graph:
             extra = more
             cards, steps = self.cards_of(path) if path and kind != 'gap' else ([], [])
             self.nodes[nid] = {'id': nid, 'lane': lane, 'kind': kind, 'label': str(label)[:200], 'path': path or None,
-                               'line': _line(line), 'fact': _fact_id(fact),
+                               'line': line_number(line), 'fact': _fact_id(fact),
                                'component': None if kind == 'gap' else part or (self.owner(path) if path else None),
                                'cards': cards, 'steps': steps, 'reason': None, 'detail': None, 'items': [], 'group': None, **extra}
         return nid
@@ -202,7 +133,7 @@ class _Graph:
         key = (a, b, how)
         if key not in self.index:
             self.index[key] = len(self.edges)
-            self.edges.append({'from': a, 'to': b, 'how': how, 'fact': _fact_id(fact), 'path': path or None, 'line': _line(line)})
+            self.edges.append({'from': a, 'to': b, 'how': how, 'fact': _fact_id(fact), 'path': path or None, 'line': line_number(line)})
         return self.index[key]
 
     def gap(self, nid, lane, reason, label, detail=None, items=()):
@@ -221,7 +152,7 @@ class _Builder:
         stops = [s for s in value.get('steps') or [] if isinstance(s, dict) and s.get('resolution') in ('unresolved', 'ambiguous')]
         count = value.get('unresolved_steps')
         if not stops and not count: return 0
-        items = [{'callee': str(s.get('callee') or ''), 'path': s.get('from_path'), 'line': _line(s.get('line')),
+        items = [{'callee': str(s.get('callee') or ''), 'path': s.get('from_path'), 'line': line_number(s.get('line')),
                   'resolution': s.get('resolution')} for s in stops]
         gid = self.g.gap(f'G:trace:{pid}', lane, 'trace_stopped', value.get('flow_id') or pid,
                          detail=str(count if isinstance(count, int) else len(stops)), items=items)

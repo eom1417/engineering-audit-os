@@ -7,7 +7,6 @@ them out, halving finds the cards responsible. A batch that passes becomes a bra
 on its base branch when the person chose so.
 """
 from datetime import datetime, timezone
-from pathlib import Path
 
 from . import guided
 
@@ -50,10 +49,8 @@ def finish_job(project, arguments, progress):
     was = guided._git(wave['root'], 'rev-parse', 'HEAD').stdout.strip()
     repairs = wave.get('repairs') or []
     try:
-        summary = finish_batch(guided.report_of(state), guided.source(state), guided.runtime_of(state), wave['number'], Path(wave['root']),
-                               wave['base'], wave['cards'], wave['kept'], wave['failed'], wave['tools'], lock=True,
-                               say=lambda kind, *_: _phase(project, kind, progress),
-                               branch=wave.get('deliver_as'), repairs=repairs,
+        summary = finish_batch(guided.report_of(state), guided.source(state), guided.runtime_of(state), wave, lock=True,
+                               say=lambda kind, *_: _phase(project, kind, progress), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
                                regenerate=lambda root: regenerate(root, guided.runtime_of(state), wave['base'], wave['number']))
     except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes

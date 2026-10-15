@@ -39,6 +39,8 @@ const WORDS = {
 // the end side first: the sidebar holds the start side on a computer
 const CORNERS = ['bottomEnd', 'topEnd', 'topStart', 'bottomStart'] as const
 type Corner = typeof CORNERS[number]
+type Planning = '' | 'new' | 'extend'
+type Live = { reading: string[]; partial: string }
 interface Line { who: 'person' | 'assistant' | 'error'; text: string; proposals?: ChatProposal[]; done?: ChatTurn['done']; cost?: number | null }
 export interface ChatRequest { message?: string; context?: Record<string, unknown>; model?: ChatModel }
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -46,6 +48,24 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 /** Open the assistant from anywhere, with a question and what it is about. */
 export function askAssistant(request: ChatRequest) {
   window.dispatchEvent(new CustomEvent<ChatRequest>('eaos-chat', { detail: request }))
+}
+
+const savedCorner = (): Corner => {
+  const saved = localStorage.getItem('eaos.chat.corner') ?? ''
+  return (CORNERS as readonly string[]).includes(saved) ? saved as Corner : 'bottomEnd'
+}
+
+/** Follows a turn until it is over, handing what the assistant reads and writes meanwhile to `onLive`: its result, or
+ * the error it ended on. */
+async function follow<R>(poll: () => Promise<Live & { done: boolean; error?: string | null; result?: R | null }>, onLive: (live: Live) => void): Promise<R> {
+  for (;;) {
+    await pause(900)
+    const now = await poll()
+    onLive({ reading: now.reading, partial: now.partial })
+    if (!now.done) continue
+    if (now.error || !now.result) throw new Error(now.error ?? 'no answer')
+    return now.result
+  }
 }
 
 function Proposal({ item }: { item: ChatProposal }) {
@@ -56,20 +76,46 @@ function Proposal({ item }: { item: ChatProposal }) {
   const [done, setDone] = useState(false)
   const title = item.kind === 'control' ? WORDS.controls[item.action as keyof typeof WORDS.controls]?.[at] ?? item.action
     : actionOf(item.action)?.label[lang === 'ar' ? 'ar' : 'en'] ?? item.action
-  const go = async () => {
+  const go = () => {
     if (item.kind === 'action') { command?.open({ action: item.action, inputs: item.inputs }); return }
     if (!client || !item.run) return
-    await client.control(item.run, item.action as 'retry' | 'stop' | 'pause' | 'resume')
-    setDone(true)
-    void refresh()
+    void client.control(item.run, item.action as 'retry' | 'stop' | 'pause' | 'resume').then(() => { setDone(true); void refresh() })
   }
   return (
     <div className={css.card}>
       <span className={css.cardTitle}><bdi>{title}</bdi></span>
       {item.why && <span className={css.hint}>{item.why}</span>}
-      {done ? <span className={css.hint}>{WORDS.sent[at]}</span> : <div><Button variant="secondary" icon="play" onPress={() => void go()}>{WORDS.run[at]}</Button></div>}
+      {done ? <span className={css.hint}>{WORDS.sent[at]}</span> : <div><Button variant="secondary" icon="play" onPress={go}>{WORDS.run[at]}</Button></div>}
     </div>
   )
+}
+
+/** One turn of the conversation: its words, what the Studio ran of it, the proposals left to the person, its cost. */
+function ChatLine({ line, at }: { line: Line; at: 0 | 1 }) {
+  const done = line.done ?? []
+  return (
+    <div style={{ display: 'contents' }}>
+      <div className={css[line.who]}><bdi>{line.text}</bdi></div>
+      {done.map((d, n) => <span key={`d${n}`} className={css.hint}>{d.run ? WORDS.ran[at] : WORDS.couldNot[at]}: <bdi>{d.proposal.action}</bdi>{d.error ? ` (${d.error})` : ''}</span>)}
+      {(line.proposals ?? []).filter((item) => !done.some((d) => d.proposal.action === item.action && d.run)).map((item, n) => <Proposal key={n} item={item} />)}
+      {typeof line.cost === 'number' && <span className={css.cost}><bdi dir="ltr">${line.cost.toFixed(3)}</bdi></span>}
+    </div>
+  )
+}
+
+/** The answer as it is written, and what the assistant reads now. */
+function Writing({ live, at }: { live: Live; at: 0 | 1 }) {
+  return (
+    <>
+      {live.partial ? <div className={css.assistant}><bdi>{live.partial}</bdi></div> : null}
+      <span className={css.hint}>{live.reading.length ? `${WORDS.reading[at]}: ${live.reading.join('، ')}` : WORDS.thinking[at]}</span>
+    </>
+  )
+}
+
+/** Opens (or closes) the form that builds a project from its plan, or extends this one. */
+function PlanToggle({ way, planning, onPick, at }: { way: 'new' | 'extend'; planning: Planning; onPick: (way: Planning) => void; at: 0 | 1 }) {
+  return <button type="button" className={css.tool} aria-pressed={planning === way} onClick={() => onPick(planning === way ? '' : way)}>{WORDS[way === 'new' ? 'plan' : 'extend'][at]}</button>
 }
 
 export function ChatDock() {
@@ -78,15 +124,15 @@ export function ChatDock() {
   const { client } = useActions()
   const location = useRouterState({ select: (s) => s.location })
   const [open, setOpen] = useState(false)
-  const [corner, setCorner] = useState<Corner>(() => (CORNERS as readonly string[]).includes(localStorage.getItem('eaos.chat.corner') ?? '') ? localStorage.getItem('eaos.chat.corner') as Corner : 'bottomEnd')
+  const [corner, setCorner] = useState<Corner>(savedCorner)
   const [lines, setLines] = useState<Line[]>([])
   const [session, setSession] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [model, setModel] = useState<ChatModel>('quick')
   const [busy, setBusy] = useState(false)
-  const [live, setLive] = useState<{ reading: string[]; partial: string }>({ reading: [], partial: '' })
+  const [live, setLive] = useState<Live>({ reading: [], partial: '' })
   const [control, setControl] = useState<ChatControl | null>(null)
-  const [planning, setPlanning] = useState<'' | 'new' | 'extend'>('')
+  const [planning, setPlanning] = useState<Planning>('')
   const checked = useStudio() !== null     // extending reads the check: offered once there is one
   const list = useRef<HTMLDivElement>(null)
 
@@ -102,17 +148,9 @@ export function ChatDock() {
     const context = { page: location.pathname, search: location.search, ...(run ? { run } : {}), ...(extra?.context ?? {}) }
     try {
       const { turn } = await client.chat(message, session, context, extra?.model ?? model)
-      for (;;) {
-        await pause(900)
-        const now = await client.chatProgress(turn)
-        setLive({ reading: now.reading, partial: now.partial })
-        if (!now.done) continue
-        if (now.error || !now.result) throw new Error(now.error ?? 'no answer')
-        const result = now.result
-        setSession(result.session)
-        setLines((old) => [...old, { who: 'assistant', text: result.answer, proposals: result.proposals, done: result.done, cost: result.usage?.cost_usd }])
-        break
-      }
+      const result = await follow(() => client.chatProgress!(turn), setLive)
+      setSession(result.session)
+      setLines((old) => [...old, { who: 'assistant', text: result.answer, proposals: result.proposals, done: result.done, cost: result.usage?.cost_usd }])
     } catch (problem) {
       setLines((old) => [...old, { who: 'error', text: problem instanceof Error ? problem.message : String(problem) }])
     } finally { setBusy(false); setLive({ reading: [], partial: '' }) }
@@ -128,7 +166,7 @@ export function ChatDock() {
     window.addEventListener('eaos-chat', opened)
     return () => window.removeEventListener('eaos-chat', opened)
   }, [send])
-  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }) }, [lines, live])
+  useEffect(() => { list.current?.scrollTo(0, list.current.scrollHeight) }, [lines, live])
 
   if (!client?.chat) return null
   const move = () => {
@@ -136,7 +174,7 @@ export function ChatDock() {
     setCorner(next)
     localStorage.setItem('eaos.chat.corner', next)
   }
-  const toggle = async () => { if (client.chatControl) setControl(await client.chatControl(!control?.on)) }
+  const toggle = () => { if (client.chatControl) void client.chatControl(!control?.on).then(setControl) }
   const key = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(text) }
   }
@@ -149,9 +187,7 @@ export function ChatDock() {
         <Icon name="assistant" />
         <span className={css.title}>{WORDS.title[at]}</span>
         <button type="button" className={css.tool} onClick={() => { setLines([]); setSession(null) }}>{WORDS.fresh[at]}</button>
-        {client.plan && (checked ? ['new', 'extend'] as const : ['new'] as const).map((way) => (
-          <button key={way} type="button" className={css.tool} aria-pressed={planning === way} onClick={() => setPlanning(planning === way ? '' : way)}>{WORDS[way === 'new' ? 'plan' : 'extend'][at]}</button>
-        ))}
+        {client.plan && (checked ? ['new', 'extend'] as const : ['new'] as const).map((way) => <PlanToggle key={way} way={way} planning={planning} onPick={setPlanning} at={at} />)}
         <button type="button" className={css.tool} aria-label={WORDS.move[at]} title={WORDS.move[at]} onClick={move}><Icon name="arrow" /></button>
         <button type="button" className={css.tool} aria-label={WORDS.close[at]} title={WORDS.close[at]} onClick={() => setOpen(false)}><Icon name="x" /></button>
       </header>
@@ -162,7 +198,7 @@ export function ChatDock() {
           </select>
         </label>
         <label className={css.setting} title={WORDS.controlWhy[at]}>
-          <input type="checkbox" checked={!!control?.on} onChange={() => void toggle()} />{WORDS.control[at]}
+          <input type="checkbox" checked={!!control?.on} onChange={toggle} />{WORDS.control[at]}
           {control?.on && control.until && <span className={css.hint}>· {WORDS.controlOn[at]} {date(control.until, true)}</span>}
         </label>
       </div>
@@ -170,20 +206,8 @@ export function ChatDock() {
       <div className={css.list} ref={list} aria-live="polite">
         {planning && <PlanForm key={planning} extend={planning === 'extend'} />}
         {!lines.length && !planning && <span className={css.hint}>{WORDS.hello[at]}</span>}
-        {lines.map((line, index) => (
-          <div key={index} style={{ display: 'contents' }}>
-            <div className={css[line.who]}><bdi>{line.text}</bdi></div>
-            {(line.done ?? []).map((d, n) => <span key={`d${n}`} className={css.hint}>{d.run ? WORDS.ran[at] : WORDS.couldNot[at]}: <bdi>{d.proposal.action}</bdi>{d.error ? ` (${d.error})` : ''}</span>)}
-            {(line.proposals ?? []).filter((item) => !(line.done ?? []).some((d) => d.proposal.action === item.action && d.run)).map((item, n) => <Proposal key={n} item={item} />)}
-            {typeof line.cost === 'number' && <span className={css.cost}><bdi dir="ltr">${line.cost.toFixed(3)}</bdi></span>}
-          </div>
-        ))}
-        {busy && (
-          <>
-            {live.partial ? <div className={css.assistant}><bdi>{live.partial}</bdi></div> : null}
-            <span className={css.hint}>{live.reading.length ? `${WORDS.reading[at]}: ${live.reading.join('، ')}` : WORDS.thinking[at]}</span>
-          </>
-        )}
+        {lines.map((line, index) => <ChatLine key={index} line={line} at={at} />)}
+        {busy && <Writing live={live} at={at} />}
       </div>
       <footer className={css.foot}>
         <div className={css.row}>

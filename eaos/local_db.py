@@ -14,6 +14,7 @@ import json
 import os
 import shutil
 import socket
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -82,7 +83,8 @@ class LocalPostgres:
         self.root.mkdir(parents=True, exist_ok=True)
         if self.owner:
             self.data.parent.mkdir(parents=True, exist_ok=True)
-            os.chmod(self.data.parent, 0o777)
+            shutil.chown(self.data.parent, self.owner)
+            os.chmod(self.data.parent, stat.S_IRWXU)
         if not (self.data / 'PG_VERSION').exists():
             self.data.mkdir(parents=True, exist_ok=True)
             if self.owner: shutil.chown(self.data, self.owner)

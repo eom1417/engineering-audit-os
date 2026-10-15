@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { useZoom } from '../../map/useZoom'
 import { usePhone } from '../SystemMap'
-import { clip } from '../../map/draw'
+import { clip, useLinked } from '../../map/draw'
 import { FitIcon } from '../../map/parts'
 import zoomCss from '../../map/parts.module.css'
 import { useMapWords } from '../../map/words'
@@ -89,11 +89,7 @@ export function Lanes({ columns, nodes, edges, mode, selected, onSelect, label, 
     if (at && size.w) setT((cur) => ({ k: Math.max(cur.k, 0.9), x: size.w / 2 - (at.x + NODE_W / 2) * Math.max(cur.k, 0.9), y: size.h / 2 - (at.y + NODE_H / 2) * Math.max(cur.k, 0.9) }))
   }, [centreOn, g, size.w, size.h, setT])
 
-  const linked = useMemo(() => {
-    const on = new Set<string>()
-    if (selected) for (const e of edges) if (e.from === selected || e.to === selected) on.add(e.key)
-    return on
-  }, [edges, selected])
+  const linked = useLinked(edges, selected, 'key')
   const ops = useMemo(() => [...new Set([...nodes.values()].map((n) => n.op).filter(Boolean))] as PathOp[], [nodes])
   const hasPossible = edges.some((e) => e.style === 'possible')
   const hasGap = [...nodes.values()].some((n) => n.kind === 'gap')

@@ -400,34 +400,23 @@ class Manager:
         if record.get('pending_question') and not state.get('failed') and code in (0, None):
             self.store.append(run, 'result', {'en': 'Clarification finished; your explicit answer is still needed', 'ar': 'انتهى التوضيح؛ ما زالت إجابتك الصريحة مطلوبة'}, {'answer': words})
             return self._restore_question(run)
-        question = prompts.question_in(words)
-        if question is None:
-            # The branch is the person's to choose (choose_branch is person-only): the Studio asks it as its own question,
-            # so the answer is recorded before the assistant goes on
-            branch = next((payload for tool, payload in reversed(state['eaos_results'])
-                           if isinstance(payload, dict) and payload.get('status') == 'needs_branch' and payload.get('branches')), None)
-            if branch: question = prompts.branch_question(branch)
-        if question is None:
-            asked = next((payload for tool, payload in reversed(state['eaos_results'])
-                          if isinstance(payload, dict) and payload.get('status') == 'needs_agreement'), None)
-            if asked and not self._waiting_branches() - set(record.get('branches_before') or []):
-                question = prompts.consent_question(asked)
+        question = self._question_for(record, state, words)
         if question: return self._ask(run, question)
         if state.get('failed') or (code not in (0, None) and not words):
             reason = state.get('failed') or f'the assistant stopped with code {code}'
-            tail = ''
             try: tail = (self.store.path(run) / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-600:]
-            except OSError: pass
+            except OSError: tail = ''
             why = self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
             return self._fail(run, why, resumable=True)
+        return self._finish_turn(run, record, words)
+
+    def _finish_turn(self, run, record, words):
         payload = self._outcome(run, answer=self._readable(run, words))
         if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
             # a Fix run that handed nothing over did not succeed, whatever the assistant said; nor did it break anything:
             # it ends unchanged, and the person reads why and what to do
-            self.store.append(run, 'result', {'en': 'Nothing changed: no fix was kept, so no branch waits for you. Read the '
-                                                    "assistant's words for why, then try again or pick other cards.",
-                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. اقرأ كلام المساعد لتعرف '
-                                                    'السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}, {**payload, 'nothing_changed': True})
+            self.store.append(run, 'result', {'en': "Nothing changed: no fix was kept, so no branch waits for you. Read the assistant's words for why, then try again or pick other cards.",
+                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}, {**payload, 'nothing_changed': True})
             return self.set_state(run, 'unchanged', 'nothing changed', result={**payload, 'nothing_changed': True})
         self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else
                                                           f": the fixes are on {payload['landed_on']} itself" if payload.get('landed_on') else ''),
@@ -435,6 +424,17 @@ class Manager:
                                                         f": الإصلاحات صارت في {payload['landed_on']} نفسه" if payload.get('landed_on') else '')}, payload)
         self.set_state(run, 'done', result=payload)
         self._auto_accept(run, payload)
+
+    def _question_for(self, record, state, words):
+        """The question a turn ends on: the assistant's own; else the branch, the person's to choose (choose_branch is
+        person-only), asked by the Studio so the answer is recorded first; else the agreement to run the app."""
+        question = prompts.question_in(words)
+        branch = question is None and next((payload for tool, payload in reversed(state['eaos_results'])
+                                            if isinstance(payload, dict) and payload.get('status') == 'needs_branch' and payload.get('branches')), None)
+        if question is not None or branch: return question if question is not None else prompts.branch_question(branch)
+        asked = next((payload for tool, payload in reversed(state['eaos_results'])
+                      if isinstance(payload, dict) and payload.get('status') == 'needs_agreement'), None)
+        if asked and not self._waiting_branches() - set(record.get('branches_before') or []): return prompts.consent_question(asked)
 
     def _readable(self, run, words):
         """The assistant's last words in the person's language: asked of it again once when they are not (eaos/language.py)."""

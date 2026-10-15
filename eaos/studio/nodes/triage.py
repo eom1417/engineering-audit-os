@@ -131,24 +131,30 @@ def _weight(measured):
     return (1, -max(m['value'] for m in measured)) if measured else (2, 0)
 
 
-def inputs(report, project=None, lang='en', cards=None, limit=None, rejudge=None, **_):
-    """The open cards (or those of `cards`), most severe first, each with its facts and their code, those carrying the
-    measurement first. `rejudge` ({card: why it was doubted}): only those cards, each with all its facts and its doubt."""
-    report = Path(report)
-    rows = _open_cards(report, cards, rejudge)
-    facts = _facts(report)
-    cited = {card['id']: [f for f in card.get('evidence') or [] if isinstance(f, str)] for card in rows}
-    measured = _measurements(report, {f for ids in cited.values() for f in ids})
-    out = []
-    for card in rows[:limit] if limit else rows:
-        evidence = _card_evidence(cited[card['id']], measured, facts, project, LIMIT['rejudge_facts' if rejudge else 'facts'])
-        out.append({'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'), 'severity': card.get('severity'),
-                    'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3], 'evidence': evidence,
-                    **({'first_doubt': core.short(rejudge[card['id']], 400)} if rejudge else {})})
+def inputs(report, **options):
+    """The open cards (or those of options['cards'], at most options['limit']), most severe first, each with its facts
+    and their code in options['project'], those carrying the measurement first. options['rejudge'] ({card: why it was
+    doubted}): only those cards, each with all its facts and its doubt. options['lang']: the person's language ('en')."""
+    report, project, lang, rejudge, limit = Path(report), options.get('project'), options.get('lang', 'en'), options.get('rejudge'), options.get('limit')
+    rows = _open_cards(report, options.get('cards'), rejudge)
+    out = _bundled(report, rows[:limit] if limit else rows, project, rejudge)
     if not out: return None
     return {'project': {'name': (project and Path(project).name) or report.name, 'language': 'Arabic' if lang == 'ar' else 'English'},
             'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out), 'lang': lang,
             **({'rejudge': True} if rejudge else {})}
+
+
+def _bundled(report, rows, project, rejudge):
+    """Each card as the assistant reads it: its title, kind, severity, confidence, places and evidence, and its first
+    doubt when it is judged again."""
+    facts = _facts(report)
+    cited = {card['id']: [f for f in card.get('evidence') or [] if isinstance(f, str)] for card in rows}
+    measured = _measurements(report, {f for ids in cited.values() for f in ids})
+    most = LIMIT['rejudge_facts' if rejudge else 'facts']
+    return [{'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'), 'severity': card.get('severity'),
+             'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3],
+             'evidence': _card_evidence(cited[card['id']], measured, facts, project, most),
+             **({'first_doubt': core.short(rejudge[card['id']], 400)} if rejudge else {})} for card in rows]
 
 
 def _open_cards(report, cards, rejudge):
@@ -249,11 +255,18 @@ def resolution(decision, detail):
     readiness stays)."""
     kind = detail.get('resolution')
     if decision != 'confirm' or kind not in RESOLUTIONS: return {}
-    change, question, recommendation = (core.short(detail.get(k), 300) or None for k in ('change', 'question', 'recommendation'))
+    return _fix(detail) if kind == 'fix' else _owners(detail) if kind == 'owner' else {'resolution': kind}
+
+
+def _fix(detail):
+    change = core.short(detail.get('change'), 300) or None
+    return {'resolution': 'fix', 'change': change} if change else {}
+
+
+def _owners(detail):
+    question, recommendation = (core.short(detail.get(k), 300) or None for k in ('question', 'recommendation'))
     options = [core.short(o, 120) for o in detail.get('options') or [] if isinstance(o, str) and o.strip()][:4]
-    if kind == 'fix' and not change or kind == 'owner' and not (question and recommendation): return {}
-    return {'resolution': kind, **({'change': change} if kind == 'fix' else {}),
-            **({'question': question, 'options': options, 'recommendation': recommendation} if kind == 'owner' else {})}
+    return {'resolution': 'owner', 'question': question, 'options': options, 'recommendation': recommendation} if question and recommendation else {}
 
 
 def by_kind(verdicts):

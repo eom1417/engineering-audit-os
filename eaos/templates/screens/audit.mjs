@@ -39,11 +39,9 @@ function allowed(request, base) {
   return target.origin === base.origin;
 }
 
-// Runs inside the page: layout facts the gate judges. Kept self-contained (it is serialised into the page).
-function measure({ phoneWidth, targetMin, viewportWidth }) {
-  // Judge against the configured width: under mobile emulation a page wider than the screen silently widens
-  // the layout viewport (innerWidth), which would hide its own overflow. The layout width is reported apart.
-  const width = Math.min(window.innerWidth, viewportWidth);
+// Runs inside the page, before the measures below: the helpers they share, kept on window.__eaosAudit (each function
+// handed to the page is serialised alone, so none can reach another's).
+function installHelpers() {
   const selector = (el) => {
     const parts = [];
     for (let node = el; node && node.nodeType === 1 && parts.length < 4; node = node.parentElement) {
@@ -67,8 +65,16 @@ function measure({ phoneWidth, targetMin, viewportWidth }) {
     const rect = el.getBoundingClientRect();
     return rect.width > 1 && rect.height > 1;
   };
-  // An element whose box is clipped by an ancestor (overflow other than visible) cannot widen the page;
-  // the ancestor is measured instead. Elements inside a container marked data-scroll-x scroll on purpose.
+  const all = () => (document.body ? document.body.querySelectorAll('*') : []);
+  const hasText = (el, test) => [...el.childNodes].some((n) => n.nodeType === 3 && test(n.textContent));
+  window.__eaosAudit = { selector, visible, all, hasText };
+}
+
+// Runs inside the page: the elements reaching past the screen's width. An element whose box is clipped by an
+// ancestor (overflow other than visible) cannot widen the page; the ancestor is measured instead. Elements inside a
+// container marked data-scroll-x scroll on purpose.
+function overflowOf(width) {
+  const { selector, visible, all } = window.__eaosAudit;
   const clippedOrExempt = (el) => {
     if (el.closest('[data-scroll-x]')) return true;
     const style = getComputedStyle(el);
@@ -81,47 +87,53 @@ function measure({ phoneWidth, targetMin, viewportWidth }) {
     return false;
   };
   const offenders = [];
-  for (const el of document.body ? document.body.querySelectorAll('*') : []) {
+  for (const el of all()) {
     if (!visible(el) || clippedOrExempt(el)) continue;
     const rect = el.getBoundingClientRect();
     const left = rect.left + window.scrollX, right = rect.right + window.scrollX;
-    if (right > width + 1 || left < -1) {
-      if (offenders.some((o) => o.el.contains(el))) continue;
+    if ((right > width + 1 || left < -1) && !offenders.some((o) => o.el.contains(el))) {
       offenders.push({ el, selector: selector(el), left: Math.round(left), right: Math.round(right), width: Math.round(rect.width) });
     }
   }
+  return offenders.map(({ el, ...rest }) => rest);
+}
+
+// Runs inside the page: on a phone, the controls smaller than a finger. A link inside a sentence of running text is
+// WCAG 2.5.8's exception; a checkbox or radio is hit through its label, so the label's box is the target.
+function smallTargetsOf({ width, phoneWidth, targetMin }) {
+  const { selector, visible, hasText } = window.__eaosAudit;
   const small = [];
-  if (width <= phoneWidth) {
-    const interactive = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=link], [role=checkbox], [role=tab], [role=menuitem], [tabindex]:not([tabindex="-1"])';
-    for (const el of document.querySelectorAll(interactive)) {
-      if (!visible(el) || el.disabled) continue;
-      if (el.closest('[inert], [aria-hidden="true"]')) continue; // behind an open modal: not reachable
-      const style = getComputedStyle(el);
-      // WCAG 2.5.8 exception: a link inside a sentence of running text.
-      if (el.tagName === 'A' && style.display === 'inline' && el.parentElement &&
-          [...el.parentElement.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
-      let rect = el.getBoundingClientRect();
-      // A checkbox or radio is hit through its label: the label's box is the target.
-      const label = el.labels && el.labels[0];
-      if (label && visible(label)) {
-        const box = label.getBoundingClientRect();
-        if (box.width * box.height > rect.width * rect.height) rect = box;
-      }
-      if (rect.width < targetMin || rect.height < targetMin) {
-        small.push({ selector: selector(el), width: Math.round(rect.width), height: Math.round(rect.height) });
-      }
+  if (width > phoneWidth) return small;
+  const interactive = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=link], [role=checkbox], [role=tab], [role=menuitem], [tabindex]:not([tabindex="-1"])';
+  for (const el of document.querySelectorAll(interactive)) {
+    if (!visible(el) || el.disabled) continue;
+    if (el.closest('[inert], [aria-hidden="true"]')) continue; // behind an open modal: not reachable
+    const style = getComputedStyle(el);
+    if (el.tagName === 'A' && style.display === 'inline' && el.parentElement && hasText(el.parentElement, (t) => t.trim())) continue;
+    let rect = el.getBoundingClientRect();
+    const label = el.labels && el.labels[0];
+    if (label && visible(label)) {
+      const box = label.getBoundingClientRect();
+      if (box.width * box.height > rect.width * rect.height) rect = box;
+    }
+    if (rect.width < targetMin || rect.height < targetMin) {
+      small.push({ selector: selector(el), width: Math.round(rect.width), height: Math.round(rect.height) });
     }
   }
-  // Text cut off on purpose must say so (data-truncate) and keep a path to the full text (a title, an accessible
-  // name or description, or a link to where it is shown whole); any other clipped text is a layout fault.
+  return small;
+}
+
+// Runs inside the page: text cut off. Text cut on purpose must say so (data-truncate) and keep a path to the full
+// text (a title, an accessible name or description, or a link to where it is shown whole); any other is a layout fault.
+function truncatedOf() {
+  const { selector, visible, all, hasText } = window.__eaosAudit;
   const truncated = [];
-  for (const el of document.body ? document.body.querySelectorAll('*') : []) {
+  for (const el of all()) {
     if (!visible(el) || el.closest('[data-scroll-x]')) continue;
     const style = getComputedStyle(el);
     const clipsX = ['hidden', 'clip'].includes(style.overflowX) && el.scrollWidth > el.clientWidth + 1;
     const clamp = style.webkitLineClamp && style.webkitLineClamp !== 'none' && el.scrollHeight > el.clientHeight + 1;
-    if (!clipsX && !clamp) continue;
-    if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+    if ((!clipsX && !clamp) || !hasText(el, (t) => t.trim())) continue;
     const marked = el.closest('[data-truncate]');
     const fullText = ['title', 'aria-label', 'aria-describedby'].some((name) => el.hasAttribute(name) || (marked && marked.hasAttribute(name)))
       || Boolean(el.closest('a[href]'));
@@ -129,30 +141,47 @@ function measure({ phoneWidth, targetMin, viewportWidth }) {
     truncated.push({ selector: selector(el), problem: marked ? 'no_full_text' : 'not_marked',
       text: el.textContent.trim().replace(/\s+/g, ' ').slice(0, 80) });
   }
-  // Arabic letters are joined: spacing them apart breaks the words.
-  const tracking = [];
-  for (const el of document.body ? document.body.querySelectorAll('*') : []) {
-    if (!visible(el) || !(parseFloat(getComputedStyle(el).letterSpacing) > 0)) continue;
-    if ([...el.childNodes].some((n) => n.nodeType === 3 && /[\u0600-\u06FF]/.test(n.textContent))) tracking.push(selector(el));
-  }
+  return truncated;
+}
+
+// Runs inside the page: Arabic letters are joined, so spacing them apart breaks the words.
+function trackingOf() {
+  const { selector, visible, all, hasText } = window.__eaosAudit;
+  return [...all()].filter((el) => visible(el) && parseFloat(getComputedStyle(el).letterSpacing) > 0
+    && hasText(el, (t) => /[؀-ۿ]/.test(t))).map(selector);
+}
+
+// Runs inside the page: its widths, scroll, direction, language, height and root attributes.
+function pageFacts(width) {
   const scroller = document.scrollingElement || document.documentElement;
   return {
     inner_width: width,
     layout_width: window.innerWidth,
     scroll_width: document.documentElement.scrollWidth,
-    overflow_elements: offenders.slice(0, 20).map(({ el, ...rest }) => rest),
-    overflow_element_count: offenders.length,
     scroll: { x: Math.round(window.scrollX), y: Math.round(window.scrollY), left: Math.round(scroller.scrollLeft) },
     dir: document.documentElement.dir || getComputedStyle(document.documentElement).direction,
     lang: document.documentElement.lang || '',
     page_height: document.documentElement.scrollHeight,
-    truncated: truncated.slice(0, 20),
-    truncated_count: truncated.length,
-    small_targets: small.slice(0, 30),
-    small_target_count: small.length,
-    arabic_tracking: tracking.slice(0, 10),
-    arabic_tracking_count: tracking.length,
     root_attributes: Object.fromEntries([...document.documentElement.attributes].map((a) => [a.name, a.value])),
+  };
+}
+
+// The layout facts the gate judges, measured in the page. Judged against the configured width: under mobile emulation
+// a page wider than the screen silently widens the layout viewport (innerWidth), which would hide its own overflow;
+// the layout width is reported apart.
+async function measure(page, { phoneWidth, targetMin, viewportWidth }) {
+  await page.evaluate(installHelpers);
+  const width = await page.evaluate((configured) => Math.min(window.innerWidth, configured), viewportWidth);
+  const offenders = await page.evaluate(overflowOf, width);
+  const small = await page.evaluate(smallTargetsOf, { width, phoneWidth, targetMin });
+  const truncated = await page.evaluate(truncatedOf);
+  const tracking = await page.evaluate(trackingOf);
+  return {
+    ...(await page.evaluate(pageFacts, width)),
+    overflow_elements: offenders.slice(0, 20), overflow_element_count: offenders.length,
+    truncated: truncated.slice(0, 20), truncated_count: truncated.length,
+    small_targets: small.slice(0, 30), small_target_count: small.length,
+    arabic_tracking: tracking.slice(0, 10), arabic_tracking_count: tracking.length,
   };
 }
 
@@ -253,7 +282,7 @@ async function auditOne(browser, entry, viewport, variant, index) {
     await settle(page, url, entry);
     // The page's own errors, counted before axe runs (on file:// axe reads stylesheets the page's policy may refuse)
     row.page_errors = errors.slice(0, 10);
-    Object.assign(row, await page.evaluate(measure, { phoneWidth: config.phone_width, targetMin: config.target_min,
+    Object.assign(row, await measure(page, { phoneWidth: config.phone_width, targetMin: config.target_min,
       viewportWidth: viewport.width }));
     row.axe = await axeOf(page);
     if (config.screenshots_dir) row.screenshot = await shoot(page, entry, base, viewport, variant, index, row);

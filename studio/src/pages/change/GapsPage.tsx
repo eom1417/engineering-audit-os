@@ -14,7 +14,7 @@ import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, PageTitle, WithData } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
 import { byId, cardState, OP_LABEL, opsMix, registerOrder, RELATION_OF } from './model'
-import { ChangeNav, Closure, GapLink, LinkList, Missing, NotMeasured, OpLink, StepLink } from './parts'
+import { ChangeNav, Closure, GapLink, GapSources, LinkList, Missing, NotMeasured, OpLink, StepLink } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
@@ -141,11 +141,7 @@ function GapBody({ data, id }: { data: StudioData; id: string }) {
               ) : <StateMessage title={w('noCard')} sub={w('closedSrc', { src: gap.closed.src })} />}
             </Panel>
           </Section>
-          {sources.length > 0 && (
-            <Section title={w('sources')} count={sources.length}>
-              <Panel><FoldList items={sources} first={8} label={w('sources')} render={(s) => <RowLink to={`/change/gaps/${encodeURIComponent(s)}`} title={<Id value={s} keep={3} />} />} /></Panel>
-            </Section>
-          )}
+          <GapSources sources={sources} />
         </div>
         <div className={page.col}>
           <Panel pad>

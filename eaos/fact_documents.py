@@ -1,6 +1,6 @@
 """The documents written straight from the fact sets and the dossier's provenance (eaos/dossier.py assembles them):
-FLOWS.md, DOMAIN-AND-DATA.md, CONTRACTS.md, PROVENANCE.md, the dossier's one-line description, and the index's trust
-grades and file inventory.
+FLOWS.md, DOMAIN-AND-DATA.md, CONTRACTS.md, PROVENANCE.md, the sections of ONBOARDING.md, the dossier's one-line
+description, and the index's trust grades and file inventory.
 """
 from . import claims as ledger
 from .compose import Document
@@ -189,7 +189,75 @@ def contracts_document(dossier, sets, language):
                       f"standard library: {len(grouped.get('standard library', []))}"])
     document.section(words['entry_points'])
     document.table([words['surface'], words['method'], words['route'], words['location']],
-                   [[f['value']['surface'], f['value']['http_method'] or '—', f['value']['route'] or '—',
-                     f"{f['location']['path']}:{f['location'].get('start_line') or 1}"]
+                   [[f['value']['surface'], f['value']['http_method'] or '—', f['value']['route'] or '—', _at(f)]
                     for f in sets['entrypoints']['facts'] if f.get('kind') == 'entry_point'], limit=30)
     return document
+
+
+def _at(fact):
+    return f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"
+
+
+def _onboarding_run(document, sets, verification, ar):
+    commands = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
+                if fact.get('kind') in {'entry_point', 'tool_command'}
+                and fact['value']['framework'] in {'npm_script', 'make', 'console_script', 'docker_cmd', 'docker_entrypoint'}]
+    document.section('ابنِ وشغّل' if ar else 'Build and run')
+    document.table(['الأمر' if ar else 'Command', 'المصدر' if ar else 'Declared in'],
+                   [[fact['value']['route'], _at(fact)] for fact in commands], limit=15)
+    document.section('اختبر' if ar else 'Test')
+    if verification and verification.get('executed'):
+        document.bullets([' '.join(verification['command']),
+                          f"{verification.get('overall_percent')}% coverage over {len(verification.get('test_files', []))} test files"])
+    else:
+        document.bullets([f"{len((verification or {}).get('test_files', []))} test files found; "
+                          f"no test command was run by this check"])
+
+
+def _onboarding_entries(document, sets, verification, ar):
+    words = document.words
+    document.section('نقاط الدخول لتجربتها' if ar else 'Entry points to try')
+    production = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
+                  if fact.get('kind') == 'entry_point'
+                  and fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'page', 'cli', 'job'}
+                  and fact['value']['route'] and fact['value']['handler']]
+    document.table([words['surface'], words['route'], words['handler'], words['location']],
+                   [[fact['value']['surface'], fact['value']['route'] or '—', fact['value']['handler'] or '—', _at(fact)]
+                    for fact in production], limit=15)
+
+
+def _onboarding_reading(document, sets, verification, ar):
+    words = document.words
+    document.section('أول عشرة ملفات تقرؤها' if ar else 'The first ten files to read')
+    from .vocabulary import classify
+    ordered = [row for row in sets['graph']['summary']['attention_order'] if classify(row['path']) == 'source'][:10]
+    document.table([words['path'], words['score'], 'لماذا' if ar else 'Why'],
+                   [[row['path'], row['score'],
+                     'مركزية ' + str(row['factors']['centrality']) + ' · تغيّر ' + str(row['factors']['change'])
+                     if ar else
+                     f"centrality {row['factors']['centrality']} · change {row['factors']['change']}"]
+                    for row in ordered], limit=10)
+
+
+def _onboarding_vocabulary(document, sets, verification, ar):
+    words = document.words
+    document.section('مصطلحات المشروع' if ar else 'Project vocabulary')
+    domain = [fact for fact in sets.get('domain', {}).get('facts', [])
+              if fact['kind'] in {'domain_constant'} | ledger.shown_kinds({'data_model', 'data_table'})]
+    document.table([words['name'], 'النوع' if ar else 'Kind', words['location']],
+                   [[fact['value'].get('name'), fact['kind'], _at(fact)] for fact in domain], limit=20)
+
+
+def _onboarding_traps(document, sets, verification, ar):
+    dynamic = sum(1 for fact in sets['entrypoints']['facts'] if fact.get('kind') == 'entry_point' and fact.get('resolution') == 'UNRESOLVED')
+    document.section('مصائد معروفة' if ar else 'Known traps')
+    document.bullets([
+        f"{dynamic} نقطة دخول تُسجَّل ديناميكيًا ولا يمكن تتبعها ساكنًا" if ar else
+        f"{dynamic} entry points are registered dynamically and cannot be traced statically",
+        f"{len(sets['config']['summary']['unread_sensitive_config_files'])} sensitive config files are listed but never read",
+        f"{sets['flows']['summary'].get('unresolved_steps', 0)} steps in the traced flows stop at calls the resolver cannot follow",
+    ])
+
+
+# The sections of ONBOARDING.md, in reading order; each is called (document, sets, verification, ar).
+ONBOARDING_SECTIONS = (_onboarding_run, _onboarding_entries, _onboarding_reading, _onboarding_vocabulary, _onboarding_traps)

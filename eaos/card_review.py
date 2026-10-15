@@ -158,6 +158,30 @@ def design_card(number, finding):
             'finding_ids': [finding['image']], 'section': 'frontend', 'design': {k: finding.get(k) for k in ('kind', 'severity', 'page', 'viewport', 'theme')}}
 
 
+def _model_record(out, node, name):
+    """A node's record of this check when the assistant made it; {} when the rules decided alone or it is missing."""
+    try: body = read(Path(out) / 'nodes' / node / name)
+    except (OSError, ValueError): return {}
+    return body if body.get('method') == 'model' else {}
+
+
+def triage_verdicts(out):
+    """{card: verdict} of this check's triage when the assistant made it; {} when the rules decided alone."""
+    body = _model_record(out, 'card_triage', 'verdicts.json')
+    return {v['card']: v for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('source') == 'model'}
+
+
+def decided(out, tasks, triaged, reviewed):
+    """(the triage's verdicts, the cards it rejected, the visual reviewer's design cards, the assistant's resolution of
+    every card left standing), each empty when its step did not run or the rules decided alone."""
+    verdicts = triage_verdicts(out) if triaged else {}
+    rejected = {t['id'] for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'reject'}
+    standing = [t for t in tasks if t['id'] not in rejected]
+    review = _model_record(out, 'visual_reviewer', 'findings.json') if reviewed else {}
+    design = design_cards(review.get('findings') or [], standing) if review else []
+    return verdicts, rejected, design, resolutions(standing, verdicts, design)
+
+
 def apply_verdicts(out, tasks, verdicts, language='ar'):
     """The one place the assistant's triage reaches the ledger, before anything ranks, plans or reports: the claims of
     a card it rejected are refuted (confidence REFUTED, `refuted_by` the card, its why kept in `triage`), the claims of

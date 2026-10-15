@@ -266,20 +266,39 @@ def _target_numbers(target, components, features, infrastructure, absent, ar):
     }
 
 
+def _gap_numbers(current, milestones):
+    """The numbers the gap page cites, each with the record it is read from."""
+    counts = {}
+    for component in current: counts[component.get('relation')] = counts.get(component.get('relation'), 0) + 1
+    return {
+        'dispositions': (counts, 'target-architecture.json → current_components[].relation'),
+        'files_to_move': (sum((c.get('projection') or {}).get('moved', 0) for c in current),
+                          'target-architecture.json → current_components[].projection.moved'),
+        'milestones': (len(milestones), 'plan.json → milestones'),
+    }
+
+
+def _rebuilt_items(current):
+    rebuilt = [c for c in current if c.get('relation') == 'rebuild']
+    return [f"{c['origin']} → {c.get('target_component')}: {clip(c.get('reason'), 120)}" for c in rebuilt[:3]] or ['—']
+
+
+def _disposition_items(current, ar):
+    """Each component of today, its disposition and where it goes: the deleted first, then rebuilt, modified, kept."""
+    order = {'delete': 0, 'rebuild': 1, 'modify': 2, 'retain': 3}
+    return [f"{c['origin']}: {c.get('relation')} → {c.get('target_component') or '—'}"
+            + (f" ({decided(c['decided_by']['label'], 'ar' if ar else 'en')})" if c.get('decided_by') else '')
+            for c in sorted(current, key=lambda c: (order.get(c.get('relation'), 9), c['origin']))[:20]]
+
+
 def gap_and_strategy(out, ar):
     L = _labels(ar)
     target = _load(out, 'target-architecture.json', {}) or {}
     current = target.get('current_components') or []
     plan = _load(out, 'plan.json', {}) or {}
     milestones = plan.get('milestones') or []
-    counts = {}
-    for component in current: counts[component.get('relation')] = counts.get(component.get('relation'), 0) + 1
-    moved = sum((c.get('projection') or {}).get('moved', 0) for c in current)
-    numbers = {
-        'dispositions': (counts, 'target-architecture.json → current_components[].relation'),
-        'files_to_move': (moved, 'target-architecture.json → current_components[].projection.moved'),
-        'milestones': (len(milestones), 'plan.json → milestones'),
-    }
+    numbers = _gap_numbers(current, milestones)
+    counts, moved = numbers['dispositions'][0], numbers['files_to_move'][0]
     page = Page('الفجوة والاستراتيجية' if ar else 'Gap and strategy')
     page.heading(L['summary'])
     page.para(f"{L['decision']}: " + ('الموافقة على ترتيب المعالم: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب.' if ar else
@@ -289,15 +308,11 @@ def gap_and_strategy(out, ar):
                 f"{moved} " + ('ملفًا ينتقل' if ar else 'files move') + f" ({numbers['files_to_move'][1]})",
                 f"{len(milestones)} " + ('معالم' if ar else 'milestones') + f" ({numbers['milestones'][1]})"])
     page.heading(L['risks'], 3)
-    rebuilt = [c for c in current if c.get('relation') == 'rebuild']
-    page.items([f"{c['origin']} → {c.get('target_component')}: {clip(c.get('reason'), 120)}" for c in rebuilt[:3]] or ['—'])
+    page.items(_rebuilt_items(current))
     page.heading(L['evidence'])
     page.para(('كل مكوّن حالي وقراره وأرقامه (الترتيب: حذف، إعادة بناء، تعديل، إبقاء):' if ar else
                'Each current component, its disposition and its numbers (delete, rebuild, modify, retain):'))
-    order = {'delete': 0, 'rebuild': 1, 'modify': 2, 'retain': 3}
-    page.items([f"{c['origin']}: {c.get('relation')} → {c.get('target_component') or '—'}"
-                + (f" ({decided(c['decided_by']['label'], 'ar' if ar else 'en')})" if c.get('decided_by') else '')
-                for c in sorted(current, key=lambda c: (order.get(c.get('relation'), 9), c['origin']))[:20]])
+    page.items(_disposition_items(current, ar))
     numbers['aspects'] = (aspect_section(page, out, ar), 'target-architecture.json → aspects')
     page.heading(L['impact'])
     page.para(('المكوّن الذي يُعاد بناؤه يُبنى بنمط Strangler Fig: المسار الجديد خلف علم، والقديم يُزال بعد تكافؤ السلوك فقط.' if ar else

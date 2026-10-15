@@ -15,6 +15,7 @@ import { SNAPSHOT } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
 import { ActionError, TERMINAL, type Bi, type LiveFreshness, type Run } from '../data/actions/types'
 import { useStudio } from '../data/context'
+import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, When } from '../i18n/text'
 import { useBranchLive, useFreshView } from './live'
@@ -151,10 +152,81 @@ export function SelectError({ error }: { error: Refusal | null }) {
   )
 }
 
+/** What the scan read: the branch (or detached HEAD), commit, unsaved changes and time, as live says it or as recorded. */
+function scanOf(data: StudioData, fresh: LiveFreshness | null) {
+  const scanned = data.head?.scanned ?? data.manifest.scanned
+  const at = fresh?.scanned_at ?? scanned.at
+  return fresh
+    ? { branch: fresh.scanned_branch, detached: fresh.scanned_detached, commit: fresh.scanned_commit, dirty: fresh.scanned_dirty, at }
+    : { branch: scanned.branch, detached: scanned.detached, commit: scanned.commit, dirty: scanned.dirty, at }
+}
+
+function ScanProps({ s, fresh, legacy, built }: { s: ReturnType<typeof scanOf>; fresh: LiveFreshness | null; legacy: boolean; built: string }) {
+  const { t } = usePrefs()
+  const w = useBranchWords()
+  const notRecorded = legacy ? w('legacyNotRecorded') : t('notRecorded')
+  const rows: [React.ReactNode, React.ReactNode, boolean?][] = [
+    [t('scanned'), s.at ? <When iso={s.at} /> : notRecorded, !s.at],
+    [t('reportBuilt'), <When iso={built} />],
+    [w('scannedBranch'), s.detached ? w('detached', { c: (s.commit ?? '').slice(0, 12) }) : s.branch ? <Id value={s.branch} /> : notRecorded, !s.branch && !s.detached],
+    [w('scannedCommit'), s.commit && !legacy ? <Id value={s.commit} /> : notRecorded, !s.commit || legacy],
+    [w('scannedDirty'), s.dirty === true ? w('yes') : s.dirty === false ? w('no') : notRecorded, s.dirty == null],
+  ]
+  if (fresh) {
+    rows.push([w('headNow'), fresh.tip ? <Id value={fresh.tip} /> : t('notRecorded'), !fresh.tip])
+    rows.push([w('checkedAt'), <When iso={fresh.checked_at} />])
+  }
+  return <Props rows={rows} />
+}
+
+function LiveActions({ rescan, otherBranch, onStarted }: { rescan: ReturnType<typeof useRescan>; otherBranch: string | null; onStarted: () => void }) {
+  const w = useBranchWords()
+  return (
+    <div className={css.actions} data-fresh-actions="live">
+      <Button variant="primary" icon="retry" busy={rescan.busy} onPress={async () => { if (await rescan.start()) onStarted() }}
+        isDisabled={Boolean(rescan.run && !TERMINAL.includes(rescan.run.state))}>
+        {otherBranch ? w('rescanBranch', { b: otherBranch }) : w('rescanNow')}
+      </Button>
+      <SelectError error={rescan.error} />
+      <RescanStatus run={rescan.run} />
+    </div>
+  )
+}
+
+function SnapshotActions() {
+  const { t } = usePrefs()
+  const w = useBranchWords()
+  const toast = useToast()
+  return (
+    <div className={css.req} data-fresh-actions="snapshot">
+      <p>{w('readOnlySnapshot')}</p>
+      <SheetSub>{w('openLive')}</SheetSub>
+      <p>{w('openLiveLead')}</p>
+      <div className={css.command}>
+        <code><bdi dir="ltr">{SNAPSHOT.command}</bdi></code>
+        <Button variant="primary" icon="copy" onPress={async () => toast((await copyText(SNAPSHOT.command)) ? w('copied') : t('copyFailed'))}>{w('openLive')}</Button>
+      </div>
+    </div>
+  )
+}
+
+function CopyFallback({ text }: { text: string }) {
+  const { t } = usePrefs()
+  const w = useBranchWords()
+  const toast = useToast()
+  return (
+    <details className={css.fallback}>
+      <summary>{w('copyFallback')}</summary>
+      <p>{w('copyFallbackLead')}</p>
+      <pre className={css.instruction} dir="auto" data-instruction>{text}</pre>
+      <Button variant="secondary" icon="copy" onPress={async () => toast((await copyText(text)) ? w('copied') : t('copyFailed'))}>{w('copyFallback')}</Button>
+    </details>
+  )
+}
+
 export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
   const { t, lang } = usePrefs()
   const w = useBranchWords()
-  const toast = useToast()
   const data = useStudio()
   const live = useBranchLive()
   const view = useFreshView()
@@ -162,64 +234,21 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
   const navigate = useNavigate()
   if (!data || !view) return null
   const fresh = live.freshness
-  const scanned = data.head?.scanned ?? data.manifest.scanned
   const legacy = view.state === 'legacy'
-  const branch = fresh ? fresh.scanned_branch : scanned.branch
-  const detached = fresh ? fresh.scanned_detached : scanned.detached
-  const commit = fresh ? fresh.scanned_commit : scanned.commit
-  const dirty = fresh ? fresh.scanned_dirty : scanned.dirty
-  const at = fresh?.scanned_at ?? scanned.at
-  const notRecorded = legacy ? w('legacyNotRecorded') : t('notRecorded')
-  const rows: [React.ReactNode, React.ReactNode, boolean?][] = [
-    [t('scanned'), at ? <When iso={at} /> : notRecorded, !at],
-    [t('reportBuilt'), <When iso={fresh?.report_built ?? data.manifest.built.built} />],
-    [w('scannedBranch'), detached ? w('detached', { c: (commit ?? '').slice(0, 12) }) : branch ? <Id value={branch} /> : notRecorded, !branch && !detached],
-    [w('scannedCommit'), commit && !legacy ? <Id value={commit} /> : notRecorded, !commit || legacy],
-    [w('scannedDirty'), dirty === true ? w('yes') : dirty === false ? w('no') : notRecorded, dirty == null],
-  ]
-  if (fresh) {
-    rows.push([w('headNow'), fresh.tip ? <Id value={fresh.tip} /> : t('notRecorded'), !fresh.tip])
-    rows.push([w('checkedAt'), <When iso={fresh.checked_at} />])
-  }
+  const s = scanOf(data, fresh)
   const text = instruction(lang, { name: data.manifest.project.name, path: fresh?.project_path ?? null,
-    branch: fresh?.branch ?? branch ?? null, tip: fresh?.tip ?? null, scanned: legacy ? null : commit ?? null, at })
-  const otherBranch = view.state === 'other_branch' && fresh?.branch
+    branch: fresh?.branch ?? s.branch ?? null, tip: fresh?.tip ?? null, scanned: legacy ? null : s.commit ?? null, at: s.at })
+  const started = () => { onOpenChange(false); void navigate({ to: '/scan', search: { flow: 'check' } }) }
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('isScanCurrent')}>
       <div className={[css.tall, css.drawerBody].join(' ')}>
       <Lead fresh={fresh} view={view} />
       {live.offline && <p className={css.note} role="status">{w('freshUnknownLead', { why: w('whyOffline') })}</p>}
-      <Props rows={rows} />
-      {rescan.live ? (
-        <div className={css.actions} data-fresh-actions="live">
-          <Button variant="primary" icon="retry" busy={rescan.busy} onPress={async () => {
-            if (await rescan.start()) { onOpenChange(false); void navigate({ to: '/scan', search: { flow: 'check' } }) }
-          }}
-            isDisabled={Boolean(rescan.run && !TERMINAL.includes(rescan.run.state))}>
-            {otherBranch ? w('rescanBranch', { b: fresh.branch as string }) : w('rescanNow')}
-          </Button>
-          <SelectError error={rescan.error} />
-          <RescanStatus run={rescan.run} />
-        </div>
-      ) : (
-        <div className={css.req} data-fresh-actions="snapshot">
-          <p>{w('readOnlySnapshot')}</p>
-          <SheetSub>{w('openLive')}</SheetSub>
-          <p>{w('openLiveLead')}</p>
-          <div className={css.command}>
-            <code><bdi dir="ltr">{SNAPSHOT.command}</bdi></code>
-            <Button variant="primary" icon="copy" onPress={async () => toast((await copyText(SNAPSHOT.command)) ? w('copied') : t('copyFailed'))}>{w('openLive')}</Button>
-          </div>
-        </div>
-      )}
-      {view.state !== 'fresh' && (
-        <details className={css.fallback}>
-          <summary>{w('copyFallback')}</summary>
-          <p>{w('copyFallbackLead')}</p>
-          <pre className={css.instruction} dir="auto" data-instruction>{text}</pre>
-          <Button variant="secondary" icon="copy" onPress={async () => toast((await copyText(text)) ? w('copied') : t('copyFailed'))}>{w('copyFallback')}</Button>
-        </details>
-      )}
+      <ScanProps s={s} fresh={fresh} legacy={legacy} built={fresh?.report_built ?? data.manifest.built.built} />
+      {rescan.live
+        ? <LiveActions rescan={rescan} otherBranch={view.state === 'other_branch' ? fresh?.branch ?? null : null} onStarted={started} />
+        : <SnapshotActions />}
+      {view.state !== 'fresh' && <CopyFallback text={text} />}
       </div>
     </Sheet>
   )
