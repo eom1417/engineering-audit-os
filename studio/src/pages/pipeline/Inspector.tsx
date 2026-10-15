@@ -133,26 +133,48 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
   const s = scope.stage.get(id)
   const ideal = scope.ideal.get(id)
   if (!s) return ideal ? <IdealOnly ideal={ideal} /> : null
-  const router = scope.routerOf.get(id)
-  const fan = scope.fans.find((f) => f.fork === id || f.join === id || f.branches.includes(id))
-  const control = scope.control.filter((c) => c.stage === id)
-  const errors = scope.errors.filter((e) => e.from === id || e.from === '*')
-  const hidden = scope.hidden.filter((h) => h.stages.includes(id))
-  const unresolved = scope.unresolved.filter((u) => u.stage === id)
-  const into = scope.edges.filter((e) => e.to === id)
-  const out = scope.edges.filter((e) => e.from === id)
-  const gaps = gapsAbout(scope, [id, ...(router ? [router.id] : []), ...hidden.map((h) => h.id), ...(fan ? [fan.id] : []), ...unresolved.map((u) => u.id)])
+  const rel = relationsOf(scope, id)
   const sub = s.sub_pipeline ? data.pipelines.find((p) => p.id === s.sub_pipeline) : undefined
   const label = (other: string) => scope.stage.get(other)?.label ?? other
   return (
     <div className={frame.inspect}>
       <StageHead s={s} ideal={ideal} view={view} />
-      {gaps.length > 0 && (
+      {rel.gaps.length > 0 && (
         <Sec title={w('gap')}>
-          <ol className={css.gapList}>{gaps.map((g) => <GapItem key={g.id} g={g} n={scope.gap.indexOf(g) + 1} />)}</ol>
+          <ol className={css.gapList}>{rel.gaps.map((g) => <GapItem key={g.id} g={g} n={scope.gap.indexOf(g) + 1} />)}</ol>
         </Sec>
       )}
       {s.kind === 'ai' && <AiNodeRun label={s.label} />}
+      <StageOwn s={s} onFollow={onFollow} />
+      <StageRelations rel={rel} onSelect={onSelect} label={label} />
+      {view !== 'current' && ideal && (ideal.op !== 'retain' || ideal.why) && <IdealSec ideal={ideal} />}
+      <WaysOn s={s} sub={sub} onEnter={onEnter} />
+    </div>
+  )
+}
+
+/** What touches a stage: its router and fork, its control, failure routes, hidden channels, unfollowed calls, its
+ * links in and out, and the gap entries about any of them. */
+function relationsOf(scope: Scope, id: string) {
+  const router = scope.routerOf.get(id)
+  const fan = scope.fans.find((f) => f.fork === id || f.join === id || f.branches.includes(id))
+  const hidden = scope.hidden.filter((h) => h.stages.includes(id))
+  const unresolved = scope.unresolved.filter((u) => u.stage === id)
+  const gaps = gapsAbout(scope, [id, ...(router ? [router.id] : []), ...hidden.map((h) => h.id), ...(fan ? [fan.id] : []), ...unresolved.map((u) => u.id)])
+  return {
+    router, fan, hidden, unresolved, gaps,
+    control: scope.control.filter((c) => c.stage === id),
+    errors: scope.errors.filter((e) => e.from === id || e.from === '*'),
+    into: scope.edges.filter((e) => e.to === id),
+    out: scope.edges.filter((e) => e.from === id),
+  }
+}
+
+/** The stage's own facts: where it starts, what it takes and gives, its tools and side effects. */
+function StageOwn({ s, onFollow }: { s: Stage; onFollow: (name: string) => void }) {
+  const w = usePipelineWords()
+  return (
+    <>
       <Sec title={w('evidence')}>
         <Evidence site={s.entry} label={w('entry')} />
         {s.symbol && <dl className={frame.evid}><dt>{w('symbol')}</dt><dd><Id value={s.symbol} /></dd></dl>}
@@ -167,6 +189,16 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
           <ul className={css.stack}>{s.side_effects.map((e, i) => <li key={i}><span>{w.known('', e.kind)} · <Id value={e.name} /></span><Id value={where(e) ?? ''} keep={1} /></li>)}</ul>
         </Sec>
       )}
+    </>
+  )
+}
+
+/** The stage among the others: its branches, fork, control, failures, hidden channels, unfollowed calls and links. */
+function StageRelations({ rel, onSelect, label }: { rel: ReturnType<typeof relationsOf>; onSelect: (id: string) => void; label: (id: string) => string }) {
+  const w = usePipelineWords()
+  const { router, fan, control, errors, hidden, unresolved, into, out } = rel
+  return (
+    <>
       {router && <RouterSec router={router} onSelect={onSelect} label={label} />}
       {fan && (
         <Sec title={w('lgFork')}>
@@ -179,9 +211,7 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
       {hidden.length > 0 && <HiddenSec hidden={hidden} />}
       {unresolved.length > 0 && <UnresolvedBox unresolved={unresolved} />}
       {(into.length > 0 || out.length > 0) && <LinksSec into={into} out={out} onSelect={onSelect} label={label} />}
-      {view !== 'current' && ideal && (ideal.op !== 'retain' || ideal.why) && <IdealSec ideal={ideal} />}
-      <WaysOn s={s} sub={sub} onEnter={onEnter} />
-    </div>
+    </>
   )
 }
 
