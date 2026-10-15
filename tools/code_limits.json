@@ -120,7 +120,6 @@
   "eaos/target_architecture.py::_adr": 21,
   "eaos/target_architecture.py::_decide_current": 16,
   "eaos/target_architecture.py::_package_component": 17,
-  "eaos/target_architecture.py::build": 33,
   "eaos/target_architecture.py::current_gap": 17,
   "eaos/target_architecture.py::gap_matrix": 17,
   "eaos/target_architecture.py::protected_paths": 18,

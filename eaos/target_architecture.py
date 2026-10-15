@@ -297,45 +297,43 @@ def document(current, targets, decided, gaps, limits, status='REVIEW_REQUIRED', 
             'target_components': targets, 'decisions': decided, 'gap_matrix': gaps, 'limits': limits, **more}
 
 
-def build(out, contracts_by_path=None, target_components=None, target=None):
-    """A source inventory is not a target design. Only explicit proposals enter the matrix."""
+def _record(path, default):
+    """A JSON record of the check, or `default` when it was not written."""
     import json
-    sets = _gather(out)
-    current = components(sets, contracts_by_path)
+    return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else default
+
+
+def _assess_all(current, sets, claims, load_record):
     # Every component gets a verdict from the evidence already collected, so the target is a
     # judgement about this codebase rather than a list of things nobody looked at.
-    dossier_path = Path(out) / 'dossier.json'
-    claims = json.loads(dossier_path.read_text(encoding='utf-8')).get('claims', []) \
-        if dossier_path.is_file() else []
-    load_path = Path(out) / 'load-model.json'
-    load_record = json.loads(load_path.read_text(encoding='utf-8')) if load_path.is_file() else None
     for component in current:
         relation, reason, evidence = assess(component, sets, claims, load_record)
         component['relation'] = relation
         component['reason'] = reason
         component['evidence_ids'] = sorted(set(component['evidence_ids']) | set(evidence))
         component['assessment'] = assessment_details(component, sets, claims, load_record)
+
+
+def _apply_projection(current, projection):
     # The projection onto the project's reference type (eaos/target_projection.py) decides each component's
-    # disposition and destination; the evidence-based reasons above stay beside the numbers.
-    from .target_projection import project
-    projection = project(out, target)
-    if projection:
-        for component in current:
-            judged = projection['current'].get('' if component['origin'] == '.' else component['origin'])
-            if not judged: continue
-            earlier = component['reason'] if component['relation'] == 'modify' else ''
-            component['relation'], component['target_component'] = judged['relation'], judged['target_component']
-            component['reason'] = judged['reason'] + (f'; also: {earlier}' if earlier else '')
-            component['projection'] = judged['stats']
-    proposal = Path(out) / 'target-design.json'
-    if target_components is None and proposal.is_file():
-        data = json.loads(proposal.read_text())
-        if data.get('schema_version') != 1: raise ValueError('Unsupported target design')
-        target_components = data.get('components')
-    target_components = target_components or []
-    known = {component['id'] for component in current}
-    seen = set()
-    for component in target_components:
+    # disposition and destination; the evidence-based reasons stay beside the numbers.
+    for component in current:
+        judged = projection['current'].get('' if component['origin'] == '.' else component['origin'])
+        if not judged: continue
+        earlier = component['reason'] if component['relation'] == 'modify' else ''
+        component['relation'], component['target_component'] = judged['relation'], judged['target_component']
+        component['reason'] = judged['reason'] + (f'; also: {earlier}' if earlier else '')
+        component['projection'] = judged['stats']
+
+
+def _proposed_targets(out, target_components, current):
+    """The proposed target components (target-design.json when none is given), each checked against today's."""
+    if target_components is None:
+        data = _record(Path(out) / 'target-design.json', None)
+        if data is not None and data.get('schema_version') != 1: raise ValueError('Unsupported target design')
+        target_components = (data or {}).get('components')
+    known, seen = {component['id'] for component in current}, set()
+    for component in target_components or []:
         if not isinstance(component, dict) or not component.get('id') or component['id'] in seen:
             raise ValueError('Each target component needs a unique id')
         seen.add(component['id'])
@@ -344,16 +342,31 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
         if relation != 'introduce' and component.get('source_component_id') not in known:
             raise ValueError('Target component refers to an unknown source component')
         if not component.get('evidence_ids'): raise ValueError('Target component needs evidence')
-    plan_path = Path(out) / 'plan.json'
-    plan_tasks = json.loads(plan_path.read_text(encoding='utf-8')).get('tasks', []) \
-        if plan_path.is_file() else []
-    matrix = gap_matrix(current, target_components, claims, plan_tasks, [])
+    return target_components or []
+
+
+def _carry_moves(matrix, current):
+    """Each row of a component the projection moves names where it goes, how many files move and the imports it breaks."""
     for row in matrix:
         source = next((c for c in current if c['id'] == row['component']), None)
         if source and source.get('target_component'):
             row['target_component'] = source['target_component']
             row['files_to_move'] = (source.get('projection') or {}).get('moved', 0)
             row['forbidden_imports'] = (source.get('projection') or {}).get('forbidden', 0)
+
+
+def build(out, contracts_by_path=None, target_components=None, target=None):
+    """A source inventory is not a target design. Only explicit proposals enter the matrix."""
+    sets = _gather(out)
+    current = components(sets, contracts_by_path)
+    claims = _record(Path(out) / 'dossier.json', {}).get('claims', [])
+    _assess_all(current, sets, claims, _record(Path(out) / 'load-model.json', None))
+    from .target_projection import project
+    projection = project(out, target)
+    if projection: _apply_projection(current, projection)
+    target_components = _proposed_targets(out, target_components, current)
+    matrix = gap_matrix(current, target_components, claims, _record(Path(out) / 'plan.json', {}).get('tasks', []), [])
+    _carry_moves(matrix, current)
     result = document(current, target_components, decisions([*current, *target_components]), matrix, ' '.join(LIMITATIONS),
                       retained_structure='Source inventory is shown below. Missing target decisions remain explicit gaps.')
     if projection:
