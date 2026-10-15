@@ -19,6 +19,7 @@
 .switch:focus-visible .track { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 @media (max-width: 767px) {
+  .views { mask-image: linear-gradient(to right, transparent, currentColor 20px, currentColor calc(100% - 20px), transparent); padding-inline: 12px; }
   .view { min-block-size: 44px; padding-inline: 14px; }
   .switch { min-block-size: 44px; font-size: 15px; }
   .track { inline-size: 40px; block-size: 24px; }

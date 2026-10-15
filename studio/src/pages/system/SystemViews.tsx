@@ -29,7 +29,7 @@ export function SystemViews({ current, persistent = false }: { current: string; 
   const nav = useRef<HTMLElement>(null)
   useEffect(() => {
     remembered.current[current] = location.search as Record<string, unknown>
-    nav.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    nav.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' })
   }, [current, location.search])
   if (!persistent) return null
   const select = (v: SystemView) => navigate({ to: v.to, search: remembered.current[v.id] ?? v.search ?? {}, replace: true })
