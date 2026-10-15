@@ -14,8 +14,7 @@ a.decBlocks:hover { color: var(--text-primary); text-decoration: underline; text
 .decQ { font-size: var(--text-section); font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }  /* a question may quote a long path */
 .decRec { padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
 .decRecLabel { display: block; font-size: 12px; font-weight: 600; color: var(--accent-text); margin-block-end: 2px; }
-.answers { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px; }
-.answersMany { grid-template-columns: minmax(0, 1fr); }
+.answers { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .answersLong .answer { justify-content: flex-start; text-align: start; font-size: 14px; font-weight: 500; padding-block: 10px; line-height: 1.45; }
 .answer { flex-wrap: wrap; gap: 6px; white-space: normal; text-align: center; }
 .ansTag { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--gray-12) 24%, transparent); }

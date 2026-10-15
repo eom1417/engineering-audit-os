@@ -164,10 +164,9 @@ function AnswerChoices({ decision, ordered, recommended, all, onShowAll, pressed
   const { t } = usePrefs()
   const shown = ordered.slice(0, all ? ordered.length : 3) // never a phone card longer than a screen by default
   const long = decision.options.some((o) => o.label.length > 40)
-  const many = decision.options.length !== 2 || long || !recommended
   return (
     <>
-      <div className={[css.answers, many && css.answersMany, long && css.answersLong].filter(Boolean).join(' ')}>
+      <div className={[css.answers, long && css.answersLong].filter(Boolean).join(' ')}>
         {shown.map((option) => option === recommended ? (
           <Button key={option.id} variant="primary" large aria-pressed={pressed === option.id} className={css.answer} isDisabled={disabled} busy={busy} icon="check" onPress={() => onAnswer(option)} data-option={option.id} data-recommended>
             <Txt>{option.label}</Txt><span className={css.ansTag}>{t('recommendedTag')}</span>
