@@ -57,13 +57,28 @@ function answerRequest(decision: Decision, option: { id: string; label: string }
     : `My answer to the EAOS question "${decision.question}": ${option.label}${tool}.`
 }
 
-/** The option the recommendation names: its sentence opens with the option's label ("نعم: …" → "نعم"). The data
- * marks no option itself, so none is promoted when the recommendation names none. */
+/** Whether `long` opens with `short` as a whole word ("نعم: …" opens with "نعم"). */
+const opensWith = (long: string, short: string) => short !== '' && long.startsWith(short) && /^[\s:،,.\-–]|^$/.test(long.slice(short.length))
+
+/** How many first characters two texts share. */
+function shared(a: string, b: string): number {
+  let n = 0
+  while (n < a.length && n < b.length && a[n] === b[n]) n++
+  return n
+}
+
+/** The option the recommendation names: its sentence opens with the option's label ("نعم: …" → "نعم"), or opens the
+ * option's label ("لا" → "لا، يخزن …"); else the one option sharing at least half its words' opening. The data marks no option
+ * itself, so none is promoted when the recommendation names none. */
 export function recommendedOption(decision: Decision): Decision['options'][number] | undefined {
   if (decision.recommended_option) return decision.options.find((o) => o.id === decision.recommended_option)
   const rec = decision.recommendation.trim()
-  const matches = decision.options.filter((o) => o.label && rec.startsWith(o.label.trim()) && /^[\s:،,.\-–]|^$/.test(rec.slice(o.label.trim().length)))
-  return matches.length === 1 ? matches[0] : undefined
+  const matches = decision.options.filter((o) => opensWith(rec, o.label.trim()) || opensWith(o.label.trim(), rec))
+  if (matches.length) return matches.length === 1 ? matches[0] : undefined
+  const scores = decision.options.map((o) => shared(rec, o.label.trim()))
+  const top = Math.max(0, ...scores)
+  const leaders = decision.options.filter((_, i) => scores[i] === top)
+  return rec && top * 2 >= rec.length && leaders.length === 1 ? leaders[0] : undefined
 }
 
 /**
@@ -163,10 +178,9 @@ function AnswerChoices({ decision, ordered, recommended, all, onShowAll, pressed
 }) {
   const { t } = usePrefs()
   const shown = ordered.slice(0, all ? ordered.length : 3) // never a phone card longer than a screen by default
-  const long = decision.options.some((o) => o.label.length > 40)
   return (
     <>
-      <div className={[css.answers, long && css.answersLong].filter(Boolean).join(' ')}>
+      <div className={css.answers}>
         {shown.map((option) => option === recommended ? (
           <Button key={option.id} variant="primary" large aria-pressed={pressed === option.id} className={css.answer} isDisabled={disabled} busy={busy} icon="check" onPress={() => onAnswer(option)} data-option={option.id} data-recommended>
             <Txt>{option.label}</Txt><span className={css.ansTag}>{t('recommendedTag')}</span>
