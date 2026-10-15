@@ -77,7 +77,6 @@
   "eaos/studio/actions/branches.py::BranchControl.select": 18,
   "eaos/studio/actions/branches.py::BranchControl.work_branch": 22,
   "eaos/studio/actions/runs.py::Manager._auto_accept": 24,
-  "eaos/studio/actions/runs.py::Manager._end_turn": 35,
   "eaos/studio/actions/runs.py::Manager._watch_handoff": 20,
   "eaos/studio/change.py::_Change.__init__": 24,
   "eaos/studio/change.py::_Change.current": 20,
