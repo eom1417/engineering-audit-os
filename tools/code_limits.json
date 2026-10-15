@@ -58,7 +58,6 @@
   "eaos/human_report.py::section_structure": 16,
   "eaos/human_report.py::section_target": 32,
   "eaos/human_report.py::severity_bars": 24,
-  "eaos/human_report.py::target_svg": 36,
   "eaos/human_report.py::treemap": 20,
   "eaos/human_report.py::work_log": 19,
   "eaos/ledger.py::sync": 17,
