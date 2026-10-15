@@ -9,16 +9,17 @@ import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from 'reac
 import { Button, IconButton } from '../../components/Button'
 import { Chip } from '../../components/Chip'
 import { Segmented } from '../../components/Controls'
-import { FoldList, Panel, Section, StateMessage } from '../../components/Panel'
+import { FoldList, Panel, Section } from '../../components/Panel'
 import type { Infra, InfraNode, Lane, TargetItem } from '../../data/dataMap'
 import type { StudioData } from '../../data/types'
 import { Id, N, Txt } from '../../i18n/text'
 import { useZoom } from '../../map/useZoom'
 import mapCss from '../../map/parts.module.css'
 import { usePageChrome } from '../../shell/chrome'
-import { MissingBanner, WithData } from '../../shell/Layout'
+import { MissingBanner } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
 import dataCss from '../data/Data.module.css'
+import { LensPage } from '../data/parts'
 import { useDataWords, type DataWord } from '../data/words'
 import { InfraMap } from './InfraMap'
 import { allRows, find, modeOf, nodeName, type Mode, type Row } from './model'
@@ -279,11 +280,5 @@ function InfraBody({ data, infra }: { data: StudioData; infra: Infra }) {
 }
 
 export function InfraLensPage() {
-  const w = useDataWords()
-  return (
-    <WithData>{(data) => data.infra
-      ? <InfraBody data={data} infra={data.infra} />
-      : <div className={dataCss.page}><Panel><StateMessage title={w('noInfra')} sub={w('noDataSub')} /></Panel></div>}
-    </WithData>
-  )
+  return <LensPage section={(data) => data.infra} empty="noInfra" body={(data, infra) => <InfraBody data={data} infra={infra} />} />
 }

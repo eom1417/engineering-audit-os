@@ -14,12 +14,12 @@ import { FocusField } from '../../map/FocusField'
 import { useZoom } from '../../map/useZoom'
 import mapCss from '../../map/parts.module.css'
 import { usePageChrome } from '../../shell/chrome'
-import { MissingBanner, WithData } from '../../shell/Layout'
+import { MissingBanner } from '../../shell/Layout'
 import { useSearchPatch } from '../../shell/search'
 import { usePhone } from '../SystemMap'
 import { DataLegend, DataMap } from './DataMap'
 import { isCluster, membersOf, modeOf, ranked, viewOf, type Mode } from './model'
-import { StepsList, StoreInspector, TierStrip } from './parts'
+import { LensPage, StepsList, StoreInspector, TierStrip } from './parts'
 import { useDataWords } from './words'
 import css from './Data.module.css'
 
@@ -169,11 +169,5 @@ function DataBody({ data, dp }: { data: StudioData; dp: DataPaths }) {
 }
 
 export function DataPathsPage() {
-  const w = useDataWords()
-  return (
-    <WithData>{(data) => data.data_paths
-      ? <DataBody data={data} dp={data.data_paths} />
-      : <div className={css.page}><Panel><StateMessage title={w('noData')} sub={w('noDataSub')} /></Panel></div>}
-    </WithData>
-  )
+  return <LensPage section={(data) => data.data_paths} empty="noData" body={(data, dp) => <DataBody data={data} dp={dp} />} />
 }

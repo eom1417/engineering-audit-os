@@ -1,14 +1,28 @@
 // The pieces around the data map: the seven tiers with what each knows (the gaps counted), the chain of one write,
 // a store's inspector (writers, readers, endpoints, keys, the target) and the steps view, the map's linear twin for
 // the phone and for screen readers.
+import type { ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { Chip } from '../../components/Chip'
-import { FoldList, Section } from '../../components/Panel'
+import { FoldList, Panel, Section, StateMessage } from '../../components/Panel'
 import { TIERS, type DataPaths, type Endpoint, type Site, type Store, type Tier, type WritePath } from '../../data/dataMap'
+import type { StudioData } from '../../data/types'
+import { WithData } from '../../shell/Layout'
 import { Id, N } from '../../i18n/text'
 import { CHANGE_TONE, pathsOf, ranked, tierCounts, type Mode } from './model'
 import { useDataWords, type DataWord } from './words'
 import css from './Data.module.css'
+
+/** A lens of the system page: its body when the check wrote its section, else why it is empty. */
+export function LensPage<T>({ section, empty, body }: { section: (data: StudioData) => T | null | undefined; empty: DataWord; body: (data: StudioData, found: T) => ReactNode }) {
+  const w = useDataWords()
+  return (
+    <WithData>{(data) => {
+      const found = section(data)
+      return found ? body(data, found) : <div className={css.page}><Panel><StateMessage title={w(empty)} sub={w('noDataSub')} /></Panel></div>
+    }}</WithData>
+  )
+}
 
 /** The seven links of every write, each with how many writes it reaches with evidence; the rest is hatched. */
 export function TierStrip({ dp, vertical }: { dp: DataPaths; vertical?: boolean }) {
