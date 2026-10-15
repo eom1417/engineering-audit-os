@@ -269,7 +269,7 @@ function PageCard({ page }: { page: PicturedPage }) {
         {page.same_as.length > 0 && <span className={css.cardRoute}>{w('sameAs', { n: page.same_as.length })}</span>}
       </header>
       {pictures.length > 1 && (
-        <Segmented<string> label={w('viewport')} value={String(at)} onChange={(v) => { setAt(Number(v)); setPicked(undefined) }}
+        <Segmented<string> comfortable label={w('viewport')} value={String(at)} onChange={(v) => { setAt(Number(v)); setPicked(undefined) }}
           options={pictures.map((p, i) => ({ id: String(i), label: `${viewportWord(w, p)} (${p.findings.length})` }))} />
       )}
       <div className={css.pageBody}>
