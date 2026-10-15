@@ -96,7 +96,6 @@ export const CHANGE_WORDS = {
   planView: ['طريقة عرض الخطة', 'Plan view'],
   viewTimeline: ['الخط الزمني', 'Timeline'],
   viewGraph: ['الاعتماديات', 'Dependencies'],
-  graphOnWide: ['رسم الاعتماديات يظهر على شاشة أعرض.', 'The dependency graph shows on a wider screen.'],
   viewBoard: ['العمليات', 'Operations'],
   timelineLead: ['الخطوات بترتيبها. الشريط يعدّ مهام كل خطة حسب حالتها في سجل الإنجاز.',
     'The steps in order. Each bar counts the step’s tasks by their state in the ledger.'],

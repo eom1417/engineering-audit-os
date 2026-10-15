@@ -227,7 +227,6 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
         <Segmented label={w('planView')} value={view} comfortable={phone}
           onChange={(v) => navigate({ to: `/plans/${encodeURIComponent(plan.id)}`, replace: true, search: v === 'timeline' ? {} : { view: v } })}
           options={options} />
-        {phone && <span className={css.muted}>{w('graphOnWide')}</span>}
       </div>
       {view === 'timeline' && <TimelineView plan={plan} links={links} timeline={timeline} />}
       {view === 'graph' && <StepGraph plan={plan} links={links} />}
