@@ -23,7 +23,9 @@
 .inlineLink { display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--target); min-inline-size: var(--target); color: var(--accent-text); font-weight: 500; }
 .inlineLink:hover { text-decoration: underline; }
 .links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 10px; }
-.rowSub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-block-start: 4px; }
+.rowSub { display: flex; align-items: center; gap: 4px 10px; margin-block-start: 4px; min-inline-size: 0; }
+.rowSub .closure { flex: 1 1 auto; min-inline-size: 0; }
+.rowSub .meter { flex: 1 1 64px; min-inline-size: 24px; max-inline-size: 64px; }
 
 /* Closure and task states */
 .closure { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 13px; }
