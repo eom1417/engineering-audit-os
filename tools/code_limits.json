@@ -70,7 +70,6 @@
   "eaos/studio/actions/adapters.py::result_events": 20,
   "eaos/studio/actions/adapters.py::tool_events": 21,
   "eaos/studio/actions/branches.py::BranchControl._cleanup_plan": 24,
-  "eaos/studio/actions/branches.py::BranchControl.cleanup": 19,
   "eaos/studio/actions/branches.py::BranchControl.detail": 18,
   "eaos/studio/actions/branches.py::BranchControl.ownership": 22,
   "eaos/studio/actions/branches.py::BranchControl.preview_delete": 16,
