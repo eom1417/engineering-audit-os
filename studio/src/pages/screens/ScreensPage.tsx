@@ -144,7 +144,7 @@ function ScreenGrid({ data, sx }: { data: StudioData; sx: ScreensData }) {
       {sx.screens.length > 0 && (
         <>
           <div className={css.toolbar}>
-            <div className={css.chips} role="group" aria-label={w('filter')}>
+            <div className="strip" role="group" aria-label={w('filter')}>
               {offered.map((f) => (
                 <button key={f} type="button" className={css.chipBtn} aria-pressed={filter === f} onClick={() => set(f)}>
                   {w(`filter_${f}`)}

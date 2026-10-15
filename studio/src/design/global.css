@@ -36,3 +36,13 @@ kbd { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0ms !important; transition-duration: 0ms !important; }
 }
+
+/* A row of filter chips: one line that slides sideways when it does not fit, fading at its edges on the phone, as the
+   System maps' tabs do. Chips wrapped onto three or four lines read as clutter (owner, 2026-10-15). */
+.strip { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; min-inline-size: 0;
+  overscroll-behavior-inline: contain; scroll-snap-type: x proximity; }
+.strip::-webkit-scrollbar { display: none; }
+.strip > * { flex: none; white-space: nowrap; scroll-snap-align: start; }
+@media (max-width: 767px) {
+  .strip { mask-image: linear-gradient(to right, transparent, currentColor 16px, currentColor calc(100% - 16px), transparent); padding-inline: 12px; }
+}

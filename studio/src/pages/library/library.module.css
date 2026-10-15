@@ -3,7 +3,6 @@
 
 /* ---------------------------------------------------------------- the list */
 .tools { display: flex; flex-direction: column; gap: 10px; }
-.groupChips { display: flex; flex-wrap: wrap; gap: 6px; }
 .groupChip { display: inline-flex; align-items: center; gap: 6px; min-block-size: 32px; padding: 0 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary); font-size: var(--text-label); font-weight: 500; cursor: pointer; }
 .groupChip:hover { background: var(--bg-hover); }
 .groupChip[aria-current="page"] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); }

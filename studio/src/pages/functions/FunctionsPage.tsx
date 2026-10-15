@@ -107,12 +107,12 @@ function Controls({ filter, set, shown, total }: { filter: Filter; set: (patch: 
         <Segmented<Sort> label={w('sortBy')} value={filter.sort ?? 'risk'} onChange={(sort) => set({ sort })}
           options={SORTS.map((id) => ({ id, label: w(`sort_${id}`) }))} />
       </div>
-      <div className={css.chips} role="group" aria-label={w('showWhich')}>
+      <div className="strip" role="group" aria-label={w('showWhich')}>
         {SHOWS.map((id) => (
           <button key={id} type="button" className={css.chipBtn} aria-pressed={(filter.show ?? 'all') === id} onClick={() => set({ show: id })}>{w(`show_${id}`)}</button>
         ))}
       </div>
-      <div className={css.chips} role="group" aria-label={w('kindFilter')}>
+      <div className="strip" role="group" aria-label={w('kindFilter')}>
         <button type="button" className={css.chipBtn} aria-pressed={!filter.kind} onClick={() => set({ kind: undefined })}>{w('anyKind')}</button>
         {KINDS.map((id) => (
           <button key={id} type="button" className={css.chipBtn} aria-pressed={filter.kind === id} onClick={() => set({ kind: filter.kind === id ? undefined : id })}>{w(`kinds_${id}`)}</button>

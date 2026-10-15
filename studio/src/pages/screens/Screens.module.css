@@ -1,7 +1,6 @@
 /* The screens gallery (C-experience 3.4): the cards grid with its frames and badges, one screen's shot at its true
    viewport with pinned issues and the before/after slider, its issues and inputs. Tokens only; logical properties only. */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chipBtn { min-block-size: 44px; padding: 2px 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; cursor: pointer; }
 .chipBtn:hover { background: var(--bg-hover); }
 .chipBtn[aria-pressed="true"] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); font-weight: 500; }
