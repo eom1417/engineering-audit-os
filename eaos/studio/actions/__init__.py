@@ -189,7 +189,7 @@ class Actions:
         except Refused as problem:
             return problem.status, {'error': problem.reason, **problem.extra}
         except selecting.SelectionError as problem:
-            return 400, {'error': str(problem)}
+            return 400, {'error': str(problem), 'reasons': [problem.reason]}
         except KeyError as problem:
             return 404, {'error': f'not found: {problem}'}
         except LookupError as problem:

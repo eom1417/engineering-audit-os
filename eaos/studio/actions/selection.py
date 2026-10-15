@@ -14,7 +14,10 @@ LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'comp
 
 
 class SelectionError(ValueError):
-    pass
+    """A selection that cannot run, said in both languages: the Studio shows it in the person's."""
+    def __init__(self, en, ar):
+        super().__init__(en)
+        self.reason = {'en': en, 'ar': ar}
 
 
 def _load(folder, name):
@@ -42,9 +45,9 @@ def resolve(selection, folder):
 def _checked_cards(selection, folder):
     """The cards of the latest check, for a selection that says its kind."""
     if not isinstance(selection, dict) or selection.get('kind') not in ('card', 'cards', 'group', 'step'):
-        raise SelectionError('the selection must say its kind: card, cards, group or step')
+        raise SelectionError('the selection must say its kind: card, cards, group or step', 'الاختيار لازم يحدد نوعه: بطاقة أو بطاقات أو مجموعة أو مرحلة')
     data = _load(folder, 'cards') if folder else None
-    if not data: raise SelectionError('this project has no check yet: run the check first (audit)')
+    if not data: raise SelectionError('this project has no check yet: run the check first (audit)', 'المشروع ما انفحص بعد: افحصه أول')
     return data.get('cards') or []
 
 
@@ -61,9 +64,9 @@ def _named(selection, known):
     """The ids a card or cards selection names, each a card of the latest check."""
     ids = [str(i) for i in selection.get('cards') or []]
     if selection['kind'] == 'card': ids = ids[:1]
-    if len(ids) > 500: raise SelectionError('at most 500 cards at once')
+    if len(ids) > 500: raise SelectionError('at most 500 cards at once', 'الحد 500 بطاقة في المرة الوحدة')
     unknown = [i for i in ids if i not in known]
-    if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check")
+    if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check", f"آخر فحص ما فيه بطاقة باسم {'، '.join(unknown[:5])}")
     return set(ids)
 
 
@@ -72,19 +75,21 @@ def _grouped(group, cards, folder):
     by, value = group.get('by'), str(group.get('value') or '')
     if by in GROUPS:
         return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
-    if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation')
+    if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation', 'المجموعة تكون حسب المجال أو الخطورة أو المكوّن أو الفجوة أو العملية')
     name, field, words = LISTED[by]
     rows = (_load(folder, name) or {}).get(name)
-    if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet')
+    if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet', f'هذا الفحص ما كتب {name}.json بعد')
     return {c for row in rows if str(row.get(field)) == value for c in row.get('cards') or []}
 
 
 def _split(chosen):
     """(open cards to run, the others with why they are left out); an error when none is left to run."""
-    if not chosen: raise SelectionError('the selection names no card')
+    if not chosen: raise SelectionError('the selection names no card', 'الاختيار ما فيه أي بطاقة')
     run = [card for card in chosen if card.get('state', 'open') in OPEN]
     left = [{'id': card['id'], 'why': f"already {card.get('state')}"} for card in chosen if card not in run]
-    if not run: raise SelectionError('every selected card is already handled: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]))
+    if not run:
+        raise SelectionError('every selected card is already handled: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]),
+                             'كل البطاقات المختارة متعامل معها (في دفعة أو على فرع أو منتهية): ' + '، '.join(c['id'] for c in left[:5]))
     return run, left
 
 

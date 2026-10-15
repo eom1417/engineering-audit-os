@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.32 (2026-10-15)
+
+- **A batch that stops frees its cards at once**: a batch retired because the code moved on (or abandoned) now brings
+  the ledger and the Studio up to date when it closes; before, its 74 cards stayed "in the batch" and every next batch
+  refused them ("every selected card is already handled").
+- **The Fix preview says why it cannot run in the person's language**: a selection that cannot run is said in Arabic
+  and English, and the Studio shows the one the page is in.
+
 ## 0.0.31 (2026-10-14)
 
 - **EAOS's own sentences translated professionally, once, for everyone**: the shipped memory

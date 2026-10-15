@@ -958,7 +958,6 @@ def fix_abandon(project=None):
     state = project_state(project)
     wave = _open(state)
     guided.close_batch(state, 'abandoned', wave.get('last_error') or '')
-    guided.publish(state)
     return {'status': 'abandoned', 'batch': wave['number'], 'cards': wave['cards'],
             'what_now': 'Tell the person the batch was closed and nothing in their project changed.'}
 

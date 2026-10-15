@@ -216,7 +216,6 @@ def explain(problem):
     return next(entry for entry in catalog() if entry['id'] == 'unknown')
 
 
-
 def show_error(lang, entry_id=None, problem=None, log=None):
     entry = next(e for e in catalog() if e['id'] == entry_id) if entry_id else explain(problem)
     text = entry[lang]
@@ -649,7 +648,7 @@ def _branch_exists(state, branch):
 
 def close_batch(state, status, why='', via='assistant'):
     """Close the open batch without handing anything over: its copy is removed, it is recorded in `waves` with `status`
-    (abandoned, superseded) and `why`, and its cards can be picked again. Saved; the record, or None with no batch."""
+    (abandoned, superseded) and `why`; the ledger and the Studio follow, so its cards can be picked again at once."""
     wave = state.get('open_wave')
     if not wave: return None
     root, runtime = Path(wave.get('root') or '/').resolve(), runtime_of(state).resolve()
@@ -661,6 +660,7 @@ def close_batch(state, status, why='', via='assistant'):
     state.setdefault('waves', []).append(record)
     state.pop('open_wave', None)
     save(state)
+    publish(state)
     return record
 
 
