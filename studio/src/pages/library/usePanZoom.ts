@@ -14,6 +14,84 @@ export interface PanZoom {
   pans: boolean
 }
 
+type Listener = [string, (e: never) => void]
+
+const local = (el: HTMLElement, e: { clientX: number; clientY: number }) => {
+  const r = el.getBoundingClientRect()
+  return { x: e.clientX - r.left, y: e.clientY - r.top }
+}
+
+/** The first view of a drawing wider than its box: scrolled to its busiest part, not its empty corner. */
+function openOnBusiest(el: HTMLDivElement, natural: Size, k: number) {
+  const origin = el.firstElementChild?.getBoundingClientRect()
+  const nodes = [...el.querySelectorAll('svg g.node, svg g.cluster-label, svg .actor, svg .er.entityBox, svg g.classGroup')].map((node) => {
+    const r = node.getBoundingClientRect()
+    return { x: r.left + r.width / 2 - (origin?.left ?? 0), y: r.top + r.height / 2 - (origin?.top ?? 0) }
+  })
+  const start = busiest(nodes, { width: el.clientWidth, height: el.clientHeight }, { width: natural.width * k, height: natural.height * k })
+  el.scrollLeft = start.left
+  el.scrollTop = start.top
+}
+
+/** A mouse (or, with `pinch`, a finger) drags the drawing; two fingers pinch it. */
+function pointerGestures(el: HTMLDivElement, pinch: boolean, zoomBy: PanZoom['zoomBy']): Listener[] {
+  const pointers = new Map<number, { x: number; y: number }>()
+  let last: { x: number; y: number } | null = null
+  let spread = 0
+  const down = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    if (e.pointerType === 'touch' && !pinch) return
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    last = { x: e.clientX, y: e.clientY }
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()]
+      spread = Math.hypot(a.x - b.x, a.y - b.y)
+    }
+    el.setPointerCapture?.(e.pointerId)
+  }
+  const move = (e: PointerEvent) => {
+    if (!pointers.has(e.pointerId)) return
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()]
+      const now = Math.hypot(a.x - b.x, a.y - b.y)
+      if (spread > 0 && Math.abs(now - spread) > 2) {
+        zoomBy(now / spread, local(el, { clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }))
+        spread = now
+      }
+      return
+    }
+    if (!last) return
+    el.scrollLeft -= e.clientX - last.x
+    el.scrollTop -= e.clientY - last.y
+    last = { x: e.clientX, y: e.clientY }
+    el.dataset.dragging = ''
+  }
+  const up = (e: PointerEvent) => {
+    pointers.delete(e.pointerId)
+    if (pointers.size < 2) spread = 0
+    if (pointers.size === 0) { last = null; delete el.dataset.dragging }
+    else last = [...pointers.values()][0]
+  }
+  return [['pointerdown', down], ['pointermove', move], ['pointerup', up], ['pointercancel', up]]
+}
+
+/** Ctrl/Cmd + wheel (any wheel, with `wheel`) zooms around the pointer; + and − zoom, 0 fits. */
+function zoomControls(el: HTMLDivElement, wheel: boolean, zoomBy: PanZoom['zoomBy'], fit: () => void): Listener[] {
+  const onWheel = (e: WheelEvent) => {
+    if (!wheel && !e.ctrlKey && !e.metaKey) return
+    e.preventDefault()
+    zoomBy(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025)), local(el, e))
+  }
+  const onKey = (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomBy(ZOOM.step) }
+    else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomBy(1 / ZOOM.step) }
+    else if (e.key === '0') { e.preventDefault(); fit() }
+  }
+  return [['wheel', onWheel], ['keydown', onKey]]
+}
+
 export function usePanZoom(box: RefObject<HTMLDivElement | null>, natural: Size | null,
   { floor = 0, fill = 1, fitHeight = false, pinch = false, wheel = false }: { floor?: number; fill?: number; fitHeight?: boolean; pinch?: boolean; wheel?: boolean } = {}): PanZoom {
   const [k, setK] = useState<number | null>(null)
@@ -70,16 +148,7 @@ export function usePanZoom(box: RefObject<HTMLDivElement | null>, natural: Size 
       el.scrollTop = next.top
     }
     const wide = natural.width * k > el.clientWidth + 1
-    if (first.current && wide) {
-      const origin = el.firstElementChild?.getBoundingClientRect()
-      const nodes = [...el.querySelectorAll('svg g.node, svg g.cluster-label, svg .actor, svg .er.entityBox, svg g.classGroup')].map((node) => {
-        const r = node.getBoundingClientRect()
-        return { x: r.left + r.width / 2 - (origin?.left ?? 0), y: r.top + r.height / 2 - (origin?.top ?? 0) }
-      })
-      const start = busiest(nodes, { width: el.clientWidth, height: el.clientHeight }, { width: natural.width * k, height: natural.height * k })
-      el.scrollLeft = start.left
-      el.scrollTop = start.top
-    }
+    if (first.current && wide) openOnBusiest(el, natural, k)
     first.current = false
     setPans(wide || natural.height * k > el.clientHeight + 1)
   }, [box, k, natural])
@@ -88,73 +157,9 @@ export function usePanZoom(box: RefObject<HTMLDivElement | null>, natural: Size 
   useEffect(() => {
     const el = box.current
     if (!el) return
-    const pointers = new Map<number, { x: number; y: number }>()
-    let last: { x: number; y: number } | null = null
-    let spread = 0
-    const local = (e: { clientX: number; clientY: number }) => {
-      const r = el.getBoundingClientRect()
-      return { x: e.clientX - r.left, y: e.clientY - r.top }
-    }
-    const down = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return
-      if (e.pointerType === 'touch' && !pinch) return
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      last = { x: e.clientX, y: e.clientY }
-      if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()]
-        spread = Math.hypot(a.x - b.x, a.y - b.y)
-      }
-      el.setPointerCapture?.(e.pointerId)
-    }
-    const move = (e: PointerEvent) => {
-      if (!pointers.has(e.pointerId)) return
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()]
-        const now = Math.hypot(a.x - b.x, a.y - b.y)
-        if (spread > 0 && Math.abs(now - spread) > 2) {
-          zoomBy(now / spread, local({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }))
-          spread = now
-        }
-        return
-      }
-      if (!last) return
-      el.scrollLeft -= e.clientX - last.x
-      el.scrollTop -= e.clientY - last.y
-      last = { x: e.clientX, y: e.clientY }
-      el.dataset.dragging = ''
-    }
-    const up = (e: PointerEvent) => {
-      pointers.delete(e.pointerId)
-      if (pointers.size < 2) spread = 0
-      if (pointers.size === 0) { last = null; delete el.dataset.dragging }
-      else last = [...pointers.values()][0]
-    }
-    const onWheel = (e: WheelEvent) => {
-      if (!wheel && !e.ctrlKey && !e.metaKey) return
-      e.preventDefault()
-      zoomBy(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025)), local(e))
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomBy(ZOOM.step) }
-      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomBy(1 / ZOOM.step) }
-      else if (e.key === '0') { e.preventDefault(); fit() }
-    }
-    el.addEventListener('pointerdown', down)
-    el.addEventListener('pointermove', move)
-    el.addEventListener('pointerup', up)
-    el.addEventListener('pointercancel', up)
-    el.addEventListener('wheel', onWheel, { passive: false })
-    el.addEventListener('keydown', onKey)
-    return () => {
-      el.removeEventListener('pointerdown', down)
-      el.removeEventListener('pointermove', move)
-      el.removeEventListener('pointerup', up)
-      el.removeEventListener('pointercancel', up)
-      el.removeEventListener('wheel', onWheel)
-      el.removeEventListener('keydown', onKey)
-    }
+    const on = [...pointerGestures(el, pinch, zoomBy), ...zoomControls(el, wheel, zoomBy, fit)]
+    for (const [type, handler] of on) el.addEventListener(type, handler as EventListener, type === 'wheel' ? { passive: false } : undefined)
+    return () => { for (const [type, handler] of on) el.removeEventListener(type, handler as EventListener) }
   }, [box, pinch, wheel, zoomBy, fit])
 
   return { k, zoomBy, fit, pans }
