@@ -6,7 +6,6 @@ them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAI
 them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands
 on its base branch when the person chose so.
 """
-from pathlib import Path
 
 from . import guided
 
