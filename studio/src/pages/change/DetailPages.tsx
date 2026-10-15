@@ -19,7 +19,7 @@ import { usePageChrome } from '../../shell/chrome'
 import { layout as page, MissingBanner, WithData } from '../../shell/Layout'
 import { usePaths } from '../paths/model'
 import { byId, cardState, comesBefore, RELATION_OF, stateCounts, stepLinks } from './model'
-import { ChangeNav, GapLink, LinkList, Missing, NotMeasured, OpLink, StateBar, StepLink } from './parts'
+import { ChangeNav, GapLink, GapSources, LinkList, Missing, NotMeasured, OpLink, StateBar, StepLink } from './parts'
 import { STATE_WORD, useChangeWords } from './words'
 import css from './change.module.css'
 
@@ -193,11 +193,7 @@ function OpBody({ data, id }: { data: StudioData; id: string }) {
               ) : <StateMessage title={w('noCards')} />}
             </Panel>
           </Section>
-          {(op.sources ?? []).length > 0 && (
-            <Section title={w('sources')} count={op.sources!.length}>
-              <Panel><FoldList items={op.sources!} first={8} label={w('sources')} render={(s) => <RowLink to={`/change/gaps/${encodeURIComponent(s)}`} title={<Id value={s} keep={3} />} />} /></Panel>
-            </Section>
-          )}
+          <GapSources sources={op.sources ?? []} />
         </div>
         <div className={page.col}>
           <Panel pad>

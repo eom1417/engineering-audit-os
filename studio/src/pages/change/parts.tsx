@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { Go } from '../../components/Go'
-import { NotHere, Panel, StateMessage } from '../../components/Panel'
+import { FoldList, NotHere, Panel, RowLink, Section, StateMessage } from '../../components/Panel'
 import type { Gap, OpState } from '../../data/change'
 import type { StudioData } from '../../data/types'
 import { Id, N } from '../../i18n/text'
@@ -82,6 +82,17 @@ export function StateBar({ counts }: { counts: Record<OpState, number> }) {
         {TASK_STATES.filter((k) => counts[k] > 0).map((k) => <span key={k}><i className={[css.dot, css[`st_${k}`]].join(' ')} aria-hidden="true" />{w(STATE_WORD[k])} <N value={counts[k]} /></span>)}
       </span>
     </span>
+  )
+}
+
+/** The gaps a change comes from, each a link to its page; nothing when there is none. */
+export function GapSources({ sources }: { sources: string[] }) {
+  const w = useChangeWords()
+  if (!sources.length) return null
+  return (
+    <Section title={w('sources')} count={sources.length}>
+      <Panel><FoldList items={sources} first={8} label={w('sources')} render={(s) => <RowLink to={`/change/gaps/${encodeURIComponent(s)}`} title={<Id value={s} keep={3} />} />} /></Panel>
+    </Section>
   )
 }
 
