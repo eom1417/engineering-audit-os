@@ -19,7 +19,6 @@
   "eaos/blueprint.py::validate_spec": 60,
   "eaos/c4.py::_target_diagram": 17,
   "eaos/compose/four_reports.py::current_state": 29,
-  "eaos/compose/four_reports.py::gap_and_strategy": 26,
   "eaos/compose/four_reports.py::target_state": 25,
   "eaos/debt_register.py::_item": 17,
   "eaos/dossier.py::brief": 22,
