@@ -18,7 +18,9 @@ def _wrap(text, first='', rest=''):
 
 
 def _title(decision):
-    title = f"# {decision['id']}: {decision.get('component_id', 'decision')}"
+    """The decision's id, its part and what it decides, so a reader of the list knows which one to open."""
+    chosen = str(decision.get('chosen') or '').rstrip('.')
+    title = f"# {decision['id']}: {decision.get('component_id', 'decision')}" + (f' — {chosen}' if chosen else '')
     return title if len(title) <= WIDTH else title[:WIDTH - 1] + '…'
 
 
