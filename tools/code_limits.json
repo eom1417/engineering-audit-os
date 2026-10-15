@@ -46,7 +46,6 @@
   "eaos/facts/resolve.py::_matches": 17,
   "eaos/guided.py::accept": 16,
   "eaos/guided.py::clean": 17,
-  "eaos/guided.py::doctor_rows": 24,
   "eaos/guided.py::merge": 16,
   "eaos/handover.py::brief": 19,
   "eaos/handover.py::refresh": 16,

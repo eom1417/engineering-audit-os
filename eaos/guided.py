@@ -243,45 +243,44 @@ def node_major():
     return int(found.group(1)) if found else 0
 
 
+def _node_row(js):
+    major = node_major()
+    return {'id': 'node', 'ok': major >= 22, 'when': 'now' if js and major == 0 else 'optional' if js else 'later',
+            'ar': 'Node.js 22 أو أحدث' + (f' (عندك {major}، وبعض الأدوات والمشاريع تحتاج 22)' if 0 < major < 22 else ''),
+            'en': 'Node.js 22 or newer' + (f' (you have {major}; some tools and projects need 22)' if 0 < major < 22 else ''), 'fix': 'https://nodejs.org  (LTS)'}
+
+
+def _tools_row(row_id, when, ar, en, tools):
+    missing = ', '.join(t['name'] for t in tools if not t['ok'])
+    return {'id': row_id, 'ok': not missing, 'when': when, 'ar': ar + (f' (ناقص: {missing})' if missing else ''),
+            'en': en + (f' (missing: {missing})' if missing else ''), 'fix': 'eaos doctor --fix'}
+
+
 def doctor_rows(project=None, probe=False):
     """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]. `probe`: ask each AI
     assistant for one word (eaos/assistants/readiness.py) instead of only looking for its command."""
     from .toolchain import doctor as tools
     js = bool(project) and any((Path(project) / folder / 'package.json').is_file() for folder in ('.', 'app', 'web', 'client', 'frontend'))
-    rows = [
-        {'id': 'python', 'ok': sys.version_info >= (3, 10), 'when': 'now', 'ar': 'Python 3.10 أو أحدث', 'en': 'Python 3.10 or newer',
-         'fix': 'https://www.python.org/downloads/'},
-        {'id': 'git', 'ok': bool(shutil.which('git')), 'when': 'now', 'ar': 'git', 'en': 'git', 'fix': 'https://git-scm.com/downloads'},
-        {'id': 'node', 'ok': node_major() >= 22, 'when': 'now' if js and node_major() == 0 else 'optional' if js else 'later',
-         'ar': 'Node.js 22 أو أحدث' + (f' (عندك {node_major()}، وبعض الأدوات والمشاريع تحتاج 22)' if 0 < node_major() < 22 else ''),
-         'en': 'Node.js 22 or newer' + (f' (you have {node_major()}; some tools and projects need 22)' if 0 < node_major() < 22 else ''),
-         'fix': 'https://nodejs.org  (LTS)'},
-    ]
+    rows = [{'id': 'python', 'ok': sys.version_info >= (3, 10), 'when': 'now', 'ar': 'Python 3.10 أو أحدث', 'en': 'Python 3.10 or newer',
+             'fix': 'https://www.python.org/downloads/'},
+            {'id': 'git', 'ok': bool(shutil.which('git')), 'when': 'now', 'ar': 'git', 'en': 'git', 'fix': 'https://git-scm.com/downloads'},
+            _node_row(js)]
     if project:
         rows.append({'id': 'project_git', 'ok': (Path(project) / '.git').exists(), 'when': 'later',
                      'ar': 'المشروع محفوظ في git (للإصلاح فقط)', 'en': 'The project is saved in git (only for fixing)',
                      'fix': 'git init && git add -A && git commit -m "first save"'})
-    scan = [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate') and not t.get('unavailable')]
-    missing = [t['name'] for t in scan if not t['ok']]
     # The check runs without any of them, and the report names what it could not look at: missing ones warn.
-    rows.append({'id': 'scan_tools', 'ok': not missing, 'when': 'optional',
-                 'ar': 'أدوات الفحص' + (f" (ناقص: {', '.join(missing)})" if missing else ''),
-                 'en': 'Checking tools' + (f" (missing: {', '.join(missing)})" if missing else ''), 'fix': 'eaos doctor --fix'})
-    run = [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift') and not t.get('unavailable')]
-    missing = [t['name'] for t in run if not t['ok']]
-    rows.append({'id': 'fix_tools', 'ok': not missing, 'when': 'later',
-                 'ar': 'أدوات تشغيل برنامجك وإصلاحه' + (f" (ناقص: {', '.join(missing)})" if missing else ''),
-                 'en': 'Tools to run and fix your app' + (f" (missing: {', '.join(missing)})" if missing else ''),
-                 'fix': 'eaos doctor --fix'})
+    rows.append(_tools_row('scan_tools', 'optional', 'أدوات الفحص', 'Checking tools',
+                           [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate') and not t.get('unavailable')]))
+    rows.append(_tools_row('fix_tools', 'later', 'أدوات تشغيل برنامجك وإصلاحه', 'Tools to run and fix your app',
+                           [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift') and not t.get('unavailable')]))
     from .local_db import binaries
-    rows.append({'id': 'database', 'ok': binaries() is not None, 'when': 'later',
-                 'ar': 'قاعدة بيانات مؤقتة لتشغيل برنامجك (PostgreSQL)', 'en': 'A temporary database to run your app (PostgreSQL)',
-                 'fix': 'eaos doctor --fix'})
-    rows.append(assistant_row(probe))
     free = shutil.disk_usage(str(home().parent if not home().exists() else home())).free / 2 ** 30
-    rows.append({'id': 'disk', 'ok': free >= 5, 'when': 'now', 'ar': f'مساحة فارغة 5 GB على الأقل (المتاح {free:.0f} GB)',
-                 'en': f'At least 5 GB free (you have {free:.0f} GB)', 'fix': 'eaos clean'})
-    return rows
+    return rows + [{'id': 'database', 'ok': binaries() is not None, 'when': 'later',
+                    'ar': 'قاعدة بيانات مؤقتة لتشغيل برنامجك (PostgreSQL)', 'en': 'A temporary database to run your app (PostgreSQL)',
+                    'fix': 'eaos doctor --fix'}, assistant_row(probe),
+                   {'id': 'disk', 'ok': free >= 5, 'when': 'now', 'ar': f'مساحة فارغة 5 GB على الأقل (المتاح {free:.0f} GB)',
+                    'en': f'At least 5 GB free (you have {free:.0f} GB)', 'fix': 'eaos clean'}]
 
 
 def assistant_row(probe=False):
