@@ -8,7 +8,6 @@
 .groupChip:hover { background: var(--bg-hover); }
 .groupChip[aria-current="page"] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); }
 .groupChip .num { color: var(--text-tertiary); font-weight: 500; }
-.columns { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: var(--section-gap); align-items: start; }
 .col { display: flex; flex-direction: column; gap: var(--section-gap); min-inline-size: 0; }
 .order { display: inline-grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--radius-full); background: var(--bg-sunken); color: var(--text-secondary); font-size: 12px; font-weight: 600; flex: none; }
 .rowMeta { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
@@ -167,8 +166,6 @@ ol.list { list-style: decimal; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 @media (max-width: 1199px) {
-  .columns { grid-template-columns: minmax(0, 1fr); }
-  .side { order: -1; }
   .reader { grid-template-columns: minmax(0, 1fr); }
   .aside { display: none; }
   .tocButton { display: inline-flex; }

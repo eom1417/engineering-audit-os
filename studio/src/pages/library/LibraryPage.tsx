@@ -85,8 +85,7 @@ function LibraryBody({ data }: { data: StudioData }) {
           </Panel>
         </Section>
       ) : (
-        <div className={css.columns}>
-          <div className={css.col}>
+        <div className={css.col}>
             {!search.group && first.length > 0 && (
               <Section title={w('readFirst')} count={first.length} id="s-read-first">
                 <Panel><FoldList items={first} first={phone ? 5 : 8} render={(doc, i) => <DocRow doc={doc} numbered={i + 1} />} label={w('readFirst')} /></Panel>
@@ -97,8 +96,6 @@ function LibraryBody({ data }: { data: StudioData }) {
                 <Panel><FoldList items={rows} first={phone && !search.group ? 3 : 6} render={(doc) => <DocRow doc={doc} />} label={groupWord(w, group)} /></Panel>
               </Section>
             ))}
-          </div>
-          <div className={[css.col, css.side].join(' ')}>
             <Section title={w('images')} count={images.length} id="s-images">
               <Panel>
                 {images.length ? <FoldList items={images} first={6} render={(image) => (
@@ -107,7 +104,6 @@ function LibraryBody({ data }: { data: StudioData }) {
                 )} label={w('images')} /> : <StateMessage title={w('noImages')} />}
               </Panel>
             </Section>
-          </div>
         </div>
       )}
     </div>
