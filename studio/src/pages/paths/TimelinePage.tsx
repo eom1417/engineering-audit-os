@@ -134,6 +134,8 @@ function TimelineView({ data, timeline }: { data: StudioData; timeline: Timeline
   const stepTitle = step !== undefined ? timeline.steps.find((s) => s.id === step)?.id ?? w('noStep') : undefined
   const heading = stepTitle && wave ? w('cellTasks', { s: stepTitle, w: wave }) : wave ? w('waveTasks', { w: wave }) : stepTitle ?? ''
   const count = (key: string) => timeline.counts[key]?.value ?? 0
+  const titles = new Map<string, string>()
+  for (const one of timeline.steps) titles.set(one.id, one.title)
   const details = (step !== undefined || wave !== undefined) ? (
     <Section title={heading} count={chosen.length}><Panel pad><TaskRows tasks={chosen} /></Panel></Section>
   ) : <p className={css.lead}>{w('chooseCell')}</p>
@@ -150,7 +152,9 @@ function TimelineView({ data, timeline }: { data: StudioData; timeline: Timeline
                 <li key={wv.wave}>
                   <AriaButton className={[css.waveRow, css.stepBtn].join(' ')} onPress={() => pick(undefined, wv.wave)}>
                     <span className={css.waveHead}><span>{w('wave', { n: wv.wave })}</span><span>{w('tasksN', { n: wv.tasks })}</span></span>
-                    <span className={css.waveSteps}>{wv.steps.map((s, i) => <span key={s.step ?? 'none'}>{i > 0 && ' · '}<Id value={s.step ?? '—'} />: {w('tasksN', { n: s.tasks })}</span>)}</span>
+                    <span className={css.waveSteps}>{wv.steps.map((s) => (
+                      <span key={s.step ?? 'none'}><Id value={s.step ?? '—'} /> <Txt>{titles.get(s.step ?? '') ?? w('noStep')}</Txt>: {w('tasksN', { n: s.tasks })}</span>
+                    ))}</span>
                   </AriaButton>
                 </li>
               ))}
