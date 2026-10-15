@@ -130,7 +130,8 @@ def edit_gates(where, root, card, changed, repair):
     report, project, runtime = where
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out, engines=engines_for([card]))
-        broke = new_breakage(report, root, collected=out) + words(debt(report, out, changed)) + app_breakage(project, runtime, root, changed)
+        broke = (new_breakage(report, root, collected=out) + words(debt(report, out, changed, had=_sizes_before(root, changed)))
+                 + app_breakage(project, runtime, root, changed))
         exit_code = None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
         return broke, exit_code, _still(card, out) if exit_code not in (0, None) else ''
 
@@ -155,6 +156,17 @@ def _probe_exit(spec, sets, out):
         sets['load_model'] = project(compute(out))
     status, _ = decide_probe(spec, sets)
     return 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
+
+
+def _sizes_before(root, paths):
+    """Each changed file's lines in the copy just before the change (counted as facts/metrics counts them): a file over the
+    limit is judged by whether this change grew it, not by the check on record, which an earlier batch may have outgrown
+    (EAOS, 2026-10-15: a repair that left an 876-line test file as long was refused as growing it from 861)."""
+    out = {}
+    for path in paths:
+        shown = git(root, 'show', f'HEAD~1:{path}')
+        if not shown.returncode: out[path] = len(shown.stdout.split('\n'))
+    return out
 
 
 def _still(card, out):
@@ -378,8 +390,23 @@ def failing_output(runtime, name, size=6000):
     return [{'command': ' '.join(c['argv']), 'output': (c.get('tail') or '')[-size:]} for c in commands if c.get('exit')]
 
 
+def _named(batch, commits):
+    """The culprits the failure names, tried first, in one run: the batch without the changes to a file the failing checks
+    print. When it then passes, they are the culprits; halving 68 changes ran the whole suite again and again, on half
+    applied splits, for hours, though the output named the one file (EAOS, 2026-10-15). {} when none or all are named, or
+    leaving the named ones out is not enough."""
+    said = ' '.join(c['output'] for n in (batch['name'], f"{batch['name']}-again") for c in failing_output(batch['runtime'], n))
+    files = {sha: git(batch['root'], 'show', '--name-only', '--format=', sha).stdout.split() for sha in commits}
+    named = [sha for sha in commits if any(f in said or f.removesuffix('.py').replace('/', '.') in said for f in files[sha])]
+    if not named or len(named) == len(commits): return {}
+    _rebuilt(batch, [sha for sha in commits if sha not in named])
+    batch['say']('bisect')
+    if gates(batch, f"{batch['name']}-named"): return {}
+    return {sha: "the project's checks failed naming the files it changed, and passed without it" for sha in named}
+
+
 def _without_culprits(batch, kept, failed):
-    bad = culprits(batch, list(kept.values()))
+    bad = _named(batch, list(kept.values())) or culprits(batch, list(kept.values()))
     for card_id, sha in list(kept.items()):
         if sha in bad: failed[card_id] = bad[sha]
     kept = {c: s for c, s in kept.items() if c not in failed}

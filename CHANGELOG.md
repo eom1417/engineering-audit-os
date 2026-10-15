@@ -24,6 +24,12 @@
   (`batch_finish._phase`), then its handover, or its stop.
 - **A run's page shows the same numbers at every refresh**: it drew a long run's replayed events one by one (500
   drawings), so each refresh caught it mid-way, at another count and step; its new events are now drawn together.
+- **A batch that fails its checks finds the culprit in one run when the failure names it** (`waves._named`): before
+  halving, the batch is tried without the changes to a file the failing checks printed; halving 68 changes ran the whole
+  suite again and again, on half-applied splits whose every Studio test waited out its 30 seconds, for over an hour,
+  though the failure named the one file.
+- **A change is sized against the copy just before it** (`waves._sizes_before`), not against the check on record: a
+  one-line repair to an 876-line test file was refused as "growing" it, from the 861 lines an older check had counted.
 - **Each batch says how it did on the first try**, and a card failing in a second batch is reported as a defect of EAOS,
   not of the project (the ledger counts each card's failed batches).
 - **Moving a complex function in a split keeps its allowance** (`tools/code_limits.py`): it may not grow, but moving it

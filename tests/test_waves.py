@@ -30,6 +30,25 @@ def commit_file(root, name, text):
 
 
 class OrderTests(unittest.TestCase):
+    def test_a_failure_that_names_a_file_finds_its_culprit_in_one_run_and_a_change_is_sized_against_the_copy(self):
+        # EAOS, 2026-10-15: halving 68 changes ran the whole suite for hours though the failure named the one file; a
+        # repair was refused for growing an 876-line file that the check on record knew at 861
+        root = Path(tempfile.mkdtemp())
+        run = lambda *a: subprocess.run(['git', '-C', str(root), '-c', 'user.name=t', '-c', 'user.email=t@t', *a], check=True,
+                                        capture_output=True, text=True).stdout.strip()
+        run('init', '-q')
+        (root / 'a.py').write_text('x = 1\n'); (root / 'b.py').write_text('y = 1\n')
+        run('add', '-A'); run('commit', '-qm', 'base'); base = run('rev-parse', 'HEAD')
+        commits = []
+        for name in ('a.py', 'b.py'):
+            (root / name).write_text('z = 2\n'); run('commit', '-qam', name); commits.append(run('rev-parse', 'HEAD'))
+        batch = {'name': 'w', 'runtime': root, 'root': root, 'base': base, 'say': lambda *_: None, 'regenerate': lambda r: None}
+        said = [{'command': 'tests', 'output': 'FAIL: test_x ... a.py::f: 16 (allowed 15)'}]
+        with mock.patch.object(waves, 'failing_output', return_value=said), mock.patch.object(waves, 'gates', return_value='') as gates:
+            self.assertEqual(list(waves._named(batch, commits)), [commits[0]])
+        self.assertEqual(gates.call_count, 1, 'one run of the checks, not a halving')
+        self.assertEqual(waves._sizes_before(root, ['b.py', 'c.py']), {'b.py': 2}, 'counted as facts/metrics counts lines')
+
     def test_a_batch_is_the_next_ready_cards_in_milestone_order_and_judged_from_one_collection_of_facts(self):
         report = Path(tempfile.mkdtemp())
         ready = lambda i: {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'}}

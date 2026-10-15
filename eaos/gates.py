@@ -37,7 +37,9 @@ def structure(before, after, policy=None):
     return _added(rows, before, after)
 
 
-def debt(before, after, paths, dead=True):
+def debt(before, after, paths, dead=True, had=None):
+    """What a change adds against the code laws, from the facts `before` and `after` it; `had`: the changed files' sizes
+    just before it, when the `before` facts are older (a batch's check on record)."""
     paths = set(paths)
     rows = lambda folder: {**_copies(folder, paths), **(_dead(folder, paths) if dead else {})}
     problems = _added(rows, before, after)
@@ -45,7 +47,7 @@ def debt(before, after, paths, dead=True):
     if now > was:
         problems.append({'gate': 'complex', 'where': ', '.join(sorted(paths))[:200],
                          'what': f'more complex: {now - was} decisions more past the limit of {MAX_COMPLEXITY} per function'})
-    had = _sizes(before, paths) if before else {}
+    had = had if had is not None else _sizes(before, paths) if before else {}
     problems += [{'gate': 'size', 'where': path, 'what': f'{path} grew to {lines} lines, past the limit of {MAX_LINES}: split it'}
                  for path, lines in sorted(_sizes(after, paths).items()) if lines > MAX_LINES and lines > had.get(path, 0)]
     from .weaknesses import new
