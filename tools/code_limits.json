@@ -115,7 +115,6 @@
   "eaos/studio/pipeline.py::section": 17,
   "eaos/studio/screens.py::gallery": 18,
   "eaos/studio/screens.py::screens": 17,
-  "eaos/studio/system.py::_target_view": 29,
   "eaos/system_map.py::_edges": 18,
   "eaos/system_map.py::_link_callers": 18,
   "eaos/system_map.py::component_file": 18,
