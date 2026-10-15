@@ -32,7 +32,6 @@
   "eaos/facts/pipeline_code.py::_drivers": 16,
   "eaos/facts/pipeline_code.py::_error_lanes": 19,
   "eaos/facts/pipeline_code.py::_stage_call": 21,
-  "eaos/facts/pipeline_code.py::declared_lists": 52,
   "eaos/facts/pipeline_code.py::orchestrators": 21,
   "eaos/facts/pipeline_code.py::phases": 27,
   "eaos/facts/pipeline_frameworks.py::_read_jobs": 16,
