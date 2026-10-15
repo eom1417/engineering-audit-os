@@ -404,19 +404,19 @@ class Manager:
         if question: return self._ask(run, question)
         if state.get('failed') or (code not in (0, None) and not words):
             reason = state.get('failed') or f'the assistant stopped with code {code}'
-            tail = ''
             try: tail = (self.store.path(run) / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-600:]
-            except OSError: pass
+            except OSError: tail = ''
             why = self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
             return self._fail(run, why, resumable=True)
+        return self._finish_turn(run, record, words)
+
+    def _finish_turn(self, run, record, words):
         payload = self._outcome(run, answer=self._readable(run, words))
         if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
             # a Fix run that handed nothing over did not succeed, whatever the assistant said; nor did it break anything:
             # it ends unchanged, and the person reads why and what to do
-            self.store.append(run, 'result', {'en': 'Nothing changed: no fix was kept, so no branch waits for you. Read the '
-                                                    "assistant's words for why, then try again or pick other cards.",
-                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. اقرأ كلام المساعد لتعرف '
-                                                    'السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}, {**payload, 'nothing_changed': True})
+            self.store.append(run, 'result', {'en': "Nothing changed: no fix was kept, so no branch waits for you. Read the assistant's words for why, then try again or pick other cards.",
+                                              'ar': 'ما تغيّر شي: ما انقبل أي إصلاح، فما فيه فرع ينتظرك. اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}, {**payload, 'nothing_changed': True})
             return self.set_state(run, 'unchanged', 'nothing changed', result={**payload, 'nothing_changed': True})
         self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else
                                                           f": the fixes are on {payload['landed_on']} itself" if payload.get('landed_on') else ''),

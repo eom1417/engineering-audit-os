@@ -28,12 +28,17 @@ def _symbols(report, r):
         if fact['kind'] == 'import_edge':
             if value.get('style') == 'absolute' and value.get('module'): r['packages'][path].add(str(value['module']))
             continue
-        name = str(value.get('name') or '')
-        if value.get('exported') and name.upper() in sm.METHODS and name.isupper(): r['methods'][path].add(name)
-        if name and not value.get('parent'): r['names'][name].add(path)
-        if value.get('kind') in FUNCTIONS and isinstance(loc.get('start_line'), int):
-            r['functions'][path].append({'name': name, 'parent': value.get('parent'), 'start': loc['start_line'],
-                                         'end': loc.get('end_line') or loc['start_line']})
+        _symbol(r, value, loc, path)
+
+
+def _symbol(r, value, loc, path):
+    """One symbol: an HTTP method its file exports, a top-level name, a function with its lines."""
+    name = str(value.get('name') or '')
+    if value.get('exported') and name.upper() in sm.METHODS and name.isupper(): r['methods'][path].add(name)
+    if name and not value.get('parent'): r['names'][name].add(path)
+    if value.get('kind') in FUNCTIONS and isinstance(loc.get('start_line'), int):
+        r['functions'][path].append({'name': name, 'parent': value.get('parent'), 'start': loc['start_line'],
+                                     'end': loc.get('end_line') or loc['start_line']})
 
 
 def _imports(report, r):

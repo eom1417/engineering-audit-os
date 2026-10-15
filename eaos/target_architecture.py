@@ -333,16 +333,20 @@ def _proposed_targets(out, target_components, current):
         if data is not None and data.get('schema_version') != 1: raise ValueError('Unsupported target design')
         target_components = (data or {}).get('components')
     known, seen = {component['id'] for component in current}, set()
-    for component in target_components or []:
-        if not isinstance(component, dict) or not component.get('id') or component['id'] in seen:
-            raise ValueError('Each target component needs a unique id')
-        seen.add(component['id'])
-        relation = component.get('relation')
-        if relation not in {'retain', 'modify', 'introduce', 'retire'}: raise ValueError('Invalid target relation')
-        if relation != 'introduce' and component.get('source_component_id') not in known:
-            raise ValueError('Target component refers to an unknown source component')
-        if not component.get('evidence_ids'): raise ValueError('Target component needs evidence')
+    for component in target_components or []: _check_target(component, known, seen)
     return target_components or []
+
+
+def _check_target(component, known, seen):
+    """One proposed component: a unique id, a valid relation, a known source unless it is new, and its evidence."""
+    if not isinstance(component, dict) or not component.get('id') or component['id'] in seen:
+        raise ValueError('Each target component needs a unique id')
+    seen.add(component['id'])
+    relation = component.get('relation')
+    if relation not in {'retain', 'modify', 'introduce', 'retire'}: raise ValueError('Invalid target relation')
+    if relation != 'introduce' and component.get('source_component_id') not in known:
+        raise ValueError('Target component refers to an unknown source component')
+    if not component.get('evidence_ids'): raise ValueError('Target component needs evidence')
 
 
 def _carry_moves(matrix, current):

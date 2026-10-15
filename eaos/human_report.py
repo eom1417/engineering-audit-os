@@ -1162,7 +1162,7 @@ def _target_node(c, box, progress, rtl, done):
     side, edge = ('right', x + TBOX_W - 8) if rtl else ('left', x + 8)
     words = ((f'{done[0]} {closed} من {total}' if rtl else f'{closed} of {total} {done[1]}') if total
              else 'لا مشاكل فيه' if rtl else 'no problem in it')
-    sub = (c['sub'][0 if rtl else 1] if c.get('sub') else f'ملفات {files}' if rtl else f'{files} {files_word(files)}')
+    sub = (c['sub'][int(not rtl)] if c.get('sub') else f'ملفات {files}' if rtl else f'{files} {files_word(files)}')
     share, meaning = (TBOX_W - 16) * closed / total if total else 0, f'{files} files; {closed} of the {total} problems in its files are closed'
     return (f'<g class="t-node{" empty" if not files and not c.get("sub") else ""}" data-node="{esc(name)}" tabindex="0" data-meaning="{esc(meaning)}">'
             f'<title>{esc(name + ": " + (c.get("responsibility") or ""))}</title><rect x="{x:.1f}" y="{y0:.1f}" width="{TBOX_W}" height="{TBOX_H}" rx="7"/>'

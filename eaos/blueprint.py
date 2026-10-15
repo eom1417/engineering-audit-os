@@ -62,16 +62,18 @@ def validate_spec(spec, look=True):
     project's own look holds (a feature added to it, eaos/extend.py), so the spec draws none."""
     if not isinstance(spec, dict): return ['the spec must be one JSON object shaped like the example'], []
     problems = [f'`{key}` is empty' for key in ('name', 'summary') if not str(spec.get(key) or '').strip()]
-    modules = {m.get('id') for m in spec.get('modules') or [] if isinstance(m, dict)}
-    entities = {e.get('id'): e for e in spec.get('entities') or [] if isinstance(e, dict)}
-    features = {f.get('id'): f for f in spec.get('features') or [] if isinstance(f, dict)}
-    roles = {r.get('id') for r in spec.get('roles') or [] if isinstance(r, dict)}
+    modules, entities, features, roles = set(_by_id(spec, 'modules')), _by_id(spec, 'entities'), _by_id(spec, 'features'), set(_by_id(spec, 'roles'))
     if not modules: problems.append('no module: group the features into parts, each with one responsibility')
     if not features: problems.append('no feature: list what a user can do')
     problems += (_module_problems(spec.get('modules') or [], features) + _entity_problems(entities, modules, features)
                  + _feature_problems(features, entities, modules, roles) + _flow_problems(spec.get('flows') or [], features)
                  + _look_problems(spec.get('look'), features, look))
     return problems, _spec_questions(spec)
+
+
+def _by_id(spec, key):
+    """The spec's `key` list as {id: item}, what is not an object dropped."""
+    return {item.get('id'): item for item in spec.get(key) or [] if isinstance(item, dict)}
 
 
 def _module_problems(modules, features):
