@@ -4,7 +4,7 @@
 // dotted and appear only when asked; what EAOS could not follow is a gap beside its stage. Pan with a drag, zoom with
 // the wheel, a pinch or the buttons (the map's useZoom); a long pipeline draws only what is in view.
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { clip, fit, useBox } from '../../map/draw'
+import { clip, fit, useBox, useLinked } from '../../map/draw'
 import { useZoom } from '../../map/useZoom'
 import { usePrefs } from '../../i18n/prefs'
 import { LanesToolbar } from '../paths/Lanes'
@@ -82,15 +82,6 @@ function useFirstView(g: Geometry, added: Map<string, At>, size: Size, down: boo
     const start = down ? Math.min(1, Math.max(0.62, (size.w - 16) / world.w)) : 0.85
     return { fitView: { k: start, x: 8, y: 8 }, wholeView: whole }
   }, [size.w, size.h, world.w, world.h, down])
-}
-
-/** The links next to the chosen stage. */
-function useNear(edges: Scope['edges'], selected: string | undefined) {
-  return useMemo(() => {
-    const on = new Set<string>()
-    if (selected) for (const e of edges) if (e.from === selected || e.to === selected) on.add(e.id)
-    return on
-  }, [edges, selected])
 }
 
 interface Marks { outLabels: Map<string, string[]>; forks: Map<string, Scope['fans'][number]>; joins: Set<string> }
@@ -172,7 +163,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
   const added = useAdded(scope, view, down, g)
   const { fitView, wholeView } = useFirstView(g, added, size, down)
   useEffect(() => { setT(fitView) }, [fitView, setT])
-  const near = useNear(scope.edges, selected)
+  const near = useLinked(scope.edges, selected, 'id')
   const dead = useMemo(() => new Set(scope.hidden.filter((h) => h.kind === 'dead_stage').flatMap((h) => h.stages)), [scope.hidden])
   const marks = useMarks(scope)
 
