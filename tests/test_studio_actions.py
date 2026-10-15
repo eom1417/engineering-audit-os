@@ -342,9 +342,9 @@ class Selection(Base):
         self.assertEqual(ids({'kind': 'step', 'step': 'M2'}), ['TASK-004'])
         self.assertEqual(ids({'kind': 'card', 'cards': ['TASK-002', 'TASK-001']}), ['TASK-002'])
         _, left = selection.resolve({'kind': 'cards', 'cards': ['TASK-001', 'TASK-003']}, self.studio)
-        self.assertEqual(left, [{'id': 'TASK-003', 'why': 'already done'}])
+        self.assertEqual(left, [{'id': 'TASK-003', 'why': 'already done', 'why_ar': 'متعامل معها: انحلّت'}])
         (self.studio / 'gaps.json').unlink()
-        for bad, why in (({'kind': 'cards', 'cards': ['NOPE']}, 'no card named'), ({'kind': 'cards', 'cards': ['TASK-003']}, 'already handled'),
+        for bad, why in (({'kind': 'cards', 'cards': ['NOPE']}, 'no card named'), ({'kind': 'cards', 'cards': ['TASK-003']}, 'can run now'),
                          ({'kind': 'group', 'group': {'by': 'gap', 'value': 'g'}}, 'gap register'), ({'kind': 'x'}, 'kind'),
                          ({'kind': 'step', 'step': 'M9'}, 'names no card')):
             with self.assertRaisesRegex(selection.SelectionError, why): selection.resolve(bad, self.studio)

@@ -140,6 +140,12 @@ def ready(card):
     return card.get('kind') in ('remediate', 'build') and (card.get('decision') or {}).get('readiness') == 'ready'
 
 
+def waiting(card, done):
+    """The cards `card` waits for: its prerequisites not in `done` yet. A module is split only once its complex functions
+    are simplified (eaos/plan.py _split_last); taken before them, the split failed in batch after batch (EAOS, 2026-10-15)."""
+    return [p['task_id'] for p in card.get('prerequisites') or [] if p.get('task_id') not in done]
+
+
 def _ready_errors(decision):
     errors = []
     if decision.get('kind') != 'repair': errors.append('only repairs can be executable ready')

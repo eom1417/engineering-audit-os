@@ -190,13 +190,15 @@ def _dead(specification, sets):
 
 def _engine_cluster(specification, sets):
     # Re-running the engines is the probe: the claim is about what they report, so it is settled
-    # by asking them again, not by re-reading a graph we built ourselves.
+    # by asking them again, not by re-reading a graph we built ourselves. Only the claim's engines count, and of a
+    # measured kind only a finding past its threshold (correlate._standing): any engine's finding anywhere in the file,
+    # even one under its limit, refused every simplification of the functions the card names (EAOS, 2026-10-15).
     from .correlate import clusters
     for cluster in (c for c in clusters(sets) if c['place'] == specification['place']):
-        detail = cluster['corroboration'].get(specification['kind'])
-        if detail is None:
-            return 'REFUTED', 'no engine reports this kind at this place any more'
-        return 'CONFIRMED', f"{detail['verdict']}: asserted by {', '.join(detail['asserted_by'])}"
+        named = set(specification.get('engines') or ())
+        still = [s for s in cluster.get('standing', {}).get(specification['kind'], []) if not named or s.split(':')[0] in named]
+        if still: return 'CONFIRMED', 'still reported: ' + '; '.join(still[:12])
+        return 'REFUTED', 'no engine of the claim reports this kind past its threshold here any more'
     return 'REFUTED', 'no engine reports anything at this place any more'
 
 

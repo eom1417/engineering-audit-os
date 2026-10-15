@@ -68,6 +68,11 @@ def load(state):
     except (OSError, ValueError): return None
 
 
+def done(cards):
+    """The ids of the ledger's cards done: merged into the person's branch."""
+    return {c['id'] for c in cards.values() if c.get('id') and c['state'] == 'done'}
+
+
 def _save(state, ledger):
     target = path(state)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -137,6 +142,7 @@ def sync(state, event=None, report=None):
     for wave in state.get('waves') or []:                                    # what each batch did, by key
         _apply_wave(wave, cards, wave.get('keys') or {})
     _apply_history(cards, in_branch, undone)
+    _reopen_waited(by_id, plan['tasks'])
     _apply_open_batch(cards, by_id, state.get('open_wave') or {})
     totals = _record_history(ledger, first, event, project, state)
     ledger.update(updated=_now(), commit=_git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None, totals=totals)
@@ -197,6 +203,16 @@ def _apply_history(cards, in_branch, undone):
             card.update(state='open', commit=None, batch=None, why='its fix was reverted on the branch')
         if card['key'] in in_branch and card['state'] != 'done':
             card.update(state='done', commit=in_branch[card['key']], at=_now(), why='')
+
+
+def _reopen_waited(by_id, tasks):
+    """A card a batch set aside before the cards it waits for were done is open again once they are: the order failed
+    it, not its own change (EAOS, 2026-10-15: five module splits set aside before their simplifications, never again)."""
+    for task in tasks:
+        card, needs = by_id.get(task['id']), [by_id.get(p['task_id']) for p in task.get('prerequisites') or []]
+        if card and card['state'] == 'skipped' and needs and all(
+                need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0) for need in needs):
+            card.update(state='open', batch=None, why='', reopened=True)
 
 
 def _apply_open_batch(cards, by_id, open_wave):

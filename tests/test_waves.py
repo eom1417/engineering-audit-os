@@ -36,9 +36,9 @@ class OrderTests(unittest.TestCase):
         (report / 'plan.json').write_text(json.dumps({'tasks': [ready('T1'), ready('T2'), ready('T3'),
                                                                 {'id': 'T4', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}}],
                                                       'milestones': [{'tasks': ['T3', 'T4']}, {'tasks': ['T1', 'T2']}]}))
-        self.assertEqual(waves.next_batch(report, [], size=2), ['T3', 'T1'])
+        self.assertEqual(waves.next_batch(report, {}, size=2), ['T3', 'T1'])
         tried = [c['key'] for c in waves.plan(report)['tasks'] if c['id'] == 'T3']     # `tried` holds keys, not ids
-        self.assertEqual(waves.next_batch(report, tried, size=5), ['T1', 'T2'])
+        self.assertEqual(waves.next_batch(report, {'tried': tried}, size=5), ['T1', 'T2'])
         dead_card = {'id': 'D', 'verify_command': ['python', '-c', "left = [f for f in facts if (f['location']['path'], "
                                                    "f['location']['symbol'], f['value']['rule']) == ('src/a.ts', 'gone', 'unused-symbol')]"]}
         gone_card = {'id': 'G', 'verify_command': ['python', '-c', "x == ('src/a.ts', 'still', 'unused-symbol')"]}
@@ -51,6 +51,24 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
 class RebuildTests(unittest.TestCase):
+    def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
+        # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back
+        from eaos import ledger
+        report = Path(tempfile.mkdtemp())
+        card = lambda i, needs=(): {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'},
+                                    'prerequisites': [{'task_id': n} for n in needs]}
+        (report / 'plan.json').write_text(json.dumps({'tasks': [card('SPLIT', ['SIMPLIFY']), card('SIMPLIFY')], 'milestones': []}))
+        keys = {c['id']: c['key'] for c in waves.plan(report)['tasks']}
+        book = {keys['SPLIT']: {'id': 'SPLIT', 'state': 'skipped', 'batch': 1}, keys['SIMPLIFY']: {'id': 'SIMPLIFY', 'state': 'open'}}
+        state = {'project': 'p', 'tried': [keys['SPLIT']]}
+        with mock.patch.object(ledger, 'load', return_value={'cards': book}):
+            self.assertEqual(waves.next_batch(report, state), ['SIMPLIFY'], 'the split waits for the simplification')
+            self.assertEqual(waves.too_early(state, [card('SPLIT', ['SIMPLIFY'])])['waits'], {'SPLIT': ['SIMPLIFY']})
+            book[keys['SIMPLIFY']].update(state='done', batch=2)
+            ledger._reopen_waited({c['id']: c for c in book.values()}, [card('SPLIT', ['SIMPLIFY'])])
+            self.assertEqual(book[keys['SPLIT']]['state'], 'open', 'set aside by the order, not by its own change')
+            self.assertEqual(waves.next_batch(report, state), ['SPLIT'], 'tried, but opened again by the ledger')
+
     def test_the_branch_is_the_base_plus_exactly_the_kept_commits_and_the_card_at_fault_is_found_by_halving(self):
         root = repository()
         base = git(root, 'rev-parse', 'HEAD')

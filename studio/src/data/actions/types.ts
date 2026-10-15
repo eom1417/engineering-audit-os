@@ -152,7 +152,7 @@ export interface Preview {
   verb: VerbId | null
   selection: Selection | null
   cards: { id: string; title?: string | null; severity?: string | null; paths?: string[] }[]
-  left_out: { id: string; why: string }[]
+  left_out: { id: string; why: string; why_ar?: string }[]
   files: string[]
   batches: { number: number; cards: string[] }[]
   estimate: { minutes_low: number | null; minutes_high: number | null; basis: Bi }

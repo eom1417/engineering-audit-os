@@ -48,7 +48,7 @@ import json
 import math
 from pathlib import Path
 
-from ..decisions import ready
+from ..decisions import ready, waiting
 from ..plain import kind as plain_kind
 from ..ranking import CONFIDENCE_WEIGHT
 
@@ -150,7 +150,7 @@ def _problem_row(task, claim, item):
             'effort': task.get('effort'), 'change': assessment.get('proposed_change') or task.get('change') or '', 'priority': task.get('priority') or 0,
             'title': task.get('title') or claim.get('statement') or '', 'paths': task.get('paths') or [],
             'before': assessment.get('before') or task.get('before') or '',
-            'after': assessment.get('after') or task.get('after') or ''}
+            'after': assessment.get('after') or task.get('after') or '', 'prerequisites': task.get('prerequisites', [])}
 
 
 def stage_status(report):
@@ -235,7 +235,8 @@ def task_cards(m):
     ledger = ledger_of(m)
     kept, failed = waves_state(m['progress'])
     mine = {c.get('id'): c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict) and c.get('id')}
-    return [_task_card(r, mine.get(r['id']) or {}, stones, ledger, (kept, failed)) for r in m['rows']]
+    done = {i for i, c in mine.items() if c.get('state') == 'done'}
+    return [{**_task_card(r, mine.get(r['id']) or {}, stones, ledger, (kept, failed)), 'waits': waiting(r, done)} for r in m['rows']]
 
 
 def _card_state(r, c, ledger, kept, failed):

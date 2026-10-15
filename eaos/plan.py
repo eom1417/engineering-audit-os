@@ -134,10 +134,11 @@ def build_tasks(target, out, dossier, sets):
 
 def _split_last(tasks):
     """A module is split after its complex functions are simplified: split first, those functions move to new files
-    and their cards no longer find them (EAOS, 2026-10-14: four files over 1000 lines with complexity cards)."""
+    and their cards no longer find them (EAOS, 2026-10-14: four files over 1000 lines with complexity cards). Only a card a
+    batch can take is waited for: one awaiting the person's decision would hold the split forever."""
     for split in (t for t in tasks if t.get('pattern') == 'split_module'):
         for task in tasks:
-            if task.get('pattern') == 'hotspot' and set(task['paths']) & set(split['paths']):
+            if task.get('pattern') == 'hotspot' and ready(task) and set(task['paths']) & set(split['paths']):
                 split['prerequisites'].append({'task_id': task['id'],
                                                'reason': 'its complex functions are simplified before the module is split'})
 

@@ -292,11 +292,12 @@ function CardsBlock({ preview }: { preview: Preview }) {
 /** The cards left out and why, the files it may touch, and its batches. */
 function PreviewLists({ preview }: { preview: Preview }) {
   const w = useCmdWords()
+  const { lang } = usePrefs()
   return (
     <>
       {preview.left_out.length > 0 && (
         <Block title={w('leftOutN', { n: preview.left_out.length })}>
-          <ul className={css.plain}>{preview.left_out.slice(0, 8).map((row) => <li key={row.id}><Id value={row.id} /> · <Txt>{row.why}</Txt></li>)}</ul>
+          <ul className={css.plain}>{preview.left_out.slice(0, 8).map((row) => <li key={row.id}><Id value={row.id} /> · <Txt>{lang === 'ar' && row.why_ar ? row.why_ar : row.why}</Txt></li>)}</ul>
         </Block>
       )}
       {preview.files.length > 0 && (

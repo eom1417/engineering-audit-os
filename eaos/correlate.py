@@ -378,12 +378,24 @@ def _cluster(place, facts, evaluated):
         # A claim about one kind cites only the evidence of that kind, so its files are where that evidence lies.
         'fact_ids_by_kind': {kind: sorted(fact['id'] for fact in alive if fact['value']['kind'] == kind)
                              for kind in sorted(kinds)},
+        'standing': _standing(alive),
         'scope': 'group' if place.startswith('group:') else 'place',
         'findings': len(alive),
         'weight': _weight(corroboration),
         'measurements': sorted({(m['name'], m.get('unit')) for fact in facts
                                 for m in fact['value'].get('measurements', []) if m.get('name')}),
     }
+
+
+def _standing(facts):
+    """Per kind, what still stands: `engine: symbol` of each finding, of a MEASURED kind only one past its own threshold
+    (a card's probe judges by it, so a function brought under the limit no longer counts, 2026-10-15)."""
+    out = {}
+    for fact in facts:
+        kind = fact['value']['kind']
+        if kind not in MEASURED or over_threshold(fact):
+            out.setdefault(kind, set()).add(f"{fact['value']['engine']}: {(fact.get('location') or {}).get('symbol') or '(file)'}")
+    return {kind: sorted(found) for kind, found in out.items()}
 
 
 def summary(sets):

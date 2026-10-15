@@ -18,6 +18,14 @@ class CodeLimits(unittest.TestCase):
         self.assertEqual(stale, {'functions': [], 'modules': []},
                          'now under the limit: run python tools/code_limits.py --tighten')
 
+    def test_a_listed_function_moved_by_a_split_keeps_its_allowance_and_may_not_grow(self):
+        # EAOS, 2026-10-15: its five largest modules could not be split, every moved complex function counted as new
+        baseline = {'functions': {'eaos/runs.py::Manager._answer': 41}, 'modules': {}}
+        moved = {'functions': {'eaos/runs_answer.py::_answer': 41}, 'modules': {}}
+        self.assertEqual(code_limits.breaches(moved, baseline), [])
+        grown = {'functions': {'eaos/runs_answer.py::_answer': 42}, 'modules': {}}
+        self.assertEqual(code_limits.breaches(grown, baseline), ['eaos/runs_answer.py::_answer: 42 (allowed 41)'])
+
     def test_logic_is_written_once(self):
         self.assertEqual(code_limits.duplicates(), [], 'keep one copy and call it from the other places')
 

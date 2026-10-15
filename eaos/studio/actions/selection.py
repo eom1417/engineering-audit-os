@@ -13,6 +13,9 @@ LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'comp
           'operation': ('operations', 'id', 'the operations')}
 
 
+STATE_AR = {'done': 'انحلّت', 'on_branch': 'على فرع ينتظر قرارك', 'in_batch': 'في الدفعة الحالية', 'skipped': 'انتركت'}
+
+
 class SelectionError(ValueError):
     """A selection that cannot run, said in both languages: the Studio shows it in the person's."""
     def __init__(self, en, ar):
@@ -83,14 +86,25 @@ def _grouped(group, cards, folder):
 
 
 def _split(chosen):
-    """(open cards to run, the others with why they are left out); an error when none is left to run."""
+    """(open cards to run, the others with why they are left out); an error when none is left to run. A card waiting for
+    cards not done yet (its `waits`, decisions.waiting) is left out: it goes in a later batch, once they are done."""
     if not chosen: raise SelectionError('the selection names no card', 'الاختيار ما فيه أي بطاقة')
-    run = [card for card in chosen if card.get('state', 'open') in OPEN]
-    left = [{'id': card['id'], 'why': f"already {card.get('state')}"} for card in chosen if card not in run]
+    run = [card for card in chosen if card.get('state', 'open') in OPEN and not card.get('waits')]
+    left = [_left(card) for card in chosen if card not in run]
     if not run:
-        raise SelectionError('every selected card is already handled: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]),
-                             'كل البطاقات المختارة متعامل معها (في دفعة أو على فرع أو منتهية): ' + '، '.join(c['id'] for c in left[:5]))
+        raise SelectionError('no selected card can run now: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]),
+                             'ولا بطاقة من المختارة تقدر تشتغل الحين (متعامل معها، أو تنتظر بطاقات قبلها): '
+                             + '، '.join(c['id'] for c in left[:5]))
     return run, left
+
+
+def _left(card):
+    """A card left out of the run, with why in both languages."""
+    if card.get('state', 'open') in OPEN:
+        names = ', '.join(card['waits'])
+        return {'id': card['id'], 'why': f'waits for {names} (done first)', 'why_ar': f'تنتظر {names} (تنحل قبلها)'}
+    state = card.get('state')
+    return {'id': card['id'], 'why': f'already {state}', 'why_ar': f"متعامل معها: {STATE_AR.get(state, state)}"}
 
 
 def _paths(card):

@@ -990,7 +990,7 @@ def fix_done(state):
     """A wave of this commit is in the person's project as a branch, or no ready card is left to try."""
     from .waves import next_batch
     if any(w.get('status') == 'applied' for w in _waves(state)): return True
-    return not next_batch(report_of(state), state.get('tried') or [])
+    return not next_batch(report_of(state), state)
 
 
 def fix(state, args):
@@ -998,7 +998,7 @@ def fix(state, args):
     from the assistant or the Studio; this command never calls a model itself. It says where to go."""
     from .waves import next_batch
     lang = state['lang']
-    batch = next_batch(report_of(state), state.get('tried') or [])
+    batch = next_batch(report_of(state), state)
     box(lang, (f'{len(batch)} إصلاحات جاهزة. يصلحها مساعدك الذكي: افتح Claude Code أو Codex في هذا المجلد واكتب /eaos ثم '
                '"أصلح"، أو اضغط "أصلح" في الاستوديو' if lang == 'ar' else
                f'{len(batch)} fixes are ready. Your AI assistant makes them: open Claude Code or Codex in this folder and type '

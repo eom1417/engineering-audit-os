@@ -103,10 +103,24 @@ def _source_line(message):
 
 
 def breaches(over, baseline):
-    """What is over a limit and not allowed by the baseline: new entries, and listed entries that grew."""
-    return [f'{key}: {size} (allowed {baseline[kind].get(key, limit)})'
+    """What is over a limit and not allowed by the baseline: new entries, and listed entries that grew. A listed function
+    moved to another module, or out of its class, keeps its allowance (_moved): splitting a module is how it shrinks, and
+    the move alone made each of its complex functions "new" (EAOS's five largest modules could not be split, 2026-10-15)."""
+    allowed = {'functions': {**_moved(over['functions'], baseline['functions']), **baseline['functions']},
+               'modules': baseline['modules']}
+    return [f'{key}: {size} (allowed {allowed[kind].get(key, limit)})'
             for kind, limit in (('functions', MAX_COMPLEXITY), ('modules', MAX_LINES))
-            for key, size in sorted(over[kind].items()) if size > baseline[kind].get(key, limit)]
+            for key, size in sorted(over[kind].items()) if size > allowed[kind].get(key, limit)]
+
+
+def _moved(now, listed):
+    """{new key: allowance} for each function over the limit at a key not listed whose own name is that of a listed one
+    no longer at its key: the same function, moved."""
+    name = lambda key: key.split('::')[-1].split('.')[-1]
+    gone = {}
+    for key, size in listed.items():
+        if key not in now: gone[name(key)] = max(size, gone.get(name(key), 0))
+    return {key: gone[name(key)] for key in now if key not in listed and name(key) in gone}
 
 
 def load():

@@ -21,7 +21,7 @@ from .api import launch
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
 ANSWER_SECONDS = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30)
 WAIT = 50                   # seconds a tool call waits for its job before answering with the job to follow
-PAGE = 30
+PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for every function its check judges
 
 
 # ---------------------------------------------------------------- the project and its state
@@ -508,12 +508,12 @@ def _card_and_claim(report, id):
 
 
 def _evidence(state, report, card, claim):
-    """The first six facts behind a card and its claim, each with the code it points at."""
+    """The facts behind a card and its claim (up to EVIDENCE; shown six, an assistant missed the rest), with their code."""
     facts = _facts_index(report)
     fact_ids = list(dict.fromkeys((claim.get('fact_ids') or []) + ((card.get('evidence') or {}).get('fact_ids') or [])))
     return [{'fact': fact_id, 'kind': facts[fact_id].get('kind'), 'value': facts[fact_id].get('value'),
              'code': _excerpt(guided.source(state), facts[fact_id].get('location') or {})}
-            for fact_id in fact_ids[:6] if facts.get(fact_id)]
+            for fact_id in fact_ids[:EVIDENCE] if facts.get(fact_id)]
 
 
 def _what_and_why(card, claim):
@@ -924,10 +924,10 @@ def _not_ready(state, deliver_as):
 
 def _chosen(state, cards, size):
     """(why nothing opens, or None; the batch's cards): those asked for, else the next ready ones."""
-    from .waves import next_batch, plan as read_plan
+    from .waves import next_batch, plan as read_plan, too_early
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
-    chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state.get('tried') or [], size=min(max(int(size), 1), 25))
+    chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
     undecided = [c for c in chosen if not _ready(known[c])]
@@ -936,6 +936,7 @@ def _chosen(state, cards, size):
                          'was opened', 'needs_decision': undecided,
                 'what_now': 'Explain the decision each card needs (see `finding`), plainly, and leave it out of the batch; '
                             'call fix_start again with ready cards only, or with no cards for the next ready batch.'}, chosen
+    if early := too_early(state, [known[c] for c in chosen]): return early, chosen
     if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}, chosen
     return None, chosen
 
@@ -1095,14 +1096,14 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
                 'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    broke, exit_code = edit_gates((report, guided.source(state), guided.runtime_of(state)), root, card, changed, repair)
+    broke, exit_code, still = edit_gates((report, guided.source(state), guided.runtime_of(state)), root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     state = guided.load(project)
     wave = state['open_wave']
     if broke or exit_code not in (0, None):
         drop_last(root)
         why = (f'it broke something or broke the code laws: {"; ".join(broke[:3])}' if broke else
-               "the problem is still there: the card's own check still finds it" + (f' (exit {exit_code})' if exit_code else ''))
+               "the problem is still there: the card's own check still finds it" + (f': {still}' if still else f' (exit {exit_code})'))
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
     if repair: return batch_finish.repaired(state, root, changed, diff)

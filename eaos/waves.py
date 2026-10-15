@@ -27,7 +27,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import progress
-from .decisions import ready
+from . import ledger
+from .decisions import ready, waiting
 from .ledger import TRAILER, key, keys
 from .progress.flow import OPTIONAL, Stage
 from .execute import candidate, git, original_checks, project_checks, record, regressions, run_codemod
@@ -57,20 +58,47 @@ def plan(report):
     return data
 
 
-def ready_cards(report, skip=()):
-    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without the
-    cards whose key is in `skip` (the state's `tried`: keys, since a new check numbers the cards again)."""
+def ready_cards(report, state=None):
+    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without a card
+    the ledger holds other than open, nor one tried before (the state's `tried`, by key: a new check numbers the cards
+    again) unless the ledger opened it again (ledger._reopen_waited), nor one waiting for a card not done yet
+    (decisions.waiting), which goes in a later batch."""
     if not (Path(report) / 'plan.json').is_file(): return []
-    data = plan(report)
+    book, tried = _book(state), set((state or {}).get('tried') or ())
+    done = ledger.done(book)
+    return [card for card in _in_order(plan(report)) if ready(card) and _free(card['key'], book, tried) and not waiting(card, done)]
+
+
+def _free(key, book, tried):
+    """Whether a batch may take the card: open in the ledger, and not tried before unless the ledger opened it again."""
+    entry = book.get(key) or {'state': 'open'}
+    return entry['state'] == 'open' and (key not in tried or bool(entry.get('reopened')))
+
+
+def _in_order(data):
+    """The plan's cards milestone by milestone, then the rest as listed."""
     by_id = {card['id']: card for card in data.get('tasks') or [] if card.get('id')}
     order = [card_id for milestone in data.get('milestones') or [] for card_id in milestone['tasks']]
-    order += [card_id for card_id in by_id if card_id not in set(order)]
-    skip = set(skip)
-    return [by_id[i] for i in dict.fromkeys(order) if i in by_id and ready(by_id[i]) and by_id[i]['key'] not in skip]
+    return [by_id[i] for i in dict.fromkeys(order + list(by_id)) if i in by_id]
 
 
-def next_batch(report, done, size=SIZE):
-    return [card['id'] for card in ready_cards(report, done)[:size]]
+def _book(state):
+    """The ledger's cards by key; none before the project has one."""
+    return ((ledger.load(state) if (state or {}).get('project') else None) or {}).get('cards') or {}
+
+
+def too_early(state, cards):
+    """Why the cards asked for cannot open a batch yet: some wait for cards not done (decisions.waiting); else None."""
+    done = ledger.done(_book(state))
+    early = {card['id']: waiting(card, done) for card in cards if waiting(card, done)}
+    if not early: return None
+    return {'error': '; '.join(f'{c} waits for {", ".join(w)}' for c, w in list(early.items())[:5]) + ': no batch was opened',
+            'waits': early, 'what_now': 'A card goes in a batch once the cards it waits for are done (a module is split after '
+                                        'its complex functions are simplified): call fix_start again without these cards.'}
+
+
+def next_batch(report, state, size=SIZE):
+    return [card['id'] for card in ready_cards(report, state)[:size]]
 
 
 # ---------------------------------------------------------------- one collection, every acceptance
@@ -88,8 +116,9 @@ def engines_for(cards):
 
 
 def edit_gates(where, root, card, changed, repair):
-    """(what one change of a batch broke or added against the code laws, the card's own check's exit: None for a
-    repair), from one collection of facts on the copy `root`; `where`: (report, project, runtime). A change to the app's
+    """(what one change of a batch broke or added against the code laws, the card's own check's exit (None for a
+    repair), what that check still finds when it fails, so the assistant fixes what is left), from one collection of facts
+    on the copy `root`; `where`: (report, project, runtime). A change to the app's
     files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
     its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14)."""
     from .execute import app_breakage, new_breakage
@@ -99,7 +128,8 @@ def edit_gates(where, root, card, changed, repair):
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out, engines=engines_for([card]))
         broke = new_breakage(report, root, collected=out) + words(debt(report, out, changed)) + app_breakage(project, runtime, root, changed)
-        return broke, None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
+        exit_code = None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
+        return broke, exit_code, _still(card, out) if exit_code not in (0, None) else ''
 
 
 def batch_acceptance(report, cards, root, collected=None):
@@ -122,6 +152,15 @@ def _probe_exit(spec, sets, out):
         sets['load_model'] = project(compute(out))
     status, _ = decide_probe(spec, sets)
     return 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
+
+
+def _still(card, out):
+    """What a card's own probe still finds on the copy, in its words; '' when its check is not a probe."""
+    from .facts.run import read_available
+    from .probes import decide_probe
+    argv = card.get('verify_command') or []
+    if not ('recheck' in argv and '--spec' in argv): return ''
+    return decide_probe(json.loads(argv[argv.index('--spec') + 1]), read_available(out))[1]
 
 
 def _acceptance_exit(card, sets, dead, out, root):
