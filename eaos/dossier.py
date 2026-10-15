@@ -11,8 +11,8 @@ from . import progress
 from .compose import Document
 from .compose.labels import detail_artifact, impact_of, statement_of
 from .compose.rules import validate
-from .fact_documents import (contracts_document, describe, domain_document, flows_document, inventory_rows,
-                             provenance_document, semantic_claims, trust_grades)
+from .fact_documents import (ONBOARDING_SECTIONS, contracts_document, describe, domain_document, flows_document,
+                             inventory_rows, provenance_document, semantic_claims, trust_grades)
 from .facts.store import read_set
 from .map import ARTIFACTS, generate
 from .workspace import read, write
@@ -282,58 +282,12 @@ def brief(target, dossier, language):
 
 def onboarding_document(target, dossier, sets, verification, language):
     """What a new engineer needs on day one, assembled from manifests, entry points and the graph."""
-    words = Document('', language).words
-    document = Document('دليل الانضمام' if language == 'ar' else 'Onboarding runbook', language, budget_lines=200)
-    document.header(['مولَّد من الحقائق: الأوامر من الملفات المعلنة، وترتيب القراءة من الرسم.'
-                     if language == 'ar' else
+    ar = language == 'ar'
+    document = Document('دليل الانضمام' if ar else 'Onboarding runbook', language, budget_lines=200)
+    document.header(['مولَّد من الحقائق: الأوامر من الملفات المعلنة، وترتيب القراءة من الرسم.' if ar else
                      'Generated from facts: commands come from declared manifests, reading order from the graph.'])
-    commands = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
-                if fact.get('kind') in {'entry_point', 'tool_command'}
-                and fact['value']['framework'] in {'npm_script', 'make', 'console_script', 'docker_cmd', 'docker_entrypoint'}]
-    document.section('ابنِ وشغّل' if language == 'ar' else 'Build and run')
-    document.table(['الأمر' if language == 'ar' else 'Command', 'المصدر' if language == 'ar' else 'Declared in'],
-                   [[fact['value']['route'], f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
-                    for fact in commands], limit=15)
-    document.section('اختبر' if language == 'ar' else 'Test')
-    if verification and verification.get('executed'):
-        document.bullets([' '.join(verification['command']),
-                          f"{verification.get('overall_percent')}% coverage over {len(verification.get('test_files', []))} test files"])
-    else:
-        document.bullets([f"{len((verification or {}).get('test_files', []))} test files found; "
-                          f"no test command was run by this check"])
-    document.section('نقاط الدخول لتجربتها' if language == 'ar' else 'Entry points to try')
-    production = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
-                  if fact.get('kind') == 'entry_point'
-                  and fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'page', 'cli', 'job'}
-                  and fact['value']['route'] and fact['value']['handler']]
-    document.table([words['surface'], words['route'], words['handler'], words['location']],
-                   [[fact['value']['surface'], fact['value']['route'] or '—', fact['value']['handler'] or '—',
-                     f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
-                    for fact in production], limit=15)
-    document.section('أول عشرة ملفات تقرؤها' if language == 'ar' else 'The first ten files to read')
-    from .vocabulary import classify
-    ordered = [row for row in sets['graph']['summary']['attention_order'] if classify(row['path']) == 'source'][:10]
-    document.table([words['path'], words['score'], 'لماذا' if language == 'ar' else 'Why'],
-                   [[row['path'], row['score'],
-                     'مركزية ' + str(row['factors']['centrality']) + ' · تغيّر ' + str(row['factors']['change'])
-                     if language == 'ar' else
-                     f"centrality {row['factors']['centrality']} · change {row['factors']['change']}"]
-                    for row in ordered], limit=10)
-    document.section('مصطلحات المشروع' if language == 'ar' else 'Project vocabulary')
-    domain = [fact for fact in sets.get('domain', {}).get('facts', [])
-              if fact['kind'] in {'domain_constant'} | ledger.shown_kinds({'data_model', 'data_table'})]
-    document.table([words['name'], 'النوع' if language == 'ar' else 'Kind', words['location']],
-                   [[fact['value'].get('name'), fact['kind'],
-                     f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
-                    for fact in domain], limit=20)
-    document.section('مصائد معروفة' if language == 'ar' else 'Known traps')
-    document.bullets([
-        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact.get('kind') == 'entry_point' and fact.get('resolution') == 'UNRESOLVED')} نقطة دخول تُسجَّل ديناميكيًا ولا يمكن تتبعها ساكنًا"
-        if language == 'ar' else
-        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact.get('kind') == 'entry_point' and fact.get('resolution') == 'UNRESOLVED')} entry points are registered dynamically and cannot be traced statically",
-        f"{len(sets['config']['summary']['unread_sensitive_config_files'])} sensitive config files are listed but never read",
-        f"{sets['flows']['summary'].get('unresolved_steps', 0)} steps in the traced flows stop at calls the resolver cannot follow",
-    ])
+    for write_section in ONBOARDING_SECTIONS:
+        write_section(document, sets, verification, ar)
     return document
 
 

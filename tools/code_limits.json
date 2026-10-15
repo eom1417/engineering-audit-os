@@ -24,7 +24,6 @@
   "eaos/debt_register.py::_item": 17,
   "eaos/dossier.py::brief": 22,
   "eaos/dossier.py::index_document": 25,
-  "eaos/dossier.py::onboarding_document": 46,
   "eaos/engines/codegraph.py::run": 16,
   "eaos/facts/deadcode.py::run": 19,
   "eaos/facts/frameworks/http_access.py::extract_calls": 17,
