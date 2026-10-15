@@ -25,6 +25,7 @@ from pathlib import Path
 
 from ..aspects import ASPECTS, VERDICTS
 from ..assistants.command import Stuck
+from ..card_review import triage_verdicts
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug
 from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short, UNTRUSTED
 
@@ -70,9 +71,7 @@ def _proposal(report):
 
 def _verdicts(report):
     """{card: decision} of the assistant's triage of this report ({} when the rules decided alone)."""
-    body = _load(Path(report) / 'nodes/card_triage/verdicts.json', {}) or {}
-    if body.get('method') != 'model': return {}
-    return {v['card']: v['decision'] for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('source') == 'model'}
+    return {card: v['decision'] for card, v in triage_verdicts(report).items()}
 
 
 def _cards(report):

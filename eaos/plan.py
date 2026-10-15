@@ -4,8 +4,8 @@ An observed pattern does not establish a violation. Repairs need sourced require
 review and independent acceptance; investigations may conclude no change.
 """
 from pathlib import Path
-from .card_review import (RESOLUTION_FIELDS, acceptance_for, apply_verdicts, design_cards, fix_checks, invariants_of,
-                          resolutions, resolve, verify_command_for, what_to_do)
+from .card_review import (RESOLUTION_FIELDS, acceptance_for, apply_verdicts, decided, fix_checks, invariants_of,
+                          resolve, verify_command_for, what_to_do)
 from .compose import Document
 from .compose.labels import falsifier_of, impact_of, statement_of
 from .decisions import decide, ready
@@ -441,20 +441,6 @@ def _load(path, default):
     except (OSError, ValueError): return default
 
 
-def _verdicts(out):
-    """{card: verdict} of this check's triage when the assistant made it; {} when the rules decided alone."""
-    body = _load(Path(out) / 'nodes/card_triage/verdicts.json', {})
-    if body.get('method') != 'model': return {}
-    return {v['card']: v for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('source') == 'model'}
-
-
-def _design_cards(out, tasks):
-    """The visual reviewer's findings of this check, as design cards (design_cards)."""
-    body = _load(Path(out) / 'nodes/visual_reviewer/findings.json', {})
-    if body.get('method') != 'model': return []
-    return design_cards(body.get('findings') or [], tasks)
-
-
 def confirm(target, out, language='ar', triaged=False, reviewed=False):
     """The confirmed cards: when the triage ran in this check, its verdicts are applied once (apply_verdicts), a card
     it rejected leaves the plan (and with it the gaps) and stays only in cards.json `set_aside` with why, a
@@ -466,11 +452,8 @@ def confirm(target, out, language='ar', triaged=False, reviewed=False):
     rules wrote it. Writes cards.json, the record of who decided each card, and returns it."""
     target, out = Path(target).resolve(), Path(out).resolve()
     plan = read(out / 'plan.json')
-    verdicts = _verdicts(out) if triaged else {}
     tasks = plan['tasks']
-    rejected = {t['id'] for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'reject'}
-    design = _design_cards(out, [t for t in tasks if t['id'] not in rejected]) if reviewed else []
-    resolved = resolutions([t for t in tasks if t['id'] not in rejected], verdicts, design)
+    verdicts, rejected, design, resolved = decided(out, tasks, triaged, reviewed)
     closed = {card for card, r in resolved.items() if r['resolution'] == 'keep'}
     from .owner_share import cap_owner
     turned = cap_owner(resolved, len(tasks) - len(rejected) - len(closed) + len(design))

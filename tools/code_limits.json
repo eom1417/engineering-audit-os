@@ -63,7 +63,6 @@
   "eaos/nfr.py::dependencies": 19,
   "eaos/plan.py::_cards_record": 21,
   "eaos/plan.py::_ordered": 26,
-  "eaos/plan.py::confirm": 24,
   "eaos/plan.py::waves": 16,
   "eaos/production_readiness.py::_dependency_row": 16,
   "eaos/screens/audit.py::page_audit": 18,
