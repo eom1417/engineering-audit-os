@@ -108,6 +108,8 @@ class PortabilityTests(unittest.TestCase):
         package = re.search(r'^version = "([^"]+)"', (ROOT / 'pyproject.toml').read_text(encoding='utf-8'), re.M).group(1)
         changelog = re.search(r'^## (\d+\.\d+\.\d+)', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1)
         self.assertEqual((__version__, changelog), (package, package), 'eaos doctor, the package and the changelog say one version')
+        badges = {name: re.findall(r'badge/version-([\d.]+)-', (ROOT / name).read_text(encoding='utf-8')) for name in ('README.md', 'README.ar.md')}
+        self.assertEqual(badges, {name: [package] for name in badges}, "the READMEs' version badge (it read 0.0.28 at 0.0.35)")
 
 
 class InstalledPackageTests(unittest.TestCase):
