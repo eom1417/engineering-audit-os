@@ -101,6 +101,11 @@ class HandOverTests(unittest.TestCase):
             waves.apply(project, {'kept': [], 'branch': 'eaos/wave-1', 'root': '/nowhere'})
 
 
+def wave(root, base, kept):
+    """The open batch as batch_finish keeps it: number 1, every kept card, none failed."""
+    return {'number': 1, 'root': root, 'base': base, 'cards': list(kept), 'kept': kept, 'failed': {}, 'tools': {}}
+
+
 class FinishTests(unittest.TestCase):
     def test_a_card_that_breaks_the_gates_is_taken_back_and_the_others_stay(self):
         project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
@@ -116,7 +121,7 @@ class FinishTests(unittest.TestCase):
                                | {'T4': 1}), \
                 mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=broken), \
                 mock.patch.object(waves, '_against_control', return_value=False):
-            summary = waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2', 'T3', 'T4'], kept, {}, {}, lock=False)
+            summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=False)
         self.assertEqual(summary['kept'], ['T1', 'T3'])
         self.assertIn("own check failed", summary['failed']['T2'])
         self.assertIn('acceptance exited 1', summary['failed']['T4'])
@@ -141,7 +146,7 @@ class FinishTests(unittest.TestCase):
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         together = lambda batch, name: ('' if (Path(batch['root']) / 'repair.txt').exists() or not (Path(batch['root']) / '2.txt').exists()
                                                 else "the project's own check failed: a cycle")
-        finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2'], kept, {}, {},
+        finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, wave(root, base, kept),
                                                            lock=False, repairs=repairs, bisect=bisect)
         with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
                 mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=together), \
@@ -170,7 +175,7 @@ class FinishTests(unittest.TestCase):
                 mock.patch.object(waves, 'original_checks', return_value=[]), mock.patch.object(waves, 'gates', side_effect=live_page), \
                 mock.patch('eaos.behavior_lock.verify_lock') as control, \
                 mock.patch('eaos.behavior_lock.failing_tests', return_value={'problems'}):
-            summary = waves.finish_batch(report, project, runtime, 1, root, base, ['T1', 'T2'], kept, {}, {}, lock=True)
+            summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=True)
         self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
         self.assertEqual(control.call_args.kwargs['name'], 'wave-1-control', 'checked once on the base alone')
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt'], 'and the batch back whole after it')

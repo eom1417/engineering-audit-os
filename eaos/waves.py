@@ -247,45 +247,52 @@ class GatesFailed(Exception):
         self.why, self.output = why, output
 
 
-def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None,
-                 branch=None, repairs=(), bisect=True, regenerate=lambda root: None):
-    """Every kept change together, then `repairs` (commits made on top of them after a failure): the acceptances from
-    one collection of facts, then the project's checks and the behaviour lock once. When they fail, GatesFailed asks
-    for a repair, unless `bisect`: then halving finds the culprits, left out. The kept commits become the wave's branch
-    in the candidate, its patches and wave.json beside the run, and one execution.json row per card."""
-    report, runtime = Path(report), Path(runtime)
-    cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
-    kept, failed = dict(kept), dict(failed)
+def finish_batch(report, target, runtime, wave, **options):
+    """Every kept change of `wave` (the open batch: number, root, base, cards, kept, failed, tools, deliver_as) together,
+    then options['repairs'] (commits made on top of them after a failure): the acceptances from one collection of facts,
+    then the project's checks and the behaviour lock once (options['lock'], default True). When they fail, GatesFailed
+    asks for a repair, unless options['bisect'] (default True): then halving finds the culprits, left out. The kept
+    commits become the wave's branch in the candidate, its patches and wave.json beside the run, and one execution.json
+    row per card. options['say'] names each step; options['regenerate'] rebuilds the files the build makes."""
+    say, regenerate = options.get('say') or (lambda *_: None), options.get('regenerate') or (lambda root: None)
+    batch = {'report': Path(report), 'root': Path(wave['root']), 'runtime': Path(runtime), 'base': wave['base'],
+             'name': f"wave-{wave['number']}", 'lock': options.get('lock', True), 'say': say,
+             'bisect': options.get('bisect', True), 'regenerate': regenerate}
+    cards = {card['id']: card for card in plan(batch['report'])['tasks'] if card['id'] in set(wave['cards'])}
+    kept, failed = dict(wave['kept']), dict(wave['failed'])
     say('acceptance')
     progress.begin('acceptance')
-    if kept: kept = _accepted(report, cards, root, base, kept, failed, list(repairs))
+    if kept: kept = _accepted(batch, cards, kept, failed, list(options.get('repairs') or ()))
     else: progress.skip('acceptance', 'no change was kept to check', 'nothing_kept')
     if kept:                                    # the files the build makes, rebuilt from the batch's source
         say('regenerate')
-        regenerate(root)
+        regenerate(batch['root'])
     progress.begin('gates')
-    batch = {'report': report, 'root': root, 'runtime': runtime, 'base': base, 'name': f'wave-{number}',
-             'before': original_checks(target, runtime), 'lock': lock, 'say': say, 'bisect': bisect, 'regenerate': regenerate,
-             'declared': declared_screens(cards[c] for c in kept)}
+    batch.update(before=original_checks(target, batch['runtime']), declared=declared_screens(cards[c] for c in kept))
     kept = _through_gates(batch, kept, failed)
     progress.begin('handover')
-    _record_cards(runtime, card_ids, kept, failed, tools, number)
-    return _write_wave(runtime, root, base, number, kept, failed, branch)
+    _record_cards(batch, wave, kept, failed)
+    return _write_wave(batch, wave, kept, failed)
 
 
-def _accepted(report, cards, root, base, kept, failed, repairs):
+def _accepted(batch, cards, kept, failed, repairs):
     """The kept cards whose problem is gone and whose commit still applies beside the others (the repairs on top)."""
-    exits = batch_acceptance(report, [cards[c] for c in kept], root)
+    exits = batch_acceptance(batch['report'], [cards[c] for c in kept], batch['root'])
     for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
         if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
     still = [kept[c] for c in kept if c not in failed]
-    for sha in set(rebuild(root, base, still + repairs)) - set(repairs):
+    for sha in set(rebuild(batch['root'], batch['base'], still + repairs)) - set(repairs):
         failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'
+    _acceptance_steps(kept, failed, exits)
+    return {c: s for c, s in kept.items() if c not in failed}
+
+
+def _acceptance_steps(kept, failed, exits):
+    """One progress step per kept card: ok, or why it was left out."""
     for done, card_id in enumerate(kept, 1):
         code = '' if card_id not in failed else 'acceptance_failed' if exits.get(card_id) not in (0, None) else 'no_longer_applies'
         progress.step(card_id, done, len(kept), 'failed' if card_id in failed else 'ok', reason=failed.get(card_id, ''),
                       reason_code=code)
-    return {c: s for c, s in kept.items() if c not in failed}
 
 
 def _through_gates(batch, kept, failed):
@@ -349,16 +356,18 @@ def _without_culprits(batch, kept, failed):
     return kept
 
 
-def _record_cards(runtime, card_ids, kept, failed, tools, number):
-    for card_id in card_ids:
+def _record_cards(batch, wave, kept, failed):
+    for card_id in wave['cards']:
         ok = card_id in kept
-        record(runtime, {'id': card_id, 'tool': tools.get(card_id, 'assistant'), 'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED',
-                         'acceptance_exit': 0 if ok else -1, 'result': (f'wave {number}' if ok else failed.get(card_id, ''))[:400]})
+        record(batch['runtime'], {'id': card_id, 'tool': wave['tools'].get(card_id, 'assistant'),
+                                  'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED', 'acceptance_exit': 0 if ok else -1,
+                                  'result': (f"wave {wave['number']}" if ok else failed.get(card_id, ''))[:400]})
 
 
-def _write_wave(runtime, root, base, number, kept, failed, branch):
+def _write_wave(batch, wave, kept, failed):
     """The wave's patches and wave.json beside the run; the summary."""
-    patches = runtime / 'waves' / f'wave-{number}'
+    root, base, number, branch = batch['root'], batch['base'], wave['number'], wave.get('deliver_as')
+    patches = batch['runtime'] / 'waves' / f'wave-{number}'
     subprocess.run(['rm', '-rf', str(patches)])
     patches.mkdir(parents=True, exist_ok=True)
     if kept: git(root, 'format-patch', '--quiet', '-o', str(patches), f'{base}..HEAD')

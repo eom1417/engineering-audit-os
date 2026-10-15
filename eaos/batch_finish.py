@@ -49,10 +49,9 @@ def finish_job(project, arguments, progress):
     was = guided._git(wave['root'], 'rev-parse', 'HEAD').stdout.strip()
     repairs = wave.get('repairs') or []
     try:
-        summary = finish_batch(guided.report_of(state), guided.source(state), guided.runtime_of(state), wave['number'], Path(wave['root']),
-                               wave['base'], wave['cards'], wave['kept'], wave['failed'], wave['tools'], lock=True,
+        summary = finish_batch(guided.report_of(state), guided.source(state), guided.runtime_of(state), wave, lock=True,
                                say=lambda kind, *_: progress(STEPS[kind][0], 3, STEPS[kind][1]) if kind in STEPS else None,
-                               branch=wave.get('deliver_as'), repairs=repairs,
+                               repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
                                regenerate=lambda root: regenerate(root, guided.runtime_of(state), wave['base'], wave['number']))
     except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
