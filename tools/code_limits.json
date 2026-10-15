@@ -102,7 +102,6 @@
   "eaos/studio/ideal.py::disagreements": 20,
   "eaos/studio/ideal.py::known_ids": 16,
   "eaos/studio/ideal.py::rules": 24,
-  "eaos/studio/ideal.py::section": 65,
   "eaos/studio/infra.py::_tables": 16,
   "eaos/studio/infra.py::infra": 18,
   "eaos/studio/journeys.py::from_records": 20,

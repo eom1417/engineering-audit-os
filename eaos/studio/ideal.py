@@ -448,72 +448,100 @@ def _rules_provenance(state, message, lang):
             'message': message, 'departures': [], 'open_questions': []}
 
 
+_LEFT_TO_RULES = {
+    'en': "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+    'ar': 'ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط.'}
+
+
+def _message(state, record, runs):
+    if state == 'planned':
+        return _words('planned', assistant=record.get('assistant') or '?', model=record.get('model') or '?')
+    if state == 'failed':
+        return _words('failed', why=(runs[-1].get('why') if runs else None) or '?')
+    return _words(state)
+
+
+def _planned_provenance(record, ideal, message, view=None):
+    """The provenance of what the assistant planned: of one view, or of the whole plan when view is None."""
+    confidence = (((ideal.get('views') or {}).get(view) or {}) if view else {}).get('confidence')
+    return {'method': 'planned', 'state': 'planned', 'assistant': record.get('assistant'), 'model': record.get('model'),
+            'at': record.get('at'), 'confidence': confidence if confidence is not None else ideal.get('confidence'),
+            'message': message, 'inputs': record.get('inputs'),
+            'departures': [{k: d[k] for k in ('rule_says', 'plan_chose', 'because', 'element', 'cites')}
+                           for d in ideal.get('departures') or [] if view is None or d.get('view') == view],
+            'open_questions': [{'id': q['id'], 'question': q['question'], 'recommendation': q.get('recommendation')}
+                               for q in ideal.get('open_questions') or [] if view is None or q.get('view') == view]}
+
+
+def _differences(planned, rules_elements):
+    rules_ids = {e['id']: e for e in rules_elements}
+    rows = []
+    for element in (planned or {}).get('elements') or []:
+        base = rules_ids.get(element.get('subject'))
+        kind = 'added' if base is None else 'same' if base['operation'] == element['operation'] else 'changed'
+        rows.append({'element': element['id'], 'kind': kind, 'subject': element.get('subject'),
+                     'rules': base['operation'] if base else None, 'planned': element['operation']})
+    return rows
+
+
+def _view(name, rules_view, record, ideal, state, message, lang):
+    summary, rules_elements = rules_view
+    planned = (ideal.get('views') or {}).get(name) if record else None
+    planned = planned if planned and planned.get('elements') else None
+    if planned:
+        provenance = _planned_provenance(record, ideal, message, name)
+    elif state == 'planned':
+        provenance = _rules_provenance('not_planned', _LEFT_TO_RULES, lang)
+    else:
+        provenance = _rules_provenance(state, message, lang)
+    return {'provenance': provenance,
+            'rules': {'summary': summary, 'elements': rules_elements[:400],
+                      'count': {'value': len(rules_elements), 'src': f'ideal: the rules\' {name} view', 'unit': 'count'}},
+            'planned': None if not planned else {
+                'summary': planned.get('summary') or '', 'confidence': planned.get('confidence'), 'elements': planned['elements'],
+                'count': {'value': len(planned['elements']), 'src': 'ideal/plan.json#ideal.views.' + name, 'unit': 'count'}},
+            'differences': _differences(planned, rules_elements)}
+
+
+def _evidence(record, views):
+    elements = sum(len(v['planned']['elements']) for v in views.values() if v['planned'])
+    kept = record or {}
+    return {'share': {'value': kept.get('share'),
+                      'src': 'ideal/plan.json#share: planned elements with a resolving citation / planned elements'},
+            'raw_share': {'value': kept.get('raw_share'), 'src': 'ideal/plan.json#raw_share: the same before the evidence check'},
+            'elements': {'value': elements if record else None, 'src': 'ideal/plan.json#elements', 'unit': 'count'},
+            'dropped': [{k: row[k] for k in ('view', 'id', 'title', 'why')} for row in kept.get('dropped') or []]}
+
+
+def _critique(record):
+    critique = (record or {}).get('critique')
+    return {k: list(critique.get(k) or [])[:30] for k in ('missed', 'risks', 'order')} if isinstance(critique, dict) else None
+
+
+def _questions(ideal):
+    return [{'id': q['id'], 'view': q['view'], 'question': q['question'], 'options': q.get('options') or [],
+             'recommendation': q.get('recommendation'), 'why': q.get('why') or ''} for q in ideal.get('open_questions') or []]
+
+
+def _run(r):
+    return {'at': r.get('at') or '', 'state': r.get('state') if r.get('state') in ('planned', 'not_planned', 'failed', 'stale') else 'failed',
+            'assistant': r.get('assistant'), 'model': r.get('model'), 'seconds': r.get('seconds'),
+            'passes': list(r.get('passes') or []), 'message': r.get('message') or ''}
+
+
 def section(report, lang='ar'):
     """The body of studio/ideal.json (contract studio-ideal)."""
     report = Path(report)
     record, state = current(report)
     runs = _load(report / 'ideal/runs.json', []) or []
-    if state == 'planned':
-        message = _words('planned', assistant=record.get('assistant') or '?', model=record.get('model') or '?')
-    elif state == 'failed':
-        message = _words('failed', why=(runs[-1].get('why') if runs else None) or '?')
-    else:
-        message = _words(state)
-    views, ideal = {}, (record or {}).get('ideal') or {}
+    message = _message(state, record, runs)
+    ideal = (record or {}).get('ideal') or {}
     rules_views = _rules_views(report)
-    for name in VIEWS:
-        summary, rules_elements = rules_views[name]
-        planned = (ideal.get('views') or {}).get(name) if record else None
-        planned = planned if planned and planned.get('elements') else None
-        if planned:
-            provenance = {'method': 'planned', 'state': 'planned', 'assistant': record.get('assistant'), 'model': record.get('model'),
-                          'at': record.get('at'), 'confidence': planned.get('confidence') if planned.get('confidence') is not None else ideal.get('confidence'),
-                          'message': message, 'inputs': record.get('inputs'),
-                          'departures': [{k: d[k] for k in ('rule_says', 'plan_chose', 'because', 'element', 'cites')}
-                                         for d in ideal.get('departures') or [] if d.get('view') == name],
-                          'open_questions': [{'id': q['id'], 'question': q['question'], 'recommendation': q.get('recommendation')}
-                                             for q in ideal.get('open_questions') or [] if q.get('view') == name]}
-        else:
-            words = message if state != 'planned' else {
-                'en': "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
-                'ar': 'ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط.'}
-            provenance = _rules_provenance(state if state != 'planned' else 'not_planned', words, lang)
-        rules_ids = {e['id']: e for e in rules_elements}
-        differences = []
-        for element in (planned or {}).get('elements') or []:
-            base = rules_ids.get(element.get('subject'))
-            kind = 'added' if base is None else 'same' if base['operation'] == element['operation'] else 'changed'
-            differences.append({'element': element['id'], 'kind': kind, 'subject': element.get('subject'),
-                                'rules': base['operation'] if base else None, 'planned': element['operation']})
-        views[name] = {'provenance': provenance,
-                       'rules': {'summary': summary, 'elements': rules_elements[:400],
-                                 'count': {'value': len(rules_elements), 'src': f'ideal: the rules\' {name} view', 'unit': 'count'}},
-                       'planned': None if not planned else {
-                           'summary': planned.get('summary') or '', 'confidence': planned.get('confidence'), 'elements': planned['elements'],
-                           'count': {'value': len(planned['elements']), 'src': 'ideal/plan.json#ideal.views.' + name, 'unit': 'count'}},
-                       'differences': differences}
-    elements = sum(len(v['planned']['elements']) for v in views.values() if v['planned'])
-    overall = ({'method': 'planned', 'state': 'planned', 'assistant': record.get('assistant'), 'model': record.get('model'),
-                'at': record.get('at'), 'confidence': ideal.get('confidence'), 'message': message, 'inputs': record.get('inputs'),
-                'departures': [{k: d[k] for k in ('rule_says', 'plan_chose', 'because', 'element', 'cites')} for d in ideal.get('departures') or []],
-                'open_questions': [{'id': q['id'], 'question': q['question'], 'recommendation': q.get('recommendation')}
-                                   for q in ideal.get('open_questions') or []]}
-               if record else _rules_provenance(state, message, lang))
-    return {'state': state, 'message': message, 'provenance': overall, 'views': views,
-            'evidence': {'share': {'value': record.get('share') if record else None,
-                                   'src': 'ideal/plan.json#share: planned elements with a resolving citation / planned elements'},
-                         'raw_share': {'value': record.get('raw_share') if record else None,
-                                       'src': 'ideal/plan.json#raw_share: the same before the evidence check'},
-                         'elements': {'value': elements if record else None, 'src': 'ideal/plan.json#elements', 'unit': 'count'},
-                         'dropped': [{k: row[k] for k in ('view', 'id', 'title', 'why')} for row in (record or {}).get('dropped') or []]},
-            'critique': ({k: list((record.get('critique') or {}).get(k) or [])[:30] for k in ('missed', 'risks', 'order')}
-                         if record and isinstance(record.get('critique'), dict) else None),
-            'questions': [{'id': q['id'], 'view': q['view'], 'question': q['question'], 'options': q.get('options') or [],
-                           'recommendation': q.get('recommendation'), 'why': q.get('why') or ''}
-                          for q in ideal.get('open_questions') or []] if record else [],
-            'runs': [{'at': r.get('at') or '', 'state': r.get('state') if r.get('state') in ('planned', 'not_planned', 'failed', 'stale') else 'failed',
-                      'assistant': r.get('assistant'), 'model': r.get('model'), 'seconds': r.get('seconds'),
-                      'passes': list(r.get('passes') or []), 'message': r.get('message') or ''} for r in runs[-10:]]}
+    views = {name: _view(name, rules_views[name], record, ideal, state, message, lang) for name in VIEWS}
+    return {'state': state, 'message': message,
+            'provenance': _planned_provenance(record, ideal, message) if record else _rules_provenance(state, message, lang),
+            'views': views, 'evidence': _evidence(record, views), 'critique': _critique(record),
+            'questions': _questions(ideal) if record else [], 'runs': [_run(r) for r in runs[-10:]]}
 
 
 def provenance_of(body):
