@@ -3,7 +3,7 @@
 // configuration and secrets, build steps, dead code), with the screens that set each in motion. Desktop: the diagram
 // beside the inspector of an area or a group (every item with its file, line, fact and card). Phone: the summary, the
 // diagram's preview opening a full-screen sheet, then the groups as lists. The URL holds ?focus=&only=1&hidden=0.
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../../components/Button'
@@ -17,6 +17,7 @@ import { CanvasFrame, canvasClass } from '../../../map/parts'
 import { useZoom } from '../../../map/useZoom'
 import { usePageChrome } from '../../../shell/chrome'
 import { MissingBanner, WithData } from '../../../shell/Layout'
+import { useSearchPatch } from '../../../shell/search'
 import { usePhone } from '../../SystemMap'
 import { Missing, Site } from '../journeys/parts'
 import { HiddenSwitch, SystemViews } from '../SystemViews'
@@ -127,19 +128,13 @@ function HiddenBody({ data, h }: { data: StudioData; h: Hidden }) {
   const w = useJourneyWords()
   const phone = usePhone()
   const search = useSearch({ strict: false }) as HiddenSearch
-  const navigate = useNavigate()
   const [explore, setExplore] = useState(false)
   const only = search.only === '1'
   const showHidden = search.hidden !== '0'
   const ids = new Set([...h.seen.map((a) => a.id), ...h.groups.map((g) => g.id as string)])
   const focus = search.focus && ids.has(search.focus) ? search.focus : undefined
   usePageChrome(w('hidden'), undefined, data.manifest.project.name)
-  const go = (patch: Partial<HiddenSearch>) => navigate({
-    to: '/system/hidden', search: (prev: HiddenSearch) => {
-      const next = { ...prev, ...patch }
-      return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined && v !== '')) as HiddenSearch
-    },
-  })
+  const go = useSearchPatch<HiddenSearch>('/system/hidden')
   const setFocus = (id: string) => go({ focus: id === focus ? undefined : id })
   const lead = w('hiddenLead', { s: h.counts.seen?.value ?? 0, u: h.counts.unseen?.value ?? 0, n: h.counts.no_screen?.value ?? 0 })
   const onlySwitch = (

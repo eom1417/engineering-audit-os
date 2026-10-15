@@ -3,7 +3,7 @@
 // Target; Map or Steps; a task; "show hidden". Desktop: the canvas beside a 360px inspector. Phone: the map's preview
 // (opening a full-screen sheet with pan and pinch), then the task and its steps, or every screen by clicks from the
 // start. The URL holds the view: ?view=&show=&task=&focus=&hidden=1&flag=.
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button, IconButton } from '../../../components/Button'
@@ -15,6 +15,7 @@ import { usePrefs } from '../../../i18n/prefs'
 import { Id } from '../../../i18n/text'
 import { usePageChrome } from '../../../shell/chrome'
 import { MissingBanner, WithData } from '../../../shell/Layout'
+import { useSearchPatch } from '../../../shell/search'
 import { ModeSwitch, usePhone } from '../../SystemMap'
 import { HiddenSwitch, SystemViews } from '../SystemViews'
 import { useJourneyWords } from '../words'
@@ -50,7 +51,6 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
   const w = useJourneyWords()
   const phone = usePhone()
   const search = useSearch({ strict: false }) as JourneySearch
-  const navigate = useNavigate()
   const [explore, setExplore] = useState(false)
   const mode: JourneyMode = JOURNEY_MODES.includes(search.view as JourneyMode) ? (search.view as JourneyMode) : 'current'
   const steps = search.show === 'steps'
@@ -70,12 +70,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
     return unseenBy(j, per)
   }, [data.hidden, j])
 
-  const go = (patch: Partial<JourneySearch>) => navigate({
-    to: '/system/journeys', search: (prev: JourneySearch) => {
-      const next = { ...prev, ...patch }
-      return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined && v !== '')) as JourneySearch
-    },
-  })
+  const go = useSearchPatch<JourneySearch>('/system/journeys')
   const setFocus = (id: string) => id.startsWith('area:') ? go({ area: id.slice(5) }) : go({ focus: id === focus ? undefined : id, task: undefined })
   const pick = (id: string) => go({ focus: id, task: undefined })
   const setTask = (id: string | undefined) => go({ task: id, focus: undefined, flag: undefined })
