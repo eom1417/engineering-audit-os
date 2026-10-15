@@ -108,6 +108,32 @@ class ProbeTests(unittest.TestCase):
             self.assertIn('cannot establish a cause claim', partial[0]['result'])
 
 
+    def test_a_complexity_card_clears_exactly_its_finish_line_each_judged_by_one_ruler(self):
+        # EAOS, 2026-10-15: one card mixed seven kinds of finding, judged the whole file by any engine; six cards of a
+        # batch could not pass whatever the assistant changed
+        from eaos import finish_line
+        def engine(rule, symbol, value=20):
+            return {'id': rule + symbol, 'value': {'kind': 'complexity', 'engine': rule.split('.')[0], 'rule': rule,
+                    'measurements': [{'value': value, 'threshold': 15}]}, 'location': {'path': 'a.py', 'symbol': symbol}}
+        def counted(**branches):
+            return {'facts': [{'value': {'scope': 'function', 'branches': n}, 'location': {'path': 'a.py', 'symbol': f}}
+                              for f, n in branches.items()]}
+        found = [engine('reforge.codebase.complex_function', 'python:function:a.py::run:arity:1', 40),   # EAOS counts 12
+                 engine('lizard.ccn', 'a.py::decide'),                                                       # EAOS counts 19
+                 engine('reforge.codebase.many_parameters', 'python:function:a.py::Job::start:arity:7'),
+                 engine('reforge.codebase.large_type', 'python:type:a.py::Job:declaration')]                # a split's work
+        sets = {'metrics': counted(run=12, decide=19), 'external': {'facts': found}}
+        wanted = finish_line.targets(found, sets)
+        self.assertEqual([(t['rule'], t['name']) for t in wanted], [('branches', 'decide'), ('reforge.codebase.many_parameters', 'start')])
+        spec = {'query': 'engine_cluster_present', 'place': 'a.py', 'kind': 'complexity', 'targets': wanted}
+        self.assertEqual(probes._engine_cluster(spec, sets)[0], 'CONFIRMED')
+        fixed = {'metrics': counted(run=12, decide=9), 'external': {'facts': [found[0], found[3]]}}     # what is left is not its
+        self.assertEqual(probes._engine_cluster(spec, fixed), ('REFUTED', 'every target is cleared'))
+        moved = {'metrics': {'facts': [{'value': {'scope': 'function', 'branches': 19}, 'location': {'path': 'b.py', 'symbol': 'decide'}}]},
+                 'external': {'facts': []}}
+        self.assertIn('`decide` in a.py', probes._engine_cluster(spec, moved)[1], 'moving it to another file does not clear it')
+
+
 class VerificationTests(unittest.TestCase):
     """The project's own tests, run in an isolated copy with coverage (eaos/verify.py), restored in 0.0.9."""
 

@@ -139,8 +139,7 @@ def sync(state, event=None, report=None):
     project = state['project']
     in_branch, undone = walk(project, branches.ref(state))
     by_id = {c['id']: c for c in cards.values() if c['id']}
-    for wave in state.get('waves') or []:                                    # what each batch did, by key
-        _apply_wave(wave, cards, wave.get('keys') or {})
+    _apply_waves(cards, state.get('waves') or [])
     _apply_history(cards, in_branch, undone)
     _reopen_waited(by_id, plan['tasks'])
     _apply_open_batch(cards, by_id, state.get('open_wave') or {})
@@ -179,6 +178,12 @@ def _apply_kept(wave, card):
         card.update(state='open', batch=None)
 
 
+def _apply_waves(cards, waves):
+    """What each batch did, by key; each card's failed batches counted again (`attempts`)."""
+    for card in cards.values(): card['attempts'] = 0
+    for wave in waves: _apply_wave(wave, cards, wave.get('keys') or {})
+
+
 def _apply_wave(wave, cards, known):
     """What a batch did to its cards. One closed without handing anything over (abandoned, superseded) changed nothing:
     its cards stay open, whatever it failed on, and the next batch can pick them (EAOS on itself, 2026-10-13: the 7 module
@@ -189,6 +194,7 @@ def _apply_wave(wave, cards, known):
         return
     for card_id, reason in (wave.get('failed') or {}).items():
         card = cards.get(known.get(card_id))
+        if card: card['attempts'] += 1                                       # a card failed twice is EAOS's defect
         if card and card['state'] in ('open', 'in_batch'):
             card.update(state='skipped', why=str(reason)[:300], batch=wave.get('number'))
     for card_id in wave.get('kept') or []: _apply_kept(wave, cards.get(known.get(card_id)))

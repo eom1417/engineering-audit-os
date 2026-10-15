@@ -192,7 +192,12 @@ def _engine_cluster(specification, sets):
     # Re-running the engines is the probe: the claim is about what they report, so it is settled
     # by asking them again, not by re-reading a graph we built ourselves. Only the claim's engines count, and of a
     # measured kind only a finding past its threshold (correlate._standing): any engine's finding anywhere in the file,
-    # even one under its limit, refused every simplification of the functions the card names (EAOS, 2026-10-15).
+    # even one under its limit, refused every simplification of the functions the card names (EAOS, 2026-10-15). A claim
+    # made since carries its finish line (eaos/finish_line.py) and is judged by it alone.
+    if specification.get('targets'):
+        from .finish_line import left, said
+        still = left(specification['targets'], sets)
+        return ('CONFIRMED', 'still to clear: ' + '; '.join(map(said, still))) if still else ('REFUTED', 'every target is cleared')
     from .correlate import clusters
     for cluster in (c for c in clusters(sets) if c['place'] == specification['place']):
         named = set(specification.get('engines') or ())

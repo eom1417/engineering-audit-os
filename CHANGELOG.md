@@ -8,10 +8,18 @@
   not done (`decisions.waiting`): `fix_start` leaves it for a later batch, refuses it by name when asked for, and the
   Fix preview lists it as "waits for TASK-…". A card set aside only because it came too early opens again once the
   cards it waits for are done (`ledger._reopen_waited`), and a split waits only for simplifications a batch can make.
-- **A card's check judges what the card is about**: the engine-cluster probe counts only the claim's engines and, of
-  complexity, only what is past its own threshold; when a card's check still fails, the assistant is told what it
-  still finds, and it sees up to 24 facts behind a card instead of 6. Simplifying the named functions was refused
-  before because any finding anywhere in the file, even one under its limit, kept the card open.
+- **Every complexity card has a finish line, each target judged by one ruler** (`eaos/finish_line.py`): one card mixed
+  seven kinds of engine finding and was judged on the whole file by whichever engine spoke, so six cards of a batch
+  could not pass whatever the assistant changed. Now the card lists exactly what it must clear, fixed when it is made:
+  a branching score by EAOS's own count (the gates' one; engines scored one function 15, 40 and 49), an exact count
+  (too many parameters, nesting too deep, too long) by the engine that stated it, never the size of a file or a class
+  (a split's work). A target follows its function by name, so moving it does not clear it. A card with nothing left to
+  clear is a question for the person, never work a batch cannot finish. On those six cards: two get 4 and 2 precise
+  targets, four become questions. The assistant sees the finish line before it starts and, when the check still fails,
+  what is left; it sees up to 24 facts behind a card instead of 6. Older cards' probes count only their own engines and
+  what is past its threshold.
+- **Each batch says how it did on the first try**, and a card failing in a second batch is reported as a defect of EAOS,
+  not of the project (the ledger counts each card's failed batches).
 - **Moving a complex function in a split keeps its allowance** (`tools/code_limits.py`): it may not grow, but moving it
   to another module, or out of its class, no longer counts as a new over-limit function.
 - The Fix preview says why a card is left out in the person's language.

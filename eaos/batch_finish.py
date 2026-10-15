@@ -79,10 +79,22 @@ def _repair_asked(state, failure, repaired_already):
                         'fix_finish with leave_out=true: the cards responsible are then found and left out.'}
 
 
+def _score(state, wave, summary):
+    """How the batch did on the first try, and the cards it failed that an earlier batch failed too: a card failing twice
+    is EAOS's defect, not the person's project (its card or its check is wrong), and is said so."""
+    from .ledger import load
+    book, keys = (load(state) or {}).get('cards') or {}, wave.get('keys') or {}
+    again = [c for c in summary['failed'] if (book.get(keys.get(c)) or {}).get('attempts', 0) >= 1]
+    return {'first_try': f"{len(summary['kept'])} of {len(wave['cards'])} kept on the first try",
+            **({'failed_again': again, 'eaos_defect': 'These cards failed in an earlier batch too: tell the person this is a '
+                'defect of EAOS (the card or its check), to report, not a problem of their project.'} if again else {})}
+
+
 def _handed_over(project, wave, summary):
     """The batch closed: its record among the waves, its branch in the project when it kept something."""
     from .waves import apply as hand_over
     state = guided.load(project)
+    score = _score(state, wave, summary)
     record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
               'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {},
               **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch', 'direct', 'continues') if wave.get(k)}}
@@ -101,7 +113,7 @@ def _handed_over(project, wave, summary):
     if wave.get('direct') and record['status'] == 'applied':
         return _land(state['project'], record, files)
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
-            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:],
+            'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:], **score,
             **({'continued_on': wave['continues']} if wave.get('continues') else {}),
             'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
                          "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "

@@ -39,6 +39,7 @@
       "eaos/map.py",
       "eaos/policy.py",
       "eaos/probes.py",
+      "eaos/finish_line.py",
       "eaos/ranking.py",
       "eaos/semantic.py",
       "eaos/semantic_source.py",

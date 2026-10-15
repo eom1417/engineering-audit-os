@@ -6,9 +6,10 @@ VERSION = 1
 
 
 def identity(claim):
-    # Location and probe semantics distinguish similarly worded observations.
+    # Location and probe semantics distinguish similarly worded observations; what a probe expects and the finish line it
+    # judges (eaos/finish_line.py, which shrinks as the code is fixed) do not: the card stays one card from check to check.
     probe = claim.get('probe_spec') or {}
-    specification = {key: value for key, value in probe.get('specification', {}).items() if key != 'expected'}
+    specification = {key: value for key, value in probe.get('specification', {}).items() if key not in ('expected', 'targets')}
     payload = {'claim_type': claim.get('claim_type'), 'probe_type': probe.get('probe_type'),
                'specification': specification, 'legacy_id': claim.get('legacy_id')}
     if not specification:

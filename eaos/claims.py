@@ -283,12 +283,15 @@ def _contested(kind, detail, cluster, fact_sets):
             'impact_key': None, 'measured': {}}
 
 
-def _engine_claim(index, kind, cluster, detail, said):
-    """The claim of one kind at one place, from what its verdict says."""
+def _engine_claim(index, kind, cluster, detail, said, finish=None):
+    """The claim of one kind at one place, from what its verdict says. With a finish line (`finish`, complexity) its
+    probe judges exactly those targets; with none left to clear (only sizes, or scores EAOS counts within the limit) it
+    is a hypothesis for the person, never work a batch cannot finish."""
     engines, impact_key = ', '.join(detail['asserted_by']), said['impact_key']
+    confidence = 'HYPOTHESIS' if finish == [] else said['confidence']
     return make(index, said['statement'][:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
-                said['confidence'], ['external_engine'], [],
-                said['falsifier'], fact_ids=cluster['fact_ids_by_kind'][kind], confidence_ceiling=said['confidence'],
+                confidence, ['external_engine'], [],
+                said['falsifier'], fact_ids=cluster['fact_ids_by_kind'][kind], confidence_ceiling=confidence,
                 render={'key': 'engine_cluster',
                         'params': {'place': cluster['place'], 'kind': kind,
                                    'engines': engines, 'verdict': detail['verdict'],
@@ -296,6 +299,7 @@ def _engine_claim(index, kind, cluster, detail, said):
                 probe_spec={'probe_type': 'graph_query',
                             'specification': {'query': 'engine_cluster_present', 'engines': detail['asserted_by'],
                                               'place': cluster['place'], 'kind': kind,
+                                              **({'targets': finish} if finish else {}),
                                               'expected': 'The same engines still report this kind at this place.'}},
                 impact=said['impact'])
 
@@ -319,8 +323,17 @@ def from_engines(fact_sets, offset=0):
             if kind in SECURITY or detail['verdict'] not in says:
                 continue
             index += 1
-            made.append(_engine_claim(index, kind, cluster, detail, says[detail['verdict']](kind, detail, cluster, fact_sets)))
+            made.append(_engine_claim(index, kind, cluster, detail, says[detail['verdict']](kind, detail, cluster, fact_sets),
+                                      _finish(kind, cluster, fact_sets)))
     return made
+
+
+def _finish(kind, cluster, fact_sets):
+    """A complexity claim's finish line (eaos/finish_line.py), None for another kind."""
+    if kind != 'complexity': return None
+    from .finish_line import targets
+    facts = {f['id']: f for f in (fact_sets.get('external') or {}).get('facts') or []}
+    return targets([facts[i] for i in cluster['fact_ids_by_kind'][kind] if i in facts], fact_sets)
 
 
 def merge(claims):

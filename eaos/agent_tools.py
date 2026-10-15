@@ -16,11 +16,11 @@ from pathlib import Path
 
 from . import batch_finish, branches, guided, handover, jobs, plain, toolchain
 from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
+from .finish_line import proof
 from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
-ANSWER_SECONDS = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30)
-WAIT = 50                   # seconds a tool call waits for its job before answering with the job to follow
+ANSWER_SECONDS, WAIT = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30), 50   # WAIT: seconds a tool call waits for its job
 PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for every function its check judges
 
 
@@ -524,7 +524,7 @@ def _what_and_why(card, claim):
             'impact': card.get('impact') or (claim.get('impact') or {}).get('scenario'),
             'rule_broken': assessment.get('violated_invariant'), 'before': card.get('before') or assessment.get('before'),
             'after': card.get('after') or assessment.get('after'), 'suggested_change': assessment.get('proposed_change'),
-            'how_it_is_proven_gone': claim.get('falsifier') or ((card.get('evidence') or {}).get('falsifier'))}
+            'how_it_is_proven_gone': proof(claim) or claim.get('falsifier') or ((card.get('evidence') or {}).get('falsifier'))}
 
 
 def _card_work(card):
