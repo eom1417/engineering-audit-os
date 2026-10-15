@@ -132,7 +132,8 @@ when the project is checked again and the cards are numbered again, what is done
 
 ## If your assistant's usage limit runs out in the middle
 
-Long work can outlast a usage limit (for example the five-hour one). Nothing is lost: everything EAOS does is saved as
+Long work can outlast a usage limit (for example the five-hour one): a whole check fits in one window on the larger plans, a
+batch of 70 cards can take several hours, so start a large batch in a fresh window. Nothing is lost: everything EAOS does is saved as
 it happens, and every step is recorded with the name of the assistant that did it. Move to any other assistant you
 have installed (from Codex to Claude Code, or the other way):
 

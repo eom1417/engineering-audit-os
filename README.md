@@ -115,6 +115,24 @@ last.** Without an AI assistant it runs the same way and the rules decide alone.
 tool that failed is named, and when one stage needs redoing the check **goes on from that stage**, keeping the rest:
 never a whole new check for one stage.
 
+## What a check uses
+
+Most of a check is EAOS's own analyzers, which use none of your assistant. Your assistant does the judging stages, and
+those count against its plan. Measured on EAOS itself (593 files, about 7,400 functions, Claude Code with Opus), the
+whole check took about an hour of model time, worth about **US$22 at API list prices**:
+
+| Stage | Share |
+|---|---|
+| Sorting the cards against their evidence | about 45% |
+| Reviewing the recorded screens | about 18% |
+| The ideal target structure | about 17% |
+| Planning, ordering, setup and the project's meaning | about 15% |
+| Translating the reports (the smallest model, without thinking) | about 3% |
+
+It grows with the size of the project and the number of cards. **A fix batch uses much more**: your assistant edits card
+by card, and a batch of 70 cards can take several hours. On a five-hour plan, start a large batch in a fresh window. If
+a limit runs out mid-way, nothing is lost: the work goes on from where it stopped, with the same assistant or another.
+
 ## The Studio
 
 The Studio is EAOS's interface in your browser: shipped inside the package, no internet needed, in English and Arabic,

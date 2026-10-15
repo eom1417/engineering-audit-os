@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.35 (2026-10-15)
+
+- **What a check uses, written down** (README, GUIDE, in English and Arabic): measured on EAOS itself, a whole check is
+  about an hour of model time, worth about US$22 at API list prices, most of it sorting the cards, the screen review and
+  the ideal target; a fix batch uses much more, so a large one starts in a fresh five-hour window.
+- ROADMAP brought up to date: the design library is done; the proof of 0.0.34 and card sorting run three times are next.
+
 ## 0.0.34 (2026-10-15)
 
 - **A batch with a design card is not refused for how its screens look**: a design card changes a shared part (a font,
