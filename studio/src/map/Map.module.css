@@ -58,9 +58,9 @@
 .lbl.big { fill: var(--text-primary); font-weight: 500; }
 .lblSel { fill: var(--accent-text); font-weight: 600; }
 .lblOff { opacity: .4; }
-.reg { font-weight: 600; fill: var(--text-secondary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 5px; stroke-linejoin: round; }
+.reg { font-weight: 600; fill: var(--text-secondary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 9px; stroke-linejoin: round; }
 .regEn { text-transform: uppercase; letter-spacing: .14em; }
 .regId { font-family: var(--font-mono); font-weight: 500; }
-.preview .reg { fill: var(--text-primary); stroke-width: 10px; }
+.preview .reg { fill: var(--text-primary); stroke-width: 18px; }
 .regSub { fill: var(--text-tertiary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 4px; stroke-linejoin: round; }
 .frame { fill: none; stroke: var(--accent-solid); stroke-width: 10; }
