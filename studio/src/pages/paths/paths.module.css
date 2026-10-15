@@ -198,7 +198,7 @@
 .waits { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--text-tertiary); }
 .waitLink { color: var(--accent-text); }
 .waveList { display: flex; flex-direction: column; }
-.waveRow { display: flex; flex-direction: column; gap: 4px; padding: 10px 2px; border-block-end: 1px solid var(--border-subtle); }
+.waveRow { display: flex; flex-direction: column; inline-size: 100%; gap: 4px; padding: 10px 2px; border-block-end: 1px solid var(--border-subtle); }
 .waveHead { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; font-weight: 500; }
 .waveSteps { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--text-secondary); }
 .entryCard { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; }

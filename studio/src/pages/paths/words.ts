@@ -125,7 +125,7 @@ export const PATH_WORDS = {
   why_same_file: ['الملف نفسه', 'same file'],
   noWaits: ['لا ينتظر شيئًا', 'Waits for nothing'],
   moreWaits: ['و{n} أخرى', 'and {n} more'],
-  tasksN: ['{n} مهمة', '{n} tasks'],
+  tasksN: ['{n} {n:مهمة|مهام}', '{n} tasks'],
   step: ['الخطوة', 'Step'],
   noStep: ['بلا خطوة', 'No step'],
   noTimeline: ['الخطة بلا موجات في هذا الفحص', 'The plan has no waves in this check'],
