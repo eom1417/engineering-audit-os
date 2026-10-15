@@ -166,31 +166,12 @@ function ScreenMap({ journeys: j, mode, variant, focus, task, flag, showHidden, 
   const uid = useId().replace(/:/g, '')
   const g = j.grid
   const full = variant === 'full'
-  const only = area ? areaScreens(j, area) : null
-  const screens = shownScreens(j, showHidden).filter((s) => !only || only.has(s.id))
-  const edges = shownEdges(j, showHidden).filter((e) => !only || (only.has(e.from) && only.has(e.to)))
-  const menus = only ? [] : j.menus
+  const { only, screens, edges, menus } = visiblePart(j, showHidden, area)
   const lit = litSet(j, focus, task, flag)
-  const step = new Map((task?.path ?? []).map((id, i) => [id, i + 1]))
+  const look: Look = { mode, focus, task, lit, step: new Map((task?.path ?? []).map((id, i) => [id, i + 1])) }
   const dim = lit !== null
   const interactive = full && Boolean(onFocus)
-  const faded = (id: string) => dim && !lit!.has(id)
-  const stepOf = (id: string) => (task ? step.get(id) : undefined)
-  const frameClass = (s: Screen) => [
-    css.screen,
-    s.kind !== 'page' && css.hidden,
-    mode === 'change' && s.op && css[`op_${s.op}`],
-    mode === 'target' && s.op === 'delete' && css.removed,
-    s.flags.includes('no_way_in') && css.noWayIn,
-    focus === s.id && css.sel,
-    task && step.has(s.id) && css.onPath,
-    faded(s.id) && css.faded,
-  ].filter(Boolean).join(' ')
-  const menuClass = (m: Menu) => [css.menu, faded(m.id) && css.faded, task && step.has(m.id) && css.onPath, focus === m.id && css.sel].filter(Boolean).join(' ')
-  const aria = (s: Screen) => w('screenAria', {
-    t: s.title, r: s.route,
-    f: s.flags.length ? (lang === 'ar' ? '، ' : ', ') + s.flags.map((f) => w(`flag_${f}`)).join(lang === 'ar' ? '، ' : ', ') : '',
-  })
+  const stepOf = (id: string) => (task ? look.step.get(id) : undefined)
 
   return (
     <svg ref={svgRef} viewBox={viewBoxOf(g, only, screens)} preserveAspectRatio="xMidYMid meet" direction="ltr"
@@ -199,25 +180,69 @@ function ScreenMap({ journeys: j, mode, variant, focus, task, flag, showHidden, 
       <MapDefs uid={uid} />
       <rect className={css.water} x={-4000} y={-4000} width={g.width + 8000} height={g.height + 8000} />
       <g style={zoomStyle(transform)} className={css.world}>
-        {full && !only && captions(j).map((c) => (
-          <text key={c.col} x={g.pad + c.col * g.col_w} y={-TOP + 22} className={css.caption} direction={lang === 'ar' ? 'rtl' : 'ltr'}
-            textAnchor="start" dx={lang === 'ar' ? g.box_w : 0}>
-            {captionText(c, w)}
-          </text>
-        ))}
+        {full && !only && <Captions j={j} w={w} ar={lang === 'ar'} />}
         <EdgeLayer edges={edges} onPath={pathEdges(task)} focus={focus} dim={dim} full={full} uid={uid} />
         {menus.map((m) => (
-          <MenuNode key={m.id} m={m} g={g} w={w} className={menuClass(m)} step={stepOf(m.id)}
+          <MenuNode key={m.id} m={m} g={g} w={w} className={menuLook(m, look)} step={stepOf(m.id)}
             press={pressable(interactive, m.id, `${w('menu')}: ${w('menuSub', { n: m.links, s: m.scope.length })}`, focus === m.id, onFocus)} />
         ))}
         {screens.map((s) => (
-          <ScreenFrame key={s.id} s={s} g={g} uid={uid} mode={mode} full={full} shotBase={shotBase} className={frameClass(s)}
+          <ScreenFrame key={s.id} s={s} g={g} uid={uid} mode={mode} full={full} shotBase={shotBase} className={frameLook(s, look)}
             broken={j.broken.filter((b) => b.from === s.id)} unseen={showHidden ? unseen?.get(s.id) : undefined} step={stepOf(s.id)}
-            press={pressable(interactive, s.id, aria(s), focus === s.id, onFocus)} />
+            press={pressable(interactive, s.id, screenAria(s, w, lang === 'ar'), focus === s.id, onFocus)} />
         ))}
       </g>
     </svg>
   )
+}
+
+/** What the map shows: every shown screen, link and menu, or only an expanded area's screens and their links. */
+function visiblePart(j: Journeys, showHidden: boolean, area?: string) {
+  const only = area ? areaScreens(j, area) : null
+  return {
+    only,
+    screens: shownScreens(j, showHidden).filter((s) => !only || only.has(s.id)),
+    edges: shownEdges(j, showHidden).filter((e) => !only || (only.has(e.from) && only.has(e.to))),
+    menus: only ? [] : j.menus,
+  }
+}
+
+/** What a node's look depends on: the lens, the focused node, the task's path and what is lit. */
+interface Look { mode: JourneyMode; focus?: string; task?: Task; step: Map<string, number>; lit: ReturnType<typeof litSet> }
+
+const faded = (l: Look, id: string) => !!l.lit && !l.lit.has(id)
+
+function frameLook(s: Screen, l: Look): string {
+  return [
+    css.screen,
+    s.kind !== 'page' && css.hidden,
+    l.mode === 'change' && s.op && css['op_' + s.op],
+    l.mode === 'target' && s.op === 'delete' && css.removed,
+    s.flags.includes('no_way_in') && css.noWayIn,
+    l.focus === s.id && css.sel,
+    l.task && l.step.has(s.id) && css.onPath,
+    faded(l, s.id) && css.faded,
+  ].filter(Boolean).join(' ')
+}
+
+function menuLook(m: Menu, l: Look): string {
+  return [css.menu, faded(l, m.id) && css.faded, l.task && l.step.has(m.id) && css.onPath, l.focus === m.id && css.sel].filter(Boolean).join(' ')
+}
+
+/** A screen as a screen reader says it: its title, route and flags. */
+function screenAria(s: Screen, w: Words, ar: boolean): string {
+  const sep = ar ? '، ' : ', '
+  return w('screenAria', { t: s.title, r: s.route, f: s.flags.length ? sep + s.flags.map((f) => w(`flag_${f}`)).join(sep) : '' })
+}
+
+/** Over each column, how many clicks from the start it stands. */
+function Captions({ j, w, ar }: { j: Journeys; w: Words; ar: boolean }) {
+  const g = j.grid
+  return captions(j).map((c) => (
+    <text key={c.col} x={g.pad + c.col * g.col_w} y={-TOP + 22} className={css.caption} direction={ar ? 'rtl' : 'ltr'} textAnchor="start" dx={ar ? g.box_w : 0}>
+      {captionText(c, w)}
+    </text>
+  ))
 }
 
 function StepBadge({ x, y, n }: { x: number; y: number; n: number }) {
