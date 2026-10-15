@@ -1,5 +1,6 @@
 // The words of the maps (System, the Home land card, Change), Arabic first and English equally finished. Kept apart
 // from i18n/catalog.ts so the maps travel as one module; a key missing in one language is a type error.
+import { fill } from '../i18n/fill'
 import { usePrefs } from '../i18n/prefs'
 import type { Operation } from '../data/system'
 
@@ -107,11 +108,7 @@ export const OP_WORD: Record<Operation, MapWord> = {
 export function useWordTable<K extends string>(table: Record<K, readonly [string, string]>) {
   const { lang, num } = usePrefs()
   const index = lang === 'ar' ? 0 : 1
-  return (key: K, vars?: Record<string, string | number>) =>
-    table[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
-      const value = vars?.[name]
-      return value === undefined ? '' : typeof value === 'number' ? num(value) : value
-    })
+  return (key: K, vars?: Record<string, string | number>) => fill(table[key][index], vars, num)
 }
 
 /** A hook giving a word table's words in the current language (useWordTable bound to one table). Each map keeps its

@@ -5,6 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { I18nProvider } from 'react-aria-components'
 import { WORDS, type WordKey } from './catalog'
+import { fill } from './fill'
 
 export type Lang = 'ar' | 'en'
 export type Theme = 'light' | 'dark'
@@ -96,11 +97,7 @@ function makePrefs(lang: Lang, theme: Theme, zoneChoice: string | null, set: Set
   return {
     lang, theme, zone, zoneChoice, ...set,
     dir: lang === 'ar' ? 'rtl' : 'ltr',
-    t(key, vars) {
-      let text: string = WORDS[key][index]
-      for (const [name, v] of Object.entries(vars || {})) text = text.replaceAll(`{${name}}`, typeof v === 'number' ? numbers.format(v) : v)
-      return text
-    },
+    t: (key, vars) => fill(WORDS[key][index], vars, (n) => numbers.format(n)),
     num: (value) => numbers.format(value),
     date: (iso, withTime = true) => (times ??= timeFormatter(lang, zone)).exact(iso, withTime),
     ago: (iso, now) => (times ??= timeFormatter(lang, zone)).ago(iso, now),

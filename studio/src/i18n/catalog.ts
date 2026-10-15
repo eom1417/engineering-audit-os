@@ -144,7 +144,7 @@ export const WORDS = {
   // home
   needCheck: ['تحتاج تحققًا أولًا', 'need a check first'],
   highSeverity: ['شدتها عالية', 'high severity'],
-  problemsCount: ['{n} مشكلة', '{n} problems'],
+  problemsCount: ['{n} {n:مشكلة|مشاكل}', '{n} problems'],
   // change
   today: ['اليوم', 'Today'],
   changeStage: ['التغيير', 'Change'],
@@ -166,7 +166,7 @@ export const WORDS = {
   plannedComponents: ['المكوّنات المخطّطة: لم تُبنَ بعد', 'Planned components: not built yet'],
   responsibility: ['مهمته', 'Its job'],
   filesCount: ['{n} ملف', '{n} files'],
-  findingsCount: ['{n} مشكلة', '{n} findings'],
+  findingsCount: ['{n} {n:مشكلة|مشاكل}', '{n} findings'],
   operation: ['العملية', 'Operation'],
   becomes: ['يصير', 'Becomes'],
   openItsFindings: ['افتح مشاكله ({n})', 'Open its findings ({n})'],
