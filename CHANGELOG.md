@@ -22,6 +22,8 @@
   strip read "waiting" through every batch. A batch is now drawn from its state at each save (`waves.draw`,
   called by `guided.save`): the copy opened, a step per card kept or set aside, the end checks as they are reached
   (`batch_finish._phase`), then its handover, or its stop.
+- **A run's page shows the same numbers at every refresh**: it drew a long run's replayed events one by one (500
+  drawings), so each refresh caught it mid-way, at another count and step; its new events are now drawn together.
 - **Each batch says how it did on the first try**, and a card failing in a second batch is reported as a defect of EAOS,
   not of the project (the ledger counts each card's failed batches).
 - **Moving a complex function in a split keeps its allowance** (`tools/code_limits.py`): it may not grow, but moving it

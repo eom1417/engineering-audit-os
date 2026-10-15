@@ -105,6 +105,8 @@ export interface FollowedRun {
   reload(next?: Run): void
 }
 
+const FLUSH = 120 // ms between two drawings of a run's new events
+
 /** One run and its events, followed live; reopening the page replays every event from the first. */
 export function useRun(id: string): FollowedRun {
   const { client, runs } = useActions()
@@ -120,16 +122,28 @@ export function useRun(id: string): FollowedRun {
   useEffect(() => {
     if (!client) return
     let on = true
+    let pending: RunEvent[] = []
+    let timer = 0
+    // Events are drawn together, at most every FLUSH ms: one by one, a page opened on a long run replayed its 500 events
+    // into 500 drawings, and each refresh showed it mid-way, at another count and step (owner, 2026-10-15).
+    const flush = () => {
+      const got = pending
+      pending = []
+      timer = 0
+      if (!on || !got.length) return
+      setEvents((all) => [...all, ...got])
+      if (got.some((e) => e.kind === 'state' || e.kind === 'question' || e.kind === 'result')) {
+        client.run(id).then((next) => { if (on) setRun(next) }, () => undefined)
+      }
+    }
     client.run(id).then((next) => { if (on) setRun(next) }, () => { if (on) setMissing(true) })
     const stop = client.follow(id, last.current, (event) => {
       if (!on || event.seq <= last.current) return
       last.current = event.seq
-      setEvents((all) => [...all, event])
-      if (event.kind === 'state' || event.kind === 'question' || event.kind === 'result') {
-        client.run(id).then((next) => { if (on) setRun(next) }, () => undefined)
-      }
+      pending.push(event)
+      if (!timer) timer = window.setTimeout(flush, FLUSH)
     }, (next) => { if (on) setStatus(next) })
-    return () => { on = false; stop() }
+    return () => { on = false; window.clearTimeout(timer); stop() }
   }, [client, id, round])
 
   // The list's copy is fresher after an optimistic change made elsewhere (the queue, the inbox)
