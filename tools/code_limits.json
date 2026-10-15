@@ -41,7 +41,6 @@
   "eaos/facts/pipeline_frameworks.py::json_exports": 17,
   "eaos/facts/pipeline_frameworks.py::luigi": 19,
   "eaos/facts/pipeline_frameworks.py::npm_scripts": 17,
-  "eaos/facts/pipeline_read.py::Py.__init__": 22,
   "eaos/facts/resolve.py::_matches": 17,
   "eaos/guided.py::accept": 16,
   "eaos/guided.py::clean": 17,

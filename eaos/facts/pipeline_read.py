@@ -111,25 +111,36 @@ class Py:
             module = rel[:-3].replace('/', '.')
             if module.endswith('.__init__'): module = module[:-9]
             self.modules[module] = rel
-            defs, classes, assigns, imports = {}, {}, {}, {}
-            for node in tree.body:
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)): defs[node.name] = node
-                elif isinstance(node, ast.ClassDef):
-                    classes[node.name] = node
-                    for item in node.body:
-                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)): defs.setdefault(f'{node.name}.{item.name}', item)
-                elif isinstance(node, ast.Assign):
-                    for target in node.targets:
-                        if isinstance(target, ast.Name): assigns[target.id] = node
-                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value is not None:
-                    assigns[node.target.id] = node
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ImportFrom):
-                    base = self._absolute(module, node.module, node.level, rel)
-                    for alias in node.names: imports[alias.asname or alias.name] = (base, alias.name)
-                elif isinstance(node, ast.Import):
-                    for alias in node.names: imports[alias.asname or alias.name.split('.')[0]] = (alias.name, None)
-            self.defs[rel], self.classes[rel], self.assigns[rel], self.imports[rel] = defs, classes, assigns, imports
+            self.defs[rel], self.classes[rel], self.assigns[rel] = self._top_level(tree)
+            self.imports[rel] = self._imports(tree, module, rel)
+
+    @staticmethod
+    def _top_level(tree):
+        """The module's functions (a method as Class.name), classes and module-level values."""
+        defs, classes, assigns = {}, {}, {}
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)): defs[node.name] = node
+            elif isinstance(node, ast.ClassDef):
+                classes[node.name] = node
+                for item in node.body:
+                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)): defs.setdefault(f'{node.name}.{item.name}', item)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name): assigns[target.id] = node
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value is not None:
+                assigns[node.target.id] = node
+        return defs, classes, assigns
+
+    def _imports(self, tree, module, rel):
+        """{local name: (module, name or None)} of every import in the module."""
+        imports = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                base = self._absolute(module, node.module, node.level, rel)
+                for alias in node.names: imports[alias.asname or alias.name] = (base, alias.name)
+            elif isinstance(node, ast.Import):
+                for alias in node.names: imports[alias.asname or alias.name.split('.')[0]] = (alias.name, None)
+        return imports
 
     @staticmethod
     def _absolute(module, name, level, rel):
