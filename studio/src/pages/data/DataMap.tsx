@@ -64,8 +64,8 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
         </pattern>
       </defs>
       <g transform={transform}>
-        <Band x={8} width={BAND - 30} title={w('band_entry')} sub={w('band_known', { k: entry.known, n: total })} />
-        {gapW > 40 && <Band x={gapX} width={gapW} title={w('band_server')} sub={w('band_known', { k: handler.known, n: total })} />}
+        <Band x={8} width={BAND - 30} title={w('band_entry')} sub={w('band_known', { k: entry.known, n: total })} known={total > 0 && entry.known === total} />
+        {gapW > 40 && <Band x={gapX} width={gapW} title={w('band_server')} sub={w('band_known', { k: handler.known, n: total })} known={total > 0 && handler.known === total} />}
         <text className={css.laneTitle} x={BAND + 24} y={22}>{w(mode === 'target' ? 'lane_callerTarget' : 'lane_caller')}</text>
         <text className={css.laneTitle} x={BAND + view.size[0] - 24 - bw} y={22}>{w('lane_store')}</text>
         <g className={css.edges}>
@@ -87,13 +87,14 @@ export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, trans
 
 const KIND_MARK: Record<Store['kind'], string> = { table: '▦', resource: '⇄', bucket: '▤', rpc: 'ƒ', auth: '⚿' }
 
-/** A hatched tier the records do not reach, its title (a line per tier, broken at its arrows, so it fits the band) and
- * how many writes it knows: as tall as its words, not a column down the whole map with nothing in it. */
-function Band({ x, width, title, sub }: { x: number; width: number; title: string; sub: ReactNode }) {
+/** A tier between the lanes, its title (a line per tier, broken at its arrows, so it fits the band) and how many writes
+ * it knows: hatched while the records do not reach it, plain once every write is `known`; as tall as its words, not a
+ * column down the whole map with nothing in it. */
+function Band({ x, width, title, sub, known }: { x: number; width: number; title: string; sub: ReactNode; known: boolean }) {
   const lines = title.split(/\s*[←→]\s*/)
   return (
     <>
-      <rect className={css.band} x={x} y={HEAD - 8} width={width} height={56 + 16 * (lines.length - 1)} rx={10} fill="url(#dp-hatch)" />
+      <rect className={known ? css.bandKnown : css.band} x={x} y={HEAD - 8} width={width} height={56 + 16 * (lines.length - 1)} rx={10} fill={known ? undefined : 'url(#dp-hatch)'} />
       <text className={css.bandTitle} y={HEAD + 18} textAnchor="middle">
         {lines.map((line, i) => <tspan key={i} x={x + width / 2} dy={i ? 16 : 0}>{line}</tspan>)}
       </text>

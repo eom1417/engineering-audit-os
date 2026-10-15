@@ -46,6 +46,7 @@
 .hatchBg { fill: var(--bg-sunken); }
 .hatchFg { fill: var(--border-default); }
 .band { stroke: var(--border-subtle); stroke-dasharray: 4 3; opacity: .9; }
+.bandKnown { fill: var(--accent-subtle); stroke: var(--accent-solid); }
 .bandTitle { font-size: 12px; font-weight: 600; fill: var(--text-secondary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 4px; stroke-linejoin: round; }
 .bandSub { font-size: 11px; fill: var(--text-tertiary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 4px; stroke-linejoin: round; font-variant-numeric: tabular-nums; }
 .laneTitle { font-size: 12px; font-weight: 600; fill: var(--text-tertiary); }
