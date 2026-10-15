@@ -16,7 +16,6 @@
   "eaos/aspects.py::_structure": 18,
   "eaos/blueprint.py::choose_stack": 18,
   "eaos/blueprint.py::page": 24,
-  "eaos/blueprint.py::validate_spec": 60,
   "eaos/c4.py::_target_diagram": 17,
   "eaos/compose/four_reports.py::current_state": 29,
   "eaos/compose/four_reports.py::target_state": 25,
