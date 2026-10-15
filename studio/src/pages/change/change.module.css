@@ -1,6 +1,7 @@
 /* Change: the section's links, the Bridge (sankey and transfer list), the gap register, the plan board and the detail
    pages. Operation hues are the reserved --op-* tokens; every coloured mark also has its word. */
 .muted { color: var(--text-tertiary); }
+.quiet { color: var(--text-tertiary); font-size: 12px; font-weight: 400; }
 .count { color: var(--text-secondary); font-size: 14px; }
 .kicker { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 

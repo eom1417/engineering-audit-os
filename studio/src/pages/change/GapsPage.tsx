@@ -94,7 +94,7 @@ function RegisterBody({ data }: { data: StudioData }) {
                 <RowLink to={`/change/gaps/${encodeURIComponent(g.id)}`} chevron={false}
                   title={<Id value={g.component} keep={3} />}
                   sub={<span className={css.rowSub}><OperationChip relation={RELATION_OF[g.operation]} to={g.to} /><Closure gap={g} /></span>}
-                  end={<span className={css.muted}>{w('filesN', { n: g.files })}</span>} />
+                  end={<span className={css.quiet}>{w('filesN', { n: g.files })}</span>} />
               )} />
             </Panel>
           ) : <Panel><GapTable gaps={shown} /></Panel>}
