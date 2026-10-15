@@ -79,9 +79,6 @@
 .mix i { display: block; min-inline-size: 3px; }
 
 /* The gap register */
-.filter { display: inline-flex; align-items: center; min-block-size: var(--control-h); padding-inline: 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); font-size: 13px; font-weight: 500; color: var(--text-secondary); }
-.filter:hover { background: var(--bg-hover); }
-.filter[aria-current="page"] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); }
 .tableBox { overflow-x: auto; }
 .table { inline-size: 100%; border-collapse: collapse; font-size: 13px; }
 .table th, .table td { padding: 6px 12px; text-align: start; vertical-align: middle; border-block-end: 1px solid var(--border-subtle); }
@@ -147,7 +144,6 @@
   .metaLine { display: grid; grid-template-columns: repeat(2, max-content); }
   .nav { inline-size: 100%; }
   .navLink { flex: 1; min-block-size: var(--target); padding-inline: 6px; }
-  .filter { min-block-size: var(--target); }
   .stepRow { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .title { font-size: 24px; }
 }

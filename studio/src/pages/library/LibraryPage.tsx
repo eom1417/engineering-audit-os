@@ -68,9 +68,9 @@ function LibraryBody({ data }: { data: StudioData }) {
         <SearchField label={w('searchDocs')} placeholder={w('searchPlaceholder')} value={query} onChange={setQuery} />
         {!query && (
           <nav className="strip" aria-label={w('groupFilter')}>
-            <Go to="/library/docs" className={css.groupChip} current={!search.group}>{w('allGroups')} <N value={docs.length} /></Go>
+            <Go to="/library/docs" current={!search.group}>{w('allGroups')} <N value={docs.length} /></Go>
             {groups.map(([group, rows]) => (
-              <Go key={group} to="/library/docs" search={{ group }} className={css.groupChip} current={search.group === group}>
+              <Go key={group} to="/library/docs" search={{ group }} current={search.group === group}>
                 {groupWord(w, group)} <N value={rows.length} />
               </Go>
             ))}

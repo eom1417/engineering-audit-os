@@ -1,12 +1,4 @@
 /* The System maps' tabs: one row of links, 44px tall on the phone, scrolling sideways when they do not fit. */
-.views { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-inline-size: 0; }
-.views::-webkit-scrollbar { display: none; }
-.view {
-  display: inline-flex; align-items: center; min-block-size: 44px; padding-inline: 12px; border-radius: var(--radius-full);
-  cursor: pointer; font-size: 13px; color: var(--text-secondary); white-space: nowrap; border: 1px solid transparent;
-}
-.view:hover { background: var(--bg-hover); color: var(--text-primary); }
-.on { background: var(--accent-subtle); color: var(--accent-text); font-weight: 500; border-color: var(--accent-subtle); }
 
 /* the "show hidden" switch */
 .switch { display: inline-flex; align-items: center; gap: 8px; min-block-size: 28px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
@@ -19,8 +11,6 @@
 .switch:focus-visible .track { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 @media (max-width: 767px) {
-  .views { mask-image: linear-gradient(to right, transparent, currentColor 20px, currentColor calc(100% - 20px), transparent); padding-inline: 12px; }
-  .view { min-block-size: 44px; padding-inline: 14px; }
   .switch { min-block-size: 44px; font-size: 15px; }
   .track { inline-size: 40px; block-size: 24px; }
   .thumb { inline-size: 18px; block-size: 18px; }

@@ -34,11 +34,10 @@ export function SystemViews({ current, persistent = false }: { current: string; 
   if (!persistent) return null
   const select = (v: SystemView) => navigate({ to: v.to, search: remembered.current[v.id] ?? v.search ?? {}, replace: true })
   return (
-    <nav ref={nav} className={css.views} role="tablist" aria-label={w('systemViews')}>
+    <nav ref={nav} className="strip" role="tablist" aria-label={w('systemViews')}>
       {SYSTEM_VIEWS.map((v, index) => (
         <button key={v.id} id={`system-tab-${v.id}`} type="button" role="tab" aria-selected={v.id === current} aria-controls="system-workspace-panel"
           tabIndex={v.id === current ? 0 : -1}
-          className={[css.view, v.id === current && css.on].filter(Boolean).join(' ')}
           onClick={() => select(v)} onKeyDown={(event) => {
             const rtl = document.documentElement.dir === 'rtl'
             const next = event.key === 'Home' ? 0 : event.key === 'End' ? SYSTEM_VIEWS.length - 1

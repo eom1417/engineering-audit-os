@@ -33,18 +33,10 @@
 
 /* the filter sheet */
 .facet { display: flex; flex-direction: column; gap: 8px; }
-.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
-.toggle {
-  display: inline-flex; align-items: center; gap: 8px; min-block-size: 32px; padding-inline: 12px; border-radius: var(--radius-full);
-  border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; cursor: pointer; max-inline-size: 100%;
-}
-.toggle[data-hovered] { background: var(--bg-hover); color: var(--text-primary); }
-.toggle[data-selected] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); font-weight: 500; }
-.toggle[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .toggleText { min-inline-size: 0; overflow-wrap: anywhere; }
 .toggleCount { color: var(--text-tertiary); font-size: 12px; }
-.toggle[data-selected] .toggleCount { color: var(--accent-text); }
-.zero:not([data-selected]) { border-style: dashed; color: var(--text-tertiary); }
+.zero:not([data-selected]) { border-color: var(--border-default); border-style: dashed; color: var(--text-tertiary); }
+[data-selected] .toggleCount { color: var(--accent-text); }
 
 /* the detail */
 .why { font-size: 15px; line-height: 1.7; max-inline-size: 70ch; }
@@ -77,7 +69,6 @@
 .sites > li + li { border-block-start: 1px solid var(--border-subtle); }
 
 @media (max-width: 767px) {
-  .toggle { min-block-size: 44px; }
   .inlineLink { min-block-size: 44px; min-inline-size: 44px; justify-content: center; }
   .filterBar > * { min-block-size: 44px; }
   .groupHead { padding-inline: var(--page-pad); }

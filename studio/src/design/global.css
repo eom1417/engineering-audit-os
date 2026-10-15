@@ -37,12 +37,23 @@ kbd { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary
   *, *::before, *::after { animation-duration: 0ms !important; transition-duration: 0ms !important; }
 }
 
-/* A row of filter chips: one line that slides sideways when it does not fit, fading at its edges on the phone, as the
-   System maps' tabs do. Chips wrapped onto three or four lines read as clutter (owner, 2026-10-15). */
-.strip { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; min-inline-size: 0;
+/* A row of filters: the System maps' tabs, everywhere. One line that slides sideways when it does not fit (fading at its
+   edges on the phone); each item plain text in a pill with no outline, a light highlight on hover, and the chosen one
+   on the accent. Outlined pills wrapped over four lines read as clutter (owner, 2026-10-15). */
+.strip { display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; min-inline-size: 0;
   overscroll-behavior-inline: contain; scroll-snap-type: x proximity; }
 .strip::-webkit-scrollbar { display: none; }
-.strip > * { flex: none; white-space: nowrap; scroll-snap-align: start; }
+.strip > a, .strip > button {
+  display: inline-flex; flex: none; align-items: center; gap: 6px; min-block-size: 44px; padding-inline: 12px; scroll-snap-align: start;
+  border: 1px solid transparent; border-radius: var(--radius-full); background: none; color: var(--text-secondary);
+  font-size: 13px; white-space: nowrap; cursor: pointer;
+}
+.strip > a:hover, .strip > button:hover { background: var(--bg-hover); color: var(--text-primary); }
+.strip > [aria-current="page"], .strip > [aria-pressed="true"], .strip > [aria-selected="true"], .strip > [data-selected] {
+  background: var(--accent-subtle); border-color: var(--accent-subtle); color: var(--accent-text); font-weight: 500;
+}
+.strip .num { color: inherit; opacity: 0.7; }
 @media (max-width: 767px) {
   .strip { mask-image: linear-gradient(to right, transparent, currentColor 16px, currentColor calc(100% - 16px), transparent); padding-inline: 12px; }
+  .strip > a, .strip > button { padding-inline: 14px; }
 }

@@ -25,9 +25,9 @@ function Filter({ gaps, chosen }: { gaps: Gap[]; chosen?: ChangeOp }) {
   const { t } = usePrefs()
   return (
     <nav aria-label={w('byOperation')} className="strip">
-      <Go to="/change/gaps" className={css.filter} current={!chosen}>{w('allOps', { n: gaps.length })}</Go>
+      <Go to="/change/gaps" current={!chosen}>{w('allOps', { n: gaps.length })}</Go>
       {opsMix(gaps).map(([op, n]) => (
-        <Go key={op} to="/change/gaps" search={{ relation: op }} className={css.filter} current={chosen === op}>
+        <Go key={op} to="/change/gaps" search={{ relation: op }} current={chosen === op}>
           {w('opCount', { op: t(OP_LABEL[op]), n })}
         </Go>
       ))}

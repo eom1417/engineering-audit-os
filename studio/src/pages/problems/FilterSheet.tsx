@@ -15,7 +15,7 @@ const FIRST = 12   // a facet with many values (components) shows this many, the
 
 export function Toggle({ selected, onChange, children, label, zero }:
   { selected: boolean; onChange: (on: boolean) => void; children: React.ReactNode; label?: string; zero?: boolean }) {
-  return <ToggleButton isSelected={selected} onChange={onChange} className={[css.toggle, zero && css.zero].filter(Boolean).join(' ')} aria-label={label}>{children}</ToggleButton>
+  return <ToggleButton isSelected={selected} onChange={onChange} className={zero ? css.zero : undefined} aria-label={label}>{children}</ToggleButton>
 }
 
 function FacetBlock({ facet, values, chosen, onChange }:
@@ -29,7 +29,7 @@ function FacetBlock({ facet, values, chosen, onChange }:
   return (
     <section className={css.facet} aria-labelledby={`facet-${facet}`}>
       <SheetSub><span id={`facet-${facet}`}>{w(`facet_${facet}`)}</span></SheetSub>
-      <div className={css.toggles} role="group" aria-labelledby={`facet-${facet}`}>
+      <div className="strip" role="group" aria-labelledby={`facet-${facet}`}>
         {shown.map(({ value, count }) => {
           const on = chosen.includes(value)
           return (
@@ -56,7 +56,7 @@ export function FilterSheet({ open, onOpenChange, facets, chosen, group, onFacet
     <Sheet isOpen={open} onOpenChange={onOpenChange} title={w('filtersTitle')}>
       <section className={css.facet} aria-labelledby="facet-group">
         <SheetSub><span id="facet-group">{w('groupBy')}</span></SheetSub>
-        <div className={css.toggles} role="group" aria-labelledby="facet-group">
+        <div className="strip" role="group" aria-labelledby="facet-group">
           <Toggle selected={group === null} onChange={() => onGroup(null)}>{w('groupNone')}</Toggle>
           {GROUPS.map((g) => <Toggle key={g} selected={group === g} onChange={() => onGroup(g)}>{w(`group_${g}`)}</Toggle>)}
         </div>
