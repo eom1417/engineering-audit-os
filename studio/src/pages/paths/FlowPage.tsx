@@ -8,13 +8,13 @@ import { Button, IconButton } from '../../components/Button'
 import { Segmented, WordSwitch } from '../../components/Controls'
 import { Go } from '../../components/Go'
 import { Icon } from '../../components/Icon'
-import { Panel, Section, Skeleton, StateMessage } from '../../components/Panel'
+import { Panel, Section, Skeleton } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
 import { Id } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
-import { MissingBanner, WithData } from '../../shell/Layout'
+import { MissingBanner, NotHere, WithData } from '../../shell/Layout'
 import { useSearchPatch } from '../../shell/search'
 import { usePhone } from '../SystemMap'
 import { drawPath } from './draw'
@@ -229,7 +229,7 @@ function FlowBody({ data }: { data: StudioData }) {
     return (
       <Titled data={data}>
         <div className={css.phone}>
-          <Panel><StateMessage title={w('pathMissing')} action={<Go to="/system/paths" className={css.back}><Icon name="back" />{w('allPaths')}</Go>} /></Panel>
+          <NotHere title={w('pathMissing')} sub={w('pathMissingSub')} back="/system/paths" label={w('allPaths')} />
         </div>
       </Titled>
     )

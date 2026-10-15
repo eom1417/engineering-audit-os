@@ -96,6 +96,7 @@ export const PATH_WORDS = {
     'The paths are built from the scan: its entries, calls and traces. Check the project again with a newer EAOS to see them.'],
   pathsEmpty: ['لم يجد EAOS مدخلًا يمكن تتبّعه في هذا المشروع.', 'EAOS found no entry it could trace in this project.'],
   pathMissing: ['هذا المسار غير موجود في هذا الفحص', 'This path is not in this check'],
+  pathMissingSub: ['ربما تغيّر المسار بعد الفحص الذي كُتب فيه الرابط. افتح قائمة المسارات.', 'The path may have changed since the check the link was written for. Open the list of paths.'],
   capped: ['و{n} نداء آخر لم يُرسم', 'and {n} more calls not drawn'],
   sourceOrder: ['الترتيب ترتيب الكود، لا دليل على ترتيب التشغيل.', 'The order is the source order, not proof of the run order.'],
   legendLinks: ['الروابط', 'Links'],
