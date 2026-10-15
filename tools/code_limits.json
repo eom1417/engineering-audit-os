@@ -63,7 +63,6 @@
   "eaos/human_report.py::work_log": 19,
   "eaos/ledger.py::sync": 17,
   "eaos/live_setup.py::detect": 19,
-  "eaos/live_setup.py::verify": 33,
   "eaos/menu.py::_check_order": 17,
   "eaos/nfr.py::dependencies": 19,
   "eaos/plan.py::_cards_record": 21,

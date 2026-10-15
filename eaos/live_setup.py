@@ -326,6 +326,27 @@ def empty_state(page, unset):
             + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
 
 
+def _probe(live, base, state, report):
+    """What the probe saw of the first page and a few screens."""
+    script = live.sandbox.copy / '.eaos-probe.cjs'
+    script.write_text(PROBE, encoding='utf-8')
+    code, out, err = live.run(['node', str(script)], timeout=600, env={
+        'BASE_URL': base, 'EAOS_STORAGE_STATE': str(state) if state.is_file() else '',
+        'EAOS_ROUTES': json.dumps(routes(report))})
+    return json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
+
+
+def _failure(page, empty):
+    """Why the page is no working app, '' when it is one."""
+    bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400]
+    if signed_out(page): return 'the first page asks for a sign-in'
+    if stuck(page):
+        return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
+                'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
+    if bad: return f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}"
+    return empty
+
+
 def verify(project, runtime, attempt, report=None, mode='lock'):
     """Run the draft: install (and, for the baseline, build), start, seed, open the first page and a few screens.
     {'ok', 'page', 'fixtures', 'failure'}"""
@@ -343,22 +364,12 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         if state.exists(): state.unlink()
         record['fixtures'] = dict(live.seed(base, state))
         record['seed_output'] = getattr(live, 'seed_output', '')
-        script = live.sandbox.copy / '.eaos-probe.cjs'
-        script.write_text(PROBE, encoding='utf-8')
-        code, out, err = live.run(['node', str(script)], timeout=600, env={
-            'BASE_URL': base, 'EAOS_STORAGE_STATE': str(state) if state.is_file() else '',
-            'EAOS_ROUTES': json.dumps(routes(report))})
-        page = json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
-        record['page'] = page
-        bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400]
+        page = record['page'] = _probe(live, base, state, report)
         names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
         empty = '' if mode == 'baseline' else empty_state(page, [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV'])
-        record['ok'] = not bad and not signed_out(page) and not stuck(page) and not empty
-        if not record['ok']:
-            record['failure'] = ('the first page asks for a sign-in' if signed_out(page) else empty if not bad and not stuck(page) and empty else
-                                 'every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
-                                 'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600] if stuck(page) else
-                                 f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}")
+        failure = _failure(page, empty)
+        record['ok'] = not failure
+        if failure: record['failure'] = failure
     except Exception as problem:            # a failed start is the evidence the assistant needs, not a crash
         record['ok'] = False
         record['failure'] = f'{type(problem).__name__}: {problem}'[-2500:]
