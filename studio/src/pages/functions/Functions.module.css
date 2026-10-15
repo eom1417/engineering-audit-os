@@ -30,9 +30,9 @@
 .levelDot { inline-size: 8px; block-size: 8px; border-radius: var(--radius-full); background: var(--status-good); flex: none; }
 .watch .levelDot { background: var(--status-warning); }
 .high { color: var(--status-serious-text); font-weight: 500; }
-.high .levelDot { background: var(--status-serious); }
+.high .levelDot { background: color-mix(in srgb, var(--status-critical) calc(var(--over, 0) * 100%), var(--status-serious)); }
 .levelNone { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
-.cardsBadge { font-size: 11px; padding: 1px 8px; border-radius: var(--radius-full); background: var(--status-critical-subtle); color: var(--status-critical-text); white-space: nowrap; }
+.cardsBadge { font-size: 11px; padding: 1px 8px; border-radius: var(--radius-full); background: var(--bg-sunken); color: var(--text-secondary); white-space: nowrap; }
 
 .langs { display: flex; flex-direction: column; }
 .lang { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name n" "state state"; gap: 2px 12px; padding-block: 8px; align-items: center; }
