@@ -249,7 +249,6 @@ function Notes({ picture, list, picked, onPick }: { picture: Picture; list: (Pag
  * picture and explained beside it; the picture opens large. */
 function PageCard({ page }: { page: PicturedPage }) {
   const w = useScreenWords()
-  const phone = usePhone()
   const pictures = useMemo(() => [...page.pictures].sort((a, b) => (a.width ?? 0) - (b.width ?? 0)), [page])
   const [at, setAt] = useState(0)
   const [picked, setPicked] = useState<number>()
@@ -278,8 +277,7 @@ function PageCard({ page }: { page: PicturedPage }) {
           <Marked key={picture.path} picture={picture} list={list} picked={picked} onPick={pick} onOpen={() => setLarge(true)} />
           <Button variant="ghost" icon="eye" onPress={() => setLarge(true)}>{w('openLarge')}</Button>
         </div>
-        {phone ? <details className={css.checks}><summary>{w('issuesN', { n: found })}</summary><Notes picture={picture} list={list} picked={picked} onPick={pick} /></details>
-          : <Notes picture={picture} list={list} picked={picked} onPick={pick} />}
+        <Notes picture={picture} list={list} picked={picked} onPick={pick} />
       </div>
       <Sheet isOpen={large} onOpenChange={setLarge} title={`${page.path} · ${viewportWord(w, picture)} · ${w('issuesN', { n: found })}`}>
         <div className={css.largeBody}>
