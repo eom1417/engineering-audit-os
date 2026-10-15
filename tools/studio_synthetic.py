@@ -240,36 +240,46 @@ def synthetic_pipeline(stages=1000, width=8):
             'src': {'pipeline': 'synthetic'}}
 
 
+# What a node's synthetic run says: decided by an assistant (True) or by the rules alone (False).
+NODE_RUNS = {True: {'state': 'decided', 'method': 'model', 'assistant': 'Claude Code', 'model': 'synthetic', 'seconds': 420.0,
+                    'cost_usd': 1.2, 'why': None},
+             False: {'state': 'rules_only', 'method': 'rules', 'assistant': None, 'model': None, 'seconds': 0.1, 'cost_usd': None,
+                     'why': 'No assistant is installed and logged in here, so the rules decided alone.'}}
+CHOICES = ('confirm', 'confirm', 'confirm', 'doubt', 'reject')
+
+
+def _synthetic_decisions(node, card_rows, model):
+    """The assistant's decision on each of 500 cards, each citing its card; or the rules' one decision."""
+    shared = {'options': [r.decision for r in node.routes][:-1], 'open_questions': [], 'detail': {}}
+    if model:
+        return [{'subject': c['id'], 'decision': CHOICES[i % 5], 'evidence': [c['id']], 'confidence': 0.8, 'why': 'Its evidence shows it.',
+                 'source': 'model', **shared} for i, c in enumerate(card_rows[:500])]
+    return [{'subject': 'plan' if node.name == 'plan_orderer' else node.name, 'decision': 'rules only', 'evidence': ['RULE-plan-order'],
+             'confidence': 0.5, 'why': 'The rules decided alone.', 'source': 'rules', **shared}]
+
+
+def _synthetic_node(node, card_rows):
+    from eaos.studio import nodes
+    from eaos.studio.nodes import view
+    model = node.name == 'card_triage'
+    run, decisions, taken = NODE_RUNS[model], _synthetic_decisions(node, card_rows, model), {}
+    for d in decisions: taken[d['decision']] = taken.get(d['decision'], 0) + 1
+    return {'id': node.name, 'title': {'en': node.title, 'ar': nodes.TITLES_AR[node.name]}, 'kind': 'ai', 'passes': list(node.passes),
+            'requires': list(node.requires),
+            'routes': [{'decision': r.decision, 'to': r.to, 'when': {'en': r.when, 'ar': view.WHEN_AR[(node.name, r.decision)]},
+                        'subjects': taken.get(r.decision, 0)} for r in node.routes],
+            **run, 'at': WHEN, 'cached': False, 'summary': None, 'decisions': decisions,
+            'dropped': [{'subject': card_rows[i]['id'], 'decision': 'confirm', 'evidence': ['FACT-invented'],
+                         'why': 'no evidence id resolves to a fact, claim, card or rule of this report'} for i in range(3)] if model else [],
+            'log': [{'at': WHEN, 'state': run['state'], 'assistant': run['assistant'], 'model': run['model'],
+                     'prompt': 'synthetic' if model else None, 'inputs': 'synthetic', 'cached': False, 'seconds': 1.0, 'cost_usd': None}]}
+
+
 def synthetic_nodes(card_rows):
     """studio/nodes.json at scale: every declared AI node, the card triage decided by an assistant on 500 cards (each
     citing its own card), a few dropped, the others decided by the rules alone, each with its run log."""
     from eaos.studio import nodes
-    from eaos.studio.nodes import view
-    choices = ('confirm', 'confirm', 'confirm', 'doubt', 'reject')
-    rows = []
-    for node in nodes.NODES:
-        model = node.name == 'card_triage'
-        subjects = [c['id'] for c in card_rows[:500]] if model else ['plan' if node.name == 'plan_orderer' else node.name]
-        decisions = [{'subject': s, 'decision': choices[i % 5] if model else 'rules only', 'options': [r.decision for r in node.routes][:-1],
-                      'evidence': [s] if model else ['RULE-plan-order'], 'confidence': 0.8 if model else 0.5,
-                      'why': 'Its evidence shows it.' if model else 'The rules decided alone.', 'open_questions': [],
-                      'source': 'model' if model else 'rules', 'detail': {}} for i, s in enumerate(subjects)]
-        taken = {}
-        for d in decisions: taken[d['decision']] = taken.get(d['decision'], 0) + 1
-        rows.append({'id': node.name, 'title': {'en': node.title, 'ar': nodes.TITLES_AR[node.name]}, 'kind': 'ai', 'passes': list(node.passes),
-                     'requires': list(node.requires),
-                     'routes': [{'decision': r.decision, 'to': r.to, 'when': {'en': r.when, 'ar': view.WHEN_AR[(node.name, r.decision)]},
-                                 'subjects': taken.get(r.decision, 0)} for r in node.routes],
-                     'state': 'decided' if model else 'rules_only', 'method': 'model' if model else 'rules',
-                     'assistant': 'Claude Code' if model else None, 'model': 'synthetic' if model else None, 'at': WHEN, 'cached': False,
-                     'seconds': 420.0 if model else 0.1, 'cost_usd': 1.2 if model else None,
-                     'why': None if model else 'No assistant is installed and logged in here, so the rules decided alone.',
-                     'summary': None, 'decisions': decisions,
-                     'dropped': [{'subject': card_rows[i]['id'], 'decision': 'confirm', 'evidence': ['FACT-invented'],
-                                  'why': 'no evidence id resolves to a fact, claim, card or rule of this report'} for i in range(3)] if model else [],
-                     'log': [{'at': WHEN, 'state': 'decided' if model else 'rules_only', 'assistant': 'Claude Code' if model else None,
-                              'model': 'synthetic' if model else None, 'prompt': 'synthetic' if model else None, 'inputs': 'synthetic',
-                              'cached': False, 'seconds': 1.0, 'cost_usd': None}]})
+    rows = [_synthetic_node(node, card_rows) for node in nodes.NODES]
     count = lambda value: measure(value, 'synthetic')
     return {**V2, 'nodes': rows, 'sinks': [{'id': k, 'title': {'en': en, 'ar': ar}} for k, (en, ar) in nodes.SINKS.items()], 'questions': [],
             'counts': {'nodes': count(len(rows)), 'ran': count(len(rows)), 'by_model': count(1),
