@@ -119,7 +119,6 @@
   "eaos/studio/system.py::_target_view": 29,
   "eaos/system_map.py::_edges": 18,
   "eaos/system_map.py::_link_callers": 18,
-  "eaos/system_map.py::_related": 18,
   "eaos/system_map.py::component_file": 18,
   "eaos/target_architecture.py::_adr": 21,
   "eaos/target_architecture.py::_decide_current": 16,

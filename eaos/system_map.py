@@ -524,10 +524,13 @@ def _related(view, reach):
         hs = [x for x in m['handlers'] if x in reach.handler_of]
         related[m['id']] = {m['id']} | holds.get(m['id'], set()) | {x for h in hs for x in {h} | reach.above(reach.handler_of[h]['apis'])}
     for d in cols['data']:
-        hs = [h for h in cols['handlers'] if d['id'] in reach.below_handler(h['id'])]
-        related[d['id']] = {d['id']} | {m for m, ds in holds.items() if d['id'] in ds} | {
-            x for h in hs for x in {h['id']} | reach.above(h['apis'])}
+        related[d['id']] = _data_related(d, cols['handlers'], holds, reach)
     return {k: sorted(v & view['ids']) for k, v in related.items()}
+
+
+def _data_related(d, handlers, holds, reach):
+    hs = [h for h in handlers if d['id'] in reach.below_handler(h['id'])]
+    return {d['id']} | {m for m, ds in holds.items() if d['id'] in ds} | {x for h in hs for x in {h['id']} | reach.above(h['apis'])}
 
 
 def _common(paths):
