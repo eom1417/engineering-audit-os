@@ -7,6 +7,16 @@ import { usePrefs } from './prefs'
 // of numbers joined by punctuation ("1 · 3 · 35", "1–47")
 const RUN = /`([^`]+)`|([A-Za-z][\w.\-/:@]*(?:,?[ ][A-Za-z][\w.\-/:@]*)*)|(\d+(?:\s?[·–\-/:]\s?\d+)+)/g
 
+// A run that names code: a path, a file, an identifier written in snake_case or camelCase
+const CODE = /[/_]|\.\w|[a-z][A-Z]/
+
+/** A Latin run in its own direction: a name of code in the identifiers' font (the sentence keeps it, in another font),
+ * other words as they are; the punctuation closing it stays with the sentence. */
+function latin(run: string, at: number): ReactNode[] {
+  const word = run.replace(/[:.]+$/, '')
+  return [CODE.test(word) ? <Id key={at} value={word} /> : <bdi key={at} dir="ltr">{word}</bdi>, run.slice(word.length)]
+}
+
 export function isolate(text: string): ReactNode[] {
   const out: ReactNode[] = []
   let last = 0
@@ -14,7 +24,7 @@ export function isolate(text: string): ReactNode[] {
     const at = match.index ?? 0
     if (at > last) out.push(text.slice(last, at))
     if (match[1] !== undefined) out.push(<Id key={at} value={match[1]} />)
-    else out.push(<bdi key={at} dir="ltr">{match[0]}</bdi>)
+    else out.push(...latin(match[0], at))
     last = at + match[0].length
   }
   if (last < text.length) out.push(text.slice(last))
