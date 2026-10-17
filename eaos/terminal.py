@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 from . import govern, guided
+from .mcp_server import refuse_in_studio_run
 from .govern import WORDS, text_of, words
 from .studio.actions.store import ACTIVE, TERMINAL, contract
 
@@ -66,7 +67,7 @@ def _project(args):
 
 def agreed(project, name, text, yes):
     """The person's yes to `text`, asked now (each time, never kept from before); refused inside a Studio run."""
-    govern.refuse_in_studio_run(name)
+    refuse_in_studio_run(name)
     state = guided.load(project)
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != f'agree_{name}']
     return guided.ask(state, f'agree_{name}', text, yes)
@@ -118,7 +119,7 @@ def _ask_inline(project, question, lang):
     if not sys.stdin.isatty(): return
     choice = input(words('ask', lang, options=', '.join(o['id'] for o in question.get('options') or []))).strip()
     if choice:
-        govern.refuse_in_studio_run('answer')
+        refuse_in_studio_run('answer')
         say('   ' + words('answered' if govern.answer(project, question['id'], choice)['status'] == 'answered' else 'handed', lang, id=question['id']))
 
 
@@ -188,7 +189,7 @@ def waiting(args, lang):
 
 @command
 def answer(args, lang):
-    govern.refuse_in_studio_run('answer')
+    refuse_in_studio_run('answer')
     done = govern.answer(args.project, args.id, args.option, args.text, args.assistant)
     guided.box(lang, words('answered' if done['status'] == 'answered' else 'handed', lang, id=args.id), commands=['eaos watch', 'eaos waiting'])
 
@@ -242,7 +243,7 @@ def _show_preview(shown, lang):
 def act(args, lang):
     """fix, verify, explain or plan: the preview printed, the person's yes for a Fix (it changes code), then the run."""
     project, verb, auto = _project(args), args.command, bool(getattr(args, 'auto_accept', False))
-    if auto: govern.refuse_in_studio_run('auto_accept')
+    if auto: refuse_in_studio_run('auto_accept')
     shown = govern.verb_preview(project, verb, govern.selection_of(args.ids, args.group), auto, args.assistant)
     _show_preview(shown, lang)
     label = text_of(contract_verb(verb)['label'], lang)
@@ -270,7 +271,7 @@ def decide(args, lang, operation):
     way when a run handed it over (the run records it), else the assistant's tool."""
     from . import agent_tools
     from .batch_branch import waiting_batch
-    govern.refuse_in_studio_run(operation)
+    refuse_in_studio_run(operation)
     actions = govern.core(args.project)
     state = guided.current(args.project)
     guided.reconcile(state)
@@ -391,3 +392,7 @@ def usage(args, lang):
 def govern_host(args):
     """`eaos govern`: the headless host the commands wake (eaos/govern.py host)."""
     return govern.host(args.project, (args.answer, args.option, args.text) if args.answer else None)
+
+
+guided.TERMINAL['check'] = check                # eaos start --path/--mode: the check, followed (registered here: see guided)
+guided.COMMANDS.update(accept=accept, undo=undo)

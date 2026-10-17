@@ -6,6 +6,7 @@ given ANSWER_SECONDS or more after the question was listed; `branch_change` and 
 `person_agreed` and the confirm token of the preview the person saw. Inside a Studio run all of them are refused.
 """
 from . import govern
+from .mcp_server import refuse_in_studio_run
 
 RUN_FIELDS = ('id', 'label', 'state', 'action', 'verb', 'cards', 'created', 'started', 'ended', 'position', 'question', 'outcome')
 PREVIEW_FIELDS = ('verb', 'selection', 'cards', 'left_out', 'files', 'batches', 'estimate', 'risk', 'on_failure', 'auto_accept')
@@ -44,14 +45,14 @@ def waiting_op(op, id=None, option=None, text=None, person_said='', project=None
                 'recommendation and why) and end your turn; answer with op=answer and person_said = their reply. A branch is '
                 'taken in with accept or thrown away with undo, only after their yes.' if rows else 'Nothing waits for the person.'}
     if op != 'answer': raise ValueError('op is one of list, answer')
-    govern.refuse_in_studio_run('answer')
+    refuse_in_studio_run('answer')
     why = govern.heard(id, person_said)
     if why: return _needs(why, 'The person answers, not you: ask them and end your turn; then answer with person_said = their reply.')
     return govern.answer(project, id, option, text)
 
 
 def act_op(verb, ids=None, group=None, op='preview', confirm=None, auto_accept=False, person_agreed=False, assistant=None, project=None):
-    if auto_accept: govern.refuse_in_studio_run('auto_accept')
+    if auto_accept: refuse_in_studio_run('auto_accept')
     if op == 'start' and auto_accept and not person_agreed: return _needs('accepting by itself is the person\'s decision', ASK)
     preview = govern.verb_preview(project, verb, govern.selection_of(ids, group), auto_accept, assistant)
     if op == 'preview':
@@ -73,7 +74,7 @@ def history_op(op='list', a=None, b=None, project=None):
 
 def branch_op(op, name=None, target=None, confirm=None, confirm_unmerged=None, person_agreed=False, project=None):
     if op not in (*govern.BRANCH_OPS, 'restore'): raise ValueError('op is one of merge, delete, protect, unprotect, cleanup, restore')
-    govern.refuse_in_studio_run('branches ' + {'unprotect': 'protect'}.get(op, op))
+    refuse_in_studio_run('branches ' + {'unprotect': 'protect'}.get(op, op))
     if op == 'restore':
         return govern.restore(project, name) if person_agreed else _needs('restoring is the person\'s decision', 'Ask them; only after their yes, call again with person_agreed=true.')
     preview = govern.branch_preview(project, op, name, target)
@@ -132,3 +133,10 @@ def register(server, reading, working, answer):
     def branch_change(op: str, name: str | None = None, target: str | None = None, confirm: str | None = None,
                       confirm_unmerged: str | None = None, person_agreed: bool = False, project: str | None = None) -> str:
         return branch_op(op, name, target, confirm, confirm_unmerged, person_agreed, project)
+
+
+def main():
+    """`eaos mcp`: the server with every tool, these included."""
+    from .mcp_server import build
+    build(register).run('stdio')
+    return 0

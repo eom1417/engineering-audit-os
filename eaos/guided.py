@@ -999,18 +999,6 @@ def fix(state, args):
     return 0
 
 
-def accept(args):
-    """Take the waiting batch into the project, after saying what will happen and the person's yes (eaos/terminal.py)."""
-    from .terminal import accept as decide
-    return decide(args)
-
-
-def undo(args):
-    """Throw the waiting batch away, after saying what will happen and the person's yes (eaos/terminal.py)."""
-    from .terminal import undo as decide
-    return decide(args)
-
-
 def show(args):
     """The "Start here" page, printed: what was found, in plain words."""
     state = current(args.project)
@@ -1099,8 +1087,7 @@ def start(args):
     if _missing_first(project, lang): return 1
     watch(state, args)
     if not (getattr(args, 'path', None) or getattr(args, 'mode', None)): return advance(state, args)
-    from .terminal import check                 # asked: a check now, the one `eaos check` starts, followed here
-    return check(args)
+    return TERMINAL['check'](args)              # asked: a check now, the one `eaos check` starts, followed here
 
 
 def _missing_first(project, lang):
@@ -1145,9 +1132,7 @@ def status(args):
     state = current(args.project)
     reconcile(state)
     lang = language(args.lang, state)
-    say(('مشروع' if lang == 'ar' else 'Project') + f": {state['project']}")
-    from .govern import fresh_line
-    say(fresh_line(state, lang))
+    say(('مشروع' if lang == 'ar' else 'Project') + f": {state['project']}\n{branches.fresh_line(state, lang)}")
     upcoming = next_step(state)
     for step in STEPS:
         mark = '✅' if step[3](state) else ('▶️' if step is upcoming else '⬜')
@@ -1203,7 +1188,10 @@ def resume(args):
     return 0
 
 
-COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean, 'accept': accept, 'undo': undo,
+# accept, undo and the check `start` asks for are the terminal's (eaos/terminal.py: what will happen, the person's yes),
+# registered by that module itself (TERMINAL['check'] and COMMANDS), so that this one does not import it.
+TERMINAL = {}
+COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean,
             'show': show, 'do': do, 'assistant': assistant, 'handover': resume}
 
 

@@ -56,7 +56,7 @@ def handover_hook(args):
 
 
 def guided_command(args):
-    from . import handover  # noqa: F401  (registers the work log on the report for people)
+    from . import handover, terminal  # noqa: F401  (register the work log on the report, and the terminal's accept, undo and check)
     from .guided import main as guided_main
     return guided_main(args)
 
@@ -205,7 +205,7 @@ def main(argv=None):
     q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
-    q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())
+    q.set_defaults(func=lambda args: __import__('eaos.mcp_govern', fromlist=['main']).main())
     q=s.add_parser('facts',help='Deterministic facts about a target; no model is used')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
     q.add_argument('--max-commits',type=bounded_int,default=2000)

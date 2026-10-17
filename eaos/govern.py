@@ -12,7 +12,7 @@ What only the person decides: accept, undo, the branch, merging, deleting, prote
 that accepts itself, and every answer waiting for them. A command shows what will happen and asks (or takes --yes); a
 tool needs the person's word (person_agreed, or person_said ANSWER_SECONDS after the question was shown) and the
 preview's confirm token; inside a run the Studio started (EAOS_STUDIO_RUN) each is refused, --yes or not
-(`refuse_in_studio_run`, mcp_server.PERSON_ONLY).
+(mcp_server.refuse_in_studio_run, PERSON_ONLY).
 """
 import fcntl
 import functools
@@ -83,11 +83,6 @@ WORDS = {
                 'ar': 'ما فيه مساعد يقدر يشتغل هنا: الطلب ينتظر مساعدك (افتح Claude Code أو Codex في هالمجلد واكتب /eaos).'},
     'left_out': {'en': 'Left out: {id} ({why})', 'ar': 'متروكة: {id} ({why})'},
     'no_history': {'en': 'No check on record yet.', 'ar': 'ما فيه فحص مسجل بعد.'},
-    'fresh': {'en': 'The check is current: of this branch at its last commit.', 'ar': 'الفحص حديث: لهذا الفرع عند آخر commit فيه.'},
-    'behind': {'en': 'The check is behind: {commits} commit(s) came after it. Check again: eaos check',
-               'ar': 'الفحص قديم: جاء بعده {commits} commit. افحص من جديد: eaos check'},
-    'stale': {'en': 'The check is not of this code now ({state}). Check again: eaos check', 'ar': 'الفحص ما يطابق الكود الحين ({state}). افحص من جديد: eaos check'},
-    'unchecked': {'en': 'Not checked yet: eaos check', 'ar': 'ما انفحص بعد: eaos check'},
     'agree': {'en': 'To agree, type the command below; nothing happens until you do', 'ar': 'للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق'},
     'said_no': {'en': 'you said no', 'ar': 'قلت لا'},
     'runs': {'en': '{count} run(s)', 'ar': '{count} تشغيل'},
@@ -181,14 +176,6 @@ def _busy(actions):
 
 
 # ---------------------------------------------------------------- what only the person decides
-
-def refuse_in_studio_run(name):
-    """PermissionError for a decision only the person makes (mcp_server.PERSON_ONLY), asked inside a Studio run."""
-    from .mcp_server import PERSON_ONLY
-    if name in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
-        raise PermissionError(f"{name} is the person's decision, and they make it in the EAOS Studio: ask them with an "
-                              'eaos-question block and stop')
-
 
 _SHOWN = {}         # what waits for the person -> when an assistant was shown it (`waiting`), in this process
 
@@ -415,13 +402,3 @@ def compare(project, first, second):
 def usage(project):
     """What the assistant used: the last check stage by stage, every run, and the chat (Actions.usage)."""
     return core(project).usage()
-
-
-def fresh_line(state, lang):
-    """Whether the check on record is of the code now, in one line (eaos/branches.py freshness)."""
-    from .branches import freshness
-    found = freshness(state)
-    if found['state'] == 'fresh': return words('fresh', lang)
-    if found['state'] == 'behind': return words('behind', lang, commits=(found.get('behind') or {}).get('commits', '?'))
-    if found.get('reason') == 'not_scanned': return words('unchecked', lang)
-    return words('stale', lang, state=found['state'] if found['state'] != 'unknown' else found.get('reason'))

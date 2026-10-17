@@ -83,6 +83,13 @@ PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'b
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 
+def refuse_in_studio_run(name):
+    """PermissionError for a decision only the person makes (PERSON_ONLY), asked inside a run the Studio started."""
+    if name in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
+        raise PermissionError(f"{name} is the person's decision, and they make it in the EAOS Studio: ask them with an "
+                              'eaos-question block and stop')
+
+
 def _status(project=None):
     """The status tool of the project's way: fixing, or building from a plan; with the request the Studio handed to the
     next assistant, when one waits (eaos/studio/actions/handoff.py)."""
@@ -102,7 +109,6 @@ def _answer(function):
 
     @functools.wraps(function)
     def call(*args, **kwargs):
-        from .govern import refuse_in_studio_run
         from .guided import explain
         from .handover import record
         try:
@@ -121,9 +127,9 @@ def _answer(function):
     return call
 
 
-def build(governance=True):
-    """The server; `governance`: with the tools that drive the Studio's own core (eaos/mcp_govern.py), which the Studio
-    itself never calls (functions, reading)."""
+def build(more=None):
+    """The server; `more(server, reading, working, _answer)` adds tools to it (eaos/mcp_govern.py: the governance tools,
+    which the Studio itself never calls: functions, reading)."""
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
 
@@ -133,7 +139,7 @@ def build(governance=True):
     _check_tools(server, reading, working)
     _fix_tools(server, reading, working)
     _build_tools(server, reading, working)
-    if governance: __import__('eaos.mcp_govern', fromlist=['register']).register(server, reading, working, _answer)
+    if more: more(server, reading, working, _answer)
     _prompts(server)
     return server
 
@@ -543,12 +549,12 @@ def _prompts(server):
 def functions():
     """{tool name: the function the MCP server calls}, each answering JSON text and recorded in the journal like an
     assistant's call: what the Studio's command centre calls for a direct action (eaos/studio/actions)."""
-    return {tool.name: tool.fn for tool in build(False)._tool_manager.list_tools()}
+    return {tool.name: tool.fn for tool in build()._tool_manager.list_tools()}
 
 
 def reading():
     """The tools marked read-only: they change nothing, so the Studio answers them at once."""
-    return {tool.name for tool in build(False)._tool_manager.list_tools() if tool.annotations and tool.annotations.read_only_hint}
+    return {tool.name for tool in build()._tool_manager.list_tools() if tool.annotations and tool.annotations.read_only_hint}
 
 
 def main():
