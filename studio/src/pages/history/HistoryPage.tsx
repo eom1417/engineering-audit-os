@@ -141,17 +141,20 @@ export function NoHistory({ data }: { data: StudioData }) {
 function HistoryBody({ data }: { data: StudioData }) {
   const w = useHistoryWords()
   usePageChrome(w('history'), undefined, data.manifest.project.name)
+  return <div className={layout.page}><MissingBanner data={data} /><PageTitle title={w('history')} lead={w('lead')} /><HistoryContent data={data} /></div>
+}
+
+/** Every check on record, its score and problems over time, and what happened: History's body, and the Checks page's
+ * "Past checks" tab. */
+export function HistoryContent({ data }: { data: StudioData }) {
+  const w = useHistoryWords()
   const history = historyOf(data)
-  if (!history || !history.scans.length) {
-    return <div className={layout.page}><PageTitle title={w('history')} lead={w('lead')} /><NoHistory data={data} /></div>
-  }
+  if (!history || !history.scans.length) return <NoHistory data={data} />
   const now = last(history.scans)!
   const open = openTotal(now)
   const events = [...history.events].reverse()
   return (
-    <div className={layout.page}>
-      <MissingBanner data={data} />
-      <PageTitle title={w('history')} lead={w('lead')} />
+    <>
       <div className={css.tiles}>
         <Tile label={w('checks')}><N value={history.scans.length} /></Tile>
         <Tile label={w('scoreNow')}><ScoreTag score={now.score} /></Tile>
@@ -182,7 +185,7 @@ function HistoryBody({ data }: { data: StudioData }) {
           </Section>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

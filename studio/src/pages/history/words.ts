@@ -29,7 +29,7 @@ export const HISTORY_WORDS = {
   oneScan: ['فحص واحد حتى الآن', 'One check so far'],
   oneScanSub: ['الخط والمقارنة يظهران مع الفحص الثاني. افحص المشروع من جديد بعد التغيير التالي لترى هل تحسّن.',
     'The line and the comparison appear with the second check. Check the project again after the next change to see whether it got better.'],
-  checkAgain: ['اطلب فحصًا جديدًا', 'Ask for a new check'],
+  checkAgain: ['افحص المشروع', 'Check the project'],
   checkAgainRequest: ['أعد فحص {p} بأداة audit من EAOS لأرى ما تغيّر منذ الفحص السابق.', 'Check {p} again with the EAOS audit tool so I can see what changed since the last check.'],
   unscored: ['درجات الفحوص السابقة لم تُسجَّل', 'The earlier checks have no recorded score'],
   // lists

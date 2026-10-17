@@ -99,19 +99,21 @@ function Bar({ done, total }: { done: number; total: number }) {
 
 /** "Start the check", locked until the check's tools are ready; "Start without it" once only failures stand in the way.
  * Both open the check's preview (PreviewSheet): its paths and its mode are chosen there, wherever a check starts. */
-function Start({ tools }: { tools: Tools }) {
+function Start({ tools }: { tools: Tools | null }) {
   const w = useScanWords()
   const { num } = usePrefs()
   const command = useCommand()
-  const waiting = tools.needed.total - tools.needed.ready - tools.failed.length
+  const unlocked = tools?.unlocked ?? true
+  const failed = tools?.failed.length ?? 0
+  const waiting = tools ? tools.needed.total - tools.needed.ready - failed : 0
   const start = (without: boolean) => command.open({ action: 'audit', inputs: without ? { fresh: true, without_tools: true } : { fresh: true } })
   return (
     <div className={css.toolsStart}>
-      <Button variant="primary" large icon="play" isDisabled={!tools.unlocked} onPress={() => start(false)} data-start-check="">
+      <Button variant="primary" large icon="play" isDisabled={!unlocked} onPress={() => start(false)} data-start-check="">
         {w('toolsStart')}
       </Button>
-      {!tools.unlocked && waiting > 0 && <span className={css.runFact} role="status">{w('toolsLocked', { n: num(waiting) })}</span>}
-      {tools.failed.length > 0 && waiting === 0 && (
+      {!unlocked && waiting > 0 && <span className={css.runFact} role="status">{w('toolsLocked', { n: num(waiting) })}</span>}
+      {failed > 0 && waiting === 0 && (
         <>
           <span className={css.warn} role="alert">{w('toolsFailed')}</span>
           <Button variant="secondary" onPress={() => start(true)} data-start-without="">{w('toolsWithout')}</Button>
@@ -148,6 +150,26 @@ function Tool({ row, retry }: { row: ToolRow; retry: () => void }) {
       {row.state === 'failed' && <Button variant="secondary" onPress={retry} data-retry={row.name}>{w('toolsRetry')}</Button>}
     </li>
   )
+}
+
+/** The Checks page before a check: the tools the check needs while they install, then one button to start it. The
+ * install is asked for once, as on the tools page. */
+export function StartCheck({ all }: { all: AllProgress }) {
+  const w = useScanWords()
+  const { skew } = useScan()
+  const actions = useActions()
+  useInstallAsked(all, actions)
+  const flow = all.flows[TOOLS]
+  const tools = flow ? toolsOf(flow, all.tools_needed ?? [], Date.now() + skew) : null
+  if (tools && !tools.unlocked) {
+    return (
+      <>
+        <Summary tools={tools} />
+        <ToolList title={w('toolsHere')} rows={tools.rows.filter((row) => row.needed)} actions={actions} />
+      </>
+    )
+  }
+  return <Panel className={css.toolsTop}><p className={css.lead}>{w('startLead')}</p><Start tools={tools} /></Panel>
 }
 
 /** On the live map while tools are still installing: each tool faded until it is ready, then lit. */

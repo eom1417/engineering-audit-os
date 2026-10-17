@@ -51,7 +51,7 @@ function ScanBody({ data }: { data: StudioData }) {
   const scans = history?.scans ?? []
   const at = scans.findIndex((s) => s.id === decoded(scanId ?? ''))
   const scan = at >= 0 ? scans[at] : undefined
-  usePageChrome(scan ? w('checkOf', { d: date(scan.at) }) : w('scanNotFound'), { to: '/history', label: w('history') }, data.manifest.project.name)
+  usePageChrome(scan ? w('checkOf', { d: date(scan.at) }) : w('scanNotFound'), { to: '/checks', search: { tab: 'checks' }, label: w('history') }, data.manifest.project.name)
   if (!history) return <div className={layout.page}><NoHistory data={data} /></div>
   if (!scan) {
     return (

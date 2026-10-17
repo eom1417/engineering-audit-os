@@ -5,6 +5,7 @@ import { HomePage } from './pages/Home'
 import { ProblemsPage } from './pages/problems/ProblemsPage'
 import { SEARCH_KEYS as PROBLEM_KEYS } from './pages/problems/model'
 import { PageLoading } from './shell/Layout'
+import { MOVED, movedTo } from './shell/moved'
 import { Shell } from './shell/Shell'
 
 // Every page but Home and Problems is its own chunk (vite.config.ts classicChunks), read when it is first opened or
@@ -29,7 +30,6 @@ const DocumentPage = lazyRouteComponent(() => import('./pages/library/DocumentPa
 const ImagePage = lazyRouteComponent(() => import('./pages/library/ImagePage'), 'ImagePage')
 const LibraryPage = lazyRouteComponent(() => import('./pages/library/LibraryPage'), 'LibraryPage')
 const ComparePage = lazyRouteComponent(() => import('./pages/history/ComparePage'), 'ComparePage')
-const HistoryPage = lazyRouteComponent(() => import('./pages/history/HistoryPage'), 'HistoryPage')
 const ScanPage = lazyRouteComponent(() => import('./pages/history/ScanPage'), 'ScanPage')
 const SystemMapPage = lazyRouteComponent(() => import('./pages/SystemMap'), 'SystemMapPage')
 const FlowPage = lazyRouteComponent(() => import('./pages/paths/FlowPage'), 'FlowPage')
@@ -41,11 +41,9 @@ const JourneysPage = lazyRouteComponent(() => import('./pages/system/journeys/Jo
 const RunPage = lazyRouteComponent(() => import('./pages/runs/RunPage'), 'RunPage')
 const ScreenPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreenPage')
 const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreensPage')
-const LiveCheckPage = lazyRouteComponent(() => import('./pages/scan/LiveCheckPage'), 'LiveCheckPage')
-const ToolsPage = lazyRouteComponent(() => import('./pages/scan/ToolsPage'), 'ToolsPage')
-const RunsPage = lazyRouteComponent(() => import('./pages/runs/RunsPage'), 'RunsPage')
 const AssistantPage = lazyRouteComponent(() => import('./pages/assistant/AssistantPage'), 'AssistantPage')
 const BranchesPage = lazyRouteComponent(() => import('./pages/branches/BranchesPage'), 'BranchesPage')
+const ChecksPage = lazyRouteComponent(() => import('./pages/checks/ChecksPage'), 'ChecksPage')
 
 type Params = Record<string, string | undefined>
 
@@ -60,6 +58,10 @@ function params(...names: string[]) {
 
 const root = createRootRoute({ component: Shell })
 
+/** An old address that now lives on another page (shell/moved.ts): it goes there at once, the history entry replaced. */
+const movedRoutes = MOVED.map((row) => createRoute({ getParentRoute: () => root, path: row.from, validateSearch: params(...(row.keep ?? [])),
+  beforeLoad: ({ search }) => { throw redirect({ ...movedTo(row, search), replace: true }) } }))
+
 /** #/system shows the territory map, or the lens the address names (?lens=infra). */
 function SystemRoute() {
   const { lens } = useSearch({ strict: false }) as { lens?: string }
@@ -68,6 +70,7 @@ function SystemRoute() {
 
 const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/', component: HomePage }),
+  ...movedRoutes,
   createRoute({ getParentRoute: () => root, path: '/system', component: SystemRoute, validateSearch: params('focus', 'view', 'show', 'op', 'hidden', 'lens', 'item') }),
   createRoute({ getParentRoute: () => root, path: '/system/paths', component: PathsPage, validateSearch: params('view', 'cluster', 'q', 'filter', 'file', 'part') }),
   createRoute({ getParentRoute: () => root, path: '/system/journeys', component: JourneysPage, validateSearch: params('view', 'show', 'task', 'focus', 'hidden', 'flag', 'area') }),
@@ -94,16 +97,13 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/ops/$opId', component: OpPage }),
   createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage }),
   createRoute({ getParentRoute: () => root, path: '/branches', component: BranchesPage, validateSearch: params('show', 'q', 'base', 'b') }),
-  createRoute({ getParentRoute: () => root, path: '/scan', component: LiveCheckPage, validateSearch: params('flow', 'stage') }),
-  createRoute({ getParentRoute: () => root, path: '/tools', component: ToolsPage }),
-  createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show') }),
+  createRoute({ getParentRoute: () => root, path: '/checks', component: ChecksPage, validateSearch: params('tab', 'flow', 'stage', 'q', 'show') }),
   createRoute({ getParentRoute: () => root, path: '/assistant', component: AssistantPage }),
   createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage }),
   createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, validateSearch: params('group', 'q') }),
   createRoute({ getParentRoute: () => root, path: '/library/docs', component: LibraryPage, validateSearch: params('group', 'q') }),
   createRoute({ getParentRoute: () => root, path: '/library/docs/$docId', component: DocumentPage, validateSearch: params('h') }),
   createRoute({ getParentRoute: () => root, path: '/library/images/$imageId', component: ImagePage }),
-  createRoute({ getParentRoute: () => root, path: '/history', component: HistoryPage }),
   createRoute({ getParentRoute: () => root, path: '/history/compare/$range', component: ComparePage }),
   createRoute({ getParentRoute: () => root, path: '/history/$scanId', component: ScanPage }),
 ])

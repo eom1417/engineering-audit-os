@@ -5,6 +5,7 @@
    failure's pulse, an absent stage's fade and the bars move, and nothing moves with reduced motion. */
 
 .page { gap: 16px; }
+.flow { display: flex; flex-direction: column; gap: 16px; }
 .head { display: flex; flex-direction: column; gap: 6px; }
 .title { font-size: var(--text-large-title); font-weight: 600; line-height: var(--leading-tight); }
 .lead { color: var(--text-secondary); max-inline-size: 75ch; }

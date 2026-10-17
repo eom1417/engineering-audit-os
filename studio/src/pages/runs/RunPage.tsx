@@ -174,7 +174,7 @@ function RunBody({ id }: { id: string }) {
   const state = run?.state ?? view.state
   const now = useNow(state === 'running' || state === 'waiting_for_person' || state === 'paused')
   const data = useStudio()
-  usePageChrome(run ? labelOf(run.label, lang) : w('run'), { to: '/runs', label: w('runs') }, data?.manifest.project.name)
+  usePageChrome(run ? labelOf(run.label, lang) : w('run'), { to: '/checks', search: { tab: 'runs' }, label: w('runs') }, data?.manifest.project.name)
 
   if (followed.missing && !run) {
     return <div className={layout.page}><Panel><StateMessage kind="error" title={w('runNotFound')} sub={w('runNotFoundSub')} /></Panel></div>
@@ -241,7 +241,7 @@ function RunHead({ run, state, elapsed, reconnecting, live, onRun }:
       </p>
       {live && <RunBranches run={run} />}
       <Controls run={run} onRun={onRun} />
-      {run.action === 'audit' && <Go to="/scan" search={{ flow: 'check' }} className={css.branchLink}>{t('liveCheck')}</Go>}
+      {run.action === 'audit' && <Go to="/checks" search={{ flow: 'check' }} className={css.branchLink}>{t('checks')}</Go>}
     </header>
   )
 }
@@ -308,7 +308,7 @@ export function RunPage() {
 /** A static copy knows no runs: the address's id is unverified, so the title stays generic. */
 function SnapshotRun({ id, project }: { id: string; project?: string }) {
   const w = useCmdWords()
-  usePageChrome(`${w('run')} ${id}`, { to: '/runs', label: w('runs') }, project)
+  usePageChrome(`${w('run')} ${id}`, { to: '/checks', search: { tab: 'runs' }, label: w('runs') }, project)
   return (
     <div className={layout.page}>
       <PageTitle title={<>{w('run')} <Id value={id} /></>} lead={w('runSnapshotLead')} />

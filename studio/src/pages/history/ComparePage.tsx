@@ -62,7 +62,7 @@ function CompareBody({ data }: { data: StudioData }) {
   const history = historyOf(data)
   const ids = parseRange(decoded(range ?? ''))
   const found = history && ids ? compare(history, decoded(ids[0]), decoded(ids[1])) : null
-  usePageChrome(w('comparing'), { to: '/history', label: w('history') }, data.manifest.project.name)
+  usePageChrome(w('comparing'), { to: '/checks', search: { tab: 'checks' }, label: w('history') }, data.manifest.project.name)
   if (!history) return <div className={layout.page}><NoHistory data={data} /></div>
   if (!found) {
     const two = history.scans.length >= 2
@@ -70,7 +70,7 @@ function CompareBody({ data }: { data: StudioData }) {
       <div className={layout.page}>
         <h1 className={css.title}>{w('comparing')}</h1>
         <Panel><StateMessage icon="change" title={two ? w('compareBadLink') : w('compareNeedsTwo')} sub={two ? w('compareBadLinkSub') : w('oneScanSub')}
-          action={two ? <ComparePicker scans={history.scans} /> : <div><Go to="/history" className={buttonClass('secondary')}>{w('backToHistory')}</Go></div>} /></Panel>
+          action={two ? <ComparePicker scans={history.scans} /> : <div><Go to="/checks" search={{ tab: 'checks' }} className={buttonClass('secondary')}>{w('backToHistory')}</Go></div>} /></Panel>
       </div>
     )
   }

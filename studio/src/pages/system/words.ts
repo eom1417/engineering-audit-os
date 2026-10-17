@@ -5,7 +5,7 @@ import { makeWords } from '../../map/words'
 export const JOURNEY_WORDS = {
   // the system's views
   systemViews: ['خرائط النظام', 'System maps'],
-  viewMap: ['البنية', 'Structure'],
+  viewMap: ['خريطة المكوّنات', 'Component map'],
   viewJourneys: ['رحلات المستخدم', 'User journeys'],
   viewHidden: ['الظاهر والخفي', 'Visible and hidden'],
   viewPaths: ['مسارات الكود', 'Code paths'],

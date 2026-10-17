@@ -1,5 +1,6 @@
-// The System section's maps, one link each: the structure (territory), the user journeys, visible and hidden, the code
-// paths, the data paths, the infrastructure lens, the pipeline, the functions and the screens. Each
+// The System section's maps, one link each, in four categories: the structure (the component map, the functions, the
+// pipeline), the behaviour (code paths, data paths, visible and hidden), the interface (screens, user journeys) and the
+// infrastructure lens. Each
 // map worker adds its own entry here; the current one is marked. Shown at the top of every System map page. And the
 // "show hidden" switch every map carries (STUDIO-COMPLETE: hidden things drawn differently, with a switch and a legend).
 import { useNavigate, useRouterState } from '@tanstack/react-router'
@@ -7,18 +8,20 @@ import { useEffect, useRef } from 'react'
 import { useJourneyWords, type JourneyWord } from './words'
 import css from './SystemViews.module.css'
 
-export interface SystemView { id: string; to: string; search?: Record<string, string>; word: JourneyWord }
+export type SystemCategory = 'catStructure' | 'catBehaviour' | 'catInterface' | 'catInfra'
+export interface SystemView { id: string; to: string; search?: Record<string, string>; word: JourneyWord; category: SystemCategory }
 
+/** In the order of their categories: the sidebar folds them under System by category, the strip shows them in a row. */
 export const SYSTEM_VIEWS: SystemView[] = [
-  { id: 'map', to: '/system', word: 'viewMap' },
-  { id: 'journeys', to: '/system/journeys', word: 'viewJourneys' },
-  { id: 'hidden', to: '/system/hidden', word: 'viewHidden' },
-  { id: 'paths', to: '/system/paths', word: 'viewPaths' },
-  { id: 'data', to: '/system/data', word: 'viewData' },
-  { id: 'infra', to: '/system', search: { lens: 'infra' }, word: 'viewInfra' },
-  { id: 'pipeline', to: '/system/pipeline', word: 'viewPipeline' },
-  { id: 'functions', to: '/system/functions', word: 'viewFunctions' },
-  { id: 'screens', to: '/screens', word: 'viewScreens' },
+  { id: 'map', to: '/system', word: 'viewMap', category: 'catStructure' },
+  { id: 'functions', to: '/system/functions', word: 'viewFunctions', category: 'catStructure' },
+  { id: 'pipeline', to: '/system/pipeline', word: 'viewPipeline', category: 'catStructure' },
+  { id: 'paths', to: '/system/paths', word: 'viewPaths', category: 'catBehaviour' },
+  { id: 'data', to: '/system/data', word: 'viewData', category: 'catBehaviour' },
+  { id: 'hidden', to: '/system/hidden', word: 'viewHidden', category: 'catBehaviour' },
+  { id: 'screens', to: '/screens', word: 'viewScreens', category: 'catInterface' },
+  { id: 'journeys', to: '/system/journeys', word: 'viewJourneys', category: 'catInterface' },
+  { id: 'infra', to: '/system', search: { lens: 'infra' }, word: 'viewInfra', category: 'catInfra' },
 ]
 
 export function SystemViews({ current, persistent = false }: { current: string; persistent?: boolean }) {

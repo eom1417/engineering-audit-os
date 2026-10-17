@@ -82,13 +82,14 @@ function Queue({ queued }: { queued: Run[] }) {
   )
 }
 
-function RunsBody() {
+/** Now, the queue and every run before: the Runs page's body, and the Checks page's "All runs" tab. */
+export function RunsBody() {
   const actions = useActions()
   const w = useCmdWords()
   const { lang } = usePrefs()
   const search = useSearch({ strict: false }) as RunsSearch
   const navigate = useNavigate()
-  const set = (patch: Partial<RunsSearch>) => navigate({ to: '/runs', search: { ...search, ...patch }, replace: true })
+  const set = (patch: Partial<RunsSearch>) => navigate({ to: '.', search: { ...search, ...patch }, replace: true })
   const show: Show = search.show ?? 'all'
   const byId = useMemo(() => new Map(actions.runs.map((run) => [run.id, run])), [actions.runs])
   const active = actions.runs.filter((run) => ACTIVE.includes(run.state))

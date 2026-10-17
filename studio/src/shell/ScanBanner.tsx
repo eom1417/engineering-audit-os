@@ -1,6 +1,6 @@
 // While EAOS works (a check, setting the app up, recording its screens, fixing), every page says so in one line under
-// the top bar, with the step and its running stage, and links to the live map (pages/scan); it is not shown on the map
-// itself. The whole line is the link, so it is a large target on the phone. The tab's title carries the progress too
+// the top bar, with the step and its running stage, and links to the Checks page; it is not shown there itself, and
+// while it shows, the run pill does not (command/CommandHost.tsx): one live sign at a time. The whole line is the link, so it is a large target on the phone. The tab's title carries the progress too
 // ("3/26"), and a tick once the work this tab watched has ended well.
 import { useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
@@ -26,8 +26,7 @@ export function ScanBanner() {
   const w = useScanWords()
   const { lang } = usePrefs()
   const flow = runningFlow(all) ?? (all?.flows[TOOLS]?.state === 'running' ? TOOLS : null)
-  const to = flow === TOOLS ? '/tools' : '/scan'
-  const here = useRouterState({ select: (s) => s.location.pathname === to })
+  const here = useRouterState({ select: (s) => s.location.pathname === '/checks' })
   const progress = flow ? all?.flows[flow] : undefined
   const sum = progress ? summarize(progress) : null
   useTabProgress(all, flow, sum)
@@ -38,7 +37,7 @@ export function ScanBanner() {
   const of = w('bannerOf', { n: flow === TOOLS ? sum.ended : sum.position, t: sum.total })
   return (
     <div data-scan-banner="">
-    <Go to={to} search={flow === TOOLS ? undefined : { flow }} className={css.banner} label={`${text} ${of} · ${w('watch')}`}>
+    <Go to="/checks" search={flow === TOOLS ? undefined : { flow }} className={css.banner} label={`${text} ${of} · ${w('watch')}`}>
       <span className={css.pulse} aria-hidden="true" />
       <span className={css.text}>{text} <span className={css.of}>{of}</span></span>
       <span className={css.watch}>{w('watch')}</span>

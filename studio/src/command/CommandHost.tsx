@@ -12,6 +12,7 @@ import { Txt } from '../i18n/text'
 import { ActionBar } from './ActionBar'
 import { useCommand } from './command'
 import { useLoaded } from '../data/context'
+import { runningFlow, useScan } from '../data/ScanProvider'
 import { useOpenedOnce, whenIdle } from '../shell/later'
 import { QuestionToast } from './Questions'
 import css from './command.module.css'
@@ -40,7 +41,9 @@ export function CommandHost() {
   const runOf = (id: string) => actions.runs.find((run) => run.id === id)
   const selecting = command.sel.ids.length > 0
   const toast = !selecting && question && pathname !== '/decisions' ? question : null
-  const pill = !selecting && !toast && actions.active && !onRun(actions.active.id) && pathname !== '/runs' ? actions.active : null
+  // One live sign at a time: the Checks page shows the run itself, and while a check's banner shows it stands for it
+  const banner = runningFlow(useScan().all) !== null
+  const pill = !selecting && !toast && actions.active && !onRun(actions.active.id) && pathname !== '/checks' && !banner ? actions.active : null
   const dock = selecting ? 'bar' : toast ? 'toast' : pill ? 'pill' : ''
   const ready = useLoaded().kind === 'ready'
   useEffect(() => (ready ? whenIdle(() => { void loadGroupSheet(); void loadPreviewSheet() }) : undefined), [ready])
