@@ -176,12 +176,16 @@ export interface Preview {
   check?: CheckOffer
 }
 
-/** What the start of a check offers: each path with what it looks at, and the mode and sign-in kept for the project. */
+/** What the start of a check offers: each path with what it looks at, the mode and sign-in kept for the project, and the
+ * sign-in its code shows (the ways to sign in are offered when it shows one, or one was chosen). */
 export interface CheckOffer {
   paths: { id: string; name: Bi; looks_at: Bi }[]
   mode: 'normal' | 'speed'
-  sign_in: 'hand' | 'test_user' | 'none' | null
+  sign_in: SignInWay | null
+  sign_in_seen: string[]
 }
+
+export type SignInWay = 'hand' | 'test_user' | 'none'
 
 /** What Accept shows before merging (eaos/studio/actions/branches.py accept_where). */
 export interface AcceptWhere {
@@ -271,6 +275,31 @@ export interface ActionsClient {
   plan?(body: { name: string; text: string; files: { name: string; data: string }[]; mode?: 'extend' }): Promise<Run>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
+  /** The sign-in a check waits for, and the browser the person signs in with (live only: eaos/api/sign_in.py) */
+  signIn?: SignInApi
+}
+
+/** What a check asks while it waits for the person to sign in to their app, and what the app sent them meanwhile. */
+export interface SignInStatus {
+  asked: { asked: string; until: string; base: string; why: 'needed' | 'expired' | 'published'; published: boolean } | null
+  open: boolean
+  /** a session the person made by hand is kept for this project */
+  kept: boolean
+  codes: { output: string[]; mail: { to: string; subject: string; text: string; at: string }[] } | null
+}
+
+/** The sign-in browser as it is now: its address, its title and its picture (a JPEG in base64). */
+export interface SignInView { url: string; title: string; picture: string | null }
+
+export type SignInInput = { do: 'look' | 'back' } | { do: 'click'; x: number; y: number } | { do: 'type'; text: string } | { do: 'key'; key: string } | { do: 'scroll'; dy: number }
+
+export interface SignInApi {
+  status(): Promise<SignInStatus>
+  open(): Promise<SignInView>
+  input(command: SignInInput): Promise<SignInView>
+  done(): Promise<SignInStatus>
+  skip(): Promise<SignInStatus>
+  forget(): Promise<SignInStatus>
 }
 
 /** A reason in both languages, with a stable code */

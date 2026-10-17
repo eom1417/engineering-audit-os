@@ -44,6 +44,7 @@ const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage
 const SettingsPage = lazyRouteComponent(() => import('./pages/settings/SettingsPage'), 'SettingsPage')
 const BranchesPage = lazyRouteComponent(() => import('./pages/branches/BranchesPage'), 'BranchesPage')
 const ChecksPage = lazyRouteComponent(() => import('./pages/checks/ChecksPage'), 'ChecksPage')
+const SignInPage = lazyRouteComponent(() => import('./pages/signin/SignInPage'), 'SignInPage')
 
 type Params = Record<string, string | undefined>
 
@@ -96,6 +97,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/tasks/$taskId', component: TaskPage }),
   createRoute({ getParentRoute: () => root, path: '/ops/$opId', component: OpPage }),
   createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage }),
+  createRoute({ getParentRoute: () => root, path: '/sign-in', component: SignInPage }),
   createRoute({ getParentRoute: () => root, path: '/branches', component: BranchesPage, validateSearch: params('show', 'q', 'base', 'b') }),
   createRoute({ getParentRoute: () => root, path: '/checks', component: ChecksPage, validateSearch: params('tab', 'flow', 'stage', 'q', 'show') }),
   createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),

@@ -5,7 +5,7 @@
 import { frameSplitter } from './sse'
 import { ActionError, TERMINAL, type AcceptChoice, type ActionsClient, type Assistant, type ChatControl, type ChatProgress, type UsageReport, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
   type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Reason, type Run, type RunEvent,
-  type StartBody, type StreamStatus, type ReportDecision } from './types'
+  type SignInStatus, type SignInView, type StartBody, type StreamStatus, type ReportDecision } from './types'
 
 export const TOKEN_KEY = 'eaos.token'
 
@@ -161,6 +161,14 @@ export function liveClient(token: string): ActionsClient {
       post<{ run: Run }>(`/api/questions/${encodeURIComponent(question)}/answer`, { option, text: text ?? null }).then(runOf),
     decide: (id: string, op: 'accept' | 'undo', confirm: string, choice?: AcceptChoice) => post<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}/${op}`, { confirm, ...(choice ?? {}) }).then(runOf),
     branches,
+    signIn: {
+      status: () => get<SignInStatus>('/api/sign-in'),
+      open: () => post<SignInView>('/api/sign-in/open'),
+      input: (command) => post<SignInView>('/api/sign-in/input', command),
+      done: () => post<SignInStatus>('/api/sign-in/done'),
+      skip: () => post<SignInStatus>('/api/sign-in/skip'),
+      forget: () => post<SignInStatus>('/api/sign-in/forget'),
+    },
     assistants: () => get<{ assistants: Assistant[] }>('/api/assistants').then((r) => r.assistants),
     usage: () => get<UsageReport>('/api/usage'),
     chat: (message, session, context, model) => post<{ turn: string }>('/api/chat', { message, session, context, model }),

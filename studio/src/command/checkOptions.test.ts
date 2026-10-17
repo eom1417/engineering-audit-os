@@ -16,6 +16,12 @@ describe('the choice of a check', () => {
     expect(checkInputs({ paths: ['complete'], mode: 'normal', ai: false })).toEqual({ mode: 'normal', without_ai: true })
     expect(checkInputs({ paths: ['complete'], mode: 'normal', ai: true })).toEqual({ mode: 'normal' })
   })
+  it('sends the way to sign in when chosen, and a published address only when the person signs in by hand', () => {
+    expect(checkInputs({ paths: ['complete'], mode: 'normal', signIn: 'test_user' })).toEqual({ mode: 'normal', sign_in: 'test_user' })
+    expect(checkInputs({ paths: ['complete'], mode: 'normal', signIn: 'hand', published: ' https://app.example.com ' }))
+      .toEqual({ mode: 'normal', sign_in: 'hand', published: 'https://app.example.com' })
+    expect(checkInputs({ paths: ['complete'], mode: 'normal', signIn: 'none', published: 'https://app.example.com' })).toEqual({ mode: 'normal', sign_in: 'none' })
+  })
   it('makes every check pressed a new one, unless it goes on from a stage', () => {
     // Home's next step and the palette ask for the check with no inputs: EAOS then answered "already checked"
     expect(freshOf({ action: 'audit' }, {})).toEqual({ fresh: true })

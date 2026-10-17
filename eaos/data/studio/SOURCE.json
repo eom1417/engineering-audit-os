@@ -1,5 +1,5 @@
 {
- "source_sha256": "dd63954888ef140686c7767a2bfd0230adffd00f217005c7cca000fffc4373be",
+ "source_sha256": "7f17461e0cbe273956347872f36612e1c3a7623f570506879fd0fe03c6a09acc",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -40,6 +40,7 @@
   "assets/ScreensPage.js",
   "assets/SettingsPage.js",
   "assets/SheetDialog.js",
+  "assets/SignInPage.js",
   "assets/SystemMap.js",
   "assets/TextField.js",
   "assets/TimelinePage.js",
