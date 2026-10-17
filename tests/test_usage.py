@@ -36,3 +36,6 @@ class UsageTests(unittest.TestCase):
                  {'type': 'assistant', 'message': {'id': 'b', 'model': 'm', 'usage': {'input_tokens': 1, 'cache_read_input_tokens': 300, 'output_tokens': 4}}}]
         live = usage.from_stream([json.dumps(e) for e in going])
         self.assertEqual((live['cache_read'], live['output'], live['cost_usd']), (400, 13, None), 'each message once, its last count; no cost yet')
+        # a run resumed with the person's answer, then tried again: one process, one result event, per turn
+        turns = usage.from_stream([json.dumps(CLAUDE_RESULT), json.dumps({'type': 'system'}), json.dumps(CLAUDE_RESULT)])
+        self.assertEqual((turns['cost_usd'], turns['output'], turns['calls']), (0.68, 11778, 2), 'every turn counts, not the last')

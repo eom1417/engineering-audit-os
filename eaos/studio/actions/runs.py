@@ -715,7 +715,7 @@ class Manager:
     def retry(self, run):
         record = self.store.load(run)
         if record.get('state') not in RETRYABLE: raise LookupError('only a run that failed, was stopped or changed nothing can be tried again')
-        record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0,
+        record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0, usage=None,
                                 question=None, queued_at=now(), mode='assistant' if record.get('assistant') else record.get('mode'),
                                 branches_before=None, waves_before=None)
         self.store.set_queue(self.store.queue())

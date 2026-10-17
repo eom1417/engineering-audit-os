@@ -497,7 +497,9 @@ class Runs(Base):
         self.assertFalse(pid and alive(pid))
         self.assertEqual(self.post(f'/api/runs/{run}/stop')[0], 409)
         os.environ['FAKE_MODE'] = 'question'
+        self.app.store.update(run, usage={'cost_usd': 0.2})        # what Actions.usage keeps of an ended run
         self.assertEqual(self.post(f'/api/runs/{run}/retry')[1]['run']['state'], 'queued')
+        self.assertIsNone(self.app.store.load(run).get('usage'), "a run tried again is counted again, every turn of it")
         again = self.app.wait(run, ('waiting_for_person', 'failed'), 30)
         self.assertEqual((again['state'], again['attempt']), ('waiting_for_person', 2))
         self.assertEqual(self.app.store.verify(run), [])

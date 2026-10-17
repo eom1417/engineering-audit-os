@@ -39,8 +39,10 @@ def from_stream(lines):
 
 
 def _result(events):
-    found = next((e for e in reversed(events) if e.get('type') == 'result' and isinstance(e.get('usage'), dict)), None)
-    return found and row(found['usage'], found.get('total_cost_usd'), found.get('modelUsage') or (), found.get('duration_ms'), found.get('num_turns'))
+    """Every turn's result event, summed: a run resumed with the person's answer, or tried again, is one process per
+    turn, each ending with its own use and cost."""
+    return total([row(e['usage'], e.get('total_cost_usd'), e.get('modelUsage') or (), e.get('duration_ms'), e.get('num_turns'))
+                  for e in events if e.get('type') == 'result' and isinstance(e.get('usage'), dict)])
 
 
 def _turns(events):
