@@ -165,12 +165,13 @@ class LiveRun:
     def start(self):
         """Start the project and return its address once the health route answers. A port another program holds now (the
         profile chose it free once) is given up for a free one, in the command and in every value naming it."""
-        from .live_setup import free_port
         port = self.profile['port']
         with socket.socket() as probe:
             probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try: probe.bind(('127.0.0.1', port))
-            except OSError: port = free_port()
+            except OSError:
+                probe.bind(('127.0.0.1', 0))
+                port = probe.getsockname()[1]
         if port != self.profile['port']:
             swap = lambda text: re.sub(rf"(?<![\w.]){self.profile['port']}(?!\w)", str(port), str(text))
             self.profile.update(port=port, start=[swap(part) for part in self.profile['start']],

@@ -135,8 +135,7 @@ def hidden():
     """The real folders a sandboxed command never sees: the person's HOME, EAOS's home, its projects and Studio records,
     the reports, the temporary folder (other runs' databases), and every project EAOS knows with its report, the run's
     own included (it sees its copy, never the working folder and its .env). The outermost ones only."""
-    from .guided import outputs_root
-    from .places import home
+    from .places import home, outputs_root
     folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(), Path('/tmp'), Path(tempfile.gettempdir())]
     for record in (home() / 'projects').glob('*/state.json'):
         try: state = json.loads(record.read_text(encoding='utf-8'))

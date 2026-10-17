@@ -8,10 +8,8 @@ Kubernetes files.
 No secret value is ever recorded. Trivy masks the value it matched; the adapter removes the whole
 `Match:` line from every message before a finding is made, so only the rule, the file and the line remain.
 """
-import fcntl
 import json
 import re
-from contextlib import contextmanager
 from pathlib import Path
 
 from . import sarif, tool
@@ -59,17 +57,6 @@ def _redact_messages(results):
         if 'text' in message: message['text'] = MATCH.sub('Match: [not recorded]', message['text'])
 
 
-@contextmanager
-def db_lock(shared=True):
-    """The vulnerability database, shared by every project's check: a scan reads it under a shared hold, and the daily
-    swap (toolchain.refresh_db) waits until none reads it."""
-    from ..toolchain import TRIVY_CACHE, home
-    (home() / TRIVY_CACHE).mkdir(parents=True, exist_ok=True)
-    with open(home() / TRIVY_CACHE / 'db.lock', 'a') as handle:
-        fcntl.flock(handle, fcntl.LOCK_SH if shared else fcntl.LOCK_EX)
-        yield
-
-
 def _command(output, exclude):
     """The scan: the shared database read as it is, what it learns of the project kept in memory only (never in a cache
     another project's scan reads)."""
@@ -88,7 +75,9 @@ def analyze(target, workdir, exclude=(), formats=None):
     found = version()
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
-    with db_lock():
+    from ..locks import held
+    from ..toolchain import TRIVY_CACHE, home
+    with held(home() / TRIVY_CACHE):     # the database every project's scan shares: its daily swap waits for this read
         code, _, error, seconds = run(_command(output, exclude) + [str(target)])
     if code or not output.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')

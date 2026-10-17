@@ -120,7 +120,7 @@
  },
  "modules": {
   "eaos/agent_tools.py": 1189,
-  "eaos/guided.py": 1280,
+  "eaos/guided.py": 1273,
   "eaos/human_report.py": 2104,
   "eaos/studio/actions/branches.py": 1141,
   "eaos/studio/actions/runs.py": 729,
