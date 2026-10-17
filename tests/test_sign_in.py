@@ -105,13 +105,17 @@ class SignInTests(unittest.TestCase):
                     self.assertEqual(os.stat(sign_in.session(live.runtime)).st_mode & 0o777, 0o600)
 
     @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
-    def test_the_person_signs_in_by_hand_with_the_code_the_app_prints_and_the_browser_saves_and_ends(self):
+    def test_the_person_signs_in_by_hand_with_the_code_the_app_prints_and_mails_and_the_browser_saves_and_ends(self):
         from eaos.api.sign_in import Browser
         from eaos.live_setup import free_port
-        port, log = free_port(), self.root / 'app.log'
+        from eaos.toolchain import home
+        port, log, smtp, mail = free_port(), self.root / 'app.log', free_port(), free_port()
+        catcher = [] if not (home() / 'bin/mailpit').exists() else [subprocess.Popen(
+            [str(home() / 'bin/mailpit'), '--smtp', f'127.0.0.1:{smtp}', '--listen', f'127.0.0.1:{mail}', '--quiet'])]
+        for process in catcher: self.addCleanup(process.wait); self.addCleanup(process.terminate)
         with open(log, 'w') as output:
-            app = subprocess.Popen(['node', 'server.mjs'], cwd=OTP_APP, env={**os.environ, 'PORT': str(port), 'AUTH_SECRET': 's' * 40},
-                                   stdout=output, stderr=output)
+            app = subprocess.Popen(['node', 'server.mjs'], cwd=OTP_APP, env={**os.environ, 'PORT': str(port), 'AUTH_SECRET': 's' * 40,
+                                   **({'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(smtp)} if catcher else {})}, stdout=output, stderr=output)
         self.addCleanup(app.wait)
         self.addCleanup(app.terminate)
         time.sleep(0.8)
@@ -120,8 +124,15 @@ class SignInTests(unittest.TestCase):
         for command in ({'do': 'key', 'key': 'Tab'}, {'do': 'type', 'text': 'me@example.test'}, {'do': 'key', 'key': 'Enter'}):
             shown = browser.send(command)
         self.assertIn('/verify', shown['url'])
-        said = sign_in.codes({'log': str(log)})['output']
-        code = re.findall(r'code for me@example.test: (\d{6})', '\n'.join(said))[-1]
+        said = sign_in.codes({'log': str(log), 'mail': f'http://127.0.0.1:{mail}' if catcher else None})
+        code = re.findall(r'code for me@example.test: (\d{6})', '\n'.join(said['output']))[-1]
+        if catcher:
+            for _ in range(20):
+                if said['mail']: break
+                time.sleep(0.25)
+                said = sign_in.codes({'mail': f'http://127.0.0.1:{mail}'})
+            self.assertEqual((said['mail'][0]['to'], said['mail'][0]['subject']), ('me@example.test', 'Your sign-in code'))
+            self.assertIn(code, said['mail'][0]['text'], 'the mail the app sent is caught here, never sent out')
         for command in ({'do': 'key', 'key': 'Tab'}, {'do': 'type', 'text': code}, {'do': 'key', 'key': 'Enter'}):
             shown = browser.send(command)
         self.assertTrue(shown['url'].endswith('/dashboard') and shown['picture'])

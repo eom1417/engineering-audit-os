@@ -795,6 +795,48 @@
       }
     },
     {
+      "name": "mailpit",
+      "role": "validate",
+      "stages": [
+        "S05"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/axllent/mailpit",
+      "version": "1.31.6",
+      "binary": "mailpit",
+      "version_args": [
+        "version"
+      ],
+      "install": {
+        "method": "release",
+        "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz",
+        "sha256": "10fa12ccc610f653d4ed4df848c1817f9935dcf4e9a6a458a19ab0fa02093f91",
+        "archive": "tar.gz",
+        "member": "mailpit",
+        "platforms": {
+          "linux-x86_64": {
+            "method": "release",
+            "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz",
+            "sha256": "10fa12ccc610f653d4ed4df848c1817f9935dcf4e9a6a458a19ab0fa02093f91",
+            "archive": "tar.gz",
+            "member": "mailpit"
+          },
+          "darwin-arm64": {
+            "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-darwin-arm64.tar.gz",
+            "sha256": "1411270aa8fd7f4fb0cc358318754d7bb7c2c30bfd70572dd12d05a53e956373",
+            "archive": "tar.gz",
+            "member": "mailpit"
+          },
+          "darwin-x86_64": {
+            "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-darwin-amd64.tar.gz",
+            "sha256": "2f89ed77d2e6623bf700de42236858d10dde1ba96a222c9dbdefd33fa094a6f3",
+            "archive": "tar.gz",
+            "member": "mailpit"
+          }
+        }
+      }
+    },
+    {
       "name": "temurin-jre",
       "role": "validate",
       "stages": [
