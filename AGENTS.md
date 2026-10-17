@@ -69,6 +69,18 @@ one test per real behaviour, no tests for their own sake. Run the affected modul
 small, its size changes: one heavy job at a time). `tests/test_journey.py` is the fast end-to-end proof: check, change,
 check again, fix, accept.
 
+## The disk: a helping tool never weighs on the machine (owner, 2026-10-17)
+
+134 GB had piled up in old trials, measurements, project copies and caches that nobody removed. So:
+- **Scratch of a task lives in `/workspace/eaos-work/<task>/`** and is removed when the task ends; at most a small
+  summary (under 100 KB) stays. Never a copy of a project, a report or a measurement kept past its task: a project is
+  on GitHub, a measurement is rebuilt by running it again.
+- **One copy of the tools**: `~/.eaos/tools` is the working EAOS's (`/workspace/eaos-beta-trial/tools`).
+- **What EAOS makes, EAOS removes** (`CHANGELOG` 0.0.36): a new kind of file it writes comes with the rule that removes
+  it or bounds it, and the test of that rule.
+- **The disk budget** (`/workspace/eaos-dev/workers/disk-budget.sh`) names each folder and the most it may hold; it is
+  said at the start of every session and the beta update stops while a folder is over it.
+
 ## Before every commit
 
 ```bash
