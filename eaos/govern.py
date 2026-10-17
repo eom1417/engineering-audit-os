@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import guided
-from .agent_tools import HEADLESS
+from .api.launch import HEADLESS
 from .studio.actions.store import ACTIVE, RETRYABLE
 
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)

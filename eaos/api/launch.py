@@ -21,6 +21,7 @@ from pathlib import Path
 from ..places import home
 
 STARTUP = 15.0       # seconds `start` waits for the server it started to answer
+HEADLESS = 'EAOS_HEADLESS'   # set in the headless host (eaos/govern.py) and the runs it starts: their steps open no Studio
 SHELL_ONLY = frozenset({'PWD', 'OLDPWD', 'SHLVL', '_', 'TERM', 'COLUMNS', 'LINES', 'TMUX', 'TMUX_PANE', 'STY'})   # not passed on
 
 

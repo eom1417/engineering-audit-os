@@ -322,6 +322,8 @@ class Adapters(unittest.TestCase):
         self.assertEqual(argv, [sys.executable, '-m', 'eaos', 'mcp'], 'never another eaos on the path')
         self.assertEqual(Path(env['PYTHONPATH']), ROOT)
         self.assertEqual((env['EAOS_STUDIO_RUN'], env['EAOS_ASSISTANT']), ('r1', 'Codex'))
+        with mock.patch.dict(os.environ, {'EAOS_HEADLESS': '1'}):
+            self.assertEqual(adapters.eaos_server('r1', 'Codex')[1].get('EAOS_HEADLESS'), '1', "a headless host's run opens no Studio")
         text = prompts.build('fix', [{'id': 'TASK-1', 'title': 'T', 'paths': ['a.py']}], Path('/p/shop'), 'ar')
         for needle in ('fix_start', 'fix_edit', 'fix_finish', 'TASK-1', 'eaos-question', 'Do not call accept, undo or choose_branch', 'Arabic'):
             self.assertIn(needle, text)
