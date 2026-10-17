@@ -1,12 +1,14 @@
 # Studio redesign: plan
 
-Status: proposal, waiting for the owner's approval (2026-10-17). Nothing here is built yet.
+Status: approved by the owner (2026-10-17), built in place on `dev/studio-redesign` (see §7), supervised by the
+reviewer's ledger. The owner then asked for the least change that works: **the existing pages, data and actions are
+regrouped and reconnected, not rewritten.**
 
-The Studio is rebuilt from zero around one idea: **it is a light governance console for one or more projects, not a
+The Studio is reorganised around one idea: **it is a light governance console for one or more projects, not a
 full application.** Every feature the Studio has today stays (the inventory below is the parity list), but the
 person reaches any of them in at most three clicks, pages are nearly empty by default, and nothing is loaded before
-it is needed. When the new Studio reaches parity it replaces the old one, and the old one is deleted with its tests,
-build output and references.
+it is needed. The old addresses keep working as redirects (`studio/src/shell/moved.ts`); the code the new layout no
+longer calls is listed in §9 and deleted only after the owner has reviewed and tried the result.
 
 ## 1. What is wrong today (measured, not felt)
 
@@ -104,7 +106,7 @@ page only links here.
 A project switcher in the top bar listing every project under `~/.eaos/projects`, with its score and last check.
 New back-end endpoint; switching moves the Studio to that project's server (started if needed).
 
-## 4. Click paths (examples; the full list is part of phase 6)
+## 4. Click paths (examples; the full table is checked in the preview before the owner's review)
 
 | Job | Clicks |
 |---|---|
@@ -130,35 +132,42 @@ for professional tools and dashboards. Applied as:
   account/project switcher at the top, the page title and one primary action at the top of each page.
 - The result is written to `design-system/eaos-studio/MASTER.md` and judged by EAOS's own screen review.
 
-## 6. Weight budgets (enforced by the build)
+## 6. Weight
 
-| Budget | Target |
-|---|---|
-| JavaScript before the first page shows | ≤ 200 KB compressed |
-| Total built Studio | ≤ 2 MB (today 6 MB) |
-| Mermaid in the browser | none: diagrams rendered to SVG with the report |
-| Big sections (`functions`, `library`) | served in pages and per document by the API, never whole |
-| Server start | sections rebuilt only when their source changed |
-| Server memory at rest | measured before and after; target below today's 221 MB |
+Enforced by the build (`studio/scripts/budgets.mjs`, the last step of `npm run build`), set just above today so
+nothing grows unnoticed; lower them when a page gets lighter.
 
-The stack stays (React, TanStack Router, react-aria-components, the bundled fonts): it is not where the weight
-comes from, and react-aria carries the accessibility and right-to-left behaviour.
+| Budget | Today | Limit |
+|---|---|---|
+| Script before the first page shows (gzip) | 220 KB | 240 KB |
+| Stylesheet (gzip) | 43 KB | 48 KB |
+| Whole Studio on disk | 5.7 MB | 6 MB |
 
-## 7. Phases
+What changed: Overview reads only the frame's sections first (no territory map); the library (15 MB, 10.7 MB of it
+pictures) is cut by the live server to the document a page shows and the pictures it points at
+(`/api/sections/library?only=`); folded parts are drawn only when opened. Not done, and why:
+- **Mermaid** (3.6 MB of the 6 MB, loaded only by the document reader, lazily): drawing diagrams to SVG with the report
+  needs a renderer EAOS does not ship; kept lazy.
+- **`functions.json` (4.6 MB)**, read when Functions or a screen opens: paging it needs the list's sorting and filters
+  on the server; kept whole for now.
+- **Server start** rebuilds every section (`guided.publish`, about 26 s on this report; 176 to 221 MB resident):
+  skipping unchanged sections belongs to the publish step, not to the Studio.
 
-Each phase on its own branch from `develop`, merged and shown to the owner before the next.
+The stack stays (React, TanStack Router, react-aria-components, the bundled fonts).
 
-0. **This plan**, approved by the owner.
-1. **Clickable prototype** (static, on real report data) of the shell, Overview, Checks, Problems and Fixes at
-   390 and 1440 px, served on a dev URL. The owner reviews it before any production code.
-2. **Shell, Overview, Checks** in the new Studio (`studio-next/`, served beside the old one), plus the back-end
-   pieces they need: `fresh` always on, assistant choice and cost estimate before a check, live cost.
-3. **Problems, Fixes, Waiting for you.**
-4. **System views, Library, Settings, project switcher**; paged `functions` and `library`; diagrams as SVG.
-5. **Proof:** EAOS's own screen and code paths run on the new Studio; every item of the parity list has a click
-   path of three or fewer; budgets pass.
-6. **Swap and delete:** `studio-next/` becomes `studio/`; the old source, its built output in `eaos/data/studio`,
-   its tests and every reference are removed; a test fails if any old route or file name comes back.
+## 7. How it was built
+
+In place, on one branch, each step merged only after the reviewer's gate:
+1. **Navigation** (`shell/sections.ts`, `shell/Shell.tsx`): five sections, System's nine maps folded under it by
+   category from `SYSTEM_VIEWS`, the footer's Library and Settings, the phone's four tabs and More.
+2. **Checks** (`pages/checks/ChecksPage.tsx`): composed from the live check's `Flow`, the tools' `StartCheck`, Runs'
+   `RunsBody` and History's `HistoryContent`; old addresses redirect.
+3. **One name per action** and a sentence opening each page; every check pressed is fresh (`freshOf`); the check can
+   leave the AI out (`CheckOptions`).
+4. **Waiting for you** in the top bar (`Decisions.tsx` reused), **Fixes** with the branches waiting for approval
+   (`pages/change/Approvals.tsx`, the run page's `DecideSheet`), **Settings** (`pages/settings/SettingsPage.tsx`,
+   `shell/Settings.tsx`), a lighter **Overview**.
+5. **Project switcher** over the isolated projects (after the isolation work).
 
 ## 8. Parity list (from the inventory)
 
@@ -172,3 +181,15 @@ Every one of these keeps a home in the new Studio:
 - **Shell:** search over everything (⌘K), language and direction, theme, time zone, snapshot mode (opened from a
   file), deep links that keep the page state, selection with ranges and groups, the chat with direct control and
   build-from-a-plan.
+
+## 9. To delete after the owner's review
+
+No longer reached by any route or caller once the regrouping is in; kept until the owner has tried the result:
+- `pages/scan/LiveCheckPage.tsx`: `LiveCheckPage` and its `Head` (the Checks page uses `Flow`).
+- `pages/scan/ToolsPage.tsx`: `ToolsPage`, `useMapOnceChecking` (the Checks page uses `StartCheck`).
+- `pages/runs/RunsPage.tsx`: `RunsPage` (the Checks page uses `RunsBody`).
+- `pages/history/HistoryPage.tsx`: `HistoryPage`, `HistoryBody` (the Checks page uses `HistoryContent`).
+- `pages/assistant/AssistantPage.tsx`: `AssistantPage` (Settings uses `AssistantBody`).
+- `map/home.tsx`: `HomeMaps` and what only it draws.
+- `command/Questions.tsx`: `QuestionToast` (questions wait in Waiting for you).
+- The words only these used (the live check's title and lead, the toast's), found by a search when deleting.
