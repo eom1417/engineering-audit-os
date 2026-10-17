@@ -421,7 +421,7 @@ def load(context):
 
 def plan(context):
     from ..plan import build
-    result = build(context.target, context.out, context.language)
+    result = build(context.target, context.out, context.language, context.get('patterns'))
     return {'tasks': result['tasks'], 'waves': result['waves']}
 
 

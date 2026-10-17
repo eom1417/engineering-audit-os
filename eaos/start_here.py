@@ -72,14 +72,36 @@ def _problem_lines(report, tasks, counts, lang, ar):
     return lines
 
 
+def _this_run(report):
+    """The record of this check: its checkpoint while it runs (the reports are written before its manifest), else its
+    manifest."""
+    return _read_json(report / 'run-checkpoint.json', None) or _read_json(report / 'run-manifest.json', {})
+
+
 def _incomplete_lines(report, lang, ar):
-    stages = _read_json(report / 'run-manifest.json', {}).get('stages') or {}
+    stages = _this_run(report).get('stages') or {}
     missing = [name for name, row in stages.items() if row.get('status') in ('failed', 'not_reached')]
     if not missing: return []
     return ['## ' + _say(ar, 'ما لم يكتمل', 'What did not complete'), '',
             _say(ar, 'هذه الأجزاء من الفحص لم تكتمل، فما وجدته فيها قد يكون ناقصًا: ',
                  'These parts of the check did not complete, so what they would have found may be missing: ')
             + _say(ar, '، ', ', ').join(plain.stage(name, lang) for name in missing), '']
+
+
+def _path_lines(report, lang, ar):
+    """What a check of some paths looked at, and what it did not: kept from an earlier check (its date), or not seen."""
+    from .pipeline.paths import PATHS
+    manifest = _this_run(report)
+    paths = manifest.get('paths') or ['complete']
+    if 'complete' in paths: return []
+    name = lambda p: PATHS[p]['names'][1 if ar else 0]
+    others = [p for p in PATHS if p not in paths and p != 'complete']
+    kept = sorted(row['checked_at'] for row in (manifest.get('stages') or {}).values() if row.get('checked_at'))
+    rest = (_say(ar, f'نتائجها هنا من فحص {kept[0][:10]}.', f'their results here are those of the check of {kept[0][:10]}.') if kept else
+            _say(ar, 'لم تُفحص هذه المرة: افحص مسارها، أو الفحص الشامل، لتراها.', 'they were not checked this time: check their path, or the complete check, to see them.'))
+    return ['## ' + _say(ar, 'مسار هذا الفحص', "This check's path"), '',
+            _say(ar, 'تبع هذا الفحص: ', 'This check followed: ') + _say(ar, '، ', ', ').join(name(p) for p in paths) + '. '
+            + _say(ar, 'ولم ينظر في: ', 'It did not look at: ') + _say(ar, '، ', ', ').join(name(p) for p in others) + _say(ar, '؛ ', '; ') + rest, '']
 
 
 def _one_page_lines(report, ar):
@@ -114,7 +136,7 @@ def start_here(report, lang, name):
         lines += [_say(ar, 'لم أجد مشاكل تحتاج إصلاحًا.', 'I found no problems that need fixing.'), '']
     else:
         lines += _problem_lines(report, tasks, summary_counts(report), lang, ar)
-    lines += _incomplete_lines(report, lang, ar)
+    lines += _path_lines(report, lang, ar) + _incomplete_lines(report, lang, ar)
     lines += _one_page_lines(report, ar)
     lines += _closing_lines(ar)
     page = report / 'START-HERE.md'

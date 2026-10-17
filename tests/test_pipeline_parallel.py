@@ -69,11 +69,13 @@ def _under():
 
 
 def _contents(out):
-    """{file: digest} of every record of a report, the lines that only say when or where left out."""
+    """{file: digest} of every record of a report, its own folder named alike and the lines that only say when or
+    where left out."""
     found = {}
     for path in sorted(Path(out).rglob('*')):
         if path.is_file() and path.suffix in ('.json', '.md') and not path.name.startswith(('run-', 'report-result')):
-            kept = [line for line in path.read_text(encoding='utf-8').splitlines() if not any(s in line for s in STAMPS)]
+            text = path.read_text(encoding='utf-8').replace(str(Path(out).resolve()), '<out>')
+            kept = [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
             found[path.relative_to(out).as_posix()] = hashlib.sha256('\n'.join(kept).encode()).hexdigest()
     return found
 

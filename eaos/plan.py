@@ -114,13 +114,14 @@ def _link_prerequisites(tasks, dossier):
             _prerequisite(task, dependency, by_claim)
 
 
-def build_tasks(target, out, dossier, sets):
+def build_tasks(target, out, dossier, sets, patterns=None):
+    """The cards of every actionable claim; `patterns`: only the cards of those patterns (a check of some paths)."""
     tasks = []
     for claim in sorted(dossier['claims'], key=lambda row: (-row.get('priority', 0), row['id'])):
         if claim['confidence'] not in ACTIONABLE: continue
         decision = decide(claim)
         if decision['kind'] != 'retain': tasks.append(_task(len(tasks) + 1, claim, decision, (target, out, sets)))
-    tasks = grouped(tasks)
+    tasks = grouped([task for task in tasks if patterns is None or task['pattern'] in patterns])
     from .roadmap import section
     for task in tasks: task['section'] = section(task)
     _link_prerequisites(tasks, dossier)
@@ -414,13 +415,13 @@ def rebuild(out, dossier, language='ar', target=None):
     return len(tasks)
 
 
-def build(target, out, language='ar'):
+def build(target, out, language='ar', patterns=None):
     target, out = Path(target).resolve(), Path(out).resolve()
     dossier_path = out / 'dossier.json'
     if not dossier_path.is_file(): raise ValueError('Build a dossier before planning: eaos dossier')
     dossier = read(dossier_path)
     sets = load(out)
-    tasks = build_tasks(target, out, dossier, sets)
+    tasks = build_tasks(target, out, dossier, sets, patterns)
     plan = waves(tasks)
     directory = out / PLAN_DIR
     publish(directory, tasks, plan, language)

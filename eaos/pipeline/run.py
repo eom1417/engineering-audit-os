@@ -13,6 +13,7 @@ from pathlib import Path
 
 from ..progress import ProgressLog, previous_seconds, using
 from ..usage import FILE as USAGE
+from .paths import resolve
 from .schedule import assistants, run_ready
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
@@ -45,12 +46,13 @@ def _runners():
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
-            runtime=None, mode='normal'):
+            runtime=None, mode='normal', paths=None, patterns=None):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
     without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
     once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants run at
-    once (eaos/pipeline/schedule.py: normal, speed, one).
+    once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths (eaos/pipeline/paths.py), recorded;
+    `patterns`: the card patterns the plan keeps, None for all.
 
     Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
@@ -65,7 +67,8 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
                       provider=provider, goal=goal,
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
-                      intake=_resolved(intake), runtime=str(runtime) if runtime else None, assistants=assistants(mode))
+                      intake=_resolved(intake), runtime=str(runtime) if runtime else None, assistants=assistants(mode),
+                      patterns=patterns)
     requested = _requested(only, skip)
     completed = _completed or {}
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
@@ -74,7 +77,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
     head = _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake)
     head['options']['without_tools'] = sorted(without_tools)
-    head['mode'] = mode                          # not an option: a check goes on in another mode with the same evidence
+    head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out))
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
@@ -121,6 +124,7 @@ def _settled(stage, run):
     """(row, resumed) of a stage that does not run here: resumed, not requested, or blocked; None when it runs."""
     if stage.name in run['completed']: return run['completed'][stage.name], True
     if stage.name not in run['requested']:
+        if run['head']['paths'] != ['complete']: return _row(stage, SKIPPED, "outside this check's paths", code='outside_paths'), False
         return _row(stage, SKIPPED, 'not requested in this run', code='not_requested'), False
     unmet = [name for name in stage.requires if not _satisfied(name, run['results'], run['out'])]
     if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing'))
@@ -180,7 +184,7 @@ def _head(target, out, started_at, requested, language, exclude, max_files, max_
 
 def _manifest(head, began, results):
     manifest = {
-        **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at', 'mode') if key in head},
+        **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at', 'mode', 'paths') if key in head},
         'seconds': round(time.monotonic() - began, 2), 'requested': head['requested'],
         'stages': results,
         'counts': {state: sum(1 for row in results.values() if row['status'] == state)
@@ -298,18 +302,32 @@ def clear(out, patterns=None):
     return freed
 
 
-def check(target, out, again_from=None, checked=False, **options):
+def check(target, out, again_from=None, checked=False, paths=None, **options):
     """A check the person asked for: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
     goes on from that checkpoint; otherwise, or when the source changed since, a fresh full run, which first clears
     the previous check's bulky data (clear) unless it runs some stages only. `again_from`: the last check goes on from
-    that stage (again)."""
+    that stage (again). `paths`: the check follows those paths only (focused)."""
     if again_from: return again(target, out, again_from, checked=checked, **options)
     if (Path(out) / CHECKPOINT).is_file():
         try: return resume(target, out, **options)
         except ValueError: pass                         # the source or the options changed since: its evidence is stale
+    chosen = resolve(paths)
+    if chosen['stages'] is not None: return focused(target, out, chosen, checked, **options)
     if not options.get('only'): clear(out)
     (Path(out) / USAGE).unlink(missing_ok=True)        # a fresh run counts its own use from nothing
     return execute(target, out, **options)
+
+
+def focused(target, out, chosen, checked=False, **options):
+    """A check of some paths only (paths.resolve's `chosen`): on the code the last check read, only their stages run
+    again and the rest of that check stays, each stage saying when it ran; on other code, or with no check before,
+    only their stages run and their plan keeps only their cards. Nothing of the last check is cleared."""
+    options.update(paths=chosen['paths'], engines=chosen['engines'] if 'engines' in chosen['stages'] else None)
+    if _previous(out) is not None:
+        try: return resume(target, out, redo=chosen['stages'], checked=checked, only=chosen['stages'], **options)
+        except ValueError: pass                         # other code: none of the last check's evidence holds
+    (Path(out) / USAGE).unlink(missing_ok=True)
+    return execute(target, out, only=chosen['stages'], patterns=chosen['patterns'], **options)
 
 
 def again(target, out, stage, checked=False, **options):
@@ -330,13 +348,14 @@ def resume(target, out, redo=(), checked=False, **options):
         return execute(target, out, **options)
     _merge_options(previous.get('options', {}) if checked else _resumable(target, previous), options)
     done = _done_stages(previous, out) - set(redo)
-    remaining = [name for name in ORDER if name not in done]
+    wanted = options.pop('only', None)
+    remaining = [name for name in ORDER if name not in done and (not wanted or name in wanted)]
     if not remaining:
         return previous
-    options.pop('only', None)
-    merged = execute(target, out, only=remaining, _completed={name: previous['stages'][name] for name in done}, **options)
-    for name in done:
-        merged['stages'][name] = previous['stages'][name]
+    kept = {name: {**previous['stages'][name], 'checked_at': previous['stages'][name].get('checked_at') or previous['started_at']}
+            for name in done}
+    merged = execute(target, out, only=remaining, _completed=kept, **options)
+    merged['stages'].update(kept)
     merged['counts'] = {state: sum(1 for row in merged['stages'].values() if row['status'] == state)
                         for state in (OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED)}
     merged['resumed_from'] = previous['started_at']

@@ -410,6 +410,10 @@
    "ar": "لم تُطلب هذه المرحلة في هذا الفحص.",
    "en": "This stage was not asked for in this run."
   },
+  "outside_paths": {
+   "ar": "خارج مسار هذا الفحص، فلم تعمل فيه.",
+   "en": "Outside this check's paths, so it did not run in it."
+  },
   "prerequisites_missing": {
    "ar": "لم تعمل لأن مرحلة تحتاجها قبلها لم تكتمل.",
    "en": "It did not run because a stage it needs did not finish."
