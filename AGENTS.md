@@ -19,8 +19,8 @@ It is not what EAOS tells the assistants of the projects it audits; that lives i
   Fix the cause, not the symptom; prove it with a real assistant trial, not only unit tests; keep the
   progress numbers honest.
 - **`main` is the owner's mother copy and is never touched**: no commit, push or merge into it; only the
-  owner decides about it. Work is built where the owner chooses (directly on `develop` or a new branch from it),
-  verified clean (full suite, gates), merged into `develop` and pushed: the whole flow is in "The development flow".
+  owner decides about it. Work is built on a new branch from `develop` (directly on `develop` only when the owner says
+  so), verified clean (full suite, gates), merged into `develop` and pushed: the whole flow is in "The development flow".
 
 ## The code laws (owner, 2026-10-13)
 
@@ -81,8 +81,8 @@ check again, fix, accept.
 Here EAOS is built with EAOS itself, so it is developed as a tool apart from the project it checks: `beta-trial` is the
 working EAOS (its code, its tools, its Studio); `develop` is the project under check, as if it were anyone else's.
 Every piece of work follows these steps, in this order, every time:
-0. **Ask first where to build**: directly on `develop`, or on a new branch from it (`dev/<topic>`). Never start
-   without the owner's answer.
+0. **Build on a new branch from `develop`** (`dev/<topic>`), without asking: that is the owner's standing rule
+   (2026-10-17). Work directly on `develop` only when the owner says so explicitly.
 1. **Develop and verify** there (full suite, `tools/validate.py`, the Studio built when `studio/` changed).
 2. **Merge into `develop`** when the work is done (a new branch: merged, then deleted), and push `origin/develop`.
 3. **`develop` goes into `beta-trial` only once the owner approved it**: then
