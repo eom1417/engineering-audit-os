@@ -145,14 +145,16 @@ def hidden():
     return sorted(folder for folder in real if not any(other in folder.parents for other in real))
 
 
-def _own(target):
+def _own(target, runtime):
     """The real folders a run's command may be shown again when it is given a path in them: its project's own EAOS
-    workspace (records, runtime, data) and its own report; never another project's, whatever it is given."""
+    workspace (records, runtime, data), its own report, and the runtime it runs from (a batch's candidate copy is
+    another folder than the project, but its records, the lock's reports among them, are the project's); never another
+    project's, whatever it is given."""
     from .places import workspace
     folder = workspace(target)
     try: report = json.loads((folder / 'state.json').read_text(encoding='utf-8')).get('outputs')
     except (OSError, ValueError): report = None
-    return [Path(os.path.realpath(path)) for path in (folder, report) if path]
+    return [Path(os.path.realpath(path)) for path in (folder, report, runtime) if path]
 
 
 def _within(path, folders):
@@ -229,7 +231,7 @@ class Sandbox:
         self.refused = _view_refusal()
         self.offline = _network_isolation() if self.refused else True
         self.masks = [] if self.refused else hidden()
-        self.own = [] if self.refused else _own(self.target)
+        self.own = [] if self.refused else _own(self.target, self.workdir.parent)     # workdir: <runtime>/sandbox
         self.started, self.commands = [], []
         self.limitations = ([f'not isolated: {self.refused}', 'the filesystem outside the copy is readable',
                              'processes run as the invoking user'] if self.refused else

@@ -256,6 +256,19 @@ class TwoProjectsTests(Workspace):
         self.assertEqual(box.run(psql, network=True, env={'PGPASSWORD': database.password_file.read_text().strip()})[:2], (0, '1\n'))
         box.dispose()
 
+    def test_a_batchs_copy_writes_its_reports_into_its_own_projects_runtime_and_nowhere_else(self):
+        a, b = self.a, self.b
+        candidate = a['runtime'] / 'candidates/wave-1'
+        candidate.parent.mkdir(parents=True)
+        git(candidate.parent, 'clone', '-q', str(a['source']), str(candidate))
+        box = sandbox.Sandbox(candidate, a['runtime'] / 'authorization.json', a['runtime'] / 'sandbox', 'S05')
+        write = 'import os, sys\nfor path in sys.argv[1:]:\n    try: open(path, "w").write("x")\n    except OSError: pass\n'
+        mine, theirs = a['runtime'] / 'behavior-lock/wave-1.json', b['runtime'] / 'behavior-lock/wave-1.json'
+        for path in (mine, theirs): path.parent.mkdir(parents=True)
+        self.assertEqual(box.run([sys.executable, '-c', write, str(mine), str(theirs)])[0], 0)
+        self.assertEqual((mine.is_file(), theirs.is_file()), (True, False), "the lock's report of a batch reaches its project, never another")
+        box.dispose()
+
     def test_eaos_clean_leaves_the_run_another_project_holds_and_removes_what_no_run_holds(self):
         from eaos import guided
         held, left = self.box(self.b), self.b['runtime'] / 'sandbox/run-left-by-a-killed-run'

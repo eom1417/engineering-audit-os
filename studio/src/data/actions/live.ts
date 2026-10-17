@@ -5,7 +5,7 @@
 import { frameSplitter } from './sse'
 import { ActionError, TERMINAL, type AcceptChoice, type ActionsClient, type Assistant, type ChatControl, type ChatProgress, type UsageReport, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
   type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Reason, type Run, type RunEvent,
-  type SignInStatus, type SignInView, type StartBody, type StreamStatus, type ReportDecision } from './types'
+  type SignInStatus, type SignInView, type StartBody, type StreamStatus, type ReportDecision, type ProjectRow } from './types'
 
 export const TOKEN_KEY = 'eaos.token'
 
@@ -176,5 +176,7 @@ export function liveClient(token: string): ActionsClient {
     plan: (body) => post<{ run: Run }>('/api/plan', body).then(runOf),
     chatControl: (on) => (on === undefined ? get<ChatControl>('/api/chat/control') : post<ChatControl>('/api/chat/control', { on })),
     follow: (id, after, onEvent, onStatus) => followRun(token, id, after, onEvent, onStatus),
+    projects: () => get<{ projects: ProjectRow[] }>('/api/projects').then((r) => r.projects),
+    openProject: (workspace) => post<{ studio: string; name: string }>('/api/projects/open', { workspace }),
   }
 }

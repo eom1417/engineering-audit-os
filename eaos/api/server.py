@@ -185,7 +185,7 @@ def pages(ctx):
         return FileResponse(target, headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache'})
 
     async def live_token(request):
-        if not _remote_login_trusted(ctx) or _this_computer((request.scope.get('client') or ('',))[0]):
+        if not _remote_login_trusted(ctx) or not _gateway_peer((request.scope.get('client') or ('',))[0]):
             return Response(status_code=404)
         given = f"window.EAOS_BOOT_TOKEN={json.dumps(ctx.keys.token)};try{{sessionStorage.setItem('eaos.token',window.EAOS_BOOT_TOKEN)}}catch(e){{}}\n"
         return Response(given, media_type='text/javascript', headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store, private'})
@@ -378,15 +378,19 @@ def _bind_kept(state, port, remote_origin, remote=False):
     return bind(port, host=host, remote_origin=remote_origin, routed=remote)
 
 
-def _this_computer(address):
-    """Whether a request's TCP peer is this computer (loopback or one of its own addresses: one it can bind to). The
-    Remote sign-in's proxy reaches the server from another machine; a program here (another project's code, a forged
-    Host and Sec-Fetch header) never gets the token from live-token.js. The peer is the socket's, never a header's."""
-    try:
-        with socket.socket(socket.AF_INET6 if ':' in address else socket.AF_INET) as probe: probe.bind((address, 0))
-    except (OSError, ValueError):
-        return False
-    return True
+def _gateways(table='/proc/net/route'):
+    """The default routes' gateways of this computer (IPv4), read from the kernel's routing table; none where it has none."""
+    try: rows = [line.split() for line in Path(table).read_text().splitlines()[1:]]
+    except OSError: return set()
+    return {socket.inet_ntoa(int(row[2], 16).to_bytes(4, 'little')) for row in rows if len(row) > 3 and row[1] == '00000000'
+            and int(row[3], 16) & 2}
+
+
+def _gateway_peer(address, table='/proc/net/route'):
+    """Whether a request's TCP peer is this computer's default gateway: the way the Remote sign-in's proxy comes in. Every
+    other peer (a program here, this computer's own address, another container on the same bridge with a forged Host)
+    never gets the token from live-token.js. The peer is the socket's, never a header's."""
+    return bool(address) and address.removeprefix('::ffff:') in _gateways(table)
 
 
 def _remote_login_trusted(ctx):

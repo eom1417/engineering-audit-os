@@ -5,10 +5,11 @@ import { Outlet, useRouterState } from '@tanstack/react-router'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from '../components/Button'
-import { Badge, FreshnessChip } from '../components/Chip'
+import { Badge, Chip, FreshnessChip } from '../components/Chip'
 import { Go } from '../components/Go'
 import { Icon } from '../components/Icon'
-import { Sheet, SheetSub } from '../components/Sheet'
+import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
+import { Panel, RowButton, RowLink, Skeleton, StateMessage } from '../components/Panel'
 import { BranchLiveProvider, useFreshView } from '../branches/live'
 import { ScanSheet } from '../branches/ScanSheet'
 import { BranchChip, BranchSwitcher } from '../branches/Switcher'
@@ -16,7 +17,7 @@ import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { ChatDock } from '../chat/ChatDock'
 import { useActions } from '../data/actions/store'
-import { TERMINAL } from '../data/actions/types'
+import { TERMINAL, type ProjectRow } from '../data/actions/types'
 import { counts, useLoaded, useSections, useStudio, type Counts } from '../data/context'
 import { COUNT_NEEDS } from '../data/stages'
 import { usePrefs } from '../i18n/prefs'
@@ -24,6 +25,7 @@ import { Id, N } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
 import { LanguageAndTheme, ProjectFacts, TimeZoneSetting } from './Settings'
+import { NoKeyNotice } from './Layout'
 import { ScanBanner } from './ScanBanner'
 import { useAwaitingApproval, useWaitingDecisions } from './waiting'
 import { SECTIONS, sectionOf, tabOf, type SectionDef } from './sections'
@@ -233,14 +235,45 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
   )
 }
 
+/** The project button's sheet: every project EAOS knows on this computer, each opening its own Studio (a server of its
+ * own, so one project never shows another's data), then the way to Settings. A static copy shows its project's facts. */
 function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOpenChange: (open: boolean) => void; project: string }) {
-  const { t } = usePrefs()
+  const { t, date } = usePrefs()
+  const { client } = useActions()
+  const [rows, setRows] = useState<ProjectRow[] | null>(null)
+  const [opening, setOpening] = useState<string | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+  useEffect(() => {
+    if (!isOpen || !client?.projects) return
+    setProblem(null)
+    client.projects().then(setRows, () => setRows([]))
+  }, [isOpen, client])
+  const open = async (row: ProjectRow) => {
+    if (row.current || !client?.openProject) { onOpenChange(false); return }
+    setOpening(row.workspace)
+    try { window.location.assign((await client.openProject(row.workspace)).studio) } catch (error) {
+      setProblem(error instanceof Error ? error.message : String(error)); setOpening(null)
+    }
+  }
   return (
-    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={project}>
-      <ProjectFacts />
-      <SheetSub>{t('display')}</SheetSub>
-      <div className={css.rowSet}><LanguageAndTheme comfortable /></div>
-      <TimeZoneSetting />
+    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={client?.projects ? t('projects') : project}>
+      {client?.projects ? (
+        <>
+          <SheetLead>{t('projectsLead')}</SheetLead>
+          {rows === null ? <Skeleton label={t('loading')} /> : (
+            <Panel><ul>{rows.map((row) => (
+              <li key={row.workspace}>
+                <RowButton icon="folder" onPress={() => void open(row)} hook={`project:${row.workspace}`}
+                  title={<span dir="auto">{row.name}</span>}
+                  sub={<>{row.score === null ? t('notMeasured') : <><N value={Math.round(row.score * 100)} />/100</>}{row.checked ? <> · {date(row.checked, false)}</> : null}</>}
+                  end={row.current ? <Chip tone="accent">{t('thisProject')}</Chip> : opening === row.workspace ? t('opening') : undefined} />
+              </li>
+            ))}</ul></Panel>
+          )}
+          {problem && <StateMessage kind="error" title={t('openProjectFailed')} sub={problem} />}
+        </>
+      ) : <ProjectFacts />}
+      <div onClick={() => onOpenChange(false)}><Panel><RowLink to="/settings" icon="settings" title={t('settings')} /></Panel></div>
     </Sheet>
   )
 }
@@ -303,6 +336,7 @@ export function Shell() {
             onScan={() => setScanSheet(true)} onBranches={() => setBranchSheet(true)} />
           <ScanBanner />
           <main id="main" tabIndex={-1} className={css.main}>
+            <NoKeyNotice />
             {systemWorkspace ? <div className={css.workspace}>
               <div className={css.workspaceTabs}><WorkspaceReportPicker project={project} pathname={pathname} /><SystemViews current={systemView} persistent /></div>
               <div id="system-workspace-panel" role="tabpanel" aria-labelledby={`system-tab-${systemView}`}><Outlet /></div>

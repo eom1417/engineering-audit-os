@@ -43,12 +43,16 @@ export function CheckOptions({ offer, choice, onChange }: { offer: CheckOffer; c
   return (
     <div className={css.form} data-check-options>
       <p className={css.fieldLabel}>{w('checkPaths')}</p>
-      {offer.paths.map((path) => (
-        <div key={path.id} className={css.check} data-path={path.id}>
-          <SelectBox checked={choice.paths.includes(path.id)} label={path.name[lang]} onToggle={() => onChange({ ...choice, paths: toggled(choice.paths, path.id) })} />
-          <span>{path.name[lang]}<span className={css.hint}><Txt>{path.looks_at[lang]}</Txt></span></span>
-        </div>
-      ))}
+      {offer.paths.map((path) => {
+        const pick = () => onChange({ ...choice, paths: toggled(choice.paths, path.id) })
+        // the whole row chooses the path, its words as well as its box (the box stops its own click from counting twice)
+        return (
+          <div key={path.id} className={css.check} data-path={path.id} onClick={pick}>
+            <SelectBox checked={choice.paths.includes(path.id)} label={path.name[lang]} onToggle={pick} />
+            <span>{path.name[lang]}<span className={css.hint}><Txt>{path.looks_at[lang]}</Txt></span></span>
+          </div>
+        )
+      })}
       <Segmented label={w('checkAi')} value={choice.ai === false ? 'off' : 'on'} onChange={(ai) => onChange({ ...choice, ai: ai === 'on' })}
         options={[{ id: 'on', label: w('aiOn') }, { id: 'off', label: w('aiOff') }]} />
       {choice.ai === false && <p className={css.hint} role="note" data-ai-off>{w('aiOffLead')}</p>}

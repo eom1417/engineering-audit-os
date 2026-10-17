@@ -95,6 +95,31 @@ class BuildTests(Workspace):
         self.assertFalse((out / 'behavior-lock/playwright').exists())
         self.assertFalse((out / 'behavior-lock/playwright.config.ts').exists())
 
+    def test_the_lock_links_playwright_by_its_real_path_where_the_tools_home_is_a_link(self):
+        import os
+        from types import SimpleNamespace
+        from unittest import mock
+        from eaos.behavior_lock import _prepare
+        real = Path(self.tmp) / 'disk/tools'
+        (real / 'node/node_modules/@playwright/test').mkdir(parents=True)
+        (Path(self.tmp) / 'home').mkdir()
+        (Path(self.tmp) / 'home/tools').symlink_to(real)            # ~/.eaos/tools -> the one copy of the tools
+        report = Path(self.tmp) / 'report'
+        (report / 'behavior-lock').mkdir(parents=True)
+        live = SimpleNamespace(sandbox=SimpleNamespace(copy=Path(self.tmp) / 'copy'))
+        live.sandbox.copy.mkdir()
+        with mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': str(Path(self.tmp) / 'home/tools')}):
+            lock = _prepare(live, report)
+        self.assertEqual(Path(os.readlink(lock / 'node_modules')), real.resolve() / 'node/node_modules',
+                         'the runner and the specs load one Playwright: the sandbox shows the link and the real path apart')
+
+    def test_a_program_with_no_feature_to_lock_records_nothing_and_says_so_instead_of_failing(self):
+        from eaos.behavior_lock import run_lock
+        report = Path(self.tmp) / 'report'
+        report.mkdir()
+        self.assertEqual(build(report, Path(self.tmp))['specs'], [])
+        self.assertEqual(run_lock(report, Path(self.tmp), Path(self.tmp) / 'runtime')['results'], [], 'the safety net is empty, never a crash')
+
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest">
 <testcase classname="" name="approvals.test_broken"><error message="collection failure">ImportError: no module named x</error></testcase>

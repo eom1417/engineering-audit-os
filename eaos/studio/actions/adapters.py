@@ -30,8 +30,9 @@ def eaos_server(run, assistant):
     never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse
     (eaos/mcp_server.py)."""
     import sys
+    from ...api.launch import HEADLESS              # a run of the headless host opens no Studio either
     env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant, 'PYTHONPATH': str(Path(__file__).resolve().parents[3])}
-    for name in ('EAOS_HOME', 'EAOS_OUTPUT', 'EAOS_ENGINE_TOOLS'):
+    for name in ('EAOS_HOME', 'EAOS_OUTPUT', 'EAOS_ENGINE_TOOLS', HEADLESS):
         if os.environ.get(name): env[name] = os.environ[name]
     return [sys.executable, '-m', 'eaos', 'mcp'], env
 

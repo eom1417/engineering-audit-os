@@ -322,6 +322,8 @@ class Adapters(unittest.TestCase):
         self.assertEqual(argv, [sys.executable, '-m', 'eaos', 'mcp'], 'never another eaos on the path')
         self.assertEqual(Path(env['PYTHONPATH']), ROOT)
         self.assertEqual((env['EAOS_STUDIO_RUN'], env['EAOS_ASSISTANT']), ('r1', 'Codex'))
+        with mock.patch.dict(os.environ, {'EAOS_HEADLESS': '1'}):
+            self.assertEqual(adapters.eaos_server('r1', 'Codex')[1].get('EAOS_HEADLESS'), '1', "a headless host's run opens no Studio")
         text = prompts.build('fix', [{'id': 'TASK-1', 'title': 'T', 'paths': ['a.py']}], Path('/p/shop'), 'ar')
         for needle in ('fix_start', 'fix_edit', 'fix_finish', 'TASK-1', 'eaos-question', 'Do not call accept, undo or choose_branch', 'Arabic'):
             self.assertIn(needle, text)
@@ -495,7 +497,9 @@ class Runs(Base):
         self.assertFalse(pid and alive(pid))
         self.assertEqual(self.post(f'/api/runs/{run}/stop')[0], 409)
         os.environ['FAKE_MODE'] = 'question'
+        self.app.store.update(run, usage={'cost_usd': 0.2})        # what Actions.usage keeps of an ended run
         self.assertEqual(self.post(f'/api/runs/{run}/retry')[1]['run']['state'], 'queued')
+        self.assertIsNone(self.app.store.load(run).get('usage'), "a run tried again is counted again, every turn of it")
         again = self.app.wait(run, ('waiting_for_person', 'failed'), 30)
         self.assertEqual((again['state'], again['attempt']), ('waiting_for_person', 2))
         self.assertEqual(self.app.store.verify(run), [])
@@ -922,3 +926,18 @@ class Headless(unittest.TestCase):
         end = time.monotonic() + 30
         while self.govern._held(core.store.folder / 'host.lock') and time.monotonic() < end: time.sleep(0.2)
         self.assertFalse(self.govern._held(core.store.folder / 'host.lock'), 'the host leaves once nothing is queued or active')
+
+    def test_an_answer_given_in_the_terminal_is_told_as_given_there_never_as_the_studios(self):
+        question = {'options': [{'id': 'yes', 'label': {'en': 'Yes, run it', 'ar': 'نعم'}}, {'id': 'no', 'label': {'en': 'No', 'ar': 'لا'}}]}
+        self.assertIn('answered in the Studio: Yes, run it', prompts.answer(question, 'yes', None, 'en'))
+        self.assertIn('answered in the terminal: Yes, run it', prompts.answer(question, 'yes', None, 'en', via='terminal'))
+        with mock.patch.object(runs.Manager, 'answer') as answered:
+            self.govern.host(str(self.project), ('r1-q1', 'yes', None), idle=0)
+        answered.assert_called_once_with('r1-q1', 'yes', None, via='terminal')
+        core = self.govern.core(str(self.project))
+        self.addCleanup(core.close)
+        run = core.create({'action': 'run_setup', 'inputs': {}})['id']
+        core.store.update(run, state='waiting_for_person', mode='direct', question={'id': f'{run}-q1', 'run': run, 'why': 'run consent', **question})
+        core.manager.answer(f'{run}-q1', 'no', via='terminal')                    # "no": the run ends here, nothing starts
+        said = next(e for e in core.store.events(run) if e['kind'] == 'answer')
+        self.assertEqual((said['text']['en'], said['text']['ar'], said['data']['via']), ('You answered in the terminal: No', 'جاوبت في الطرفية: لا', 'terminal'))

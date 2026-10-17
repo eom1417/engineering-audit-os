@@ -277,6 +277,10 @@ export interface ActionsClient {
   branches?: BranchApi
   /** The sign-in a check waits for, and the browser the person signs in with (live only: eaos/api/sign_in.py) */
   signIn?: SignInApi
+  /** The projects on this computer, and the address of one's own Studio, started when it is not (live only:
+   *  eaos/api/projects.py) */
+  projects?(): Promise<ProjectRow[]>
+  openProject?(workspace: string): Promise<{ studio: string; name: string }>
 }
 
 /** What a check asks while it waits for the person to sign in to their app, and what the app sent them meanwhile. */
@@ -301,6 +305,9 @@ export interface SignInApi {
   skip(): Promise<SignInStatus>
   forget(): Promise<SignInStatus>
 }
+
+/** A project EAOS knows on this computer, for the switcher. */
+export interface ProjectRow { workspace: string; name: string; path: string; current: boolean; score: number | null; checked: string | null; studio: boolean }
 
 /** A reason in both languages, with a stable code */
 /** Why a change cannot happen now; `runs` are the queued or working runs it waits for (each can be stopped). */

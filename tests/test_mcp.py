@@ -386,6 +386,9 @@ class PersonOnly(Home):
         self.assertIn('eaos accept', printed.split('copy and paste')[-1])
         self.assertEqual(self.eaos('accept', str(self.project), '--yes', studio_run=True)[0], 3)
         self.assertEqual(self.eaos('undo', str(self.project), '--yes', studio_run=True)[0], 3)
+        with mock.patch('sys.stdin.isatty', return_value=True), mock.patch('builtins.input', side_effect=EOFError):
+            from eaos import cli
+            self.assertEqual(cli.main(['accept', str(self.project), '--lang', 'en']), 5, 'the input ended: a no, never a traceback')
         self.assertEqual(agent_tools.undo(str(self.project))['status'], 'needs_agreement', 'the tool waits for the person too')
         self.assertTrue(self.has('eaos/wave-1'), 'nothing happened without the person')
         code, printed = self.eaos('undo', str(self.project), '--yes')

@@ -23,6 +23,8 @@ ASK = ('When you need the person (their agreement to run the app, a choice only 
        'If a tool you need is refused or is not among your tools, never ask the person to change permissions, settings or '
        'files: that is never theirs to do. Say plainly which step of the Studio does it (for example "Run the app safely") '
        'and end your turn.')
+# Where the person gave an answer, in both languages: the words that resume the assistant and the run's own event.
+WHERE = {'studio': {'en': 'in the Studio', 'ar': 'في الاستوديو'}, 'terminal': {'en': 'in the terminal', 'ar': 'في الطرفية'}}
 ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/studio/actions/runs.py)
 
 VERBS = {
@@ -96,13 +98,14 @@ def acts(question, option):
     return action if action in ACTS else None
 
 
-def answer(question, option, text, lang='ar', done=None):
-    """The words that resume a session with the person's answer (and what the Studio already did for it)."""
+def answer(question, option, text, lang='ar', done=None, via='studio'):
+    """The words that resume a session with the person's answer, said where they gave it (`via`: WHERE), and what EAOS
+    already did for it."""
     chosen = next((o for o in question.get('options') or [] if o.get('id') == option), None)
     said = (chosen or {}).get('label', {}).get(lang) or (chosen or {}).get('label', {}).get('en') or option or ''
-    parts = [f'The person answered in the Studio: {said}' + (f' (option "{option}")' if option else '')]
+    parts = [f"The person answered {WHERE[via]['en']}: {said}" + (f' (option "{option}")' if option else '')]
     if text: parts.append(f'They added: {text}')
-    if done: parts.append(f'The Studio already ran {done[0]} for this answer; its result: {json.dumps(done[1], ensure_ascii=False)[:1500]}.')
+    if done: parts.append(f'EAOS already ran {done[0]} for this answer; its result: {json.dumps(done[1], ensure_ascii=False)[:1500]}.')
     parts.append('Go on from where you stopped.')
     return ' '.join(parts)
 
