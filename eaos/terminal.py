@@ -46,7 +46,7 @@ def command(function):
             again = 'eaos ' + shlex.join(getattr(args, 'words', None) or [args.command]) + ' --yes'
             guided.box(lang, asked.question['text'], status='ask', commands=[again], note=words('agree', lang))
             return 4
-        except guided.Declined:
+        except (guided.Declined, EOFError):     # "no", or the input ended without an answer
             guided.box(lang, words('not_done', lang, why=words('said_no', lang)), status='warn', commands=['eaos status'])
             return 5
         except (LookupError, ValueError, PermissionError) as problem:
