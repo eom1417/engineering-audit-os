@@ -1143,7 +1143,7 @@ def start(args):
          f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))
     if _missing_first(project, lang): return 1
     watch(state, args)
-    return advance(state, args)
+    return scan(state, args) if getattr(args, 'path', None) or getattr(args, 'mode', None) else advance(state, args)  # asked: a check now
 
 
 def _missing_first(project, lang):

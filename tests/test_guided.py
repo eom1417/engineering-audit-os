@@ -51,12 +51,13 @@ def run(command, project=None, **options):
     """(exit, printed) of one guided command, in-process, answered by nobody at a terminal."""
     args = Namespace(command=command, project=str(project) if project else ('.' if command != 'doctor' else None),
                      lang=options.get('lang', 'en'), yes=options.get('yes', False), fix=False,
-                     request=options.get('request', ['where', 'are', 'we']), action='install')
+                     request=options.get('request', ['where', 'are', 'we']), action='install', path=options.get('path'))
     printed = io.StringIO()
     steps = [(i, ar, en, done, _fake_scan if i == 'scan' else step) for i, ar, en, done, step in guided.STEPS]
     # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the Studio,
     # and no version check of every installed tool: the doctor's rows are tested on their own.
     with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), mock.patch.object(guided, 'watch'), \
+            mock.patch.object(guided, 'scan', _fake_scan), \
             mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
             mock.patch('eaos.toolchain.doctor', return_value={'tools': []}), \
             mock.patch('eaos.assistants.readiness.probe_all', return_value=NO_ASSISTANT), \
@@ -93,6 +94,7 @@ class Journey(unittest.TestCase):
         self.assertIn('START-HERE.md', printed)
         run('next', self.project)
         self.assertIn('✅', run('status', self.project)[1])
+        self.assertIn('scanned', run('start', self.project, path=['security'])[1], 'a path asked for is a check now, not the next step')
         after = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project, capture_output=True, text=True).stdout
         self.assertEqual(before, after)
         self.assertNotIn(str(self.project), str(guided.workspace(self.project).parent))
