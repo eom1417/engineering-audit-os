@@ -9,7 +9,12 @@ fake assistant: check → change → check again → fix three cards with one fa
 - **The proof of 0.0.34**: one full check of EAOS from the Studio with the assistant (CodeQL on Python, the speed baseline
   on EAOS's real server, the translation memory, the screen review of the 33 design fixes), then a fix batch of the
   cards left: the five module splits after their simplifications, and the cards whose finish line is now precise.
-- **Card sorting ran three times in one check** (about US$10.5 of about US$24): find why, and run it once.
+- **Sign-in for any app** (cards 12 to 20 of the 0.0.36 plan): the person signs in once, the way they always do, in a
+  window EAOS opens, local or published; every page stage, the crawl and the load test reuse that session.
+- **Accessibility problems measured by axe become cards without the assistant**; today the look path without AI pictures
+  the screens and finds no card.
+- **The load test proven on a real web app**: EAOS's own production run is not found at setup, so its speed was not
+  measured; then the speed mode measured with the assistant.
 - **The screen lock in a batch of code changes** names every screen that differs; the next step is to show the person
   the before and after pictures of a design change to approve, instead of trusting every design card's look.
 

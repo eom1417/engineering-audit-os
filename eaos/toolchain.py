@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tarfile
 import threading
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -417,8 +418,7 @@ def _member(tool, spec, blob):
 
 def uv():
     """The uv the installer brought (~/.eaos/app/uv/uv), or one on PATH, or None."""
-    brought = Path.home() / '.eaos/app/uv/uv'
-    return str(brought) if brought.exists() else shutil.which('uv')
+    return str(brought) if (brought := Path.home() / '.eaos/app/uv/uv').exists() else shutil.which('uv')
 
 
 def _pip(tool):
@@ -435,16 +435,16 @@ def tool_env():
 
 
 def _pip_one(tool):
-    venv, env = venv_of(tool), tool_env()
+    venv, env = venv_of(tool), tool_env()   # no download cache: a tool installs once, and the caches kept each one
     wanted = [f"{tool['install']['package']}=={tool['version']}", *tool['install'].get('with', [])]
     runner = uv()
     if not (venv / 'bin/python').exists():
-        if runner: subprocess.run([runner, 'venv', '--quiet', '--python', sys.executable, str(venv)], check=True, env=env)
+        if runner: subprocess.run([runner, 'venv', '--quiet', '--no-cache', '--python', sys.executable, str(venv)], check=True, env=env)
         else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True, env=env)
     if runner and not (venv / 'bin/pip').exists():
-        subprocess.run([runner, 'pip', 'install', '--quiet', '--python', str(venv / 'bin/python'), *wanted], check=True, env=env)
+        subprocess.run([runner, 'pip', 'install', '--quiet', '--no-cache', '--python', str(venv / 'bin/python'), *wanted], check=True, env=env)
     else:
-        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', *wanted], check=True, env=env)
+        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', '--no-cache-dir', *wanted], check=True, env=env)
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 
@@ -455,13 +455,13 @@ def npm_prefix(tool):
 
 
 def _npm(tool):
-    prefix = npm_prefix(tool)
-    prefix.mkdir(parents=True, exist_ok=True)
+    (prefix := npm_prefix(tool)).mkdir(parents=True, exist_ok=True)
     npm = shutil.which('npm')
     if not npm: raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
     env = {**tool_env(), **tool['install'].get('env', {})}
-    subprocess.run([npm, 'install', '--prefix', str(prefix), '--no-audit', '--no-fund', '--loglevel=error',
-                    f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
+    with tempfile.TemporaryDirectory(prefix='eaos-npm-cache-') as cache:   # npm's own kept 1.5 GB of the tools
+        subprocess.run([npm, 'install', '--prefix', str(prefix), '--cache', cache, '--no-audit', '--no-fund', '--loglevel=error',
+                        f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
     if tool['install'].get('library'): return
     _link(prefix / 'node_modules/.bin' / tool['binary'], tool['binary'])
 

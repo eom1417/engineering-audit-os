@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.0.36 (2026-10-17)
+
+- **A check runs its stages side by side, as much as the computer can take**: a stage starts as soon as the stages it
+  waits for have ended (every read of another stage declared, so a parallel check finds exactly what a serial one
+  finds), and beside the others only while there is free memory for it and the processors are not saturated; one
+  always runs, so a small computer is slower, never choked or stuck (`assistants/resources.py`). The 24 engines follow
+  the same rule. On EAOS itself, without the assistant: 13 minutes instead of 19, never under 1.1 GB free.
+- **Speed mode**: an AI stage's batches asked on several assistants at once, as many as the free memory holds (at most
+  five), the same answers in the same order; every assistant run is logged once (the card sorting looked as if it ran
+  three times).
+- **Paths of a check**: complete, security, code, look and screens, speed and scale, alone or together, chosen wherever
+  a check starts (Studio, `eaos start --path`, the assistant); a path's own stages, engines and cards only. Each was
+  run on EAOS: security in 3 minutes with its 8 engines, code in 12 with its 15.
+- **The page stages share one running app and sign-in**; the Studio's stop ends every command of every stage running
+  beside it, with the programs those started.
+- **EAOS removes what it makes, as it goes**: a stopped run's copy, a gone runtime's database, a closed batch's copy
+  and its bisection's logs, a tool's older release, raw assistant streams past the newest ten runs (each keeps its
+  summary), the syntax cache's entries for files that changed (175 MB on EAOS), and the tools' download caches (about
+  2 GB of npm, pip and uv caches had stayed in the person's home).
+- Fixed: Lizard's workers deadlocked now and then until the ten-minute timeout (it runs as one process, 6 s); a check
+  without AI failed to set the app up; `eaos start --path` went on to the next step and ignored the path.
+
 ## 0.0.35 (2026-10-15)
 
 - **What a check uses, written down** (README, GUIDE, in English and Arabic): measured on EAOS itself, a whole check is

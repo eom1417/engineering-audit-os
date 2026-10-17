@@ -52,3 +52,4 @@ class IncrementalCacheTests(unittest.TestCase):
             (repo / 'core/pricing.py').write_text('PREMIUM_DISCOUNT = 0.2\n')
             after_edit = collect(repo, out, SETS)['reused_from_cache']['syntax']
             self.assertEqual(after_edit, warm - 1, 'exactly one changed file should fall out of the cache')
+            self.assertEqual(len(json.loads((out / 'facts/syntax-cache.json').read_text())), warm, 'the edited file\'s old entry is gone')

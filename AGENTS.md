@@ -65,8 +65,8 @@ progress file; a finished item is removed from it and recorded in `CHANGELOG.md`
 
 `unittest`, at most about 550 tests and 15 minutes. A fix adds a test only when it reproduces a real failure;
 one test per real behaviour, no tests for their own sake. Run the affected modules while working
-(`.venv/bin/python -m unittest tests.test_x`), the full suite before pushing, as a background job (the machine has
-4 GB of memory: one heavy job at a time). `tests/test_journey.py` is the fast end-to-end proof: check, change,
+(`.venv/bin/python -m unittest tests.test_x`), the full suite before pushing, as a background job (the machine is
+small, its size changes: one heavy job at a time). `tests/test_journey.py` is the fast end-to-end proof: check, change,
 check again, fix, accept.
 
 ## Before every commit

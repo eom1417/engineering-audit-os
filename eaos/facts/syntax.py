@@ -288,9 +288,10 @@ def parse_text(path, text):
 
 
 def run(target, source, cache=None, **options):
-    """Per-file results are cached by content hash, so re-running after a small change is cheap."""
+    """Per-file results are cached by content hash, so re-running after a small change is cheap. The cache keeps only
+    today's files: an edited or removed file's old entry goes, else every edit grew it for good (175 MB on EAOS)."""
     facts, statuses, languages = [], {}, {}
-    fingerprints = []
+    fingerprints, seen = [], set()
     cache = cache if cache is not None else {}
     reused = 0
     for item in source.readable():
@@ -302,12 +303,14 @@ def run(target, source, cache=None, **options):
             continue
         fingerprints.append(item['sha256'])
         key = item['sha256'] + '|' + rel + '|' + VERSION
+        seen.add(key)
         entry = cache.get(key)
         if entry is not None: reused += 1
         else: entry = cache[key] = _parsed_file(item, rel, text, source)
         _count(statuses, entry['status'])
         _count(languages, entry['language'] or 'unknown')
         facts.extend(entry['facts'])
+    for stale in cache.keys() - seen: del cache[stale]
     facts.sort(key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['kind'], f['id']))
     # The cache counter is run telemetry, not a fact about the code: keeping it out of the fact set
     # means a cached run and a cold run produce byte-identical output.

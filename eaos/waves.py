@@ -484,10 +484,12 @@ def saved(state, runtime):
     """What every save of the state does for the batches (guided.save): the open one drawn on the live map, and the copies
     of the closed ones removed. A closed batch's or build's commits are in the person's project by then (its branch), its
     patches beside the run (_write_wave), and nothing opens its copy again (six had kept 690 MB). A copy whose batch is
-    still opening has no record yet, so it is never touched."""
+    still opening has no record yet, so it is never touched. Its bisection's logs go too (104 had piled up): the batch's
+    own gates log stays, the summary of what failed."""
     for closed in state.get('waves') or []:
         name = f"{'BUILD' if closed.get('via') == 'build' else 'WAVE'}-{closed['number']}"
         shutil.rmtree(Path(runtime) / 'candidates' / name, ignore_errors=True)
+        for log in (Path(runtime) / 'runtime').glob(f"checks-wave-{closed['number']}-bisect-*-log.json"): log.unlink()
     draw(state, runtime)
 
 

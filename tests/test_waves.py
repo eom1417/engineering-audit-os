@@ -152,8 +152,13 @@ class HandOverTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as runtime:
             copies = Path(runtime) / 'candidates'
             for name in ('WAVE-1', 'BUILD-2', 'WAVE-3'): (copies / name).mkdir(parents=True)
+            logs = Path(runtime) / 'runtime'
+            logs.mkdir()
+            for name in ('wave-1', 'wave-1-bisect-ab12cd34-2', 'wave-3-bisect-ab12cd34-2'): (logs / f'checks-{name}-log.json').write_text('{}')
             waves.saved({'waves': [{'number': 1}, {'number': 2, 'via': 'build'}]}, runtime)
             self.assertEqual([p.name for p in copies.iterdir()], ['WAVE-3'])
+            self.assertEqual(sorted(p.name for p in logs.iterdir()), ['checks-wave-1-log.json', 'checks-wave-3-bisect-ab12cd34-2-log.json'],
+                             "a closed batch keeps its gates' summary, not its bisection's logs")
 
 
 def wave(root, base, kept):
