@@ -245,7 +245,7 @@ class Manager:
 
     def _job_running(self, job):
         from ... import jobs
-        try: return jobs.read(job)['status'] == 'running'
+        try: return jobs.read(job, self.project)['status'] == 'running'
         except Exception: return False
 
     def _direct(self, run, follow=True):
@@ -284,7 +284,7 @@ class Manager:
             seen = None
             while not self._closed.is_set():
                 if self.store.load(run).get('state') in TERMINAL: return
-                try: record = jobs.read(job)
+                try: record = jobs.read(job, self.project)
                 except ValueError as problem: return self._fail(run, str(problem))
                 progress = record.get('progress') or {}
                 if progress and progress != seen:
@@ -693,7 +693,7 @@ class Manager:
     def _job_pid(self, record):
         if not record.get('job'): return None
         from ... import jobs
-        try: return jobs.read(record['job']).get('pid')
+        try: return jobs.read(record['job'], self.project).get('pid')
         except Exception: return None
 
     def stop(self, run):

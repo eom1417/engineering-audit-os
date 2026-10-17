@@ -113,9 +113,9 @@ def _read(path):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
-def _job_answer(job, seconds=WAIT):
+def _job_answer(job, seconds, project):
     """A job's record as a tool answers it: the result when it ended in time, else how to follow it."""
-    record = jobs.wait(job, seconds)
+    record = jobs.wait(job, seconds, project)
     if record['status'] == 'done': return {'job': job, 'status': 'done', **(record['result'] or {})}
     if record['status'] == 'failed':
         return {'job': job, 'status': 'failed', 'error': record['error'], 'log': record['log'],
@@ -133,7 +133,7 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
                 'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy['id']}\" first."}
     route = '/scan' if kind != 'audit' or toolchain.ready(state['project']) else '/tools'
     studio = _watch(state, route) if watch else None
-    answer = _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds)
+    answer = _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds, state['project'])
     if studio and route == '/tools':
         answer.update(watch=studio['studio'], what_now=TOOLS_FIRST)
     elif studio:
@@ -189,8 +189,8 @@ def open_studio(project=None, show=True, route='', address=None):
                         + 'Do not paste the address anywhere else.'}
 
 
-def wait(job, seconds=WAIT):
-    return _job_answer(job, min(max(int(seconds), 0), 300))
+def wait(job, seconds=WAIT, project=None):          # a job of this project only: another project's is not found
+    return _job_answer(job, min(max(int(seconds), 0), 300), project_state(project)['project'])
 
 
 # ---------------------------------------------------------------- where things are

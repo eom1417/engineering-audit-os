@@ -18,6 +18,7 @@ command's place and the environment that decides its sign-in (HOME, CLAUDE_CONFI
 inherits as it is and never sets. Only codes, versions and times are written: the probe's raw output can hold an
 account, so it never leaves this module.
 """
+import fcntl
 import json
 import os
 import re
@@ -165,9 +166,6 @@ def check(name, timeout=TIMEOUT):
 
 # ---------------------------------------------------------------- the short cache
 
-_LOCK = threading.Lock()
-
-
 def _cache_file():
     return home() / 'assistants' / 'readiness.json'
 
@@ -197,17 +195,18 @@ def probe(name, fresh=False, timeout=TIMEOUT):
         found = cached(name)
         if found: return {**found, 'cached': True}
     row = check(name, timeout)
-    with _LOCK:
-        saved = _read_cache()
-        saved[_key(name)] = {'at': time.time(), 'probe': row}
-        path = _cache_file()
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
+    path = _cache_file()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path.with_suffix('.lock'), 'a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)       # one writer at a time, of this process or another: no answer is lost
+            saved = _read_cache()
+            saved[_key(name)] = {'at': time.time(), 'probe': row}
             temporary = path.with_suffix(f'.{os.getpid()}.tmp')
             temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=1), encoding='utf-8')
             temporary.replace(path)
-        except OSError:
-            pass                                   # a read-only home: the answer still stands for this call
+    except OSError:
+        pass                                       # a read-only home: the answer still stands for this call
     return {**row, 'cached': False}
 
 

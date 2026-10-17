@@ -259,30 +259,54 @@ class JobTests(Home):
         patcher.start(); self.addCleanup(patcher.stop)
 
     def test_a_job_runs_on_its_own_is_read_back_stops_as_an_interrupt_and_a_dead_one_has_failed(self):
-        job = jobs.start('audit', str(self.project), {})
-        record = json.loads((jobs.folder() / f'{job}.json').read_text())
+        project = str(self.project)
+        job = jobs.start('audit', project, {})
+        record = json.loads((jobs.folder(project) / f'{job}.json').read_text())
         self.assertEqual((record['status'], record['kind']), ('running', 'audit'))
+        given = jobs.subprocess.Popen.call_args.kwargs['env']['EAOS_ENGINE_CACHE']
+        self.assertEqual(given, str(jobs.cache(project)), "the analyzers' caches are the project's own")
+        jobs.cache(project).mkdir()
         with mock.patch.dict(agent_tools.JOBS, {'audit': lambda project, arguments, progress: progress(1, 2, 'half') or {'ok': True}}):
-            jobs.run(job)
-        self.assertEqual((jobs.read(job)['status'], jobs.read(job)['result']), ('done', {'ok': True}))
-        self.assertEqual(jobs.read(job)['progress'], {'done': 1, 'total': 2, 'stage': 'half'})
-        with self.assertRaises(ValueError): jobs.read('../state')
-        job = jobs.start('audit', str(self.project), {})
-        record = json.loads((jobs.folder() / f'{job}.json').read_text())
+            jobs.run(job, project)
+        self.assertFalse(jobs.cache(project).exists(), 'and go when the job ends')
+        self.assertEqual((jobs.read(job, project)['status'], jobs.read(job, project)['result']), ('done', {'ok': True}))
+        self.assertEqual(jobs.read(job, project)['progress'], {'done': 1, 'total': 2, 'stage': 'half'})
+        with self.assertRaises(ValueError): jobs.read('../state', project)
+        job = jobs.start('audit', project, {})
+        record = json.loads((jobs.folder(project) / f'{job}.json').read_text())
         record.update(status='running', pid=2 ** 22 + 12345)
-        (jobs.folder() / f'{job}.json').write_text(json.dumps(record))
-        self.assertEqual(jobs.read(job)['status'], 'failed')
-        self.assertIn('start it again', jobs.read(job)['error'])
+        (jobs.folder(project) / f'{job}.json').write_text(json.dumps(record))
+        self.assertEqual(jobs.read(job, project)['status'], 'failed')
+        self.assertIn('start it again', jobs.read(job, project)['error'])
         import signal
         import time
-        job = jobs.start('audit', str(self.project), {})
+        job = jobs.start('audit', project, {})
         self.addCleanup(signal.signal, signal.SIGTERM, signal.getsignal(signal.SIGTERM))
         def work(project, arguments, progress):
             os.kill(os.getpid(), signal.SIGTERM)
             time.sleep(5)
         with mock.patch.dict(agent_tools.JOBS, {'audit': work}):
-            self.assertEqual(jobs.run(job), 1)
-        self.assertIn('KeyboardInterrupt', jobs.read(job)['error'])
+            self.assertEqual(jobs.run(job, project), 1)
+        self.assertIn('KeyboardInterrupt', jobs.read(job, project)['error'])
+
+    def test_a_project_reads_only_its_own_jobs_and_keeps_only_its_last_ones(self):
+        other = Path(self.tmp.name) / 'other'
+        other.mkdir()
+        (other / 'package.json').write_text('{}')
+        theirs = jobs.start('audit', str(other), {})
+        os.chdir(self.project)
+        self.addCleanup(os.chdir, ROOT)
+        self.assertIn(theirs, agent_tools.wait(theirs, 0, str(other))['job'])
+        for read in (lambda: agent_tools.wait(theirs, 0), lambda: jobs.read(theirs, str(self.project))):
+            with self.assertRaisesRegex(ValueError, 'no job named'): read()
+        legacy = jobs.folder(str(self.project)).parent.parent.parent / 'jobs'
+        legacy.mkdir()
+        (legacy / 'audit-old.json').write_text('{}')
+        os.utime(legacy / 'audit-old.json', (0, 0))
+        with mock.patch.object(jobs, 'KEEP', 2), mock.patch.dict(agent_tools.JOBS, {'audit': lambda *given: {}}):
+            for _ in range(3): jobs.run(jobs.start('audit', str(self.project), {}), str(self.project))
+        self.assertEqual(len(list(jobs.folder(str(self.project)).glob('*.json'))), 2, 'a project keeps its last jobs only')
+        self.assertFalse(legacy.exists(), "the folder older versions shared between projects goes")
 
 class QuestionTests(Home):
     """The person's questions about their code: impact, ask and tools_check."""

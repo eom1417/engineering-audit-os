@@ -494,7 +494,8 @@ def refresh_db():
     """A new vulnerability database, downloaded beside the one in use and moved in whole, so a check reading the old
     one (`--skip-db-update`) is never disturbed; nothing while an install runs. Returns 0, or 1 when it could not be
     had."""
-    cache, fresh = home() / TRIVY_CACHE, home() / 'cache/trivy-next'
+    from .engines.trivy import db_lock
+    cache, fresh, old = home() / TRIVY_CACHE, home() / 'cache/trivy-next', home() / TRIVY_CACHE / 'db-old'
     with machine_lock(wait=False) as mine:
         if not mine: return 0
         shutil.rmtree(fresh, ignore_errors=True)
@@ -502,12 +503,11 @@ def refresh_db():
         except (RuntimeError, OSError, subprocess.SubprocessError) as problem:
             print(problem)
             return 1
-        old = cache / 'db-old'
         shutil.rmtree(old, ignore_errors=True)
-        if (cache / 'db').exists(): (cache / 'db').rename(old)
-        (fresh / 'db').rename(cache / 'db')
-        shutil.rmtree(old, ignore_errors=True)
-        shutil.rmtree(fresh, ignore_errors=True)
+        with db_lock(shared=False):                 # no scan of any project reads it while it is swapped
+            if (cache / 'db').exists(): (cache / 'db').rename(old)
+            (fresh / 'db').rename(cache / 'db')
+        for folder in (old, fresh): shutil.rmtree(folder, ignore_errors=True)
     return 0
 
 
