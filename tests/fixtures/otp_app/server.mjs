@@ -38,32 +38,40 @@ const send = (response, status, html, headers = {}) => { response.writeHead(stat
 const go = (response, to, headers = {}) => { response.writeHead(303, { location: to, ...headers }); response.end(); };
 const reports = { 1: 'Sales of the month', 2: 'Visitors by country' };
 
+// The app's routes, one handler each; a visitor is sent to /login from every page but the sign-in.
+const app = { routes: new Map(), get(path, handler) { this.routes.set(`GET ${path}`, handler); }, post(path, handler) { this.routes.set(`POST ${path}`, handler); } };
+
+app.get('/login', (request, response) => send(response, 200, page('Sign in', '<form method="post"><label>E-mail <input name="email" type="email" required></label> <button>Send me a code</button></form>')));
+app.post('/login', async (request, response) => {
+  const to = (await form(request)).email || '';
+  const code = String(randomInt(100000, 1000000));
+  codes.set(to, code);
+  console.log(`[otp-app] sign-in code for ${to}: ${code}`);
+  mail(to, code);
+  go(response, `/verify?email=${encodeURIComponent(to)}`);
+});
+app.get('/verify', (request, response, url) => send(response, 200, page('Enter your code', `<p>A code was sent to ${url.searchParams.get('email')}.</p><form method="post"><input type="hidden" name="email" value="${url.searchParams.get('email')}"><label>Code <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label> <button>Sign in</button></form>`)));
+app.post('/verify', async (request, response) => {
+  const { email: to, code } = await form(request);
+  if (!code || codes.get(to) !== code.trim()) return send(response, 401, page('Sign in', '<p>That code is not right.</p><a href="/login">Try again</a>'));
+  codes.delete(to);
+  const until = Date.now() + 86400000;
+  go(response, '/dashboard', { 'set-cookie': `session=${encodeURIComponent(`${to}|${until}|${sign(`${to}|${until}`)}`)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` });
+});
+app.get('/logout', (request, response) => go(response, '/login', { 'set-cookie': 'session=; Path=/; Max-Age=0' }));
+app.get('/', (request, response, url, email) => send(response, 200, page('Dashboard', `${nav}<p>Signed in as ${email}.</p>`)));
+app.get('/dashboard', (request, response, url, email) => send(response, 200, page('Dashboard', `${nav}<p>Signed in as ${email}.</p>`)));
+app.get('/reports', (request, response) => send(response, 200, page('Reports', `${nav}<ul>${Object.entries(reports).map(([id, name]) => `<li><a href="/reports/${id}">${name}</a></li>`).join('')}</ul>`)));
+app.get('/settings', (request, response, url, email) => send(response, 200, page('Settings', `${nav}<p>The account of ${email}.</p>`)));
+
+const OPEN = new Set(['GET /login', 'POST /login', 'GET /verify', 'POST /verify']);
 createServer(async (request, response) => {
   const url = new URL(request.url, 'http://app');
   const email = who(request);
-  if (url.pathname === '/login' && request.method === 'POST') {
-    const to = (await form(request)).email || '';
-    const code = String(randomInt(100000, 1000000));
-    codes.set(to, code);
-    console.log(`[otp-app] sign-in code for ${to}: ${code}`);
-    mail(to, code);
-    return go(response, `/verify?email=${encodeURIComponent(to)}`);
-  }
-  if (url.pathname === '/login') return send(response, 200, page('Sign in', '<form method="post"><label>E-mail <input name="email" type="email" required></label> <button>Send me a code</button></form>'));
-  if (url.pathname === '/verify' && request.method === 'POST') {
-    const { email: to, code } = await form(request);
-    if (!code || codes.get(to) !== code.trim()) return send(response, 401, page('Sign in', '<p>That code is not right.</p><a href="/login">Try again</a>'));
-    codes.delete(to);
-    const until = Date.now() + 86400000;
-    return go(response, '/dashboard', { 'set-cookie': `session=${encodeURIComponent(`${to}|${until}|${sign(`${to}|${until}`)}`)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` });
-  }
-  if (url.pathname === '/verify') return send(response, 200, page('Enter your code', `<p>A code was sent to ${url.searchParams.get('email')}.</p><form method="post"><input type="hidden" name="email" value="${url.searchParams.get('email')}"><label>Code <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label> <button>Sign in</button></form>`));
-  if (!email) return go(response, '/login');
-  if (url.pathname === '/logout') return go(response, '/login', { 'set-cookie': 'session=; Path=/; Max-Age=0' });
-  if (url.pathname === '/' || url.pathname === '/dashboard') return send(response, 200, page('Dashboard', `${nav}<p>Signed in as ${email}.</p>`));
-  if (url.pathname === '/reports') return send(response, 200, page('Reports', `${nav}<ul>${Object.entries(reports).map(([id, name]) => `<li><a href="/reports/${id}">${name}</a></li>`).join('')}</ul>`));
+  const key = `${request.method} ${url.pathname}`;
+  if (!OPEN.has(key) && !email) return go(response, '/login');
   const report = /^\/reports\/(\d+)$/.exec(url.pathname);
   if (report && reports[report[1]]) return send(response, 200, page(reports[report[1]], `${nav}<p>Only ${email} sees this report.</p>`));
-  if (url.pathname === '/settings') return send(response, 200, page('Settings', `${nav}<p>The account of ${email}.</p>`));
-  return send(response, 404, page('Not found', nav));
+  const handler = app.routes.get(key);
+  return handler ? handler(request, response, url, email) : send(response, 404, page('Not found', nav));
 }).listen(Number(process.env.PORT) || 3000, '127.0.0.1');
