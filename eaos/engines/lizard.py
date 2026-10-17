@@ -62,8 +62,10 @@ def analyze(target, workdir, exclude=(), formats=None):
     output = Path(workdir) / NAME / 'lizard.csv'
     output.parent.mkdir(parents=True, exist_ok=True)
     patterns = [argument for name in EXCLUDED + tuple(exclude) for argument in ('-x', f'*/{name}/*')]
-    # -i -1: the exit code stays 0 however many functions pass the threshold; a warning is a result.
-    code, out, error, seconds = run([which(BINARY), '--csv', '-i', '-1', '-t', '4', *patterns, '.'], cwd=target)
+    # -i -1: the exit code stays 0 however many functions pass the threshold; a warning is a result. One process: its
+    # -t workers deadlocked now and then (2 of 6 runs on EAOS hung until the timeout; alone it takes 6 s), and the
+    # engines stage already runs engines side by side.
+    code, out, error, seconds = run([which(BINARY), '--csv', '-i', '-1', *patterns, '.'], cwd=target)
     if code:
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     output.write_text(out, encoding='utf-8')
