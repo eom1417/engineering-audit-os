@@ -576,8 +576,17 @@ def steps(context):
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
-from .sign_in_stage import session  # noqa: E402  (it is built on the runners above)
+
+
+def session(context):
+    """Whether the pages need a sign-in, and the one session every page stage opens them with (eaos/pipeline/sign_in_stage.py)."""
+    from .sign_in_stage import session as signed
+    return signed(context)
+
+
 RUNNERS['session'] = session
+
+
 def translate(context):
     """Every document in both languages (eaos/bilingual.py)."""
     if not context.provider: raise _absent(context.provider)
