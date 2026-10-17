@@ -150,9 +150,12 @@ class ResumeTests(unittest.TestCase):
             with self.assertRaises(KeyboardInterrupt):
                 execute('.', directory, runners=fake_runners(probe=KeyboardInterrupt()))
             self.assertFalse((Path(directory) / MANIFEST).exists())
+            stages = json.loads((Path(directory) / CHECKPOINT).read_text(encoding='utf-8'))['stages']
             ran = []
             second = resume('.', directory, runners=recording(ran))
-            self.assertEqual(ran, order[order.index('probe'):])
+            # only what did not end ok runs again, once each, in the declared order of what waits for what
+            self.assertEqual(sorted(ran), sorted(n for n in order if stages.get(n, {}).get('status') != OK))
+            self.assertIn('probe', ran)
             self.assertEqual(second['counts'][OK], len(STAGES))
             self.assertFalse((Path(directory) / CHECKPOINT).exists())
         # Stopped in an AI stage: it resumes at it and never asks a finished one again.

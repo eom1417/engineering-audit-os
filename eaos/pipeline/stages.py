@@ -7,6 +7,11 @@ what it needs, what it produces, and whether the run may continue without it.
 from dataclasses import dataclass
 
 REQUIRED, OPTIONAL = 'required', 'optional'
+# The app running in its isolated copy (one copy, one port, one database), most of the memory (the heavy analyzers),
+# and the whole machine (a measure that nothing else may disturb).
+RESOURCES = ('app', 'memory', 'machine')
+# The app's stages share its database: they hold it in the declared order, so each finds there what it found before.
+IN_ORDER = ('app',)
 
 
 class SkipStage(Exception):
@@ -26,8 +31,16 @@ class Stage:
     name: str
     produces: tuple
     requires: tuple = ()
-    # Optional stages whose output it reads when they ran, never waits for: run again with them (again), never held back.
+    # Stages whose output it reads when they ran: it waits for them, runs again with them (again), and is never held
+    # back by their failure.
     reads: tuple = ()
+    # Artifacts of an earlier stage it rewrites: every stage built on that one sees them as in the declared order, the
+    # ones declared before it unchanged and the ones after it rewritten (waits).
+    amends: tuple = ()
+    # It reads what every stage before it made (the Studio's whole export, the final target): it waits for them all.
+    gathers: bool = False
+    # What it holds while it runs, which no other stage holds at the same time (RESOURCES).
+    uses: tuple = ()
     necessity: str = REQUIRED
     # Why a run may legitimately lack this stage. An optional stage with no reason is a required
     # stage somebody did not want to pay for.
@@ -46,56 +59,56 @@ STAGES = (
           description='A spec per feature, in its own tool, describing what the system does today'),
     Stage('intake', produces=('intake.json',), requires=('features',),
           description='What the owner must protect: answers, or declared defaults, and the quality scenarios'),
-    Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL,
+    Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL, uses=('memory',),
           absent_when='no external engine is installed, or --engines was not asked for',
           description='Pinned external analyzers, normalised into one fact set'),
-    Stage('setup', produces=('live/setup.json',), requires=('features',), necessity=OPTIONAL,
+    Stage('setup', produces=('live/setup.json',), requires=('features',), necessity=OPTIONAL, uses=('app',),
           absent_when='the person did not agree to run the app in an isolated copy, or it could not be started there',
           description='Install and start the app in an isolated copy, with a temporary database and none of the '
                       "person's secrets; the assistant helps when the files alone do not say how"),
-    Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL,
+    Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL, uses=('app',),
           absent_when='the person did not agree to run the app in an isolated copy, or its run profile names no test '
                       'command; which test imports which file is still written',
           description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "
                       'reach, what they miss, and whether they pass on the code as it is'),
-    Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), necessity=OPTIONAL,
+    Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "
                       'safety net every fix is judged by'),
-    Stage('journeys', produces=('live/journeys.json',), requires=('record',), necessity=OPTIONAL,
+    Stage('journeys', produces=('live/journeys.json',), requires=('record',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, the lock has no page to walk through, or rrweb is not '
                       'installed',
           description="Each feature's pages walked once more, rrweb recording them and Playwright keeping the trace of a "
                       'failure, both capped in size: which pages a user walks and where a journey fails'),
-    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), necessity=OPTIONAL,
+    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it serves no page',
           description="Every page of the app found by following its links; Lighthouse on the entry and the first page of "
                       'each distinct template, ten at most'),
-    Stage('screens', produces=('live/screens.json',), requires=('setup',), necessity=OPTIONAL,
+    Stage('screens', produces=('live/screens.json',), requires=('setup',), reads=('crawl',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it has no page to open',
           description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own theme at '
                       'phone and desktop width: its picture and its accessibility (axe); the first page also by Lighthouse'),
-    Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL,
+    Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL, uses=('app', 'machine'),
           absent_when='the app is not running in an isolated copy, or it has no production build that starts',
           description="Today's speed under the intake's load scenarios (k6, p95) on the app's production build"),
-    Stage('readiness', produces=('readiness.json',), requires=('intake',),
+    Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline',),
           description='How the program holds up in production and under pressure, as findings with evidence: the external '
                       'dependencies a fault would hit, the routes a security scan would request, a health route, telemetry '
                       "and SLO-able scenarios, and the load baseline against the intake's thresholds"),
-    Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',),
+    Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',), reads=('engines', 'verify'),
           description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
-    Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL,
+    Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL, uses=('memory',),
           absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project',
           description="The architecture map: the code as a city (CodeCharta: size, complexity and changes per file) and its "
                       'dependency clusters (Emerge), with the hotspots and the clusters the assistant reads'),
     Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),
-    Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts',), reads=('engines',),
+    Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts',), reads=('engines', 'baseline'),
           description='A cost record per entry point, with a stated projection at 1000x'),
-    Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'load'),
+    Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'features', 'measure', 'load'),
           description='Facts interpreted into a ledger of falsifiable claims'),
-    Stage('probe', produces=('probes.json',), requires=('claims',),
+    Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),
     Stage('sustainability', produces=('SUSTAINABILITY.md', 'sustainability.json'), requires=('claims',),
           description='The six sustainability indicators, measured or declared unmeasured, each against its target'),
@@ -104,12 +117,12 @@ STAGES = (
     Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its answer could not be used',
           description='Model interpretation over the facts; every output stays a hypothesis', ai=True),
-    Stage('plan', produces=('plan.json', 'PLAN/WAVES.md'), requires=('probe',),
+    Stage('plan', produces=('plan.json', 'PLAN/WAVES.md'), requires=('probe',), amends=('dossier.json', 'DECISION-BRIEF.md', 'README.md'),
           description="The candidate cards: every actionable claim becomes a task card; the triage decides which stay"),
     Stage('target', produces=('target-architecture.json', 'target-proposal.json'), requires=('plan',),
           description="The rules' target proposal: today's components with their disposition and the reference's target "
                       'components; the assistant judges it before it is final'),
-    Stage('proposals', produces=('proposals.json',), requires=('plan', 'target'), necessity=OPTIONAL,
+    Stage('proposals', produces=('proposals.json',), requires=('plan', 'target'), gathers=True, necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, so nobody reads the proposals before the reports',
           description="The tools' proposals as the Studio draws them (cards with their evidence, system, journeys, "
                       'paths, data, infrastructure, pipeline gaps), which the assistant reads'),
@@ -122,7 +135,7 @@ STAGES = (
           absent_when='no assistant was installed or allowed, no screen was pictured, or its review could not be used',
           description="The assistant looks at each picture of the app's screens and names what a person would notice, "
                       'each finding with its picture and the region of it', ai=True),
-    Stage('cards', produces=('cards.json',), requires=('plan',),
+    Stage('cards', produces=('cards.json',), requires=('plan',), reads=('triage', 'visual'), amends=('plan.json', 'dossier.json'),
           description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the triage "
                       "rejected leaves the plan and the gaps and its claim is refuted, a doubted one waits for a person's "
                       "review and is never fixed automatically; without the triage every card stands as the rules wrote it"),
@@ -133,7 +146,7 @@ STAGES = (
     Stage('pipeline_gaps', produces=('nodes/pipeline_gap_planner/plan.json',), requires=('proposals',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, the project breaks no pipeline rule, or its plan could not be used',
           description="The assistant decides how each gap of the pipeline rules is closed, then reviews it", ai=True),
-    Stage('reconcile', produces=('TARGET-ARCHITECTURE.md',), requires=('target', 'cards'),
+    Stage('reconcile', produces=('TARGET-ARCHITECTURE.md',), requires=('target', 'cards'), gathers=True, amends=('target-architecture.json',),
           description="The final target: the assistant's decision where it cites evidence and passes the guards (known "
                       "components, the owner's policy and protected features kept), the rules' elsewhere; every "
                       'component says who decided it and the gap matrix is drawn from it'),
@@ -141,7 +154,7 @@ STAGES = (
           absent_when='no assistant was installed or allowed, or its order could not be used',
           description="The assistant orders and groups the confirmed cards into steps, reading the triage, the ideal and "
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
-    Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',),
+    Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',), reads=('order',), amends=('plan.json',),
           description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
     Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json', 'START-HERE.md'),
           requires=('reconcile', 'steps'),
@@ -171,6 +184,7 @@ def errors():
         seen.add(stage.name)
         found += [f'{stage.name}: requires {need}, which no earlier stage provides' for need in stage.requires + stage.reads if need not in seen]
         found += [f'{stage.name}: {artifact} is already produced by {produced[artifact]}' for artifact in stage.produces if artifact in produced]
+        found += [f'{stage.name}: amends {artifact}, which no earlier stage produces' for artifact in stage.amends if artifact not in produced]
         produced.update(dict.fromkeys(stage.produces, stage.name))
         found += _stage_errors(stage)
     return sorted(found)
@@ -185,16 +199,53 @@ def _stage_errors(stage):
         found.append(f'{stage.name}: unknown necessity {stage.necessity!r}')
     if not stage.produces:
         found.append(f'{stage.name}: produces nothing, so nothing can depend on it')
-    return found
+    return found + [f'{stage.name}: uses {held}, which is not one of {RESOURCES}' for held in stage.uses if held not in RESOURCES]
+
+
+def _built_on():
+    """{stage: every stage it is built on}: what it requires and reads, and what those are built on."""
+    under = {}
+    for stage in STAGES:
+        under[stage.name] = {need for name in stage.requires + stage.reads for need in (name, *under.get(name, ()))}
+    return under
+
+
+def _waits():
+    """{stage: the stages it waits for}: what it requires and reads, every earlier stage when it gathers, the stage
+    before it holding a resource held in order (IN_ORDER), and for an amended artifact the declared order between the
+    stage that amends it and every stage built on its maker. Each edge
+    points to an earlier stage, so one stage at a time in the declared order meets them all, and the graph has no
+    cycle."""
+    under, maker = _built_on(), {artifact: stage.name for stage in STAGES for artifact in stage.produces}
+    waits = {stage.name: set(stage.requires + stage.reads) | (set(ORDER[:ORDER.index(stage.name)]) if stage.gathers else set())
+             for stage in STAGES}
+    for resource in IN_ORDER:
+        holders = [stage.name for stage in STAGES if resource in stage.uses]
+        for before, name in zip(holders, holders[1:]): waits[name].add(before)
+    for stage in STAGES:
+        for artifact in stage.amends: _keep_order(waits, stage.name, maker[artifact], under)
+    return {name: frozenset(found) for name, found in waits.items()}
+
+
+def _keep_order(waits, amending, maker, under):
+    """The stages built on `maker` see what `amending` rewrites as in the declared order: it waits for those declared
+    before it, and those after it wait for it."""
+    for name in ORDER:
+        if name == amending or not (name == maker or maker in under[name]): continue
+        if ORDER.index(name) < ORDER.index(amending): waits[amending].add(name)
+        else: waits[name].add(amending)
 
 
 def dependents(name, reading=False):
-    """Every stage that cannot run once this one has failed; `reading`: also those that read what it makes."""
+    """Every stage that cannot run once this one has failed; `reading`: also those that wait for what it makes (WAITS)."""
     blocked, frontier = set(), {name}
     while frontier:
         current = frontier.pop()
         for stage in STAGES:
-            if current in stage.requires + (stage.reads if reading else ()) and stage.name not in blocked:
+            if current in (WAITS[stage.name] if reading else stage.requires) and stage.name not in blocked:
                 blocked.add(stage.name)
                 frontier.add(stage.name)
     return sorted(blocked)
+
+
+WAITS = _waits()

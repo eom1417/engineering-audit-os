@@ -5,12 +5,15 @@ with the reason, the independent stages still run, and the manifest is the hones
 whole attempt. A stage that never ran leaves a reason, never a gap.
 """
 import json
+import threading
 import time
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ..progress import ProgressLog, previous_seconds, using
 from ..usage import FILE as USAGE
+from .schedule import assistants, run_ready
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
@@ -18,10 +21,15 @@ MANIFEST = 'run-manifest.json'
 CHECKPOINT = 'run-checkpoint.json'
 
 
+_STEP = ContextVar('eaos_stage_step', default=None)
+
+
 class Context(dict):
-    """What stages hand each other. Plain data, so a resumed run can rebuild it."""
+    """What stages hand each other. Plain data, so a resumed run can rebuild it. `step` is the running stage's own
+    stepper, whatever runs beside it."""
 
     def __getattr__(self, name):
+        if name == 'step': return _STEP.get()
         try:
             return self[name]
         except KeyError as missing:
@@ -37,11 +45,12 @@ def _runners():
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
-            runtime=None):
+            runtime=None, mode='normal'):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
     without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
-    once the person agreed to run it; without it every live stage says so.
+    once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants run at
+    once (eaos/pipeline/schedule.py: normal, speed, one).
 
     Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
@@ -56,7 +65,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
                       provider=provider, goal=goal,
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
-                      intake=_resolved(intake), runtime=str(runtime) if runtime else None)
+                      intake=_resolved(intake), runtime=str(runtime) if runtime else None, assistants=assistants(mode))
     requested = _requested(only, skip)
     completed = _completed or {}
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
@@ -65,12 +74,17 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
     head = _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake)
     head['options']['without_tools'] = sorted(without_tools)
+    head['mode'] = mode                          # not an option: a check goes on in another mode with the same evidence
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out))
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
-           'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head}
+           'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head,
+           'lock': threading.RLock()}
+    # What a stage reads of the run: the stages ended so far. It only asks of those it waits for, so it reads them
+    # ended whatever else runs beside it (tests/test_pipeline_parallel.py).
+    context['manifest_so_far'] = {'stages': run['results'], 'status': 'RUNNING'}
     try:
-        for stage in STAGES: _stage(stage, run)
+        run_ready(ORDER, lambda name: _stage(BY_NAME[name], run), mode, quick=set(ORDER) - set(todo))
         manifest = _manifest(head, began, run['results'])
         (out / CHECKPOINT).unlink(missing_ok=True)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
@@ -116,29 +130,32 @@ def _settled(stage, run):
 
 
 def _stage(stage, run):
-    settled = _settled(stage, run)
+    with run['lock']: settled = _settled(stage, run)
     if settled is None:
         _run_stage(stage, run)
         return
     row, resumed = settled
-    run['results'][stage.name] = row
-    if resumed: run['log'].ended(row, resumed=True)
-    else: run['log'].ended(row)
+    with run['lock']:
+        run['results'][stage.name] = row
+        run['log'].ended(row, **({'resumed': True} if resumed else {}))
 
 
 def _run_stage(stage, run):
+    """One stage, run while others may run beside it; what it ends with is written under the run's lock."""
     context, log, results = run['context'], run['log'], run['results']
-    if run['progress']: run['progress'](run['todo'].index(stage.name), len(run['todo']), stage.name)
-    context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - run['began'], 2),
-                                  'status': 'RUNNING'}
-    log.stage_started(stage.name)
-    context['step'] = log.stepper(stage.name)
-    with using(context['step'] if log.enabled else None):
-        results[stage.name] = _one(stage, context, run['runners'], results)
-    context.pop('step', None)
-    log.ended(results[stage.name])
-    _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results})
-    _block_dependents(stage, results, run['blocked'])
+    with run['lock']:
+        if run['progress']: run['progress'](sum(name in results for name in run['todo']), len(run['todo']), stage.name)
+        log.stage_started(stage.name)
+    step = log.stepper(stage.name)
+    token = _STEP.set(step)
+    try:
+        with using(step if log.enabled else None): row = _one(stage, context, run['runners'], results)
+    finally: _STEP.reset(token)
+    with run['lock']:
+        results[stage.name] = row
+        log.ended(row)
+        _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results})
+        _block_dependents(stage, results, run['blocked'])
 
 
 def _block_dependents(stage, results, blocked):
@@ -163,7 +180,7 @@ def _head(target, out, started_at, requested, language, exclude, max_files, max_
 
 def _manifest(head, began, results):
     manifest = {
-        **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at')},
+        **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at', 'mode') if key in head},
         'seconds': round(time.monotonic() - began, 2), 'requested': head['requested'],
         'stages': results,
         'counts': {state: sum(1 for row in results.values() if row['status'] == state)

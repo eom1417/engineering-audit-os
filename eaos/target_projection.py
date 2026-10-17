@@ -256,7 +256,6 @@ def project(out, target=None):
             'target_edges': _target_edges(edges, placed, bad),
             'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad,
             'current': _current_packages(files, placed, reference, bad, known, rules),
-            'features': {f['name']: f"feature:{slug(f['name'])}" for f in features},
             'infrastructure': infrastructure(reference, facts, target, files, prefix)}
 
 

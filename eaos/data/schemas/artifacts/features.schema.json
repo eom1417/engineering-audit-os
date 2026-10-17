@@ -73,12 +73,6 @@
           },
           "critical": {
             "type": "boolean"
-          },
-          "target_component": {
-            "type": [
-              "string",
-              "null"
-            ]
           }
         }
       },

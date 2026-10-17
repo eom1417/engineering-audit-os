@@ -377,7 +377,6 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
         result.update(reference=projection['reference'], root=projection.get('root', ''), target_components=projection['target_components'],
                       infrastructure=projection['infrastructure'], forbidden_edges=len(projection['forbidden_edges']),
                       target_edges=projection['target_edges'])
-        place_features(out, projection['features'])
     return result
 
 
@@ -570,14 +569,3 @@ def reconcile(out, planned=False, policy_path=None):
                   decisions=decisions([*current, *explicit]), decided={'by': 'assistant' if elements else 'rules', **counts},
                   disagreements=disagreements, aspects=aspects(out, plan if state == 'planned' else None))
     return record
-
-
-def place_features(out, placement):
-    """Write each feature's target component into features.json: the same features, in the target."""
-    import json
-    path = Path(out) / 'features.json'
-    if not path.is_file(): return
-    record = json.loads(path.read_text(encoding='utf-8'))
-    for feature in record.get('features') or []:
-        feature['target_component'] = placement.get(feature['name'])
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

@@ -181,8 +181,9 @@ class ProgressLog:
         self.sampler = (sampler or None) if self.enabled else None
         self.declared = {}          # name -> necessity, in the declaration's order
         self.ended_stages = set()
-        self.current = None
-        self.stage_began = self.sampled_at = self.wrote_at = clock()
+        self.current = None         # the stage started last of those running: the one the running programs are shown on
+        self.running = {}           # name -> clock when it started, of every stage running now (several in a parallel check)
+        self.sampled_at = self.wrote_at = clock()
         self.programs = []
         self.sampler_said = False
         self.pending = {}           # (stage, step) -> the newest fields not written yet
@@ -200,7 +201,8 @@ class ProgressLog:
             row = {'seq': self.seq, 'at': now(), 'event': event, 'run': self.run, **fields}
             self.wrote_at = self.clock()
             if event == 'stage.started':
-                self.current, self.stage_began, self.sampled_at, self.programs = fields.get('stage'), self.wrote_at, self.wrote_at, []
+                self.current, self.sampled_at, self.programs = fields.get('stage'), self.wrote_at, []
+                self.running[self.current] = self.wrote_at
             elif event == 'run.ended':
                 self.finished = True
                 self.stop.set()
@@ -296,23 +298,24 @@ class ProgressLog:
             if name in self.ended_stages or self.finished: return None
             self._flush(name)
             self.ended_stages.add(name)
-            if self.current == name: self.current, self.programs = None, []
+            self.running.pop(name, None)
+            if self.current == name: self.current, self.programs = (next(reversed(self.running), None), [])
             fields = {'stage': name, 'status': row['status'], 'reason': row['reason'], 'seconds': row['seconds'],
                       'necessity': row['necessity'], 'artifacts': list(row['artifacts']), 'detail': _small(row.get('detail'))}
             if row.get('reason_code'): fields['reason_code'] = row['reason_code']
             return self.emit('stage.ended', **fields, **extra)
 
     def finish(self, status, reason='', seconds=None, counts=None):
-        """`run.ended`, after ending every declared stage that has no end yet: the one running is `failed`, the ones
+        """`run.ended`, after ending every declared stage that has no end yet: the ones running are `failed`, the ones
         never reached are `not_reached`, each with the reason the run ended. A second call is left out (None)."""
         with self.lock:
             if self.finished: return None
             why = (reason or status)[:200]
             for name, necessity in self.declared.items():
                 if name in self.ended_stages: continue
-                if name == self.current:
+                if name in self.running:
                     self.ended({'stage': name, 'status': 'failed', 'reason': f'the run ended ({status}) while this stage ran: {why}',
-                                'reason_code': 'run_ended', 'seconds': round(self.clock() - self.stage_began, 2),
+                                'reason_code': 'run_ended', 'seconds': round(self.clock() - self.running[name], 2),
                                 'necessity': necessity, 'artifacts': []})
                 else:
                     self.ended({'stage': name, 'status': 'not_reached', 'reason': f'the run ended ({status}) before this stage: {why}',

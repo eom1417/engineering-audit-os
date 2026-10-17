@@ -115,7 +115,6 @@
   "eaos/target_architecture.py::protected_paths": 18,
   "eaos/target_architecture.py::reconcile": 16,
   "eaos/target_projection.py::_observed_in_facts": 16,
-  "eaos/target_projection.py::project": 16,
   "tools/studio_synthetic.py::synthetic_ideal": 17,
   "tools/studio_synthetic.py::synthetic_pipeline": 25,
   "tools/validate.py::packaged_errors": 16
