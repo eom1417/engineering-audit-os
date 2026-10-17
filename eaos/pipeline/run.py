@@ -47,13 +47,14 @@ def _runners():
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
-            runtime=None, mode='normal', paths=None, patterns=None):
+            runtime=None, mode='normal', paths=None, patterns=None, sign_in=None):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
     without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
     once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants run at
     once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths (eaos/pipeline/paths.py), recorded;
-    `patterns`: the card patterns the plan keeps, None for all.
+    `patterns`: the card patterns the plan keeps, None for all. `sign_in`: how the page stages sign in to the app
+    (eaos/check_choices.py options: how, the published address named for this check, the project's folder).
 
     Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
@@ -69,7 +70,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                       provider=provider, goal=goal,
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
                       intake=_resolved(intake), runtime=str(runtime) if runtime else None, assistants=assistants(mode),
-                      patterns=patterns)
+                      patterns=patterns, sign_in=dict(sign_in or {}))
     if provider: context['provider'] = LimitedProvider(provider, context.assistants)
     requested = _requested(only, skip)
     completed = _completed or {}

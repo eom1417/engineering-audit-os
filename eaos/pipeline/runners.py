@@ -120,6 +120,11 @@ def verify(context):
             'covered_files': len(result.get('coverage') or {})}
 
 
+def _published(context):
+    """The published address the person named for this check, read by the stages that only read pages (S9)."""
+    return (context.get('sign_in') or {}).get('published')
+
+
 def _live(context):
     """The runtime folder of an app this check started; else the reason no live stage can run."""
     if not context.get('runtime'):
@@ -165,8 +170,8 @@ def journeys(context):
 def screens(context):
     """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
-    (eaos/screens/audit.py, eaos/screens/crawl.py distinct)."""
-    _live(context)
+    (eaos/screens/audit.py, eaos/screens/crawl.py distinct). The published address the person named, read only."""
+    if not _published(context): _live(context)
     groups, measured = _screen_pages(context)
     audit, speed = _audit_pages(context, groups, measured)
     if audit['status'] != 'observed':
@@ -198,11 +203,12 @@ def _audit_pages(context, groups, measured):
     measure the entry already."""
     from .live_app import shared_app
     from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
-    live, base, state = shared_app(context)
+    live, base, state = shared_app(context, published=True)
     state = state if state.is_file() else None
     folder = context.out / 'live/screens'
     audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                       variants(**(live.profile.get('screens') or {})), out=folder, storage_state=state)
+                       variants(**((live.profile.get('screens') if live else None) or {})), out=folder, storage_state=state,
+                       read_only=not live)
     speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
              if measured else lighthouse(base + '/', out=folder, storage_state=state))
     return audit, speed
@@ -210,12 +216,12 @@ def _audit_pages(context, groups, measured):
 
 def crawl(context):
     """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
-    distinct template, ten at most (eaos/screens/crawl.py)."""
-    _live(context)
+    distinct template, ten at most (eaos/screens/crawl.py); the published address the person named, read only, a few."""
+    if not _published(context): _live(context)
     from .live_app import shared_app
     from ..screens.crawl import crawl as find
-    _, base, state = shared_app(context)
-    found = find(base, context.out / 'live/crawl', storage_state=state if state.is_file() else None)
+    live, base, state = shared_app(context, published=True)
+    found = find(base, context.out / 'live/crawl', storage_state=state if state.is_file() else None, read_only=not live)
     if found['status'] != 'observed':
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
     _keep(context, 'crawl.json', {'schema_version': 1, **found})
@@ -570,6 +576,8 @@ def steps(context):
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
+from .sign_in_stage import session  # noqa: E402  (it is built on the runners above)
+RUNNERS['session'] = session
 def translate(context):
     """Every document in both languages (eaos/bilingual.py)."""
     if not context.provider: raise _absent(context.provider)

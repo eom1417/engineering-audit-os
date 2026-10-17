@@ -4,7 +4,9 @@
 // The config names the Playwright module folder, the app's base URL and the most pages to open. Each page is opened
 // once, breadth first from the base, and the links it shows are read after it settles; nothing is measured here (the
 // heavy Lighthouse audit runs on a few distinct pages only, in crawl.py). A hash-routed app (#/problems) is followed
-// by its routes; any other fragment is an anchor of the same page. Requests to any other origin are aborted.
+// by its routes; any other fragment is an anchor of the same page. Requests to any other origin are aborted. Signed in,
+// a link matching config.leaves (sign out, delete, change) is never opened; config.read_only (a published site) lets
+// nothing but GET through.
 // The result is one JSON object on stdout: {routes: [{path, depth, status}]}.
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -16,6 +18,7 @@ const playwright = (() => {
   try { return require('playwright'); } catch { return require('@playwright/test'); }
 })();
 const base = new URL(config.base);
+const leaves = config.leaves ? new RegExp(config.leaves, 'i') : null;
 
 // The page's address as the crawl names it: its path and, for a hash route, the route; null for another origin.
 function pathOf(href) {
@@ -33,6 +36,7 @@ try {
     storageState: config.storage_state || undefined });
   await context.route('**/*', (route) => {
     const target = new URL(route.request().url());
+    if (config.read_only && route.request().method() !== 'GET') return route.abort('blockedbyclient');
     if (['data:', 'blob:'].includes(target.protocol) || target.origin === base.origin) return route.continue();
     return route.abort('blockedbyclient');
   });
@@ -53,7 +57,7 @@ try {
     routes.push({ path, depth, status });
     for (const href of links) {
       const found = pathOf(href);
-      if (found && !seen.has(found)) { seen.add(found); queue.push({ path: found, depth: depth + 1 }); }
+      if (found && !seen.has(found) && !(leaves && leaves.test(found))) { seen.add(found); queue.push({ path: found, depth: depth + 1 }); }
     }
   }
 } finally {

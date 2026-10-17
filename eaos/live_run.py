@@ -103,12 +103,32 @@ class LiveRun:
             if any('{run_dir}' in str(v) for v in env.values()):
                 folder = self.runtime / 'run-data'      # the run's own folder outside the app: backups, uploads
                 folder.mkdir(parents=True, exist_ok=True)
-            fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder))
+            mail = str(self._mail_port())
+            fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder)).replace('{mail_port}', mail)
             self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}
             self._extra.setdefault('AUTH_SECRET', getattr(self, 'auth_secret', None) or secrets.token_urlsafe(48))
         return self._extra
+
+    def _mail_port(self):
+        """The port the app sends its mail to ({mail_port}, eaos/live_setup.py MAIL_NAMES): the run's Mailpit, started on
+        first use, so a code or a link the app e-mails is shown beside the sign-in page and never leaves this computer;
+        9 (nobody answers) when the app sends none or Mailpit is not installed."""
+        from .toolchain import home
+        binary = home() / 'bin/mailpit'
+        if not hasattr(self, '_mailpit') and binary.exists() and any('{mail_port}' in str(v) for v in (self.profile.get('env') or {}).values()):
+            import subprocess
+            from .live_setup import free_port
+            smtp, page = free_port(), free_port()
+            self._mailpit = smtp, f'http://127.0.0.1:{page}', subprocess.Popen(
+                [str(binary), '--smtp', f'127.0.0.1:{smtp}', '--listen', f'127.0.0.1:{page}', '--quiet'],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        return self._mailpit[0] if hasattr(self, '_mailpit') else 9
+
+    def mail(self):
+        """The address of the run's Mailpit (its page and API), or None when the app sends no mail there."""
+        return self._mailpit[1] if hasattr(self, '_mailpit') else None
 
     def _outside(self, value):
         """A folder outside the project and the run that the app reads (its data), named by an absolute path."""
@@ -183,9 +203,12 @@ class LiveRun:
 
     def stop(self):
         """Stop the project and remove its copy, and stop the run's database (its data stays for the next
-        step); the run's records stay in the runtime folder."""
+        step) and its Mailpit (its mail with it); the run's records stay in the runtime folder."""
         self.sandbox.dispose()
         if hasattr(self, '_database'): self._database.stop()
+        if hasattr(self, '_mailpit'):
+            self._mailpit[2].terminate()
+            self._mailpit[2].wait(10)
 
     def record(self, name):
         (self.runtime / name).parent.mkdir(parents=True, exist_ok=True)

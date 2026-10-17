@@ -56,7 +56,9 @@ When the person types /eaos alone, or asks what EAOS can do here, call `menu` an
 The Studio is the person's view of all of it: at the start of the work, and right after EAOS was installed or updated,
 call open_studio and send them its address without being asked (on a remote server whose ports your environment routes
 to https addresses, pass that address once: the Studio then stays there, on the server, whichever assistant comes next).
-Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). Keep every feature,
+Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). When a check waits for the
+person to sign in to their app (status: next tool sign_in), tell them to open Waiting for you in the Studio, or to run
+`eaos sign-in` in a terminal; never sign in for them, and never ask for their password. Keep every feature,
 route and behaviour when fixing: a fix that deletes what users reach is refused, and so is one that changes a
 public function or class (its name, its parameters, the module it is defined in): split inside, keep the outside. Never invent results: report
 what the tools returned.
@@ -218,12 +220,15 @@ def _check_tools(server, reading, working):
                  'again on the checked commit, the rest is kept; engines=[names] with again_from=engines runs only those tools. '
                  'paths=[...] checks only those paths, when the person has a clear goal: security, look (the screens), code '
                  '(structure, quality, dead code), speed (load and scale); complete by default. mode=speed runs several '
-                 'assistants at once: faster, more tokens; say so before choosing it (kept). ' + project_doc)
+                 'assistants at once: faster, more tokens; say so before choosing it (kept). sign_in: when the app has a sign-in, how '
+                 'its pages are opened (kept): hand (the person signs in on the sign-in page when the check asks; status then says '
+                 'so), test_user (a seed script signs a test user in), none (signed out). published=<https address>: only when the '
+                 'person names it, its pages are read signed in, read only, for this check. ' + project_doc)
     @_answer
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
               assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
-              paths: list[str] | None = None, mode: str | None = None) -> str:
-        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode)
+              paths: list[str] | None = None, mode: str | None = None, sign_in: str | None = None, published: str | None = None) -> str:
+        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in, published)
 
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '

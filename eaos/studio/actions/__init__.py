@@ -436,7 +436,7 @@ class Actions:
         measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'))
         if action == 'audit':
             from ... import guided
-            out['check'] = check_choices.offered(guided.load(str(self.project)))
+            out['check'] = check_choices.offered(guided.load(str(self.project)), self._studio() and self._studio().parent)
         out.update(estimate=measured or {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
                    risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                          'why': spec['description'] if spec['description']['en'] else spec['label']},

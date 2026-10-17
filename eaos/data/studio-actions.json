@@ -418,6 +418,26 @@
        null
       ],
       "description": "normal, or speed: several assistants at once, faster but more tokens (kept for the project)."
+     },
+     "sign_in": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "hand",
+       "test_user",
+       "none",
+       null
+      ],
+      "description": "How the pages of an app behind a sign-in are opened (kept for the project): hand, the person signs in on the sign-in page when the check asks; test_user, a seed script signs a test user in; none, signed out."
+     },
+     "published": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The published address of the app, named by the person for this check only: its pages are read signed in, read only (GET, its own links); nothing else runs against it."
      }
     },
     "required": []

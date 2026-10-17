@@ -20,6 +20,7 @@ from pathlib import Path
 from .audit import _node, lighthouse, missing, toolchain
 
 MEASURED = 10                   # pages Lighthouse measures in one crawl
+PUBLISHED_ROUTES, PUBLISHED_MEASURED = 40, 3    # a published site is read gently: a few pages opened, fewer measured
 SIBLINGS = 5                    # this many sibling pages under one parent are one template (/blog/<slug>)
 DATA = re.compile(r'\d|%|[()~:@.,;=+]')   # a path segment that carries data: a number, an encoded or punctuated name
 
@@ -75,12 +76,16 @@ def distinct(paths):
     return found
 
 
-def discover(base, max_routes=200, timeout=1800, storage_state=None):
-    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]."""
+def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False):
+    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]. Signed in
+    (`storage_state`), a link that would sign out, delete or change (sign_in.LEAVES) is never followed; `read_only` (a
+    published address) sends nothing but GET."""
+    from ..sign_in import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
-    config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')}}
-    if storage_state: config['storage_state'] = str(storage_state)
+    config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
+              'read_only': read_only}
+    if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
     result, error = _node('crawl.mjs', config, timeout)
     return (result or {}).get('routes'), error
 
@@ -95,8 +100,9 @@ def _measure(row, base, out, number, storage_state):
                report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
 
 
-def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None):
-    routes, error = discover(base, max_routes, storage_state=storage_state)
+def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read_only=False):
+    if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
+    routes, error = discover(base, max_routes, storage_state=storage_state, read_only=read_only)
     if routes is None:
         return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']
