@@ -489,7 +489,8 @@ def kept(runtime, profile):
     the assistant's), and every secret the run chose, so a session signed with it (the person's sign-in) outlives it."""
     before = read_json(runtime / 'run.json') or {}
     if (before.get('baseline') or {}).get('verified'): profile['baseline'] = before['baseline']
-    profile['env'].update({name: value for name, value in (before.get('env') or {}).items() if name in profile['env'] and SECRETISH.search(name)})
+    env = profile.get('env') or {}
+    env.update({name: value for name, value in (before.get('env') or {}).items() if name in env and SECRETISH.search(name)})
     return profile
 
 
