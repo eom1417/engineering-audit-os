@@ -148,7 +148,7 @@ def host(project, answer=None, idle=HOST_IDLE):
     os.environ[HEADLESS] = '1'
     actions = Actions(project, lang=(guided.load(Path(project).resolve()) or {}).get('lang') or 'ar')
     try:
-        if answer: actions.manager.answer(*answer)
+        if answer: actions.manager.answer(*answer, via='terminal')
         with open(actions.store.folder / 'host.lock', 'a+') as lock:
             try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except OSError:

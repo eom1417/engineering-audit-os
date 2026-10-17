@@ -493,7 +493,7 @@ class Manager:
         self.store.append(run, 'question', question['text'], question)
         self.set_state(run, 'waiting_for_person', 'a question', question=question, questions=(record.get('questions') or []) + [question['id']])
 
-    def answer(self, question_id, option=None, text=None):
+    def answer(self, question_id, option=None, text=None, via='studio'):
         with self._mutex, (self.store.folder / 'question-answer.lock').open('a+') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             run = str(question_id).rsplit('-q', 1)[0]
@@ -502,14 +502,14 @@ class Manager:
             if previous:
                 if previous['option'] == option and previous.get('text') == text: return record
                 raise LookupError('this question already has an owner answer')
-            return self._answer(question_id, option, text)
+            return self._answer(question_id, option, text, via)
 
-    def _answer(self, question_id, option=None, text=None):
+    def _answer(self, question_id, option=None, text=None, via='studio'):
         run, record, question = self._checked(question_id, option, text)
         chosen = next((o for o in question.get('options') or [] if o['id'] == option), None)
         label = (chosen or {}).get('label') or {'en': text or '', 'ar': text or ''}
-        self.store.append(run, 'answer', {'en': f"You answered: {label['en']}", 'ar': f"جاوبت: {label['ar']}"},
-                          {'question': question_id, 'option': option, 'text': text, 'by': 'person'})
+        self.store.append(run, 'answer', {'en': f"You answered {prompts.WHERE[via]['en']}: {label['en']}", 'ar': f"جاوبت {prompts.WHERE[via]['ar']}: {label['ar']}"},
+                          {'question': question_id, 'option': option, 'text': text, 'by': 'person', 'via': via})
         self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
         self.set_state(run, 'running', 'answered')
         if option is None: return self._custom_answer(run, record, question, text)
@@ -522,7 +522,7 @@ class Manager:
         done = self._act_on(run, question, option)
         adapter = self.adapters.get(record.get('assistant'))
         if adapter is None: self._fail(run, 'the assistant of this run is not available any more')
-        else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang, done), record.get('session')), daemon=True).start()
+        else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang, done, via), record.get('session')), daemon=True).start()
         return self.store.load(run)
 
     @staticmethod
