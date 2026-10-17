@@ -3,6 +3,7 @@ stream with its replay, the mount point of the action API, and `eaos studio` / `
 import hashlib
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -635,7 +636,8 @@ class Remote(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
             keys = server.Keys(port=8096, remote_origin=origin)
             app = server.create_app(report_with_data(folder), keys=keys, watch=False)
-            with TestClient(app, base_url=origin) as remote:
+            gateway = mock.patch.object(server, '_gateways', return_value={'10.88.0.1'}, create=True)   # the Remote proxy's way in
+            with gateway, TestClient(app, base_url=origin, client=('10.88.0.1', 443)) as remote:
                 with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
                     first, second = remote.get('/').text, remote.get('/').text
                     self.assertIn('live-token.js?n=', first)
@@ -646,6 +648,18 @@ class Remote(unittest.TestCase):
                 with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': ''}):
                     self.assertNotIn('live-token.js', remote.get('/').text)
                     self.assertEqual(remote.get('/live-token.js').status_code, 404)
+            with gateway, TestClient(app, base_url=origin, client=('10.88.0.7', 40000)) as neighbour, \
+                    mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
+                self.assertEqual(neighbour.get('/live-token.js?n=1').status_code, 404,
+                                 'another container on the same bridge, with the Remote name: not the gateway, no token')
+        table = Path(tempfile.mkdtemp()) / 'route'
+        self.addCleanup(shutil.rmtree, table.parent, True)
+        table.write_text('Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\n'
+                         'eth0\t00000000\t01219A0A\t0003\t0\t0\t100\t00000000\n'
+                         'eth0\t00219A0A\t00000000\t0001\t0\t0\t100\t00FFFFFF\n')
+        self.assertEqual(server._gateways(table), {'10.154.33.1'}, "the default route's gateway, from the kernel's table")
+        for peer, given in (('10.154.33.1', True), ('::ffff:10.154.33.1', True), ('10.154.33.8', False), ('127.0.0.1', False), ('', False)):
+            self.assertEqual(server._gateway_peer(peer, table), given, peer)
 
 
 if __name__ == '__main__':
