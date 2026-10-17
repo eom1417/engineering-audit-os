@@ -117,8 +117,8 @@ class Terminal(unittest.TestCase):
                 mock.patch.object(launch, '_open') as opened, mock.patch.object(guided, 'say') as said:
             guided.watch({**self.state, 'project': tmp}, Namespace(no_watch=False))
         prepare.assert_called_once_with(tmp)
-        opened.assert_called_once_with('http://127.0.0.1:9/#/tools', True)
-        said.assert_called_once_with('Watch the work live: http://127.0.0.1:9/#/tools')
+        opened.assert_called_once_with('http://127.0.0.1:9/#/tools?token=k', True)
+        said.assert_called_once_with('Watch the work live: http://127.0.0.1:9/#/tools?token=k')
 
 
 class Record(unittest.TestCase):

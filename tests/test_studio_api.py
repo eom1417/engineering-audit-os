@@ -3,6 +3,7 @@ stream with its replay, the mount point of the action API, and `eaos studio` / `
 import hashlib
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -325,10 +326,17 @@ def _get(url, token=None, timeout=5):
     return _fetch(url, {'X-EAOS-Token': token} if token else {}, timeout)
 
 
-def _page_token(base):
-    """The launch token as the Studio's own page reads it from its server (live-token.js, same origin)."""
-    body = _fetch(f'{base}/live-token.js', {'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Dest': 'script'})[1].decode('utf-8')
-    return json.loads(body.split('window.EAOS_BOOT_TOKEN=', 1)[1].split(';', 1)[0])
+FORGED = {'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Dest': 'script'}      # what the Studio's own page would send
+
+
+def _own_address():
+    """This computer's address on its network (not loopback), or None."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        try:
+            probe.connect(('192.0.2.1', 9))           # no packet is sent: it picks the address a reply would come to
+            return probe.getsockname()[0]
+        except OSError:
+            return None
 
 
 def sse_frames(port, token, last=None, count=1, timeout=10):
@@ -440,21 +448,15 @@ class Commands(unittest.TestCase):
         self.addCleanup(stop)
         return stop
 
-    def test_eaos_studio_serves_until_stopped_is_reused_and_gives_its_token_to_its_own_page_only(self):
+    def test_eaos_studio_serves_until_stopped_is_reused_and_gives_its_token_in_its_address_only(self):
         process = self.studio()
         line = process.stdout.readline()
         self.assertIn('EAOS Studio, live: http://127.0.0.1:', line)
         url = line.split('live: ', 1)[1].strip()
-        self.assertNotIn('token', url, 'the address on this computer is plain')
-        base = url.rstrip('/')
+        base, token = url.split('/#token=')
         page = _fetch(f'{base}/', {'Sec-Fetch-Site': 'none', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
-        self.assertIn('live-token.js', page, 'the person opening the address')
-        other = _fetch(f'{base}/', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
-        self.assertNotIn('live-token.js', other, 'a link from another site')
-        self.assertEqual(_fetch(f'{base}/live-token.js', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'script'})[0], 404,
-                         "another site's page including the script")
-        self.assertEqual(_fetch(f'{base}/live-token.js')[0], 404, 'a client that does not say where the request comes from')
-        token = _page_token(base)
+        self.assertNotIn('live-token.js', page, 'the address carries the token; the page never asks the server for it')
+        self.assertEqual(_fetch(f'{base}/live-token.js', FORGED)[0], 404, "another program on this computer, with the page's headers")
         self.assertEqual(_get(f'{base}/api/session')[0], 401)
         status, body = _get(f'{base}/api/session', token)
         self.assertEqual((status, json.loads(body)['project']['name']), (200, 'shop'))
@@ -489,6 +491,9 @@ class Commands(unittest.TestCase):
         status, page = _fetch(f"http://127.0.0.1:{saved['port']}/", host)
         self.assertEqual(status, 200, 'it answers to its Remote name')
         self.assertIn('live-token.js', page.decode('utf-8'), 'behind the Remote sign-in the page also reads its token from its server')
+        for address in filter(None, ('127.0.0.1', _own_address())):
+            self.assertEqual(_fetch(f"http://{address}:{saved['port']}/live-token.js", {**host, **FORGED})[0], 404,
+                             f'a program on this computer ({address}) with the Remote name and the page\'s headers')
 
     def test_open_studio_starts_it_in_the_background_and_reuses_it(self):
         from eaos import agent_tools
@@ -506,6 +511,44 @@ class Commands(unittest.TestCase):
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline and launch._alive(pid): time.sleep(0.1)
         self.assertIsNone(launch.running(server.prepare(str(self.project))[0]), 'a dead server is not reused')
+
+
+class Switcher(unittest.TestCase):
+    def test_the_switcher_lists_each_project_and_opens_its_own_studio_which_goes_when_idle_but_not_while_a_run_waits(self):
+        from eaos import guided
+        from eaos.api import launch
+        from eaos.studio.actions import adapters
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': f'{folder}/home'}), \
+                mock.patch.object(adapters, 'installed', return_value={}):
+            states = []
+            for name, scanned in (('shop', '2026-10-16'), ('blog', '2026-10-17')):
+                (Path(folder) / name).mkdir()
+                state = {'project': f'{folder}/{name}', 'workspace': str(guided.workspace(Path(folder) / name)), 'scanned': scanned}
+                guided.save(state)
+                states.append(guided.load(Path(folder) / name))
+            health = guided.report_of(states[1]) / 'studio/health.json'
+            health.parent.mkdir(parents=True)
+            health.write_text(json.dumps({'score': {'value': 0.83}}))
+            keys = server.Keys(port=PORT)
+            app = server.create_app(report_with_data(folder), project=Path(folder) / 'shop', keys=keys, watch=False)
+            headers = {'X-EAOS-Token': keys.token, 'X-EAOS-CSRF': keys.csrf, 'Origin': f'http://127.0.0.1:{PORT}'}
+            with TestClient(app, base_url=f'http://127.0.0.1:{PORT}') as local:
+                listed = local.get('/api/projects', headers=headers).json()['projects']
+                self.assertEqual([(p['name'], p['current'], p['score'], p['studio']) for p in listed],
+                                 [('blog', False, 0.83, False), ('shop', True, None, False)])
+                with mock.patch.object(launch, 'start', return_value=({'port': 9, 'token': 't' * 32}, True)) as started:
+                    opened = local.post('/api/projects/open', headers=headers, json={'workspace': listed[0]['workspace']}).json()
+                self.assertEqual(opened['studio'], f"http://127.0.0.1:9/#token={'t' * 32}")
+                self.assertEqual(started.call_args.args[0]['project'], f'{folder}/blog', "the other project's own server")
+                self.assertEqual(local.post('/api/projects/open', headers=headers, json={'workspace': 'x'}).status_code, 404)
+                ctx = app.state.ctx
+                self.assertFalse(ctx.idle(time.monotonic()), 'a client was just here')
+                later = time.monotonic() + server.IDLE + 1
+                self.assertTrue(ctx.idle(later))
+                engine_store = guided.workspace(Path(folder) / 'shop') / 'runs'
+                (engine_store / 'r1').mkdir(parents=True)
+                (engine_store / 'r1/run.json').write_text(json.dumps({'id': 'r1', 'state': 'queued'}))
+                self.assertFalse(ctx.idle(later), 'a queued run keeps its server')
 
 
 class Remote(unittest.TestCase):
@@ -557,7 +600,7 @@ class Remote(unittest.TestCase):
             with self.assertRaises(ValueError): security.Locks(8095, remote_origin=value)
         record = {'port': 8096, 'token': 'fixture-not-a-secret', 'remote_origin': origin}
         self.assertTrue(launch.url_of(record).startswith(origin + '/#token='))
-        self.assertTrue(launch.url_of({**record, 'remote_origin': None}).startswith('http://127.0.0.1:8096/'))
+        self.assertTrue(launch.url_of({**record, 'remote_origin': None}).startswith('http://127.0.0.1:8096/#token='))
         with self.assertRaises(ValueError): launch.url_of({**record, 'remote_origin': 'https://evil.example'})
 
     def test_the_token_is_kept_privately_and_handed_to_the_page_only_when_the_owner_opted_in(self):
