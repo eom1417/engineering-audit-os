@@ -695,7 +695,7 @@ def run_setup(project=None, person_agreed=False):
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     if detected['profile'] is None:
         return {'status': 'cannot_run', 'limitations': detected['limitations']}
-    run_profile.write_profile(runtime, detected['profile'])
+    run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))     # its secrets kept: a session holds
     return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
 
 
@@ -773,14 +773,14 @@ def _run_what_now(ok, mode):
 
 def _run_job(project, arguments, progress):
     from . import live_assist, live_setup, run_profile
-    state = guided.load(project)
-    runtime, report = guided.runtime_of(state), guided.report_of(state)
+    runtime, report = guided.runtime_of(state := guided.load(project)), guided.report_of(state)
     mode, proposal = arguments.get('mode') or 'lock', arguments.get('proposal')
     if proposal: run_profile.apply(runtime, proposal, mode=mode)
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
     progress(0, 1, 'installing and starting the app in the isolated copy')
     source = guided.source(state)
-    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
+    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode,
+                               by_hand=check_choices.kept(state)['sign_in'] in ('hand', 'none'))     # the person signs in: a sign-in page is the app
     profile = _read(runtime / 'run.json')
     answer = {'mode': mode, 'attempt': attempt, 'runs': record['ok']}
     if mode == 'baseline':

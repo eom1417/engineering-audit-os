@@ -49,6 +49,10 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(sign_in.from_pages({**SIGNED_OUT_PAGE, 'url': 'http://127.0.0.1:1/'}), [])
         (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'auth', 'surfaces': ['/login']}, {'name': 'shop', 'surfaces': ['/']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/login: a sign-in route of the code'])
+        from eaos.live_setup import routes
+        (self.root / 'behavior-lock').mkdir()
+        (self.root / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': ['/logout', '/settings', '/sign-out', '/reports']}]}))
+        self.assertEqual(routes(self.root), ['/settings', '/reports'], 'the probe of a session never opens a page that ends it')
         runners = fake_runners()
         runners['session'] = sign_in_stage.session
         (self.root / 'project').mkdir()

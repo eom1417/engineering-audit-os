@@ -25,8 +25,6 @@ PUBLISHED = 'published-session.json'         # in the project's workspace: the p
 ASKED = 'sign-in.json'                       # in the project's workspace: the check waits for the person to sign in
 WAIT = int(os.environ.get('EAOS_SIGN_IN_WAIT') or 900)   # seconds the check waits for the person before going on signed out
 SIGNED_IN, SIGNED_OUT = 'signed_in', 'signed_out'
-# A link the crawl of a session never follows: it would end the session, or change what it reads (eaos/templates/screens).
-LEAVES = r'(log|sign)[-_ ]?(out|off)|logout|delete|remove|destroy|unsubscribe|deactivate'
 
 
 def session(runtime):

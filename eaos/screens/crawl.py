@@ -78,9 +78,9 @@ def distinct(paths):
 
 def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False):
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]. Signed in
-    (`storage_state`), a link that would sign out, delete or change (sign_in.LEAVES) is never followed; `read_only` (a
+    (`storage_state`), a link that would sign out, delete or change (live_setup.LEAVES) is never followed; `read_only` (a
     published address) sends nothing but GET."""
-    from ..sign_in import LEAVES
+    from ..live_setup import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},

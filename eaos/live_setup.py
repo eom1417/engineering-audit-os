@@ -294,11 +294,16 @@ def detect(project, report=None):
 PROBE = (Path(__file__).resolve().parent / 'templates/setup/probe.cjs').read_text(encoding='utf-8')
 
 
+# A page no browser holding a session opens (the probe, the crawl): it would end the session, or change what it reads.
+LEAVES = r'(log|sign)[-_ ]?(out|off)|logout|delete|remove|destroy|unsubscribe|deactivate'
+
+
 def routes(report, limit=4):
-    """A few of the lock's screens without parameters, to see that each one is a screen of its own."""
+    """A few of the lock's screens without parameters, to see that each one is a screen of its own; never one that
+    signs out or changes (LEAVES), which would end the session the probe checks."""
     plan = read_json(Path(report) / 'behavior-lock/plan.json') if report else {}
     found = [s for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []
-             if s.startswith('/') and s != '/' and ':' not in s and '*' not in s]
+             if s.startswith('/') and s != '/' and ':' not in s and '*' not in s and not re.search(LEAVES, s, re.I)]
     return list(dict.fromkeys(found))[:limit]
 
 
@@ -464,7 +469,7 @@ def _setup(project, runtime, report, provider, say, by_hand):
         for name in ('attempt', 'baseline'): progress.skip(name, why, 'no_app_profile')
         return {'ok': False, 'attempts': 0, 'limitations': detected['limitations'], 'page': None}
     needs = fixtures_needed(report)
-    write_profile(runtime, _kept(runtime, detected['profile']))
+    write_profile(runtime, kept(runtime, detected['profile']))
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     limitations = list(detected['limitations'])
     progress.begin('attempt')
@@ -479,7 +484,7 @@ def _setup(project, runtime, report, provider, say, by_hand):
     return _close(runtime, detected, ok, attempts, record, missing, limitations)
 
 
-def _kept(runtime, profile):
+def kept(runtime, profile):
     """The new draft with what the last setup's run.json holds that must stay: the production run that worked (often
     the assistant's), and every secret the run chose, so a session signed with it (the person's sign-in) outlives it."""
     before = read_json(runtime / 'run.json') or {}
