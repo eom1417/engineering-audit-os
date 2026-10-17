@@ -271,7 +271,14 @@ export interface ActionsClient {
   plan?(body: { name: string; text: string; files: { name: string; data: string }[]; mode?: 'extend' }): Promise<Run>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
+  /** The projects on this computer, and the address of one's own Studio, started when it is not (live only:
+   *  eaos/api/projects.py) */
+  projects?(): Promise<ProjectRow[]>
+  openProject?(workspace: string): Promise<{ studio: string; name: string }>
 }
+
+/** A project EAOS knows on this computer, for the switcher. */
+export interface ProjectRow { workspace: string; name: string; path: string; current: boolean; score: number | null; checked: string | null; studio: boolean }
 
 /** A reason in both languages, with a stable code */
 /** Why a change cannot happen now; `runs` are the queued or working runs it waits for (each can be stopped). */

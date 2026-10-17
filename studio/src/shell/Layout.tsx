@@ -10,6 +10,7 @@ import { useActionsMaybe } from '../data/actions/store'
 import { useLoaded, useSections } from '../data/context'
 import type { SectionName, StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
+import { liveToken } from '../data/live'
 import css from './Layout.module.css'
 
 export { css as layout }
@@ -58,6 +59,15 @@ export function SectionsLoading({ waiting }: { waiting: readonly SectionName[] }
       <Skeleton label={t('loadingRest')} />
     </Panel>
   )
+}
+
+/** The Studio served on this computer but opened without its key (an old bookmark of the plain address): it says how to
+ * open it with its key instead of showing an empty copy. The key lives only in the address `eaos studio` gives. */
+export function NoKeyNotice() {
+  const { t } = usePrefs()
+  const local = /^https?:$/.test(location.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+  if (!local || liveToken()) return null
+  return <div className={[css.banner, css.noKey].join(" ")} role="note" data-no-key=""><Icon name="info" /><div>{t('noKey')}</div></div>
 }
 
 /** The note shown when some sections of the report did not load: what is shown is still correct. */
