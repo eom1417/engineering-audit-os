@@ -12,6 +12,7 @@ def yaml_load(text):
     rely on it for completeness; the parser raises on the rest and we leave it
     as unparsed in the output."""
     text = re.sub(r'#[^\n]*', '', text)
+    text = re.sub(r'\A\s*---[ \t]*(?:\n|\Z)', '', text)      # the document's start marker, as compose files often begin
     _refuse_unsupported(text)
     return _yaml_reader(text)
 

@@ -23,7 +23,7 @@ class RuntimeFactTests(unittest.TestCase):
     def test_deployment_targets_ci_steps_and_migrations_are_found(self):
         facts = runtime_facts({
             'Dockerfile': 'FROM python:3.11\nEXPOSE 8080\nEXPOSE 9090\n',
-            'docker-compose.yml': 'services:\n  api:\n    image: app\n  worker:\n    image: app\n',
+            'docker-compose.yml': '---\nservices:\n  api:\n    image: app\n  worker:\n    image: app\n',
             'vercel.json': '{"rewrites": []}', 'app/railway.toml': '[build]\n',
             '.github/workflows/ci.yml': 'jobs:\n  test:\n    steps:\n      - name: install\n        run: pip install\n'
                                         '      - name: test\n        run: pytest\n',
