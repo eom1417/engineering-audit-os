@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased (2026-10-17)
+
+- **The Studio regrouped into five sections** (Overview, Checks, Problems, Fixes, System) with System's nine maps folded
+  under it in four categories, Library and Settings below, and four tabs and More on the phone; every job is three
+  clicks or fewer from Overview (34 of 34 measured at phone and desktop sizes). **Checks** is one page to start a check,
+  follow it live and look back; **Waiting for you** in the top bar holds every question, decision and branch waiting for
+  approval; **Fixes** opens on those branches with Accept and Undo. The existing pages were reconnected, not rewritten;
+  the old addresses lead to the new ones. A check pressed anywhere is a new one (before, some buttons answered "already
+  checked"), it can leave the AI out, and starting it has one name. A document reads its own text and pictures instead
+  of the whole 15 MB library; the build keeps the Studio's weight within budget.
+- **Projects kept apart**: a project's app and its commands see only their own project (other projects, their reports,
+  sessions and Studio keys are hidden from them); its database needs a password; jobs, caches and the busy port are its
+  own; `eaos clean` spares another project's live run; the Studio's key is never handed to a forged request. A project
+  switcher opens each project's own Studio; an idle local Studio stops by itself. Two real projects checked at once:
+  isolation held both ways, at most 4.3 GB of 8 used.
+- **Full governance from the terminal and MCP, without the Studio**: `eaos check` (with its estimate) / `watch` / `stop`
+  / `pause` / `resume` / `retry`, `problems`, `waiting` and `answer`, `fix|verify|explain|plan` on cards or groups with
+  their preview, `runs`, `history`, `compare`, `usage`, branches with preview and confirm, over the Studio's own core;
+  the person's own decisions (branch, running the app, accept, undo, merge, delete, restore) need their word on every
+  surface. Proven by a real fix from the terminal alone, accepted after its prompt.
+- **Sign-in for any app** (cards 12 to 21): EAOS finds whether the screens need a sign-in; the person signs in by hand,
+  any method, from the Studio or with `eaos sign-in` (a page of its own when the computer has no display), the app's
+  codes shown from its output and Mailpit; one private session serves every page stage, is checked before use and asked
+  again only when it expired; `--sign-in hand|test_user|none` everywhere; the published address only read.
+- Fixed: a YAML file beginning with `---` stopped a whole check; `eaos usage` counted only a run's last turn; a fix
+  could never pass its gates where the tools folder is a link.
+
 ## 0.0.36 (2026-10-17)
 
 - **A check runs its stages side by side, as much as the computer can take**: a stage starts as soon as the stages it
