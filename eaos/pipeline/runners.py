@@ -89,7 +89,7 @@ def setup(context):
         raise SkipStage(NO_RUN, code='no_run_consent')
     from ..live_setup import authorize, setup as start
     authorize(context.target, context.runtime, _owner(context.target))
-    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider, say=lambda n: None)
+    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None, say=lambda n: None)
     _keep(context, 'setup.json', result)
     if not result['ok']:
         raise SkipStage('the app did not start in the isolated copy: ' + '; '.join(result['limitations'])[:250], code='app_not_running')

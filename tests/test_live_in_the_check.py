@@ -66,8 +66,10 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertEqual(live, {stage: ('unavailable', 'no_run_consent') for stage in LIVE})
         self.assertEqual(manifest['status'], 'COMPLETE')
         failed = {'ok': False, 'attempts': 3, 'limitations': ['npm ci failed'], 'page': None}
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', return_value=failed):
-            manifest, live = self.run_check('down', runtime=self.base / 'runtime')
+        from eaos.assistants.readiness import NoAssistant
+        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', return_value=failed) as setup:
+            manifest, live = self.run_check('down', runtime=self.base / 'runtime', provider=NoAssistant('declined', 'without AI'))
+        self.assertIsNone(setup.call_args.kwargs['provider'], 'without AI the app is set up without one, never asked of its stand-in')
         self.assertEqual(live, {'setup': ('unavailable', 'app_not_running'), 'record': ('unavailable', 'app_not_running'),
                                 'screens': ('unavailable', 'app_not_running'), 'baseline': ('unavailable', 'app_not_running')})
         self.assertIn('npm ci failed', manifest['stages']['record']['reason'])
