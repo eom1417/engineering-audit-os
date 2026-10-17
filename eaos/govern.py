@@ -18,7 +18,6 @@ import fcntl
 import functools
 import json
 import os
-import subprocess
 import sys
 import threading
 import time
@@ -137,13 +136,7 @@ def wake(project, answer=None):
     question, option, text = answer or (None, None, None)
     argv = [sys.executable, '-m', 'eaos', 'govern', str(actions.project), *(['--answer', question] if question else []),
             *(['--option', option] if option else []), *(['--text', text] if text else [])]
-    here = str(Path(__file__).resolve().parents[1])
-    env = {**os.environ, HEADLESS: '1', 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
-    logs = Path(state['workspace']) / 'logs'
-    logs.mkdir(parents=True, exist_ok=True)
-    with open(logs / 'govern.log', 'wb') as log:            # one host's words, written again by the next: bounded
-        subprocess.Popen(argv, cwd=state['workspace'], env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
-                         start_new_session=True, close_fds=True)
+    launch.detach(state, argv, launch.own_env(**{HEADLESS: '1'}), 'govern.log', 'wb')   # one host's words, written again by the next
     return True
 
 

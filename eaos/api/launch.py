@@ -64,20 +64,33 @@ def start(state):
     it starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one."""
     found = running(state)
     if found: return found, False
-    logs = Path(state['workspace']) / 'logs'
-    logs.mkdir(parents=True, exist_ok=True)
-    here = str(Path(__file__).resolve().parents[2])
-    env = {**os.environ, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
-    argv = [sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open']
-    if not (durable() and _as_service(state, argv, env, logs / 'studio-server.log')):
-        with open(logs / 'studio-server.log', 'ab') as log:
-            subprocess.Popen(argv, cwd=state['workspace'], env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
-                             start_new_session=True, close_fds=True)
+    env, argv = own_env(), [sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open']
+    if not (durable() and _as_service(state, argv, env, log_path(state, 'studio-server.log'))): detach(state, argv, env, 'studio-server.log')
     deadline = time.monotonic() + STARTUP
     while time.monotonic() < deadline and not found:
         time.sleep(0.25)
         found = running(state)
     return found, bool(found)
+
+
+def own_env(**extra):
+    """The environment of a process this EAOS starts (`extra` added): PYTHONSAFEPATH=1 and this EAOS first on the path."""
+    here = str(Path(__file__).resolve().parents[2])
+    return {**os.environ, **extra, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
+
+
+def log_path(state, name):
+    logs = Path(state['workspace']) / 'logs'
+    logs.mkdir(parents=True, exist_ok=True)
+    return logs / name
+
+
+def detach(state, argv, env, log, mode='ab'):
+    """`argv` in a session of its own, from the project's EAOS workspace folder, its output in logs/`log` (`mode` 'wb':
+    each start writes it again, so it stays bounded)."""
+    with open(log_path(state, log), mode) as out:
+        subprocess.Popen(argv, cwd=state['workspace'], env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=out,
+                         start_new_session=True, close_fds=True)
 
 
 def durable():
