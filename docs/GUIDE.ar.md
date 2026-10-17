@@ -209,9 +209,23 @@ curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/i
 | «Node.js قديم أو غير مثبّت» | ثبّت نسخة LTS من https://nodejs.org ثم اطلب من جديد |
 | أي مشكلة أخرى | قل لمساعدك: «وش صار؟». وإن تكررت، أرسل مجلد `logs/` لمن يساعدك |
 
-## بلا مساعد ذكي؟
+## بلا مساعد ذكي، أو بلا الاستوديو؟
 
-الأوامر نفسها تعمل في الطرفية: `eaos start .` ثم `eaos next` بعد كل خطوة (`eaos status` يقول أين أنت).
+الأوامر نفسها تعمل في الطرفية: `eaos start .` ثم `eaos next` بعد كل خطوة (`eaos status` يقول أين أنت، وهل الفحص ما زال حديثًا).
+
+وكل ما يديره الاستوديو يعمل من الطرفية أيضًا، والاستوديو مقفل (التشغيلات نفسها تظهر في الاثنين):
+
+| الأمر | ما يفعله |
+| --- | --- |
+| `eaos check [--path security] [--assistant none] [--watch]` | يقول كم يأخذ، ثم يفحص في الخلفية (ما يتغير شي في مشروعك) |
+| `eaos watch` | يتابع التشغيل حيًّا: المرحلة، والوقت الباقي، والتكلفة حتى الآن، وأسئلته |
+| `eaos stop` و`pause` و`resume` و`retry` و`eaos runs` | طابور التشغيلات |
+| `eaos waiting` و`eaos answer <id> <الخيار>` | ما ينتظرك، وجوابك |
+| `eaos problems` و`eaos problem <id>` | ما لقاه الفحص، ومشكلة واحدة كاملة بدليلها |
+| `eaos fix <ids>` (أو `--group severity=high`) و`verify` و`explain` و`plan` | معاينة أولًا (البطاقات، الملفات، الوقت، الخطورة)، ثم التشغيل |
+| `eaos accept` و`eaos undo` | يقول وش بيصير ويطلب موافقتك (أو `--yes`) |
+| `eaos branch [الاسم]` و`eaos branches [merge|delete|protect|unprotect|cleanup|restore]` | الفرع اللي يشتغل عليه EAOS، وكل تغيير على الفروع: معاينة ثم موافقتك |
+| `eaos history` و`eaos compare <أ> <ب>` و`eaos usage` | كل فحص مسجل، وفحصان جنب بعض، وما استخدمه المساعد |
 
 ## ما لا يفعله EAOS أبدًا
 

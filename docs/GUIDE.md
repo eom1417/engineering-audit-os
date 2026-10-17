@@ -223,9 +223,24 @@ over the project as it is.
 | "Node.js is too old or not installed" | Install the LTS version from https://nodejs.org and ask again |
 | Anything else | Ask your assistant: "what happened?". If it happens again, send the `logs/` folder to whoever helps you |
 
-## No AI assistant?
+## No AI assistant, or without the Studio?
 
-The same way works as commands in the Terminal: `eaos start .`, then `eaos next` after each step (`eaos status` says where you are).
+The same way works as commands in the Terminal: `eaos start .`, then `eaos next` after each step (`eaos status` says where you are,
+and whether the check is still current).
+
+Everything the Studio governs works from the Terminal too, with no Studio open (the same runs, seen in both):
+
+| Command | What it does |
+| --- | --- |
+| `eaos check [--path security] [--assistant none] [--watch]` | Says how long it takes, then checks in the background (nothing in your project changes) |
+| `eaos watch` | Follows the run live: the stage, the time left, the cost so far, and its questions |
+| `eaos stop`, `pause`, `resume`, `retry`, `eaos runs` | The queue of runs |
+| `eaos waiting`, `eaos answer <id> <option>` | What waits for you, and your answer |
+| `eaos problems`, `eaos problem <id>` | What the check found, and one problem whole with its evidence |
+| `eaos fix <ids>` (or `--group severity=high`), `verify`, `explain`, `plan` | A preview first (cards, files, time, risk), then the run |
+| `eaos accept`, `eaos undo` | Says what will happen and asks your yes (or `--yes`) |
+| `eaos branch [name]`, `eaos branches [merge|delete|protect|unprotect|cleanup|restore]` | The branch EAOS works on; and every branch change, a preview then your yes |
+| `eaos history`, `eaos compare <a> <b>`, `eaos usage` | Every check on record, two side by side, and what the assistant used |
 
 ## What EAOS never does
 
