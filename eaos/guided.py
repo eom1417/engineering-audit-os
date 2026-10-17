@@ -1000,53 +1000,15 @@ def fix(state, args):
 
 
 def accept(args):
-    """Take the latest wave into the current branch, then delete its branch and bring the report up to date."""
-    state = current(args.project)
-    lang = state['lang']
-    reconcile(state)
-    wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
-    if wave is None:
-        box(lang, 'لا توجد دفعة إصلاحات تنتظر الاعتماد' if lang == 'ar' else 'No batch of fixes is waiting', commands=['eaos next'], status='warn')
-        return 0
-    outcome = merge(state, wave)
-    if outcome == 'unsaved_changes': raise RuntimeError('uncommitted changes: working tree is not clean')
-    if outcome == 'conflict':
-        box(lang, ('فرعك تغيّر في نفس الأماكن منذ الإصلاح، فلم أدمج شيئًا' if lang == 'ar' else 'Your branch changed in the same places since the fixes, so nothing was merged'),
-            commands=[f"git merge {wave['branch']}"], status='warn',
-            note=('ادمجها بنفسك أو اطلب من مساعدك الذكي ذلك' if lang == 'ar' else 'Merge it yourself, or ask your AI assistant to'))
-        return 0
-    from .ledger import load
-    totals = (load(state) or {}).get('totals') or {}
-    box(lang, (f"اعتمدت الدفعة {wave['number']} في مشروعك وحذفت فرعها" if lang == 'ar' else f"Batch {wave['number']} is now in your project, and its branch is deleted"),
-        where=outputs(state) / 'REPORT.html',
-        commands=['eaos next   ' + ('# للدفعة التالية' if lang == 'ar' else '# for the next batch')],
-        note=[(f"التقرير محدَّث: أُغلق {totals.get('closed', 0)} من {totals.get('total', 0)} ({totals.get('percent', 0)}%)" if lang == 'ar'
-               else f"The report is up to date: {totals.get('closed', 0)} of {totals.get('total', 0)} closed ({totals.get('percent', 0)}%)"),
-              ('إن أردت التراجع لاحقًا: git revert، أو اطلب من مساعدك الذكي' if lang == 'ar' else 'To go back later: git revert, or ask your AI assistant')])
-    return 0
+    """Take the waiting batch into the project, after saying what will happen and the person's yes (eaos/terminal.py)."""
+    from .terminal import accept as decide
+    return decide(args)
 
 
 def undo(args):
-    """Throw the latest wave away: its branch goes, while it is not merged."""
-    from .waves import undo as drop
-    state = current(args.project)
-    lang = state['lang']
-    wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
-    if wave is None:
-        box(lang, 'لا يوجد ما أتراجع عنه' if lang == 'ar' else 'There is nothing to undo', commands=['eaos next'], status='warn')
-        return 0
-    outcome = drop(state['project'], wave['branch'])
-    if outcome == 'merged':
-        box(lang, ('هذه الدفعة مدموجة في فرعك، فلا أحذفها؛ التراجع عنها قرارك' if lang == 'ar'
-                   else 'This batch is merged into your branch, so I do not remove it; undoing it is your decision'),
-            commands=['git log --oneline -5'], status='warn', note=('اطلب من مساعدك الذكي: «تراجع عن دمج eaos/wave»' if lang == 'ar'
-                                                                      else 'Ask your AI assistant: "revert the eaos/wave merge"'))
-        return 0
-    wave['status'] = 'undone'
-    save(state)
-    box(lang, (f"حذفت الفرع {wave['branch']}؛ مشروعك كما كان" if lang == 'ar' else f"Removed the branch {wave['branch']}; your project is as it was"),
-        commands=['eaos next'])
-    return 0
+    """Throw the waiting batch away, after saying what will happen and the person's yes (eaos/terminal.py)."""
+    from .terminal import undo as decide
+    return decide(args)
 
 
 def show(args):
@@ -1136,7 +1098,9 @@ def start(args):
          f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))
     if _missing_first(project, lang): return 1
     watch(state, args)
-    return scan(state, args) if getattr(args, 'path', None) or getattr(args, 'mode', None) else advance(state, args)  # asked: a check now
+    if not (getattr(args, 'path', None) or getattr(args, 'mode', None)): return advance(state, args)
+    from .terminal import check                 # asked: a check now, the one `eaos check` starts, followed here
+    return check(args)
 
 
 def _missing_first(project, lang):
@@ -1182,6 +1146,8 @@ def status(args):
     reconcile(state)
     lang = language(args.lang, state)
     say(('مشروع' if lang == 'ar' else 'Project') + f": {state['project']}")
+    from .govern import fresh_line
+    say(fresh_line(state, lang))
     upcoming = next_step(state)
     for step in STEPS:
         mark = '✅' if step[3](state) else ('▶️' if step is upcoming else '⬜')

@@ -57,7 +57,7 @@ def run(command, project=None, **options):
     # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the Studio,
     # and no version check of every installed tool: the doctor's rows are tested on their own.
     with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), mock.patch.object(guided, 'watch'), \
-            mock.patch.object(guided, 'scan', _fake_scan), \
+            mock.patch('eaos.terminal.check', lambda args: _fake_scan(guided.current(args.project), args)), \
             mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
             mock.patch('eaos.toolchain.doctor', return_value={'tools': []}), \
             mock.patch('eaos.assistants.readiness.probe_all', return_value=NO_ASSISTANT), \
