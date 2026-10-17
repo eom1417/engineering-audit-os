@@ -124,6 +124,7 @@ li.stepRow { grid-template-columns: auto 48px minmax(0, 1fr) auto; align-items: 
 .textarea { resize: vertical; font-family: var(--font-mono); font-size: 14px; }
 .input[data-focused], .textarea[data-focused], .select:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check[data-path] { cursor: pointer; }
 
 /* ---------- Questions ---------- */
 .question { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
