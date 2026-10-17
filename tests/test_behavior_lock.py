@@ -95,6 +95,13 @@ class BuildTests(Workspace):
         self.assertFalse((out / 'behavior-lock/playwright').exists())
         self.assertFalse((out / 'behavior-lock/playwright.config.ts').exists())
 
+    def test_a_program_with_no_feature_to_lock_records_nothing_and_says_so_instead_of_failing(self):
+        from eaos.behavior_lock import run_lock
+        report = Path(self.tmp) / 'report'
+        report.mkdir()
+        self.assertEqual(build(report, Path(self.tmp))['specs'], [])
+        self.assertEqual(run_lock(report, Path(self.tmp), Path(self.tmp) / 'runtime')['results'], [], 'the safety net is empty, never a crash')
+
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest">
 <testcase classname="" name="approvals.test_broken"><error message="collection failure">ImportError: no module named x</error></testcase>

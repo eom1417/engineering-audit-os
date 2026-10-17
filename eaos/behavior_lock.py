@@ -399,6 +399,8 @@ def run_lock(report, target, runtime):
     from .live_run import LiveRun
     report, runtime = Path(report), Path(runtime)
     recorded = runtime / 'behavior-lock'
+    if not (report / 'behavior-lock').is_dir():         # the check found no feature to lock: nothing is recorded, said so
+        return {'results': [], 'limitations': ['the program has no feature to lock']}
     progress.begin('prepare')
     live = LiveRun(target, runtime, 'S05')
     live.freeze()
