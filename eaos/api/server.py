@@ -302,7 +302,10 @@ def serve(app, sock=None, ready=None):
     import uvicorn
     sock = sock or bind(app.state.ctx.keys.port)
     app.state.ctx.keys.port = sock.getsockname()[1]
-    config = uvicorn.Config(app, log_level='warning', access_log=False, lifespan='on', timeout_graceful_shutdown=2)
+    # No forwarding header is believed (uvicorn trusts X-Forwarded-For from 127.0.0.1 by default): the peer the token
+    # checks (live-token.js) is always the socket's, so a program here cannot pass for the Remote sign-in's proxy.
+    config = uvicorn.Config(app, log_level='warning', access_log=False, lifespan='on', timeout_graceful_shutdown=2,
+                            proxy_headers=False, forwarded_allow_ips='')
     server = uvicorn.Server(config)
     if ready: ready(server)
     server.run(sockets=[sock])

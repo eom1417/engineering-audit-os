@@ -494,6 +494,9 @@ class Commands(unittest.TestCase):
         for address in filter(None, ('127.0.0.1', _own_address())):
             self.assertEqual(_fetch(f"http://{address}:{saved['port']}/live-token.js", {**host, **FORGED})[0], 404,
                              f'a program on this computer ({address}) with the Remote name and the page\'s headers')
+            self.assertEqual(_fetch(f"http://{address}:{saved['port']}/live-token.js",
+                                    {**host, **FORGED, 'X-Forwarded-For': '8.8.8.8', 'X-Forwarded-Proto': 'https'})[0], 404,
+                             f'nor ({address}) when it names another computer in a forwarding header')
 
     def test_open_studio_starts_it_in_the_background_and_reuses_it(self):
         from eaos import agent_tools
