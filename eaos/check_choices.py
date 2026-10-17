@@ -45,7 +45,7 @@ def options(state, progress, failed, provider, runtime, paths=None, engines=None
     resolve(paths)                                  # an unknown path stops the check before anything runs
     return dict(language=state.get('lang') or 'en', engines=engines or [], progress=progress, provider=provider, runtime=runtime,
                 without_tools=sorted(failed), paths=paths, mode=kept(state)['mode'],
-                sign_in={'how': kept(state)['sign_in'], 'published': sign_in.published(published), 'folder': state['workspace']})
+                sign_in={'how': kept(state)['sign_in'], 'published': published, 'folder': state['workspace']})
 
 
 def estimate(report, paths=None, mode='normal'):

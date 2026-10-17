@@ -132,7 +132,7 @@ def renew(live, base, state, report=None, workspace=None):
     if not by_hand(state): return Path(state).is_file()
     if works(live, base, state, report): return True
     workspace = workspace or Path(live.runtime).parent
-    ask(workspace, base, state, 'expired', log=service_log(live))
+    ask(workspace, base, state, 'expired', log=service_log(live), mail=live.mail())
     return wait(workspace) == SIGNED_IN and works(live, base, state, report)
 
 
