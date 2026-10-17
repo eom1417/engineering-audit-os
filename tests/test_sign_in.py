@@ -4,7 +4,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 import tempfile
 import threading
 import time
@@ -173,7 +172,7 @@ class SignInTests(unittest.TestCase):
 
     def test_the_sign_in_page_alone_answers_behind_its_guard_and_ends_once_the_person_answers(self):
         from eaos import govern, guided
-        from eaos.api import server, sign_in as page
+        from eaos.api import server
         from eaos.studio.actions import adapters
         project, apps = self.root / 'shop', []
         project.mkdir()
@@ -186,7 +185,7 @@ class SignInTests(unittest.TestCase):
             sign_in.ask(workspace, 'http://127.0.0.1:1', Path(workspace) / 'runtime/session.json', 'needed')
             self.assertEqual([row['kind'] for row in govern.waiting(str(project))], ['sign_in'])
             said = []
-            alone = threading.Thread(target=page.serve_alone, args=(str(project), said.append))
+            alone = threading.Thread(target=server.serve_sign_in, args=(str(project), said.append))
             alone.start()
             for _ in range(300):
                 if said or not alone.is_alive(): break

@@ -6,6 +6,7 @@ no provider configured, no engine installed. That is a recorded absence, not a f
 import json
 from pathlib import Path
 
+from .live_app import NO_RUN, _keep, _live, _ran
 from .stages import SkipStage
 
 POLICY_FILE = 'eaos.policy.json'
@@ -66,21 +67,12 @@ def _index_engines(context, entries, add_to_index):
     return external_entry
 
 
-NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
-          'the check reads the code alone')
 
 
 def _owner(target):
     import subprocess
     done = subprocess.run(['git', '-C', str(target), 'config', 'user.name'], capture_output=True, text=True)
     return done.stdout.strip() or 'the owner'
-
-
-def _keep(context, name, record):
-    """A live stage's record under <out>/live/."""
-    from ..workspace import write
-    (context.out / 'live').mkdir(exist_ok=True)
-    write(context.out / 'live' / name, record)
 
 
 def setup(context):
@@ -124,17 +116,6 @@ def verify(context):
 def _published(context):
     """The published address the person named for this check, read by the stages that only read pages (S9)."""
     return (context.get('sign_in') or {}).get('published')
-
-
-def _live(context):
-    """The runtime folder of an app this check started; else the reason no live stage can run."""
-    if not context.get('runtime'):
-        raise SkipStage(NO_RUN, code='no_run_consent')
-    if not _ran(context, 'setup'):
-        raise SkipStage('the app is not running in an isolated copy in this check: ' + (
-            (context.get('manifest_so_far') or {}).get('stages', {}).get('setup', {}).get('reason') or 'its setup did not end ok'),
-            code='app_not_running')
-    return Path(context.runtime)
 
 
 def record(context):
@@ -531,11 +512,6 @@ def proposals(context):
     result = export(context.out, context.language, Path(context.target).name, context.target)
     write(context.out / 'proposals.json', result)
     return {'sections': len(result['written']), 'errors': len(result['errors'])}
-
-
-def _ran(context, name):
-    """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
-    return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'
 
 
 def cards(context):

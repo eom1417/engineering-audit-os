@@ -1,7 +1,7 @@
 """The sign-in page's back end: the pinned Chromium the person signs in to their app with, while a check asks for it
 (eaos/sign_in.py). The Studio's page (studio/src/pages/signin/SignInPage.tsx, reached from Waiting for you) shows it and
 passes on their clicks and typing; `eaos sign-in` opens it in a window when this computer has a display, else serves the
-same page on a port of its own, until the session is saved (serve_alone).
+same page on a port of its own, until the session is saved (eaos/api/server.py serve_sign_in).
 
     GET  /api/sign-in           {asked, open, kept, codes}: what the check asks (null: nothing), whether the browser is
                                 open, whether a session made by hand is kept, what the app sent (its output, its mail)
@@ -109,12 +109,21 @@ def done(project):
     return status(state['project'])
 
 
-def skip(project):
-    state = _state(project)
-    browser = _OPEN.pop(state['workspace'], None)
+def close(project):
+    """The sign-in browser of `project` ended, when one is open: nothing is saved."""
+    browser = _OPEN.pop(_state(project)['workspace'], None)
     if browser: browser.end()
-    sign_in.answer(state['workspace'], sign_in.SIGNED_OUT)
-    return status(state['project'])
+
+
+def waits(project):
+    """Whether a check still waits for the person to sign in."""
+    return sign_in.asked(_state(project)['workspace']) is not None
+
+
+def skip(project):
+    close(project)
+    sign_in.answer(_state(project)['workspace'], sign_in.SIGNED_OUT)
+    return status(project)
 
 
 def forget(project):
@@ -145,28 +154,3 @@ def _answer(function, *args):
 def display():
     """Whether this computer shows windows (a Mac, or a desktop session): the browser then opens in one."""
     return sys.platform == 'darwin' or bool(os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'))
-
-
-def serve_alone(project, say):
-    """The sign-in page alone, on a port of its own, for a terminal on a computer without a display: the Studio's own
-    page and guard (its launch token, and on a Remote server its routed address behind the Remote sign-in), with no other
-    action; it ends once the check no longer waits (the session saved, the person went on signed out, or the wait ended)."""
-    import time
-    from . import guard, launch, server
-    state = _state(project)
-    template = launch.remote_template()
-    sock = server.bind(0, host='0.0.0.0' if template else guard.LOOPBACK, routed=bool(template))
-    port = sock.getsockname()[1]
-    keys = server.Keys(port=port, remote_origin=template.format(port=port) if template else None)
-    app = server.create_app(guided.report_of(state), project=state['project'], keys=keys, mounts=[])
-    say(launch.url_of({'port': port, 'token': keys.token, 'remote_origin': keys.remote_origin,
-                       'page_reads_token': server._remote_login_trusted(app.state.ctx)}, '/sign-in'))
-    running = []
-
-    def until_answered():
-        while sign_in.asked(state['workspace']): time.sleep(1)
-        if running: running[0].should_exit = True
-    threading.Thread(target=until_answered, daemon=True).start()
-    server.serve(app, sock, ready=running.append)
-    browser = _OPEN.pop(state['workspace'], None)
-    if browser: browser.end()

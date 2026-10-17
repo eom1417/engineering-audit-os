@@ -119,7 +119,7 @@ class LiveRun:
         binary = home() / 'bin/mailpit'
         if not hasattr(self, '_mailpit') and binary.exists() and any('{mail_port}' in str(v) for v in (self.profile.get('env') or {}).values()):
             import subprocess
-            from .live_setup import free_port
+            from .local_db import free_port
             smtp, page = free_port(), free_port()
             self._mailpit = smtp, f'http://127.0.0.1:{page}', subprocess.Popen(
                 [str(binary), '--smtp', f'127.0.0.1:{smtp}', '--listen', f'127.0.0.1:{page}', '--quiet'],

@@ -8,8 +8,7 @@ import json
 from pathlib import Path
 
 from .. import sign_in
-from .live_app import close_app, shared_app
-from .runners import _keep, _live
+from .live_app import _keep, _live, close_app, shared_app
 from .stages import SkipStage
 
 CHOSEN_OUT = 'the person chose no sign-in: the pages behind it were seen signed out, as a visitor sees them'

@@ -213,7 +213,8 @@ def signing_in(args, lang):
         return guided.box(lang, words('sign_in_skipped', lang), commands=['eaos watch'])
     if not page.display():
         say(words('sign_in_open', lang))
-        page.serve_alone(project, lambda address: say(f'   {address}'))
+        from .api.server import serve_sign_in
+        serve_sign_in(project, lambda address: say(f'   {address}'))
         return guided.box(lang, words('sign_in_done' if page.status(project)['kept'] else 'sign_in_skipped', lang), commands=['eaos watch'])
     page.open_browser(project, headed=True)
     _codes(page.status(project)['codes'], lang)
