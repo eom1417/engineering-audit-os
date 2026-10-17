@@ -3,7 +3,6 @@ stream with its replay, the mount point of the action API, and `eaos studio` / `
 import hashlib
 import json
 import os
-import shutil
 import socket
 import subprocess
 import sys
@@ -652,8 +651,9 @@ class Remote(unittest.TestCase):
                     mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
                 self.assertEqual(neighbour.get('/live-token.js?n=1').status_code, 404,
                                  'another container on the same bridge, with the Remote name: not the gateway, no token')
-        table = Path(tempfile.mkdtemp()) / 'route'
-        self.addCleanup(shutil.rmtree, table.parent, True)
+        held = tempfile.TemporaryDirectory()
+        self.addCleanup(held.cleanup)
+        table = Path(held.name) / 'route'
         table.write_text('Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\n'
                          'eth0\t00000000\t01219A0A\t0003\t0\t0\t100\t00000000\n'
                          'eth0\t00219A0A\t00000000\t0001\t0\t0\t100\t00FFFFFF\n')
