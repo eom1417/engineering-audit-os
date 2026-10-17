@@ -67,7 +67,7 @@ function Pager({ list, doc }: { list: Doc[]; doc: Doc }) {
 function Reader({ data, doc, h }: { data: StudioData; doc: Doc; h?: string }) {
   const w = useLibraryWords()
   const navigate = useNavigate()
-  const library = useLazySection<LibraryData>(data, 'library')
+  const library = useLazySection<LibraryData>(data, 'library', doc.id)
   const { lang } = usePrefs()
   const docs = useMemo(() => docsIn(data, lang), [data, lang])
   const list = useMemo(() => readingList(docs), [docs])

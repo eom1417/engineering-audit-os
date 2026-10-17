@@ -1,4 +1,4 @@
-// Pieces every Change page shares: the section's own navigation (Overview, Bridge, Gaps, Plans), the "not measured yet"
+// Pieces every Fixes page shares: the section's own navigation (Fixes, Plans, Branches, Target, Bridge, Gaps), the "not measured yet"
 // state from the report's coverage row, the closure meter, the task-state bar and the links to a step, task or
 // operation.
 import type { ReactNode } from 'react'
@@ -16,9 +16,11 @@ import css from './change.module.css'
 
 const NAV = [
   { to: '/change', word: 'navOverview', match: (p: string) => p === '/change' || p === '/change/timeline' },
+  { to: '/plans', word: 'navPlans', match: (p: string) => /^\/(plans|tasks|ops)(\/|$)/.test(p) },
+  { to: '/branches', word: 'navBranches', match: (p: string) => p === '/branches' },
+  { to: '/change/ideal', word: 'navTarget', match: (p: string) => p === '/change/ideal' },
   { to: '/change/bridge', word: 'navBridge', match: (p: string) => p === '/change/bridge' },
   { to: '/change/gaps', word: 'navGaps', match: (p: string) => p.startsWith('/change/gaps') },
-  { to: '/plans', word: 'navPlans', match: (p: string) => /^\/(plans|tasks|ops)(\/|$)/.test(p) },
 ] as const
 
 /** Change's places as one row of links, the current one marked (C-experience 2.3: Bridge / Gaps / Plans). */

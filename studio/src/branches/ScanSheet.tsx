@@ -136,7 +136,7 @@ export function SelectError({ error }: { error: Refusal | null }) {
             {w('stopRun', { l: run.label[lang] })}
           </Button>
         ))}
-        <Go to="/runs" className={css.inlineLink}>{w('openRuns')}</Go>
+        <Go to="/checks" search={{ tab: 'runs' }} className={css.inlineLink}>{w('openRuns')}</Go>
       </div>}
     </div>
   )

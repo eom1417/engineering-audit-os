@@ -1,5 +1,5 @@
 // What a check looks at and how fast it runs, chosen before it starts (eaos/check_choices.py offered): the complete
-// check or some paths, each with what it looks at; the normal mode or the speed mode, whose warning says it uses more
+// check or some paths, each with what it looks at; with the AI or the rules alone; the normal mode or the speed mode, whose warning says it uses more
 // tokens. The paths and their words come from the preview, never written twice here.
 import { Segmented } from '../components/Controls'
 import type { CheckOffer } from '../data/actions/types'
@@ -9,7 +9,8 @@ import { SelectBox } from './SelectBox'
 import { useCmdWords } from './words'
 import css from './command.module.css'
 
-export interface CheckChoice { paths: string[]; mode: 'normal' | 'speed' }
+/** `ai` false: this one check with the rules alone (audit's without_ai); the assistant kept for the next ones. */
+export interface CheckChoice { paths: string[]; mode: 'normal' | 'speed'; ai?: boolean }
 
 const COMPLETE = 'complete'
 
@@ -20,8 +21,14 @@ export function toggled(paths: string[], id: string): string[] {
   return next.length ? next : [COMPLETE]
 }
 
-/** The check's inputs for the choice: no paths for the complete check. */
-export const checkInputs = (choice: CheckChoice) => ({ mode: choice.mode, ...(choice.paths.includes(COMPLETE) ? {} : { paths: choice.paths }) })
+/** The check's inputs for the choice: no paths for the complete check, and the AI left out only when turned off. */
+export const checkInputs = (choice: CheckChoice) => ({ mode: choice.mode, ...(choice.paths.includes(COMPLETE) ? {} : { paths: choice.paths }),
+  ...(choice.ai === false ? { without_ai: true } : {}) })
+
+/** A check pressed anywhere is a new check: without `fresh` EAOS answers "already checked" and nothing runs (the dead
+ * end of Home's next step, the palette and the chat). Only a check that goes on from a stage keeps the one on record. */
+export const freshOf = (request: { action?: string; inputs?: Record<string, unknown> } | null | undefined, values: Record<string, unknown>) =>
+  (request?.action === 'audit' && !values.again_from && !request.inputs?.again_from ? { fresh: true } : {})
 
 export function CheckOptions({ offer, choice, onChange }: { offer: CheckOffer; choice: CheckChoice; onChange: (next: CheckChoice) => void }) {
   const w = useCmdWords()
@@ -35,6 +42,9 @@ export function CheckOptions({ offer, choice, onChange }: { offer: CheckOffer; c
           <span>{path.name[lang]}<span className={css.hint}><Txt>{path.looks_at[lang]}</Txt></span></span>
         </div>
       ))}
+      <Segmented label={w('checkAi')} value={choice.ai === false ? 'off' : 'on'} onChange={(ai) => onChange({ ...choice, ai: ai === 'on' })}
+        options={[{ id: 'on', label: w('aiOn') }, { id: 'off', label: w('aiOff') }]} />
+      {choice.ai === false && <p className={css.hint} role="note" data-ai-off>{w('aiOffLead')}</p>}
       <Segmented label={w('checkMode')} value={choice.mode} onChange={(mode) => onChange({ ...choice, mode })}
         options={[{ id: 'normal', label: w('modeNormal') }, { id: 'speed', label: w('modeSpeed') }]} />
       {choice.mode === 'speed' && <p className={css.pvWarn} role="note" data-speed-warning>{w('speedWarning')}</p>}

@@ -52,3 +52,6 @@
 .decided { margin-block-start: 24px; }
 .decided > summary { cursor: pointer; padding-block: 10px; color: var(--text-secondary); font-weight: 600; }
 .decided > .cards { margin-block-start: 12px; }
+
+.fold { display: flex; flex-direction: column; gap: var(--section-gap); }
+.fold > summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; color: var(--text-secondary); font-weight: 500; }

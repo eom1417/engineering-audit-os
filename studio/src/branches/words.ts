@@ -161,7 +161,7 @@ export const BRANCH_WORDS = {
   no: ['لا', 'No'],
   legacyNotRecorded: ['غير مسجّل (تقرير قديم)', 'Not recorded (older report)'],
   moreFiles: ['و{n} ملف آخر', 'and {n} more files'],
-  rescanNow: ['أعد الفحص الآن', 'Re-scan now'],
+  rescanNow: ['افحص المشروع', 'Check the project'],
   rescanBranch: ['أعد فحص هذا الفرع ({b})', 'Re-scan this branch ({b})'],
   rescanSaved: ['حُفظ الطلب، ينتظر دوره', 'Saved, waiting its turn'],
   rescanRunning: ['يفحص الآن…', 'Scanning now…'],

@@ -36,13 +36,13 @@ const SPEEDS = [10, 30]
 const ANNOUNCE_MS = 3000
 
 /** Why the page cannot draw a flow yet: a snapshot, the first read, or no stages to draw; null when it can. */
-function blocked(mode: string, all: AllProgress | null, flow: string): 'snapshot' | 'loading' | 'none' | null {
+export function blocked(mode: string, all: AllProgress | null, flow: string): 'snapshot' | 'loading' | 'none' | null {
   if (mode !== 'live') return 'snapshot'
   if (!all) return 'loading'
   return all.flows[flow]?.stages.length ? null : 'none'
 }
 
-function Blocked({ why }: { why: 'snapshot' | 'loading' | 'none' }) {
+export function Blocked({ why }: { why: 'snapshot' | 'loading' | 'none' }) {
   const w = useScanWords()
   if (why === 'loading') return <div className={layout.page}><Head /><Panel><Skeleton label={w('loading')} /></Panel></div>
   if (why === 'snapshot') return <div className={layout.page}><Head lead={w('snapshotLead')} /><SnapshotPanel /></div>
@@ -65,10 +65,10 @@ export function LiveCheckPage() {
   const why = blocked(mode, all, flow)
   if (why || !all) return <Blocked why={why ?? 'loading'} />
   const show = (next: { flow?: string; stage?: string }) => void navigate({ to: '/scan', search: { flow: next.flow || flow, stage: next.stage }, replace: true })
-  return <Flow all={all} flow={flow} skew={skew} transport={transport} stage={search.stage || null} show={show} />
+  return <div className={[layout.page, css.page].join(' ')}><Head /><Flow all={all} flow={flow} skew={skew} transport={transport} stage={search.stage || null} show={show} /></div>
 }
 
-interface FlowProps { all: AllProgress; flow: string; skew: number; transport: Transport; stage: string | null; show: (next: { flow?: string; stage?: string }) => void }
+export interface FlowProps { all: AllProgress; flow: string; skew: number; transport: Transport; stage: string | null; show: (next: { flow?: string; stage?: string }) => void }
 
 /** From the press of Check until the check it asked for writes its first line: until then the page holds the last run. */
 export function starting(active: Run | null, progress: ScanProgress): boolean {
@@ -76,7 +76,8 @@ export function starting(active: Run | null, progress: ScanProgress): boolean {
   return !progress.started_at || Date.parse(active.started ?? active.created) > Date.parse(progress.started_at) + 1000
 }
 
-function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
+/** The chosen flow as it runs, or the record of its last run: the run line, the four steps, the map and its stages. */
+export function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
   const replay = useReplay(all.flows.check)
   const { active } = useActions()
   const live = all.flows[flow]
@@ -84,9 +85,9 @@ function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
   const view = shown ?? { id: 0, speed: undefined, progress: live, skew }
   const tools = flow === 'check' && live.run && live.state !== 'running' && !shown ? <ReplayTools start={replay.start} /> : null
   return (
-    <div className={[layout.page, css.page].join(' ')} data-run={view.progress.run} data-run-state={view.progress.state} data-flow={flow}
+    <div className={css.flow} data-run={view.progress.run} data-run-state={view.progress.state} data-flow={flow}
       data-transport={transport} data-replay={view.speed}>
-      <Head><RunLine progress={view.progress} skew={view.skew} journey={all.journey} /></Head>
+      <RunLine progress={view.progress} skew={view.skew} journey={all.journey} />
       <Journey steps={all.journey} flow={flow} onFlow={(next) => show({ flow: next })} />
       <Notes progress={view.progress} replay={shown} stop={replay.stop} starting={flow === 'check' && starting(active, live)} />
       {flow === 'check' && <ToolStrip all={all} />}
@@ -208,7 +209,8 @@ function Left({ estimate }: { estimate: Estimate }) {
   return <span className={css.runFact} title={w('leftWhy')}>{text}</span>
 }
 
-function RunLine({ progress, skew, journey }: { progress: ScanProgress; skew: number; journey: JourneyStep[] }) {
+/** The run in one line: the step and its state, where it is, how long it took or has run, and when it started. */
+export function RunLine({ progress, skew, journey }: { progress: ScanProgress; skew: number; journey: JourneyStep[] }) {
   const w = useScanWords()
   const { lang } = usePrefs()
   const state = progress.state

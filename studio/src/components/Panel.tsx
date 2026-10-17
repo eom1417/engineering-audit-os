@@ -1,4 +1,4 @@
-// Panels, section titles, link rows, folded lists, property lists, and the designed loading, empty and error states.
+// Panels, section titles, link rows, folded parts and lists, property lists, and the designed loading, empty and error states.
 import { useState, type ReactNode } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { usePrefs } from '../i18n/prefs'
@@ -56,6 +56,17 @@ export function RowButton({ onPress, pressed, hook, ...body }: RowBody & { onPre
 }
 
 /** The first `first` items, then "Show all N" (DESIGN.md: never a phone list longer than a screen by default). */
+/** A part closed until the person opens it, drawn only once open: the page stays light while it is folded. */
+export function Folded({ summary, className, children, startOpen = false }: { summary: ReactNode; className?: string; children: ReactNode; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen)
+  return (
+    <details className={className} open={startOpen || undefined} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>{summary}</summary>
+      {open && children}
+    </details>
+  )
+}
+
 export function FoldList<T>({ items, first = 6, render, label }: { items: T[]; first?: number; render: (item: T, index: number) => ReactNode; label?: string }) {
   const { t } = usePrefs()
   const [open, setOpen] = useState(false)

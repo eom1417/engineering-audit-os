@@ -1,6 +1,7 @@
-// Decisions: every question waiting for the person, one card each (Calm); the answered ones folded under one line.
-import { useState, type ReactNode } from 'react'
-import { Panel, StateMessage } from '../components/Panel'
+// Waiting for you (#/decisions, from the top bar): every question waiting for the person, one card each, the runs'
+// questions first; the branches waiting for approval as one line to Fixes; the answered ones folded under one line.
+import { Folded, Panel, RowLink, StateMessage } from '../components/Panel'
+import { useAwaitingApproval } from '../shell/waiting'
 import { DecisionCard } from '../components/Story'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -28,16 +29,11 @@ function RunQuestions() {
   )
 }
 
-/** The answered decisions, closed until the person opens them: they are a record, not a question. */
-function Decided({ count, children }: { count: number; children: ReactNode }) {
-  const { t } = usePrefs()
-  const [open, setOpen] = useState(false)
-  return (
-    <details className={css.decided} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary>{t('decidedAlready', { n: count })}</summary>
-      {open && <div className={css.cards}>{children}</div>}
-    </details>
-  )
+/** The branches waiting for approval live in Fixes, with their Accept and Undo: here, one line that leads there. */
+function ApprovalsLink() {
+  const w = useCmdWords()
+  const n = useAwaitingApproval().length
+  return n ? <Panel><RowLink to="/change" icon="branch" title={w('awaitingN', { n })} /></Panel> : null
 }
 
 function DecisionsBody({ data }: { data: StudioData }) {
@@ -55,12 +51,14 @@ function DecisionsBody({ data }: { data: StudioData }) {
   return (
     <div className={layout.page}>
       <MissingBanner data={data} />
-      <PageTitle title={t('waitingForYou')} />
+      <PageTitle title={t('waitingForYou')} lead={t('waitingLead')} />
+      <ApprovalsLink />
       {snapshot && waiting.length > 0 && <Panel><StateMessage icon="info" title={t('readOnlyAnswers')} /></Panel>}
       <RunQuestions />
       {waiting.length ? <div className={css.cards}>{waiting.map(card)}</div>
         : asked > 0 ? null : <Panel><StateMessage icon="inbox" title={t('nothingWaits')} sub={t('nothingWaitsSub')} /></Panel>}
-      {decided.length > 0 && <Decided count={decided.length}>{decided.map(card)}</Decided>}
+      {/* The answered ones: a record, not a question, so closed until the person opens them */}
+      {decided.length > 0 && <Folded className={css.decided} summary={t('decidedAlready', { n: decided.length })}><div className={css.cards}>{decided.map(card)}</div></Folded>}
     </div>
   )
 }

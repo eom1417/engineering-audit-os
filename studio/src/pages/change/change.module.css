@@ -147,3 +147,7 @@
   .stepRow { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .title { font-size: 24px; }
 }
+
+.approval { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-inline-end: 12px; border-block-end: 1px solid var(--border-subtle); }
+.approval > :first-child { flex: 1 1 320px; min-inline-size: 0; }
+.approvalTools { display: flex; gap: 8px; padding-block: 8px; }

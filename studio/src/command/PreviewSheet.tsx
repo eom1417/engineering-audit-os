@@ -17,7 +17,7 @@ import { ActionError, type Bi, type CheckOffer, type FixWhere, type JsonSchema, 
 import type { Severity } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
-import { CheckOptions, checkInputs, type CheckChoice } from './CheckOptions'
+import { CheckOptions, checkInputs, freshOf, type CheckChoice } from './CheckOptions'
 import { useCommand, type CommandRequest } from './command'
 import { SelectBox } from './SelectBox'
 import { useCmdWords } from './words'
@@ -431,7 +431,7 @@ function useStart(c: { request: CommandRequest | null | undefined; preview: Prev
       if (request.verb) command.clear()
       toast(run.state === 'queued' && run.position ? w('queuedToast', { label: run.label[lang] }) : w('started', { label: run.label[lang] }))
       void actions.refresh()
-      navigate(run.action === 'audit' ? { to: '/scan', search: { flow: 'check' } } : { to: `/runs/${encodeURIComponent(run.id)}` })
+      navigate(run.action === 'audit' ? { to: '/checks', search: { flow: 'check' } } : { to: `/runs/${encodeURIComponent(run.id)}` })
     } catch (error) {
       c.setBusy(false)
       if (error instanceof ActionError && error.needs === 'preview') { c.setMoved(true); c.setPlace((was) => ({ ...was })); return }
@@ -522,7 +522,7 @@ export function PreviewSheet() {
   }, [request, action, fields, needsForm])
 
   const inputsOf = (): Inputs | null => {
-    try { return { ...parse(fields, values), ...(check ? checkInputs(check) : {}) } } catch { setProblem('JSON'); return null }
+    try { return { ...parse(fields, values), ...(check ? checkInputs(check) : {}), ...freshOf(request, values) } } catch { setProblem('JSON'); return null }
   }
   // what a check offers stays while its preview is asked again; the kept mode is the first choice, never the person's
   useEffect(() => {

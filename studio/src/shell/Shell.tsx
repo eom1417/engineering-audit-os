@@ -5,17 +5,13 @@ import { Outlet, useRouterState } from '@tanstack/react-router'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from '../components/Button'
-import buttonCss from '../components/Button.module.css'
 import { Badge, FreshnessChip } from '../components/Chip'
-import { Segmented } from '../components/Controls'
 import { Go } from '../components/Go'
 import { Icon } from '../components/Icon'
-import { Props } from '../components/Panel'
 import { Sheet, SheetSub } from '../components/Sheet'
 import { BranchLiveProvider, useFreshView } from '../branches/live'
 import { ScanSheet } from '../branches/ScanSheet'
 import { BranchChip, BranchSwitcher } from '../branches/Switcher'
-import { useBranchWords } from '../branches/words'
 import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { ChatDock } from '../chat/ChatDock'
@@ -23,15 +19,17 @@ import { useActions } from '../data/actions/store'
 import { TERMINAL } from '../data/actions/types'
 import { counts, useLoaded, useSections, useStudio, type Counts } from '../data/context'
 import { COUNT_NEEDS } from '../data/stages'
-import { deviceZone, usePrefs } from '../i18n/prefs'
-import { Id, N, When } from '../i18n/text'
+import { usePrefs } from '../i18n/prefs'
+import { Id, N } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
+import { LanguageAndTheme, ProjectFacts, TimeZoneSetting } from './Settings'
 import { ScanBanner } from './ScanBanner'
-import { useWaitingDecisions } from './waiting'
+import { useAwaitingApproval, useWaitingDecisions } from './waiting'
 import { SECTIONS, sectionOf, tabOf, type SectionDef } from './sections'
 import css from './Shell.module.css'
-import { SystemViews } from '../pages/system/SystemViews'
+import { SYSTEM_VIEWS, SystemViews } from '../pages/system/SystemViews'
+import { useJourneyWords } from '../pages/system/words'
 
 // The palette is its own chunk (shell/later.ts): read once the report is drawn, drawn from its first opening
 const loadPalette = () => import('./Palette')
@@ -49,41 +47,71 @@ function useLiveCounts(): Record<string, number> {
   return { decisions: questions.length, runs: runs.filter((run) => !TERMINAL.includes(run.state)).length }
 }
 
-function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {
-  const { t, lang, theme, setLang, setTheme } = usePrefs()
+/** Everything that waits for the person, in one count: the report's questions, the runs' questions and the branches
+ * waiting for their approval. */
+function useWaitingCount(): number {
+  const c = useCounts()
+  const pending = useStudio()?.pending ?? []
+  const live = useLiveCounts()
+  const approvals = useAwaitingApproval().length
+  return (c && !pending.includes('decisions') ? c.decisionsWaiting : 0) + (live.decisions ?? 0) + approvals
+}
+
+/** The top bar's way to what waits for the person, with its count: one click from anywhere, on the phone too. */
+function WaitingButton({ current }: { current?: SectionDef }) {
+  const { t } = usePrefs()
+  const n = useWaitingCount()
   return (
-    <>
-      <Segmented label={t('language')} value={lang} onChange={setLang} comfortable={comfortable}
-        options={[{ id: 'ar', label: lang === 'en' ? 'Arabic' : 'عربي', lang: 'ar' }, { id: 'en', label: 'English', lang: 'en' }]} />
-      <Segmented label={t('appearance')} value={theme} onChange={setTheme} comfortable={comfortable}
-        options={[
-          { id: 'light', label: comfortable ? <><Icon name="sun" />{t('light')}</> : <Icon name="sun" />, aria: comfortable ? undefined : t('light') },
-          { id: 'dark', label: comfortable ? <><Icon name="moon" />{t('dark')}</> : <Icon name="moon" />, aria: comfortable ? undefined : t('dark') },
-        ]} />
-    </>
+    <Go to="/decisions" className={css.waiting} current={current?.id === 'decisions'} label={n ? `${t('waitingForYou')} (${n})` : t('waitingForYou')}>
+      <Icon name="inbox" /><span className={css.waitingWord}>{t('waitingForYou')}</span>{n > 0 && <Badge count={n} />}
+    </Go>
   )
 }
 
-function Sidebar({ project, current, onPalette, onProject }: { project: string; current?: SectionDef; onPalette: () => void; onProject: () => void }) {
+/** System and its maps: the maps stay folded until the person opens them or is on one of them, by category. */
+function SystemNav({ section, view, item }: { section: SectionDef; view: string | null; item: (s: SectionDef) => React.ReactNode }) {
+  const { t } = usePrefs()
+  const w = useJourneyWords()
+  const inside = view !== null
+  const [open, setOpen] = useState(inside)
+  useEffect(() => { if (inside) setOpen(true) }, [inside])
+  const categories = [...new Set(SYSTEM_VIEWS.map((v) => v.category))].map((category) => SYSTEM_VIEWS.filter((v) => v.category === category))
+  return (
+    <div className={css.navFold}>
+      <div className={css.navFoldHead}>
+        {item(section)}
+        <AriaButton className={css.navFoldToggle} onPress={() => setOpen(!open)} aria-expanded={open} aria-controls="nav-system"
+          aria-label={t(open ? 'foldSystem' : 'unfoldSystem')}><Icon name={open ? 'chevronUp' : 'chevronDown'} /></AriaButton>
+      </div>
+      {open && <div id="nav-system" className={css.navSub}>
+        {categories.map((views) => (
+          <div key={views[0].category} className={css.navSubGroup}>
+            {views.length > 1 && <div className={css.navSubTitle}>{t(views[0].category)}</div>}
+            {views.map((v) => <Go key={v.id} to={v.to} search={v.search} className={css.navSubItem} current={view === v.id}>{w(v.word)}</Go>)}
+          </div>
+        ))}
+      </div>}
+    </div>
+  )
+}
+
+function Sidebar({ project, current, view, onPalette, onProject }:
+  { project: string; current?: SectionDef; view: string | null; onPalette: () => void; onProject: () => void }) {
   const { t } = usePrefs()
   const c = useCounts()
   const data = useStudio()
   const live = useLiveCounts()
   const pending = data?.pending ?? []
   const item = (s: SectionDef) => (
-    <Go key={s.id} to={s.to} className={css.navItem} current={current?.id === s.id} label={t(s.nav)}>
+    <Go key={s.id} to={s.to} className={css.navItem} current={current?.id === s.id && (s.id !== 'system' || view === 'map')} label={t(s.nav)}>
       <Icon name={s.icon} />
       <span className={css.navLabel}>{t(s.nav)}</span>
       {c && s.count && !(s.countFrom && pending.includes(s.countFrom)) && <N value={s.count(c) + (live[s.id] ?? 0)} className={css.navCount} />}
       {!s.count && live[s.id] ? <N value={live[s.id]} className={css.navCount} /> : null}
     </Go>
   )
-  const groups: SectionDef[][] = []
-  for (const s of SECTIONS) {
-    const last = groups[groups.length - 1]
-    if (last && s.group && last[0].group === s.group) last.push(s)
-    else groups.push([s])
-  }
+  const main = SECTIONS.filter((s) => !s.group && !s.topbar)
+  const footer = SECTIONS.filter((s) => s.group)
   return (
     <aside className={css.sidebar} aria-label={t('navigation')}>
       <AriaButton className={css.proj} onPress={onProject} data-open="project" aria-label={`${project}: ${t('projectAndDisplay')}`}>
@@ -95,12 +123,11 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
         <Icon name="search" /><span>{t('searchCommands')}</span><kbd>⌘K</kbd>
       </AriaButton>
       <nav className={css.nav} aria-label={t('navigation')}>
-        {groups.map((group, i) => group[0].group ? (
-          <div key={i} className={css.navGroup}>
-            <div className={css.navGroupTitle}>{t(group[0].group)}</div>
-            {group.map(item)}
-          </div>
-        ) : group.map(item))}
+        {main.map((s) => s.id === 'system' ? <SystemNav key={s.id} section={s} view={view} item={item} /> : item(s))}
+        <div className={css.navGroup}>
+          <div className={css.navGroupTitle}>{t('groupFooter')}</div>
+          {footer.map(item)}
+        </div>
       </nav>
       <div className={css.sideFoot}>
         <LanguageAndTheme />
@@ -112,24 +139,51 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
   )
 }
 
-function TabBar({ current }: { current?: SectionDef }) {
+/** Four sections and More: More opens the sheet with System's maps, the footer's places and the display. */
+/** Four sections and More: More opens the sheet with System's maps, the footer's places and the display. */
+function TabBar({ current, onMore }: { current?: SectionDef; onMore: () => void }) {
   const { t } = usePrefs()
-  const c = useCounts()
-  const live = useLiveCounts()
-  const pending = useStudio()?.pending ?? []
   const tab = tabOf(current)
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
-      {SECTIONS.filter((s) => s.tabbar).map((s) => {
-        const badge = (c && s.badge && !(s.countFrom && pending.includes(s.countFrom)) ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
-        return (
-          <Go key={s.id} to={s.to} className={css.tab} current={tab?.id === s.id}>
-            <span className={css.tabIcon}><Icon name={s.icon} size={22} />{badge > 0 && <span className={css.tabBadge}><Badge count={badge} /></span>}</span>
-            <span className={css.tabLabel}>{t(s.tab)}{badge > 0 && <span className="sr"> ({badge})</span>}</span>
-          </Go>
-        )
-      })}
+      {SECTIONS.filter((s) => s.tabbar).map((s) => (
+        <Go key={s.id} to={s.to} className={css.tab} current={tab?.id === s.id}>
+          <span className={css.tabIcon}><Icon name={s.icon} size={22} /></span>
+          <span className={css.tabLabel}>{t(s.tab)}</span>
+        </Go>
+      ))}
+      <AriaButton className={css.tab} onPress={onMore} data-current={current && !tab && !current.topbar ? '' : undefined} data-open="more">
+        <span className={css.tabIcon}><Icon name="more" size={22} /></span>
+        <span className={css.tabLabel}>{t('more')}</span>
+      </AriaButton>
     </nav>
+  )
+}
+
+/** The phone's More: System's maps by category, then the footer's places, then the project and its display. */
+function MoreSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOpenChange: (open: boolean) => void; project: string }) {
+  const { t } = usePrefs()
+  const w = useJourneyWords()
+  const close = () => onOpenChange(false)
+  const categories = [...new Set(SYSTEM_VIEWS.map((v) => v.category))].map((category) => SYSTEM_VIEWS.filter((v) => v.category === category))
+  return (
+    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('more')}>
+      <SheetSub>{t('system')}</SheetSub>
+      {categories.map((views) => (
+        <div key={views[0].category} className={css.moreGroup} onClick={close}>
+          {views.length > 1 && <div className={css.navSubTitle}>{t(views[0].category)}</div>}
+          {views.map((v) => <Go key={v.id} to={v.to} search={v.search} className={css.moreItem}>{w(v.word)}</Go>)}
+        </div>
+      ))}
+      <SheetSub>{t('groupFooter')}</SheetSub>
+      <div className={css.moreGroup} onClick={close}>
+        {SECTIONS.filter((s) => s.group).map((s) => <Go key={s.id} to={s.to} className={css.moreItem}><Icon name={s.icon} />{t(s.nav)}</Go>)}
+      </div>
+      <SheetSub>{project}</SheetSub>
+      <ProjectFacts />
+      <div className={css.rowSet}><LanguageAndTheme comfortable /></div>
+      <TimeZoneSetting />
+    </Sheet>
   )
 }
 
@@ -159,6 +213,7 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
         <div className={css.deskEnd}>
           <BranchChip onPress={onBranches} />
           <Freshness onScan={onScan} />
+          <WaitingButton current={current} />
           <AriaButton className={css.cmdk} onPress={onPalette} aria-label={t('searchEverything')} data-truncate>
             <Icon name="search" /><span>{t('searchEverything')}</span><kbd>⌘K</kbd>
           </AriaButton>
@@ -169,30 +224,11 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
           ? <Go to={back.to} search={back.search} className={css.back}><Icon name="back" size={20} /><span>{back.label}</span></Go>
           : <span className={css.phoneChips}><BranchChip onPress={onBranches} /><Freshness onScan={onScan} /></span>}
         <span className={css.phoneSpacer} />
-        <Go to="/scan" className={[buttonCss.iconBtn, css.liveLink].join(' ')} label={t('liveCheck')} current={current?.id === 'scan'}><Icon name="live" /></Go>
+        <WaitingButton current={current} />
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
         <IconButton icon="more" label={t('projectAndDisplay')} onPress={onProject} data-open="project" />
       </div>
     </header>
-  )
-}
-
-/** Settings: the time zone every time is shown in; the device's unless the person chooses one, and remembered. */
-function TimeZoneSetting() {
-  const { zone, zoneChoice, setZone } = usePrefs()
-  const w = useBranchWords()
-  const device = deviceZone()
-  const zones = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ?? []
-  const options = [...new Set([...(zoneChoice ? [zoneChoice] : []), 'UTC', ...zones])]
-  return (
-    <label className={css.zone}>
-      <span>{w('timeZone')}</span>
-      <select value={zoneChoice ?? ''} onChange={(event) => setZone(event.target.value || null)} data-zone={zone}>
-        <option value="">{w('timeZoneDevice', { z: device })}</option>
-        {options.map((name) => <option key={name} value={name}>{name}</option>)}
-      </select>
-      <small>{w('timeZoneLead')}</small>
-    </label>
   )
 }
 
@@ -206,24 +242,6 @@ function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOp
       <TimeZoneSetting />
     </Sheet>
   )
-}
-
-/** The project's facts, drawn only while its sheet is open (a closed sheet renders nothing of its body). */
-function ProjectFacts() {
-  const { t } = usePrefs()
-  const data = useStudio()
-  const rows: [React.ReactNode, React.ReactNode, boolean?][] = []
-  if (data?.meta) {
-    rows.push([t('files'), data.meta.files.value === null ? t('notMeasured') : <N value={data.meta.files.value} />, data.meta.files.value === null])
-    rows.push([t('lines'), data.meta.lines.value === null ? t('notMeasured') : <N value={data.meta.lines.value} />, data.meta.lines.value === null])
-    rows.push([t('languages'), <bdi dir="ltr">{data.meta.languages.map((l) => `${l.name} ${Math.round(l.share * 100)}%`).join(', ')}</bdi>])
-  }
-  if (data) {
-    rows.push([t('scanned'), data.manifest.scanned.at ? <When iso={data.manifest.scanned.at} /> : t('notRecorded'), !data.manifest.scanned.at])
-    rows.push([t('branch'), data.manifest.scanned.branch ? <Id value={data.manifest.scanned.branch} /> : t('notRecorded'), !data.manifest.scanned.branch])
-    rows.push([t('eaosVersion'), <Id value={data.manifest.built.version} />])
-  }
-  return rows.length > 0 ? <Props rows={rows} /> : null
 }
 
 declare global { interface Window { EAOS_REPORTS?: { name: string; href: string }[] } }
@@ -252,6 +270,7 @@ export function Shell() {
   const systemView = pathname === '/system' ? (lens === 'infra' ? 'infra' : 'map') : pathname.startsWith('/screens') ? 'screens' : pathname.startsWith('/flows') ? 'paths' : pathname.startsWith('/system/f/') ? 'functions' : pathname.split('/')[2] ?? 'map'
   const current = pathname.startsWith('/_') ? undefined : sectionOf(pathname)
   const [palette, setPalette] = useState(false)
+  const [moreSheet, setMoreSheet] = useState(false)
   const [projectSheet, setProjectSheet] = useState(false)
   const [scanSheet, setScanSheet] = useState(false)
   const [branchSheet, setBranchSheet] = useState(false)
@@ -277,7 +296,7 @@ export function Shell() {
     <BranchLiveProvider>
       <a className={css.skip} href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus() }}>{t('skip')}</a>
       <div className={css.shell}>
-        <Sidebar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} />
+        <Sidebar project={project} current={current} view={systemWorkspace ? systemView : null} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} />
         <div className={css.frame}>
           <TopBar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)}
             onScan={() => setScanSheet(true)} onBranches={() => setBranchSheet(true)} />
@@ -290,7 +309,8 @@ export function Shell() {
           </main>
         </div>
       </div>
-      <TabBar current={current} />
+      <TabBar current={current} onMore={() => setMoreSheet(true)} />
+      <MoreSheet isOpen={moreSheet} onOpenChange={setMoreSheet} project={project} />
       {paletteOpened && <Suspense fallback={null}><Palette isOpen={palette} onOpenChange={setPalette} /></Suspense>}
       <ProjectSheet isOpen={projectSheet} onOpenChange={setProjectSheet} project={project} />
       <ScanSheet isOpen={scanSheet} onOpenChange={setScanSheet} />

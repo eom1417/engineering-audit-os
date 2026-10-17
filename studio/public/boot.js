@@ -52,7 +52,7 @@
 (function () {
   var shell = ['meta', 'head', 'health', 'decisions', 'docs'];
   var FIRST = {
-    '/': shell.concat(['system']),
+    '/': shell,
     '/problems': shell.concat(['cards', 'story', 'system', 'plans']),
     '/problems?card': shell.concat(['cards', 'story', 'system', 'plans', 'evidence', 'hidden'])
   };

@@ -6,7 +6,9 @@ import type { OpState } from '../../data/change'
 
 export const CHANGE_WORDS = {
   changeNav: ['أقسام التغيير', 'Change sections'],
-  navOverview: ['نظرة عامة', 'Overview'],
+  navOverview: ['الإصلاحات', 'Fixes'],
+  navBranches: ['الفروع', 'Branches'],
+  navTarget: ['الهدف', 'Target'],
   navBridge: ['الجسر', 'Bridge'],
   navGaps: ['الفجوات', 'Gaps'],
   navPlans: ['الخطط', 'Plans'],

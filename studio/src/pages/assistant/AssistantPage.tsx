@@ -111,7 +111,8 @@ function Measures({ report }: { report: UsageReport }) {
   )
 }
 
-function Body() {
+/** The assistants on this computer and what they cost: the Assistant page's body, and a part of Settings. */
+export function AssistantBody() {
   const w = useWords()
   const { lang } = usePrefs()
   const { client } = useActions()
@@ -159,7 +160,7 @@ export function AssistantPage() {
   return (
     <div className={layout.page}>
       <PageTitle title={w('title')} lead={w('lead')} />
-      <Body />
+      <AssistantBody />
     </div>
   )
 }

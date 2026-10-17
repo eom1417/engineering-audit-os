@@ -12,7 +12,8 @@ import { useSections, useStudio } from '../data/context'
 import { WORDS } from '../i18n/catalog'
 import { usePrefs } from '../i18n/prefs'
 import { Id, Txt } from '../i18n/text'
-import { DATA_WORDS } from '../pages/data/words'
+import { SYSTEM_VIEWS } from '../pages/system/SystemViews'
+import { JOURNEY_WORDS } from '../pages/system/words'
 import { buildIndex, type Entry, type EntryKind } from '../search'
 import { SECTIONS } from './sections'
 import css from './Palette.module.css'
@@ -38,12 +39,12 @@ export function useEntries(): Entry[] {
     const entries: Entry[] = SECTIONS.map((s) => ({
       id: `page:${s.id}`, kind: 'page', title: WORDS[s.nav][index], keywords: [...WORDS[s.nav], ...WORDS[s.tab]].join(' '), to: s.to,
     }))
+    // the System section's maps, folded under it in the sidebar
+    for (const v of SYSTEM_VIEWS) entries.push({ id: `page:${v.id}`, kind: 'page', title: JOURNEY_WORDS[v.word][index], keywords: JOURNEY_WORDS[v.word].join(' '),
+      to: v.search ? `${v.to}?${new URLSearchParams(v.search)}` : v.to })
     if (selected) for (const verb of VERBS) entries.push({ id: `verb:${verb.id}`, kind: 'action', title: `${verb.label[lang]} (${selected})`, keywords: `${verb.label.en} ${verb.label.ar} ${verb.id}`, to: `verb:${verb.id}` })
     for (const action of ACTIONS) entries.push({ id: `action:${action.id}`, kind: 'action', title: action.label[lang], keywords: [action.label.en, action.label.ar, action.id, action.description[lang]].join(' '), to: `action:${action.id}` })
     if (!data) return entries
-    // the System section's own maps, beside the territory
-    if (data.data_paths) entries.push({ id: 'page:data', kind: 'page', title: DATA_WORDS.dataTitle[index], keywords: DATA_WORDS.dataTitle.join(' '), to: '/system/data' })
-    if (data.infra) entries.push({ id: 'page:infra', kind: 'page', title: DATA_WORDS.infraTitle[index], keywords: DATA_WORDS.infraTitle.join(' '), to: '/system?lens=infra' })
     for (const s of data.data_paths?.stores ?? []) entries.push({ id: `component:${s.id}`, kind: 'component', title: s.name, to: `/system/data?store=${encodeURIComponent(s.id)}` })
     for (const c of data.story?.current.components ?? []) entries.push({ id: `component:${c.name}`, kind: 'component', title: c.name, to: `/system?focus=${encodeURIComponent(c.name)}` })
     for (const d of data.decisions?.decisions ?? []) entries.push({ id: `decision:${d.id}`, kind: 'decision', title: d.question, keywords: d.recommendation, to: '/decisions' })

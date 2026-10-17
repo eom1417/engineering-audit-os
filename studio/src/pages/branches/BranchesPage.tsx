@@ -17,6 +17,7 @@ import { Id, When } from '../../i18n/text'
 import { shownBranches, type Show } from '../../branches/model'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, PageTitle } from '../../shell/Layout'
+import { ChangeNav } from '../change/parts'
 import { useBranchLive } from '../../branches/live'
 import { ContextRows } from '../../branches/Switcher'
 import { RescanStatus } from '../../branches/ScanSheet'
@@ -225,6 +226,7 @@ export function BranchesPage() {
   usePageChrome(w('branches'), undefined, data?.manifest.project.name)
   return (
     <div className={[layout.page, css.tall].join(' ')} data-page="branches">
+      <ChangeNav />
       <PageTitle title={w('branches')} lead={w('branchesLead')} />
       {live.api ? <LiveBranches /> : actions.mode === 'live' ? <Panel><p className={css.muted}>…</p></Panel> : <SnapshotBranches />}
     </div>

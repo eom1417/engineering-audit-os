@@ -5,6 +5,7 @@
    failure's pulse, an absent stage's fade and the bars move, and nothing moves with reduced motion. */
 
 .page { gap: 16px; }
+.flow { display: flex; flex-direction: column; gap: 16px; }
 .head { display: flex; flex-direction: column; gap: 6px; }
 .title { font-size: var(--text-large-title); font-weight: 600; line-height: var(--leading-tight); }
 .lead { color: var(--text-secondary); max-inline-size: 75ch; }
@@ -193,3 +194,8 @@
 @media (prefers-reduced-motion: reduce) {
   .journey_running .journeyMark, .barFill, .chip { animation: none; transition: none; }
 }
+
+.lastRun > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; min-block-size: 44px; }
+.lastRun > summary::-webkit-details-marker { display: none; }
+.lastRun[open] > summary { margin-block-end: 16px; }
+.lastRunOpen { color: var(--accent-text); font-size: 13px; white-space: nowrap; }
