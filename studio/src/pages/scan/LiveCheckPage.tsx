@@ -209,7 +209,8 @@ function Left({ estimate }: { estimate: Estimate }) {
   return <span className={css.runFact} title={w('leftWhy')}>{text}</span>
 }
 
-function RunLine({ progress, skew, journey }: { progress: ScanProgress; skew: number; journey: JourneyStep[] }) {
+/** The run in one line: the step and its state, where it is, how long it took or has run, and when it started. */
+export function RunLine({ progress, skew, journey }: { progress: ScanProgress; skew: number; journey: JourneyStep[] }) {
   const w = useScanWords()
   const { lang } = usePrefs()
   const state = progress.state

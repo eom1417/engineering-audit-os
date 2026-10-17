@@ -115,6 +115,7 @@ export const SCAN_WORDS = {
   startLead: ['يقرأ EAOS مشروعك كله ويطلّع مشاكله مرتّبة. تختار في الخطوة الجاية وش تفحص وبأي سرعة.', 'EAOS reads your whole project and lists its problems in order. Next you choose what to check and how fast.'],
   checksLead: ['هنا تبدأ الفحص، وتتابعه وهو شغّال، وترجع لأي فحص قبله.', 'Start a check here, follow it while it runs, and go back to any check before it.'],
   tabNow: ['الآن', 'Now'],
+  lastRunOpen: ['اعرض تفاصيله', 'Show its details'],
   tabChecks: ['الفحوصات السابقة', 'Past checks'],
   tabRuns: ['كل التشغيلات', 'All runs'],
   toolsLocked: ['ينفتح بنفسه حين تجهز أدوات الفحص ({n} باقية)', 'Unlocks by itself when the checking tools are ready ({n} to go)'],

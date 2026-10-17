@@ -16,10 +16,9 @@ import { Sheet } from '../../components/Sheet'
 import { TokenImage } from '../../components/TokenImage'
 import type { StudioData } from '../../data/types'
 import { usePrefs } from '../../i18n/prefs'
-import { Id, N, Txt } from '../../i18n/text'
+import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, NotHere, WithData } from '../../shell/Layout'
-import type { FunctionsData } from '../functions/model'
 import { useCoverageRow, useLazySection } from '../library/model'
 import { usePhone } from '../SystemMap'
 import { SystemViews } from '../system/SystemViews'
@@ -439,7 +438,6 @@ function IssueList({ screen, numbered, picked }: { screen: Screen; numbered: (Is
 function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id: string }) {
   const w = useScreenWords()
   const { lang } = usePrefs()
-  const fx = useLazySection<FunctionsData>(data, 'functions')
   const screen = sx.screens.find((s) => s.id === id)
   if (!screen) {
     return (
@@ -448,7 +446,6 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
       </div>
     )
   }
-  const inFile = fx.kind === 'ready' && screen.file ? fx.data.functions.filter((f) => f.module === screen.file).length : 0
   const issuesChecked = measured(sx, 'issues')
   return (
     <div className={layout.page}>
@@ -461,7 +458,8 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
       </div>
       <div className={css.links}>
         <Go to="/system/journeys" search={{ focus: screen.id }} className={css.inlineLink}>{w('inJourneys')}</Go>
-        {inFile > 0 && screen.file && <Go to="/system/functions" search={{ module: screen.file }} className={css.inlineLink}><span>{w('fileFunctions')} (<N value={inFile} />)</span></Go>}
+        {/* the file's functions open on their page: counting them here would read the whole functions section */}
+        {screen.file && <Go to="/system/functions" search={{ module: screen.file }} className={css.inlineLink}>{w('fileFunctions')}</Go>}
       </div>
       {screen.shots.length ? <Viewer key={screen.id} screen={screen} /> : (
         <>

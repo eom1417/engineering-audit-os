@@ -1,10 +1,11 @@
 // Checks (#/checks): the one place of a check. "Now" starts one (the tools it needs first, then one button that opens
-// the check's preview) and, once it runs, follows it live on the same page; "Past checks" is every check on record and
+// the check's preview), with the last run folded to one line under it, and once one runs, follows it live on the same
+// page; "Past checks" is every check on record and
 // how the project went; "All runs" is every run, check or fix, with the queue. The old addresses (#/scan, #/tools,
 // #/runs, #/history) lead here (router.tsx).
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Segmented } from '../../components/Controls'
-import { Panel, Skeleton } from '../../components/Panel'
+import { Folded, Panel, Skeleton } from '../../components/Panel'
 import { useActions } from '../../data/actions/store'
 import { useLive } from '../../data/context'
 import { runningFlow, useScan } from '../../data/ScanProvider'
@@ -13,7 +14,7 @@ import { usePageChrome } from '../../shell/chrome'
 import { layout, PageTitle, WithData } from '../../shell/Layout'
 import { HistoryContent } from '../history/HistoryPage'
 import { RunsBody, SnapshotPanel } from '../runs/RunsPage'
-import { blocked, Flow, starting } from '../scan/LiveCheckPage'
+import { blocked, Flow, RunLine, starting } from '../scan/LiveCheckPage'
 import { StartCheck } from '../scan/ToolsPage'
 import { useScanWords } from '../scan/words'
 import css from '../scan/scan.module.css'
@@ -52,10 +53,14 @@ function Now({ search }: { search: ChecksSearch }) {
   if (why === 'loading' || !all) return <Panel><Skeleton label={w('loading')} /></Panel>
   const busy = runningFlow(all) !== null || (all.flows.check ? starting(active, all.flows.check) : false)
   const show = (next: { flow?: string; stage?: string }) => void navigate({ to: '/checks', search: { flow: next.flow || flow, stage: next.stage }, replace: true })
+  const flowView = why === null ? <Flow all={all} flow={flow} skew={skew} transport={transport} stage={search.stage || null} show={show} /> : null
+  if (busy) return flowView
+  // Idle: the start first, the last run in one line under it, opened on demand (or when a link names a flow or stage)
   return (
     <>
-      {!busy && <StartCheck all={all} />}
-      {why === null && <Flow all={all} flow={flow} skew={skew} transport={transport} stage={search.stage || null} show={show} />}
+      <StartCheck all={all} />
+      {flowView && <Folded className={css.lastRun} startOpen={Boolean(search.flow || search.stage)}
+        summary={<><RunLine progress={all.flows[flow]} skew={skew} journey={all.journey} /><span className={css.lastRunOpen}>{w('lastRunOpen')}</span></>}>{flowView}</Folded>}
     </>
   )
 }

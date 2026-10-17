@@ -57,10 +57,10 @@ export function RowButton({ onPress, pressed, hook, ...body }: RowBody & { onPre
 
 /** The first `first` items, then "Show all N" (DESIGN.md: never a phone list longer than a screen by default). */
 /** A part closed until the person opens it, drawn only once open: the page stays light while it is folded. */
-export function Folded({ summary, className, children }: { summary: ReactNode; className?: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false)
+export function Folded({ summary, className, children, startOpen = false }: { summary: ReactNode; className?: string; children: ReactNode; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen)
   return (
-    <details className={className} onToggle={(e) => setOpen(e.currentTarget.open)}>
+    <details className={className} open={startOpen || undefined} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>{summary}</summary>
       {open && children}
     </details>

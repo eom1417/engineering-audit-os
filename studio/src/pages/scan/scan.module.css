@@ -194,3 +194,8 @@
 @media (prefers-reduced-motion: reduce) {
   .journey_running .journeyMark, .barFill, .chip { animation: none; transition: none; }
 }
+
+.lastRun > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; min-block-size: 44px; }
+.lastRun > summary::-webkit-details-marker { display: none; }
+.lastRun[open] > summary { margin-block-end: 16px; }
+.lastRunOpen { color: var(--accent-text); font-size: 13px; white-space: nowrap; }
