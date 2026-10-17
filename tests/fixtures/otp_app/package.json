@@ -1,0 +1,8 @@
+{
+  "name": "otp-app",
+  "private": true,
+  "description": "A tiny app behind a sign-in with a one-time code: printed by the app, and e-mailed when it has a mail server",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

@@ -49,14 +49,15 @@ function useLiveCounts(): Record<string, number> {
   return { decisions: questions.length, runs: runs.filter((run) => !TERMINAL.includes(run.state)).length }
 }
 
-/** Everything that waits for the person, in one count: the report's questions, the runs' questions and the branches
- * waiting for their approval. */
+/** Everything that waits for the person, in one count: the report's questions, the runs' questions, the branches
+ * waiting for their approval and the sign-in a check waits for. */
 function useWaitingCount(): number {
   const c = useCounts()
   const pending = useStudio()?.pending ?? []
   const live = useLiveCounts()
   const approvals = useAwaitingApproval().length
-  return (c && !pending.includes('decisions') ? c.decisionsWaiting : 0) + (live.decisions ?? 0) + approvals
+  const signIn = useActions().signIn?.asked ? 1 : 0
+  return (c && !pending.includes('decisions') ? c.decisionsWaiting : 0) + (live.decisions ?? 0) + approvals + signIn
 }
 
 /** The top bar's way to what waits for the person, with its count: one click from anywhere, on the phone too. */

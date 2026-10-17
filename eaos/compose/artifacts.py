@@ -138,6 +138,9 @@ ARTIFACTS = (
     Artifact('transform-plan.json', 'transform', RECORD, 'Every transform stage in full'),
     Artifact('verification.json', 'verify', RECORD, "What the project's own tests reached when they ran, or which test imports which file",
              required=False, absent_when='the person did not agree to run the app, or its run profile names no test command'),
+    Artifact('live/sign-in.json', 'session', RECORD, "Whether the app's pages need a sign-in, its evidence, and how they were opened; "
+             'never the session itself', required=False,
+             absent_when='the app is not running in an isolated copy, the person chose no sign-in, or nobody signed in within the wait'),
     Artifact('live/journeys.json', 'journeys', RECORD, "Each feature's pages walked, with where a journey fails; its capped rrweb recordings "
              'and failure traces under live/journeys/', required=False,
              absent_when='the app is not running in an isolated copy, or the lock has no page'),

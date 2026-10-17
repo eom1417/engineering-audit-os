@@ -527,7 +527,8 @@ export function PreviewSheet() {
   // what a check offers stays while its preview is asked again; the kept mode is the first choice, never the person's
   useEffect(() => {
     if (!preview?.check || offer) return
-    setOffer(preview.check); setCheck({ paths: ['complete'], mode: preview.check.mode })
+    // an app whose code shows a sign-in: the way kept, else the person signing in (what the chip shows first)
+    setOffer(preview.check); setCheck({ paths: ['complete'], mode: preview.check.mode, signIn: preview.check.sign_in ?? (preview.check.sign_in_seen.length ? 'hand' : undefined) })
   }, [preview, offer])
   usePreview({ request, asked, inputsOf, a, autoAccept, setPreview, setProblem })
   const start = useStart({ request, preview, inputsOf, a, setBusy, setMoved, setPlace, setProblem })

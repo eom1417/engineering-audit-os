@@ -1,21 +1,36 @@
 """One app, database and sign-in for a check's page stages; owned by the check, never by a page stage."""
 from pathlib import Path
 
-PAGE_STAGES = frozenset(('journeys', 'crawl', 'screens'))
+from .stages import SkipStage
+
+NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
+          'the check reads the code alone')
+
+PAGE_STAGES = frozenset(('session', 'journeys', 'crawl', 'screens'))
 
 
-def shared_app(context):
-    """(live run, address, browser state), started and seeded once. Page stages hold the declared app resource."""
+def shared_app(context, published=False):
+    """(live run, address, browser state), started and seeded once. The state is the run's one session
+    (eaos/sign_in.py): the seed's, written again at each start, or the person's, kept and checked before use (renewed
+    once when it expired). `published`: a stage that only reads pages gets the published address the person named
+    instead, (None, that address, its session), with nothing started. Page stages hold the declared app resource."""
+    from .. import sign_in
+    chosen = context.setdefault('sign_in', {})
+    if published and chosen.get('published'): return None, chosen['published'], Path(chosen['folder']) / sign_in.PUBLISHED
     if 'page_app' not in context:
         from ..live_run import LiveRun
         live = LiveRun(context.target, context.runtime, 'S05')
-        state = Path(context.runtime) / 'page-storage.json'
+        state = sign_in.session(context.runtime)
         try:
             live.setup()
             base = live.start()
-            state.unlink(missing_ok=True)
-            live.seed(base, state)
+            kept = sign_in.by_hand(state)
+            seeded = state.with_name('.seeded.json') if kept else state      # a seed still makes its data; its session goes
+            seeded.unlink(missing_ok=True)
+            live.seed(base, seeded)
+            if kept: seeded.unlink(missing_ok=True)
             if state.is_file(): state.chmod(0o600)
+            if kept and not chosen.get('gave_up'): chosen['gave_up'] = not sign_in.renew(live, base, state, context.out, chosen.get('folder'))
         except BaseException:
             live.stop()
             raise
@@ -24,6 +39,33 @@ def shared_app(context):
 
 
 def close_app(context):
-    """Release the shared app after the last page stage, or when the check stops or breaks."""
+    """Release the shared app after the last page stage, or when the check stops or breaks; the published address's
+    session, which is for one check only, goes with it."""
     app = context.pop('page_app', None)
     if app: app[0].stop()
+    from ..sign_in import PUBLISHED
+    chosen = context.get('sign_in') or {}
+    if chosen.get('published'): (Path(chosen['folder']) / PUBLISHED).unlink(missing_ok=True)
+
+
+def _keep(context, name, record):
+    """A live stage's record under <out>/live/."""
+    from ..workspace import write
+    (context.out / 'live').mkdir(exist_ok=True)
+    write(context.out / 'live' / name, record)
+
+
+def _live(context):
+    """The runtime folder of an app this check started; else the reason no live stage can run."""
+    if not context.get('runtime'):
+        raise SkipStage(NO_RUN, code='no_run_consent')
+    if not _ran(context, 'setup'):
+        raise SkipStage('the app is not running in an isolated copy in this check: ' + (
+            (context.get('manifest_so_far') or {}).get('stages', {}).get('setup', {}).get('reason') or 'its setup did not end ok'),
+            code='app_not_running')
+    return Path(context.runtime)
+
+
+def _ran(context, name):
+    """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
+    return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'

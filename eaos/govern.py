@@ -24,10 +24,11 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import guided
+from . import guided, sign_in
 from .api.launch import HEADLESS
 from .studio.actions.store import ACTIVE, RETRYABLE
 
+SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/sign_in.py)
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
 # What a branch change previews, then does (BranchControl's methods), and the body both take.
 BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 'delete'), 'protect': ('preview_protect', 'protect'),
@@ -92,6 +93,19 @@ WORDS = {
     'history': {'en': '{count} check(s) on record', 'ar': '{count} فحص مسجل'},
     'compared': {'en': '{a} → {b}: {closed} card(s) closed between', 'ar': '{a} ← {b}: انحلّت {closed} بطاقة بينهما'},
     'usage': {'en': 'The last check: {check}; the chat: {chat}', 'ar': 'آخر فحص: {check}؛ المحادثة: {chat}'},
+    'sign_in_waits': {'en': 'The check waits for you to sign in to your app, so it sees the pages behind the sign-in (the other steps go on).',
+                      'ar': 'الفحص ينتظرك تسجّل دخولك في تطبيقك، عشان يشوف الصفحات اللي ورا الدخول (باقي الخطوات تكمل).'},
+    'signed_out_option': {'en': 'Go on without signing in (those pages are seen signed out)', 'ar': 'كمّل بدون دخول (تنشاف هالصفحات بدون دخول)'},
+    'sign_in_none': {'en': 'The check does not wait for a sign-in now: it asks when it needs one.', 'ar': 'الفحص ما ينتظر دخول الحين: يطلبه لما يحتاجه.'},
+    'sign_in_open': {'en': 'Open this address and sign in to your app as you always do; then press "I have signed in":',
+                     'ar': 'افتح هالرابط وسجّل دخولك في تطبيقك مثل كل مرة، وبعدها اضغط «سجّلت دخولي»:'},
+    'sign_in_window': {'en': 'Sign in to your app in the browser window that opened, as you always do; then press Enter here: ',
+                       'ar': 'سجّل دخولك في تطبيقك في نافذة المتصفح اللي انفتحت مثل كل مرة، وبعدها اضغط Enter هنا: '},
+    'sign_in_done': {'en': 'Signed in: the check goes on with your session (kept only for you, on this computer).',
+                     'ar': 'تم الدخول: الفحص يكمل بجلستك (محفوظة لك وحدك على هالجهاز).'},
+    'sign_in_skipped': {'en': 'The check goes on without signing in.', 'ar': 'الفحص يكمل بدون دخول.'},
+    'sign_in_forgot': {'en': 'Your sign-in to the app is forgotten; the next check asks again.', 'ar': 'نسيت دخولك في التطبيق؛ الفحص الجاي يطلبه من جديد.'},
+    'app_said': {'en': 'What the app sent (codes, links):', 'ar': 'اللي أرسله التطبيق (رموز، روابط):'},
 }
 
 
@@ -196,9 +210,11 @@ def ai_inputs(assistant):
     return {'use_assistant': False} if assistant == 'none' else {'use_assistant': True, 'assistant': assistant}
 
 
-def check_inputs(paths=None, mode=None, assistant=None):
-    """A new check (always fresh: a check asked for is a new one), of these paths, in this mode, with this AI."""
-    return {'fresh': True, **({'paths': list(paths)} if paths else {}), **({'mode': mode} if mode else {}), **ai_inputs(assistant)}
+def check_inputs(paths=None, mode=None, assistant=None, sign_in=None, published=None):
+    """A new check (always fresh: a check asked for is a new one), of these paths, in this mode, with this AI, signing in
+    to the app this way (kept), reading the published address named for this check."""
+    chosen = {'paths': list(paths or []), 'mode': mode, 'sign_in': sign_in, 'published': published}
+    return {'fresh': True, **{key: value for key, value in chosen.items() if value}, **ai_inputs(assistant)}
 
 
 def estimate(project, inputs):
@@ -270,8 +286,8 @@ def show_run(project, run=None):
 # ---------------------------------------------------------------- what waits for the person
 
 def waiting(project):
-    """Everything waiting for the person: the runs' questions, the report's questions not answered yet, and the branch
-    handed over for accept or undo."""
+    """Everything waiting for the person: the runs' questions, the report's questions not answered yet, the branch
+    handed over for accept or undo, and the sign-in a check waits for."""
     from .batch_branch import waiting_batch
     actions = core(project)
     rows = [{'id': q['id'], 'kind': 'question', 'run': q.get('run'), 'text': q.get('text'), 'options': q.get('options') or [],
@@ -279,10 +295,19 @@ def waiting(project):
     rows += [{'id': d['id'], 'kind': 'decision', 'scope': d['scope'], 'text': d['question'].get('question'),
               'options': d['question'].get('options') or [], 'recommendation': d['question'].get('recommended_option')}
              for d in actions.report_decisions() if not d['response']]
-    wave = waiting_batch(guided.load(actions.project) or {})
+    state = guided.load(actions.project) or {}
+    wave = waiting_batch(state)
     if wave: rows.append({'id': wave['branch'], 'kind': 'branch', 'text': WORDS['branch_waits'], 'branch': wave['branch'],
                           'options': [{'id': 'accept', 'label': 'eaos accept'}, {'id': 'undo', 'label': 'eaos undo'}]})
+    if state.get('workspace') and sign_in.asked(state['workspace']):
+        rows.append({'id': SIGN_IN, 'kind': 'sign_in', 'text': WORDS['sign_in_waits'],
+                     'options': [{'id': SIGN_IN, 'label': 'eaos sign-in'}, {'id': sign_in.SIGNED_OUT, 'label': WORDS['signed_out_option']}]})
     return [{**row, 'text': {lang: text_of(row['text'], lang).format(branch=row.get('branch')) for lang in ('en', 'ar')}} for row in rows]
+
+
+def signing_in(project):
+    """What the check asks while it waits for the person to sign in to their app (eaos/sign_in.py asked), or None."""
+    return sign_in.asked(guided.load(core(project).project)['workspace'])
 
 
 def answer(project, ident, option=None, text=None, assistant=None):
@@ -292,6 +317,10 @@ def answer(project, ident, option=None, text=None, assistant=None):
     row = next((r for r in waiting(project) if r['id'] == ident), None)
     if row is None: raise LookupError(f'nothing waits for an answer under {ident}: eaos waiting lists what does')
     if row['kind'] == 'branch': raise LookupError('a branch is taken in with eaos accept, or thrown away with eaos undo')
+    if row['kind'] == 'sign_in':
+        if option != sign_in.SIGNED_OUT: raise LookupError('the person signs in with eaos sign-in, or in the Studio\'s Waiting for you')
+        sign_in.answer(guided.load(actions.project)['workspace'], sign_in.SIGNED_OUT)
+        return {'status': 'answered'}
     if row['kind'] == 'decision':
         decided = actions.answer_decision(ident, {'scope': row['scope'], 'option': option, 'text': text, 'assistant': assistant})
         wake(actions.project)

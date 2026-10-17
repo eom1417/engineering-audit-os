@@ -74,7 +74,10 @@ Studio's own queue and branch control, so the Studio (if they open it) shows the
 - `runs`: `op=estimate` (say how long a check takes), `op=check` (a new check in the background: `paths`, `mode`,
   `assistant`), `op=show` (the stage, the minutes left, the cost so far, its question), `stop`, `pause`, `resume`, `retry`.
 - `waiting`: `op=list` what waits for the person; ask them each one, end your turn, then `op=answer` with
-  `person_said` set to their own reply.
+  `person_said` set to their own reply. A check waiting for the person to sign in to their app (`sign-in`, and `status`
+  says `sign_in`): tell them to open Waiting for you in the Studio or run `eaos sign-in`; never sign in for them, never
+  ask for a password. Before a check of an app with a sign-in, `runs(op=check)` and `audit` take `sign_in` (hand,
+  test_user, none: the person's choice, kept) and `published` (an address the person named, read only, this check).
 - `act`: `fix`, `verify`, `explain` or `plan` on card `ids` or a `group` (for example `severity=high`): `op=preview`
   first, tell the person what it will do, then `op=start` (a Fix with the preview's `confirm`).
 - `history`: `op=list`, `op=compare` (two checks), `op=usage` (tokens and cost).

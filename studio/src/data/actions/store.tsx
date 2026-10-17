@@ -5,7 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { deriveRun, type RunView } from './derive'
 import { liveClient, takeToken } from './live'
-import { ACTIVE, type ActionsClient, type Mode, type Question, type Run, type RunEvent, type StreamStatus, type ReportDecision } from './types'
+import { ACTIVE, type ActionsClient, type Mode, type Question, type Run, type RunEvent, type SignInStatus, type StreamStatus, type ReportDecision } from './types'
 
 export interface Actions {
   mode: Mode
@@ -14,6 +14,8 @@ export interface Actions {
   queue: string[]
   questions: Question[]
   decisions: ReportDecision[]
+  /** The sign-in a check waits for (eaos/api/sign_in.py), null when none or not live */
+  signIn: SignInStatus | null
   loaded: boolean
   /** The run holding the project's slot (running, paused or waiting for an answer), if any */
   active: Run | null
@@ -34,6 +36,7 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
   const [queue, setQueueState] = useState<string[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [decisions, setDecisions] = useState<ReportDecision[]>([])
+  const [signIn, setSignIn] = useState<SignInStatus | null>(null)
   const [loaded, setLoaded] = useState(false)
   const pending = useRef(0)
 
@@ -41,12 +44,14 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
     if (!client) return
     const ticket = ++pending.current
     try {
-      const [listed, asked, answered] = await Promise.all([client.runs(), client.questions(), client.decisions?.() ?? Promise.resolve([])])
+      const [listed, asked, answered, signing] = await Promise.all([client.runs(), client.questions(), client.decisions?.() ?? Promise.resolve([]),
+        client.signIn?.status().catch(() => null) ?? Promise.resolve(null)])
       if (ticket !== pending.current) return // a newer refresh has the newer truth
       setRuns(listed.runs)
       setQueueState(listed.queue)
       setQuestions(asked)
       setDecisions(answered)
+      setSignIn(signing)
       setLoaded(true)
     } catch { setLoaded(true) }
   }, [client])
@@ -72,14 +77,14 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
 
   const value = useMemo<Actions>(() => ({
     mode: client?.mode ?? 'snapshot',
-    client, runs, queue, questions, decisions, loaded,
+    client, runs, queue, questions, decisions, signIn, loaded,
     active: runs.find((run) => ACTIVE.includes(run.state)) ?? null,
     refresh,
     rememberDecision: (row) => { pending.current++; setDecisions((all) => all.map((current) => current.scope === row.scope ? row : current)) },
     patch: (id, change) => setRuns((all) => all.map((run) => (run.id === id ? { ...run, ...change } : run))),
     setQueue: (order) => setQueueState(order),
     dropQuestion: (id) => setQuestions((all) => all.filter((q) => q.id !== id)),
-  }), [client, runs, queue, questions, decisions, loaded, refresh])
+  }), [client, runs, queue, questions, decisions, signIn, loaded, refresh])
 
   return <ActionsContext.Provider value={value}>{children}</ActionsContext.Provider>
 }

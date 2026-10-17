@@ -6,6 +6,7 @@ no provider configured, no engine installed. That is a recorded absence, not a f
 import json
 from pathlib import Path
 
+from .live_app import NO_RUN, _keep, _live, _ran
 from .stages import SkipStage
 
 POLICY_FILE = 'eaos.policy.json'
@@ -66,8 +67,6 @@ def _index_engines(context, entries, add_to_index):
     return external_entry
 
 
-NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
-          'the check reads the code alone')
 
 
 def _owner(target):
@@ -76,20 +75,14 @@ def _owner(target):
     return done.stdout.strip() or 'the owner'
 
 
-def _keep(context, name, record):
-    """A live stage's record under <out>/live/."""
-    from ..workspace import write
-    (context.out / 'live').mkdir(exist_ok=True)
-    write(context.out / 'live' / name, record)
-
-
 def setup(context):
     """The app installed and started in an isolated copy (eaos/live_setup.py), once the person agreed to it."""
     if not context.get('runtime'):
         raise SkipStage(NO_RUN, code='no_run_consent')
     from ..live_setup import authorize, setup as start
     authorize(context.target, context.runtime, _owner(context.target))
-    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None, say=lambda n: None)
+    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None, say=lambda n: None,
+                   by_hand=(context.get('sign_in') or {}).get('how') in ('hand', 'none'))
     _keep(context, 'setup.json', result)
     if not result['ok']:
         raise SkipStage('the app did not start in the isolated copy: ' + '; '.join(result['limitations'])[:250], code='app_not_running')
@@ -120,15 +113,9 @@ def verify(context):
             'covered_files': len(result.get('coverage') or {})}
 
 
-def _live(context):
-    """The runtime folder of an app this check started; else the reason no live stage can run."""
-    if not context.get('runtime'):
-        raise SkipStage(NO_RUN, code='no_run_consent')
-    if not _ran(context, 'setup'):
-        raise SkipStage('the app is not running in an isolated copy in this check: ' + (
-            (context.get('manifest_so_far') or {}).get('stages', {}).get('setup', {}).get('reason') or 'its setup did not end ok'),
-            code='app_not_running')
-    return Path(context.runtime)
+def _published(context):
+    """The published address the person named for this check, read by the stages that only read pages (S9)."""
+    return (context.get('sign_in') or {}).get('published')
 
 
 def record(context):
@@ -165,8 +152,8 @@ def journeys(context):
 def screens(context):
     """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
-    (eaos/screens/audit.py, eaos/screens/crawl.py distinct)."""
-    _live(context)
+    (eaos/screens/audit.py, eaos/screens/crawl.py distinct). The published address the person named, read only."""
+    if not _published(context): _live(context)
     groups, measured = _screen_pages(context)
     audit, speed = _audit_pages(context, groups, measured)
     if audit['status'] != 'observed':
@@ -198,24 +185,25 @@ def _audit_pages(context, groups, measured):
     measure the entry already."""
     from .live_app import shared_app
     from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
-    live, base, state = shared_app(context)
+    live, base, state = shared_app(context, published=True)
     state = state if state.is_file() else None
     folder = context.out / 'live/screens'
     audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                       variants(**(live.profile.get('screens') or {})), out=folder, storage_state=state)
+                       variants(**((live.profile.get('screens') if live else None) or {})), out=folder, storage_state=state,
+                       read_only=not live)
     speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
-             if measured else lighthouse(base + '/', out=folder, storage_state=state))
+             if measured else lighthouse(base + '/', out=folder, storage_state=state if live else None))    # published: as a visitor
     return audit, speed
 
 
 def crawl(context):
     """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
-    distinct template, ten at most (eaos/screens/crawl.py)."""
-    _live(context)
+    distinct template, ten at most (eaos/screens/crawl.py); the published address the person named, read only, a few."""
+    if not _published(context): _live(context)
     from .live_app import shared_app
     from ..screens.crawl import crawl as find
-    _, base, state = shared_app(context)
-    found = find(base, context.out / 'live/crawl', storage_state=state if state.is_file() else None)
+    live, base, state = shared_app(context, published=True)
+    found = find(base, context.out / 'live/crawl', storage_state=state if state.is_file() else None, read_only=not live)
     if found['status'] != 'observed':
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
     _keep(context, 'crawl.json', {'schema_version': 1, **found})
@@ -526,11 +514,6 @@ def proposals(context):
     return {'sections': len(result['written']), 'errors': len(result['errors'])}
 
 
-def _ran(context, name):
-    """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
-    return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'
-
-
 def cards(context):
     from ..plan import confirm
     from ..extend import carry
@@ -570,6 +553,17 @@ def steps(context):
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
 RUNNERS.update(ideal=ideal, triage=triage, visual=visual, order=order)
+
+
+def session(context):
+    """Whether the pages need a sign-in, and the one session every page stage opens them with (eaos/pipeline/sign_in_stage.py)."""
+    from .sign_in_stage import session as signed
+    return signed(context)
+
+
+RUNNERS['session'] = session
+
+
 def translate(context):
     """Every document in both languages (eaos/bilingual.py)."""
     if not context.provider: raise _absent(context.provider)

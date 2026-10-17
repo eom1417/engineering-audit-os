@@ -23,12 +23,12 @@ def _needs(why, what_now):
     return {'status': 'needs_the_person', 'why': why, 'what_now': what_now}
 
 
-def runs_op(op, run=None, paths=None, mode=None, assistant=None, project=None):
+def runs_op(op, run=None, paths=None, mode=None, assistant=None, project=None, sign_in=None, published=None):
     if op == 'list': return {'runs': [_run(r) for r in govern.core(project).runs({'all': '1'})['runs'][:30]]}
     if op == 'show':
         found = govern.show_run(project, run)
         return {**found, 'run': _run(found['run'])}
-    inputs = govern.check_inputs(paths, mode, assistant)
+    inputs = govern.check_inputs(paths, mode, assistant, sign_in, published)
     if op == 'estimate': return govern.estimate(project, inputs)
     if op == 'check':
         return {'run': _run(govern.start_check(project, inputs)), 'what_now': 'Tell the person the check runs in the background and '
@@ -92,15 +92,17 @@ def register(server, reading, working, answer):
     @server.tool(annotations=working, description='The runs of the Studio\'s queue, without the Studio: op=list; show (one run, the '
                  'active one by default: its stage, minutes left, cost so far, last events, its question); estimate (how long a check '
                  'of `paths` in `mode` takes here); check (a new check in the background, the same one the Studio and `eaos check` '
-                 'start: paths, mode, assistant claude|codex|none); stop, pause, resume, retry (run, the newest it applies to by '
-                 'default).' + doc)
+                 'start: paths, mode, assistant claude|codex|none, sign_in hand|test_user|none (kept), published: an https address '
+                 'the person named, read signed in, read only, for this check); stop, pause, resume, retry (run, the newest it '
+                 'applies to by default).' + doc)
     @answer
     def runs(op: str = 'list', run: str | None = None, paths: list[str] | None = None, mode: str | None = None,
-             assistant: str | None = None, project: str | None = None) -> str:
-        return runs_op(op, run, paths, mode, assistant, project)
+             assistant: str | None = None, project: str | None = None, sign_in: str | None = None, published: str | None = None) -> str:
+        return runs_op(op, run, paths, mode, assistant, project, sign_in, published)
 
     @server.tool(annotations=working, description='What waits for the person: op=list (the runs\' questions, the report\'s questions, '
-                 'a branch waiting for accept or undo); op=answer (id, option or text) with person_said = the person\'s own reply, '
+                 'a branch waiting for accept or undo, the sign-in a check waits for: the person signs in in the Studio\'s Waiting '
+                 'for you or with eaos sign-in, never you; option signed_out goes on without it); op=answer (id, option or text) with person_said = the person\'s own reply, '
                  'never yours: only after you listed it and asked them.' + doc)
     @answer
     def waiting(op: str = 'list', id: str | None = None, option: str | None = None, text: str | None = None, person_said: str = '',

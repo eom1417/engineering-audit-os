@@ -12,6 +12,7 @@ from eaos.live_setup import authorize, free_port
 from eaos.pipeline.live_app import shared_app
 from eaos.pipeline.run import execute
 from eaos.run_profile import write_profile
+from eaos.screens.audit import missing
 from test_pipeline_run import fake_runners
 
 SERVER = '''import os, sys
@@ -98,6 +99,31 @@ class SharedAppTests(unittest.TestCase):
             self.assertEqual(live.extra()['AUTH_SECRET'], json.loads(seen[0][2])['cookies'][0]['value'],
                              'a later run accepts the session made by this profile')
         finally: live.stop()
+
+    @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
+    def test_a_session_signed_in_by_hand_outlives_the_seed_and_is_asked_again_only_once_it_expired(self):
+        from eaos import sign_in
+        from eaos.pipeline.live_app import close_app
+        from eaos.pipeline.run import Context
+        from test_sign_in import _as_the_person
+        profile = json.loads((self.runtime / 'run.json').read_text())
+        profile['env'] = {'AUTH_SECRET': 'a' * 48}
+        write_profile(self.runtime, profile)
+        state, workspace = sign_in.session(self.runtime), self.root / 'workspace'
+        for cookie, asked in (('a' * 48, False), ('expired', True)):
+            with self.subTest(asked=asked):
+                state.write_text(json.dumps({'cookies': [{'name': 'session', 'value': cookie, 'domain': '127.0.0.1', 'path': '/', 'expires': -1,
+                                                          'httpOnly': True, 'secure': False, 'sameSite': 'Lax'}], 'origins': []}))
+                sign_in.mark(state)
+                person = _as_the_person(workspace, 'a' * 48) if asked else None
+                context = Context(target=self.target, runtime=str(self.runtime), out=self.root, sign_in={'folder': str(workspace)})
+                try:
+                    shared_app(context)
+                    self.assertTrue(sign_in.by_hand(state), "the seed never replaces the person's session")
+                    self.assertFalse(context['sign_in']['gave_up'], 'it works, or works again once the person signed in')
+                finally: close_app(context)
+                self.assertEqual(person is not None and not person.is_alive(), asked, 'asked only when it had expired')
+                self.assertEqual(json.loads(state.read_text())['cookies'][0]['value'], 'a' * 48)
 
     def test_failure_or_stop_in_a_page_stage_stops_the_shared_app_and_removes_its_copy(self):
         for problem in (RuntimeError('failed page'), KeyboardInterrupt()):

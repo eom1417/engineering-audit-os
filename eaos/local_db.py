@@ -43,7 +43,7 @@ def _sockets(root):
     return Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'
 
 
-def _free_port():
+def free_port():
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
         return probe.getsockname()[1]
@@ -120,7 +120,7 @@ class LocalPostgres:
             try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=scram-sha-256', f'--pwfile={given}',
                            '-E', 'UTF8', '--no-instructions')
             finally: given.unlink(missing_ok=True)
-        port = _free_port()
+        port = free_port()
         log = self.data / 'server.log'
         self.sockets.mkdir(parents=True, exist_ok=True)
         if self.owner: shutil.chown(self.sockets, self.owner)

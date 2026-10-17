@@ -71,20 +71,26 @@ STAGES = (
                       'command; which test imports which file is still written',
           description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "
                       'reach, what they miss, and whether they pass on the code as it is'),
-    Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), necessity=OPTIONAL, uses=('app',),
+    Stage('session', produces=('live/sign-in.json',), requires=('setup',), necessity=OPTIONAL, uses=('app',),
+          absent_when='the app is not running in an isolated copy, the person chose no sign-in, or nobody signed in '
+                      'within the wait: the pages behind the sign-in are then seen signed out, and the report says so',
+          description="Whether the app's pages need a sign-in (its code, and the pages the setup opened), and the one "
+                      'session every page stage opens them with: a test user, or the person signing in by hand on the '
+                      'sign-in page while the stages that open no page go on'),
+    Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "
                       'safety net every fix is judged by'),
-    Stage('journeys', produces=('live/journeys.json',), requires=('record',), necessity=OPTIONAL, uses=('app',),
+    Stage('journeys', produces=('live/journeys.json',), requires=('record',), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, the lock has no page to walk through, or rrweb is not '
                       'installed',
           description="Each feature's pages walked once more, rrweb recording them and Playwright keeping the trace of a "
                       'failure, both capped in size: which pages a user walks and where a journey fails'),
-    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), necessity=OPTIONAL, uses=('app',),
+    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it serves no page',
           description="Every page of the app found by following its links; Lighthouse on the entry and the first page of "
                       'each distinct template, ten at most'),
-    Stage('screens', produces=('live/screens.json',), requires=('setup',), reads=('crawl',), necessity=OPTIONAL, uses=('app',),
+    Stage('screens', produces=('live/screens.json',), requires=('setup',), reads=('session', 'crawl'), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it has no page to open',
           description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own theme at '
                       'phone and desktop width: its picture and its accessibility (axe); the first page also by Lighthouse'),

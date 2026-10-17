@@ -110,7 +110,8 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits
     """Every URL in every variant at every viewport, through the pinned Playwright and axe. Screenshots go to
     <out>/screenshots when `out` is given. `limits`, by name: phone_width, target_min, timeout (900 seconds) and
     height_budget, which caps a page's height at phone width, in phone screens:
-    one number for every page, or {url: screens} for some (a URL without its query).
+    one number for every page, or {url: screens} for some (a URL without its query); storage_state, the browser's
+    session; read_only, a published site: nothing but GET is sent.
 
     A URL may also be a page, {'url', 'name', 'actions', 'viewports', 'variants', 'wait_for', 'height_budget'}
     (eaos/templates/screens/audit.mjs): the actions run before the page is measured, the viewports and variants
@@ -123,7 +124,7 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits
     config = {'urls': [{k: v for k, v in u.items() if k != 'height_budget'} if isinstance(u, dict) else u for u in urls], 'viewports': list(viewports), 'variants': page_variants or variants(),
               'phone_width': phone_width, 'target_min': limits.get('target_min', TARGET_MIN),
               'screenshots_dir': str(Path(out) / 'screenshots') if out else None,
-              'storage_state': limits.get('storage_state'),
+              'storage_state': limits.get('storage_state'), 'read_only': bool(limits.get('read_only')),
               'modules': {'playwright': str(toolchain.home() / 'node/node_modules'), 'axe': str(toolchain.node_modules('axe-core'))}}
     result, error = _node('audit.mjs', config, limits.get('timeout', 900))
     if error: return {'status': 'error', 'reason': error, 'rows': []}

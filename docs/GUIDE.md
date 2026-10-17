@@ -236,11 +236,33 @@ Everything the Studio governs works from the Terminal too, with no Studio open (
 | `eaos watch` | Follows the run live: the stage, the time left, the cost so far, and its questions |
 | `eaos stop`, `pause`, `resume`, `retry`, `eaos runs` | The queue of runs |
 | `eaos waiting`, `eaos answer <id> <option>` | What waits for you, and your answer |
+| `eaos check --sign-in hand` (or `test_user`, `none`; kept), `eaos sign-in` | How the check opens the pages behind your app's sign-in; and signing in when it asks (below) |
 | `eaos problems`, `eaos problem <id>` | What the check found, and one problem whole with its evidence |
 | `eaos fix <ids>` (or `--group severity=high`), `verify`, `explain`, `plan` | A preview first (cards, files, time, risk), then the run |
 | `eaos accept`, `eaos undo` | Says what will happen and asks your yes (or `--yes`) |
 | `eaos branch [name]`, `eaos branches [merge|delete|protect|unprotect|cleanup|restore]` | The branch EAOS works on; and every branch change, a preview then your yes |
 | `eaos history`, `eaos compare <a> <b>`, `eaos usage` | Every check on record, two side by side, and what the assistant used |
+
+## Signing in to your app
+
+When your app's pages are behind a sign-in, the check finds out (from the code, and from the pages it opens) and opens them
+the way you chose before it starts: **you sign in** (the default), **a test user** your assistant's script signs in, or
+**no sign-in** (the pages are seen as a visitor sees them, and the report says so). Signing in yourself:
+
+- The check asks once the app runs in its separate copy, and the other steps go on while it waits (15 minutes; nobody signing
+  in lets the check go on signed out, and it says so).
+- In the Studio, **Waiting for you** shows "Your app waits for you to sign in": open it and sign in as you always do (a
+  password, a code, a link, two factors) on your app's page. The codes and links your app sends show beside it: what it
+  prints, and the mail it sends (caught by the run's own Mailpit: nothing leaves your computer). Press **I have signed in**.
+- In a Terminal, `eaos sign-in` opens your app in a browser window; on a server with no screen it gives an address of its
+  own, open only until you signed in. `eaos sign-in --signed-out` goes on without signing in.
+- Your session is kept for the next checks and the fixes, for you alone on this computer; it never goes into the report, a
+  branch or what the assistant reads. It is asked again only when it expired. **Forget my sign-in** (or
+  `eaos sign-in --forget`, or `eaos clean`) removes it.
+- When signing in cannot work in the separate copy, name your published address (`eaos check --published https://…`, or
+  the field under the ways to sign in): after you sign in there, only the pages are read, with nothing sent but page
+  requests and never a link that signs out, deletes or changes; its speed (Lighthouse) is measured signed out, as any visitor, since a
+  measure cannot be held to reading only; the lock, the journeys and the load test never run on it.
 
 ## What EAOS never does
 

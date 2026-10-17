@@ -45,6 +45,7 @@ DATABASES = {
 ENV_IN_CODE = re.compile(r'(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]{2,})|process\.env\[[\'"]([A-Z][A-Z0-9_]{2,})[\'"]\]')
 SECRETISH = re.compile(r'(SECRET|TOKEN|KEY|PASSWORD|PASS|SALT|PRIVATE|CREDENTIAL)', re.I)
 URLISH = re.compile(r'(URL|URI|HOST|ENDPOINT|DSN|ORIGIN|DOMAIN)$', re.I)
+MAIL_NAMES = re.compile(r'^(SMTP|MAIL|EMAIL)_?(HOST|SERVER|URL|PORT)$')     # where the app sends its mail: the run's Mailpit
 DB_NAMES = re.compile(r'^(DATABASE_URL|POSTGRES_URL|POSTGRES_PRISMA_URL|POSTGRES_URL_NON_POOLING|DIRECT_URL|PG_?URL|DB_URL|NEON_DATABASE_URL)$')
 
 
@@ -216,14 +217,15 @@ def database_kind(project, folder, package):
 
 
 def environment_values(names, port, database):
-    """A value the run chooses for each name: the local database, an address nobody answers, or a fresh random
-    secret. Example values that are plainly not secrets (true, 3000, info) are kept; nothing is the owner's."""
+    """A value the run chooses for each name: the local database, the run's mail catcher, an address nobody answers, or
+    a fresh random secret. Example values that are plainly not secrets (true, 3000, info) are kept; nothing is the owner's."""
     values, unset = {}, []
     for name, example in sorted(names.items()):
         if name in ('NODE_ENV',): continue
         if name == 'PORT': values[name] = str(port)
         elif name in ('HOST', 'HOSTNAME'): values[name] = '127.0.0.1'
         elif DB_NAMES.match(name) and database == 'postgres': values[name] = '{database_url}'
+        elif MAIL_NAMES.match(name): values[name] = {'HOST': '127.0.0.1', 'PORT': '{mail_port}'}.get(name[-4:], 'smtp://127.0.0.1:{mail_port}')
         elif SECRETISH.search(name): values[name] = secrets.token_urlsafe(32)
         elif URLISH.search(name): values[name] = 'http://127.0.0.1:9'
         elif example and re.fullmatch(r'(true|false|\d{1,6}|[a-z]{2,12}|[a-z-]{2,20})', example): values[name] = example
@@ -292,11 +294,16 @@ def detect(project, report=None):
 PROBE = (Path(__file__).resolve().parent / 'templates/setup/probe.cjs').read_text(encoding='utf-8')
 
 
+# A page no browser holding a session opens (the probe, the crawl): it would end the session, or change what it reads.
+LEAVES = r'(log|sign)[-_ ]?(out|off)|logout|delete|remove|destroy|unsubscribe|deactivate'
+
+
 def routes(report, limit=4):
-    """A few of the lock's screens without parameters, to see that each one is a screen of its own."""
+    """A few of the lock's screens without parameters, to see that each one is a screen of its own; never one that
+    signs out or changes (LEAVES), which would end the session the probe checks."""
     plan = read_json(Path(report) / 'behavior-lock/plan.json') if report else {}
     found = [s for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []
-             if s.startswith('/') and s != '/' and ':' not in s and '*' not in s]
+             if s.startswith('/') and s != '/' and ':' not in s and '*' not in s and not re.search(LEAVES, s, re.I)]
     return list(dict.fromkeys(found))[:limit]
 
 
@@ -326,8 +333,8 @@ def empty_state(page, unset):
             + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
 
 
-def _probe(live, base, state, report):
-    """What the probe saw of the first page and a few screens."""
+def probe(live, base, state, report):
+    """What the probe saw of the first page and a few screens (with the browser state `state` when it is a file)."""
     script = live.sandbox.copy / '.eaos-probe.cjs'
     script.write_text(PROBE, encoding='utf-8')
     code, out, err = live.run(['node', str(script)], timeout=600, env={
@@ -336,10 +343,11 @@ def _probe(live, base, state, report):
     return json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
 
 
-def _failure(page, empty):
-    """Why the page is no working app, '' when it is one."""
+def _failure(page, empty, by_hand=False):
+    """Why the page is no working app, '' when it is one. `by_hand`: the person signs in on the sign-in page (or chose
+    not to), so a page asking for a sign-in is the app working."""
     bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400]
-    if signed_out(page): return 'the first page asks for a sign-in'
+    if signed_out(page) and not by_hand: return 'the first page asks for a sign-in'
     if stuck(page):
         return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
                 'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
@@ -347,7 +355,7 @@ def _failure(page, empty):
     return empty
 
 
-def verify(project, runtime, attempt, report=None, mode='lock'):
+def verify(project, runtime, attempt, report=None, mode='lock', by_hand=False):
     """Run the draft: install (and, for the baseline, build), start, seed, open the first page and a few screens.
     {'ok', 'page', 'fixtures', 'failure'}"""
     from .live_run import LiveRun
@@ -364,10 +372,10 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         if state.exists(): state.unlink()
         record['fixtures'] = dict(live.seed(base, state))
         record['seed_output'] = getattr(live, 'seed_output', '')
-        page = record['page'] = _probe(live, base, state, report)
+        page = record['page'] = probe(live, base, state, report)
         names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
         empty = '' if mode == 'baseline' else empty_state(page, [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV'])
-        failure = _failure(page, empty)
+        failure = _failure(page, empty, by_hand)
         record['ok'] = not failure
         if failure: record['failure'] = failure
     except Exception as problem:            # a failed start is the evidence the assistant needs, not a crash
@@ -444,14 +452,14 @@ def authorize(project, runtime, granted_by, days=30):
     return grant
 
 
-def setup(project, runtime, report=None, provider=None, say=print):
+def setup(project, runtime, report=None, provider=None, say=print, by_hand=False):
     """Detect, verify, and ask the assistant when needed: run.json that works, or one whose limits are written.
     {'ok', 'attempts', 'limitations', 'page'}. Written as it happens as the flow `setup` (FLOW)."""
     with progress.Flow(runtime, 'setup', FLOW):
-        return _setup(project, Path(runtime), report, provider, say)
+        return _setup(project, Path(runtime), report, provider, say, by_hand)
 
 
-def _setup(project, runtime, report, provider, say):
+def _setup(project, runtime, report, provider, say, by_hand):
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     progress.begin('detect')
     detected = detect(project, report)
@@ -461,13 +469,11 @@ def _setup(project, runtime, report, provider, say):
         for name in ('attempt', 'baseline'): progress.skip(name, why, 'no_app_profile')
         return {'ok': False, 'attempts': 0, 'limitations': detected['limitations'], 'page': None}
     needs = fixtures_needed(report)
-    kept = (read_json(runtime / 'run.json') or {}).get('baseline') or {}
-    if kept.get('verified'): detected['profile']['baseline'] = kept     # the production run that worked, often the assistant's
-    write_profile(runtime, detected['profile'])
+    write_profile(runtime, kept(runtime, detected['profile']))
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     limitations = list(detected['limitations'])
     progress.begin('attempt')
-    record, attempts, missing = _attempts(project, runtime, report, provider, say, detected, needs, limitations)
+    record, attempts, missing = _attempts(project, runtime, report, provider, say, detected, needs, limitations, by_hand)
     ok = bool(record['ok'])
     if ok: progress.end('attempt')
     else: progress.end('attempt', 'failed', (record.get('failure') or 'the app did not answer')[:300],
@@ -478,14 +484,24 @@ def _setup(project, runtime, report, provider, say):
     return _close(runtime, detected, ok, attempts, record, missing, limitations)
 
 
-def _attempts(project, runtime, report, provider, say, detected, needs, limitations):
+def kept(runtime, profile):
+    """The new draft with what the last setup's run.json holds that must stay: the production run that worked (often
+    the assistant's), and every secret the run chose, so a session signed with it (the person's sign-in) outlives it."""
+    before = read_json(runtime / 'run.json') or {}
+    if (before.get('baseline') or {}).get('verified'): profile['baseline'] = before['baseline']
+    env = profile.get('env') or {}
+    env.update({name: value for name, value in (before.get('env') or {}).items() if name in env and SECRETISH.search(name)})
+    return profile
+
+
+def _attempts(project, runtime, report, provider, say, detected, needs, limitations, by_hand=False):
     """Verify the run, and while it fails ask the assistant for a safe change, at most ATTEMPTS times.
     (the last record, the attempts made, the fixtures still missing)."""
     refusal = ''
     for attempts in range(1, ATTEMPTS + 1):
         say(attempts)
         progress.step(f'attempt {attempts}', attempts - 1, ATTEMPTS, 'running')
-        record = verify(project, runtime, attempts, report)
+        record = verify(project, runtime, attempts, report, by_hand=by_hand)
         known = {**json.loads((runtime / 'run.json').read_text())['env'], **record['fixtures']}
         missing = [name for name in needs if name not in known]
         failure = '' if record['ok'] and not missing else \

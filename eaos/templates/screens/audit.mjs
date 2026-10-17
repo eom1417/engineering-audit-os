@@ -219,6 +219,7 @@ async function openContext(browser, viewport, variant, base, blocked) {
     colorScheme: variant.color_scheme || 'light', serviceWorkers: 'block',
   });
   await context.route('**/*', (route) => {
+    if (config.read_only && route.request().method() !== 'GET') return route.abort('blockedbyclient');   // a published site: read only
     if (allowed(route.request(), base)) return route.continue();
     blocked.push(route.request().url());
     return route.abort('blockedbyclient');

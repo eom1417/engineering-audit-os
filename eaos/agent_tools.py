@@ -14,7 +14,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import batch_finish, branches, check_choices, guided, handover, jobs, plain, toolchain
+from . import batch_finish, branches, check_choices, guided, handover, jobs, plain, sign_in as signing, toolchain
 from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
 from .finish_line import proof
 from .api import launch
@@ -282,7 +282,7 @@ def status(project=None):
               'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None,
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
-    if busy: step = ('wait', f"a {busy['kind']} is running")
+    if busy: step = signing.step(state, ('wait', f"a {busy['kind']} is running"))
     elif not checked: step = ('audit', 'the project has not been checked')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
     elif wave and (_no_safety_net(state) or {}).get('recorded') == 0:
@@ -317,25 +317,25 @@ def _fresh_report(state):
 # ---------------------------------------------------------------- diagnosis
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None):
+          paths=None, mode=None, sign_in=None, published=None):
     """`use_assistant`, `assistant` (claude or codex): the person's choice for the check's AI, kept. One not ready
     (eaos/assistants/readiness.py) stops the check before it starts, with why and the fix; `without_ai`: this one check with
     the rules alone. `again_from`: the last check goes on from that stage on the checked commit, it and the stages reading
-    it run again and the rest is kept (`engines`: only those tools), never a whole new check for one stage. `paths`: this
-    check follows only those (eaos/pipeline/paths.py); `mode`: normal or speed, kept (eaos/check_choices.py)."""
+    it run again and the rest is kept (`engines`: only those tools). `paths`: only those (eaos/pipeline/paths.py); `mode`:
+    normal or speed, `sign_in`: hand, test_user or none, kept (eaos/check_choices.py); `published`: an address read signed in."""
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
     if use_assistant is not None or assistant:          # the person's choice for the check's AI, kept when made now
         state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
-    if check_choices.keep(state, mode): guided.save(state)
+    if check_choices.keep(state, mode, sign_in): guided.save(state)
     # A check on record stands until the person asks for a new one (fresh): a check takes up to an hour, and one started
     # because the code moved on stopped the person's fixes midway (owner, 2026-10-10).
     if guided.scan_done(state) and not fresh and not again_from:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     blocked = None if without_ai else _assistant_not_ready(state)
     if blocked: return blocked
-    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths).items() if v}
+    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published)).items() if v}
     return _start('audit', state, arguments, watch=True)
 
 
@@ -398,7 +398,7 @@ def _audit_job(project, arguments, progress):
     if failed and not without:
         raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = check_choices.options(state, progress, failed, guided.check_provider(state), guided.check_runtime(state),
-                                    arguments.get('paths'), arguments.get('engines'))
+                                    arguments.get('paths'), arguments.get('engines'), arguments.get('published'))
     if arguments.get('without_ai'):
         from .assistants.readiness import NoAssistant
         options['provider'] = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
@@ -695,7 +695,7 @@ def run_setup(project=None, person_agreed=False):
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     if detected['profile'] is None:
         return {'status': 'cannot_run', 'limitations': detected['limitations']}
-    run_profile.write_profile(runtime, detected['profile'])
+    run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))     # its secrets kept: a session holds
     return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
 
 
@@ -773,14 +773,14 @@ def _run_what_now(ok, mode):
 
 def _run_job(project, arguments, progress):
     from . import live_assist, live_setup, run_profile
-    state = guided.load(project)
-    runtime, report = guided.runtime_of(state), guided.report_of(state)
+    runtime, report = guided.runtime_of(state := guided.load(project)), guided.report_of(state)
     mode, proposal = arguments.get('mode') or 'lock', arguments.get('proposal')
     if proposal: run_profile.apply(runtime, proposal, mode=mode)
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
     progress(0, 1, 'installing and starting the app in the isolated copy')
     source = guided.source(state)
-    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
+    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode,
+                               by_hand=check_choices.kept(state)['sign_in'] in ('hand', 'none'))     # the person signs in: a sign-in page is the app
     profile = _read(runtime / 'run.json')
     answer = {'mode': mode, 'attempt': attempt, 'runs': record['ok']}
     if mode == 'baseline':

@@ -45,7 +45,7 @@ from starlette.routing import Route
 
 from .. import guided
 from ..agent_tools import project_state
-from . import guard, launch, projects, read
+from . import guard, launch, projects, read, sign_in
 from .events import Feed
 
 ASSETS = Path(__file__).resolve().parent.parent / 'data' / 'studio'
@@ -248,7 +248,7 @@ def create_app(report, project=None, name=None, keys=None, mounts=None, assets=N
     async def not_found(request, exc):
         return JSONResponse({'error': 'not_found'}, status_code=404, headers=read.NO_STORE)
 
-    api = read.routes(ctx) + stream(ctx) + _routes(projects.routes(ctx)) + mounted
+    api = read.routes(ctx) + stream(ctx) + _routes(projects.routes(ctx)) + _routes(sign_in.routes(ctx)) + mounted
     app = Starlette(routes=api + [Route('/api/{rest:path}', lambda r: JSONResponse({'error': 'not_found'}, status_code=404,
                                                                                      headers=read.NO_STORE),
                                         methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])] + pages(ctx),
@@ -418,3 +418,26 @@ def _kept_token(path):
 
 def _interrupt(number, frame):
     raise KeyboardInterrupt
+
+
+def serve_sign_in(project, say):
+    """The sign-in page alone, on a port of its own, for a terminal on a computer without a display: the Studio's own
+    page and guard (its launch token, and on a Remote server its routed address behind the Remote sign-in), with no other
+    action; it ends once the check no longer waits (the session saved, the person went on signed out, or the wait ended)."""
+    state = guided.load(project)
+    template = launch.remote_template()
+    sock = bind(0, host='0.0.0.0' if template else guard.LOOPBACK, routed=bool(template))
+    port = sock.getsockname()[1]
+    keys = Keys(port=port, remote_origin=template.format(port=port) if template else None)
+    app = create_app(guided.report_of(state), project=state['project'], keys=keys, mounts=[])
+    say(launch.url_of({'port': port, 'token': keys.token, 'remote_origin': keys.remote_origin,
+                       'page_reads_token': _remote_login_trusted(app.state.ctx)}, '/sign-in'))
+    running = []
+
+    def until_answered():
+        while sign_in.waits(project): time.sleep(1)
+        if running: running[0].should_exit = True
+    import threading
+    threading.Thread(target=until_answered, daemon=True).start()
+    serve(app, sock, ready=running.append)
+    sign_in.close(project)

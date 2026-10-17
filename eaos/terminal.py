@@ -6,6 +6,7 @@ govern.WORDS, the contract (docs/studio-actions.json) or the core's own words, i
     eaos watch [run]                                                a run live: stages, time left, cost so far, questions
     eaos stop|pause|resume|retry [run]   eaos runs [--all]           the queue
     eaos waiting   eaos answer <id> <option> [--text …]             what waits for the person
+    eaos sign-in [--signed-out | --forget]                          sign in to the app while a check asks for it
     eaos problems [--kind …]   eaos problem <id>                    what the check found
     eaos fix|verify|explain|plan <ids…> | --group by=value           the verbs, previewed first
     eaos branch [name]   eaos branches [merge|delete|protect|unprotect|cleanup|restore] …
@@ -84,7 +85,7 @@ def _said(actions, record):
 @command
 def check(args, lang):
     project = _project(args)
-    inputs = govern.check_inputs(*(getattr(args, name, None) for name in ('path', 'mode', 'assistant')))   # eaos check, or eaos start
+    inputs = govern.check_inputs(*(getattr(args, name, None) for name in ('path', 'mode', 'assistant', 'sign_in', 'published')))   # check, start
     shown = govern.estimate(project, inputs)['estimate']
     say(words('estimate', lang, low=shown['minutes_low'], high=shown['minutes_high'], basis=text_of(shown['basis'], lang)))
     record = govern.start_check(project, inputs, lang)
@@ -130,6 +131,9 @@ def follow(project, run, lang):
     try:
         while True:
             record = actions.store.load(run)
+            if asked != govern.SIGN_IN and govern.signing_in(project):
+                asked = govern.SIGN_IN
+                say(f"🔑 {words('sign_in_waits', lang)}\n   eaos sign-in")
             for event in actions.store.events(run, after):
                 after = event['seq']
                 if event['kind'] != 'question': say(f"   · {text_of(event.get('text'), lang)}")
@@ -192,6 +196,38 @@ def answer(args, lang):
     refuse_in_studio_run('answer')
     done = govern.answer(args.project, args.id, args.option, args.text, args.assistant)
     guided.box(lang, words('answered' if done['status'] == 'answered' else 'handed', lang, id=args.id), commands=['eaos watch', 'eaos waiting'])
+
+
+@command
+def signing_in(args, lang):
+    """`eaos sign-in`: the person signs in to their app while a check asks: in a window where this computer shows one,
+    else on the sign-in page served on a port of its own; or goes on signed out; or forgets the sessions kept."""
+    from .api import sign_in as page
+    project = _project(args)
+    if args.forget:
+        page.forget(project)
+        return guided.box(lang, words('sign_in_forgot', lang), commands=['eaos status'])
+    if not govern.signing_in(project): return guided.box(lang, words('sign_in_none', lang), commands=['eaos watch'])
+    if args.signed_out:
+        page.skip(project)
+        return guided.box(lang, words('sign_in_skipped', lang), commands=['eaos watch'])
+    if not page.display():
+        say(words('sign_in_open', lang))
+        from .api.server import serve_sign_in
+        serve_sign_in(project, lambda address: say(f'   {address}'))
+        return guided.box(lang, words('sign_in_done' if page.status(project)['kept'] else 'sign_in_skipped', lang), commands=['eaos watch'])
+    page.open_browser(project, headed=True)
+    _codes(page.status(project)['codes'], lang)
+    input(words('sign_in_window', lang))
+    page.done(project)
+    guided.box(lang, words('sign_in_done', lang), commands=['eaos watch'])
+
+
+def _codes(codes, lang):
+    """What the app sent while the person signs in: its last lines, and its mail."""
+    say(words('app_said', lang))
+    for line in (codes or {}).get('output', [])[-8:]: say(f'   {line}')
+    for mail in (codes or {}).get('mail', []): say(f"   ✉️  {mail['subject']}: {' '.join(mail['text'].split())[:300]}")
 
 
 # ---------------------------------------------------------------- what the check found, and the verbs

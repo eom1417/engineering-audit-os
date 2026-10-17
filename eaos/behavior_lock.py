@@ -193,8 +193,11 @@ def _start(live, lock):
     live.setup()
     base = live.start()
     # A seed may sign the browser in or choose its workspace: it writes Playwright's storage state to
-    # EAOS_STORAGE_STATE, and the lock opens every screen with it; the fixtures it prints join the environment.
+    # EAOS_STORAGE_STATE, and the lock opens every screen with it; the fixtures it prints join the environment. The
+    # person's own session, when they signed in by hand, takes its place (eaos/sign_in.py lend).
     live.seed(base, lock / '.auth/user.json')
+    from .sign_in import lend
+    lend(live, base, lock / '.auth/user.json')
     return base
 
 

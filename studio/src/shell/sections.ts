@@ -36,9 +36,9 @@ export const SECTIONS: SectionDef[] = [
 ]
 
 /** Pages under another section's address: the System maps' pages to System, evidence to Problems, a run and a past
- * check to Checks, a plan's pages and the branches to Fixes. */
+ * check to Checks, a plan's pages and the branches to Fixes, the sign-in page to Waiting for you. */
 const UNDER: Record<string, string> = { '/flows': '/system', '/screens': '/system', '/evidence': '/problems', '/runs': '/checks', '/history': '/checks',
-  '/plans': '/change', '/tasks': '/change', '/ops': '/change', '/branches': '/change' }
+  '/plans': '/change', '/tasks': '/change', '/ops': '/change', '/branches': '/change', '/sign-in': '/decisions' }
 
 /** The most specific section a path belongs to ("/system/paths" → paths, "/problems?card=…" → problems) */
 export function sectionOf(pathname: string): SectionDef | undefined {
