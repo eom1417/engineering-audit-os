@@ -464,9 +464,7 @@ def _setup(project, runtime, report, provider, say, by_hand):
         for name in ('attempt', 'baseline'): progress.skip(name, why, 'no_app_profile')
         return {'ok': False, 'attempts': 0, 'limitations': detected['limitations'], 'page': None}
     needs = fixtures_needed(report)
-    kept = (read_json(runtime / 'run.json') or {}).get('baseline') or {}
-    if kept.get('verified'): detected['profile']['baseline'] = kept     # the production run that worked, often the assistant's
-    write_profile(runtime, detected['profile'])
+    write_profile(runtime, _kept(runtime, detected['profile']))
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     limitations = list(detected['limitations'])
     progress.begin('attempt')
@@ -479,6 +477,15 @@ def _setup(project, runtime, report, provider, say, by_hand):
     if not ok and record.get('failure') and not any(record['failure'] in text for text in limitations):
         limitations.append('the app could not be made to answer: ' + record['failure'][:300])
     return _close(runtime, detected, ok, attempts, record, missing, limitations)
+
+
+def _kept(runtime, profile):
+    """The new draft with what the last setup's run.json holds that must stay: the production run that worked (often
+    the assistant's), and every secret the run chose, so a session signed with it (the person's sign-in) outlives it."""
+    before = read_json(runtime / 'run.json') or {}
+    if (before.get('baseline') or {}).get('verified'): profile['baseline'] = before['baseline']
+    profile['env'].update({name: value for name, value in (before.get('env') or {}).items() if name in profile['env'] and SECRETISH.search(name)})
+    return profile
 
 
 def _attempts(project, runtime, report, provider, say, detected, needs, limitations, by_hand=False):

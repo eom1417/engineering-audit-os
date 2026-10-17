@@ -198,6 +198,18 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(profile['env']['STUDIO_DATA'], str(report / 'studio'))
         self.assertNotIn('screens', profile, 'no dark pass: the screens are pictured in the theme the app opens in')
 
+    def test_a_second_setup_keeps_the_secrets_the_run_chose_so_a_session_signed_with_them_outlives_it(self):
+        root = project({'package.json': {'scripts': {'start': 'node server.mjs'}}, '.env.example': 'PORT=3000\nAUTH_SECRET=\nAPP_URL=\n'})
+        runtime = Path(scratch())
+        chosen = []
+        with mock.patch.object(live_setup, 'verify', return_value={'ok': True, 'page': {'status': 200}, 'fixtures': {}}), \
+                mock.patch.object(live_setup, 'setup_baseline'):
+            for _ in range(2):
+                live_setup.setup(root, runtime, say=lambda n: None)
+                chosen.append(json.loads((runtime / 'run.json').read_text())['env'])
+        self.assertEqual(chosen[0]['AUTH_SECRET'], chosen[1]['AUTH_SECRET'], 'the person signed in with it: their session holds')
+        self.assertNotEqual(chosen[0]['PORT'], '', 'what is not a secret is chosen again')
+
     def test_the_assistant_sees_the_source_that_shows_the_problem_not_the_build(self):
         root = project({'app/package.json': {'scripts': {'dev': 'vite'}},
                         'app/vite.config.ts': '// Chief Operations dev server\n',
