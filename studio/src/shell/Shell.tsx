@@ -5,17 +5,13 @@ import { Outlet, useRouterState } from '@tanstack/react-router'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from '../components/Button'
-import buttonCss from '../components/Button.module.css'
 import { Badge, FreshnessChip } from '../components/Chip'
-import { Segmented } from '../components/Controls'
 import { Go } from '../components/Go'
 import { Icon } from '../components/Icon'
-import { Props } from '../components/Panel'
 import { Sheet, SheetSub } from '../components/Sheet'
 import { BranchLiveProvider, useFreshView } from '../branches/live'
 import { ScanSheet } from '../branches/ScanSheet'
 import { BranchChip, BranchSwitcher } from '../branches/Switcher'
-import { useBranchWords } from '../branches/words'
 import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { ChatDock } from '../chat/ChatDock'
@@ -23,12 +19,13 @@ import { useActions } from '../data/actions/store'
 import { TERMINAL } from '../data/actions/types'
 import { counts, useLoaded, useSections, useStudio, type Counts } from '../data/context'
 import { COUNT_NEEDS } from '../data/stages'
-import { deviceZone, usePrefs } from '../i18n/prefs'
-import { Id, N, When } from '../i18n/text'
+import { usePrefs } from '../i18n/prefs'
+import { Id, N } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
+import { LanguageAndTheme, ProjectFacts, TimeZoneSetting } from './Settings'
 import { ScanBanner } from './ScanBanner'
-import { useWaitingDecisions } from './waiting'
+import { useAwaitingApproval, useWaitingDecisions } from './waiting'
 import { SECTIONS, sectionOf, tabOf, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SYSTEM_VIEWS, SystemViews } from '../pages/system/SystemViews'
@@ -50,18 +47,24 @@ function useLiveCounts(): Record<string, number> {
   return { decisions: questions.length, runs: runs.filter((run) => !TERMINAL.includes(run.state)).length }
 }
 
-function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {
-  const { t, lang, theme, setLang, setTheme } = usePrefs()
+/** Everything that waits for the person, in one count: the report's questions, the runs' questions and the branches
+ * waiting for their approval. */
+function useWaitingCount(): number {
+  const c = useCounts()
+  const pending = useStudio()?.pending ?? []
+  const live = useLiveCounts()
+  const approvals = useAwaitingApproval().length
+  return (c && !pending.includes('decisions') ? c.decisionsWaiting : 0) + (live.decisions ?? 0) + approvals
+}
+
+/** The top bar's way to what waits for the person, with its count: one click from anywhere, on the phone too. */
+function WaitingButton({ current }: { current?: SectionDef }) {
+  const { t } = usePrefs()
+  const n = useWaitingCount()
   return (
-    <>
-      <Segmented label={t('language')} value={lang} onChange={setLang} comfortable={comfortable}
-        options={[{ id: 'ar', label: lang === 'en' ? 'Arabic' : 'عربي', lang: 'ar' }, { id: 'en', label: 'English', lang: 'en' }]} />
-      <Segmented label={t('appearance')} value={theme} onChange={setTheme} comfortable={comfortable}
-        options={[
-          { id: 'light', label: comfortable ? <><Icon name="sun" />{t('light')}</> : <Icon name="sun" />, aria: comfortable ? undefined : t('light') },
-          { id: 'dark', label: comfortable ? <><Icon name="moon" />{t('dark')}</> : <Icon name="moon" />, aria: comfortable ? undefined : t('dark') },
-        ]} />
-    </>
+    <Go to="/decisions" className={css.waiting} current={current?.id === 'decisions'} label={n ? `${t('waitingForYou')} (${n})` : t('waitingForYou')}>
+      <Icon name="inbox" /><span className={css.waitingWord}>{t('waitingForYou')}</span>{n > 0 && <Badge count={n} />}
+    </Go>
   )
 }
 
@@ -107,7 +110,7 @@ function Sidebar({ project, current, view, onPalette, onProject }:
       {!s.count && live[s.id] ? <N value={live[s.id]} className={css.navCount} /> : null}
     </Go>
   )
-  const main = SECTIONS.filter((s) => !s.group)
+  const main = SECTIONS.filter((s) => !s.group && !s.topbar)
   const footer = SECTIONS.filter((s) => s.group)
   return (
     <aside className={css.sidebar} aria-label={t('navigation')}>
@@ -137,13 +140,10 @@ function Sidebar({ project, current, view, onPalette, onProject }:
 }
 
 /** Four sections and More: More opens the sheet with System's maps, the footer's places and the display. */
+/** Four sections and More: More opens the sheet with System's maps, the footer's places and the display. */
 function TabBar({ current, onMore }: { current?: SectionDef; onMore: () => void }) {
   const { t } = usePrefs()
-  const c = useCounts()
-  const live = useLiveCounts()
-  const pending = useStudio()?.pending ?? []
   const tab = tabOf(current)
-  const moreBadge = (c && !pending.includes('decisions') ? c.decisionsWaiting : 0) + (live.decisions ?? 0)
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
       {SECTIONS.filter((s) => s.tabbar).map((s) => (
@@ -152,9 +152,9 @@ function TabBar({ current, onMore }: { current?: SectionDef; onMore: () => void 
           <span className={css.tabLabel}>{t(s.tab)}</span>
         </Go>
       ))}
-      <AriaButton className={css.tab} onPress={onMore} data-current={current && !tab ? '' : undefined} data-open="more">
-        <span className={css.tabIcon}><Icon name="more" size={22} />{moreBadge > 0 && <span className={css.tabBadge}><Badge count={moreBadge} /></span>}</span>
-        <span className={css.tabLabel}>{t('more')}{moreBadge > 0 && <span className="sr"> ({moreBadge})</span>}</span>
+      <AriaButton className={css.tab} onPress={onMore} data-current={current && !tab && !current.topbar ? '' : undefined} data-open="more">
+        <span className={css.tabIcon}><Icon name="more" size={22} /></span>
+        <span className={css.tabLabel}>{t('more')}</span>
       </AriaButton>
     </nav>
   )
@@ -213,6 +213,7 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
         <div className={css.deskEnd}>
           <BranchChip onPress={onBranches} />
           <Freshness onScan={onScan} />
+          <WaitingButton current={current} />
           <AriaButton className={css.cmdk} onPress={onPalette} aria-label={t('searchEverything')} data-truncate>
             <Icon name="search" /><span>{t('searchEverything')}</span><kbd>⌘K</kbd>
           </AriaButton>
@@ -223,30 +224,11 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
           ? <Go to={back.to} search={back.search} className={css.back}><Icon name="back" size={20} /><span>{back.label}</span></Go>
           : <span className={css.phoneChips}><BranchChip onPress={onBranches} /><Freshness onScan={onScan} /></span>}
         <span className={css.phoneSpacer} />
-        <Go to="/checks" className={[buttonCss.iconBtn, css.liveLink].join(' ')} label={t('checks')} current={current?.id === 'checks'}><Icon name="live" /></Go>
+        <WaitingButton current={current} />
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
         <IconButton icon="more" label={t('projectAndDisplay')} onPress={onProject} data-open="project" />
       </div>
     </header>
-  )
-}
-
-/** Settings: the time zone every time is shown in; the device's unless the person chooses one, and remembered. */
-function TimeZoneSetting() {
-  const { zone, zoneChoice, setZone } = usePrefs()
-  const w = useBranchWords()
-  const device = deviceZone()
-  const zones = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ?? []
-  const options = [...new Set([...(zoneChoice ? [zoneChoice] : []), 'UTC', ...zones])]
-  return (
-    <label className={css.zone}>
-      <span>{w('timeZone')}</span>
-      <select value={zoneChoice ?? ''} onChange={(event) => setZone(event.target.value || null)} data-zone={zone}>
-        <option value="">{w('timeZoneDevice', { z: device })}</option>
-        {options.map((name) => <option key={name} value={name}>{name}</option>)}
-      </select>
-      <small>{w('timeZoneLead')}</small>
-    </label>
   )
 }
 
@@ -260,24 +242,6 @@ function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOp
       <TimeZoneSetting />
     </Sheet>
   )
-}
-
-/** The project's facts, drawn only while its sheet is open (a closed sheet renders nothing of its body). */
-function ProjectFacts() {
-  const { t } = usePrefs()
-  const data = useStudio()
-  const rows: [React.ReactNode, React.ReactNode, boolean?][] = []
-  if (data?.meta) {
-    rows.push([t('files'), data.meta.files.value === null ? t('notMeasured') : <N value={data.meta.files.value} />, data.meta.files.value === null])
-    rows.push([t('lines'), data.meta.lines.value === null ? t('notMeasured') : <N value={data.meta.lines.value} />, data.meta.lines.value === null])
-    rows.push([t('languages'), <bdi dir="ltr">{data.meta.languages.map((l) => `${l.name} ${Math.round(l.share * 100)}%`).join(', ')}</bdi>])
-  }
-  if (data) {
-    rows.push([t('scanned'), data.manifest.scanned.at ? <When iso={data.manifest.scanned.at} /> : t('notRecorded'), !data.manifest.scanned.at])
-    rows.push([t('branch'), data.manifest.scanned.branch ? <Id value={data.manifest.scanned.branch} /> : t('notRecorded'), !data.manifest.scanned.branch])
-    rows.push([t('eaosVersion'), <Id value={data.manifest.built.version} />])
-  }
-  return rows.length > 0 ? <Props rows={rows} /> : null
 }
 
 declare global { interface Window { EAOS_REPORTS?: { name: string; href: string }[] } }

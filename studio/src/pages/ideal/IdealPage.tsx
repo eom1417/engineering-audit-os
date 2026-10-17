@@ -16,6 +16,7 @@ import { usePhone } from '../SystemMap'
 import { asIdeal, counts, differenceOf, RELATION, VIEWS, viewOf, type Element, type Ideal, type View, type ViewName } from './model'
 import { useIdealWords, type IdealWord } from './words'
 import css from './Ideal.module.css'
+import { ChangeNav } from '../change/parts'
 
 interface IdealSearch { view?: string }
 
@@ -128,6 +129,7 @@ function IdealBody({ data, ideal }: { data: StudioData; ideal: Ideal }) {
   )
   return (
     <div className={layout.page}>
+      <ChangeNav />
       <MissingBanner data={data} />
       <PageTitle title={w('title')} />
       <Provenance ideal={ideal} />

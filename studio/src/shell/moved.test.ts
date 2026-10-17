@@ -10,4 +10,7 @@ describe('the addresses that moved', () => {
     expect(movedTo(row('/runs'), { q: 'fix', other: 'x' })).toEqual({ to: '/checks', search: { tab: 'runs', q: 'fix' } })
     expect(movedTo(row('/history'), {})).toEqual({ to: '/checks', search: { tab: 'checks' } })
   })
+  it('opens Settings for the old Assistant page', () => {
+    expect(movedTo(row('/assistant'), {})).toEqual({ to: '/settings', search: {} })
+  })
 })

@@ -9,8 +9,8 @@ export const SHELL_NEEDS = ['meta', 'head', 'health', 'decisions', 'docs'] as co
 /** The counts of problems and components (the frame's navigation, Home's tiles and links). They are read after the
  * first page is drawn, the largest of the frame's sections: until they arrive each count says it is being counted. */
 export const COUNT_NEEDS = ['cards', 'story'] as const satisfies readonly SectionName[]
-/** Home: the frame's sections and the territory map; its counts follow (COUNT_NEEDS). */
-export const HOME_NEEDS = [...SHELL_NEEDS, 'system'] as const satisfies readonly SectionName[]
+/** Overview: the frame's sections alone; its counts follow (COUNT_NEEDS). */
+export const HOME_NEEDS = [...SHELL_NEEDS] as const satisfies readonly SectionName[]
 /** The Problems list: the cards, its facets read the plan's steps and the map's components. */
 export const PROBLEMS_NEEDS = [...SHELL_NEEDS, ...COUNT_NEEDS, 'system', 'plans'] as const satisfies readonly SectionName[]
 /** One card's detail: its evidence and the hidden lines of its excerpts. */

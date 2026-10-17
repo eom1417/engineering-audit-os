@@ -63,6 +63,9 @@
   border-radius: var(--radius-8); color: var(--text-tertiary); font-size: 13px; background: var(--bg-surface); cursor: pointer;
 }
 .cmdk span { flex: 1; text-align: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.waiting { display: flex; align-items: center; gap: 6px; min-block-size: 32px; padding-inline: 10px; border-radius: var(--radius-8); color: var(--text-secondary); font-size: 13px; white-space: nowrap; }
+.waiting:hover { background: var(--bg-hover); color: var(--text-primary); }
+.waiting[aria-current="page"] { background: var(--bg-selected); color: var(--text-primary); }
 .phone { display: none; }
 .tabbar { display: none; }
 .rowSet { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -78,6 +81,7 @@
   .navItem, .navSearch, .proj { justify-content: center; padding: 0; min-block-size: 44px; }
   .sidebar { padding-inline: 6px; }
   .cmdk { inline-size: 220px; }
+  .waitingWord { display: none; }
 }
 
 /* Phone: no sidebar, the tab bar, stacked views with a back button */
@@ -87,7 +91,9 @@
   .topbar { background: var(--bg-canvas); border-block-end-color: transparent; backdrop-filter: none; }
   .phone { display: flex; align-items: center; gap: 2px; block-size: var(--topbar-h-phone); padding-inline: 8px 4px; }
   .phoneSpacer { flex: 1; }
-  .phone > button, .liveLink { flex: none; }
+  .phone > button, .phone > .waiting { flex: none; }
+  .phone .waiting { min-block-size: 44px; min-inline-size: 44px; justify-content: center; padding-inline: 8px; }
+  .phone .waitingWord { display: none; }
   .phoneChips { display: flex; align-items: center; gap: 4px; min-inline-size: 0; flex: 0 1 auto; }
   .phoneChips > * { min-inline-size: 0; }
   .phoneChips .freshChip { flex: 0 3 auto; }

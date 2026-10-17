@@ -174,6 +174,12 @@ class ReadApi(unittest.TestCase):
             self.assertEqual(body.status_code, 200, entry['name'])
             self.assertEqual(hashlib.sha256(body.content).hexdigest(), entry['sha256'], entry['name'])
             self.assertEqual(body.headers['cache-control'], 'no-store')
+        # one document of the library is read alone, with the pictures it points at: never the whole library for it
+        library = json.loads((folder / 'library.json').read_text(encoding='utf-8'))
+        doc = library['documents'][0]
+        cut = self.get(f"/api/sections/library?only={doc['id']}").json()
+        self.assertEqual([d['id'] for d in cut['documents']], [doc['id']])
+        self.assertTrue(all(i['id'].rsplit('/', 1)[-1] in doc['text'] for i in cut['images']))
         session = self.get('/api/session').json()
         self.assertEqual((session['feed']['source'], session['actions']), ('manifest', False))
         self.assertIn('cards', session['sections'])

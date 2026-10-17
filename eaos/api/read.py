@@ -7,7 +7,8 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
 
     GET /api/session            the server's mode, the CSRF token, the project, the feed's source and its last id
     GET /api/manifest           studio/manifest.json
-    GET /api/sections/<name>    studio/<name>.json, for every section of the contract
+    GET /api/sections/<name>    studio/<name>.json, for every section of the contract; the library with ?only=<ids>
+                                cut to those documents and images and the images they point at (library_items)
     GET /api/schemas/<name>     the section's JSON Schema
     GET /api/openapi.json       the OpenAPI 3.1 document of the routes above, each response the section's own schema
     GET /api/events             the live stream (server.py)
@@ -94,6 +95,15 @@ def _not_found(payload):
     return JSONResponse(payload, status_code=404, headers=NO_STORE)
 
 
+def library_items(library, ids):
+    """The library section cut to what one page shows: the documents and images named, and the images those documents
+    point at (by file name), so opening a document reads its own text and pictures, not the whole library."""
+    documents = [d for d in library.get('documents', []) if d['id'] in ids]
+    texts = ' '.join(t for d in documents for t in [d.get('text', ''), *(d.get('texts') or {}).values()])
+    images = [i for i in library.get('images', []) if i['id'] in ids or i['id'].rsplit('/', 1)[-1] in texts]
+    return {**library, 'documents': documents, 'images': images}
+
+
 def _json_file(body):
     return Response(body, media_type='application/json', headers=NO_STORE)
 
@@ -135,7 +145,8 @@ class _Read:
         if name not in self.schemas: return _not_found({'error': 'unknown', 'message': f'{name} is not a section of the contract'})
         body = _file(self.folder / f'{name}.json') if name in self.listed() or name == 'coverage' else None
         if body is None: return _not_found({'error': 'not_written', 'section': name, 'coverage': self.coverage_row(name)})
-        return _json_file(body)
+        only = request.query_params.get('only')
+        return JSONResponse(library_items(json.loads(body), only.split(',')), headers=NO_STORE) if name == 'library' and only else _json_file(body)
 
     async def schema(self, request):
         name = request.path_params['name']

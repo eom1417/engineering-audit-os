@@ -36,10 +36,10 @@ function preset<T>(name: string): T | undefined {
   return window.EAOS_STUDIO?.[name] as T | undefined
 }
 
-async function fetchSection<T>(name: string): Promise<T | undefined> {
+async function fetchSection<T>(name: string, only?: string): Promise<T | undefined> {
   const token = liveToken()
   if (token) {
-    const answer = await fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
+    const answer = await fetch(`/api/sections/${encodeURIComponent(name)}${only ? `?only=${encodeURIComponent(only)}` : ''}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
     return answer.ok ? ((await answer.json()) as T) : undefined
   }
   if (!preset<T>(name)) await script(name)
@@ -47,8 +47,9 @@ async function fetchSection<T>(name: string): Promise<T | undefined> {
 }
 
 /** A section the start does not load (the library, the functions, the coverage rows): read when a page needs it, from
- * the live server's API when the tab is live, else its classic script beside index.html; read again when it changes. */
-export function useLazySection<T>(data: StudioData, name: string): Lazy<T> {
+ * the live server's API when the tab is live, else its classic script beside index.html; read again when it changes.
+ * `only`: the library's documents and images one page shows (the live server cuts it; a file reads it whole). */
+export function useLazySection<T>(data: StudioData, name: string, only?: string): Lazy<T> {
   const { lang } = usePrefs()
   const locale = useReportLocale()
   const entry = data.manifest.sections.find((s) => (s.name as string) === name)
@@ -57,10 +58,11 @@ export function useLazySection<T>(data: StudioData, name: string): Lazy<T> {
   useEffect(() => {
     if (!listed) { setState({ kind: 'absent' }); return }
     let live = true
-    fetchSection<T>(name).then((found) => { if (live) setState(found ? { kind: 'ready', data: found } : { kind: 'absent' }) },
+    if (only && !preset<T>(name)) setState({ kind: 'loading' })   // another document: never the last one's text meanwhile
+    fetchSection<T>(name, only).then((found) => { if (live) setState(found ? { kind: 'ready', data: found } : { kind: 'absent' }) },
       () => { if (live) setState({ kind: 'absent' }) })
     return () => { live = false }
-  }, [listed, name, entry?.sha256])
+  }, [listed, name, only, entry?.sha256])
   return useMemo(() => state.kind === 'ready' ? { ...state, data: localizeValue(state.data, lang, locale) } : state, [state, lang, locale])
 }
 

@@ -14,6 +14,8 @@ export interface SectionDef {
   nav: WordKey
   /** The sidebar group heading, if any */
   group?: WordKey
+  /** Reached from the top bar (Waiting for you), not from the sidebar */
+  topbar?: boolean
   /** On the phone's tab bar (four, then More) */
   tabbar: boolean
   count?: (counts: Counts) => number
@@ -29,8 +31,8 @@ export const SECTIONS: SectionDef[] = [
   { id: 'change', to: '/change', icon: 'change', tab: 'fixes', nav: 'fixes', tabbar: true },
   { id: 'system', to: '/system', icon: 'system', tab: 'system', nav: 'system', tabbar: false, count: (c) => c.components, countFrom: 'story' },
   { id: 'library', to: '/library', icon: 'book', tab: 'library', nav: 'documents', group: 'groupFooter', tabbar: false, count: (c) => c.docs, countFrom: 'docs' },
-  { id: 'decisions', to: '/decisions', icon: 'inbox', tab: 'decisions', nav: 'waitingForYou', group: 'groupFooter', tabbar: false, count: (c) => c.decisionsWaiting, countFrom: 'decisions', badge: (c) => c.decisionsWaiting },
-  { id: 'assistant', to: '/assistant', icon: 'assistant', tab: 'assistant', nav: 'assistant', group: 'groupFooter', tabbar: false },
+  { id: 'decisions', to: '/decisions', icon: 'inbox', tab: 'decisions', nav: 'waitingForYou', topbar: true, tabbar: false },
+  { id: 'settings', to: '/settings', icon: 'settings', tab: 'settings', nav: 'settings', group: 'groupFooter', tabbar: false },
 ]
 
 /** Pages under another section's address: the System maps' pages to System, evidence to Problems, a run and a past

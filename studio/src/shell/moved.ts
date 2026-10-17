@@ -10,6 +10,7 @@ export const MOVED: Moved[] = [
   { from: '/tools', to: '/checks' },
   { from: '/runs', to: '/checks', extra: { tab: 'runs' }, keep: ['q', 'show'] },
   { from: '/history', to: '/checks', extra: { tab: 'checks' } },
+  { from: '/assistant', to: '/settings' },
 ]
 
 /** Where an old address goes, with the search the new page reads. */

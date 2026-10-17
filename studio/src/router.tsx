@@ -41,7 +41,7 @@ const JourneysPage = lazyRouteComponent(() => import('./pages/system/journeys/Jo
 const RunPage = lazyRouteComponent(() => import('./pages/runs/RunPage'), 'RunPage')
 const ScreenPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreenPage')
 const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreensPage')
-const AssistantPage = lazyRouteComponent(() => import('./pages/assistant/AssistantPage'), 'AssistantPage')
+const SettingsPage = lazyRouteComponent(() => import('./pages/settings/SettingsPage'), 'SettingsPage')
 const BranchesPage = lazyRouteComponent(() => import('./pages/branches/BranchesPage'), 'BranchesPage')
 const ChecksPage = lazyRouteComponent(() => import('./pages/checks/ChecksPage'), 'ChecksPage')
 
@@ -98,7 +98,7 @@ const tree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage }),
   createRoute({ getParentRoute: () => root, path: '/branches', component: BranchesPage, validateSearch: params('show', 'q', 'base', 'b') }),
   createRoute({ getParentRoute: () => root, path: '/checks', component: ChecksPage, validateSearch: params('tab', 'flow', 'stage', 'q', 'show') }),
-  createRoute({ getParentRoute: () => root, path: '/assistant', component: AssistantPage }),
+  createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),
   createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage }),
   createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, validateSearch: params('group', 'q') }),
   createRoute({ getParentRoute: () => root, path: '/library/docs', component: LibraryPage, validateSearch: params('group', 'q') }),

@@ -1,11 +1,11 @@
-// Home: where the project stands in one sentence, its health, what waits for the person and the next step. A first
-// composition of the design system on real data; NS37.T3 completes it (journey, land, plan, library).
+// Overview: where the project stands in one sentence, its health and its problems by severity, one line to what waits
+// for the person, and the next step. Nothing else: the maps live in System, the way to the target in Fixes.
 import { useMemo, useState } from 'react'
 import { BandChip, BandDot, HealthBlock, StatLink, StatLinks, StatTile, Tiles, useBandWord } from '../components/Health'
 import { SeverityGlyph } from '../components/Chip'
-import { FoldList, Panel, RowLink, Section } from '../components/Panel'
+import { Panel, RowLink, Section } from '../components/Panel'
 import { Sheet, SheetLead } from '../components/Sheet'
-import { DecisionCard, Headline, NextStep, headlineParts } from '../components/Story'
+import { Headline, NextStep, headlineParts } from '../components/Story'
 import { counts, useSections } from '../data/context'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -15,7 +15,6 @@ import { useWaitingDecisions } from '../shell/waiting'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
 import { COUNT_NEEDS, HOME_NEEDS } from '../data/stages'
 import { nextRequest } from './requests'
-import { HomeMaps } from '../map/home'
 import css from './Pages.module.css'
 
 const AREA = {
@@ -59,7 +58,6 @@ function HomeBody({ data }: { data: StudioData }) {
   const score = data.health?.score.value
   const scoreN = score === null || score === undefined ? null : Math.round(score * 100)
   const decisions = useWaitingDecisions(data)
-  const [first, ...rest] = decisions
   const verdict = data.head?.verdict ?? ''
   const parts = counting ? [verdict] : headlineParts(verdict, [
     { value: c.cards, to: '/problems' },
@@ -94,19 +92,10 @@ function HomeBody({ data }: { data: StudioData }) {
               </StatLinks>
             </div>
           </Panel>
-          <HomeMaps data={data} />
         </div>
         <div className={layout.col}>
-          {first && (
-            <Section title={t('waitingForYou')} count={decisions.length}>
-              <DecisionCard compact decision={first} cardsTo={{ to: '/problems', search: { who: 'you' } }} />
-              {rest.length > 0 && (
-                <Panel>
-                  {/* folded at six with "Show all N" in place (DESIGN.md list folding), so Home stays within two phone screens */}
-                  <FoldList items={rest} label={t('waitingForYou')} render={(d) => <RowLink compact to="/decisions" title={<Txt>{d.question}</Txt>} sub={<Txt>{d.recommendation}</Txt>} />} />
-                </Panel>
-              )}
-            </Section>
+          {decisions.length > 0 && (
+            <Panel><RowLink to="/decisions" icon="inbox" title={t('waitingN', { n: decisions.length })} sub={<Txt>{decisions[0].question}</Txt>} /></Panel>
           )}
           {next && (
             <Section title={t('nextStep')}>

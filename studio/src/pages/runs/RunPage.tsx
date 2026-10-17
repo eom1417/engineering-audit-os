@@ -48,7 +48,7 @@ const decideWord = (w: ReturnType<typeof useCmdWords>, op: 'accept' | 'undo', ta
 /** Accept or undo, behind an explicit confirm. Accept shows where it merges (one of the person's branches, the fix
  * preview's choice first; a protected one shown with its reason, never choosable) and "delete the branch after
  * merging", on by default: anything merged goes, so no EAOS branch is left forking. */
-function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'undo' | null; onClose: () => void; onDone: (next: Run) => void }) {
+export function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'undo' | null; onClose: () => void; onDone: (next: Run) => void }) {
   const { client } = useActions()
   const w = useCmdWords()
   const toast = useToast()
