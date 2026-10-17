@@ -170,6 +170,24 @@ class SignInTests(unittest.TestCase):
         self.assertEqual({method for method, _ in asked}, {'GET'})
         self.assertFalse([path for _, path in asked if 'logout' in path or 'delete' in path])
 
+    def test_lighthouse_on_a_published_site_never_carries_the_persons_session(self):
+        from eaos.pipeline import runners
+        from eaos.screens import crawl
+        session = self.root / 'published-session.json'
+        session.write_text(json.dumps({'cookies': [{'name': 'session', 'value': 'live'}], 'origins': []}))
+        measured = []
+        speed = lambda url, out=None, storage_state=None, **_: measured.append(storage_state) or {'status': 'unavailable', 'reason': 'x'}
+        with mock.patch.object(crawl, 'lighthouse', side_effect=speed), \
+                mock.patch.object(crawl, 'discover', return_value=([{'path': '/', 'status': 'observed', 'depth': 0}], '')):
+            crawl.crawl('https://app.example.com', self.root, storage_state=session, read_only=True)
+        context = SimpleNamespace(out=self.root, get=lambda key, default=None: {'sign_in': {'published': 'https://app.example.com',
+                                                                                             'folder': str(self.root)}}.get(key, default))
+        with mock.patch('eaos.screens.audit.lighthouse', side_effect=speed), \
+                mock.patch('eaos.screens.audit.page_audit', return_value={'status': 'observed', 'rows': [], 'tools': {}}), \
+                mock.patch('eaos.pipeline.live_app.shared_app', return_value=(None, 'https://app.example.com', session)):
+            runners._audit_pages(context, {'/': ['/']}, None)
+        self.assertEqual(measured, [None, None], 'Lighthouse loads the live site as any visitor, never signed in')
+
     def test_the_sign_in_page_alone_answers_behind_its_guard_and_ends_once_the_person_answers(self):
         from eaos import govern, guided
         from eaos.api import server

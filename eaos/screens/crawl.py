@@ -113,7 +113,8 @@ def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read
     rows = []
     for route in routes:
         row = {'path': route['path'], 'template': shapes[route['path']], 'depth': route.get('depth'), 'measured': False}
-        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']), storage_state)
+        # a published site: Lighthouse cannot be held to reading only, so it loads the pages as any visitor, signed out
+        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']), None if read_only else storage_state)
         rows.append(row)
     return {'status': 'observed', 'routes': rows, 'templates': len(set(shapes.values())),
             'measured': sum(r['measured'] for r in rows)}

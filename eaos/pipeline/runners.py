@@ -192,7 +192,7 @@ def _audit_pages(context, groups, measured):
                        variants(**((live.profile.get('screens') if live else None) or {})), out=folder, storage_state=state,
                        read_only=not live)
     speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
-             if measured else lighthouse(base + '/', out=folder, storage_state=state))
+             if measured else lighthouse(base + '/', out=folder, storage_state=state if live else None))    # published: as a visitor
     return audit, speed
 
 

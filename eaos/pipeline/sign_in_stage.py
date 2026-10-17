@@ -17,8 +17,8 @@ NOBODY = ('nobody signed in within {minutes} minutes: the pages behind the sign-
 SAID_OUT = 'the person chose to go on without signing in: the pages behind the sign-in were seen signed out'
 SEED_OUT = "the test user's seed script did not sign in: the pages behind the sign-in were seen signed out"
 PUBLISHED = ('the crawl and the screens read {address} signed in, read only (GET, its own links, never a link that signs '
-             'out, deletes or changes); the lock, the journeys and the load test never run against it, only on the isolated '
-             'copy')
+             'out, deletes or changes); Lighthouse, which cannot be held to reading, measures it signed out as any visitor; '
+             'the lock, the journeys and the load test never run against it, only on the isolated copy')
 
 
 def session(context):

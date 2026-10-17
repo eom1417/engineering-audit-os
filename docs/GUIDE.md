@@ -261,7 +261,8 @@ the way you chose before it starts: **you sign in** (the default), **a test user
   `eaos sign-in --forget`, or `eaos clean`) removes it.
 - When signing in cannot work in the separate copy, name your published address (`eaos check --published https://…`, or
   the field under the ways to sign in): after you sign in there, only the pages are read, with nothing sent but page
-  requests and never a link that signs out, deletes or changes; the lock, the journeys and the load test never run on it.
+  requests and never a link that signs out, deletes or changes; its speed (Lighthouse) is measured signed out, as any visitor, since a
+  measure cannot be held to reading only; the lock, the journeys and the load test never run on it.
 
 ## What EAOS never does
 
