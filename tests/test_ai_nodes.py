@@ -239,6 +239,27 @@ class Framework(Base):
         self.assertEqual({d['source'] for d in record['decisions']}, {'model'})
 
 
+    def test_speed_mode_asks_the_batches_side_by_side_and_a_failed_batch_leaves_only_its_cards_to_the_rules(self):
+        from eaos.pipeline.schedule import Assistants
+        cards = json.loads((self.report / 'studio/cards.json').read_text(encoding='utf-8'))
+        cards['cards'] += [dict(cards['cards'][0], id=f'TASK-{n:03d}') for n in range(10, 10 + 3 * triage.BATCH)]
+        (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
+        import threading
+        lock, state = threading.Lock(), {'now': 0, 'most': 0}
+
+        def answer(name, schema):
+            with lock: state['now'] += 1; state['most'] = max(state['most'], state['now'])
+            time.sleep(0.05)
+            with lock: state['now'] -= 1
+            if name == 'decide-2': raise RuntimeError('this batch broke')
+            return _fill(schema)
+        record = self.triage(Answer(answer), assistants=Assistants(3))
+        self.assertEqual(state['most'], 3, 'three assistants at once, never four')
+        sources = [d['source'] for d in record['decisions']]
+        self.assertEqual(sources.count('rules'), triage.BATCH, "only the broken batch's cards fall to the rules")
+        self.assertEqual(record['method'], 'model')
+        self.assertEqual([e['node'] for e in core.log(self.report)].count('card_triage'), 1, 'one line per run')
+
 class Triage(Base):
     """The card triage: its verdicts stand on the card's own evidence, doubt asks a probe, reject tells the library."""
 
@@ -250,8 +271,10 @@ class Triage(Base):
             decision('TASK-002', 'doubt', ['FACT-0002'], detail={'falsifier': 'a caller of b'}),
             decision('TASK-003', 'reject', ['TASK-003'])]})
         cards = (self.report / 'studio/cards.json').read_bytes()
+        runs = len(core.log(self.report))
         self.triage(launcher, fresh=True)
         self.assertEqual((self.report / 'studio/cards.json').read_bytes(), cards, 'the triage changed a card')
+        self.assertEqual(len(core.log(self.report)) - runs, 1, 'the doubted cards judged again: still one line, both passes in it')
         folder = self.report / 'nodes/card_triage'
         probes = json.loads((folder / 'probes.json').read_text(encoding='utf-8'))['probes']
         self.assertEqual([(p['claim_id'], p['probe_type'], p['status']) for p in probes], [('TASK-002', 'falsification', 'not_run')])

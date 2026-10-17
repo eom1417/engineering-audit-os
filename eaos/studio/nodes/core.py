@@ -25,7 +25,10 @@ and images(data) -> the pictures the assistant reads (the only files it may open
 import hashlib
 import json
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from ...code_laws import LAWS
 from datetime import datetime, timezone
 from pathlib import Path
@@ -74,17 +77,19 @@ DECISION = contract()['properties']['decisions']['items']
 
 class AdapterLauncher:
     """The person's assistant as a node's launcher: each pass is one `ask` in its own folder; `cost_usd` adds up what
-    the passes cost when the stream says."""
+    the passes cost when the stream says, several passes at once included."""
 
     def __init__(self, adapter, folder, cancel=None, started=None, images=()):
         self.adapter, self.folder, self.cancel, self.started, self.images = adapter, Path(folder), cancel, started, tuple(images)
         self.assistant, self.model, self.seconds, self.cost_usd = adapter.name, None, 0.0, None
+        self.lock = threading.Lock()
 
     def __call__(self, name, prompt, schema):
         from ..actions.adapters import ask
         answer = ask(self.adapter, prompt, schema, self.folder / name, self.cancel, self.started, self.images)
-        self.model, self.seconds = answer['model'] or self.model, self.seconds + answer['seconds']
-        if answer.get('cost_usd') is not None: self.cost_usd = (self.cost_usd or 0.0) + answer['cost_usd']
+        with self.lock:
+            self.model, self.seconds = answer['model'] or self.model, self.seconds + answer['seconds']
+            if answer.get('cost_usd') is not None: self.cost_usd = (self.cost_usd or 0.0) + answer['cost_usd']
         return answer['answer']
 
 
@@ -302,8 +307,8 @@ def record(node, base, decisions, dropped, **fields):
             'routes': routes(node, decisions), 'critique': None, **fields}
 
 
-def keep(report, node, row, key=None):
-    """Write the node's last record (validated), its cache entry and its run-log line; return the record."""
+def keep(report, node, row, key=None, logged=True):
+    """Write the node's last record (validated), its cache entry and, when `logged`, its run-log line; return the record."""
     from ... import artifact_contracts
     problems = artifact_contracts.validate(row, contract())
     if problems: raise ValueError(f'{node.name}: the record is not an ai-node: ' + '; '.join(problems[:3]))
@@ -313,12 +318,17 @@ def keep(report, node, row, key=None):
     if key and row['state'] == 'decided' and not row['cached']:
         (folder / 'cache').mkdir(exist_ok=True)
         (folder / 'cache' / f'{key}.json').write_text(json.dumps(row, ensure_ascii=False) + '\n', encoding='utf-8')
+    if logged: log_run(report, node, row)
+    return row
+
+
+def log_run(report, node, row):
+    """The run log's line of one run of the node: its record, its time and what it cost."""
     _append(report, {'node': node.name, 'at': row['at'], 'state': row['state'], 'method': row['method'], 'assistant': row['assistant'],
                      'model': row['model'], 'prompt': row['prompt'], 'inputs': row['inputs'], 'schema': row.get('schema'),
                      'cached': row['cached'], 'seconds': row['seconds'], 'cost_usd': row['cost_usd'], 'why': row['why'],
                      'routes': {r['decision']: len(r['subjects']) for r in row['routes']}, 'dropped': len(row['dropped']),
                      'output': row['decisions']})
-    return row
 
 
 def cached(report, node, key):
@@ -333,14 +343,16 @@ def last(report, node):
 
 # A run's settings, with their defaults; every other option of run_node is the node's own input.
 RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en', 'fresh': False, 'say': None,
-               'cancel': None, 'started': None}
+               'cancel': None, 'started': None, 'assistants': None, 'logged': True}
 
 
 def run_node(node, spec, report, **options):
     """Run one decision node with its guards and return its record (contract ai-node), or None when it has nothing
     to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of
     `adapters`; with none, the rules decide alone. The settings come by name (RUN_OPTIONS: launcher, adapters, project,
-    lang, fresh, say, cancel, started); the other options are the node's inputs."""
+    lang, fresh, say, cancel, started; `assistants`, the check's eaos/pipeline/schedule.py Assistants, how many batches are
+    asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one); the other
+    options are the node's inputs."""
     settings = {name: options.pop(name, default) for name, default in RUN_OPTIONS.items()}
     report = Path(report)
     data = spec.inputs(report, project=settings['project'], lang=settings['lang'], **options)
@@ -372,7 +384,7 @@ class _Run:
         self.base = {'at': self.at, 'inputs': digest(data), 'passes': list(node.passes), 'summary': ''}
 
     def done(self, row, key=None):
-        row = keep(self.report, self.node, row, key)
+        row = keep(self.report, self.node, row, key, self.settings['logged'])
         if hasattr(self.spec, 'finish'): self.spec.finish(self.report, row, self.data)
         return row
 
@@ -448,19 +460,37 @@ class _Run:
         return s['launcher'] or launcher_of(s['adapters'], folder_of(self.report, self.node) / 'runs' / stamp, s['cancel'], s['started'], images)
 
     def _ask(self, launcher, asks, asked, detail):
-        """(answer, critique): one ask per batch, then a planning node's critique pass."""
-        node, who = self.node, getattr(launcher, 'assistant', None)
-        answers = []
-        for index, (part, part_schema, part_prompt) in enumerate(asks):
-            batch = f' ({index + 1}/{len(asks)})' if len(asks) > 1 else ''
-            self.tell(f'{node.title}: {who or "the assistant"} decides{batch}', f'{node.title}: {who or "المساعد"} يقرّر{batch}')
-            name = node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}'
-            one = self._in_language(launcher, launcher(name, part_prompt, part_schema), part_schema, name)
-            _shape_problem(one, part_schema, 'answer')
-            answers.append(one)
-        answer = _joined(answers)
-        if 'critique' not in node.passes: return answer, None
+        """(answer, critique): one ask per batch, several at once when the check allows several assistants, joined in
+        the batches' order; a batch that fails leaves its subjects to the rules (_decided), unless every batch failed or
+        the assistant is stuck or stopped. Then a planning node's critique pass."""
+        slots = self.settings['assistants']
+        at_once = min(len(asks), slots.count if slots else 1)
+        if at_once > 1:
+            with ThreadPoolExecutor(at_once, thread_name_prefix=f'eaos-{self.node.name}') as pool:
+                outcomes = list(pool.map(lambda index: self._batch(launcher, asks, index, slots), range(len(asks))))
+        else: outcomes = [self._batch(launcher, asks, index, slots) for index in range(len(asks))]
+        failed = [problem for problem in outcomes if isinstance(problem, Exception)]
+        if failed and (len(failed) == len(outcomes) or any(isinstance(p, Stuck) for p in failed) or self._stopped()): raise failed[0]
+        answer = _joined([one for one in outcomes if not isinstance(one, Exception)])
+        if 'critique' not in self.node.passes: return answer, None
         return self._critique(launcher, answer, asks[0][2], asked, detail)
+
+    def _batch(self, launcher, asks, index, slots):
+        """One batch's answer in the person's language, in its asked shape; the error instead when it failed."""
+        node, who, (_, schema, prompt) = self.node, getattr(launcher, 'assistant', None), asks[index]
+        batch = f' ({index + 1}/{len(asks)})' if len(asks) > 1 else ''
+        self.tell(f'{node.title}: {who or "the assistant"} decides{batch}', f'{node.title}: {who or "المساعد"} يقرّر{batch}')
+        name = node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}'
+        try:
+            with slots or nullcontext():
+                one = self._in_language(launcher, launcher(name, prompt, schema), schema, name)
+            _shape_problem(one, schema, 'answer')
+            return one
+        except Exception as problem:   # noqa: BLE001 - _ask decides what a failed batch means
+            return problem
+
+    def _stopped(self):
+        return self.settings['cancel'] is not None and self.settings['cancel'].is_set()
 
     def _critique(self, launcher, answer, prompt, asked, detail):
         node = self.node
@@ -483,9 +513,7 @@ class _Run:
         return again if isinstance(again, dict) and len(foreign_texts(again, lang)) < len(texts) else answer
 
     def _failed(self, problem, launcher, asks, asked):
-        cancel = self.settings['cancel']
-        stopped = cancel is not None and cancel.is_set()
-        why, state = fallback('stuck' if isinstance(problem, Stuck) else 'stopped' if stopped else f'{type(problem).__name__}: {problem}')
+        why, state = fallback('stuck' if isinstance(problem, Stuck) else 'stopped' if self._stopped() else f'{type(problem).__name__}: {problem}')
         return self.rules_only(state, why, assistant=getattr(launcher, 'assistant', None), model=getattr(launcher, 'model', None),
                                prompt=digest(asked), schema=digest([s for _, s, _ in asks]),
                                seconds=round(time.monotonic() - self.began, 1), cost=spent(launcher))

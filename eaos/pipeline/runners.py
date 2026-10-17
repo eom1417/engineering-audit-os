@@ -365,7 +365,7 @@ def _node(context, name):
         raise _absent(context.provider)
     from ..studio.nodes import core, run
     record = run(context.out, names=[name], project=str(context.target), lang=context.language,
-                 adapters=_adapters_of(context)).get(name)
+                 adapters=_adapters_of(context), assistants=context.get('assistants')).get(name)
     if record is None:
         raise SkipStage('there was nothing for the assistant to decide', code='not_applicable')
     if record['method'] != 'model':

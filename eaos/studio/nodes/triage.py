@@ -298,12 +298,17 @@ def run(node, report, **options):
     replaces the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
     the first verdicts stand."""
     spec = sys.modules[__name__]
-    first = core.run_node(node, spec, report, **options)
-    if not first or first['method'] != 'model': return first
+    first = core.run_node(node, spec, report, **options, logged=False)
+    if not first: return first
     doubted = {d['subject']: d['why'] for d in first['decisions'] if d['source'] == 'model' and d['decision'] == 'doubt'}
-    if not doubted: return first
-    second = core.run_node(node, spec, report, **{**options, 'rejudge': doubted})
-    row = core.keep(report, node, _merge_second(node, first, second or {}))
+    if first['method'] != 'model' or not doubted:
+        core.log_run(report, node, first)
+        return first
+    second = core.run_node(node, spec, report, **{**options, 'rejudge': doubted, 'logged': False}) or {}
+    row = core.keep(report, node, _merge_second(node, first, second), logged=False)
+    # one line for the run, both passes' time and cost: the first pass's alone counted it twice beside the merged one
+    core.log_run(report, node, {**row, **{k: round((first.get(k) or 0) + (second.get(k) or 0), 4) if first.get(k) is not None else None
+                                         for k in ('seconds', 'cost_usd')}})
     finish(report, row, inputs(report, project=options.get('project'), lang=options.get('lang', 'en'), cards=options.get('cards'),
                                limit=options.get('limit')))
     return row
