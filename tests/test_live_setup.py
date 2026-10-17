@@ -246,7 +246,7 @@ class RunEnvironmentTests(unittest.TestCase):
         self.assertGreater(len(str(db.root)), 110, 'deeper than a Unix socket path may be')
         try:
             url = db.create('shop')
-            self.assertRegex(url, r'^postgresql://postgres@127\.0\.0\.1:\d+/shop$')
+            self.assertRegex(url, r'^postgresql://postgres:[\w-]+@127\.0\.0\.1:\d+/shop$')
             self.assertEqual(db.start().rsplit('/', 1)[0], url.rsplit('/', 1)[0], 'a running server is reused')
         finally:
             db.stop()

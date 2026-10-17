@@ -3,10 +3,11 @@
 The owner's database is never used: a run gets an empty one here, created for it, and the project's own
 migrations fill it. The binaries come from the `pgserver` package (Apache-2.0, installed with EAOS's `live`
 extra), so nothing needs an administrator; a PostgreSQL already installed on the machine is the fallback.
-Authentication is `trust` because the server answers 127.0.0.1 only and holds nothing but what the run made.
+It answers 127.0.0.1 only, to a password of its own (scram-sha-256) kept in <runtime>/database/password, readable by
+the person only and carried in the address the run gets: another project's run on this computer cannot connect.
 
-State lives in <runtime>/database/: data, log, and server.json {port, bin}. start() is idempotent: a server
-already running for this runtime is reused; stop() stops it and keeps the data for the next step. Under root the data
+State lives in <runtime>/database/: data, log, password and server.json {port, bin}. start() is idempotent: the server
+of this runtime, as its own postmaster.pid says, is reused; stop() stops it and keeps the data for the next step. Under root the data
 sits in the temporary folder instead, with a note naming its runtime beside it: once that runtime is gone, the next
 start() removes the data (356 such databases had kept 16 GB after their projects were deleted).
 """
@@ -14,6 +15,7 @@ import glob
 import hashlib
 import json
 import os
+import secrets
 import shutil
 import socket
 import stat
@@ -63,7 +65,7 @@ class LocalPostgres:
         # Under root the data must be where the dedicated account can reach it: /root is not.
         self.data = (Path(tempfile.gettempdir()) / 'eaos-pg' / self.root.resolve().as_posix().strip('/').replace('/', '_')
                      if self.owner else self.root / 'data')
-        self.state = self.root / 'server.json'
+        self.state, self.password_file = self.root / 'server.json', self.root / 'password'
         # A Unix socket's path may not pass about 104 characters (macOS) or 107 (Linux), and the data folder under
         # ~/.eaos/projects/<name>-<id>/... already does: the socket gets a short folder of its own in /tmp.
         self.sockets = _sockets(self.root.resolve())
@@ -73,14 +75,29 @@ class LocalPostgres:
                               **({'user': self.owner} if self.owner else {}))
 
     def running(self):
+        """server.json when the server of this data folder runs and is ready on its port, by its postmaster.pid (a port
+        alone may be another project's server by now)."""
         if not self.state.is_file(): return None
         state = json.loads(self.state.read_text())
-        done = subprocess.run([str(Path(state['bin']) / 'pg_isready'), '-h', '127.0.0.1', '-p', str(state['port'])],
-                              capture_output=True)
-        return state if done.returncode == 0 else None
+        try:
+            lines = (self.data / 'postmaster.pid').read_text().splitlines()
+            os.kill(int(lines[0]), 0)
+        except (OSError, ValueError, IndexError):
+            return None
+        ready = len(lines) > 7 and lines[3].strip() == str(state['port']) and lines[7].strip() == 'ready'
+        return state if ready and self.password_file.is_file() else None
+
+    def _password(self, bin_dir):
+        """The server's password, made with its data: a data folder made before it had one (trust) is made again."""
+        if not self.password_file.is_file():
+            self._run(bin_dir, 'pg_ctl', '-D', str(self.data), '-m', 'immediate', 'stop', check=False)
+            shutil.rmtree(self.data, ignore_errors=True)
+            descriptor = os.open(self.password_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(descriptor, 'w') as out: out.write(secrets.token_urlsafe(24))
+        return self.password_file.read_text().strip()
 
     def start(self):
-        """The server's address, postgresql://postgres@127.0.0.1:<port>, starting it when it is not running."""
+        """The server's address, postgresql://postgres:<password>@127.0.0.1:<port>, starting it when it is not running."""
         state = self.running()
         if state: return self.url(state)
         bin_dir = binaries()
@@ -93,10 +110,16 @@ class LocalPostgres:
             os.chmod(self.data.parent, stat.S_IRWXU)
             self._sweep(bin_dir)
             self.data.with_name(self.data.name + '.from').write_text(str(self.root.resolve()), encoding='utf-8')
+        password = self._password(bin_dir)
         if not (self.data / 'PG_VERSION').exists():
             self.data.mkdir(parents=True, exist_ok=True)
             if self.owner: shutil.chown(self.data, self.owner)
-            self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=trust', '-E', 'UTF8', '--no-instructions')
+            given = self.data.with_name(self.data.name + '.pw')         # where initdb's account reads it, then gone
+            given.write_text(password)
+            if self.owner: shutil.chown(given, self.owner)
+            try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=scram-sha-256', f'--pwfile={given}',
+                           '-E', 'UTF8', '--no-instructions')
+            finally: given.unlink(missing_ok=True)
         port = _free_port()
         log = self.data / 'server.log'
         self.sockets.mkdir(parents=True, exist_ok=True)
@@ -117,17 +140,17 @@ class LocalPostgres:
             for folder in (data, _sockets(root)): shutil.rmtree(folder, ignore_errors=True)
             note.unlink()
 
-    @staticmethod
-    def url(state, database='postgres'):
-        return f"postgresql://postgres@127.0.0.1:{state['port']}/{database}"
+    def url(self, state, database='postgres'):
+        return f"postgresql://postgres:{self.password_file.read_text().strip()}@127.0.0.1:{state['port']}/{database}"
 
     def create(self, name):
         """The address of database `name`, created empty when it does not exist."""
         state = self.running() or (self.start() and self.running())
         psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tAc']
-        exists = subprocess.run(psql + [f"select 1 from pg_database where datname = '{name}'"], capture_output=True, text=True)
+        env = {**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()}
+        exists = subprocess.run(psql + [f"select 1 from pg_database where datname = '{name}'"], capture_output=True, text=True, env=env)
         if exists.stdout.strip() != '1':
-            subprocess.run(psql + [f'create database "{name}"'], capture_output=True, text=True, check=True)
+            subprocess.run(psql + [f'create database "{name}"'], capture_output=True, text=True, check=True, env=env)
         return self.url(state, name)
 
     def stop(self):

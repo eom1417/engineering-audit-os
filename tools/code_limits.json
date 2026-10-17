@@ -40,7 +40,6 @@
   "eaos/facts/pipeline_frameworks.py::npm_scripts": 17,
   "eaos/facts/resolve.py::_matches": 17,
   "eaos/guided.py::accept": 16,
-  "eaos/guided.py::clean": 17,
   "eaos/guided.py::merge": 16,
   "eaos/handover.py::brief": 19,
   "eaos/handover.py::refresh": 16,
@@ -121,7 +120,7 @@
  },
  "modules": {
   "eaos/agent_tools.py": 1189,
-  "eaos/guided.py": 1281,
+  "eaos/guided.py": 1280,
   "eaos/human_report.py": 2104,
   "eaos/studio/actions/branches.py": 1141,
   "eaos/studio/actions/runs.py": 729,

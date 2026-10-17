@@ -1,9 +1,11 @@
 """The sandbox refuses without the owner's grant, runs in a copy, and records what it could not isolate."""
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -97,11 +99,13 @@ class SandboxTests(Workspace):
                 listener.close()
             self.assertNotEqual(code, 0)
             self.assertEqual(self.record()['backend'], 'unshare')
-        with mock.patch.object(sandbox, '_network_isolation', return_value=()):
+        with mock.patch.object(sandbox, '_network_isolation', return_value=()), \
+                mock.patch.object(sandbox, '_view_refusal', return_value='no user namespaces'):
             box = self.box()
         box.run([sys.executable, '-c', 'pass'])
         self.assertEqual(self.record()['backend'], 'process')
         self.assertIn('network not isolated', self.record()['limitations'])
+        self.assertIn('not isolated: no user namespaces', self.record()['limitations'])
 
     def test_a_service_that_stops_says_why_and_the_record_keeps_its_exit(self):
         with self.assertRaisesRegex(RuntimeError, 'APP_URL must be an https'):
@@ -112,9 +116,29 @@ class SandboxTests(Workspace):
         self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
         self.assertEqual(record['commands'][-1]['exit'], 3)
 
+    def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
+        import http.server
+        import threading
+        from eaos.live_run import LiveRun
+        other = http.server.ThreadingHTTPServer(('127.0.0.1', 0), http.server.SimpleHTTPRequestHandler)
+        threading.Thread(target=other.serve_forever, daemon=True).start()
+        self.addCleanup(other.server_close)
+        self.addCleanup(other.shutdown)
+        taken = other.server_address[1]                         # another project's app, answering 200
+        with self.assertRaisesRegex(RuntimeError, 'no 200'):
+            self.box().start([sys.executable, '-c', 'import time; time.sleep(30)'], taken, '/', timeout=3)
+        (Path(self.tmp) / 'run.json').write_text(json.dumps({'schema_version': 1, 'install': [], 'port': taken, 'health': '/',
+                                                             'start': [sys.executable, '-m', 'http.server', str(taken), '--bind', '127.0.0.1'],
+                                                             'env': {'APP_URL': f'http://127.0.0.1:{taken}'}}))
+        live = LiveRun(self.project, self.tmp, 'S05')
+        try: base = live.start()
+        finally: live.stop()
+        self.assertNotEqual(base, f'http://127.0.0.1:{taken}')
+        self.assertEqual(live.extra()['APP_URL'], base, 'every value naming the port moves with it')
+
     def test_a_timeout_kills_the_whole_process_group_and_dispose_keeps_only_the_record(self):
         box = self.box()
-        marker = Path(self.tmp) / 'child.pid'
+        marker = box.tmp / 'child.pid'
         script = (f'import subprocess, sys, time; p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"]); '
                   f'open({str(marker)!r}, "w").write(str(p.pid)); time.sleep(60)')
         code, _, err = box.run([sys.executable, '-c', script], timeout=3)
@@ -139,3 +163,97 @@ class SandboxTests(Workspace):
         self.assertTrue(live.copy.is_dir())
         self.assertEqual(live.environment()['TMPDIR'], str(live.tmp))
         live.dispose()
+
+
+class TwoProjectsTests(Workspace):
+    """Two projects on one computer, laid out as on a remote server: the projects and the reports reached through links
+    from EAOS's home, the real folders elsewhere. Project A's code runs in A's sandbox; nothing of B's may reach it."""
+
+    def setUp(self):
+        super().setUp()
+        if sandbox._view_refusal(): self.skipTest(f'no own view here: {sandbox._view_refusal()}')
+        real = tempfile.TemporaryDirectory(dir='/var/tmp')        # outside the temporary folder, which is hidden anyway
+        self.addCleanup(real.cleanup)
+        self.real = Path(real.name)
+        person = self.real / 'person'
+        (person / '.eaos/studio').mkdir(parents=True)
+        for link, target in (('.eaos/projects', 'state'), ('EAOS', 'reports')):
+            (self.real / target).mkdir()
+            (person / link).symlink_to(self.real / target)
+        environ = mock.patch.dict(os.environ, {'HOME': str(person), 'EAOS_HOME': str(person / '.eaos')})
+        environ.start()
+        self.addCleanup(environ.stop)
+        pg = tempfile.TemporaryDirectory(prefix='eaos-pg-', dir='/tmp')
+        self.addCleanup(pg.cleanup)
+        self.pg = Path(pg.name)
+        (self.pg / 'B-DATABASE').write_text('B')
+        self.a, self.b = self.project('a'), self.project('b')
+
+    def project(self, name):
+        from eaos import places
+        source = self.real / 'src' / name
+        source.mkdir(parents=True)
+        (source / 'app.py').write_text(f'print("{name}")\n')
+        git(source, 'init', '-q'); git(source, 'add', '.')
+        git(source, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', name)
+        (source / '.env').write_text(f'{name.upper()}_SECRET=real\n')
+        workspace = places.workspace(source)
+        runtime = workspace / 'runtime'
+        (runtime / 'setup').mkdir(parents=True)
+        (runtime / 'setup/storage-state.json').write_text(f'{name.upper()}-SESSION')
+        (runtime / 'authorization.json').write_text(json.dumps({
+            'schema_version': 1, 'project': name, 'commit': git(source, 'rev-parse', 'HEAD'), 'granted_by': 'owner',
+            'stages': ['S05'], 'env_allow': [], 'expires': date.today().isoformat()}))
+        outputs = workspace.parent.parent.parent / 'EAOS' / name
+        outputs.mkdir()
+        (outputs / 'REPORT.html').write_text(name)
+        (workspace / 'state.json').write_text(json.dumps({'project': str(source), 'workspace': str(workspace), 'outputs': str(outputs)}))
+        studio = workspace.parent.parent / 'studio' / workspace.name
+        studio.with_suffix('.json').write_text(json.dumps({'token': f'{name}-token'}))
+        studio.with_suffix('.token').write_text(f'{name}-token')
+        return {'source': source, 'workspace': workspace, 'runtime': runtime, 'outputs': outputs, 'studio': studio}
+
+    def box(self, project):
+        return sandbox.Sandbox(project['source'], project['runtime'] / 'authorization.json', project['runtime'] / 'sandbox', 'S05')
+
+    def test_project_a_code_reads_nothing_of_project_b_by_any_name_nor_connects_to_its_database(self):
+        b, real = self.b, lambda path: Path(os.path.realpath(path))
+        secrets_of_b = [b['workspace'] / 'state.json', real(b['workspace']) / 'state.json', b['runtime'] / 'setup/storage-state.json',
+                        real(b['runtime']) / 'setup/storage-state.json', b['studio'].with_suffix('.json'), b['studio'].with_suffix('.token'),
+                        b['source'] / '.env', b['source'] / 'app.py', b['outputs'] / 'REPORT.html', real(b['outputs']) / 'REPORT.html',
+                        self.pg / 'B-DATABASE', self.a['source'] / '.env']
+        box = self.box(self.a)
+        (box.copy / 'probe.py').write_text(
+            'import glob, json, os\n'
+            f'paths = {json.dumps([str(path) for path in secrets_of_b])}\n'
+            'def read(path):\n'
+            '    try: return open(path).read()\n'
+            '    except OSError: return None\n'
+            'print(json.dumps({"read": [p for p in paths if read(p) is not None], "pg": glob.glob("/tmp/eaos-pg*"),\n'
+            '                  "own": read("app.py"), "home": os.access(os.environ["HOME"], os.W_OK)}))\n')
+        code, out, err = box.run([sys.executable, 'probe.py'])
+        self.assertEqual(code, 0, err)
+        seen = json.loads(out)
+        self.assertEqual((seen['read'], seen['pg']), ([], []), "A's code read B's things (or its own working folder)")
+        self.assertEqual((seen['own'], seen['home']), ('print("a")\n', True), 'its own copy and HOME stay its own')
+        from eaos.local_db import LocalPostgres, binaries
+        if binaries() is None: return
+        database = LocalPostgres(b['runtime'])
+        url = database.create('app')
+        self.addCleanup(lambda: (database.stop(), shutil.rmtree(database.data, True), shutil.rmtree(database.sockets, True)))
+        psql = [str(binaries() / 'psql'), '-h', '127.0.0.1', '-p', url.rsplit(':', 1)[1].split('/')[0], '-U', 'postgres', '-w', '-tAc', 'select 1', 'app']
+        code, _, err = box.run(psql, network=True)
+        self.assertNotEqual(code, 0, "A connected to B's database without its password")
+        self.assertIn('password', err)
+        self.assertEqual(box.run(psql, network=True, env={'PGPASSWORD': database.password_file.read_text().strip()})[:2], (0, '1\n'))
+        box.dispose()
+
+    def test_eaos_clean_leaves_the_run_another_project_holds_and_removes_what_no_run_holds(self):
+        from eaos import guided
+        held, left = self.box(self.b), self.b['runtime'] / 'sandbox/run-left-by-a-killed-run'
+        left.mkdir()
+        with mock.patch.object(guided, 'box'):
+            guided.clean(mock.Mock(lang='en', pictures=False))
+        self.assertTrue(held.copy.is_dir(), "eaos clean removed the copy of B's live run")
+        self.assertFalse(left.exists())
+        held.dispose()

@@ -1212,9 +1212,8 @@ def clean(args):
         from .pipeline.run import PICTURES, clear
         for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
             freed += clear(report, PICTURES)
-    for folder in (home() / 'projects').glob('*/runtime/sandbox'):
-        freed += sum(f.stat().st_size for f in folder.rglob('*') if f.is_file() and not f.is_symlink())
-        shutil.rmtree(folder, ignore_errors=True)
+    from .sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
+    freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
     for folder in (home() / 'projects').glob('*/runtime/candidates'):
         for copy in [p for p in folder.iterdir() if p.is_dir()]:
             freed += sum(f.stat().st_size for f in copy.rglob('*') if f.is_file() and not f.is_symlink())
