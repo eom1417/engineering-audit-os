@@ -152,7 +152,8 @@ def _decision_words(operation, branch, ok, result):
 
 class Actions:
     def __init__(self, project, **options):
-        """`options`, by name: home, port (8765), adapters (this computer's), studio, lang ('ar'), token, remote_origin."""
+        """`options`, by name: home, port (8765), adapters (this computer's), studio, lang ('ar'), token, remote_origin,
+        dispatch (True: this object's thread starts the queued runs; eaos/govern.py builds it without)."""
         from ... import guided
         home, adapters, studio = options.get('home'), options.get('adapters'), options.get('studio')
         if home: os.environ['EAOS_HOME'] = str(home)
@@ -166,7 +167,7 @@ class Actions:
         self.actions = {action['id']: action for action in self.contract['actions']}
         self.verbs = {verb['id']: verb for verb in self.contract['verbs']}
         self.store = Store(guided.workspace(self.project) / 'runs', Scrubber(self.project, [self.token, self.csrf]))
-        self.manager = Manager(self.project, self.store, self.adapters, self.contract, _server_tools, lang)
+        self.manager = Manager(self.project, self.store, self.adapters, self.contract, _server_tools, lang, options.get('dispatch', True))
         self.branches = BranchControl(self)
         self.manager.branch_control = self.branches
 
@@ -241,10 +242,10 @@ class Actions:
         if kind == 'decisions' and operation == 'answer': return {'decision': self.answer_decision(name, body)}
         if kind == 'questions' and operation == 'answer':
             return {'run': self.public(self.manager.answer(name, body.get('option'), body.get('text')))}
-        if kind == 'runs': return self._run_operation(name, operation, body, route)
+        if kind == 'runs': return self.run_operation(name, operation, body, route)
         raise KeyError(route)
 
-    def _run_operation(self, run, operation, body, route):
+    def run_operation(self, run, operation, body, route):
         self.store.load(run)
         if operation in ('pause', 'resume', 'stop', 'retry'):
             self.store.append(run, 'action', {'en': f'You pressed {operation}', 'ar': f'ضغطت {operation}'}, {'action': operation, 'by': 'person', 'arguments': {}})
@@ -432,7 +433,7 @@ class Actions:
         fails; where Accept would merge."""
         spec = self.actions[action]
         low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-        measured = action == 'audit' and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'))
+        measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'))
         if action == 'audit':
             from ... import guided
             out['check'] = check_choices.offered(guided.load(str(self.project)))
@@ -555,7 +556,7 @@ class Actions:
         chosen = self._merge_choice(body) if operation == 'accept' else {}
         self.store.append(run, 'action', {'en': f'You chose to {operation} {branch}', 'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
                           {'action': operation, 'by': 'person', 'arguments': {'branch': branch, **chosen}})
-        result = self.manager.call(operation, {'person_agreed': True, **chosen} if operation == 'accept' else {})
+        result = self.manager.call(operation, {'person_agreed': True, **chosen})
         ok = isinstance(result, dict) and not result.get('error') and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation]
         self.store.append(run, 'result' if ok else 'error', _decision_words(operation, branch, ok, result),
                           {'branch': branch, 'outcome': operation if ok else None, 'answer': result} if ok else

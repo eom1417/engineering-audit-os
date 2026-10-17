@@ -56,7 +56,7 @@ def handover_hook(args):
 
 
 def guided_command(args):
-    from . import handover  # noqa: F401  (registers the work log on the report for people)
+    from . import handover, terminal  # noqa: F401  (register the work log on the report, and the terminal's accept, undo and check)
     from .guided import main as guided_main
     return guided_main(args)
 
@@ -104,6 +104,57 @@ def policy_command(args):
     result=check_policy(args.target,args.out,args.policy,args.lang)
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 2 if result['status']=='VIOLATED' else 0
+
+
+def terminal(name):
+    """The governance command `name` of eaos/terminal.py, imported when it runs."""
+    return lambda args: getattr(__import__('eaos.terminal', fromlist=[name]), name)(args)
+
+
+def governance_commands(s):
+    """Full governance from a terminal, without the Studio (eaos/terminal.py over eaos/govern.py, the Studio's own core)."""
+    from .govern import CONTROLS
+    from .studio.actions.store import contract
+    def command(name, text, func=None):
+        q = s.add_parser(name, help=text)
+        q.add_argument('--project', default='.')
+        q.add_argument('--lang', choices=['ar', 'en'], default=None)
+        q.set_defaults(func=terminal(func or name))
+        return q
+    q = command('check', 'Check the project now, in the background: the time it takes first, then a new check (nothing in it changes)')
+    q.add_argument('--path', nargs='+', choices=sorted(PATHS), default=None, help='check only these paths')
+    q.add_argument('--mode', choices=['normal', 'speed'], default=None)
+    q.add_argument('--assistant', choices=['claude', 'codex', 'none'], default=None, help='the AI the check uses, or none')
+    q.add_argument('--watch', action='store_true', help='follow it here until it ends')
+    command('watch', 'Follow a run live: its stages, the time left, the cost so far, and its questions').add_argument('run', nargs='?')
+    command('runs', 'The runs: running, queued and ended').add_argument('--all', action='store_true', help='also those already read')
+    for name in CONTROLS: command(name, f'{name.capitalize()} a run (the newest it applies to by default)', 'control').add_argument('run', nargs='?')
+    command('waiting', 'What waits for you: the questions of the runs and of the report, and a branch to accept or undo')
+    q = command('answer', 'Answer what waits for you: eaos answer <id> <option>')
+    q.add_argument('id'); q.add_argument('option', nargs='?'); q.add_argument('--text', default=None, help='your own answer instead of an option')
+    q.add_argument('--assistant', default=None, help='a report question: who reviews your answer (claude, codex, or handoff)')
+    q = command('problems', 'What the check found, most important first')
+    q.add_argument('--kind'); q.add_argument('--where', help='only problems in paths containing this'); q.add_argument('--text')
+    q.add_argument('--fixable', action='store_true'); q.add_argument('--limit', type=int, default=30); q.add_argument('--offset', type=int, default=0)
+    command('problem', 'One problem whole: what, why, the evidence with its code, the change').add_argument('id')
+    for verb in contract()['verbs']:
+        q = command(verb['id'], f"{verb['label']['en']} these cards (a preview first): ids, or --group by=value", 'act')
+        q.add_argument('ids', nargs='*'); q.add_argument('--group', help='area=…, severity=…, component=…, gap=… or operation=…')
+        q.add_argument('--assistant', default=None, help='claude, codex, or handoff (your assistant takes it)')
+        q.add_argument('--yes', action='store_true', help='agree to what the preview shows')
+        if verb['changes_code']: q.add_argument('--auto-accept', action='store_true', help='accept it by itself when its checks pass')
+    q = command('branch', 'The branch EAOS checks and fixes: the list, or move to one')
+    q.add_argument('name', nargs='?'); q.add_argument('--yes', action='store_true')
+    q = command('branches', 'Every branch, and merge, delete, protect, unprotect, clean up or restore one (a preview, then your yes)')
+    q.add_argument('op', nargs='?', default='list', choices=['list', 'merge', 'delete', 'protect', 'unprotect', 'cleanup', 'restore'])
+    q.add_argument('name', nargs='?'); q.add_argument('--into', default=None, help='merge: the branch to merge into')
+    q.add_argument('--yes', action='store_true')
+    command('history', 'Every check on record: the score, the open problems, closed of total')
+    q = command('compare', 'Two checks of the history side by side'); q.add_argument('first'); q.add_argument('second')
+    command('usage', 'What the assistant used: tokens and cost, per check stage and per run')
+    q = s.add_parser('govern', help='The headless host that starts this project\'s runs while no Studio runs (the commands start it)')
+    q.add_argument('project'); q.add_argument('--answer'); q.add_argument('--option'); q.add_argument('--text')
+    q.set_defaults(func=terminal('govern_host'))
 
 
 def main(argv=None):
@@ -154,7 +205,7 @@ def main(argv=None):
     q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
-    q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())
+    q.set_defaults(func=lambda args: __import__('eaos.mcp_govern', fromlist=['main']).main())
     q=s.add_parser('facts',help='Deterministic facts about a target; no model is used')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
     q.add_argument('--max-commits',type=bounded_int,default=2000)
@@ -194,7 +245,9 @@ def main(argv=None):
     q.add_argument('--skip',default=None,help='comma-separated tool names to leave out')
     q.add_argument('--json',action='store_true')
     q.set_defaults(func=tools_command)
+    governance_commands(s)
     args=p.parse_args(argv)
+    args.words = list(sys.argv[1:] if argv is None else argv)
     try:
         return args.func(args) or 0
     except (ValueError,OSError,KeyError,TypeError,UnicodeError) as e:

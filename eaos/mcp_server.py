@@ -23,7 +23,7 @@ The person is usually not a developer. Speak to them in their language, in plain
 Work on your own until the job is done; do not come back to them between steps. Ask them only:
   1. which branch to work on, when the project has several (status asks it; choose_branch only with their answer);
   2. once, before running their app and preparing fixes (run_setup gives the exact question);
-  3. at the end, whether to take the branch in (accept) or throw it away (undo).
+  3. at the end, whether to take the branch in (accept) or throw it away (undo), each with person_agreed after their yes.
 
 For a project that exists only as a plan (a PRD, notes, any file or pasted text), build it instead:
   blueprint_start -> blueprint_spec (until complete; research, recommend, ask only real choices) -> blueprint_design
@@ -44,6 +44,9 @@ The whole way for an existing project, in order (`status` always says the next t
   fix_start -> for each card: finding + fix_read, then fix_edit (fix_skip only with a real reason) -> fix_finish
   then tell the person what changed and ask: accept or undo. `accept` merges, deletes the branch and updates the
   report and the progress in one call: never merge or delete a branch with git yourself.
+Without the Studio, the same governance is yours through runs (the queue: estimate, check, show, stop...), waiting (what
+waits for the person), act (fix, verify, explain, plan on cards or a group, previewed first), history and branch_change:
+what is the person's there (an answer, a branch change, a Fix that accepts itself) takes their word and the preview's token.
 Only the plan's cards count as progress: do not do work outside them. Call `status` first in every session: its
 `handover` says what the last assistant (you, or another one after a usage limit) did and how to continue; add the
 why with `note` after each card and before you stop.
@@ -73,10 +76,19 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
                 'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
 
 
-# What only the person decides. In a run the Studio started (EAOS_STUDIO_RUN set by eaos/studio/actions), the assistant
-# asks instead, and the person answers in the Studio, which calls these itself.
-PERSON_ONLY = ('accept', 'undo', 'choose_branch')
+# What only the person decides: these tools, and these operations of the governance tools and commands (eaos/govern.py).
+# In a run the Studio started (EAOS_STUDIO_RUN set by eaos/studio/actions), the assistant asks instead, and the person
+# answers in the Studio, which calls these itself.
+PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
+               'branches restore', 'auto_accept')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
+
+
+def refuse_in_studio_run(name):
+    """PermissionError for a decision only the person makes (PERSON_ONLY), asked inside a run the Studio started."""
+    if name in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
+        raise PermissionError(f"{name} is the person's decision, and they make it in the EAOS Studio: ask them with an "
+                              'eaos-question block and stop')
 
 
 def _status(project=None):
@@ -101,9 +113,7 @@ def _answer(function):
         from .guided import explain
         from .handover import record
         try:
-            if function.__name__ in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
-                raise PermissionError(f'{function.__name__} is the person\'s decision, and they make it in the EAOS Studio: ask them '
-                                      'with an eaos-question block and stop')
+            refuse_in_studio_run(function.__name__)
             result = function(*args, **kwargs)
         except LookupError as problem:
             result = {'error': str(problem)}
@@ -118,7 +128,9 @@ def _answer(function):
     return call
 
 
-def build():
+def build(more=None):
+    """The server; `more(server, reading, working, _answer)` adds tools to it (eaos/mcp_govern.py: the governance tools,
+    which the Studio itself never calls: functions, reading)."""
     from mcp.server.mcpserver import MCPServer
     from mcp.types import ToolAnnotations
 
@@ -128,6 +140,7 @@ def build():
     _check_tools(server, reading, working)
     _fix_tools(server, reading, working)
     _build_tools(server, reading, working)
+    if more: more(server, reading, working, _answer)
     _prompts(server)
     return server
 
@@ -221,10 +234,10 @@ def _check_tools(server, reading, working):
         return tools.assistant_check(project, fresh, assistant)
 
     @server.tool(annotations=reading, description='Follow a job (audit, run_setup, run_try, safety_net, fix_start, fix_edit, fix_finish): '
-                 'waits up to `seconds` (default 50) and returns its progress, or its result once done.')
+                 'waits up to `seconds` (default 50) and returns its progress, or its result once done. ' + project_doc)
     @_answer
-    def wait(job: str, seconds: int = 50) -> str:
-        return tools.wait(job, seconds)
+    def wait(job: str, seconds: int = 50, project: str | None = None) -> str:
+        return tools.wait(job, seconds, project)
 
     @server.tool(annotations=reading, description="The project's health after the check: counts, kinds of problems (with plain titles), "
                  'milestones of the plan, what did not complete. ' + project_doc)
@@ -400,10 +413,11 @@ def _fix_tools(server, reading, working):
         handoff.close(Path(project or os.getcwd()).expanduser().resolve(), text)
         return handover.note(text, card, project, _status)
 
-    @server.tool(annotations=working, description='Throw the waiting branch away (while it is not merged): the project is as it was.')
+    @server.tool(annotations=working, description='Throw the waiting branch away (while it is not merged): the project is as it was. '
+                 'Only after the person said yes: person_agreed=true.')
     @_answer
-    def undo(project: str | None = None) -> str:
-        return tools.undo(project)
+    def undo(person_agreed: bool = False, project: str | None = None) -> str:
+        return tools.undo(project, person_agreed)
 
 
 def _build_tools(server, reading, working):

@@ -56,10 +56,26 @@ to fix, clean or improve it; where things stand; or to accept or undo fixes.
      the cause and send it again. `fix_skip` only with a real reason (it needs a product decision).
    - `fix_finish`: the project's own checks and every screen, then the branch in their project.
 4. Tell them what changed, in plain words, and on which branch. Ask whether to take it in (`accept` with
-   `person_agreed=true` after their yes) or throw it away (`undo`). When they say merge, take it in, or yes,
+   `person_agreed=true` after their yes) or throw it away (`undo` with `person_agreed=true` after their yes). When they say merge, take it in, or yes,
    call `accept`: it merges, deletes the branch, and updates the report and the progress in the same call.
    Never merge, delete a branch, or edit the report or the progress by hand. Then tell them the progress it
    returns (closed of total, and the percent), and go on with the next batch (`fix_start`).
+
+## The Studio's work, without the Studio
+
+When the person works in a terminal, or asks for what the Studio shows, use the governance tools; they drive the
+Studio's own queue and branch control, so the Studio (if they open it) shows the same runs:
+- `runs`: `op=estimate` (say how long a check takes), `op=check` (a new check in the background: `paths`, `mode`,
+  `assistant`), `op=show` (the stage, the minutes left, the cost so far, its question), `stop`, `pause`, `resume`, `retry`.
+- `waiting`: `op=list` what waits for the person; ask them each one, end your turn, then `op=answer` with
+  `person_said` set to their own reply.
+- `act`: `fix`, `verify`, `explain` or `plan` on card `ids` or a `group` (for example `severity=high`): `op=preview`
+  first, tell the person what it will do, then `op=start` (a Fix with the preview's `confirm`).
+- `history`: `op=list`, `op=compare` (two checks), `op=usage` (tokens and cost).
+- `branch_change`: merge, delete, protect, unprotect, cleanup or restore a branch: the preview first, show it to
+  the person and ask; only after their yes, call again with `person_agreed=true` and the preview's `confirm`.
+Ask the person only what is theirs: the branch, running their app (once), taking a branch in or throwing it away,
+a branch change, a Fix that accepts itself, and what `waiting` lists. Do everything else yourself.
 
 ## Progress, and handing the work over
 

@@ -742,7 +742,7 @@ class Handoff(Base):
             self.assertEqual(mcp_server._status(str(self.project)), {})
         self.assertEqual(len(handoff.pending(self.project)), 1)
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
-            for tool in mcp_server.PERSON_ONLY:
+            for tool in (name for name in mcp_server.PERSON_ONLY if name in mcp_server.functions()):
                 answer = json.loads(mcp_server.functions()[tool](project=str(self.project), **({'branch': 'x'} if tool == 'choose_branch' else {})))
                 self.assertIn('the person', answer['error'])
 
@@ -888,3 +888,37 @@ class ReportDecisions(Base):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class Headless(unittest.TestCase):
+    """Without the Studio (eaos/govern.py): a command queues without starting anything, one host starts the runs."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        base = Path(tmp.name)
+        patcher = mock.patch.dict(os.environ, {'EAOS_HOME': str(base / 'home'), 'EAOS_OUTPUT': str(base / 'out'), 'EAOS_HOST_IDLE': '1'})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.project = base / 'p'
+        self.project.mkdir()
+        (self.project / 'package.json').write_text('{}')
+        for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
+            subprocess.run(['git', '-C', str(self.project), *argv], check=True, capture_output=True)
+        from eaos import govern
+        self.govern = govern
+        govern._core.cache_clear()
+        self.addCleanup(govern._core.cache_clear)
+
+    def test_a_command_never_holds_the_dispatch_lock_and_what_it_queues_a_host_finishes_then_leaves(self):
+        core = self.govern.core(str(self.project))
+        self.addCleanup(core.close)
+        self.assertEqual(self.govern.estimate(self.project, {'fresh': True})['estimate']['minutes_high'], 30, 'before a first check: the rough rule')
+        run = core.create({'action': 'note', 'inputs': {'text': 'from the terminal'}})['id']
+        self.assertFalse(self.govern._held(core.store.folder / 'dispatch.lock'), 'a command never starts a run it would not live to follow')
+        self.assertEqual(core.store.load(run)['state'], 'queued')
+        self.assertTrue(self.govern.wake(self.project))
+        self.assertEqual(core.wait(run, store.TERMINAL, 60)['state'], 'done', 'no Studio runs: the host started it')
+        end = time.monotonic() + 30
+        while self.govern._held(core.store.folder / 'host.lock') and time.monotonic() < end: time.sleep(0.2)
+        self.assertFalse(self.govern._held(core.store.folder / 'host.lock'), 'the host leaves once nothing is queued or active')

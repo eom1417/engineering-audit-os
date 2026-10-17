@@ -238,3 +238,17 @@ def _dirty_verdict(project, detached, out):
     changes = dirty(project)
     out['dirty'] = changes
     return {**out, 'state': 'dirty'} if changes and (changes['tracked'] or changes['untracked']) else None
+
+
+FRESH = {'fresh': ('الفحص حديث: لهذا الفرع عند آخر commit فيه.', 'The check is current: of this branch at its last commit.'),
+         'behind': ('الفحص قديم: جاء بعده {n} commit. افحص من جديد: eaos check', 'The check is behind: {n} commit(s) came after it. Check again: eaos check'),
+         'not_scanned': ('ما انفحص بعد: eaos check', 'Not checked yet: eaos check'),
+         'other': ('الفحص ما يطابق الكود الحين ({n}). افحص من جديد: eaos check', 'The check is not of this code now ({n}). Check again: eaos check')}
+
+
+def fresh_line(state, lang):
+    """Whether the check on record is of the code now, in one line (eaos/branches.py freshness)."""
+    found = freshness(state)
+    key = found['state'] if found['state'] in ('fresh', 'behind') else 'not_scanned' if found.get('reason') == 'not_scanned' else 'other'
+    words = FRESH[key][0 if lang == 'ar' else 1]
+    return words.format(n=(found.get('behind') or {}).get('commits', '?') if key == 'behind' else found['state'] if found['state'] != 'unknown' else found.get('reason'))

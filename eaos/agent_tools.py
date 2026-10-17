@@ -21,6 +21,7 @@ from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
 ANSWER_SECONDS, WAIT = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30), 50   # WAIT: seconds a tool call waits for its job
+HEADLESS = 'EAOS_HEADLESS'  # set in the headless host (eaos/govern.py): the steps it runs open no Studio (_watch)
 PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for every function its check judges
 
 
@@ -152,9 +153,8 @@ TOOLS_FIRST = ('Tell the person the EAOS Studio is open on "Preparing the tools"
 
 
 def _watch(state, route='/scan'):
-    """open_studio on `route` (the live map, or "Preparing the tools"), in the browser unless the Studio itself asked
-    (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map."""
-    try: opened = open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route=route)
+    """open_studio on `route`, in the browser unless the Studio asked (EAOS_STUDIO_RUN); None headless or when it cannot start."""
+    try: opened = {} if os.environ.get(HEADLESS) else open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route=route)
     except Exception: return None
     return opened if 'studio' in opened else None
 
@@ -1154,8 +1154,7 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
         return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {into or wave.get('merge_into') or 'your current branch'}?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}
     outcome = guided.merge(state, wave, into=into, delete_after=delete_after is not False)
-    if outcome == 'unsaved_changes':
-        return {'status': 'unsaved_changes', 'what_now': 'The project has unsaved changes; ask the person to save (commit) them first.'}
+    if outcome == 'unsaved_changes': return {'status': 'unsaved_changes', 'what_now': 'The project has unsaved changes; ask the person to save (commit) them first.'}
     if outcome == 'conflict':
         return {'status': 'conflict', 'branch': wave['branch'],
                 'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
@@ -1170,16 +1169,17 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
                          'the next batch (no new check is needed).')}
 
 
-def undo(project=None):
+def undo(project=None, person_agreed=False):
     from .waves import undo as drop
     state = project_state(project)
     guided.reconcile(state)
-    wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    wave = waiting_batch(state)
     if wave is None: return {'status': 'nothing_to_undo'}
+    if not person_agreed: return {'status': 'needs_agreement', 'ask_the_person': f"Throw away the fixes on {wave['branch']}? None of them reaches the project.",
+                                  'what_now': 'Only if the person says yes, call undo again with person_agreed=true.'}
     outcome = drop(state['project'], wave['branch'])
     if outcome == 'merged': return {'status': 'merged', 'what_now': 'It is merged already; undoing it is a git revert, the person\'s decision.'}
-    for each in state.get('waves') or []:                  # every batch continued on that branch goes with it
-        if each.get('status') == 'applied' and each.get('branch') == wave['branch']: each['status'] = 'undone'
+    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']]: each['status'] = 'undone'  # every batch on it
     guided.save(state)
     guided.publish(state)
     return {'status': 'undone', 'branch': wave['branch']}

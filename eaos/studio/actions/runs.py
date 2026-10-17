@@ -89,7 +89,7 @@ def _diff_stat(project, branch):
 
 
 class Manager:
-    def __init__(self, project, store, adapters, contract, tools, lang='ar'):
+    def __init__(self, project, store, adapters, contract, tools, lang='ar', dispatch=True):
         self.project = Path(project).resolve()
         self.store = store
         self.adapters = adapters
@@ -106,7 +106,7 @@ class Manager:
         self._closed = threading.Event()
         self._mutex = threading.RLock()
         self.thread = threading.Thread(target=self._loop, name=f'eaos-runs-{self.project.name}', daemon=True)
-        self.thread.start()
+        if dispatch: self.thread.start()           # without: a short-lived caller (eaos/govern.py) that never starts runs
 
     # lifecycle helpers
     def set_state(self, run, to, why='', **fields):

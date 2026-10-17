@@ -350,3 +350,84 @@ class QuestionTests(Home):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PersonOnly(Home):
+    """What only the person decides, from a terminal and from the governance tools: refused without their word, and
+    refused inside a Studio run even with it (eaos/govern.py, eaos/terminal.py, eaos/mcp_govern.py)."""
+
+    def setUp(self):
+        super().setUp()
+        from eaos import govern
+        govern._core.cache_clear()
+        self.addCleanup(govern._core.cache_clear)
+        wave_branch(self.project)
+        state = agent_tools.project_state(str(self.project))
+        state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]
+        guided.save(state)
+
+    def eaos(self, *argv, studio_run=False):
+        """(exit, printed) of one eaos command, nobody at the terminal."""
+        import contextlib, io
+        from eaos import cli
+        env = {'EAOS_STUDIO_RUN': 'r1'} if studio_run else {}
+        with contextlib.redirect_stdout(io.StringIO()) as printed, mock.patch.dict(os.environ, env), \
+                mock.patch('sys.stdin.isatty', return_value=False):
+            code = cli.main([*argv, '--lang', 'en'])
+        return code, printed.getvalue()
+
+    def has(self, branch):
+        return subprocess.run(['git', '-C', str(self.project), 'rev-parse', '--verify', '-q', branch], capture_output=True).returncode == 0
+
+    def test_accept_and_undo_say_what_happens_and_wait_for_a_yes_never_given_inside_a_studio_run(self):
+        code, printed = self.eaos('accept', str(self.project))
+        self.assertEqual(code, 4)
+        self.assertIn('merges eaos/wave-1 into', printed)
+        self.assertIn('eaos accept', printed.split('copy and paste')[-1])
+        self.assertEqual(self.eaos('accept', str(self.project), '--yes', studio_run=True)[0], 3)
+        self.assertEqual(self.eaos('undo', str(self.project), '--yes', studio_run=True)[0], 3)
+        self.assertEqual(agent_tools.undo(str(self.project))['status'], 'needs_agreement', 'the tool waits for the person too')
+        self.assertTrue(self.has('eaos/wave-1'), 'nothing happened without the person')
+        code, printed = self.eaos('undo', str(self.project), '--yes')
+        self.assertEqual(code, 0, printed)
+        self.assertFalse(self.has('eaos/wave-1'))
+
+    def test_branch_changes_answers_and_a_fix_that_accepts_itself_need_the_persons_word_and_never_in_a_studio_run(self):
+        from eaos import govern, mcp_govern
+        subprocess.run(['git', '-C', str(self.project), 'branch', 'feature'], check=True)
+        for argv in (('branch', 'eaos/wave-1', '--yes'), ('branches', 'delete', 'feature', '--yes'), ('answer', 'q1', 'yes'),
+                     ('fix', 'TASK-001', '--auto-accept', '--yes')):
+            self.assertEqual(self.eaos(*argv, '--project', str(self.project), studio_run=True)[0], 3, argv)
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
+            for call in (lambda: mcp_govern.branch_op('delete', 'feature', project=str(self.project)),
+                         lambda: mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='yes', project=str(self.project)),
+                         lambda: mcp_govern.act_op('fix', ['TASK-001'], op='start', auto_accept=True, person_agreed=True, project=str(self.project))):
+                self.assertRaises(PermissionError, call)
+        self.assertEqual(self.eaos('branches', 'delete', 'feature', '--project', str(self.project))[0], 4)
+        shown = mcp_govern.branch_op('delete', 'feature', project=str(self.project))
+        asked = mcp_govern.branch_op('delete', 'feature', confirm=shown['confirm'], project=str(self.project))
+        self.assertEqual(asked['status'], 'needs_the_person')
+        self.assertTrue(self.has('feature'), 'a confirm token proves a preview was seen, not that the person agreed')
+        mcp_govern.branch_op('delete', 'feature', confirm=shown['confirm'], person_agreed=True, project=str(self.project))
+        self.assertFalse(self.has('feature'))
+        kept = govern.core(str(self.project)).branches.recoveries()[-1]['id']
+        self.assertEqual(self.eaos('branches', 'restore', kept, '--project', str(self.project), '--yes', studio_run=True)[0], 3)
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
+            self.assertRaises(PermissionError, lambda: mcp_govern.branch_op('restore', kept, person_agreed=True, project=str(self.project)))
+        self.assertEqual(self.eaos('branches', 'restore', kept, '--project', str(self.project))[0], 4)
+        self.assertEqual(mcp_govern.branch_op('restore', kept, project=str(self.project))['status'], 'needs_the_person')
+        self.assertFalse(self.has('feature'), 'a deleted branch comes back only with the person\'s yes')
+        self.assertEqual(mcp_govern.act_op('fix', ['TASK-001'], op='start', auto_accept=True, project=str(self.project))['status'], 'needs_the_person')
+        self.assertIn('no reply', mcp_govern.waiting_op('answer', 'q1', 'yes', project=str(self.project))['why'])
+        govern.shown('q1')
+        self.assertIn('not answered yet', mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='yes', project=str(self.project))['why'])
+        govern._SHOWN['q1'] -= agent_tools.ANSWER_SECONDS
+        with mock.patch.object(govern, 'answer', return_value={'status': 'answered'}) as answered:
+            self.assertEqual(mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='نعم', project=str(self.project))['status'], 'answered')
+        answered.assert_called_once()
+
+    def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):
+        from eaos import mcp_server
+        with mock.patch.object(agent_tools, 'wait', return_value={'status': 'running'}) as waited:
+            mcp_server.functions()['wait'](job='audit-1', seconds=0, project=str(self.project))
+        waited.assert_called_once_with('audit-1', 0, str(self.project))
