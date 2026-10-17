@@ -14,7 +14,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import batch_finish, branches, check_choices, guided, handover, jobs, plain, sign_in, toolchain
+from . import batch_finish, branches, check_choices, guided, handover, jobs, plain, sign_in as signing, toolchain
 from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
 from .finish_line import proof
 from .api import launch
@@ -283,7 +283,7 @@ def status(project=None):
               'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None,
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
-    if busy: step = sign_in.step(state, ('wait', f"a {busy['kind']} is running"))
+    if busy: step = signing.step(state, ('wait', f"a {busy['kind']} is running"))
     elif not checked: step = ('audit', 'the project has not been checked')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
     elif wave and (_no_safety_net(state) or {}).get('recorded') == 0:
@@ -336,7 +336,7 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     blocked = None if without_ai else _assistant_not_ready(state)
     if blocked: return blocked
-    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=sign_in.published(published)).items() if v}
+    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published)).items() if v}
     return _start('audit', state, arguments, watch=True)
 
 
