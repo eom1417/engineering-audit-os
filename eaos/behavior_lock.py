@@ -442,7 +442,16 @@ def cap_journeys(folder):
     return {**kept, **dropped}
 
 
-def run_journeys(report, target, runtime, folder):
+def _journey_start(live, report, runtime, bundle, app):
+    """Prepare the journeys' recorder and sign-in, using the page stages' running app when supplied."""
+    lock = _prepare(live, report, Path(runtime) / 'behavior-lock')
+    recorder = lock / 'rrweb.js'
+    shutil.copyfile(bundle, recorder)
+    if app and app[2].is_file(): shutil.copyfile(app[2], lock / '.auth/user.json')
+    return lock, recorder, app[1] if app else _start(live, lock)
+
+
+def run_journeys(report, target, runtime, folder, app=None):
     """Each page spec of the lock run once more on today's code, with rrweb recording every page and Playwright's trace
     kept for a failing journey: <folder>/rrweb/<test>.rrweb.json (the page, replayable) and <folder>/traces/<n>.zip
     (every step's picture, the network and the console of a failure), both capped (cap_journeys). Needs what run_lock
@@ -454,12 +463,9 @@ def run_journeys(report, target, runtime, folder):
     (folder / 'rrweb').mkdir(parents=True)
     bundle = node_modules('rrweb') / 'rrweb/dist/rrweb.umd.cjs'
     if not bundle.is_file(): raise FileNotFoundError(f'rrweb is not installed ({bundle}): python -m eaos tools install --only rrweb')
-    live = LiveRun(target, runtime, 'S05')
-    lock = _prepare(live, report, Path(runtime) / 'behavior-lock')
-    recorder = lock / 'rrweb.js'
-    shutil.copyfile(bundle, recorder)
+    live = app[0] if app else LiveRun(target, runtime, 'S05')
     try:
-        base = _start(live, lock)
+        lock, recorder, base = _journey_start(live, report, runtime, bundle, app)
         argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
                 '--trace=retain-on-failure', '--output', str(folder / 'results')]
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock', env={
@@ -467,13 +473,18 @@ def run_journeys(report, target, runtime, folder):
             'EAOS_LOCK_STREAM': str(folder / STREAM), 'EAOS_RRWEB': str(recorder), 'EAOS_JOURNEYS': str(folder / 'rrweb')})
         live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
     finally:
-        live.stop()
+        if not app: live.stop()
         live.record('behavior-lock/journeys-log.json')
     traces = sorted((folder / 'results').glob('**/trace.zip'))
     (folder / 'traces').mkdir(exist_ok=True)
     for number, trace in enumerate(traces, 1): shutil.move(str(trace), folder / 'traces' / f'{number:03d}-{trace.parent.name[:80]}.zip')
     shutil.rmtree(folder / 'results', ignore_errors=True)
     (folder / STREAM).unlink(missing_ok=True)
+    return _journey_results(folder, report)
+
+
+def _journey_results(folder, report):
+    """The walked specs and bounded recordings, whether the app belonged to the journeys or the check."""
     statuses = spec_statuses(json.loads((folder / 'report.json').read_text(encoding='utf-8'))) if (folder / 'report.json').is_file() else {}
     plan = json.loads((Path(report) / 'behavior-lock/plan.json').read_text(encoding='utf-8'))
     pages = {Path(s['path']).name: [x for x in s.get('surfaces') or [] if not str(x).startswith(('GET ', 'POST ', 'PUT ', 'PATCH ', 'DELETE '))]

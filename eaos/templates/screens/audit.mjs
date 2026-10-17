@@ -212,6 +212,7 @@ function seedStorage(pairs) {
 async function openContext(browser, viewport, variant, base, blocked) {
   const mobile = viewport.mobile ?? viewport.width <= config.phone_width;
   const context = await browser.newContext({
+    storageState: config.storage_state || undefined,
     viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1,
     // A phone is emulated as one (meta viewport honoured, touch), as the owner's phone renders the page.
     isMobile: mobile, hasTouch: mobile,

@@ -7,6 +7,7 @@ the shared shape, subject "ideal": "accept" (every view planned on evidence and 
 orderer), "ask" (its questions wait in the Decisions inbox) or "rules only" (not planned: the rules' target stands).
 """
 import time
+from contextlib import nullcontext
 from pathlib import Path
 
 from . import core
@@ -64,7 +65,8 @@ def _dropped(plan_record):
             for row in (plan_record or {}).get('dropped') or []]
 
 
-def run(node, report, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None, cancel=None, started=None, **_):
+def run(node, report, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None, cancel=None, started=None,
+        assistants=None, **_):
     report = Path(report)
     data = ideal.bundle(report, project, lang)
     prompt, at, began = ideal_prompts.prompt_plan(data), core.now(), time.monotonic()
@@ -79,7 +81,8 @@ def run(node, report, launcher=None, adapters=None, project=None, lang='en', fre
                                                    _decisions(node, report, current), _dropped(current)))
     stamp = at.replace(':', '').replace('+0000', 'Z')
     launcher = launcher or core.launcher_of(adapters, report / 'ideal' / f'run-{stamp}', cancel, started)
-    result = ideal.plan(report, launcher=launcher, project=project, lang=lang, adapters={}, cancel=cancel, say=say)
+    with assistants or nullcontext():
+        result = ideal.plan(report, launcher=launcher, project=project, lang=lang, adapters={}, cancel=cancel, say=say)
     fields = {'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
               'prompt': asked if launcher else None, 'schema': schema, 'cached': False, 'seconds': round(time.monotonic() - began, 1),
               'cost_usd': core.spent(launcher)}

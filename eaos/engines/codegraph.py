@@ -51,7 +51,8 @@ def _run(tool, args, workspace, timeout=600, index_home=None):
         import os
         environment = dict(os.environ, HOME=str(index_home))
     try:
-        return _outcome(subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=environment))
+        from ..assistants.command import run_command
+        return _outcome(run_command(cmd, timeout=timeout, env=environment))
     except subprocess.TimeoutExpired:
         return None, f'timeout after {timeout}s'
     except FileNotFoundError:

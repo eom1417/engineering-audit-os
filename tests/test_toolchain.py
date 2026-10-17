@@ -136,7 +136,7 @@ class ToolEnvironment(unittest.TestCase):
         with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages', 'PYTHONSAFEPATH': '1'}), \
                 mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
                 mock.patch.object(toolchain, 'binary_path', return_value='/tools/bin/semgrep'), \
-                mock.patch('subprocess.run', return_value=done) as run:
+                mock.patch('subprocess.run', return_value=done) as run, mock.patch.object(process, 'run_command', run):
             toolchain._pip_one(tool)
             toolchain.found_version(tool)
             process.run(['semgrep', '--version'])

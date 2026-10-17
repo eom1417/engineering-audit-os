@@ -2,7 +2,9 @@
 
 A stage starts once every stage it waits for has ended (stages.WAITS: what it requires and reads, what it gathers, and
 the declared order of an amended artifact), never beside a stage holding what it uses (stages.RESOURCES: the running
-app, the memory, the whole machine), and never beside more AI stages than the mode allows. Every edge of WAITS points
+app, the memory, the whole machine), never beside more AI stages than the mode allows, and never while this computer
+has no room left for it (room(): free memory, processors not saturated); one stage always runs, so a small computer
+is slower, never stuck. Every edge of WAITS points
 to an earlier stage, so one stage at a time is the declared order itself: there is no second way to run a check.
 
     normal   every stage that may runs at once, the AI stages one after the other, one assistant at a time
@@ -11,38 +13,88 @@ to an earlier stage, so one stage at a time is the declared order itself: there 
 """
 import contextvars
 import heapq
-import os
 import threading
+import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
 from .stages import BY_NAME, WAITS
+from ..assistants.resources import capacity, cpu_pressure
+from ..assistants.command import STOP, check_cancelled
 
 MODES = ('normal', 'speed', 'one')
 MOST_ASSISTANTS = 5          # past the card triage's five batches more assistants save a minute and cost a program each
-ASSISTANT_MB = 1000          # one assistant per GB of memory: it is a separate program, with its conversation in memory
+ASSISTANT_MB = 768           # headroom per assistant process and its conversation
+RESERVE_MB = 768             # leave room beyond current use for the app, analyzer and EAOS
+NEED_MB = {'memory': 1536, 'app': 1024}   # the most a stage holding it takes: an analyzer; the app and its browser
+LIGHT_MB = 256               # a stage reading and writing records
+BUSY = 40                    # % of the last ten seconds work waited for a processor: the processors are saturated
+STARTING = 15                # seconds a started stage may take to reach what it uses: it is counted as using it
+WAIT = 2                     # seconds between two looks at the room while a stage waits for it
+
+
+def room(megabytes):
+    """Whether this computer can take `megabytes` more now, keeping RESERVE_MB free, its processors not saturated."""
+    available, pressure = capacity()[2], cpu_pressure()
+    return (available is None or available // 2 ** 20 >= megabytes + RESERVE_MB) and (pressure is None or pressure < BUSY)
+
+
+def need(stage):
+    """The megabytes a stage may take while it runs."""
+    return max([NEED_MB.get(resource, 0) for resource in stage.uses] + [ASSISTANT_MB if stage.ai else LIGHT_MB])
 
 
 class Assistants(threading.BoundedSemaphore):
-    """How many assistants answer at once in this check: an AI stage's batches each take one while they are asked."""
+    """How many assistants answer at once in this check: an AI stage's batches each take one while they are asked, and
+    a second one only once there is room() for it."""
 
     def __init__(self, count):
         super().__init__(count)
-        self.count = count
+        self.count, self.answering, self._guard = count, 0, threading.Lock()
+
+    def __enter__(self):
+        super().__enter__()
+        try:
+            while True:
+                with self._guard:
+                    if not self.answering or room(ASSISTANT_MB):
+                        self.answering += 1
+                        return self
+                check_cancelled()
+                time.sleep(WAIT)
+        except BaseException:
+            self.release()
+            raise
+
+    def __exit__(self, *problem):
+        with self._guard: self.answering -= 1
+        return super().__exit__(*problem)
 
 
 def assistants(mode):
-    """The assistants a check may run at once: one, or in speed mode one per GB of this computer's memory, at most
-    MOST_ASSISTANTS."""
+    """One assistant normally; in speed mode only as many as the container's available memory can safely hold."""
     if mode != 'speed': return Assistants(1)
-    try: megabytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') // 2 ** 20
-    except (ValueError, OSError, AttributeError): megabytes = ASSISTANT_MB
-    return Assistants(max(1, min(MOST_ASSISTANTS, megabytes // ASSISTANT_MB)))
+    _, memory, available = capacity()
+    megabytes = min(memory or 0, available or 0) // 2 ** 20
+    return Assistants(max(1, min(MOST_ASSISTANTS, (megabytes - RESERVE_MB) // ASSISTANT_MB)))
 
 
 def width(mode):
-    """The stages that run at once: one, or as many as this computer has processors (what they use keeps the heavy
-    ones apart)."""
-    return 1 if mode == 'one' else max(2, os.cpu_count() or 2)
+    """The stages that may run at once: one, or as many as this computer has processors; room() decides how many do."""
+    return 1 if mode == 'one' else max(2, capacity()[0])
+
+
+class LimitedProvider:
+    """The provider's calls share the node launchers' slots, including parallel translation batches."""
+
+    def __init__(self, provider, slots):
+        self.provider, self.slots = provider, slots
+
+    def __getattr__(self, name): return getattr(self.provider, name)
+
+    def complete(self, *args, **kwargs):
+        with self.slots:
+            check_cancelled()
+            return self.provider.complete(*args, **kwargs)
 
 
 def _clashes(stage, taken, mode):
@@ -71,19 +123,41 @@ def ready_stages(left, ended, running, mode, room, quick=()):
 def run_ready(names, start, mode='normal', quick=()):
     """start(name) for every name of `names` (the declared stages, in order), each once ready_stages lets it. A stage
     that raises stops the run: the stages already running end, none starts, and the error goes on."""
-    if width(mode) == 1:
-        for name in names: start(name)
-        return
-    left, ended, running = list(names), set(), {}
+    if mode not in MODES: raise ValueError(f'Unknown check mode: {mode}')
+    stopped = threading.Event()
+    token = STOP.set(stopped)
+    try:
+        _run_ready(names, start, mode, quick, stopped)
+    finally: STOP.reset(token)
+
+
+def _run_ready(names, start, mode, quick, stopped):
+    """One scheduler at any width; on interruption signal every running stage before waiting for it to release."""
+    left, ended, running, began = list(names), set(), {}, {}
     with ThreadPoolExecutor(max_workers=width(mode), thread_name_prefix='eaos-stage') as pool:
-        while left or running:
-            for name in ready_stages(left, ended, running.values(), mode, width(mode) - len(running), quick):
-                left.remove(name)
-                running[pool.submit(contextvars.copy_context().run, start, name)] = name
-            done, _ = wait(running, return_when=FIRST_COMPLETED)
-            for future in done:
-                ended.add(running.pop(future))
-                future.result()
+        try:
+            while left or running:
+                waiting = False
+                for name in ready_stages(left, ended, running.values(), mode, width(mode) - len(running), quick):
+                    waiting = bool(running) and name not in quick and not room(need(BY_NAME[name]) + _starting(running.values(), began))
+                    if waiting: break
+                    left.remove(name)
+                    began[name] = time.monotonic()
+                    running[pool.submit(contextvars.copy_context().run, start, name)] = name
+                if not running: raise ValueError('Stages cannot run: their prerequisites are missing')
+                done, _ = wait(running, timeout=WAIT if waiting else None, return_when=FIRST_COMPLETED)
+                for future in done:
+                    ended.add(running.pop(future))
+                    future.result()
+        except BaseException:
+            stopped.set()
+            for future in running: future.cancel()
+            raise
+
+
+def _starting(running, began):
+    """The megabytes of the stages just started, which the free memory does not show yet."""
+    return sum(need(BY_NAME[name]) for name in running if time.monotonic() - began[name] < STARTING)
 
 
 def forecast(costs, mode='normal'):

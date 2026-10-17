@@ -116,7 +116,7 @@ class Crawl(unittest.TestCase):
         found += [{'path': f'/#/tasks/TASK-{n:03d}', 'depth': 1, 'status': 'observed'} for n in range(1, 9)]
         found += [{'path': f'/#/page{chr(97 + n)}', 'depth': 1, 'status': 'observed'} for n in range(12)]
         measured = []
-        def lighthouse(url, out=None):
+        def lighthouse(url, out=None, storage_state=None):
             measured.append(url)
             return {'status': 'observed', 'scores': {'performance': 90}, 'lcp_ms': 900, 'cls': 0, 'report': str(Path(out) / 'lighthouse.json')}
         with tempfile.TemporaryDirectory() as folder, mock.patch.object(crawl, 'discover', return_value=(found, '')), \

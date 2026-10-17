@@ -75,18 +75,19 @@ def distinct(paths):
     return found
 
 
-def discover(base, max_routes=200, timeout=1800):
+def discover(base, max_routes=200, timeout=1800, storage_state=None):
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]."""
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')}}
+    if storage_state: config['storage_state'] = str(storage_state)
     result, error = _node('crawl.mjs', config, timeout)
     return (result or {}).get('routes'), error
 
 
-def _measure(row, base, out, number):
+def _measure(row, base, out, number, storage_state):
     """Lighthouse on one page: its scores into the row, else why it could not be measured."""
-    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}')
+    speed = lighthouse(base.rstrip('/') + row['path'], out=out / 'lighthouse' / f'{number:02d}', storage_state=storage_state)
     if speed.get('status') != 'observed':
         row['reason'] = speed.get('reason')
         return
@@ -94,8 +95,8 @@ def _measure(row, base, out, number):
                report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
 
 
-def crawl(base, out, max_routes=200, measured=MEASURED):
-    routes, error = discover(base, max_routes)
+def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None):
+    routes, error = discover(base, max_routes, storage_state=storage_state)
     if routes is None:
         return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']
@@ -106,7 +107,7 @@ def crawl(base, out, max_routes=200, measured=MEASURED):
     rows = []
     for route in routes:
         row = {'path': route['path'], 'template': shapes[route['path']], 'depth': route.get('depth'), 'measured': False}
-        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']))
+        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']), storage_state)
         rows.append(row)
     return {'status': 'observed', 'routes': rows, 'templates': len(set(shapes.values())),
             'measured': sum(r['measured'] for r in rows)}

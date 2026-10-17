@@ -30,17 +30,9 @@ STAGES = re.compile(r"duration:\s*'(\d+)([sm])',\s*target:\s*(\d+)")
 
 def machine():
     """What the run had, not what the host has: a container's cgroup limits win over the host's totals."""
-    cpus = os.cpu_count() or 0
-    try:
-        quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
-        if quota != 'max': cpus = min(cpus, max(1, round(int(quota) / int(period))))
-    except (OSError, ValueError): pass
-    try: memory = round(os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') / 2 ** 30, 1)
-    except (ValueError, OSError, AttributeError): memory = None
-    try:
-        limit = Path('/sys/fs/cgroup/memory.max').read_text().strip()
-        if limit != 'max': memory = round(int(limit) / 2 ** 30, 1)
-    except (OSError, ValueError): pass
+    from .assistants.resources import capacity
+    cpus, memory, _ = capacity()
+    memory = round(memory / 2 ** 30, 1) if memory is not None else None
     return f'{cpus} CPU, {memory} GiB RAM, {os.uname().sysname} {os.uname().machine}'
 
 
@@ -158,5 +150,4 @@ def run_baseline(report, target, runtime):
     if problems: raise RuntimeError(f'runtime/performance.json would break its contract: {problems[0]}')
     (out / 'performance.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return record
-
 

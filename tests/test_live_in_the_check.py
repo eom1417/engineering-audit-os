@@ -41,7 +41,7 @@ def scenario(report):
     return []
 
 
-def audited(urls, viewports, variants, out=None):
+def audited(urls, viewports, variants, out=None, **options):
     shot = Path(out) / 'screenshots/00-index-light-phone.png'
     shot.parent.mkdir(parents=True, exist_ok=True)
     shot.write_bytes(b'png')

@@ -153,7 +153,8 @@ def journeys(context):
         raise SkipStage('the lock has no page to walk through', code='no_pages')
     from ..behavior_lock import run_journeys
     try:
-        result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys')
+        from .live_app import shared_app
+        result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys', app=shared_app(context))
     except FileNotFoundError as problem:
         raise SkipStage(str(problem)[:300], code='no_engine_installed') from None
     _keep(context, 'journeys.json', result)
@@ -165,9 +166,9 @@ def screens(context):
     """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
     (eaos/screens/audit.py, eaos/screens/crawl.py distinct)."""
-    runtime = _live(context)
+    _live(context)
     groups, measured = _screen_pages(context)
-    audit, speed = _audit_pages(context, runtime, groups, measured)
+    audit, speed = _audit_pages(context, groups, measured)
     if audit['status'] != 'observed':
         raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
     rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
@@ -192,40 +193,29 @@ def _screen_pages(context):
     return distinct(pages), measured
 
 
-def _audit_pages(context, runtime, groups, measured):
+def _audit_pages(context, groups, measured):
     """(the page audit, the entry's speed) of the app running in the sandbox: Lighthouse only when the crawl did not
     measure the entry already."""
-    from ..live_run import LiveRun
+    from .live_app import shared_app
     from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
-    live = LiveRun(context.target, runtime, 'S05')
-    try:
-        live.setup()
-        base = live.start()
-        live.seed(base)
-        folder = context.out / 'live/screens'
-        audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                           variants(**(live.profile.get('screens') or {})), out=folder)
-        speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
-                 if measured else lighthouse(base + '/', out=folder))
-    finally:
-        live.stop()
+    live, base, state = shared_app(context)
+    state = state if state.is_file() else None
+    folder = context.out / 'live/screens'
+    audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
+                       variants(**(live.profile.get('screens') or {})), out=folder, storage_state=state)
+    speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
+             if measured else lighthouse(base + '/', out=folder, storage_state=state))
     return audit, speed
 
 
 def crawl(context):
     """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
     distinct template, ten at most (eaos/screens/crawl.py)."""
-    runtime = _live(context)
-    from ..live_run import LiveRun
+    _live(context)
+    from .live_app import shared_app
     from ..screens.crawl import crawl as find
-    live = LiveRun(context.target, runtime, 'S05')
-    try:
-        live.setup()
-        base = live.start()
-        live.seed(base)
-        found = find(base, context.out / 'live/crawl')
-    finally:
-        live.stop()
+    _, base, state = shared_app(context)
+    found = find(base, context.out / 'live/crawl', storage_state=state if state.is_file() else None)
     if found['status'] != 'observed':
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
     _keep(context, 'crawl.json', {'schema_version': 1, **found})

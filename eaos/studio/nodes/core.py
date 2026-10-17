@@ -27,13 +27,14 @@ import json
 import re
 import threading
 import time
+import contextvars
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from ...code_laws import LAWS
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...assistants.command import Stuck
+from ...assistants.command import Stuck, check_cancelled
 from ...language import foreign_texts, restate
 
 RULES_ONLY = 'rules only'
@@ -463,27 +464,30 @@ class _Run:
         """(answer, critique): one ask per batch, several at once when the check allows several assistants, joined in
         the batches' order; a batch that fails leaves its subjects to the rules (_decided), unless every batch failed or
         the assistant is stuck or stopped. Then a planning node's critique pass."""
-        slots = self.settings['assistants']
-        at_once = min(len(asks), slots.count if slots else 1)
-        if at_once > 1:
-            with ThreadPoolExecutor(at_once, thread_name_prefix=f'eaos-{self.node.name}') as pool:
-                outcomes = list(pool.map(lambda index: self._batch(launcher, asks, index, slots), range(len(asks))))
-        else: outcomes = [self._batch(launcher, asks, index, slots) for index in range(len(asks))]
+        outcomes = self._batches(launcher, asks)
         failed = [problem for problem in outcomes if isinstance(problem, Exception)]
         if failed and (len(failed) == len(outcomes) or any(isinstance(p, Stuck) for p in failed) or self._stopped()): raise failed[0]
         answer = _joined([one for one in outcomes if not isinstance(one, Exception)])
         if 'critique' not in self.node.passes: return answer, None
         return self._critique(launcher, answer, asks[0][2], asked, detail)
 
-    def _batch(self, launcher, asks, index, slots):
+    def _batches(self, launcher, asks):
+        """Ask at the permitted width, with the stage's stop and progress context; always join in input order."""
+        slots = self.settings['assistants']
+        at_once = min(len(asks), slots.count if slots else 1)
+        if at_once <= 1: return [self._batch(launcher, asks, index) for index in range(len(asks))]
+        with ThreadPoolExecutor(at_once, thread_name_prefix=f'eaos-{self.node.name}') as pool:
+            futures = [pool.submit(contextvars.copy_context().run, self._batch, launcher, asks, index) for index in range(len(asks))]
+            return [future.result() for future in futures]
+
+    def _batch(self, launcher, asks, index):
         """One batch's answer in the person's language, in its asked shape; the error instead when it failed."""
         node, who, (_, schema, prompt) = self.node, getattr(launcher, 'assistant', None), asks[index]
         batch = f' ({index + 1}/{len(asks)})' if len(asks) > 1 else ''
         self.tell(f'{node.title}: {who or "the assistant"} decides{batch}', f'{node.title}: {who or "المساعد"} يقرّر{batch}')
         name = node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}'
         try:
-            with slots or nullcontext():
-                one = self._in_language(launcher, launcher(name, prompt, schema), schema, name)
+            one = self._answer(launcher, name, prompt, schema)
             _shape_problem(one, schema, 'answer')
             return one
         except Exception as problem:   # noqa: BLE001 - _ask decides what a failed batch means
@@ -492,13 +496,18 @@ class _Run:
     def _stopped(self):
         return self.settings['cancel'] is not None and self.settings['cancel'].is_set()
 
+    def _answer(self, launcher, name, prompt, schema):
+        with self.settings['assistants'] or nullcontext():
+            check_cancelled()
+            return self._in_language(launcher, launcher(name, prompt, schema), schema, name)
+
     def _critique(self, launcher, answer, prompt, asked, detail):
         node = self.node
         self.tell(f'{node.title}: a second pass reviews the decisions', f'{node.title}: تمرير ثانٍ يراجع القرارات')
         second = critique_prompt(prompt, self.data, answer, self.settings['lang'])
         asked.append(second)
         schema = critique_schema(node, self.subjects, detail)
-        reviewed = self._in_language(launcher, launcher('critique', second, schema), schema, 'critique')
+        reviewed = self._answer(launcher, 'critique', second, schema)
         _shape_problem(reviewed, schema, 'review')
         return reviewed, reviewed.get('critique')
 

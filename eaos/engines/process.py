@@ -12,6 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from .. import toolchain
+from ..assistants.command import run_command
 
 DEFAULT_TIMEOUT = 600
 SKIP_DIRECTORIES = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'dist', 'build', '.mypy_cache'}
@@ -29,8 +30,8 @@ def run(command, cwd=None, timeout=DEFAULT_TIMEOUT, env=None):
     """Run an engine and return (exit code, stdout, stderr, seconds). Never raises on a bad exit."""
     started = time.monotonic()
     try:
-        done = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout,
-                              check=False, env={**toolchain.tool_env(), 'NO_COLOR': '1', **(env or {})})
+        done = run_command(command, cwd=cwd, timeout=timeout,
+                           env={**toolchain.tool_env(), 'NO_COLOR': '1', **(env or {})})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return 127, '', str(problem), time.monotonic() - started
     return done.returncode, done.stdout, done.stderr, time.monotonic() - started

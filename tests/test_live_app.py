@@ -1,0 +1,113 @@
+"""Page stages share one real server and sign-in; failure and interruption leave neither a server nor a copy."""
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+import urllib.request
+from pathlib import Path
+
+from eaos.live_run import LiveRun
+from eaos.live_setup import authorize, free_port
+from eaos.pipeline.live_app import shared_app
+from eaos.pipeline.run import execute
+from eaos.run_profile import write_profile
+from test_pipeline_run import fake_runners
+
+SERVER = '''import os, sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+with Path(sys.argv[2]).open('a') as stream: stream.write('start\\n')
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args): pass
+    def do_GET(self):
+        signed = self.headers.get('Cookie') == 'session=' + os.environ['AUTH_SECRET']
+        self.send_response(200 if self.path == '/health' or signed else 401)
+        self.end_headers()
+        self.wfile.write(b'signed in' if signed else b'health')
+HTTPServer(('127.0.0.1', int(sys.argv[1])), Handler).serve_forever()
+'''
+SEED = '''import json, os, sys
+from pathlib import Path
+with Path(sys.argv[1]).open('a') as stream: stream.write('seed\\n')
+Path(os.environ['EAOS_STORAGE_STATE']).write_text(json.dumps({'cookies': [
+    {'name': 'session', 'value': os.environ['AUTH_SECRET'], 'domain': '127.0.0.1', 'path': '/', 'expires': -1,
+     'httpOnly': True, 'secure': False, 'sameSite': 'Lax'}], 'origins': []}))
+'''
+
+
+class SharedAppTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.target, self.runtime = self.root / 'project', self.root / 'runtime'
+        self.target.mkdir()
+        (self.target / 'server.py').write_text(SERVER)
+        (self.target / 'seed.py').write_text(SEED)
+        for argv in (['git', 'init', '-q'], ['git', 'add', '.'],
+                     ['git', '-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'fixture']):
+            subprocess.run(argv, cwd=self.target, check=True, capture_output=True)
+        self.counts = self.root / 'counts.txt'
+        install = "from pathlib import Path; p=Path(__import__('sys').argv[1]); p.write_text(p.read_text()+'install\\n' if p.exists() else 'install\\n')"
+        write_profile(self.runtime, {'schema_version': 1, 'install': [[sys.executable, '-c', install, str(self.counts)]],
+            'start': [sys.executable, '-u', 'server.py', str(free_port()), str(self.counts)], 'port': 1,
+            'health': '/health', 'seed': [[sys.executable, 'seed.py', str(self.counts)]]})
+        profile = json.loads((self.runtime / 'run.json').read_text())
+        profile['port'] = int(profile['start'][3])
+        write_profile(self.runtime, profile)
+        authorize(self.target, self.runtime, 'Test')
+
+    def test_page_stages_install_start_and_seed_once_and_keep_the_same_signed_session(self):
+        for mode in ('one', 'normal', 'speed'):
+            with self.subTest(mode=mode):
+                self.counts.unlink(missing_ok=True)
+                seen = []
+
+                def page(context):
+                    live, base, state = shared_app(context)
+                    seen.append((live.sandbox.folder, base, state.read_bytes()))
+                    cookie = json.loads(state.read_text())['cookies'][0]['value']
+                    request = urllib.request.Request(base + '/', headers={'Cookie': 'session=' + cookie})
+                    with urllib.request.urlopen(request) as response: self.assertEqual(response.read(), b'signed in')
+                    return {}
+
+                runners = fake_runners()
+                for name in ('journeys', 'crawl', 'screens'):
+                    def visit(context, write=runners[name]):
+                        page(context)
+                        return write(context)
+                    runners[name] = visit
+                result = execute(self.target, self.root / mode, runners=runners, runtime=self.runtime, mode=mode)
+                self.assertEqual(result['status'], 'COMPLETE', {n: r.get('reason') for n, r in result['stages'].items() if r['status'] == 'failed'})
+                self.assertEqual(len(seen), 3)
+                self.assertEqual(seen, [seen[0]] * 3)
+                self.assertEqual(self.counts.read_text().splitlines(), ['install', 'start', 'seed'])
+                self.assertFalse(seen[0][0].exists())
+                with self.assertRaises(OSError): urllib.request.urlopen(seen[0][1], timeout=1)
+        live = LiveRun(self.target, self.runtime, 'S05')
+        try:
+            self.assertEqual(live.extra()['AUTH_SECRET'], json.loads(seen[0][2])['cookies'][0]['value'],
+                             'a later run accepts the session made by this profile')
+        finally: live.stop()
+
+    def test_failure_or_stop_in_a_page_stage_stops_the_shared_app_and_removes_its_copy(self):
+        for problem in (RuntimeError('failed page'), KeyboardInterrupt()):
+            with self.subTest(problem=type(problem).__name__):
+                seen = []
+
+                def broken(context):
+                    live, base, _ = shared_app(context)
+                    seen.append((live.sandbox.folder, base))
+                    raise problem
+
+                runners = fake_runners()
+                runners['crawl'] = broken
+                if isinstance(problem, KeyboardInterrupt):
+                    with self.assertRaises(KeyboardInterrupt):
+                        execute(self.target, self.root / 'stopped', runners=runners, runtime=self.runtime)
+                else:
+                    result = execute(self.target, self.root / 'failed', runners=runners, runtime=self.runtime)
+                    self.assertEqual(result['stages']['crawl']['status'], 'failed')
+                self.assertFalse(seen[0][0].exists())
+                with self.assertRaises(OSError): urllib.request.urlopen(seen[0][1], timeout=1)

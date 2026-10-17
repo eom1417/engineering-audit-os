@@ -165,12 +165,16 @@ class Sandbox:
         started = time.monotonic()
         process = subprocess.Popen(full, cwd=self._inside(cwd), env=self.environment(env), stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True, start_new_session=True)
+        from .assistants.command import communicate
         try:
-            out, err = process.communicate(timeout=timeout)
+            out, err = communicate(process, timeout)
         except subprocess.TimeoutExpired:
             self._kill(process)
             out, err = process.communicate()
             err += f'\nstopped after {timeout}s'
+        except BaseException:
+            self._kill(process)
+            raise
         self.commands.append({'argv': argv, 'exit': process.returncode, 'seconds': round(time.monotonic() - started, 2)})
         self._record()
         return process.returncode, out, err
@@ -185,6 +189,8 @@ class Sandbox:
         self.started.append((process, argv, time.monotonic(), log))
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
+            from .assistants.command import check_cancelled
+            check_cancelled()
             if process.poll() is not None:
                 self.stop()
                 raise RuntimeError(f'{argv[0]} exited with {process.returncode} before answering; see {log.name}; '

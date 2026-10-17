@@ -62,6 +62,11 @@ class LiveRun:
     def __init__(self, target, runtime, stage, mode='lock'):
         self.runtime = Path(runtime)
         self.profile = load_profile(runtime)
+        if 'AUTH_SECRET' not in (self.profile.get('env') or {}):
+            from .run_profile import write_profile
+            self.profile.setdefault('env', {})['AUTH_SECRET'] = secrets.token_urlsafe(48)
+            write_profile(runtime, self.profile)
+        self.auth_secret = self.profile['env']['AUTH_SECRET']
         if mode == 'baseline':
             override = self.profile.get('baseline') or {}
             for key in self.BASELINE_KEYS:
@@ -101,7 +106,7 @@ class LiveRun:
             self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}
-            self._extra.setdefault('AUTH_SECRET', secrets.token_urlsafe(48))   # generated for this run, never the owner's
+            self._extra.setdefault('AUTH_SECRET', getattr(self, 'auth_secret', None) or secrets.token_urlsafe(48))
         return self._extra
 
     def _outside(self, value):

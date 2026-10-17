@@ -6,18 +6,23 @@ fixture's check is run once with every file each stage opens recorded, so a new 
 here, and once in parallel, which must leave the same claims, cards and files.
 """
 import ast
+import difflib
 import hashlib
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from unittest import mock
 
 from eaos.pipeline import runners as stage_runners
 from eaos.pipeline.run import execute
-from eaos.pipeline.schedule import forecast, ready_stages
+from eaos.pipeline.schedule import assistants, forecast, ready_stages, run_ready
 from eaos.pipeline.stages import BY_NAME, ORDER, STAGES, WAITS
 
 FIXTURE = Path(__file__).parent / 'fixtures/polyglot'
@@ -107,7 +112,15 @@ class ParallelCheckTests(unittest.TestCase):
         self.assertEqual({k: v['status'] for k, v in self.parallel['stages'].items()},
                          {k: v['status'] for k, v in self.one['stages'].items()})
         parallel, one = _contents(self.parallel_out), _contents(self.one_out)
-        self.assertEqual(sorted(name for name in parallel.keys() | one.keys() if parallel.get(name) != one.get(name)), [])
+        different = sorted(name for name in parallel.keys() | one.keys() if parallel.get(name) != one.get(name))
+        detail = []
+        for name in different[:3]:
+            def lines(out):
+                path = out / name
+                text = path.read_text().replace(str(out.resolve()), '<out>') if path.exists() else '<missing>'
+                return [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
+            detail.extend(difflib.unified_diff(lines(self.one_out), lines(self.parallel_out), fromfile='one/' + name, tofile='normal/' + name))
+        self.assertEqual(different, [], '\n'.join(detail[:120]))
         self.assertEqual(self.parallel['mode'], 'normal')
 
     def test_each_stage_asks_of_the_run_only_what_it_waits_for(self):
@@ -129,6 +142,76 @@ class ParallelCheckTests(unittest.TestCase):
 
 
 class ReadyStagesTests(unittest.TestCase):
+    def test_ai_readers_wait_for_the_same_inputs_in_speed_mode_as_in_serial_mode(self):
+        ended = set(ORDER) - {'triage', 'visual', 'ideal', 'pipeline_gaps', 'order'}
+        self.assertNotIn('ideal', ready_stages(['ideal'], ended, ['triage', 'visual'], 'speed', 5))
+        ended.update(('triage', 'visual'))
+        self.assertEqual(ready_stages(['ideal'], ended, [], 'speed', 5), ['ideal'])
+        self.assertNotIn('order', ready_stages(['order'], ended, ['ideal', 'pipeline_gaps'], 'speed', 5))
+        self.assertIn('probe', WAITS['semantic'], 'the semantic pass rewrites the probed ledger')
+
+    def test_speed_uses_available_container_memory_and_leaves_room_for_the_app(self):
+        from eaos.assistants.resources import capacity
+        gb = 2 ** 30
+        files = {'/sys/fs/cgroup/cpu.max': '200000 100000', '/sys/fs/cgroup/memory.max': str(4 * gb),
+                 '/sys/fs/cgroup/memory.current': str(gb), '/sys/fs/cgroup/memory.stat': 'inactive_file 0\nslab_reclaimable 0',
+                 '/proc/meminfo': f'MemAvailable: {64 * gb // 1024} kB'}
+        with mock.patch('pathlib.Path.read_text', autospec=True, side_effect=lambda path, **kw: files[str(path)]), \
+                mock.patch('os.sysconf', side_effect=lambda name: 4096 if name == 'SC_PAGE_SIZE' else 64 * gb // 4096):
+            self.assertEqual(capacity(), (2, 4 * gb, 3 * gb))
+            self.assertEqual(assistants('speed').count, 3, 'the host has 64 GB, but the container has 4')
+            self.assertEqual(assistants('normal').count, 1)
+            files['/sys/fs/cgroup/memory.current'] = str(4 * gb - 500 * 2 ** 20)
+            self.assertEqual(assistants('speed').count, 1, 'low available memory never adds assistants')
+
+    def test_a_computer_without_room_runs_one_stage_and_one_assistant_at_a_time_and_is_never_stuck(self):
+        from eaos.pipeline import schedule
+        def most(room, run):
+            state, guard = {'now': 0, 'most': 0, 'ran': 0}, threading.Lock()
+            def work(name):
+                with guard: state['now'] += 1; state['most'] = max(state['most'], state['now'])
+                time.sleep(.01)
+                with guard: state['now'] -= 1; state['ran'] += 1
+            with mock.patch.object(schedule, 'room', return_value=room), mock.patch.object(schedule, 'WAIT', .01):
+                run(work)
+            return state['most'], state['ran']
+        stages = lambda work: run_ready(ORDER, work, 'speed')
+        def answers(work):
+            slots = schedule.Assistants(3)
+            def answer(name):
+                with slots: work(name)
+            with ThreadPoolExecutor(3) as pool: list(pool.map(answer, range(3)))
+        self.assertEqual(most(False, stages), (1, len(ORDER)), 'one stage at a time, every one of them')
+        self.assertGreater(most(True, stages)[0], 1)
+        self.assertEqual(most(False, answers), (1, 3))
+        self.assertEqual(most(True, answers)[0], 3)
+
+    def test_stopping_one_stage_interrupts_the_commands_running_beside_it_and_their_children(self):
+        from eaos.assistants.command import run_command
+        from eaos.live_setup import free_port
+        import urllib.request
+        port = free_port()
+        code = ('import subprocess,sys,time,urllib.request\nfrom pathlib import Path\n'
+                'p=subprocess.Popen([sys.executable,"-m","http.server",sys.argv[2],"--bind","127.0.0.1"])\n'
+                'for attempt in range(100):\n'
+                ' try:\n  urllib.request.urlopen("http://127.0.0.1:"+sys.argv[2],timeout=.1).close()\n  break\n'
+                ' except OSError: time.sleep(.02)\n'
+                'Path(sys.argv[1]).write_text("ready")\ntime.sleep(120)\n')
+        with tempfile.TemporaryDirectory() as directory:
+            ready = Path(directory) / 'ready'
+            def start(name):
+                if name == 'engines': run_command([sys.executable, '-c', code, str(ready), str(port)], timeout=120)
+                if name == 'setup':
+                    deadline = time.monotonic() + 5
+                    while not ready.exists() and time.monotonic() < deadline: time.sleep(.02)
+                    self.assertTrue(ready.exists(), 'the sibling command started before the stop')
+                    raise KeyboardInterrupt()
+            began = time.monotonic()
+            with self.assertRaises(KeyboardInterrupt), mock.patch('eaos.pipeline.schedule.room', return_value=True):
+                run_ready(ORDER, start)
+            self.assertLess(time.monotonic() - began, 5, 'a stop does not wait for the 120-second command')
+            with self.assertRaises(OSError): urllib.request.urlopen(f'http://127.0.0.1:{port}', timeout=1)
+
     def test_what_a_stage_holds_keeps_the_others_apart(self):
         ended = set(ORDER[:ORDER.index('setup') + 1]) | {'lock', 'intake', 'record'}
         left = [n for n in ORDER if n not in ended]

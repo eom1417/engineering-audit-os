@@ -31,6 +31,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .. import toolchain
+from ..assistants.command import run_command
 
 TEMPLATES = Path(__file__).resolve().parent.parent / 'templates/screens'
 VIEWPORTS = ({'name': 'phone', 'width': 390, 'height': 844},
@@ -62,9 +63,9 @@ def _node(script, config, timeout, env=None):
     """(parsed stdout, error) of a helper script given its config as a JSON file."""
     with tempfile.TemporaryDirectory(prefix='eaos-screens-') as folder:
         path = Path(folder) / 'config.json'
-        path.write_text(json.dumps(config), encoding='utf-8')
+        path.write_text(json.dumps(config, default=str), encoding='utf-8')
         try:
-            done = subprocess.run(['node', str(TEMPLATES / script), str(path)], capture_output=True, text=True, timeout=timeout,
+            done = run_command(['node', str(TEMPLATES / script), str(path)], timeout=timeout,
                                   env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers()), **(env or {})})
         except (OSError, subprocess.TimeoutExpired) as problem:
             return None, f'{script}: {problem}'
@@ -122,6 +123,7 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits
     config = {'urls': [{k: v for k, v in u.items() if k != 'height_budget'} if isinstance(u, dict) else u for u in urls], 'viewports': list(viewports), 'variants': page_variants or variants(),
               'phone_width': phone_width, 'target_min': limits.get('target_min', TARGET_MIN),
               'screenshots_dir': str(Path(out) / 'screenshots') if out else None,
+              'storage_state': limits.get('storage_state'),
               'modules': {'playwright': str(toolchain.home() / 'node/node_modules'), 'axe': str(toolchain.node_modules('axe-core'))}}
     result, error = _node('audit.mjs', config, limits.get('timeout', 900))
     if error: return {'status': 'error', 'reason': error, 'rows': []}
@@ -219,7 +221,7 @@ def failed_audits(data):
     return found
 
 
-def lighthouse(url, out=None, timeout=300):
+def lighthouse(url, out=None, timeout=300, storage_state=None):
     """Lighthouse's mobile profile on one URL: the three category scores (0-100), LCP in ms and CLS."""
     absent = missing('playwright', 'lighthouse')
     if absent: return unavailable(absent)
@@ -227,7 +229,12 @@ def lighthouse(url, out=None, timeout=300):
     if not chrome: return unavailable('the Chromium of the pinned Playwright was not found; run: python -m eaos tools install --only playwright')
     with tempfile.TemporaryDirectory(prefix='eaos-lighthouse-') as folder:
         report = Path(out) / 'lighthouse.json' if out else Path(folder) / 'lighthouse.json'
-        data, error = _run_lighthouse(url, report, chrome, folder, timeout)
+        if storage_state:
+            data, error = _node('lighthouse.mjs', {'url': url, 'out': str(report), 'folder': folder,
+                'storage_state': str(storage_state), 'categories': LIGHTHOUSE_CATEGORIES,
+                'modules': {'playwright': str(toolchain.home() / 'node/node_modules'),
+                            'lighthouse': str(toolchain.node_modules('lighthouse'))}}, timeout)
+        else: data, error = _run_lighthouse(url, report, chrome, folder, timeout)
     if error: return {'status': 'error', 'reason': error}
     if data.get('runtimeError'): return {'status': 'error', 'reason': f"lighthouse: {data['runtimeError'].get('message')}"}
     return _lighthouse_result(data, url, report if out else None)
@@ -241,7 +248,7 @@ def _run_lighthouse(url, report, chrome, folder, timeout):
             '--form-factor=mobile', f"--only-categories={','.join(LIGHTHOUSE_CATEGORIES)}", f'--chrome-flags={flags}',
             '--no-enable-error-reporting']
     try:
-        done = subprocess.run(argv, capture_output=True, text=True, timeout=timeout,
+        done = run_command(argv, timeout=timeout,
                               env={**os.environ, 'CHROME_PATH': chrome, 'TMPDIR': folder})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'lighthouse: {problem}'

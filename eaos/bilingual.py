@@ -20,6 +20,7 @@ out mixed. Translating what is written is small, and kept small this way (EAOS's
 """
 import json
 import re
+import contextvars
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -159,9 +160,10 @@ def _ask_all(provider, missing, memory, say):
     with ThreadPoolExecutor(WORKERS) as pool:
         for _ in range(ROUNDS):
             batches = list(_batches(missing))
-            for done, (batch, answered) in enumerate(zip(batches, pool.map(lambda batch: _ask(provider, batch), batches))):
+            answers = [pool.submit(contextvars.copy_context().run, _ask, provider, batch) for batch in batches]
+            for done, (batch, answer) in enumerate(zip(batches, answers)):
                 say(done + 1, len(batches))
-                keep(memory, batch, answered or ())
+                keep(memory, batch, answer.result() or ())
             calls += len(batches)
             missing = [pair for pair in missing if pair[1] not in memory[pair[0]]]
     return {'calls': calls, 'failed': len(missing)}

@@ -259,6 +259,10 @@ class Framework(Base):
         self.assertEqual(sources.count('rules'), triage.BATCH, "only the broken batch's cards fall to the rules")
         self.assertEqual(record['method'], 'model')
         self.assertEqual([e['node'] for e in core.log(self.report)].count('card_triage'), 1, 'one line per run')
+        state['most'] = 0
+        serial = self.triage(Answer(answer), assistants=Assistants(1), fresh=True)
+        self.assertEqual(state['most'], 1)
+        self.assertEqual(serial['decisions'], record['decisions'], 'parallel batches preserve the serial answers and order')
 
 class Triage(Base):
     """The card triage: its verdicts stand on the card's own evidence, doubt asks a probe, reject tells the library."""

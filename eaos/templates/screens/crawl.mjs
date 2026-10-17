@@ -29,7 +29,8 @@ function pathOf(href) {
 const browser = await playwright.chromium.launch({ headless: true, args: config.chromium_args || [] });
 const routes = [];
 try {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block',
+    storageState: config.storage_state || undefined });
   await context.route('**/*', (route) => {
     const target = new URL(route.request().url());
     if (['data:', 'blob:'].includes(target.protocol) || target.origin === base.origin) return route.continue();

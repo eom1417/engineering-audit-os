@@ -114,7 +114,8 @@ STAGES = (
           description='The six sustainability indicators, measured or declared unmeasured, each against its target'),
     Stage('transform', produces=('transform-plan.md', 'transform-plan.json'), requires=('sustainability',),
           description='Canonical homes for repeated definitions, and the move that gets there'),
-    Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,
+    Stage('semantic', produces=('SEMANTIC.md', 'semantic.json'), requires=('claims',),
+          amends=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its answer could not be used',
           description='Model interpretation over the facts; every output stays a hypothesis', ai=True),
     Stage('plan', produces=('plan.json', 'PLAN/WAVES.md'), requires=('probe',), amends=('dossier.json', 'DECISION-BRIEF.md', 'README.md'),
@@ -139,7 +140,7 @@ STAGES = (
           description="The assistant's verdicts applied once, before anything ranks, plans or reports: a card the triage "
                       "rejected leaves the plan and the gaps and its claim is refuted, a doubted one waits for a person's "
                       "review and is never fixed automatically; without the triage every card stands as the rules wrote it"),
-    Stage('ideal', produces=('ideal/plan.json',), requires=('proposals',), necessity=OPTIONAL,
+    Stage('ideal', produces=('ideal/plan.json',), requires=('proposals',), reads=('triage', 'visual'), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its plan could not be used',
           description="The assistant accepts, modifies or rejects each of the tools' proposals for the target, reading "
                       'the triage and the semantic reading, then reviews it; every element cites its evidence', ai=True),
@@ -150,7 +151,7 @@ STAGES = (
           description="The final target: the assistant's decision where it cites evidence and passes the guards (known "
                       "components, the owner's policy and protected features kept), the rules' elsewhere; every "
                       'component says who decided it and the gap matrix is drawn from it'),
-    Stage('order', produces=('nodes/plan_orderer/order.json',), requires=('cards',), necessity=OPTIONAL,
+    Stage('order', produces=('nodes/plan_orderer/order.json',), requires=('cards',), reads=('ideal', 'pipeline_gaps'), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its order could not be used',
           description="The assistant orders and groups the confirmed cards into steps, reading the triage, the ideal and "
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),

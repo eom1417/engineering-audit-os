@@ -13,8 +13,9 @@ from pathlib import Path
 
 from ..progress import ProgressLog, previous_seconds, using
 from ..usage import FILE as USAGE
+from .live_app import PAGE_STAGES, close_app
 from .paths import resolve
-from .schedule import assistants, run_ready
+from .schedule import LimitedProvider, assistants, run_ready
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
@@ -69,6 +70,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
                       intake=_resolved(intake), runtime=str(runtime) if runtime else None, assistants=assistants(mode),
                       patterns=patterns)
+    if provider: context['provider'] = LimitedProvider(provider, context.assistants)
     requested = _requested(only, skip)
     completed = _completed or {}
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
@@ -94,6 +96,8 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
         log.finish('STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
                    reason=f'{type(problem).__name__}: {problem}'[:300], seconds=round(time.monotonic() - began, 2))
         raise
+    finally:
+        close_app(context)
     log.finish(manifest['status'], seconds=manifest['seconds'], counts=manifest['counts'])
     return manifest
 
@@ -142,6 +146,7 @@ def _stage(stage, run):
     with run['lock']:
         run['results'][stage.name] = row
         run['log'].ended(row, **({'resumed': True} if resumed else {}))
+        if PAGE_STAGES <= run['results'].keys(): close_app(run['context'])
 
 
 def _run_stage(stage, run):
@@ -160,6 +165,7 @@ def _run_stage(stage, run):
         log.ended(row)
         _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results})
         _block_dependents(stage, results, run['blocked'])
+        if PAGE_STAGES <= results.keys(): close_app(context)
 
 
 def _block_dependents(stage, results, blocked):

@@ -6,6 +6,36 @@ import subprocess
 import signal
 import tempfile
 import time
+from contextvars import ContextVar
+
+STOP = ContextVar('eaos_stop', default=None)
+
+
+def check_cancelled():
+    if STOP.get() is not None and STOP.get().is_set(): raise KeyboardInterrupt()
+
+
+def communicate(process, timeout):
+    """communicate(), observing the check's stop even when called from a stage's worker thread."""
+    deadline = time.monotonic() + timeout
+    while True:
+        check_cancelled()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0: raise subprocess.TimeoutExpired(process.args, timeout)
+        try: return process.communicate(timeout=min(0.25, remaining))
+        except subprocess.TimeoutExpired:
+            if time.monotonic() >= deadline: raise
+
+
+def run_command(argv, timeout, **options):
+    """Capture a command in its own process group; interruption or timeout kills its children too."""
+    check_cancelled()
+    with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True, **options) as child:
+        try:
+            out, err = communicate(child, timeout)
+            return subprocess.CompletedProcess(argv, child.returncode, out, err)
+        finally:
+            if child.poll() is None: _end(child)
 
 STUCK = 1200   # seconds with no output at all from the assistant: it is stuck, however long the work may take
 
@@ -27,6 +57,7 @@ def wait(process, outputs, cancel=None):
     sizes, quiet = None, time.monotonic()
     try:
         while process.poll() is None and not (cancel is not None and cancel.is_set()):
+            check_cancelled()
             now = [os.fstat(output.fileno()).st_size for output in outputs]
             if now != sizes: sizes, quiet = now, time.monotonic()
             elif time.monotonic() - quiet > STUCK:
