@@ -120,7 +120,7 @@
   "tools/validate.py::packaged_errors": 16
  },
  "modules": {
-  "eaos/agent_tools.py": 1192,
+  "eaos/agent_tools.py": 1189,
   "eaos/guided.py": 1281,
   "eaos/human_report.py": 2104,
   "eaos/studio/actions/branches.py": 1141,

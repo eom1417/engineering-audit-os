@@ -170,6 +170,15 @@ export interface Preview {
   auto_accept?: boolean
   /** Accept only: the waiting branch, where it merges and the person's branches to choose from */
   merge?: AcceptWhere | null
+  /** A check only: the paths it may follow and the kept mode (eaos/check_choices.py offered) */
+  check?: CheckOffer
+}
+
+/** What the start of a check offers: each path with what it looks at, and the mode and sign-in kept for the project. */
+export interface CheckOffer {
+  paths: { id: string; name: Bi; looks_at: Bi }[]
+  mode: 'normal' | 'speed'
+  sign_in: 'hand' | 'test_user' | 'none' | null
 }
 
 /** What Accept shows before merging (eaos/studio/actions/branches.py accept_where). */

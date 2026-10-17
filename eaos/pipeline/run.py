@@ -79,7 +79,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     head['options']['without_tools'] = sorted(without_tools)
     head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
     log = ProgressLog(out)
-    log.started(STAGES, requested, previous_seconds(out))
+    log.started(STAGES, requested, previous_seconds(out), mode=mode)
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
            'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head,
            'lock': threading.RLock()}

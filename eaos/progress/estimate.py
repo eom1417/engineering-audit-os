@@ -9,7 +9,8 @@ the same flow and `previous_steps` each step's; nothing else is used:
 - a running stage with a counted step (`progress.count`, 37 of 156) costs the time its done items took, spread over
   the items left: the stage's own pace, measured now;
 - any other running stage costs what is left of its scaled last time (none when it already ran longer);
-- a stage the last run did not finish is unknown and named, never guessed.
+- a stage the last run did not finish is unknown and named, never guessed;
+- a check whose stages run side by side (its `mode`) takes the longest chain of what is left, not its sum.
 
 The answer is {'low', 'high'} in whole seconds (15% either side of the centre, at least 10 s), `basis`
 ('previous_run'), `pace` (the scale) and `unknown` (stages with no history). A first run, or a run that is not
@@ -61,6 +62,14 @@ def _left(stage, before, scale, now):
     return max(before * scale - elapsed, 0.0) if known else None
 
 
+def _longest(costs, state):
+    """The seconds the stages left take: a check's run side by side (eaos/pipeline/schedule.py forecast, the longest
+    chain), any other flow's one after the other (their sum)."""
+    if state.get('flow') != 'check' or state.get('mode') in (None, 'one'): return sum(costs.values())
+    from ..pipeline.schedule import WAITS, forecast
+    return forecast(costs, state['mode']) if set(costs) <= set(WAITS) else sum(costs.values())
+
+
 def estimate(state, now):
     """{'low', 'high', 'basis', 'pace', 'unknown'} for a running flow (`now`: seconds since the epoch), or
     {'basis': 'first_run'} when there is no last run to learn from, or None when nothing is running."""
@@ -68,12 +77,13 @@ def estimate(state, now):
     previous = state.get('previous') or {}
     if not previous: return {'basis': 'first_run'}
     scale = pace(state)
-    left, unknown = 0.0, []
+    costs, unknown = {}, []
     for stage in state.get('stages') or []:
         if stage.get('state') != 'running' and not (stage.get('state') == 'waiting' and stage.get('requested', True)): continue
         cost = _left(stage, previous.get(stage['name']), scale, now)
         if cost is None: unknown.append(stage['name'])
-        else: left += cost
+        else: costs[stage['name']] = cost
+    left = _longest(costs, state)
     band = max(left * BAND, MIN_BAND)
     return {'low': int(max(left - band, 0)), 'high': int(left + band + 0.5), 'basis': 'previous_run',
             'pace': round(scale, 2), 'unknown': unknown}

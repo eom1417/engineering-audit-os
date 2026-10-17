@@ -10,6 +10,7 @@ to an earlier stage, so one stage at a time is the declared order itself: there 
     one      one stage at a time, in the declared order: the proof that the others find exactly the same
 """
 import contextvars
+import heapq
 import os
 import threading
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -83,3 +84,16 @@ def run_ready(names, start, mode='normal', quick=()):
             for future in done:
                 ended.add(running.pop(future))
                 future.result()
+
+
+def forecast(costs, mode='normal'):
+    """Seconds until every stage of `costs` ({stage: its seconds}, the others ended) has ended, run as run_ready runs
+    them: the longest chain of what waits for what and what holds what, not their sum."""
+    left, ended, running, clock = [name for name in WAITS if name in costs], set(WAITS) - set(costs), [], 0.0
+    while left or running:
+        for name in ready_stages(left, ended, [name for _, name in running], mode, width(mode) - len(running)):
+            left.remove(name)
+            heapq.heappush(running, (clock + costs[name], name))
+        clock, name = heapq.heappop(running)
+        ended.add(name)
+    return clock

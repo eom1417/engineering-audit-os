@@ -17,7 +17,7 @@ from pathlib import Path
 
 from eaos.pipeline import runners as stage_runners
 from eaos.pipeline.run import execute
-from eaos.pipeline.schedule import ready_stages
+from eaos.pipeline.schedule import forecast, ready_stages
 from eaos.pipeline.stages import BY_NAME, ORDER, STAGES, WAITS
 
 FIXTURE = Path(__file__).parent / 'fixtures/polyglot'
@@ -106,7 +106,8 @@ class ParallelCheckTests(unittest.TestCase):
     def test_a_parallel_check_finds_exactly_what_one_stage_at_a_time_finds(self):
         self.assertEqual({k: v['status'] for k, v in self.parallel['stages'].items()},
                          {k: v['status'] for k, v in self.one['stages'].items()})
-        self.assertEqual(_contents(self.parallel_out), _contents(self.one_out))
+        parallel, one = _contents(self.parallel_out), _contents(self.one_out)
+        self.assertEqual(sorted(name for name in parallel.keys() | one.keys() if parallel.get(name) != one.get(name)), [])
         self.assertEqual(self.parallel['mode'], 'normal')
 
     def test_each_stage_asks_of_the_run_only_what_it_waits_for(self):
@@ -139,3 +140,10 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertEqual(ready_stages(['visual'], thinking, ['triage'], 'normal', 10), [])
         self.assertEqual(ready_stages(['visual'], thinking, ['triage'], 'speed', 10), ['visual'])
         self.assertEqual(ready_stages(left, ended, [], 'one', 1), [left[0]] if WAITS[left[0]] <= ended else [])
+
+    def test_the_time_a_check_takes_is_its_longest_chain_not_its_sum(self):
+        costs = {name: 10.0 for name in ORDER}
+        self.assertEqual(forecast(costs, 'one'), 10.0 * len(ORDER))
+        self.assertLess(forecast(costs, 'normal'), 10.0 * len(ORDER))
+        self.assertLessEqual(forecast(costs, 'speed'), forecast(costs, 'normal'))
+        self.assertEqual(forecast({'facts': 5.0, 'measure': 3.0}, 'normal'), 8.0, 'what waits waits')

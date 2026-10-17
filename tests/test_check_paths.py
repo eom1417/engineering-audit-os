@@ -42,6 +42,9 @@ class PathsTests(unittest.TestCase):
         self.assertEqual(set(PATTERNS) - {n for p in chosen for n in p.get('patterns', ())}, set())
         kinds = {c.kind for adapter in ADAPTERS.values() for c in adapter.capabilities()}
         self.assertEqual(kinds - {k for p in chosen for k in p.get('kinds', ())}, set())
+        actions = json.loads((Path(__file__).parent.parent / 'eaos/data/studio-actions.json').read_text(encoding='utf-8'))['actions']
+        audit = next(a for a in actions if a['id'] == 'audit')['inputs']['properties']
+        self.assertEqual(audit['paths']['items']['enum'], list(PATHS), 'the Studio offers every path, in their order')
         named = {n for p in chosen for n in p.get('engines', ())}
         self.assertEqual({n for n, a in ADAPTERS.items() if not a.capabilities()} - named, set(), 'an engine that names no capability')
 

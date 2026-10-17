@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 from . import __version__
+from .pipeline.paths import PATHS
 from .workspace import bounded_int, read
 
 
@@ -134,6 +135,10 @@ def main(argv=None):
             q.add_argument('--no-watch',action='store_true',help='do not open the live map in the running Studio')
             q.add_argument('--assistant',choices=['claude','codex','none'],default=None,
                            help='the AI assistant the check uses on this project (kept), or none for a check without AI')
+            q.add_argument('--path',nargs='+',choices=sorted(PATHS),default=None,
+                           help='check only these paths (eaos/pipeline/paths.py); the complete check by default')
+            q.add_argument('--mode',choices=['normal','speed'],default=None,help='speed: several assistants at once, faster but '
+                           'more tokens (kept for this project)')
         q.set_defaults(func=guided_command)
     q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
     q.add_argument('project',nargs='?',default='.')

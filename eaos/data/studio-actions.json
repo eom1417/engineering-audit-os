@@ -326,8 +326,8 @@
     "ar": "افحص المشروع"
    },
    "description": {
-    "en": "The full check, 5 to 30 minutes. Nothing in the project changes.",
-    "ar": "الفحص الكامل من 5 إلى 30 دقيقة. لا يتغير شيء في المشروع."
+    "en": "The check: complete, or only the paths chosen. Nothing in the project changes.",
+    "ar": "الفحص: شامل، أو المسارات المختارة فقط. لا يتغير شيء في المشروع."
    },
    "mode": "direct",
    "needs_assistant": false,
@@ -389,6 +389,35 @@
        "type": "string"
       },
       "description": "With again_from engines: only these tools run again, beside the others' results."
+     },
+     "paths": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string",
+       "enum": [
+        "complete",
+        "security",
+        "look",
+        "code",
+        "speed"
+       ]
+      },
+      "description": "Only these paths of the check (eaos/pipeline/paths.py); the complete check when empty."
+     },
+     "mode": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "normal",
+       "speed",
+       null
+      ],
+      "description": "normal, or speed: several assistants at once, faster but more tokens (kept for the project)."
      }
     },
     "required": []

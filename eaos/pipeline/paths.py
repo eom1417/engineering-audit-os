@@ -16,7 +16,7 @@ COMPLETE = 'complete'
 SPINE = ('proposals', 'triage', 'order', 'translate')
 PATHS = {
     'complete': {'names': ('Complete', 'شامل'),
-                 'looks_at': ('Everything below, together', 'كل ما في المسارات الأخرى معًا')},
+                 'looks_at': ('Every path, together: the whole check', 'كل المسارات معًا: الفحص كامل')},
     'security': {'names': ('Security', 'الأمان'),
                  'looks_at': ('Exposed secrets, vulnerabilities, dependencies and their licences, dangerous settings, access gaps',
                               'الأسرار المكشوفة، والثغرات، والمكتبات وتراخيصها، والإعدادات الخطرة، وثغرات الصلاحيات'),

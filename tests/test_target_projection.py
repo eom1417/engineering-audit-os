@@ -97,8 +97,7 @@ class ProjectTests(Workspace):
         self.assertEqual(result['reference'], 'react-tanstack-start-supabase')
         self.assertEqual(validate(result, contracts()['target-fragment']), [])
         self.assertEqual({c['name'] for c in result['target_components']}, {'feature:contas', 'data-access', 'lib'})
-        feature = json.loads((out / 'features.json').read_text())['features'][0]
-        self.assertEqual(feature['target_component'], 'feature:contas')
+        self.assertEqual(next(c for c in result['target_components'] if c['name'] == 'feature:contas')['feature'], 'Contas')
         components = {c['origin']: c for c in result['current_components']}
         # One file to move into its feature is an edit (modify), not a rebuild.
         self.assertEqual(components['src/components/accounts']['relation'], 'modify')

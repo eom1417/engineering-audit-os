@@ -202,11 +202,15 @@ def _check_tools(server, reading, working):
                  'stops the check before it starts (status assistant_not_ready, with the reason and its fix). without_tools=true: '
                  'only when the person chose to start without tools whose install failed (the report records it). again_from=<stage>: '
                  'the last check goes on from that stage (one whose tool failed, or one to redo): it and the stages reading it run '
-                 'again on the checked commit, the rest is kept; engines=[names] with again_from=engines runs only those tools. ' + project_doc)
+                 'again on the checked commit, the rest is kept; engines=[names] with again_from=engines runs only those tools. '
+                 'paths=[...] checks only those paths, when the person has a clear goal: security, look (the screens), code '
+                 '(structure, quality, dead code), speed (load and scale); complete by default. mode=speed runs several '
+                 'assistants at once: faster, more tokens; say so before choosing it (kept). ' + project_doc)
     @_answer
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
-              assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None) -> str:
-        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines)
+              assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
+              paths: list[str] | None = None, mode: str | None = None) -> str:
+        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode)
 
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '

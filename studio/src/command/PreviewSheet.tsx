@@ -13,10 +13,11 @@ import { Sheet, SheetSub } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { actionOf, personInputs, SNAPSHOT, verbOf } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
-import { ActionError, type Bi, type FixWhere, type JsonSchema, type Preview, type PreviewBody, type Selection, type StartBody, type WhereChoice } from '../data/actions/types'
+import { ActionError, type Bi, type CheckOffer, type FixWhere, type JsonSchema, type Preview, type PreviewBody, type Selection, type StartBody, type WhereChoice } from '../data/actions/types'
 import type { Severity } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
+import { CheckOptions, checkInputs, type CheckChoice } from './CheckOptions'
 import { useCommand, type CommandRequest } from './command'
 import { SelectBox } from './SelectBox'
 import { useCmdWords } from './words'
@@ -340,7 +341,7 @@ type Words = ReturnType<typeof useCmdWords>
 type Lang = ReturnType<typeof usePrefs>['lang']
 type Inputs = Record<string, unknown>
 /** What the person chose around the request: the assistant, the place of a Fix, and a Fix's own option. */
-interface Asked { assistant: string | null; place: WhereChoice; verbInputs?: { auto_accept: boolean }; inputs?: Inputs }
+interface Asked { assistant: string | null; place: WhereChoice; verbInputs?: { auto_accept: boolean }; inputs?: Inputs; check?: CheckChoice }
 
 /** The form's first values: the cards the person selected, then the inputs the request carries. */
 function startValues(request: CommandRequest | null | undefined, action: Action | undefined, fields: Field[]): Record<string, string | boolean> {
@@ -350,8 +351,9 @@ function startValues(request: CommandRequest | null | undefined, action: Action 
   return { ...start, ...Object.fromEntries(Object.entries(request?.inputs ?? {}).map(([k, v]) => [k, typeof v === 'boolean' ? v : Array.isArray(v) ? v.join('\n') : String(v)])) }
 }
 
-/** An action asks for its inputs first; a verb never does. */
-const formNeeded = (action: Action | undefined, fields: Field[], request: CommandRequest | null | undefined) => Boolean(action && fields.length && !request?.verb)
+/** An action asks for its inputs first; a verb never does, nor a check, whose choices are the person's words (CheckOptions). */
+const formNeeded = (action: Action | undefined, fields: Field[], request: CommandRequest | null | undefined) =>
+  Boolean(action && fields.length && !request?.verb && action.id !== 'audit')
 
 /** Fix only: the person's choice to accept the batch by itself when its checks pass; previewed again when it changes,
  * since the confirmation is bound to it. */
@@ -404,7 +406,7 @@ function usePreview(c: { request: CommandRequest | null | undefined; asked: bool
       (error) => { if (on) c.setProblem(error instanceof ActionError ? error.message : String(error)) })
     return () => { on = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, asked, actions.client, a.assistant, a.place, c.autoAccept])
+  }, [request, asked, actions.client, a.assistant, a.place, c.autoAccept, JSON.stringify(a.check)])
 }
 
 /** Starting the run the preview showed: the run page (or the live check) opens; a branch that moved since asks for the
@@ -508,18 +510,25 @@ export function PreviewSheet() {
   const [place, setPlace] = useState<WhereChoice>({})
   const [moved, setMoved] = useState(false)
   const [autoAccept, setAutoAccept] = useState(false)
-  const a: Asked = { assistant, place, verbInputs: verbInputsOf(request, autoAccept) }
+  const [check, setCheck] = useState<CheckChoice | undefined>(undefined)
+  const [offer, setOffer] = useState<CheckOffer | undefined>(undefined)
+  const a: Asked = { assistant, place, verbInputs: verbInputsOf(request, autoAccept), check }
 
   // A new request starts clean; one with no inputs to fill is previewed at once
   useEffect(() => {
-    setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false); setPlace({}); setMoved(false); setAutoAccept(false)
+    setPreview(null); setProblem(null); setUnderstood(false); setAssistant(null); setBusy(false); setPlace({}); setMoved(false); setAutoAccept(false); setCheck(undefined); setOffer(undefined)
     setValues(startValues(request, action, fields))
     setAsked(Boolean(request) && !needsForm)
   }, [request, action, fields, needsForm])
 
   const inputsOf = (): Inputs | null => {
-    try { return parse(fields, values) } catch { setProblem('JSON'); return null }
+    try { return { ...parse(fields, values), ...(check ? checkInputs(check) : {}) } } catch { setProblem('JSON'); return null }
   }
+  // what a check offers stays while its preview is asked again; the kept mode is the first choice, never the person's
+  useEffect(() => {
+    if (!preview?.check || offer) return
+    setOffer(preview.check); setCheck({ paths: ['complete'], mode: preview.check.mode })
+  }, [preview, offer])
   usePreview({ request, asked, inputsOf, a, autoAccept, setPreview, setProblem })
   const start = useStart({ request, preview, inputsOf, a, setBusy, setMoved, setPlace, setProblem })
 
@@ -531,6 +540,7 @@ export function PreviewSheet() {
         <>
           {needsForm && <InputsBlock fields={fields} required={required} values={values} asked={asked} onAsk={() => setAsked(true)}
             onChange={(name, value) => { setValues((was) => ({ ...was, [name]: value })); setAsked(false) }} />}
+          {offer && check && <Block title={w('checkTitle')}><CheckOptions offer={offer} choice={check} onChange={setCheck} /></Block>}
           <SheetStatus asked={asked} preview={preview} problem={problem} moved={moved} />
           {preview && <PreviewBody preview={preview} request={request} onWhere={(next) => { setMoved(false); setPlace((was) => ({ ...was, ...next })) }} />}
           {preview && <AssistantChoice preview={preview} assistant={assistant} onChange={setAssistant} />}

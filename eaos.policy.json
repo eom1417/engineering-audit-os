@@ -85,7 +85,7 @@
       "eaos/live_run.py",
       "eaos/runtime_baseline.py",
       "eaos/execute.py",
-      "eaos/guided.py",
+      "eaos/guided.py", "eaos/check_choices.py",
       "eaos/places.py",
       "eaos/progress/**",
       "eaos/live_setup.py",

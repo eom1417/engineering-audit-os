@@ -43,7 +43,6 @@ export function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base
       <Badges row={row} />
       {error && <p role="alert" className={css.error}>{error}</p>}
       {followed && <RescanStatus run={followed} />}
-      {select.scan && <RescanStatus run={select.scan} />}
       <SelectError error={select.error} />
       {detail && <>
         <DetailProps row={row} detail={detail} />

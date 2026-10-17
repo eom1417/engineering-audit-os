@@ -21,6 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
+from ... import check_choices
 from . import chat, handoff, plan, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
@@ -409,7 +410,7 @@ class Actions:
                'irreversible': bool(not verb and self.actions[action]['irreversible']),
                'needs_consent': bool(not verb and self.actions[action]['needs_consent']) or verb == 'fix'}
         if verb: self._verb_preview(out, verb, body)
-        else: self._action_preview(out, action)
+        else: self._action_preview(out, action, inputs)
         self._handoff(out, (verb, action, needed), inputs)
         # a Fix confirms where it builds too: the token pins the base commit the person saw, and nothing is confirmed
         # while the preview says the place is wrong (a protected target, a branch name git refuses)
@@ -426,11 +427,16 @@ class Actions:
         out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
         if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'), _group_name(body.get('selection')))
 
-    def _action_preview(self, out, action):
-        """An action's rough time, risk and what happens when it fails; where Accept would merge."""
+    def _action_preview(self, out, action, inputs):
+        """An action's time (a check's from this project's last one, eaos/check_choices.py), risk and what happens when it
+        fails; where Accept would merge."""
         spec = self.actions[action]
         low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-        out.update(estimate={'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
+        measured = action == 'audit' and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'))
+        if action == 'audit':
+            from ... import guided
+            out['check'] = check_choices.offered(guided.load(str(self.project)))
+        out.update(estimate=measured or {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
                    risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                          'why': spec['description'] if spec['description']['en'] else spec['label']},
                    on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])

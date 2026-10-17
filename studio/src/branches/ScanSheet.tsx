@@ -1,9 +1,7 @@
 // "Is this scan current?" (NS46.T19): what the scan read (branch or detached HEAD, full commit, unsaved changes, scan
-// and build times), whether it still holds now, and the direct action: Re-scan now through the live command centre,
-// with saved, running and done states, a link to the run and the report refreshed; once it starts, the live map opens
-// (#/scan). Copying an instruction for an assistant stays as a labelled fallback; a snapshot says it is read-only and
-// offers to open the live Studio.
-import { useNavigate } from '@tanstack/react-router'
+// and build times), whether it still holds now, and the direct action: Re-scan now, which opens the check's preview like
+// every other start of a check. Copying an instruction for an assistant stays as a labelled fallback; a snapshot says it
+// is read-only and offers to open the live Studio.
 import { useState } from 'react'
 import { Button, copyText } from '../components/Button'
 import { Chip } from '../components/Chip'
@@ -13,7 +11,8 @@ import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { SNAPSHOT } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
-import { ActionError, TERMINAL, type Bi, type LiveFreshness, type Run } from '../data/actions/types'
+import { useCommandMaybe } from '../command/command'
+import { ActionError, type Bi, type LiveFreshness, type Run } from '../data/actions/types'
 import { useStudio } from '../data/context'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -29,37 +28,28 @@ export function refusal(problem: unknown): Refusal {
   return { text: problem instanceof Error ? problem.message : String(problem), runs: problem instanceof ActionError ? problem.reasons.flatMap((r) => r.runs ?? []) : [] }
 }
 
-/** The run a Re-scan started, followed through the command centre's run list until it is over. */
+/** Re-scan: the analysed branch is pinned first when only the checkout implied it, so the check never stops to ask which
+ * branch to read; then the check's preview opens (PreviewSheet), where its paths and mode are chosen as for any check. */
 export function useRescan() {
   const actions = useActions()
+  const command = useCommandMaybe()
   const live = useBranchLive()
-  const [run, setRun] = useState<Run | null>(null)
   const [error, setError] = useState<Refusal | null>(null)
   const [busy, setBusy] = useState(false)
-  const current = run ? actions.runs.find((r) => r.id === run.id) ?? run : null
   async function start() {
-    if (!actions.client || actions.mode !== 'live') return false
+    if (!command || actions.mode !== 'live') return false
     setBusy(true); setError(null)
     try {
-      // The scan runs on the analysed branch: pinned first when it was only implied by the checkout, so the audit never
-      // stops to ask which branch to read
       const ctx = live.context
-      let made: Run
-      if (live.api && ctx?.analysis.branch && !ctx.analysis.selected) {
-        const chosen = await live.api.select(ctx.analysis.branch, true, ctx.analysis.tip)
-        // the sheet follows the scan, never the branch choice before it (that one is done at once and would read as
-        // "scan done, the report is up to date" while nothing was scanned)
-        made = chosen.scan ?? await actions.client.start({ action: 'audit', inputs: { fresh: true } })
-      } else made = await actions.client.start({ action: 'audit', inputs: { fresh: true } })
-      setRun(made)
-      await actions.refresh()
+      if (live.api && ctx?.analysis.branch && !ctx.analysis.selected) await live.api.select(ctx.analysis.branch, false, ctx.analysis.tip)
+      command.open({ action: 'audit', inputs: { fresh: true } })
       return true
     } catch (problem) {
       setError(refusal(problem))
     } finally { setBusy(false) }
     return false
   }
-  return { run: current, error, busy, start, live: actions.mode === 'live' && Boolean(live.api), reset: () => { setRun(null); setError(null) } }
+  return { error, busy, start, live: actions.mode === 'live' && Boolean(live.api) }
 }
 
 export function RescanStatus({ run }: { run: Run | null }) {
@@ -183,12 +173,10 @@ function LiveActions({ rescan, otherBranch, onStarted }: { rescan: ReturnType<ty
   const w = useBranchWords()
   return (
     <div className={css.actions} data-fresh-actions="live">
-      <Button variant="primary" icon="retry" busy={rescan.busy} onPress={async () => { if (await rescan.start()) onStarted() }}
-        isDisabled={Boolean(rescan.run && !TERMINAL.includes(rescan.run.state))}>
+      <Button variant="primary" icon="retry" busy={rescan.busy} onPress={async () => { if (await rescan.start()) onStarted() }}>
         {otherBranch ? w('rescanBranch', { b: otherBranch }) : w('rescanNow')}
       </Button>
       <SelectError error={rescan.error} />
-      <RescanStatus run={rescan.run} />
     </div>
   )
 }
@@ -231,14 +219,13 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
   const live = useBranchLive()
   const view = useFreshView()
   const rescan = useRescan()
-  const navigate = useNavigate()
   if (!data || !view) return null
   const fresh = live.freshness
   const legacy = view.state === 'legacy'
   const s = scanOf(data, fresh)
   const text = instruction(lang, { name: data.manifest.project.name, path: fresh?.project_path ?? null,
     branch: fresh?.branch ?? s.branch ?? null, tip: fresh?.tip ?? null, scanned: legacy ? null : s.commit ?? null, at: s.at })
-  const started = () => { onOpenChange(false); void navigate({ to: '/scan', search: { flow: 'check' } }) }
+  const started = () => onOpenChange(false)
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('isScanCurrent')}>
       <div className={[css.tall, css.drawerBody].join(' ')}>

@@ -6,7 +6,7 @@
 // check needs that failed keeps it locked unless the person picks "Start without it", which the report records. Once
 // the check runs, the page gives way to the live map.
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Button } from '../../components/Button'
 import { Panel, Skeleton } from '../../components/Panel'
 import { useActions, type Actions } from '../../data/actions/store'
@@ -16,7 +16,7 @@ import { useScan } from '../../data/ScanProvider'
 import { usePrefs } from '../../i18n/prefs'
 import { usePageChrome } from '../../shell/chrome'
 import { layout } from '../../shell/Layout'
-import { refusal } from '../../branches/ScanSheet'
+import { useCommand } from '../../command/command'
 import { SnapshotPanel } from '../runs/RunsPage'
 import { useScanWords } from './words'
 import css from './scan.module.css'
@@ -37,7 +37,7 @@ export function ToolsPage() {
   return (
     <div className={[layout.page, css.page].join(' ')} data-unlocked={tools.unlocked} data-tools-ready={tools.all.ready}>
       <Head />
-      <Summary tools={tools} actions={actions} />
+      <Summary tools={tools} />
       <ToolList title={w('toolsHere')} rows={tools.rows.filter((row) => row.needed)} actions={actions} />
       <ToolList title={w('toolsLater')} rows={tools.rows.filter((row) => !row.needed)} actions={actions} />
     </div>
@@ -76,7 +76,7 @@ function useMapOnceChecking(all: AllProgress | null) {
   }, [started, navigate])
 }
 
-function Summary({ tools, actions }: { tools: Tools; actions: Actions }) {
+function Summary({ tools }: { tools: Tools }) {
   const w = useScanWords()
   const { num } = usePrefs()
   const left = tools.left === null ? '' : 60 > tools.left ? w('leftLess') : w('toolsLeft', { m: num(Math.ceil(tools.left / 60)) })
@@ -88,7 +88,7 @@ function Summary({ tools, actions }: { tools: Tools; actions: Actions }) {
         {left && <span className={css.runFact} data-left={Math.round(tools.left ?? 0)}>{left}</span>}
       </div>
       <Bar done={tools.all.ready} total={tools.all.total} />
-      <Start tools={tools} actions={actions} />
+      <Start tools={tools} />
     </Panel>
   )
 }
@@ -97,35 +97,26 @@ function Bar({ done, total }: { done: number; total: number }) {
   return <span className={css.bar} aria-hidden="true"><span className={css.barFill} style={{ inlineSize: `${total ? (100 * done) / total : 0}%` }} /></span>
 }
 
-/** "Start the check", locked until the check's tools are ready; "Start without it" once only failures stand in the way. */
-function Start({ tools, actions }: { tools: Tools; actions: Actions }) {
+/** "Start the check", locked until the check's tools are ready; "Start without it" once only failures stand in the way.
+ * Both open the check's preview (PreviewSheet): its paths and its mode are chosen there, wherever a check starts. */
+function Start({ tools }: { tools: Tools }) {
   const w = useScanWords()
   const { num } = usePrefs()
-  const navigate = useNavigate()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const command = useCommand()
   const waiting = tools.needed.total - tools.needed.ready - tools.failed.length
-  const start = async (without: boolean) => {
-    if (!actions.client) return
-    setBusy(true); setError('')
-    try {
-      await actions.client.start({ action: 'audit', inputs: without ? { fresh: true, without_tools: true } : { fresh: true } })
-      await navigate({ to: '/scan', search: { flow: 'check' } })
-    } catch (problem) { setError(refusal(problem).text) } finally { setBusy(false) }
-  }
+  const start = (without: boolean) => command.open({ action: 'audit', inputs: without ? { fresh: true, without_tools: true } : { fresh: true } })
   return (
     <div className={css.toolsStart}>
-      <Button variant="primary" large icon="play" busy={busy} isDisabled={!tools.unlocked} onPress={() => void start(false)} data-start-check="">
+      <Button variant="primary" large icon="play" isDisabled={!tools.unlocked} onPress={() => start(false)} data-start-check="">
         {w('toolsStart')}
       </Button>
       {!tools.unlocked && waiting > 0 && <span className={css.runFact} role="status">{w('toolsLocked', { n: num(waiting) })}</span>}
       {tools.failed.length > 0 && waiting === 0 && (
         <>
           <span className={css.warn} role="alert">{w('toolsFailed')}</span>
-          <Button variant="secondary" isDisabled={busy} onPress={() => void start(true)} data-start-without="">{w('toolsWithout')}</Button>
+          <Button variant="secondary" onPress={() => start(true)} data-start-without="">{w('toolsWithout')}</Button>
         </>
       )}
-      {error && <span className={css.reasonBad} role="alert">{error}</span>}
     </div>
   )
 }

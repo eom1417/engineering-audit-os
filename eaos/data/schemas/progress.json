@@ -200,6 +200,14 @@
       "string",
       "null"
      ]
+    },
+    "mode": {
+     "enum": [
+      "normal",
+      "speed",
+      "one"
+     ],
+     "description": "how many stages and assistants a check runs at once (eaos/pipeline/schedule.py); absent for a flow run one stage at a time"
     }
    },
    "required": [

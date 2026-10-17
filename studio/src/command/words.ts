@@ -26,6 +26,13 @@ export const CMD_WORDS = {
   shiftHint: ['Shift مع النقر يختار ما بينهما', 'Shift-click selects everything between'],
   // preview
   previewTitle: ['قبل التشغيل', 'Before it runs'],
+  checkTitle: ['ماذا تفحص، وبأي سرعة', 'What to check, and how fast'],
+  checkPaths: ['اختر الفحص الشامل، أو مسارًا واحدًا أو أكثر إذا كان هدفك محددًا', 'Choose the complete check, or one path or more when your goal is clear'],
+  checkMode: ['سرعة الفحص', 'Speed of the check'],
+  modeNormal: ['عادي', 'Normal'],
+  modeSpeed: ['وضع السرعة', 'Speed mode'],
+  speedWarning: ['وضع السرعة أسرع، لكنه يستهلك توكنز أكثر: يشغّل عدة مساعدين في الوقت نفسه. نتيجة الفحص نفسها لا تتغير.',
+    'Speed mode is faster, but it uses more tokens: several assistants run at the same time. What the check finds does not change.'],
   whatChanges: ['ما سيحدث', 'What will happen'],
   cardsN: ['البطاقات ({n})', 'Cards ({n})'],
   leftOutN: ['مستبعدة ({n})', 'Left out ({n})'],

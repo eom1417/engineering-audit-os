@@ -259,7 +259,8 @@ def _target_numbers(target, components, features, infrastructure, absent, ar):
     return {
         'reference': (target.get('reference') or '—', 'target-architecture.json → reference'),
         'components': (len(components), 'target-architecture.json → target_components'),
-        'features_placed': (f"{sum(1 for f in features if f.get('target_component'))}/{len(features)}", 'features.json → target_component'),
+        'features_placed': (f"{len({f.get('name') for f in features} & {c.get('feature') for c in components})}/{len(features)}",
+                            'target-architecture.json → target_components → feature'),
         'infrastructure_absent': (f"{len(absent)}/{len(infrastructure)}", 'target-architecture.json → infrastructure'),
         'forbidden_imports': (target.get('forbidden_edges', 0), 'target-architecture.json → forbidden_edges'),
         'decided': (who_decided(target, 'ar' if ar else 'en'), 'target-architecture.json → decided'),

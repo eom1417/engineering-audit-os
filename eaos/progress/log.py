@@ -226,11 +226,11 @@ class ProgressLog:
                 self.stop.set()
             return row
 
-    def started(self, stages, requested, previous, steps=None, process=True, at=None):
+    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None):
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
         run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
         (one drawn from a state, eaos/journeys.py), so none is named and a reader never judges it gone; `at`: when such a
-        run truly began, so drawing it again does not start its time over."""
+        run truly began, so drawing it again does not start its time over; `mode`: a check's (eaos/pipeline/schedule.py)."""
         rows = stage_rows(stages)
         with self.lock:
             self.declared = {row['name']: row['necessity'] for row in rows}
@@ -239,7 +239,8 @@ class ProgressLog:
             except Exception: steps = {}
         row = self.emit('run.started', flow=self.flow, schema=SCHEMA, stages=rows, requested=list(requested),
                         previous=previous or {}, previous_steps=steps, **({'alive_every': self.alive_every} if self.alive_every else {}),
-                        pid=os.getpid() if process else None, host=socket.gethostname() if process else None, **_at(at))
+                        pid=os.getpid() if process else None, host=socket.gethostname() if process else None, **_at(at),
+                        **({'mode': mode} if mode else {}))
         if self.pulse and not self.broken:
             self.thread = threading.Thread(target=self._beat, name=f'eaos-progress-{self.flow}', daemon=True)
             self.thread.start()

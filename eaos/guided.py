@@ -23,7 +23,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, plain, waves
+from . import branches, check_choices, plain, waves
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
 from .places import home, workspace  # noqa: F401  (one home: eaos/places.py; guided.home and guided.workspace stay its API)
 
@@ -591,9 +591,9 @@ def scan(state, args):
     if not agree_to_assistant(state, args.yes): return 1
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
-    options = dict(language=lang, engines=[], progress=progress_printer(lang), provider=check_provider(state),
-                   runtime=check_runtime(state), without_tools=sorted(failed))
-    manifest = check(str(source(state)), out, **options)
+    check_choices.keep(state, getattr(args, 'mode', None))     # kept with the check's state, saved below
+    manifest = check(str(source(state)), out, **check_choices.options(state, progress_printer(lang), failed, check_provider(state),
+                                                                      check_runtime(state), getattr(args, 'path', None)))
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     state.update(read)

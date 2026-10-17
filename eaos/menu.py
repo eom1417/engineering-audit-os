@@ -24,7 +24,9 @@ OPTIONS = {
                'Say in plain words what the waiting branch fixes (plan, findings), then offer three choices: take it in '
                '(accept with person_agreed=true), throw it away (undo), or decide later. Act only on their choice.'),
     'audit': ('افحص المشروع', 'Check the project',
-              'audit (fresh=true: the person picked this, so a new check runs even when one is on record), wait until it is done, then explain how healthy the '
+              'Ask in one question: the complete check (recommended) or only a path (security, look: the screens, code: structure and '
+              'dead code, speed: load and scale), and the normal or the speed mode (several assistants at once: faster, more tokens). '
+              'Then audit (fresh=true: the person picked this, so a new check runs even when one is on record; paths, mode), wait until it is done, then explain how healthy the '
               'project is and its five most important problems simply, with evidence from finding.'),
     'fix': ('أصلح الدفعة التالية', 'Fix the next batch',
             'Fix the next batch end to end, following status: run_setup (its one question), run_try, safety_net, fix_start, '
@@ -56,7 +58,8 @@ DESCRIBE = {   # the description when nothing more specific is known
     'continue': ('العمل المفتوح يكمل من آخر خطوة، بلا أسئلة جديدة', 'The open work goes on from its last step, no new questions'),
     'branch': ('في المشروع أكثر من فرع: اختر الفرع الذي نعمل عليه', 'The project has several branches: choose the one to work on'),
     'decide': ('فرع إصلاحات ينتظر قرارك: تدمجه أو تتراجع عنه', 'A branch of fixes waits for you: take it in or throw it away'),
-    'audit': ('فحص كامل (5 إلى 30 دقيقة) وشرح أهم المشاكل ببساطة', 'A full check (5 to 30 minutes), its main problems in plain words'),
+    'audit': ('فحص شامل، أو مسار محدد (الأمان، الشكل، الكود، السرعة)، وشرح أهم المشاكل ببساطة',
+              'The complete check, or one path (security, look, code, speed), its main problems in plain words'),
     'fix': ('في نسخة معزولة، وتصلك كفرع جديد. مشروعك لا يتغير', 'In an isolated copy, handed over as a new branch; your project stays as it is'),
     'status': ('الحالة والتقدم والخطوة التالية باختصار', 'The state, the progress and the next step, briefly'),
     'report': ('التقرير التفاعلي في المتصفح: ملف واحد ترسله لمن تريد', 'The interactive report in the browser: one file to send to anyone'),
