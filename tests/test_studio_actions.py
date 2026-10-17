@@ -233,6 +233,20 @@ class EventLog(unittest.TestCase):
             path.write_text(path.read_text().replace('step 2', 'step X'))
             self.assertTrue(log.verify('r1'), 'tampering shows')
 
+    def test_an_ended_run_past_the_newest_ten_keeps_its_record_with_what_it_used_and_nothing_else(self):
+        result = json.dumps({'type': 'result', 'usage': {'input_tokens': 7, 'output_tokens': 3}, 'total_cost_usd': 0.5})
+        with tempfile.TemporaryDirectory() as folder:
+            log, runs = store.Store(Path(folder) / 'runs', store.Scrubber(Path(folder), [])), Path(folder) / 'runs'
+            for n in range(store.KEEP + 2):        # r00 still runs, r01 to r11 ended: r01 is past the newest ten
+                log.save({'id': f'r{n:02}', 'state': 'done' if n else 'running', 'created': f'2026-10-17T00:00:{n:02}'}, new=True)
+                (runs / f'r{n:02}/stream.jsonl').write_text(result + '\n')
+                log.append(f'r{n:02}', 'step', 'one step')
+            log.save({'id': 'r12', 'state': 'queued', 'created': '2026-10-17T00:00:12'}, new=True)
+            self.assertEqual(sorted(p.name for p in (runs / 'r01').iterdir()), ['run.json'])
+            self.assertEqual((log.load('r01')['usage']['output'], log.load('r01')['usage']['cost_usd']), (3, 0.5))
+            self.assertTrue(log.load('r01')['trimmed'])
+            self.assertTrue(all((runs / f'r{n:02}/stream.jsonl').is_file() for n in range(12) if n != 1), 'live and newest kept')
+
 
 class Adapters(unittest.TestCase):
     labels = {a['id']: a['label'] for a in actions.contract()['actions']}

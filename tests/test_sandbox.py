@@ -130,3 +130,12 @@ class SandboxTests(Workspace):
         self.assertFalse(copy.exists())
         self.assertFalse(home.exists())
         self.assertTrue((Path(self.tmp) / 'work/sandbox-run.json').is_file())
+
+    def test_the_next_run_removes_what_a_killed_run_left_and_never_what_a_live_run_holds(self):
+        live, left = self.box(), Path(self.tmp) / 'work/home-left-by-a-killed-run'
+        (left / '.cache').mkdir(parents=True)
+        self.box().dispose()
+        self.assertFalse(left.exists())
+        self.assertTrue(live.copy.is_dir())
+        self.assertEqual(live.environment()['TMPDIR'], str(live.tmp))
+        live.dispose()

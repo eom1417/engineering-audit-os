@@ -2,7 +2,6 @@
 MCP tools. X6 is read from tests/fixtures/intents.json."""
 import io
 import json
-import tempfile
 import unittest
 from argparse import Namespace
 from contextlib import redirect_stdout
@@ -10,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import guided, intents
+from shared_fixture import scratch
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/intents.json'
 SETS = ('cases', 'held_out', 'untuned')
@@ -64,7 +64,7 @@ class DoTests(unittest.TestCase):
 class AssistantInstallTests(unittest.TestCase):
     def test_both_assistants_learn_eaos_and_only_eaos_part_of_their_files_changes(self):
         from eaos import assistant_setup
-        home = Path(tempfile.mkdtemp())
+        home = Path(scratch())
         (home / '.codex').mkdir()
         (home / '.codex/AGENTS.md').write_text('# my own rules\nbe kind\n')
         (home / '.codex/config.toml').write_text('model = "x"\n')
@@ -92,7 +92,7 @@ class AssistantInstallTests(unittest.TestCase):
     def test_both_assistants_get_the_session_start_hook_once_beside_the_persons_own(self):
         import json
         from eaos import assistant_setup
-        home = Path(tempfile.mkdtemp())
+        home = Path(scratch())
         (home / '.claude').mkdir()
         mine = {'model': 'opus', 'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': 'echo hi'}]}],
                                            'Stop': [{'hooks': [{'type': 'command', 'command': 'say done'}]}]}}

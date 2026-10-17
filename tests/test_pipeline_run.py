@@ -10,6 +10,7 @@ from eaos.pipeline.run import MANIFEST
 from eaos.pipeline import stages as module
 from eaos.pipeline.stages import OPTIONAL, REQUIRED, Stage
 from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
+from shared_fixture import scratch
 
 
 def fake_runners(**behaviour):
@@ -68,7 +69,7 @@ class DeclarationTests(unittest.TestCase):
 
 class ExecutionTests(unittest.TestCase):
     def _run(self, **options):
-        directory = tempfile.mkdtemp()
+        directory = scratch()
         manifest = execute('.', directory, **options)
         return manifest, Path(directory)
 

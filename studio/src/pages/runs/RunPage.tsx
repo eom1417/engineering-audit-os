@@ -203,7 +203,7 @@ function RunBody({ id }: { id: string }) {
           {view.error && TERMINAL.includes(state) && <ErrorPanel error={view.error} result={result} state={state} />}
           {result && state === 'done' && <ResultPanel run={run} result={result} waiting={Boolean(branchWaiting)} onDecide={setDeciding} />}
           <Section title={w('whatHappened')} count={view.items.length}>
-            <Panel><Timeline items={view.items} /></Panel>
+            <Panel>{run.trimmed ? <p className={css.trimmed} data-trimmed>{w('trimmedRun')}</p> : <Timeline items={view.items} />}</Panel>
           </Section>
         </div>
         {side && <RunSide view={view} run={run} state={state} progress={progress} />}

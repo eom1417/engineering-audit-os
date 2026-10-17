@@ -140,6 +140,7 @@ export const CMD_WORDS = {
   waitingTurn: ['ينتظر دوره: رقم {n} في الطابور.', 'Waiting its turn: number {n} in the queue.'],
   noProgressYet: ['يظهر التقدم مع أول دفعة.', 'Progress shows with the first batch.'],
   whatHappened: ['ما حدث خطوة بخطوة', 'What happened, step by step'],
+  trimmedRun: ['تشغيل قديم: بقي ملخصه فقط (ما طُلب، وكيف انتهى، وما استهلك)، وحُذفت تفاصيله خطوة بخطوة لتوفير المساحة.', 'An older run: only its summary is kept (what was asked, how it ended, what it used); its step-by-step details were removed to save space.'],
   readN: ['قرأ {n} ملفات', 'Read {n} files'],
   showChange: ['اعرض التغيير', 'Show the change'],
   hideChange: ['أخفِ التغيير', 'Hide the change'],

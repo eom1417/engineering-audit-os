@@ -6,7 +6,9 @@ extra), so nothing needs an administrator; a PostgreSQL already installed on the
 Authentication is `trust` because the server answers 127.0.0.1 only and holds nothing but what the run made.
 
 State lives in <runtime>/database/: data, log, and server.json {port, bin}. start() is idempotent: a server
-already running for this runtime is reused; stop() stops it and keeps the data for the next step.
+already running for this runtime is reused; stop() stops it and keeps the data for the next step. Under root the data
+sits in the temporary folder instead, with a note naming its runtime beside it: once that runtime is gone, the next
+start() removes the data (356 such databases had kept 16 GB after their projects were deleted).
 """
 import glob
 import hashlib
@@ -34,6 +36,11 @@ def binaries():
     return Path(candidates[-1]).parent if candidates else None
 
 
+def _sockets(root):
+    ident = hashlib.sha256(root.as_posix().encode('utf-8')).hexdigest()[:10]
+    return Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'
+
+
 def _free_port():
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
@@ -59,8 +66,7 @@ class LocalPostgres:
         self.state = self.root / 'server.json'
         # A Unix socket's path may not pass about 104 characters (macOS) or 107 (Linux), and the data folder under
         # ~/.eaos/projects/<name>-<id>/... already does: the socket gets a short folder of its own in /tmp.
-        ident = hashlib.sha256(self.root.resolve().as_posix().encode('utf-8')).hexdigest()[:10]
-        self.sockets = Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'
+        self.sockets = _sockets(self.root.resolve())
 
     def _run(self, bin_dir, name, *args, check=True):
         return subprocess.run([str(bin_dir / name), *args], capture_output=True, text=True, check=check, timeout=120,
@@ -85,6 +91,8 @@ class LocalPostgres:
             self.data.parent.mkdir(parents=True, exist_ok=True)
             shutil.chown(self.data.parent, self.owner)
             os.chmod(self.data.parent, stat.S_IRWXU)
+            self._sweep(bin_dir)
+            self.data.with_name(self.data.name + '.from').write_text(str(self.root.resolve()), encoding='utf-8')
         if not (self.data / 'PG_VERSION').exists():
             self.data.mkdir(parents=True, exist_ok=True)
             if self.owner: shutil.chown(self.data, self.owner)
@@ -98,6 +106,16 @@ class LocalPostgres:
         state = {'port': port, 'bin': str(bin_dir)}
         self.state.write_text(json.dumps(state))
         return self.url(state)
+
+    def _sweep(self, bin_dir):
+        """Stop and remove every database whose runtime is gone: none of them can be asked for again."""
+        for note in self.data.parent.glob('*.from'):
+            root = Path(note.read_text(encoding='utf-8'))
+            if root.exists(): continue
+            data = note.with_suffix('')
+            self._run(bin_dir, 'pg_ctl', '-D', str(data), '-m', 'immediate', 'stop', check=False)
+            for folder in (data, _sockets(root)): shutil.rmtree(folder, ignore_errors=True)
+            note.unlink()
 
     @staticmethod
     def url(state, database='postgres'):

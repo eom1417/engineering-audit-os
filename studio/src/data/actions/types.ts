@@ -106,6 +106,8 @@ export interface Run {
   queued_at?: string
   started?: string | null
   ended?: string | null
+  /** when its details were removed, keeping this record alone (eaos/studio/actions/store.py trim) */
+  trimmed?: string | null
   result?: RunResult | null
   question?: Question | null
   outcome?: 'accepted' | 'undone' | 'merged' | 'deleted' | 'restored' | null

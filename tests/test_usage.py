@@ -1,11 +1,11 @@
 """What the assistant used, from what each call leaves: a check stage by stage, a run, a run still going."""
 import json
 import os
-import tempfile
 import unittest
 from pathlib import Path
 
 from eaos import usage
+from shared_fixture import scratch
 
 CLAUDE_RESULT = {'type': 'result', 'total_cost_usd': 0.34, 'duration_ms': 60000, 'num_turns': 3, 'modelUsage': {'claude-opus-5-5': {}},
                  'usage': {'input_tokens': 4, 'cache_creation_input_tokens': 27701, 'cache_read_input_tokens': 16794,
@@ -15,7 +15,7 @@ CLAUDE_RESULT = {'type': 'result', 'total_cost_usd': 0.34, 'duration_ms': 60000,
 class UsageTests(unittest.TestCase):
     def test_a_check_is_counted_by_stage_and_a_run_still_going_by_its_messages(self):
         # EAOS, 2026-10-14: batch 5 cost $48 at API prices, 138 of 140 million tokens the conversation read again; no page said so
-        report = Path(tempfile.mkdtemp()) / 'technical'
+        report = Path(scratch()) / 'technical'
         node = report / 'nodes/card_triage/runs/now/decide'
         node.mkdir(parents=True)
         (report / 'run-manifest.json').write_text(json.dumps({'started_at': '2000-01-01T00:00:00+00:00'}))

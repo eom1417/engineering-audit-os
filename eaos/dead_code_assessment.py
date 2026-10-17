@@ -17,7 +17,7 @@ def _check_argv(path, symbol, rule):
     """Re-collect facts into a private directory; exit 0 only when the candidate is no longer reported."""
     code = (
         "import json, subprocess, sys, tempfile\n"
-        "tmp = tempfile.mkdtemp(prefix='eaos-deadcode-')\n"
+        "holder = tempfile.TemporaryDirectory(prefix='eaos-deadcode-'); tmp = holder.name\n"
         "r = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\n"
         "if r.returncode: sys.exit(r.returncode)\n"
         "facts = json.load(open(tmp + '/facts/deadcode.json'))['facts']\n"

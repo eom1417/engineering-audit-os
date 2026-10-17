@@ -114,7 +114,7 @@ def load(project):
 def save(state):
     (where := Path(state['workspace'])).mkdir(parents=True, exist_ok=True)
     state['updated'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    waves.draw(state, runtime_of(state))        # a batch on the live map, drawn from what is saved
+    waves.saved(state, runtime_of(state))       # the open batch drawn, the closed ones' copies removed
     (where / 'state.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 

@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import waves
+from shared_fixture import scratch
 
 
 def git(where, *args):
@@ -15,7 +16,7 @@ def git(where, *args):
 
 
 def repository():
-    root = Path(tempfile.mkdtemp()) / 'shop'
+    root = Path(scratch()) / 'shop'
     root.mkdir()
     (root / 'a.txt').write_text('a\n')
     git(root, 'init', '-q'); git(root, 'add', '-A')
@@ -43,7 +44,7 @@ class OrderTests(unittest.TestCase):
     def test_a_failure_that_names_a_file_finds_its_culprit_in_one_run_and_a_change_is_sized_against_the_copy(self):
         # EAOS, 2026-10-15: halving 68 changes ran the whole suite for hours though the failure named the one file; a
         # repair was refused for growing an 876-line file that the check on record knew at 861
-        root = Path(tempfile.mkdtemp())
+        root = Path(scratch())
         run = lambda *a: subprocess.run(['git', '-C', str(root), '-c', 'user.name=t', '-c', 'user.email=t@t', *a], check=True,
                                         capture_output=True, text=True).stdout.strip()
         run('init', '-q')
@@ -60,7 +61,7 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(waves._sizes_before(root, ['b.py', 'c.py']), {'b.py': 2}, 'counted as facts/metrics counts lines')
 
     def test_a_batch_is_the_next_ready_cards_in_milestone_order_and_judged_from_one_collection_of_facts(self):
-        report = Path(tempfile.mkdtemp())
+        report = Path(scratch())
         ready = lambda i: {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'}}
         (report / 'plan.json').write_text(json.dumps({'tasks': [ready('T1'), ready('T2'), ready('T3'),
                                                                 {'id': 'T4', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}}],
@@ -75,7 +76,7 @@ class OrderTests(unittest.TestCase):
         sets = {'deadcode': {'facts': [{'location': {'path': 'src/a.ts', 'symbol': 'still'}, 'value': {'rule': 'unused-symbol'}}]}}
         with mock.patch('eaos.facts.run.collect') as collect, mock.patch('eaos.facts.run.read_available', return_value=sets), \
                 mock.patch('eaos.probes.decide_probe', return_value=('REFUTED', 'gone')):
-            exits = waves.batch_acceptance(tempfile.mkdtemp(), [dead_card, gone_card, probe_card], tempfile.mkdtemp())
+            exits = waves.batch_acceptance(scratch(), [dead_card, gone_card, probe_card], scratch())
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
@@ -83,7 +84,7 @@ class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
         # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back
         from eaos import ledger
-        report = Path(tempfile.mkdtemp())
+        report = Path(scratch())
         card = lambda i, needs=(): {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'},
                                     'prerequisites': [{'task_id': n} for n in needs]}
         (report / 'plan.json').write_text(json.dumps({'tasks': [card('SPLIT', ['SIMPLIFY']), card('SIMPLIFY')], 'milestones': []}))
@@ -129,7 +130,7 @@ class RebuildTests(unittest.TestCase):
 class HandOverTests(unittest.TestCase):
     def test_the_branch_arrives_without_touching_the_current_branch_or_unsaved_edits(self):
         project = repository()
-        clone = Path(tempfile.mkdtemp()) / 'candidate'
+        clone = Path(scratch()) / 'candidate'
         subprocess.run(['git', 'clone', '-q', str(project), str(clone)], check=True)
         git(clone, 'checkout', '-q', '-b', 'eaos/wave-1')
         commit_file(clone, 'fixed.txt', 'fixed')
@@ -147,6 +148,13 @@ class HandOverTests(unittest.TestCase):
         with self.assertRaises(ValueError, msg='a wave that kept nothing hands nothing over'):
             waves.apply(project, {'kept': [], 'branch': 'eaos/wave-1', 'root': '/nowhere'})
 
+    def test_a_closed_batchs_copy_goes_at_the_next_save_and_one_still_opening_stays(self):
+        with tempfile.TemporaryDirectory() as runtime:
+            copies = Path(runtime) / 'candidates'
+            for name in ('WAVE-1', 'BUILD-2', 'WAVE-3'): (copies / name).mkdir(parents=True)
+            waves.saved({'waves': [{'number': 1}, {'number': 2, 'via': 'build'}]}, runtime)
+            self.assertEqual([p.name for p in copies.iterdir()], ['WAVE-3'])
+
 
 def wave(root, base, kept):
     """The open batch as batch_finish keeps it: number 1, every kept card, none failed."""
@@ -155,11 +163,11 @@ def wave(root, base, kept):
 
 class FinishTests(unittest.TestCase):
     def test_a_card_that_breaks_the_gates_is_taken_back_and_the_others_stay(self):
-        project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        project, runtime, report = repository(), Path(scratch()), Path(scratch())
         cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
                   'verify_command': ['true']} for n in (1, 2, 3, 4)]
         (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
-        root = Path(tempfile.mkdtemp()) / 'candidate'
+        root = Path(scratch()) / 'candidate'
         subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
@@ -183,11 +191,11 @@ class FinishTests(unittest.TestCase):
     def test_changes_that_fail_only_together_are_repaired_on_top_and_no_sound_card_is_left_out(self):
         # Wave 2 on EAOS (2026-10-13): 45 cards passed one by one; together, a split module's parts imported each other.
         # Halving would have left about 20 sound cards out; a repair on top kept all of them.
-        project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        project, runtime, report = repository(), Path(scratch()), Path(scratch())
         cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
                   'verify_command': ['true']} for n in (1, 2)]
         (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
-        root = Path(tempfile.mkdtemp()) / 'candidate'
+        root = Path(scratch()) / 'candidate'
         subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
@@ -209,11 +217,11 @@ class FinishTests(unittest.TestCase):
     def test_what_fails_on_the_base_too_is_set_aside_and_the_batch_is_kept_whole(self):
         # Wave 4 on EAOS (2026-10-14): the Studio page of the problems read live data the batch itself rewrote, so it
         # differed with every card alone and with none; all 31 sound fixes were left out for it.
-        project, runtime, report = repository(), Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        project, runtime, report = repository(), Path(scratch()), Path(scratch())
         cards = [{'id': f'T{n}', 'title': f't{n}', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': [f'{n}.txt'],
                   'verify_command': ['true']} for n in (1, 2)]
         (report / 'plan.json').write_text(json.dumps({'tasks': cards}))
-        root = Path(tempfile.mkdtemp()) / 'candidate'
+        root = Path(scratch()) / 'candidate'
         subprocess.run(['git', 'clone', '-q', str(project), str(root)], check=True)
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
@@ -233,14 +241,14 @@ class RegenerateTests(unittest.TestCase):
         # EAOS on itself (2026-10-13): Studio fixes changed studio/src, the shipped build in eaos/data/studio no longer
         # matched it, and four sound fixes were about to be left out of the batch for it.
         from eaos import regenerate
-        root, runtime = repository(), Path(tempfile.mkdtemp())
+        root, runtime = repository(), Path(scratch())
         (root / 'app').mkdir(); (root / 'shipped').mkdir()
         commit_file(root, 'app/src.ts', 'one')
         commit_file(root, 'shipped/old.js', 'old')
         base = git(root, 'rev-parse', 'HEAD')
         (root / '.gitignore').write_text('app/dist/\n')
         commit_file(root, 'app/src.ts', 'two')
-        copy = Path(tempfile.mkdtemp()) / 'project'
+        copy = Path(scratch()) / 'project'
         subprocess.run(['git', '-C', str(root), 'worktree', 'add', '-q', '--detach', str(copy)], check=True)
 
         class Built:                                       # the build: one shipped file made, one gone, one ignored
@@ -278,14 +286,14 @@ class CodeLawsGateTests(unittest.TestCase):
                 (Path(folder) / 'facts' / f'{name}.json').write_text(json.dumps({'facts': rows}))
             return folder
 
-        before = facts(tempfile.mkdtemp(), [('a.py', 'big', 60)])
-        split = facts(tempfile.mkdtemp(), [('a.py', 'one', 20), ('a.py', 'two', 20), ('a.py', 'three', 20)])
+        before = facts(scratch(), [('a.py', 'big', 60)])
+        split = facts(scratch(), [('a.py', 'one', 20), ('a.py', 'two', 20), ('a.py', 'three', 20)])
         self.assertEqual(new_debt(before, split, ['a.py']), [], 'sixty split into three of twenty is less complexity')
-        worse = facts(tempfile.mkdtemp(), [('a.py', 'big', 60), ('a.py', 'new', 20)], clones=['k'], dead=['old'])
+        worse = facts(scratch(), [('a.py', 'big', 60), ('a.py', 'new', 20)], clones=['k'], dead=['old'])
         found = new_debt(before, worse, ['a.py'])
         self.assertEqual(len(found), 3, found)
         self.assertEqual(new_debt(before, worse, ['c.py']), [], 'only the files the change touched')
-        moved = facts(tempfile.mkdtemp(), [('b.py', 'big', 60), ('b.py', 'Owner', 60, 'class')])
+        moved = facts(scratch(), [('b.py', 'big', 60), ('b.py', 'Owner', 60, 'class')])
         self.assertEqual(new_debt(before, moved, ['a.py', 'b.py']), [],
                          'a split that moves a complex function into a new module adds nothing, nor does its class')
 
@@ -301,7 +309,7 @@ class CodeLawsGateTests(unittest.TestCase):
             (Path(folder) / 'facts/metrics.json').write_text(json.dumps({'facts': rows}))
             return folder
 
-        before, after = lines(tempfile.mkdtemp(), {'big.py': 700, 'a.py': 100}), lines(tempfile.mkdtemp(), {'big.py': 650, 'a.py': 640})
+        before, after = lines(scratch(), {'big.py': 700, 'a.py': 100}), lines(scratch(), {'big.py': 650, 'a.py': 640})
         self.assertEqual(gates.words(gates.debt(before, after, ['big.py', 'a.py'])), ['a.py grew to 640 lines, past the limit of 600: split it'])
         for folder, files in ((before, ['eaos/a.py', 'old.py']), (after, ['eaos/a.py', 'old.py', 'eaos/new.py'])):
             nodes = [{'kind': 'graph_node', 'location': {'path': path}} for path in files]
@@ -328,7 +336,7 @@ class PythonSuiteGateTests(unittest.TestCase):
     def test_a_python_suite_beside_the_app_is_a_gate_and_only_its_new_failures_count(self):
         from eaos.execute import failing, regressions
         from eaos.verify import python_tests
-        root = Path(tempfile.mkdtemp())
+        root = Path(scratch())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
         (root / 'tests').mkdir()
         (root / 'tests' / 'test_a.py').write_text('')

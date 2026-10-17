@@ -182,12 +182,13 @@ def _opening(actions, context, message, direct=False):
 
 def _run_log(actions, run):
     """The run the person is looking at, for a diagnosis: its state, why it ended, its last events, and where its whole
-    stream is to read."""
+    stream is to read, while it is kept (eaos/studio/actions/store.py trim)."""
     if not _run_exists(actions, run): return ''
-    record = actions.store.load(str(run))
+    record, stream = actions.store.load(str(run)), actions.store.path(str(run)) / 'stream.jsonl'
     events = [f"{e.get('kind')}: {(e.get('text') or {}).get('en', '')}"[:300] for e in actions.store.events(str(run), 0)[-RUN_EVENTS:]]
     return (f"\nThe run {run}: {record.get('state')}; {json.dumps(record.get('error') or record.get('reason') or '', ensure_ascii=False)[:600]}"
-            f"\nIts last events:\n" + '\n'.join(events) + f"\nIts whole stream: {actions.store.path(str(run)) / 'stream.jsonl'}\n")
+            f"\nIts last events:\n" + '\n'.join(events) + (f"\nIts whole stream: {stream}\n" if stream.is_file() else
+                                                             '\nIts details were trimmed: only its record is kept.\n'))
 
 
 def _session(lines):

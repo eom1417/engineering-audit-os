@@ -3,6 +3,7 @@
 Seventeen test classes carried the same `tearDownClass` body. The tool found it, this is the
 canonical home it proposed, and removing the copies is what closing that finding means.
 """
+import atexit
 import os
 import shutil
 import tempfile
@@ -14,11 +15,19 @@ import unittest
 os.environ.setdefault('EAOS_DETECTOR_VERDICTS', '')
 
 
+def scratch(prefix=None):
+    """A temporary folder removed when the test run ends, for a fixture built outside a test's own setUp (a repository,
+    a report): the suite leaves nothing in the temporary folder (one run had left 111 folders, and over weeks 24,000)."""
+    folder = tempfile.mkdtemp(prefix=prefix)
+    atexit.register(shutil.rmtree, folder, True)
+    return folder
+
+
 class Workspace(unittest.TestCase):
     """A test class that builds a fixture per test and removes it per test."""
 
     def setUp(self):
-        self.tmp = tempfile.mkdtemp()
+        self.tmp = scratch()
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

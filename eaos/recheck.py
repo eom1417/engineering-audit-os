@@ -15,13 +15,14 @@ from pathlib import Path
 def recheck(root, spec):
     from .facts.run import collect, read_available
     from .probes import decide_probe
-    out = Path(tempfile.mkdtemp(prefix='eaos-recheck-'))
-    collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines'))
-    sets = read_available(out)
-    if (spec.get('specification') or {}).get('query') == 'load_blocker_present':
-        from .load_model import compute, project
-        sets['load_model'] = project(compute(out))
-    return decide_probe(spec, sets)
+    with tempfile.TemporaryDirectory(prefix='eaos-recheck-') as scratch:
+        out = Path(scratch)
+        collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines'))
+        sets = read_available(out)
+        if (spec.get('specification') or {}).get('query') == 'load_blocker_present':
+            from .load_model import compute, project
+            sets['load_model'] = project(compute(out))
+        return decide_probe(spec, sets)
 
 
 def main(args):

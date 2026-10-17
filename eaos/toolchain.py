@@ -327,8 +327,7 @@ def platform_key():
 
 def release_spec(tool):
     """The pinned build of a released tool for this computer (install.platforms), or Unavailable."""
-    spec = tool['install']
-    platforms = spec.get('platforms')
+    spec, platforms = tool['install'], tool['install'].get('platforms')
     if not platforms: return spec if platform_key() == 'linux-x86_64' else _unavailable(tool)
     return platforms.get(platform_key()) or _unavailable(tool)
 
@@ -378,16 +377,15 @@ def _release(tool, step=lambda done, total: None):
 
 
 def _unpack(tool, spec, blob):
-    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked."""
+    """The checked archive (an open file) unpacked into the tool's release folder, its binary linked; the older version goes."""
     folder = home() / 'releases' / f"{tool['name']}-{tool['version']}"
     folder.mkdir(parents=True, exist_ok=True)
     if spec.get('tree'):
         # A whole directory (a JRE, a CLI with its jars): extracted with no path escaping the folder.
         if spec['archive'] == 'zip':
             with zipfile.ZipFile(blob) as archive:
-                for name in archive.namelist():
-                    if name.startswith('/') or '..' in Path(name).parts:
-                        raise RuntimeError(f"{tool['name']}: unsafe path {name!r} in the archive; nothing installed")
+                unsafe = next((name for name in archive.namelist() if name.startswith('/') or '..' in Path(name).parts), None)
+                if unsafe: raise RuntimeError(f"{tool['name']}: unsafe path {unsafe!r} in the archive; nothing installed")
                 archive.extractall(folder)
         else:
             with tarfile.open(fileobj=blob, mode=TAR_MODES[spec['archive']]) as archive:
@@ -397,7 +395,9 @@ def _unpack(tool, spec, blob):
     else:
         (target := folder / tool['binary']).write_bytes(blob.read() if spec['archive'] == 'binary' else _member(tool, spec, blob))
     target.chmod(0o755)
+    before = (home() / 'bin' / tool['binary']).resolve()           # the version linked until now (CodeQL's is 1.4 GB)
     _link(target, tool['binary'])
+    if folder.parent in before.parents and folder not in before.parents: shutil.rmtree(folder.parent / before.relative_to(folder.parent).parts[0])
 
 
 def _member(tool, spec, blob):

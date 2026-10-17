@@ -32,6 +32,17 @@ class CodeLimits(unittest.TestCase):
     def test_no_unused_import_or_variable(self):
         self.assertEqual(code_limits.leftovers(), [])
 
+    def test_a_temporary_folder_is_removed_by_what_made_it(self):
+        # A folder from mkdtemp stays for ever unless its maker removes it: 24,000 had piled up (2026-10-17). A
+        # TemporaryDirectory removes its own; each of these removes its folders as said.
+        owners = {'eaos/sandbox.py': 'the next run sweeps what no live run holds', 'eaos/codemods.py': 'removed in finally',
+                  'tests/shared_fixture.py': 'scratch() and Workspace: removed when the run or the test ends'}
+        root = Path(__file__).resolve().parents[1]
+        code = [path for folder in ('eaos', 'tests', 'tools') for path in (root / folder).rglob('*.py') if 'fixtures' not in path.parts]
+        makers = sorted(path.relative_to(root).as_posix() for path in code
+                        if any(isinstance(node, ast.Attribute) and node.attr == 'mkdtemp' for node in ast.walk(ast.parse(path.read_bytes()))))
+        self.assertEqual(sorted(set(makers) - set(owners)), [], 'use tempfile.TemporaryDirectory, or scratch() in a test')
+
     def test_every_assistant_works_to_the_code_laws(self):
         from eaos import mcp_server, semantic
         from eaos.code_laws import LAWS

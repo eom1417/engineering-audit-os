@@ -16,7 +16,6 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -33,6 +32,7 @@ from eaos.pipeline.stages import ORDER  # noqa: E402
 from eaos.progress import log as writer, sampler  # noqa: E402
 from test_pipeline_run import fake_runners  # noqa: E402
 from test_progress_server import report_with_data  # noqa: E402
+from shared_fixture import scratch  # noqa: E402
 
 FIXTURES = ROOT / 'tests/fixtures/progress'
 SCHEMA = json.loads((ROOT / 'eaos/data/schemas/progress.json').read_text(encoding='utf-8'))
@@ -67,7 +67,7 @@ def stepping_runners(**behaviour):
 
 
 def project():
-    folder = Path(tempfile.mkdtemp(prefix='scanmap-src-'))
+    folder = Path(scratch(prefix='scanmap-src-'))
     (folder / 'app.py').write_text('print(1)\n', encoding='utf-8')
     return folder
 
@@ -100,7 +100,7 @@ def counting_runners(**behaviour):
 
 
 def check_rows(**options):
-    out = Path(tempfile.mkdtemp(prefix='progress-out-'))
+    out = Path(scratch(prefix='progress-out-'))
     try: execute(project(), out, **options)
     except BaseException as problem: options['raised'] = problem
     return progress.read(out), options.get('raised'), out
@@ -130,7 +130,7 @@ class Schema(unittest.TestCase):
         found = [[{'name': 'semgrep-core', 'pid': 42, 'since': '2026-10-09T20:00:00+00:00'}], None]
         stub = type('Stub', (), {'off': False, 'reason': 'the running programs cannot be seen: FileNotFoundError: ps',
                                  'sample': lambda self: found.pop(0)})()
-        out = Path(tempfile.mkdtemp())
+        out = Path(scratch())
         log = progress.ProgressLog(out, 'setup', clock=clock, pulse=False, sampler=stub)
         log.started(STAGES[:3], ['facts'], {'facts': 3.0}, steps={'facts': {'syntax': 1.5}})
         log.stage_started('facts')
@@ -163,13 +163,13 @@ class OneEndPerStage(unittest.TestCase):
             rows, raised, _ = check_rows(**options)
             self.assertIsNone(raised)
             self.assert_one_end_each(rows)
-        folder, out = project(), Path(tempfile.mkdtemp())
+        folder, out = project(), Path(scratch())
         execute(folder, out, runners=counting_runners(probe=RuntimeError('x')))
         resume(folder, out, runners=counting_runners())
         rows = progress.read(out)
         self.assert_one_end_each(rows)
         self.assertTrue(all(r.get('resumed') for r in rows if r['event'] == 'stage.ended' and r['stage'] == 'facts'))
-        out = Path(tempfile.mkdtemp())
+        out = Path(scratch())
         log = progress.ProgressLog(out, pulse=False, sampler=None)
         log.started(STAGES, list(ORDER), {})
         row = {'stage': 'facts', 'status': 'ok', 'reason': '', 'seconds': 1.0, 'necessity': 'required', 'artifacts': []}
@@ -246,7 +246,7 @@ class CountedSteps(unittest.TestCase):
 
 class Coalescer(unittest.TestCase):
     def setUp(self):
-        self.clock, self.out = Clock(), Path(tempfile.mkdtemp())
+        self.clock, self.out = Clock(), Path(scratch())
         self.log = progress.ProgressLog(self.out, clock=self.clock, pulse=False, sampler=None)
         self.log.started(STAGES, list(ORDER), {})
         self.log.stage_started('plan')
@@ -324,7 +324,7 @@ class Sampling(unittest.TestCase):
             self.assertIsNone(looker.sample())
             self.assertTrue(looker.off and looker.reason.startswith('the running programs cannot be seen'), command)
             self.assertIsNone(looker.sample())
-        clock, out = Clock(), Path(tempfile.mkdtemp())
+        clock, out = Clock(), Path(scratch())
         log = progress.ProgressLog(out, clock=clock, pulse=False, sampler=sampler.Sampler(command=['false']))
         log.started(STAGES, list(ORDER), {})
         for stage in ('facts', 'engines'):
@@ -339,7 +339,7 @@ class Sampling(unittest.TestCase):
         semgrep = {'name': 'semgrep-core', 'pid': 7, 'since': '2026-10-09T20:00:00+00:00'}
         seen = [[semgrep], [semgrep], [semgrep, {'name': 'trivy', 'pid': 9, 'since': '2026-10-09T20:00:02+00:00'}], []]
         stub = type('Stub', (), {'off': False, 'reason': '', 'sample': lambda self: seen.pop(0)})()
-        clock, out = Clock(), Path(tempfile.mkdtemp())
+        clock, out = Clock(), Path(scratch())
         log = progress.ProgressLog(out, clock=clock, pulse=False, sampler=stub)
         log.started(STAGES, list(ORDER), {})
         log.stage_started('engines')
@@ -354,7 +354,7 @@ class Sampling(unittest.TestCase):
 
 class Liveness(unittest.TestCase):
     def test_a_quiet_run_beats_and_a_silent_one_is_judged_stalled(self):
-        clock, out = Clock(), Path(tempfile.mkdtemp())
+        clock, out = Clock(), Path(scratch())
         log = progress.ProgressLog(out, clock=clock, pulse=False, sampler=None)
         log.started(STAGES, list(ORDER), {})
         log.stage_started('plan')
@@ -370,7 +370,7 @@ class Liveness(unittest.TestCase):
         clock.move(60)
         self.assertFalse(log.tick(), 'the beat stops with the run')
         self.assertEqual(progress.read(out)[-1]['event'], 'run.ended')
-        out = Path(tempfile.mkdtemp())
+        out = Path(scratch())
         log = progress.ProgressLog(out, sampler=None, alive_every=0.2)
         log.started(STAGES, list(ORDER), {})
         deadline = time.monotonic() + 5
@@ -379,7 +379,7 @@ class Liveness(unittest.TestCase):
         log.finish('STOPPED')
         log.thread.join(3)
         self.assertFalse(log.thread.is_alive())
-        out = Path(tempfile.mkdtemp())
+        out = Path(scratch())
         progress.path_for(out).mkdir()                    # the path cannot be written as a file
         log = progress.ProgressLog(out, clock=Clock(), sampler=None)
         log.started(STAGES, list(ORDER), {})
@@ -396,7 +396,7 @@ class Liveness(unittest.TestCase):
         self.assertEqual(progress.judge({**state, 'state': 'done'}, heard=1000.0, now=9999.0), 'done')
         self.assertEqual(progress.judge(state, heard=None, now=9999.0), 'running')
         from eaos.api.read import scan_state
-        report = report_with_data(tempfile.mkdtemp())
+        report = report_with_data(scratch())
         log = progress.ProgressLog(report, pulse=False, sampler=None)
         log.started(STAGES, list(ORDER), {})
         log.stage_started('facts')
@@ -408,7 +408,7 @@ class Liveness(unittest.TestCase):
 
 class Flows(unittest.TestCase):
     def test_each_flow_has_its_own_file_and_carries_the_last_runs_step_seconds(self):
-        folder = Path(tempfile.mkdtemp())
+        folder = Path(scratch())
         self.assertEqual(progress.path_for(folder), folder / 'run-progress.jsonl')
         self.assertEqual(progress.path_for(folder, 'setup'), folder / 'progress' / 'setup.jsonl')
         log = progress.ProgressLog(folder, 'safety', pulse=False, sampler=None)
@@ -416,7 +416,7 @@ class Flows(unittest.TestCase):
         log.finish('COMPLETE')
         state = progress.fold(progress.read(folder, 'safety'))
         self.assertEqual((state['flow'], state['state'], progress.read(folder)), ('safety', 'done', []))
-        out = Path(tempfile.mkdtemp())
+        out = Path(scratch())
         execute(project(), out, runners=stepping_runners())
         execute(project(), out, runners=stepping_runners())
         first = progress.read(out)[0]

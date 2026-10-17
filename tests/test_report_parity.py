@@ -2,7 +2,6 @@
 import json
 import re
 import shutil
-import tempfile
 import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
@@ -10,6 +9,7 @@ from pathlib import Path
 from eaos.compose.artifacts import DOCUMENTS
 from eaos.compose.labels import FALSIFIERS, IMPACTS, TEMPLATES, falsifier_of, statement_of
 from eaos.pipeline import execute
+from shared_fixture import scratch
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/sustainability'
 ARABIC = re.compile(r'[؀-ۿ]{3,}')
@@ -19,7 +19,7 @@ LATIN_WORD = re.compile(r'\b[A-Za-z]{4,}\b')
 class ParityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.directory = tempfile.mkdtemp()
+        cls.directory = scratch()
         cls.arabic = Path(cls.directory) / 'ar'
         cls.english = Path(cls.directory) / 'en'
         execute(FIXTURE, cls.arabic, skip=('engines',), language='ar')

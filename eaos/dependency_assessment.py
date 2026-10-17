@@ -17,7 +17,7 @@ def _check_argv(ecosystem, name, advisories):
     """Re-scan into a private directory; exit 0 only when the package carries none of these advisories."""
     code = (
         "import json, subprocess, sys, tempfile\n"
-        "tmp = tempfile.mkdtemp(prefix='eaos-deps-')\n"
+        "holder = tempfile.TemporaryDirectory(prefix='eaos-deps-'); tmp = holder.name\n"
         "r = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp, '--engines', 'syft', 'osv-scanner'])\n"
         "if r.returncode: sys.exit(r.returncode)\n"
         "data = json.load(open(tmp + '/facts/external.json'))\n"

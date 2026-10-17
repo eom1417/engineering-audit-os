@@ -169,8 +169,10 @@ class VerificationTests(unittest.TestCase):
         ran = []
 
         class FakeRun:
+            PROFILE = {'checks': [['npm', 'run', 'lint'], ['python', '-m', 'unittest', 'discover', '-s', 'tests']]}
+
             def __init__(self, target, runtime, stage):
-                self.profile = {'checks': [['npm', 'run', 'lint'], ['python', '-m', 'unittest', 'discover', '-s', 'tests']]}
+                self.profile = self.PROFILE
                 self.sandbox = mock.Mock(copy=Path(runtime) / 'copy')
                 shutil.copytree(target, self.sandbox.copy)
 
@@ -184,7 +186,8 @@ class VerificationTests(unittest.TestCase):
                 done = subprocess.run(argv, cwd=self.sandbox.copy, capture_output=True, text=True)
                 return done.returncode, done.stdout, done.stderr
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.live_run.LiveRun', FakeRun):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.live_run.LiveRun', FakeRun), \
+                mock.patch('eaos.live_run.load_profile', lambda runtime: FakeRun.PROFILE):
             repo, runtime = self.project(tmp), Path(tmp) / 'runtime'
             result = verify.run_profile(repo, Path(tmp) / 'out', runtime)
         self.assertNotIn(['npm', 'run', 'lint'], ran)

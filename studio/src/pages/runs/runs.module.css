@@ -73,6 +73,7 @@ li + li > .row { border-block-start: 1px solid var(--border-subtle); }
 .evMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--text-tertiary); }
 .evTime { justify-self: start; font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); padding-block-start: 3px; direction: ltr; unicode-bidi: isolate; }
 .more { align-self: flex-start; min-block-size: 32px; padding-inline: 6px 10px; font-size: 13px; gap: 4px; }
+.trimmed { margin: 0; padding: 16px; font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
 .flip { transform: rotate(180deg); }
 .reads { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
 

@@ -27,7 +27,7 @@ def _checks_command():
     """
     code = (
         "import subprocess, sys, tempfile\n"
-        "tmp = tempfile.mkdtemp(prefix='eaos-policy-')\n"
+        "holder = tempfile.TemporaryDirectory(prefix='eaos-policy-'); tmp = holder.name\n"
         "r1 = subprocess.run([sys.executable, '-m', 'eaos', 'facts', '.', '--out', tmp])\n"
         "if r1.returncode != 0:\n"
         "    sys.exit(r1.returncode)\n"

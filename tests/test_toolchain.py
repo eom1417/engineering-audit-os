@@ -98,6 +98,19 @@ class InstallTests(ToolchainBase):
         self.assertEqual(toolchain.install(echo=lambda line: None), [])
         self.assertEqual(toolchain.doctor()['tools'][0]['found'], '1.2.3')
 
+    def test_a_newer_version_replaces_the_older_one_on_disk(self):
+        self.write(tool('fake', '1.2.3', self.archive.as_uri(), self.sha))
+        self.assertEqual(toolchain.install(echo=lambda line: None), [])
+        script, buffer = b'#!/bin/sh\necho "fake 2.0.0"\n', io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+            info = tarfile.TarInfo('fake'); info.size = len(script); info.mode = 0o755
+            archive.addfile(info, io.BytesIO(script))
+        newer = Path(self.tmp) / 'fake-2.tar.gz'
+        newer.write_bytes(buffer.getvalue())
+        self.write(tool('fake', '2.0.0', newer.as_uri(), hashlib.sha256(buffer.getvalue()).hexdigest()))
+        self.assertEqual(toolchain.install(echo=lambda line: None), [])
+        self.assertEqual(sorted(p.name for p in (self.home / 'releases').iterdir()), ['fake-2.0.0'])
+
     def test_a_download_goes_on_from_what_an_earlier_attempt_left(self):
         Ranged.body, Ranged.asked = self.archive.read_bytes(), []
         server = http.server.HTTPServer(('127.0.0.1', 0), Ranged)

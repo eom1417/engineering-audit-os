@@ -8,6 +8,8 @@
         <run>/stream.jsonl          the assistant's raw output, which a restarted server can go on reading
         <run>/stderr.log            the assistant's error output, shown only in part
 
+The newest KEEP ended runs keep all of it, for a diagnosis; an older one keeps its record alone (trim), with what it used.
+
 A run's events carry a gapless `seq` (the SSE id), and each its `prev` and `hash` = sha256(prev + canonical JSON of
 the event without `hash`), so a reader can tell a log that was edited. Nothing secret is written: every string goes
 through `scrub` first.
@@ -37,6 +39,7 @@ TERMINAL = ('done', 'failed', 'stopped', 'unchanged')
 RETRYABLE = ('failed', 'stopped', 'unchanged')
 ACTIVE = ('running', 'paused', 'waiting_for_person')
 DIFF_LIMIT = 64 * 1024
+KEEP = 10
 SECRET = re.compile(r'(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'
                     r'|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
                     r'|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)')
@@ -109,7 +112,18 @@ class Store:
             record['updated'] = now()
             _write_json(self.path(record['id']) / 'run.json', record, create=new)
             self.changed.notify_all()
+        if new: self.trim()
         return record
+
+    def trim(self):
+        """Every ended run past the newest KEEP keeps its record alone, with what it used (eaos/usage.py) and when it was
+        trimmed; its raw stream, events and error output go (57 runs had kept 64 MB, most of it raw streams)."""
+        from ...usage import of_run
+        for row in [row for row in self.all() if row.get('state') in TERMINAL][KEEP:]:
+            if row.get('trimmed'): continue
+            folder = self.path(row['id'])
+            self.update(row['id'], usage=row.get('usage') or of_run(folder), trimmed=now())
+            for name in ('stream.jsonl', 'stderr.log', 'events.jsonl', 'mcp.json'): (folder / name).unlink(missing_ok=True)
 
     def update(self, run, **fields):
         with self.lock:

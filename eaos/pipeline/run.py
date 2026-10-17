@@ -273,10 +273,12 @@ def _previous(out):
 
 # A new complete check replaces these of the previous one: its pictures and crawl, the engines' working folders and
 # the assistant's raw runs and cached decisions (the cache keys on the prompt, which names a picture, not what it shows).
-# The ledger, the history and the state stay. 230 MB of pictures and 130 MB of runs piled up on EAOS's own report.
+# The ledger, the history and the state stay. 230 MB of pictures and 130 MB of runs piled up on EAOS's own report, and
+# the ideal plan's raw runs another 40 MB (its record of them, ideal/runs.json, stays).
 # START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
-BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'START-HERE.md')
-PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs')     # what `eaos clean --pictures` removes from every report
+BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
+         'START-HERE.md')
+PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs', 'ideal/run-*')     # what `eaos clean --pictures` removes from every report
 
 
 def bulky(out, patterns=None):

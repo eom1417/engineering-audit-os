@@ -21,6 +21,7 @@ A wave is the flow `fix` of the live map (FLOW), drawn from the state at each sa
 """
 import json
 import re
+import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -141,12 +142,13 @@ def batch_acceptance(report, cards, root, collected=None):
     when the caller already made it, with engines_for(cards)). A `recheck --spec` acceptance and the dead-code check
     are read from that collection; anything else runs as written."""
     from .facts.run import collect, read_available
-    out = Path(collected) if collected else Path(tempfile.mkdtemp(prefix='eaos-wave-facts-'))
-    if not collected: collect(Path(root).resolve(), out, engines=engines_for(cards))
-    sets = read_available(out)
-    dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
-            for f in (sets.get('deadcode') or {}).get('facts', [])}
-    return {card['id']: _acceptance_exit(card, sets, dead, out, root) for card in cards}
+    with tempfile.TemporaryDirectory(prefix='eaos-wave-facts-') as scratch:
+        out = Path(collected or scratch)
+        if not collected: collect(Path(root).resolve(), out, engines=engines_for(cards))
+        sets = read_available(out)
+        dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
+                for f in (sets.get('deadcode') or {}).get('facts', [])}
+        return {card['id']: _acceptance_exit(card, sets, dead, out, root) for card in cards}
 
 
 def _probe_exit(spec, sets, out):
@@ -478,10 +480,21 @@ def undo(project, branch):
 
 # ---------------------------------------------------------------- the batch, on the live map
 
+def saved(state, runtime):
+    """What every save of the state does for the batches (guided.save): the open one drawn on the live map, and the copies
+    of the closed ones removed. A closed batch's or build's commits are in the person's project by then (its branch), its
+    patches beside the run (_write_wave), and nothing opens its copy again (six had kept 690 MB). A copy whose batch is
+    still opening has no record yet, so it is never touched."""
+    for closed in state.get('waves') or []:
+        name = f"{'BUILD' if closed.get('via') == 'build' else 'WAVE'}-{closed['number']}"
+        shutil.rmtree(Path(runtime) / 'candidates' / name, ignore_errors=True)
+    draw(state, runtime)
+
+
 def draw(state, runtime):
     """The open batch as the flow `fix` (waves.FLOW), drawn again from the state at each of its saves, and once more when it
     closes. No process holds a batch, the assistant's tool calls work it card by card, so nothing drew it and the live map
-    read "waiting" through every batch (owner, 2026-10-15). Called by guided.save; None when there is nothing to draw."""
+    read "waiting" through every batch (owner, 2026-10-15). Called by saved(); None when there is nothing to draw."""
     wave, last = state.get('open_wave'), (state.get('waves') or [None])[-1]
     if not wave:
         if not (last or {}).get('cards') or state.get('fix_drawn') == last['number']: return None   # a build's: draw_build

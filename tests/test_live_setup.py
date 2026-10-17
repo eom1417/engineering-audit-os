@@ -2,6 +2,7 @@
 127.0.0.1, and the run's own environment, database and seed."""
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,10 +11,11 @@ from unittest import mock
 from eaos import live_assist, live_setup, run_profile
 from eaos.live_run import LiveRun, load_profile
 from eaos.sandbox import AuthorizationError
+from shared_fixture import scratch
 
 
 def project(files):
-    root = Path(tempfile.mkdtemp())
+    root = Path(scratch())
     for name, text in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(text if isinstance(text, str) else json.dumps(text))
@@ -91,7 +93,7 @@ class DetectTests(unittest.TestCase):
         self.assertEqual(start[:3], ['npx', 'vite', 'preview'])
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'dev': 'node x'}}, 4000), (None, None))
         from eaos.runtime_baseline import shape
-        script = Path(tempfile.mkdtemp()) / 'qs-001.js'
+        script = Path(scratch()) / 'qs-001.js'
         script.write_text(K6)
         self.assertEqual(shape(script), ({'p95_ms': 800.0, 'error_rate': 0.01}, 100, 300, 60))
 
@@ -108,7 +110,7 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(run_profile.safe({'install': [['corepack', 'pnpm', 'install']]}), [])
 
     def test_a_proposal_replaces_the_environment_and_a_production_one_changes_the_baseline_only(self):
-        runtime = Path(tempfile.mkdtemp())
+        runtime = Path(scratch())
         run_profile.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,
                                            'health': '/', 'env': {'OLD': '1', 'DATABASE_URL': '{database_url}'},
                                            'prepare': [['npm', 'run', 'migrate']], 'database': {'kind': 'postgres', 'name': 'x'},
@@ -145,7 +147,7 @@ class VerifyTests(unittest.TestCase):
         self.assertTrue(live_setup.signed_out({'url': 'http://127.0.0.1:5/', 'password': 1}))
         root = project(VITE_APP)
         before = sorted((p.relative_to(root).as_posix(), p.read_bytes()) for p in root.rglob('*') if p.is_file())
-        runtime = Path(tempfile.mkdtemp())
+        runtime = Path(scratch())
         outcomes = iter([{'ok': False, 'failure': 'the first page asks for a sign-in', 'fixtures': {}},
                          {'ok': True, 'page': {'status': 200}, 'fixtures': {'E2E_ID': '1'}}])
         assistant = mock.Mock()
@@ -159,12 +161,12 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(json.loads((runtime / 'run.json').read_text())['env'], {'DEV_LOGIN': '1'})
         failing = {'ok': False, 'failure': 'the first page asks for a sign-in', 'fixtures': {}}
         with mock.patch.object(live_setup, 'verify', return_value=failing):
-            result = live_setup.setup(root, Path(tempfile.mkdtemp()), provider=None, say=lambda n: None)
+            result = live_setup.setup(root, Path(scratch()), provider=None, say=lambda n: None)
         self.assertFalse(result['ok'])
         self.assertTrue(any('sign-in' in l for l in result['limitations']))
         after = sorted((p.relative_to(root).as_posix(), p.read_bytes()) for p in root.rglob('*') if p.is_file())
         self.assertEqual(before, after)
-        runtime = Path(tempfile.mkdtemp())
+        runtime = Path(scratch())
         detected = live_setup.detect(project(VITE_APP))
         run_profile.write_profile(runtime, detected['profile'])
         outcomes = iter([{'ok': False, 'failure': 'npm exited with 1; it said: APP_URL must be https'}, {'ok': True}])
@@ -190,7 +192,7 @@ class VerifyTests(unittest.TestCase):
         self.assertIn('without a value for: STUDIO_DATA', live_setup.empty_state(page, ['STUDIO_DATA']))
         self.assertEqual(live_setup.empty_state({'text': 'No data yet'}, []), '', 'every value given: an empty page is the app')
         self.assertEqual(live_setup.empty_state({'text': 'Problems: 12 open, 3 waiting for you'}, ['STUDIO_DATA']), '')
-        report = Path(tempfile.mkdtemp())
+        report = Path(scratch())
         (report / 'studio').mkdir()
         profile = live_setup.detect(project(studio), report)['profile']
         self.assertEqual(profile['env']['STUDIO_DATA'], str(report / 'studio'))
@@ -219,7 +221,7 @@ class RunEnvironmentTests(unittest.TestCase):
             with self.assertRaises(AuthorizationError): load_profile(tmp)
         for profile in ({'env': {'DATABASE_URL': '{database_url}'}},       # named by a value, though none was declared
                         {'database': {'kind': 'postgres', 'name': 'app'}, 'env': {'DATABASE_URL': '{database_url}', 'NODE_ENV': 'development'}}):
-            live = bare_run(runtime=Path(tempfile.mkdtemp()), profile=profile)
+            live = bare_run(runtime=Path(scratch()), profile=profile)
             with mock.patch.dict(os.environ, {'DATABASE_URL': 'postgres://owner@production.example/live', 'OWNER_SECRET_TOKEN': 'x'}), \
                     mock.patch('eaos.local_db.LocalPostgres') as database:
                 database.return_value.create.return_value = 'postgresql://postgres@127.0.0.1:5/app'
@@ -235,10 +237,11 @@ class RunEnvironmentTests(unittest.TestCase):
             self.assertEqual(live.extra()['E2E_PROFILEID'], 'p1')
             self.assertIn('signed in', live.seed_output)
 
-    def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home(self):
+    def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home_and_gone_once_its_runtime_is(self):
         from eaos.local_db import LocalPostgres, binaries
         if binaries() is None: self.skipTest('no PostgreSQL binaries')
-        deep = Path(tempfile.mkdtemp()) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
+        holder = tempfile.TemporaryDirectory()
+        deep = Path(holder.name) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
         db = LocalPostgres(deep)
         self.assertGreater(len(str(db.root)), 110, 'deeper than a Unix socket path may be')
         try:
@@ -248,6 +251,13 @@ class RunEnvironmentTests(unittest.TestCase):
         finally:
             db.stop()
         self.assertIsNone(db.running())
+        shutil.rmtree(Path(holder.name) / '.eaos')            # the project is deleted: its runtime with it
+        later = LocalPostgres(Path(holder.name) / 'later')
+        try: later.start()
+        finally: later.stop()
+        self.assertFalse(db.data.exists(), "the next database's start removes one whose runtime is gone")
+        holder.cleanup()
+        later._sweep(binaries())                               # nothing of this test stays behind
 
 
 if __name__ == '__main__':

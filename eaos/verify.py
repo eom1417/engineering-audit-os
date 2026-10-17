@@ -316,13 +316,14 @@ def run_profile(target, out, runtime, timeout=1800):
     `verification` facts. Raises LookupError when the profile names no test command. The project's own interpreter
     and test runner are used as the profile declares them; Python commands run under `-m coverage` when the project
     has coverage installed, and every command runs with NODE_V8_COVERAGE, which Node fills on its own."""
-    from .live_run import LiveRun
+    from .live_run import LiveRun, load_profile
     target, out, runtime = Path(target).resolve(), Path(out).resolve(), Path(runtime)
     out.mkdir(parents=True, exist_ok=True)
-    live = LiveRun(target, runtime, 'S05')
+    profile = load_profile(runtime)
     # The profile's tests run in the app's folder; a Python suite beside it (eaos/execute.py python_tests) from the root.
-    suites = [(group, at_root) for group, at_root in ((test_commands(live.profile), False), (python_tests(target, live.profile), True)) if group]
+    suites = [(group, at_root) for group, at_root in ((test_commands(profile), False), (python_tests(target, profile), True)) if group]
     if not suites: raise LookupError("the run profile's checks name no test command, and no Python suite was found")
+    live = LiveRun(target, runtime, 'S05')
     v8 = runtime / 'verify-v8'
     shutil.rmtree(v8, ignore_errors=True)
     v8.mkdir(parents=True)

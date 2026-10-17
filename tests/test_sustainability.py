@@ -10,6 +10,7 @@ import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from eaos import sustainability, transform_plan
 from eaos.canonical_home import suggest
 from eaos.facts.run import collect
+from shared_fixture import scratch
 
 SETS = ['syntax', 'structure', 'fingerprint', 'sequences', 'redundancy', 'domain', 'graph', 'metrics', 'flows', 'resolve']
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/sustainability'
@@ -32,7 +33,7 @@ def _collect(tmp, files=None, source=FIXTURE):
 class SustainabilityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp()
+        cls.tmp = scratch()
         cls.out = _collect(cls.tmp)
 
     @classmethod

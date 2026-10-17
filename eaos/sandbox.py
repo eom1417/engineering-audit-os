@@ -5,12 +5,16 @@ refusal() finds nothing wrong with authorization.json: it must keep its contract
 the stage, and, when a target is given, name the commit the target is at. The project itself is never
 touched: every command runs in a copy of the authorised commit (committed_copy: never the working folder,
 and never a .env file), as its own process group, with
-an environment of PATH, a temporary HOME, LANG, and the names the owner listed in env_allow.
+an environment of PATH, a temporary HOME and TMPDIR, LANG, and the names the owner listed in env_allow.
+
+A run's copy, HOME and TMPDIR share one folder, held (flock) while the run lives: dispose() removes it, and the next
+run removes any folder no live run holds, so a check stopped or killed midway leaves nothing behind for long.
 
 Where the kernel allows it (unshare -rn), a command runs with no network, so a test suite cannot reach
 anything outside. A started service must answer the host, so it keeps the network; that, and every other
 thing this sandbox could not isolate, is written to sandbox-run.json -> limitations, never implied.
 """
+import fcntl
 import json
 import os
 import shutil
@@ -112,8 +116,15 @@ class Sandbox:
         if reason: raise AuthorizationError(reason)
         self.allowed = json.loads(Path(authorization).read_text(encoding='utf-8'))['env_allow']
         self.workdir.mkdir(parents=True, exist_ok=True)
-        self.copy = committed_copy(self.target, commit, Path(tempfile.mkdtemp(dir=self.workdir, prefix='copy-')) / 'project')
-        self.home = Path(tempfile.mkdtemp(dir=self.workdir, prefix='home-'))
+        with open(self.workdir / '.sweep', 'a') as gate:      # no sweep between a folder's making and its hold
+            fcntl.flock(gate, fcntl.LOCK_EX)
+            _sweep(self.workdir)
+            self.folder = Path(tempfile.mkdtemp(dir=self.workdir, prefix='run-'))
+            self._held = open(self.folder / '.held', 'w')
+            fcntl.flock(self._held, fcntl.LOCK_EX)
+        self.copy = committed_copy(self.target, commit, self.folder / 'project')
+        self.home, self.tmp = self.folder / 'home', self.folder / 'tmp'
+        self.home.mkdir(); self.tmp.mkdir()
         self.offline = _network_isolation()
         self.started, self.commands = [], []
         self.limitations = ['the filesystem outside the copy is readable', 'processes run as the invoking user']
@@ -121,9 +132,10 @@ class Sandbox:
         self._record()
 
     def environment(self, extra=None):
-        """PATH, a temporary HOME, LANG, the names the owner allowed, and `extra`: values the run itself chose
-        (a local database address, tool locations), never taken from this process's environment."""
-        env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'HOME': str(self.home),
+        """PATH, a temporary HOME and TMPDIR, LANG, the names the owner allowed, and `extra`: values the run itself chose
+        (a local database address, tool locations), never taken from this process's environment. TMPDIR keeps what
+        the project's own tests and tools write to a temporary folder inside the run's, removed with it."""
+        env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'HOME': str(self.home), 'TMPDIR': str(self.tmp),
                'LANG': os.environ.get('LANG', 'C.UTF-8')}
         env.update({name: os.environ[name] for name in self.allowed if name in os.environ})
         env.update({name: str(value) for name, value in (extra or {}).items()})
@@ -211,9 +223,22 @@ class Sandbox:
         self._record()
 
     def dispose(self):
-        """Stop what runs and remove the copy and the temporary HOME: a run leaves its records, not its disk.
+        """Stop what runs and remove the run's folder (copy, HOME, TMPDIR): a run leaves its records, not its disk.
         (A lock run's copy with installed packages is 600 MB; three runs had kept 1.9 GB.)"""
-        import shutil
         self.stop()
-        for folder in (self.copy.parent, self.home):
+        shutil.rmtree(self.folder, ignore_errors=True)
+        self._held.close()
+
+
+def _sweep(workdir):
+    """Remove every folder in `workdir` no live run holds: what a run stopped or killed before dispose() left (a
+    sandbox folder holds nothing but runs; 170 of them had kept 6.2 GB)."""
+    for folder in (entry for entry in workdir.iterdir() if entry.is_dir()):
+        try:
+            with open(folder / '.held', 'a') as held:
+                fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                shutil.rmtree(folder, ignore_errors=True)
+        except BlockingIOError:
+            continue
+        except OSError:
             shutil.rmtree(folder, ignore_errors=True)

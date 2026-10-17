@@ -1,11 +1,11 @@
 """Every document whole in each language: only the pieces in the other language are sent, as templates, once, and kept."""
 import json
-import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from eaos import bilingual
+from shared_fixture import scratch
 
 
 class Dictionary:
@@ -21,7 +21,7 @@ class Dictionary:
 class BilingualTests(unittest.TestCase):
     def test_whole_pieces_are_sent_as_templates_once_and_the_rest_stay_as_written(self):
         # EAOS's own check, 2026-10-14: 2818 lines cut mid sentence, sent one by one, 54 minutes and $2.19
-        report = Path(tempfile.mkdtemp()) / 'technical'
+        report = Path(scratch()) / 'technical'
         report.mkdir()
         (report / 'START-HERE.md').write_text(
             '# Start here\n\nThe component has 2 live claims\nin `plan.py`.\n\n```\nkeep this code\n```\n'
