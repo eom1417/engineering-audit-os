@@ -26,10 +26,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import guided
+from .agent_tools import HEADLESS
 from .studio.actions.store import ACTIVE, RETRYABLE
 
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
-HEADLESS = 'EAOS_HEADLESS'   # set in the host: the steps it runs open no Studio (agent_tools._watch)
 # What a branch change previews, then does (BranchControl's methods), and the body both take.
 BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 'delete'), 'protect': ('preview_protect', 'protect'),
               'unprotect': ('preview_protect', 'protect'), 'cleanup': ('preview_cleanup', 'cleanup')}

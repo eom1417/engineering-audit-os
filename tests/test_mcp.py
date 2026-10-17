@@ -410,6 +410,13 @@ class PersonOnly(Home):
         self.assertTrue(self.has('feature'), 'a confirm token proves a preview was seen, not that the person agreed')
         mcp_govern.branch_op('delete', 'feature', confirm=shown['confirm'], person_agreed=True, project=str(self.project))
         self.assertFalse(self.has('feature'))
+        kept = govern.core(str(self.project)).branches.recoveries()[-1]['id']
+        self.assertEqual(self.eaos('branches', 'restore', kept, '--project', str(self.project), '--yes', studio_run=True)[0], 3)
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
+            self.assertRaises(PermissionError, lambda: mcp_govern.branch_op('restore', kept, person_agreed=True, project=str(self.project)))
+        self.assertEqual(self.eaos('branches', 'restore', kept, '--project', str(self.project))[0], 4)
+        self.assertEqual(mcp_govern.branch_op('restore', kept, project=str(self.project))['status'], 'needs_the_person')
+        self.assertFalse(self.has('feature'), 'a deleted branch comes back only with the person\'s yes')
         self.assertEqual(mcp_govern.act_op('fix', ['TASK-001'], op='start', auto_accept=True, project=str(self.project))['status'], 'needs_the_person')
         self.assertIn('no reply', mcp_govern.waiting_op('answer', 'q1', 'yes', project=str(self.project))['why'])
         govern.shown('q1')
@@ -418,3 +425,9 @@ class PersonOnly(Home):
         with mock.patch.object(govern, 'answer', return_value={'status': 'answered'}) as answered:
             self.assertEqual(mcp_govern.waiting_op('answer', 'q1', 'yes', person_said='نعم', project=str(self.project))['status'], 'answered')
         answered.assert_called_once()
+
+    def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):
+        from eaos import mcp_server
+        with mock.patch.object(agent_tools, 'wait', return_value={'status': 'running'}) as waited:
+            mcp_server.functions()['wait'](job='audit-1', seconds=0, project=str(self.project))
+        waited.assert_called_once_with('audit-1', 0, str(self.project))

@@ -21,6 +21,7 @@ from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
 ANSWER_SECONDS, WAIT = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30), 50   # WAIT: seconds a tool call waits for its job
+HEADLESS = 'EAOS_HEADLESS'  # set in the headless host (eaos/govern.py): the steps it runs open no Studio (_watch)
 PAGE, EVIDENCE = 30, 24     # EVIDENCE: facts shown behind one card, enough for every function its check judges
 
 
@@ -152,9 +153,8 @@ TOOLS_FIRST = ('Tell the person the EAOS Studio is open on "Preparing the tools"
 
 
 def _watch(state, route='/scan'):
-    """open_studio on `route` (the live map, or "Preparing the tools"), in the browser unless the Studio itself asked
-    (EAOS_STUDIO_RUN); None in the headless host (EAOS_HEADLESS, eaos/govern.py) or when it cannot start: the work goes on."""
-    try: opened = {} if os.environ.get('EAOS_HEADLESS') else open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route=route)
+    """open_studio on `route`, in the browser unless the Studio asked (EAOS_STUDIO_RUN); None headless or when it cannot start."""
+    try: opened = {} if os.environ.get(HEADLESS) else open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route=route)
     except Exception: return None
     return opened if 'studio' in opened else None
 

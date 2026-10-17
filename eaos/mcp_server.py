@@ -79,7 +79,8 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
 # What only the person decides: these tools, and these operations of the governance tools and commands (eaos/govern.py).
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/studio/actions), the assistant asks instead, and the person
 # answers in the Studio, which calls these itself.
-PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup', 'auto_accept')
+PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
+               'branches restore', 'auto_accept')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 
@@ -233,10 +234,10 @@ def _check_tools(server, reading, working):
         return tools.assistant_check(project, fresh, assistant)
 
     @server.tool(annotations=reading, description='Follow a job (audit, run_setup, run_try, safety_net, fix_start, fix_edit, fix_finish): '
-                 'waits up to `seconds` (default 50) and returns its progress, or its result once done.')
+                 'waits up to `seconds` (default 50) and returns its progress, or its result once done. ' + project_doc)
     @_answer
-    def wait(job: str, seconds: int = 50) -> str:
-        return tools.wait(job, seconds)
+    def wait(job: str, seconds: int = 50, project: str | None = None) -> str:
+        return tools.wait(job, seconds, project)
 
     @server.tool(annotations=reading, description="The project's health after the check: counts, kinds of problems (with plain titles), "
                  'milestones of the plan, what did not complete. ' + project_doc)
