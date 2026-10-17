@@ -575,7 +575,7 @@ class Direct(Base):
         self.assertEqual(len(self.get('/api/runs?all=1')[1]['runs']), 1)
         self.assertEqual(self.post('/api/runs', {'action': 'findings', 'inputs': {'limit': 'many'}})[0], 400)
         state = {'n': 0}
-        def read(job):
+        def read(job, project):
             state['n'] += 1
             if state['n'] < 3: return {'id': job, 'kind': 'audit', 'status': 'running', 'progress': {'done': state['n'], 'total': 3, 'stage': 'engines'}}
             return {'id': job, 'kind': 'audit', 'status': 'done', 'result': {'overview': 'fine'}}

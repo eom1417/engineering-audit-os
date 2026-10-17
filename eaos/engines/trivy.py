@@ -58,8 +58,10 @@ def _redact_messages(results):
 
 
 def _command(output, exclude):
+    """The scan: the shared database read as it is, what it learns of the project kept in memory only (never in a cache
+    another project's scan reads)."""
     from ..toolchain import TRIVY_CACHE, home, trivy_db
-    command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'vuln,secret,misconfig', '--quiet',
+    command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'vuln,secret,misconfig', '--quiet', '--cache-backend', 'memory',
                '--cache-dir', str(home() / TRIVY_CACHE), '--output', str(output)]
     # A database already here is used as it is: the install refreshes it daily in the background, never in a check
     if trivy_db(): command.append('--skip-db-update')
@@ -73,7 +75,10 @@ def analyze(target, workdir, exclude=(), formats=None):
     found = version()
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
-    code, _, error, seconds = run(_command(output, exclude) + [str(target)])
+    from ..locks import held
+    from ..toolchain import TRIVY_CACHE, home
+    with held(home() / TRIVY_CACHE):     # the database every project's scan shares: its daily swap waits for this read
+        code, _, error, seconds = run(_command(output, exclude) + [str(target)])
     if code or not output.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     redact(output)

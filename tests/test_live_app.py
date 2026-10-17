@@ -43,6 +43,14 @@ class SharedAppTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.target, self.runtime = self.root / 'project', self.root / 'runtime'
         self.target.mkdir()
+        import os
+        from unittest import mock
+        from eaos.places import workspace
+        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'eaos-home')})    # this machine's projects aside
+        home.start()
+        self.addCleanup(home.stop)
+        workspace(self.target).mkdir(parents=True)          # this fixture's folder is the run's own report
+        (workspace(self.target) / 'state.json').write_text(json.dumps({'outputs': str(self.root)}))
         (self.target / 'server.py').write_text(SERVER)
         (self.target / 'seed.py').write_text(SEED)
         for argv in (['git', 'init', '-q'], ['git', 'add', '.'],

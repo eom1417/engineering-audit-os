@@ -187,6 +187,11 @@ class ApprovalRunTests(Workspace):
         from eaos import toolchain
         if not (toolchain.home() / 'bin/pytest').exists() or toolchain.pip_version('approvaltests') is None:
             self.skipTest('pytest is not installed: python -m eaos tools install --only pytest')
+        import os
+        from unittest import mock
+        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp) / 'eaos-home')})
+        home.start()
+        self.addCleanup(home.stop)
 
     def live(self, project):
         from datetime import date
@@ -195,6 +200,9 @@ class ApprovalRunTests(Workspace):
         grant = Path(self.tmp) / 'authorization.json'
         grant.write_text(json.dumps({'schema_version': 1, 'project': 'p', 'commit': git(project, 'rev-parse', 'HEAD'),
                                      'granted_by': 'owner', 'stages': ['S05'], 'env_allow': [], 'expires': date.today().isoformat()}))
+        from eaos.places import workspace
+        workspace(project).mkdir(parents=True)                # this fixture's folder is the run's own report
+        (workspace(project) / 'state.json').write_text(json.dumps({'outputs': self.tmp}))
         return self.another_copy(project)
 
     def another_copy(self, project):

@@ -81,7 +81,7 @@ assistant, or type `eaos studio` in the Terminal inside your project folder.
 
 | Where you work | The address |
 | --- | --- |
-| On your own computer | `http://127.0.0.1:<number>/`: a plain address with no token at its end, the same after a restart, so bookmark it |
+| On your own computer | `http://127.0.0.1:<number>/#token=…`: the address carries its key, the same after a restart, so bookmark it (no other program on the computer can ask the Studio for it) |
 | On a remote server | the server's own address, with no token at its end, guarded by the sign-in in front of the server. Write its pattern once in the file `~/.eaos/remote-origin` (for example `https://<project>--{port}.dev.remote.e-m.sa`) |
 
 ## 4. Read the report

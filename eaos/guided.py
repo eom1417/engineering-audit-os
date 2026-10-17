@@ -25,7 +25,7 @@ from pathlib import Path
 
 from . import branches, check_choices, plain, waves
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
-from .places import home, workspace  # noqa: F401  (one home: eaos/places.py; guided.home and guided.workspace stay its API)
+from .places import home, outputs_root, workspace  # noqa: F401  (one home: eaos/places.py; guided's names stay its API)
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
@@ -47,13 +47,6 @@ class Declined(Exception):
 
 class ToolsMissing(RuntimeError):
     """Tools the check needs on this project could not be installed, and the person did not choose to start without."""
-
-
-def outputs_root():
-    """~/EAOS: everything EAOS makes for a person, in one folder they can see and open (EAOS_OUTPUT moves it;
-    beside EAOS_HOME when that is set, so a trial or a test never writes into the real home)."""
-    if os.environ.get('EAOS_OUTPUT'): return Path(os.environ['EAOS_OUTPUT'])
-    return Path(os.environ['EAOS_HOME']).parent / 'EAOS' if os.environ.get('EAOS_HOME') else Path.home() / 'EAOS'
 
 
 OUTPUTS_README = {
@@ -1212,9 +1205,8 @@ def clean(args):
         from .pipeline.run import PICTURES, clear
         for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
             freed += clear(report, PICTURES)
-    for folder in (home() / 'projects').glob('*/runtime/sandbox'):
-        freed += sum(f.stat().st_size for f in folder.rglob('*') if f.is_file() and not f.is_symlink())
-        shutil.rmtree(folder, ignore_errors=True)
+    from .sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
+    freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
     for folder in (home() / 'projects').glob('*/runtime/candidates'):
         for copy in [p for p in folder.iterdir() if p.is_dir()]:
             freed += sum(f.stat().st_size for f in copy.rglob('*') if f.is_file() and not f.is_symlink())

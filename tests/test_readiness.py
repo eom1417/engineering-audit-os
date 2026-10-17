@@ -118,7 +118,17 @@ class Probe(unittest.TestCase):
         self.assertFalse(readiness.probe('claude', fresh=True)['cached'])
         self.assertGreater(len(self.calls()), made)
         os.environ['CLAUDE_CONFIG_DIR'] = str(Path(self.tmp.name) / 'other')
-        self.assertFalse(readiness.probe('claude')['cached'], 'another sign-in place is another assistant')
+        import fcntl
+        import threading
+        with open(readiness._cache_file().with_suffix('.lock'), 'a') as held:
+            fcntl.flock(held, fcntl.LOCK_EX)                    # another program (another project's check) writes now
+            answers = []
+            asked = threading.Thread(target=lambda: answers.append(readiness.probe('claude')))
+            asked.start()
+            asked.join(2)
+            self.assertEqual(len(readiness._read_cache()), 1, 'it waits for the other writer instead of overwriting it')
+        asked.join(10)
+        self.assertFalse(answers[0]['cached'], 'another sign-in place is another assistant')
         saved = json.loads((Path(os.environ['EAOS_HOME']) / 'assistants/readiness.json').read_text(encoding='utf-8'))
         with mock.patch.object(readiness.time, 'time', return_value=time.time() + readiness.KEEP_READY + 1):
             self.assertIsNone(readiness.cached('claude'))

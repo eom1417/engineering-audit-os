@@ -82,6 +82,8 @@
       "eaos/indicators.py",
       "eaos/artifact_contracts.py",
       "eaos/sandbox.py",
+      "eaos/sandbox_view.py",
+      "eaos/locks.py",
       "eaos/live_run.py",
       "eaos/runtime_baseline.py",
       "eaos/execute.py",

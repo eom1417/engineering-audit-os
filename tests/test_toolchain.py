@@ -247,8 +247,15 @@ class PreparingTests(ToolchainBase):
         with mock.patch.object(toolchain, '_spawn') as spawn:
             toolchain.prepare(self.tmp)
         self.assertEqual(spawn.call_args.args, (['tools', 'refresh'], 'refresh.log'), 'a day old: refreshed in the background')
+        import threading
+        from eaos.locks import held
         with mock.patch.object(toolchain, '_download_db', side_effect=download):
-            self.assertEqual(toolchain.refresh_db(), 0)
+            with held(self.home / 'cache/trivy'):              # another project's scan reads the database
+                swap = threading.Thread(target=toolchain.refresh_db)
+                swap.start()
+                swap.join(1)
+                self.assertIn('2020', toolchain.trivy_db().read_text(), 'the swap waits for the scan reading it')
+            swap.join(10)
         self.assertIn('2099', toolchain.trivy_db().read_text())
         self.assertFalse((self.home / 'cache/trivy-next').exists())
 

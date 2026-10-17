@@ -1,7 +1,7 @@
 """The Studio's local server: the built Studio (eaos/data/studio), the read API, the live stream, on 127.0.0.1.
 
     app = create_app(report)          # report: the technical report folder, with studio/ in it
-    serve(app)                        # blocks; the address with its token is app.state.ctx.url
+    serve(app)                        # blocks; launch.url_of gives the address with its token
 
 The Studio pages themselves hold no project data and are served to any request that names this server; everything
 under /api/ needs the launch token (guard.py). The page is served with `connect-src 'self'` in place of the snapshot's
@@ -45,12 +45,13 @@ from starlette.routing import Route
 
 from .. import guided
 from ..agent_tools import project_state
-from . import guard, launch, read
+from . import guard, launch, projects, read
 from .events import Feed
 
 ASSETS = Path(__file__).resolve().parent.parent / 'data' / 'studio'
 POLL = 0.4               # seconds between two looks at the manifest or the event log
 HEARTBEAT = 5            # seconds between two keep-alive comments on an idle stream (the page polls after 8 s of silence)
+IDLE = 600               # seconds a Studio server stays with no run and no client; the switcher or launcher starts it again
 SNAPSHOT_CSP = "connect-src 'none'"
 LIVE_CSP = "connect-src 'self'"
 log = logging.getLogger('eaos.studio.server')
@@ -80,6 +81,12 @@ class Context:
     actions_mounted: bool = False
     session_extra: object = None      # a callable whose dict joins /api/session (the command centre's)
     closers: list = field(default_factory=list)
+    busy: object = None               # a callable: whether a run is active or queued (the command centre's)
+    seen: float = field(default_factory=time.monotonic)      # the last request or stream beat of a client
+
+    def idle(self, now):
+        """No client for IDLE seconds and no run active or queued: the server may go (each costs about 220 MB)."""
+        return now - self.seen > IDLE and not (self.busy and self.busy())
 
     @property
     def url(self):
@@ -140,6 +147,7 @@ def stream(ctx):
                 yield {'event': 'studio', 'id': event['id'], 'data': json.dumps(event, ensure_ascii=False)}
             while True:
                 if await request.is_disconnected(): return
+                ctx.seen = time.monotonic()
                 fresh, reset = ctx.feed.since(last)
                 if reset:
                     last = ctx.feed.last_id()
@@ -160,10 +168,10 @@ def pages(ctx):
         if not page.is_file():
             return Response('The Studio is not built in this EAOS (eaos/data/studio is missing).', status_code=503)
         html = page.read_text(encoding='utf-8').replace(SNAPSHOT_CSP, LIVE_CSP)
-        if _remote_login_trusted(ctx) or _same_computer_page(ctx, request, 'document'):
+        if _remote_login_trusted(ctx):
             # The owner's remote address sits behind the Remote sign-in, which loses the token in the address on some
-            # redirects; on this computer the plain address carries none. The page reads it from a script whose address
-            # changes on every load, so no cache in front of the server can hand back an old answer.
+            # redirects. The page reads it from a script whose address changes on every load, so no cache in front of
+            # the server can hand back an old answer. On this computer the address carries the token (#token=).
             html = html.replace('<script src="./boot.js"></script>',
                                 f'<script src="./live-token.js?n={secrets.token_hex(8)}"></script><script src="./boot.js"></script>', 1)
         return Response(html, media_type='text/html', headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
@@ -177,7 +185,7 @@ def pages(ctx):
         return FileResponse(target, headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache'})
 
     async def live_token(request):
-        if not (_remote_login_trusted(ctx) or _same_computer_page(ctx, request, 'script')):
+        if not _remote_login_trusted(ctx) or _this_computer((request.scope.get('client') or ('',))[0]):
             return Response(status_code=404)
         given = f"window.EAOS_BOOT_TOKEN={json.dumps(ctx.keys.token)};try{{sessionStorage.setItem('eaos.token',window.EAOS_BOOT_TOKEN)}}catch(e){{}}\n"
         return Response(given, media_type='text/javascript', headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store, private'})
@@ -199,6 +207,8 @@ def command_centre(ctx):
     engine = centre.Actions(ctx.project, port=ctx.keys.port, token=ctx.keys.token, studio=ctx.report / 'studio', remote_origin=ctx.keys.remote_origin)
     ctx.keys.csrf = engine.csrf
     ctx.session_extra = getattr(engine, 'session', None)
+    from ..studio.actions.store import ACTIVE
+    ctx.busy = lambda: any(row.get('state') in (*ACTIVE, 'queued') and not row.get('read') for row in engine.store.all())
     if hasattr(engine, 'close'): ctx.closers.append(engine.close)
     router = Router()
     centre.mount(router, engine)
@@ -238,14 +248,31 @@ def create_app(report, project=None, name=None, keys=None, mounts=None, assets=N
     async def not_found(request, exc):
         return JSONResponse({'error': 'not_found'}, status_code=404, headers=read.NO_STORE)
 
-    api = read.routes(ctx) + stream(ctx) + mounted
+    api = read.routes(ctx) + stream(ctx) + _routes(projects.routes(ctx)) + mounted
     app = Starlette(routes=api + [Route('/api/{rest:path}', lambda r: JSONResponse({'error': 'not_found'}, status_code=404,
                                                                                      headers=read.NO_STORE),
                                         methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])] + pages(ctx),
-                    middleware=[Middleware(guard.Guard, keys=ctx.keys)], lifespan=lifespan,
+                    middleware=[Middleware(_Seen, ctx=ctx), Middleware(guard.Guard, keys=ctx.keys)], lifespan=lifespan,
                     exception_handlers={404: not_found})
     app.state.ctx = ctx
     return app
+
+
+class _Seen:
+    """Every request is a client's: the server stays while one comes (Context.idle)."""
+
+    def __init__(self, app, ctx):
+        self.app, self.ctx = app, ctx
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] == 'http': self.ctx.seen = time.monotonic()
+        await self.app(scope, receive, send)
+
+
+def _exit_when_idle(ctx, every=30):
+    """Stop this server (as `launch.stop` does) once it is idle."""
+    while not ctx.idle(time.monotonic()): time.sleep(every)
+    os.kill(os.getpid(), signal.SIGTERM)
 
 
 def _runtime(project):
@@ -275,7 +302,10 @@ def serve(app, sock=None, ready=None):
     import uvicorn
     sock = sock or bind(app.state.ctx.keys.port)
     app.state.ctx.keys.port = sock.getsockname()[1]
-    config = uvicorn.Config(app, log_level='warning', access_log=False, lifespan='on', timeout_graceful_shutdown=2)
+    # No forwarding header is believed (uvicorn trusts X-Forwarded-For from 127.0.0.1 by default): the peer the token
+    # checks (live-token.js) is always the socket's, so a program here cannot pass for the Remote sign-in's proxy.
+    config = uvicorn.Config(app, log_level='warning', access_log=False, lifespan='on', timeout_graceful_shutdown=2,
+                            proxy_headers=False, forwarded_allow_ips='')
     server = uvicorn.Server(config)
     if ready: ready(server)
     server.run(sockets=[sock])
@@ -319,12 +349,16 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
         if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'remote_origin': remote_origin, 'page_reads_token': True})}")
         elif remote_origin:
             out(f"EAOS Studio, live on {remote_origin}. Launch token is stored in the protected project launch record; no token is printed.")
-        else: out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")
+        else: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'token': keys.token})}\n"
+                  '(only this computer can open it; press Ctrl-C to stop)')
         if not guided.scan_done(state):
             out('This project has not been checked yet: the Studio opens empty until `eaos start` checks it.')
-        if not remote_origin: launch._open(ctx.url, show)
+        if not remote_origin: launch._open(launch.url_of({'port': keys.port, 'token': keys.token}), show)
         # Uvicorn re-raises the signal it stopped on; a stop (SIGTERM) then ends here like Ctrl-C, and the record goes
         signal.signal(signal.SIGTERM, _interrupt)
+        if not remote_origin:     # a Remote address has nothing to start its server again: it stays (it is the owner's link)
+            import threading
+            threading.Thread(target=_exit_when_idle, args=(ctx,), name='eaos-studio-idle', daemon=True).start()
         serve(app, sock)
     except KeyboardInterrupt:
         pass
@@ -344,14 +378,15 @@ def _bind_kept(state, port, remote_origin, remote=False):
     return bind(port, host=host, remote_origin=remote_origin, routed=remote)
 
 
-def _same_computer_page(ctx, request, dest):
-    """A request of the Studio's own page on this computer: a local server, the browser saying the request is the
-    person's own navigation (Sec-Fetch-Site none) or the page's own (same-origin) and what it fetches (`dest`). Another
-    site's page can neither include the token script (cross-site) nor read the page (no CORS, frames refused), and the
-    Host check already refused every other name; a browser that sends no Sec-Fetch headers gets no token this way."""
-    if ctx.keys.remote_origin: return False
-    site, kind = request.headers.get('sec-fetch-site'), request.headers.get('sec-fetch-dest')
-    return kind == dest and site in (('none', 'same-origin') if dest == 'document' else ('same-origin',))
+def _this_computer(address):
+    """Whether a request's TCP peer is this computer (loopback or one of its own addresses: one it can bind to). The
+    Remote sign-in's proxy reaches the server from another machine; a program here (another project's code, a forged
+    Host and Sec-Fetch header) never gets the token from live-token.js. The peer is the socket's, never a header's."""
+    try:
+        with socket.socket(socket.AF_INET6 if ':' in address else socket.AF_INET) as probe: probe.bind((address, 0))
+    except (OSError, ValueError):
+        return False
+    return True
 
 
 def _remote_login_trusted(ctx):

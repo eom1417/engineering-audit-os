@@ -29,9 +29,10 @@ def which(binary):
 def run(command, cwd=None, timeout=DEFAULT_TIMEOUT, env=None):
     """Run an engine and return (exit code, stdout, stderr, seconds). Never raises on a bad exit."""
     started = time.monotonic()
+    cache = os.environ.get('EAOS_ENGINE_CACHE')     # the project's own (eaos/jobs.py): no cache shared between projects
     try:
         done = run_command(command, cwd=cwd, timeout=timeout,
-                           env={**toolchain.tool_env(), 'NO_COLOR': '1', **(env or {})})
+                           env={**toolchain.tool_env(), 'NO_COLOR': '1', **({'XDG_CACHE_HOME': cache} if cache else {}), **(env or {})})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return 127, '', str(problem), time.monotonic() - started
     return done.returncode, done.stdout, done.stderr, time.monotonic() - started
