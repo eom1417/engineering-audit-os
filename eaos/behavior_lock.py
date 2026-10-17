@@ -26,6 +26,7 @@ the code's interfaces, as the snapshots are of the screens.
 """
 import contextvars
 import json
+import os
 import re
 import shutil
 import threading
@@ -153,7 +154,9 @@ def _prepare(live, report, recorded=None):
     # The specs import @playwright/test, which most projects do not install; ES modules ignore NODE_PATH. The
     # lock always runs EAOS's pinned Playwright, the version its installed browsers belong to.
     from .toolchain import home
-    modules = home() / 'node/node_modules'
+    # its real path: in the run's own view the tools are shown at their name and at their real path, two mounts, and the
+    # runner (found on PATH through the same links) loads Playwright from the real one: one copy, never two
+    modules = Path(os.path.realpath(home() / 'node/node_modules'))
     if modules.is_dir() and not (lock / 'node_modules').exists(): (lock / 'node_modules').symlink_to(modules, target_is_directory=True)
     # Its own package.json: a project declaring "type": "module" must not change how the lock's files load.
     (lock / 'package.json').write_text('{"private": true, "type": "commonjs"}\n', encoding='utf-8')
@@ -399,6 +402,8 @@ def run_lock(report, target, runtime):
     from .live_run import LiveRun
     report, runtime = Path(report), Path(runtime)
     recorded = runtime / 'behavior-lock'
+    if not (report / 'behavior-lock').is_dir():         # the check found no feature to lock: nothing is recorded, said so
+        return {'results': [], 'limitations': ['the program has no feature to lock']}
     progress.begin('prepare')
     live = LiveRun(target, runtime, 'S05')
     live.freeze()

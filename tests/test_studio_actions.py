@@ -322,6 +322,8 @@ class Adapters(unittest.TestCase):
         self.assertEqual(argv, [sys.executable, '-m', 'eaos', 'mcp'], 'never another eaos on the path')
         self.assertEqual(Path(env['PYTHONPATH']), ROOT)
         self.assertEqual((env['EAOS_STUDIO_RUN'], env['EAOS_ASSISTANT']), ('r1', 'Codex'))
+        with mock.patch.dict(os.environ, {'EAOS_HEADLESS': '1'}):
+            self.assertEqual(adapters.eaos_server('r1', 'Codex')[1].get('EAOS_HEADLESS'), '1', "a headless host's run opens no Studio")
         text = prompts.build('fix', [{'id': 'TASK-1', 'title': 'T', 'paths': ['a.py']}], Path('/p/shop'), 'ar')
         for needle in ('fix_start', 'fix_edit', 'fix_finish', 'TASK-1', 'eaos-question', 'Do not call accept, undo or choose_branch', 'Arabic'):
             self.assertIn(needle, text)
@@ -495,7 +497,9 @@ class Runs(Base):
         self.assertFalse(pid and alive(pid))
         self.assertEqual(self.post(f'/api/runs/{run}/stop')[0], 409)
         os.environ['FAKE_MODE'] = 'question'
+        self.app.store.update(run, usage={'cost_usd': 0.2})        # what Actions.usage keeps of an ended run
         self.assertEqual(self.post(f'/api/runs/{run}/retry')[1]['run']['state'], 'queued')
+        self.assertIsNone(self.app.store.load(run).get('usage'), "a run tried again is counted again, every turn of it")
         again = self.app.wait(run, ('waiting_for_person', 'failed'), 30)
         self.assertEqual((again['state'], again['attempt']), ('waiting_for_person', 2))
         self.assertEqual(self.app.store.verify(run), [])
