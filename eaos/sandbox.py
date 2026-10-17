@@ -145,6 +145,16 @@ def hidden():
     return sorted(folder for folder in real if not any(other in folder.parents for other in real))
 
 
+def _own(target):
+    """The real folders a run's command may be shown again when it is given a path in them: its project's own EAOS
+    workspace (records, runtime, data) and its own report; never another project's, whatever it is given."""
+    from .places import workspace
+    folder = workspace(target)
+    try: report = json.loads((folder / 'state.json').read_text(encoding='utf-8')).get('outputs')
+    except (OSError, ValueError): report = None
+    return [Path(os.path.realpath(path)) for path in (folder, report) if path]
+
+
 def _within(path, folders):
     return any(path == folder or folder in path.parents for folder in folders)
 
@@ -165,8 +175,8 @@ def mounts(masks, keeps):
 
 def named(argv, env):
     """(path, read_only) of each absolute path a command is given, in its arguments (`--x=/path` too) and its values (a
-    file still to be written: its folder): its own things outside the copy, such as its records, its report and its
-    data. The folders of PATH are given read-only."""
+    file still to be written: its folder). The folders of PATH are given read-only. Only those inside the run's own
+    workspace and report are shown again (_own): naming another project's path shows nothing."""
     found = []
     for name, text in [('', part) for part in argv] + list(env.items()):
         for piece in re.split(f'[={os.pathsep}]', str(text)):
@@ -219,6 +229,7 @@ class Sandbox:
         self.refused = _view_refusal()
         self.offline = _network_isolation() if self.refused else True
         self.masks = [] if self.refused else hidden()
+        self.own = [] if self.refused else _own(self.target)
         self.started, self.commands = [], []
         self.limitations = ([f'not isolated: {self.refused}', 'the filesystem outside the copy is readable',
                              'processes run as the invoking user'] if self.refused else
@@ -262,7 +273,8 @@ class Sandbox:
         from .toolchain import home
         base = [(str(self.folder), False), (str(home()), True)]
         inside = [Path(os.path.realpath(path)) for path, _ in base]
-        keeps = base + [(path, ro) for path, ro in named(argv, env) if not _within(Path(os.path.realpath(path)), inside)]
+        keeps = base + [(path, ro) for path, ro in named(argv, env) if _within(Path(os.path.realpath(path)), self.own)
+                        and not _within(Path(os.path.realpath(path)), inside)]
         return [*_launcher({'offline': not network, 'cwd': str(cwd), 'mounts': mounts(self.masks, keeps)}), *argv], self.folder
 
     def run(self, argv, timeout=60, network=False, cwd=None, env=None):

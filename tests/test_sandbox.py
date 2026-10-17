@@ -23,6 +23,9 @@ def git(project, *args):
 class SandboxTests(Workspace):
     def setUp(self):
         super().setUp()
+        home = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp) / 'eaos-home')})   # this machine's projects aside
+        home.start()
+        self.addCleanup(home.stop)
         self.project = Path(self.tmp) / 'project'
         self.project.mkdir()
         (self.project / 'app.py').write_text('print("app")\n')
@@ -236,6 +239,11 @@ class TwoProjectsTests(Workspace):
         seen = json.loads(out)
         self.assertEqual((seen['read'], seen['pg']), ([], []), "A's code read B's things (or its own working folder)")
         self.assertEqual((seen['own'], seen['home']), ('print("a")\n', True), 'its own copy and HOME stay its own')
+        named = ('import os, sys\nfor path in (sys.argv[1], os.environ["B_STATE"]):\n'
+                 '    try: print(open(path).read())\n    except OSError: pass\n')
+        code, out, err = box.run([sys.executable, '-c', named, str(b['workspace'] / 'state.json')],
+                                 env={'B_STATE': str(real(b['source'])) + '/.env'})
+        self.assertEqual((code, out), (0, ''), "a path of B's named to A's command is not shown for being named")
         from eaos.local_db import LocalPostgres, binaries
         if binaries() is None: return
         database = LocalPostgres(b['runtime'])
