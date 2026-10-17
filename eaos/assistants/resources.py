@@ -1,6 +1,12 @@
-"""The resources this process can use, including container limits rather than the host's totals."""
+"""The resources this process can use, including container limits rather than the host's totals, and whether there is
+room for more work now: what decides how much of a check runs at once, so that no computer is ever choked."""
 import os
 from pathlib import Path
+
+RESERVE_MB = 768             # always left free beyond current use, for the app, an analyzer and EAOS itself
+BUSY = 40                    # % of the last ten seconds work waited for a processor: the processors are saturated
+STARTING = 15                # seconds a started piece of work may take to reach what it uses: it counts as using it
+WAIT = 2                     # seconds between two looks at the room while work waits for it
 
 
 def capacity():
@@ -36,3 +42,9 @@ def cpu_pressure():
             return float(dict(field.split('=') for field in line.split()[1:])['avg10'])
         except (OSError, ValueError, KeyError, IndexError): continue
     return None
+
+
+def room(megabytes):
+    """Whether this computer can take `megabytes` more now, keeping RESERVE_MB free, its processors not saturated."""
+    available, pressure = capacity()[2], cpu_pressure()
+    return (available is None or available // 2 ** 20 >= megabytes + RESERVE_MB) and (pressure is None or pressure < BUSY)

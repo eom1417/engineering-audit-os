@@ -79,6 +79,31 @@ class DegradationTests(unittest.TestCase):
                 self.assertEqual(tool.declined('sqlfluff', 'sqlfluff', tmp).status, 'unavailable')
 
 
+class EnginesAtOnceTests(unittest.TestCase):
+    def test_engines_run_side_by_side_only_while_the_computer_has_room_and_a_reader_after_what_it_reads(self):
+        import threading
+        import time
+        from unittest import mock
+        from eaos import engines
+        state, guard = {}, threading.Lock()
+        def adapter(name, after=()):
+            def analyze(*_args, **_kwargs):
+                with guard:
+                    state['now'] += 1; state['most'] = max(state['most'], state['now']); state['order'].append(name)
+                time.sleep(.05)
+                with guard: state['now'] -= 1
+                return Report(name, None, '0', UNAVAILABLE, reason='test')
+            return type(name, (), {'NAME': name, 'PINNED': '0', 'AFTER': after, 'analyze': staticmethod(analyze)})
+        fakes = {'one': adapter('one'), 'two': adapter('two'), 'three': adapter('three'), 'reader': adapter('reader', ('one',))}
+        for room, most in ((False, 1), (True, 3)):
+            state.update(now=0, most=0, order=[])
+            with mock.patch.dict(ADAPTERS, fakes), mock.patch.object(engines.resources, 'room', return_value=room), \
+                    mock.patch.object(engines.resources, 'WAIT', .01), tempfile.TemporaryDirectory() as workdir:
+                reports = engines._run_all(engines.ordered(fakes), Path('.'), Path(workdir), (), None)
+            self.assertEqual((state['most'], sorted(reports)), (most, sorted(fakes)), f'room: {room}')
+            self.assertLess(state['order'].index('one'), state['order'].index('reader'))
+
+
 class CorrelationTests(unittest.TestCase):
     def test_agreement_silence_and_resolution_decide_the_verdict(self):
         both = {'enola': evaluated_at(complexity=('observed', 'file')), 'reforge': evaluated_at(complexity=('observed', 'file'))}

@@ -7,7 +7,7 @@ recorded — so a reader can tell "we did not look" apart from "we looked and fo
 import contextvars
 import json
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,15 +16,13 @@ from . import (ast_grep, bandit, checkov, codegraph, codeql, complexipy, depende
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from .. import progress
+from ..assistants import resources
 
 ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov,
                                                bandit, gitleaks, codeql, dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
                                                ast_grep, lizard, complexipy, vulture, knip, react_docgen)}
-# CodeGraph takes about half the stage (147 of 308 s on EAOS itself) and reads no other engine's output: it runs on
-# a second thread beside the others, which still run one after another, so at most two engines share the memory.
-BESIDE = codegraph.NAME
-# CodeQL holds up to codeql.MEMORY megabytes for its database: it runs alone, once every other engine is done.
-ALONE = codeql.NAME
+# What an engine may take while it runs; an adapter that takes more says so (CodeQL's database: codeql.MEMORY).
+ENGINE_MB = 1024
 
 
 def health():
@@ -65,17 +63,31 @@ def _run_one(name, selected, reports, target, workdir, exclude, formats):
                   reason=reports[name].get('reason') or '', reason_code='' if status == 'observed' else f'engine_{status}')
 
 
+def _need(name):
+    return getattr(ADAPTERS[name], 'MEMORY', ENGINE_MB)
+
+
 def _run_all(selected, target, workdir, exclude, formats):
-    """Each selected engine's report, in order, each one a step of the running stage from waiting to its own status."""
-    reports = {}
+    """Each selected engine's report, in order, each one a step of the running stage from waiting to its own status. An
+    engine starts once the engines it reads have ended, beside the others only while this computer has room for it
+    (resources.room): a strong computer runs many at once, a small one one at a time, never none."""
+    reports, left, running, began = {}, list(selected), {}, {}
     args = (selected, reports, target, workdir, exclude, formats)
     for name in selected: progress.step(name, 0, len(selected), 'waiting')
-    with ThreadPoolExecutor(1) as pool:
-        beside = [pool.submit(contextvars.copy_context().run, _run_one, name, *args) for name in selected if name == BESIDE]
-        for name in selected:
-            if name not in (BESIDE, ALONE): _run_one(name, *args)
-        for future in beside: future.result()
-    if ALONE in selected: _run_one(ALONE, *args)
+    with ThreadPoolExecutor(resources.capacity()[0], thread_name_prefix='eaos-engine') as pool:
+        while left or running:
+            waiting = False
+            for name in [n for n in left if not set(getattr(ADAPTERS[n], 'AFTER', ())) & (set(left) | set(running.values())) - {n}]:
+                starting = sum(_need(n) for n in running.values() if time.monotonic() - began[n] < resources.STARTING)
+                waiting = bool(running) and not resources.room(_need(name) + starting)
+                if waiting: break
+                left.remove(name)
+                began[name] = time.monotonic()
+                running[pool.submit(contextvars.copy_context().run, _run_one, name, *args)] = name
+            done, _ = wait(running, timeout=resources.WAIT if waiting else None, return_when=FIRST_COMPLETED)
+            for future in done:
+                running.pop(future)
+                future.result()
     return {name: reports[name] for name in selected}
 
 

@@ -18,24 +18,14 @@ import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
 from .stages import BY_NAME, WAITS
-from ..assistants.resources import capacity, cpu_pressure
+from ..assistants.resources import RESERVE_MB, STARTING, WAIT, capacity, room
 from ..assistants.command import STOP, check_cancelled
 
 MODES = ('normal', 'speed', 'one')
 MOST_ASSISTANTS = 5          # past the card triage's five batches more assistants save a minute and cost a program each
 ASSISTANT_MB = 768           # headroom per assistant process and its conversation
-RESERVE_MB = 768             # leave room beyond current use for the app, analyzer and EAOS
 NEED_MB = {'memory': 1536, 'app': 1024}   # the most a stage holding it takes: an analyzer; the app and its browser
 LIGHT_MB = 256               # a stage reading and writing records
-BUSY = 40                    # % of the last ten seconds work waited for a processor: the processors are saturated
-STARTING = 15                # seconds a started stage may take to reach what it uses: it is counted as using it
-WAIT = 2                     # seconds between two looks at the room while a stage waits for it
-
-
-def room(megabytes):
-    """Whether this computer can take `megabytes` more now, keeping RESERVE_MB free, its processors not saturated."""
-    available, pressure = capacity()[2], cpu_pressure()
-    return (available is None or available // 2 ** 20 >= megabytes + RESERVE_MB) and (pressure is None or pressure < BUSY)
 
 
 def need(stage):
