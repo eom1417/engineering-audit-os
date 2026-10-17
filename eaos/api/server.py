@@ -45,7 +45,7 @@ from starlette.routing import Route
 
 from .. import guided
 from ..agent_tools import project_state
-from . import guard, launch, projects, read
+from . import guard, launch, projects, read, sign_in
 from .events import Feed
 
 ASSETS = Path(__file__).resolve().parent.parent / 'data' / 'studio'
@@ -248,7 +248,7 @@ def create_app(report, project=None, name=None, keys=None, mounts=None, assets=N
     async def not_found(request, exc):
         return JSONResponse({'error': 'not_found'}, status_code=404, headers=read.NO_STORE)
 
-    api = read.routes(ctx) + stream(ctx) + _routes(projects.routes(ctx)) + mounted
+    api = read.routes(ctx) + stream(ctx) + _routes(projects.routes(ctx)) + _routes(sign_in.routes(ctx)) + mounted
     app = Starlette(routes=api + [Route('/api/{rest:path}', lambda r: JSONResponse({'error': 'not_found'}, status_code=404,
                                                                                      headers=read.NO_STORE),
                                         methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])] + pages(ctx),
