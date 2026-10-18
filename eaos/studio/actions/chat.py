@@ -27,6 +27,8 @@ from ...usage import from_stream
 READ_TOOLS = ('status', 'branches', 'menu', 'impact', 'ask', 'assistant_check', 'overview', 'findings', 'finding', 'structure',
               'plan', 'report_file', 'fix_read', 'build_read', 'design_brief')
 CONTROLS = ('retry', 'stop', 'pause', 'resume')
+# The run controls as the person reads them on the button they pressed (en, ar).
+PRESSED = {'pause': ('Pause', 'أوقف مؤقتًا'), 'resume': ('Resume', 'كمّل'), 'stop': ('Stop', 'أوقف'), 'retry': ('Try again', 'أعد المحاولة')}
 # What direct control may run by itself: a check, the app's run and its speed, the plans of the assistant's nodes, a note.
 DIRECT = ('audit', 'tools_check', 'run_setup', 'run_try', 'safety_net', 'replan_ideal', 'run_nodes', 'note')
 CONTROL_HOURS = 1
@@ -218,3 +220,9 @@ def _allowed(actions, proposals):
 def _run_exists(actions, run):
     try: return bool(run) and bool(actions.store.load(str(run)))
     except (KeyError, OSError, ValueError): return False
+
+
+def pressed(operation):
+    """{en, ar} of the person pressing one of the run controls, its button named as they read it."""
+    en, ar = PRESSED[operation]
+    return {'en': f'You pressed {en}', 'ar': f'ضغطت «{ar}»'}

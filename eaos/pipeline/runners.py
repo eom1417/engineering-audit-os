@@ -317,7 +317,7 @@ def _lost(context, problem, code):
         if not found['ready']:
             return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'],
                              lost={'assistant': name, 'resets': found.get('resets')})
-    return SkipStage(problem, code=code, lost={'assistant': name, 'resets': None})
+    return SkipStage(problem, code=code)
 
 
 def semantic(context):
