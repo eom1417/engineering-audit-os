@@ -73,6 +73,7 @@ export function kindOf(r) {
 export function kindWord(r) {
   const k = kindOf(r);
   if (k !== 'action') return t('ac.kind.' + k);
+  if (has('ac.kind.' + r.action)) return t('ac.kind.' + r.action);
   const a = actionOf(r.action);
   return a ? L(a.label) : r.action;
 }
@@ -83,9 +84,13 @@ export function whoWord(r) {
   return assistantName(r.assistant);
 }
 /** Whole minutes a run took (or has taken so far). */
-export function took(r) { const s = seconds(r.started || r.created, r.ended); return s == null ? null : Math.max(1, Math.round(s / 60)); }
-/** The newest check run (the one /api/progress's check flow is of). */
-export const lastCheck = () => runs().find(r => r.action === 'audit') || null;
+export function took(r) {
+  const flow = flowOfRun(r);
+  const s = flow && flow.seconds != null ? flow.seconds : seconds(r.started || r.created, r.ended);
+  return s == null ? null : Math.max(1, Math.round(s / 60));
+}
+/** The newest check run that started (the one /api/progress's check flow is of). */
+export const lastCheck = () => runs().find(r => r.action === 'audit' && r.started) || null;
 /** The check flow of /api/progress, with its stages. */
 export const checkFlow = () => (live.progress && live.progress.flows && live.progress.flows.check) || null;
 /** The check flow belongs to this run when it is the newest check. */
