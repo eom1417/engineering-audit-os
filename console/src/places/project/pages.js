@@ -4,7 +4,7 @@
 // offer (the audit preview), /api/progress's setup, safety and tools flows, /api/sign-in, /api/usage, /api/session.
 import {
   t, L, num, esc, icon, code, href, has, fmtWhen, exactTime, screen, sheet, act, refresh, toast, closeSheetThen, setTimeZone, offline,
-  prefs, live, store, model, client, contract, ActionError, ac,
+  prefs, live, store, model, client, ActionError, ac,
 } from 'eaos';
 import { projBack, protectedNames } from './branches.js';
 
@@ -275,7 +275,7 @@ function settingsPage(ctx) {
       <ul class="panel rows">${kept.map(([label, v, path, q]) => `<li>${path ? `<a class="row" href="${href(path, q)}">` : '<div class="row">'}<span class="row__main"><span class="row__title small">${label}</span><span class="row__meta" style="display:block">${v}</span></span>${path ? `<span class="small link">${t('ac.set.change')}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>` : '</div>'}</li>`).join('')}</ul></section>`}
     <section class="section" aria-labelledby="vr-h"><div class="section-head"><h2 id="vr-h">${t('ac.set.version')}</h2></div>
       <div class="panel panel__pad"><dl class="facts"><dt>${t('ac.set.v.eaos')}</dt><dd>${code('EAOS ' + (made || ''))}</dd>
-        <dt>${t('ac.set.v.contract')}</dt><dd class="num">${esc(num(session && session.contract != null ? session.contract : contract.ACTIONS.length && 1))}</dd>
+        <dt>${t('ac.set.v.contract')}</dt><dd class="num">${session && session.contract != null ? esc(num(session.contract)) : '—'}</dd>
         <dt>${t('ac.set.v.same')}</dt><dd>${st && st.report ? (st.report.version === made ? ac.mark('ok', t('ac.set.v.same.v')) : ac.mark('partial', esc(t('ac.set.v.differs', { v: st.report.version })))) : '…'}</dd></dl></div></section>
     <section class="section" aria-labelledby="kb-h"><div class="section-head"><h2 id="kb-h">${t('ac.set.kb')}</h2></div>
       <div class="panel panel__pad"><dl class="facts ac-keys">${keys.map(([k2, w]) => `<dt><kbd class="ac-kbd">${esc(k2)}</kbd></dt><dd>${t(w)}</dd>`).join('')}</dl>
