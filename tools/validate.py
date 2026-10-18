@@ -9,7 +9,7 @@ PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json','detec
 PACKAGED_ROOTS=['schemas','schemas/artifacts']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
 PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json'),('studio-actions.json','docs/studio-actions.json')]
-# The built Studio (studio/, npm run build): its SOURCE.json names every file it ships.
+# The built Studio (console/, npm run build): its SOURCE.json names every file it ships.
 STUDIO_BUILT='studio/SOURCE.json'
 
 

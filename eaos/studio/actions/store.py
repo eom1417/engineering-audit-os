@@ -116,11 +116,15 @@ class Store:
         return record
 
     def trim(self):
-        """Every ended run past the newest KEEP keeps its record alone, with what it used (eaos/usage.py) and when it was
-        trimmed; its raw stream, events and error output go (57 runs had kept 64 MB, most of it raw streams)."""
+        """Every ended run past the newest KEEP (quick answers aside) keeps its record alone, with what it used
+        (eaos/usage.py) and when it was trimmed; its raw stream, events and error output go (57 runs had kept 64 MB,
+        most of it raw streams)."""
         from ...usage import of_run
-        for row in [row for row in self.all() if row.get('state') in TERMINAL][KEEP:]:
-            if row.get('trimmed'): continue
+        ended = [row for row in self.all() if row.get('state') in TERMINAL]
+        # a quick answer (a reading tool, `read`) keeps its answer in its record and never pushes a run's details out
+        kept = {row['id'] for row in [row for row in ended if not row.get('read')][:KEEP]}
+        for row in ended:
+            if row['id'] in kept or row.get('trimmed'): continue
             folder = self.path(row['id'])
             self.update(row['id'], usage=row.get('usage') or of_run(folder), trimmed=now())
             for name in ('stream.jsonl', 'stderr.log', 'events.jsonl', 'mcp.json'): (folder / name).unlink(missing_ok=True)

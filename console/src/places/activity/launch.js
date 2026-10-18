@@ -1,0 +1,374 @@
+// S-12 the check preview (CHK-01..06, SGN-01, SGN-02, SGN-08, DEC-05) on POST /api/actions/audit/preview: what it
+// looks at, with or without AI and which assistant, the sign-in way, the speed mode, the published address, the time
+// from this project's last check; Start sends exactly those inputs (POST /api/runs). S-13 what EAOS can do now
+// (PRJ-08: composed from the data), then every action of the contract (RUN-13), then the expert steps (FIX-16); each
+// action opens its own preview with its form (?sheet=action:<id>), and a reading tool answers in place.
+import {
+  t, tn, L, num, esc, rich, icon, code, href, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline, chk,
+  S, live, store, model, client, contract, normalize, ActionError, has, ac,
+} from 'eaos';
+
+const enc = encodeURIComponent;
+S.ac = S.ac || { prefill: {} };
+const said = e => (e instanceof ActionError ? e.message : String(e));
+
+/* ---------- S-12 the check preview ---------- */
+const readyOnes = () => (live.assistants || []).filter(a => a.installed && a.logged_in);
+function checkInputs(c) {
+  const rules = c.asst === 'rules';
+  const noneReady = !readyOnes().length;
+  return Object.assign({ fresh: true, mode: c.speed ? 'speed' : 'normal' }, c.paths.length ? { paths: c.paths } : {},
+    rules ? (noneReady && c.kept ? { without_ai: true } : { use_assistant: false }) : { use_assistant: true, assistant: c.asst },
+    c.signinAsked ? { sign_in: c.signin } : {}, c.signin === 'hand' && c.published ? { published: c.published } : {},
+    c.withoutTools ? { without_tools: true } : {});
+}
+function askCheck(c) {
+  if (!client || c.asking) return;
+  const mine = c.ticket = (c.ticket || 0) + 1;
+  c.asking = true;
+  client.preview('audit', { inputs: checkInputs(c) }).then(p => {
+    if (mine !== c.ticket) return;
+    c.preview = p; c.asking = false;
+    if (!c.offer) {
+      c.offer = p.check || { paths: [], mode: 'normal', sign_in: null, sign_in_seen: [] };
+      c.speed = c.offer.mode === 'speed';
+      c.signin = c.offer.sign_in === 'test_user' ? 'test_user' : c.offer.sign_in || 'hand';
+    }
+    rerenderSheet();
+  }, e => { if (mine !== c.ticket) return; c.asking = false; c.problem = said(e); rerenderSheet(); });
+}
+function againCheck(change) { const c = local(); Object.assign(c, change, { problem: null }); askCheck(c); rerenderSheet(); }
+const pathName = (c, id) => { const p = c.offer && c.offer.paths.find(x => x.id === id); return p ? L(p.name) : id; };
+function publishedProblem(v) {
+  if (!v) return null;
+  return !/^https?:\/\/[^\s/]+\.[^\s]+/i.test(v) || /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(v) ? t('ac.chk.pub.bad') : null;
+}
+function toolsLine() {
+  const f = live.progress && live.progress.flows && live.progress.flows.tools;
+  const list = (f && f.stages) || [];
+  const ready = list.filter(s => s.state === 'ok').length, failed = list.filter(s => s.state === 'failed');
+  return { ready, total: list.length, failed };
+}
+
+sheet('check', {
+  kind: 'drawer',
+  render(arg, q, c) {
+    if (offline()) return { title: esc(t('ac.chk.title')), body: `<p>${t('ac.chk.does')}</p>`, foot: `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.chk.start')}</button>` };
+    if (!c.init) {
+      Object.assign(c, { init: true, paths: q.path && q.path !== 'complete' ? [q.path] : [], published: '', kept: true });
+      const ready = readyOnes();
+      c.asst = ready.length ? ready[0].id : 'rules';
+    }
+    if (!c.preview && !c.asking && !c.problem) askCheck(c);
+    const offer = c.offer;
+    const p = c.preview;
+    const lr = ac.liveRun();
+    const first = !ac.lastCheck();
+    const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
+    const pathCard = (id, on, name, looks) => `<label class="opt ac-path"><input type="checkbox" data-change="ac-path" value="${esc(id)}" data-fk="path-${esc(id)}" ${on ? 'checked' : ''}><span class="ac-path__box" aria-hidden="true">${icon('tick')}</span>
+      <span class="opt__text"><b class="ac-path__name">${esc(name)}</b><span class="opt__note">${rich(looks)}</span></span></label>`;
+    const paths = offer ? offer.paths.map(x => pathCard(x.id, x.id === 'complete' ? !c.paths.length : c.paths.includes(x.id), L(x.name), L(x.looks_at))).join('') : `<p class="small muted" aria-busy="true">${t('pv.updating')}</p>`;
+    const ready = readyOnes();
+    const asst = (live.assistants || []).map(a => {
+      const ok = a.installed && a.logged_in;
+      return `<label class="opt ${ok ? '' : 'opt--off'}"><input type="radio" name="ac-asst" value="${esc(a.id)}" data-change="ac-asst" data-fk="asst-${esc(a.id)}" ${c.asst === a.id ? 'checked' : ''} ${ok ? '' : 'disabled'}><span class="opt__dot" aria-hidden="true"></span>
+        <span class="opt__text">${esc(a.name)}${ok ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : ''}<span class="opt__note">${esc(ok ? t('ac.chk.asst.ready', { version: a.version || '' }) : !a.installed ? t('pv.notinstalled') : t('ac.chk.asst.notsigned', { cmd: a.id + ' login' }))}</span></span></label>`;
+    }).join('') + `<label class="opt"><input type="radio" name="ac-asst" value="rules" data-change="ac-asst" data-fk="asst-rules" ${c.asst === 'rules' ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
+        <span class="opt__text">${t('ac.chk.rules')}<span class="opt__note">${t('ac.chk.rules.note')}</span></span></label>`;
+    const dec5 = live.assistants && live.assistants.length && !ready.length ? `<div class="ac-refuse" role="note"><p class="small"><b>${esc(t('ac.chk.dec5.q', { name: live.assistants.map(a => a.name).join(t('list.sep')) }))}</b> ${t('ac.chk.dec5.why', { cmd: code('claude login') })}</p>
+      <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
+      <p class="small ink-2">${t('ac.chk.dec5.noai.v')}</p></div>` : '';
+    const needsSignin = !c.paths.length || c.paths.includes('look');
+    c.signinAsked = needsSignin;
+    const seen = offer && offer.sign_in_seen && offer.sign_in_seen[0] ? offer.sign_in_seen[0].split(':')[0] : null;
+    const signin = needsSignin ? `${seen ? `<p class="small ink-2" style="margin-bottom:8px">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
+      <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => `<label class="opt"><input type="radio" name="ac-si" value="${id}" data-change="ac-si" data-fk="si-${id}" ${c.signin === id ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
+        <span class="opt__text">${t(k)}<span class="opt__note">${t(k + '.note')}</span></span></label>`).join('')}</div>
+      ${c.signin === 'hand' && live.signIn && live.signIn.kept ? `<p class="small ink-2 ac-iline">${icon('check', 'icon--sm ac-c-ok')}<span>${t('ac.chk.si.kept')}</span></p>` : ''}`
+      : `<p class="small muted">${t('ac.chk.si.notneeded')}</p>`;
+    const tools = toolsLine();
+    const pubErr = publishedProblem(c.published);
+    const label = c.paths.length ? t('ac.chk.start.paths', { paths: c.paths.map(id => pathName(c, id)).join(t('ac.and')) }) : t('ac.chk.start');
+    const noai = c.asst === 'rules' && !ready.length;
+    return {
+      title: esc(t('ac.chk.title')),
+      sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
+      body: `<p>${t('ac.chk.does')}</p>
+        <dl class="facts">
+          <dt>${t('pv.estimate')}</dt><dd>${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span></dd>
+          <dt>${t('pv.risk')}</dt><dd><span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span></dd>
+          <dt>${t('pv.fail')}</dt><dd class="small">${p ? esc(L(p.on_failure)) : t('ac.chk.fail')}</dd>
+        </dl>
+        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.paths')}</legend><div class="opts">${paths}</div>
+          <p class="small muted" style="margin-top:8px">${t('ac.chk.paths.note')}</p></fieldset>
+        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.asst')}</legend>${dec5}<div class="opts">${asst}</div>
+          <p class="small muted" style="margin-top:8px">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
+        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signin}</fieldset>
+        <a class="row panel" href="${href('/project/tools')}" data-act="go" data-href="${href('/project/tools')}" style="min-height:52px">${ac.glyph(tools.failed.length ? 'failed' : 'ok')}<span class="row__main small">${esc(tools.total ? t(tools.failed.length ? 'ac.chk.tools.failed' : 'ac.chk.tools', { n: num(tools.ready), total: num(tools.total), failed: tools.failed.map(s => s.name).join(t('list.sep')) }) : t('ac.chk.tools.none'))}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>
+        ${tools.failed.length ? `<div class="toggle-row"><span>${t('ac.chk.without')}</span><span class="switch"><input type="checkbox" data-change="ac-without" data-fk="without" ${c.withoutTools ? 'checked' : ''} aria-label="${esc(t('ac.chk.without'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}
+        <details class="panel fold" ${c.speed || c.published ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.chk.options')}</span><span class="row__meta" style="display:block">${t('ac.chk.options.sum')}</span></span>${icon('chev', 'chev')}</summary>
+          <div class="fold__body ac-stack">
+            <div class="toggle-row"><span><span style="display:block">${t('ac.chk.speed')}</span><span class="small muted">${t('ac.chk.speed.note')}</span></span>
+              <span class="switch"><input type="checkbox" data-change="ac-speed" data-fk="speed" ${c.speed ? 'checked' : ''} aria-label="${esc(t('ac.chk.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
+            ${c.speed ? `<p class="ac-note ac-note--caution small">${icon('warn', 'icon--sm ac-c-caution')}<span>${t('ac.chk.speed.warn')}</span></p>` : ''}
+            <label class="ac-label" for="ac-pub">${t('ac.chk.pub')}</label>
+            <div class="field">${icon('globe')}<input id="ac-pub" type="url" inputmode="url" dir="ltr" data-fk="ac-pub" data-input="ac-pub" value="${esc(c.published)}" placeholder="app.example.com" autocomplete="off" aria-describedby="ac-pub-note"></div>
+            <p class="small ${pubErr ? 'ac-c-danger' : 'muted'}" id="ac-pub-note">${pubErr ? esc(pubErr) : t('ac.chk.pub.note')}</p>
+          </div></details>
+        <p class="small muted">${t('ac.chk.kept')}</p>`,
+      foot: `${c.problem || c.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(c.problem || c.refused)}</p>` : ''}
+        ${lr ? `<p class="small ink-2 ac-iline">${icon('clock', 'icon--sm')}<span>${esc(t('ac.chk.busy', { label: ac.runLabel(lr) }))}</span></p>` : ''}
+        <button class="btn btn--primary btn--block" data-act="ac-start-check" data-fk="chk-start" ${pubErr || !p || c.busy ? 'disabled' : ''}>${esc(c.busy ? t('pv.starting') : lr ? t('ac.chk.queue') : noai ? t('ac.chk.start.noai') : label)}</button>
+        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(checkCmd(c))}">${icon('copy')}${t('pv.copy')}</button>`,
+    };
+  },
+});
+function checkCmd(c) {
+  const i = checkInputs(c);
+  return `eaos check${i.paths ? ' --paths ' + i.paths.join(',') : ''}${i.assistant ? ' --assistant ' + i.assistant : ' --without-ai'}${i.sign_in ? ' --sign-in ' + i.sign_in : ''}${c.speed ? ' --mode speed' : ''}${i.published ? ' --published ' + i.published : ''}`;
+}
+act('ac-path', el => {
+  const c = local();
+  let paths = c.paths;
+  if (el.value === 'complete') paths = [];
+  else if (el.checked) paths = [...new Set(paths.concat([el.value]))];
+  else paths = paths.filter(x => x !== el.value);
+  if (c.offer && paths.length === c.offer.paths.filter(x => x.id !== 'complete').length) paths = [];
+  againCheck({ paths });
+});
+act('ac-asst', el => againCheck({ asst: el.value }));
+act('ac-si', el => againCheck({ signin: el.value }));
+act('ac-speed', el => againCheck({ speed: el.checked }));
+act('ac-without', el => againCheck({ withoutTools: el.checked }));
+let pubTimer = null;
+act('ac-pub', el => { const c = local(); c.published = el.value.trim(); clearTimeout(pubTimer); pubTimer = setTimeout(() => rerenderSheet(), 400); });
+/** "Ask again" (CHK-06): the assistants asked now, not the answer of the last minutes. */
+act('ac-ask-again', async el => {
+  if (el.disabled || !client) return;
+  const c = local(); c.asking2 = true; rerenderSheet();
+  try { await client.start({ action: 'assistant_check', inputs: { fresh: true } }); } catch (e) { /* the readiness is read below either way */ }
+  const list = await store.refreshAssistants();
+  c.asking2 = false;
+  const ready = (list || []).filter(a => a.installed && a.logged_in);
+  if (ready.length && c.asst === 'rules') c.asst = ready[0].id;
+  toast(ready.length ? t('ac.asst.again.ready', { names: ready.map(a => a.name).join(t('list.sep')) }) : t('ac.asst.again.none'));
+  rerenderSheet();
+});
+act('ac-start-check', async el => {
+  const c = local();
+  if (el.disabled || !client || c.busy) return;
+  c.busy = true; rerenderSheet();
+  try {
+    const run = await client.start({ action: 'audit', inputs: checkInputs(c) });
+    closeSheetThen(() => {
+      store.refresh(); store.refreshProgress(); refresh();
+      toast(run.state === 'queued' && ac.liveRun() ? t('ac.chk.queued', { n: num(run.position || 1) }) : t('toast.started', { title: t('ac.chk.title') }),
+        { link: { href: href('/activity/run/' + enc(run.id)), text: t('toast.follow') } });
+    });
+  } catch (e) { Object.assign(c, { busy: false, refused: said(e) }); rerenderSheet(); }
+});
+
+/* ---------- S-13 the launcher ---------- */
+/** Where each action of the contract sits in the launcher, its icon, and the one place it lives when it has a page. */
+const META = {
+  audit: { group: 'check', icon: 'retry', opens: 'check' }, tools_check: { group: 'check', icon: 'tool' }, assistant_check: { group: 'check', icon: 'ai' },
+  choose_branch: { group: 'check', icon: 'branch', opens: 'choose-branch' }, accept: { group: 'check', icon: 'seal', link: '/waiting' }, undo: { group: 'check', icon: 'seal', link: '/waiting' },
+  run_setup: { group: 'app', icon: 'app' }, run_try: { group: 'app', icon: 'ai' }, safety_net: { group: 'app', icon: 'screen' },
+  blueprint_start: { group: 'build', icon: 'folder' }, extend_start: { group: 'build', icon: 'plus' }, build_start: { group: 'build', icon: 'layers' },
+  replan_ideal: { group: 'plan', icon: 'ai' }, run_nodes: { group: 'plan', icon: 'ai' },
+  status: { group: 'answers', icon: 'status' }, overview: { group: 'answers', icon: 'status' }, menu: { group: 'answers', icon: 'activity' },
+  findings: { group: 'answers', icon: 'problems', link: '/problems' }, finding: { group: 'answers', icon: 'problems' }, impact: { group: 'answers', icon: 'map' },
+  ask: { group: 'answers', icon: 'book' }, branches: { group: 'answers', icon: 'branch', link: '/project/branches' }, structure: { group: 'answers', icon: 'layers', link: '/understand/architecture' },
+  design_brief: { group: 'answers', icon: 'book' }, design_choose: { group: 'expert' }, plan: { group: 'answers', icon: 'layers', link: '/problems/plan' },
+  report_file: { group: 'answers', icon: 'file', link: '/understand/report-files' }, open_report: { group: 'answers', icon: 'external', link: '/understand/report-files' },
+  note: { group: 'answers', icon: 'note' },
+};
+const GROUPS = ['check', 'app', 'build', 'plan', 'answers'];
+const metaOf = a => META[a.id] || { group: 'expert' };
+const HIDDEN = ['open_studio'];
+/** Every action of the contract the person may start here, with the pointer to the verbs (Problems). */
+function actions() { return contract.ACTIONS.filter(a => !HIDDEN.includes(a.id)); }
+const reading = a => metaOf(a).group === 'answers' || a.id === 'assistant_check';
+
+function actionRow(a) {
+  const m = metaOf(a);
+  const attrs = m.opens ? `data-act="go" data-href="${href('/activity', { sheet: m.opens })}"` : m.link && !contract.personInputs(a).some(([, v]) => v) ? `data-act="go" data-href="${href(m.link)}"` : `data-act="sheet" data-sheet="action:${esc(a.id)}"`;
+  const sub = m.link && !m.opens ? t('ac.lc.goes') : reading(a) ? t('ac.lc.answers_now') : t('ac.lc.preview_first');
+  return `<button class="row" ${m.link && m.link.startsWith('/waiting') ? `data-act="go" data-href="${href(m.link)}"` : attrs} data-fk="a-${esc(a.id)}">${icon(m.icon || 'dash', 'muted')}<span class="row__main"><span class="row__title">${esc(L(a.label))}</span><span class="row__meta" style="display:block">${esc(sub)}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</button>`;
+}
+function launcherList(qv) {
+  const all = actions().filter(a => !qv || normalize.matches([a.id, a.label.ar, a.label.en, a.description.ar, a.description.en].join(' '), qv));
+  const verbs = !qv || normalize.matches([t('ac.lc.x.verbs'), 'fix verify explain plan'].join(' '), qv);
+  if (qv && !all.length && !verbs) return `<p class="small muted">${t('ac.lc.none')}</p>`;
+  const verbRow = `<button class="row" data-act="go" data-href="${href('/problems')}" data-fk="a-verbs">${icon('problems', 'muted')}<span class="row__main"><span class="row__title">${t('ac.lc.x.verbs')}</span><span class="row__meta" style="display:block">${t('ac.lc.x.verbs.sub')}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</button>`;
+  const groups = GROUPS.map(g => {
+    const items = all.filter(a => metaOf(a).group === g);
+    const extra = g === 'check' && verbs ? verbRow : '';
+    return items.length || extra ? `<div><div class="block-title">${t('ac.lc.g.' + g)}</div><div class="panel rows">${extra}${items.map(actionRow).join('')}</div></div>` : '';
+  }).join('');
+  const ex = all.filter(a => metaOf(a).group === 'expert');
+  const expert = ex.length ? `<details class="panel fold" ${qv ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.lc.g.expert')}</span><span class="row__meta" style="display:block">${esc(t('ac.lc.expert.sum', { n: num(ex.length) }))}</span></span>${icon('chev', 'chev')}</summary>
+    <div class="rows" style="border-top:1px solid var(--line)">${ex.map(actionRow).join('')}</div></details>` : '';
+  return groups + expert;
+}
+/** PRJ-08: what EAOS can do now, from the data: the fixes it makes by itself, what waits for the owner, the branch
+ *  it delivered, the high problems, a new check. */
+function recommended() {
+  const o = a => (offline() ? 'data-act="sheet" data-sheet="open-live"' : a);
+  const opt = (ic, title, sub, attrs, primary) => `<button class="row" ${attrs}>${icon(ic, primary ? 'ac-c-accent' : 'muted')}<span class="row__main"><span class="row__title">${esc(title)}</span><span class="row__meta" style="display:block">${esc(sub)}</span></span>${icon('chev', 'icon--dir muted')}</button>`;
+  const tot = model.totals(), wc = model.waitingCount(), branch = store.awaiting()[0];
+  const high = (tot.by_severity.critical || 0) + (tot.by_severity.high || 0);
+  const rows = [];
+  if (branch) rows.push(opt('branch', t('ac.lc.r.branch', { branch: branch.result.branch }), t('ac.lc.r.branch.sub'), `data-act="go" data-href="${href('/waiting/' + enc(branch.id))}"`, true));
+  if (tot.fixable) rows.push(opt('tool', t('ac.lc.r.fix', { problems: tn('pl.problem', tot.fixable) }), t('ac.lc.r.fix.sub'), o('data-act="sheet" data-sheet="verb:fix:fixable"'), !branch));
+  if (wc) rows.push(opt('waiting', tn('pl.thing_waits', wc), t('ac.lc.r.wait.sub'), `data-act="go" data-href="${href('/waiting')}"`));
+  if (high) rows.push(opt('problems', t('ac.lc.r.high', { problems: tn('pl.problem', high) }), t('ac.lc.r.high.sub'), `data-act="go" data-href="${href('/problems', { sev: 'high' })}"`));
+  rows.push(opt('retry', t('ac.lc.r.check'), t('ac.lc.r.check.sub'), o(`data-act="go" data-href="${href('/activity', { sheet: 'check' })}"`), !rows.length));
+  return rows.join('');
+}
+sheet('launcher', {
+  kind: 'drawer', needs: ['cards'],
+  render() {
+    return {
+      title: esc(t('st.opt.title')),
+      sub: esc(t('st.opt.sub')),
+      body: `<div><div class="block-title">${t('ac.lc.reco')}</div><div class="panel rows">${recommended()}</div></div>
+        <div class="ac-lc-search"><div class="block-title" id="lc-h">${t('ac.lc.all')}</div>
+          <label class="field">${icon('search')}<span class="sr-only">${t('ac.lc.search')}</span><input type="search" id="lc-q" data-fk="lc-q" placeholder="${esc(t('ac.lc.search'))}" autocomplete="off" aria-describedby="lc-h"></label></div>
+        <div id="lc-list" class="ac-stack">${launcherList('')}</div>`,
+    };
+  },
+  after(el) {
+    const input = el.querySelector('#lc-q');
+    if (input) input.addEventListener('input', () => { el.querySelector('#lc-list').innerHTML = launcherList(input.value); });
+  },
+});
+
+/* ---------- one action's preview with its form (RUN-13, FIX-14, FIX-16) ---------- */
+const LONG = ['text', 'content', 'summary', 'reason', 'person_said'];
+const typeOf = schema => (Array.isArray(schema.type) ? schema.type.find(x => x !== 'null') : schema.type);
+const fieldLabel = (a, name) => (has(`ac.in.${a.id}.${name}`) ? t(`ac.in.${a.id}.${name}`) : has('ac.in.' + name) ? t('ac.in.' + name) : name.replace(/_/g, ' '));
+function fieldHTML(a, name, schema, own) {
+  const v = own.values[name];
+  const id = `f-${a.id}-${name}`;
+  const req = (a.inputs.required || []).includes(name);
+  const lab = `<label class="ac-label" for="${id}">${esc(fieldLabel(a, name))}${req ? ` <span class="ac-req-mark">${t('ac.ax.required')}</span>` : ''}</label>`;
+  const common = `id="${id}" data-fk="${id}" data-input="ac-field" data-f="${esc(name)}" ${req ? 'required aria-required="true"' : ''}`;
+  const type = typeOf(schema);
+  const enumOf = (schema.enum || []).filter(x => x != null);
+  const items = schema.items || {};
+  if (type === 'boolean') return `<div class="toggle-row"><span>${esc(fieldLabel(a, name))}</span><span class="switch"><input type="checkbox" id="${id}" data-fk="${id}" data-change="ac-field" data-f="${esc(name)}" ${v ? 'checked' : ''} aria-label="${esc(fieldLabel(a, name))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`;
+  if (enumOf.length) return `<fieldset class="ac-fs"><legend class="ac-label">${esc(fieldLabel(a, name))}</legend><div class="opts">${enumOf.map(x => `<label class="opt"><input type="radio" name="${id}" value="${esc(x)}" data-change="ac-field" data-f="${esc(name)}" data-fk="${id}-${esc(x)}" ${v === x ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span><span class="opt__text">${esc(has('ac.val.' + x) ? t('ac.val.' + x) : x)}</span></label>`).join('')}</div></fieldset>`;
+  if (type === 'array' && items.enum) return `<fieldset class="ac-fs"><legend class="ac-label">${esc(fieldLabel(a, name))}</legend><div class="panel rows">${items.enum.map(x => `<label class="row" style="min-height:48px;gap:12px">${chk(`data-change="ac-field" data-f="${esc(name)}" value="${esc(x)}" data-fk="${id}-${esc(x)}"`, (v || []).includes(x), has('ac.val.' + x) ? t('ac.val.' + x) : x)}<span class="row__main" style="margin-inline-start:8px">${esc(has('ac.val.' + x) ? t('ac.val.' + x) : x)}</span></label>`).join('')}</div></fieldset>`;
+  if (type === 'integer') return `${lab}<div class="field"><input type="number" inputmode="numeric" ${common} value="${esc(v == null ? '' : v)}" min="${schema.minimum != null ? schema.minimum : ''}" max="${schema.maximum != null ? schema.maximum : ''}"></div>`;
+  if (type === 'object' || (type === 'array' && typeOf(items) !== 'string')) return `${lab}<textarea class="input mono" dir="ltr" ${common} placeholder="${type === 'object' ? '{ }' : '[ ]'}">${esc(v || '')}</textarea><p class="small muted">${t('ac.ax.json')}</p>`;
+  if (type === 'array') return `${lab}<textarea class="input mono" dir="ltr" ${common}>${esc(v || '')}</textarea><p class="small muted">${t('ac.ax.list')}</p>`;
+  if (LONG.includes(name)) return `${lab}<textarea class="input" ${common}>${esc(v || '')}</textarea>`;
+  return `${lab}<div class="field"><input type="text" dir="auto" ${common} value="${esc(v || '')}" autocomplete="off"></div>`;
+}
+/** The inputs as the contract wants them (numbers, lists, JSON), or the reason one cannot be read. */
+function inputsOf(a, own) {
+  const out = {};
+  for (const [name, schema] of contract.personInputs(a)) {
+    const v = own.values[name], type = typeOf(schema);
+    if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue;
+    if (type === 'integer') out[name] = Number(v);
+    else if (type === 'object' || (type === 'array' && typeOf(schema.items || {}) !== 'string' && !(schema.items || {}).enum)) {
+      try { out[name] = JSON.parse(v); } catch (e) { return { problem: t('ac.ax.json.bad', { name: fieldLabel(a, name) }) }; }
+    } else if (type === 'array' && !Array.isArray(v)) out[name] = String(v).split('\n').map(x => x.trim()).filter(Boolean);
+    else out[name] = v;
+  }
+  return { inputs: out };
+}
+const missing = (a, own) => (a.inputs.required || []).filter(n => n !== 'project' && (own.values[n] == null || String(own.values[n]).trim() === '')).length > 0;
+function askAction(a, own) {
+  if (!client) return;
+  const got = inputsOf(a, own);
+  if (got.problem) { own.problem = got.problem; own.preview = null; rerenderSheet(); return; }
+  const mine = own.ticket = (own.ticket || 0) + 1;
+  own.asking = true; own.problem = null;
+  client.preview(a.id, { inputs: got.inputs }).then(p => { if (mine !== own.ticket) return; own.preview = p; own.asking = false; rerenderSheet(); },
+    e => { if (mine !== own.ticket) return; own.asking = false; own.preview = null; own.problem = said(e); rerenderSheet(); });
+}
+function flagLine(a) {
+  const out = [];
+  if (reading(a)) out.push(`<span class="tag tag--free">${icon('check')}${t('ac.ax.free')}</span>`);
+  if (a.returns_job) out.push(`<span class="tag tag--state">${t('ac.ax.job')}</span>`);
+  if (a.needs_assistant) out.push(`<span class="tag tag--ai">${icon('ai')}${t('ac.ax.asst')}</span>`);
+  if (a.changes_code) out.push(`<span class="tag tag--state">${t('ac.ax.code')}</span>`);
+  if (a.needs_consent) out.push(`<span class="tag tag--owner">${icon('seal')}${t('ac.ax.consent')}</span>`);
+  return out.length ? `<div class="pdetail__tags">${out.join('')}</div>` : '';
+}
+
+sheet('action', {
+  kind: 'drawer',
+  render(id, query, own) {
+    const a = contract.actionOf(id);
+    if (!a) return { title: esc(t('ac.ax.notfound', { id })), body: '' };
+    const m = metaOf(a);
+    const title = esc(L(a.label));
+    if (!own.values) { own.values = Object.assign({}, S.ac.prefill[id] || {}); delete S.ac.prefill[id]; }
+    if (offline()) return { title, body: `<p>${esc(L(a.description))}</p>${flagLine(a)}`, foot: `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button>` };
+    if (!own.preview && !own.asking && !own.problem && !missing(a, own) && !own.answer) askAction(a, own);
+    const p = own.preview;
+    const fields = contract.personInputs(a).map(([name, schema]) => `<div class="ac-fieldwrap">${fieldHTML(a, name, schema, own)}</div>`).join('');
+    const cmd = `eaos act ${a.id}${Object.entries(inputsOf(a, own).inputs || {}).map(([k, v]) => ` --${k} ${Array.isArray(v) ? v.join(',') : typeof v === 'object' ? "'…'" : String(v).replace(/\s+/g, ' ').slice(0, 40)}`).join('')}`;
+    const busy = !!ac.liveRun() && a.returns_job;
+    const expert = m.group === 'expert' ? `<p class="ac-note small">${icon('info', 'icon--sm')}<span>${t('ac.ax.expert')}</span></p>` : '';
+    const consent = a.needs_consent ? `<div class="owner-band">${icon('seal')}<span><b>${t('ac.ax.consent.title')}</b>${t('ac.ax.consent.how')}</span></div>` : '';
+    const estimate = p && p.estimate && p.estimate.minutes_high > 1 ? `<dt>${t('pv.estimate')}</dt><dd>${esc(t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>` : '';
+    const facts = p && !reading(a) ? `<dl class="facts">${estimate}
+      <dt>${t('pv.risk')}</dt><dd><span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span></dd>
+      <dt>${t('pv.fail')}</dt><dd class="small">${esc(L(p.on_failure))}</dd>
+      ${a.needs_assistant ? `<dt>${t('pv.who')}</dt><dd>${p.assistant ? esc(p.assistant.name) : esc(t('pv.handoff'))}</dd>` : ''}</dl>` : '';
+    const link = m.link ? `<p class="small"><a class="link" href="${href(m.link)}" data-act="go" data-href="${href(m.link)}">${t('ac.ax.go')}</a></p>` : '';
+    const answer = own.answer !== undefined ? `<div class="ac-answer" role="status"><div class="block-title">${t('ac.ax.answer')}</div>${ac.answerHTML(own.answer) || `<p class="small muted">${t('ac.ax.answer.none')}</p>`}</div>` : '';
+    const blocked = missing(a, own) || !p || own.busy || (a.needs_assistant && !p.assistant && !(p.handoff && p.handoff.available));
+    const startLabel = reading(a) ? t('ac.ax.answer.do') : busy ? t('ac.ax.queue', { label: L(a.label) }) : t('pv.start', { title: L(a.label) });
+    return {
+      title,
+      sub: `<span class="free-band">${icon('check', 'icon--sm')}${t(reading(a) ? 'ac.ax.free.band' : 'free')}</span>`,
+      body: `<p>${esc(L(a.description))}</p>${flagLine(a)}${expert}${consent}${link}
+        ${fields ? `<div class="ac-stack">${fields}</div>` : ''}
+        <p class="small muted">${t('ac.ax.project', { name: code(model.project().name) })}</p>
+        ${facts}${p && a.needs_assistant && p.assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}${answer}
+        <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary><div class="code" style="padding:12px 16px;margin-top:8px;white-space:pre-wrap">${esc(cmd)}</div></details>`,
+      foot: `${own.problem || own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem || own.refused)}</p>` : ''}
+        <button class="btn btn--primary btn--block" data-act="ac-action-start" data-fk="ax-start" ${blocked ? 'disabled' : ''} aria-describedby="ax-why">${esc(own.busy ? t('pv.starting') : startLabel)}</button>
+        <p class="sheet__fine" id="ax-why">${missing(a, own) ? t('ac.ax.fill') : !p && own.asking ? t('pv.updating') : a.returns_job ? t('ac.ax.queue.note') : ''}</p>
+        ${p && p.handoff && p.handoff.request ? `<button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(L(p.handoff.request))}">${icon('copy')}${t('pv.copy')}</button>` : ''}`,
+    };
+  },
+});
+let fieldTimer = null;
+act('ac-field', el => {
+  const own = local(), name = el.dataset.f;
+  const [, id] = (parseHash().query.sheet || '').split(':');
+  const a = contract.actionOf(id);
+  if (!a) return;
+  if (el.type === 'checkbox' && el.value && el.value !== 'on') {
+    const cur = own.values[name] || [];
+    own.values[name] = el.checked ? [...new Set(cur.concat([el.value]))] : cur.filter(x => x !== el.value);
+  } else own.values[name] = el.type === 'checkbox' ? el.checked : el.value;
+  own.answer = undefined; own.refused = null;
+  clearTimeout(fieldTimer);
+  const typing = el.tagName === 'TEXTAREA' || el.type === 'text' || el.type === 'number';
+  fieldTimer = setTimeout(() => { own.preview = null; own.problem = null; if (!missing(a, own)) askAction(a, own); else rerenderSheet(); }, typing ? 600 : 0);
+});
+act('ac-action-start', async el => {
+  const own = local(), [, id] = (parseHash().query.sheet || '').split(':');
+  const a = contract.actionOf(id), p = own.preview;
+  if (el.disabled || !a || !p || own.busy) return;
+  own.busy = true; rerenderSheet();
+  try {
+    const run = await client.start({ action: a.id, inputs: inputsOf(a, own).inputs, confirm: p.confirm ? p.confirm.token : undefined });
+    if (run.read) { Object.assign(own, { busy: false, answer: run.result ? run.result.answer : null, preview: null }); store.refresh(); rerenderSheet(); return; }
+    closeSheetThen(() => {
+      store.refresh(); refresh();
+      toast(t(run.state === 'queued' && ac.liveRun() ? 'ac.ax.queued' : 'toast.started', { title: L(a.label), n: num(run.position || 1) }), { link: { href: href('/activity/run/' + enc(run.id)), text: t('toast.follow') } });
+    });
+  } catch (e) {
+    if (e instanceof ActionError && e.needs === 'preview') { Object.assign(own, { busy: false, preview: null }); askAction(a, own); return; }
+    Object.assign(own, { busy: false, refused: said(e) }); rerenderSheet();
+  }
+});

@@ -70,12 +70,6 @@ def _fresh_waves(record, state):
             else [w for w in waves if w.get('branch') not in before])
 
 
-def _tests(kept, failed):
-    """A batch's checks: passed when a change was kept, with the changes left out and why."""
-    return {'passed': bool(kept), 'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
-            'left_out': {str(k): str(v)[:300] for k, v in (failed.items() if isinstance(failed, dict) else [])}}
-
-
 def _diff_stat(project, branch):
     """{files, insertions, deletions} the branch changes since it left HEAD, from git's short stat."""
     shortstat = subprocess.run(['git', '-C', str(project), 'diff', '--shortstat', f"HEAD...{branch}"],
@@ -119,7 +113,8 @@ class Manager:
             # the event first: a stream that ends when it sees a final state has then already read its last event
             if before != to:
                 said = contract()['lifecycle']['states'][to]
-                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why}' if why else '')},
+                why_ar = prompts.WHY_AR.get(why, '') if why else ''   # an English reason is never glued to an Arabic sentence
+                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why_ar}' if why_ar else '')},
                                   {'from': before, 'to': to, 'why': why})
             self.store.save(record)
         return record
@@ -248,8 +243,19 @@ class Manager:
         try: return jobs.read(job, self.project)['status'] == 'running'
         except Exception: return False
 
-    def _direct(self, run, follow=True):
+    def _baseline(self, run):
+        """What waited before the run started, so its outcome names only a batch it made (a check run while a batch
+        waits does not hand that batch over again)."""
+        from ... import guided
         record = self.store.load(run)
+        if not record.get('branches_before'): record = self.store.update(run, branches_before=sorted(self._waiting_branches()))
+        if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
+            state = guided.load(self.project) or {}
+            record = self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])})
+        return record
+
+    def _direct(self, run, follow=True):
+        record = self._baseline(run)
         action = record['action']
         self.store.append(run, 'step', {'en': self.labels[action]['en'], 'ar': self.labels[action]['ar']}, {'tool': action})
         result = self.call(action, record.get('inputs'))
@@ -301,13 +307,7 @@ class Manager:
     # the assistant
     def _launch(self, run, adapter, prompt, session=None):
         folder = self.store.path(run)
-        record = self.store.load(run)
-        if not record.get('branches_before'):
-            self.store.update(run, branches_before=sorted(self._waiting_branches()))
-        if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
-            from ... import guided
-            state = guided.load(self.project) or {}
-            self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])})
+        record = self._baseline(run)
         verb = next((v for v in self.contract['verbs'] if v['id'] == record.get('verb')), None)
         tools = [tool for tool in verb['tools'] if tool not in adapters.PERSON_ONLY] if verb else None
         if record.get('owner_decision') or record.get('review'): tools = ['status', 'overview', 'finding', 'findings', 'impact', 'structure']
@@ -649,7 +649,7 @@ class Manager:
         from ... import guided
         record = self.store.load(run)
         state = guided.load(self.project) or {}
-        fresh = _fresh_waves(record, state)
+        fresh = [] if record.get('read') else _fresh_waves(record, state)   # a reading run hands no batch over
         wave = next((w for w in reversed(fresh) if w.get('status') == 'applied'), None)
         # a direct batch: it landed on the base branch itself and left no branch
         landed = None if wave else next((w for w in reversed(fresh) if w.get('direct') and w.get('status') == 'accepted'), None)
@@ -657,7 +657,7 @@ class Manager:
         if landed:
             kept = list(landed.get('kept') or [])
             out.update(landed_on=landed.get('merge_into'), target=landed.get('merge_into'), cards_closed=kept,
-                       tests=_tests(kept, landed.get('failed') or {}))
+                       tests=prompts.batch_tests(kept, landed.get('failed') or {}))
         if wave: self._wave_outcome(run, wave, state, out)
         return out
 
@@ -672,7 +672,7 @@ class Manager:
                                        tip=out['branch_tip'], base=out['target'], base_commit=wave.get('base'))
         kept = list(wave.get('kept') or [])
         out['cards_closed'] = kept
-        out['tests'] = _tests(kept, wave.get('failed') or {})
+        out['tests'] = prompts.batch_tests(kept, wave.get('failed') or {})
         out['diff_stat'] = _diff_stat(self.project, wave['branch'])
 
     # the person's controls

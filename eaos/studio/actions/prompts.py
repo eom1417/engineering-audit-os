@@ -183,3 +183,16 @@ def branch_question(payload):
                            'that branch. Your checkout is not switched.',
                      'ar': 'أي فرع يفحصه EAOS ويصلحه؟ الفحص والإصلاحات والتقدم وكل دمج تتبع هذا الفرع. نسختك الحالية لا تتغير.'},
             'options': options, 'recommendation': recommended if recommended in {o['id'] for o in options} else None, 'why': 'branch'}
+
+
+# the Arabic of the reasons a run changes state for (a failure's own reason stays in its English line and its data)
+WHY_AR = {'the assistant handoff': 'تسليمه لمساعدك', 'a question': 'سؤال', 'nothing changed': 'لم يتغيّر شيء',
+          'you stopped it': 'أوقفته أنت', 'taken': 'بدأ', 'resumed': 'استؤنف', 'answered': 'جاوبت', 'tried again': 'يُعاد',
+          'the server restarted': 'أُعيد تشغيل الخادم'}
+
+
+def batch_tests(kept, failed):
+    """A batch's checks: passed when a change was kept, with the changes left out and why."""
+    return {'passed': bool(kept), 'kept': len(kept), 'left': len(failed),
+            'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
+            'left_out': {str(k): str(v)[:300] for k, v in (failed.items() if isinstance(failed, dict) else [])}}

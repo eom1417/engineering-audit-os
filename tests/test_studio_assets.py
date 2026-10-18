@@ -1,55 +1,54 @@
-"""The Studio shipped in the package (eaos/data/studio) is built from today's source, offline, and ships nothing that
-reaches the network. Runs without Node: it recomputes the source fingerprint studio/scripts/ship.mjs
-recorded, so a change to studio/ without a rebuild fails here."""
+"""The Studio shipped in the package (eaos/data/studio) is built from today's console source (console/), opens from a
+file as classic scripts, ships nothing that reaches the network, and keeps its weight budgets. Runs without Node: it
+recomputes the source fingerprint console/scripts/build.mjs recorded, so a change to console/ without a rebuild fails
+here."""
+import gzip
 import hashlib
 import json
 import os
 import re
-import subprocess
-import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-STUDIO = ROOT / 'studio'
+CONSOLE = ROOT / 'console'
 SHIPPED = ROOT / 'eaos/data/studio'
-# Keep in step with SOURCES in studio/scripts/ship.mjs
-SOURCES = ['index.html', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', '.stylelintrc.json', 'public',
-           'scripts/ship.mjs', 'src', '../docs/studio-actions.json']
-NAMESPACES = {'http://www.w3.org/1998/Math/MathML', 'http://www.w3.org/1999/xlink', 'http://www.w3.org/2000/svg',
-              'http://www.w3.org/XML/1998/namespace', 'http://www.w3.org/2000/xmlns/', 'http://www.w3.org/1999/xhtml', 'https://react.dev/errors/',
-              # TanStack Router's base for parsing a URL when the page's origin is opaque (file://): never requested
-              'http://localhost'}
+# Keep in step with SOURCES in console/scripts/build.mjs
+SOURCES = ['package.json', 'package-lock.json', 'scripts/build.mjs', 'src', '../docs/studio-actions.json']
+NAMESPACES = {'http://www.w3.org/2000/svg'}
 
 
 def source_digest():
     files = []
     for entry in SOURCES:
-        path = STUDIO / entry
+        path = CONSOLE / entry
         files += [path] if path.is_file() else [p for p in path.rglob('*') if p.is_file()]
     digest = hashlib.sha256()
-    for name in sorted(Path(os.path.relpath(p, STUDIO)).as_posix() for p in files):
+    for name in sorted(Path(os.path.relpath(p, CONSOLE)).as_posix() for p in files):
         digest.update(f'{name}\0'.encode('utf-8'))
-        digest.update((STUDIO / name).read_bytes())
+        digest.update((CONSOLE / name).read_bytes())
     return digest.hexdigest()
 
 
 def urls(text):
-    found = set(re.findall(r'https?://[^\s"\'`)<>\\]+', text))
-    return {u for u in found if u.rstrip('/') not in {n.rstrip('/') for n in NAMESPACES} and not any(u.startswith(n) for n in NAMESPACES)}
+    return {u for u in re.findall(r'https?://[^\s"\'`)<>\\]+', text) if u.rstrip('/') not in NAMESPACES}
+
+
+def gzipped(*names):
+    return sum(len(gzip.compress((SHIPPED / name).read_bytes(), 9)) for name in names)
 
 
 class Shipped(unittest.TestCase):
-    def test_the_shipped_studio_is_built_from_todays_source(self):
+    def test_the_shipped_studio_is_built_from_todays_console(self):
         recorded = json.loads((SHIPPED / 'SOURCE.json').read_text(encoding='utf-8'))
         self.assertEqual(recorded['source_sha256'], source_digest(),
-                         'studio/ changed since the last build: run npm run build in studio/ and commit eaos/data/studio')
+                         'console/ changed since the last build: run npm run build in console/ and commit eaos/data/studio')
         shipped = sorted(p.relative_to(SHIPPED).as_posix() for p in SHIPPED.rglob('*') if p.is_file() and p.name != 'SOURCE.json')
         self.assertEqual(shipped, recorded['files'])
 
     def test_it_opens_from_a_file_as_classic_scripts_and_nothing_in_it_reaches_the_network(self):
         page = (SHIPPED / 'index.html').read_text(encoding='utf-8')
-        for needle in ('<script defer src="./assets/studio.js">', '<script src="./boot.js">', 'href="./assets/style.css"'):
+        for needle in ('<script defer src="./assets/studio.js">', '<script src="./boot.js"></script>', 'href="./assets/style.css"'):
             self.assertIn(needle, page)
         self.assertNotIn('type="module"', page)
         policy = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', page).group(1)
@@ -57,56 +56,70 @@ class Shipped(unittest.TestCase):
         self.assertEqual((rules['default-src'], rules['connect-src']), (["'none'"], ["'none'"]))
         for name in ('script-src', 'font-src', 'style-src', 'img-src'):
             self.assertTrue(all(source in ("'self'", "'unsafe-inline'", 'data:') for source in rules[name]), name)
-        # vite.config.ts classicChunks: the entry runs at once, every other chunk only registers its body
-        entry = (SHIPPED / 'assets/studio.js').read_text(encoding='utf-8')
-        self.assertIn('(function(){var chunks=self.EAOS_CHUNKS', entry, 'the entry carries the chunk loader')
-        self.assertNotIn('import(', entry)
-        names = sorted(p.name for p in (SHIPPED / 'assets').glob('*.js') if p.name != 'studio.js')
-        self.assertTrue(names, 'pages other than Home and Problems are their own chunks')
-        for name in names:
+        scripts = sorted(p.name for p in (SHIPPED / 'assets').glob('*.js'))
+        self.assertIn('studio.js', scripts)
+        self.assertTrue({'words-ar.js', 'words-en.js', 'status.js', 'waiting.js', 'problems.js'} <= set(scripts), scripts)
+        for name in scripts:
             body = (SHIPPED / 'assets' / name).read_text(encoding='utf-8')
-            self.assertTrue(body.startswith(f'(self.EAOS_CHUNKS=self.EAOS_CHUNKS||{{}})["{name}"]=function(require,exports,module){{'), name)
             self.assertNotIn('import(', body, name)
-        for name in ('index.html', 'boot.js', 'assets/style.css', 'assets/studio.js', *(f'assets/{n}' for n in names)):
-            self.assertEqual(urls((SHIPPED / name).read_text(encoding='utf-8')), set(), name)
+            if name not in ('studio.js', 'words-ar.js', 'words-en.js'):
+                self.assertIn('self.EAOS', body, f'{name} reaches the core through self.EAOS only')
+        for path in [SHIPPED / 'index.html', SHIPPED / 'boot.js', SHIPPED / 'assets/style.css', *(SHIPPED / 'assets').glob('*.js')]:
+            self.assertEqual(urls(path.read_text(encoding='utf-8')), set(), path.name)
 
-    def test_the_fonts_ship_with_their_licence_and_boot_preloads_only_fonts_the_stylesheet_uses(self):
+    def test_one_dictionary_per_language_with_the_same_words(self):
+        words = {}
+        for lang in ('ar', 'en'):
+            text = (SHIPPED / f'assets/words-{lang}.js').read_text(encoding='utf-8')
+            words[lang] = json.loads(text.split(f').{lang}=', 1)[1].rstrip().rstrip(';'))
+        self.assertEqual(set(words['ar']), set(words['en']))
+        self.assertGreater(len(words['ar']), 1000)
+
+    def test_the_fonts_ship_with_their_licence_and_the_stylesheet_uses_each(self):
         fonts = sorted(p.name for p in (SHIPPED / 'assets').glob('*.woff2'))
-        self.assertTrue(any(name.startswith('plex-arabic-') for name in fonts) and any('mono' in name for name in fonts), fonts)
+        self.assertTrue(any('arabic' in name for name in fonts) and any('mono' in name for name in fonts), fonts)
         self.assertIn('SIL Open Font License', (SHIPPED / 'assets/FONT-LICENSE.txt').read_text(encoding='utf-8'))
         style = (SHIPPED / 'assets/style.css').read_text(encoding='utf-8')
         for font in fonts:
             self.assertIn(font, style)
-        preloaded = re.findall(r"'(plex-[a-z]+-[0-9]+)'", (SHIPPED / 'boot.js').read_text(encoding='utf-8'))
-        self.assertGreaterEqual(len(preloaded), 4, preloaded)
-        for name in preloaded:
+        boot = (SHIPPED / 'boot.js').read_text(encoding='utf-8')
+        for name in re.findall(r"'(ibm-plex-[a-z-]+-\d+-normal)'", boot):
             self.assertTrue((SHIPPED / 'assets' / f'{name}.woff2').is_file(), name)
-            self.assertIn(f'{name}.woff2', style)
+
+    def test_the_weight_budgets_hold(self):
+        # console/scripts/build.mjs BUDGETS, checked again without Node so the suite catches a bypass
+        self.assertLessEqual(gzipped('boot.js', 'assets/studio.js', 'assets/words-ar.js', 'assets/status.js'), 240 * 1024)
+        self.assertLessEqual(gzipped('assets/style.css'), 48 * 1024)
+        self.assertLessEqual(sum(p.stat().st_size for p in SHIPPED.rglob('*') if p.is_file()), 6 * 1024 * 1024)
 
 
 class Source(unittest.TestCase):
-    """What the build's own linters enforce, checked again without Node so the suite catches a bypass."""
+    """What the build relies on, checked without Node."""
 
-    def test_styles_are_direction_neutral_colours_come_from_the_tokens_and_dependencies_and_fonts_are_pinned(self):
+    def test_styles_are_direction_neutral_colours_come_from_the_tokens_and_the_build_tool_is_pinned(self):
         physical = re.compile(r'(?<![\w-])(margin|padding|border)-(left|right)\b|(?<![\w-])(left|right)\s*:|text-align\s*:\s*(left|right)|float\s*:\s*(left|right)')
         colour = re.compile(r'#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(')
         sides, colours = [], []
-        for p in (STUDIO / 'src').rglob('*.css'):
+        for p in (CONSOLE / 'src/css').rglob('*.css'):
             for n, line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1):
-                if physical.search(line): sides.append(f'{p.relative_to(STUDIO)}:{n}')
-                if p.name != 'tokens.css' and colour.search(line): colours.append(f'{p.relative_to(STUDIO)}:{n}')
+                if physical.search(line): sides.append(f'{p.name}:{n}')
+                if p.name != 'tokens.css' and colour.search(line): colours.append(f'{p.name}:{n}')
         self.assertEqual((sides, colours), ([], []))
-        package = json.loads((STUDIO / 'package.json').read_text(encoding='utf-8'))
-        for name, version in {**package['dependencies'], **package['devDependencies']}.items():
+        package = json.loads((CONSOLE / 'package.json').read_text(encoding='utf-8'))
+        for name, version in {**package.get('dependencies', {}), **package['devDependencies']}.items():
             self.assertRegex(version, r'^\d+\.\d+\.\d+$', name)
-        # tools/studio_fonts.py cuts each Fontsource face into unicode ranges; fonts.css declares each file once with
-        # the range it was cut to, so a page downloads only what its text uses
-        done = subprocess.run([sys.executable, str(ROOT / 'tools/studio_fonts.py'), '--check'], capture_output=True, text=True)
-        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        record = json.loads((STUDIO / 'src/design/fonts/SOURCE.json').read_text(encoding='utf-8'))['files']
-        css = (STUDIO / 'src/design/fonts.css').read_text(encoding='utf-8')
-        for name, entry in record.items():
-            self.assertIn(f"url('./fonts/{name}.woff2') format('woff2'); unicode-range: {entry['unicode_range']};", css, name)
+
+    def test_a_place_reaches_the_core_through_eaos_its_own_files_and_the_kits_only(self):
+        places = CONSOLE / 'src/places'
+        kits = {d.name for d in places.iterdir() if d.is_dir() and not (d / 'index.js').exists()}
+        wrong = []
+        for p in places.rglob('*.js'):
+            for m in re.finditer(r"^import .*? from '([^']+)'|^import '([^']+)'", p.read_text(encoding='utf-8'), re.M):
+                target = m.group(1) or m.group(2)
+                kit = re.fullmatch(r'\.\./([\w-]+)/[\w-]+\.js', target)
+                if target != 'eaos' and not (target.startswith('./') and '..' not in target) and not (kit and kit.group(1) in kits):
+                    wrong.append(f'{p.relative_to(CONSOLE)}: {target}')
+        self.assertEqual(wrong, [])
 
 
 if __name__ == '__main__':

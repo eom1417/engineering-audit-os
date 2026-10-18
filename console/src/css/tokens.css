@@ -1,0 +1,169 @@
+/* EAOS design tokens. The single source of truth for colour, type, space, radius, elevation and motion.
+   DESIGN-SYSTEM.md documents every value and its contrast. Components (app.css) use only these variables. */
+
+/* ---------- Fonts (bundled, no network). Arabic and Latin of IBM Plex Sans Arabic share one family. ---------- */
+@font-face { font-family: "Plex Arabic"; font-weight: 400; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: "Plex Arabic"; font-weight: 500; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-arabic-500-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: "Plex Arabic"; font-weight: 600; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: "Plex Arabic"; font-weight: 700; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: "Plex Arabic"; font-weight: 400; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212; }
+@font-face { font-family: "Plex Arabic"; font-weight: 500; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-latin-500-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212; }
+@font-face { font-family: "Plex Arabic"; font-weight: 600; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212; }
+@font-face { font-family: "Plex Arabic"; font-weight: 700; font-display: swap; src: url("../fonts/ibm-plex-sans-arabic-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212; }
+@font-face { font-family: "Plex Mono"; font-weight: 400; font-display: swap; src: url("../fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Plex Mono"; font-weight: 500; font-display: swap; src: url("../fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); }
+
+/* ---------- Light (default) ---------- */
+:root {
+  color-scheme: light;
+
+  /* Surfaces: paper on a cool page. Depth by hairline, not shadow. */
+  --canvas: #F5F7FA;        /* the page */
+  --surface: #FFFFFF;       /* rows, panels, sheets */
+  --raised: #FFFFFF;        /* menus, drawers (dark lifts this by tone) */
+  --sunken: #EEF1F6;        /* code, tracks, wells */
+  --hover: #F0F3F8;         /* row hover and press */
+  --line: #E2E7EE;          /* hairlines between rows: decorative only */
+  --line-strong: #7B8597;   /* control edges (inputs, checkboxes, switches): 3.72:1 on surface */
+
+  /* Ink */
+  --ink: #101B2C;           /* 17.28 surface, 16.10 canvas */
+  --ink-2: #3C4859;         /* secondary text 9.28 / 8.65 */
+  --ink-3: #586477;         /* meta, captions 5.99 / 5.58; 5.29 on sunken */
+  --ink-off: #9AA4B4;       /* disabled only, never information */
+
+  /* Your move: the one accent. Primary step, waiting count, links, focus, selection. */
+  --accent: #2A49C8;        /* 7.28 surface; white on it 7.28 */
+  --accent-hover: #213BA6;  /* white on it 9.37 */
+  --accent-press: #1B3189;
+  --on-accent: #FFFFFF;
+  --accent-soft: #EBF0FF;   /* selected rows, "waits for you" rows */
+  --accent-ink: #2340B5;    /* accent text on accent-soft 7.46 */
+
+  /* EAOS at work (running dot, progress fill, running stage) */
+  --live: #0A6F7A;          /* 5.89 surface */
+  --live-soft: #E1F2F3;     /* live on it 5.10 */
+
+  /* The assistant's words: always a hypothesis (dotted violet) */
+  --ai: #6942CF;            /* 6.40 surface */
+  --ai-soft: #F2EDFE;       /* ai on it 5.58 */
+
+  /* Outcomes and conditions (always with a glyph and a word) */
+  --ok: #17764A;            /* 5.64 surface; on its soft 4.92 */
+  --ok-soft: #E4F3EB;
+  --caution: #915708;       /* stale, stalled, expiring 5.88; on soft 5.35 */
+  --caution-soft: #FFF3DC;
+  --danger: #BF2630;        /* failed, refused, destructive 5.94; white on it 5.94 */
+  --danger-soft: #FDEBEC;
+  --on-danger: #FFFFFF;
+
+  /* Severity: one ember hue, chroma and darkness rise with severity (ordinal; validator: all checks pass).
+     Medium and low stay near-neutral so a list of 202 "medium" rows never paints the page. */
+  --sev-critical: #8A1C23;  /* 9.25 */
+  --sev-high: #B3401A;      /* 5.73 */
+  --sev-medium: #9E8178;    /* 3.58 */
+  --sev-low: #BFAEA7;       /* 2.14: shape and word carry it */
+  --sev-info: #8A94A4;      /* outline only, 3.06 */
+  --sev-empty: #E2E7EE;     /* the unfilled bars of the glyph */
+
+  /* Operations (maps): categorical, glyph always drawn (validator: pass, CVD 7.7 needs the glyph) */
+  --op-introduce: #1E9A6A; --op-rebuild: #E0791F; --op-merge: #B8428C;
+  --op-modify: #2F6FDB; --op-delete: #D23C3C; --op-retain: #586477;
+
+  --scrim: rgb(16 27 44 / .45);
+  --shadow-1: 0 1px 2px rgb(16 27 44 / .05);
+  --shadow-2: 0 2px 6px rgb(16 27 44 / .06), 0 8px 24px -4px rgb(16 27 44 / .14);
+  --shadow-3: 0 24px 64px -12px rgb(16 27 44 / .30);
+
+  /* ---------- Type: Arabic first. Sizes in px; line heights for Arabic; English uses --lh-*-en. ---------- */
+  --font: "Plex Arabic", "Segoe UI", system-ui, sans-serif;
+  --mono: "Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --fs-lede: 24px;   --lh-lede: 38px;   --lh-lede-en: 32px;   /* the page's sentence (phone) */
+  --fs-figure: 40px; --lh-figure: 44px;                        /* one figure a page at most (the score) */
+  --fs-title: 20px;  --lh-title: 32px;  --lh-title-en: 28px;   /* detail page titles */
+  --fs-head: 17px;   --lh-head: 28px;   --lh-head-en: 24px;    /* section heads, sheet titles */
+  --fs-body: 16px;   --lh-body: 27px;   --lh-body-en: 24px;    /* text, row titles */
+  --fs-small: 14px;  --lh-small: 23px;  --lh-small-en: 20px;   /* second lines, meta, help */
+  --fs-label: 14px;  --lh-label: 20px;                         /* buttons, chips, tabs on desktop */
+  --fs-caption: 13px; --lh-caption: 20px;                      /* tab labels on phone, badges: the floor */
+  --fs-mono: 13px;   --lh-mono: 20px;                          /* ids, paths, branches, commits */
+  --fs-code: 13px;   --lh-code: 21px;                          /* evidence excerpts, diffs */
+
+  /* ---------- Space (4 base) ---------- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px; --s16: 64px;
+  --gutter: 16px;                    /* phone page padding; desktop 32 */
+  --target: 44px;                    /* minimum touch target */
+
+  /* ---------- Radius by hierarchy ---------- */
+  --r-xs: 4px;   /* badges, checkboxes, code chips */
+  --r-sm: 8px;   /* buttons, inputs, chips */
+  --r-md: 12px;  /* panels, cards, code blocks */
+  --r-lg: 18px;  /* sheets and dialogs (phone sheets: top corners only) */
+  --r-full: 999px;
+
+  /* ---------- Motion: only opacity and transform move ---------- */
+  --t-press: 100ms ease-out;
+  --t-fade: 140ms ease-out;
+  --t-enter: 220ms cubic-bezier(.2, .8, .2, 1);
+  --t-exit: 150ms cubic-bezier(.4, 0, 1, 1);
+  --t-progress: 400ms linear;
+  --t-arrive: 600ms ease-out;
+
+  /* ---------- Layers ---------- */
+  --z-sticky: 10; --z-strip: 20; --z-nav: 30; --z-popover: 40; --z-sheet: 50; --z-toast: 60; --z-confirm: 70;
+
+  /* ---------- Layout ---------- */
+  --topbar-h: 56px; --tabbar-h: 64px; --strip-h: 48px; --sidebar-w: 256px;
+  --read-w: 720px;  /* reading column: Status, Waiting, a run, documents */
+  --wide-w: 1240px; /* list + detail */
+  --panel-w: 520px; /* detail panel on desktop */
+  --drawer-w: 480px;
+  --dialog-w: 540px;
+}
+
+/* ---------- Dark: lift by tone (surface ladder), shadows only deepen ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0D1219; --surface: #141B24; --raised: #1A2330; --sunken: #0A0F15; --hover: #1E2835;
+  --line: #263142; --line-strong: #66748C;          /* 3.66 surface */
+  --ink: #E9EEF5;                                    /* 14.86 surface, 16.12 canvas */
+  --ink-2: #B7C1CF;                                  /* 9.52 / 10.33 */
+  --ink-3: #8E9AAC;                                  /* 6.08 / 6.59; 5.55 on raised */
+  --ink-off: #5D6879;
+  --accent: #8DA2FF; --accent-hover: #A6B6FF; --accent-press: #7A92F5; --on-accent: #0D1219; /* 7.22; on it 7.82 */
+  --accent-soft: #1C2A4A; --accent-ink: #A9B8FF;     /* 7.43 */
+  --live: #3EC1CB; --live-soft: #10303A;             /* 8.00; 6.44 */
+  --ai: #B197FF; --ai-soft: #2A2148;                 /* 7.21; 6.20 */
+  --ok: #4CC283; --ok-soft: #13301F;                 /* 7.72; 6.36 */
+  --caution: #F0B44A; --caution-soft: #33270F;       /* 9.35; 7.88 */
+  --danger: #FF7275; --danger-soft: #3A1C21; --on-danger: #0D1219; /* 6.53; 5.79; on it 7.08 */
+  --sev-critical: #FF9088; --sev-high: #F07A45; --sev-medium: #9C7F74; --sev-low: #655550; --sev-info: #6F7B8F;
+  --sev-empty: #2B3646;
+  --op-introduce: #22A375; --op-rebuild: #D9772B; --op-merge: #D763A8;
+  --op-modify: #5A8EF0; --op-delete: #E25858; --op-retain: #8E9AAC;
+  --scrim: rgb(0 0 0 / .6);
+  --shadow-1: 0 0 0 1px rgb(255 255 255 / .02);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / .35), 0 8px 24px -4px rgb(0 0 0 / .5);
+  --shadow-3: 0 24px 64px -12px rgb(0 0 0 / .7);
+}
+
+/* No script yet: follow the system. app.js always writes data-theme before the first paint. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) { color-scheme: dark; --canvas: #0D1219; --surface: #141B24; --ink: #E9EEF5; }
+}
+
+/* English: tighter line heights for Latin. */
+:root[lang="en"] {
+  --lh-lede: var(--lh-lede-en); --lh-title: var(--lh-title-en); --lh-head: var(--lh-head-en);
+  --lh-body: var(--lh-body-en); --lh-small: var(--lh-small-en);
+}
+
+@media (min-width: 1024px) {
+  :root { --fs-lede: 30px; --lh-lede: 46px; --lh-lede-en: 38px; --gutter: 32px; }
+  :root[lang="en"] { --lh-lede: 38px; }
+}
+
+/* Reduced motion: every duration becomes instant; fades of 120 ms at most stay. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-press: 0ms; --t-fade: 100ms linear; --t-enter: 0ms; --t-exit: 0ms; --t-progress: 0ms; --t-arrive: 0ms; }
+}

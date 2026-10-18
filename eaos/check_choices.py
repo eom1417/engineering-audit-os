@@ -14,10 +14,13 @@ assistant (the MCP audit tool) and the Studio.
 The paths are asked for each check (a focused check is a choice of the moment); the mode and the sign-in are kept. The
 state comes from its callers (eaos/guided.py loads and saves it), so this module sits below them.
 """
+import json
+from pathlib import Path
+
 from . import sign_in
 from .pipeline.paths import PATHS, resolve
 from .pipeline.schedule import MODES, forecast
-from .pipeline.stages import ORDER
+from .pipeline.stages import BY_NAME, ORDER, dependents
 from .progress import previous_seconds
 
 SIGN_IN = ('hand', 'test_user', 'none')        # by hand on the sign-in page, the assistant's seed script, no sign-in
@@ -48,16 +51,27 @@ def options(state, progress, failed, provider, runtime, paths=None, engines=None
                 sign_in={'how': kept(state)['sign_in'], 'published': published, 'folder': state['workspace']})
 
 
-def estimate(report, paths=None, mode='normal'):
+def estimate(report, paths=None, mode='normal', again_from=None):
     """{'minutes_low', 'minutes_high', 'basis'} of a check of `paths` in `mode` on this project: its stages as the
-    schedule runs them, each taking what it took in the last check (15% either side); None before a first check."""
+    schedule runs them, each taking what it took in the last check (15% either side); None before a first check.
+    `again_from`: only that stage and the stages reading it run again (eaos/pipeline/run.py again)."""
     seconds = previous_seconds(report)
     if not seconds: return None
-    stages = resolve(paths)['stages'] or ORDER
+    stages = ((again_from, *dependents(again_from, reading=True)) if again_from in BY_NAME
+              else resolve(paths)['stages'] or ORDER)
     minutes = forecast({name: seconds.get(name) or 0.0 for name in stages}, mode or 'normal') / 60
     return {'minutes_low': int(minutes * 0.85), 'minutes_high': int(minutes * 1.15) + 1,
             'basis': {'en': "this project's last check, each step as long as it took then",
                       'ar': 'آخر فحص لهذا المشروع، كل خطوة بالوقت الذي أخذته فيه'}}
+
+
+def without_ai_kept(report, without_ai, again_from, chosen):
+    """Whether a check runs without the assistant: when asked, or when it goes on (`again_from`) from a check that ran
+    without it (its AI stages say so) and no assistant was chosen now, so a redo never stops on one never used."""
+    if without_ai or not again_from or chosen: return bool(without_ai)
+    try: stages = json.loads((Path(report) / 'run-manifest.json').read_text(encoding='utf-8')).get('stages') or {}
+    except (OSError, ValueError, TypeError): return False
+    return any((row or {}).get('reason_code') == 'ai_skipped' for row in stages.values())
 
 
 def offered(state, report=None):

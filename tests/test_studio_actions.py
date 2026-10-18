@@ -246,6 +246,9 @@ class EventLog(unittest.TestCase):
             self.assertEqual((log.load('r01')['usage']['output'], log.load('r01')['usage']['cost_usd']), (3, 0.5))
             self.assertTrue(log.load('r01')['trimmed'])
             self.assertTrue(all((runs / f'r{n:02}/stream.jsonl').is_file() for n in range(12) if n != 1), 'live and newest kept')
+            for n in range(store.KEEP):              # quick answers (read) never push a run's details out
+                log.save({'id': f'q{n:02}', 'state': 'done', 'read': True, 'created': f'2026-10-17T00:01:{n:02}'}, new=True)
+            self.assertTrue((runs / 'r02/stream.jsonl').is_file())
 
 
 class Adapters(unittest.TestCase):
@@ -572,8 +575,11 @@ class Direct(Base):
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
         from eaos import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'}, 'audit': {'job': 'audit-1', 'status': 'running'}})
-        status, payload = self.post('/api/runs', {'action': 'status'})
+        applied = {'branch': 'main', 'waves': [{'status': 'applied', 'branch': 'eaos/main/wave-1', 'kept': ['TASK-1']}]}
+        with mock.patch('eaos.guided.load', return_value=applied):     # a batch handed over earlier is not this read's
+            status, payload = self.post('/api/runs', {'action': 'status'})
         self.assertEqual((status, payload['run']['state'], payload['run']['result']['answer']), (200, 'done', {'next': 'audit'}))
+        self.assertEqual((payload['run']['result']['branch'], payload['run']['result']['cards_closed']), (None, []))
         self.assertEqual(calls, [('status', {'project': str(self.project.resolve())})])
         self.assertEqual(self.get('/api/runs')[1]['runs'], [], 'a reading action stays out of the history')
         self.assertEqual(len(self.get('/api/runs?all=1')[1]['runs']), 1)
@@ -583,10 +589,11 @@ class Direct(Base):
             state['n'] += 1
             if state['n'] < 3: return {'id': job, 'kind': 'audit', 'status': 'running', 'progress': {'done': state['n'], 'total': 3, 'stage': 'engines'}}
             return {'id': job, 'kind': 'audit', 'status': 'done', 'result': {'overview': 'fine'}}
-        with mock.patch.object(jobs, 'read', side_effect=read):
+        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.guided.load', return_value=applied):
             run = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
             done = self.app.wait(run, ('done', 'failed'), 20)
         self.assertEqual(done['state'], 'done')
+        self.assertIsNone(done['result']['branch'], 'a check run while a batch waits does not hand that batch over again')
         self.assertEqual([e['data']['done'] for e in self.app.store.events(run) if e['kind'] == 'progress'], [1, 2])
 
     def test_a_step_that_needs_consent_asks_in_the_inbox_and_only_an_explicit_yes_gives_it(self):

@@ -277,12 +277,12 @@ class Actions:
                   for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
         return {'check': of_check(folder.parent) if folder else None, 'runs': runs, 'chat': total(talked)}
 
-    def public(self, record):
+    def public(self, record, queue=None):
         hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before', 'waves_before')
         out = {key: value for key, value in record.items() if key not in hidden}
         try: out['work_branch'] = self.branches.work_branch(record)
         except Exception: out['work_branch'] = None
-        queue = self.store.queue()
+        queue = self.store.queue() if queue is None else queue
         if record['id'] in queue: out['position'] = queue.index(record['id']) + 1
         return out
 
@@ -293,7 +293,8 @@ class Actions:
             needle = query['q'].lower()
             rows = [row for row in rows if needle in json.dumps([row.get('label'), row.get('cards'), row.get('result'), row.get('action'), row.get('verb')],
                                                                 ensure_ascii=False).lower()]
-        return {'runs': [self.public(row) for row in rows], 'queue': self.store.queue()}
+        queue = self.store.queue()  # read once: the queue reads every run, and a list of runs is not n^2 reads
+        return {'runs': [self.public(row, queue) for row in rows], 'queue': queue}
 
     def questions(self):
         return [row['question'] for row in self.store.all() if row.get('state') == 'waiting_for_person' and row.get('question')]
@@ -433,7 +434,7 @@ class Actions:
         fails; where Accept would merge."""
         spec = self.actions[action]
         low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-        measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'))
+        measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'), inputs.get('again_from'))
         if action == 'audit':
             from ... import guided
             out['check'] = check_choices.offered(guided.load(str(self.project)), self._studio() and self._studio().parent)
