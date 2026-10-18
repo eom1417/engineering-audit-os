@@ -1,7 +1,7 @@
 // S-34 the pipelines (SYS-14) and one stage (SYS-15, ?sheet=pstage:<stage>), on pipeline.json: whether the project
 // is a pipeline, every pipeline with its stages in EAOS's reading order (layer, then order), the stages' kinds and
 // marks; the ideal by the rules (operations on stages) and the gap (one row per broken rule); what was looked for.
-import { t, tn, L, num, esc, icon, code, href, rich, screen, sheet, data } from 'eaos';
+import { t, tn, L, num, has, esc, icon, code, href, rich, screen, sheet, data } from 'eaos';
 import { tabs, seg, prov, nm, fold, facts, opTag, opOf, OPS, pct, glyph, enc, loading, notMeasured, empty, where } from '../understand-kit/kit.js';
 
 const NEEDS = ['pipeline', 'coverage'];
@@ -18,7 +18,7 @@ function stageChip(d, s, i, view) {
     <span class="un-stage__n num" aria-hidden="true">${i + 1}</span>${s.kind === 'ai' ? icon('ai', 'icon--sm ai-ic') : ''}<span class="un-stage__name">${esc(s.label)}</span>
     ${ideal && opOf(ideal.op) !== 'retain' ? glyph(ideal.op, 14) : ''}${marks.map(m => icon(MARK[m], 'icon--sm muted')).join('')}</button></li>`;
 }
-const lookedFor = (d, open) => fold(t('un.pipes.looked'), esc(t('un.pipes.looked.sum', { n: num(d.looked_for.length) })), `<ul class="un-looked">${d.looked_for.map(l => `<li class="${l.found ? '' : 'muted'}"><span>${esc(l.label)}</span><b class="num">${num(l.found)}</b></li>`).join('')}</ul>`, { open });
+const lookedFor = (d, open) => fold(t('un.pipes.looked'), esc(t('un.pipes.looked.sum', { n: num(d.looked_for.length) })), `<ul class="un-looked">${d.looked_for.map(l => `<li class="${l.found ? '' : 'muted'}"><span>${esc(has('un.lf.' + l.kind) ? t('un.lf.' + l.kind) : l.label)}</span><b class="num">${num(l.found)}</b></li>`).join('')}</ul>`, { open });
 
 function pipesPage(ctx) {
   if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));

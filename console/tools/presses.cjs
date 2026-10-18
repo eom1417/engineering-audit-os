@@ -27,8 +27,20 @@ async function discover(page) {
     const p = problems.find(x => (x.evidence || []).some(id => E.model.fact(id) && E.model.fact(id).code)) || problems[0];
     const d = E.model.decisions().find(x => x.state === 'waiting');
     const run = E.store.awaiting()[0];
+    // builder B's: a plan step, a step that waits for another, a gap with problems, a component, a code path, a data
+    // store, a screen, a document read first and the last check (the report's own ids)
+    await E.data.need(['plans', 'paths', 'gaps', 'system', 'data_paths', 'screens', 'docs', 'history']);
+    const sec = E.data.section, steps = E.model.plan().steps, tl = (sec('paths') || {}).timeline;
+    const waiting = tl && tl.tasks.find(x => x.waits.some(w => { const o = tl.tasks.find(y => y.id === w.task); return o && o.step !== x.step; }));
+    const scans = (sec('history') || {}).scans || [];
+    const doc = ((sec('docs') || {}).docs || []).filter(x => x.order != null).sort((a, b) => a.order - b.order)[0];
     return { problem: p && p.id, fact: p && p.evidence[0], decision: d && d.id, run: run && run.id, first: problems[0] && problems[0].id,
-      total: E.model.totals().problems, version: E.model.project().eaos_version };
+      total: E.model.totals().problems, version: E.model.project().eaos_version,
+      step: (steps.find(x => x.tasks.length > 1) || steps[0] || {}).id, stepWaits: waiting && waiting.step,
+      gap: (((sec('gaps') || {}).gaps || []).find(g => g.cards.length) || {}).id, comp: (((sec('system') || {}).current || {}).nodes || [])[0].id,
+      path: (((sec('paths') || {}).paths || [])[0] || {}).id, store: (((sec('data_paths') || {}).stores || [])[0] || {}).id,
+      screen: ((((sec('screens') || {}).screens || []).find(x => (x.shots || []).length)) || {}).id, doc: doc && doc.path,
+      check: (scans[scans.length - 1] || {}).id };
   });
 }
 
@@ -47,6 +59,7 @@ function recipes(ids) {
   const FEAT = '#main a[href="#/project/branches/feature%2Flogin-by-hand"]';
   const R12 = '#main a[href="#/activity/run/R-12"]';
   const L = (id, steps, expect, more) => Object.assign({ steps, expect }, more || {});
+  const enc = encodeURIComponent;
 
   const R = {
     /* ---- PRJ ---- */
@@ -124,7 +137,7 @@ function recipes(ids) {
     'FIX-12': L(0, [NAV('waiting'), `#main [data-sheet="reject:${ids.run}"]`], ['sheet:reject', 'vis:.sheet.is-open .owner-band'], { c: true }),
     'FIX-13': L(0, [NAV('waiting')], ['vis:#g-fixes']),
     'FIX-14': L(0, ['#fold-stand > summary', '#fold-stand [data-sheet="action:fix_abandon"]'], ['sheet:action:fix_abandon']),
-    'FIX-15': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]', '#main [data-act="un-fix"]'], ['sheet:verb:fix']),
+    'FIX-15': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]', '#main .actions [data-sheet^="verb:fix:step:"]'], ['sheet:verb:fix']),
     'FIX-16': L(0, [MORE, `${SH} details.fold > summary`, `${SH} [data-sheet="action:fix_start"]`], ['sheet:action:fix_start']),
     /* ---- DEC ---- */
     'DEC-01': L(0, [NAV('waiting')], ['hash:/waiting', 'vis:#main h1']),
@@ -153,13 +166,13 @@ function recipes(ids) {
     'BRN-12': L(0, [BR, '#main [data-act="ac-fetch"]'], ['vis:#toasts .toast']),
     /* ---- PLN ---- */
     'PLN-01': L(0, [NAV('understand'), UV('story')], ['hash:/understand/story', 'vis:#main h1']),
-    'PLN-02': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]'], ['hash:/problems/plan', 'vis:#main a[href="#/problems/plan/M04"]']),
-    'PLN-03': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]', '#main a[href="#/problems/plan/M04"]'], ['hash:/problems/plan/M04']),
-    'PLN-04': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]'], ['vis:#main a[href="#/problems/plan/M06"]']),
+    'PLN-02': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]'], ['hash:/problems/plan', `vis:#main a[href="#/problems/plan/${ids.step}"]`]),
+    'PLN-03': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]', `#main .un-steps a[href="#/problems/plan/${ids.step}"]`], [`hash:/problems/plan/${ids.step}`]),
+    'PLN-04': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]'], ['vis:#main .un-deplist li']),
     'PLN-05': L(0, [NAV('problems'), T6], ['vis:#main .planline']),
     'PLN-06': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]', '#main a[href="#/problems/plan/waves"]'], ['hash:/problems/plan/waves']),
     'PLN-07': L(0, [NAV('understand'), UV('gaps')], ['hash:/understand/gaps']),
-    'PLN-08': L(0, [NAV('understand'), UV('gaps'), '#main a[href="#/understand/gaps/G-01"]'], ['hash:/understand/gaps/G-01']),
+    'PLN-08': L(0, [NAV('understand'), UV('gaps'), `#main a[href="#/understand/gaps/${enc(ids.gap)}"]`], [`hash:/understand/gaps/${enc(ids.gap)}`]),
     'PLN-09': L(0, [NAV('understand'), UV('operations')], ['hash:/understand/operations']),
     'PLN-10': L(0, [NAV('understand'), UV('story'), '#main a[href*="tab=bridge"]'], ['hash:tab=bridge']),
     'PLN-11': L(0, [NAV('understand'), UV('ideal')], ['hash:/understand/ideal']),
@@ -167,15 +180,15 @@ function recipes(ids) {
     'PLN-13': L(0, [NAV('understand'), UV('story'), '#main .un-prov > summary'], ['vis:#main .un-prov[open]']),
     /* ---- SYS ---- */
     'SYS-01': L(0, [NAV('understand'), UV('components')], ['hash:/understand/components']),
-    'SYS-02': L(0, [NAV('understand'), UV('components'), '#main a[href="#/understand/components/eaos"]'], ['hash:/understand/components/eaos']),
-    'SYS-03': L(0, [], [], { ph: { steps: [NAV('understand'), UV('components')], expect: ['vis:#main a[href="#/understand/components/eaos"]'] }, dk: { steps: [NAV('understand'), UV('components'), '#main a[href*="view=list"]'], expect: ['hash:view=list'] } }),
+    'SYS-02': L(0, [NAV('understand'), UV('components'), `#main .un-split :is(.only-desk .un-map__a, .only-phone a.row)[href^="#/understand/components/${enc(ids.comp)}"]`], [`hash:/understand/components/${enc(ids.comp)}`]),
+    'SYS-03': L(0, [], [], { ph: { steps: [NAV('understand'), UV('components')], expect: ['vis:#main .only-phone a.row[href^="#/understand/components/"]'] }, dk: { steps: [NAV('understand'), UV('components'), '#main a[href*="view=list"]'], expect: ['hash:view=list'] } }),
     'SYS-04': L(0, [NAV('understand'), UV('components'), '#main a[href*="lens=unseen"]'], ['hash:lens=unseen']),
     'SYS-05': L(0, [NAV('understand'), UV('functions')], ['hash:/understand/functions', 'vis:#main a.un-fnrow']),
     'SYS-06': L(0, [NAV('understand'), UV('functions'), '#main a.un-fnrow'], ['hash:/understand/functions/']),
     'SYS-07': L(0, [NAV('understand'), UV('paths')], ['hash:/understand/paths']),
-    'SYS-08': L(0, [NAV('understand'), UV('paths'), '#main a[href="#/understand/paths/P-01"]'], ['hash:/understand/paths/P-01']),
+    'SYS-08': L(0, [NAV('understand'), UV('paths'), `#main a[href="#/understand/paths/${enc(ids.path)}"]`], [`hash:/understand/paths/${enc(ids.path)}`]),
     'SYS-09': L(0, [NAV('understand'), UV('data')], ['hash:/understand/data']),
-    'SYS-10': L(0, [NAV('understand'), UV('data'), '#main a[href="#/understand/data/runs"]'], ['hash:/understand/data/runs']),
+    'SYS-10': L(0, [NAV('understand'), UV('data'), `#main a[href="#/understand/data/${enc(ids.store)}"]`], [`hash:/understand/data/${enc(ids.store)}`]),
     'SYS-11': L(0, [NAV('understand'), UV('unseen')], ['hash:/understand/unseen']),
     'SYS-12': L(0, [NAV('understand'), UV('journeys')], ['hash:/understand/journeys']),
     'SYS-13': L(0, [NAV('understand'), UV('infra')], ['hash:/understand/infra']),
@@ -187,23 +200,23 @@ function recipes(ids) {
     /* ---- SCR ---- */
     'SCR-01': L(0, [NAV('understand'), UV('screens')], ['hash:/understand/screens']),
     'SCR-02': L(0, [NAV('understand'), UV('screens/all')], ['hash:/understand/screens/all']),
-    'SCR-03': L(0, [NAV('understand'), UV('screens/all'), '#main a[href^="#/understand/screens/%2F"]'], ['hash:/understand/screens//']),
+    'SCR-03': L(0, [NAV('understand'), UV('screens/all'), `#main a[href="#/understand/screens/${enc(ids.screen)}"]`], [`hash:/understand/screens/${enc(ids.screen)}`, 'vis:#main .un-picfig']),
     'SCR-04': L(0, [NAV('activity'), R12], ['vis:#main .ac-ev-fold']),
     /* ---- LIB ---- */
     'LIB-01': L(0, [NAV('understand'), UV('library')], ['hash:/understand/library']),
     'LIB-02': L(0, [NAV('understand'), UV('library')], ['vis:#main input']),
-    'LIB-03': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/CURRENT-STATE.md"]'], ['hash:/understand/library/CURRENT-STATE.md', 'vis:#main .un-doc__body']),
-    'LIB-04': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/CURRENT-STATE.md"]'], ['vis:#main .un-doc__body a']),
-    'LIB-05': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/CURRENT-STATE.md"]'], ['vis:#main .un-doc__body svg']),
+    'LIB-03': L(0, [NAV('understand'), UV('library'), `#main a[href="#/understand/library/${enc(ids.doc)}"]`], [`hash:/understand/library/${enc(ids.doc)}`, 'vis:#main .un-doc__body p']),
+    'LIB-04': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/START-HERE.md"]'], ['vis:#main .un-doc__body a']),
+    'LIB-05': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/CURRENT-STATE.md"]'], ['vis:#main .un-doc__body svg.un-dg']),
     'LIB-06': L(0, [NAV('understand'), UV('library'), '#main a[href*="tab=images"]'], ['hash:tab=images']),
     'LIB-07': L(0, [NAV('understand'), UV('report-files'), '#main [data-sheet^="file:"]'], ['sheet:file']),
     /* ---- HIS ---- */
-    'HIS-01': L(0, [NAV('understand'), UV('history')], ['hash:/understand/history', 'vis:#main a[href="#/understand/history/C-10"]']),
+    'HIS-01': L(0, [NAV('understand'), UV('history')], ['hash:/understand/history', `vis:#main a[href="#/understand/history/${ids.check}"]`]),
     'HIS-02': L(0, [], [], { ph: { steps: ['#main button[data-sheet="health"]'], expect: ['txt:st.health.trend'] }, dk: { steps: [], expect: ['txt:st.health.trend'] } }),
     'HIS-03': L(0, [NAV('understand'), UV('history')], ['vis:#main a[href="#/problems?sev=high"]']),
     'HIS-04': L(0, [NAV('understand'), UV('history')], ['vis:#main svg']),
     'HIS-05': L(0, [NAV('understand'), UV('history'), '#events > summary'], ['vis:#events[open]']),
-    'HIS-06': L(0, [NAV('understand'), UV('history'), '#main a[href="#/understand/history/C-10"]'], ['hash:/understand/history/C-10']),
+    'HIS-06': L(0, [NAV('understand'), UV('history'), `#main a[href="#/understand/history/${ids.check}"]`], [`hash:/understand/history/${ids.check}`]),
     'HIS-07': L(0, [NAV('understand'), UV('history'), '#main a[href="#/understand/history/compare"]'], ['hash:/understand/history/compare']),
     /* ---- AST ---- */
     'AST-01': L(0, [PM, PMROW('/project/assistants')], ['hash:/project/assistants', 'has:Claude Code', 'has:Codex']),
