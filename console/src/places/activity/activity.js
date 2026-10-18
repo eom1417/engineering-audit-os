@@ -25,15 +25,16 @@ export function controls(r, small) {
 
 /** The check now: the running stages, n of N, what is left, its controls. */
 function checkNow(r) {
-  const flow = ac.flowOfRun(r) || ac.checkFlow();
+  const flow = ac.flowOfRun(r);
   const list = stagesOf(flow, r);
-  const rs = ac.runState(r), you = rs === 'you' || !!(live.signIn && live.signIn.asked);
+  const rs = ac.runState(r), signin = !!(live.signIn && live.signIn.asked), you = rs === 'you' || signin;
   const running = list.filter(s => ['running', 'paused', 'you'].includes(s.state));
   const done = finished(list), c = counts(list);
   const e = flow && flow.estimate;
   const left = e && e.low != null ? t('live.left', { lo: num(Math.max(1, Math.round(e.low / 60))), hi: num(Math.max(1, Math.round(e.high / 60))) }) : '';
-  const title = you ? t('ac.now.check.you') : rs === 'paused' ? t('ac.now.check.paused') : t('ac.now.check');
-  const sub = you ? t('ac.now.check.you.sub', { until: live.signIn && live.signIn.asked && live.signIn.asked.until ? ac.when(live.signIn.asked.until) : '' })
+  const title = signin ? t('ac.now.check.you') : you ? t('ac.now.check.q') : rs === 'paused' ? t('ac.now.check.paused') : t('ac.now.check');
+  const sub = signin ? t('ac.now.check.you.sub', { until: live.signIn.asked.until ? ac.when(live.signIn.asked.until) : '' })
+    : you ? t('ac.now.check.q.sub')
     : list.length ? t('ac.now.check.sub', { stage: num(Math.min(done + 1, list.length)), total: num(list.length), stages: running.map(s => stageTitle(s.id)).join(t('list.sep')) || t('ac.now.starting') }) + left
       : t('ac.now.starting');
   return `<div class="panel ac-now ${you ? 'ac-now--you' : ''}">
@@ -136,7 +137,8 @@ function activityPage(ctx) {
   let lede;
   if (off) lede = esc(t('ac.act.lede.offline', { when: fmtWhen(model.project().checked_at) }));
   else if (lr && lr.action !== 'audit') lede = esc(t(lr.verb === 'fix' ? 'ac.act.lede.fix' : 'ac.act.lede.run', { label: ac.runLabel(lr) }));
-  else if (lr && (ac.runState(lr) === 'you' || (live.signIn && live.signIn.asked))) lede = esc(t('ac.act.lede.signin'));
+  else if (lr && live.signIn && live.signIn.asked) lede = esc(t('ac.act.lede.signin'));
+  else if (lr && ac.runState(lr) === 'you') lede = esc(t('ac.act.lede.q'));
   else if (lr && lr.state === 'paused') lede = esc(t('ac.act.lede.paused'));
   else if (lr) { const list = stagesOf(flow, lr); lede = esc(list.length ? t('ac.act.lede.check', { stage: num(Math.min(finished(list) + 1, list.length)), total: num(list.length) }) : t('ac.now.check')); }
   else if (last && ac.took(last)) lede = t('ac.act.lede.idle', { took: `<a href="${runHref(last)}">${esc(ac.minutes(ac.took(last)))}</a>`, when: esc(fmtWhen(last.ended || last.created).replace(/ \d\d:\d\d$/, '')) });

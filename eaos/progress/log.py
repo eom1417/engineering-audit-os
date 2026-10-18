@@ -139,11 +139,13 @@ def stage_rows(stages):
 
 
 def previous_seconds(out):
-    """{stage: seconds} of the last run of this report that reached an end, for a rough estimate; {} on a first run."""
+    """{stage: seconds} of the last run of this report that reached an end, for a rough estimate; a stage it could not
+    run keeps the time it took the last time it ran ok (the manifest's `measured`); {} on a first run."""
     try: manifest = json.loads((Path(out) / 'run-manifest.json').read_text(encoding='utf-8'))
     except (OSError, ValueError): return {}
-    return {name: row.get('seconds') for name, row in (manifest.get('stages') or {}).items()
-            if isinstance(row, dict) and row.get('status') == 'ok' and isinstance(row.get('seconds'), (int, float))}
+    return {**{name: s for name, s in (manifest.get('measured') or {}).items() if isinstance(s, (int, float))},
+            **{name: row.get('seconds') for name, row in (manifest.get('stages') or {}).items()
+               if isinstance(row, dict) and row.get('status') == 'ok' and isinstance(row.get('seconds'), (int, float))}}
 
 
 def previous_steps(path):

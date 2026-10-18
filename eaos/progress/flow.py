@@ -64,12 +64,14 @@ def previous_stage_seconds(path):
 
 def completion(rows, missing=()):
     """The run's status by the check's rule (eaos/pipeline/run.py:completion_status): INCOMPLETE when a stage failed,
-    was not reached, or a required one was unavailable; PARTIAL when a required one was skipped; else COMPLETE."""
+    was not reached, or a required one was unavailable; PARTIAL when a required one was skipped or the assistant was
+    lost midway; else COMPLETE."""
     rows = list(rows)
     if missing or any(r['status'] in (FAILED, NOT_REACHED) or (r['necessity'] == REQUIRED and r['status'] == 'unavailable')
                       for r in rows):
         return 'INCOMPLETE'
-    if any(r['necessity'] == REQUIRED and r['status'] == SKIPPED for r in rows): return 'PARTIAL'
+    if any((r['necessity'] == REQUIRED and r['status'] == SKIPPED) or (r.get('detail') or {}).get('assistant_lost') for r in rows):
+        return 'PARTIAL'
     return 'COMPLETE'
 
 

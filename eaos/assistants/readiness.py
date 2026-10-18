@@ -43,8 +43,11 @@ QUESTION = 'Reply with the single word: ready'
 PATTERNS = (
     ('sign_in_expired', r'refresh token (?:was )?already (?:been )?used|refresh_token_reused|refresh token.{0,40}(?:expired|invalid)'),
     ('not_signed_in', r'not logged in|please run /login|please log ?in|run `?codex login|invalid api key|authentication_error|unauthori[sz]ed|\b401\b'),
-    ('limit', r'usage limit|rate limit|quota|credit balance|too many requests|\b429\b'),
+    ('limit', r'usage limit|rate limit|(?:session|weekly|daily|opus) limit|hit your (?:\w+ )?limit|limit reached|quota|'
+              r'credit balance|too many requests|\b429\b'),
 )
+# When a spent limit comes back, as the assistant says it ("resets 7:10pm (UTC)", "try again at 5 PM").
+RESETS = re.compile(r'(?:resets?|try again)(?: at| in)? ([0-9][0-9:]*\s*(?:[ap]m\b|hours?\b|minutes?\b)?(?:\s*\([A-Za-z0-9+:-]+\))?)', re.IGNORECASE)
 
 
 class NoAssistant:
@@ -76,6 +79,12 @@ def classify(text):
     """The problem a failed call's words mean: sign_in_expired, not_signed_in, limit, or failed."""
     low = str(text or '').lower()
     return next((problem for problem, pattern in PATTERNS if re.search(pattern, low)), 'failed')
+
+
+def resets_at(text):
+    """When a spent usage limit comes back, in the assistant's own words, or None."""
+    found = RESETS.search(str(text or ''))
+    return found.group(1).strip() if found else None
 
 
 def _run(argv, timeout, stdin=None, cwd=None):
@@ -111,29 +120,29 @@ def _codex_status(path):
 
 
 def _claude_call(path, timeout):
-    """(answered, problem): the check's way of asking (no tool, no MCP server, nothing kept), on one word."""
+    """(answered, problem, what it said): the check's way of asking (no tool, no MCP server, nothing kept), on one word."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
         code, out, err = _run([path, '-p', '--tools', '', '--strict-mcp-config', '--no-session-persistence', '--output-format', 'json',
                                '--system-prompt', 'Answer in one word.', QUESTION], timeout, cwd=empty)
-    if code is None: return False, 'no_answer' if err == 'timeout' else 'failed'
+    if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
     try: envelope = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
     except ValueError: envelope = {}
     if code == 0 and isinstance(envelope, dict) and not envelope.get('is_error') and str(envelope.get('result') or '').strip():
-        return True, None
-    said = (str(envelope.get('result') or '') if isinstance(envelope, dict) else '') + '\n' + err
-    return False, classify(said)
+        return True, None, ''
+    said = (str(envelope.get('result') or '') if isinstance(envelope, dict) else '') + '\n' + out + '\n' + err
+    return False, classify(said), said
 
 
 def _codex_call(path, timeout):
-    """(answered, problem): `codex exec` as the check's adapter runs it (read-only, in an empty folder, nothing kept)."""
+    """(answered, problem, what it said): `codex exec` as the check's adapter runs it (read-only, in an empty folder, nothing kept)."""
     with tempfile.TemporaryDirectory(prefix='eaos-probe-') as empty:
         answer = os.path.join(empty, 'answer.txt')
         code, out, err = _run([path, 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',
                                '-s', 'read-only', '--color', 'never', '-C', empty, '-o', answer, '-'], timeout, stdin=QUESTION, cwd=empty)
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''
-    if code is None: return False, 'no_answer' if err == 'timeout' else 'failed'
-    if code == 0 and text.strip(): return True, None
-    return False, classify(out + '\n' + err)
+    if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
+    if code == 0 and text.strip(): return True, None, ''
+    return False, classify(out + '\n' + err), out + '\n' + err
 
 
 CHECKS = {'claude': (_claude_status, _claude_call), 'codex': (_codex_status, _codex_call)}
@@ -145,10 +154,14 @@ def check(name, timeout=TIMEOUT):
     row = {'id': name, 'name': NAMES[name], 'installed': False, 'version': None, 'ready': False, 'code': None,
            'command': name, 'checked_at': _now(), 'seconds': 0.0}
 
-    def done(problem=None):
+    def done(problem=None, said=''):
         row['ready'] = problem is None
         row['code'] = f'{name}_{problem}' if problem else f'{name}_ready'
         row['reason'] = words(row['code'])
+        back = resets_at(said) if problem == 'limit' else None
+        if back and row['reason']:
+            row['resets'] = back
+            row['reason'] = {'ar': f"{row['reason']['ar']} يتجدد حدّه: {back}.", 'en': f"{row['reason']['en']} It resets: {back}."}
         row['seconds'] = round(time.monotonic() - began, 1)
         return row
 
@@ -160,8 +173,8 @@ def check(name, timeout=TIMEOUT):
     row['version'] = (out.strip().splitlines() or [''])[0][:80] or None
     status, call = CHECKS[name]
     if status(path) is False: return done('not_signed_in')
-    answered, problem = call(path, timeout)
-    return done(None if answered else problem)
+    answered, problem, said = call(path, timeout)
+    return done(None if answered else problem, said)
 
 
 # ---------------------------------------------------------------- the short cache

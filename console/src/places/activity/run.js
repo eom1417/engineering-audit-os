@@ -7,7 +7,7 @@ import {
   live, store, model, client, derive, ac,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
-import { stagesOf, board, counts, finished, summary, span } from './stages.js';
+import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
 
 const enc = encodeURIComponent;
 const SHOWN = 60;                 // the newest timeline lines drawn; the rest one press away
@@ -40,13 +40,14 @@ const pathName = p => (has('ac.path.' + p) ? t('ac.path.' + p) : p);
 function checkLede(r, rs, list) {
   const at = { stage: num(Math.min(finished(list) + 1, list.length || 1)), total: num(list.length) };
   if (rs === 'done') {
-    const own = ac.flowOfRun(r);
+    const own = ac.flowOfRun(r), lost = list.filter(lostOf).length;
+    if (own && lost) return t('ac.run.check.lost.lede', { took: ac.minutes(ac.took(r) || 1), stages: tn('pl.stage', lost), problems: tn('pl.problem', model.totals().problems) });
     return own ? t('ac.run.check.done.lede', { took: ac.minutes(ac.took(r) || 1), problems: tn('pl.problem', model.totals().problems), health: model.health().score == null ? t('nm') : num(model.health().score) })
       : t('ac.run.done.lede', { took: ac.minutes(ac.took(r) || 1) });
   }
-  if (rs === 'you') return t('ac.run.check.you.lede');
+  if (rs === 'you') return t(live.signIn && live.signIn.asked ? 'ac.run.check.you.lede' : 'ac.run.check.q.lede');
   if (rs === 'paused') return t('ac.run.check.paused.lede', at);
-  if (rs === 'stopped') return t('ac.run.check.stopped.lede', at);
+  if (rs === 'stopped') return t(list.length ? 'ac.run.check.stopped.lede' : 'ac.run.check.stopped.early', at);
   if (rs === 'failed') return t('ac.run.failed.lede', { label: ac.runLabel(r) });
   if (rs === 'queued') return t('ac.run.queued.lede', { n: num(r.position || 1) });
   return list.length ? t('ac.run.check.lede', at) : t('ac.now.check');
@@ -65,6 +66,19 @@ function lede(r, rs, view, list) {
   if (branch && r.outcome === 'undone') return t('ac.run.r12.rejected');
   if (branch) return t('ac.run.r12.lede');
   return t('ac.run.done.lede2', { label: ac.runLabel(r), took: ac.minutes(ac.took(r) || 1) });
+}
+/** A check that ended with stages its assistant was lost in: which, why, when the assistant comes back, and the one
+ *  press that runs them again (from the first of them). */
+function lostHTML(r, rs, list) {
+  const lost = r.action === 'audit' && rs === 'done' ? list.filter(lostOf) : [];
+  if (!lost.length) return '';
+  const first = lostOf(lost[0]), who = first.assistant || t('ac.run.lost.who');
+  const why = /_limit$/.test(first.code) ? t('ac.run.lost.limit', { who }) : t('ac.run.lost.failed', { who });
+  return `<div class="panel ac-refuse" role="note" style="margin:12px 0">
+    <p><b>${esc(t('ac.run.lost.q', { stages: tn('pl.stage', lost.length) }))}</b> ${esc(why)}${first.resets ? ' ' + esc(t('ac.run.lost.resets', { at: first.resets })) : ''}</p>
+    <p class="small ink-2">${esc(lost.map(s => stageTitle(s.id)).join(t('list.sep')))}</p>
+    <div class="actions" style="margin-top:8px"><button class="btn btn--primary" data-act="sheet" data-sheet="redo:${esc(lost[0].id)}" data-fk="lost-redo">${t('ac.run.lost.act')}</button></div>
+    <p class="small ink-2">${t('ac.run.lost.how')}</p></div>`;
 }
 function guide(r, rs, list) {
   if (r.action === 'audit') {
@@ -287,6 +301,7 @@ function runPage(ctx) {
     ${top}
     <h1 class="lede">${esc(lede(r, rs, view, list))}</h1>
     ${said ? `<p class="guide">${said}</p>` : ''}
+    ${lostHTML(r, rs, list)}
     ${view.now && ['running', 'paused'].includes(rs) ? `<p class="small ink-2" role="status">${rich(L(view.now))}</p>` : ''}
     ${actionsHTML(r, rs)}
     ${stamp}

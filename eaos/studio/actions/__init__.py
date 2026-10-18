@@ -73,6 +73,9 @@ def _bound(selection, where, auto):
     return {'bound': bound, 'auto_accept': True} if auto else bound
 
 
+# The run controls as the person reads them on the button they pressed (en, ar).
+PRESSED = {'pause': ('Pause', 'أوقف مؤقتًا'), 'resume': ('Resume', 'كمّل'), 'stop': ('Stop', 'أوقف'), 'retry': ('Try again', 'أعد المحاولة')}
+
 class Refused(Exception):
     def __init__(self, status, reason, **extra):
         super().__init__(reason)
@@ -248,7 +251,8 @@ class Actions:
     def run_operation(self, run, operation, body, route):
         self.store.load(run)
         if operation in ('pause', 'resume', 'stop', 'retry'):
-            self.store.append(run, 'action', {'en': f'You pressed {operation}', 'ar': f'ضغطت {operation}'}, {'action': operation, 'by': 'person', 'arguments': {}})
+            pressed = PRESSED[operation]
+            self.store.append(run, 'action', {'en': f'You pressed {pressed[0]}', 'ar': f'ضغطت «{pressed[1]}»'}, {'action': operation, 'by': 'person', 'arguments': {}})
             return {'run': self.public(getattr(self.manager, operation)(run))}
         if operation in ('accept', 'undo'): return self.decide(run, operation, body)
         raise KeyError(route)

@@ -104,6 +104,21 @@ class ExecutionTests(unittest.TestCase):
                          (UNAVAILABLE, 'no provider'))
         self.assertEqual(manifest['status'], 'COMPLETE')
         self.assertIn('did not run', written['limits'])
+        # the assistant the check was given stopped midway (its limit, 2026-10-18): the stages after it still run, but
+        # the check is PARTIAL, never COMPLETE, and the lost stage says when the assistant comes back
+        lost = SkipStage('during the check Claude Code stopped answering (claude_limit)', code='claude_limit',
+                         lost={'assistant': 'claude', 'resets': '7:10pm (UTC)'})
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = execute('.', directory, runners=fake_runners(ideal=lost))
+        row = manifest['stages']['ideal']
+        self.assertEqual((row['status'], row['reason_code'], row['detail']['assistant_lost']['resets']), (UNAVAILABLE, 'claude_limit', '7:10pm (UTC)'))
+        self.assertEqual(manifest['status'], 'PARTIAL')
+        self.assertEqual(manifest['stages']['order']['status'], OK, 'what comes after a lost stage still runs')
+        with tempfile.TemporaryDirectory() as directory:     # the lost stage keeps its earlier time for the estimate
+            execute('.', directory, runners=fake_runners())
+            execute('.', directory, runners=fake_runners(ideal=lost))
+            from eaos.progress.log import previous_seconds
+            self.assertIn('ideal', previous_seconds(directory))
         manifest, _ = self._run(only=['facts'], runners=fake_runners())
         self.assertEqual(manifest['stages']['facts']['status'], OK)
         self.assertEqual((manifest['stages']['claims']['status'], manifest['stages']['claims']['reason']),

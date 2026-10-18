@@ -24,6 +24,7 @@ case "$FAKE_MODE" in
   quiet) sleep 5;;
   call_signed_out) echo '{"type":"result","is_error":true,"result":"Not logged in · Please run /login"}'; exit 1;;
   limit) echo '{"type":"result","is_error":true,"result":"Claude AI usage limit reached"}'; exit 1;;
+  session_limit) echo "You've hit your session limit · resets 7:10pm (UTC)"; exit 1;;
   leaky) echo "token sk-ant-SECRET-123 rejected: something odd" >&2; exit 1;;
 esac
 '''
@@ -97,6 +98,10 @@ class Probe(unittest.TestCase):
                 row = readiness.probe(name, fresh=True)
                 self.assertEqual((row['installed'], row['ready'], row['code']), (True, False, code))
         self.assertIn('codex login', row['reason']['en'], 'a used refresh token: not ready though its status says logged in')
+        self.mode('session_limit')     # Claude Code's own words on a spent session (2026-10-18), plain text, not JSON
+        row = readiness.probe('claude', fresh=True)
+        self.assertEqual((row['code'], row.get('resets')), ('claude_limit', '7:10pm (UTC)'))
+        self.assertIn('7:10pm (UTC)', row['reason']['ar'], 'the person reads when it comes back, not a vague error')
 
     def test_no_answer_in_time_and_both_are_asked_side_by_side(self):
         self.mode('quiet')
@@ -165,6 +170,8 @@ class Probe(unittest.TestCase):
         self.assertEqual(readiness.classify('Your refresh token was already used'), 'sign_in_expired')
         self.assertEqual(readiness.classify('Not logged in · Please run /login'), 'not_signed_in')
         self.assertEqual(readiness.classify('429 Too Many Requests'), 'limit')
+        self.assertEqual(readiness.classify("You've hit your weekly limit"), 'limit')
+        self.assertIsNone(readiness.resets_at('segfault'))
         self.assertEqual(readiness.classify('segfault'), 'failed')
         self.assertFalse(readiness.NoAssistant('ai_declined', 'x'))
         with self.assertRaises(ValueError): readiness.probe('gemini')

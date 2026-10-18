@@ -432,7 +432,8 @@ def overview(project=None):
                       'examples': [t['id'] for t in sorted(rows, key=lambda t: -(t.get('priority') or 0))[:3]]})
     claims = _read(report / 'dossier.json').get('claim_counts') if (report / 'dossier.json').is_file() else None
     return {'project': state['project'], 'checked_commit': state.get('scanned_commit'), 'status': manifest.get('status'),
-            'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items() if row.get('status') in ('failed', 'not_reached')],
+            'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items()
+                                  if row.get('status') in ('failed', 'not_reached') or (row.get('detail') or {}).get('assistant_lost')],
             'counts': summary_counts(report), 'claims_by_confidence': claims, 'problem_kinds': kinds,
             'milestones': [{'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'cards': len(m['tasks']),
                             'fixable_automatically': sum(_ready(t) for t in tasks if t['id'] in set(m['tasks']))}
