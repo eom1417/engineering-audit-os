@@ -2,7 +2,7 @@
     <div class="fact__top"><span>${e.engine?`<span class="fact__engine">${(0,n.esc)(e.engine)}</span> `:""}${(0,n.code)(e.kind)}</span>
       <button class="btn btn--quiet btn--sm" data-act="sheet" data-sheet="fact:${(0,n.esc)(e.id)}">${(0,n.t)("pd.ev.open")}</button></div>
     ${ue(e)}
-    <p class="fact__sum" dir="auto">${(0,n.rich)((0,n.L)(e.summary))}</p>
+    <p class="fact__sum">${(0,n.rich)((0,n.L)(e.summary))}</p>
     ${e.code&&a?D(e.code):e.code?"":`<p class="small muted">${G(e,l)}</p>`}
     ${J(e)}
   </div>`}function be(e){let a=e.decision;if(a&&a.state==="fixes")return`<div class="ai-block"><span class="ai-block__label">${(0,n.icon)("ai","icon--sm")}${(0,n.t)("ai.label")}</span><p style="margin-top:4px">${(0,n.rich)((0,n.L)(a.text))}</p>
@@ -27,7 +27,7 @@
       <div class="verbs">${d}</div>
       <label class="small ink-2" style="display:inline-flex;align-items:center;gap:12px;margin-top:4px">${(0,n.chk)(`data-change="sel" value="${(0,n.esc)(e.id)}" data-fk="dsel-${(0,n.esc)(e.id)}"`,n.selection.picked.ids.has(e.id),(0,n.t)("pd.select"))}<span style="margin-inline-start:10px">${(0,n.t)("pd.select")}</span></label>
     </header>
-    ${e.why?`<section class="psec"><h2>${(0,n.t)("pd.why")}</h2><p>${(0,n.esc)((0,n.L)(e.why))}</p></section>`:""}
+    ${e.why?`<section class="psec"><h2>${(0,n.t)("pd.why")}</h2><p>${(0,n.rich)((0,n.L)(e.why))}</p></section>`:""}
     <section class="psec"><h2>${(0,n.t)("pd.decision")}</h2>${be(e)}</section>
     <section class="psec"><h2>${(0,n.t)("pd.where")}</h2><ul class="places">${f}</ul>
       <dl class="facts" style="margin-top:12px"><dt>${(0,n.t)("pd.component")}</dt><dd>${(0,n.code)(g(e))}</dd><dt>${(0,n.t)("pd.area")}</dt><dd>${(0,n.t)("area."+(e.category||"none"))}</dd><dt>${(0,n.t)("pd.kind")}</dt><dd>${(0,n.esc)(B(e.kind))}</dd></dl></section>
@@ -39,7 +39,7 @@
       <details class="fold" style="border-top:1px solid var(--line)" ${n.S.notes[e.id]?"open":""}><summary>${(0,n.icon)("note","muted")}<span class="row__main"><span class="row__title">${(0,n.t)("pd.note")}</span></span>${(0,n.icon)("chev","chev")}</summary>
         <div class="fold__body" style="display:grid;gap:8px">${ve(e)}</div></details>
     </div>
-  </article>`}(0,n.sheet)("fact",{needs:["cards","evidence"],kind:"drawer",render(e){let a=n.model.fact(e);return a?{title:`${a.engine?(0,n.esc)(a.engine)+" ":""}${(0,n.code)(a.kind)}`,sub:(0,n.code)(e),body:`<p dir="auto">${(0,n.rich)((0,n.L)(a.summary))}</p>
+  </article>`}(0,n.sheet)("fact",{needs:["cards","evidence"],kind:"drawer",render(e){let a=n.model.fact(e);return a?{title:`${a.engine?(0,n.esc)(a.engine)+" ":""}${(0,n.code)(a.kind)}`,sub:(0,n.code)(e),body:`<p>${(0,n.rich)((0,n.L)(a.summary))}</p>
         <dl class="facts"><dt>${(0,n.t)("pd.kind")}</dt><dd>${(0,n.code)(a.kind)}</dd>${a.path?`<dt>${(0,n.t)("pd.where")}</dt><dd>${(0,n.code)(a.path+(a.line!=null?":"+a.line:""))}</dd>`:""}</dl>
         ${a.code?D(a.code):`<p class="small muted">${G(a,[])}</p>`}
         ${J(a)}

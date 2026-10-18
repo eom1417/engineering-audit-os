@@ -33,7 +33,7 @@ function factHTML(f, first, earlier) {
     <div class="fact__top"><span>${f.engine ? `<span class="fact__engine">${esc(f.engine)}</span> ` : ''}${code(f.kind)}</span>
       <button class="btn btn--quiet btn--sm" data-act="sheet" data-sheet="fact:${esc(f.id)}">${t('pd.ev.open')}</button></div>
     ${where(f)}
-    <p class="fact__sum" dir="auto">${rich(L(f.summary))}</p>
+    <p class="fact__sum">${rich(L(f.summary))}</p>
     ${f.code && first ? codeBlock(f.code) : f.code ? '' : `<p class="small muted">${noCode(f, earlier)}</p>`}
     ${others(f)}
   </div>`;
@@ -106,7 +106,7 @@ export function detailHTML(p, ctx) {
       <div class="verbs">${verbs}</div>
       <label class="small ink-2" style="display:inline-flex;align-items:center;gap:12px;margin-top:4px">${chk(`data-change="sel" value="${esc(p.id)}" data-fk="dsel-${esc(p.id)}"`, selection.picked.ids.has(p.id), t('pd.select'))}<span style="margin-inline-start:10px">${t('pd.select')}</span></label>
     </header>
-    ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${esc(L(p.why))}</p></section>` : ''}
+    ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${rich(L(p.why))}</p></section>` : ''}
     <section class="psec"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
     <section class="psec"><h2>${t('pd.where')}</h2><ul class="places">${places}</ul>
       <dl class="facts" style="margin-top:12px"><dt>${t('pd.component')}</dt><dd>${code(component(p))}</dd><dt>${t('pd.area')}</dt><dd>${t('area.' + (p.category || 'none'))}</dd><dt>${t('pd.kind')}</dt><dd>${esc(kindWord(p.kind))}</dd></dl></section>
@@ -131,7 +131,7 @@ sheet('fact', {
     return {
       title: `${f.engine ? esc(f.engine) + ' ' : ''}${code(f.kind)}`,
       sub: code(id),
-      body: `<p dir="auto">${rich(L(f.summary))}</p>
+      body: `<p>${rich(L(f.summary))}</p>
         <dl class="facts"><dt>${t('pd.kind')}</dt><dd>${code(f.kind)}</dd>${f.path ? `<dt>${t('pd.where')}</dt><dd>${code(f.path + (f.line != null ? ':' + f.line : ''))}</dd>` : ''}</dl>
         ${f.code ? codeBlock(f.code) : `<p class="small muted">${noCode(f, [])}</p>`}
         ${others(f)}

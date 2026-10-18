@@ -8,7 +8,13 @@ export function esc(s) {
 }
 export function icon(name, cls) { return `<svg class="icon ${cls || ''}" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
 export function code(s) { return `<bdi class="mono">${esc(s)}</bdi>`; }
+/** A report text: isolated in its own script's direction (an Arabic sentence stays right to left on an English
+ *  page, an engine's English line left to right on an Arabic one), with its paths and symbols isolated left to right. */
 export function rich(s) {
+  const dir = /[\u0600-\u06FF]/.test(String(s || '')) ? 'rtl' : 'ltr';
+  return `<bdi dir="${dir}">${richInner(s)}</bdi>`;
+}
+function richInner(s) {
   return esc(s).replace(/[A-Za-z0-9_$@\-]+(?:[\/.=:][A-Za-z0-9_$@\-*]+)+/g, m => `<bdi class="tpath">${m.replace(/([\/.])/g, '$1<wbr>')}</bdi>`);
 }
 export function sev(level, withWord) {

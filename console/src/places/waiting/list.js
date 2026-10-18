@@ -3,7 +3,7 @@
 // delivered (live runs that handed a branch over and wait for a decision), the report's decisions with the answers
 // saved in the live console, the sign-in a check waits for and the questions runs ask (their own screens, builder A).
 import {
-  t, tn, L, num, esc, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
+  t, tn, L, num, esc, rich, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk,
 } from 'eaos';
 
@@ -29,19 +29,19 @@ function savedHTML(d) {
 
 function decisionCard(d, full) {
   const head = `<div class="wcard__meta">${sourceLine(d)}</div>
-    <h3 class="${full ? 'sr-only' : 'wcard__q'}" id="wq-${esc(d.id)}">${full ? '' : `<a href="${href('/waiting/' + enc(d.id))}" style="color:inherit;text-decoration:none">`}${esc(L(d.question))}${full ? '' : '</a>'}</h3>`;
+    <h3 class="${full ? 'sr-only' : 'wcard__q'}" id="wq-${esc(d.id)}">${full ? '' : `<a href="${href('/waiting/' + enc(d.id))}" style="color:inherit;text-decoration:none">`}${rich(L(d.question))}${full ? '' : '</a>'}</h3>`;
   if (d.state === 'answered') return `<article class="panel wcard wcard--done" id="w-${esc(d.id)}" aria-labelledby="wq-${esc(d.id)}">${head}${savedHTML(d)}</article>`;
   const lock = offline();
   const recommended = d.recommended;
   const opts = d.options.slice().sort((a, b) => (a.id === recommended ? -1 : b.id === recommended ? 1 : 0));
   const chosen = S.chosen[d.id];
   const reco = d.recommendation ? (d.source === 'screens' || d.source === 'card'
-    ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span><p class="small" style="margin-top:4px">${esc(L(d.recommendation))}</p></div>`
-    : `<div class="small ink-2"><b class="ink-2">${t('wt.reco')}:</b> ${esc(L(d.recommendation))}</div>`) : '';
+    ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span><p class="small" style="margin-top:4px">${rich(L(d.recommendation))}</p></div>`
+    : `<div class="small ink-2"><b class="ink-2">${t('wt.reco')}:</b> ${rich(L(d.recommendation))}</div>`) : '';
   const radios = opts.map(o => `<label class="opt">
       <input type="radio" name="opt-${esc(d.id)}" value="${esc(o.id)}" data-change="choose" data-id="${esc(d.id)}" data-fk="opt-${esc(d.id)}-${esc(o.id)}" ${chosen === o.id ? 'checked' : ''} ${lock ? 'disabled' : ''}>
       <span class="opt__dot" aria-hidden="true"></span>
-      <span class="opt__text">${esc(L(o.label))}${o.id === recommended ? `<span class="tag tag--you">${t('wt.recommended')}</span>` : ''}</span></label>`).join('');
+      <span class="opt__text">${rich(L(o.label))}${o.id === recommended ? `<span class="tag tag--you">${t('wt.recommended')}</span>` : ''}</span></label>`).join('');
   const ownOpen = S.ownOpen[d.id];
   const own = ownOpen ? `<div class="own" style="display:grid;gap:8px">
       <label class="sr-only" for="own-${esc(d.id)}">${t('wt.own')}</label>
@@ -51,7 +51,7 @@ function decisionCard(d, full) {
   const sendOff = lock || sending || !(chosen || (ownOpen && (S.own[d.id] || '').trim()));
   return `<article class="panel wcard" id="w-${esc(d.id)}" aria-labelledby="wq-${esc(d.id)}">
     ${head}${reco}
-    <fieldset class="opts" style="border:0;padding:0;margin:0"><legend class="sr-only">${esc(L(d.question))}</legend>${radios}</fieldset>
+    <fieldset class="opts" style="border:0;padding:0;margin:0"><legend class="sr-only">${rich(L(d.question))}</legend>${radios}</fieldset>
     ${own}
     ${lock ? `<p class="small muted">${icon('lock', 'icon--sm')} ${t('wt.offline')}</p>` : ''}
     <div class="wcard__actions">
@@ -119,7 +119,7 @@ function decided() {
   model.decisions().filter(d => d.state === 'answered').forEach(d => {
     const opt = d.options.find(o => o.id === (d.saved ? d.saved.option : d.answer));
     const answer = opt ? L(opt.label) : d.saved ? d.saved.text || '' : '';
-    rows.push(`<li class="row"><span class="row__main"><span class="row__title">${esc(L(d.question))}</span>
+    rows.push(`<li class="row"><span class="row__main"><span class="row__title">${rich(L(d.question))}</span>
       <span class="row__meta" style="display:block">${esc(t('wt.decided.row', { answer }))}${d.saved && d.saved.at ? `. ${esc(t('wt.decided.by', { when: fmtWhen(d.saved.at) }))}` : ''}</span></span>
       <button class="btn btn--icon" data-act="copy" data-text="${esc(`"${L(d.question)}" — ${answer} (eaos answer ${d.id} ${opt ? opt.id : ''})`)}" aria-label="${esc(t('wt.decided.copy'))}">${icon('copy')}</button></li>`);
   });
@@ -174,20 +174,20 @@ screen({
   render(ctx) {
     const id = ctx.params.id;
     const run = runOf(id), d = model.decisions().find(x => x.id === id);
-    let card = '', lede = t('wt.place'), waits = false;
+    let card = '', lede = esc(t('wt.place')), waits = false;
     if (run && run.result && run.result.branch) {
-      lede = t('wt.fix.title');
+      lede = esc(t('wt.fix.title'));
       waits = store.awaitsApproval(run);
       card = waits ? branchCard(run, true) : `<div class="panel wcard wcard--done"><h3 class="wcard__q">${code(run.result.branch)}</h3><p class="small">${esc(run.outcome ? outcomeLine(run) : t('wt.fix.notwaiting'))}</p></div>`;
     } else if (d) {
-      lede = L(d.question);
+      lede = rich(L(d.question));
       waits = d.state === 'waiting';
       card = decisionCard(d, true);
     }
     if (!card) card = `<div class="empty panel"><p class="empty__title">${esc(t(live.loaded || offline() ? 'pd.notfound' : 'st.loading', { id }))}</p><a class="btn btn--secondary" href="${href('/waiting')}">${t('wt.item.back')}</a></div>`;
     return `<div class="page">
       <a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>
-      <h1 class="lede" style="margin-top:8px">${esc(lede)}</h1>
+      <h1 class="lede" style="margin-top:8px">${lede}</h1>
       ${waits ? `<p class="guide">${t(run ? 'wt.item.guide.b' : 'wt.item.guide.q')}</p>` : ''}
       <div style="margin-top:20px">${card}</div></div>`;
   },
