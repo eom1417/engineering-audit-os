@@ -13,7 +13,6 @@ from tests.shared_fixture import Workspace
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
-GALLERY = ROOT / 'studio/src/pages/data/fixture.json'
 
 
 def _fact(kind, path, line, value, fid, resolution=None):
@@ -182,13 +181,12 @@ class Infra(Workspace):
         self.assertEqual((lanes['queues']['state'], lanes['queues']['reason'], lanes['queues']['count']['value']), ('empty', 'no_known_queue_library', 0))
         services = lanes['services']
         self.assertEqual((len(services['nodes']), len(services['nodes']) + len(services['folded'])), (MAX_LANE_NODES - 1, 20), 'a crowded lane folds')
-        # tests/fixtures/studio/v2/{data_paths,infra}.json and the Studio's studio/src/pages/data/fixture.json are written by
+        # tests/fixtures/studio/v2/{data_paths,infra}.json are written by
         # `python -m tests.test_studio_data_map --write-fixtures`
         bodies = {'data_paths': data_paths(Path(self.tmp)), 'infra': body}
         for name, section in bodies.items():
             self.assertEqual(json.loads((FIXTURES / f'{name}.json').read_text(encoding='utf-8')),
                              {'schema_version': 1, 'contract': 1, 'revision': 2, **section}, name)
-        self.assertEqual(json.loads(GALLERY.read_text(encoding='utf-8')), bodies)
 
 
 def write_fixtures():
@@ -198,7 +196,6 @@ def write_fixtures():
     for name, body in bodies.items():
         text = json.dumps({'schema_version': 1, 'contract': 1, 'revision': 2, **body}, ensure_ascii=False, indent=1)
         (FIXTURES / f'{name}.json').write_text(text + '\n', encoding='utf-8')
-    GALLERY.write_text(json.dumps(bodies, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':

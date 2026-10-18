@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "https://eaos.local/schemas/progress.json",
  "title": "Progress event — one line of a flow's progress file (eaos/progress/log.py)",
- "description": "Every long piece of work EAOS does (a flow: check, setup, safety, fix) appends one JSON line per event to its progress file as it happens. Version 1; run.started carries the version in `schema`. A reader folds the lines into one state per flow (eaos/progress/fold.py, studio/src/data/scan.ts). Every declared stage gets exactly one stage.ended; done never exceeds total; a counted step that ends ok ends with done == total.",
+ "description": "Every long piece of work EAOS does (a flow: check, setup, safety, fix) appends one JSON line per event to its progress file as it happens. Version 1; run.started carries the version in `schema`. A reader folds the lines into one state per flow (eaos/progress/fold.py). Every declared stage gets exactly one stage.ended; done never exceeds total; a counted step that ends ok ends with done == total.",
  "x-version": 1,
  "oneOf": [
   {

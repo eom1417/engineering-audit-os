@@ -43,7 +43,7 @@ src/core/                       the runtime every place shares (one bundle)
   search.js      Search or ask (Ctrl/Cmd+K)        menu.js   the project menu, "Open it live"
   assist.js      the floating assistant (the conversation itself comes from the Ask place: EAOS.askAPI)
   i18n.js prefs.js settings.js format.js notices.js events.js state.js outline.js loading.js a11y.js
-src/data/                       the data layer (ported from studio/src/data, the logic, not the look)
+src/data/                       the data layer: the report, the live API and its feed
   source.js      the report's sections: live API or the read-only copy's .js twins; need(), section(), reload()
   sse.js         server-sent events over fetch, with Last-Event-ID
   actions.js     the action API client (previews, runs, control, questions, decisions, branches, sign-in…)

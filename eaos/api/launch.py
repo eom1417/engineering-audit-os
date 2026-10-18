@@ -198,7 +198,7 @@ def _write_record(state, record):
 
 def url_of(record, route=''):
     """The Studio's address; `route` (`/scan`, the live map) opens that page. It carries the launch token, kept across
-    restarts so the address stays the same, in the route's query when there is a route (studio/public/boot.js reads
+    restarts so the address stays the same, in the route's query when there is a route (console/src/boot.js reads
     both): no program on this computer can ask the server for it. Only a Remote address behind the Remote sign-in is
     plain (`page_reads_token`): its page reads the token from its server, which never gives it to this computer."""
     origin = record.get('remote_origin') or f"http://127.0.0.1:{record['port']}"

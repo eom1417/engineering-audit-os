@@ -143,8 +143,6 @@ class Section(Workspace):
         self.assertAlmostEqual(areas[0] / areas[1], 2, places=6)
         source = Path(territory.__file__).read_text(encoding='utf-8')
         self.assertNotIn('numpy', source.split('"""', 2)[2])
-        drawing = (Path(__file__).resolve().parents[1] / 'studio/src/map/TerritoryMap.tsx').read_text(encoding='utf-8')
-        self.assertIn('preserveAspectRatio="xMidYMid meet" direction="ltr"', drawing)
 
 
 if __name__ == '__main__':

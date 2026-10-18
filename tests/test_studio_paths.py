@@ -173,8 +173,6 @@ class Paths(Workspace):
         self.assertEqual(artifact_contracts.validate(data, contracts['studio-paths']), [])
         source = (ROOT / 'tests/fixtures/studio/v2/paths.json').read_bytes()
         self.assertEqual(artifact_contracts.validate(json.loads(source), contracts['studio-paths']), [])
-        # the Studio's gallery draws the same fixture, mirrored byte for byte inside studio/
-        self.assertEqual((ROOT / 'studio/src/pages/paths/fixture.json').read_bytes(), source)
         with tempfile.TemporaryDirectory() as folder:
             write_report(folder)
             result = export.export(folder, 'en', name='demo')

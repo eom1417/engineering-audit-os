@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased (2026-10-17)
+## Unreleased (2026-10-18)
+
+- **The new Studio is the only one**: the console (`console/`, built into `eaos/data/studio`) replaced the old React
+  Studio, whose folder (`studio/`, its 490 MB of packages with it) and its redesign plan are deleted.
+- **A check never says complete when its assistant was lost midway**: Claude Code's "session limit" is read as a usage
+  limit with the time it resets; the stages it could not run make the check PARTIAL, are named on the check's page with
+  when the assistant comes back, and one press runs them again with a real estimate of their time. The Studio follows
+  only the check that started its stages, and reads the report again when a check ends or the tab is seen again.
+
+## 2026-10-17
 
 - **The Studio regrouped into five sections** (Overview, Checks, Problems, Fixes, System) with System's nine maps folded
   under it in four categories, Library and Settings below, and four tabs and More on the phone; every job is three

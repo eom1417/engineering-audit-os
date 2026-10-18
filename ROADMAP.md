@@ -9,7 +9,6 @@ fake assistant: check → change → check again → fix three cards with one fa
 - **The proof of 0.0.34**: one full check of EAOS from the Studio with the assistant (CodeQL on Python, the speed baseline
   on EAOS's real server, the translation memory, the screen review of the 33 design fixes), then a fix batch of the
   cards left: the five module splits after their simplifications, and the cards whose finish line is now precise.
-- **The old Studio pages deleted** once the owner has tried the new layout (`docs/STUDIO-REDESIGN.md` §9).
 - **The Studio lighter still**: diagrams drawn with the report instead of Mermaid in the browser, the functions section
   paged on the server, and the server start rebuilding only the sections that changed.
 - **Accessibility problems measured by axe become cards without the assistant**; today the look path without AI pictures

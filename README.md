@@ -234,7 +234,7 @@ follow [`SECURITY.md`](SECURITY.md). Everyone taking part follows the [Code of C
 ```bash
 bash tools/dev_setup.sh                                             # the environment and every tool, pinned
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd studio && npm run build)                                        # the Studio: style, types, tests, build
+(cd console && npm run build)                                       # the Studio: built into eaos/data/studio, within its budgets
 ```
 
 ## License

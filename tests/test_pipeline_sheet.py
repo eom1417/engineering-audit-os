@@ -13,26 +13,10 @@ ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / 'tests/fixtures/studio/v2/pipeline.json'
 
 
-GALLERY = ROOT / 'studio/src/pages/pipeline/fixture.json'
 
 
 def fixture():
     return json.loads(FIXTURE.read_text(encoding='utf-8'))
-
-
-def gallery_fixture():
-    """The gallery keeps the claims pipeline and the AI-node registry pipeline from the contract fixture.
-    Rewrite it with: python -m tests.test_pipeline_sheet --write"""
-    data = fixture()
-    keep = {next(s['pipeline'] for s in data['stages'] if s['label'] == 'claims')}
-    keep.update(p['id'] for p in data['pipelines'] if p['id'].endswith(':NODES'))
-    mine = lambda rows: [r for r in rows if r.get('pipeline') in keep]
-    views = data['views']
-    return {**data, 'pipelines': [p for p in data['pipelines'] if p['id'] in keep],
-            **{k: mine(data[k]) for k in ('stages', 'edges', 'routers', 'fans', 'control', 'error_lanes', 'hidden', 'unresolved')},
-            'views': {'current': {'stages': [s['id'] for s in mine(data['stages'])], 'edges': [e['id'] for e in mine(data['edges'])]},
-                      'ideal': {**views['ideal'], 'stages': mine(views['ideal']['stages']), 'edges': mine(views['ideal']['edges'])},
-                      'gap': mine(views['gap'])}}
 
 
 class PipelineSheet(unittest.TestCase):
@@ -66,14 +50,6 @@ class PipelineSheet(unittest.TestCase):
         self.assertEqual(page.count('id="pipeline-sheet"'), 1)
         self.assertIn('class="l-ar" lang="ar">خط المعالجة', page)
 
-    def test_the_studio_gallery_draws_the_contract_fixture(self):
-        self.assertEqual(json.loads(GALLERY.read_text(encoding='utf-8')), gallery_fixture(),
-                         'rewrite it: python -m tests.test_pipeline_sheet --write')
-
 
 if __name__ == '__main__':
-    import sys
-    if '--write' in sys.argv:
-        GALLERY.write_text(json.dumps(gallery_fixture(), ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
-    else:
-        unittest.main()
+    unittest.main()
