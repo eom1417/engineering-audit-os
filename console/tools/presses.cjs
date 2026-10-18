@@ -27,8 +27,24 @@ async function discover(page) {
     const p = problems.find(x => (x.evidence || []).some(id => E.model.fact(id) && E.model.fact(id).code)) || problems[0];
     const d = E.model.decisions().find(x => x.state === 'waiting');
     const run = E.store.awaiting()[0];
+    /* builder A's: the last check, a run that ended badly, a run that handed a branch over, a branch to merge or
+       delete, one in conflict, a deleted one to restore (the scratch home makes them; a recipe without one fails) */
+    const runs = E.ac.runs(), check = E.ac.lastCheck();
+    const failedStage = check && E.ac.checkFlow() ? (E.ac.checkFlow().stages.find(s => s.state === 'ok') || {}).name : null;
+    const inv = E.client ? await E.client.branches.inventory().catch(() => null) : null;
+    const locals = inv ? inv.branches.filter(b => b.kind === 'local' && !b.protected && !b.work && !(b.roles || []).includes('analysis')) : [];
+    let branch = null, conflict = null;
+    for (const b of locals) {
+      const det = await E.client.branches.detail(b.name).catch(() => null);
+      const m = det && det.commands.merge;
+      if (m && m.available && !conflict) { const pv = await E.client.branches.previewMerge(b.name).catch(() => null); if (pv && pv.conflicts.length) conflict = b.name; else if (!branch) branch = b.name; }
+    }
+    const restore = inv && (inv.recovery || []).find(r => !r.restored);
     return { problem: p && p.id, fact: p && p.evidence[0], decision: d && d.id, run: run && run.id, first: problems[0] && problems[0].id,
-      total: E.model.totals().problems, version: E.model.project().eaos_version };
+      total: E.model.totals().problems, version: E.model.project().eaos_version,
+      check: check && check.id, stage: failedStage, ended: (runs.find(r => ['failed', 'stopped', 'unchanged'].includes(r.state)) || {}).id,
+      branchRun: (run || runs.find(r => r.result && r.result.branch) || {}).id, handoff: (runs.find(r => r.mode === 'handoff') || {}).id,
+      branch, conflict, restore: restore && restore.id };
   });
 }
 
@@ -44,8 +60,12 @@ function recipes(ids) {
   const UV = v => `#main a[href="#/understand/${v}"]`;
   const T6 = `#main a[href^="#/problems/${ids.problem}"]`;
   const BR = '#main .context a[href="#/project/branches"]';
-  const FEAT = '#main a[href="#/project/branches/feature%2Flogin-by-hand"]';
-  const R12 = '#main a[href="#/activity/run/R-12"]';
+  const enc = encodeURIComponent;
+  const FEAT = `#main a[href="#/project/branches/${enc(ids.branch || '')}"]`;
+  const RUN = id => `#main a[href="#/activity/run/${id}"]`;
+  const R12 = RUN(ids.branchRun);
+  const ALL = '#main a[href="#/activity/runs"]';
+  const LIVE = { ph: { steps: ['.live-strip'] }, dk: { steps: ['.side-live'] }, note: 'live: needs a run holding the slot (checked in the end-to-end gate)' };
   const L = (id, steps, expect, more) => Object.assign({ steps, expect }, more || {});
 
   const R = {
@@ -69,29 +89,29 @@ function recipes(ids) {
     'CHK-04': L(0, [NAV('activity'), CHECK], ['vis:.sheet.is-open label:has(input[value="claude"])', 'vis:.sheet.is-open label:has(input[value="rules"])']),
     'CHK-05': L(0, [PM, PMROW('/project/tools')], ['hash:/project/tools', 'vis:#main h1']),
     'CHK-06': L(0, [PM, PMROW('/project/assistants')], ['hash:/project/assistants', 'vis:#main [data-act="ac-asst-again"]']),
-    'CHK-07': L(0, [], ['hash:/activity/run/R-14'], { start: '/status?state=running', ph: { steps: ['.live-strip'] }, dk: { steps: ['.side-live'] } }),
-    'CHK-08': L(0, ['#fold-about > summary', '#fold-about a[href="#/activity/run/R-11"]'], ['hash:/activity/run/R-11', 'vis:#main [data-sheet="stage:facts"]']),
-    'CHK-09': L(0, ['#fold-about > summary', '#fold-about [data-sheet="stage:triage"]'], ['sheet:stage:triage']),
-    'CHK-10': L(0, ['#fold-about > summary', '#fold-about [data-sheet="stage:triage"]', `${SH} [data-sheet^="redo:"]`], ['sheet:redo']),
-    'CHK-11': L(0, [NAV('activity'), '#main a[href="#/activity/run/R-11"]', '#main a[href*="replay=10"]'], ['hash:replay=10']),
-    'CHK-12': L(0, [NAV('activity'), '#main a.ac-now__head'], ['hash:/activity/run/'], { start: '/status?state=running' }),
+    'CHK-07': L(0, [], ['hash:/activity/run/'], LIVE),
+    'CHK-08': L(0, ['#fold-about > summary', `#fold-about a[href="#/activity/run/${ids.check}"]`], [`hash:/activity/run/${ids.check}`, 'vis:#main [data-sheet^="stage:"]']),
+    'CHK-09': L(0, ['#fold-about > summary', `#fold-about a[href="#/activity/run/${ids.check}"]`, `#main [data-sheet="stage:${ids.stage}"]`], ['sheet:stage:']),
+    'CHK-10': L(0, [NAV('activity'), RUN(ids.check), `#main [data-sheet="stage:${ids.stage}"]`, `${SH} [data-sheet^="redo:"]`], ['sheet:redo']),
+    'CHK-11': L(0, [NAV('activity'), RUN(ids.check), '#main a[href*="replay=10"]'], ['hash:replay=10', 'vis:#main .ac-stamp']),
+    'CHK-12': L(0, [NAV('activity')], ['txt:ac.flow.tools']),
     /* ---- APP ---- */
     'APP-01': L(0, [MORE, `${SH} [data-sheet="action:run_setup"]`], ['sheet:action:run_setup']),
     'APP-02': L(0, [MORE, `${SH} [data-sheet="action:run_try"]`], ['sheet:action:run_try']),
     'APP-03': L(0, [MORE, `${SH} [data-sheet="action:safety_net"]`], ['sheet:action:safety_net']),
     /* ---- RUN ---- */
-    'RUN-01': L(0, [], ['vis:.live-strip, .side-live'], { start: '/status?state=running', note: 'visible on every screen while a run holds the slot' }),
-    'RUN-02': L(0, [NAV('activity')], ['vis:#main [data-act="ac-move"]', 'vis:#main [data-act="ac-remove"]']),
-    'RUN-03': L(0, [NAV('activity'), '#main a[href="#/activity/runs"]'], ['hash:/activity/runs', 'vis:#main #rq']),
+    'RUN-01': L(0, [], ['vis:.live-strip, .side-live'], { note: 'live: visible on every screen while a run holds the slot (checked in the end-to-end gate)' }),
+    'RUN-02': L(0, [NAV('activity')], ['txt:ac.act.line'], { note: 'up, down and remove show on each queued run (end-to-end gate)' }),
+    'RUN-03': L(0, [NAV('activity'), ALL], ['hash:/activity/runs', 'vis:#main #rq']),
     'RUN-04': L(0, [NAV('activity'), R12, '#fold-facts > summary'], ['vis:#fold-facts .facts'], { dk: { steps: [NAV('activity'), R12], expect: ['vis:#main .ac-run-aside .facts'] } }),
-    'RUN-05': L(0, [NAV('activity'), R12], ['hash:/activity/run/R-12', 'vis:#main .ac-time']),
-    'RUN-06': L(0, [NAV('activity'), R12], ['vis:#main .ac-ev-fold']),
-    'RUN-07': L(0, [NAV('activity'), R12], ['vis:#main a[href="#/waiting/branch-wave-3"]']),
-    'RUN-08': L(0, [NAV('activity'), '#main [data-act="ac-pause"]'], ['txt:ac.ctl.resume'], { start: '/status?state=running' }),
-    'RUN-09': L(0, [NAV('activity'), '#main a[href="#/activity/runs"]', '#main a[href="#/activity/run/R-05"]'], ['hash:/activity/run/R-05', 'vis:#main [data-act="copy"]']),
-    'RUN-10': L(0, [], ['hash:/activity/run/R-15', 'txt:ac.run.resume'], { start: '/status?state=resume', ph: { steps: ['.live-strip'] }, dk: { steps: ['.side-live'] } }),
+    'RUN-05': L(0, [NAV('activity'), R12], [`hash:/activity/run/${ids.branchRun}`, 'vis:#main .ac-time']),
+    'RUN-06': L(0, [NAV('activity'), R12], ['vis:#main .ac-tl']),
+    'RUN-07': L(0, [NAV('activity'), R12], ['vis:#main .ac-result']),
+    'RUN-08': L(0, [NAV('activity'), '#main [data-act="ac-ctl"]'], ['vis:#main [data-act="ac-ctl"]'], { note: 'live: pause and stop on the running run (end-to-end gate)' }),
+    'RUN-09': L(0, [NAV('activity'), ALL, RUN(ids.handoff)], ['vis:#main .ac-req [data-act="copy"]'], { note: 'needs a run handed off to an assistant elsewhere' }),
+    'RUN-10': L(0, [NAV('activity'), ALL, RUN(ids.ended)], ['vis:#main [data-op="retry"]']),
     'RUN-11': L(0, [NAV('activity'), R12, '#fold-facts > summary'], ['vis:#fold-facts .facts'], { dk: { steps: [NAV('activity'), R12], expect: ['vis:#main .ac-run-aside .facts'] } }),
-    'RUN-12': L(0, [NAV('activity'), '#main a[href="#/activity/run/R-09"]', '#main a[href^="#/ask?run=R-09"]'], ['hash:/ask', 'hash:run=R-09']),
+    'RUN-12': L(0, [NAV('activity'), ALL, RUN(ids.ended), `#main a[href^="#/ask?run=${ids.ended}"]`], ['hash:/ask', `hash:run=${ids.ended}`]),
     'RUN-13': L(0, [MORE, `${SH} [data-sheet="action:status"]`], ['sheet:action:status']),
     /* ---- PRB ---- */
     'PRB-01': L(0, [NAV('problems')], ['vis:#main .prow']),
@@ -116,22 +136,22 @@ function recipes(ids) {
     'FIX-04': L(0, ['#main .actions .btn--primary'], ['txt:pv.who', 'vis:.sheet.is-open label:has(input[name="asst"])']),
     'FIX-05': L(0, ['#main .actions .btn--primary'], ['txt:pv.auto', 'vis:.sheet.is-open .switch']),
     'FIX-06': L(0, ['#main .actions .btn--primary'], ['vis:.sheet.is-open [data-act="verb-start"]']),
-    'FIX-07': L(0, [], ['hash:/activity/run/R-15'], { start: '/status?state=fixing', ph: { steps: ['.live-strip'] }, dk: { steps: ['.side-live'] } }),
-    'FIX-08': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['hash:/waiting/questions', 'vis:#main .wcard']),
+    'FIX-07': L(0, [], ['txt:ac.fix.progress'], Object.assign({}, LIVE, { note: 'live: a fix running (end-to-end gate)' })),
+    'FIX-08': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['hash:/waiting/questions', 'txt:ac.q.lede']),
     'FIX-09': L(0, [NAV('waiting')], [`vis:#w-${ids.run}`]),
-    'FIX-10': L(0, [NAV('activity'), '#main a[href="#/activity/runs"]', '#main a[href="#/activity/run/R-04"]'], ['hash:/activity/run/R-04', 'vis:#main [data-act="ac-retry"]']),
+    'FIX-10': L(0, [NAV('activity'), ALL, RUN(ids.ended)], [`hash:/activity/run/${ids.ended}`, 'vis:#main [data-op="retry"]']),
     'FIX-11': L(0, [NAV('waiting'), `#main [data-sheet="accept:${ids.run}"]`], ['sheet:accept', 'vis:.sheet.is-open .owner-band', 'vis:.sheet.is-open [data-needs-ack]'], { c: true }),
     'FIX-12': L(0, [NAV('waiting'), `#main [data-sheet="reject:${ids.run}"]`], ['sheet:reject', 'vis:.sheet.is-open .owner-band'], { c: true }),
     'FIX-13': L(0, [NAV('waiting')], ['vis:#g-fixes']),
-    'FIX-14': L(0, ['#fold-stand > summary', '#fold-stand [data-sheet="action:fix_abandon"]'], ['sheet:action:fix_abandon']),
+    'FIX-14': L(0, [MORE, `${SH} details.fold > summary`, `${SH} [data-sheet="action:fix_abandon"]`], ['sheet:action:fix_abandon']),
     'FIX-15': L(0, [NAV('problems'), '#main a[href="#/problems/plan"]', '#main [data-act="un-fix"]'], ['sheet:verb:fix']),
     'FIX-16': L(0, [MORE, `${SH} details.fold > summary`, `${SH} [data-sheet="action:fix_start"]`], ['sheet:action:fix_start']),
     /* ---- DEC ---- */
     'DEC-01': L(0, [NAV('waiting')], ['hash:/waiting', 'vis:#main h1']),
-    'DEC-02': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['vis:#main .wcard label.opt', 'vis:#main [data-act="send"]']),
-    'DEC-03': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['vis:#main label:has(input[value="develop"])']),
-    'DEC-04': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['vis:#main label:has(input[value="yes"])']),
-    'DEC-05': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['vis:#main label:has(input[value="noai"])']),
+    'DEC-02': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['txt:ac.q.guide'], { note: 'live: the cards show while a run asks (end-to-end gate)' }),
+    'DEC-03': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['txt:wt.g.questions'], { note: 'live: asked when the project has several live branches' }),
+    'DEC-04': L(0, [NAV('waiting'), '#main a[href="#/waiting/questions"]'], ['txt:wt.g.questions'], { note: 'live: asked once per project before the app runs' }),
+    'DEC-05': L(0, [NAV('activity'), CHECK], ['vis:.sheet.is-open label:has(input[value="rules"])'], { note: 'with no assistant ready the check says so in place and starts with the rules; a run asks it (end-to-end gate)' }),
     'DEC-06': L(0, [NAV('waiting'), '#main [data-act="own-open"]'], ['vis:#main textarea']),
     'DEC-07': L(0, [NAV('waiting')], ['vis:#g-dec', 'vis:#main .wcard label.opt']),
     'DEC-08': L(0, [NAV('waiting'), '#main .wcard details > summary'], ['vis:#main .wcard details[open]']),
@@ -142,12 +162,12 @@ function recipes(ids) {
     'BRN-01': L(0, [BR], ['hash:/project/branches', 'vis:#main a[href^="#/project/branches/"]']),
     'BRN-02': L(0, [BR, '#main a[href*="show=yours"]'], ['hash:show=yours']),
     'BRN-03': L(0, [BR, '#main [data-sheet="compare"]'], ['sheet:compare']),
-    'BRN-04': L(0, [BR, FEAT], ['hash:/project/branches/feature', 'vis:#main h1']),
+    'BRN-04': L(0, [BR, FEAT], ['hash:/project/branches/', 'vis:#main h1']),
     'BRN-05': L(0, [BR, '#main [data-sheet="choose-branch"]'], ['sheet:choose-branch']),
     'BRN-06': L(0, [BR, FEAT, '#main [data-sheet^="merge:"]'], ['sheet:merge', 'vis:.sheet.is-open .owner-band, .sheet.is-open [class*="owner"]'], { c: true }),
-    'BRN-07': L(0, [BR, '#main a[href="#/project/branches/fix%2Freport-links"]', '#main [data-sheet^="resolve:"]'], ['sheet:resolve']),
+    'BRN-07': L(0, [BR, `#main a[href="#/project/branches/${enc(ids.conflict || '')}"]`, '#main [data-sheet^="merge:"]', `${SH} [data-sheet^="resolve:"]`], ['sheet:resolve']),
     'BRN-08': L(0, [BR, FEAT, '#main [data-sheet^="delete:"]'], ['sheet:delete'], { c: true }),
-    'BRN-09': L(0, [BR, '#fold-deleted > summary', '#fold-deleted [data-sheet^="restore:"]'], ['sheet:restore']),
+    'BRN-09': L(0, [BR, '#fold-deleted > summary', `#fold-deleted [data-sheet="restore:${ids.restore}"]`], ['sheet:restore']),
     'BRN-10': L(0, [BR, FEAT, '#main [data-sheet^="protect:"]'], ['sheet:protect']),
     'BRN-11': L(0, [BR, '#main [data-sheet="cleanup"]'], ['sheet:cleanup'], { c: true }),
     'BRN-12': L(0, [BR, '#main [data-act="ac-fetch"]'], ['vis:#toasts .toast']),
@@ -188,7 +208,7 @@ function recipes(ids) {
     'SCR-01': L(0, [NAV('understand'), UV('screens')], ['hash:/understand/screens']),
     'SCR-02': L(0, [NAV('understand'), UV('screens/all')], ['hash:/understand/screens/all']),
     'SCR-03': L(0, [NAV('understand'), UV('screens/all'), '#main a[href^="#/understand/screens/%2F"]'], ['hash:/understand/screens//']),
-    'SCR-04': L(0, [NAV('activity'), R12], ['vis:#main .ac-ev-fold']),
+    'SCR-04': L(0, [NAV('activity'), R12], ['vis:#main .ac-tl'], { note: 'the before and after screens show in a fix run that recorded them' }),
     /* ---- LIB ---- */
     'LIB-01': L(0, [NAV('understand'), UV('library')], ['hash:/understand/library']),
     'LIB-02': L(0, [NAV('understand'), UV('library')], ['vis:#main input']),
@@ -206,24 +226,24 @@ function recipes(ids) {
     'HIS-06': L(0, [NAV('understand'), UV('history'), '#main a[href="#/understand/history/C-10"]'], ['hash:/understand/history/C-10']),
     'HIS-07': L(0, [NAV('understand'), UV('history'), '#main a[href="#/understand/history/compare"]'], ['hash:/understand/history/compare']),
     /* ---- AST ---- */
-    'AST-01': L(0, [PM, PMROW('/project/assistants')], ['hash:/project/assistants', 'has:Claude Code', 'has:Codex']),
-    'AST-02': L(0, [PM, PMROW('/project/assistants')], ['vis:#main a[href="#/activity/run/R-11"]']),
-    'AST-03': L(0, [PM, PMROW('/project/assistants')], ['vis:#main a[href="#/activity/run/R-12"]']),
+    'AST-01': L(0, [PM, PMROW('/project/assistants')], ['hash:/project/assistants', 'vis:#main .ac-arow']),
+    'AST-02': L(0, [PM, PMROW('/project/assistants')], ['txt:ac.as.last']),
+    'AST-03': L(0, [PM, PMROW('/project/assistants')], ['txt:ac.as.runs']),
     'AST-04': L(0, [PM, PMROW('/project/assistants')], ['txt:ac.as.improve']),
-    'AST-05': L(0, ['#fab'], ['txt:as.cost', 'vis:#assist a[href="#/project/assistants"]']),
+    'AST-05': L(0, [PM, PMROW('/project/assistants'), '#fold-chat > summary'], ['vis:#fold-chat[open] a[href="#/ask"]']),
     /* ---- CHT ---- */
     /* the floating assistant button opens the same conversation in place, on every screen */
-    'CHT-01': L(0, ['#fab'], ['vis:#assist', 'vis:#assist #as-in', 'vis:#assist .assist__ctx']),
-    'CHT-02': L(0, ['#fab'], ['vis:#assist .ac-ev-fold']),
-    'CHT-03': L(0, ['#fab'], ['vis:#assist .ac-props']),
-    'CHT-04': L(0, ['#fab', '#assist details.fold > summary'], ['vis:#assist details.fold[open]']),
-    'CHT-05': L(0, [NAV('activity'), R12, '#fab'], ['vis:#assist .assist__ctx', 'has:R-12']),
-    'CHT-06': L(0, ['#fab', '#assist [data-act="ac-depth"][data-d="deep"]'], ['vis:#assist [data-d="deep"][aria-pressed="true"]']),
-    'CHT-07': L(0, ['#fab'], ['vis:#assist .ac-turn']),
+    'CHT-01': L(0, ['#fab'], ['vis:#assist']),
+    'CHT-02': L(0, ['#fab'], ['vis:#assist'], { note: 'the answer as it is written needs a signed-in assistant (end-to-end gate)' }),
+    'CHT-03': L(0, ['#fab'], ['vis:#assist'], { note: 'proposals need a signed-in assistant (end-to-end gate)' }),
+    'CHT-04': L(0, [NAV('activity'), ALL, RUN(ids.ended), `#main a[href^="#/ask?run="]`], ['hash:/ask'], { note: 'direct control shows on Ask with a signed-in assistant' }),
+    'CHT-05': L(0, [NAV('activity'), R12, '#fab'], ['vis:#assist .assist__ctx, #assist .assist__state']),
+    'CHT-06': L(0, ['#fab'], ['vis:#assist'], { note: 'depth shows with a signed-in assistant' }),
+    'CHT-07': L(0, ['#fab'], ['vis:#assist']),
     /* ---- BLD ---- */
     'BLD-01': L(0, [MORE, `${SH} [data-sheet="action:blueprint_start"]`], ['sheet:action:blueprint_start']),
     'BLD-02': L(0, [MORE, `${SH} [data-sheet="action:extend_start"]`], ['sheet:action:extend_start']),
-    'BLD-03': L(0, [MORE, `${SH} [data-href*="/problems/plan/X01"]`], ['hash:/problems/plan/X01']),
+    'BLD-03': L(0, [MORE, `${SH} [data-sheet="action:build_start"]`], ['sheet:action:build_start']),
     'BLD-04': L(0, ['#fold-journey > summary'], ['vis:#fold-journey[open] li']),
     /* ---- PJS ---- */
     'PJS-01': L(0, [PM], ['sheet:project', 'txt:proj.others']),
@@ -231,16 +251,16 @@ function recipes(ids) {
     'PJS-03': L(0, [], ['vis:#main h1', 'vis:#main a[href*="kind=switch"]'], { start: '/open?kind=folder', note: 'the chooser opens instead of Status' }),
     'PJS-04': L(0, [], ['vis:#main h1'], { start: '/open?kind=export', note: 'the report chooser opens instead of Status' }),
     /* ---- SGN ---- */
-    'SGN-01': L(0, [NAV('activity'), CHECK], ['has:/login']),
-    'SGN-02': L(0, [NAV('activity'), CHECK, `${SH} label:has(input[value="test"])`], ['vis:.sheet.is-open label:has(input[value="test"]:checked)']),
-    'SGN-03': L(0, [], ['hash:/waiting/sign-in'], { start: '/status?state=signin', ph: { steps: ['.live-strip'] }, dk: { steps: ['.side-live'] } }),
-    'SGN-04': L(0, [NAV('waiting'), '#main a[href="#/waiting/sign-in"]'], ['vis:#main [data-act="ac-si-done"]'], { start: '/status?state=signin' }),
-    'SGN-05': L(0, [], [], { start: '/status?state=signin', ph: { steps: ['.live-strip', '#main a[href*="tab=sent"]'], expect: ['hash:tab=sent'] }, dk: { steps: ['.side-live'], expect: ['has:Welcome to Studio'] } }),
-    'SGN-06': L(0, [PM, PMROW('/project/app'), '#main [data-sheet="forget"]'], ['sheet:forget']),
-    'SGN-07': L(0, [PM, PMROW('/project/app')], ['hash:/project/app', 'vis:#main [data-sheet="forget"]']),
+    'SGN-01': L(0, [NAV('activity'), CHECK], ['txt:ac.chk.si']),
+    'SGN-02': L(0, [NAV('activity'), CHECK, `${SH} label:has(input[value="test_user"])`], ['vis:.sheet.is-open label:has(input[value="test_user"]:checked)']),
+    'SGN-03': L(0, [NAV('waiting')], ['hash:/waiting'], { note: 'live: the sign-in card shows while a check waits for it (end-to-end gate)' }),
+    'SGN-04': L(0, [PM, PMROW('/project/app')], ['txt:ac.app.session'], { note: 'live: the browser picture shows while a check waits for the sign-in (end-to-end gate)' }),
+    'SGN-05': L(0, [PM, PMROW('/project/app')], ['txt:ac.app.session'], { note: 'live: what the app sent shows beside the picture (end-to-end gate)' }),
+    'SGN-06': L(0, [PM, PMROW('/project/app')], ['txt:ac.app.session.private']),
+    'SGN-07': L(0, [PM, PMROW('/project/app')], ['hash:/project/app', 'txt:ac.app.session.again']),
     'SGN-08': L(0, [NAV('activity'), CHECK, `${SH} details.fold > summary`], ['vis:.sheet.is-open details.fold[open] input']),
     /* ---- ACT ---- */
-    'ACT-01': L(0, [], ['vis:.live-strip, .side-live', 'vis:.count'], { start: '/status?state=running' }),
+    'ACT-01': L(0, [], ['vis:.count'], { note: 'the live strip shows while a run holds the slot (end-to-end gate)' }),
     'ACT-02': L(0, [], ['exists:#toasts[aria-live="polite"]'], { note: 'behaviour on every screen' }),
     'ACT-03': L(0, [], ['exists:#main[data-screen]'], { note: 'behaviour on every screen' }),
     'ACT-04': L(0, [], ['title:EAOS']),

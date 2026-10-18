@@ -16,15 +16,19 @@ let follow = true;                // follow the running stage (CHK-08)
 let replay = { id: null, at: null, timer: 0 };
 
 /** The run's events, read once and then live while it runs. */
-function eventsOf(id) {
-  if (!client) return [];
-  let f = followed[id];
+function eventsOf(r) {
+  if (!client || r.trimmed) return [];
+  let f = followed[r.id];
   if (!f) {
-    f = followed[id] = { events: [], stop: null };
-    f.stop = client.follow(id, 0, event => { f.events.push(event); refreshSoon(); }, () => {});
+    f = followed[r.id] = { events: [], stop: null, over: false };
+    // an ended run's stream ends once it has replayed: the reconnection that follows is not needed
+    f.stop = client.follow(r.id, 0, event => { f.events.push(event); refreshSoon(); }, status => {
+      if (status === 'reconnecting' && ac.ended(ac.runOf(r.id) || r)) { f.stop(); f.over = true; refreshSoon(); }
+    });
   }
   return f.events;
 }
+const followOver = r => r.trimmed || !!(followed[r.id] && followed[r.id].over);
 afterRender(ctx => {
   const here = (ctx.path.match(/^\/activity\/run\/(.+)$/) || [])[1];
   Object.keys(followed).forEach(id => { if (id !== (here && decodeURIComponent(here))) { if (followed[id].stop) followed[id].stop(); delete followed[id]; } });
@@ -221,7 +225,7 @@ function timeline(r, view, events, all) {
   const shown = all || items.length <= SHOWN ? items : items.slice(-SHOWN);
   return `<section class="section" aria-labelledby="tl-h"><div class="section-head"><h2 id="tl-h">${t('ac.run.happened')}</h2>
       ${shown.length < items.length ? `<a class="link small" href="${href('/activity/run/' + enc(r.id), { all: '1' })}">${esc(t('ac.run.happened.trim', { n: num(shown.length), total: num(items.length) }))}</a>` : ''}</div>
-    <div class="panel panel__pad">${!client ? `<p class="small muted">${t('ac.run.live_only')}</p>` : !events.length ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>` : `<ol class="ac-tl">${shown.map(itemHTML).join('')}</ol>`}</div></section>`;
+    <div class="panel panel__pad">${!client ? `<p class="small muted">${t('ac.run.live_only')}</p>` : !events.length && followOver(r) ? `<p class="small muted">${t('ac.run.trimmed')}</p>` : !events.length ? `<p class="small muted" aria-busy="true">${t('st.loading')}</p>` : `<ol class="ac-tl">${shown.map(itemHTML).join('')}</ol>`}</div></section>`;
 }
 
 /* ---------- its facts (RUN-04, RUN-11, AST-03) ---------- */
@@ -258,7 +262,7 @@ function runPage(ctx) {
   const id = ctx.params.id;
   const r = ac.runOf(id);
   if (!r) return live.loaded || offline() ? notFound(id) : `<div class="page" aria-busy="true"><h1 class="lede">${t('st.loading')}</h1></div>`;
-  const events = eventsOf(r.id);
+  const events = eventsOf(r);
   const view = derive.deriveRun(events, r);
   const rs = ac.runState(r);
   const flow = ac.flowOfRun(r);

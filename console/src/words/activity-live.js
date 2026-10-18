@@ -27,6 +27,7 @@ export default {
   'ac.run.unchanged.guide': ['لا فرع ينتظرك. اقرأ ما قاله مساعدك لتعرف السبب، ثم أعد المحاولة أو اختر مشاكل أخرى.', 'No branch waits for you. Read what your assistant said for why, then retry or pick other problems.'],
   'ac.run.indicator': ['{id}: {before} قبل، {after} بعد', '{id}: {before} before, {after} after'],
   'ac.run.answer': ['الجواب كاملًا', 'The whole answer'],
+  'ac.run.trimmed': ['تفاصيل هذا التشغيل حُذفت لتوفير المساحة: يبقى سجله وما استعمله. آخر 10 تشغيلات انتهت تبقى بكل تفاصيلها.', 'This run\'s details were trimmed to save space: its record and what it used stay. The newest 10 runs that ended keep every detail.'],
   'ac.run.offline': ['التشغيلات في الواجهة الحية فقط.', 'Runs show in the live interface only.'],
   'ac.run.stages.later': ['تظهر المراحل حين يبدأ.', 'The stages show once it starts.'],
   'ac.run.stages.older': ['المراحل محفوظة لآخر فحص فقط.', 'The stages are kept for the last check only.'],
