@@ -58,6 +58,17 @@ class PathsTests(unittest.TestCase):
         self.assertLessEqual(redo['minutes_low'], 1 + len(dependents('reports', reading=True)))
 
 
+    def test_a_redo_from_a_check_made_without_the_assistant_runs_without_it_unless_one_is_chosen_now(self):
+        from eaos import check_choices
+        with tempfile.TemporaryDirectory() as report:
+            Path(report, 'run-manifest.json').write_text(json.dumps({'stages': {'triage': {'reason_code': 'ai_skipped'}}}))
+            self.assertTrue(check_choices.without_ai_kept(report, False, 'reports', False))
+            self.assertFalse(check_choices.without_ai_kept(report, False, 'reports', True), 'an assistant chosen now is used')
+            self.assertFalse(check_choices.without_ai_kept(report, False, None, False), 'a new check asks as always')
+            Path(report, 'run-manifest.json').write_text(json.dumps({'stages': {'triage': {'status': 'ok'}}}))
+            self.assertFalse(check_choices.without_ai_kept(report, False, 'reports', False))
+
+
 class FocusedCheckTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()

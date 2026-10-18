@@ -70,19 +70,6 @@ def _fresh_waves(record, state):
             else [w for w in waves if w.get('branch') not in before])
 
 
-# the Arabic of the reasons a run changes state for (a failure's own reason stays in its English line and its data)
-WHY_AR = {'the assistant handoff': 'تسليمه لمساعدك', 'a question': 'سؤال', 'nothing changed': 'لم يتغيّر شيء',
-          'you stopped it': 'أوقفته أنت', 'taken': 'بدأ', 'resumed': 'استؤنف', 'answered': 'جاوبت', 'tried again': 'يُعاد',
-          'the server restarted': 'أُعيد تشغيل الخادم'}
-
-
-def _tests(kept, failed):
-    """A batch's checks: passed when a change was kept, with the changes left out and why."""
-    return {'passed': bool(kept), 'kept': len(kept), 'left': len(failed),
-            'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
-            'left_out': {str(k): str(v)[:300] for k, v in (failed.items() if isinstance(failed, dict) else [])}}
-
-
 def _diff_stat(project, branch):
     """{files, insertions, deletions} the branch changes since it left HEAD, from git's short stat."""
     shortstat = subprocess.run(['git', '-C', str(project), 'diff', '--shortstat', f"HEAD...{branch}"],
@@ -126,7 +113,7 @@ class Manager:
             # the event first: a stream that ends when it sees a final state has then already read its last event
             if before != to:
                 said = contract()['lifecycle']['states'][to]
-                why_ar = WHY_AR.get(why, '') if why else ''   # an English reason is never glued to an Arabic sentence
+                why_ar = prompts.WHY_AR.get(why, '') if why else ''   # an English reason is never glued to an Arabic sentence
                 self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why_ar}' if why_ar else '')},
                                   {'from': before, 'to': to, 'why': why})
             self.store.save(record)
@@ -257,15 +244,14 @@ class Manager:
         except Exception: return False
 
     def _baseline(self, run):
-        """What waited before the run started (its waiting branches and the batches so far), so its outcome names only
-        a batch it made: a check that ran while a batch waits does not hand that batch over again."""
+        """What waited before the run started, so its outcome names only a batch it made (a check run while a batch
+        waits does not hand that batch over again)."""
+        from ... import guided
         record = self.store.load(run)
-        if not record.get('branches_before'):
-            record = self.store.update(run, branches_before=sorted(self._waiting_branches())) or self.store.load(run)
+        if not record.get('branches_before'): record = self.store.update(run, branches_before=sorted(self._waiting_branches()))
         if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
-            from ... import guided
             state = guided.load(self.project) or {}
-            record = self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])}) or self.store.load(run)
+            record = self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])})
         return record
 
     def _direct(self, run, follow=True):
@@ -671,7 +657,7 @@ class Manager:
         if landed:
             kept = list(landed.get('kept') or [])
             out.update(landed_on=landed.get('merge_into'), target=landed.get('merge_into'), cards_closed=kept,
-                       tests=_tests(kept, landed.get('failed') or {}))
+                       tests=prompts.batch_tests(kept, landed.get('failed') or {}))
         if wave: self._wave_outcome(run, wave, state, out)
         return out
 
@@ -686,7 +672,7 @@ class Manager:
                                        tip=out['branch_tip'], base=out['target'], base_commit=wave.get('base'))
         kept = list(wave.get('kept') or [])
         out['cards_closed'] = kept
-        out['tests'] = _tests(kept, wave.get('failed') or {})
+        out['tests'] = prompts.batch_tests(kept, wave.get('failed') or {})
         out['diff_stat'] = _diff_stat(self.project, wave['branch'])
 
     # the person's controls

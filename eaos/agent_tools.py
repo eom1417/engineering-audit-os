@@ -329,10 +329,10 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     if use_assistant is not None or assistant:          # the person's choice for the check's AI, kept when made now
         state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
     if check_choices.keep(state, mode, sign_in): guided.save(state)
-    # A check on record stands until the person asks for a new one (fresh): a check takes up to an hour, and one started
-    # because the code moved on stopped the person's fixes midway (owner, 2026-10-10).
+    # A check on record stands until asked for anew (fresh): one started because the code moved on stopped fixes (2026-10-10).
     if guided.scan_done(state) and not fresh and not again_from:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
+    without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from, use_assistant is not None or assistant)
     blocked = None if without_ai else _assistant_not_ready(state)
     if blocked: return blocked
     arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published)).items() if v}
