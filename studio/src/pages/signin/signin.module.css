@@ -1,8 +1,0 @@
-/* The sign-in page: the app's page as a picture the person clicks, the keys beside it, what the app sent below. */
-.picture { display: block; inline-size: 100%; block-size: auto; border-radius: var(--radius-8); border: 1px solid var(--border-default); cursor: pointer; background: var(--bg-sunken); }
-.address { font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
-.keys { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
-.keys > :first-child { flex: 1 1 240px; }
-.foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-.said { margin: 0; padding: 8px 10px; border-radius: var(--radius-8); background: var(--bg-sunken); font-family: var(--font-mono); font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-.body { display: flex; flex-direction: column; gap: 12px; }

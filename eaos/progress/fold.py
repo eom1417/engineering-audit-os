@@ -1,8 +1,8 @@
 """The single Python fold: a flow's progress lines turned into one state, one row per declared stage.
 
 `apply(state, row)` is the step a reader takes for each new line; `fold(rows)` is all of them from the start. The
-Studio's TypeScript fold (studio/src/data/scan.ts) applies the same rules to the same lines, and both are tested on the
-same recorded runs (tests/fixtures/progress/): the page never invents a state the lines do not hold.
+Studio reads the folded state from /api/progress, never the lines themselves, and the fold is tested on recorded runs
+(tests/fixtures/progress/): the page never invents a state the lines do not hold.
 
 For the check, at the end of a run the folded statuses, reasons, seconds and artifacts are the ones in
 run-manifest.json.

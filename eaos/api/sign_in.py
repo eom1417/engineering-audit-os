@@ -1,5 +1,5 @@
 """The sign-in page's back end: the pinned Chromium the person signs in to their app with, while a check asks for it
-(eaos/sign_in.py). The Studio's page (studio/src/pages/signin/SignInPage.tsx, reached from Waiting for you) shows it and
+(eaos/sign_in.py). The Studio's page (console/src/places/waiting/signin.js, reached from Waiting for you) shows it and
 passes on their clicks and typing; `eaos sign-in` opens it in a window when this computer has a display, else serves the
 same page on a port of its own, until the session is saved (eaos/api/server.py serve_sign_in).
 

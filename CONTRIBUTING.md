@@ -18,7 +18,7 @@ bash tools/dev_setup.sh          # .venv, every external tool at its pinned vers
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd studio && npm run build)     # only when studio/ changed: style, types, tests, then the build
+(cd console && npm run build)    # only when console/ changed: the Studio built into eaos/data/studio, within its budgets
 ```
 
 ## The code laws

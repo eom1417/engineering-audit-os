@@ -190,7 +190,7 @@ def _declarations(project, folder):
 
 def report_values(project, folder, names, report):
     """{name: folder in the report} for each name the project documents as a report's folder: a line
-    `STUDIO_DATA=/path/to/report/studio` (EAOS's own Studio reads its data so, studio/vite.config.ts). The run points it
+    `STUDIO_DATA=/path/to/report/studio` (an app whose dev server reads its data from a folder). The run points it
     at the report of this check, when that folder exists, so the app's screens show real data, not an empty state."""
     if not report or not names: return {}
     found = {}
