@@ -572,8 +572,11 @@ class Direct(Base):
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
         from eaos import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'}, 'audit': {'job': 'audit-1', 'status': 'running'}})
-        status, payload = self.post('/api/runs', {'action': 'status'})
+        applied = {'branch': 'main', 'waves': [{'status': 'applied', 'branch': 'eaos/main/wave-1', 'kept': ['TASK-1']}]}
+        with mock.patch('eaos.guided.load', return_value=applied):     # a batch handed over earlier is not this read's
+            status, payload = self.post('/api/runs', {'action': 'status'})
         self.assertEqual((status, payload['run']['state'], payload['run']['result']['answer']), (200, 'done', {'next': 'audit'}))
+        self.assertEqual((payload['run']['result']['branch'], payload['run']['result']['cards_closed']), (None, []))
         self.assertEqual(calls, [('status', {'project': str(self.project.resolve())})])
         self.assertEqual(self.get('/api/runs')[1]['runs'], [], 'a reading action stays out of the history')
         self.assertEqual(len(self.get('/api/runs?all=1')[1]['runs']), 1)

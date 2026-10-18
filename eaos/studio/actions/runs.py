@@ -649,7 +649,7 @@ class Manager:
         from ... import guided
         record = self.store.load(run)
         state = guided.load(self.project) or {}
-        fresh = _fresh_waves(record, state)
+        fresh = [] if record.get('read') else _fresh_waves(record, state)   # a reading run hands no batch over
         wave = next((w for w in reversed(fresh) if w.get('status') == 'applied'), None)
         # a direct batch: it landed on the base branch itself and left no branch
         landed = None if wave else next((w for w in reversed(fresh) if w.get('direct') and w.get('status') == 'accepted'), None)
