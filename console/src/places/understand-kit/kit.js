@@ -279,3 +279,16 @@ export function flow(left, right, links, opts) {
     <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(opts.label)}">${paths}${left.map((n, i) => node(n, 0, ly(i), false)).join('')}${right.map((n, i) => node(n, w - nodeW, ry(i), true)).join('')}</svg>
     <p class="small muted un-readout" data-readout aria-live="polite">${esc(opts.hint || t('un.map.hint'))}</p></div>`;
 }
+
+const CHANGE = ['rebuild', 'merge', 'modify', 'delete', 'retain'];
+
+/** The change as one bar of operations with a legend; each operation opens its gaps when `link`. */
+export function opBar(ops, link) {
+  const shown = CHANGE.filter(o => ops[o]);
+  if (!shown.length) return `<p class="small muted">${t('un.story.nochange')}</p>`;
+  return `<div class="un-opbar" role="img" aria-label="${esc(shown.map(o => `${t('un.op.' + o)} ${ops[o]}`).join(', '))}">${shown.map(o => `<span class="un-opbar__s un-opbar__s--${o}" style="flex:${ops[o]}"></span>`).join('')}</div>
+    <div class="legend">${shown.map(o => {
+      const inner = `${glyph(o)}<span>${t('un.op.' + o)}</span> <b>${num(ops[o])}</b>`;
+      return link ? `<a class="optag-l optag-l--${o}" href="${href('/understand/gaps', { op: o })}">${inner}</a>` : `<span class="optag-l optag-l--${o}">${inner}</span>`;
+    }).join('')}</div>`;
+}
