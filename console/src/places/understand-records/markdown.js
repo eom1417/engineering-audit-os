@@ -116,8 +116,8 @@ function listHTML(items, ordered, ctx) {
   const tag = ordered ? 'ol' : 'ul';
   const li = it => {
     const task = /^\[([ xX])\]\s+(.*)$/.exec(it.text);
-    if (task) { const done = task[1] !== ' '; return `<li class="un-doc__task">${icon(done ? 'check' : 'circle', done ? 'ok-ic' : 'muted')}<span dir="${dir(task[2])}">${inline(task[2], ctx)}</span><span class="sr-only">${t(done ? 'un.doc.done' : 'un.doc.todo')}</span></li>`; }
-    return `<li dir="${dir(it.text)}">${inline(it.text, ctx)}</li>`;
+    if (task) { const done = task[1] !== ' '; return `<li class="un-doc__task">${icon(done ? 'check' : 'circle', done ? 'ok-ic' : 'muted')}<bdi dir="${dir(task[2])}">${inline(task[2], ctx)}</bdi><span class="sr-only">${t(done ? 'un.doc.done' : 'un.doc.todo')}</span></li>`; }
+    return `<li><bdi dir="${dir(it.text)}">${inline(it.text, ctx)}</bdi></li>`; // the marker keeps the page's side
   };
   let html = `<${tag} class="un-doc__ul">`, nested = false;
   items.forEach(it => {
