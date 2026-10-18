@@ -164,7 +164,7 @@
               <span class="switch"><input type="checkbox" data-change="ac-speed" data-fk="speed" ${n.speed?"checked":""} aria-label="${(0,e.esc)((0,e.t)("ac.chk.speed"))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
             ${n.speed?`<p class="ac-note ac-note--caution small">${(0,e.icon)("warn","icon--sm ac-c-caution")}<span>${(0,e.t)("ac.chk.speed.warn")}</span></p>`:""}
             <label class="ac-label" for="ac-pub">${(0,e.t)("ac.chk.pub")}</label>
-            <div class="field">${(0,e.icon)("globe")}<input id="ac-pub" type="url" inputmode="url" dir="ltr" data-fk="ac-pub" data-input="ac-pub" value="${(0,e.esc)(n.published)}" placeholder="https://app.example.com" autocomplete="off" aria-describedby="ac-pub-note"></div>
+            <div class="field">${(0,e.icon)("globe")}<input id="ac-pub" type="url" inputmode="url" dir="ltr" data-fk="ac-pub" data-input="ac-pub" value="${(0,e.esc)(n.published)}" placeholder="app.example.com" autocomplete="off" aria-describedby="ac-pub-note"></div>
             <p class="small ${x?"ac-c-danger":"muted"}" id="ac-pub-note">${x?(0,e.esc)(x):(0,e.t)("ac.chk.pub.note")}</p>
           </div></details>
         <p class="small muted">${(0,e.t)("ac.chk.kept")}</p>`,foot:`${n.problem||n.refused?`<p class="small" role="alert">${(0,e.icon)("warn","icon--sm")} ${(0,e.esc)(n.problem||n.refused)}</p>`:""}
