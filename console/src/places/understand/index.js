@@ -30,7 +30,6 @@ function indexPage(ctx) {
         const c = SECTION[v] ? covered(SECTION[v]) : null;
         const n = v === 'components' ? ((data.section('system') || {}).counts || {}).components : null;
         if (c && n) c.n = n.value;
-        if (c && v === 'ideal' && data.listed('ideal')) c.n = 8;
         const end = !c ? '' : c.state === 'not_measured' || c.state === 'failed' ? `<span class="tag tag--nm">${t('nm')}</span>` : c.n != null && v !== 'story' ? `<span class="num">${num(c.n)}</span>` : '';
         return row(href('/understand/' + v), VICON[v], t('un.v.' + vkey(v)), t('un.vs.' + vkey(v)), end);
       }).join('')}</div></section>`).join('');

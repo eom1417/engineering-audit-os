@@ -292,3 +292,11 @@ export function opBar(ops, link) {
       return link ? `<a class="optag-l optag-l--${o}" href="${href('/understand/gaps', { op: o })}">${inner}</a>` : `<span class="optag-l optag-l--${o}">${inner}</span>`;
     }).join('')}</div>`;
 }
+
+/** A decision the gap waits for: the report's decision when it is one (an answer in Waiting), else its record's id. */
+export function decisionLink(id) {
+  if (!id) return `<span class="muted">${t('un.gap.nodecision')}</span>`;
+  const d = model.decisions().find(x => x.id === id);
+  if (!d) return code(id);
+  return `<a class="link" href="${href('/waiting/' + enc(d.id))}">${rich(L(d.question))}</a> <span class="tag ${d.state === 'waiting' ? 'tag--you' : 'tag--ok'}">${t(d.state === 'waiting' ? 'un.dec.waiting' : 'un.dec.answered')}</span>`;
+}

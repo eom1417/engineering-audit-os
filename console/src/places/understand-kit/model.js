@@ -27,7 +27,7 @@ export function targetDecision() {
 /** A section's count as the coverage rows give it (null: not counted), and its state. */
 export function covered(name) {
   const row = ((data.section('coverage') || {}).sections || []).find(r => r.section === name);
-  return row ? { n: row.count ? row.count.value : null, state: row.state } : { n: null, state: data.listed(name) ? 'measured' : 'not_measured' };
+  return row ? { n: row.count && row.count.value != null ? row.count.value : (row.parts || []).length || null, state: row.state } : { n: null, state: data.listed(name) ? 'measured' : 'not_measured' };
 }
 
 /** Today's components on the map (system.json current), by id. */

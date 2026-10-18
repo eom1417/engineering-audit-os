@@ -3,7 +3,7 @@
 // decision. "Fix its problems…" picks the gap's open problems and opens the one Fix preview in Problems.
 import { t, tn, L, num, esc, icon, code, href, rich, screen, data, model } from 'eaos';
 import {
-  tabs, seg, prov, search, count, opTag, opOf, facts, prow, fixBtn, enc, loading, notFound, back, matches, notMeasured, empty, openOf,
+  tabs, seg, prov, search, count, opTag, opOf, facts, prow, fixBtn, enc, loading, notFound, back, matches, notMeasured, empty, openOf, decisionLink,
 } from '../understand-kit/kit.js';
 import { targetOf } from '../understand-kit/model.js';
 
@@ -51,13 +51,6 @@ function gapsPage(ctx) {
 }
 screen({ id: 'S-19', path: '/understand/gaps', place: 'understand', needs: NEEDS, title: () => t('un.v.gaps'), render: gapsPage, loading: () => loading(t('un.gaps.loading')) });
 
-/** A decision the gap waits for: the report's decision when it is one (an answer in Waiting), else its record's id. */
-export function decisionLink(id) {
-  if (!id) return `<span class="muted">${t('un.gap.nodecision')}</span>`;
-  const d = model.decisions().find(x => x.id === id);
-  if (!d) return code(id);
-  return `<a class="link" href="${href('/waiting/' + enc(d.id))}">${rich(L(d.question))}</a> <span class="tag ${d.state === 'waiting' ? 'tag--you' : 'tag--ok'}">${t(d.state === 'waiting' ? 'un.dec.waiting' : 'un.dec.answered')}</span>`;
-}
 const opsSection = () => (data.section('operations') || {}).operations || [];
 
 function gapPage(ctx) {

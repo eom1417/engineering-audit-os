@@ -210,7 +210,10 @@ a.optag-l:hover { color: var(--ink); }
 .un-map__region rect { fill: var(--sunken); stroke: var(--line); stroke-width: 1; opacity: .7; }
 .un-map__region text { font: 600 17px var(--font); fill: var(--ink-2); }
 .un-map__region .un-map__rsub { font: 400 15px var(--font); fill: var(--ink-3); }
-.un-map__link { stroke: var(--ink); stroke-opacity: .18; }
+.un-map__link { stroke: var(--ink); stroke-opacity: .18; fill: none; }
+.un-p__link { fill: none; }
+.un-map__land { fill: var(--sunken); stroke: var(--line); stroke-width: 1; opacity: .55; }
+.un-map__land--1 { opacity: .75; } .un-map__land--2 { opacity: .95; }
 .un-map__link--cycle { stroke: var(--caution); stroke-opacity: .7; stroke-dasharray: 6 3; }
 .un-map__link--possible { stroke-dasharray: 2 4; stroke-opacity: .45; }
 .un-map__link.is-on { stroke: var(--ink); stroke-opacity: .75; }
