@@ -65,8 +65,9 @@ function decisionCard(d, full) {
   </article>`;
 }
 
-/** The files a delivered branch changes (GET /api/branches/detail), read when its fold opens. */
-const details = {};
+/** The files a delivered branch changes (GET /api/branches/detail), read when its fold opens; the fold stays open
+ *  through the redraws. */
+const details = {}, opened = new Set();
 function diffHTML(run) {
   const got = details[run.id];
   if (!got) return `<p class="small muted" aria-busy="true">${t('st.loading')}</p>`;
@@ -98,7 +99,7 @@ function branchCard(run, full) {
     </div>
     ${facts(run)}
     <p class="small ink-2">${t('wt.fix.unchanged')}</p>
-    <details class="fold" data-diff="${esc(run.id)}" style="margin:0 -16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><summary>${icon('code', 'muted')}<span class="row__main small">${t('wt.fix.see')}</span>${icon('chev', 'chev icon--sm')}</summary>
+    <details class="fold" data-diff="${esc(run.id)}" ${opened.has(run.id) ? 'open' : ''} style="margin:0 -16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><summary>${icon('code', 'muted')}<span class="row__main small">${t('wt.fix.see')}</span>${icon('chev', 'chev icon--sm')}</summary>
       <div class="fold__body">${diffHTML(run)}</div></details>
     <div class="wcard__actions">
       ${lock ? `<p class="small muted">${icon('lock', 'icon--sm')} ${t('wt.offline')}</p>`
@@ -159,6 +160,7 @@ function listPage(ctx) {
 function openDiff(main) {
   main.querySelectorAll('details[data-diff]').forEach(el => el.addEventListener('toggle', () => {
     const id = el.dataset.diff, run = runOf(id);
+    if (el.open) opened.add(id); else opened.delete(id);
     if (!el.open || details[id] || !run || !client) return;
     client.branches.detail(run.result.branch).then(d => { details[id] = d; refresh(); }, e => { details[id] = { error: e.message }; refresh(); });
   }));
@@ -257,7 +259,7 @@ function foot(kind, local, danger) {
   return `${said ? `<p class="small" role="alert" style="color:var(--danger)">${icon('warn', 'icon--sm')} ${esc(said)}</p>` : ''}
     ${ackRow(kind, local)}<div class="sheet__foot-row">
       <button class="btn btn--secondary" data-act="sheet-close" data-autofocus>${t('cancel')}</button>
-      <button class="btn ${danger ? 'btn--danger' : 'btn--primary'}" data-act="do-decide" data-op="${kind === 'accept' ? 'accept' : 'undo'}" data-fk="do-${kind}" ${ready && local.ack && !local.busy ? '' : 'disabled'} title="${esc(local.ack ? '' : t('cf.need_ack'))}">${kind === 'accept' ? icon('seal') : ''}${esc(local.busy ? t('cf.doing') : label)}</button></div>
+      <button class="btn ${danger ? 'btn--danger' : 'btn--primary'}" data-act="do-decide" data-needs-ack data-op="${kind === 'accept' ? 'accept' : 'undo'}" data-fk="do-${kind}" ${ready && local.ack && !local.busy ? '' : 'disabled'} title="${esc(local.ack ? '' : t('cf.need_ack'))}">${kind === 'accept' ? icon('seal') : ''}${esc(local.busy ? t('cf.doing') : label)}</button></div>
     ${validLine(local)}`;
 }
 

@@ -107,7 +107,7 @@ export function detailHTML(p, ctx) {
       <label class="small ink-2" style="display:inline-flex;align-items:center;gap:12px;margin-top:4px">${chk(`data-change="sel" value="${esc(p.id)}" data-fk="dsel-${esc(p.id)}"`, selection.picked.ids.has(p.id), t('pd.select'))}<span style="margin-inline-start:10px">${t('pd.select')}</span></label>
     </header>
     ${p.why ? `<section class="psec"><h2>${t('pd.why')}</h2><p>${rich(L(p.why))}</p></section>` : ''}
-    <section class="psec"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
+    <section class="psec" id="pd-decision"><h2>${t('pd.decision')}</h2>${decisionHTML(p)}</section>
     <section class="psec"><h2>${t('pd.where')}</h2><ul class="places">${places}</ul>
       <dl class="facts" style="margin-top:12px"><dt>${t('pd.component')}</dt><dd>${code(component(p))}</dd><dt>${t('pd.area')}</dt><dd>${t('area.' + (p.category || 'none'))}</dd><dt>${t('pd.kind')}</dt><dd>${esc(kindWord(p.kind))}</dd></dl></section>
     <section class="psec"><h2>${t('pd.evidence')} <span class="muted small">${facts.length ? esc(tn('pl.fact', facts.length)) : ''}</span></h2>${evidence}</section>

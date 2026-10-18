@@ -85,7 +85,7 @@ check again, fix, accept.
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd studio && npm run build)      # only when studio/ changed
+(cd console && npm run build)     # only when console/ changed (console/README.md)
 ```
 
 ## The development flow: EAOS develops EAOS (owner's order, 2026-10-13)
@@ -95,7 +95,7 @@ working EAOS (its code, its tools, its Studio); `develop` is the project under c
 Every piece of work follows these steps, in this order, every time:
 0. **Build on a new branch from `develop`** (`dev/<topic>`), without asking: that is the owner's standing rule
    (2026-10-17). Work directly on `develop` only when the owner says so explicitly.
-1. **Develop and verify** there (full suite, `tools/validate.py`, the Studio built when `studio/` changed).
+1. **Develop and verify** there (full suite, `tools/validate.py`, the Studio built when `console/` changed).
 2. **Merge into `develop`** when the work is done (a new branch: merged, then deleted), and push `origin/develop`.
 3. **`develop` goes into `beta-trial` only once the owner approved it**: then
    `bash /workspace/eaos-beta-trial/update.sh --approved`, which stops at the first failure:

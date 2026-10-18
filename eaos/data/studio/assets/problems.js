@@ -28,7 +28,7 @@
       <label class="small ink-2" style="display:inline-flex;align-items:center;gap:12px;margin-top:4px">${(0,n.chk)(`data-change="sel" value="${(0,n.esc)(e.id)}" data-fk="dsel-${(0,n.esc)(e.id)}"`,n.selection.picked.ids.has(e.id),(0,n.t)("pd.select"))}<span style="margin-inline-start:10px">${(0,n.t)("pd.select")}</span></label>
     </header>
     ${e.why?`<section class="psec"><h2>${(0,n.t)("pd.why")}</h2><p>${(0,n.rich)((0,n.L)(e.why))}</p></section>`:""}
-    <section class="psec"><h2>${(0,n.t)("pd.decision")}</h2>${be(e)}</section>
+    <section class="psec" id="pd-decision"><h2>${(0,n.t)("pd.decision")}</h2>${be(e)}</section>
     <section class="psec"><h2>${(0,n.t)("pd.where")}</h2><ul class="places">${f}</ul>
       <dl class="facts" style="margin-top:12px"><dt>${(0,n.t)("pd.component")}</dt><dd>${(0,n.code)(g(e))}</dd><dt>${(0,n.t)("pd.area")}</dt><dd>${(0,n.t)("area."+(e.category||"none"))}</dd><dt>${(0,n.t)("pd.kind")}</dt><dd>${(0,n.esc)(B(e.kind))}</dd></dl></section>
     <section class="psec"><h2>${(0,n.t)("pd.evidence")} <span class="muted small">${r.length?(0,n.esc)((0,n.tn)("pl.fact",r.length)):""}</span></h2>${v}</section>
