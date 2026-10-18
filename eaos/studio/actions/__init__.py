@@ -248,7 +248,7 @@ class Actions:
     def run_operation(self, run, operation, body, route):
         self.store.load(run)
         if operation in ('pause', 'resume', 'stop', 'retry'):
-            self.store.append(run, 'action', {'en': f'You pressed {operation}', 'ar': f'ضغطت {operation}'}, {'action': operation, 'by': 'person', 'arguments': {}})
+            self.store.append(run, 'action', chat.pressed(operation), {'action': operation, 'by': 'person', 'arguments': {}})
             return {'run': self.public(getattr(self.manager, operation)(run))}
         if operation in ('accept', 'undo'): return self.decide(run, operation, body)
         raise KeyError(route)

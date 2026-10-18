@@ -81,6 +81,20 @@ function why(s) {
   if (code && has('ac.why.' + code)) return t('ac.why.' + code);
   return s.raw.reason || null;
 }
+/** What a stage the assistant was lost in says: { assistant, resets } — the assistant the check was given stopped
+ *  midway (its limit, its sign-in), so the stage did not run though it was asked for; else null. A check made before
+ *  EAOS recorded it says it in its reason only. */
+export function lostOf(s) {
+  const raw = (s && s.raw) || {}, said = String(raw.reason || '');
+  const kept = (raw.detail || {}).assistant_lost;
+  if (kept) return { assistant: kept.assistant || null, resets: kept.resets || null, code: raw.reason_code || '' };
+  const old = said.match(/^during the check (.+?) stopped answering \(([a-z_]+)\)/);
+  if (!old) return null;
+  const back = said.match(/resets? (?:at )?([0-9][0-9:]*\s*(?:[ap]m\b|hours?\b|minutes?\b)?(?:\s*\([A-Za-z0-9+:-]+\))?)/i);
+  // before EAOS knew Claude Code's "session limit" words, a spent limit was recorded as a plain failure
+  const code = old[2].endsWith('_failed') && /limit/i.test(said) ? old[2].replace(/_failed$/, '_limit') : old[2];
+  return { assistant: old[1], resets: back ? back[1].trim() : null, code };
+}
 /** The stages that read from `id`, however far (redo runs them again). */
 export function dependents(list, id) {
   const out = new Set();
@@ -120,7 +134,7 @@ sheet('stage', {
     if (offline()) redo = `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.stg.redo')}</button>`;
     else if (query.replay) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.replay')}</p>`;
     else if (!ended) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.running')}</p>`;
-    else if (!['ok', 'failed', 'partial'].includes(st)) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.didnt')}</p>`;
+    else if (!['ok', 'failed', 'partial'].includes(st) && !lostOf(s)) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.didnt')}</p>`;
     else redo = `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}" data-autofocus>${t('ac.stg.redo')}</button>
       ${tools.length ? `<button class="btn btn--secondary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}:failed">${t('ac.stg.redo.failed')}</button>` : ''}`;
     return {

@@ -20,9 +20,10 @@ class SkipStage(Exception):
     `code` names the reason in a stable word (`no_provider`): the Studio shows the person the text for that code in
     their language (the `reasons` of eaos/data/errors.json), and EAOS's own sentence when the code is unknown."""
 
-    def __init__(self, reason='', code=''):
+    def __init__(self, reason='', code='', lost=None):
         super().__init__(reason)
         self.code = code
+        self.lost = lost      # {'resets': …} when the assistant the check was given stopped midway: the check is partial
 
 
 

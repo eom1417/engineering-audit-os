@@ -89,10 +89,14 @@ export function took(r) {
   const s = flow && flow.seconds != null ? flow.seconds : seconds(r.started || r.created, r.ended);
   return s == null ? null : Math.max(1, Math.round(s / 60));
 }
-/** The newest check run that started (the one /api/progress's check flow is of). */
-export const lastCheck = () => runs().find(r => r.action === 'audit' && r.started) || null;
 /** The check flow of /api/progress, with its stages. */
 export const checkFlow = () => (live.progress && live.progress.flows && live.progress.flows.check) || null;
+/** The check run /api/progress's check flow is of: the newest one that started no later than the flow did. A check
+ *  that stopped before it began its stages (no assistant, a refusal) never owns the stages of the one before it. */
+export const lastCheck = () => {
+  const flow = checkFlow(), began = flow && Date.parse(flow.started_at);
+  return runs().find(r => r.action === 'audit' && r.started && (!began || Date.parse(r.started) <= began)) || null;
+};
 /** The check flow belongs to this run when it is the newest check. */
 export const flowOfRun = r => (r && r.action === 'audit' && lastCheck() && lastCheck().id === r.id ? checkFlow() : null);
 

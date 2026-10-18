@@ -3,7 +3,7 @@
 // flow and the freshness of the check. Polled (every 3 s while the tab is seen, 15 s otherwise, and at once when it is
 // seen again) and pushed by the live feed (/api/events: a new check, a delivered batch, a merge, a decision; the
 // progress of the work), which also tells the report's sections to reload. Listeners hear only real changes.
-import { ACTIVE, client } from './actions.js';
+import { ACTIVE, TERMINAL, client } from './actions.js';
 import { follow } from './sse.js';
 import { mode, reload } from './source.js';
 
@@ -42,9 +42,24 @@ export async function refresh() {
     const first = !live.loaded;
     live.loaded = true;
     if (first || !same(was, next)) tell('runs');
+    if (!first && ended(was.runs, next.runs)) catchUp();
   } catch (e) {
     if (!live.loaded) { live.loaded = true; tell('runs'); }
   }
+}
+
+/** Whether a run that was going (queued, running, paused, waiting) has ended since the last read: a check that ended
+ *  rebuilt the report, a merge moved the branch. */
+function ended(before, after) {
+  const going = new Set((before || []).filter(r => !TERMINAL.includes(r.state)).map(r => r.id));
+  return (after || []).some(r => going.has(r.id) && TERMINAL.includes(r.state));
+}
+
+/** The report's changed sections, whether it still matches the code and every flow's progress, read again: after a run
+ *  ended, and when the tab is seen again or the feed comes back (a phone's tab sleeps and misses the feed's events). */
+export function catchUp() {
+  reload(false).then(refreshFreshness, refreshFreshness);
+  refreshProgress();
 }
 
 /** Shows a change at once (pause, an answer…); the next refresh replaces it with the server's truth. */
@@ -112,7 +127,7 @@ export function begin() {
     refresh();
     const loop = () => setTimeout(async () => { if (document.visibilityState === 'visible') await refresh(); loop(); }, document.visibilityState === 'visible' ? 3000 : 15000);
     loop();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { refresh(); catchUp(); } });
   }, () => { live.loaded = true; tell('runs'); });
   refreshProgress();
   refreshAssistants();
@@ -120,6 +135,11 @@ export function begin() {
   follow('/api/events', {
     onFrame: onFeed,
     onBeat: () => { live.heard = Date.now(); },
-    onStatus: status => { if (status !== live.feed) { live.feed = status; tell('feed'); } },
+    onStatus: status => {
+      if (status === live.feed) return;
+      const back = live.feed === 'reconnecting' && status === 'open';
+      live.feed = status; tell('feed');
+      if (back) catchUp();
+    },
   });
 }

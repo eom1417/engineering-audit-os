@@ -315,7 +315,8 @@ def _lost(context, problem, code):
         try: found = readiness.probe(name, fresh=True)
         except Exception: found = {'ready': True}
         if not found['ready']:
-            return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'])
+            return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'],
+                             lost={'assistant': name, 'resets': found.get('resets')})
     return SkipStage(problem, code=code)
 
 

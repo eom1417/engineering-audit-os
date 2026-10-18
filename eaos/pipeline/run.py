@@ -200,9 +200,22 @@ def _manifest(head, began, results):
         'limits': 'A stage that did not run proves nothing. Read the skipped and unavailable rows before '
                   'reading the findings: they are the shape of what this run could not see.',
         'options': head['options'], 'source_fingerprint': head['source_fingerprint'],
+        'measured': _measured(Path(head['out']) / MANIFEST, results),
     }
     _write(Path(head['out']) / MANIFEST, manifest)
     return manifest
+
+
+def _measured(path, results):
+    """{stage: seconds} each stage took the last time it ran ok, in this run or an earlier one: a stage this run could
+    not run (its assistant lost midway) keeps its earlier time, so the estimate of running it again is not zero."""
+    try: before = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError): before = {}
+    kept = {**(before.get('measured') or {}),
+            **{name: row['seconds'] for name, row in (before.get('stages') or {}).items()
+               if isinstance(row, dict) and row.get('status') == OK and isinstance(row.get('seconds'), (int, float))}}
+    return {**kept, **{name: row['seconds'] for name, row in results.items()
+                       if row['status'] == OK and isinstance(row.get('seconds'), (int, float))}}
 
 
 def _write(path, record):
@@ -234,7 +247,7 @@ def completion_status(results):
            (row['necessity'] == 'required' and row['status'] == UNAVAILABLE) for row in results.values()):
         return 'INCOMPLETE'
     if any((row['necessity'] == 'required' and row['status'] == SKIPPED) or row.get('reason_code') == 'tools_failed'
-           for row in results.values()):
+           or (row.get('detail') or {}).get('assistant_lost') for row in results.values()):
         return 'PARTIAL'
     return 'COMPLETE'
 
@@ -257,7 +270,10 @@ def _one(stage, context, runners, results):
     try:
         outcome = runner(context) or {}
     except SkipStage as reason:
-        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began, code=reason.code or 'not_applicable')
+        # an assistant lost midway leaves the stage absent like any optional one (the stages after it still run), but
+        # says so: the check is then PARTIAL, never COMPLETE, and the Studio offers to run the lost stages again
+        lost = {'assistant_lost': reason.lost} if reason.lost else None
+        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began, detail=lost, code=reason.code or 'not_applicable')
     except Exception as problem:                       # one stage must not decide the fate of the rest
         return _row(stage, FAILED, f'{type(problem).__name__}: {problem}'[:300], time.monotonic() - began, code='stage_error')
     seconds = time.monotonic() - began
