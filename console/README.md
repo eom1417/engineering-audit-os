@@ -35,13 +35,14 @@ The source fingerprint in `SOURCE.json` covers `package.json`, `package-lock.jso
 src/index.html, src/boot.js     the page and its first script
 src/core/                       the runtime every place shares (one bundle)
   main.js        builds self.EAOS (the API below) and starts
-  router.js      addresses (#/path?query, the prototype's), screens, drawing, refresh keeping focus and scroll
+  address.js     addresses (#/path?query, the prototype's): parseHash, href, navigate, setQuery, redraw
+  router.js      screens, drawing, refresh keeping focus and scroll (the core imports in one direction: no cycle)
   places.js      which bundle holds an address (the IA's prefixes) or a sheet (found by the build)
   shell.js       top bar, tab bar, sidebar, banner, live strip, selection bar; liveNow(), freshness()
   sheets.js      sheets with their own address, focus trap, local() state, needs
   search.js      Search or ask (Ctrl/Cmd+K)        menu.js   the project menu, "Open it live"
   assist.js      the floating assistant (the conversation itself comes from the Ask place: EAOS.askAPI)
-  i18n.js prefs.js settings.js format.js notices.js events.js state.js outline.js
+  i18n.js prefs.js settings.js format.js notices.js events.js state.js outline.js loading.js a11y.js
 src/data/                       the data layer (ported from studio/src/data, the logic, not the look)
   source.js      the report's sections: live API or the read-only copy's .js twins; need(), section(), reload()
   sse.js         server-sent events over fetch, with Last-Event-ID
