@@ -17,6 +17,7 @@ import * as outline from './outline.js';
 import { act } from './events.js';
 import { S } from './state.js';
 import { redrawAssist } from './assist.js';
+import * as ac from './marks.js';
 import './search.js';
 import './menu.js';
 import * as source from '../data/source.js';
@@ -37,7 +38,7 @@ act('copy', el => notices.copyText(el.dataset.text || ''));
 act('go', el => sheets.closeSheetThen(() => { location.hash = el.dataset.href; }));
 
 self.EAOS = Object.assign({}, i18n, format, address, router, sheets, notices, settings, shell, outline, {
-  act, S, prefs, redrawAssist, a11yRegions, loadingHTML,
+  act, S, prefs, redrawAssist, ac, a11yRegions, loadingHTML,
   data: source, live: store.live, store, model, selection, derive, normalize, contract,
   client, ActionError, TERMINAL, ACTIVE, RETRYABLE,
 });
