@@ -31,7 +31,7 @@ function checkNow(r) {
   const running = list.filter(s => ['running', 'paused', 'you'].includes(s.state));
   const done = finished(list), c = counts(list);
   const e = flow && flow.estimate;
-  const left = e && e.low != null ? ' ' + t('live.left', { lo: num(Math.max(1, Math.round(e.low / 60))), hi: num(Math.max(1, Math.round(e.high / 60))) }) : '';
+  const left = e && e.low != null ? t('live.left', { lo: num(Math.max(1, Math.round(e.low / 60))), hi: num(Math.max(1, Math.round(e.high / 60))) }) : '';
   const title = you ? t('ac.now.check.you') : rs === 'paused' ? t('ac.now.check.paused') : t('ac.now.check');
   const sub = you ? t('ac.now.check.you.sub', { until: live.signIn && live.signIn.asked && live.signIn.asked.until ? ac.when(live.signIn.asked.until) : '' })
     : list.length ? t('ac.now.check.sub', { stage: num(Math.min(done + 1, list.length)), total: num(list.length), stages: running.map(s => stageTitle(s.id)).join(t('list.sep')) || t('ac.now.starting') }) + left

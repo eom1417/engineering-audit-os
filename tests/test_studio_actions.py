@@ -589,10 +589,11 @@ class Direct(Base):
             state['n'] += 1
             if state['n'] < 3: return {'id': job, 'kind': 'audit', 'status': 'running', 'progress': {'done': state['n'], 'total': 3, 'stage': 'engines'}}
             return {'id': job, 'kind': 'audit', 'status': 'done', 'result': {'overview': 'fine'}}
-        with mock.patch.object(jobs, 'read', side_effect=read):
+        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.guided.load', return_value=applied):
             run = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
             done = self.app.wait(run, ('done', 'failed'), 20)
         self.assertEqual(done['state'], 'done')
+        self.assertIsNone(done['result']['branch'], 'a check run while a batch waits does not hand that batch over again')
         self.assertEqual([e['data']['done'] for e in self.app.store.events(run) if e['kind'] == 'progress'], [1, 2])
 
     def test_a_step_that_needs_consent_asks_in_the_inbox_and_only_an_explicit_yes_gives_it(self):

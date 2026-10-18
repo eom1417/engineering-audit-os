@@ -158,13 +158,13 @@ sheet('redo-pick', {
   kind: 'drawer',
   render() {
     const run = ac.lastCheck();
-    const list = stagesOf(flow(), run).filter(x => ['ok', 'failed', 'partial'].includes(x.state));
+    const list = stagesOf(flow(), run).filter(x => ['ok', 'failed', 'partial'].includes(x.state)).sort((a, b) => a.layer - b.layer);
     const ended = run && ac.ended(run) && flow() && flow().state !== 'running';
     return {
       title: esc(t('ac.pick.title')),
       sub: run ? `<span class="muted">${esc(ac.runLabel(run))}</span>` : '',
       body: !ended || !list.length ? `<p class="small ink-2">${t(ended ? 'ac.pick.none' : 'ac.stg.redo.running')}</p>`
-        : `<p class="small ink-2">${t('ac.pick.guide')}</p><ul class="panel rows">${list.map(x => `<li><button class="row" data-act="sheet" data-sheet="redo:${esc(x.id)}">${ac.glyph(x.state)}<span class="row__main"><span class="row__title">${esc(stageTitle(x.id))}</span><span class="row__meta" style="display:block">${esc(t('ac.pick.layer', { n: num(x.layer) }))}</span></span>${icon('chev', 'icon--dir muted')}</button></li>`).join('')}</ul>`,
+        : `<p class="small ink-2">${t('ac.pick.guide')}</p><ul class="panel rows">${list.map(x => `<li><button class="row" data-act="sheet" data-sheet="redo:${esc(x.id)}">${ac.glyph(x.state)}<span class="row__main"><span class="row__title">${esc(stageTitle(x.id))}</span><span class="row__meta" style="display:block">${esc(t('ac.pick.layer', { n: num(x.layer + 1) }))}</span></span>${icon('chev', 'icon--dir muted')}</button></li>`).join('')}</ul>`,
     };
   },
 });

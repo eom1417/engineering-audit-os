@@ -249,8 +249,20 @@ class Manager:
         try: return jobs.read(job, self.project)['status'] == 'running'
         except Exception: return False
 
-    def _direct(self, run, follow=True):
+    def _baseline(self, run):
+        """What waited before the run started (its waiting branches and the batches so far), so its outcome names only
+        a batch it made: a check that ran while a batch waits does not hand that batch over again."""
         record = self.store.load(run)
+        if not record.get('branches_before'):
+            record = self.store.update(run, branches_before=sorted(self._waiting_branches())) or self.store.load(run)
+        if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
+            from ... import guided
+            state = guided.load(self.project) or {}
+            record = self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])}) or self.store.load(run)
+        return record
+
+    def _direct(self, run, follow=True):
+        record = self._baseline(run)
         action = record['action']
         self.store.append(run, 'step', {'en': self.labels[action]['en'], 'ar': self.labels[action]['ar']}, {'tool': action})
         result = self.call(action, record.get('inputs'))
@@ -302,13 +314,7 @@ class Manager:
     # the assistant
     def _launch(self, run, adapter, prompt, session=None):
         folder = self.store.path(run)
-        record = self.store.load(run)
-        if not record.get('branches_before'):
-            self.store.update(run, branches_before=sorted(self._waiting_branches()))
-        if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
-            from ... import guided
-            state = guided.load(self.project) or {}
-            self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])})
+        record = self._baseline(run)
         verb = next((v for v in self.contract['verbs'] if v['id'] == record.get('verb')), None)
         tools = [tool for tool in verb['tools'] if tool not in adapters.PERSON_ONLY] if verb else None
         if record.get('owner_decision') or record.get('review'): tools = ['status', 'overview', 'finding', 'findings', 'impact', 'structure']
