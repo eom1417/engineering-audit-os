@@ -17,7 +17,7 @@ const given = (process.argv.find(a => a.startsWith('--routes=')) || '').slice(9)
     for (const r of routes) {
       await L.open(p, r, c.lang, c.theme);
       if (r.includes('sheet=search')) { await p.fill('#search-input', 'toolchain'); await p.waitForTimeout(200); }
-      await p.addScriptTag({ content: AXE });
+      await p.evaluate(AXE); // through the debugger: the page's policy refuses inline scripts
       const res = await p.evaluate(async () => {
         const r = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] } });
         return r.violations.map(v => ({ id: v.id, n: v.nodes.length, ex: v.nodes.slice(0, 2).map(n => n.target.join(' ')) }));
