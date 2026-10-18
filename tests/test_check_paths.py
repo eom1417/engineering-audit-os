@@ -49,6 +49,15 @@ class PathsTests(unittest.TestCase):
         self.assertEqual({n for n, a in ADAPTERS.items() if not a.capabilities()} - named, set(), 'an engine that names no capability')
 
 
+    def test_a_redo_from_a_stage_is_timed_as_that_stage_and_its_readers_only(self):
+        from eaos import check_choices
+        from eaos.pipeline.stages import ORDER, dependents
+        with mock.patch.object(check_choices, 'previous_seconds', return_value={name: 60.0 for name in ORDER}):
+            whole, redo = check_choices.estimate('report'), check_choices.estimate('report', again_from='reports')
+        self.assertLess(redo['minutes_high'], whole['minutes_low'])
+        self.assertLessEqual(redo['minutes_low'], 1 + len(dependents('reports', reading=True)))
+
+
 class FocusedCheckTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()

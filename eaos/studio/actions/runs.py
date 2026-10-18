@@ -70,6 +70,12 @@ def _fresh_waves(record, state):
             else [w for w in waves if w.get('branch') not in before])
 
 
+# the Arabic of the reasons a run changes state for (a failure's own reason stays in its English line and its data)
+WHY_AR = {'the assistant handoff': 'تسليمه لمساعدك', 'a question': 'سؤال', 'nothing changed': 'لم يتغيّر شيء',
+          'you stopped it': 'أوقفته أنت', 'taken': 'بدأ', 'resumed': 'استؤنف', 'answered': 'جاوبت', 'tried again': 'يُعاد',
+          'the server restarted': 'أُعيد تشغيل الخادم'}
+
+
 def _tests(kept, failed):
     """A batch's checks: passed when a change was kept, with the changes left out and why."""
     return {'passed': bool(kept), 'kept': len(kept), 'left': len(failed),
@@ -120,7 +126,8 @@ class Manager:
             # the event first: a stream that ends when it sees a final state has then already read its last event
             if before != to:
                 said = contract()['lifecycle']['states'][to]
-                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why}' if why else '')},
+                why_ar = WHY_AR.get(why, '') if why else ''   # an English reason is never glued to an Arabic sentence
+                self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why_ar}' if why_ar else '')},
                                   {'from': before, 'to': to, 'why': why})
             self.store.save(record)
         return record

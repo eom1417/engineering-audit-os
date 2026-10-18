@@ -170,7 +170,10 @@ sheet('redo-pick', {
 });
 function redoInputs(id, variant) {
   const s = stagesOf(flow()).find(x => x.id === id);
-  return Object.assign({ again_from: id }, variant === 'failed' && s ? { engines: failedTools(s) } : {});
+  /* the stages run again as the check ran them: a check without the assistant is redone without it */
+  const was = (ac.lastCheck() || {}).inputs || {};
+  return Object.assign({ again_from: id }, was.without_ai ? { without_ai: true } : {},
+    variant === 'failed' && s ? { engines: failedTools(s) } : {});
 }
 sheet('redo', {
   kind: 'drawer',

@@ -434,7 +434,7 @@ class Actions:
         fails; where Accept would merge."""
         spec = self.actions[action]
         low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-        measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'))
+        measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'), inputs.get('again_from'))
         if action == 'audit':
             from ... import guided
             out['check'] = check_choices.offered(guided.load(str(self.project)), self._studio() and self._studio().parent)
