@@ -11,7 +11,7 @@ import { a11yRegions, afterRender, href, parseHash, refresh, setQuery, offline }
 import { act } from './events.js';
 import { announce } from './notices.js';
 import { closeSheetThen } from './sheets.js';
-import { loadBundle } from './places.js';
+import { loadBundle, isLoaded } from './places.js';
 import { S } from './state.js';
 import { live } from '../data/store.js';
 import { decisions, problem } from '../data/model.js';
@@ -64,7 +64,8 @@ function bodyHTML() {
         <a class="btn btn--quiet" href="${href('/project/assistants')}">${t('as.noasst.open')}</a></div></div>`;
   }
   const a = api();
-  if (!a) return `<div class="assist__state" aria-busy="true"><p class="small muted">${t('st.loading')}</p></div>`;
+  if (!a && !isLoaded('ask')) return `<div class="assist__state" aria-busy="true"><p class="small muted">${t('st.loading')}</p></div>`;
+  if (!a) return `<div class="assist__state"><p class="small ink-2">${t('todo.next')}</p></div>`;
   const turns = a.chat();
   const answers = turns.filter(x => x.who === 'ai' && x.cost != null);
   const cost = answers.reduce((sum, x) => sum + x.cost, 0);
@@ -121,7 +122,7 @@ function draw() {
   if (parseHash().query.ask === '1' && !S.assist.open && !hidden()) S.assist.open = true;
   if (hidden()) S.assist.open = false;
   const open = S.assist.open;
-  if (open && !api() && !offline()) loadBundle('ask').then(ok => { if (ok) draw(); });
+  if (open && !isLoaded('ask') && !offline()) loadBundle('ask').then(ok => { if (ok) draw(); });
   document.body.classList.toggle('has-assist', open);
   const host = document.getElementById('assist-host');
   const a = document.activeElement;

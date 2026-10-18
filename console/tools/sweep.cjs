@@ -28,7 +28,7 @@ function audit(vw) {
   });
   if (!document.querySelector('#main h1')) out.push('no h1');
   const text = document.body.innerText;
-  const raw = text.match(/\b(?:ac|un|pb|st|wt|pd|pv|cf|nav|proj|todo|as|live|stale)\.[a-z][\w.-]+/g);
+  const raw = text.match(/(?<![\w/.-])(?:ac|un|pb|st|wt|pd|pv|cf|nav|proj|todo|as|live|stale)\.[a-z][\w.-]+/g);
   if (raw) out.push('raw keys: ' + [...new Set(raw)].slice(0, 5).join(' '));
   if (/\bundefined\b|\bNaN\b|\[object /.test(text)) out.push('undefined/NaN text: ' + (text.match(/.{0,30}(undefined|NaN|\[object).{0,20}/) || [''])[0].replace(/\n/g, ' '));
   if (location.hash.includes('sheet=') && !document.querySelector('.sheet.is-open')) out.push('sheet did not open');

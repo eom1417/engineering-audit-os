@@ -37,7 +37,7 @@ const given = (args.find(a => a.startsWith('--routes=')) || '').slice(9).split('
           const sb = sh.getBoundingClientRect();
           sh.querySelectorAll('*').forEach(el => { const b = el.getBoundingClientRect(); if (b.width && (b.right > Math.min(vw, sb.right) + 1 || b.left < Math.max(0, sb.left) - 1) && !scrollers(el)) out.push('overflow ' + el.tagName + '.' + String(el.className).slice(0, 40)); });
           const text = sh.innerText;
-          const raw = text.match(/\b(?:ac|un|pb|st|wt|pd|pv|cf|nav|proj|as|live)\.[a-z][\w.-]+/g); if (raw) out.push('raw keys ' + raw.slice(0, 3).join(' '));
+          const raw = text.match(/(?<![\w/.-])(?:ac|un|pb|st|wt|pd|pv|cf|nav|proj|as|live)\.[a-z][\w.-]+/g); if (raw) out.push('raw keys ' + raw.slice(0, 3).join(' '));
           if (/\bundefined\b|\bNaN\b|\[object /.test(text)) out.push('undefined/NaN text');
           const title = sh.querySelector('.sheet__title') ? sh.querySelector('.sheet__title').textContent : '';
           if (/not in this check|ليست في هذا الفحص/.test(title)) out.push('sheet says not found');
