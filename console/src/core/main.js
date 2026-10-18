@@ -6,6 +6,9 @@ import { prefs, applyDocument } from './prefs.js';
 import * as i18n from './i18n.js';
 import * as format from './format.js';
 import * as router from './router.js';
+import * as address from './address.js';
+import { a11yRegions } from './a11y.js';
+import { loadingHTML } from './loading.js';
 import * as sheets from './sheets.js';
 import * as notices from './notices.js';
 import * as settings from './settings.js';
@@ -33,8 +36,8 @@ act('theme-set', el => settings.setTheme(el.dataset.theme));
 act('copy', el => notices.copyText(el.dataset.text || ''));
 act('go', el => sheets.closeSheetThen(() => { location.hash = el.dataset.href; }));
 
-self.EAOS = Object.assign({}, i18n, format, router, sheets, notices, settings, shell, outline, {
-  act, S, prefs, redrawAssist,
+self.EAOS = Object.assign({}, i18n, format, address, router, sheets, notices, settings, shell, outline, {
+  act, S, prefs, redrawAssist, a11yRegions, loadingHTML,
   data: source, live: store.live, store, model, selection, derive, normalize, contract,
   client, ActionError, TERMINAL, ACTIVE, RETRYABLE,
 });
@@ -47,6 +50,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ev => {
   router.refresh();
 });
 window.addEventListener('hashchange', router.onRoute);
+window.addEventListener('eaos:redraw', () => { router.onRoute(); router.refresh(); });
 
 (async () => {
   applyDocument();

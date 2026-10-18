@@ -5,7 +5,8 @@
 // redraw keeps it; it goes when the sheet closes.
 import { t } from './i18n.js';
 import { esc, icon } from './format.js';
-import { navigate, parseHash, setQuery, a11yRegions } from './router.js';
+import { navigate, parseHash, setQuery } from './address.js';
+import { a11yRegions } from './a11y.js';
 import { bundleOfSheet, loadBundle } from './places.js';
 import { need, pendingOf } from '../data/source.js';
 

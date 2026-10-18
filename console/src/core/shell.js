@@ -4,7 +4,7 @@
 import { prefs } from './prefs.js';
 import { t, tn, num } from './i18n.js';
 import { esc, icon, fmtWhen, fmtTime } from './format.js';
-import { href, parseHash } from './router.js';
+import { href, parseHash } from './address.js';
 import { UGROUPS, ugroupOf } from './places.js';
 import { picked } from '../data/selection.js';
 import { listed, manifest, mode, pendingOf } from '../data/source.js';

@@ -3,7 +3,7 @@
 import { prefs } from './prefs.js';
 import { t, num } from './i18n.js';
 import { esc, icon, fmtWhen } from './format.js';
-import { href } from './router.js';
+import { href } from './address.js';
 import { sheet, rerenderSheet } from './sheets.js';
 import { client } from '../data/actions.js';
 import { live } from '../data/store.js';

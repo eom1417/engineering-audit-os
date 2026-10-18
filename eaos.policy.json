@@ -164,6 +164,7 @@
       "eaos/engines/**"
     ],
     "studio": [
+      "console/**",
       "studio/**",
       "eaos/data/studio/**",
       "docs/studio-actions.json",

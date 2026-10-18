@@ -10,7 +10,9 @@ import { setLang, setTheme } from './settings.js';
 import { clearSelection, picked } from '../data/selection.js';
 import { need, pendingOf, state as dataState, mode } from '../data/source.js';
 import { project } from '../data/model.js';
-import { loadingHTML } from './outline.js';
+import { loadingHTML } from './loading.js';
+import { parseHash } from './address.js';
+import { a11yRegions } from './a11y.js';
 
 const screens = [];
 const renderHooks = [];
@@ -19,33 +21,6 @@ export const SHELL_NEEDS = ['head', 'decisions'];
 /** Page states an address may ask for, to review a state the data does not have now (`?state=`); every other state
  *  comes from the data. */
 const ASKABLE = ['loading', 'empty', 'offline', 'reconnecting'];
-
-export function parseHash() {
-  const raw = location.hash.replace(/^#/, '') || '/status';
-  const i = raw.indexOf('?');
-  const path = (i < 0 ? raw : raw.slice(0, i)) || '/status';
-  const query = {};
-  new URLSearchParams(i < 0 ? '' : raw.slice(i + 1)).forEach((v, k) => { query[k] = v; });
-  return { path: path.replace(/\/+$/, '') || '/status', query };
-}
-export function href(path, query) {
-  const q = new URLSearchParams();
-  Object.keys(query || {}).forEach(k => { if (query[k] != null && query[k] !== '') q.set(k, query[k]); });
-  const s = q.toString();
-  return '#' + path + (s ? '?' + s : '');
-}
-export function navigate(path, query, opts) {
-  const h = href(path, query);
-  if (opts && opts.replace) { history.replaceState(null, '', h); onRoute(); }
-  else if (location.hash === h) onRoute();
-  else location.hash = h;
-}
-export function setQuery(patch, opts) {
-  const r = parseHash();
-  const q = Object.assign({}, r.query, patch);
-  Object.keys(q).forEach(k => { if (q[k] == null || q[k] === '') delete q[k]; });
-  navigate(r.path, q, opts || { replace: true });
-}
 
 /** Registers a screen: {id, path ('/x/:param'), place, title(ctx), render(ctx), after(main, ctx), needs, loading(ctx)}.
  *  `needs`: the report sections it draws with (an array, or ctx => array). A later registration of the same address
@@ -118,14 +93,6 @@ export function onRoute() {
 
 function refreshAssist() { renderHooks.forEach(fn => fn(context(parseHash(), match(parseHash().path)))); }
 
-/** Scroll regions (code, wide tables) are reachable by keyboard and named (axe: scrollable-region-focusable). */
-export function a11yRegions(root) {
-  (root || document).querySelectorAll('.code, .ac-table-wrap, .un-table-wrap, .un-pre').forEach(el => {
-    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-    if (!el.hasAttribute('role')) el.setAttribute('role', 'region');
-    if (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) el.setAttribute('aria-label', t(el.matches('.code, .un-pre') ? 'a11y.code' : 'a11y.table'));
-  });
-}
 function focusMain() {
   const h = document.querySelector('#main h1');
   if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }

@@ -7,7 +7,9 @@
 // Address: ?ask=1 opens it. Keyboard: Ctrl/Cmd+I toggles it, Esc closes it.
 import { t, tn, L } from './i18n.js';
 import { esc, icon, code } from './format.js';
-import { a11yRegions, afterRender, href, parseHash, refresh, setQuery, offline } from './router.js';
+import { afterRender, refresh, offline } from './router.js';
+import { href, parseHash, setQuery } from './address.js';
+import { a11yRegions } from './a11y.js';
 import { act } from './events.js';
 import { announce } from './notices.js';
 import { closeSheetThen } from './sheets.js';

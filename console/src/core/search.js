@@ -6,7 +6,8 @@
 import { prefs } from './prefs.js';
 import { t, L } from './i18n.js';
 import { esc, icon, code, rich, sev } from './format.js';
-import { allScreens, href } from './router.js';
+import { allScreens } from './router.js';
+import { href } from './address.js';
 import { sheet, rerenderSheet } from './sheets.js';
 import { matches } from '../data/normalize.js';
 import { need, section } from '../data/source.js';
