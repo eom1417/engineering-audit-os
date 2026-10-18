@@ -246,6 +246,9 @@ class EventLog(unittest.TestCase):
             self.assertEqual((log.load('r01')['usage']['output'], log.load('r01')['usage']['cost_usd']), (3, 0.5))
             self.assertTrue(log.load('r01')['trimmed'])
             self.assertTrue(all((runs / f'r{n:02}/stream.jsonl').is_file() for n in range(12) if n != 1), 'live and newest kept')
+            for n in range(store.KEEP):              # quick answers (read) never push a run's details out
+                log.save({'id': f'q{n:02}', 'state': 'done', 'read': True, 'created': f'2026-10-17T00:01:{n:02}'}, new=True)
+            self.assertTrue((runs / 'r02/stream.jsonl').is_file())
 
 
 class Adapters(unittest.TestCase):
