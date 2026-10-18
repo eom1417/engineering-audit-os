@@ -32,12 +32,12 @@ async function discover(page) {
     const runs = E.ac.runs(), check = E.ac.lastCheck();
     const failedStage = check && E.ac.checkFlow() ? (E.ac.checkFlow().stages.find(s => s.state === 'ok') || {}).name : null;
     const inv = E.client ? await E.client.branches.inventory().catch(() => null) : null;
-    const locals = inv ? inv.branches.filter(b => b.kind === 'local' && !b.protected && !b.work && !(b.roles || []).includes('analysis')) : [];
+    const locals = inv ? inv.branches.filter(b => b.kind === 'local' && !b.protected && !(b.roles || []).includes('analysis') && !/^eaos\//.test(b.name)) : [];
     let branch = null, conflict = null;
     for (const b of locals) {
       const det = await E.client.branches.detail(b.name).catch(() => null);
       const m = det && det.commands.merge;
-      if (m && m.available && !conflict) { const pv = await E.client.branches.previewMerge(b.name).catch(() => null); if (pv && pv.conflicts.length) conflict = b.name; else if (!branch) branch = b.name; }
+      if (m && m.available && !(conflict && branch)) { const pv = await E.client.branches.previewMerge(b.name).catch(() => null); if (pv && pv.conflicts.length) conflict = conflict || b.name; else if (pv) branch = branch || b.name; }
     }
     const restore = inv && (inv.recovery || []).find(r => !r.restored);
     // builder B's: a plan step, a step that waits for another, a gap with problems, a component, a code path, a data
@@ -207,7 +207,7 @@ function recipes(ids) {
     'SYS-07': L(0, [NAV('understand'), UV('paths')], ['hash:/understand/paths']),
     'SYS-08': L(0, [NAV('understand'), UV('paths'), `#main a[href="#/understand/paths/${enc(ids.path)}"]`], [`hash:/understand/paths/${enc(ids.path)}`]),
     'SYS-09': L(0, [NAV('understand'), UV('data')], ['hash:/understand/data']),
-    'SYS-10': L(0, [NAV('understand'), UV('data'), `#main a[href="#/understand/data/${enc(ids.store)}"]`], [`hash:/understand/data/${enc(ids.store)}`]),
+    'SYS-10': L(0, [NAV('understand'), UV('data'), `#main a[href="#/understand/data/${enc(ids.store)}"]`], [`hash:/understand/data/${ids.store}`]),
     'SYS-11': L(0, [NAV('understand'), UV('unseen')], ['hash:/understand/unseen']),
     'SYS-12': L(0, [NAV('understand'), UV('journeys')], ['hash:/understand/journeys']),
     'SYS-13': L(0, [NAV('understand'), UV('infra')], ['hash:/understand/infra']),
@@ -219,7 +219,7 @@ function recipes(ids) {
     /* ---- SCR ---- */
     'SCR-01': L(0, [NAV('understand'), UV('screens')], ['hash:/understand/screens']),
     'SCR-02': L(0, [NAV('understand'), UV('screens/all')], ['hash:/understand/screens/all']),
-    'SCR-03': L(0, [NAV('understand'), UV('screens/all'), `#main a[href="#/understand/screens/${enc(ids.screen)}"]`], [`hash:/understand/screens/${enc(ids.screen)}`, 'vis:#main .un-picfig']),
+    'SCR-03': L(0, [NAV('understand'), UV('screens/all'), `#main a[href="#/understand/screens/${enc(ids.screen)}"]`], [`hash:/understand/screens/${ids.screen}`, 'vis:#main .un-picfig']),
     'SCR-04': L(0, [NAV('activity'), R12], ['vis:#main .ac-tl'], { note: 'the before and after screens show in a fix run that recorded them' }),
     /* ---- LIB ---- */
     'LIB-01': L(0, [NAV('understand'), UV('library')], ['hash:/understand/library']),
@@ -330,7 +330,8 @@ async function runOne(page, id, rec, w, lang) {
       }
     }
   } catch (e) { return { presses, labels, ok: false, why: 'press failed: ' + String(e.message).split('\n')[0].slice(0, 160) }; }
-  const fails = await page.evaluate(exp => {
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  const check = () => page.evaluate(exp => {
     const bad = [];
     const vis = css => [...document.querySelectorAll(css)].some(e => e.checkVisibility && e.checkVisibility());
     const hash = decodeURIComponent(location.hash);
@@ -351,6 +352,8 @@ async function runOne(page, id, rec, w, lang) {
     }
     return bad;
   }, r.expect.map(sub));
+  /* a press that navigates may land while the page is still swapping documents: look again once it settled */
+  const fails = await check().catch(async () => { await page.waitForTimeout(800); return check(); });
   return { presses, labels, ok: !fails.length, why: fails.length ? 'not reached: ' + fails.join(', ') : '' };
 }
 
@@ -359,7 +362,9 @@ async function runOne(page, id, rec, w, lang) {
   const feats = [...fs.readFileSync(FEATURES, 'utf8').matchAll(/^#### ([A-Z]{3}-\d{2})/gm)].map(m => m[1]);
   const browser = await Lib.chromium.launch();
   const first = await Lib.context(browser, 1440);
-  const R = recipes(await discover(await first.newPage()));
+  const ids = await discover(await first.newPage());
+  if (process.env.PRESSES_IDS) console.log(JSON.stringify(ids));
+  const R = recipes(ids);
   await first.close();
   const missing = feats.filter(f => !R[f]);
   if (missing.length) { console.log('no recipe for', missing.join(' ')); process.exit(1); }
