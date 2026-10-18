@@ -1,0 +1,14 @@
+{
+  "name": "eaos-console",
+  "private": true,
+  "version": "0.0.0",
+  "description": "EAOS Studio, the governance console: plain JavaScript modules and CSS, bundled by esbuild into eaos/data/studio (console/README.md)",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
