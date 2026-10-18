@@ -63,8 +63,9 @@ function sheetsOf(places) {
   return owner;
 }
 
-/** A place reaches the core through 'eaos' (self.EAOS) and its own folder only: a second copy of the core in a place's
- *  bundle would hold a second state. */
+/** A place reaches the core through 'eaos' (self.EAOS), its own folder and the kits (a folder of src/places without
+ *  index.js: helpers several of one builder's places share, stateless, bundled into each); a second copy of the core in
+ *  a place's bundle would hold a second state. */
 const placeImports = place => ({
   name: 'eaos-place',
   setup(build) {
@@ -72,7 +73,9 @@ const placeImports = place => ({
     build.onLoad({ filter: /.*/, namespace: 'eaos' }, () => ({ contents: 'module.exports = self.EAOS', loader: 'js' }));
     build.onResolve({ filter: /^\./ }, args => {
       const target = path.resolve(args.resolveDir, args.path);
-      if (!target.startsWith(path.join(SRC, 'places', place) + path.sep)) return { errors: [{ text: `${place} imports ${args.path}: a place imports 'eaos' and its own files only` }] };
+      const folder = path.relative(path.join(SRC, 'places'), target).split(path.sep)[0];
+      const kit = !folder.startsWith('..') && !fs.existsSync(path.join(SRC, 'places', folder, 'index.js'));
+      if (folder !== place && !kit) return { errors: [{ text: `${place} imports ${args.path}: a place imports 'eaos', its own files and the kits only` }] };
       return undefined;
     });
   },

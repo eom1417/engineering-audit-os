@@ -14,4 +14,4 @@ studio/node_modules/
 studio/.gates/
 
 # The console (console/): its one build tool; the shipped build is eaos/data/studio
-console/node_modules/
+console/node_modules

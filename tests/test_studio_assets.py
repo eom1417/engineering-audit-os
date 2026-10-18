@@ -109,12 +109,16 @@ class Source(unittest.TestCase):
         for name, version in {**package.get('dependencies', {}), **package['devDependencies']}.items():
             self.assertRegex(version, r'^\d+\.\d+\.\d+$', name)
 
-    def test_a_place_reaches_the_core_through_eaos_and_its_own_files_only(self):
+    def test_a_place_reaches_the_core_through_eaos_its_own_files_and_the_kits_only(self):
+        places = CONSOLE / 'src/places'
+        kits = {d.name for d in places.iterdir() if d.is_dir() and not (d / 'index.js').exists()}
         wrong = []
-        for p in (CONSOLE / 'src/places').rglob('*.js'):
+        for p in places.rglob('*.js'):
             for m in re.finditer(r"^import .*? from '([^']+)'|^import '([^']+)'", p.read_text(encoding='utf-8'), re.M):
                 target = m.group(1) or m.group(2)
-                if target != 'eaos' and not (target.startswith('./') and '..' not in target): wrong.append(f'{p.relative_to(CONSOLE)}: {target}')
+                kit = re.fullmatch(r'\.\./([\w-]+)/[\w-]+\.js', target)
+                if target != 'eaos' and not (target.startswith('./') and '..' not in target) and not (kit and kit.group(1) in kits):
+                    wrong.append(f'{p.relative_to(CONSOLE)}: {target}')
         self.assertEqual(wrong, [])
 
 
