@@ -104,7 +104,7 @@ function recipes(ids) {
     'CHK-07': L(0, [], ['hash:/activity/run/'], LIVE),
     'CHK-08': L(0, ['#fold-about > summary', `#fold-about a[href="#/activity/run/${ids.check}"]`], [`hash:/activity/run/${ids.check}`, 'vis:#main [data-sheet^="stage:"]']),
     'CHK-09': L(0, ['#fold-about > summary', `#fold-about a[href="#/activity/run/${ids.check}"]`, `#main [data-sheet="stage:${ids.stage}"]`], ['sheet:stage:']),
-    'CHK-10': L(0, [NAV('activity'), RUN(ids.check), `#main [data-sheet="stage:${ids.stage}"]`, `${SH} [data-sheet^="redo:"]`], ['sheet:redo']),
+    'CHK-10': L(0, [NAV('activity'), '#main [data-sheet="redo-pick"]', `${SH} [data-sheet="redo:${ids.stage}"]`], ['sheet:redo']),
     'CHK-11': L(0, [NAV('activity'), RUN(ids.check), '#main a[href*="replay=10"]'], ['hash:replay=10', 'vis:#main .ac-stamp']),
     'CHK-12': L(0, [NAV('activity')], ['txt:ac.flow.tools']),
     /* ---- APP ---- */
@@ -123,7 +123,7 @@ function recipes(ids) {
     'RUN-09': L(0, [NAV('activity'), ALL, RUN(ids.handoff)], ['vis:#main .ac-req [data-act="copy"]'], { note: 'needs a run handed off to an assistant elsewhere' }),
     'RUN-10': L(0, [NAV('activity'), ALL, RUN(ids.ended)], ['vis:#main [data-op="retry"]']),
     'RUN-11': L(0, [NAV('activity'), R12, '#fold-facts > summary'], ['vis:#fold-facts .facts'], { dk: { steps: [NAV('activity'), R12], expect: ['vis:#main .ac-run-aside .facts'] } }),
-    'RUN-12': L(0, [NAV('activity'), ALL, RUN(ids.ended), `#main a[href^="#/ask?run=${ids.ended}"]`], ['hash:/ask', `hash:run=${ids.ended}`]),
+    'RUN-12': L(0, [NAV('activity'), ALL, `#main a.ac-runline__why[href^="#/ask?run=${ids.ended}"]`], ['hash:/ask', `hash:run=${ids.ended}`]),
     'RUN-13': L(0, [MORE, `${SH} [data-sheet="action:status"]`], ['sheet:action:status']),
     /* ---- PRB ---- */
     'PRB-01': L(0, [NAV('problems')], ['vis:#main .prow']),
@@ -177,7 +177,7 @@ function recipes(ids) {
     'BRN-04': L(0, [BR, FEAT], ['hash:/project/branches/', 'vis:#main h1']),
     'BRN-05': L(0, [BR, '#main [data-sheet="choose-branch"]'], ['sheet:choose-branch']),
     'BRN-06': L(0, [BR, FEAT, '#main [data-sheet^="merge:"]'], ['sheet:merge', 'vis:.sheet.is-open .owner-band, .sheet.is-open [class*="owner"]'], { c: true }),
-    'BRN-07': L(0, [BR, `#main a[href="#/project/branches/${enc(ids.conflict || '')}"]`, '#main [data-sheet^="merge:"]', `${SH} [data-sheet^="resolve:"]`], ['sheet:resolve']),
+    'BRN-07': L(0, [BR, `#main a[href="#/project/branches/${enc(ids.conflict || '')}"]`, '#main .ac-note [data-sheet^="resolve:"]'], ['sheet:resolve']),
     'BRN-08': L(0, [BR, FEAT, '#main [data-sheet^="delete:"]'], ['sheet:delete'], { c: true }),
     'BRN-09': L(0, [BR, '#fold-deleted > summary', `#fold-deleted [data-sheet="restore:${ids.restore}"]`], ['sheet:restore']),
     'BRN-10': L(0, [BR, FEAT, '#main [data-sheet^="protect:"]'], ['sheet:protect']),
@@ -225,7 +225,7 @@ function recipes(ids) {
     'LIB-01': L(0, [NAV('understand'), UV('library')], ['hash:/understand/library']),
     'LIB-02': L(0, [NAV('understand'), UV('library')], ['vis:#main input']),
     'LIB-03': L(0, [NAV('understand'), UV('library'), `#main a[href="#/understand/library/${enc(ids.doc)}"]`], [`hash:/understand/library/${enc(ids.doc)}`, 'vis:#main .un-doc__body p']),
-    'LIB-04': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/START-HERE.md"]'], ['vis:#main .un-doc__body a']),
+    'LIB-04': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/README.md"]'], ['vis:#main .un-doc__body a']),
     'LIB-05': L(0, [NAV('understand'), UV('library'), '#main a[href="#/understand/library/CURRENT-STATE.md"]'], ['vis:#main .un-doc__body svg.un-dg']),
     'LIB-06': L(0, [NAV('understand'), UV('library'), '#main a[href*="tab=images"]'], ['hash:tab=images']),
     'LIB-07': L(0, [NAV('understand'), UV('report-files'), '#main [data-sheet^="file:"]'], ['sheet:file']),
@@ -248,7 +248,7 @@ function recipes(ids) {
     'CHT-01': L(0, ['#fab'], ['vis:#assist']),
     'CHT-02': L(0, ['#fab'], ['vis:#assist'], { note: 'the answer as it is written needs a signed-in assistant (end-to-end gate)' }),
     'CHT-03': L(0, ['#fab'], ['vis:#assist'], { note: 'proposals need a signed-in assistant (end-to-end gate)' }),
-    'CHT-04': L(0, [NAV('activity'), ALL, RUN(ids.ended), `#main a[href^="#/ask?run="]`], ['hash:/ask'], { note: 'direct control shows on Ask with a signed-in assistant' }),
+    'CHT-04': L(0, ['#fab', '#assist [data-act="assist-full"]'], ['hash:/ask'], { note: 'direct control shows on Ask with a signed-in assistant' }),
     'CHT-05': L(0, [NAV('activity'), R12, '#fab'], ['vis:#assist .assist__ctx, #assist .assist__state']),
     'CHT-06': L(0, ['#fab'], ['vis:#assist'], { note: 'depth shows with a signed-in assistant' }),
     'CHT-07': L(0, ['#fab'], ['vis:#assist']),
@@ -374,7 +374,7 @@ async function runOne(page, id, rec, w, lang) {
     const ctx = await Lib.context(browser, w, 'light');
     const page = await ctx.newPage();
     for (const id of feats) {
-      if (filter && !id.startsWith(filter) && id !== filter) continue;
+      if (filter && !filter.split(',').some(f => id.startsWith(f))) continue;
       const res = await runOne(page, id, R[id], w, lang);
       const e = results[id] || (results[id] = { c: !!R[id].c, start: R[id].start || '/status', note: R[id].note || '', runs: {} });
       e.c = !!R[id].c; e.start = R[id].start || '/status'; e.note = R[id].note || '';

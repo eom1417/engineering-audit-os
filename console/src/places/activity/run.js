@@ -131,7 +131,10 @@ function resultHTML(r, rs, view) {
   const rows = [];
   if (res.branch) rows.push([t('ac.run.branch'), `<a class="link" href="${href('/project/branches/' + enc(res.branch))}">${code(res.branch)}</a>`]);
   if (d) rows.push([t('ac.run.diffstat'), `${esc(tn('pl.file_changed', d.files))} <bdi dir="ltr" class="num">+${num(d.insertions)} −${num(d.deletions)}</bdi>`]);
-  if (tests) rows.push([t('ac.run.tests'), ac.mark(tests.passed ? 'ok' : tests.passed === false ? 'failed' : 'skipped', esc(tests.summary || t(tests.passed ? 'wt.fix.tests.ok' : 'wt.fix.tests.no')))]);
+  /* older records carry only the engine's English sentence: its two numbers are read back so the page speaks the person's language */
+  const said = tests && tests.kept == null && /^(\d+) change\(s\) passed every check; (\d+) left out/.exec(tests.summary || '');
+  if (said) Object.assign(tests, { kept: +said[1], left: +said[2] });
+  if (tests) rows.push([t('ac.run.tests'), ac.mark(tests.passed ? 'ok' : tests.passed === false ? 'failed' : 'skipped', esc(tests.kept != null ? t('ac.run.tests.n', { kept: tn('ac.run.change', tests.kept), left: num(tests.left || 0) }) : t(tests.passed ? 'wt.fix.tests.ok' : 'wt.fix.tests.no')))]);
   if ((r.left_out || []).length) rows.push([t('ac.run.leftout'), r.left_out.slice(0, 8).map(x => code(x.id)).join(' ')]);
   if ((res.cards_closed || []).length) rows.push([t('ac.run.closes'), res.cards_closed.slice(0, 12).map(c => `<a class="link" href="${href('/problems/' + enc(c))}">${code(c)}</a>`).join(' ')]);
   if ((res.indicators || []).length) rows.push([t('ac.run.indicators'), res.indicators.map(x => esc(t('ac.run.indicator', { id: x.id, before: x.before == null ? '—' : num(x.before), after: x.after == null ? '—' : num(x.after) }))).join('<br>')]);

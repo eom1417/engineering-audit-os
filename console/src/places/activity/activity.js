@@ -108,8 +108,11 @@ function outcome(r) {
 export function runRow(r) {
   const rs = ac.runState(r), m = ac.took(r);
   const bits = [ac.kindWord(r), fmtWhen(r.ended || r.created)].concat(ac.ended(r) && m ? [ac.minutes(m)] : []);
-  return `<li><a class="row" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(ac.runLabel(r))}</span>
-    <span class="row__meta ac-meta"><span>${esc(ac.stateWord(rs))}</span>${bits.map(b => `<span>${esc(b)}</span>`).join('')}${outcome(r)}</span></span>${icon('chev', 'icon--dir muted')}</a></li>`;
+  /* a run that ended badly asks the assistant why from its own row (RUN-12), without opening it first */
+  const why = !offline() && ['failed', 'stopped', 'unchanged'].includes(rs)
+    ? `<a class="ac-runline__why" href="${href('/ask', { run: r.id })}" aria-label="${esc(t('ac.run.ask_why') + ': ' + ac.runLabel(r))}">${icon('ask', 'icon--sm')}<span class="ac-runline__word">${t('ac.run.ask_why')}</span></a>` : '';
+  return `<li${why ? ' class="ac-runline"' : ''}><a class="row" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(ac.runLabel(r))}</span>
+    <span class="row__meta ac-meta"><span>${esc(ac.stateWord(rs))}</span>${bits.map(b => `<span>${esc(b)}</span>`).join('')}${outcome(r)}</span></span>${icon('chev', 'icon--dir muted')}</a>${why}</li>`;
 }
 
 function loadingPage() {
@@ -140,13 +143,16 @@ function activityPage(ctx) {
   else lede = esc(t('ac.act.lede.none'));
   const busy = !!lr;
   const o = a => (off ? 'data-act="sheet" data-sheet="open-live"' : a);
-  const recent = all.filter(r => ac.ended(r)).slice(0, 4);
+  /* what waits for the person first; a refresh of the branches is kept in the full list, not here */
+  const done = all.filter(r => ac.ended(r));
+  const recent = done.filter(r => store.awaitsApproval(r)).concat(done.filter(r => !store.awaitsApproval(r) && r.action !== 'branch_fetch')).slice(0, 4);
   return `<div class="page">
     <h1 class="lede">${lede}</h1>
     <p class="guide">${t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide')}</p>
     <div class="actions">
       <button class="btn ${busy ? 'btn--secondary' : 'btn--primary'}" ${o('data-act="sheet" data-sheet="check"')} data-fk="act-check">${t('st.empty.act')}</button>
       <button class="btn btn--quiet" ${o('data-act="sheet" data-sheet="launcher"')}>${t('ac.act.more')}</button>
+      ${!busy && !off && last && ac.ended(last) && flow ? `<button class="btn btn--quiet" data-act="sheet" data-sheet="redo-pick">${t('ac.pick.open')}</button>` : ''}
       <p class="actions__note">${t(busy ? 'ac.act.note.busy' : 'ac.act.note')}</p>
     </div>
     ${lr ? `<section class="section" aria-labelledby="now-h"><div class="section-head"><h2 id="now-h">${t('ac.act.now')}</h2></div>${lr.action === 'audit' ? checkNow(lr) : otherNow(lr)}${otherFlows()}</section>` : ''}

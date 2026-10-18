@@ -72,7 +72,8 @@ def _fresh_waves(record, state):
 
 def _tests(kept, failed):
     """A batch's checks: passed when a change was kept, with the changes left out and why."""
-    return {'passed': bool(kept), 'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
+    return {'passed': bool(kept), 'kept': len(kept), 'left': len(failed),
+            'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
             'left_out': {str(k): str(v)[:300] for k, v in (failed.items() if isinstance(failed, dict) else [])}}
 
 

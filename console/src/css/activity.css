@@ -223,3 +223,10 @@ li.ac-cmd { min-height: 56px; }
 .ac-run-aside .ac-facts dd { margin-bottom: var(--s3); }
 /* end builder A */
 
+/* a run row with its own "ask why" beside the link (RUN-12) */
+.ac-runline { display: flex; align-items: stretch; }
+.ac-runline > .row { flex: 1; min-width: 0; }
+.ac-runline__why { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: var(--target); min-height: var(--target); padding-inline: var(--s3); border-inline-start: 1px solid var(--line); color: var(--accent); font-size: var(--fs-small); text-decoration: none; }
+.ac-runline__why:hover { background: var(--hover); }
+.ac-runline__why:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 767px) { .ac-runline__word { display: none; } }

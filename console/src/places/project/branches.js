@@ -35,6 +35,16 @@ function detail(name, kind, remote) {
     .then(data => { inv.details[k] = { data }; refresh(); rerenderSheet(); }, e => { inv.details[k] = { problem: said(e) }; refresh(); });
   return null;
 }
+/* The free merge preview a mergeable branch's page reads once per tip, so a conflict shows (with its proposed
+   resolution, BRN-07) before the person asks to merge; null while git is asked or when it could not tell. */
+const tried = {};
+function mergeTry(b) {
+  const k = b.name + '@' + b.tip;
+  if (k in tried) return tried[k];
+  tried[k] = null;
+  client.branches.previewMerge(b.name).then(p => { tried[k] = p; refresh(); }, () => {});
+  return null;
+}
 const problemOf = (name, kind, remote) => (inv.details[keyOf(name, kind, remote)] || {}).problem;
 /** The local branches protected now (null while git is asked). */
 export function protectedNames() { const d = inventory(inv.base); return d ? d.branches.filter(b => b.kind === 'local' && b.protected).map(b => b.name) : null; }
@@ -368,6 +378,8 @@ function branchPage(ctx) {
   else if (b.compare && b.compare.merged && !b.compare.ahead) lede = t('ac.br1.lede.merged', { b: code(liveName(b)), t: code(b.compare.base) });
   else lede = t('ac.br1.lede', { b: code(liveName(b)), a: num(b.compare ? b.compare.ahead : 0), base: code(det.base || '') });
   const conflict = merge && conflictOf({ blocked: (det.commands.merge || {}).blocked });
+  const tryMerge = primary && !waits && b.kind === 'local' ? mergeTry(b) : null;
+  const clash = tryMerge && (tryMerge.conflicts || []).length ? tryMerge.conflicts : null;
   const commits = det.commits || [], files = det.files || [];
   const runs = det.runs || [];
   return `<div class="page">
@@ -377,6 +389,8 @@ function branchPage(ctx) {
     <p class="guide">${t(waits ? 'ac.br1.guide.eaos' : 'ac.br1.guide')}</p>
     ${waits ? `<div class="actions"><a class="btn btn--primary" href="${href('/waiting/' + enc(waits.id))}">${icon('seal')}${t('ac.run.r12.decide')}</a><p class="actions__note">${t('ac.br1.eaos.note')}</p></div>`
       : primary ? `<div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="merge:${esc(b.name)}">${icon('seal')}${esc(t('ac.cmd.merge', { t: target }))}</button><p class="actions__note">${t('ac.br1.merge.note')}</p></div>` : ''}
+    ${clash ? `<div class="ac-note ac-note--caution" style="margin-top:16px">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(tn('ac.br1.clash', clash.length, { t: tryMerge.target || target }))}</span>
+      <button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="resolve:${esc(b.name)}">${icon('ai')}${t('ac.cmd.resolve')}</button></div>` : ''}
     ${conflict ? `<div style="margin-top:16px"><div class="ac-note ac-note--caution">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(reasonsOf(det.commands.merge.blocked))}</span></div></div>` : ''}
     <section class="section" aria-labelledby="cmd-h"><div class="section-head"><h2 id="cmd-h">${t('ac.br1.cmds')}</h2></div><ul class="panel rows">${cmds.filter(c => c !== primary).map(c => cmdButton(b, c, det)).join('')}</ul></section>
     <section class="section" aria-labelledby="bf-h"><div class="section-head"><h2 id="bf-h">${t('ac.br1.facts')}</h2></div>
