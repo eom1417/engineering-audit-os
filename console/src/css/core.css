@@ -309,8 +309,10 @@ a.meter__name:hover { color: var(--accent); text-decoration: underline; }
 .field input::placeholder { color: var(--ink-3); }
 .field kbd { font: 500 12px/18px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: var(--r-xs); padding-inline: 6px; }
 
-.seg { display: flex; padding: 2px; gap: 2px; background: var(--sunken); border-radius: var(--r-sm); }
-.seg > * { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding-inline: var(--s2);
+/* a segmented control fills its line, and slides sideways when its choices do not fit (they ran into each other) */
+.seg { display: flex; padding: 2px; gap: 2px; background: var(--sunken); border-radius: var(--r-sm); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }
+.seg > * { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding-inline: var(--s2);
   border-radius: 6px; font-size: var(--fs-small); font-weight: 500; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
 .seg > *:hover { color: var(--ink); }
 .seg > [aria-pressed="true"], .seg > [aria-current="true"], .seg > [aria-selected="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--line), var(--shadow-1); }

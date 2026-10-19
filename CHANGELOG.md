@@ -8,8 +8,9 @@
   now holds its width and the path ends in "…"; the page can no longer be wider than the screen.
 - **Typing is never broken by a live redraw**: the assistant's box, a sheet's field and the sign-in field keep what is
   typed and where the caret is (a redraw sent the caret to the start: "مساء الخير" landed before "السلام عليكم").
-- **The problems' filters**: the four "Group the list" buttons sit in two rows (they ran into each other), and a value
-  with no problem cannot be picked (it led to "Show no problems").
+- **The problems' filters**: a segmented control that does not fit slides sideways on one line, its chosen choice in
+  view after each redraw (the four "Group the list" buttons ran into each other), and a value with no problem cannot be
+  picked (it led to "Show no problems").
 - **The Understand tabs stay still**: the strip was one pixel taller than itself, so it moved up and down under a
   finger; the assistant's suggestions likewise.
 

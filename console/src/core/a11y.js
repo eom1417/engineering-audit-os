@@ -7,6 +7,11 @@ export function a11yRegions(root) {
     if (!el.hasAttribute('role')) el.setAttribute('role', 'region');
     if (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) el.setAttribute('aria-label', t(el.matches('.code, .un-pre') ? 'a11y.code' : 'a11y.table'));
   });
+  // a segmented control that slides sideways shows its chosen choice (a redraw slid it back to its start)
+  (root || document).querySelectorAll('.seg > [aria-pressed="true"], .seg > [aria-current="true"], .seg > [aria-selected="true"]').forEach(on => {
+    const seg = on.parentElement, r = on.getBoundingClientRect(), box = seg.getBoundingClientRect();
+    seg.scrollLeft += r.left < box.left ? r.left - box.left : r.right > box.right ? r.right - box.right : 0;
+  });
 }
 
 /** The focused control inside `scope`, held across a redraw of it: the returned function, called once the new markup
