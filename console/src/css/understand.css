@@ -18,10 +18,10 @@
 .ok-ic { color: var(--ok); } .danger-ic { color: var(--danger); } .ai-ic { color: var(--ai); } .caution-ic { color: var(--caution); }
 
 /* Group tabs: the views of one Understand group, one press away. */
-.un-tabs { display: flex; gap: var(--s1); overflow-x: auto; scrollbar-width: none; margin-bottom: var(--s5); border-bottom: 1px solid var(--line);
+.un-tabs { display: flex; gap: var(--s1); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; margin-bottom: var(--s5); box-shadow: inset 0 -1px 0 var(--line);
   margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); }
 .un-tabs::-webkit-scrollbar { display: none; }
-.un-tabs a { flex: none; display: inline-flex; align-items: center; min-height: var(--target); padding-inline: var(--s3); margin-bottom: -1px;
+.un-tabs a { flex: none; display: inline-flex; align-items: center; min-height: var(--target); padding-inline: var(--s3);
   color: var(--ink-3); text-decoration: none; font-size: var(--fs-small); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
 .un-tabs a:hover { color: var(--ink); }
 .un-tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
