@@ -55,7 +55,7 @@ a.fchip { text-decoration: none; }
 .ac-rot-up { transform: rotate(-90deg); } .ac-rot-down { transform: rotate(90deg); }
 
 /* One run */
-.ac-run-cols { display: grid; gap: var(--s8); margin-top: var(--s6); }
+.ac-run-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s8); margin-top: var(--s6); }
 .ac-run-main > :first-child { margin-top: 0; }
 .ac-result { position: relative; padding: var(--s4); margin-top: var(--s5); }
 .ac-result::before { content: ""; position: absolute; inset-block: var(--s4); inset-inline-start: -1px; width: 3px; border-radius: 2px; background: var(--line-strong); }
@@ -93,13 +93,14 @@ a.fchip { text-decoration: none; }
 [dir="rtl"] .ac-stg.is-focus { box-shadow: inset -3px 0 0 var(--ink); }
 
 /* What happened: the timeline */
-.ac-tl { display: grid; }
+.ac-tl { display: grid; grid-template-columns: minmax(0, 1fr); }
 .ac-tl__item { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: var(--s3); align-items: start; padding-block: var(--s3); }
 .ac-tl__item + .ac-tl__item { border-top: 1px solid var(--line); }
 .ac-tl__item:first-child { padding-top: 0; } .ac-tl__item:last-child { padding-bottom: 0; }
 .ac-tl__t { font-size: var(--fs-small); line-height: var(--lh-small); color: var(--ink-3); min-width: 44px; }
 .ac-tl__g { padding-top: 3px; }
-.ac-tl__b { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+/* one column as wide as the event, never as its longest line: a change's code slides inside it */
+.ac-tl__b { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .ac-pairs { display: grid; gap: var(--s3); margin-top: var(--s2); }
 .ac-pair { display: grid; gap: 6px; margin: 0; }
 .ac-pair__pics { display: flex; gap: var(--s2); align-items: flex-end; }

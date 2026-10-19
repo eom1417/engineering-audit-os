@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.0.41 (2026-10-19)
+
+- **Every kind of user is checked**: a check opened the app as one user and pictured only what that user sees (an
+  app with administrators, support and customers was checked as support alone, and nobody was told). Now the
+  assistant reads the kinds of users from the code, each with the line that makes it one and its own pages
+  (`roles.json`, checked against the code). Run locally, the setup makes a temporary user of each kind in the isolated
+  copy's own database (an app that signs in only with Google included) and the crawl and the pictures run once as
+  each; signed in by hand, or on the published address, the account given is checked and the report says which kinds
+  it could not open. Each page of one kind another kind's session opens is named in the report and the Studio (a trial
+  app's missing guard on /admin/users was found so). The Studio's Screens show each kind apart.
+- **A page that refuses a user (403) is the app answering**: the setup took the customer page refusing the
+  administrator for an app that does not start.
+- **An opened fold stays open**: a running check's page is drawn again at each event, and that closed the facts, "See
+  the change" and every fold under the person after a few seconds; a redraw now keeps what they opened.
+- **A fix counts what it tried once**: its title counted every file edit ("12 of 53 tried"), its list the problems
+  ("9 of 53"), and its bar a third measure, so the numbers disagreed and moved apart as it went; all three now count
+  the problems tried.
+- **A change's code stays in its event**: "See the change" spread the run's page past the screen (241 pixels on a
+  computer, 987 on a phone); the code now slides inside the event.
+
 ## 0.0.40 (2026-10-19)
 
 - **On a phone, the Studio keeps its size**: a long file path in a problem's row made the page wider than the screen

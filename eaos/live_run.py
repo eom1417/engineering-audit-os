@@ -25,6 +25,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import socket
 from pathlib import Path
 
@@ -51,6 +52,11 @@ def _printed_fixtures(out):
         fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))} if isinstance(printed, dict) else {}
         if fixtures: return fixtures
     return {}
+
+
+def kinds_folder(state):
+    """Where the seed beside session file `state` saves a session per kind of user (eaos/roles.py): <kind>.json."""
+    return Path(state).parent / 'sessions'
 
 
 class LiveRun:
@@ -145,7 +151,6 @@ class LiveRun:
         """Keep a copy of every folder outside the project the app reads, for this recording and every run after it:
         a live folder changes under the runs (EAOS's Studio reads the report a batch rewrites), and a screen compared
         on other data differs whatever the change (EAOS on itself, 2026-10-13: every card of a batch failed so)."""
-        import shutil
         for name, value in (self.profile.get('env') or {}).items():
             if not self._outside(value): continue
             copy = self.runtime / 'frozen' / name
@@ -163,8 +168,14 @@ class LiveRun:
     def seed(self, base, storage_state=None):
         """Run the profile's seed commands against the started app. A seed may print, as its last line, a JSON
         object of fixture values it created ({"E2E_PROFILEID": "..."}): they join the run's environment, so the
-        lock opens the screens that need them. Stops at the first seed that fails, with its output."""
-        env = {'BASE_URL': base, **({'EAOS_STORAGE_STATE': str(storage_state)} if storage_state else {})}
+        lock opens the screens that need them. A session per kind of user (eaos/roles.py) goes in EAOS_SESSIONS_DIR,
+        <kind>.json, made again at each seed. Stops at the first seed that fails, with its output."""
+        env = {'BASE_URL': base}
+        if storage_state:
+            folder = kinds_folder(storage_state)
+            shutil.rmtree(folder, ignore_errors=True)
+            folder.mkdir(parents=True)
+            env.update(EAOS_STORAGE_STATE=str(storage_state), EAOS_SESSIONS_DIR=str(folder))
         for argv in self.profile.get('seed') or []:
             code, out, err = self.run(argv, env=env)
             if code: raise RuntimeError(f"seed failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")

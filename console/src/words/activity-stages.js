@@ -5,6 +5,8 @@ export default {
   'ac.stage.facts.does': ["يعدّ كل ملف ولغته وحجمه. كل مرحلة بعده تقرأ هذه الحقائق.","Lists every file, its language and size. Every later stage reads these facts."],
   'ac.stage.features': ["يجد الميزات","Find the features"],
   'ac.stage.features.does': ["يجد ما يعلنه الكود: الصفحات ومسارات الخادم وصفحة الدخول.","Finds what the code declares: pages, server routes and the sign-in."],
+  'ac.stage.roles': ["يجد أنواع المستخدمين","Find the kinds of users"],
+  'ac.stage.roles.does': ["يقرأ مساعدك من الكود أنواع المستخدمين (الإدارة، الدعم، العميل...) وصفحات كل نوع، فيُفتح برنامجك بكل نوع منها.","Your assistant reads the kinds of users from the code (admin, support, a customer...) and each one's pages, so your app is opened as each."],
   'ac.stage.intake': ["يقرأ وثائقك وخططك","Read your documents and plans"],
   'ac.stage.intake.does': ["يقرأ وثائق المشروع وخطط المالك ليعرف ما يُراد منه.","Reads the project's documents and the owner's plans to learn what it is meant to do."],
   'ac.stage.lock': ["يثبّت المكتبات","Pin the libraries"],

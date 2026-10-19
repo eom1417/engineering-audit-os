@@ -11,7 +11,9 @@ const SEVR = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const S = () => data.section('screens');
 const scr = id => (S().screens || []).find(s => s.id === id);
 const jscreen = id => ((data.section('journeys') || {}).screens || []).find(s => s.id === id);
-const pageOf = id => (S().pages || []).find(p => (p.same_as || []).includes(id) || p.path === id);
+const pageOf = (id, kind) => (S().pages || []).find(p => (!kind || p.kind === kind) && ((p.same_as || []).includes(id) || p.path === id));
+const kindsOf = () => ((S().coverage || {}).kinds || []);
+const kindName = id => L((kindsOf().find(k => k.id === id) || { name: id }).name);
 const scrLink = (id, q) => href('/understand/screens/' + enc(id), q);
 const worst = list => list.reduce((m, f) => Math.min(m, SEVR[f.severity] ?? 9), 9);
 const findingsOf = p => (p.pictures || []).flatMap(x => x.findings || []).filter((f, i, all) => all.findIndex(y => y.id === f.id) === i);
@@ -21,7 +23,8 @@ const vpWord = v => (v === 'phone' || v <= 480 ? t('un.vp.phone') : t('un.vp.des
 function pagesPage(ctx) {
   if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
   if (!S()) return notMeasured('screens', 'screens');
-  const pages = (S().pages || []).slice().sort((a, b) => (worst(findingsOf(a)) - worst(findingsOf(b))) || (b.findings - a.findings));
+  const kinds = kindsOf(), kind = kinds.some(k => k.id === ctx.query.kind) ? ctx.query.kind : null;
+  const pages = (S().pages || []).filter(p => !kind || p.kind === kind).sort((a, b) => (worst(findingsOf(a)) - worst(findingsOf(b))) || (b.findings - a.findings));
   const total = pages.reduce((n, p) => n + (p.findings || 0), 0);
   const row = p => {
     const fs = findingsOf(p);
@@ -29,7 +32,7 @@ function pagesPage(ctx) {
     const s = scr(sid);
     const state = p.state === 'findings' ? `<span class="tag tag--state">${esc(tn('un.pl.finding', p.findings))}</span>` : p.state === 'clean' ? `<span class="tag tag--ok">${icon('check')}${t('un.pages.clean')}</span>`
       : `<span class="tag tag--nm">${t('un.pages.notreviewed')}</span>`;
-    return `<a class="row" href="${scrLink(sid, { from: 'reviewed' })}"><span class="row__main"><span class="un-gaprow__top"><span class="row__title">${esc(s ? s.title : p.path)}</span>${code(p.path)}</span>
+    return `<a class="row" href="${scrLink(sid, { from: 'reviewed', kind: p.kind || null })}"><span class="row__main"><span class="un-gaprow__top"><span class="row__title">${esc(s ? s.title : p.path)}</span>${code(p.path)}${p.kind ? `<span class="tag">${esc(kindName(p.kind))}</span>` : ''}</span>
       <span class="row__meta" style="display:block">${(p.same_as || []).length > 1 ? esc(t('un.pages.template', { n: num(p.same_as.length) })) + t('list.sep') : ''}${p.state === 'not_reviewed' ? t('un.pages.notreviewed.why') : fs.length ? esc(t('un.pages.worst', { sev: t('sev.' + fs.slice().sort((a, b) => SEVR[a.severity] - SEVR[b.severity])[0].severity) })) : t('un.pages.nothing')}</span></span>
       <span class="row__end">${state}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>`;
   };
@@ -39,6 +42,8 @@ function pagesPage(ctx) {
     ${tabs('screens')}
     <h1 class="lede">${esc(t('un.pages.lede', { n: tn('un.pl.page', pages.length), k: tn('un.pl.finding', total) }))}</h1>
     <p class="guide">${t('un.pages.guide')}</p>
+    ${kinds.length ? covered(kinds) : ''}
+    ${kinds.length > 1 ? `<div class="section">${seg('kind', [['all', t('un.kinds.all'), (S().pages || []).length], ...kinds.map(k => [k.id, esc(L(k.name)), (S().pages || []).filter(p => p.kind === k.id).length])], kind || 'all', t('un.kinds.label'), { dflt: 'all' })}</div>` : ''}
     ${pages.length ? `<div class="un-pagesgrid section" style="margin-top:24px">
       <div><div class="listhead">${count(pages.length, pages.length)}<span class="small muted">${t('un.pages.order')}</span></div><div class="panel rows">${pages.map(row).join('')}</div></div>
       ${shot ? `<aside class="only-desk un-pagesgrid__pic" aria-label="${esc(t('un.pages.preview'))}"><div class="block-title">${esc(t('un.pages.preview.of', { route: first.path }))}</div>
@@ -46,6 +51,13 @@ function pagesPage(ctx) {
         <a class="btn btn--secondary btn--sm" href="${scrLink((first.same_as || [])[0] || first.path, { from: 'reviewed' })}">${t('un.pages.openlarge')}</a></aside>` : ''}
     </div>` : nm(t('un.pages.none'), t('un.pages.none.why'))}
   </div>`;
+}
+// Which kinds of users of the code the check saw, why not the others, and a page one kind opened that is another's only
+function covered(kinds) {
+  const missed = kinds.filter(k => !k.reached), breaches = (S().coverage || {}).breaches || [];
+  return `<div class="section"><p class="small ink-2">${esc(t('un.kinds.seen', { n: num(kinds.length - missed.length), of: num(kinds.length) }))}
+    ${missed.map(k => esc(t('un.kinds.unseen.' + k.why, { name: L(k.name), n: num(k.pages) }))).join(' ')}</p>
+    ${breaches.map(b => `<p class="small" role="alert" style="display:flex;gap:6px;align-items:baseline">${icon('warn', 'icon--sm')}<span>${esc(t('un.kinds.breach', { kind: kindName(b.kind), page: b.page, of: kindName(b.of) }))}</span></p>`).join('')}</div>`;
 }
 screen({ id: 'S-36', path: '/understand/screens', place: 'understand', needs: NEEDS, title: () => t('un.v.screens'), render: pagesPage, loading: () => loading(t('un.pages.loading')) });
 
@@ -91,7 +103,7 @@ function screenPage(ctx) {
   const s = scr(id);
   if (!s) return notFound(id, backTo[0], backTo[1]);
   const js = jscreen(id) || {};
-  const pg = pageOf(id);
+  const pg = pageOf(id, q.kind);
   const pics = pg ? pg.pictures || [] : [];
   const shots = (s.shots || []).length ? s.shots : pics.map(p => ({ path: p.path, width: p.width, phase: null, batch: null }));
   const widths = [...new Set(pics.map(p => p.width).concat(shots.map(x => x.width)))].filter(Boolean).sort((a, b) => b - a);

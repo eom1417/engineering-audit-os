@@ -9,7 +9,7 @@ import { t, tn, L } from './i18n.js';
 import { esc, icon, code } from './format.js';
 import { afterRender, refresh, offline } from './router.js';
 import { href, parseHash, setQuery } from './address.js';
-import { a11yRegions, holdFocus } from './a11y.js';
+import { a11yRegions, hold } from './a11y.js';
 import { act } from './events.js';
 import { announce } from './notices.js';
 import { closeSheetThen } from './sheets.js';
@@ -127,7 +127,7 @@ function draw() {
   if (open && !isLoaded('ask') && !offline()) loadBundle('ask').then(ok => { if (ok) draw(); });
   document.body.classList.toggle('has-assist', open);
   const host = document.getElementById('assist-host');
-  const back = holdFocus(document.getElementById('assist'));
+  const back = hold(document.getElementById('assist'));
   const sb = document.getElementById('assist-body');
   const keepBottom = sb ? sb.scrollHeight - sb.scrollTop - sb.clientHeight < 40 : true;
   host.innerHTML = `${fabHTML()}

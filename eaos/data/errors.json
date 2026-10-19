@@ -610,6 +610,10 @@
    "ar": "الشاشات تحتاج بيانات تجريبية لم تُجهَّز بعد.",
    "en": "The screens need sample values that are not ready yet."
   },
+  "kinds_unsigned": {
+   "ar": "لم يُجهَّز بعد دخول تجريبي لكل نوع من مستخدمي برنامجك.",
+   "en": "A test sign-in for each kind of user of your app is not ready yet."
+  },
   "no_assistant": {
    "ar": "لا يوجد مساعد ذكي ليساعد في تشغيل برنامجك.",
    "en": "No AI assistant was available to help start your app."

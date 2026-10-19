@@ -80,6 +80,8 @@ ARTIFACTS = (
     Artifact('plan.json', 'plan', RECORD, 'Task cards, their milestones, sections, waves and order'),
     Artifact('proposals.json', 'proposals', RECORD, "Which of the Studio's records of the proposals were written for the assistant",
              required=False, absent_when='no assistant was installed or allowed, so nobody reads the proposals before the reports'),
+    Artifact('roles.json', 'roles', RECORD, 'The kinds of users of the app, each with the code that makes it one and its own pages',
+             required=False, absent_when='no assistant was installed or allowed, or its answer named no real line of the code'),
     Artifact('live/setup.json', 'setup', RECORD, 'How the app was started in an isolated copy, or why it was not',
              required=False, absent_when='the person did not agree to run the app'),
     Artifact('live/lock.json', 'record', RECORD, "Every spec of the lock run on today's code, passed or not, and why",

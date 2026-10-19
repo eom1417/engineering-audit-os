@@ -1,5 +1,5 @@
 // What a run's page shows, derived from the run's events alone (studio/src/data/actions/derive.ts, ported): its state,
-// the sentence of what happens now, every batch's progress, the open question, the result or the error, the
+// the sentence of what happens now, the problems a fix tried, the open question, the result or the error, the
 // before/after screens, and the timeline with consecutive reads folded into one line. Pure, so a replayed stream and a
 // live one look the same.
 
@@ -12,14 +12,10 @@ function onState(f, event) {
   f.view.state = to;
   if (to === 'running' || to === 'queued') f.view.error = null;
   if (to !== 'waiting_for_person') f.view.question = null;
-  if (to === 'queued') { f.view.result = null; f.batches.clear(); f.view.screens = []; }
+  if (to === 'queued') { f.view.result = null; f.view.cards = {}; f.view.screens = []; }
 }
-function onProgress(f, event) {
-  const data = event.data;
-  const number = typeof data.batch === 'number' ? data.batch : 0;
-  f.batch = number || null;
-  f.batches.set(number, { number, done: Number(data.done) || 0, total: Number(data.total) || 0 });
-}
+// the batch now running: its before/after screens pair under it
+function onProgress(f, event) { f.batch = typeof event.data.batch === 'number' ? event.data.batch || null : null; }
 function onError(f, event) {
   const data = event.data;
   const what = data.what_now;
@@ -42,7 +38,8 @@ const APPLY = {
   // accept or undo recorded on a done run: the handed-over result stays
   result: (f, e) => { if (!('outcome' in e.data)) f.view.result = e.data; },
   error: onError,
-  edit: f => { f.view.edits += 1; },
+  // each problem of a batch an edit tried, kept or taken back: the one count of what was tried
+  edit: (f, e) => { if (e.data && e.data.card) f.view.cards[e.data.card] = e.data.kept; },
   check: (f, e) => { f.view.checks[e.data.passed === false ? 'failed' : 'passed'] += 1; },
   screenshot: onScreenshot,
 };
@@ -55,9 +52,9 @@ function addItem(items, event) {
 }
 
 export function deriveRun(events, run) {
-  const view = { state: run ? run.state : null, now: null, batches: [], question: run ? run.question || null : null, result: run ? run.result || null : null,
-    error: null, screens: [], items: [], edits: 0, checks: { passed: 0, failed: 0 }, last: 0 };
-  const fold = { view, batches: new Map(), batch: null };
+  const view = { state: run ? run.state : null, now: null, question: run ? run.question || null : null, result: run ? run.result || null : null,
+    error: null, screens: [], items: [], cards: {}, checks: { passed: 0, failed: 0 }, last: 0 };
+  const fold = { view, batch: null };
   for (const event of events) {
     view.last = Math.max(view.last, event.seq);
     if (NOW_KINDS.has(event.kind)) view.now = event.text;
@@ -65,15 +62,7 @@ export function deriveRun(events, run) {
     if (apply) apply(fold, event);
     addItem(view.items, event);
   }
-  view.batches = [...fold.batches.values()].sort((a, b) => a.number - b.number);
   return view;
-}
-
-/** The overall share done, 0..1, from the batches (each weighs its cards); null before any progress. */
-export function share(batches) {
-  const total = batches.reduce((sum, b) => sum + b.total, 0);
-  if (!total) return null;
-  return Math.min(1, batches.reduce((sum, b) => sum + Math.min(b.done, b.total), 0) / total);
 }
 
 /** A run's label in the language: an Arabic list takes the Arabic comma, so its ids read in order. */

@@ -67,10 +67,15 @@ def gallery(report):
     pages = {}
     for row in body.get('rows') or []:
         if not isinstance(row, dict) or not row.get('screenshot') or not (report / row['screenshot']).is_file(): continue
-        address = _address(row.get('url'))
-        page = pages.get(address) or pages.setdefault(address, _page(address, known.get(address) or {}))
+        address, kind = _address(row.get('url')), row.get('kind')      # a page as each kind of user saw it (eaos/roles.py)
+        page = pages.get((kind, address)) or pages.setdefault((kind, address), {**_page(address, known.get(address) or {}), 'kind': kind})
         _picture(page, row, on.get(row['screenshot'], []), address in clean)
     return list(pages.values())
+
+
+def _covered(report):
+    """Which kinds of users of the code the check saw (eaos/roles.py), None when they are not known."""
+    return (_load(Path(report) / 'live/screens.json') or {}).get('coverage') if report else None
 
 
 def _findings_on(findings):
@@ -108,6 +113,7 @@ def screens(journeys, media=None, read=True, report=None):
     out = [_screen(s, images, pages) for s in journeys.get('screens') or [] if s.get('kind') == 'page']
     shot = sum(1 for s in out if s['shots'])
     return {'screens': out, 'missing': _missing(out, shot), 'pages': pages,
+            'coverage': _covered(report),
             'counts': {'screens': _count(len(out), 'screens'), 'shot': _count(shot, 'shots'),
                        'issues': _count(sum(len(s['issues']) for s in out) if shot else None, 'issues')}}
 

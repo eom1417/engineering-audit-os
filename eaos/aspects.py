@@ -229,7 +229,19 @@ def _pictured(screens, visual):
            'lighthouse': (screens.get('lighthouse') or {}).get('scores'), 'visual_findings': len(visual)}
     row['rules'] = (_verdict('improve', f'{len(failing)} screen(s) fail an accessibility check, {len(visual)} visual finding(s)')
                     if failing or visual else _verdict('keep', 'every pictured screen passes its accessibility checks'))
-    return row
+    return _kinds(row, screens.get('coverage'))
+
+
+def _kinds(row, covered):
+    """The kinds of users of the code (eaos/roles.py): which the check saw, and who opened a page of another kind."""
+    if not covered: return row
+    said = [f"{b['kind']} opened {b['page']}, a page of {b['of']} only" for b in covered['breaches'][:3]] + \
+           [f"{k['name']['en']} ({k['pages']} page(s)) was not seen: {UNSEEN[k['why']]}" for k in covered['kinds'] if not k['reached']]
+    return {**row, 'kinds_of_users': covered, **({'rules': _verdict('improve', '; '.join(said) + '; ' + row['rules']['why'])} if said else {})}
+
+
+UNSEEN = {'no_access': 'the account signed in with cannot open its pages', 'no_test_user': 'no test user of it could be made',
+          'not_opened': 'its pages did not open'}
 
 
 def _findings(out):
