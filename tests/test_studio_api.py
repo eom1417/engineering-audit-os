@@ -111,6 +111,10 @@ class Guard(unittest.TestCase):
                          'DNS rebinding: a page that renames itself 127.0.0.1 is refused')
         self.assertEqual(self.http.get('/', headers={'Host': 'evil.example'}).status_code, 421)
         self.assertEqual(self.http.get('/api/session', headers={**self.token, 'Host': f'localhost:{PORT}'}).status_code, 200)
+        portless = guard.Guard(None, server.Keys())      # an app made without keys answers on the port it listens on
+        scope = lambda host: {'server': ('127.0.0.1', 43381), 'path': '/', 'method': 'GET', 'headers': [(b'host', host)]}
+        self.assertIsNone(portless.refusal(scope(b'127.0.0.1:43381')))
+        self.assertEqual(portless.refusal(scope(b'evil.example:43381'))[0], 421)
         with self.assertRaises(ValueError):
             server.bind(0, host='0.0.0.0')
         sock = server.bind(0)

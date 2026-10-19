@@ -313,7 +313,8 @@ class Sandbox:
         return process.returncode, out, err
 
     def start(self, argv, port, health_path='/health', timeout=30, cwd=None, env=None):
-        """Start a service in the copy and return once http://127.0.0.1:port<health_path> answers 200, from the service
+        """Start a service in the copy and return once http://127.0.0.1:port<health_path> answers 200, or refuses (4xx:
+        it is up and decided; what it refuses is the next step's evidence, not minutes of waiting), from the service
         itself (_listens): another program answering on that port does not count."""
         argv = [str(part) for part in argv]
         self.limitations.append(f"network not isolated for the started service: {' '.join(argv)[:120]}")
@@ -333,6 +334,8 @@ class Sandbox:
             try:
                 with urllib.request.urlopen(f'http://127.0.0.1:{port}{health_path}', timeout=2) as response:
                     if response.status == 200 and _listens(port, process.pid) is not False: return
+            except urllib.error.HTTPError as answer:
+                if answer.code < 500 and _listens(port, process.pid) is not False: return
             except (urllib.error.URLError, OSError):
                 pass
             time.sleep(0.3)
