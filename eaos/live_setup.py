@@ -27,7 +27,7 @@ import socket
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import progress
+from . import progress, roles
 from .live_assist import ENV_EXAMPLES, assist_messages, read_json
 from .lock_specs import LEAVES
 from .progress.flow import OPTIONAL, Stage
@@ -346,20 +346,35 @@ def empty_state(page, unset):
             + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
 
 
-def probe(live, base, state, report):
-    """What the probe saw of the first page and a few screens (with the browser state `state` when it is a file)."""
+def probe(live, base, state, report, paths=None):
+    """What the probe saw of the first page and a few screens, or `paths` (with the browser state `state` when it is a
+    file)."""
     script = live.sandbox.copy / '.eaos-probe.cjs'
     script.write_text(PROBE, encoding='utf-8')
     code, out, err = live.run(['node', str(script)], timeout=600, env={
         'BASE_URL': base, 'EAOS_STORAGE_STATE': str(state) if state.is_file() else '',
-        'EAOS_ROUTES': json.dumps(routes(report))})
+        'EAOS_ROUTES': json.dumps(routes(report) if paths is None else paths)})
     return json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
+
+
+def unsigned(live, base, state, report):
+    """The kinds of users of the code (eaos/roles.py) the seed made no working session for: each must open one of its
+    own pages, or the first page for a kind with none."""
+    from .live_run import kinds_folder
+
+    def works(kind):
+        session = kinds_folder(state) / f"{kind['id']}.json"
+        page = probe(live, base, session, None, kind['pages'][:3]) if session.is_file() else {}
+        return any(roles.opened(row.get('path') or '/', row.get('url'), row.get('status'), row.get('password'))
+                   for row in (page.get('others') if kind['pages'] else [page]) or [])
+    return [kind for kind in roles.read(report) if not works(kind)]
 
 
 def _failure(page, empty, by_hand=False):
     """Why the page is no working app, '' when it is one. `by_hand`: the person signs in on the sign-in page (or chose
     not to), so a page asking for a sign-in is the app working."""
-    bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400]
+    # a page refusing this user (403) is the app answering: it is another kind of user's page (eaos/roles.py)
+    bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') != 403]
     if signed_out(page) and not by_hand: return 'the first page asks for a sign-in'
     if stuck(page):
         return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
@@ -389,8 +404,7 @@ def verify(project, runtime, attempt, report=None, mode='lock', by_hand=False):
         names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
         empty = '' if mode == 'baseline' else empty_state(page, [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV'])
         failure = _failure(page, empty, by_hand)
-        record['ok'] = not failure
-        if failure: record['failure'] = failure
+        record.update(ok=not failure, failure=failure, unsigned=[] if failure else unsigned(live, base, state, report))
     except Exception as problem:            # a failed start is the evidence the assistant needs, not a crash
         record['ok'] = False
         record['failure'] = f'{type(problem).__name__}: {problem}'[-2500:]
@@ -512,10 +526,8 @@ def _attempts(project, runtime, report, provider, say, detected, needs, limitati
         record = verify(project, runtime, attempts, report, by_hand=by_hand)
         known = {**json.loads((runtime / 'run.json').read_text())['env'], **record['fixtures']}
         missing = [name for name in needs if name not in known]
-        failure = '' if record['ok'] and not missing else \
-            record.get('failure') or 'the checks need fixture values: ' + ', '.join(missing)
-        progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed' if failure else 'ok', reason=failure[:200],
-                      reason_code='' if not failure else 'app_not_answering' if not record['ok'] else 'fixtures_missing')
+        failure, code = _lacking(record, missing)
+        progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed' if failure else 'ok', reason=failure[:200], reason_code=code)
         if not failure: break
         if provider is None:
             limitations.append('no AI assistant was available to work out: ' + (record.get('failure') or 'the fixtures ' + ', '.join(missing)))
@@ -526,6 +538,15 @@ def _attempts(project, runtime, report, provider, say, detected, needs, limitati
             limitations.append('the assistant proposed something unsafe, which was refused: ' + refused[0])
             progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed', reason=refused[0][:200], reason_code='proposal_refused')
     return record, attempts, missing
+
+
+def _lacking(record, missing):
+    """(what the run still lacks, its reason code), ('', '') when nothing: the app not answering, the fixture values
+    the checks need, or a working session for each kind of user of the code."""
+    if not record['ok']: return record.get('failure') or 'the app did not answer', 'app_not_answering'
+    if missing: return 'the checks need fixture values: ' + ', '.join(missing), 'fixtures_missing'
+    if record.get('unsigned'): return roles.UNSIGNED + json.dumps(record['unsigned']), 'kinds_unsigned'
+    return '', ''
 
 
 def _ask(project, runtime, provider, detected, failure, refusal, needs, name, mode='lock'):
@@ -565,6 +586,8 @@ def _close(runtime, detected, ok, attempts, record, missing, limitations):
     limitations = [text for text in limitations if not text.startswith('no value was chosen for')]
     if unset and ok: limitations.append('run without a value for: ' + ', '.join(unset[:12]) + (' …' if len(unset) > 12 else ''))
     if missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
+    if record.get('unsigned'): limitations.append('no test user could be made for these kinds of users, so their own pages '
+                                                  'are not opened: ' + ', '.join(k['id'] for k in record['unsigned']))
     profile['limitations'] = sorted(set(limitations))
     write_profile(runtime, profile)
     return {'ok': ok, 'attempts': attempts, 'limitations': profile['limitations'], 'page': record.get('page')}

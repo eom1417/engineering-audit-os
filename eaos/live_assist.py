@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+from .roles import about_users
+
 ENV_EXAMPLES = ('.env.example', '.env.sample', '.env.template', '.env.local.example', '.env.development.example', 'example.env')
 
 
@@ -32,10 +34,15 @@ Use "{database_url}" for the local database's address, and "{run_dir}" (an empty
 outside the app, made for you) for any folder the app needs outside its code: backups, uploads, data. Never
 create folders with commands. The seed script runs with Node after the app starts,
 with BASE_URL and EAOS_STORAGE_STATE in its environment; require('playwright') is available. It signs in the
-way the app itself allows locally (a development sign-in the docs describe, or signing up through the page),
-adds a little sample data if the app is empty, and saves the browser state with
+way the app itself allows locally (a development sign-in the docs describe, or signing up through the page); an
+app that signs in only through an outside provider (Google...) gets a user and a session it accepts made in the
+local database (its session table, or a token signed with the run's own secret), which is the way: the copy and its
+database are the check's own and reach no real account. It adds a little sample data if the app is empty, and saves
+the browser state with
 context.storageState({ path: process.env.EAOS_STORAGE_STATE }). Its console output ends with one JSON line of
-fixture values it created, for example {"E2E_PROFILEID": "..."}, when the checks need them."""
+fixture values it created, for example {"E2E_PROFILEID": "..."}, when the checks need them. When the failure names
+kinds of users, the same script makes a user of each kind the same way and saves each one's signed-in state to
+EAOS_SESSIONS_DIR/<id>.json."""
 
 DOCS = ('README.md', 'README', 'CLAUDE.md', 'AGENTS.md', 'CONTRIBUTING.md', 'docs/DEVELOPMENT.md', 'docs/SETUP.md',
         'docs/development.md', 'docs/setup.md', 'docs/LOCAL.md')
@@ -100,4 +107,5 @@ def assist_messages(project, runtime, detected, failure, needs, mode='lock'):
     return [{'role': 'system', 'content': ASSIST_SYSTEM + ('\n\n' + BASELINE_NOTE if mode == 'baseline' else '')},
             {'role': 'user', 'content': 'The situation:\n' + json.dumps(brief, ensure_ascii=False, indent=1)
              + '\n\nThe project documentation:\n' + _excerpt(project, folder)
-             + ('\n\nThe code that raised the failure:\n' + source if (source := relevant_source(project, folder, failure)) else '')}]
+             + ('\n\nThe code that raised the failure:\n' + source if (source := relevant_source(project, folder, failure)) else '')
+             + '\n\nThe code about its users and sessions:\n' + about_users(project, 20000)}]

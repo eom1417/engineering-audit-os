@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .live_app import NO_RUN, _keep, _live, _ran
+from .pages import crawl, journeys, screens
 from .stages import SkipStage
 
 POLICY_FILE = 'eaos.policy.json'
@@ -113,11 +114,6 @@ def verify(context):
             'covered_files': len(result.get('coverage') or {})}
 
 
-def _published(context):
-    """The published address the person named for this check, read by the stages that only read pages (S9)."""
-    return (context.get('sign_in') or {}).get('published')
-
-
 def record(context):
     """The lock run twice on today's code (eaos/behavior_lock.py run_lock): the screens and interfaces it recorded."""
     runtime = _live(context)
@@ -129,86 +125,6 @@ def record(context):
     passed = sum(r['status'] == 'passed' for r in result['results'])
     _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
     return {'specs': len(result['results']), 'passed': passed}
-
-
-def journeys(context):
-    """Each feature's pages walked once more, rrweb recording and the trace of a failure kept, capped in size
-    (eaos/behavior_lock.py run_journeys)."""
-    runtime = _live(context)
-    plan = json.loads((context.out / 'behavior-lock/plan.json').read_text(encoding='utf-8')) \
-        if (context.out / 'behavior-lock/plan.json').is_file() else {}
-    if not any(spec.get('tool') == 'playwright' and spec.get('path') for spec in plan.get('specs') or []):
-        raise SkipStage('the lock has no page to walk through', code='no_pages')
-    from ..behavior_lock import run_journeys
-    try:
-        from .live_app import shared_app
-        result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys', app=shared_app(context))
-    except FileNotFoundError as problem:
-        raise SkipStage(str(problem)[:300], code='no_engine_installed') from None
-    _keep(context, 'journeys.json', result)
-    return {'specs': result['specs'], 'failed': result['failed'], 'recordings': len(result['recordings']),
-            'traces': len(result['traces'])}
-
-
-def screens(context):
-    """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
-    desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
-    (eaos/screens/audit.py, eaos/screens/crawl.py distinct). The published address the person named, read only."""
-    if not _published(context): _live(context)
-    groups, measured = _screen_pages(context)
-    audit, speed = _audit_pages(context, groups, measured)
-    if audit['status'] != 'observed':
-        raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
-    rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
-            for row in audit['rows']]
-    _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows,
-                                    'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]}
-                                              for template, paths in groups.items()],
-                                    'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
-    return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
-            'lighthouse': (speed.get('scores') or {}).get('performance')}
-
-
-def _screen_pages(context):
-    """({template: its pages}, the crawl's measured entry or None): the app's static page routes and the crawled ones."""
-    from ..lock_specs import surfaces
-    from ..screens.crawl import distinct
-    pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
-                     if kind == 'page' and route.startswith('/') and not any(mark in route for mark in (':', '*', '['))]
-    crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
-    pages += [row['path'] for row in crawled]
-    measured = next((row for row in crawled if row.get('measured') and row.get('template') == '/'), None)
-    return distinct(pages), measured
-
-
-def _audit_pages(context, groups, measured):
-    """(the page audit, the entry's speed) of the app running in the sandbox: Lighthouse only when the crawl did not
-    measure the entry already."""
-    from .live_app import shared_app
-    from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
-    live, base, state = shared_app(context, published=True)
-    state = state if state.is_file() else None
-    folder = context.out / 'live/screens'
-    audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                       variants(**((live.profile.get('screens') if live else None) or {})), out=folder, storage_state=state,
-                       read_only=not live)
-    speed = ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
-             if measured else lighthouse(base + '/', out=folder, storage_state=state if live else None))    # published: as a visitor
-    return audit, speed
-
-
-def crawl(context):
-    """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
-    distinct template, ten at most (eaos/screens/crawl.py); the published address the person named, read only, a few."""
-    if not _published(context): _live(context)
-    from .live_app import shared_app
-    from ..screens.crawl import crawl as find
-    live, base, state = shared_app(context, published=True)
-    found = find(base, context.out / 'live/crawl', storage_state=state if state.is_file() else None, read_only=not live)
-    if found['status'] != 'observed':
-        raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
-    _keep(context, 'crawl.json', {'schema_version': 1, **found})
-    return {'pages': len(found['routes'])}
 
 
 def baseline(context):
@@ -319,6 +235,18 @@ def _lost(context, problem, code):
             return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'],
                              lost={'assistant': name, 'resets': found.get('resets'), 'code': found['code']})
     return SkipStage(problem, code=code)
+
+
+def roles(context):
+    """The kinds of users the app has, read from its code by the assistant (eaos/roles.py): the app is opened as each."""
+    if not context.provider: raise _absent(context.provider)
+    from ..assistants.command import Stuck
+    from ..roles import find
+    try: kinds = find(context.target, context.out, context.provider)
+    except Stuck as problem: raise _lost(context, str(problem), 'ai_stuck') from None
+    except Exception as problem:                       # the assistant never decides the fate of the check
+        raise _lost(context, f"the kinds of users could not be read ({type(problem).__name__}: {problem})"[:300], 'ai_failed') from None
+    return {'kinds': len(kinds)}
 
 
 def semantic(context):
@@ -503,7 +431,7 @@ def features(context):
 
 RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
            'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports,
-           'engines': engines, 'policy': policy, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic,
+           'engines': engines, 'policy': policy, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic, 'roles': roles,
            'plan': plan}
 
 

@@ -55,6 +55,11 @@ STAGES = (
     Stage('facts', produces=('facts/index.json',), description='Deterministic extraction over one snapshot'),
     Stage('features', produces=('features.json', 'FEATURES.md'), requires=('facts',),
           description='Group entry points and data accesses into what the program does for a user'),
+    Stage('roles', produces=('roles.json',), requires=('features',), necessity=OPTIONAL,
+          absent_when='no assistant was installed or allowed, or its answer named no real line of the code: the app is '
+                      'then opened as one user, and the report says its kinds of users are not known',
+          description="The kinds of users the app has (an administrator, support, a customer...), each with the code "
+                      'that makes it one and its own pages: the app is opened once as each', ai=True),
     Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), necessity=OPTIONAL,
           absent_when='the program has no feature to lock',
           description='A spec per feature, in its own tool, describing what the system does today'),
@@ -63,7 +68,7 @@ STAGES = (
     Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL, uses=('memory',),
           absent_when='no external engine is installed, or --engines was not asked for',
           description='Pinned external analyzers, normalised into one fact set'),
-    Stage('setup', produces=('live/setup.json',), requires=('features',), necessity=OPTIONAL, uses=('app',),
+    Stage('setup', produces=('live/setup.json',), requires=('features',), reads=('roles',), necessity=OPTIONAL, uses=('app',),
           absent_when='the person did not agree to run the app in an isolated copy, or it could not be started there',
           description='Install and start the app in an isolated copy, with a temporary database and none of the '
                       "person's secrets; the assistant helps when the files alone do not say how"),
@@ -178,7 +183,7 @@ STAGES = (
 BY_NAME = {stage.name: stage for stage in STAGES}
 ORDER = tuple(stage.name for stage in STAGES)
 # The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
-PHASES = {'read': ('facts', 'features', 'intake', 'measure', 'architecture', 'policy', 'load'),
+PHASES = {'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
           'tools': ('engines', 'claims', 'probe', 'sustainability', 'transform'),
           'app': ('lock', 'setup', 'verify', 'session', 'record', 'journeys', 'crawl', 'screens', 'baseline', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),

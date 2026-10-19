@@ -13,7 +13,7 @@ from unittest import mock
 from shared_fixture import Workspace
 from eaos import progress, toolchain
 from eaos.engines import ADAPTERS
-from eaos.pipeline.stages import ORDER, STAGES
+from eaos.pipeline.stages import ORDER, STAGES, _built_on
 
 
 def tool(name, version, url, sha):
@@ -264,5 +264,6 @@ class PreparingTests(ToolchainBase):
         check = {t['name']: t['check'] for t in toolchain.registry()['tools'] if t.get('check')}
         self.assertLessEqual(set(ADAPTERS), set(check), 'every engine adapter is a registered tool')
         self.assertLessEqual(set(check.values()), {'engines', 'architecture'})
-        ai = [ORDER.index(stage.name) for stage in STAGES if stage.ai]
-        self.assertTrue(all(ORDER.index(stage) < min(ai) for stage in set(check.values())))
+        built_on = _built_on()               # an AI stage reading what the tools found comes after them
+        ai = [ORDER.index(stage.name) for stage in STAGES if stage.ai and built_on[stage.name] & set(check.values())]
+        self.assertTrue(ai and all(ORDER.index(stage) < min(ai) for stage in set(check.values())))

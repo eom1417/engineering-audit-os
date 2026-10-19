@@ -12,7 +12,7 @@ import { need, pendingOf, state as dataState, mode } from '../data/source.js';
 import { project } from '../data/model.js';
 import { loadingHTML } from './loading.js';
 import { parseHash } from './address.js';
-import { a11yRegions, holdFocus } from './a11y.js';
+import { a11yRegions, hold } from './a11y.js';
 
 const screens = [];
 const renderHooks = [];
@@ -127,7 +127,7 @@ function draw(r, m, bundlePending) {
 
 /** Redraws in place after a change, keeping the focus on the same control and the scroll where it was. */
 export function refresh() {
-  const back = holdFocus(document.documentElement);
+  const back = hold(document.documentElement);
   const y = window.scrollY;
   const r = parseHash();
   if (!isLoaded(bundleOfPath(r.path))) return;

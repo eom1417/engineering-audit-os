@@ -59,7 +59,7 @@ function lede(r, rs, view, list) {
   if (rs === 'queued') return t('ac.run.queued.lede', { n: num(r.position || 1) });
   if (rs === 'you') return t('ac.run.you.lede');
   if (rs === 'paused') return t('ac.run.paused.lede', { label: ac.runLabel(r) });
-  if (rs === 'running') return r.verb === 'fix' ? t('ac.run.fix.lede', { done: num(view.edits), total: num((r.cards || []).length) }) : t('ac.run.running.lede', { label: ac.runLabel(r) });
+  if (rs === 'running') return r.verb === 'fix' ? t('ac.run.fix.lede', { done: num(Object.keys(view.cards).length), total: num((r.cards || []).length) }) : t('ac.run.running.lede', { label: ac.runLabel(r) });
   if (rs === 'stopped') return t(r.verb === 'fix' ? 'ac.run.fix.stopped.lede' : 'ac.run.stopped.lede');
   if (rs === 'failed') return t('ac.run.failed.lede', { label: ac.runLabel(r) });
   if (rs === 'unchanged') return t('ac.run.unchanged.lede');
@@ -165,13 +165,10 @@ function resultHTML(r, rs, view) {
 }
 
 /** FIX-07: the batches' progress and every problem of the batch, kept or taken back, from the edit events. */
-function fixProgress(r, rs, view, events) {
+function fixProgress(r, rs, view) {
   const cards = r.cards || [];
   if (!cards.length) return '';
-  const byCard = {};
-  events.filter(e => e.kind === 'edit' && e.data && e.data.card).forEach(e => { byCard[e.data.card] = e.data.kept; });
-  const share = derive.share(view.batches);
-  const tried = Object.keys(byCard).length;
+  const byCard = view.cards, tried = Object.keys(byCard).length;
   const row = id => {
     const p = model.problem(id);
     const k = byCard[id];
@@ -182,7 +179,7 @@ function fixProgress(r, rs, view, events) {
   };
   const shown = cards.slice(0, 12);
   return `<section class="section" aria-labelledby="fp-h"><div class="section-head"><h2 id="fp-h">${t('ac.fix.progress')}</h2><span class="small muted num">${esc(t('ac.now.fix.sub', { done: num(tried), total: num(cards.length) }))}</span></div>
-    ${ac.progressBar(share != null ? share : tried / cards.length, t('ac.fix.progress'))}
+    ${ac.progressBar(tried / cards.length, t('ac.fix.progress'))}
     <ul class="panel rows" style="margin-top:12px">${shown.map(row).join('')}${cards.length > shown.length ? `<li class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', cards.length - shown.length))}</li>` : ''}</ul></section>`;
 }
 
@@ -313,7 +310,7 @@ function runPage(ctx) {
         ${progress}
         ${view.question && rs === 'you' ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('waiting')}<span class="row__main small">${rich(L(view.question.text))}</span><a class="btn btn--secondary btn--sm" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a></div>` : ''}
         ${resultHTML(r, rs, view)}
-        ${r.verb === 'fix' ? fixProgress(r, rs, view, events) : ''}
+        ${r.verb === 'fix' ? fixProgress(r, rs, view) : ''}
         ${r.mode === 'handoff' ? handoffHTML(r) : ''}
         ${stages}
         ${timeline(r, view, events, ctx.query.all === '1')}

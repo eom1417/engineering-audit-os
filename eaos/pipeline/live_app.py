@@ -20,7 +20,7 @@ def shared_app(context, published=False):
     chosen = context.setdefault('sign_in', {})
     if published and chosen.get('published'): return None, chosen['published'], Path(chosen['folder']) / sign_in.PUBLISHED
     if 'page_app' not in context:
-        from ..live_run import LiveRun
+        from ..live_run import LiveRun, kinds_folder
         live = LiveRun(context.target, context.runtime, 'S05')
         live.freeze()                                    # the lock records on it: the folders it reads, kept as they are
         state = sign_in.session(context.runtime)
@@ -32,13 +32,27 @@ def shared_app(context, published=False):
             seeded.unlink(missing_ok=True)
             live.seed(base, seeded)
             if kept: seeded.unlink(missing_ok=True)
-            if state.is_file(): state.chmod(0o600)
+            for made in [state, *kinds_folder(state).glob('*.json')]:
+                if made.is_file(): made.chmod(0o600)
             if kept and not chosen.get('gave_up'): chosen['gave_up'] = not sign_in.renew(live, base, state, context.out, chosen.get('folder'))
         except BaseException:
             live.stop()
             raise
         context['page_app'] = live, base, state
     return context['page_app']
+
+
+def sessions(context, published=False):
+    """(live run, address, [(kind, browser state)]): the app opened once as each kind of user of its code (eaos/roles.py)
+    the seed made a session for, and with the run's one session (kind None) when it made none or the person signed in
+    by hand: theirs is opened too."""
+    from .. import sign_in
+    from ..live_run import kinds_folder
+    from ..roles import read
+    live, base, state = shared_app(context, published)
+    made = [(kind['id'], path) for kind in (read(context.out) if live else [])
+            if (path := kinds_folder(state) / f"{kind['id']}.json").is_file()]
+    return live, base, made + ([(None, state)] if not made or sign_in.by_hand(state) else [])
 
 
 def close_app(context):

@@ -25,7 +25,7 @@ PATHS = {
     'look': {'names': ('Look and screens', 'الشكل والشاشات'),
              'looks_at': ("The app's screens, their accessibility and speed, the design review, users' journeys",
                           'الشاشات، وسهولة الاستخدام، وسرعة الصفحات، ومراجعة التصميم، ورحلات المستخدم'),
-             'stages': ('setup', 'session', 'lock', 'record', 'journeys', 'crawl', 'screens', 'visual'), 'patterns': ('design_review',)},
+             'stages': ('roles', 'setup', 'session', 'lock', 'record', 'journeys', 'crawl', 'screens', 'visual'), 'patterns': ('design_review',)},
     'code': {'names': ('Code', 'الكود'),
              'looks_at': ('Structure and layers, cycles and coupling, complexity, duplication, dead code, the tests, how easily it grows',
                           'البنية والطبقات، والتشابك، والتعقيد، والتكرار، والكود الميت، والاختبارات، وسهولة التوسع'),

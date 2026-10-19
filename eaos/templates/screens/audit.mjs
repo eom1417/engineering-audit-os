@@ -230,13 +230,14 @@ async function openContext(browser, viewport, variant, base, blocked) {
 
 // The page loaded and settled: the network quiet, the selector it waits for, the fonts, then its actions.
 async function settle(page, url, entry) {
-  await page.goto(url, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
+  const response = await page.goto(url, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
   try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
   const ready = entry.wait_for || config.wait_for;
   if (ready) await page.waitForSelector(ready, { timeout: 10000 });
   await page.evaluate(() => document.fonts && document.fonts.ready);
   await page.waitForTimeout(config.settle_ms ?? 300);
   if (entry.actions) { await act(page, entry.actions); await page.waitForTimeout(config.settle_ms ?? 300); }
+  return response;
 }
 
 async function axeOf(page) {
@@ -281,7 +282,10 @@ async function auditOne(browser, entry, viewport, variant, index) {
   const row = { url, page: entry.name || null, viewport: viewport.name, width: viewport.width, height: viewport.height,
     variant: variant.name, mobile, expect: variant.expect || null };
   try {
-    await settle(page, url, entry);
+    const response = await settle(page, url, entry);
+    // Where the page ended, its answer and a password field: whether it opened as itself (eaos/roles.py opened)
+    Object.assign(row, { landed: page.url(), http: response ? response.status() : null,
+      password: await page.locator('input[type=password]').count() });
     // The page's own errors, counted before axe runs (on file:// axe reads stylesheets the page's policy may refuse)
     row.page_errors = errors.slice(0, 10);
     Object.assign(row, await measure(page, { phoneWidth: config.phone_width, targetMin: config.target_min,
