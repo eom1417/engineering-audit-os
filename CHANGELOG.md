@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.39 (2026-10-19)
+
+- **The run's database starts on a new server run as root**: PostgreSQL refuses root, so a dedicated account runs it,
+  and pgserver's binaries sat in EAOS's virtualenv under /root, which that account cannot enter ("Permission denied:
+  pg_ctl", every app with a database failed to start). They are now copied once, with their libraries, to
+  /opt/eaos-pg. This computer never showed it: its PostgreSQL came from the system, outside /root.
+- **Claude in a Studio on a remote server**: a Studio started by an assistant took that assistant's session sign-in,
+  which Remote replaces, so the Studio's Claude later answered "401 unauthorized" and the check stopped at its start.
+  The fix is a long-lived token the Studio uses whatever session started it: `claude setup-token`, saved as the
+  project secret `CLAUDE_CODE_OAUTH_TOKEN`; Claude's not-signed-in, expired and failed messages now say so.
+
 ## 0.0.38 (2026-10-19)
 
 - **Any app is run, not only a JavaScript one**: a project with no JavaScript web app (EAOS itself, a Python app) was

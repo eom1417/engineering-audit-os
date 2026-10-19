@@ -49,6 +49,30 @@ def free_port():
         return probe.getsockname()[1]
 
 
+SHARED = Path('/opt/eaos-pg')     # where the dedicated account runs pgserver's binaries from, under root
+
+
+def _reachable(bin_dir, owner):
+    """Under root the dedicated account runs the binaries, and pgserver's sit in a virtualenv under /root, which it
+    cannot enter: they are then copied once where it can (/opt/eaos-pg), with the libraries they find by a relative
+    path (site-packages/pgserver.libs), in the same layout."""
+    if subprocess.run(['test', '-x', str(bin_dir / 'pg_ctl')], user=owner).returncode == 0: return bin_dir
+    install = bin_dir.resolve().parent                                   # site-packages/pgserver/pginstall
+    ident = hashlib.sha256(install.as_posix().encode('utf-8')).hexdigest()[:10]
+    copy = SHARED / f'pgserver-{ident}'
+    if not (copy / 'pgserver' / 'pginstall' / 'bin' / 'pg_ctl').exists():
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        os.chmod(copy.parent, 0o755)
+        with tempfile.TemporaryDirectory(prefix='.partial-', dir=copy.parent) as partial:
+            made = Path(partial) / 'pgserver-copy'
+            shutil.copytree(install, made / 'pgserver' / 'pginstall', symlinks=True, ignore=shutil.ignore_patterns('include'))
+            if (install.parent.parent / 'pgserver.libs').is_dir():
+                shutil.copytree(install.parent.parent / 'pgserver.libs', made / 'pgserver.libs', symlinks=True)
+            for folder, _, _ in os.walk(made): os.chmod(folder, 0o755)
+            os.replace(made, copy)
+    return copy / 'pgserver' / 'pginstall' / 'bin'
+
+
 def _as_owner():
     """PostgreSQL refuses to run as root: under root, a dedicated account runs it (created once)."""
     if os.name == 'nt' or os.geteuid() != 0: return None
@@ -103,6 +127,7 @@ class LocalPostgres:
         bin_dir = binaries()
         if bin_dir is None:
             raise RuntimeError('PostgreSQL is not installed: eaos doctor --fix installs it')
+        if self.owner: bin_dir = _reachable(bin_dir, self.owner)
         self.root.mkdir(parents=True, exist_ok=True)
         if self.owner:
             self.data.parent.mkdir(parents=True, exist_ok=True)

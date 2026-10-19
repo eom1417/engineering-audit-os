@@ -499,12 +499,12 @@
    "en": "Claude Code is installed but does not run (`claude --version` did not answer). Reinstall it from claude.com/claude-code, then try again."
   },
   "claude_not_signed_in": {
-   "ar": "Claude Code غير مسجّل الدخول. شغّل claude مرة في الطرفية وسجّل دخولك، ثم جرّب مرة ثانية.",
-   "en": "Claude Code is not signed in. Run `claude` once in a terminal and sign in, then try again."
+   "ar": "Claude Code غير مسجّل الدخول. شغّل claude مرة في الطرفية وسجّل دخولك، ثم جرّب مرة ثانية. وعلى خادم بعيد مثل Remote، الاستوديو ما يشوف دخولك: شغّل claude setup-token مرة في الطرفية، واحفظ الرمز في أسرار المشروع باسم CLAUDE_CODE_OAUTH_TOKEN، ثم أعد تشغيل الاستوديو.",
+   "en": "Claude Code is not signed in. Run `claude` once in a terminal and sign in, then try again. On a remote server such as Remote, the Studio does not see your sign-in: run `claude setup-token` once in a terminal, save the token as the project secret CLAUDE_CODE_OAUTH_TOKEN, then restart the Studio."
   },
   "claude_sign_in_expired": {
-   "ar": "دخول Claude Code انتهى. شغّل claude في الطرفية وسجّل من جديد، ثم جرّب مرة ثانية.",
-   "en": "Claude Code's sign-in has expired. Run `claude` in a terminal and sign in again, then try again."
+   "ar": "دخول Claude Code انتهى. شغّل claude في الطرفية وسجّل من جديد، ثم جرّب مرة ثانية. وعلى خادم بعيد مثل Remote، الاستوديو ما يشوف دخولك: شغّل claude setup-token مرة في الطرفية، واحفظ الرمز في أسرار المشروع باسم CLAUDE_CODE_OAUTH_TOKEN، ثم أعد تشغيل الاستوديو.",
+   "en": "Claude Code's sign-in has expired. Run `claude` in a terminal and sign in again, then try again. On a remote server such as Remote, the Studio does not see your sign-in: run `claude setup-token` once in a terminal, save the token as the project secret CLAUDE_CODE_OAUTH_TOKEN, then restart the Studio."
   },
   "claude_limit": {
    "ar": "Claude Code وصل حدّ استخدامه الآن. انتظر حتى يتجدد الحد، أو اختر المساعد الآخر، أو ابدأ بدون ذكاء.",
@@ -515,8 +515,8 @@
    "en": "Claude Code gave no answer in 30 seconds. Check the internet connection, then try again."
   },
   "claude_failed": {
-   "ar": "Claude Code توقف بخطأ لما سألته كلمة واحدة. شغّل claude في الطرفية لترى السبب، ثم جرّب مرة ثانية.",
-   "en": "Claude Code stopped with an error when asked for one word. Run `claude` in a terminal to see why, then try again."
+   "ar": "Claude Code توقف بخطأ لما سألته كلمة واحدة. شغّل claude في الطرفية لترى السبب، ثم جرّب مرة ثانية. وعلى خادم بعيد مثل Remote، الاستوديو ما يشوف دخولك: شغّل claude setup-token مرة في الطرفية، واحفظ الرمز في أسرار المشروع باسم CLAUDE_CODE_OAUTH_TOKEN، ثم أعد تشغيل الاستوديو.",
+   "en": "Claude Code stopped with an error when asked for one word. Run `claude` in a terminal to see why, then try again. On a remote server such as Remote, the Studio does not see your sign-in: run `claude setup-token` once in a terminal, save the token as the project secret CLAUDE_CODE_OAUTH_TOKEN, then restart the Studio."
   },
   "codex_ready": {
    "ar": "Codex جاهز: سجّل دخوله وجاوب الآن.",

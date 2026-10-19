@@ -129,6 +129,8 @@ function draw(r, m, bundlePending) {
 export function refresh() {
   const a = document.activeElement;
   const fk = a && (a.getAttribute('data-fk') || a.id);
+  // what is being typed survives the redraw (a page drawn from live data every second erased it as it was typed)
+  const typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) ? { value: a.value, from: a.selectionStart, to: a.selectionEnd } : null;
   const y = window.scrollY;
   const r = parseHash();
   if (!isLoaded(bundleOfPath(r.path))) return;
@@ -139,6 +141,10 @@ export function refresh() {
   if (fk) {
     const el = document.querySelector(`[data-fk="${CSS.escape(fk)}"]`) || document.getElementById(fk);
     if (el) el.focus({ preventScroll: true });
+    if (el && typing && el.tagName === a.tagName && el.value !== typing.value) {
+      el.value = typing.value;
+      try { el.setSelectionRange(typing.from, typing.to); } catch (e) { /* a field without a caret */ }
+    }
   }
 }
 
