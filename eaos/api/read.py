@@ -29,7 +29,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from .. import __version__, artifact_contracts, guided, journeys
-from ..studio.pipeline import SAFE, layout
+from ..studio.pipeline import SAFE
 
 PREFIX = 'studio-'
 NO_STORE = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
@@ -203,8 +203,8 @@ def declaration(flow):
 
 
 def flow_state(folder, flow='check'):
-    """The folded progress of a flow's last (or running) run, each stage placed by the same pinned layered layout as the
-    other maps (longest path, barycentre), its time left (eaos/progress/estimate.py), and whether a run that never
+    """The folded progress of a flow's last (or running) run, a check's stages each with the part of the check it belongs
+    to (eaos/pipeline/stages.py PHASES), its time left (eaos/progress/estimate.py), and whether a run that never
     ended is still heard from (eaos/progress/liveness.py): a stopped process makes it `interrupted`, 30 s without a
     line from a run that promised heartbeats makes it `stalled`, never a run that glows for ever. A flow that has not
     run yet is its declared stages, all waiting."""
@@ -213,9 +213,9 @@ def flow_state(folder, flow='check'):
     state = progress.fold(progress.read(folder, flow))
     if state['run'] is None: state = progress.declared(flow, progress.stage_rows(declaration(flow)))
     state['state'] = progress.judge(state, progress.heard_at(progress.path_for(folder, flow)), time.time(), progress.alive(state))
-    places = layout([s['name'] for s in state['stages']], [(need, s['name']) for s in state['stages'] for need in s['requires']])
-    for s in state['stages']:
-        s['layer'], s['order'] = places.get(s['name'], (0, 0))
+    if flow == 'check':
+        from ..pipeline.stages import PHASE
+        for s in state['stages']: s['phase'] = PHASE.get(s['name'])
     state.pop('pid', None)
     state.pop('host', None)
     return {**state, 'estimate': progress.estimate(state, time.time())}

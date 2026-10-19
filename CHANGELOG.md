@@ -6,6 +6,11 @@
   skipped with "EAOS runs JavaScript web apps for now", nobody asked, and its tests then ran an earlier app's profile
   (`npm ci` in a folder gone). Now the assistant reads the project's documentation and says how to install and start
   it (Python included: python, pip, uv, poetry, uvicorn, gunicorn); EAOS itself starts this way, on its own Studio.
+- **A check in five parts, in its order**: reading your project, the analysis tools, running your app, your assistant
+  reviews, the plan and the reports; each part with how many of its stages ended and its own time. The board's
+  "layers" counted only part of what a stage waits for, so a stage drawn in layer 6 ran after one in layer 8.
+- **A pause stops the clocks**: the check's time, each stage's and each part's freeze while it is paused and go on from
+  there (the pauses kept as spans of the run); they counted on before.
 - **A Python app's installs stay in its run**: each run has its own virtual environment, first on PATH whatever the run
   chose, so `pip install` never lands in EAOS's own environment (a trial once broke EAOS's that way).
 

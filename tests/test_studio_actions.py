@@ -492,7 +492,9 @@ class Runs(Base):
         count = len(self.app.store.events(run))
         time.sleep(0.8)
         self.assertEqual(len(self.app.store.events(run)), count)
-        self.assertEqual(self.post(f'/api/runs/{run}/resume')[1]['run']['state'], 'running')
+        resumed = self.post(f'/api/runs/{run}/resume')[1]['run']
+        # the Studio's clocks once went on counting through a pause: the pause is kept as a span they leave out
+        self.assertEqual((resumed['state'], len(resumed['paused']), resumed.get('paused_at')), ('running', 1, None))
         self.assertEqual(self.post(f'/api/runs/{run}/stop')[1]['run']['state'], 'stopped')
         pid = self.app.store.load(run).get('pid') or running.get('pid')
         deadline = time.monotonic() + 8

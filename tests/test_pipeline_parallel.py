@@ -97,6 +97,13 @@ class ParallelCheckTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.directory.cleanup()
 
+    def test_every_stage_is_in_one_part_of_the_check_and_a_part_keeps_the_declared_order(self):
+        # the Studio drew the stages in layers of their `requires` alone, which their real waits contradicted
+        from eaos.pipeline.stages import PHASES, ORDER
+        named = [name for names in PHASES.values() for name in names]
+        self.assertEqual(sorted(named), sorted(ORDER), 'each stage in exactly one part')
+        self.assertTrue(all(list(names) == sorted(names, key=ORDER.index) for names in PHASES.values()))
+
     def test_every_read_and_rewrite_of_another_stage_is_declared(self):
         maker, under = {artifact: stage.name for stage in STAGES for artifact in stage.produces}, _under()
         # a stage may read what a later stage made in the last check (it runs after it either way), never what a stage

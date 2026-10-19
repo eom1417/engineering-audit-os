@@ -177,6 +177,13 @@ STAGES = (
 
 BY_NAME = {stage.name: stage for stage in STAGES}
 ORDER = tuple(stage.name for stage in STAGES)
+# The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
+PHASES = {'read': ('facts', 'features', 'intake', 'measure', 'architecture', 'policy', 'load'),
+          'tools': ('engines', 'claims', 'probe', 'sustainability', 'transform'),
+          'app': ('lock', 'setup', 'verify', 'session', 'record', 'journeys', 'crawl', 'screens', 'baseline', 'readiness'),
+          'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
+          'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}
+PHASE = {name: phase for phase, names in PHASES.items() for name in names}
 
 
 def graph():

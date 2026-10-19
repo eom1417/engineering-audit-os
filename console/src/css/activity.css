@@ -248,3 +248,4 @@ li.ac-cmd { min-height: 56px; }
 .ac-stg__count { flex-basis: 100%; display: flex; align-items: center; gap: var(--s2); }
 .ac-stg__count .ac-bar { flex: 1; height: 4px; }
 .ac-step .ac-bar { margin-top: 6px; }
+.ac-tick--paused { color: var(--ink-3); }
