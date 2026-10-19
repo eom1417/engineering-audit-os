@@ -39,13 +39,17 @@ class Guard:
     def __init__(self, app, keys):
         self.app, self.keys = app, keys
 
-    def allowed_hosts(self):
-        port = self.keys.port
+    def port(self, scope):
+        """The port the keys name, else the one the server listens on (an app made without keys, as a check runs it)."""
+        return self.keys.port or (scope.get('server') or ('', 0))[1]
+
+    def allowed_hosts(self, port):
         return {f'127.0.0.1:{port}', f'localhost:{port}'} | ({urlsplit(self.keys.remote_origin).netloc} if getattr(self.keys, 'remote_origin', None) else set())
 
     def refusal(self, scope):
         headers = {k.decode('latin-1').lower(): v.decode('latin-1') for k, v in scope.get('headers') or []}
-        if headers.get('host') not in self.allowed_hosts():
+        port = self.port(scope)
+        if headers.get('host') not in self.allowed_hosts(port):
             return 421, 'host', 'this server answers only to 127.0.0.1 and localhost'
         path, method = scope.get('path') or '/', scope.get('method') or 'GET'
         if not path.startswith('/api/'):
@@ -56,7 +60,7 @@ class Guard:
         if not same(headers.get(CSRF_HEADER), self.keys.csrf):
             return 403, 'csrf', 'the CSRF token is missing or wrong: reload the Studio'
         origin = headers.get('origin') or _origin(headers.get('referer'))
-        if origin not in {f'http://127.0.0.1:{self.keys.port}', f'http://localhost:{self.keys.port}'} | ({self.keys.remote_origin} if getattr(self.keys, 'remote_origin', None) else set()):
+        if origin not in {f'http://127.0.0.1:{port}', f'http://localhost:{port}'} | ({self.keys.remote_origin} if getattr(self.keys, 'remote_origin', None) else set()):
             return 403, 'origin', 'the request does not come from this Studio'
         return None
 

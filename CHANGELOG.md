@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.43 (2026-10-19)
+
+- **EAOS's own Studio starts in a check**: started by the assistant without launch keys, it knew no port and refused
+  every request to 127.0.0.1 (421), so the check of EAOS itself failed to run its app. A server without a port in its
+  keys answers on the port it listens on; another host is still refused.
+- **A refusal ends the wait**: the setup waited three minutes for a 200 at each attempt while the app answered at once
+  with a 4xx, 13 minutes for five attempts; an answer below 500 now ends the wait, and the next step tells the
+  assistant what was refused.
+
 ## 0.0.42 (2026-10-19)
 
 - **The Studio says which EAOS runs**: its side bar, settings and tools showed the version that made the last check
