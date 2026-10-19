@@ -9,7 +9,7 @@ import { t, tn, L } from './i18n.js';
 import { esc, icon, code } from './format.js';
 import { afterRender, refresh, offline } from './router.js';
 import { href, parseHash, setQuery } from './address.js';
-import { a11yRegions } from './a11y.js';
+import { a11yRegions, holdFocus } from './a11y.js';
 import { act } from './events.js';
 import { announce } from './notices.js';
 import { closeSheetThen } from './sheets.js';
@@ -127,8 +127,7 @@ function draw() {
   if (open && !isLoaded('ask') && !offline()) loadBundle('ask').then(ok => { if (ok) draw(); });
   document.body.classList.toggle('has-assist', open);
   const host = document.getElementById('assist-host');
-  const a = document.activeElement;
-  const fk = a && a.closest && a.closest('#assist') ? (a.getAttribute('data-fk') || a.id) : null;
+  const back = holdFocus(document.getElementById('assist'));
   const sb = document.getElementById('assist-body');
   const keepBottom = sb ? sb.scrollHeight - sb.scrollTop - sb.clientHeight < 40 : true;
   host.innerHTML = `${fabHTML()}
@@ -138,7 +137,7 @@ function draw() {
     a11yRegions(host);
     const body = document.getElementById('assist-body');
     if (body && keepBottom) body.scrollTop = body.scrollHeight;
-    if (fk) { const el = host.querySelector(`[data-fk="${CSS.escape(fk)}"]`); if (el) el.focus({ preventScroll: true }); }
+    back();
   }
 }
 afterRender(draw);

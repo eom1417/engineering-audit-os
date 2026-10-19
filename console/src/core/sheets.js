@@ -6,7 +6,7 @@
 import { t } from './i18n.js';
 import { esc, icon } from './format.js';
 import { href, navigate, parseHash, setQuery } from './address.js';
-import { a11yRegions } from './a11y.js';
+import { a11yRegions, holdFocus } from './a11y.js';
 import { bundleOfSheet, loadBundle } from './places.js';
 import { need, pendingOf } from '../data/source.js';
 
@@ -101,15 +101,14 @@ function create(key, name, arg, def) {
 export function rerenderSheet() {
   const st = open;
   if (!st) return;
-  const a = document.activeElement;
-  const fk = a && st.el.contains(a) ? (a.getAttribute('data-fk') || a.id) : null;
+  const back = holdFocus(st.el);
   const body = st.el.querySelector('.sheet__body');
   const top = body ? body.scrollTop : 0;
   st.el.innerHTML = inner(st.def, st.arg, st.local);
   const nb = st.el.querySelector('.sheet__body'); if (nb) nb.scrollTop = top;
   if (st.def.after) st.def.after(st.el, st.arg, st.local);
   a11yRegions(st.el);
-  if (fk) { const el = st.el.querySelector(`[data-fk="${CSS.escape(fk)}"]`) || document.getElementById(fk); if (el) el.focus({ preventScroll: true }); }
+  back();
 }
 
 function destroy() {

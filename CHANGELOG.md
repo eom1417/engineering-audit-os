@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.40 (2026-10-19)
+
+- **On a phone, the Studio keeps its size**: a long file path in a problem's row made the page wider than the screen
+  (the row was a grid as wide as its longest line, and the path's "…" never applied), so the phone zoomed the whole
+  Studio out, and in again as a filter changed the rows: the text grew and shrank and rows ran off the screen. The row
+  now holds its width and the path ends in "…"; the page can no longer be wider than the screen.
+- **Typing is never broken by a live redraw**: the assistant's box, a sheet's field and the sign-in field keep what is
+  typed and where the caret is (a redraw sent the caret to the start: "مساء الخير" landed before "السلام عليكم").
+- **The problems' filters**: the four "Group the list" buttons sit in two rows (they ran into each other), and a value
+  with no problem cannot be picked (it led to "Show no problems").
+- **The Understand tabs stay still**: the strip was one pixel taller than itself, so it moved up and down under a
+  finger; the assistant's suggestions likewise.
+
 ## 0.0.39 (2026-10-19)
 
 - **The run's database starts on a new server run as root**: PostgreSQL refuses root, so a dedicated account runs it,

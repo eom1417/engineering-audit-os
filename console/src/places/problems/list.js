@@ -207,7 +207,7 @@ sheet('filters', {
         const on = sel.includes(v);
         const hide = vals.length > 12 && i >= 8 && !on ? 'data-more hidden' : '';
         return `<label class="row" style="min-height:48px;padding-inline:4px;gap:12px" ${hide}>
-          ${chk(`data-change="facet" data-facet="${f}" value="${esc(v)}" data-fk="f-${f}-${esc(v)}"`, on, facetLabel(f, v))}
+          ${chk(`data-change="facet" data-facet="${f}" value="${esc(v)}" data-fk="f-${f}-${esc(v)}" ${n || on ? '' : 'disabled'}`, on, facetLabel(f, v))}
           <span class="row__main" style="margin-inline-start:8px;${n ? '' : 'color:var(--ink-3)'}">${f === 'sev' ? sev(v) : f === 'comp' ? code(v) : esc(facetLabel(f, v))}</span>
           <span class="num ${n ? '' : 'muted'}">${num(n)}</span></label>`;
       }).join('');
@@ -216,7 +216,7 @@ sheet('filters', {
     }).join('');
     return {
       title: esc(t('flt.title')), sub: esc(t('flt.sub')),
-      body: `<div><div class="block-title">${t('grp.title')}</div><div class="seg" role="group" aria-label="${esc(t('grp.title'))}" style="flex-wrap:wrap">${groups}</div></div>${facets}`,
+      body: `<div><div class="block-title">${t('grp.title')}</div><div class="seg" role="group" aria-label="${esc(t('grp.title'))}" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">${groups}</div></div>${facets}`,
       foot: `<div class="sheet__foot-row"><button class="btn btn--secondary" data-act="facet-clear">${t('flt.clear')}</button>
         <button class="btn btn--primary" data-act="sheet-close" data-fk="flt-show">${esc(t('flt.show', { problems: tn('pl.problem', count) }))}</button></div>`,
     };

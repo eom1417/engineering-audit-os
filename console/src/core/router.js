@@ -12,7 +12,7 @@ import { need, pendingOf, state as dataState, mode } from '../data/source.js';
 import { project } from '../data/model.js';
 import { loadingHTML } from './loading.js';
 import { parseHash } from './address.js';
-import { a11yRegions } from './a11y.js';
+import { a11yRegions, holdFocus } from './a11y.js';
 
 const screens = [];
 const renderHooks = [];
@@ -127,10 +127,7 @@ function draw(r, m, bundlePending) {
 
 /** Redraws in place after a change, keeping the focus on the same control and the scroll where it was. */
 export function refresh() {
-  const a = document.activeElement;
-  const fk = a && (a.getAttribute('data-fk') || a.id);
-  // what is being typed survives the redraw (a page drawn from live data every second erased it as it was typed)
-  const typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) ? { value: a.value, from: a.selectionStart, to: a.selectionEnd } : null;
+  const back = holdFocus(document.documentElement);
   const y = window.scrollY;
   const r = parseHash();
   if (!isLoaded(bundleOfPath(r.path))) return;
@@ -138,14 +135,7 @@ export function refresh() {
   draws -= 1;
   if (sheetOpen()) rerenderSheet();
   window.scrollTo(0, y);
-  if (fk) {
-    const el = document.querySelector(`[data-fk="${CSS.escape(fk)}"]`) || document.getElementById(fk);
-    if (el) el.focus({ preventScroll: true });
-    if (el && typing && el.tagName === a.tagName && el.value !== typing.value) {
-      el.value = typing.value;
-      try { el.setSelectionRange(typing.from, typing.to); } catch (e) { /* a field without a caret */ }
-    }
-  }
+  back();
 }
 
 let pending = 0;

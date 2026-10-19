@@ -3,7 +3,8 @@
 
 /* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* nothing makes the page wider than the screen: a phone would zoom the whole Studio out, and in again as it changed */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: clip; }
 body {
   margin: 0; background: var(--canvas); color: var(--ink);
   font: 400 var(--fs-body)/var(--lh-body) var(--font);
@@ -470,12 +471,12 @@ body.has-selection .selbar { display: grid; }
 .prow { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) var(--s4); padding-inline-start: var(--s3); min-height: 76px; position: relative; }
 .prow:hover { background: var(--hover); }
 .prow .check { margin-top: -8px; }
-.prow__link { flex: 1; min-width: 0; color: inherit; text-decoration: none; display: grid; gap: 4px; }
+.prow__link { flex: 1; min-width: 0; color: inherit; text-decoration: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .prow__link::after { content: ""; position: absolute; inset: 0; inset-inline-start: 56px; }
 .prow__top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
 .prow__title { font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .prow__meta { display: flex; flex-wrap: wrap; gap: 2px var(--s3); color: var(--ink-3); font-size: var(--fs-small); line-height: var(--lh-small); }
-.prow__meta .mono { color: var(--ink-3); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow__meta .mono { color: var(--ink-3); min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prow__end { margin-inline-start: auto; }
 .prow.is-selected { background: var(--accent-soft); }
 .prow.is-open { background: var(--hover); }
@@ -686,7 +687,7 @@ body.has-selection #main { padding-bottom: calc(132px + var(--s6) + 64px + env(s
 .assist__ctx .ac-chip-x:hover { color: var(--ink); background: var(--hover); }
 .assist__ctx { max-width: 100%; min-width: 0; color: var(--ink); }
 .assist__ctxtext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.assist__sug { display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none; margin-inline: calc(var(--s4) * -1); padding-inline: var(--s4); }
+.assist__sug { display: flex; gap: var(--s2); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; margin-inline: calc(var(--s4) * -1); padding-inline: var(--s4); }
 .assist__sug::-webkit-scrollbar { display: none; }
 .assist__sug .assist__q { flex: none; white-space: nowrap; }
 .assist:focus { outline: none; }
