@@ -83,7 +83,7 @@ STAGES = (
           description="Whether the app's pages need a sign-in (its code, and the pages the setup opened), and the "
                       "sessions every page stage opens them with: the assistant's test users on the running app, one of "
                       'each kind of user, within five minutes, else the person signing in by hand on the sign-in page '
-                      'while the stages that open no page go on'),
+                      'while the stages that open no page go on', ai=True),
     Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "

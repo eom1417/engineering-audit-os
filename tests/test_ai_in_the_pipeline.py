@@ -103,7 +103,7 @@ class IdealStage(unittest.TestCase):
         self.assertEqual(state, 'planned')
         self.assertEqual([row['id'] for row in record['dropped']], ['s9'])
         self.assertEqual(ideal.section(self.report, 'en')['views']['system']['provenance']['method'], 'planned')
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
+        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['roles', 'session', 'semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order', 'translate'])
         self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'pipeline_gaps')}, {('proposals',)})
         self.assertEqual(BY_NAME['order'].requires, ('cards',))
 

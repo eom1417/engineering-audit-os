@@ -360,8 +360,8 @@ def probe(live, base, state, report, paths=None):
 def _failure(page, empty):
     """Why the page is no working app, '' when it is one. A page asking for a sign-in is the app working: the stage
     `session` signs in to it (eaos/test_users.py)."""
-    # a page refusing this user (403) is the app answering: it is another kind of user's page (eaos/roles.py)
-    bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') != 403]
+    # a page asking for a sign-in or a token (401), or refusing this user (403), is the app answering
+    bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') not in (401, 403)]
     if stuck(page) and not signed_out(page):         # every screen sent to the sign-in is the app, signed out
         return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
                 'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])

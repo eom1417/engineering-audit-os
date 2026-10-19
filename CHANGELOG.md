@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.45 (2026-10-19)
+
+- **The check of EAOS itself pictures its app again**: the setup's probe opens a few routes of the code, and EAOS's
+  /api/ routes answer 401 without a token; a 401 counted as the app not working, so the setup failed after five
+  attempts and seven minutes and no page stage ran. A page asking for a sign-in or a token (401), like one refusing
+  the user (403), is the app answering. The check of EAOS from this branch: set up, 13 pages crawled, 22 pictures,
+  5 journeys walked without a failure.
+- **Two steps named for what they do**: "Pin the libraries" writes a test of what each feature does today ("Write
+  what your app does today"), and "Check that your app runs" runs the project's own tests ("Run your project's
+  tests"), which read like a second setup. "Prepares a test sign-in" carries the assistant's mark.
+
 ## 0.0.44 (2026-10-19)
 
 - **The test sign-in is a step of its own, made by the assistant on the running app**: the setup tried the sign-in
