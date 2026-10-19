@@ -1,7 +1,21 @@
 # Changelog
 
-## Unreleased (2026-10-18)
+## 0.0.37 (2026-10-19)
 
+- **The problems' filters stick**: choosing an area, a severity or a state and pressing Show kept nothing, because
+  closing the sheet went back in the browser's history and took the filters with it; a sheet that changed the address
+  now closes in place. `eaos problems --area … --severity …` filters the same way in the terminal.
+- **A check's clock, live**: the time since the check began and each running stage's own time tick every second (one
+  ticker, nothing drawn again), what each took once ended; a stage's counted steps fill a bar and its programs tick from
+  their start. `eaos watch` says the time since the run began and the stages in plain words.
+- **Parallel stages said plainly**: "n of N stages done, m running now" instead of "stage n of N", the mode and how many
+  assistants it allows; each running program is shown under the stage that started it (it was always the last one).
+- **An AI stage answered only in part is PARTIAL**: when some of its batches failed (a usage limit midway) the check no
+  longer says COMPLETE; running the stage again asks only those batches. The scheduler lets lighter stages start while
+  a heavier one waits for room, and counts the memory of assistants that just started. Speed mode's note says what it
+  costs: the usage limit spent in less time, not more tokens.
+- Fixed: the rules and the assistant giving the same answer were asked as a disagreement; `eaos usage` printed
+  unrounded costs; a check without the assistant showed the cost of the check before it.
 - **The new Studio is the only one**: the console (`console/`, built into `eaos/data/studio`) replaced the old React
   Studio, whose folder (`studio/`, its 490 MB of packages with it) and its redesign plan are deleted.
 - **A check never says complete when its assistant was lost midway**: Claude Code's "session limit" is read as a usage
