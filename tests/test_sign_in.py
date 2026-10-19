@@ -63,6 +63,18 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(json.loads((self.root / 'out/live/sign-in.json').read_text())['needed'], False)
         started.assert_not_called()                     # no app started, nothing asked
 
+    def test_a_sign_in_that_did_not_take_is_asked_again_on_the_page_the_app_sends_to(self):
+        # "I signed in" with the pages still signed out once ended the wait as if nobody came; the browser opened the
+        # first page instead of the sign-in the pages are sent to
+        page = {'url': 'http://127.0.0.1:4100/', 'others': [{'path': '/notes', 'url': 'http://127.0.0.1:4100/login?next=%2Fnotes'}]}
+        self.assertEqual(sign_in.page_of(page, 'http://127.0.0.1:5200'), 'http://127.0.0.1:5200/login?next=%2Fnotes')
+        live = SimpleNamespace(runtime=self.root / 'runtime', mail=lambda: None)
+        context = SimpleNamespace(out=self.root)
+        with mock.patch.object(sign_in, 'ask') as ask, mock.patch.object(sign_in, 'wait', return_value=sign_in.SIGNED_IN), \
+                mock.patch.object(sign_in, 'works', side_effect=[False, True]), mock.patch.object(sign_in, 'service_log', return_value=None):
+            sign_in_stage._ask(context, {}, live, 'http://127.0.0.1:5200', Path('session.json'))
+        self.assertEqual([call.args[3] for call in ask.call_args_list], ['needed', 'not_signed_in'])
+
     def test_the_check_waits_for_the_person_while_the_stages_that_open_no_page_go_on(self):
         project, workspace = self.root / 'project', self.root / 'workspace'
         project.mkdir()
@@ -90,7 +102,7 @@ class SignInTests(unittest.TestCase):
                 if answered: _as_the_person(workspace)
                 works = lambda live, base, state, report=None: Path(state).is_file()
                 with mock.patch.object(sign_in_stage, 'shared_app', return_value=(live, 'http://127.0.0.1:1', sign_in.session(live.runtime))), \
-                        mock.patch.object(sign_in_stage, 'close_app'), mock.patch.object(sign_in, 'WAIT', 2), mock.patch.object(sign_in_stage.sign_in, 'works', side_effect=works):
+                        mock.patch.object(sign_in, 'WAIT', 2), mock.patch.object(sign_in_stage.sign_in, 'works', side_effect=works):
                     sign_in.session(live.runtime).unlink(missing_ok=True)
                     result = execute(project, out, runners=runners, runtime=live.runtime, mode='normal', sign_in={'folder': str(workspace)})
                 row = result['stages']['session']

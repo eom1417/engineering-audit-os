@@ -19,6 +19,7 @@ class FakeRun:
     profile = {}
 
     def __init__(self, *args, **kwargs): pass
+    def freeze(self): pass
     def setup(self): pass
     def start(self): return 'http://127.0.0.1:9'
     def seed(self, base, storage=None): pass

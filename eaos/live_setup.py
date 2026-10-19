@@ -29,6 +29,7 @@ from pathlib import Path
 
 from . import progress
 from .live_assist import ENV_EXAMPLES, assist_messages, read_json
+from .lock_specs import LEAVES
 from .progress.flow import OPTIONAL, Stage
 from .run_profile import DANGER, apply, safe, write_profile
 
@@ -134,15 +135,15 @@ def dev_command(manager, package, port):
 
 
 def production_commands(manager, package, port):
-    """(build, start) for the load baseline: the built app, never the dev server; (None, None) if unclear."""
+    """(build, start) for the load baseline: the built app, never the dev server; an app with no build step (a plain Node
+    server) is its own production, started as it starts ([] to build); (None, None) if unclear."""
     scripts, kind = package.get('scripts') or {}, framework(package)
-    if 'build' not in scripts or not script_is_safe(scripts, 'build'): return None, None
-    build = [run_script(manager, 'build')]
+    build = [run_script(manager, 'build')] if 'build' in scripts and script_is_safe(scripts, 'build') else []
     port = str(port)
-    if kind == 'next': return build, ['npx', 'next', 'start', '-p', port, '-H', '127.0.0.1']
+    if kind == 'next': return (build, ['npx', 'next', 'start', '-p', port, '-H', '127.0.0.1']) if build else (None, None)
     if 'start' in scripts and script_is_safe(scripts, 'start') and not re.search(r'\b(vite|next dev|nodemon|--watch)\b', scripts['start']):
         return build, run_script(manager, 'start')
-    if kind in ('vite', '@sveltejs/kit'): return build, ['npx', 'vite', 'preview', '--port', port, '--host', '127.0.0.1', '--strictPort']
+    if kind in ('vite', '@sveltejs/kit') and build: return build, ['npx', 'vite', 'preview', '--port', port, '--host', '127.0.0.1', '--strictPort']
     return None, None
 
 
@@ -276,7 +277,7 @@ def detect(project, report=None):
     prepare = prepare_commands(manager, package, project, folder, database)
     if prepare: profile['prepare'] = prepare
     if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
-    if build and production:
+    if production:
         baseline_env = {k: v for k, v in profile['env'].items() if k != 'NODE_ENV'}
         profile['baseline'] = {'install': [install_argv(manager, lockfile)[:2] + ['--include=dev'] if manager == 'npm' else install_argv(manager, lockfile)],
                                'build': build, 'start': production, 'port': int(production[production.index('--port') + 1]) if '--port' in production
@@ -303,16 +304,16 @@ def _unknown_app():
 PROBE = (Path(__file__).resolve().parent / 'templates/setup/probe.cjs').read_text(encoding='utf-8')
 
 
-# A page no browser holding a session opens (the probe, the crawl): it would end the session, or change what it reads.
-LEAVES = r'(log|sign)[-_ ]?(out|off)|logout|delete|remove|destroy|unsubscribe|deactivate'
 
 
 def routes(report, limit=4):
-    """A few of the lock's screens without parameters, to see that each one is a screen of its own; never one that
-    signs out or changes (LEAVES), which would end the session the probe checks."""
+    """A few of the lock's screens and server pages (`GET /notes`) without parameters, to see that each one is a screen
+    of its own and opens signed in; never one that signs out or changes (LEAVES), which would end the session the probe
+    checks. A server app's pages left out, the probe saw only its public first page and took an empty session for one."""
     plan = read_json(Path(report) / 'behavior-lock/plan.json') if report else {}
-    found = [s for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []
-             if s.startswith('/') and s != '/' and ':' not in s and '*' not in s and not re.search(LEAVES, s, re.I)]
+    paths = [s.split(' (')[0].removeprefix('GET ') for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []]
+    found = [s for s in paths if s.startswith('/') and s != '/' and not re.search(r'[:*$\[{]', s)
+             and not re.search(LEAVES, s, re.I) and not re.search(SIGN_IN_PAGE, s)]
     return list(dict.fromkeys(found))[:limit]
 
 
@@ -323,9 +324,12 @@ def stuck(page):
     return len(others) >= 2 and all(words(o.get('text')) == words(page.get('text')) for o in others)
 
 
+SIGN_IN_PAGE = re.compile(r'/(login|signin|sign-in|auth)(\b|/|\?|$)', re.I)     # an address that is the sign-in itself
+
+
 def signed_out(page):
     """The first page asks for a sign-in: a password field, or a login address it was sent to."""
-    return bool(page.get('password')) or bool(re.search(r'/(login|signin|sign-in|auth)(\b|/|\?|$)', page.get('url') or '', re.I))
+    return bool(page.get('password')) or bool(SIGN_IN_PAGE.search(page.get('url') or ''))
 
 
 # The words of a page that shows nothing yet: no data, no report, an empty list.
@@ -541,8 +545,8 @@ def _baseline(project, runtime, report, provider, say, detected, ok, limitations
     """The stage `baseline`: the production run, once the app answered in development and has a build."""
     if not ok:
         progress.skip('baseline', 'the app did not start in development, so its production build was not tried', 'app_not_answering')
-    elif not (detected['profile'].get('baseline') or {}).get('build'):
-        progress.skip('baseline', 'the app has no production build command', 'no_build')
+    elif not (detected['profile'].get('baseline') or {}).get('start'):
+        progress.skip('baseline', 'no command starts the app as it runs in production', 'no_build')
     else:
         progress.begin('baseline')
         speed = setup_baseline(project, runtime, detected, provider, say, report)

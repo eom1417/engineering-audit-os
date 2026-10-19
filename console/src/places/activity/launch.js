@@ -20,6 +20,7 @@ function checkInputs(c) {
   return Object.assign({ fresh: true, mode: c.speed ? 'speed' : 'normal' }, c.paths.length ? { paths: c.paths } : {},
     rules ? (noneReady && c.kept ? { without_ai: true } : { use_assistant: false }) : { use_assistant: true, assistant: c.asst },
     c.signinAsked ? { sign_in: c.signin } : {}, c.signin === 'hand' && c.published ? { published: c.published } : {},
+    c.runAppAsked && c.runApp ? { run_app: true } : {},
     c.withoutTools ? { without_tools: true } : {});
 }
 function askCheck(c) {
@@ -33,6 +34,7 @@ function askCheck(c) {
       c.offer = p.check || { paths: [], mode: 'normal', sign_in: null, sign_in_seen: [] };
       c.speed = c.offer.mode === 'speed';
       c.signin = c.offer.sign_in === 'test_user' ? 'test_user' : c.offer.sign_in || 'hand';
+      c.runApp = true;      // a check of the app's pages runs it unless the person turns it off
     }
     rerenderSheet();
   }, e => { if (mine !== c.ticket) return; c.asking = false; c.problem = said(e); rerenderSheet(); });
@@ -80,6 +82,10 @@ sheet('check', {
       <p class="small ink-2">${t('ac.chk.dec5.noai.v')}</p></div>` : '';
     const needsSignin = !c.paths.length || c.paths.includes('look');
     c.signinAsked = needsSignin;
+    // without the person's yes to run the app, its pages, sign-in and speed are never checked: asked here, once
+    c.runAppAsked = !!offer && offer.run_app === false && (!c.paths.length || c.paths.some(id => ['look', 'speed'].includes(id)));
+    const runApp = c.runAppAsked ? `<div class="toggle-row"><span><span style="display:block">${t('ac.chk.run')}</span><span class="small muted">${t(c.runApp ? 'ac.chk.run.note' : 'ac.chk.run.off')}</span></span>
+      <span class="switch"><input type="checkbox" data-change="ac-run" data-fk="run-app" ${c.runApp ? 'checked' : ''} aria-label="${esc(t('ac.chk.run'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : '';
     const seen = offer && offer.sign_in_seen && offer.sign_in_seen[0] ? offer.sign_in_seen[0].split(':')[0] : null;
     const signin = needsSignin ? `${seen ? `<p class="small ink-2" style="margin-bottom:8px">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
       <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => `<label class="opt"><input type="radio" name="ac-si" value="${id}" data-change="ac-si" data-fk="si-${id}" ${c.signin === id ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
@@ -103,7 +109,8 @@ sheet('check', {
           <p class="small muted" style="margin-top:8px">${t('ac.chk.paths.note')}</p></fieldset>
         <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.asst')}</legend>${dec5}<div class="opts">${asst}</div>
           <p class="small muted" style="margin-top:8px">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
-        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signin}</fieldset>
+        ${runApp}
+        ${c.runAppAsked && !c.runApp ? '' : `<fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signin}</fieldset>`}
         <a class="row panel" href="${href('/project/tools')}" data-act="go" data-href="${href('/project/tools')}" style="min-height:52px">${ac.glyph(tools.failed.length ? 'failed' : 'ok')}<span class="row__main small">${esc(tools.total ? t(tools.failed.length ? 'ac.chk.tools.failed' : 'ac.chk.tools', { n: num(tools.ready), total: num(tools.total), failed: tools.failed.map(s => s.name).join(t('list.sep')) }) : t('ac.chk.tools.none'))}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>
         ${tools.failed.length ? `<div class="toggle-row"><span>${t('ac.chk.without')}</span><span class="switch"><input type="checkbox" data-change="ac-without" data-fk="without" ${c.withoutTools ? 'checked' : ''} aria-label="${esc(t('ac.chk.without'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}
         <details class="panel fold" ${c.speed || c.published ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.chk.options')}</span><span class="row__meta" style="display:block">${t('ac.chk.options.sum')}</span></span>${icon('chev', 'chev')}</summary>
@@ -139,6 +146,7 @@ act('ac-path', el => {
 act('ac-asst', el => againCheck({ asst: el.value }));
 act('ac-si', el => againCheck({ signin: el.value }));
 act('ac-speed', el => againCheck({ speed: el.checked }));
+act('ac-run', el => againCheck({ runApp: el.checked }));
 act('ac-without', el => againCheck({ withoutTools: el.checked }));
 let pubTimer = null;
 act('ac-pub', el => { const c = local(); c.published = el.value.trim(); clearTimeout(pubTimer); pubTimer = setTimeout(() => rerenderSheet(), 400); });

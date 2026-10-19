@@ -30,6 +30,12 @@ class RouteTests(Workspace):
         literal, params = url('/contas/$accountId')
         self.assertEqual(params, ['accountId'])
         self.assertIn("process.env.E2E_ACCOUNTID", literal)
+        # a GET /logout run with the session ended it, and every page stage after the lock saw the sign-in page
+        from eaos.lock_specs import playwright_spec
+        spec, listed = playwright_spec({'name': 'auth'}, [('/logout', ('http', 'GET', None)), ('/login', ('http', 'GET', None))])
+        self.assertNotIn("request.get(`/logout`)", spec)
+        self.assertIn("request.get(`/login`)", spec)
+        self.assertEqual(listed[0], '/logout (ends the session or changes data: not called)')
 
 
 class BuildTests(Workspace):

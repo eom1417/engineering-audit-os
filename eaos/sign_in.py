@@ -71,6 +71,16 @@ def from_pages(page):
     return [f"{row.get('path') or '/'} showed the sign-in page {row.get('url')}" for row in seen if signed_out(row)]
 
 
+def page_of(page, base):
+    """The sign-in page the probe's pages were sent to, at `base` (the app's address this run), else `base` itself."""
+    from urllib.parse import urlsplit
+    from .live_setup import signed_out
+    sent = next((row.get('url') for row in ([page, *(page.get('others') or [])] if page else []) if signed_out(row) and row.get('url')), None)
+    if not sent: return base
+    parts = urlsplit(sent)
+    return base.rstrip('/') + parts.path + (f'?{parts.query}' if parts.query else '')
+
+
 def works(live, base, state, report=None):
     """Whether the session `state` opens the app's first page and a few screens without being sent to a sign-in."""
     from .live_setup import probe

@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 
 PAGE, HTTP = 'page', 'http'
+# A route no browser holding a session calls (the lock, the probe, the crawl): it would end the session, or change data.
+LEAVES = r'(log|sign)[-_ ]?(out|off)|logout|delete|remove|destroy|unsubscribe|deactivate'
 PARAM = re.compile(r'\$(\w+)|:(\w+)|\{(\w+)(?::[^}]*)?\}')       # TanStack $id, Express :id, Starlette {id} / {id:int}
 SAFE = (ast.Import, ast.ImportFrom, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Assign, ast.AnnAssign)
 REQUIREMENTS = 'approvaltests==19.1.1\npytest==9.1.1\n'
@@ -146,8 +148,12 @@ def playwright_spec(feature, rows):
 
 
 def _route_test(route, kind, method):
-    """(the plan's entry of one route, its test lines): a layout gets none, a route that writes is skipped."""
+    """(the plan's entry of one route, its test lines): a layout gets none, a route that writes or signs out is skipped
+    (a GET /logout run with the session ended it for every page stage after the lock: they saw the sign-in page)."""
     if route != '*' and path_of(route) is None: return f'{route} (layout: no URL of its own)', []
+    if re.search(LEAVES, route, re.I):
+        return f'{route} (ends the session or changes data: not called)', [
+            f"  test({json.dumps(f'{route} is not called')}, async () => {{", "    test.skip(true, 'it would sign out or change data');", '  });']
     if kind == HTTP and method != 'GET':
         return f'{method} {route} (needs_fixture: writes)', [
             f"  test({json.dumps(f'{method} {route} is not called blindly')}, async () => {{",

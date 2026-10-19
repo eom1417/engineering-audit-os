@@ -395,25 +395,26 @@ class Screens:
         return ''
 
 
-def run_lock(report, target, runtime):
+def run_lock(report, target, runtime, app=None):
     """behavior-lock/results.json in `runtime`: the report's specs, run twice on the original code in the sandbox.
 
     The first pass records each screen as it is today and approves each interface of the code (kept in
     behavior-lock/snapshots and behavior-lock/approved for every later run); the second must match them. A spec that
     passes the second pass locks today's behaviour; one that differs between two runs of the same code is not
-    deterministic and fails. Needs <runtime>/authorization.json granting S05 and <runtime>/run.json."""
+    deterministic and fails. Needs <runtime>/authorization.json granting S05 and <runtime>/run.json. `app`: the check's
+    running app (eaos/pipeline/live_app.py shared_app), recorded on as it is, with the person's session; else its own."""
     from .live_run import LiveRun
     report, runtime = Path(report), Path(runtime)
     recorded = runtime / 'behavior-lock'
     if not (report / 'behavior-lock').is_dir():         # the check found no feature to lock: nothing is recorded, said so
         return {'results': [], 'limitations': ['the program has no feature to lock']}
     progress.begin('prepare')
-    live = LiveRun(target, runtime, 'S05')
-    live.freeze()
+    live = app[0] if app else LiveRun(target, runtime, 'S05')
+    if not app: live.freeze()
     lock = _prepare(live, report)
     try:
         progress.begin('start')
-        base = _start(live, lock)
+        base = _shared(app, lock) if app else _start(live, lock)
         progress.begin('record')
         _run_specs(live, lock, base, recorded, 'record', update=True)
         _keep(lock, recorded)
@@ -421,7 +422,7 @@ def run_lock(report, target, runtime):
         results = _results(report, _run_specs(live, lock, base, recorded, 'verify', update=False))
         progress.end('verify', detail={'screens': len(results), 'passed': sum(r['status'] == 'passed' for r in results)})
     finally:
-        live.stop()
+        if not app: live.stop()
         live.record('behavior-lock/run-log.json')
     return _write(runtime, 'results.json', live, results)
 
@@ -450,13 +451,18 @@ def cap_journeys(folder):
     return {**kept, **dropped}
 
 
+def _shared(app, lock):
+    """The address of the check's running app, its session (a seed's or the person's) the lock's browser state."""
+    if app[2].is_file(): shutil.copyfile(app[2], lock / '.auth/user.json')
+    return app[1]
+
+
 def _journey_start(live, report, runtime, bundle, app):
     """Prepare the journeys' recorder and sign-in, using the page stages' running app when supplied."""
     lock = _prepare(live, report, Path(runtime) / 'behavior-lock')
     recorder = lock / 'rrweb.js'
     shutil.copyfile(bundle, recorder)
-    if app and app[2].is_file(): shutil.copyfile(app[2], lock / '.auth/user.json')
-    return lock, recorder, app[1] if app else _start(live, lock)
+    return lock, recorder, _shared(app, lock) if app else _start(live, lock)
 
 
 def run_journeys(report, target, runtime, folder, app=None):

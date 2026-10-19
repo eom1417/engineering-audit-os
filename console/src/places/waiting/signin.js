@@ -71,7 +71,7 @@ function signinPage(ctx) {
   }
   const tab = q.tab === 'sent' ? 'sent' : 'pic';
   const until = asked.until ? fmtTime(asked.until) : '';
-  const why = asked.published ? t('ac.si.why.published', { base: code(asked.base || '') }) : asked.why === 'expired' ? t('ac.si.why.expired') : t('ac.si.why.needed', { base: code(asked.base || '') });
+  const why = asked.published ? t('ac.si.why.published', { base: code(asked.base || '') }) : asked.why === 'expired' || asked.why === 'not_signed_in' ? t('ac.si.why.' + asked.why) : t('ac.si.why.needed', { base: code(asked.base || '') });
   const view = page.view;
   const keys = [['enter', 'ac.si.k.enter'], ['tab', 'ac.si.k.tab'], ['erase', 'ac.si.k.erase'], ['up', 'ac.si.k.up'], ['down', 'ac.si.k.down']];
   return `<div class="page ac-page--signin">

@@ -116,7 +116,8 @@ def run_baseline(report, target, runtime):
     scripts = sorted((report / 'nfr/k6').glob('*.js'))
     if not scripts: raise RuntimeError(f'{report}/nfr/k6 holds no scenario: the lock stage writes them')
     live = LiveRun(target, runtime, 'S05', mode='baseline')
-    if not live.profile.get('build'): raise RuntimeError('the load baseline needs a build (run.json build or baseline.build): never the development server')
+    if not (live.profile.get('baseline') or {}).get('verified'):     # a plain Node server's production has no build step
+        raise RuntimeError('the load baseline runs only the production run the setup verified (run.json baseline): never the development server')
     scenarios, conditions = [], None
     out = runtime / 'runtime'
     out.mkdir(parents=True, exist_ok=True)
@@ -133,8 +134,9 @@ def run_baseline(report, target, runtime):
             conditions = conditions or {'build': ' && '.join(' '.join(argv) for argv in live.profile['build']),
                                         'warmup_s': warmup, 'vus': vus, 'duration_s': duration, 'machine': machine()}
             export = out / f'k6-{script.stem}.json'
-            live.sandbox.run(['k6', 'run', '--quiet', '--summary-export', str(export), str(script)], timeout=duration + 600,
-                             network=True, env={**live.extra(), 'BASE_URL': base, 'PATHS': json.dumps(paths), 'HEADERS': json.dumps(sent)})
+            _, _, err = live.sandbox.run(['k6', 'run', '--quiet', '--summary-export', str(export), str(script)], timeout=duration + 600,
+                                         network=True, env={**live.extra(), 'BASE_URL': base, 'PATHS': json.dumps(paths), 'HEADERS': json.dumps(sent)})
+            if not export.is_file(): raise RuntimeError(f'k6 did not run {script.name}: {err.strip()[-300:]}')     # never "no such file"
             scenarios.append({'id': script.stem.upper(), 'script': f'nfr/k6/{script.name}', 'threshold': threshold,
                               'before': summary(export), 'after': None})
     finally:

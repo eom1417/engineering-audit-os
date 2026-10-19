@@ -211,10 +211,10 @@ def ai_inputs(assistant):
     return {'use_assistant': False} if assistant == 'none' else {'use_assistant': True, 'assistant': assistant}
 
 
-def check_inputs(paths=None, mode=None, assistant=None, sign_in=None, published=None):
+def check_inputs(paths=None, mode=None, assistant=None, sign_in=None, published=None, run_app=None):
     """A new check (always fresh: a check asked for is a new one), of these paths, in this mode, with this AI, signing in
-    to the app this way (kept), reading the published address named for this check."""
-    chosen = {'paths': list(paths or []), 'mode': mode, 'sign_in': sign_in, 'published': published}
+    to the app this way (kept), reading the published address named for this check, the app run when agreed (kept)."""
+    chosen = {'paths': list(paths or []), 'mode': mode, 'sign_in': sign_in, 'published': published, 'run_app': run_app}
     return {'fresh': True, **{key: value for key, value in chosen.items() if value}, **ai_inputs(assistant)}
 
 

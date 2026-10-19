@@ -124,7 +124,8 @@ def record(context):
     if not (context.out / 'behavior-lock/plan.json').is_file():
         raise SkipStage('the program has no feature to lock', code='no_features')
     from ..behavior_lock import run_lock
-    result = run_lock(context.out, context.target, runtime)
+    from .live_app import shared_app
+    result = run_lock(context.out, context.target, runtime, app=shared_app(context))     # on the app the person signed in to
     passed = sum(r['status'] == 'passed' for r in result['results'])
     _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
     return {'specs': len(result['results']), 'passed': passed}

@@ -225,6 +225,17 @@ class TwoProjectsTests(Workspace):
     def box(self, project):
         return sandbox.Sandbox(project['source'], project['runtime'] / 'authorization.json', project['runtime'] / 'sandbox', 'S05')
 
+    def test_a_new_projects_run_reads_its_own_report_whose_folder_was_never_saved(self):
+        # a new project's state never kept `outputs`, so its report was hidden and k6 never found its load script
+        from eaos.agent_tools import project_state
+        a = self.a
+        (a['workspace'] / 'state.json').write_text(json.dumps({'project': str(a['source']), 'workspace': str(a['workspace'])}))
+        project_state(str(a['source']))
+        script = a['outputs'] / 'technical/nfr/k6/qs-001.js'
+        script.parent.mkdir(parents=True)
+        script.write_text('// load')
+        self.assertEqual(self.box(a).run(['cat', str(script)])[:2], (0, '// load'))
+
     def test_project_a_code_reads_nothing_of_project_b_by_any_name_nor_connects_to_its_database(self):
         b, real = self.b, lambda path: Path(os.path.realpath(path))
         secrets_of_b = [b['workspace'] / 'state.json', real(b['workspace']) / 'state.json', b['runtime'] / 'setup/storage-state.json',

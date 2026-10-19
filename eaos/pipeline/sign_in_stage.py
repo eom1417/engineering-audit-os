@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from .. import sign_in
-from .live_app import _keep, _live, close_app, shared_app
+from .live_app import _keep, _live, shared_app
 from .stages import SkipStage
 
 CHOSEN_OUT = 'the person chose no sign-in: the pages behind it were seen signed out, as a visitor sees them'
@@ -28,24 +28,25 @@ def session(context):
     if chosen.get('how') == 'none': raise SkipStage(CHOSEN_OUT, code='sign_in_declined')
     evidence = sign_in.from_code(context.out) + sign_in.from_pages(_setup_page(context))
     if not evidence: return _record(context, {'needed': False})
-    try:
-        live, base, state = shared_app(context)          # seeded, or the person's session checked (asked once when expired)
-        if not sign_in.works(live, base, state, context.out):
-            if chosen.get('how') == 'test_user': raise SkipStage(SEED_OUT, code='signed_out')
-            _ask(context, chosen, live, base, state)
-    finally:
-        close_app(context)                               # the lock runs its own copy next: never two apps at once
+    live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
+    if not sign_in.works(live, base, state, context.out):
+        if chosen.get('how') == 'test_user': raise SkipStage(SEED_OUT, code='signed_out')
+        _ask(context, chosen, live, base, state)
     return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user'})
 
 
 def _ask(context, chosen, live, base, state):
-    """The person asked to sign in, once a check, and waited for; SkipStage when the pages are seen signed out."""
-    outcome = 'timeout'
-    if not chosen.get('gave_up'):
+    """The person asked to sign in, once a check, and waited for: on the sign-in page their pages are sent to, and asked
+    again when they said they signed in but the pages still are not open (it once gave up as if nobody had come);
+    SkipStage when the pages are seen signed out."""
+    outcome, why = 'timeout', 'needed'
+    while not chosen.get('gave_up'):
         folder = chosen.get('folder') or live.runtime.parent
-        sign_in.ask(folder, base, state, 'needed', log=sign_in.service_log(live), mail=live.mail())
+        sign_in.ask(folder, sign_in.page_of(_setup_page(context), base), state, why, log=sign_in.service_log(live), mail=live.mail())
         outcome = sign_in.wait(folder)
-        if outcome == sign_in.SIGNED_IN and sign_in.works(live, base, state, context.out): return
+        if outcome != sign_in.SIGNED_IN: break
+        if sign_in.works(live, base, state, context.out): return
+        why = 'not_signed_in'
     chosen['gave_up'] = True
     raise SkipStage(SAID_OUT if outcome == sign_in.SIGNED_OUT else NOBODY.format(minutes=sign_in.WAIT // 60), code='signed_out')
 
