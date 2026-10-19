@@ -136,6 +136,13 @@ act('ac-si-send', () => {
   input.value = '';     // nothing typed stays on the page either
   send({ do: 'type', text });
 });
+// Enter in the field sends what was typed, as the "Type" button does
+document.addEventListener('keydown', e => {
+  if (e.target && e.target.id === 'si-type' && e.key === 'Enter' && !e.isComposing) {
+    e.preventDefault();
+    const button = document.querySelector('[data-act="ac-si-send"]'); if (button) button.click();
+  }
+});
 const KEYS = { enter: { do: 'key', key: 'Enter' }, tab: { do: 'key', key: 'Tab' }, erase: { do: 'key', key: 'Backspace' }, up: { do: 'scroll', dy: -400 }, down: { do: 'scroll', dy: 400 }, back: { do: 'back' } };
 act('ac-si-key', el => { if (el.disabled) return; send(KEYS[el.dataset.key]); announce(t('ac.si.key.sent', { key: el.textContent.trim() || el.dataset.key })); });
 act('ac-si-done', async el => {
