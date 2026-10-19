@@ -96,7 +96,7 @@ export function renderShell(place, path) {
         </div>
         <button class="btn btn--icon" data-act="theme" aria-label="${esc(t('theme.switch'))}: ${esc(t(prefs.theme === 'dark' ? 'theme.light' : 'theme.dark'))}">${icon(prefs.theme === 'dark' ? 'sun' : 'moon')}</button>
       </div>
-      <div class="side-ver"><span class="dot" aria-hidden="true"></span>${esc(connection())}<span>${esc(t('version', { v: project().eaos_version || '' }))}</span></div>
+      <div class="side-ver"><span class="dot" aria-hidden="true"></span>${esc(connection())}<span>${esc(t('version', { v: live.version || project().eaos_version || '' }))}</span></div>
     </div>`;
   document.body.classList.toggle('has-selection', picked.ids.size > 0);
 }

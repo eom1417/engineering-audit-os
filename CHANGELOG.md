@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.42 (2026-10-19)
+
+- **The Studio says which EAOS runs**: its side bar, settings and tools showed the version that made the last check
+  (0.0.37 after an update to 0.0.41), as if the update had not landed. They show the running one now, and the
+  settings say which version made the check when it differs.
+
 ## 0.0.41 (2026-10-19)
 
 - **Every kind of user is checked**: a check opened the app as one user and pictured only what that user sees (an
