@@ -778,8 +778,7 @@ def _run_job(project, arguments, progress):
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
     progress(0, 1, 'installing and starting the app in the isolated copy')
     source = guided.source(state)
-    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode,
-                               by_hand=check_choices.kept(state)['sign_in'] in ('hand', 'none'))     # the person signs in: a sign-in page is the app
+    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
     profile = _read(runtime / 'run.json')
     answer = {'mode': mode, 'attempt': attempt, 'runs': record['ok']}
     if mode == 'baseline':

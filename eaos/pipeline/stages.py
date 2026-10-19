@@ -68,7 +68,7 @@ STAGES = (
     Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL, uses=('memory',),
           absent_when='no external engine is installed, or --engines was not asked for',
           description='Pinned external analyzers, normalised into one fact set'),
-    Stage('setup', produces=('live/setup.json',), requires=('features',), reads=('roles',), necessity=OPTIONAL, uses=('app',),
+    Stage('setup', produces=('live/setup.json',), requires=('features',), necessity=OPTIONAL, uses=('app',),
           absent_when='the person did not agree to run the app in an isolated copy, or it could not be started there',
           description='Install and start the app in an isolated copy, with a temporary database and none of the '
                       "person's secrets; the assistant helps when the files alone do not say how"),
@@ -77,12 +77,13 @@ STAGES = (
                       'command; which test imports which file is still written',
           description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "
                       'reach, what they miss, and whether they pass on the code as it is'),
-    Stage('session', produces=('live/sign-in.json',), requires=('setup',), necessity=OPTIONAL, uses=('app',),
+    Stage('session', produces=('live/sign-in.json',), requires=('setup',), reads=('roles',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, the person chose no sign-in, or nobody signed in '
                       'within the wait: the pages behind the sign-in are then seen signed out, and the report says so',
-          description="Whether the app's pages need a sign-in (its code, and the pages the setup opened), and the one "
-                      'session every page stage opens them with: a test user, or the person signing in by hand on the '
-                      'sign-in page while the stages that open no page go on'),
+          description="Whether the app's pages need a sign-in (its code, and the pages the setup opened), and the "
+                      "sessions every page stage opens them with: the assistant's test users on the running app, one of "
+                      'each kind of user, within five minutes, else the person signing in by hand on the sign-in page '
+                      'while the stages that open no page go on'),
     Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "

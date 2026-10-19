@@ -183,6 +183,8 @@ class LiveRun:
             fixtures = _printed_fixtures(out)
             self.extra().update(fixtures)
             self.fixtures.update(fixtures)
+        for made in [storage_state, *kinds_folder(storage_state).glob('*.json')] if storage_state else []:
+            if Path(made).is_file(): Path(made).chmod(0o600)            # a signed-in session: its owner's alone
         return self.fixtures
 
     def setup(self):

@@ -30,7 +30,7 @@ WALKED = {'specs': 1, 'walked': [{'spec': 'a.spec.ts', 'pages': ['/'], 'status':
           'recordings': ['a.rrweb.json'], 'traces': [], 'recordings_dropped': [], 'traces_dropped': []}
 
 
-def started(target, runtime, report=None, provider=None, say=None, by_hand=False):
+def started(target, runtime, report=None, provider=None, say=None):
     Path(runtime).mkdir(parents=True, exist_ok=True)
     (Path(runtime) / 'run.json').write_text(json.dumps({'baseline': {'verified': True}}), encoding='utf-8')
     return {'ok': True, 'attempts': 1, 'limitations': [], 'page': None}

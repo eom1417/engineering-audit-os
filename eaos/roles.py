@@ -28,11 +28,6 @@ when it sees only shared pages. At most six kinds. An app whose signed-in users 
 an app with no sign-in has none: {"roles": []}."""
 
 
-# What the setup tells the assistant when the seed made no working session for a kind (eaos/live_setup.py)
-UNSIGNED = ('the checks open the app once as each kind of user its code has, and the seed script saved no working '
-            'session for these (each must open its own pages): ')
-
-
 def read(out):
     """The kinds of users of the last reading, [] when it was not made (no assistant) or found none."""
     try: return json.loads((Path(out) / 'roles.json').read_text(encoding='utf-8')).get('roles') or [] if out else []

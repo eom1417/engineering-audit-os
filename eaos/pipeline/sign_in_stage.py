@@ -1,8 +1,9 @@
-"""The stage `session`, right after the app is set up: whether its pages need a sign-in, and the one session every page
-stage opens them with (eaos/sign_in.py). It uses a session that still works; else, unless the person chose a test user
-or no sign-in, it asks them (the Studio's Waiting for you, the assistant's status, `eaos watch` and `eaos sign-in`) and
-waits while every stage that opens no page goes on. Nobody signing in within the wait ends it with that reason, and the
-page stages see the app signed out, which the report says.
+"""The stage `session`, right after the app is set up: whether its pages need a sign-in, and the sessions every page
+stage opens them with (eaos/sign_in.py). Unless the person chose to sign in themselves, the assistant makes the test
+users on the running app, one of each kind of user (eaos/test_users.py), for five minutes at most; a session still
+missing then, the person is asked (the Studio's Waiting for you, the assistant's status, `eaos watch` and `eaos
+sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends it with
+that reason, and the page stages see the app signed out, which the report says.
 """
 import json
 from pathlib import Path
@@ -15,7 +16,6 @@ CHOSEN_OUT = 'the person chose no sign-in: the pages behind it were seen signed 
 NOBODY = ('nobody signed in within {minutes} minutes: the pages behind the sign-in were seen signed out, as a visitor '
           'sees them; sign in when the next check asks (or choose a test user)')
 SAID_OUT = 'the person chose to go on without signing in: the pages behind the sign-in were seen signed out'
-SEED_OUT = "the test user's seed script did not sign in: the pages behind the sign-in were seen signed out"
 PUBLISHED = ('the crawl and the screens read {address} signed in, read only (GET, its own links, never a link that signs '
              'out, deletes or changes); Lighthouse, which cannot be held to reading, measures it signed out as any visitor; '
              'the lock, the journeys and the load test never run against it, only on the isolated copy')
@@ -29,10 +29,19 @@ def session(context):
     evidence = sign_in.from_code(context.out) + sign_in.from_pages(_setup_page(context))
     if not evidence: return _record(context, {'needed': False})
     live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
-    if not sign_in.works(live, base, state, context.out):
-        if chosen.get('how') == 'test_user': raise SkipStage(SEED_OUT, code='signed_out')
-        _ask(context, chosen, live, base, state)
-    return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user'})
+    lacking = '' if sign_in.by_hand(state) or chosen.get('how') == 'hand' else _test_users(context, live, base, state)
+    if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
+    return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
+                             **({'test_users': lacking[:300]} if lacking else {})})
+
+
+def _test_users(context, live, base, state):
+    """The assistant's test users on the running app (eaos/test_users.py); what is still lacking, '' when nothing."""
+    from ..test_users import lacking, make
+    if not context.provider: return lacking(live, base, state, context.out)
+    try: return make(context.target, live, base, state, context.out, context.provider)
+    except Exception as problem:          # the assistant never decides the fate of the check: the person is asked
+        return f'the assistant could not make the test users ({type(problem).__name__}: {problem})'[:300]
 
 
 def _ask(context, chosen, live, base, state):

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.44 (2026-10-19)
+
+- **The test sign-in is a step of its own, made by the assistant on the running app**: the setup tried the sign-in
+  with every attempt, installing and starting the app again for each, and the assistant, told to sign in "the way the
+  app allows locally", refused an app that signs in only with Google. Now the setup only starts the app (a sign-in
+  page is the app working), and the step "Prepares a test sign-in" asks the assistant for the seed script on the app
+  as it runs: it is told the copy and its database are the check's own, how to get in (a development sign-in, the
+  pages, the app's scripts, the database, a session the app accepts), what is still lacking after each try, until
+  every kind of user signs in or five minutes pass; then the person is asked to sign in by hand, a test user chosen
+  included. A trial app signing in with Google only: started in about 30 seconds, three kinds signed in, pictured
+  four minutes after the check began.
+
 ## 0.0.43 (2026-10-19)
 
 - **EAOS's own Studio starts in a check**: started by the assistant without launch keys, it knew no port and refused
