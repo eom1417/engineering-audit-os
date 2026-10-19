@@ -417,19 +417,6 @@ def _view(out):
     return [e for e in ((ideal.get('views') or {}).get('system') or {}).get('elements') or [] if isinstance(e, dict)], because
 
 
-# The guards' reasons (_decide_current, _decide_targets), in Arabic: the beginning of each.
-GUARD_WORDS = (('it would delete files the owner protects (a critical feature or the architecture policy)', 'ممكن يحذف ملفات أنت حاميها (ميزة مهمة أو سياسة البنية)'),
-               ('it stands only on cards the triage set aside', 'رأيه قائم على مشاكل اعتبرها الفرز إنذارًا كاذبًا'),
-               ("today's components still move into it, so it stays", 'أجزاء اليوم لسا تنتقل له، فيبقى'),
-               ('is not an operation on a component that exists today', 'هذي العملية ما تنطبق على جزء موجود اليوم'))
-
-
-def guard_words(why, ar):
-    """A guard's reason in the person's language: the Arabic of its known beginning, else as it was written."""
-    if not ar: return why
-    return next((words + why[why.index(en) + len(en):] for en, words in GUARD_WORDS if en in (why or '')), why)
-
-
 def _decide_current(component, element, why, protected, aside=frozenset()):
     """(label, why) of one of today's components: the rule stands when the assistant said nothing or when its decision
     breaks a guard (it stands only on cards or claims the triage set aside: two of the assistant's steps would

@@ -26,8 +26,7 @@ from pathlib import Path
 from ..aspects import ASPECTS, VERDICTS
 from ..assistants.command import Stuck
 from ..card_review import triage_verdicts
-from ..target_architecture import guard_words
-from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug
+from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug, guard_words
 from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short, UNTRUSTED
 
 # The studio sections that draw a target, and the view whose provenance each carries (tools/make_contracts.py).

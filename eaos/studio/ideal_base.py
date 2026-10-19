@@ -22,3 +22,16 @@ def _facts(report, name):
 
 def _slug(text):
     return re.sub(r'[^A-Za-z0-9_.:-]+', '-', str(text)).strip('-') or 'root'
+
+
+# The guards' reasons (eaos/target_architecture.py _decide_current, _decide_targets), in Arabic: the beginning of each.
+GUARD_WORDS = (('it would delete files the owner protects (a critical feature or the architecture policy)', 'ممكن يحذف ملفات أنت حاميها (ميزة مهمة أو سياسة البنية)'),
+               ('it stands only on cards the triage set aside', 'رأيه قائم على مشاكل اعتبرها الفرز إنذارًا كاذبًا'),
+               ("today's components still move into it, so it stays", 'أجزاء اليوم لسا تنتقل له، فيبقى'),
+               ('is not an operation on a component that exists today', 'هذي العملية ما تنطبق على جزء موجود اليوم'))
+
+
+def guard_words(why, ar):
+    """A guard's reason in the person's language: the Arabic of its known beginning, else as it was written."""
+    if not ar: return why
+    return next((words + why[why.index(en) + len(en):] for en, words in GUARD_WORDS if en in (why or '')), why)
