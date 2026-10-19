@@ -1,7 +1,7 @@
 // S-07 One problem with its evidence (PRB-06..10, PRB-15, PLN-05, FIX-01): why it matters, what the assistant
 // decided, where it is, the facts it rests on with their lines of code, its place in the plan, the other problems of the
 // same file and a note for whoever goes on after. Its sheet: one evidence fact (PRB-09).
-import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, model, selection, client, ActionError } from 'eaos';
+import { t, tn, L, num, esc, rich, icon, code, sev, chk, href, fmtWhen, sheet, act, refresh, toast, parseHash, offline, S, md, model, selection, client, ActionError } from 'eaos';
 import { component, who, keepQuery, kindWord } from './shared.js';
 
 const enc = encodeURIComponent;
@@ -42,7 +42,7 @@ function factHTML(f, first, earlier) {
 function decisionHTML(p) {
   const d = p.decision;
   if (d && d.state === 'fixes') {
-    return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span><p style="margin-top:4px">${rich(L(d.text))}</p>
+    return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(L(d.text))}
       <p class="small muted" style="margin-top:4px">${t('ai.hypothesis')}</p></div>`;
   }
   if (d && d.state === 'asks') {

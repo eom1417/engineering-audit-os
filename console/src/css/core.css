@@ -724,3 +724,13 @@ body.has-assist .fab { display: none; }
 @media (min-width: 1280px) {
   body.has-assist .app { padding-inline-end: 400px; }
 }
+
+/* What an assistant wrote, drawn from its Markdown (core/markdown.js md): the document's marks, sized for a card */
+.md { display: grid; gap: var(--s3); margin-top: var(--s2); min-width: 0; }
+.md h2, .md h3, .md h4 { font-size: var(--fs-body); line-height: var(--lh-body); font-weight: 600; margin-top: var(--s2); }
+.md .un-table-wrap { background: var(--surface); }
+.md .un-table th, .md .un-table td { padding: var(--s2) var(--s3); }
+.md .un-table thead th:not(:first-child) { text-align: start; }
+.md blockquote { border-inline-start: 3px solid var(--line-strong); padding-inline-start: var(--s3); color: var(--ink-2); }
+.md hr { border: 0; border-top: 1px solid var(--line); }
+.md .un-table th, .md .un-table td { min-width: 7em; }     /* a short first column never breaks its words */

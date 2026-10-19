@@ -2,9 +2,9 @@
 // media.json, and each document's text read alone from the library (14 MB whole: live, /api/sections/library?only=);
 // documents by purpose and reading order, search over titles, paths and headings, the images and diagrams; a document
 // in the reader's language when the check wrote both, its contents, its links opening in place, its diagrams drawn.
-import { t, tn, L, num, esc, icon, code, href, rich, screen, sheet, act, data, prefs, refresh, model, offline, normalize } from 'eaos';
+import { t, tn, L, num, esc, icon, code, href, rich, screen, sheet, act, data, prefs, refresh, model, offline, normalize, markdown } from 'eaos';
 import { tabs, seg, search, count, fold, nm, enc, back, loading, notMeasured, empty, notFound, zoomBar, zoomable, page, matches } from '../understand-kit/kit.js';
-import { render, flowchartSVG, parseFlowchart, mermaidOf } from './markdown.js';
+import { flowchartSVG, parseFlowchart, mermaidOf, mermaidBlock } from './markdown.js';
 
 const NEEDS = ['docs', 'media', 'cards', 'coverage'];
 const ORDER = ['start', 'story', 'plan', 'PLAN', 'adr', 'technical', 'look', 'handover', 'i18n'];
@@ -91,7 +91,8 @@ function docPage(ctx) {
   if (it === null) body = `<div class="un-doc__body" aria-busy="true"><p class="small muted">${t('un.doc.reading')}</p></div>`;
   else if (it === false) body = `<div class="un-doc__body">${nm(t('un.doc.unread'), t('un.doc.unread.why'))}</div>`;
   else {
-    const drawn = render(textOf(it), { path: d.path, docs: new Set(docs().map(x => x.path)), cards: new Set(model.problems().map(p => p.id)) });
+    const ctx = { path: d.path, docs: new Set(docs().map(x => x.path)), cards: new Set(model.problems().map(p => p.id)), diagram: (src, n) => mermaidBlock(src, ctx, n) };
+    const drawn = markdown.render(textOf(it), ctx);
     body = `<div class="un-doc__body">${drawn.html}${it.truncated ? `<p class="small caution-ic">${t('un.doc.truncated')}</p>` : ''}</div>`;
     const heads = drawn.headings.filter(h => h.depth <= 3);
     toc = heads.length ? `<aside class="un-doc__toc"><details class="un-tocfold" open><summary class="block-title">${t('un.doc.contents')}</summary><nav class="un-toc" aria-label="${esc(t('un.doc.contents'))}"><ol>${heads.map(h => `<li class="un-toc__h${Math.min(h.depth + 1, 3)}"><a href="#" data-act="un-toc" data-target="${h.id}">${esc(h.text)}</a></li>`).join('')}</ol></nav></details></aside>` : '';
