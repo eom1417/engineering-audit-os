@@ -297,7 +297,7 @@ def waiting(project):
              'recommendation': q.get('recommendation')} for q in actions.questions()]
     rows += [{'id': d['id'], 'kind': 'decision', 'scope': d['scope'], 'text': d['question'].get('question'),
               'options': d['question'].get('options') or [], 'recommendation': d['question'].get('recommended_option')}
-             for d in actions.report_decisions() if not d['response']]
+             for d in actions.report_decisions() if not d['response'] and d['question'].get('state', 'waiting') == 'waiting']
     state = guided.load(actions.project) or {}
     wave = waiting_batch(state)
     if wave: rows.append({'id': wave['branch'], 'kind': 'branch', 'text': WORDS['branch_waits'], 'branch': wave['branch'],
