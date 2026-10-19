@@ -5,7 +5,7 @@
     <p class="fact__sum">${(0,n.rich)((0,n.L)(e.summary))}</p>
     ${e.code&&a?D(e.code):e.code?"":`<p class="small muted">${G(e,l)}</p>`}
     ${J(e)}
-  </div>`}function be(e){let a=e.decision;if(a&&a.state==="fixes")return`<div class="ai-block"><span class="ai-block__label">${(0,n.icon)("ai","icon--sm")}${(0,n.t)("ai.label")}</span><p style="margin-top:4px">${(0,n.rich)((0,n.L)(a.text))}</p>
+  </div>`}function be(e){let a=e.decision;if(a&&a.state==="fixes")return`<div class="ai-block"><span class="ai-block__label">${(0,n.icon)("ai","icon--sm")}${(0,n.t)("ai.label")}</span>${(0,n.md)((0,n.L)(a.text))}
       <p class="small muted" style="margin-top:4px">${(0,n.t)("ai.hypothesis")}</p></div>`;if(a&&a.state==="asks"){let l=n.model.decisions().find(c=>c.id===a.decision),i=l&&l.state==="answered",o=i&&l.saved?l.saved.label||l.saved.text:"";return`<div class="ai-block"><span class="ai-block__label">${(0,n.icon)("ai","icon--sm")}${(0,n.t)("ai.label")}</span>
       <p style="margin-top:4px">${(0,n.esc)(i?(0,n.t)("pd.decision.answered",{when:(0,n.fmtWhen)(l.saved&&l.saved.at)}):(0,n.t)("pd.decision.asks"))}</p>
       <p class="small ink-2" style="margin-top:4px">${(0,n.rich)((0,n.L)(a.question))}</p>

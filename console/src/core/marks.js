@@ -11,6 +11,7 @@ import { live, active } from '../data/store.js';
 import { assistantName } from '../data/model.js';
 import { labelOf, seconds } from '../data/derive.js';
 import { actionOf } from '../data/contract.js';
+import { md } from './markdown.js';
 import { TERMINAL } from '../data/actions.js';
 
 const GLYPH = {
@@ -123,7 +124,7 @@ export const flowOfRun = r => (r && r.action === 'audit' && lastCheck() && lastC
  *  first and the whole answer one press away. */
 export function answerHTML(answer) {
   if (answer == null || answer === '') return '';
-  if (typeof answer !== 'object') return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span><p class="small" style="margin-top:4px;white-space:pre-wrap">${esc(answer)}</p></div>`;
+  if (typeof answer !== 'object') return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(answer)}</div>`;
   const plain = v => v != null && typeof v !== 'object' && !/^\//.test(String(v));
   const rows = Object.entries(answer).filter(([, v]) => plain(v) || (Array.isArray(v) && v.every(plain))).slice(0, 14);
   return `${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd><bdi dir="auto">${esc(Array.isArray(v) ? v.slice(0, 12).join(', ') : typeof v === 'number' ? num(v) : v)}</bdi></dd>`).join('')}</dl>` : ''}

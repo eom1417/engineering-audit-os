@@ -7,7 +7,7 @@
 // ?records=1&q= (the check's records, the free `ask` tool) and ?note=project (a note, the `note` action).
 import {
   t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery, openSheet, offline,
-  S, live, store, client, contract, ActionError, prefs, ac,
+  S, live, store, client, contract, ActionError, prefs, ac, md,
 } from 'eaos';
 
 const KEY = 'eaos.chat';
@@ -43,7 +43,7 @@ function turnHTML(x, i) {
   if (x.pending) {
     return `<li class="ac-turn ac-turn--ai" id="ac-pending-${i}" aria-busy="true"><div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${esc(who)}</span>
       <p class="small muted ac-reading"><span class="dot dot--live" aria-hidden="true"></span>${esc(x.reading && x.reading.length ? t('ac.ask.reading', { tools: x.reading.join(t('list.sep')) }) : t('ac.ask.thinking'))}</p>
-      ${x.partial ? `<p style="margin-top:6px">${rich(x.partial)}<span class="ac-caret" aria-hidden="true"></span></p>` : ''}</div></li>`;
+      ${x.partial ? `${md(x.partial)}<span class="ac-caret" aria-hidden="true"></span>` : ''}</div></li>`;
   }
   if (x.error) {
     return `<li class="ac-turn ac-turn--ai"><div class="ac-note ac-note--fail">${icon('fail', 'icon--sm ac-c-danger')}<span class="small">${esc(t('ac.ask.failed', { why: x.error }))}</span></div>
@@ -54,7 +54,7 @@ function turnHTML(x, i) {
   const c = cost(x);
   return `<li class="ac-turn ac-turn--ai"><div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${esc(who)}</span>
       ${(x.reading || []).length ? `<details class="ac-ev-fold"><summary class="small muted">${esc(t('ac.ask.read', { n: num(x.reading.length) }))}${icon('chev-down', 'icon--sm muted')}</summary><p class="small muted">${x.reading.map(code).join(' ')}</p></details>` : ''}
-      <p style="margin-top:4px;white-space:pre-wrap">${rich(x.answer || '')}</p>
+      ${md(x.answer)}
       ${done ? `<p class="small" style="margin-top:8px">${done}</p>` : ''}
       ${props ? `<div class="block-title" style="margin-top:12px">${t('ac.ask.props')}</div><ul class="ac-props">${props}</ul>` : ''}</div>
     <span class="ac-turn__meta small muted">${esc(fmtTime(x.at))}, ${t('ac.ask.depth.' + (x.depth || 'quick'))}${c != null ? `, ${ac.money(c)}` : ''}</span></li>`;

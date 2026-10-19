@@ -3,7 +3,7 @@
 // delivered (live runs that handed a branch over and wait for a decision), the report's decisions with the answers
 // saved in the live console, the sign-in a check waits for and the questions runs ask (their own screens, builder A).
 import {
-  t, tn, L, num, esc, rich, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
+  t, tn, L, num, esc, rich, md, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk,
 } from 'eaos';
 
@@ -36,7 +36,7 @@ function decisionCard(d, full) {
   const opts = d.options.slice().sort((a, b) => (a.id === recommended ? -1 : b.id === recommended ? 1 : 0));
   const chosen = S.chosen[d.id];
   const reco = d.recommendation ? (d.source === 'screens' || d.source === 'card'
-    ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span><p class="small" style="margin-top:4px">${rich(L(d.recommendation))}</p></div>`
+    ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span>${md(L(d.recommendation))}</div>`
     : `<div class="small ink-2"><b class="ink-2">${t('wt.reco')}:</b> ${rich(L(d.recommendation))}</div>`) : '';
   const radios = opts.map(o => `<label class="opt">
       <input type="radio" name="opt-${esc(d.id)}" value="${esc(o.id)}" data-change="choose" data-id="${esc(d.id)}" data-fk="opt-${esc(d.id)}-${esc(o.id)}" ${chosen === o.id ? 'checked' : ''} ${lock ? 'disabled' : ''}>

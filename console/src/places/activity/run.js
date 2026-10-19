@@ -4,7 +4,7 @@
 // check's stages by layer from /api/progress, and the replay of a finished check at x10 or x30.
 import {
   t, tn, L, num, esc, rich, icon, code, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has,
-  live, store, model, client, derive, ac,
+  live, store, model, client, derive, ac, md,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
@@ -218,13 +218,13 @@ function eventBody(e) {
     case 'question':
       return `<div>${tx}</div><div class="small ink-2"><a class="link" href="${href('/waiting/questions')}">${t('ac.ev.asked')}</a></div>`;
     case 'say':
-      return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span><p class="small" style="margin-top:4px">${rich(d.words || L(e.text))}</p></div>`;
+      return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(d.words || L(e.text))}</div>`;
     case 'error':
       return `<div>${tx}</div>${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}`;
     case 'progress':
       return `<div>${tx}</div>`;
-    default:
-      return `<div>${tx}</div>${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}`;
+    default:      // a result the assistant wrote may hold tables and lists: drawn as Markdown when it has lines
+      return `${/\n/.test(L(e.text) || '') ? md(L(e.text)) : `<div>${tx}</div>`}${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}`;
   }
 }
 function itemHTML(item) {
