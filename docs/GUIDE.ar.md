@@ -218,11 +218,11 @@ curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/i
 | الأمر | ما يفعله |
 | --- | --- |
 | `eaos check [--path security] [--assistant none] [--watch]` | يقول كم يأخذ، ثم يفحص في الخلفية (ما يتغير شي في مشروعك) |
-| `eaos watch` | يتابع التشغيل حيًّا: المرحلة، والوقت الباقي، والتكلفة حتى الآن، وأسئلته |
+| `eaos watch` | يتابع التشغيل حيًّا: الوقت اللي مضى، والمرحلة، والوقت الباقي، والتكلفة حتى الآن، وأسئلته |
 | `eaos stop` و`pause` و`resume` و`retry` و`eaos runs` | طابور التشغيلات |
 | `eaos waiting` و`eaos answer <id> <الخيار>` | ما ينتظرك، وجوابك |
 | `eaos check --sign-in hand` (أو `test_user` أو `none`؛ يُحفظ) و`eaos sign-in` | كيف يفتح الفحص الصفحات اللي ورا تسجيل الدخول في تطبيقك، وتسجيل دخولك لما يطلبه (تحت) |
-| `eaos problems` و`eaos problem <id>` | ما لقاه الفحص، ومشكلة واحدة كاملة بدليلها |
+| `eaos problems [--area security] [--severity high]` و`eaos problem <id>` | ما لقاه الفحص (بنفس فلترة الاستوديو)، ومشكلة واحدة كاملة بدليلها |
 | `eaos fix <ids>` (أو `--group severity=high`) و`verify` و`explain` و`plan` | معاينة أولًا (البطاقات، الملفات، الوقت، الخطورة)، ثم التشغيل |
 | `eaos accept` و`eaos undo` | يقول وش بيصير ويطلب موافقتك (أو `--yes`) |
 | `eaos branch [الاسم]` و`eaos branches [merge|delete|protect|unprotect|cleanup|restore]` | الفرع اللي يشتغل عليه EAOS، وكل تغيير على الفروع: معاينة ثم موافقتك |

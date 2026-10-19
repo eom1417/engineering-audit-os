@@ -39,15 +39,18 @@ class Assistants(threading.BoundedSemaphore):
 
     def __init__(self, count):
         super().__init__(count)
-        self.count, self.answering, self._guard = count, 0, threading.Lock()
+        self.count, self.answering, self.began, self._guard = count, 0, [], threading.Lock()
 
     def __enter__(self):
         super().__enter__()
         try:
             while True:
                 with self._guard:
-                    if not self.answering or room(ASSISTANT_MB):
+                    # an assistant started in the last seconds holds memory the free memory does not show yet
+                    self.began = [at for at in self.began if time.monotonic() - at < STARTING]
+                    if not self.answering or room(ASSISTANT_MB * (1 + len(self.began))):
                         self.answering += 1
+                        self.began.append(time.monotonic())
                         return self
                 check_cancelled()
                 time.sleep(WAIT)
@@ -129,8 +132,10 @@ def _run_ready(names, start, mode, quick, stopped):
             while left or running:
                 waiting = False
                 for name in ready_stages(left, ended, running.values(), mode, width(mode) - len(running), quick):
-                    waiting = bool(running) and name not in quick and not room(need(BY_NAME[name]) + _starting(running.values(), began))
-                    if waiting: break
+                    # no room for it yet: a lighter stage behind it may still start (it never waits for this one)
+                    if running and name not in quick and not room(need(BY_NAME[name]) + _starting(running.values(), began)):
+                        waiting = True
+                        continue
                     left.remove(name)
                     began[name] = time.monotonic()
                     running[pool.submit(contextvars.copy_context().run, start, name)] = name

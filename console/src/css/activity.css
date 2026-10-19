@@ -230,3 +230,21 @@ li.ac-cmd { min-height: 56px; }
 .ac-runline__why:hover { background: var(--hover); }
 .ac-runline__why:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (max-width: 767px) { .ac-runline__word { display: none; } }
+
+/* The check's clock (places/activity/clock.js) and the stages' own times: tabular digits so a ticking second never
+   shifts the line */
+.ac-tick { font-variant-numeric: tabular-nums; unicode-bidi: isolate; white-space: nowrap; }
+.ac-tick--big { font-size: 1.75rem; font-weight: 600; line-height: 1.1; letter-spacing: .01em; }
+.ac-tick--mid { font-size: 1.125rem; font-weight: 600; }
+.ac-tick--live { color: var(--live); }
+.ac-clock { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--s3); }
+.ac-clock__total, .ac-clock__stage { display: grid; gap: 2px; align-content: start; padding: var(--s2) var(--s3); border-radius: var(--r-sm);
+  background: var(--sunken); min-width: 9rem; text-align: start; }
+.ac-clock__stage { border: 1px solid var(--line); cursor: pointer; color: inherit; font: inherit; }
+.ac-clock__stage:hover { border-color: var(--line-strong); }
+.ac-stg__t { flex: none; font-size: .8125rem; color: var(--ink-2); }
+.ac-stg__t.ac-tick--live { color: var(--live); font-weight: 600; }
+.ac-stg { flex-wrap: wrap; }
+.ac-stg__count { flex-basis: 100%; display: flex; align-items: center; gap: var(--s2); }
+.ac-stg__count .ac-bar { flex: 1; height: 4px; }
+.ac-step .ac-bar { margin-top: 6px; }

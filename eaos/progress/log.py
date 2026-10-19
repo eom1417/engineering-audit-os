@@ -183,10 +183,10 @@ class ProgressLog:
         self.sampler = (sampler or None) if self.enabled else None
         self.declared = {}          # name -> necessity, in the declaration's order
         self.ended_stages = set()
-        self.current = None         # the stage started last of those running: the one the running programs are shown on
+        self.current = None         # the stage started last of those running: a program of no known stage is shown on it
         self.running = {}           # name -> clock when it started, of every stage running now (several in a parallel check)
         self.sampled_at = self.wrote_at = clock()
-        self.programs = []
+        self.programs = {}          # stage -> the programs written last for it
         self.sampler_said = False
         self.pending = {}           # (stage, step) -> the newest fields not written yet
         self.written = {}           # (stage, step) -> (clock, status) of the last line written
@@ -203,7 +203,8 @@ class ProgressLog:
             row = {'seq': self.seq, 'at': now(), 'event': event, 'run': self.run, **fields}
             self.wrote_at = self.clock()
             if event == 'stage.started':
-                self.current, self.sampled_at, self.programs = fields.get('stage'), self.wrote_at, []
+                self.current, self.sampled_at = fields.get('stage'), self.wrote_at
+                self.programs[self.current] = []
                 self.running[self.current] = self.wrote_at
             elif event == 'run.ended':
                 self.finished = True
@@ -228,11 +229,12 @@ class ProgressLog:
                 self.stop.set()
             return row
 
-    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None):
+    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None, assistants=None):
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
         run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
         (one drawn from a state, eaos/journeys.py), so none is named and a reader never judges it gone; `at`: when such a
-        run truly began, so drawing it again does not start its time over; `mode`: a check's (eaos/pipeline/schedule.py)."""
+        run truly began, so drawing it again does not start its time over; `mode` and `assistants`: a check's (how many
+        stages and assistants run at once, eaos/pipeline/schedule.py)."""
         rows = stage_rows(stages)
         with self.lock:
             self.declared = {row['name']: row['necessity'] for row in rows}
@@ -242,7 +244,7 @@ class ProgressLog:
         row = self.emit('run.started', flow=self.flow, schema=SCHEMA, stages=rows, requested=list(requested),
                         previous=previous or {}, previous_steps=steps, **({'alive_every': self.alive_every} if self.alive_every else {}),
                         pid=os.getpid() if process else None, host=socket.gethostname() if process else None, **_at(at),
-                        **({'mode': mode} if mode else {}))
+                        **({'mode': mode} if mode else {}), **({'assistants': assistants} if assistants else {}))
         if self.pulse and not self.broken:
             self.thread = threading.Thread(target=self._beat, name=f'eaos-progress-{self.flow}', daemon=True)
             self.thread.start()
@@ -263,6 +265,7 @@ class ProgressLog:
             if reason_code: fields['reason_code'] = str(reason_code)[:80]
             if artifact: fields['artifact'] = str(artifact)[:300]
             self._step(fields)
+        step.stage = stage          # the stage a program started under it belongs to (eaos/progress/sampler.py watch)
         return step
 
     def _step(self, fields):
@@ -302,7 +305,8 @@ class ProgressLog:
             self._flush(name)
             self.ended_stages.add(name)
             self.running.pop(name, None)
-            if self.current == name: self.current, self.programs = (next(reversed(self.running), None), [])
+            self.programs.pop(name, None)
+            if self.current == name: self.current = next(reversed(self.running), None)
             fields = {'stage': name, 'status': row['status'], 'reason': row['reason'], 'seconds': row['seconds'],
                       'necessity': row['necessity'], 'artifacts': list(row['artifacts']), 'detail': _small(row.get('detail'))}
             if row.get('reason_code'): fields['reason_code'] = row['reason_code']
@@ -352,7 +356,8 @@ class ProgressLog:
         return True
 
     def _look(self, stage):
-        """The running programs of `stage`, written when they changed (or once why they cannot be seen)."""
+        """The running programs, each under the running stage that started it (`stage`, the one started last, when it
+        is not known), written for each stage whose programs changed; or once why they cannot be seen."""
         found = self.sampler.sample()                   # outside the lock: ps takes a moment
         with self.lock:
             if self.current != stage or self.finished: return
@@ -360,9 +365,15 @@ class ProgressLog:
             if found is None:
                 self.sampler_said = True
                 self.emit('stage.activity', stage=stage, programs=[], reason=self.sampler.reason)
-            elif [(p['pid'], p['name']) for p in found] != [(p['pid'], p['name']) for p in self.programs]:
-                self.programs = found
-                self.emit('stage.activity', stage=stage, programs=found)
+                return
+            mine = {name: [] for name in self.running}
+            for program in found:
+                owner = program.pop('stage', None)
+                mine[owner if owner in mine else stage].append(program)
+            for name, programs in mine.items():
+                if [(p['pid'], p['name']) for p in programs] != [(p['pid'], p['name']) for p in self.programs.get(name, [])]:
+                    self.programs[name] = programs
+                    self.emit('stage.activity', stage=name, programs=programs)
 
     def _beat(self):
         while not self.stop.wait(TICK):

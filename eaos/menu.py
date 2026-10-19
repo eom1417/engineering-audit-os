@@ -25,7 +25,7 @@ OPTIONS = {
                '(accept with person_agreed=true), throw it away (undo), or decide later. Act only on their choice.'),
     'audit': ('افحص المشروع', 'Check the project',
               'Ask in one question: the complete check (recommended) or only a path (security, look: the screens, code: structure and '
-              'dead code, speed: load and scale), and the normal or the speed mode (several assistants at once: faster, more tokens). '
+              'dead code, speed: load and scale), and the normal or the speed mode (several assistants at once: faster, the usage limit spent in less time). '
               'Then audit (fresh=true: the person picked this, so a new check runs even when one is on record; paths, mode), wait until it is done, then explain how healthy the '
               'project is and its five most important problems simply, with evidence from finding.'),
     'fix': ('أصلح الدفعة التالية', 'Fix the next batch',

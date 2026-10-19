@@ -17,6 +17,7 @@ import threading
 import time
 from pathlib import Path
 
+from ... import plain
 from ...language import foreign, restate
 from . import adapters, handoff, planners, prompts, resume
 from .store import ACTIVE, RETRYABLE, TERMINAL, contract, now
@@ -295,9 +296,8 @@ class Manager:
                 progress = record.get('progress') or {}
                 if progress and progress != seen:
                     seen = progress
-                    self.store.append(run, 'progress', {'en': f"{progress.get('stage') or record['kind']}: {progress.get('done')} of {progress.get('total')}",
-                                                        'ar': f"{progress.get('stage') or record['kind']}: {progress.get('done')} من {progress.get('total')}"},
-                                      {'batch': None, 'done': progress.get('done'), 'total': progress.get('total'), 'stage': progress.get('stage')})
+                    name, done, total = progress.get('stage') or record['kind'], progress.get('done'), progress.get('total')
+                    self.store.append(run, 'progress', {'en': f"{plain.stage(name, 'en')} ({done} of {total} done)", 'ar': f"{plain.stage(name, 'ar')} (خلص {done} من {total})"}, {'batch': None, 'done': done, 'total': total, 'stage': progress.get('stage')})
                 if record['status'] == 'done': return self._finish_direct(run, record.get('result') or {})
                 if record['status'] == 'failed': return self._fail(run, str(record.get('error') or 'the job failed')[:500])
                 time.sleep(1)

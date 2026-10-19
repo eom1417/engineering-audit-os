@@ -73,6 +73,11 @@ def _named(selection, known):
     return set(ids)
 
 
+def cards_in(folder, by, value):
+    """The ids of the latest check's cards in one group (by=value), every state: the terminal's problems filter."""
+    return _grouped({'by': by, 'value': value}, (_load(folder, 'cards') or {}).get('cards') or [], folder)
+
+
 def _grouped(group, cards, folder):
     """The ids of a group: by a card field (area, severity), or by a gap, component or operation of the Studio data."""
     by, value = group.get('by'), str(group.get('value') or '')

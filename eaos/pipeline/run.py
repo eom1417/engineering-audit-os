@@ -82,7 +82,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     head['options']['without_tools'] = sorted(without_tools)
     head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
     log = ProgressLog(out)
-    log.started(STAGES, requested, previous_seconds(out), mode=mode)
+    log.started(STAGES, requested, previous_seconds(out), mode=mode, assistants=context.assistants.count)
     run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
            'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head,
            'lock': threading.RLock()}
@@ -284,6 +284,8 @@ def _one(stage, context, runners, results):
                     seconds, present, outcome, code='artifacts_missing')
     failed = outcome.get('tools_failed')
     if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present, outcome, code='tools_failed')
+    if outcome.get('assistant_lost'):   # its assistant answered part of it (runners._partly): the check is PARTIAL
+        return _row(stage, OK, outcome['assistant_lost']['why'], seconds, present, outcome, code='ai_partial')
     return _row(stage, OK, '', seconds, present, outcome)
 
 

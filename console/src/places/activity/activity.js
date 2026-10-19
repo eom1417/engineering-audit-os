@@ -7,6 +7,7 @@ import {
   live, store, client, ActionError, normalize, model, ac,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';
+import { clockHTML } from './clock.js';
 
 const enc = encodeURIComponent;
 const runHref = r => href('/activity/run/' + enc(r.id));
@@ -35,11 +36,12 @@ function checkNow(r) {
   const title = signin ? t('ac.now.check.you') : you ? t('ac.now.check.q') : rs === 'paused' ? t('ac.now.check.paused') : t('ac.now.check');
   const sub = signin ? t('ac.now.check.you.sub', { until: live.signIn.asked.until ? ac.when(live.signIn.asked.until) : '' })
     : you ? t('ac.now.check.q.sub')
-    : list.length ? t('ac.now.check.sub', { stage: num(Math.min(done + 1, list.length)), total: num(list.length), stages: running.map(s => stageTitle(s.id)).join(t('list.sep')) || t('ac.now.starting') }) + left
+    : list.length ? t('ac.now.check.sub', { done: num(done), total: num(list.length), stages: running.map(s => stageTitle(s.id)).join(t('list.sep')) || t('ac.now.starting') }) + left
       : t('ac.now.starting');
   return `<div class="panel ac-now ${you ? 'ac-now--you' : ''}">
     <a class="ac-now__head" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(title)}</span>
       <span class="row__meta" style="display:block">${sub}</span></span>${icon('chev', 'icon--dir muted')}</a>
+    ${clockHTML(r, flow, list)}
     ${ac.progressBar(list.length ? done / list.length : 0, title)}
     ${running.length ? `<div class="ac-now__stages"><span class="block-title">${you ? t('ac.now.waits') : rs === 'paused' ? t('ac.now.paused_at') : t('ac.now.running_stages')}</span>
       <ul class="ac-layer__list ac-layer__list--row">${running.map(s => stageButton(s, false)).join('')}</ul>
@@ -140,7 +142,7 @@ function activityPage(ctx) {
   else if (lr && live.signIn && live.signIn.asked) lede = esc(t('ac.act.lede.signin'));
   else if (lr && ac.runState(lr) === 'you') lede = esc(t('ac.act.lede.q'));
   else if (lr && lr.state === 'paused') lede = esc(t('ac.act.lede.paused'));
-  else if (lr) { const list = stagesOf(flow, lr); lede = esc(list.length ? t('ac.act.lede.check', { stage: num(Math.min(finished(list) + 1, list.length)), total: num(list.length) }) : t('ac.now.check')); }
+  else if (lr) { const list = stagesOf(flow, lr); lede = esc(list.length ? t('ac.act.lede.check', { done: num(finished(list)), total: num(list.length) }) : t('ac.now.check')); }
   else if (last && ac.took(last)) lede = t('ac.act.lede.idle', { took: `<a href="${runHref(last)}">${esc(ac.minutes(ac.took(last)))}</a>`, when: esc(fmtWhen(last.ended || last.created).replace(/ \d\d:\d\d$/, '')) });
   else lede = esc(t('ac.act.lede.none'));
   const busy = !!lr;
