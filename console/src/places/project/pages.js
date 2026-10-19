@@ -214,7 +214,7 @@ function toolsPage(ctx) {
       <div class="panel panel__pad"><dl class="facts">
         <dt>${t('ac.tl.for_check')}</dt><dd>${esc(t('ac.tl.of', { n: num(ready), t: num(needed.length) }))}&ensp;${!failed.length && !coming.length ? ac.mark('ok', t('ac.tl.can_start')) : ac.mark(failed.length ? 'failed' : 'running', t(failed.length ? 'ac.tl.cannot' : 'ac.tl.coming'))}</dd>
         ${installing && f.estimate && f.estimate.low != null ? `<dt>${t('ac.tl.left')}</dt><dd>${esc(t('live.left', { lo: num(Math.max(1, Math.round(f.estimate.low / 60))), hi: num(Math.max(1, Math.round(f.estimate.high / 60))) }))}</dd>` : ''}
-        <dt>${t('ac.tl.eaos')}</dt><dd>${code('EAOS ' + model.project().eaos_version)}</dd>
+        <dt>${t('ac.tl.eaos')}</dt><dd>${code('EAOS ' + (store.live.version || model.project().eaos_version))}</dd>
         ${f && f.ended_at ? `<dt>${t('ac.tl.last')}</dt><dd>${esc(fmtWhen(f.ended_at))}</dd>` : ''}</dl></div></section>
     ${attention.length ? `<section class="section" aria-labelledby="ta-h"><div class="section-head"><h2 id="ta-h">${t('ac.tl.attention')}</h2></div><ul class="panel rows">${attention.map(row).join('')}</ul></section>` : ''}
     <div class="section panel">
@@ -274,9 +274,9 @@ function settingsPage(ctx) {
       <p class="small ink-2" style="margin-bottom:12px">${t('ac.set.kept.sub')}</p>
       <ul class="panel rows">${kept.map(([label, v, path, q]) => `<li>${path ? `<a class="row" href="${href(path, q)}">` : '<div class="row">'}<span class="row__main"><span class="row__title small">${label}</span><span class="row__meta" style="display:block">${v}</span></span>${path ? `<span class="small link">${t('ac.set.change')}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>` : '</div>'}</li>`).join('')}</ul></section>`}
     <section class="section" aria-labelledby="vr-h"><div class="section-head"><h2 id="vr-h">${t('ac.set.version')}</h2></div>
-      <div class="panel panel__pad"><dl class="facts"><dt>${t('ac.set.v.eaos')}</dt><dd>${code('EAOS ' + (made || ''))}</dd>
+      <div class="panel panel__pad"><dl class="facts"><dt>${t('ac.set.v.eaos')}</dt><dd>${code('EAOS ' + (store.live.version || made || ''))}</dd>
         <dt>${t('ac.set.v.contract')}</dt><dd class="num">${session && session.contract != null ? esc(num(session.contract)) : '—'}</dd>
-        <dt>${t('ac.set.v.same')}</dt><dd>${st && st.report ? (st.report.version === made ? ac.mark('ok', t('ac.set.v.same.v')) : ac.mark('partial', esc(t('ac.set.v.differs', { v: st.report.version })))) : '…'}</dd></dl></div></section>
+        <dt>${t('ac.set.v.same')}</dt><dd>${made && store.live.version ? (made === store.live.version ? ac.mark('ok', t('ac.set.v.same.v')) : ac.mark('partial', esc(t('ac.set.v.differs', { v: made })))) : '…'}</dd></dl></div></section>
     <section class="section" aria-labelledby="kb-h"><div class="section-head"><h2 id="kb-h">${t('ac.set.kb')}</h2></div>
       <div class="panel panel__pad"><dl class="facts ac-keys">${keys.map(([k2, w]) => `<dt><kbd class="ac-kbd">${esc(k2)}</kbd></dt><dd>${t(w)}</dd>`).join('')}</dl>
         <p class="small ink-2" style="margin-top:12px">${t('ac.set.kb.more')} ${t(reduce ? 'ac.set.kb.reduce.on' : 'ac.set.kb.reduce.off')}</p></div></section>

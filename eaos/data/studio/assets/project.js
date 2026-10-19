@@ -186,7 +186,7 @@
       <div class="panel panel__pad"><dl class="facts">
         <dt>${(0,e.t)("ac.tl.for_check")}</dt><dd>${(0,e.esc)((0,e.t)("ac.tl.of",{n:(0,e.num)(l),t:(0,e.num)(n.length)}))}&ensp;${!o.length&&!d.length?e.ac.mark("ok",(0,e.t)("ac.tl.can_start")):e.ac.mark(o.length?"failed":"running",(0,e.t)(o.length?"ac.tl.cannot":"ac.tl.coming"))}</dd>
         ${r&&c.estimate&&c.estimate.low!=null?`<dt>${(0,e.t)("ac.tl.left")}</dt><dd>${(0,e.esc)((0,e.t)("live.left",{lo:(0,e.num)(Math.max(1,Math.round(c.estimate.low/60))),hi:(0,e.num)(Math.max(1,Math.round(c.estimate.high/60)))}))}</dd>`:""}
-        <dt>${(0,e.t)("ac.tl.eaos")}</dt><dd>${(0,e.code)("EAOS "+e.model.project().eaos_version)}</dd>
+        <dt>${(0,e.t)("ac.tl.eaos")}</dt><dd>${(0,e.code)("EAOS "+(e.store.live.version||e.model.project().eaos_version))}</dd>
         ${c&&c.ended_at?`<dt>${(0,e.t)("ac.tl.last")}</dt><dd>${(0,e.esc)((0,e.fmtWhen)(c.ended_at))}</dd>`:""}</dl></div></section>
     ${$.length?`<section class="section" aria-labelledby="ta-h"><div class="section-head"><h2 id="ta-h">${(0,e.t)("ac.tl.attention")}</h2></div><ul class="panel rows">${$.map(h).join("")}</ul></section>`:""}
     <div class="section panel">
@@ -213,9 +213,9 @@
       <p class="small ink-2" style="margin-bottom:12px">${(0,e.t)("ac.set.kept.sub")}</p>
       <ul class="panel rows">${k.map(([g,v,T,f])=>`<li>${T?`<a class="row" href="${(0,e.href)(T,f)}">`:'<div class="row">'}<span class="row__main"><span class="row__title small">${g}</span><span class="row__meta" style="display:block">${v}</span></span>${T?`<span class="small link">${(0,e.t)("ac.set.change")}</span>${(0,e.icon)("chev","icon--sm icon--dir muted")}</a>`:"</div>"}</li>`).join("")}</ul></section>`}
     <section class="section" aria-labelledby="vr-h"><div class="section-head"><h2 id="vr-h">${(0,e.t)("ac.set.version")}</h2></div>
-      <div class="panel panel__pad"><dl class="facts"><dt>${(0,e.t)("ac.set.v.eaos")}</dt><dd>${(0,e.code)("EAOS "+(m||""))}</dd>
+      <div class="panel panel__pad"><dl class="facts"><dt>${(0,e.t)("ac.set.v.eaos")}</dt><dd>${(0,e.code)("EAOS "+(e.store.live.version||m||""))}</dd>
         <dt>${(0,e.t)("ac.set.v.contract")}</dt><dd class="num">${E&&E.contract!=null?(0,e.esc)((0,e.num)(E.contract)):"—"}</dd>
-        <dt>${(0,e.t)("ac.set.v.same")}</dt><dd>${t&&t.report?t.report.version===m?e.ac.mark("ok",(0,e.t)("ac.set.v.same.v")):e.ac.mark("partial",(0,e.esc)((0,e.t)("ac.set.v.differs",{v:t.report.version}))):"…"}</dd></dl></div></section>
+        <dt>${(0,e.t)("ac.set.v.same")}</dt><dd>${m&&e.store.live.version?m===e.store.live.version?e.ac.mark("ok",(0,e.t)("ac.set.v.same.v")):e.ac.mark("partial",(0,e.esc)((0,e.t)("ac.set.v.differs",{v:m}))):"…"}</dd></dl></div></section>
     <section class="section" aria-labelledby="kb-h"><div class="section-head"><h2 id="kb-h">${(0,e.t)("ac.set.kb")}</h2></div>
       <div class="panel panel__pad"><dl class="facts ac-keys">${y.map(([g,v])=>`<dt><kbd class="ac-kbd">${(0,e.esc)(g)}</kbd></dt><dd>${(0,e.t)(v)}</dd>`).join("")}</dl>
         <p class="small ink-2" style="margin-top:12px">${(0,e.t)("ac.set.kb.more")} ${(0,e.t)(_?"ac.set.kb.reduce.on":"ac.set.kb.reduce.off")}</p></div></section>

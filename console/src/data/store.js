@@ -9,7 +9,7 @@ import { mode, reload } from './source.js';
 
 export const live = {
   loaded: false, runs: [], queue: [], questions: [], decisions: [], signIn: null, assistants: null, progress: null,
-  freshness: null, context: null, feed: mode === 'live' ? 'connecting' : null, heard: null, last: null,
+  freshness: null, context: null, feed: mode === 'live' ? 'connecting' : null, heard: null, last: null, version: null,
 };
 const listeners = new Set();
 /** `fn(what)` after a change: 'runs', 'progress', 'feed', 'assistants', 'freshness' or 'event' (live.last). */
@@ -126,6 +126,7 @@ function onFeed(frame) {
 export function begin() {
   if (!client) return;
   client.session().then(s => {
+    live.version = s.version || null;      // the EAOS running now; the report says which one made it
     if (s.actions === false) { live.loaded = true; tell('runs'); return; }
     refresh();
     const loop = () => setTimeout(async () => { if (document.visibilityState === 'visible') await refresh(); loop(); }, document.visibilityState === 'visible' ? 3000 : 15000);
