@@ -693,8 +693,6 @@ def run_setup(project=None, person_agreed=False):
     detected = live_setup.detect(source, guided.report_of(state))
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    if detected['profile'] is None:
-        return {'status': 'cannot_run', 'limitations': detected['limitations']}
     run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))     # its secrets kept: a session holds
     return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
 
@@ -709,7 +707,8 @@ def run_try(proposal=None, mode='lock', project=None):
     refused = run_profile.safe(proposal or {})
     if refused:
         return {'status': 'refused', 'reasons': refused,
-                'rules': 'Every address is 127.0.0.1 or localhost; commands are npm, npx, pnpm, yarn, bun, node or corepack only; '
+                'rules': 'Every address is 127.0.0.1 or localhost; commands start with npm, npx, pnpm, yarn, bun, node, corepack, python, '
+                         'pip, uv, poetry, uvicorn or gunicorn; '
                          'nothing deploys or reaches a hosted service; no real secret. Use {database_url} and {run_dir}.'}
     return _start('run_try', state, {'proposal': proposal, 'mode': mode})
 

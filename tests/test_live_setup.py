@@ -80,9 +80,10 @@ class DetectTests(unittest.TestCase):
             profile = live_setup.detect(pnpm)['profile']
         self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile']])
         self.assertEqual(profile['checks'], [['corepack', 'pnpm', 'run', 'lint']])
-        nothing = live_setup.detect(project({'main.py': 'print(1)\n'}))
-        self.assertIsNone(nothing['profile'])
-        self.assertTrue(nothing['limitations'])
+        # a Python app is no reason to give up (EAOS itself was skipped so, with an earlier app's profile kept): a draft
+        # that starts nothing, which the assistant completes from the project's documentation
+        python = live_setup.detect(project({'main.py': 'print(1)\n'}))
+        self.assertEqual((python['profile']['start'], python['profile']['app'], python['limitations']), (['true'], '.', []))
         supabase = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '5'},
                                                                'dependencies': {'@supabase/supabase-js': '2'}}}))
         self.assertTrue(any('Supabase' in l for l in supabase['limitations']))

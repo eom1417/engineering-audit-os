@@ -253,9 +253,7 @@ def detect(project, report=None):
     project documents as a folder of a report points at `report` (report_values)."""
     project = Path(project)
     folder = app_folder(project)
-    if folder is None:
-        return {'profile': None, 'facts': {'reason': 'no package.json with a dev or start script'},
-                'limitations': ['EAOS runs JavaScript and TypeScript web apps for now; this project is not one it can start by itself']}
+    if folder is None: return _unknown_app()
     package = read_json(project / folder / 'package.json')
     manager, lockfile = package_manager(project, folder)
     port = free_port()
@@ -286,6 +284,17 @@ def detect(project, report=None):
                                'env': {**baseline_env, 'NODE_ENV': 'production', 'PORT': str(port)}}
     return {'profile': profile, 'facts': {'folder': folder, 'manager': manager, 'framework': framework(package), 'database': database,
                                           'env_names': sorted(names)}, 'limitations': limitations}
+
+
+def _unknown_app():
+    """An app EAOS does not know how to start by itself (no JavaScript web app: a Python one, say): a draft that starts
+    nothing, so the run's records never keep an earlier app's profile, and the assistant works out how to start it from
+    the project's own documentation (_attempts), with safe() as the judge of every command it proposes."""
+    profile = {'schema_version': 1, 'app': '.', 'install': [['true']], 'start': ['true'], 'port': free_port(), 'health': '/',
+               'start_timeout': 180, 'env': {}, 'checks': []}
+    return {'profile': profile, 'facts': {'folder': '.', 'manager': None, 'framework': None, 'database': None, 'env_names': [],
+                                          'reason': 'no package.json with a dev or start script: the assistant works out how to start it'},
+            'limitations': []}
 
 
 # ---------------------------------------------------------------- 2. verify
@@ -463,11 +472,6 @@ def _setup(project, runtime, report, provider, say, by_hand):
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     progress.begin('detect')
     detected = detect(project, report)
-    if detected['profile'] is None:
-        why = '; '.join(detected['limitations'])[:300]
-        progress.end('detect', 'unavailable', why, 'no_app_profile')
-        for name in ('attempt', 'baseline'): progress.skip(name, why, 'no_app_profile')
-        return {'ok': False, 'attempts': 0, 'limitations': detected['limitations'], 'page': None}
     needs = fixtures_needed(report)
     write_profile(runtime, kept(runtime, detected['profile']))
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

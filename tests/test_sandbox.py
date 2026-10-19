@@ -90,6 +90,12 @@ class SandboxTests(Workspace):
             env = self.box().environment({'DATABASE_URL': 'postgres://local'})
         self.assertEqual(env['DATABASE_URL'], 'postgres://local')
         self.assertNotIn('OWNER_SECRET_TOKEN', env)
+        # a Python app's install once went into EAOS's own environment (the python PATH finds) and broke it: a Python
+        # command runs in the run's own virtual environment, first on PATH whatever PATH the run chose
+        box = self.box()
+        env = box.environment({'PATH': os.environ['PATH']}, ['python3', '-m', 'pip', 'install', '-e', '.'])
+        self.assertEqual((env['PATH'].split(os.pathsep)[0], env['VIRTUAL_ENV']), (str(box.folder / 'python/bin'), str(box.folder / 'python')))
+        self.assertEqual(box.run(['python3', '-c', 'import sys; print(sys.prefix)'])[1].strip(), str(box.folder / 'python'))
 
     def test_network_is_cut_where_the_kernel_allows_it_and_the_record_says_when_it_is_not(self):
         box = self.box()

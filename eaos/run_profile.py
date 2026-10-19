@@ -7,6 +7,8 @@ import json
 import re
 from pathlib import Path
 
+from .sandbox import PYTHON
+
 # A script that deploys, publishes or reaches a hosted environment never runs, whatever it is called.
 DANGER = re.compile(r'\b(deploy\w*|railway|vercel|netlify|flyctl|heroku|firebase|gh-pages|publish|wrangler|surge|'
                     r'kubectl|terraform|pulumi|gcloud|aws|azure|az\s|ssh|scp|rsync|docker\s+push|'
@@ -14,8 +16,7 @@ DANGER = re.compile(r'\b(deploy\w*|railway|vercel|netlify|flyctl|heroku|firebase
 
 # What a proposal's commands may start with: a JavaScript or Python package manager, node, python, or a Python web server
 # (a project's own virtual environment's, `.venv/bin/python`, counts by its name).
-RUNNERS = ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'true',
-           'python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')
+RUNNERS = ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'true') + PYTHON
 
 
 def safe(proposal):

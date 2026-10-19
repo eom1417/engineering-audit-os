@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.38 (2026-10-19)
+
+- **Any app is run, not only a JavaScript one**: a project with no JavaScript web app (EAOS itself, a Python app) was
+  skipped with "EAOS runs JavaScript web apps for now", nobody asked, and its tests then ran an earlier app's profile
+  (`npm ci` in a folder gone). Now the assistant reads the project's documentation and says how to install and start
+  it (Python included: python, pip, uv, poetry, uvicorn, gunicorn); EAOS itself starts this way, on its own Studio.
+- **A Python app's installs stay in its run**: each run has its own virtual environment, first on PATH whatever the run
+  chose, so `pip install` never lands in EAOS's own environment (a trial once broke EAOS's that way).
+
 ## 0.0.37 (2026-10-19)
 
 - **The problems' filters stick**: choosing an area, a severity or a state and pressing Show kept nothing, because
