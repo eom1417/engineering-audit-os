@@ -63,19 +63,18 @@ class Project(unittest.TestCase):
 
 class ProgressRoute(Project):
     def assert_drawn(self, stages, declared, flow):
-        """The map's nodes and edges are the declaration's, each edge going down a layer."""
+        """The map's nodes and edges are the declaration's, in its order (a check's each in its part, PHASES)."""
         self.assertEqual([s['name'] for s in stages], [s.name for s in declared], flow)
         edges = [(need, s['name']) for s in stages for need in s['requires']]
         self.assertEqual(edges, [(need, s.name) for s in declared for need in s.requires], flow)
-        layer = {s['name']: s['layer'] for s in stages}
-        self.assertTrue(all(layer[after] > layer[before] for before, after in edges), flow)
+        if flow == 'check': self.assertTrue(all(s['phase'] for s in stages))
 
     def test_the_journey_and_every_flow_are_folded_and_laid_out_from_their_declaration(self):
         # A stage added to a flow appears with no other change.
         added = live_setup.FLOW + (progress.Stage('smoke', requires=('detect',), description='A stage added in a test'),)
         with mock.patch.object(live_setup, 'FLOW', added):
             stages = self.get('/api/progress').json()['flows']['setup']['stages']
-        self.assertEqual((stages[-1]['name'], stages[-1]['requires'], stages[-1]['layer']), ('smoke', ['detect'], 1))
+        self.assertEqual((stages[-1]['name'], stages[-1]['requires']), ('smoke', ['detect']))
         log = progress.ProgressLog(self.runtime, 'setup', pulse=False, sampler=None)
         log.started(live_setup.FLOW, [s.name for s in live_setup.FLOW], {})
         log.emit('stage.started', stage='detect')
