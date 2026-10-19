@@ -216,7 +216,7 @@ sheet('filters', {
     }).join('');
     return {
       title: esc(t('flt.title')), sub: esc(t('flt.sub')),
-      body: `<div><div class="block-title">${t('grp.title')}</div><div class="seg" role="group" aria-label="${esc(t('grp.title'))}" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">${groups}</div></div>${facets}`,
+      body: `<div><div class="block-title">${t('grp.title')}</div><div class="seg" role="group" aria-label="${esc(t('grp.title'))}">${groups}</div></div>${facets}`,
       foot: `<div class="sheet__foot-row"><button class="btn btn--secondary" data-act="facet-clear">${t('flt.clear')}</button>
         <button class="btn btn--primary" data-act="sheet-close" data-fk="flt-show">${esc(t('flt.show', { problems: tn('pl.problem', count) }))}</button></div>`,
     };
