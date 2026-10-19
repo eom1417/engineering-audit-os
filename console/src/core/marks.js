@@ -56,6 +56,18 @@ export function ticker(from, took, cls) {
   if (!from || isNaN(Date.parse(from))) return '';
   return `<bdi class="num ac-tick ac-tick--live ${cls || ''}" dir="ltr" data-since="${esc(from)}" aria-live="off">${stopwatch(since(from))}</bdi>`;
 }
+/** The seconds run `r` was paused between `from` and `to` (ms): its kept spans, and the pause under way. */
+export function pausedIn(r, from, to) {
+  const spans = ((r && r.paused) || []).concat(r && r.paused_at ? [[r.paused_at, null]] : []);
+  return spans.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(to, b ? Date.parse(b) : to) - Math.max(from, Date.parse(a))), 0) / 1000;
+}
+/** A time of run `r` from `from` (ISO) without its pauses: frozen while it is paused, else counting on from there. */
+export function runTicker(r, from, cls) {
+  const start = Date.parse(from);
+  if (isNaN(start)) return '';
+  if (r && r.state === 'paused' && r.paused_at) return ticker(null, Math.max(0, (Date.parse(r.paused_at) - start) / 1000 - pausedIn(r, start, Date.parse(r.paused_at))), (cls || '') + ' ac-tick--paused');
+  return ticker(new Date(start + pausedIn(r, start, Date.now()) * 1000).toISOString(), null, cls);
+}
 /* the one ticker: a querySelectorAll a second, idle when no live time is on screen */
 setInterval(() => document.querySelectorAll('[data-since]').forEach(el => {
   const v = stopwatch(since(el.dataset.since));

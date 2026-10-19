@@ -235,6 +235,7 @@ export default {
   'ac.si.kept': ['دخول صنعته بيدك محفوظ لهذا المشروع، ويُجرَّب قبل الصفحات.', 'A sign-in you made by hand is kept for this project and tested before the pages.'],
   'ac.si.why.published': ['الفحص يقرأ موقعك المنشور {base}، قراءة فقط.', 'The check reads your published site {base}, read only.'],
   'ac.si.why.needed': ['صفحات برنامجك عند {base} تحتاج دخولك.', 'The pages of your app at {base} need your sign-in.'],
+  'ac.si.why.not_signed_in': ['ضغطت «دخلت» بس صفحات برنامجك لسا تطلب الدخول. سجّل دخولك في الصورة تحت، وبعدها اضغط «دخلت».', 'You pressed "I signed in" but your app\'s pages still ask for a sign-in. Sign in in the picture below, then press "I signed in".'],
   'ac.si.then': ['بعد {time} يكمل وأنت خارج ويقول ذلك.', 'After {time} it goes on signed out and says so.'],
   'ac.si.closed': ['افتح المتصفح على برنامجك لتدخل.', 'Open the browser on your app to sign in.'],
   'ac.si.open': ['افتح المتصفح', 'Open the browser'],

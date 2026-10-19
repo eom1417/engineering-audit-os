@@ -6,7 +6,9 @@ from .stages import SkipStage
 NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
           'the check reads the code alone')
 
-PAGE_STAGES = frozenset(('session', 'journeys', 'crawl', 'screens'))
+# One app from the sign-in to the last page stage: an app that keeps its sessions in memory forgot the person's at
+# each restart, so the check asked them to sign in again for every stage
+PAGE_STAGES = frozenset(('session', 'record', 'journeys', 'crawl', 'screens'))
 
 
 def shared_app(context, published=False):
@@ -20,6 +22,7 @@ def shared_app(context, published=False):
     if 'page_app' not in context:
         from ..live_run import LiveRun
         live = LiveRun(context.target, context.runtime, 'S05')
+        live.freeze()                                    # the lock records on it: the folders it reads, kept as they are
         state = sign_in.session(context.runtime)
         try:
             live.setup()

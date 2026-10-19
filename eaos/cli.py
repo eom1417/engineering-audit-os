@@ -128,6 +128,7 @@ def governance_commands(s):
     q.add_argument('--sign-in', choices=['hand', 'test_user', 'none'], default=None,
                    help='an app behind a sign-in: you sign in when the check asks, a test user, or none (kept)')
     q.add_argument('--published', default=None, help='the published address, read signed in and read only, for this check')
+    q.add_argument('--run-app', action='store_true', help='run your app in an isolated copy (its pages, sign-in, speed); kept')
     q.add_argument('--watch', action='store_true', help='follow it here until it ends')
     command('watch', 'Follow a run live: its stages, the time left, the cost so far, and its questions').add_argument('run', nargs='?')
     command('runs', 'The runs: running, queued and ended').add_argument('--all', action='store_true', help='also those already read')

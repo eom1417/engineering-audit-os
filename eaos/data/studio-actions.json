@@ -438,6 +438,10 @@
        "null"
       ],
       "description": "The published address of the app, named by the person for this check only: its pages are read signed in, read only (GET, its own links); nothing else runs against it."
+     },
+     "run_app": {
+      "type": "boolean",
+      "description": "The person's yes, in the check's own window, to run their app in an isolated copy (its pages, sign-in and speed); kept for the project."
      }
     },
     "required": []

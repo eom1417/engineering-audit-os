@@ -80,9 +80,10 @@ class DetectTests(unittest.TestCase):
             profile = live_setup.detect(pnpm)['profile']
         self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile']])
         self.assertEqual(profile['checks'], [['corepack', 'pnpm', 'run', 'lint']])
-        nothing = live_setup.detect(project({'main.py': 'print(1)\n'}))
-        self.assertIsNone(nothing['profile'])
-        self.assertTrue(nothing['limitations'])
+        # a Python app is no reason to give up (EAOS itself was skipped so, with an earlier app's profile kept): a draft
+        # that starts nothing, which the assistant completes from the project's documentation
+        python = live_setup.detect(project({'main.py': 'print(1)\n'}))
+        self.assertEqual((python['profile']['start'], python['profile']['app'], python['limitations']), (['true'], '.', []))
         supabase = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '5'},
                                                                'dependencies': {'@supabase/supabase-js': '2'}}}))
         self.assertTrue(any('Supabase' in l for l in supabase['limitations']))
@@ -92,6 +93,8 @@ class DetectTests(unittest.TestCase):
         _, start = live_setup.production_commands('npm', dev_start, 4000)
         self.assertEqual(start[:3], ['npx', 'vite', 'preview'])
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'dev': 'node x'}}, 4000), (None, None))
+        # a plain Node server has no build step: it is its own production (its speed was never measured)
+        self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000), ([], ['npm', 'run', 'start']))
         from eaos.runtime_baseline import shape
         script = Path(scratch()) / 'qs-001.js'
         script.write_text(K6)
@@ -178,6 +181,15 @@ class VerifyTests(unittest.TestCase):
         self.assertTrue(all(call.kwargs.get('mode') == 'baseline' for call in runs.call_args_list))
         profile = json.loads((runtime / 'run.json').read_text())
         self.assertEqual((profile['baseline']['verified'], profile['baseline']['env']), (True, {'APP_URL': 'https://127.0.0.1:5'}))
+
+    def test_the_session_is_tried_on_a_server_apps_pages_never_on_its_sign_in_or_sign_out(self):
+        # an Express app's pages are `GET /notes`: left out, only its public first page was tried and an empty session
+        # passed for a signed-in one, so the person was never asked and every screen showed the sign-in page
+        report = Path(scratch())
+        (report / 'behavior-lock').mkdir()
+        (report / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': [
+            'GET /', 'GET /login', '/logout (ends the session or changes data: not called)', 'GET /notes', 'GET /notes/:id (needs_fixture)', 'GET /settings']}]}))
+        self.assertEqual(live_setup.routes(report), ['/notes', '/settings'])
 
     def test_an_empty_no_data_page_is_no_working_app_and_eaos_own_studio_runs_on_its_report_in_its_own_theme(self):
         # Diagnosis 3 §4: the Studio started without STUDIO_DATA, showed "no report here yet", and was taken as working

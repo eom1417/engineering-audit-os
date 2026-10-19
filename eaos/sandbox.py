@@ -5,7 +5,9 @@ refusal() finds nothing wrong with authorization.json: it must keep its contract
 the stage, and, when a target is given, name the commit the target is at. The project itself is never
 touched: every command runs in a copy of the authorised commit (committed_copy: never the working folder,
 and never a .env file), as its own process group, with
-an environment of PATH, a temporary HOME and TMPDIR, LANG, and the names the owner listed in env_allow.
+an environment of PATH, a temporary HOME and TMPDIR, LANG, and the names the owner listed in env_allow. A Python
+command runs in the run's own virtual environment (made at its first one), first on PATH: what a Python app installs
+lands there and goes with the run, never in EAOS's own environment, whose python is the one PATH finds.
 
 A run's copy, HOME and TMPDIR share one folder, held (flock) while the run lives: dispose() removes it, and the next
 run removes any folder no live run holds, so a check stopped or killed midway leaves nothing behind for long.
@@ -33,6 +35,8 @@ import urllib.request
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
+
+PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')     # also what a run profile may start with
 
 
 class AuthorizationError(Exception):
@@ -242,14 +246,20 @@ class Sandbox:
         if not self.offline: self.limitations.append('network not isolated')
         self._record()
 
-    def environment(self, extra=None):
+    def environment(self, extra=None, argv=None):
         """PATH, a temporary HOME and TMPDIR, LANG, the names the owner allowed, and `extra`: values the run itself chose
         (a local database address, tool locations), never taken from this process's environment. TMPDIR keeps what
-        the project's own tests and tools write to a temporary folder inside the run's, removed with it."""
+        the project's own tests and tools write to a temporary folder inside the run's, removed with it. A Python
+        command (`argv`), and every command after one, finds the run's own virtual environment first."""
         env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'HOME': str(self.home), 'TMPDIR': str(self.tmp),
                'LANG': os.environ.get('LANG', 'C.UTF-8')}
         env.update({name: os.environ[name] for name in self.allowed if name in os.environ})
         env.update({name: str(value) for name, value in (extra or {}).items()})
+        own = self.folder / 'python'        # last: no PATH a run chose puts EAOS's own python before it
+        if argv and Path(argv[0]).name in PYTHON and not own.exists():
+            import venv
+            venv.create(own, with_pip=True, symlinks=True)
+        if own.exists(): env.update(PATH=f"{own / 'bin'}{os.pathsep}{env['PATH']}", VIRTUAL_ENV=str(own))
         return env
 
     def _record(self):
@@ -283,7 +293,7 @@ class Sandbox:
         """(exit code, stdout, stderr) of argv run in the copy (or `cwd` inside it); with no network unless `network`."""
         argv = [str(part) for part in argv]
         self._note(argv, network)
-        environment = self.environment(env)
+        environment = self.environment(env, argv)
         full, where = self._command(argv, environment, self._inside(cwd), network)
         started = time.monotonic()
         process = subprocess.Popen(full, cwd=where, env=environment, stdout=subprocess.PIPE,
@@ -308,7 +318,7 @@ class Sandbox:
         argv = [str(part) for part in argv]
         self.limitations.append(f"network not isolated for the started service: {' '.join(argv)[:120]}")
         log = open(self.workdir / f'service-{len(self.started)}.log', 'w', encoding='utf-8')
-        environment = self.environment(env)
+        environment = self.environment(env, argv)
         full, where = self._command(argv, environment, self._inside(cwd), True)
         process = subprocess.Popen(full, cwd=where, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         self.started.append((process, argv, time.monotonic(), log))

@@ -15,6 +15,7 @@ The paths are asked for each check (a focused check is a choice of the moment); 
 state comes from its callers (eaos/guided.py loads and saves it), so this module sits below them.
 """
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import sign_in
@@ -31,12 +32,29 @@ def kept(state):
     return {'mode': 'normal', 'sign_in': None, **(state.get('check') or {})}
 
 
-def keep(state, mode=None, sign_in=None):
-    """Keep the person's mode and way to sign in for this project's checks in `state`; True when they changed."""
+def agreed_to_run(state):
+    """Whether the person agreed to run their app in an isolated copy: asked by `eaos next` (question `run_app`), or given
+    to the assistant, the Studio or the check's window (consent `run_and_fix`, agree_to_run)."""
+    return any(q['id'] == 'run_app' and q.get('answer') for q in state.get('questions') or []) or \
+        bool((state.get('consent') or {}).get('run_and_fix'))
+
+
+def agree_to_run(state, via):
+    """The person's yes to running their app in an isolated copy, kept for the project in `state` (asked once, not once
+    a run; eaos/guided.py check_runtime reads it): the Studio's check window, `eaos check --run-app`, or the assistant."""
+    state['consent'] = {**(state.get('consent') or {}), 'run_and_fix': True, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}
+    if not any(q.get('id') == 'run_and_fix' for q in state.setdefault('questions', [])):
+        state['questions'].append({'id': 'run_and_fix', 'kind': 'yes_no', 'answer': True, 'via': via})
+
+
+def keep(state, mode=None, sign_in=None, run_app=False):
+    """Keep the person's mode, way to sign in and yes to running their app for this project's checks in `state`; True
+    when they changed."""
     if mode is not None and mode not in MODES[:2]: raise ValueError(f'mode is one of normal, speed, not {mode!r}')
     if sign_in is not None and sign_in not in SIGN_IN: raise ValueError(f"sign_in is one of {', '.join(SIGN_IN)}, not {sign_in!r}")
+    if run_app: agree_to_run(state, 'check')
     chosen = {k: v for k, v in (('mode', mode), ('sign_in', sign_in)) if v is not None}
-    if not chosen or {**kept(state), **chosen} == kept(state): return False
+    if not chosen or {**kept(state), **chosen} == kept(state): return bool(run_app)
     state['check'] = {**kept(state), **chosen}
     return True
 
@@ -76,8 +94,10 @@ def without_ai_kept(report, without_ai, again_from, chosen):
 
 def offered(state, report=None):
     """What the start of a check offers the person (the Studio's preview): each path with what it looks at, in both
-    languages, the mode and the way to sign in kept for this project, and the sign-in its code shows (`report`: the last
-    check's, eaos/sign_in.py from_code), when the ways to sign in are offered."""
+    languages, the mode and the way to sign in kept for this project, the sign-in its code shows (`report`: the last
+    check's, eaos/sign_in.py from_code), when the ways to sign in are offered, and whether the person already agreed
+    to run their app (`run_app`): without it the pages, sign-in and speed are not checked, so the start asks it."""
     paths = [{'id': key, 'name': dict(zip(('en', 'ar'), path['names'])), 'looks_at': dict(zip(('en', 'ar'), path['looks_at']))}
              for key, path in PATHS.items()]
-    return {'paths': paths, **kept(state), 'sign_in_seen': sign_in.from_code(report) if report else []}
+    return {'paths': paths, **kept(state), 'sign_in_seen': sign_in.from_code(report) if report else [],
+            'run_app': agreed_to_run(state)}

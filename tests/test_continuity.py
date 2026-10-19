@@ -151,7 +151,9 @@ class Continuity(Base):
         from eaos import ledger
         self.assertEqual({c['state'] for c in ledger.load(state)['cards'].values() if c['id'] == 'TASK-001'}, {'open'},
                          'its cards are free at once, not left "in the batch" for every next one to refuse')
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.detect', return_value={'profile': None, 'limitations': []}):
+        from eaos import live_setup
+        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.detect', return_value=live_setup._unknown_app()), \
+                mock.patch('eaos.agent_tools._start'):
             for _ in range(2): agent_tools.run_setup(str(self.project), person_agreed=True)
         self.assertEqual(sum(q['id'] == 'run_and_fix' for q in guided.load(self.project)['questions']), 1, 'asked once')
 

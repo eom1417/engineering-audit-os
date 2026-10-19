@@ -253,7 +253,7 @@ function factsHTML(r, rs, events) {
   rows.push([t('ac.f.who'), esc(ac.whoWord(r))], [t('ac.f.by'), esc(t('ac.line.by.' + byOf(r)))], [t('ac.f.created'), ac.when(r.created)]);
   const m = ac.took(r);
   if (ac.ended(r) && m) rows.push([t('ac.f.took'), esc(ac.minutes(m))]);
-  else if (r.started && rs !== 'queued') rows.push([t('ac.f.elapsed'), ac.ticker(r.started)]);
+  else if (r.started && rs !== 'queued') rows.push([t('ac.f.elapsed'), ac.runTicker(r, r.started)]);
   rows.push([t('ac.f.attempt'), num(r.attempt || 1)]);
   const cards = r.cards || [];
   if (cards.length) rows.push([t('ac.f.problems'), `${esc(tn('pl.problem', cards.length))}: ${cards.slice(0, 4).map(id => `<a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a>`).join(' ')}${cards.length > 4 ? ' …' : ''}`]);

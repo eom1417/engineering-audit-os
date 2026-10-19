@@ -74,7 +74,8 @@ def project_state(project=None, new=False):
     if not state:
         state = {'schema_version': 1, 'project': str(folder), 'workspace': str(guided.workspace(folder)),
                  'started': _now(), 'questions': [], 'lang': guided.language()}
-        guided.save(state)
+    # its report's folder kept from the start: a run of its app is shown only that folder (eaos/sandbox.py _own)
+    if not state.get('outputs') and guided.outputs(state): guided.save(state)
     return state
 
 
@@ -317,18 +318,19 @@ def _fresh_report(state):
 # ---------------------------------------------------------------- diagnosis
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None, sign_in=None, published=None):
+          paths=None, mode=None, sign_in=None, published=None, run_app=False):
     """`use_assistant`, `assistant` (claude or codex): the person's choice for the check's AI, kept. One not ready
     (eaos/assistants/readiness.py) stops the check before it starts, with why and the fix; `without_ai`: this one check with
     the rules alone. `again_from`: the last check goes on from that stage on the checked commit, it and the stages reading
     it run again and the rest is kept (`engines`: only those tools). `paths`: only those (eaos/pipeline/paths.py); `mode`:
-    normal or speed, `sign_in`: hand, test_user or none, kept (eaos/check_choices.py); `published`: an address read signed in."""
+    normal or speed, `sign_in`: hand, test_user or none, kept (eaos/check_choices.py); `published`: an address read signed in;
+    `run_app`: the person's yes to run their app in an isolated copy, kept (its pages, sign-in and speed need it)."""
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
     if use_assistant is not None or assistant:          # the person's choice for the check's AI, kept when made now
         state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
-    if check_choices.keep(state, mode, sign_in): guided.save(state)
+    if check_choices.keep(state, mode, sign_in, run_app): guided.save(state)
     # A check on record stands until asked for anew (fresh): one started because the code moved on stopped fixes (2026-10-10).
     if guided.scan_done(state) and not fresh and not again_from:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
@@ -682,9 +684,7 @@ def run_setup(project=None, person_agreed=False):
     from . import live_setup, run_profile
     head = _head(state)
     if not head: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
-    state['consent'] = {'run_and_fix': True, 'at': _now()}
-    if not any(q.get('id') == 'run_and_fix' for q in state.setdefault('questions', [])):     # asked once, not once a run
-        state['questions'].append({'id': 'run_and_fix', 'kind': 'yes_no', 'answer': True, 'via': 'assistant'})
+    check_choices.agree_to_run(state, 'assistant')
     guided.save(state)
     runtime = guided.runtime_of(state)
     who = guided._git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
@@ -693,8 +693,6 @@ def run_setup(project=None, person_agreed=False):
     detected = live_setup.detect(source, guided.report_of(state))
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    if detected['profile'] is None:
-        return {'status': 'cannot_run', 'limitations': detected['limitations']}
     run_profile.write_profile(runtime, live_setup.kept(runtime, detected['profile']))     # its secrets kept: a session holds
     return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
 
@@ -709,7 +707,8 @@ def run_try(proposal=None, mode='lock', project=None):
     refused = run_profile.safe(proposal or {})
     if refused:
         return {'status': 'refused', 'reasons': refused,
-                'rules': 'Every address is 127.0.0.1 or localhost; commands are npm, npx, pnpm, yarn, bun, node or corepack only; '
+                'rules': 'Every address is 127.0.0.1 or localhost; commands start with npm, npx, pnpm, yarn, bun, node, corepack, python, '
+                         'pip, uv, poetry, uvicorn or gunicorn; '
                          'nothing deploys or reaches a hosted service; no real secret. Use {database_url} and {run_dir}.'}
     return _start('run_try', state, {'proposal': proposal, 'mode': mode})
 

@@ -1,5 +1,5 @@
 // The check's stages (CHK-08..11): the stages of the last check as /api/progress tells them (eaos/progress.py: each
-// with its layer, needs, state, reason, steps, programs, files and what it reported), drawn by layer; one stage's
+// with its part, needs, state, reason, steps, programs, files and what it reported), drawn by part; one stage's
 // sheet (S-16, CHK-09); "Redo from here" with its free preview (CHK-10, POST /api/actions/audit/preview with
 // again_from); and the replay of a finished check from its own start and end times (CHK-11).
 import {
@@ -26,7 +26,7 @@ export function stagesOf(flow, run, at) {
   if (!flow || !flow.stages) return [];
   const start = Date.parse(flow.started_at);
   return flow.stages.map(s => {
-    const out = { id: s.name, layer: s.layer || 0, needs: s.requires || [], ai: !!s.ai, optional: s.necessity !== 'required', requested: s.requested !== false, raw: s };
+    const out = { id: s.name, run, part: PARTS.indexOf(s.phase), needs: s.requires || [], ai: !!s.ai, optional: s.necessity !== 'required', requested: s.requested !== false, raw: s };
     out.state = shownState(Object.assign({ id: s.name }, s), run);
     if (at != null && s.started_at) {
       const from = (Date.parse(s.started_at) - start) / 1000, to = s.ended_at ? (Date.parse(s.ended_at) - start) / 1000 : Infinity;
@@ -45,10 +45,11 @@ export function summary(c) {
 function focusOf(list) {
   return (list.find(s => s.state === 'running' || s.state === 'you') || list.find(s => s.state === 'failed') || list.slice().reverse().find(s => s.state === 'ok') || {}).id;
 }
-/** A stage's own time: counting while it runs, what it took once it ended (none for a stage that did not run). */
+/** A stage's own time: counting while it runs (frozen while its check is paused), what it took once it ended (none for
+ *  a stage that did not run). */
 export function stageTime(s, cls) {
   const raw = s.raw || {};
-  if (s.state === 'running' || s.state === 'you') return ac.ticker(raw.started_at, null, cls);
+  if (['running', 'you', 'paused'].includes(s.state)) return ac.runTicker(s.run, raw.started_at, cls);
   return ['ok', 'failed', 'partial'].includes(s.state) && raw.seconds != null ? ac.ticker(null, raw.seconds, cls) : '';
 }
 /** A running stage's counted step, as a bar that fills with it ("12 of 40"). */
@@ -62,13 +63,23 @@ export function stageButton(s, focus) {
     ${ac.glyph(s.state)}<span class="ac-stg__name">${esc(stageTitle(s.id))}<span class="sr-only">, ${esc(ac.stateWord(s.state))}</span></span>
     ${s.ai ? `<span class="ac-stg__ai" title="${esc(t('ac.stg.ai'))}">${icon('ai', 'icon--sm')}<span class="sr-only">${t('ac.stg.ai')}</span></span>` : ''}${stageTime(s, 'ac-stg__t')}${stageCount(s)}</button></li>`;
 }
-/** Every stage in its dependency layer; the running stage (else the failed one, else the last ended) in focus. */
+/** The five parts of a check, in the order a check goes through them (eaos/pipeline/stages.py PHASES). */
+export const PARTS = ['read', 'tools', 'app', 'assistant', 'plan'];
+/** A part's own time without its check's pauses: from its first stage's start, counting while one of its stages
+ *  runs, else to its last end. */
+function partTime(row) {
+  const began = row.map(s => s.raw.started_at).filter(Boolean).sort()[0];
+  if (!began) return '';
+  if (row.some(s => ['running', 'you', 'paused'].includes(s.state))) return ac.runTicker(row[0].run, began, 'ac-stg__t');
+  const ended = row.map(s => s.raw.ended_at).filter(Boolean).sort().pop();
+  return ended ? ac.ticker(null, (Date.parse(ended) - Date.parse(began)) / 1000 - ac.pausedIn(row[0].run, Date.parse(began), Date.parse(ended)), 'ac-stg__t') : '';
+}
+/** Every stage in its part, the parts in their order; the running stage (else the failed one, else the last ended) in focus. */
 export function board(list, follow) {
   const focus = follow === false ? null : focusOf(list);
-  const layers = [];
-  list.forEach(s => { (layers[s.layer] = layers[s.layer] || []).push(s); });
-  return `<div class="ac-board">${layers.filter(Boolean).map((row, i) => `<section class="ac-layer" aria-label="${esc(t('ac.run.layer', { n: num(i + 1) }))}">
-      <h3 class="ac-layer__h"><span class="ac-layer__n num">${num(i + 1)}</span>${t('ac.run.layer', { n: num(i + 1) })}</h3>
+  return `<div class="ac-board">${PARTS.map((part, i) => [part, i, list.filter(s => s.part === i)]).filter(([, , row]) => row.length).map(([part, i, row]) => `<section class="ac-layer" aria-label="${esc(t('ac.part.' + part))}">
+      <h3 class="ac-layer__h"><span class="ac-layer__n num">${num(i + 1)}</span><b>${t('ac.part.' + part)}</b>
+        <span class="ac-layer__meta"><span class="small muted">${esc(t('ac.stg.of', { done: num(finished(row)), total: num(row.length) }))}</span>${partTime(row)}</span></h3>
       <ul class="ac-layer__list">${row.map(s => stageButton(s, s.id === focus)).join('')}</ul></section>`).join('')}</div>`;
 }
 /** The whole check's length, from its stages' own times (for the replay). */
@@ -139,7 +150,7 @@ sheet('stage', {
     const files = (raw.artifacts || []).length ? `<ul class="ac-files">${raw.artifacts.map(p => fileRow(p, own)).join('')}</ul>`
       : `<p class="small muted">${t(['ok', 'partial'].includes(st) ? 'ac.stg.files.none' : 'ac.stg.files.later')}</p>`;
     const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
-    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${raw.programs.map(p => `${code(p.name || p)}${p.since ? ' ' + t('ac.stg.prog', { t: ac.ticker(p.since) }) : ''}`).join(', ')}</span></div>`
+    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${raw.programs.map(p => `${code(p.name || p)}${p.since ? ' ' + t('ac.stg.prog', { t: ac.runTicker(s.run, p.since) }) : ''}`).join(', ')}</span></div>`
       : raw.activity_note ? `<p class="small ink-2">${rich(raw.activity_note)}</p>` : '';
     const ended = run && ac.ended(run) && f.state !== 'running';
     const tools = failedTools(s);
@@ -160,7 +171,7 @@ sheet('stage', {
         <dl class="facts">
           <dt>${t('ac.stg.needs')}</dt><dd>${needs}</dd>
           <dt>${t('ac.stg.required')}</dt><dd>${t(s.optional ? 'ac.stg.optional' : 'ac.stg.required.v')}</dd>
-          <dt>${t('ac.stg.time')}</dt><dd>${stageTime(s) ? t(st === 'running' || st === 'you' ? 'ac.stg.time.running' : 'ac.stg.time.took', { t: stageTime(s, 'ac-tick--big') }) : '—'} <span class="muted">${esc(t('ac.stg.last', { t: last ? ac.secs(last) : t('ac.stg.last.none') }))}</span></dd>
+          <dt>${t('ac.stg.time')}</dt><dd>${stageTime(s) ? t(['running', 'you', 'paused'].includes(st) ? 'ac.stg.time.running' : 'ac.stg.time.took', { t: stageTime(s, 'ac-tick--big') }) : '—'} <span class="muted">${esc(t('ac.stg.last', { t: last ? ac.secs(last) : t('ac.stg.last.none') }))}</span></dd>
           <dt>${t('ac.stg.kept')}</dt><dd>${t(raw.resumed ? 'ac.stg.kept.yes' : 'ac.stg.kept.no')}</dd>
         </dl>
         <div><div class="block-title">${t('ac.stg.steps')}</div>${steps}</div>
@@ -185,13 +196,13 @@ sheet('redo-pick', {
   kind: 'drawer',
   render() {
     const run = ac.lastCheck();
-    const list = stagesOf(flow(), run).filter(x => ['ok', 'failed', 'partial'].includes(x.state)).sort((a, b) => a.layer - b.layer);
+    const list = stagesOf(flow(), run).filter(x => ['ok', 'failed', 'partial'].includes(x.state)).sort((a, b) => a.part - b.part);
     const ended = run && ac.ended(run) && flow() && flow().state !== 'running';
     return {
       title: esc(t('ac.pick.title')),
       sub: run ? `<span class="muted">${esc(ac.runLabel(run))}</span>` : '',
       body: !ended || !list.length ? `<p class="small ink-2">${t(ended ? 'ac.pick.none' : 'ac.stg.redo.running')}</p>`
-        : `<p class="small ink-2">${t('ac.pick.guide')}</p><ul class="panel rows">${list.map(x => `<li><button class="row" data-act="sheet" data-sheet="redo:${esc(x.id)}">${ac.glyph(x.state)}<span class="row__main"><span class="row__title">${esc(stageTitle(x.id))}</span><span class="row__meta" style="display:block">${esc(t('ac.pick.layer', { n: num(x.layer + 1) }))}</span></span>${icon('chev', 'icon--dir muted')}</button></li>`).join('')}</ul>`,
+        : `<p class="small ink-2">${t('ac.pick.guide')}</p><ul class="panel rows">${list.map(x => `<li><button class="row" data-act="sheet" data-sheet="redo:${esc(x.id)}">${ac.glyph(x.state)}<span class="row__main"><span class="row__title">${esc(stageTitle(x.id))}</span><span class="row__meta" style="display:block">${esc(t('ac.part.' + PARTS[x.part]))}</span></span>${icon('chev', 'icon--dir muted')}</button></li>`).join('')}</ul>`,
     };
   },
 });

@@ -682,13 +682,13 @@ class Manager:
         pid = record.get('pid') or self._job_pid(record)
         if not pid: raise LookupError('this step cannot be paused; it finishes in a moment')
         _signal(pid, signal.SIGSTOP)
-        return self.set_state(run, 'paused', paused_pid=pid)
+        return self.set_state(run, 'paused', paused_pid=pid, paused_at=now())     # resume keeps it a span the clocks leave out
 
     def resume(self, run):
         record = self.store.load(run)
         if record.get('state') != 'paused': raise LookupError('only a paused run can be resumed')
         _signal(record.get('paused_pid') or record.get('pid'), signal.SIGCONT)
-        return self.set_state(run, 'running', 'resumed', paused_pid=None)
+        return self.set_state(run, 'running', 'resumed', paused_pid=None, paused_at=None, paused=(record.get('paused') or []) + [[record.get('paused_at') or now(), now()]])
 
     def _job_pid(self, record):
         if not record.get('job'): return None

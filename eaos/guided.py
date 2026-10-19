@@ -514,11 +514,9 @@ def check_provider(state):
 
 
 def check_runtime(state):
-    """The folder the check runs the app in, an isolated copy, once the person agreed to run it: asked by `eaos next`
-    (question `run_app`), or given to the assistant or the Studio (`run_setup`, consent `run_and_fix`); None otherwise,
-    and the check reads the code alone."""
-    agreed = answered(state, 'run_app') or bool((state.get('consent') or {}).get('run_and_fix'))
-    return runtime_of(state) if agreed else None
+    """The folder the check runs the app in, an isolated copy, once the person agreed to run it
+    (check_choices.agreed_to_run); None otherwise, and the check reads the code alone."""
+    return runtime_of(state) if check_choices.agreed_to_run(state) else None
 
 
 def agree_to_assistant(state, yes):
