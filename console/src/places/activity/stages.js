@@ -78,8 +78,8 @@ function partTime(row) {
 export function board(list, follow) {
   const focus = follow === false ? null : focusOf(list);
   return `<div class="ac-board">${PARTS.map((part, i) => [part, i, list.filter(s => s.part === i)]).filter(([, , row]) => row.length).map(([part, i, row]) => `<section class="ac-layer" aria-label="${esc(t('ac.part.' + part))}">
-      <h3 class="ac-layer__h"><span class="ac-layer__n num">${num(i + 1)}</span>${t('ac.part.' + part)}
-        <span class="small muted">${esc(t('ac.stg.of', { done: num(finished(row)), total: num(row.length) }))}</span>${partTime(row)}</h3>
+      <h3 class="ac-layer__h"><span class="ac-layer__n num">${num(i + 1)}</span><b>${t('ac.part.' + part)}</b>
+        <span class="ac-layer__meta"><span class="small muted">${esc(t('ac.stg.of', { done: num(finished(row)), total: num(row.length) }))}</span>${partTime(row)}</span></h3>
       <ul class="ac-layer__list">${row.map(s => stageButton(s, s.id === focus)).join('')}</ul></section>`).join('')}</div>`;
 }
 /** The whole check's length, from its stages' own times (for the replay). */
