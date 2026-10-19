@@ -8,6 +8,7 @@ import {
 } from 'eaos';
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
+import { clockHTML } from './clock.js';
 
 const enc = encodeURIComponent;
 const SHOWN = 60;                 // the newest timeline lines drawn; the rest one press away
@@ -38,7 +39,7 @@ afterRender(ctx => {
 /* ---------- what the page says ---------- */
 const pathName = p => (has('ac.path.' + p) ? t('ac.path.' + p) : p);
 function checkLede(r, rs, list) {
-  const at = { stage: num(Math.min(finished(list) + 1, list.length || 1)), total: num(list.length) };
+  const at = { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) };
   if (rs === 'done') {
     const own = ac.flowOfRun(r), lost = list.filter(lostOf).length;
     if (own && lost) return t('ac.run.check.lost.lede', { took: ac.minutes(ac.took(r) || 1), stages: tn('pl.stage', lost), problems: tn('pl.problem', model.totals().problems) });
@@ -252,7 +253,7 @@ function factsHTML(r, rs, events) {
   rows.push([t('ac.f.who'), esc(ac.whoWord(r))], [t('ac.f.by'), esc(t('ac.line.by.' + byOf(r)))], [t('ac.f.created'), ac.when(r.created)]);
   const m = ac.took(r);
   if (ac.ended(r) && m) rows.push([t('ac.f.took'), esc(ac.minutes(m))]);
-  else if (r.started && rs !== 'queued' && m) rows.push([t('ac.f.elapsed'), esc(t('ac.f.elapsed.v', { n: num(m) }))]);
+  else if (r.started && rs !== 'queued') rows.push([t('ac.f.elapsed'), ac.ticker(r.started)]);
   rows.push([t('ac.f.attempt'), num(r.attempt || 1)]);
   const cards = r.cards || [];
   if (cards.length) rows.push([t('ac.f.problems'), `${esc(tn('pl.problem', cards.length))}: ${cards.slice(0, 4).map(id => `<a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a>`).join(' ')}${cards.length > 4 ? ' …' : ''}`]);
@@ -288,7 +289,8 @@ function runPage(ctx) {
   const top = `<div class="context">${ac.mark(rs)}<span class="tag tag--state">${esc(ac.kindWord(r))}</span>${byOf(r) === 'terminal' ? `<span class="tag tag--state">${icon('terminal')}${t('ac.line.by.terminal')}</span>` : ''}<bdi class="mono muted" style="align-self:center">${esc(r.id)}</bdi></div>`;
   const stamp = replaying ? `<div class="ac-stamp" role="status">${icon('history')}<span><b>${esc(t('ac.replay.stamp', { x: num(replaying) }))}</b> <span class="ac-stamp__at">${esc(t('ac.replay.at', { n: num(finished(list)), total: num(list.length) }))}</span></span>
     <a class="btn btn--secondary btn--sm" href="${href('/activity/run/' + enc(r.id))}">${t('ac.replay.back')}</a></div>` : '';
-  const progress = r.action === 'audit' && list.length && rs !== 'done' ? `${ac.progressBar(finished(list) / list.length, '')}<p class="small ink-2 ac-under">${esc(t(rs === 'stopped' ? 'ac.run.check.stopped.at' : 'ac.run.check.at', { stage: num(Math.min(finished(list) + 1, list.length)), total: num(list.length) }))}</p>` : '';
+  const clock = r.action === 'audit' && !replaying && rs !== 'queued' ? clockHTML(r, flow, list) : '';
+  const progress = r.action === 'audit' && list.length && rs !== 'done' ? `${ac.progressBar(finished(list) / list.length, '')}<p class="small ink-2 ac-under">${esc(t(rs === 'stopped' ? 'ac.run.check.stopped.at' : 'ac.run.check.at', { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) }))}</p>` : '';
   const stages = r.action === 'audit' ? `<section class="section" aria-labelledby="stg-h"><div class="section-head"><h2 id="stg-h">${t('ac.run.stages')}</h2>
       ${rs === 'running' ? `<label class="ac-inline-switch small ink-2"><span class="switch"><input type="checkbox" data-change="ac-follow" data-fk="follow" ${follow ? 'checked' : ''} aria-label="${esc(t('ac.run.follow'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span>${t('ac.run.follow')}</label>` : ''}</div>
       ${list.length ? `<p class="small ink-2" style="margin-bottom:12px"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
@@ -307,6 +309,7 @@ function runPage(ctx) {
     ${stamp}
     <div class="ac-run-cols">
       <div class="ac-run-main">
+        ${clock}
         ${progress}
         ${view.question && rs === 'you' ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('waiting')}<span class="row__main small">${rich(L(view.question.text))}</span><a class="btn btn--secondary btn--sm" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a></div>` : ''}
         ${resultHTML(r, rs, view)}

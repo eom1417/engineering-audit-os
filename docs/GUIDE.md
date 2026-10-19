@@ -233,11 +233,11 @@ Everything the Studio governs works from the Terminal too, with no Studio open (
 | Command | What it does |
 | --- | --- |
 | `eaos check [--path security] [--assistant none] [--watch]` | Says how long it takes, then checks in the background (nothing in your project changes) |
-| `eaos watch` | Follows the run live: the stage, the time left, the cost so far, and its questions |
+| `eaos watch` | Follows the run live: the time since it began, the stage, the time left, the cost so far, and its questions |
 | `eaos stop`, `pause`, `resume`, `retry`, `eaos runs` | The queue of runs |
 | `eaos waiting`, `eaos answer <id> <option>` | What waits for you, and your answer |
 | `eaos check --sign-in hand` (or `test_user`, `none`; kept), `eaos sign-in` | How the check opens the pages behind your app's sign-in; and signing in when it asks (below) |
-| `eaos problems`, `eaos problem <id>` | What the check found, and one problem whole with its evidence |
+| `eaos problems [--area security] [--severity high]`, `eaos problem <id>` | What the check found (filtered as in the Studio), and one problem whole with its evidence |
 | `eaos fix <ids>` (or `--group severity=high`), `verify`, `explain`, `plan` | A preview first (cards, files, time, risk), then the run |
 | `eaos accept`, `eaos undo` | Says what will happen and asks your yes (or `--yes`) |
 | `eaos branch [name]`, `eaos branches [merge|delete|protect|unprotect|cleanup|restore]` | The branch EAOS works on; and every branch change, a preview then your yes |

@@ -105,7 +105,9 @@ def watch(args, lang):
 def _status_line(actions, record, lang):
     from . import plain
     found = govern.progress(actions, record)
-    parts = [plain.stage(found['stage'], lang) + f" ({found['done']}/{found['total']})" if found['stage'] else None,
+    clock = found['seconds'] and f"{found['seconds'] // 3600}:{found['seconds'] // 60 % 60:02d}:{found['seconds'] % 60:02d}"
+    parts = [words('elapsed', lang, clock=clock) if clock and record.get('state') == 'running' else None,
+             plain.stage(found['stage'], lang) + f" ({found['done']}/{found['total']})" if found['stage'] else None,
              words('left', lang, minutes=found['minutes_left']) if found['minutes_left'] is not None else None,
              words('cost', lang, cost=found['cost_usd']) if found['cost_usd'] else None]
     return '   ⏱  ' + ' · '.join(p for p in parts if p) if any(parts) else None
@@ -125,8 +127,8 @@ def _ask_inline(project, question, lang):
 
 
 def follow(project, run, lang):
-    """A run, live: its events as they come; every few seconds its stage, the time left and the cost so far; its
-    questions. Back when it ends, or on Ctrl-C while it goes on."""
+    """A run, live: its events as they come; every half minute the time since it began, its stage, the time left and
+    the cost so far; its questions. Back when it ends, or on Ctrl-C while it goes on."""
     actions, after, asked, shown, beat = govern.core(project), 0, None, None, 0.0
     try:
         while True:
@@ -142,7 +144,7 @@ def follow(project, run, lang):
             if question and question['id'] != asked:
                 asked = question['id']
                 _ask_inline(project, question, lang)
-            line = _status_line(actions, record, lang) if time.monotonic() - beat > 10 else None
+            line = _status_line(actions, record, lang) if time.monotonic() - beat > 30 else None
             if line and line != shown: say(line); shown, beat = line, time.monotonic()
             time.sleep(1)
     except KeyboardInterrupt:
@@ -235,7 +237,7 @@ def _codes(codes, lang):
 @command
 def problems(args, lang):
     from .agent_tools import findings
-    found = findings(args.project, args.kind, args.where, args.text, args.fixable, args.limit, args.offset)
+    found = findings(args.project, args.kind, args.where, args.text, args.fixable, args.limit, args.offset, args.area, args.severity)
     for row in found['findings']:
         say(f"{row['id']}  {'🔧' if row['fixable_automatically'] else '  '} {row.get('title') or ''}  ({', '.join(row.get('paths') or [])})")
     first = found['findings'][0]['id'] if found['findings'] else '<id>'
@@ -412,7 +414,7 @@ def compare(args, lang):
 
 def _use(found):
     if not found: return '-'
-    cost = f"${found['cost_usd']}" if found.get('cost_usd') is not None else '$?'
+    cost = f"${found['cost_usd']:.2f}" if found.get('cost_usd') is not None else '$?'
     return f"{cost}  {sum(found.get(k) or 0 for k in ('input', 'cache_write', 'cache_read', 'output', 'thinking')):,} tokens  {found.get('calls', 0)} call(s)"
 
 

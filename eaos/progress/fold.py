@@ -36,7 +36,7 @@ def _run_started(state, row):
     state.clear()
     state.update(empty(), flow=row.get('flow') or 'check', run=row.get('run'), state=RUNNING, started_at=row.get('at'),
                  requested=list(requested), previous=row.get('previous') or {}, previous_steps=row.get('previous_steps') or {},
-                 alive_every=row.get('alive_every'), pid=row.get('pid'), host=row.get('host'), **({'mode': row['mode']} if row.get('mode') else {}))
+                 alive_every=row.get('alive_every'), pid=row.get('pid'), host=row.get('host'), **{key: row[key] for key in ('mode', 'assistants') if row.get(key)})
     state['stages'] = [_stage(s, set(requested)) for s in row.get('stages') or [] if isinstance(s, dict) and s.get('name')]
 
 

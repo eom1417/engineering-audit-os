@@ -26,6 +26,7 @@ from pathlib import Path
 from ..aspects import ASPECTS, VERDICTS
 from ..assistants.command import Stuck
 from ..card_review import triage_verdicts
+from ..target_architecture import guard_words
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug
 from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short, UNTRUSTED
 
@@ -573,7 +574,7 @@ def disagreements(report, lang='ar'):
     rows = []
     for row in target.get('disagreements') or []:
         kept = 'assistant' if row['label'] == 'ai_modified' else 'rule'
-        question = (f"{row['element']}: القواعد تقول «{row['rule']}» ومساعدك قال «{row['assistant']}». {row['why']}" if ar else
+        question = (f"{row['element']}: القواعد تقول «{row['rule']}» ومساعدك قال «{row['assistant']}». {guard_words(row['why'], ar)}" if ar else
                     f"{row['element']}: the rules say \"{row['rule']}\" and your assistant said \"{row['assistant']}\". {row['why']}")
         rows.append({'id': f"disagree-{_slug(row['element'])}", 'question': _short(question, 600),
                      'recommendation': ('رأي مساعدك، لأن له دليلًا ومرّ الضوابط' if kept == 'assistant' else 'رأي القواعد، لأن ضابطًا منع رأي مساعدك')

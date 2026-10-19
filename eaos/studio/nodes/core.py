@@ -383,6 +383,7 @@ class _Run:
         self.subjects, self.known = list(spec.subjects(data)), set(spec.known(report, data))
         self.at, self.began = now(), time.monotonic()
         self.base = {'at': self.at, 'inputs': digest(data), 'passes': list(node.passes), 'summary': ''}
+        self.unanswered = None      # {asked, failed, why}: some batches failed, the rules decided their subjects
 
     def done(self, row, key=None):
         row = keep(self.report, self.node, row, key, self.settings['logged'])
@@ -466,7 +467,10 @@ class _Run:
         the assistant is stuck or stopped. Then a planning node's critique pass."""
         outcomes = self._batches(launcher, asks)
         failed = [problem for problem in outcomes if isinstance(problem, Exception)]
-        if failed and (len(failed) == len(outcomes) or any(isinstance(p, Stuck) for p in failed) or self._stopped()): raise failed[0]
+        stuck = next((p for p in failed if isinstance(p, Stuck)), None)
+        if failed and (len(failed) == len(outcomes) or stuck or self._stopped()): raise stuck or failed[0]
+        if failed:      # the record says so, and the check is partial (eaos/pipeline/runners.py _partly)
+            self.unanswered = {'asked': len(outcomes), 'failed': len(failed), 'why': short(f'{type(failed[0]).__name__}: {failed[0]}', 300)}
         answer = _joined([one for one in outcomes if not isinstance(one, Exception)])
         if 'critique' not in self.node.passes: return answer, None
         return self._critique(launcher, answer, asks[0][2], asked, detail)
@@ -539,7 +543,8 @@ class _Run:
                             'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': cached, 'calls': len(asked),
                             'seconds': round(time.monotonic() - self.began, 1),
                             'cost_usd': spent(launcher), 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
-                     kept + left, dropped, critique=critique if isinstance(critique, dict) else None)
+                     kept + left, dropped, critique=critique if isinstance(critique, dict) else None,
+                     **({'batches': self.unanswered} if self.unanswered else {}))
         self.tell(f'{node.title}: {len(kept)} decisions with their evidence, {len(dropped)} dropped without it',
                   f'{node.title}: {len(kept)} قرارًا بدليله، وحُذف {len(dropped)} بلا دليل')
-        return self.done(row, key)
+        return self.done(row, None if self.unanswered else key)     # a partial answer is never the cached whole

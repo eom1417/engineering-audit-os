@@ -41,6 +41,25 @@ export function secs(s) {
   if (s < 60) return t('ac.sec', { n: num(Math.round(s)) });
   return minutes(Math.round(s / 60));
 }
+/** A stopwatch: m:ss, h:mm:ss past the hour, in Western digits read left to right. */
+export function stopwatch(s) {
+  const n = Math.max(0, Math.floor(s || 0)), h = Math.floor(n / 3600), m = Math.floor(n / 60) % 60, x = n % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
+}
+/** The seconds since `iso` on the server's clock (live.skew: how far it runs ahead of this browser's). */
+export const since = iso => Math.max(0, (Date.now() + (live.skew || 0) - Date.parse(iso)) / 1000);
+/** A live time: counting up from `from` each second while `upTo` is unset (the ticker below rewrites only these marks,
+ *  the screen is never drawn again for it); `took` seconds once it ended. Empty when neither is known. */
+export function ticker(from, took, cls) {
+  if (took != null) return `<bdi class="num ac-tick ${cls || ''}" dir="ltr">${stopwatch(took)}</bdi>`;
+  if (!from || isNaN(Date.parse(from))) return '';
+  return `<bdi class="num ac-tick ac-tick--live ${cls || ''}" dir="ltr" data-since="${esc(from)}" aria-live="off">${stopwatch(since(from))}</bdi>`;
+}
+/* the one ticker: a querySelectorAll a second, idle when no live time is on screen */
+setInterval(() => document.querySelectorAll('[data-since]').forEach(el => {
+  const v = stopwatch(since(el.dataset.since));
+  if (el.textContent !== v) el.textContent = v;
+}), 1000);
 export function minutes(m) { return m >= 120 ? t('ac.hm', { h: num(Math.floor(m / 60)), m: num(m % 60) }) : tn('pl.minute', m); }
 /** A cost, isolated left to right inside Arabic. */
 export function money(v) { return v == null ? null : '⁦$' + Number(v).toFixed(2) + '⁩'; }

@@ -14,6 +14,7 @@ export const stageDoes = s => (has('ac.stage.' + s.id + '.does') ? t('ac.stage.'
 /** The state the board draws for one stage of the flow: the run's pause, a sign-in it waits for and a stop shown. */
 function shownState(s, run) {
   const st = { not_reached: 'notreached', skipped: s.reason_code === 'outside_paths' ? 'notin' : 'skipped' }[s.state] || s.state;
+  if (st === 'ok' && (s.detail || {}).assistant_lost) return 'partial';     // its assistant answered part of it only
   if (run && run.state === 'paused' && st === 'running') return 'paused';
   if (s.id === 'session' && st === 'running' && store.live.signIn && store.live.signIn.asked) return 'you';
   if (run && run.state === 'stopped' && (st === 'running' || st === 'waiting')) return st === 'running' ? 'stopped' : 'notreached';
@@ -44,11 +45,22 @@ export function summary(c) {
 function focusOf(list) {
   return (list.find(s => s.state === 'running' || s.state === 'you') || list.find(s => s.state === 'failed') || list.slice().reverse().find(s => s.state === 'ok') || {}).id;
 }
+/** A stage's own time: counting while it runs, what it took once it ended (none for a stage that did not run). */
+export function stageTime(s, cls) {
+  const raw = s.raw || {};
+  if (s.state === 'running' || s.state === 'you') return ac.ticker(raw.started_at, null, cls);
+  return ['ok', 'failed', 'partial'].includes(s.state) && raw.seconds != null ? ac.ticker(null, raw.seconds, cls) : '';
+}
+/** A running stage's counted step, as a bar that fills with it ("12 of 40"). */
+function stageCount(s) {
+  const step = s.state === 'running' && (s.raw.steps || []).filter(x => x.kind === 'count' && x.total && x.status === 'running').pop();
+  return step ? `<span class="ac-stg__count">${ac.progressBar(step.done / step.total, step.name)}<span class="num small muted">${esc(t('ac.stg.of', { done: num(step.done || 0), total: num(step.total) }))}</span></span>` : '';
+}
 export function stageButton(s, focus) {
   const dim = ['skipped', 'notin', 'unavailable'].includes(s.state) || !s.requested;
   return `<li><button class="ac-stg ac-stg--${esc(s.state)} ${focus ? 'is-focus' : ''} ${dim ? 'is-dim' : ''}" data-act="sheet" data-sheet="stage:${esc(s.id)}" data-fk="stg-${esc(s.id)}">
     ${ac.glyph(s.state)}<span class="ac-stg__name">${esc(stageTitle(s.id))}<span class="sr-only">, ${esc(ac.stateWord(s.state))}</span></span>
-    ${s.ai ? `<span class="ac-stg__ai" title="${esc(t('ac.stg.ai'))}">${icon('ai', 'icon--sm')}<span class="sr-only">${t('ac.stg.ai')}</span></span>` : ''}</button></li>`;
+    ${s.ai ? `<span class="ac-stg__ai" title="${esc(t('ac.stg.ai'))}">${icon('ai', 'icon--sm')}<span class="sr-only">${t('ac.stg.ai')}</span></span>` : ''}${stageTime(s, 'ac-stg__t')}${stageCount(s)}</button></li>`;
 }
 /** Every stage in its dependency layer; the running stage (else the failed one, else the last ended) in focus. */
 export function board(list, follow) {
@@ -71,8 +83,9 @@ const stepGlyph = st => (['ok', 'observed', 'done'].includes(st) ? 'ok' : ['erro
 const stepWord = st => (has('ac.step.' + st) ? t('ac.step.' + st) : st);
 function stepRow(x) {
   const prog = x.total ? t('ac.stg.of', { done: num(x.done || 0), total: num(x.total) }) : '';
-  return `<li class="row" style="min-height:48px">${ac.glyph(stepGlyph(x.status))}<span class="row__main"><bdi class="mono">${esc(x.name)}</bdi>
-    <span class="row__meta" style="display:block">${esc(stepWord(x.status))}${x.reason ? `: ${rich(x.reason)}` : ''}</span></span><span class="num small muted">${esc(x.seconds ? ac.secs(x.seconds) : prog)}</span></li>`;
+  const bar = x.kind === 'count' && x.total ? ac.progressBar((x.done || 0) / x.total, x.name) : '';
+  return `<li class="row ac-step" style="min-height:48px">${ac.glyph(stepGlyph(x.status))}<span class="row__main"><bdi class="mono">${esc(x.name)}</bdi>
+    <span class="row__meta" style="display:block">${esc(stepWord(x.status))}${x.reason ? `: ${rich(x.reason)}` : ''}</span>${x.status === 'running' ? bar : ''}</span><span class="num small muted">${x.seconds ? ac.ticker(null, x.seconds) : esc(prog)}</span></li>`;
 }
 /** A reported value a person reads: numbers and words, never a path of this computer. */
 const shown = v => (v != null && typeof v !== 'object' && !/^\//.test(String(v)));
@@ -87,7 +100,7 @@ function why(s) {
 export function lostOf(s) {
   const raw = (s && s.raw) || {}, said = String(raw.reason || '');
   const kept = (raw.detail || {}).assistant_lost;
-  if (kept) return { assistant: kept.assistant || null, resets: kept.resets || null, code: raw.reason_code || '' };
+  if (kept) return { assistant: kept.assistant || null, resets: kept.resets || null, code: kept.code || raw.reason_code || '' };
   const old = said.match(/^during the check (.+?) stopped answering \(([a-z_]+)\)/);
   if (!old) return null;
   const back = said.match(/resets? (?:at )?([0-9][0-9:]*\s*(?:[ap]m\b|hours?\b|minutes?\b)?(?:\s*\([A-Za-z0-9+:-]+\))?)/i);
@@ -126,7 +139,7 @@ sheet('stage', {
     const files = (raw.artifacts || []).length ? `<ul class="ac-files">${raw.artifacts.map(p => fileRow(p, own)).join('')}</ul>`
       : `<p class="small muted">${t(['ok', 'partial'].includes(st) ? 'ac.stg.files.none' : 'ac.stg.files.later')}</p>`;
     const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
-    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${raw.programs.map(p => `${code(p.name || p)}${p.seconds ? ' ' + esc(t('ac.stg.prog', { t: ac.secs(p.seconds) })) : ''}`).join(', ')}</span></div>`
+    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${raw.programs.map(p => `${code(p.name || p)}${p.since ? ' ' + t('ac.stg.prog', { t: ac.ticker(p.since) }) : ''}`).join(', ')}</span></div>`
       : raw.activity_note ? `<p class="small ink-2">${rich(raw.activity_note)}</p>` : '';
     const ended = run && ac.ended(run) && f.state !== 'running';
     const tools = failedTools(s);
@@ -147,7 +160,7 @@ sheet('stage', {
         <dl class="facts">
           <dt>${t('ac.stg.needs')}</dt><dd>${needs}</dd>
           <dt>${t('ac.stg.required')}</dt><dd>${t(s.optional ? 'ac.stg.optional' : 'ac.stg.required.v')}</dd>
-          <dt>${t('ac.stg.time')}</dt><dd>${raw.seconds != null && st !== 'running' ? esc(ac.secs(raw.seconds)) : st === 'running' && raw.started_at ? esc(t('ac.stg.time.running', { t: ac.secs((Date.now() - Date.parse(raw.started_at)) / 1000) })) : '—'} <span class="muted">${esc(t('ac.stg.last', { t: last ? ac.secs(last) : t('ac.stg.last.none') }))}</span></dd>
+          <dt>${t('ac.stg.time')}</dt><dd>${stageTime(s) ? t(st === 'running' || st === 'you' ? 'ac.stg.time.running' : 'ac.stg.time.took', { t: stageTime(s, 'ac-tick--big') }) : '—'} <span class="muted">${esc(t('ac.stg.last', { t: last ? ac.secs(last) : t('ac.stg.last.none') }))}</span></dd>
           <dt>${t('ac.stg.kept')}</dt><dd>${t(raw.resumed ? 'ac.stg.kept.yes' : 'ac.stg.kept.no')}</dd>
         </dl>
         <div><div class="block-title">${t('ac.stg.steps')}</div>${steps}</div>

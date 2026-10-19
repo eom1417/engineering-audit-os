@@ -452,24 +452,24 @@ def _claims(report):
     return {c['id']: c for c in _read(path).get('claims') or []} if path.is_file() else {}
 
 
-def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0):
-    state = project_state(project)
-    report = _report(state)
-    claims = _claims(report)
-    rows = []
+def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None, severity=None):
+    report = _report(project_state(project))
+    claims, rows = _claims(report), []
+    from .studio.actions.selection import cards_in      # area and severity as the Studio's filter reads them
+    only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
     for task in _read(report / 'plan.json').get('tasks') or []:
-        if kind and task.get('pattern') != kind: continue
-        if path and not any(path in p for p in task.get('paths') or []): continue
-        if text and text.lower() not in (task.get('title') or '').lower(): continue
-        if fixable_only and not _ready(task): continue
+        if not _wanted(task, kind, path, text, fixable_only) or any(task['id'] not in ids for ids in only): continue
         claim = claims.get(task.get('claim_id')) or {}
         rows.append({'id': task['id'], 'title': task.get('title'), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
                      'fixable_automatically': _ready(task), 'decision': (task.get('decision') or {}).get('kind'),
                      'confidence': claim.get('confidence'), 'priority': task.get('priority')})
     rows.sort(key=lambda r: -(r['priority'] or 0))
     offset, limit = max(int(offset), 0), min(max(int(limit), 1), 200)
-    return {'total': len(rows), 'offset': offset, 'findings': rows[offset:offset + limit],
-            'more': offset + limit < len(rows)}
+    return {'total': len(rows), 'offset': offset, 'findings': rows[offset:offset + limit], 'more': offset + limit < len(rows)}
+
+
+def _wanted(task, kind, path, text, fixable_only):      # each filter only when given
+    return ((not kind or task.get('pattern') == kind) and (not path or any(path in p for p in task.get('paths') or [])) and (not text or text.lower() in (task.get('title') or '').lower()) and (not fixable_only or _ready(task)))
 
 
 def _facts_index(report):

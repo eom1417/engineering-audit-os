@@ -74,16 +74,19 @@ export function rememberDecision(row) {
 }
 
 let progressTimer = 0;
-/** The progress of every flow (/api/progress), at most every 2 s however many progress events arrive. */
+/** The progress of every flow (/api/progress), at most once a second however many progress events arrive (a stage's
+ *  counted steps are written up to four times a second, eaos/progress/log.py); its `now` sets the server's clock. */
 export function refreshProgress() {
   if (!client || progressTimer) return;
   progressTimer = setTimeout(async () => {
     try {
+      const asked = Date.now();
       const next = await client.progress();
       progressTimer = 0;
+      if (next.now && !isNaN(Date.parse(next.now))) live.skew = Date.parse(next.now) - (asked + Date.now()) / 2;
       if (!same(next.flows, live.progress && live.progress.flows)) { live.progress = next; tell('progress'); } else live.progress = next;
     } catch (e) { progressTimer = 0; }
-  }, live.progress ? 2000 : 0);
+  }, live.progress ? 1000 : 0);
 }
 
 /** The assistants on this computer (read once, and again on demand). */

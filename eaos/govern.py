@@ -42,6 +42,7 @@ WORDS = {
     'queued_run': {'en': 'Queued: {label} ({run}).', 'ar': 'في الطابور: {label} ({run}).'},
     'checked': {'en': '{problems} problem(s) found, {ready} of them can be fixed automatically', 'ar': 'لقيت {problems} مشكلة، منها {ready} تنصلح آليًا'},
     'left': {'en': 'about {minutes} min left', 'ar': 'باقي حوالي {minutes} دقيقة'},
+    'elapsed': {'en': '{clock} since it began', 'ar': 'مضى {clock}'},
     'cost': {'en': 'used so far: ${cost}', 'ar': 'المستخدم حتى الآن: ${cost}'},
     'ask': {'en': 'Your answer (one of: {options}): ', 'ar': 'جوابك (واحد من: {options}): '},
     'answer_with': {'en': 'To answer: eaos answer {id} <option>', 'ar': 'للجواب: eaos answer {id} <الخيار>'},
@@ -264,7 +265,8 @@ def progress(actions, record):
     elapsed = (datetime.now(timezone.utc) - began).total_seconds() if began else 0
     running = done and total and record.get('state') == 'running'
     used = _used(actions, record) or {}
-    return {'stage': last.get('stage'), 'done': done, 'total': total, 'minutes_left': round(elapsed / done * (total - done) / 60) if running else None,
+    return {'stage': last.get('stage'), 'done': done, 'total': total, 'seconds': round(elapsed) if began else None,
+            'minutes_left': round(elapsed / done * (total - done) / 60) if running else None,
             'cost_usd': used.get('cost_usd'), 'tokens': sum(used.get(k) or 0 for k in ('input', 'cache_write', 'output', 'thinking'))}
 
 
@@ -273,6 +275,7 @@ def _used(actions, record):
     from .usage import of_check, of_run
     found = of_run(actions.store.path(record['id']))
     if found or record.get('action') != 'audit' or not record.get('started'): return found
+    if (record.get('inputs') or {}).get('use_assistant') is False: return None     # never the cost of a check before it
     return of_check(guided.report_of(guided.load(actions.project))).get('total')
 
 

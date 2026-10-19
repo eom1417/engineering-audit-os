@@ -139,7 +139,11 @@ def governance_commands(s):
     q.add_argument('id'); q.add_argument('option', nargs='?'); q.add_argument('--text', default=None, help='your own answer instead of an option')
     q.add_argument('--assistant', default=None, help='a report question: who reviews your answer (claude, codex, or handoff)')
     q = command('problems', 'What the check found, most important first')
-    q.add_argument('--kind'); q.add_argument('--where', help='only problems in paths containing this'); q.add_argument('--text')
+    from .studio.model import AREAS, SEVERITIES
+    q.add_argument('--area', choices=AREAS, help="only this area, as the Studio's filter")
+    q.add_argument('--severity', choices=SEVERITIES, help="only this severity, as the Studio's filter")
+    q.add_argument('--kind', help='only this kind of problem (its pattern: dead_code, security_weakness, …)')
+    q.add_argument('--where', help='only problems in paths containing this'); q.add_argument('--text')
     q.add_argument('--fixable', action='store_true'); q.add_argument('--limit', type=int, default=30); q.add_argument('--offset', type=int, default=0)
     command('problem', 'One problem whole: what, why, the evidence with its code, the change').add_argument('id')
     for verb in contract()['verbs']:

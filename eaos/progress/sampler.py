@@ -10,6 +10,10 @@ playwright, k6. Linux prints `comm` as a short name (15 characters at most); mac
 so a name that is a path keeps only its last part. Both may contain spaces, so `comm` is everything after the third
 column.
 
+Stages run side by side (eaos/pipeline/schedule.py), so each program is told under the stage that started it: watch()
+notes the stage of the progress context (eaos/progress/context.py) when a program starts, and a program a program
+started belongs to the same stage.
+
 If `ps` is missing, fails, times out or prints something that does not contain the run's own process, the sampler
 turns itself off and says why once; the run is unaffected.
 """
@@ -17,8 +21,23 @@ import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 
+from . import context
+
 COMMAND = ('ps', '-A', '-o', 'pid=,ppid=,etime=,comm=')
 MOST = 8
+OWNERS = {}         # pid of a program the run started -> the stage that started it (watch())
+
+
+def watch():
+    """Note, once per process, the stage that starts each program: the stage of the progress context then."""
+    if getattr(subprocess.Popen, 'eaos_watched', False): return
+    begin = subprocess.Popen.__init__
+
+    def init(self, *args, **kwargs):
+        begin(self, *args, **kwargs)
+        stage = getattr(context.current(), 'stage', None)
+        if stage: OWNERS[self.pid] = stage
+    subprocess.Popen.__init__, subprocess.Popen.eaos_watched = init, True
 
 
 def elapsed(text):
@@ -65,10 +84,21 @@ def descendants(rows, root, leave=()):
 
 
 def programs(rows, root, leave=(), at=None):
-    """`[{name, pid, since}]` of the descendants of `root`, at most MOST of them; `since` is when each one started."""
+    """`[{name, pid, since}]` of the descendants of `root`, at most MOST of them; `since` is when each one started, and
+    `stage` the stage that started it or its ancestor below `root`, when watch() saw it."""
     at = at or datetime.now(timezone.utc)
-    return [{'name': name, 'pid': pid, 'since': (at - timedelta(seconds=seconds)).isoformat(timespec='seconds')}
+    parents = {row[0]: row[1] for row in rows}
+    return [{'name': name, 'pid': pid, 'since': (at - timedelta(seconds=seconds)).isoformat(timespec='seconds'),
+             **({'stage': OWNERS[top]} if (top := _below(pid, parents, root)) in OWNERS else {})}
             for pid, _, seconds, name in descendants(rows, root, leave)[:MOST]]
+
+
+def _below(pid, parents, root):
+    """The ancestor of `pid` (or itself) that `root` started."""
+    for _ in range(64):                 # deeper than any real tree
+        if parents.get(pid) in (root, None): return pid
+        pid = parents[pid]
+    return pid
 
 
 class Sampler:
@@ -76,6 +106,7 @@ class Sampler:
 
     def __init__(self, root=None, command=COMMAND, timeout=5.0):
         self.root = root or os.getpid()
+        watch()
         self.command = list(command)
         self.timeout = timeout
         self.off = False

@@ -4,7 +4,6 @@
   "eaos/agent_tools.py::_fix_start_job": 25,
   "eaos/agent_tools.py::_run_job": 17,
   "eaos/agent_tools.py::accept": 17,
-  "eaos/agent_tools.py::findings": 17,
   "eaos/agent_tools.py::overview": 17,
   "eaos/agent_tools.py::status": 35,
   "eaos/agent_tools.py::tools_check": 18,

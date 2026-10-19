@@ -48,6 +48,7 @@ export default {
   'ac.stg.files.none': ['لم تنتج ملفًا.', 'It produced no file.'],
   'ac.stg.kept.yes': ['نعم: محفوظة من تشغيل سابق، لم تعمل من جديد', 'Yes: kept from an earlier run, not run again'],
   'ac.why.outside_paths': ['ليست في مسارات هذا الفحص.', 'Not in this check\'s paths.'],
+  'ac.why.ai_partial': ['مساعدك جاوب على جزء من هالمرحلة بس (خلص رصيده أو تعثّر بنصها)، والقواعد قرّرت الباقي. أعد المرحلة ويسأله عن الباقي بس.', 'Your assistant answered only part of this stage (its limit ran out or it failed midway); the rules decided the rest. Run the stage again and it asks only about the rest.'],
   'ac.why.ai_skipped': ['هذا الفحص جرى دون المساعد، فقرّرت القواعد وحدها.', 'This check ran without the assistant, so the rules decided alone.'],
   'ac.step.ok': ['عملت', 'Ran'],
   'ac.step.observed': ['عملت', 'Ran'],

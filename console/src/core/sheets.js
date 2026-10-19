@@ -5,7 +5,7 @@
 // redraw keeps it; it goes when the sheet closes.
 import { t } from './i18n.js';
 import { esc, icon } from './format.js';
-import { navigate, parseHash, setQuery } from './address.js';
+import { href, navigate, parseHash, setQuery } from './address.js';
 import { a11yRegions } from './a11y.js';
 import { bundleOfSheet, loadBundle } from './places.js';
 import { need, pendingOf } from '../data/source.js';
@@ -13,6 +13,7 @@ import { need, pendingOf } from '../data/source.js';
 const sheets = {};
 let open = null;
 let pushed = false;
+let pushedAt = '';   // the address the opening pushed; a sheet that changed the query (filters) is closed in place
 
 /** Registers a sheet: {kind: drawer | dialog | menu | search, confirm, full, needs: [sections], render(arg, query,
  *  local) -> {title, sub, top, body, foot, head: false}, after(el, arg, local)}. It draws once its sections are read. */
@@ -26,20 +27,24 @@ export function openSheet(key) {
   const r = parseHash();
   if (r.query.sheet === key) return;
   pushed = true;
+  pushedAt = href(r.path, Object.assign({}, r.query, { sheet: key }));
   navigate(r.path, Object.assign({}, r.query, { sheet: key }));
 }
+/** Back undoes the opening only while the address is still the one it pushed: going back from a sheet that changed
+ *  the query (a filter ticked, a grouping chosen) would throw the change away with the sheet's history entry. */
+const backCloses = () => pushed && location.hash === pushedAt;
 export function closeSheet() {
   if (!open) return;
-  if (pushed) { pushed = false; history.back(); } else setQuery({ sheet: null });
+  if (backCloses()) { pushed = false; history.back(); } else { pushed = false; setQuery({ sheet: null }); }
 }
 /** Closes the open sheet, then runs `fn` once the address has settled. */
 export function closeSheetThen(fn) {
-  if (open && pushed) {
+  if (open && backCloses()) {
     pushed = false;
     const once = () => { window.removeEventListener('hashchange', once); setTimeout(fn, 0); };
     window.addEventListener('hashchange', once);
     history.back();
-  } else { if (open) { setQuery({ sheet: null }); destroy(); } fn(); }
+  } else { pushed = false; if (open) { setQuery({ sheet: null }); destroy(); } fn(); }
 }
 
 export function syncSheet(key) {

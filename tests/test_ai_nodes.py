@@ -263,6 +263,18 @@ class Framework(Base):
         serial = self.triage(Answer(answer), assistants=Assistants(1), fresh=True)
         self.assertEqual(state['most'], 1)
         self.assertEqual(serial['decisions'], record['decisions'], 'parallel batches preserve the serial answers and order')
+        # the unanswered batch makes the stage and the check partial (a 429 midway once ended COMPLETE), and is the only
+        # one asked again: the answered cards keep their verdicts
+        from types import SimpleNamespace
+        from eaos.pipeline import run, runners
+        self.assertEqual((record['batches']['asked'], record['batches']['failed']), (4, 1))
+        lost = runners._partly(SimpleNamespace(provider=None), record['batches'])['assistant_lost']
+        self.assertEqual((lost['answered'], lost['asked']), (3, 4))
+        self.assertEqual(run.completion_status({'triage': {'status': 'OK', 'necessity': 'optional', 'detail': {'assistant_lost': lost}}}), 'PARTIAL')
+        asked = []
+        again = self.triage(Answer(lambda name, schema: asked.append(name) or _fill(schema)), assistants=Assistants(3))
+        self.assertEqual(len(asked), 1, 'only the batch that was not answered is asked again')
+        self.assertNotIn('batches', again)
 
 class Triage(Base):
     """The card triage: its verdicts stand on the card's own evidence, doubt asks a probe, reject tells the library."""

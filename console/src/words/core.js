@@ -111,7 +111,7 @@ export default {
   'toast.follow': ['تابعه', 'Follow it'],
   'toast.saved': ['جوابك محفوظ.', 'Your answer is saved.'],
   'toast.copy': ['نُسخ الطلب. الصقه لمساعدك.', 'Request copied. Paste it to your assistant.'],
-  'live.check': ['يفحص: المرحلة {stage} من {total}', 'Checking: stage {stage} of {total}'],
+  'live.check': ['يفحص: خلصت {done} من {total} مرحلة', 'Checking: {done} of {total} stages done'],
   'live.fixing': ['يصلح: {label}', 'Fixing: {label}'],
   'live.resume': ['توقف Claude Code عند حد استعماله؛ يكمل وحده بعد دقيقتين', 'Claude Code reached its usage limit; it goes on by itself in 2 min'],
   'live.signin': ['الفحص ينتظر دخولك إلى برنامجك', 'The check waits for your sign-in to your app'],

@@ -34,7 +34,7 @@ export function liveNow() {
     const share = stages.length ? finished / stages.length : null;
     const label = labelOf(run.label, prefs.lang);
     const text = you ? t('live.you', { label }) : run.state === 'paused' ? t('live.paused', { label })
-      : isCheck && stages.length ? t('live.check', { stage: num(Math.min(finished + 1, stages.length)), total: num(stages.length) }) + left(check)
+      : isCheck && stages.length ? t('live.check', { done: num(finished), total: num(stages.length) }) + left(check)
         : t(run.verb === 'fix' || /^fix/.test(run.action) ? 'live.fixing' : 'live.run', { label });
     return { kind: isCheck ? 'check' : run.verb === 'fix' ? 'fix' : 'run', you, href: `/activity/run/${encodeURIComponent(run.id)}`, share, text, run };
   }
@@ -42,7 +42,7 @@ export function liveNow() {
     const stages = check.stages || [];
     const finished = stages.filter(s => ['ok', 'skipped', 'unavailable', 'failed'].includes(s.state)).length;
     return { kind: 'check', you: false, href: '/activity', share: stages.length ? finished / stages.length : null,
-      text: t('live.check', { stage: num(Math.min(finished + 1, stages.length)), total: num(stages.length) }) + left(check) };
+      text: t('live.check', { done: num(finished), total: num(stages.length) }) + left(check) };
   }
   return null;
 }

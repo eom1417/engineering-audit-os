@@ -290,6 +290,29 @@ class Coalescer(unittest.TestCase):
         self.assertLess(last_step, next(i for i, r in enumerate(rows) if r['event'] == 'stage.ended'))
 
 class Sampling(unittest.TestCase):
+    def test_stages_side_by_side_each_show_the_programs_they_started(self):
+        # engines and setup ran together, and every analyzer was shown under setup, the stage started last
+        sampler.watch()
+        step = lambda *args, **kwargs: None    # noqa: E731 - a stepper names its stage
+        step.stage = 'engines'
+        with progress.using(step): mine = subprocess.Popen(['sleep', '20'])
+        other = subprocess.Popen(['sleep', '20'])
+        self.addCleanup(lambda: [(p.kill(), p.wait()) for p in (mine, other)])
+        found = {p['pid']: p.get('stage') for p in sampler.Sampler().sample()}
+        self.assertEqual((found[mine.pid], found[other.pid]), ('engines', None))
+
+        class Seen:
+            def sample(self): return [{'name': 'codeql', 'pid': 7, 'since': '2026-10-18T00:00:00+00:00', 'stage': 'engines'},
+                                      {'name': 'npm', 'pid': 8, 'since': '2026-10-18T00:00:00+00:00'}]
+        log = progress.ProgressLog(Path(scratch()), pulse=False, sampler=None)
+        log.sampler = Seen()
+        log.started(STAGES, list(ORDER), {})
+        log.stage_started('engines')
+        log.stage_started('setup')
+        log._look('setup')
+        shown = {r['stage']: [p['name'] for p in r['programs']] for r in progress.read(log.folder) if r['event'] == 'stage.activity'}
+        self.assertEqual(shown, {'engines': ['codeql'], 'setup': ['npm']}, 'a program of no known stage is on the one started last')
+
     def test_the_running_programs_are_read_from_ps_on_linux_and_macos_and_a_failing_ps_is_said_once(self):
         rows = sampler.parse((FIXTURES / 'ps/linux.txt').read_text(encoding='utf-8'))
         self.assertEqual(len(rows), 38)

@@ -140,6 +140,12 @@ class JointDecision(TemporaryWorkspace):
                          {'ai_modified': 2, 'disagreement': 3, 'ai_added': 1})
         self.assertIn('Rebuild `api` as `interface`', (self.base / 'joint/TARGET-ARCHITECTURE.md').read_text(encoding='utf-8'))
 
+    def test_the_assistant_saying_what_the_rules_say_is_never_a_disagreement(self):
+        # it was asked of the owner as "the rules say delete and your assistant said delete", on protected files
+        from eaos.target_architecture import _decide_current
+        component = {'relation': 'delete', 'paths': ['console/src/core/main.js']}
+        self.assertEqual(_decide_current(component, {'operation': 'delete', 'cites': []}, 'both', lambda path: True)[0], 'agreed')
+
     def test_the_order_becomes_the_plans_steps_before_the_reports_are_written(self):
         order = self.read('joint', 'plan.json')['order']
         self.assertEqual((order['source'], [s['id'] for s in order['steps']]), ('assistant', ['s1', 's2']))

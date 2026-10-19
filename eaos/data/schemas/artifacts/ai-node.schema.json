@@ -273,6 +273,27 @@
         "object",
         "null"
       ]
+    },
+    "batches": {
+      "type": "object",
+      "required": [
+        "asked",
+        "failed",
+        "why"
+      ],
+      "properties": {
+        "asked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "why": {
+          "type": "string"
+        }
+      }
     }
   }
 }

@@ -208,6 +208,11 @@
       "one"
      ],
      "description": "how many stages and assistants a check runs at once (eaos/pipeline/schedule.py); absent for a flow run one stage at a time"
+    },
+    "assistants": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "how many assistants this check lets answer at once (eaos/pipeline/schedule.py assistants()): one in normal mode, as many as the memory holds in speed mode"
     }
    },
    "required": [

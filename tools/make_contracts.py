@@ -659,7 +659,7 @@ CONTRACTS['ai-node'] = ('nodes/<node>/last.json', 'NS46.T15',
  obj({'schema_version': {'const': 1}, 'node': S, 'title': S, 'kind': {'const': 'ai'}, 'state': enum(*NODE_STATES),
       'method': enum('model', 'rules'), 'assistant': NS, 'model': NS, 'at': S, 'inputs': S, 'prompt': NS, 'schema': NS,
       'passes': REFS, 'cached': B, 'seconds': NN, 'calls': COUNT, 'cost_usd': NN, 'why': NS,
-      'summary': S, 'decisions': arr(DECISION), 'dropped': arr(_DROPPED), 'routes': arr(_ROUTE, 1), 'critique': {'type': ['object', 'null']}},
+      'summary': S, 'decisions': arr(DECISION), 'dropped': arr(_DROPPED), 'routes': arr(_ROUTE, 1), 'critique': {'type': ['object', 'null']}, 'batches': obj({'asked': COUNT, 'failed': COUNT, 'why': S}, ['asked', 'failed', 'why'])},
      ['schema_version', 'node', 'kind', 'state', 'method', 'assistant', 'model', 'at', 'inputs', 'prompt', 'cached', 'seconds',
       'cost_usd', 'why', 'decisions', 'dropped', 'routes']))
 _NODE_LOG = obj({'at': S, 'state': enum(*NODE_STATES), 'assistant': NS, 'model': NS, 'prompt': NS, 'inputs': S, 'cached': B,

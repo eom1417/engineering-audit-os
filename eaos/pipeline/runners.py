@@ -316,7 +316,7 @@ def _lost(context, problem, code):
         except Exception: found = {'ready': True}
         if not found['ready']:
             return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'],
-                             lost={'assistant': name, 'resets': found.get('resets')})
+                             lost={'assistant': name, 'resets': found.get('resets'), 'code': found['code']})
     return SkipStage(problem, code=code)
 
 
@@ -350,7 +350,19 @@ def _node(context, name):
     if record['method'] != 'model':
         raise _lost(context, record['why'], 'ai_stuck' if record['why'] == core.WORDS['stuck'] else 'ai_failed')
     return record, {'dropped': len(record['dropped']), 'calls': 0 if record['cached'] else record['calls'],
-                    'assistant': record['assistant'], 'model': record['model']}
+                    'assistant': record['assistant'], 'model': record['model'], **_partly(context, record.get('batches'))}
+
+
+def _partly(context, batches):
+    """A node whose assistant answered only some of its batches (its limit reached midway, a batch that failed): the
+    rules decided the rest, so the stage says so and the check is PARTIAL; running the stage again asks only those."""
+    if not batches: return {}
+    answered = batches['asked'] - batches['failed']
+    lost = _lost(context, f"the assistant answered {answered} of {batches['asked']} batches; the rules decided the rest "
+                          f"({batches['why']})", 'ai_partial')
+    who = (getattr(context.provider, 'config', None) or {}).get('assistant')
+    return {'assistant_lost': {**(lost.lost or {'assistant': who, 'resets': None}), 'why': str(lost)[:300],
+                               'answered': answered, 'asked': batches['asked']}}
 
 
 def _adapters_of(context):
