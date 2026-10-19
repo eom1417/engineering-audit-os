@@ -101,6 +101,7 @@
       "eaos/mcp_govern.py",
       "eaos/govern.py",
       "eaos/roles.py",
+      "eaos/test_users.py",
       "eaos/sign_in.py",
       "eaos/terminal.py",
       "eaos/agent_tools.py",
