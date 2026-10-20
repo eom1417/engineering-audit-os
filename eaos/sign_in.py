@@ -16,6 +16,7 @@ with, and the check waiting for the person to sign in by hand (docs/GUIDE.md "Si
 import json
 import os
 import re
+import shutil
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -49,6 +50,16 @@ def _read(path):
 def by_hand(state):
     """Whether the session file was saved by the person on the sign-in page (never replaced by a seed script's)."""
     return bool(((_read(state) or {}).get('eaos') or {}).get('by') == 'hand')
+
+
+def seeding(state):
+    """The file a seed script signs in to: the run's session itself, or, the person's being theirs, a copy of it that
+    the script switches into each view (eaos/test_users.py BY_HAND); the caller removes the copy after the seed."""
+    if not by_hand(state): return state
+    copy = state.with_name('.seeded.json')
+    shutil.copyfile(state, copy)
+    copy.chmod(0o600)                                    # a signed-in session: its owner's alone
+    return copy
 
 
 def mark(state):

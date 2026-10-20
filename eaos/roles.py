@@ -1,31 +1,46 @@
-"""The kinds of users an app has (an administrator, support, a customer...), read from its code by the person's
-assistant: each with the line of code that makes it a kind and the pages that are its own. One reading serves every
-check: the setup makes a session per kind in the isolated copy (eaos/live_setup.py), the page stages open the app once
-per session (eaos/pipeline/runners.py), and the coverage says which kinds the check saw and why not the others.
+"""The views of an app, read from its code by the person's assistant: each set of pages one kind of user sees (a
+clinic's reception, doctor, nurse, pharmacy, administration...), with the line of code that makes it a view, how a
+person enters it (an account of its own, or a switch of profile, workspace or organization within one sign-in, and the
+line of that switch) and the pages that are its own. One reading serves every check: the stage `session` makes a
+session per view on the running app (eaos/test_users.py), the page stages open each view's pages with its own session
+(share), and a page that did not open as itself (opened: a sign-in, a refusal, the app's page for an address it does
+not have) is not seen, never a missing page; the coverage says which views the check saw and why not the others.
 
-    <out>/roles.json   {"roles": [{"id", "name", "evidence": "file:line", "pages": ["/admin", ...]}]}
+    <out>/roles.json   {"roles": [{"id", "name", "evidence": "file:line", "enter": "account" | "switch",
+                                   "switch": "file:line", "pages": ["/admin", ...]}]}
 """
 import json
 import re
+from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.parse import urlsplit
 
-MOST = 6
+MOST = 10
 ROUNDS = 3
 SIGNS = re.compile(r'\b(roles?|is_?admin|admin|permissions?|rbac|authori[sz]\w*|guard\w*|superuser|staff|support|'
-                   r'manager|owner|member|sessions?|cookies?|tokens?)\b', re.I)
+                   r'manager|owner|member|sessions?|cookies?|tokens?|profiles?|workspaces?|tenants?|organi[sz]ations?|'
+                   r'orgs?|teams?|departments?|portals?|switch\w*|impersonat\w*|active_?\w+|current_?\w+)\b', re.I)
+# An address no app has: the page an app shows for it is its page for an address it does not have (opened).
+NOWHERE = '/eaos-no-such-page-7f3a'
 SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests', '__tests__')
 SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma', '.sql')
 
-SYSTEM = """You read a web app's code and name the kinds of users it has: the accounts that see a different set of
-pages (an administrator, support staff, a customer...). Answer with one JSON object:
+SYSTEM = """You read a web app's code and name every view it has: each set of pages one kind of user sees (an
+administrator, support staff, a customer; a clinic's reception, doctor, nurse, pharmacy, insurance...). A person may
+enter a view with an account of its own, or by switching within one sign-in: an active profile, workspace,
+organization, team, department or role the app keeps (a cookie, a stored value, a column, a route segment) and a
+switch changes. Name every view, whichever way it is entered: a view missed is a part of the app never checked.
+Answer with one JSON object:
 {"roles": [{"id": "admin", "name": {"en": "Administrator", "ar": "المدير"}, "evidence": "path/to/file.ts:42",
-             "pages": ["/admin", "/admin/users"]}]}
-"id" is a short lowercase word; "name" says it in English and in Arabic; "evidence" is the file and line of the code that defines or checks that kind;
-"pages" are the page routes from the list given that belong to that kind alone by what they are for (an /admin page is
-the administrator's even where the code forgets to check it: the check then finds who else opens it), an empty list
-when it sees only shared pages. At most six kinds. An app whose signed-in users all see the same pages has one kind;
-an app with no sign-in has none: {"roles": []}."""
+             "enter": "account", "pages": ["/admin", "/admin/users"]},
+           {"id": "programs", "name": {"en": "Programs", "ar": "البرامج"}, "evidence": "path/to/file.ts:88",
+             "enter": "switch", "switch": "path/to/switch.ts:17", "pages": ["/programs"]}]}
+"id" is a short lowercase word; "name" says it in English and in Arabic; "evidence" is the file and line of the code
+that defines or checks that view; "enter" is "account" or "switch", and a switch view's "switch" is the file and line
+of the code that switches into it; "pages" are the page routes from the list given that belong to that view alone by
+what they are for (an /admin page is the administrator's even where the code forgets to check it: the check then finds
+who else opens it), an empty list when it sees only shared pages. At most ten views. An app whose signed-in users all
+see the same pages has one; an app with no sign-in has none: {"roles": []}."""
 
 
 def read(out):
@@ -75,11 +90,18 @@ def errors(answer, target, pages):
 def _wrong(kind, target, pages):
     if not isinstance(kind, dict) or not re.fullmatch(r'[a-z0-9-]{1,20}', str(kind.get('id') or '')):
         return [f'{kind}: "id" is a short lowercase word']
-    file, _, line = str(kind.get('evidence') or '').rpartition(':')
+    switch = kind.get('enter') == 'switch'
+    wrong = [] if _line(target, kind.get('evidence')) else [f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]
+    if kind.get('enter') not in ('account', 'switch'): wrong.append(f'{kind["id"]}: "enter" is "account" or "switch"')
+    if switch and not _line(target, kind.get('switch')): wrong.append(f"{kind['id']}: switch {kind.get('switch')!r} is no line of the code")
+    return wrong + [f"{kind['id']}: {page!r} is not in the list of pages" for page in kind.get('pages') or [] if page not in pages]
+
+
+def _line(target, cited):
+    """Whether `cited` ("file:line") is a line of the project's code."""
+    file, _, line = str(cited or '').rpartition(':')
     path = Path(target) / file
-    real = file and line.isdigit() and path.is_file() and 0 < int(line) <= len(path.read_text(errors='replace').splitlines())
-    return ([] if real else [f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]) + \
-        [f"{kind['id']}: {page!r} is not in the list of pages" for page in kind.get('pages') or [] if page not in pages]
+    return bool(file and line.isdigit() and path.is_file() and 0 < int(line) <= len(path.read_text(errors='replace').splitlines()))
 
 
 def find(target, out, provider):
@@ -96,16 +118,32 @@ def find(target, out, provider):
                      {'role': 'user', 'content': 'Correct these and answer again:\n' + '\n'.join(wrong[:20])}]
     else:
         raise ValueError('the kinds of users named no real line or page: ' + '; '.join(wrong[:3]))
-    kinds = [{k: kind.get(k) for k in ('id', 'name', 'evidence')} | {'pages': kind.get('pages') or []} for kind in answer['roles']]
+    kinds = [{k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch') if kind.get(k)} | {'pages': kind.get('pages') or []}
+             for kind in answer['roles']]
     (Path(out) / 'roles.json').write_text(json.dumps({'roles': kinds}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return kinds
 
 
-def opened(path, landed, status=200, password=0):
+def opened(path, landed, status=200, password=0, text=None, nowhere=None):
     """Whether a page opened as itself: it answered, it was not sent elsewhere (a sign-in, a refusal, the first page),
-    and it shows no password field."""
+    it shows no password field, and it is not the page the app shows for an address it does not have (`nowhere`: the
+    text of NOWHERE with the same session; an app answering every address 200 draws its "not found" itself)."""
     return 200 <= (status or 0) < 400 and not password and \
-        (urlsplit(landed or '').path.rstrip('/') or '/') == (path.rstrip('/') or '/')
+        (urlsplit(landed or '').path.rstrip('/') or '/') == (path.rstrip('/') or '/') and not absent(text, nowhere, path)
+
+
+def nowhere_of(page):
+    """The text of the app's page for an address it does not have, from a probe whose last address was NOWHERE; None
+    when it is the first page (an app drawing its first page at any address says nothing by it)."""
+    text = ((page.get('others') or [{}])[-1]).get('text')
+    return None if absent(page.get('text'), text, '/') else text
+
+
+def absent(text, nowhere, path):
+    """Whether page text `text` of `path` is the app's page for an address it does not have (`nowhere`, NOWHERE's)."""
+    words = lambda said, address: ' '.join(str(said or '').replace(address, ' ').split())
+    seen, missing = words(text, path), words(nowhere, NOWHERE)
+    return bool(missing) and SequenceMatcher(None, seen, missing).ratio() > 0.9
 
 
 def coverage(kinds, sessions, seen):
@@ -124,11 +162,21 @@ def coverage(kinds, sessions, seen):
     return rows
 
 
-def share(kinds, groups, kind, first):
-    """The page groups ({template: pages}) a session pictures: a kind its own pages and the first page, the first
-    session the shared pages too, and the run's one session (kind None) every page."""
-    if kind is None: return groups
+def unseen(screens):
+    """The pages a check did not see as themselves, [{page, view}] (the screens record `screens`, eaos/pipeline/pages.py):
+    what they show is unknown, never a page missing or to build."""
+    rows = (screens or {}).get('rows') or []
+    seen = {row.get('url') for row in rows if not row.get('unseen')}
+    missed = sorted({(row.get('url'), row.get('kind')) for row in rows if row.get('unseen') and row.get('url') not in seen}, key=str)
+    return [{'page': page, 'view': view} for page, view in missed]
+
+
+def share(kinds, groups, kind, first, held=()):
+    """The page groups ({template: pages}) a session pictures: a view its own pages and the first page, the first
+    session the shared pages too, and the run's one session (kind None) every page but those of the views `held` by a
+    session of their own, which only theirs opens."""
     own = {k['id']: set(k['pages']) for k in kinds}
+    if kind is None: return {t: p for t, p in groups.items() if not any(p[0] in own.get(view, ()) for view in held)}
     anyone = set().union(*own.values())
     return {t: p for t, p in groups.items() if p[0] in own[kind] or p[0] == '/' or (first and p[0] not in anyone)}
 

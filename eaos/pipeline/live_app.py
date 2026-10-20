@@ -28,8 +28,7 @@ def shared_app(context, published=False):
             live.setup()
             base = live.start()
             kept = sign_in.by_hand(state)
-            seeded = state.with_name('.seeded.json') if kept else state      # a seed still makes its data; its session goes
-            seeded.unlink(missing_ok=True)
+            seeded = sign_in.seeding(state)               # a seed still makes its data; the person's session stays theirs
             live.seed(base, seeded)
             if kept: seeded.unlink(missing_ok=True)
             if kept and not chosen.get('gave_up'): chosen['gave_up'] = not sign_in.renew(live, base, state, context.out, chosen.get('folder'))

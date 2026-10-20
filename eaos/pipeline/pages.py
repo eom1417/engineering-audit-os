@@ -37,17 +37,10 @@ def screens(context):
     (eaos/screens/audit.py, eaos/screens/crawl.py distinct). Each kind of user of the code pictures its own pages, the
     first one the shared pages too (eaos/roles.py share); the published address the person named, read only."""
     if not _published(context): _live(context)
-    from ..roles import read, share
     from .live_app import sessions
     live, base, made = sessions(context, published=True)
     groups, measured = _screen_pages(context)
-    rows, speed = [], None
-    for n, (kind, state) in enumerate(made):
-        audit, measure = _audit_pages(context, share(read(context.out), groups, kind, n == 0), measured, live, base, state, kind, n == 0)
-        if audit['status'] != 'observed' and not rows:
-            raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
-        speed = speed or measure
-        rows += [_seen(context, row, kind) for row in audit.get('rows') or []]
+    rows, speed, audit = _pictured(context, (live, base, made), groups, measured)
     covered = _coverage(context, live, base, made, rows)
     _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows, 'coverage': covered,
                                     'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]} for template, paths in groups.items()],
@@ -57,9 +50,40 @@ def screens(context):
             'kinds': covered and sum(k['reached'] for k in covered['kinds'])}
 
 
-def _seen(context, row, kind):
-    """A picture's row, with the kind of user who saw it and its file within the report."""
-    return {**row, 'kind': kind, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
+def _pictured(context, app, groups, measured):
+    """(rows, the entry's speed, the last audit) of every session of `app` (live run, address, [(view, session)]), each
+    picturing its view's pages (eaos/roles.py share)."""
+    from ..roles import read, share
+    live, base, made = app
+    rows, speed, held = [], None, {kind for kind, _ in made if kind}
+    for n, (kind, state) in enumerate(made):
+        audit, measure = _audit_pages(context, share(read(context.out), groups, kind, n == 0, held), measured, live, base, state, kind, n == 0)
+        if audit['status'] != 'observed' and not rows:
+            raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
+        speed = speed or measure
+        nowhere = _nowhere(live, base, state)
+        rows += [_seen(context, row, kind, nowhere) for row in audit.get('rows') or []]
+    return rows, speed, audit
+
+
+def _seen(context, row, kind, nowhere):
+    """A picture's row, with the view that saw it, its file within the report, and `unseen` when the page did not open
+    as itself (eaos/roles.py opened): a sign-in, a refusal or the app's page for an address it does not have is the
+    page not seen with that session, never the page itself."""
+    from urllib.parse import urlsplit
+    from ..roles import opened
+    path = urlsplit(row['url']).path or '/'
+    shown = row.get('status') != 'observed' or opened(path, row.get('landed'), row.get('http'), row.get('password'), row.pop('text', None), nowhere)
+    return {**row, 'kind': kind, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None,
+            **({} if shown else {'unseen': True})}
+
+
+def _nowhere(live, base, state):
+    """The text of the app's page for an address it does not have, opened with session `state` (eaos/roles.py
+    nowhere_of); None read only."""
+    from ..live_setup import probe
+    from ..roles import NOWHERE, nowhere_of
+    return nowhere_of(probe(live, base, state, None, [NOWHERE])) if live else None
 
 
 def _coverage(context, live, base, made, rows):
@@ -67,10 +91,10 @@ def _coverage(context, live, base, made, rows):
     why not the others, and each page of one kind another kind's session opened (a session per kind is local only)."""
     from urllib.parse import urlsplit
     from ..live_setup import probe
-    from ..roles import breaches, coverage, opened, read
+    from ..roles import breaches, coverage, read
     kinds = read(context.out)
     if not kinds: return None
-    seen = {path for row in rows if opened(path := urlsplit(row['url']).path, row.get('landed'), row.get('http'), row.get('password'))}
+    seen = {urlsplit(row['url']).path for row in rows if row.get('status') == 'observed' and not row.get('unseen')}
     tested = [(kind, state) for kind, state in made if kind]
     look = lambda state, paths: probe(live, base, state, None, paths).get('others') or [] if paths else []
     return {'kinds': coverage(kinds, {kind for kind, _ in tested} or None, seen),

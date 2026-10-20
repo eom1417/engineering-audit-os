@@ -31,15 +31,18 @@ def session(context):
     live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
     lacking = '' if sign_in.by_hand(state) or chosen.get('how') == 'hand' else _test_users(context, live, base, state)
     if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
+    if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each view
     return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
                              **({'test_users': lacking[:300]} if lacking else {})})
 
 
-def _test_users(context, live, base, state):
-    """The assistant's test users on the running app (eaos/test_users.py); what is still lacking, '' when nothing."""
-    from ..test_users import lacking, make
-    if not context.provider: return lacking(live, base, state, context.out)
-    try: return make(context.target, live, base, state, context.out, context.provider)
+def _test_users(context, live, base, state, hand=False):
+    """The assistant's test users on the running app (eaos/test_users.py), or with the person's own session (`hand`) its
+    switches into each view a switch enters; what is still lacking, '' when nothing."""
+    from ..test_users import lacking, make, views
+    if hand and not views(context.out, True): return ''
+    if not context.provider: return lacking(live, base, state, context.out, hand)
+    try: return make(context.target, live, base, state, context.out, context.provider, hand)
     except Exception as problem:          # the assistant never decides the fate of the check: the person is asked
         return f'the assistant could not make the test users ({type(problem).__name__}: {problem})'[:300]
 

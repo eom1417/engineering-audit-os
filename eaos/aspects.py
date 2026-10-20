@@ -229,6 +229,11 @@ def _pictured(screens, visual):
            'lighthouse': (screens.get('lighthouse') or {}).get('scores'), 'visual_findings': len(visual)}
     row['rules'] = (_verdict('improve', f'{len(failing)} screen(s) fail an accessibility check, {len(visual)} visual finding(s)')
                     if failing or visual else _verdict('keep', 'every pictured screen passes its accessibility checks'))
+    from .roles import unseen
+    if (missed := unseen(screens)):
+        row['not_seen'] = [page['page'] for page in missed][:LIMIT['rows']]
+        row['rules'] = _verdict('improve', f"{len(missed)} page(s) did not open as themselves (another view's, a sign-in or the "
+                                f"app's not-found page): what they show is unknown, never a page missing; {row['rules']['why']}")
     return _kinds(row, screens.get('coverage'))
 
 
@@ -240,7 +245,7 @@ def _kinds(row, covered):
     return {**row, 'kinds_of_users': covered, **({'rules': _verdict('improve', '; '.join(said) + '; ' + row['rules']['why'])} if said else {})}
 
 
-UNSEEN = {'no_access': 'the account signed in with cannot open its pages', 'no_test_user': 'no test user of it could be made',
+UNSEEN = {'no_access': 'the account signed in with cannot open its pages', 'no_test_user': 'no session in it could be made',
           'not_opened': 'its pages did not open'}
 
 

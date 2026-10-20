@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..aspects import ASPECTS, VERDICTS
+from ..roles import unseen
 from ..assistants.command import Stuck
 from ..card_review import triage_verdicts
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug, guard_words
@@ -233,6 +234,7 @@ def bundle(report, project=None, lang='en'):
                      'questions': [_short(q.get('question'), 200) for q in semantic.get('questions') or [] if isinstance(q, dict)][:20]},
         'visual': [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
                    for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30],
+        'not_seen': unseen(_load(report / 'live/screens.json', {}))[:40],
         'facts': _facts_digest(report),
         'features': features[:40],
         'decisions': {'structure': decisions[:40], 'waiting_for_the_person': waiting, 'intake': intake[:30]},
