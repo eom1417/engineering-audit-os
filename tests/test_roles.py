@@ -92,5 +92,24 @@ class Roles(unittest.TestCase):
                              'a page not seen is never judged')
 
 
+    def test_a_view_the_running_app_shows_missing_is_added_as_checked_and_a_redirect_to_its_own_page_is_reached(self):
+        # chief-ops (2026-10-20): only the support pages were pictured; the reading of the code had missed the programs
+        from unittest import mock
+        from eaos import test_users
+        with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
+            (Path(target) / 'workplace.js').write_text('one\ntwo\nthree\n')
+            roles._write(out, [{'id': 'support', 'enter': 'account', 'evidence': 'workplace.js:1', 'pages': ['/tickets']}])
+            with mock.patch.object(roles, 'pages_of', return_value=['/tickets', '/rota']):
+                refused = roles.add(out, target, [{'id': 'program', 'name': {'en': 'Program', 'ar': 'البرنامج'}, 'evidence': 'workplace.js:2',
+                                                    'enter': 'switch', 'switch': 'workplace.js:3', 'pages': ['/rota']},
+                                                   {'id': 'ghost', 'evidence': 'workplace.js:99', 'enter': 'account', 'pages': ['/nowhere']}])
+            self.assertEqual(len(refused), 2, refused)
+            self.assertEqual([(view['id'], view.get('found')) for view in roles.read(out)], [('support', None), ('program', 'app')])
+        nowhere = roles.nowhere_of({'text': 'Home', 'others': [{'text': '404'}]})
+        base = 'http://127.0.0.1:3000'
+        self.assertTrue(test_users._reached({'path': '/settings', 'url': base + '/settings/profile', 'status': 200, 'text': 'Profile'}, nowhere))
+        self.assertFalse(test_users._reached({'path': '/rota', 'url': base + '/', 'status': 200, 'text': 'Home'}, nowhere), 'sent home')
+        self.assertFalse(test_users._reached({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Home\nPage not found'}, nowhere))
+
 if __name__ == '__main__':
     unittest.main()
