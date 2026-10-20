@@ -512,7 +512,7 @@ class Manager:
                           {'question': question_id, 'option': option, 'text': text, 'by': 'person', 'via': via})
         self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
         self.set_state(run, 'running', 'answered')
-        if option is None: return self._custom_answer(run, record, question, text)
+        if option is None and prompts.binding(record, question): return self._custom_answer(run, record, question, text)
         if question.get('why') == 'branch':
             # The person picked the branch in the Studio (their own press, behind the token, CSRF and Origin checks): it
             # is recorded as their choice whoever asked, then the step runs again on that branch. Recorded for direct runs

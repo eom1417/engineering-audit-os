@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.48 (2026-10-20)
+
+- **An answer in the person's own words is their answer**: every answer written instead of picking an option was taken
+  for a clarification, the assistant was told to change nothing, and the same question came back until one of its
+  options was picked: the owner answered some questions three or four times. Now the words go to the assistant's own
+  session as the answer, and it goes on from them. Only a question whose option EAOS carries out itself (a direct
+  step's: the branch, the agreement to run the app; or closing a batch) still needs an option, its words a
+  clarification, and the Studio says which, under the answer box.
+
 ## 0.0.47 (2026-10-20)
 
 - **Every view of an app is found and seen from its own session**: a check of an app whose manager switches between

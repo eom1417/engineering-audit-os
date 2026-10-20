@@ -2682,7 +2682,7 @@
   {
    "method": "GET",
    "path": "/api/questions",
-   "does": "The open questions of every run, for the Decisions inbox."
+   "does": "The open questions of every run, for the Decisions inbox. Each carries `binding`: true when only an option answers it (a direct step's question, or an option EAOS carries out itself), when the person's own words are a clarification after which it is asked again; any other question takes their own words as their answer."
   },
   {
    "method": "POST",
