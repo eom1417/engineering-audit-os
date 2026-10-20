@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.0.46 (2026-10-20)
+
+- **A check runs the project's own tests beside the pages**: the tests ran in a copy of their own but shared the
+  check's database, and stopping their run stopped the server under the app the page stages were opening, so they
+  were chained in the app's order: seven minutes beside nothing in a check of EAOS. Every run on the server now holds
+  it and the last one leaving stops it, and the tests get a database and a data folder of their own. On the last
+  check's own times, 22 minutes become 16; what still runs one after the other waits for what it reads.
+- **Speed mode for fixes**: most of a card's time is the assistant's thinking (a minute and a half a card, against
+  seconds for EAOS to check its change, in 498 recorded changes), so in speed mode the batch's cards are dealt into
+  lanes and the Studio starts an assistant for each beside the first one, as many as this computer holds (five at
+  most): one copy, one branch, the cards sharing a file or waiting for one another in one lane. A change to a file
+  another assistant holds is never tried: its card is left for the end, when the first assistant fixes it. EAOS checks
+  the changes one at a time, as with one assistant; an assistant that stops for good hands its cards back; the batch
+  is handed over once every lane is done, through the same checks. The switch is the check's speed mode, kept for the
+  project, and says that the usage limit goes faster.
+- **Work sent while other work runs waits its turn** instead of answering "busy", and the project's state is written
+  whole, under a lock where several assistants write it.
+- **A sheet's blocks keep their own height**: in a sheet taller than the screen, a block with a minimum height got
+  that height alone and its text ran over the blocks around it (a running stage's programs); each program is now
+  named once, with its count.
+
 ## 0.0.45 (2026-10-19)
 
 - **The check of EAOS itself pictures its app again**: the setup's probe opens a few routes of the code, and EAOS's

@@ -171,7 +171,7 @@ class VerificationTests(unittest.TestCase):
         class FakeRun:
             PROFILE = {'checks': [['npm', 'run', 'lint'], ['python', '-m', 'unittest', 'discover', '-s', 'tests']]}
 
-            def __init__(self, target, runtime, stage):
+            def __init__(self, target, runtime, stage, apart=""):
                 self.profile = self.PROFILE
                 self.sandbox = mock.Mock(copy=Path(runtime) / 'copy')
                 shutil.copytree(target, self.sandbox.copy)

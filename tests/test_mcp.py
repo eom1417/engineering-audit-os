@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, batch_finish, guided, jobs
+from eaos import agent_tools, batch_finish, guided, jobs, lanes
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -179,6 +179,48 @@ class ToolTests(Home):
         state = guided.load(self.project)
         self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('abandoned', None))
 
+    def test_assistants_fixing_one_batch_at_once_keep_to_their_own_files_and_it_is_handed_over_once_all_are_done(self):
+        # speed mode: one batch, one copy and branch, two assistants; a change to a file the other one holds is never tried
+        state = agent_tools.project_state(str(self.project))
+        report = guided.report_of(state)
+        report.mkdir(parents=True)
+        tasks = {'TASK-001': ['src/a.js'], 'TASK-002': ['src/b.js'], 'TASK-003': ['src/a.js']}
+        cards = {id: {'id': id, 'title': id, 'paths': paths, 'kind': 'remediate'} for id, paths in tasks.items()}
+        (report / 'plan.json').write_text(json.dumps({'tasks': list(cards.values())}))
+        copy = Path(self.tmp.name) / 'copy'
+        subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True)
+        wave = {'number': 1, 'root': str(copy), 'base': guided._git(copy, 'rev-parse', 'HEAD').stdout.strip(), 'cards': list(tasks),
+                'kept': {}, 'failed': {}, 'tools': {}}
+        with mock.patch.dict(os.environ, EAOS_STUDIO_RUN='first'):
+            self.assertEqual(lanes.open_lanes(wave, cards, 2), [['TASK-002']], 'the cards sharing a file stay with the first')
+        waits = {'id': 'TASK-009', 'paths': ['src/c.js'], 'prerequisites': [{'task_id': 'TASK-002', 'reason': 'its function first'}]}
+        self.assertEqual(lanes.deal([*cards.values(), waits], 3), [['TASK-001', 'TASK-003'], ['TASK-002', 'TASK-009']],
+                         'a card waiting for another one goes with it')
+        wave['helpers'] = {'second': 1}
+        state['open_wave'] = wave
+        guided.save(state)
+        as_second, as_first = mock.patch.dict(os.environ, EAOS_STUDIO_RUN='second'), mock.patch.dict(os.environ, EAOS_STUDIO_RUN='first')
+        with as_second:
+            later = agent_tools.fix_edit('TASK-002', [{'path': './src/a.js', 'find': 'a = 1', 'replace': 'a = 2'}], project=str(self.project))
+            self.assertEqual((later['later'], later['why']), (True, 'another assistant of this batch is changing src/a.js'))
+            self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'not_yours', 'only the first one hands it over')
+        self.assertIn('a = 1', (copy / 'src/a.js').read_text(), 'the refused change was never tried')
+        with as_first, mock.patch.object(lanes, 'WAIT', 0):
+            self.assertEqual(lanes.mine(guided.load(self.project)['open_wave'], list(tasks)), ['TASK-001', 'TASK-002', 'TASK-003'])
+            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.execute.new_breakage', return_value=[]), \
+                    mock.patch('eaos.waves.batch_acceptance', return_value={'TASK-001': 0}):
+                kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
+                    {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
+            self.assertEqual(kept['left'], ['TASK-003'], 'its own: the card left for the end comes with fix_finish')
+            self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
+        state = guided.load(self.project)
+        state['open_wave']['later'] = []                           # the second assistant's card back in its lane
+        guided.save(state)
+        with as_first, mock.patch.object(lanes, 'WAIT', 0):
+            self.assertEqual(agent_tools.fix_finish(str(self.project)), {'status': 'others_fixing', 'cards': ['TASK-002'], 'what_now': mock.ANY})
+            with lanes.changing(str(self.project)) as state: lanes.release(state['open_wave'], 1)    # its assistant stopped
+            self.assertEqual(agent_tools.fix_finish(str(self.project))['left'], ['TASK-002', 'TASK-003'])
+
     def test_status_names_the_next_tool_at_each_point(self):
         project = str(self.project)
         self.assertEqual(agent_tools.status(project)['next']['tool'], 'audit')
@@ -257,6 +299,19 @@ class JobTests(Home):
         super().setUp()
         patcher = mock.patch.object(jobs.subprocess, 'Popen', return_value=mock.Mock(pid=os.getpid()))
         patcher.start(); self.addCleanup(patcher.stop)
+
+    def test_work_sent_while_other_work_runs_waits_its_turn(self):
+        # the assistants of one batch (eaos/lanes.py) send their changes at once: one is checked at a time
+        import threading
+        state = {'project': str(self.project)}
+        first = agent_tools._start('fix_edit', state, {}, seconds=0)
+        self.assertEqual(first['status'], 'running')
+        busy = agent_tools._start('fix_edit', state, {}, seconds=0)
+        self.assertEqual((busy['status'], busy['job']), ('busy', first['job']))
+        ends = lambda: jobs._write({**jobs.read(first['job'], str(self.project)), 'status': 'done', 'result': {}})
+        threading.Timer(0.5, ends).start()
+        second = agent_tools._start('fix_edit', state, {}, seconds=5)
+        self.assertNotEqual(second['job'], first['job'], 'it started once the first one ended')
 
     def test_a_job_runs_on_its_own_is_read_back_stops_as_an_interrupt_and_a_dead_one_has_failed(self):
         project = str(self.project)

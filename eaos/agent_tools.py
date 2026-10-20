@@ -14,7 +14,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import batch_finish, branches, check_choices, guided, handover, jobs, plain, sign_in as signing, toolchain
+from . import batch_finish, branches, check_choices, guided, handover, jobs, lanes, plain, sign_in as signing, toolchain
 from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
 from .finish_line import proof
 from .api import launch
@@ -126,15 +126,16 @@ def _job_answer(job, seconds, project):
 
 
 def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watch=False):
-    """Start a job and answer as `_job_answer` does. `watch`: the live Studio is opened on its map first (once, before the
-    job writes anything), and the answer carries its address in `watch`."""
-    busy = jobs.running(state['project'])
-    if busy:
-        return {'job': busy['id'], 'status': 'busy', 'kind': busy['kind'], 'progress': busy['progress'],
-                'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy['id']}\" first."}
+    """Start a job once the project's running one ended (waited for up to `seconds`: eaos/lanes.py), and answer as `_job_answer`
+    does. `watch`: the live Studio is opened on its map first (once, before the job writes anything), its address in `watch`."""
     route = '/scan' if kind != 'audit' or toolchain.ready(state['project']) else '/tools'
-    studio = _watch(state, route) if watch else None
-    answer = _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds, state['project'])
+    studio = _watch(state, route) if watch and not jobs.running(state['project']) else None
+    try:
+        with jobs.alone(state['project'], seconds): job = jobs.start(kind, state['project'], arguments, runner=runner)
+    except jobs.Busy as busy:
+        return {'job': busy.record['id'], 'status': 'busy', 'kind': busy.record['kind'], 'progress': busy.record['progress'],
+                'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy.record['id']}\" first."}
+    answer = _job_answer(job, seconds, state['project'])
     if studio and route == '/tools':
         answer.update(watch=studio['studio'], what_now=TOOLS_FIRST)
     elif studio:
@@ -859,13 +860,13 @@ def delivery(state, deliver_as=None, merge_into=None):
     return name, merge_target(state, merge_into, continued)
 
 
-def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None):
+def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None, assistants=1):
     """Open the next batch. As the fix preview set it: `base`, the branch to build on (by default the branch EAOS works
     on; another one becomes the branch EAOS works on, as choose_branch does); `deliver_as`, the new branch the fixes
     arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch continues on
     it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left); `merge_into`, the branch accept merges them into (default the branch
     open in the project folder); `base_commit`, the commit the preview showed for `base`: when the branch moved since,
-    nothing opens (status base_moved) and the preview is made again."""
+    nothing opens (status base_moved) and the preview is made again. `assistants`: how many fix it at once (eaos/lanes.py)."""
     state = project_state(project)
     guided.reconcile(state)
     guided.retire_stale_batch(state)
@@ -877,7 +878,7 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     stop = _not_ready(state, deliver_as)
     if stop: return stop
     stop, chosen = _chosen(state, cards, size)
-    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into}, watch=True)
+    return stop or _start('fix_start', state, {'cards': chosen, 'deliver_as': deliver_as, 'merge_into': merge_into, 'assistants': assistants}, watch=True)
 
 
 def _still_open(wave):
@@ -951,6 +952,7 @@ def _no_safety_net(state):
 def fix_abandon(project=None):
     """Close the open batch without handing anything over: its copy is removed and its cards can be picked again."""
     state = project_state(project)
+    if stop := lanes.not_yours(state): return stop
     wave = _open(state)
     guided.close_batch(state, 'abandoned', wave.get('last_error') or '')
     return {'status': 'abandoned', 'batch': wave['number'], 'cards': wave['cards'],
@@ -1005,14 +1007,16 @@ def _fix_start_job(project, arguments, progress):
             guided._git(root, 'reset', '--hard', '--quiet', 'HEAD')
             guided._git(root, 'clean', '-fdq')
             wave['failed'][card_id] = f'{type(problem).__name__}: {problem}'[:300]
+    helpers = lanes.open_lanes(wave, cards, arguments.get('assistants'))
     state = guided.load(project)
     state['open_wave'] = wave
     guided.save(state)
     guided.publish(state)
     return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
-            'to_do': [_brief(cards[c]) for c in arguments['cards'] if c not in wave['kept'] and c not in wave['failed']],
+            'to_do': [_brief(cards[c]) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
             'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
-                        'fix_edit. Keep every feature, route and behaviour. When every card is kept or skipped, call fix_finish.'}
+                        'fix_edit. Keep every feature, route and behaviour. When every card is kept or skipped, call fix_finish.',
+            **lanes.told(helpers)}
 
 
 def _inside(root, relative):
@@ -1071,7 +1075,7 @@ def fix_edit(card, edits, summary='', project=None):
     if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
     if card in wave['kept']: return {'status': 'already_kept', 'what_now': 'This card is already fixed in the batch.'}
     if not edits: raise ValueError('no edit was sent')
-    return _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary})
+    return lanes.take(state['project'], card, edits) or _start('fix_edit', state, {'card': card, 'edits': edits, 'summary': summary})
 
 
 def _fix_edit_job(project, arguments, progress):
@@ -1092,36 +1096,33 @@ def _fix_edit_job(project, arguments, progress):
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
     broke, exit_code, still = edit_gates((report, guided.source(state), guided.runtime_of(state)), root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
-    state = guided.load(project)
-    wave = state['open_wave']
     if broke or exit_code not in (0, None):
         drop_last(root)
         why = (f'it broke something or broke the code laws: {"; ".join(broke[:3])}' if broke else
                "the problem is still there: the card's own check still finds it" + (f': {still}' if still else f' (exit {exit_code})'))
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
-    if repair: return batch_finish.repaired(state, root, changed, diff)
-    wave['kept'][card_id] = guided._git(root, 'rev-parse', 'HEAD').stdout.strip()
-    wave['tools'][card_id] = 'assistant'
-    wave['failed'].pop(card_id, None)
-    wave.setdefault('summaries', {})[card_id] = arguments.get('summary') or ''
-    guided.save(state)
-    left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
-    return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left,
-            'what_now': 'Next card with fix_edit.' if left else 'Every card is done: call fix_finish.'}
+    if repair: return batch_finish.repaired(guided.load(project), root, changed, diff)
+    with lanes.changing(project) as state:
+        wave = state['open_wave']
+        wave['kept'][card_id] = guided._git(root, 'rev-parse', 'HEAD').stdout.strip()
+        wave['tools'][card_id] = 'assistant'
+        wave['failed'].pop(card_id, None)
+        wave.setdefault('summaries', {})[card_id] = arguments.get('summary') or ''
+    left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
+    return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
 
 
 def fix_skip(card, reason, project=None):
-    state = project_state(project)
-    wave = _open(state)
-    if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
-    if card in wave['kept']:
-        from .waves import without
-        without(wave, card)
-    wave['failed'][card] = f'skipped: {reason}'[:300]
-    guided.save(state)
-    left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
-    return {'card': card, 'skipped': True, 'left': left}
+    project = project_state(project)['project']
+    with jobs.alone(project, WAIT), lanes.changing(project) as state:      # no change is checked while its copy is rebuilt
+        wave = _open(state)
+        if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
+        if card in wave['kept']:
+            from .waves import without
+            without(wave, card)
+        wave['failed'][card] = f'skipped: {reason}'[:300]
+    return {'card': card, 'skipped': True, 'left': lanes.mine(wave, lanes.untried(wave, wave['cards']))}
 
 
 def fix_finish(project=None, leave_out=False):
@@ -1129,7 +1130,8 @@ def fix_finish(project=None, leave_out=False):
     for a repair on top of them (fix_edit with card REPAIR) instead of leaving sound cards out; `leave_out`, or after
     REPAIRS repairs, the cards responsible are found and left out."""
     state = project_state(project)
-    wave = _open(state)
+    if stop := lanes.not_yours(state) or lanes.finish_wait(state['project']): return stop
+    wave = _open(project_state(project))
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     if left: return {'status': 'cards_left', 'left': left, 'what_now': 'Fix them with fix_edit or skip them with fix_skip first.'}
     return _start('fix_finish', state, {'leave_out': bool(leave_out)})

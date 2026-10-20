@@ -1067,6 +1067,12 @@
       "maxLength": 200,
       "description": "The commit of base the preview showed: when the branch moved since, nothing opens (status base_moved)."
      },
+     "assistants": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "How many assistants fix the batch at once, in the Studio's speed mode: the Studio starts the others, each with its own cards and files (eaos/lanes.py); one anywhere else."
+     },
      "project": {
       "type": [
        "string",
@@ -1951,6 +1957,10 @@
      "auto_accept": {
       "type": "boolean",
       "description": "Accept automatically when the checks pass: chosen by the person in this preview (bound to its confirm token), the run calls accept itself once fix_finish kept at least one change; never into a protected branch, never for another run."
+     },
+     "speed": {
+      "type": "boolean",
+      "description": "Speed mode: several assistants fix the batch at once, as many as this computer holds (eaos/lanes.py), each its own files; they spend the assistant's usage limit faster. The person's choice, kept for the project with the check's speed mode."
      }
     },
     "required": []
@@ -2565,6 +2575,13 @@
    "auto_accept": {
     "type": "boolean",
     "description": "Fix only: whether this preview's confirm token carries the person's choice to accept the batch automatically when its checks pass (inputs.auto_accept)"
+   },
+   "speed": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "description": "Fix only: {on, assistants, lanes}: whether speed mode is on (kept for the project), how many assistants this computer holds now, and how many lanes the selected cards split into (one assistant each, the cards that share a file together)"
    }
   }
  },
