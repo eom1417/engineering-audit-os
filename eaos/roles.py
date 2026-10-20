@@ -199,12 +199,13 @@ def share(kinds, groups, kind, first, held=()):
 
 
 def breaches(kinds, made, look):
-    """Each page of one view only that another view's session opened as itself: [{kind, page, of}]. `made`: [(kind,
+    """Each page of one view only that another account's session opened as itself: [{kind, page, of}]. `made`: [(kind,
     session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the app's page for
     an address it does not have, which another view's page often shows, is never taken for that page opened."""
     owner = {page: k['id'] for k in kinds for page in k['pages']}
+    switched = {k['id'] for k in kinds if k.get('enter') == 'switch'}     # the same account in another view: its pages too
     found = []
-    for kind, state in made:
+    for kind, state in [(kind, state) for kind, state in made if kind not in switched]:
         page = look(state, sorted(page for page, of in owner.items() if of != kind)[:8] + [NOWHERE])
         nowhere = nowhere_of(page)
         found += [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for row in (page.get('others') or [])[:-1]

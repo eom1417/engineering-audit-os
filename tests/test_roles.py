@@ -78,6 +78,8 @@ class Roles(unittest.TestCase):
                                                      'text': f'Page not found\nThe page {p} does not exist. Back home'} for p in paths[:-1]]
                                       + [{'path': roles.NOWHERE, 'text': 'Page not found\nThe page /eaos-no-such-page-7f3a does not exist. Back home'}]}
         self.assertEqual(roles.breaches(views, [('nurse', 'n')], shown), [], "another profile's not-found page is no breach")
+        opens = lambda state, paths: {'text': 'Home', 'others': [{'path': p, 'url': base + p, 'status': 200, 'text': p} for p in paths]}
+        self.assertEqual(roles.breaches(views, [('programs', 'p')], opens), [], 'a switch is the same account: its pages are its own')
         rows = [{'url': base + '/programs/plans', 'kind': None, 'unseen': True}, {'url': base + '/admin', 'kind': None}]
         self.assertEqual(roles.unseen({'rows': rows}), [{'page': base + '/programs/plans', 'view': None}])
         from eaos.studio.nodes import visual_reviewer
