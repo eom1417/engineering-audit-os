@@ -63,20 +63,26 @@ def pages_of(out, served=True):
                   and not any(mark in route for mark in (':', '*', '[')))
 
 
-def about_users(target, limit=40000):
-    """The source lines that speak of users, their kinds and their sessions, the files with most of them first, with the lines around."""
+def about_users(target, limit=40000, out=None):
+    """The source lines that speak of users, their kinds and their sessions, with the lines around: first the files that
+    serve the app's routes (the facts of `out`: where it signs in, switches and chooses), the most such lines first,
+    then the others, two of a folder at most, so that a folder of near-alike files (policies, fixtures) never hides the
+    rest."""
+    from .lock_specs import surfaces
+    served = {file for _, _, file in surfaces(out).values() if file} if out else set()
     found = []
     for path in Path(target).rglob('*'):
         if path.suffix in SOURCE and path.is_file() and not any(part in SKIP for part in path.relative_to(target).parts):
             lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
             hits = [i for i, line in enumerate(lines) if SIGNS.search(line)]
-            if hits: found.append((len(hits), path, lines, hits))
-    parts, used = [], 0
-    for _, path, lines, hits in sorted(found, key=lambda row: -row[0])[:15]:
+            if hits: found.append((path.relative_to(target).as_posix() not in served, -len(hits), path, lines, hits))
+    parts, used, folders = [], 0, {}
+    for other, _, path, lines, hits in sorted(found, key=lambda row: row[:2]):
+        if other and (folders := {**folders, path.parent: folders.get(path.parent, 0) + 1})[path.parent] > 2: continue
         start, end = max(0, hits[0] - 5), min(len(lines), hits[0] + 60)
         text = f'=== {path.relative_to(target).as_posix()} (lines {start + 1}-{end})\n' + \
                '\n'.join(f'{n + 1}: {line}' for n, line in enumerate(lines[start:end], start))
-        if used + len(text) > limit: break
+        if used + len(text) > limit or len(parts) >= 15: break
         parts.append(text)
         used += len(text)
     return '\n\n'.join(parts)
@@ -114,7 +120,7 @@ def find(target, out, provider):
     <out>/roles.json. The kinds."""
     pages = pages_of(out)
     messages = [{'role': 'system', 'content': SYSTEM},
-                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target)}]
+                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target, out=out)}]
     for _ in range(ROUNDS):
         answer, _ = provider.complete(messages, stage='roles')
         wrong = errors(answer, target, pages)

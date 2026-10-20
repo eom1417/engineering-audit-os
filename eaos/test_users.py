@@ -127,7 +127,7 @@ def make(project, live, base, state, report, provider, hand=False):
     messages = [{'role': 'system', 'content': SYSTEM + ('\n' + BY_HAND if hand else '')},
                 {'role': 'user', 'content': 'The views:\n' + json.dumps(views(report, hand), ensure_ascii=False)
                  + '\n\nThe documentation:\n' + _excerpt(project, live.profile.get('app') or '.', 12000)
-                 + '\n\nThe code about its users and sessions:\n' + about_users(project, 30000)
+                 + '\n\nThe code about its users and sessions:\n' + about_users(project, 30000, report)
                  + '\n\nThe seed script today (keep what it makes that still applies):\n' + _today(live)}]
     tried = []
     while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
