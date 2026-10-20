@@ -118,13 +118,24 @@ def acts(question, option):
     return action if action in ACTS else None
 
 
+def binding(record, question):
+    """Whether only an option answers `question`, words being a clarification asked of the assistant before it is asked
+    again: a direct step's question (the branch, the agreement to run the app, going on without the assistant), or one
+    whose option EAOS carries out itself (ACTS). Any other question is answered as well in the person's own words."""
+    return record.get('mode') == 'direct' or bool(question.get('why')) or \
+        any(acts(question, option.get('id')) for option in question.get('options') or [])
+
+
 def answer(question, option, text, lang='ar', done=None, via='studio'):
     """The words that resume a session with the person's answer, said where they gave it (`via`: WHERE), and what EAOS
     already did for it."""
     chosen = next((o for o in question.get('options') or [] if o.get('id') == option), None)
     said = (chosen or {}).get('label', {}).get(lang) or (chosen or {}).get('label', {}).get('en') or option or ''
-    parts = [f"The person answered {WHERE[via]['en']}: {said}" + (f' (option "{option}")' if option else '')]
-    if text: parts.append(f'They added: {text}')
+    if option is None:      # their own words are their answer, whatever options were offered
+        parts = [f"The person answered {WHERE[via]['en']} in their own words, choosing none of your options: {text}. "
+                 'This is their answer: act on it as they said it, and ask again only if it leaves the choice truly open.']
+    else:
+        parts = [f"The person answered {WHERE[via]['en']}: {said} (option \"{option}\")"] + ([f'They added: {text}'] if text else [])
     if done: parts.append(f'EAOS already ran {done[0]} for this answer; its result: {json.dumps(done[1], ensure_ascii=False)[:1500]}.')
     parts.append('Go on from where you stopped.')
     return ' '.join(parts)

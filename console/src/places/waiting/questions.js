@@ -1,12 +1,15 @@
 // S-05 Questions from runs (builder A): DEC-02..06, FIX-08, FIX-14. A run stops and asks when only the owner can
 // decide (GET /api/questions: which branch, consent to run the app, the assistant not answering, the changes that
 // fail together, or the assistant's own question); the answer resumes the same run (POST /api/questions/<id>/answer),
-// an option or the owner's own words (never counted as consent).
+// an option or the owner's own words: their answer, never counted as consent, and a clarification only where EAOS
+// carries out the option itself (`binding`).
 import { t, num, esc, rich, icon, code, href, fmtWhen, L, screen, act, refresh, toast, offline, S, live, store, client, ActionError, ac } from 'eaos';
 
 const answered = {};   // question id -> what was sent in this visit
 const WHY = { branch: 'branch', 'run consent': 'consent', assistant: 'assistant', together: 'together' };
 const kindOf = q => WHY[q.why] || 'other';
+/** What the person's own words do: their answer, or, where only an option answers (`binding`), a clarification. */
+const ownNote = q => (kindOf(q) === 'consent' ? 'ac.q.own.consent' : q.binding ? 'wt.own.clarify' : 'wt.own.note');
 
 function card(q) {
   const run = ac.runOf(q.run);
@@ -14,7 +17,7 @@ function card(q) {
   const sent = answered[q.id];
   if (sent) {
     return `<article class="panel wcard wcard--done" id="w-${esc(q.id)}" aria-labelledby="wq-${esc(q.id)}"><div class="wcard__meta">${meta}</div><h3 class="wcard__q" id="wq-${esc(q.id)}">${rich(L(q.text))}</h3>
-      <div class="saved" role="status"><b>${icon('check', 'icon--sm')} ${esc(sent.label ? t('ac.q.saved', { answer: sent.label }) : t('ac.q.saved.own'))}</b><span>${t(sent.label ? (sent.option === 'no' ? 'ac.q.saved.no' : 'ac.q.saved.note') : 'wt.own.note')}</span></div></article>`;
+      <div class="saved" role="status"><b>${icon('check', 'icon--sm')} ${esc(sent.label ? t('ac.q.saved', { answer: sent.label }) : t('ac.q.saved.own'))}</b><span>${t(sent.label ? (sent.option === 'no' ? 'ac.q.saved.no' : 'ac.q.saved.note') : ownNote(q))}</span></div></article>`;
   }
   const lock = offline();
   const chosen = S.chosen[q.id];
@@ -24,7 +27,7 @@ function card(q) {
   const ownOpen = S.ownOpen[q.id];
   const own = ownOpen ? `<div class="own" style="display:grid;gap:8px"><label class="sr-only" for="own-${esc(q.id)}">${t('wt.own')}</label>
       <textarea class="input" id="own-${esc(q.id)}" data-fk="own-${esc(q.id)}" data-input="ac-q-own" data-id="${esc(q.id)}" maxlength="4000" placeholder="${esc(t('wt.own.ph'))}">${esc(S.own[q.id] || '')}</textarea>
-      <div class="small muted" style="display:flex;justify-content:space-between;gap:12px"><span>${t(kindOf(q) === 'consent' ? 'ac.q.own.consent' : 'wt.own.note')}</span><span class="num" id="own-count-${esc(q.id)}">${esc(t('wt.own.count', { n: num((S.own[q.id] || '').length) }))}</span></div></div>` : '';
+      <div class="small muted" style="display:flex;justify-content:space-between;gap:12px"><span>${t(ownNote(q))}</span><span class="num" id="own-count-${esc(q.id)}">${esc(t('wt.own.count', { n: num((S.own[q.id] || '').length) }))}</span></div></div>` : '';
   const sending = S.sending[q.id];
   const off = lock || sending || !(chosen || (ownOpen && (S.own[q.id] || '').trim()));
   return `<article class="panel wcard" id="w-${esc(q.id)}" aria-labelledby="wq-${esc(q.id)}">

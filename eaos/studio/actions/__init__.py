@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
 from ... import check_choices
-from . import chat, handoff, helpers, plan, selection as selecting
+from . import chat, handoff, helpers, plan, prompts, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
@@ -297,7 +297,8 @@ class Actions:
         return {'runs': [self.public(row, queue) for row in rows], 'queue': queue}
 
     def questions(self):
-        return [row['question'] for row in self.store.all() if row.get('state') == 'waiting_for_person' and row.get('question')]
+        """The questions waiting, each `binding` when only an option answers it (prompts.binding)."""
+        return [{**row['question'], 'binding': prompts.binding(row, row['question'])} for row in self.store.all() if row.get('state') == 'waiting_for_person' and row.get('question')]
 
     def report_decisions(self):
         folder = self._studio()
@@ -446,10 +447,9 @@ class Actions:
 
     def _handoff(self, out, kind, inputs):
         """The request a chat assistant could take over; `kind`: (verb, action, needs an assistant)."""
-        from .prompts import build
         verb, action, needed = kind
-        prompt = build(verb, out['cards'], self.project, self.lang, action=action, inputs={} if verb else inputs, labels={k: v['label'] for k, v in self.actions.items()},
-                       where=_where_of(out.get('where')))
+        prompt = prompts.build(verb, out['cards'], self.project, self.lang, action=action, inputs={} if verb else inputs,
+                               labels={k: v['label'] for k, v in self.actions.items()}, where=_where_of(out.get('where')))
         # The planner asks the assistant itself: there is no request a chat assistant could take over.
         handed = bool(needed) and action not in PLANNERS
         out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}

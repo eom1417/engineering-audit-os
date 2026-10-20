@@ -422,6 +422,22 @@ class Runs(Base):
         self.assertIn('check', self.kinds(run))
         self.assertEqual(self.app.store.verify(run), [])
 
+    def test_an_answer_in_the_persons_own_words_is_their_answer_and_the_session_goes_on_from_it(self):
+        # the owner (2026-10-20) answered the assistant's questions in their own words three or four times: each answer
+        # was taken for a clarification, and the same question came back until they picked one of its options
+        run = self.start('explain')
+        self.assertEqual(self.app.wait(run, ('waiting_for_person', 'failed'), 30)['state'], 'waiting_for_person')
+        question = self.get('/api/questions')[1]['questions'][0]
+        said = 'Only the screens of the pharmacy, and leave the reports for later'
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'text': said})[0], 200)
+        done = self.app.wait(run, ('done', 'failed', 'waiting_for_person'), 30)
+        self.assertEqual(done['state'], 'done', 'never asked the same question again')
+        argvs = [json.loads(line) for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '-p' in line]
+        self.assertEqual(argvs[-1][-2:], ['--resume', 'fake-session'], 'its own session goes on')
+        resumed = argvs[-1][argvs[-1].index('-p') + 1]
+        self.assertIn(said, resumed)
+        self.assertIn('This is their answer', resumed)
+
     def test_an_answer_that_closes_the_stuck_batch_closes_it_and_a_direct_step_runs_while_a_question_waits(self):
         """The incident: "yes, close the batch" was only text to a run without fix_abandon, and pressing fix_abandon from
         the palette queued behind the run that waited for that same answer."""
