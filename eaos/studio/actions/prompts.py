@@ -56,7 +56,9 @@ LANE = ('Use the eaos tools to fix these cards of the batch another assistant of
         'fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead). A card '
         'you cannot fix (its change keeps failing the checks, or no safe change exists) gets fix_skip with its reason; when '
         'fix_edit answers that another assistant is changing one of its files, leave the card (it is fixed at the end) and go '
-        'on with the next one. Never call fix_start, fix_finish or fix_abandon: the first assistant hands the batch over. '
+        'on with the next one. Never ask the person anything, the batch waits on no question of yours: a card that needs '
+        'their choice gets fix_skip with that question as its reason. Never call fix_start, fix_finish or fix_abandon: the '
+        'first assistant hands the batch over. '
         'Change code only with fix_edit: never write a file yourself. Add the why with `note` after each card. At the end, '
         'tell the person in plain words what you fixed and what you left, and why.')
 
