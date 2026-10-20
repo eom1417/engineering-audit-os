@@ -68,16 +68,8 @@ def about_users(target, limit=40000, out=None):
     serve the app's routes (the facts of `out`: where it signs in, switches and chooses), the most such lines first,
     then the others, two of a folder at most, so that a folder of near-alike files (policies, fixtures) never hides the
     rest."""
-    from .lock_specs import surfaces
-    served = {file for _, _, file in surfaces(out).values() if file} if out else set()
-    found = []
-    for path in Path(target).rglob('*'):
-        if path.suffix in SOURCE and path.is_file() and not any(part in SKIP for part in path.relative_to(target).parts):
-            lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
-            hits = [i for i, line in enumerate(lines) if SIGNS.search(line)]
-            if hits: found.append((path.relative_to(target).as_posix() not in served, -len(hits), path, lines, hits))
     parts, used, folders = [], 0, {}
-    for other, _, path, lines, hits in sorted(found, key=lambda row: row[:2]):
+    for other, _, path, lines, hits in sorted(_speaking(target, out), key=lambda row: row[:2]):
         if other and (folders := {**folders, path.parent: folders.get(path.parent, 0) + 1})[path.parent] > 2: continue
         start, end = max(0, hits[0] - 5), min(len(lines), hits[0] + 60)
         text = f'=== {path.relative_to(target).as_posix()} (lines {start + 1}-{end})\n' + \
@@ -86,6 +78,18 @@ def about_users(target, limit=40000, out=None):
         parts.append(text)
         used += len(text)
     return '\n\n'.join(parts)
+
+
+def _speaking(target, out):
+    """(not a file serving a route, -its lines about users, path, lines, those lines' numbers) of each source file
+    with any (SIGNS)."""
+    from .lock_specs import surfaces
+    served = {file for _, _, file in surfaces(out).values() if file} if out else set()
+    for path in Path(target).rglob('*'):
+        if path.suffix in SOURCE and path.is_file() and not any(part in SKIP for part in path.relative_to(target).parts):
+            lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
+            hits = [i for i, line in enumerate(lines) if SIGNS.search(line)]
+            if hits: yield path.relative_to(target).as_posix() not in served, -len(hits), path, lines, hits
 
 
 def errors(answer, target, pages):
