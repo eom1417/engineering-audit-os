@@ -42,6 +42,9 @@ class Stage:
     gathers: bool = False
     # What it holds while it runs, which no other stage holds at the same time (RESOURCES).
     uses: tuple = ()
+    # It runs the app in a copy and a database of its own (eaos/live_run.py `apart`): it holds no resource, and takes
+    # an app's memory.
+    apart: bool = False
     necessity: str = REQUIRED
     # Why a run may legitimately lack this stage. An optional stage with no reason is a required
     # stage somebody did not want to pay for.
@@ -72,7 +75,7 @@ STAGES = (
           absent_when='the person did not agree to run the app in an isolated copy, or it could not be started there',
           description='Install and start the app in an isolated copy, with a temporary database and none of the '
                       "person's secrets; the assistant helps when the files alone do not say how"),
-    Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL, uses=('app',),
+    Stage('verify', produces=('verification.json',), requires=('facts',), reads=('setup',), necessity=OPTIONAL, apart=True,
           absent_when='the person did not agree to run the app in an isolated copy, or its run profile names no test '
                       'command; which test imports which file is still written',
           description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "

@@ -134,6 +134,16 @@ function fileRow(path, own) {
     ${got ? `<div class="code" style="padding:8px 12px;white-space:pre-wrap;margin-top:6px;max-height:320px;overflow:auto">${esc(got.slice(0, 20000))}</div><p class="small muted">${t('ac.stg.file.note')}</p>` : ''}</details></li>`;
 }
 
+/** The programs a stage started, each name once: how many of it run, since the first of them began. */
+function programsLine(list, run) {
+  const by = new Map();
+  for (const p of list) {
+    const name = p.name || p, had = by.get(name) || { n: 0 };
+    by.set(name, { n: had.n + 1, since: [had.since, p.since].filter(Boolean).sort()[0] });
+  }
+  return [...by].map(([name, p]) => `${code(name)}${p.n > 1 ? ` ×${num(p.n)}` : ''}${p.since ? ' ' + t('ac.stg.prog', { t: ac.runTicker(run, p.since) }) : ''}`).join(t('list.sep'));
+}
+
 sheet('stage', {
   kind: 'drawer',
   render(id, query, own) {
@@ -150,7 +160,7 @@ sheet('stage', {
     const files = (raw.artifacts || []).length ? `<ul class="ac-files">${raw.artifacts.map(p => fileRow(p, own)).join('')}</ul>`
       : `<p class="small muted">${t(['ok', 'partial'].includes(st) ? 'ac.stg.files.none' : 'ac.stg.files.later')}</p>`;
     const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
-    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${raw.programs.map(p => `${code(p.name || p)}${p.since ? ' ' + t('ac.stg.prog', { t: ac.runTicker(s.run, p.since) }) : ''}`).join(', ')}</span></div>`
+    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${programsLine(raw.programs, s.run)}</span></div>`
       : raw.activity_note ? `<p class="small ink-2">${rich(raw.activity_note)}</p>` : '';
     const ended = run && ac.ended(run) && f.state !== 'running';
     const tools = failedTools(s);

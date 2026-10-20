@@ -30,7 +30,8 @@ LIGHT_MB = 256               # a stage reading and writing records
 
 def need(stage):
     """The megabytes a stage may take while it runs."""
-    return max([NEED_MB.get(resource, 0) for resource in stage.uses] + [ASSISTANT_MB if stage.ai else LIGHT_MB])
+    return max([NEED_MB.get(resource, 0) for resource in stage.uses + (('app',) if stage.apart else ())]
+               + [ASSISTANT_MB if stage.ai else LIGHT_MB])
 
 
 class Assistants(threading.BoundedSemaphore):

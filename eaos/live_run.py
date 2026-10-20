@@ -66,8 +66,11 @@ class LiveRun:
     # from another folder (`app`: a program whose server sits at the root, its pages in a folder it builds).
     BASELINE_KEYS = ('app', 'install', 'build', 'prepare', 'start', 'port', 'health', 'env', 'seed', 'start_timeout')
 
-    def __init__(self, target, runtime, stage, mode='lock'):
+    def __init__(self, target, runtime, stage, mode='lock', apart=''):
         self.runtime = Path(runtime)
+        # `apart` names a run that shares no data with the others (the project's tests): its own empty database and data
+        # folder, so it runs beside them
+        self.apart = apart
         self.profile = load_profile(runtime)
         if 'AUTH_SECRET' not in (self.profile.get('env') or {}):
             from .run_profile import write_profile
@@ -95,7 +98,7 @@ class LiveRun:
         if not hasattr(self, '_database'):
             from .local_db import LocalPostgres
             self._database = LocalPostgres(self.runtime)
-            self._database_url = self._database.create(database['name'])
+            self._database_url = self._database.create('_'.join(filter(None, (database['name'], self.apart))))
         return self._database_url
 
     def extra(self):
@@ -107,7 +110,8 @@ class LiveRun:
             env = self.profile.get('env') or {}
             folder = None
             if any('{run_dir}' in str(v) for v in env.values()):
-                folder = self.runtime / 'run-data'      # the run's own folder outside the app: backups, uploads
+                # the run's own folder outside the app: backups, uploads
+                folder = self.runtime / '-'.join(filter(None, ('run-data', self.apart)))
                 folder.mkdir(parents=True, exist_ok=True)
             mail = str(self._mail_port())
             fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder)).replace('{mail_port}', mail)
@@ -215,8 +219,8 @@ class LiveRun:
         return f"http://127.0.0.1:{self.profile['port']}"
 
     def stop(self):
-        """Stop the project and remove its copy, and stop the run's database (its data stays for the next
-        step) and its Mailpit (its mail with it); the run's records stay in the runtime folder."""
+        """Stop the project and remove its copy, leave the run's database (stopped once no other run is on it, its data
+        kept for the next step) and stop its Mailpit (its mail with it); the run's records stay in the runtime folder."""
         self.sandbox.dispose()
         if hasattr(self, '_database'): self._database.stop()
         if hasattr(self, '_mailpit'):

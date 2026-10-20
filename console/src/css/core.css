@@ -381,7 +381,10 @@ textarea.input:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .sheet__titles { flex: 1; min-width: 0; padding-top: 8px; }
 .sheet__title { font-size: var(--fs-head); line-height: var(--lh-head); font-weight: 600; }
 .sheet__sub { color: var(--ink-3); font-size: var(--fs-small); line-height: var(--lh-small); margin-top: 2px; }
-.sheet__body { overflow-y: auto; overscroll-behavior: contain; padding: var(--s4); flex: 1; display: grid; gap: var(--s5); align-content: start; }
+.sheet__body { overflow-y: auto; overscroll-behavior: contain; padding: var(--s4); flex: 1; display: grid; gap: var(--s5); align-content: start;
+  /* each row as tall as what it holds: in a body taller than the sheet, a block with a min-height got that height alone and
+     its text ran over the blocks around it */
+  grid-auto-rows: max-content; }
 .sheet__foot { flex: none; display: grid; gap: var(--s2); padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--raised); }
 .sheet__foot-row { display: flex; gap: var(--s2); }
 .sheet__foot-row > .btn { flex: 1; }
