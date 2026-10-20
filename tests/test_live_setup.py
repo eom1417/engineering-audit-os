@@ -43,6 +43,7 @@ K6 = """export const options = {
 
 def bare_run(**fields):
     live = LiveRun.__new__(LiveRun)
+    live.apart = ''
     for name, value in fields.items(): setattr(live, name, value)
     return live
 
@@ -282,6 +283,22 @@ class RunEnvironmentTests(unittest.TestCase):
         self.assertFalse(db.data.exists(), "the next database's start removes one whose runtime is gone")
         holder.cleanup()
         later._sweep(binaries())                               # nothing of this test stays behind
+
+    def test_a_run_leaving_the_database_never_stops_it_under_another_run(self):
+        # the project's tests stopped the server when they ended, under the app the page stages were opening
+        from eaos.local_db import LocalPostgres, binaries
+        if binaries() is None: self.skipTest('no PostgreSQL binaries')
+        with tempfile.TemporaryDirectory() as runtime:
+            pages, tests = LocalPostgres(runtime), LocalPostgres(runtime)
+            try:
+                pages.create('app')
+                self.assertTrue(tests.create('app_tests').endswith('/app_tests'))
+                tests.stop()
+                self.assertIsNotNone(pages.running(), 'still serving the run on it')
+            finally:
+                pages.stop()
+            self.assertIsNone(pages.running(), 'the last run leaving stops it')
+            pages._sweep(binaries())
 
 
 if __name__ == '__main__':

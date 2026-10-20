@@ -323,7 +323,7 @@ def run_profile(target, out, runtime, timeout=1800):
     # The profile's tests run in the app's folder; a Python suite beside it (eaos/execute.py python_tests) from the root.
     suites = [(group, at_root) for group, at_root in ((test_commands(profile), False), (python_tests(target, profile), True)) if group]
     if not suites: raise LookupError("the run profile's checks name no test command, and no Python suite was found")
-    live = LiveRun(target, runtime, 'S05')
+    live = LiveRun(target, runtime, 'S05', apart='tests')     # its own database: it runs beside the page stages
     v8 = runtime / 'verify-v8'
     shutil.rmtree(v8, ignore_errors=True)
     v8.mkdir(parents=True)

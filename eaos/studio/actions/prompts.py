@@ -50,6 +50,17 @@ VERBS = {
              'Change nothing.'),
 }
 
+# A Fix run started beside the first one in speed mode (eaos/studio/actions/helpers.py): its lane of the batch only.
+LANE = ('Use the eaos tools to fix these cards of the batch another assistant of the EAOS Studio opened: you are one of several '
+        'assistants fixing it at the same time, each its own cards and files. For each card: finding and fix_read, then '
+        'fix_edit, keeping the code laws of the EAOS instructions (least code, one home for every rule, nothing dead). A card '
+        'you cannot fix (its change keeps failing the checks, or no safe change exists) gets fix_skip with its reason; when '
+        'fix_edit answers that another assistant is changing one of its files, leave the card (it is fixed at the end) and go '
+        'on with the next one. Never ask the person anything, the batch waits on no question of yours: a card that needs '
+        'their choice gets fix_skip with that question as its reason. Never call fix_start, fix_finish or fix_abandon: the '
+        'first assistant hands the batch over. '
+        'Change code only with fix_edit: never write a file yourself. Add the why with `note` after each card. At the end, '
+        'tell the person in plain words what you fixed and what you left, and why.')
 
 # A step whose answer leads straight on, done through to where the person decides.
 CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_design (the spec, blueprint_spec until it '
@@ -60,18 +71,11 @@ CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_
                           'build it (fix_start with its cards).'}
 
 
-def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None):
+def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None, lane=None):
     """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
-    chose to build and deliver it)."""
+    chose to build and deliver it, with how many assistants fix it at once; `lane`: a Fix run beside the first one)."""
     language = NAMES.get(lang, NAMES['en'])
-    if verb:
-        listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()') for card in cards)
-        task = f"{VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\nCard ids for the tools: {json.dumps([c['id'] for c in cards])}"
-        if verb == 'fix' and where:
-            task += (f"\nThe person chose where this batch goes: call fix_start with base={json.dumps(where['base'])}, "
-                     f"base_commit={json.dumps(where['base_commit'])}, deliver_as={json.dumps(where['deliver_as'])}, "
-                     f"merge_into={json.dumps(where['merge_into'])}. If it answers base_moved, stop and tell the person the "
-                     'branch moved: they preview the fix again.')
+    if verb: task = _over_cards(verb, cards, where, lane)
     else:
         label = (labels or {}).get(action, {}).get('en', action)
         shown = {k: v for k, v in (inputs or {}).items() if v is not None and not (k == 'project' and v == str(project))}
@@ -80,6 +84,22 @@ def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None
                 + '. Call `status` first; ' + CHAINS.get(action, 'do what the step needs and no more.'))
     return (f'{task}\n\nThe project is the current folder ({project.name}). This request comes from the EAOS Studio, where the '
             f'person follows every step. {ASK}\nWrite every message in {language}, the short notes between tools too: the person reads them live in the Studio.')
+
+
+def _over_cards(verb, cards, where, lane):
+    """A verb's task over its cards; a Fix's says where its batch opens, a lane's (beside the first assistant) opens none."""
+    listed = '\n'.join(f"- {card['id']}: {card.get('title') or ''} ({', '.join(card.get('paths') or [])})".rstrip(' ()') for card in cards)
+    task = f"{LANE if lane else VERBS[verb]}\n\nThe cards ({len(cards)}):\n{listed}\nCard ids for the tools: {json.dumps([c['id'] for c in cards])}"
+    return task + _opened(where) if verb == 'fix' and where and not lane else task
+
+
+def _opened(where):
+    """How a Fix's assistant opens its batch where the person chose, with as many assistants as they chose."""
+    together = f", assistants={where['assistants']}" if where.get('assistants', 1) > 1 else ''
+    return (f"\nThe person chose where this batch goes: call fix_start with base={json.dumps(where['base'])}, "
+            f"base_commit={json.dumps(where['base_commit'])}, deliver_as={json.dumps(where['deliver_as'])}, "
+            f"merge_into={json.dumps(where['merge_into'])}{together}. If it answers base_moved, stop and tell the person the "
+            'branch moved: they preview the fix again.')
 
 
 def done(result):

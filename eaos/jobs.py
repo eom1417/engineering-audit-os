@@ -7,11 +7,14 @@ and writes what it has done to the project's own ~/.eaos/projects/<workspace>/jo
   {"id", "kind", "project", "status": "running" | "done" | "failed", "progress": {"done", "total", "stage"},
    "result": {...} once done, "error": "..." once failed, "log": path, "started", "ended", "pid"}
 
-`start` launches one; `read` and `wait` follow it, for the project they name only: another project's job is not found.
+`start` launches one; started under `alone`, one at a time per project: a second waits its turn (the assistants of one
+batch, eaos/lanes.py, take turns at EAOS's checks). `read` and `wait` follow a job, for the project
+they name only: another project's job is not found.
 A project keeps its last KEEP jobs. The analyzers a job runs keep their caches in the project's own cache folder
 (EAOS_ENGINE_CACHE, eaos/engines/process.py), removed when the job ends: no project reads what another's left. The work itself is JOBS[kind] of the module the record names (`runner`,
 eaos.agent_tools by default), found by name so that it and this module do not import each other.
 """
+import fcntl
 import json
 import os
 import shutil
@@ -20,6 +23,7 @@ import subprocess
 import sys
 import time
 import traceback
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 
@@ -98,6 +102,27 @@ def _prune(project):
     legacy = home() / 'jobs'
     if legacy.is_dir() and all(time.time() - found.stat().st_mtime > LEGACY_DAYS * 86400 for found in legacy.iterdir()):
         shutil.rmtree(legacy, ignore_errors=True)
+
+
+class Busy(Exception):
+    """Another job of the project still runs: `record` is its."""
+
+    def __init__(self, record):
+        super().__init__(record['id'])
+        self.record = record
+
+
+@contextmanager
+def alone(project, wait=0):
+    """The project's jobs held: none starts, and none runs once the one running ended, waited for up to `wait` seconds
+    (Busy after it)."""
+    folder(project).mkdir(parents=True, exist_ok=True)
+    with open(folder(project) / '.turn.lock', 'a') as turn:
+        fcntl.flock(turn, fcntl.LOCK_EX)
+        until = time.monotonic() + wait
+        while (busy := running(project)) and time.monotonic() < until: time.sleep(1)
+        if busy: raise Busy(busy)
+        yield
 
 
 def start(kind, project, arguments, runner='eaos.agent_tools'):

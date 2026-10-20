@@ -19,7 +19,7 @@ from pathlib import Path
 
 from ... import plain
 from ...language import foreign, restate
-from . import adapters, handoff, planners, prompts, resume
+from . import adapters, handoff, helpers, planners, prompts, resume
 from .store import ACTIVE, RETRYABLE, TERMINAL, contract, now
 
 STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
@@ -48,8 +48,6 @@ def _signal(pid, number):
     except (ProcessLookupError, PermissionError, OSError):
         try: os.kill(int(pid), number)
         except (ProcessLookupError, PermissionError, OSError): pass
-
-
 
 
 def _read_from(path, offset):
@@ -118,6 +116,7 @@ class Manager:
                 self.store.append(run, 'state', {'en': said['en'] + (f': {why}' if why else ''), 'ar': said['ar'] + (f': {why_ar}' if why_ar else '')},
                                   {'from': before, 'to': to, 'why': why})
             self.store.save(record)
+            if to in TERMINAL and before != to: helpers.ended(self, record)
         return record
 
     def close(self):
@@ -217,8 +216,8 @@ class Manager:
                     "Consequential operations require the existing Studio preview and separate confirmation. "
                     + prompts.ASK)
         return ('Saved owner answers (context only, never authorization): ' + json.dumps(record.get('owner_answers') or [], ensure_ascii=False) + '\n' +
-                prompts.build(record.get('verb'), record.get('cards_detail') or [], self.project, self.lang,
-                             action=record.get('action'), inputs=record.get('inputs'), labels=self.labels, where=record.get('where')))
+                prompts.build(record.get('verb'), record.get('cards_detail') or [], self.project, self.lang, action=record.get('action'),
+                              inputs=record.get('inputs'), labels=self.labels, where=record.get('where'), lane=record.get('lane')))
 
     def _fail(self, run, reason, what_now=None, resumable=False):
         """The run could not go on: why, and what the person can do; `resumable` (its assistant stopped): it goes on by
@@ -365,6 +364,7 @@ class Manager:
             text = line.decode('utf-8', 'replace').strip()
             if not text: continue
             self._record(run, record, adapter.parse(text, state, self.labels), state)
+        helpers.after(self, run, state)
 
     def _record(self, run, record, parsed, state):
         """The assistant's events into the run. A Fix run's progress is its batch: the cards tried (kept, taken back or
@@ -412,7 +412,7 @@ class Manager:
 
     def _finish_turn(self, run, record, words):
         payload = self._outcome(run, answer=self._readable(run, words))
-        if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed'):
+        if record.get('verb') == 'fix' and not payload.get('branch') and not payload.get('cards_closed') and not record.get('lane'):
             # a Fix run that handed nothing over did not succeed, whatever the assistant said; nor did it break anything:
             # it ends unchanged, and the person reads why and what to do
             self.store.append(run, 'result', {'en': "Nothing changed: no fix was kept, so no branch waits for you. Read the assistant's words for why, then try again or pick other cards.",

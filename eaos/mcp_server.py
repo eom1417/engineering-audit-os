@@ -360,11 +360,14 @@ def _fix_tools(server, reading, working):
                  'waiting for a decision, to continue on it; or the base branch itself, direct: the fixes land on it once every '
                  'check passed and no branch is left), merge_into (the branch accept '
                  'merges into; default the branch open in the project folder), base_commit (the commit the preview showed for base: '
-                 'status base_moved when the branch moved since).')
+                 'status base_moved when the branch moved since), assistants (how many assistants fix the batch at once, '
+                 'in the Studio\'s speed mode: it starts the others, and you fix the cards it leaves you).')
     @_answer
     def fix_start(cards: list[str] | None = None, size: int = 10, project: str | None = None, base: str | None = None,
-                  deliver_as: str | None = None, merge_into: str | None = None, base_commit: str | None = None) -> str:
-        return tools.fix_start(project, cards, size, base=base, deliver_as=deliver_as, merge_into=merge_into, base_commit=base_commit)
+                  deliver_as: str | None = None, merge_into: str | None = None, base_commit: str | None = None,
+                  assistants: int = 1) -> str:
+        return tools.fix_start(project, cards, size, base=base, deliver_as=deliver_as, merge_into=merge_into, base_commit=base_commit,
+                               assistants=assistants)
 
     @server.tool(annotations=reading, description='Read a file (or list a folder) in the open batch\'s copy, as it is now, with line numbers.')
     @_answer
