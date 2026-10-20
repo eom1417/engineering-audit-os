@@ -79,7 +79,7 @@ def _seen(context, row, kind, nowhere):
 
 
 def _nowhere(live, base, state):
-    """The text of the app's page for an address it does not have, opened with session `state` (eaos/roles.py
+    """The lines of the app's page for an address it does not have, opened with session `state` (eaos/roles.py
     nowhere_of); None read only."""
     from ..live_setup import probe
     from ..roles import NOWHERE, nowhere_of

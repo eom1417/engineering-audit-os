@@ -28,7 +28,8 @@ signed with AUTH_SECRET). An app that signs in only through an outside provider 
 session made in the database. Save a signed-in browser state with context.storageState({ path:
 process.env.EAOS_STORAGE_STATE }), and for each view listed, a session in that view saved to
 EAOS_SESSIONS_DIR/<id>.json: a user of that kind signed in and, for a view entered by a switch, switched into it the way
-the app switches (its "switch" line: the request it sends, the cookie or the stored value it keeps), so that the
+the app switches (its "switch" line: the request it sends, the cookie or the stored value it keeps; a record chosen, an
+active program or clinic made in the copy's database when none is there), so that the
 session opens that view's own pages, never the app's page for an address it does not have. The output may end with one JSON line of the fixture values it created
 ({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1 or localhost; nothing deploys or reaches a hosted
 service."""

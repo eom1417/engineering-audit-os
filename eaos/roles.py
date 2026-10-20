@@ -11,7 +11,6 @@ not have) is not seen, never a missing page; the coverage says which views the c
 """
 import json
 import re
-from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -22,6 +21,10 @@ SIGNS = re.compile(r'\b(roles?|is_?admin|admin|permissions?|rbac|authori[sz]\w*|
                    r'orgs?|teams?|departments?|portals?|switch\w*|impersonat\w*|active_?\w+|current_?\w+)\b', re.I)
 # An address no app has: the page an app shows for it is its page for an address it does not have (opened).
 NOWHERE = '/eaos-no-such-page-7f3a'
+# The words a page opens with when it is not the page asked for but the app's "not found" or a refusal (absent).
+NOT_SEEN = re.compile(r'\b(404|403|not found|could not be found|does not exist|doesn.t exist|no longer exists|not available|'
+                      r'no access|access denied|forbidden|not allowed|not authori[sz]ed|unauthori[sz]ed|no permission)\b|'
+                      r'غير موجود|غير متاح|لا (توجد|يوجد)|ليس لديك|غير مصرح|لا تملك|لا يمكنك الوصول', re.I)
 SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests', '__tests__')
 SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma', '.sql')
 
@@ -29,7 +32,9 @@ SYSTEM = """You read a web app's code and name every view it has: each set of pa
 administrator, support staff, a customer; a clinic's reception, doctor, nurse, pharmacy, insurance...). A person may
 enter a view with an account of its own, or by switching within one sign-in: an active profile, workspace,
 organization, team, department or role the app keeps (a cookie, a stored value, a column, a route segment) and a
-switch changes. Name every view, whichever way it is entered: a view missed is a part of the app never checked.
+switch changes. Pages that show anything only once a record is chosen (an active program, clinic, project or account
+the user picks) are a view entered by a switch too, its session with one chosen. Name every view, whichever way it is
+entered: a view missed is a part of the app never checked.
 Answer with one JSON object:
 {"roles": [{"id": "admin", "name": {"en": "Administrator", "ar": "المدير"}, "evidence": "path/to/file.ts:42",
              "enter": "account", "pages": ["/admin", "/admin/users"]},
@@ -127,23 +132,35 @@ def find(target, out, provider):
 def opened(path, landed, status=200, password=0, text=None, nowhere=None):
     """Whether a page opened as itself: it answered, it was not sent elsewhere (a sign-in, a refusal, the first page),
     it shows no password field, and it is not the page the app shows for an address it does not have (`nowhere`: the
-    text of NOWHERE with the same session; an app answering every address 200 draws its "not found" itself)."""
+    lines of NOWHERE's page with the same session, nowhere_of; an app answering every address 200 draws its "not found"
+    itself, and often inside its menus)."""
     return 200 <= (status or 0) < 400 and not password and \
         (urlsplit(landed or '').path.rstrip('/') or '/') == (path.rstrip('/') or '/') and not absent(text, nowhere, path)
 
 
 def nowhere_of(page):
-    """The text of the app's page for an address it does not have, from a probe whose last address was NOWHERE; None
-    when it is the first page (an app drawing its first page at any address says nothing by it)."""
-    text = ((page.get('others') or [{}])[-1]).get('text')
-    return None if absent(page.get('text'), text, '/') else text
+    """What tells the app's "not found" from its pages, from a probe whose first address is its first page and last
+    NOWHERE: {'menus': the first page's lines, which its other pages share (bars, menus), 'missing': NOWHERE's lines
+    the first page lacks, none when it draws its first page at any address}."""
+    menus = _lines(page.get('text'), '/')
+    gone = _lines(((page.get('others') or [{}])[-1]).get('text'), NOWHERE)
+    return {'menus': menus, 'missing': [line for line in gone if line not in set(menus)]}
 
 
 def absent(text, nowhere, path):
-    """Whether page text `text` of `path` is the app's page for an address it does not have (`nowhere`, NOWHERE's)."""
-    words = lambda said, address: ' '.join(str(said or '').replace(address, ' ').split())
-    seen, missing = words(text, path), words(nowhere, NOWHERE)
-    return bool(missing) and SequenceMatcher(None, seen, missing).ratio() > 0.9
+    """Whether page text `text` of `path` is not the page itself but the app's "not found" or a refusal: it shows every
+    line of NOWHERE's page (`nowhere`, nowhere_of), whatever menus are drawn around them, or its own few lines, the
+    menus left out, open by saying so (an app drawing a "not found" of its own inside its menus)."""
+    if not nowhere: return False
+    shown = _lines(text, path)
+    own = [line for line in shown if line not in set(nowhere['menus'])]
+    return (bool(nowhere['missing']) and set(nowhere['missing']) <= set(shown)) or \
+        (0 < len(' '.join(own).split()) <= 40 and any(NOT_SEEN.search(line) for line in own[:2]))
+
+
+def _lines(text, address):
+    """The lines of a page's text, each with its spaces made one and its own address left out."""
+    return [line for raw in str(text or '').splitlines() if (line := ' '.join(raw.replace(address, ' ').split()))]
 
 
 def coverage(kinds, sessions, seen):
