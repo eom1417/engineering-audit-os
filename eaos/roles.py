@@ -182,9 +182,14 @@ def share(kinds, groups, kind, first, held=()):
 
 
 def breaches(kinds, made, look):
-    """Each page of one kind only that another kind's session opened: [{kind, page, of}]. `made`: [(kind, session)];
-    `look(session, paths)`: the probe's rows of `paths` opened with it (read only)."""
+    """Each page of one view only that another view's session opened as itself: [{kind, page, of}]. `made`: [(kind,
+    session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the app's page for
+    an address it does not have, which another view's page often shows, is never taken for that page opened."""
     owner = {page: k['id'] for k in kinds for page in k['pages']}
-    return [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for kind, state in made
-            for row in look(state, sorted(page for page, of in owner.items() if of != kind)[:8])
-            if opened(row['path'], row.get('url'), row.get('status'), row.get('password'))]
+    found = []
+    for kind, state in made:
+        page = look(state, sorted(page for page, of in owner.items() if of != kind)[:8] + [NOWHERE])
+        nowhere = nowhere_of(page)
+        found += [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for row in (page.get('others') or [])[:-1]
+                  if opened(row['path'], row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere)]
+    return found

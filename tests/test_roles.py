@@ -33,8 +33,10 @@ class Roles(unittest.TestCase):
 
     def test_a_page_of_one_kind_opened_by_another_is_a_breach(self):
         base = 'http://127.0.0.1:3000'
-        look = lambda state, paths: [{'path': p, 'url': base + p, 'status': 200 if (state, p) == ('c', '/admin/users') else 403}
-                                     for p in paths]
+        gone = {'path': roles.NOWHERE, 'text': 'Page not found'}
+        look = lambda state, paths: {'text': 'Home', 'others': [
+            {'path': p, 'url': base + p, 'status': 200 if (state, p) == ('c', '/admin/users') else 403, 'text': p} for p in paths[:-1]]
+            + [gone]}
         found = roles.breaches(KINDS, [('admin', 'a'), ('customer', 'c')], look)
         self.assertEqual(found, [{'kind': 'customer', 'page': '/admin/users', 'of': 'admin'}])
         self.assertFalse(roles.opened('/admin', base + '/login'), 'sent to the sign-in is not opened')
@@ -58,6 +60,10 @@ class Roles(unittest.TestCase):
         groups = {p: [p] for p in ('/', '/admin', '/programs/plans')}
         self.assertEqual(set(roles.share(views, groups, None, True, held={'programs'})), {'/', '/admin'},
                          "the person's one session never opens a view another session holds")
+        shown = lambda state, paths: {'text': 'Home', 'others': [{'path': p, 'url': base + p, 'status': 200,
+                                                     'text': f'Page not found\nThe page {p} does not exist. Back home'} for p in paths[:-1]]
+                                      + [{'path': roles.NOWHERE, 'text': gone}]}
+        self.assertEqual(roles.breaches(views, [('nurse', 'n')], shown), [], "another profile's not-found page is no breach")
         rows = [{'url': base + '/programs/plans', 'kind': None, 'unseen': True}, {'url': base + '/admin', 'kind': None}]
         self.assertEqual(roles.unseen({'rows': rows}), [{'page': base + '/programs/plans', 'view': None}])
         from eaos.studio.nodes import visual_reviewer

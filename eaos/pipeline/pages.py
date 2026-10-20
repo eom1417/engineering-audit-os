@@ -96,7 +96,7 @@ def _coverage(context, live, base, made, rows):
     if not kinds: return None
     seen = {urlsplit(row['url']).path for row in rows if row.get('status') == 'observed' and not row.get('unseen')}
     tested = [(kind, state) for kind, state in made if kind]
-    look = lambda state, paths: probe(live, base, state, None, paths).get('others') or [] if paths else []
+    look = lambda state, paths: probe(live, base, state, None, paths)
     return {'kinds': coverage(kinds, {kind for kind, _ in tested} or None, seen),
             'breaches': breaches(kinds, tested, look) if len(tested) > 1 else []}
 
