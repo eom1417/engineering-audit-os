@@ -123,8 +123,28 @@ def find(target, out, provider):
                      {'role': 'user', 'content': 'Correct these and answer again:\n' + '\n'.join(wrong[:20])}]
     else:
         raise ValueError('the kinds of users named no real line or page: ' + '; '.join(wrong[:3]))
-    kinds = [{k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch') if kind.get(k)} | {'pages': kind.get('pages') or []}
-             for kind in answer['roles']]
+    return _write(out, [_kept(kind) for kind in answer['roles']])
+
+
+def add(out, target, found):
+    """The views the assistant found missing on the running app (eaos/test_users.py) added to <out>/roles.json, each
+    checked as the reading's are (_wrong), one of the same id replaced; why each other one was refused."""
+    kinds, refused, pages = read(out), [], pages_of(out)
+    for view in found if isinstance(found, list) else []:
+        wrong = _wrong(view, target, pages) if isinstance(view, dict) else [f'{view}: a view is an object']
+        if wrong or len(kinds) >= MOST and all(k['id'] != view['id'] for k in kinds):
+            refused += wrong[:2] or [f'at most {MOST} views']
+            continue
+        kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]   # by the running app
+    if found: _write(out, kinds)
+    return refused
+
+
+def _kept(kind):
+    return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found') if kind.get(k)} | {'pages': kind.get('pages') or []}
+
+
+def _write(out, kinds):
     (Path(out) / 'roles.json').write_text(json.dumps({'roles': kinds}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return kinds
 
