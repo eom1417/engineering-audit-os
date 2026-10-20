@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.0.49 (2026-10-20)
+
+- **A "not found" inside the app's menus is a page not seen**: the second check of chief-ops still asked whether to
+  redirect /rota, /schedule, /settings and other pages that "now end at a not found page". The app draws its "not
+  found" inside its menus, and the page of an address it does not have without them, so the whole pages were too
+  unlike (62% against the 90% needed) for the "not found" to be told; and an app may have two "not found" pages of
+  different words. A page is now not seen when it shows every line of that page the first page lacks, whatever menus
+  are around them, or when its own few lines, the menus left out, open with "not found", "404", "no access" and the
+  like (in English or Arabic). The screens' reviewer is told such a picture is never a finding.
+- **The views of a big project reach the assistant, and the running app tells those it missed**: chief-ops pictured the
+  support pages alone. The assistant read the fifteen files with most words about users, which in a big project are a
+  folder of near-alike policies or fixtures: the sign-in, the accounts and the program chooser never reached it. Now the
+  files that serve the app's routes come first, two of any other folder at most. And once the test users are made,
+  the pages of the code are opened with every session: those no session opens (a "not found", a refusal, the sign-in)
+  go back to the assistant with their files, which say what they need, until it adds the view that opens them, or two
+  tries change nothing. A trial project grown with eighteen policy files: before, no view found and nobody signed in;
+  now the manager, support and the program views, every page pictured from its own session.
+- **A page that shows anything only once a record is chosen** (an active program, clinic or project) is a view entered
+  by a switch: the test users' script chooses one, making it in the copy's database when none is there. A trial app
+  whose rota and schedule show only in a chosen program: the program view found, its pages pictured with a program
+  chosen.
+
 ## 0.0.48 (2026-10-20)
 
 - **An answer in the person's own words is their answer**: every answer written instead of picking an option was taken

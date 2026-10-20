@@ -11,7 +11,6 @@ not have) is not seen, never a missing page; the coverage says which views the c
 """
 import json
 import re
-from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -22,6 +21,10 @@ SIGNS = re.compile(r'\b(roles?|is_?admin|admin|permissions?|rbac|authori[sz]\w*|
                    r'orgs?|teams?|departments?|portals?|switch\w*|impersonat\w*|active_?\w+|current_?\w+)\b', re.I)
 # An address no app has: the page an app shows for it is its page for an address it does not have (opened).
 NOWHERE = '/eaos-no-such-page-7f3a'
+# The words a page opens with when it is not the page asked for but the app's "not found" or a refusal (absent).
+NOT_SEEN = re.compile(r'\b(404|403|not found|could not be found|does not exist|doesn.t exist|no longer exists|not available|'
+                      r'no access|access denied|forbidden|not allowed|not authori[sz]ed|unauthori[sz]ed|no permission)\b|'
+                      r'غير موجود|غير متاح|لا (توجد|يوجد)|ليس لديك|غير مصرح|لا تملك|لا يمكنك الوصول', re.I)
 SKIP = ('node_modules', 'dist', 'build', '.next', 'coverage', '.venv', '__pycache__', '.git', 'test', 'tests', '__tests__')
 SOURCE = ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte', '.py', '.rb', '.php', '.go', '.prisma', '.sql')
 
@@ -29,7 +32,9 @@ SYSTEM = """You read a web app's code and name every view it has: each set of pa
 administrator, support staff, a customer; a clinic's reception, doctor, nurse, pharmacy, insurance...). A person may
 enter a view with an account of its own, or by switching within one sign-in: an active profile, workspace,
 organization, team, department or role the app keeps (a cookie, a stored value, a column, a route segment) and a
-switch changes. Name every view, whichever way it is entered: a view missed is a part of the app never checked.
+switch changes. Pages that show anything only once a record is chosen (an active program, clinic, project or account
+the user picks) are a view entered by a switch too, its session with one chosen. Name every view, whichever way it is
+entered: a view missed is a part of the app never checked.
 Answer with one JSON object:
 {"roles": [{"id": "admin", "name": {"en": "Administrator", "ar": "المدير"}, "evidence": "path/to/file.ts:42",
              "enter": "account", "pages": ["/admin", "/admin/users"]},
@@ -58,23 +63,33 @@ def pages_of(out, served=True):
                   and not any(mark in route for mark in (':', '*', '[')))
 
 
-def about_users(target, limit=40000):
-    """The source lines that speak of users, their kinds and their sessions, the files with most of them first, with the lines around."""
-    found = []
+def about_users(target, limit=40000, out=None):
+    """The source lines that speak of users, their kinds and their sessions, with the lines around: first the files that
+    serve the app's routes (the facts of `out`: where it signs in, switches and chooses), the most such lines first,
+    then the others, two of a folder at most, so that a folder of near-alike files (policies, fixtures) never hides the
+    rest."""
+    parts, used, folders = [], 0, {}
+    for other, _, path, lines, hits in sorted(_speaking(target, out), key=lambda row: row[:2]):
+        if other and (folders := {**folders, path.parent: folders.get(path.parent, 0) + 1})[path.parent] > 2: continue
+        start, end = max(0, hits[0] - 5), min(len(lines), hits[0] + 60)
+        text = f'=== {path.relative_to(target).as_posix()} (lines {start + 1}-{end})\n' + \
+               '\n'.join(f'{n + 1}: {line}' for n, line in enumerate(lines[start:end], start))
+        if used + len(text) > limit or len(parts) >= 15: break
+        parts.append(text)
+        used += len(text)
+    return '\n\n'.join(parts)
+
+
+def _speaking(target, out):
+    """(not a file serving a route, -its lines about users, path, lines, those lines' numbers) of each source file
+    with any (SIGNS)."""
+    from .lock_specs import surfaces
+    served = {file for _, _, file in surfaces(out).values() if file} if out else set()
     for path in Path(target).rglob('*'):
         if path.suffix in SOURCE and path.is_file() and not any(part in SKIP for part in path.relative_to(target).parts):
             lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
             hits = [i for i, line in enumerate(lines) if SIGNS.search(line)]
-            if hits: found.append((len(hits), path, lines, hits))
-    parts, used = [], 0
-    for _, path, lines, hits in sorted(found, key=lambda row: -row[0])[:15]:
-        start, end = max(0, hits[0] - 5), min(len(lines), hits[0] + 60)
-        text = f'=== {path.relative_to(target).as_posix()} (lines {start + 1}-{end})\n' + \
-               '\n'.join(f'{n + 1}: {line}' for n, line in enumerate(lines[start:end], start))
-        if used + len(text) > limit: break
-        parts.append(text)
-        used += len(text)
-    return '\n\n'.join(parts)
+            if hits: yield path.relative_to(target).as_posix() not in served, -len(hits), path, lines, hits
 
 
 def errors(answer, target, pages):
@@ -109,7 +124,7 @@ def find(target, out, provider):
     <out>/roles.json. The kinds."""
     pages = pages_of(out)
     messages = [{'role': 'system', 'content': SYSTEM},
-                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target)}]
+                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target, out=out)}]
     for _ in range(ROUNDS):
         answer, _ = provider.complete(messages, stage='roles')
         wrong = errors(answer, target, pages)
@@ -118,8 +133,28 @@ def find(target, out, provider):
                      {'role': 'user', 'content': 'Correct these and answer again:\n' + '\n'.join(wrong[:20])}]
     else:
         raise ValueError('the kinds of users named no real line or page: ' + '; '.join(wrong[:3]))
-    kinds = [{k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch') if kind.get(k)} | {'pages': kind.get('pages') or []}
-             for kind in answer['roles']]
+    return _write(out, [_kept(kind) for kind in answer['roles']])
+
+
+def add(out, target, found):
+    """The views the assistant found missing on the running app (eaos/test_users.py) added to <out>/roles.json, each
+    checked as the reading's are (_wrong), one of the same id replaced; why each other one was refused."""
+    kinds, refused, pages = read(out), [], pages_of(out)
+    for view in found if isinstance(found, list) else []:
+        wrong = _wrong(view, target, pages) if isinstance(view, dict) else [f'{view}: a view is an object']
+        if wrong or len(kinds) >= MOST and all(k['id'] != view['id'] for k in kinds):
+            refused += wrong[:2] or [f'at most {MOST} views']
+            continue
+        kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]   # by the running app
+    if found: _write(out, kinds)
+    return refused
+
+
+def _kept(kind):
+    return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found') if kind.get(k)} | {'pages': kind.get('pages') or []}
+
+
+def _write(out, kinds):
     (Path(out) / 'roles.json').write_text(json.dumps({'roles': kinds}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return kinds
 
@@ -127,23 +162,35 @@ def find(target, out, provider):
 def opened(path, landed, status=200, password=0, text=None, nowhere=None):
     """Whether a page opened as itself: it answered, it was not sent elsewhere (a sign-in, a refusal, the first page),
     it shows no password field, and it is not the page the app shows for an address it does not have (`nowhere`: the
-    text of NOWHERE with the same session; an app answering every address 200 draws its "not found" itself)."""
+    lines of NOWHERE's page with the same session, nowhere_of; an app answering every address 200 draws its "not found"
+    itself, and often inside its menus)."""
     return 200 <= (status or 0) < 400 and not password and \
         (urlsplit(landed or '').path.rstrip('/') or '/') == (path.rstrip('/') or '/') and not absent(text, nowhere, path)
 
 
 def nowhere_of(page):
-    """The text of the app's page for an address it does not have, from a probe whose last address was NOWHERE; None
-    when it is the first page (an app drawing its first page at any address says nothing by it)."""
-    text = ((page.get('others') or [{}])[-1]).get('text')
-    return None if absent(page.get('text'), text, '/') else text
+    """What tells the app's "not found" from its pages, from a probe whose first address is its first page and last
+    NOWHERE: {'menus': the first page's lines, which its other pages share (bars, menus), 'missing': NOWHERE's lines
+    the first page lacks, none when it draws its first page at any address}."""
+    menus = _lines(page.get('text'), '/')
+    gone = _lines(((page.get('others') or [{}])[-1]).get('text'), NOWHERE)
+    return {'menus': menus, 'missing': [line for line in gone if line not in set(menus)]}
 
 
 def absent(text, nowhere, path):
-    """Whether page text `text` of `path` is the app's page for an address it does not have (`nowhere`, NOWHERE's)."""
-    words = lambda said, address: ' '.join(str(said or '').replace(address, ' ').split())
-    seen, missing = words(text, path), words(nowhere, NOWHERE)
-    return bool(missing) and SequenceMatcher(None, seen, missing).ratio() > 0.9
+    """Whether page text `text` of `path` is not the page itself but the app's "not found" or a refusal: it shows every
+    line of NOWHERE's page (`nowhere`, nowhere_of), whatever menus are drawn around them, or its own few lines, the
+    menus left out, open by saying so (an app drawing a "not found" of its own inside its menus)."""
+    if not nowhere: return False
+    shown = _lines(text, path)
+    own = [line for line in shown if line not in set(nowhere['menus'])]
+    return (bool(nowhere['missing']) and set(nowhere['missing']) <= set(shown)) or \
+        (0 < len(' '.join(own).split()) <= 40 and any(NOT_SEEN.search(line) for line in own[:2]))
+
+
+def _lines(text, address):
+    """The lines of a page's text, each with its spaces made one and its own address left out."""
+    return [line for raw in str(text or '').splitlines() if (line := ' '.join(raw.replace(address, ' ').split()))]
 
 
 def coverage(kinds, sessions, seen):
@@ -182,12 +229,13 @@ def share(kinds, groups, kind, first, held=()):
 
 
 def breaches(kinds, made, look):
-    """Each page of one view only that another view's session opened as itself: [{kind, page, of}]. `made`: [(kind,
+    """Each page of one view only that another account's session opened as itself: [{kind, page, of}]. `made`: [(kind,
     session)]; `look(session, paths)`: the probe of `paths` with it (read only), NOWHERE last, so that the app's page for
     an address it does not have, which another view's page often shows, is never taken for that page opened."""
     owner = {page: k['id'] for k in kinds for page in k['pages']}
+    switched = {k['id'] for k in kinds if k.get('enter') == 'switch'}     # the same account in another view: its pages too
     found = []
-    for kind, state in made:
+    for kind, state in [(kind, state) for kind, state in made if kind not in switched]:
         page = look(state, sorted(page for page, of in owner.items() if of != kind)[:8] + [NOWHERE])
         nowhere = nowhere_of(page)
         found += [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for row in (page.get('others') or [])[:-1]

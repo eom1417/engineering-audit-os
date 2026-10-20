@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
     }
     catch (e) { errors.push(String(e.message).slice(0, 300)); }
     return { path, status, url: page.url(), password: await page.locator('input[type=password]').count().catch(() => 0),
-             text: (await page.locator('body').innerText().catch(() => '')).slice(0, 1500) };
+             text: (await page.locator('body').innerText().catch(() => '')).slice(0, 4000) };
   };
   const first = await visit('/');
   const others = [];

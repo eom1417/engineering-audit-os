@@ -17,7 +17,7 @@ from pathlib import Path
 
 from . import core
 
-VERSION = '2'
+VERSION = '3'
 BATCH = 4                       # pages per question: their phone and desktop pictures, 8 at most
 KINDS = ('crowding', 'hierarchy', 'consistency', 'clarity', 'accessibility', 'behaviour')
 SEVERITIES = ('high', 'medium', 'low')
@@ -60,6 +60,12 @@ finding the checks already state (an axe violation) is kept only if the pictures
 
 When `design` is given, it is the look the person chose (a DESIGN.md): judge every page against it too. A colour,
 font, spacing, radius, component or layout that departs from it is a finding, and its why names the DESIGN.md rule.
+
+A PAGE NOT SEEN
+A picture of the app's "not found" page, of a refusal ("no access", "not allowed") or of its sign-in, at an address
+that is not the sign-in's, is a page this session could not see: most often a page of another view, profile, program
+or workspace than the session's. It is never a finding: decide that page "clean", and never say the page is missing,
+old, broken or to redirect.
 
 DO NOT
 Judge a page whose pictures you did not open; repeat one problem as several findings of the page; point at a picture

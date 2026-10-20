@@ -286,7 +286,7 @@ async function auditOne(browser, entry, viewport, variant, index) {
     // Where the page ended, its answer and a password field: whether it opened as itself (eaos/roles.py opened)
     Object.assign(row, { landed: page.url(), http: response ? response.status() : null,
       password: await page.locator('input[type=password]').count(),
-      text: (await page.locator('body').innerText().catch(() => '')).slice(0, 1500) });
+      text: (await page.locator('body').innerText().catch(() => '')).slice(0, 4000) });
     // The page's own errors, counted before axe runs (on file:// axe reads stylesheets the page's policy may refuse)
     row.page_errors = errors.slice(0, 10);
     Object.assign(row, await measure(page, { phoneWidth: config.phone_width, targetMin: config.target_min,
