@@ -94,7 +94,7 @@
       "eaos/run_profile.py",
       "eaos/live_assist.py",
       "eaos/local_db.py",
-      "eaos/waves.py",
+      "eaos/waves.py", "eaos/lanes.py",
       "eaos/intents.py",
       "eaos/assistant_setup.py",
       "eaos/mcp_server.py",

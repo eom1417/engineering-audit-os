@@ -7,10 +7,13 @@ It answers 127.0.0.1 only, to a password of its own (scram-sha-256) kept in <run
 the person only and carried in the address the run gets: another project's run on this computer cannot connect.
 
 State lives in <runtime>/database/: data, log, password and server.json {port, bin}. start() is idempotent: the server
-of this runtime, as its own postmaster.pid says, is reused; stop() stops it and keeps the data for the next step. Under root the data
+of this runtime, as its own postmaster.pid says, is reused. Every run that created a database on it holds users.lock
+(shared) until its stop(), and the last one leaving stops the server, keeping the data for the next step: runs side by
+side, each on a database of its own (eaos/live_run.py), never stop one another's. Under root the data
 sits in the temporary folder instead, with a note naming its runtime beside it: once that runtime is gone, the next
 start() removes the data (356 such databases had kept 16 GB after their projects were deleted).
 """
+import fcntl
 import glob
 import hashlib
 import json
@@ -93,6 +96,8 @@ class LocalPostgres:
         # A Unix socket's path may not pass about 104 characters (macOS) or 107 (Linux), and the data folder under
         # ~/.eaos/projects/<name>-<id>/... already does: the socket gets a short folder of its own in /tmp.
         self.sockets = _sockets(self.root.resolve())
+        self.users = self.root / 'users.lock'
+        self._held = None
 
     def _run(self, bin_dir, name, *args, check=True):
         return subprocess.run([str(bin_dir / name), *args], capture_output=True, text=True, check=check, timeout=120,
@@ -169,17 +174,32 @@ class LocalPostgres:
         return f"postgresql://postgres:{self.password_file.read_text().strip()}@127.0.0.1:{state['port']}/{database}"
 
     def create(self, name):
-        """The address of database `name`, created empty when it does not exist."""
-        state = self.running() or (self.start() and self.running())
-        psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tAc']
-        env = {**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()}
-        exists = subprocess.run(psql + [f"select 1 from pg_database where datname = '{name}'"], capture_output=True, text=True, env=env)
-        if exists.stdout.strip() != '1':
-            subprocess.run(psql + [f'create database "{name}"'], capture_output=True, text=True, check=True, env=env)
+        """The address of database `name`, created empty when it does not exist; the server is held until stop(). Runs
+        side by side start the server and create their databases one at a time."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        if self._held is None:
+            self._held = open(self.users, 'a')
+            fcntl.flock(self._held, fcntl.LOCK_SH)       # held before the server is looked at: the last stop() waits
+        with open(self.root / 'start.lock', 'a') as alone:
+            fcntl.flock(alone, fcntl.LOCK_EX)
+            state = self.running() or (self.start() and self.running())
+            psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tAc']
+            env = {**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()}
+            exists = subprocess.run(psql + [f"select 1 from pg_database where datname = '{name}'"], capture_output=True, text=True, env=env)
+            if exists.stdout.strip() != '1':
+                subprocess.run(psql + [f'create database "{name}"'], capture_output=True, text=True, check=True, env=env)
         return self.url(state, name)
 
     def stop(self):
-        state = self.running()
-        if state:
-            self._run(Path(state['bin']), 'pg_ctl', '-D', str(self.data), '-m', 'fast', '-w', 'stop', check=False)
-        if self.state.is_file(): self.state.unlink()
+        """Leave the server, and stop it when no other run holds it (its data stays)."""
+        if self._held is not None:
+            self._held.close()
+            self._held = None
+        self.root.mkdir(parents=True, exist_ok=True)
+        with open(self.users, 'a') as last:
+            try: fcntl.flock(last, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError: return              # another run is on it
+            state = self.running()
+            if state:
+                self._run(Path(state['bin']), 'pg_ctl', '-D', str(self.data), '-m', 'fast', '-w', 'stop', check=False)
+            if self.state.is_file(): self.state.unlink()

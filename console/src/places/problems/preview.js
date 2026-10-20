@@ -24,10 +24,13 @@ function selectionOf(target) {
 }
 
 function body(verb, own) {
-  const fix = verb === 'fix';
+  const fix = verb === 'fix', kept = own.preview && own.preview.speed;
+  // speed mode as the person set it in this sheet, else as it is kept for the project
+  const speed = own.speed != null ? own.speed : kept ? kept.on : null;
   return {
     verb, selection: own.selection, assistant: own.assistant || undefined,
-    where: fix ? own.place : undefined, inputs: fix && own.auto ? { auto_accept: true } : undefined,
+    where: fix ? own.place : undefined,
+    inputs: fix ? Object.assign(own.auto ? { auto_accept: true } : {}, speed != null ? { speed } : {}) : undefined,
   };
 }
 
@@ -100,6 +103,15 @@ function assistantsHTML(p, own) {
   ${!p.assistant && p.handoff && p.handoff.available ? `<p class="small ink-2">${t('pv.handoff')}</p>` : ''}</div>`;
 }
 
+/** A Fix's speed mode: several assistants at once, as many as the lanes of its cards and this computer allow, and what
+ *  it costs. Its switch keeps the preview (the token is not bound to it). */
+function speedHTML(s, own) {
+  const on = own.speed != null ? own.speed : s.on, n = Math.min(s.assistants, s.lanes);
+  return `<div><div class="toggle-row panel panel__pad"><span><span style="display:block">${t('pv.speed')}</span><span class="small muted">${t(n > 1 ? 'pv.speed.note' : 'pv.speed.one', { n: num(n) })}</span></span>
+      <span class="switch"><input type="checkbox" data-change="pv-speed" data-fk="speed" ${on ? 'checked' : ''} aria-label="${esc(t('pv.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
+    ${on && n > 1 ? `<p class="ac-note ac-note--caution small" style="margin-top:8px">${icon('warn', 'icon--sm')}<span>${t('pv.speed.warn', { n: num(n) })}</span></p>` : ''}</div>`;
+}
+
 function command(verb, sel) {
   const ids = sel && sel.cards ? sel.cards : [];
   const what = sel && sel.kind === 'step' ? `--step ${sel.step}` : ids.slice(0, 3).join(' ') + (ids.length > 3 ? ' …' : '');
@@ -152,6 +164,7 @@ sheet('verb', {
         </dl>
         ${fix && p.where ? whereHTML(p.where, own) : ''}
         ${assistantsHTML(p, own)}
+        ${fix && p.speed ? speedHTML(p.speed, own) : ''}
         ${fix ? `<div class="toggle-row panel panel__pad"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
             <span class="switch"><input type="checkbox" data-change="pv-auto" data-fk="auto" ${own.auto ? 'checked' : ''} aria-label="${esc(t('pv.auto'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}
         ${p.needs_consent ? `<p class="small ink-2">${icon('app', 'icon--sm')} ${t('pv.consent')}</p>` : ''}
@@ -172,6 +185,7 @@ sheet('verb', {
 });
 
 act('pv-auto', el => again({ auto: el.checked }));
+act('pv-speed', el => { local().speed = el.checked; rerenderSheet(); });
 act('pv-asst', el => again({ assistant: el.value }));
 act('pv-base', el => again({ place: { base: el.value, deliver_as: '' }, name: null }));
 act('pv-into', el => again({ place: Object.assign({}, local().place, { merge_into: el.value }) }));

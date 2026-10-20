@@ -224,6 +224,8 @@ class ReadyStagesTests(unittest.TestCase):
         left = [n for n in ORDER if n not in ended]
         ready = ready_stages(left, ended, [], 'normal', 10)
         self.assertEqual(sum('app' in BY_NAME[n].uses for n in ready), 1, 'one stage at a time runs the app')
+        # the project's tests waited for the whole chain of page stages, seven minutes of a check of EAOS beside nothing
+        self.assertIn('verify', ready, 'its own copy and database: beside the stage running the app')
         self.assertNotIn('baseline', ready_stages(left, ended, ['engines'], 'normal', 10), 'the load test runs alone')
         self.assertEqual(ready_stages(['measure'], ended, ['baseline'], 'normal', 10), [], 'nothing runs beside it')
         thinking = set(ORDER) - {'triage', 'visual', 'ideal'}

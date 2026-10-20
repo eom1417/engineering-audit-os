@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
 from ... import check_choices
-from . import chat, handoff, plan, selection as selecting
+from . import chat, handoff, helpers, plan, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
@@ -427,7 +427,7 @@ class Actions:
         """The cards a verb would take and leave out, and where a Fix would build."""
         cards, left = selecting.resolve(body.get('selection'), self._studio())
         out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
-        if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'), _group_name(body.get('selection')))
+        if verb == 'fix' and self._has_commits(): out.update(where=self.branches.fix_where(body.get('where'), _group_name(body.get('selection'))), speed=helpers.speed(self.project, cards))
 
     def _action_preview(self, out, action, inputs):
         """An action's time (a check's from this project's last one, eaos/check_choices.py), risk and what happens when it
@@ -520,7 +520,7 @@ class Actions:
                 'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
                 'mode': _mode(action, needed, assistant),
                 'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
-                'context': self.branches.run_context(), **({'where': where} if where else {}), **({'auto_accept': True} if auto else {}),
+                'context': self.branches.run_context(), **({'where': {**where, **helpers.speed_of(self.project, body)}} if where else {}), **({'auto_accept': True} if auto else {}),
                 'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                 **({'started': now()} if reading else {})}
 

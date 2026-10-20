@@ -207,6 +207,21 @@ class Locks(Base):
         self.assertIn('deliver_as="eaos/mine"', self.app.manager.prompt_of(self.app.store.load(payload['run']['id'])))
 
 
+    def test_speed_mode_is_offered_in_a_fixs_preview_kept_for_the_project_and_given_to_its_assistant(self):
+        from eaos import agent_tools, check_choices, guided
+        from eaos.pipeline import schedule
+        guided.save(agent_tools.project_state(str(self.project)))              # a project checked once: its fixes come after
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--allow-empty', '-m', 'm'], check=True)
+        selection = {'kind': 'cards', 'cards': ['TASK-001', 'TASK-002']}
+        with mock.patch.object(schedule, 'capacity', return_value=(8, 2 ** 34, 2 ** 34)):           # room for five assistants
+            preview = self.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection})[1]
+            self.assertEqual(preview['speed'], {'on': False, 'assistants': 5, 'lanes': 1}, 'no plan yet: the cards are not split')
+            status, payload = self.post('/api/runs', {'action': 'fix', 'verb': 'fix', 'selection': selection, 'confirm': preview['confirm']['token'],
+                                                      'inputs': {'speed': True}, 'where': {'base_commit': preview['where']['base']['commit']}})
+        self.assertEqual((status, payload['run']['where']['assistants']), (200, 5), payload)
+        self.assertIn(', assistants=5. ', self.app.manager.prompt_of(self.app.store.load(payload['run']['id'])))
+        self.assertEqual(check_choices.kept(guided.load(self.project))['mode'], 'speed', "kept, as the check's speed mode")
+
 class EventLog(unittest.TestCase):
     def test_events_are_gapless_hash_chained_scrubbed_and_cut(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -462,6 +477,33 @@ class Runs(Base):
         self.assertEqual([e['data'].get('resume') for e in events if e['kind'] == 'step' and e['data'].get('resume')], [1])
         self.assertEqual({(e['data']['done'], e['data']['total']) for e in events if e['kind'] == 'progress'}, {(1, 2)})
         self.assertNotIn('something broke', ' '.join(str(e['data'].get('reason')) for e in events if e['kind'] == 'error'))
+
+    def test_a_fix_in_speed_mode_starts_an_assistant_per_lane_beside_its_own_and_gets_back_what_one_left(self):
+        from eaos import agent_tools, guided
+        from eaos.studio.actions import helpers
+        state = agent_tools.project_state(str(self.project))
+        state['open_wave'] = {'number': 1, 'cards': ['TASK-001', 'TASK-002', 'TASK-004'], 'kept': {}, 'failed': {},
+                              'lanes': [['TASK-001'], ['TASK-002'], ['TASK-004']], 'claims': {}, 'helpers': {}, 'later': [], 'released': []}
+        guided.save(state)
+        manager = self.make(dispatch=False).manager                 # no dispatcher saying a run without its process stopped
+        manager.store.save({'id': 'rfirst', 'verb': 'fix', 'action': 'fix', 'label': {'en': 'Fix', 'ar': 'أصلح'}, 'assistant': 'claude',
+                            'cards': ['TASK-001', 'TASK-002', 'TASK-004'], 'cards_detail': [{'id': 'TASK-002', 'title': 'Problem TASK-002'}],
+                            'mode': 'assistant', 'state': 'running', 'created': store.now()}, new=True)
+        answered = {'eaos_results': [('wait', {'batch': 1, 'helpers': [['TASK-002'], ['TASK-004']]})]}
+        with mock.patch.object(manager, '_start') as started:
+            helpers.after(manager, 'rfirst', answered)
+            helpers.after(manager, 'rfirst', {'eaos_results': answered['eaos_results']})     # another turn reading it: once
+        self.assertEqual(sorted(call.args[0] for call in started.call_args_list), ['rfirst-1', 'rfirst-2'])
+        second = manager.store.load('rfirst-1')
+        self.assertEqual((second['lane'], second['parent'], second['cards'], second['state']), (1, 'rfirst', ['TASK-002'], 'running'))
+        prompt = manager.prompt_of(second)
+        self.assertIn('one of several assistants', prompt)
+        self.assertNotIn('fix_start with', prompt, 'it never opens a batch of its own')
+        self.assertEqual(guided.load(self.project)['open_wave']['helpers'], {'rfirst-1': 1, 'rfirst-2': 2})
+        manager.set_state('rfirst-1', 'failed', 'its assistant stopped for good')
+        self.assertEqual(guided.load(self.project)['open_wave']['later'], ['TASK-002'], 'its card goes to the first assistant')
+        manager.set_state('rfirst', 'stopped', 'you stopped it')
+        self.assertEqual(manager.store.load('rfirst-2')['state'], 'stopped', 'stopping the first one stops the others')
 
     def test_a_run_goes_on_with_another_signed_in_assistant_when_its_own_hit_its_limit(self):
         ready = lambda adapter: adapter != 'signed-out'

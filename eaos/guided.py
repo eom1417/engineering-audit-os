@@ -108,7 +108,8 @@ def save(state):
     (where := Path(state['workspace'])).mkdir(parents=True, exist_ok=True)
     state['updated'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     waves.saved(state, runtime_of(state))       # the open batch drawn, the closed ones' copies removed
-    (where / 'state.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    (new := where / f'.state-{os.urandom(4).hex()}.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    new.replace(where / 'state.json')                   # whole: an assistant beside it never reads half of it
 
 
 def language(requested=None, state=None):
