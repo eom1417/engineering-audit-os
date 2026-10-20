@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.46" src="https://img.shields.io/badge/version-0.0.46-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.47" src="https://img.shields.io/badge/version-0.0.47-3987e5"></a>
   <img alt="الحالة: تجريبي" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="الرخصة: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.47 (2026-10-20)
+
+- **Every view of an app is found and seen from its own session**: a check of an app whose manager switches between
+  an administration and a programs profile within one sign-in named one kind of user, opened the programs pages with
+  the administration's session, pictured the app's "not found" page (answered 200) as those pages, and its assistant
+  asked whether to delete or build them. Now:
+  - the roles stage names every view (up to ten: a clinic's reception, doctor, nurse, pharmacy...), each entered by an
+    account of its own or by a switch within one sign-in, with the line of the code that switches;
+  - the test users' script makes a session in each view, switched into it the way the app switches; when the person
+    signed in themselves, it switches a copy of their session and never touches theirs;
+  - each view's pages are opened with its own session, and the person's one session never opens a view another
+    session holds;
+  - a page that does not open as itself (a sign-in, a refusal, or the app's own page for an address it does not have,
+    told by opening one such address, even when it answers 200) is not seen: it never reaches the review of the
+    screens, the target's plan never deletes, rebuilds or adds it nor asks about it, the report says it was not seen,
+    and it is no breach of another view.
+  A clinic signing in a manager with two profiles and a nurse: three views found (one a switch), every page of each
+  pictured from its own session, the programs pages with the programs profile switched on.
+
 ## 0.0.46 (2026-10-20)
 
 - **A check runs the project's own tests beside the pages**: the tests ran in a copy of their own but shared the

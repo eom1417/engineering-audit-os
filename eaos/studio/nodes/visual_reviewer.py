@@ -68,14 +68,14 @@ the picture breaks it.'''
 
 
 def inputs(report, project=None, lang='en', **_):
-    """{lang, project, pages}: the pictured rows of live/screens.json grouped by page (its URL), each picture with an id."""
+    """{lang, project, pages}: the pictured rows of live/screens.json grouped by page (its URL), each picture with an id;
+    never a page that did not open as itself (`unseen`: a sign-in, a refusal, the app's page for an address it does not
+    have), which is a page not seen, never one to judge."""
     report = Path(report)
     body = core.load(report / 'live/screens.json', {}) or {}
     same = {row.get('path'): row for row in body.get('pages') or [] if isinstance(row, dict)}
     pages, count = {}, 0
-    pictured = [row for row in body.get('rows') or []
-                if isinstance(row, dict) and row.get('screenshot') and (report / row['screenshot']).is_file()]
-    for row in pictured:
+    for row in _pictured(report, body):
         count += 1
         if row.get('url') not in pages: pages[row.get('url')] = _new_page(row, same, len(pages) + 1)
         page = pages[row.get('url')]
@@ -86,6 +86,12 @@ def inputs(report, project=None, lang='en', **_):
     # `design`: the person's chosen look, or None; a redesign's departures from it are findings (eaos/design.py).
     return {'lang': lang, 'project': {'name': (project and Path(project).name) or report.name}, 'pages': list(pages.values()),
             'design': target(report)}
+
+
+def _pictured(report, body):
+    """The rows of `body` (live/screens.json) with their picture, of the pages that opened as themselves."""
+    return [row for row in body.get('rows') or [] if isinstance(row, dict) and not row.get('unseen')
+            and row.get('screenshot') and (report / row['screenshot']).is_file()]
 
 
 def _new_page(row, same, number):
