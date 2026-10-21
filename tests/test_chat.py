@@ -37,3 +37,20 @@ class ChatTests(unittest.TestCase):
             self.assertFalse(chat.control(store, {'on': False})['on'])
             self.assertFalse(chat.control(store)['on'], 'off stays off')
             self.assertTrue(chat.control(store, {'on': True})['on'])
+
+    def test_an_answer_to_a_step_s_question_acts_and_the_same_question_never_comes_back(self):
+        # the owner, 2026-10-21: "your assistant is not answering" came back after every answer, picked or written
+        from eaos import agent_tools
+        from eaos.studio.actions import prompts
+        from eaos.studio.actions.runs import Manager
+        question = prompts.assistant_question({'assistant': {'name': 'Claude Code'}})
+        direct = {'mode': 'direct'}
+        self.assertEqual(prompts.picked(direct, question, None, 'رجع الاتصال، كمّل'), 'retry', 'words act: the recommended option')
+        self.assertEqual(prompts.picked(direct, question, None, 'start this check without AI'), 'without_ai')
+        self.assertIsNone(prompts.picked(direct, {'why': 'run consent', 'recommendation': 'yes'}, None, 'explain first'),
+                          'running the app takes an explicit yes')
+        self.assertIsNone(agent_tools._assistant_not_ready({}, fixed=True), 'fixed: the check starts, never asked again')
+        manager = mock.Mock(store=mock.Mock(load=lambda run: {}))
+        with mock.patch('threading.Thread'):
+            Manager._direct_answer(manager, 'r1', {'inputs': {'fresh': True}}, question, 'retry')
+        manager.store.update.assert_called_once_with('r1', inputs={'fresh': True, 'fixed': True})

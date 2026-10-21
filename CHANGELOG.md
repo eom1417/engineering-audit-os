@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.53 (2026-10-21)
+
+- **An answer acts; the same question never comes back**: after the assistant's connection dropped, chief-ops' check
+  stopped on "Claude Code is not answering", and every answer brought the same question back. "I fixed it: check
+  again" checked the assistant first, found it as before and asked again; an answer in words went to an assistant,
+  the very one not answering. Now "I fixed it" starts the check (`fixed`): a stage the assistant still fails says so in
+  the report. An answer in words to a step's own question takes the option it names, else the recommended one. Only
+  running the app takes an explicit yes, as before.
+
 ## 0.0.52 (2026-10-21)
 
 - **The views and the sign-in are worked out by an assistant that reads the code itself**: chief-ops' check found the

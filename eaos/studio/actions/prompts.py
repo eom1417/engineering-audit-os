@@ -126,6 +126,18 @@ def binding(record, question):
         any(acts(question, option.get('id')) for option in question.get('options') or [])
 
 
+def picked(record, question, option, text):
+    """The option an answer takes: the one pressed; for a direct step's question answered in words, the option they name
+    (its id or a label), else the recommended one: those words act, never handed to an assistant that may be the very
+    thing not answering (the check's "your assistant is not answering" came back after every answer)."""
+    if option is not None or record.get('mode') != 'direct' or question.get('why') == 'run consent': return option   # an explicit yes only
+    said = (text or '').casefold()
+    for option in question.get('options') or []:
+        if option['id'].casefold() in said or any(label and label.casefold() in said for label in (option.get('label') or {}).values()):
+            return option['id']
+    return question.get('recommendation')
+
+
 def answer(question, option, text, lang='ar', done=None, via='studio'):
     """The words that resume a session with the person's answer, said where they gave it (`via`: WHERE), and what EAOS
     already did for it."""

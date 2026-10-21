@@ -512,8 +512,8 @@ class Manager:
 
     def _answer(self, question_id, option=None, text=None, via='studio'):
         run, record, question = self._checked(question_id, option, text)
-        chosen = next((o for o in question.get('options') or [] if o['id'] == option), None)
-        label = (chosen or {}).get('label') or {'en': text or '', 'ar': text or ''}
+        option = prompts.picked(record, question, option, text)          # words act on a direct step's question too
+        label = (next((o for o in question.get('options') or [] if o['id'] == option), None) or {}).get('label') or {'en': text or '', 'ar': text or ''}
         self.store.append(run, 'answer', {'en': f"You answered {prompts.WHERE[via]['en']}: {label['en']}", 'ar': f"جاوبت {prompts.WHERE[via]['ar']}: {label['ar']}"},
                           {'question': question_id, 'option': option, 'text': text, 'by': 'person', 'via': via})
         self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
@@ -560,7 +560,7 @@ class Manager:
         why, inputs = question.get('why'), dict(record.get('inputs') or {})
         if why == 'assistant' and option in ('retry', 'without_ai'):
             # asked again on retry; without_ai is this one check with the rules alone, the person's choice kept
-            if option == 'without_ai': inputs['without_ai'] = True
+            inputs['without_ai' if option == 'without_ai' else 'fixed'] = True       # an answer acts: never the same question again
         elif why == 'run consent' and option == 'yes': inputs['person_agreed'] = True
         elif why != 'branch':
             self.store.append(run, 'result', {'en': 'Nothing was done: you said no.', 'ar': 'ما سوينا شي: قلت لا.'}, self._outcome(run))
