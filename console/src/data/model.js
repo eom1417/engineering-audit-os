@@ -30,7 +30,8 @@ export function project() {
   const scanned = head.scanned || m.scanned || {};
   return { name: (m.project && m.project.name) || '', branch: scanned.branch || '', commit: scanned.commit || '', checked_at: scanned.at || null,
     detached: !!scanned.detached, dirty: !!scanned.dirty, eaos_version: (head.eaos && head.eaos.version) || (m.built && m.built.version) || '',
-    freshness: head.freshness || 'unknown', freshness_detail: head.freshness_detail || null, next_tool: head.next ? head.next.tool : null };
+    freshness: head.freshness || 'unknown', freshness_detail: head.freshness_detail || null, next_tool: head.next ? head.next.tool : null,
+    next_action: head.next ? head.next.action : null, verdict: head.verdict || '' };
 }
 
 /** One problem as the screens draw it: the card's own fields, and what the assistant decided for it. */
@@ -87,6 +88,7 @@ function sourceOf(id) {
   if (id.startsWith('node-visual_reviewer')) return 'screens';
   if (id.startsWith('disagree-')) return 'disagreement';
   if (id.startsWith('card:')) return 'card';
+  if (id.startsWith('blueprint:')) return 'blueprint';
   return 'check';
 }
 
@@ -108,6 +110,20 @@ export function plan() {
     const fix = p && (p.plans.find(x => x.kind === 'fix') || p.plans[0]);
     return { steps: (fix && fix.steps) || [], progress: fix ? fix.progress : null };
   });
+}
+
+/** The build of a project made from its plan (plans.json `build`): its milestones as steps, each with its build cards;
+ *  null for a project checked and fixed. */
+export function buildPlan() {
+  return memo('buildPlan', ['plans'], p => (p && p.plans.find(x => x.kind === 'build')) || null);
+}
+
+/** The build's next step as the report's head names it (eaos/studio/build_plan.next_step): its words, and the inbox
+ *  for the blueprint's questions or the `build_start` action; null when the next step is neither. */
+export function buildNext() {
+  const p = project();
+  if (p.next_tool === 'blueprint_answer') return { label: p.next_action, link: '/waiting' };
+  return p.next_tool === 'build_start' ? { label: p.next_action, sheet: 'action:build_start' } : null;
 }
 
 /** One evidence fact by id, with the problems that rest on it. */

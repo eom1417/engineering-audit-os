@@ -1,5 +1,6 @@
 """Building a project from its plan (docs/BUILD-FROM-PLAN.md): any plan read, the spec checked, the target and the
 build drawn, the gates that keep copies, cycles, layer breaks and stray vendors out, and the build handed over."""
+import json
 import os
 import subprocess
 import tempfile
@@ -74,7 +75,7 @@ class DesignTests(unittest.TestCase):
         self.assertTrue(blueprint.choose_stack(spec())['database']['switch'], 'every choice says how to change it later')
         built = blueprint.design(spec(), blueprint.choose_stack(spec()))
         names = [m['name'] for m in built['plan']['milestones']]
-        self.assertEqual(names, ['The skeleton', 'Shared foundations', 'Patients', 'Appointments', 'Journeys end to end'],
+        self.assertEqual(names, ['The skeleton', 'Shared foundations', 'Patients', 'Appointments', 'Journeys end to end', 'Ready to release'],
                          'appointments use patients, so patients are built first')
         cards = {c['id']: c for c in built['plan']['tasks']}
         feature = next(c for c in cards.values() if c['feature'] == 'F2')
@@ -88,6 +89,29 @@ class DesignTests(unittest.TestCase):
         self.assertEqual({c['name'] for c in target['parts'] if c['kind'] == 'module'}, {'Patients', 'Appointments'})
         self.assertIn('domain', {c['layer'] for c in target['target_components']}, "the target's parts are its layers, as a check's are")
         self.assertTrue(all(d['how_to_change_later'] for d in target['decisions']))
+
+
+    def test_the_cards_every_product_needs_come_from_its_facts_and_every_requirement_is_built_by_something(self):
+        # HungerLab: an assistant added about 50 such cards by hand, and nothing proved each requirement was built.
+        facts = spec(nonfunctional={'languages': ['ar', 'en'], 'data_sensitivity': 'health', 'platforms': ['mobile web'], 'expected_users': 5000},
+                     integrations=[{'id': 'sms', 'name': 'Twilio', 'purpose': 'reminders'}],
+                     requirements=[{'id': 'FR-1', 'text': 'book a visit', 'covered_by': ['F2']},
+                                   {'id': 'NFR-3', 'text': 'Arabic first', 'covered_by': ['languages']}])
+        self.assertEqual(blueprint.validate_spec(facts), ([], []))
+        built = blueprint.design(facts, blueprint.choose_stack(facts))
+        by_source = {c['source']: c for c in built['plan']['tasks']}
+        self.assertLessEqual({'languages', 'privacy', 'offline', 'integration:sms', 'security', 'errors', 'accessibility', 'speed',
+                              'load', 'release'}, set(by_source))
+        self.assertEqual(by_source['integration:sms']['paths'], ['server/src/infrastructure/sms/'])
+        self.assertEqual({by_source[k]['milestone'] for k in ('languages', 'privacy', 'security')}, {'M02'})
+        self.assertEqual(built['plan']['milestones'][-1]['name'], 'Ready to release')
+        self.assertEqual((by_source['F2']['covers'], by_source['languages']['covers']), (['FR-1'], ['NFR-3']))
+        bare = {c['source'] for c in blueprint.design(spec(), blueprint.choose_stack(spec()))['plan']['tasks']}
+        self.assertFalse(bare & {'languages', 'privacy', 'offline', 'load'}, 'only what the facts call for')
+        problems = '\n'.join(blueprint.validate_spec(spec(requirements=[{'id': 'FR-9', 'text': 'pay', 'covered_by': []},
+                                                                        {'id': 'FR-8', 'text': 'x', 'covered_by': ['payments']}]))[0])
+        self.assertIn('requirement FR-9: nothing builds it', problems)
+        self.assertIn('requirement FR-8: payments is not a feature', problems)
 
 
 def write(root, files):
@@ -127,6 +151,51 @@ class BuildTests(unittest.TestCase):
         patcher = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home')})
         patcher.start(); self.addCleanup(patcher.stop)
         self.project = str(Path(self.tmp.name) / 'clinic')
+
+    def test_a_blueprint_drawn_outside_the_studio_shows_there_its_build_plan_its_questions_and_its_next_step(self):
+        # The incident (HungerLab): the blueprint was drawn from the person's own assistant session; the Studio showed
+        # no build card, none of its four questions, and "check the project" with no score.
+        from eaos.studio import actions
+        build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)
+        asked = spec(decisions=[{'id': 'D1', 'question': 'Reminders by SMS or e-mail?', 'options': ['SMS', 'E-mail'],
+                                 'recommendation': 'E-mail', 'why': 'e-mail costs nothing'}], flows=[])
+        build_tools.blueprint_spec(asked, self.project)
+        build_tools.blueprint_design(project=self.project)
+        studio = guided.report_of(guided.load(Path(self.project).resolve())) / 'studio'
+        read = lambda name: json.loads((studio / f'{name}.json').read_text())
+        built = next(p for p in read('plans')['plans'] if p['kind'] == 'build')
+        cards = [t for s in built['steps'] for t in s['tasks']]
+        self.assertEqual(len(cards), len(build_tools._plan(guided.load(Path(self.project).resolve()))['tasks']))
+        self.assertIn('a booked visit shows on its day', '\n'.join(t['acceptance'] for t in cards))
+        question = next(d for d in read('decisions')['decisions'] if d['id'] == 'blueprint:D1')
+        self.assertEqual(([o['label'] for o in question['options']], question['recommended_option']), (['SMS', 'E-mail'], 'o2'))
+        self.assertEqual(read('head')['next']['tool'], 'blueprint_answer')
+        self.assertEqual({d['state'] for d in read('decisions')['decisions'] if d['id'].startswith('blueprint:')}, {'waiting'},
+                         'a check\'s share of questions never answers a blueprint question for the person')
+        app = actions.Actions(Path(self.project), port=8765, adapters={})
+        self.addCleanup(app.close)
+        row = next(r for r in app.report_decisions() if r['id'] == 'blueprint:D1')
+        self.assertEqual(app.answer_decision('blueprint:D1', {'scope': row['scope'], 'option': 'o1'})['response']['status'], 'applied')
+        kept = json.loads((build_tools.folder(guided.load(Path(self.project).resolve())) / 'product-spec.json').read_text())
+        self.assertEqual(kept['decisions'][0]['chosen'], 'SMS', 'the answer is in the spec, with no assistant run to review it')
+        self.assertFalse(app.store.all())
+        self.assertEqual([d['id'] for d in read('decisions')['decisions']], ['blueprint:flows'])
+        build_tools.blueprint_answer('flows', 'yes', self.project)
+        self.assertEqual((read('head')['next']['tool'], read('head')['next']['milestone']), ('build_start', 'M01'))
+
+    def test_the_last_milestone_waits_for_every_requirement_and_for_usable_screens(self):
+        build_tools.blueprint_start(text='plan', project=self.project)
+        build_tools.blueprint_spec(spec(requirements=[{'id': 'FR-1', 'text': 'book a visit', 'covered_by': ['F2']}]), self.project)
+        build_tools.blueprint_design(project=self.project)
+        state = guided.load(Path(self.project).resolve())
+        card = next(c['id'] for c in build_tools._plan(state)['tasks'] if c['covers'] == ['FR-1'])
+        self.assertEqual([p['where'] for p in build_tools._unbuilt(state, {'kept': {}})], ['FR-1'], 'skipped or never built')
+        self.assertEqual(build_tools._unbuilt(state, {'kept': {card: 'abc'}}), [])
+        look = {'screen_problems': [{'page': '/', 'width': 375, 'problems': ['axe: color-contrast (serious, 2)']}],
+                'speed': {'performance': 0.4, 'accessibility': 0.8, 'best-practices': 0.95}}
+        self.assertEqual([p['what'] for p in build_tools._unusable(look)],
+                         ['axe: color-contrast (serious, 2)', 'Lighthouse accessibility is 0.8, under 0.9'],
+                         'the copy runs in development mode: its speed never stops a delivery')
 
     def test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder(self):
         answer = build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)

@@ -19,6 +19,7 @@ from pathlib import Path
 from .. import artifact_contracts, build_info, indicators, owner_share
 from ..compose.labels import impact_of
 from ..plan import title_of
+from . import build_plan
 from . import change as change_map
 from . import coverage as coverage_section
 from . import history as history_section
@@ -114,9 +115,10 @@ def meta(report, m):
 
 def head(m, scan, lang, stamp, fresh):
     freshness, detail = fresh
-    counted = M.problem_counts(m)
+    counted, build = M.problem_counts(m), m.get('build')
     return {'scanned': scan, 'eaos': {k: stamp[k] for k in ('version', 'commit', 'digest')}, 'freshness': freshness, 'freshness_detail': detail,
-            'verdict': _verdict(m['score'], counted, lang), 'next': _next_step(counted['fixable'], m['rows'], lang)}
+            'verdict': build_plan.verdict(build, lang) if build else _verdict(m['score'], counted, lang),
+            'next': build_plan.next_step(build, lang) if build else _next_step(counted['fixable'], m['rows'], lang)}
 
 
 def _verdict(s, counted, lang):
@@ -246,9 +248,10 @@ def plans(m, card_rows, lang):
     total, closed = len(card_rows), sum(c['state'] in M.CLOSED for c in card_rows)
     touched = any(c['state'] not in ('open',) for c in card_rows)
     state = 'closed' if total and closed == total else 'active' if touched else 'registered'
-    return [{'id': 'fix', 'title': 'خطة الإصلاح' if lang == 'ar' else 'Fix plan', 'kind': 'fix', 'parent': None, 'state': state,
-             'goal': '', 'indicators': [], 'steps': steps,
-             'progress': ratio(closed / total if total else None, 'ledger: (done + resolved) / every card in scope')}]
+    fix = {'id': 'fix', 'title': 'خطة الإصلاح' if lang == 'ar' else 'Fix plan', 'kind': 'fix', 'parent': None, 'state': state,
+           'goal': '', 'indicators': [], 'steps': steps,
+           'progress': ratio(closed / total if total else None, 'ledger: (done + resolved) / every card in scope')}
+    return [fix] + list(filter(None, [build_plan.plan(m.get('build'), lang)]))
 
 
 def _owner_question(card):
@@ -299,8 +302,8 @@ def decisions(m, card_rows, lang):
 
 def _asked(report, m, card_rows, lang):
     """Every question of the inbox in one language, each asked once."""
-    return inbox.tidy(decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
-                          + planned_ideal.disagreements(report, lang))
+    return inbox.tidy(decisions(m, card_rows, lang) + build_plan.questions(m.get('build'), lang) + planned_ideal.decisions(report, lang)
+                      + ai_nodes.decisions(report, lang) + planned_ideal.disagreements(report, lang))
 
 
 def _recommends(recommendation, label):
@@ -329,7 +332,9 @@ def _decision_rows(report, m, card_rows, lang):
         identity = {k: source.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
         row['revision'] = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         row['recommended_option'] = _recommended(source)
-    return owner_share.capped(rows, len(card_rows))
+    # the share caps what a check asks per problem; a blueprint's questions are the product's own, each asked
+    owner_share.capped([row for row in rows if row.get('tool') != 'blueprint'], len(card_rows))
+    return rows
 
 
 def _published(built, stamps):
@@ -363,8 +368,9 @@ def _write(folder, name, data):
     return blob
 
 
-def export(report, lang='ar', name=None, project=None, progress=None, state=None):
-    """Write <report>/studio/ and return {'written': [sections], 'errors': [{section, error}]}."""
+def export(report, lang='ar', name=None, project=None, progress=None, state=None, build=None):
+    """Write <report>/studio/ and return {'written': [sections], 'errors': [{section, error}]}; `build`: a project still built
+    from its plan (build_tools.studio_build), its plan, questions and next step in place of a check's."""
     report = Path(report)
     folder = report / 'studio'
     folder.mkdir(parents=True, exist_ok=True)
@@ -375,6 +381,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         (folder / 'manifest.json').unlink(missing_ok=True)
         (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         return {'written': [], 'errors': errors}
+    m['build'] = build
     stamp = {**build_info.stamp(datetime.now(timezone.utc).isoformat(timespec='seconds')), 'studio_digest': build_info.studio_digest()}
     scan = scan_of(project, state)
     if not scan['at']: scan['at'] = str((m['manifest'] or {}).get('started_at') or '')

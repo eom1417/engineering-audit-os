@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.0.55 (2026-10-21)
+
+- **The blueprint plans a complete product by itself**: HungerLab's blueprint had a card per module, feature and
+  journey only; an assistant added about 50 cards by hand (languages, offline, security, accessibility, speed, release)
+  and measured by hand that every requirement of the plan was covered. The generator collected the spec's
+  `nonfunctional` facts and ignored them. Now the cards every product needs are data (`eaos/data/product-standard.json`),
+  chosen by those facts and the integrations: languages and right-to-left, privacy, offline, one adapter per
+  integration, security and errors in the foundations; accessibility, speed, load and release in a last milestone,
+  "Ready to release".
+- **Every requirement of the plan is built**: the spec lists them with what builds each (`requirements[].covered_by`);
+  one nothing builds stops the blueprint, each card names the requirements it builds, and the last milestone is not
+  delivered while a requirement has no kept card (a card skipped earlier may be built then) or while its running
+  screens have serious accessibility problems (axe, touch targets, Lighthouse accessibility or best practices under
+  0.9; the copy's speed, in development mode, is the release card's to prove).
+- **One press builds the whole product**: "Build the whole product" in the Studio builds every milestone in order,
+  fixing what each milestone's screen review found before the next one, and stops when the last branch waits for the
+  person. The blueprint's page for people moved to `eaos/blueprint_view.py`; an import cycle 0.0.54 brought is gone.
+
+## 0.0.54 (2026-10-21)
+
+- **A project built from its plan is followed in the Studio, wherever its blueprint was drawn**: HungerLab's blueprint
+  was drawn from the person's own assistant session, and the Studio showed none of its 68 build cards, none of its four
+  questions, and "check the project" with "no score". The Studio read only a check's plan and inbox. Now it reads the
+  blueprint folder (`eaos/studio/build_plan.py`): the Plan page lists the milestones and each card with its acceptance,
+  files, tests and state; the spec's open questions wait in "Waiting for you" (a check's share of questions never
+  answers them for the person); Status says where the build stands and offers its one next step.
+- **An answer to the blueprint acts**: it goes into the spec at once (`blueprint_answer`), with no assistant run to
+  review it, and a blueprint not built yet is drawn again with it (the journeys, when the person says yes, are one per
+  role through the features it can use).
+- **"Build the next milestone" builds it**: from the Studio it only opened the milestone and stopped, with no one to
+  build its cards. Now it starts the person's assistant, which opens the milestone, builds every card through its gates
+  and hands the milestone over as its branch, then stops for the person.
+
 ## 0.0.53 (2026-10-21)
 
 - **An answer acts; the same question never comes back**: after the assistant's connection dropped, chief-ops' check

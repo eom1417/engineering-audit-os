@@ -3,9 +3,10 @@
 import {
   t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive,
 } from 'eaos';
+import { buildStep } from '../understand-kit/kit.js';
 
 const { SEV } = model;
-const NEEDS = ['meta', 'head', 'health', 'cards', 'decisions', 'history'];
+const NEEDS = ['meta', 'head', 'health', 'cards', 'decisions', 'history', 'plans'];
 const STAGE_WORD = { done: 'st.journey.done', partial: 'st.about.partial', skipped: 'st.about.skipped' };
 
 /** The next step the report names (head.next.tool), as the words of its button and where it goes. */
@@ -227,6 +228,16 @@ function emptyState(ctx) {
   </div>`;
 }
 
+/** A project still being built from its plan: the build's verdict and its one next step, never a check's score. */
+function buildState() {
+  return `<div class="page">
+    <h1 class="lede">${esc(model.project().verdict)}</h1>
+    <div class="actions">${buildStep()}<a class="btn btn--quiet" href="${href('/problems/plan')}">${icon('layers', 'icon--sm')}${t('st.build.plan')}</a>
+      <p class="actions__note">${t('bp.note')}</p></div>
+    ${nowRows()}
+  </div>`;
+}
+
 function loadingState() {
   return `<div class="page" aria-busy="true">
     <div class="context"><span class="chip skel" style="width:110px"></span><span class="chip skel" style="width:190px"></span></div>
@@ -241,6 +252,8 @@ screen({
   title: () => t('st.place'),
   loading: loadingState,
   render(ctx) {
+    const build = model.buildPlan();
+    if (build && !model.plan().steps.length) return buildState();
     if (ctx.state === 'empty') return emptyState(ctx);
     return `<div class="page page--status">
       ${contextChips()}

@@ -32,6 +32,23 @@ the blueprint, build milestone by milestone, the acceptance check. The live map 
 each card as its step (`eaos/journeys.py`), and the library's "The blueprint and the look" group shows BLUEPRINT.md and
 DESIGN.md before any check exists.
 
+Wherever the blueprint was drawn (the Studio or the person's own assistant session), the Studio reads it from the
+blueprint folder (`eaos/studio/build_plan.py`): the Plan page lists the milestones and each build card with its
+acceptance, files, tests and state; the spec's open questions wait in "Waiting for you", and an answer there goes into
+the spec at once and draws the blueprint again; Status says where the build stands and offers its one next step.
+"Build the whole product" starts the person's assistant, which builds every milestone in order, each card through
+its gates, fixing what each milestone's screen review found before the next one, and stops when the last branch waits
+for the person's decision.
+
+**Complete by construction.** Beyond its own features, the blueprint adds the cards every product needs
+(`eaos/data/product-standard.json`), chosen by the spec's `nonfunctional` facts and `integrations`: languages and
+right-to-left, privacy (consent, export, deletion), offline on the phone, one adapter per integration, security by
+default, errors and their states, then, in the last milestone "Ready to release", accessibility, speed, load and CI.
+Every requirement of the plan is listed in the spec with what builds it (`requirements[].covered_by`): a requirement
+nothing builds stops the blueprint, and the last milestone is not delivered while a requirement has no kept card, nor
+while its running screens have serious accessibility problems (axe, touch targets, Lighthouse accessibility and best
+practices under 0.9).
+
 ## The structure it draws
 
 | Folder | Layer | Depends on |

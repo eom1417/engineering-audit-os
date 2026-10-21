@@ -8,6 +8,7 @@ import {
   model, selection, data,
 } from 'eaos';
 import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page } from '../understand-kit/kit.js';
+import { buildPage } from './build.js';
 
 const NEEDS = ['plans', 'cards', 'paths', 'operations', 'history'];
 const title = s => ticks(rich(L(s.title || s.id)));
@@ -144,6 +145,8 @@ function plansFold() {
 const PLAN_STATES = ['draft', 'registered', 'approved', 'rejected', 'active', 'review', 'merged', 'closed', 'regressed', 'archived'];
 
 function planPage(ctx) {
+  const build = model.buildPlan();
+  if (build && !model.plan().steps.length) return buildPage(build);
   if (ctx.state === 'empty' || (!ctx.state && !model.plan().steps.length)) {
     return empty(t('un.plan.empty'), t('un.plan.empty.guide'), planSeg());
   }

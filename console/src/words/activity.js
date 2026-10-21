@@ -376,6 +376,7 @@ export default {
   'ac.ax.expert': ['عادة يقوم بهذه الخطوة مساعدك داخل التشغيل. تظهر هنا لمن يريد أن يتحكم بنفسه.', 'Normally your assistant does this step inside a run. It shows here for anyone who wants to drive it.'],
   'ac.ax.project': ['المشروع: {name}، يُملأ وحده.', 'Project: {name}, filled in by itself.'],
   'ac.ax.consent.title': ['يحتاج موافقتك على تشغيل برنامجك', 'Needs your consent to run your app'],
+  'ac.ax.consent.title.build_start': ['يحتاج موافقتك على بناء مشروعك من مخططه', 'Needs your consent to build your project from its blueprint'],
   'ac.ax.required': ['مطلوب', 'required'],
   'ac.ax.list': ['واحد في كل سطر.', 'One per line.'],
   'ac.ax.answer': ['الجواب', 'The answer'],

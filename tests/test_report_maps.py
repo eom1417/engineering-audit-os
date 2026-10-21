@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import arch_map, blueprint, c4, human_report, system_drawing, system_map
+from eaos import arch_map, blueprint, blueprint_view, c4, human_report, system_drawing, system_map
 from test_human_report import report, section
 
 def node(path, depends, group=None):
@@ -175,7 +175,7 @@ class BlueprintMapTests(unittest.TestCase):
         stack = blueprint.choose_stack(spec())
         built = blueprint.design(spec(), stack)
         ids = [c['id'] for c in built['plan']['tasks']]
-        text = blueprint.page(spec(), stack, built, [{'number': 1, 'milestone': 'M01', 'branch': 'eaos/build-1', 'kept': ids[:1], 'skipped': {ids[1]: 'refused'}}])
+        text = blueprint_view.page(spec(), stack, built, [{'number': 1, 'milestone': 'M01', 'branch': 'eaos/build-1', 'kept': ids[:1], 'skipped': {ids[1]: 'refused'}}])
         self.assertIn('data-part="target-map"', text)
         self.assertEqual(text.count('class="tcard"'), len(ids))
         self.assertEqual(text.count('data-state="done"'), 2, 'the built card, and its chip')

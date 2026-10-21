@@ -66,6 +66,12 @@ LANE = ('Use the eaos tools to fix these cards of the batch another assistant of
 CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_design (the spec, blueprint_spec until it '
                              'is complete, asking the person only real choices), always with the same project; stop there: the '
                              'person reads the blueprint and agrees to build it (build_start).',
+          'build_start': 'the person agreed to build by starting this step in the Studio, so call build_start with '
+                         'person_agreed=true. Build the whole product, milestone after milestone, without asking again: every '
+                         'card of the open milestone with build_read and build_edit, in order (build_skip with the reason only for a '
+                         'card that cannot pass its gates), then build_finish; fix first what its `look` found, then build_start '
+                         'the next one, through to the last. Stop when build_finish says every milestone is built, or on a real '
+                         'product question: tell the person what was built and that the last branch waits for their decision.',
           'extend_start': 'then write the spec and call extend_plan until it fits the project, always with the same project, '
                           'asking the person only real choices; stop there: the person reads what will be added and agrees to '
                           'build it (fix_start with its cards).'}

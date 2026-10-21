@@ -1636,15 +1636,15 @@
    "tool": "build_start",
    "group": "build",
    "label": {
-    "en": "Open the next milestone",
-    "ar": "افتح المرحلة التالية"
+    "en": "Build the whole product",
+    "ar": "ابنِ المنتج كامل"
    },
    "description": {
     "en": "",
     "ar": ""
    },
-   "mode": "direct",
-   "needs_assistant": false,
+   "mode": "assistant",
+   "needs_assistant": true,
    "irreversible": false,
    "needs_consent": true,
    "returns_job": false,
