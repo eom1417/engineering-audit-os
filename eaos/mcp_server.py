@@ -226,14 +226,15 @@ def _check_tools(server, reading, working):
                  'person names it, its pages are read signed in, read only, for this check. run_app=true: only once the person '
                  'said yes to running their app in an isolated copy (its pages, sign-in and speed need it; kept). go_on=true: only '
                  'when the person asks to continue a check they stopped: it goes on from where it stopped; any other check '
-                 'starts from nothing. ' + project_doc)
+                 'starts from nothing. fixed=true: the person said their assistant is fixed: the check starts without asking '
+                 'whether it is ready. ' + project_doc)
     @_answer
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
               assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
               paths: list[str] | None = None, mode: str | None = None, sign_in: str | None = None, published: str | None = None,
-              run_app: bool = False, go_on: bool = False) -> str:
+              run_app: bool = False, go_on: bool = False, fixed: bool = False) -> str:
         return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in,
-                           published, run_app, go_on)
+                           published, run_app, go_on, fixed)
 
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '

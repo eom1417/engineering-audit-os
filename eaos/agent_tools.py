@@ -319,13 +319,13 @@ def _fresh_report(state):
 # ---------------------------------------------------------------- diagnosis
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False):
+          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False):
     """`use_assistant`, `assistant` (claude or codex): the person's choice for the check's AI, kept. One not ready
     (eaos/assistants/readiness.py) stops the check before it starts, with why and the fix; `without_ai`: this one check with
     the rules alone. `again_from`: the last check goes on from that stage on the checked commit, it and the stages reading
     it run again and the rest is kept (`engines`: only those tools). `paths`: only those (eaos/pipeline/paths.py); `mode`:
     normal or speed, `sign_in`: hand, test_user or none, kept (eaos/check_choices.py); `published`: an address read signed in;
-    `run_app`: their yes to run their app in an isolated copy, kept; `go_on`: a stopped check goes on (Retry), else it is new."""
+    `run_app`: their yes to run their app, kept; `go_on`: a stopped check goes on (Retry); `fixed`: their assistant is fixed."""
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
@@ -336,16 +336,16 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     if guided.scan_done(state) and not fresh and not again_from and not go_on:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from, use_assistant is not None or assistant)
-    blocked = None if without_ai else _assistant_not_ready(state)
+    blocked = None if without_ai else _assistant_not_ready(state, fixed)
     if blocked: return blocked
     arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published), go_on=go_on).items() if v}
     return _start('audit', state, arguments, watch=True)
 
 
-def _assistant_not_ready(state):
-    """{status: assistant_not_ready, ...} when the person said yes to their assistant and it does not answer now."""
+def _assistant_not_ready(state, fixed=False):
+    """{status: assistant_not_ready, ...} when the person's assistant does not answer now, unless they said it is `fixed`."""
     from .assistants import readiness
-    if guided.answered(state, 'use_assistant') is False: return None      # on unless the person said no
+    if fixed or guided.answered(state, 'use_assistant') is False: return None      # on unless the person said no
     name = guided.chosen_assistant(state)
     if not name: return None
     found = readiness.probe(name, fresh=True)          # the person may have just fixed it
