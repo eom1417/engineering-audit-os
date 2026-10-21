@@ -117,6 +117,7 @@
       "eaos/studio/**",
       "eaos/api/**",
       "eaos/blueprint.py",
+      "eaos/blueprint_view.py",
       "eaos/plan_source.py",
       "eaos/design.py",
       "eaos/build_tools.py",
