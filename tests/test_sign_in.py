@@ -56,12 +56,34 @@ class SignInTests(unittest.TestCase):
         runners = fake_runners()
         runners['session'] = sign_in_stage.session
         (self.root / 'project').mkdir()
-        with mock.patch.object(sign_in_stage, 'shared_app') as started:
+        app = (SimpleNamespace(), 'http://127.0.0.1:1', self.root / 'runtime/session.json')
+        with mock.patch.object(sign_in_stage, 'shared_app', return_value=app), mock.patch('eaos.test_users.unreached', return_value={}), \
+                mock.patch.object(sign_in_stage, '_test_users') as made, mock.patch.object(sign_in_stage, '_ask') as asked:
             result = execute(self.root / 'project', self.root / 'out', runners=runners, runtime=self.root / 'runtime',
                              sign_in={'folder': str(self.root)})
         self.assertEqual(result['stages']['session']['status'], 'ok')
-        self.assertEqual(json.loads((self.root / 'out/live/sign-in.json').read_text())['needed'], False)
-        started.assert_not_called()                     # no app started, nothing asked
+        self.assertEqual(json.loads((self.root / 'out/live/sign-in.json').read_text()), {'schema_version': 1, 'needed': False})
+        made.assert_not_called()                        # every page opens and the code has no view: nothing made
+        asked.assert_not_called()
+
+    def test_an_app_that_signs_in_by_itself_still_gets_its_views_and_nobody_is_asked(self):
+        # chief-ops in development opens as support by itself: no sign-in seen, its program's pages a "not found"
+        context = SimpleNamespace(out=self.root / 'out', target=self.root / 'project', provider=object())
+        context.setdefault = lambda key, default: default
+        (self.root / 'out').mkdir()
+        app = (SimpleNamespace(), 'http://127.0.0.1:1', self.root / 'runtime/session.json')
+        with mock.patch.object(sign_in_stage, '_live'), mock.patch.object(sign_in_stage, 'shared_app', return_value=app), \
+                mock.patch.object(sign_in_stage.sign_in, 'from_code', return_value=[]), \
+                mock.patch.object(sign_in_stage.sign_in, 'from_pages', return_value=[]), \
+                mock.patch.object(sign_in_stage, '_setup_page', return_value=None), \
+                mock.patch('eaos.test_users.unreached', return_value={'/access': 'src/programme/Access.tsx', '/rota': None}), \
+                mock.patch.object(sign_in_stage, '_test_users', return_value='') as made, \
+                mock.patch.object(sign_in_stage, '_ask') as asked, mock.patch.object(sign_in_stage, '_keep') as kept:
+            sign_in_stage.session(context)
+        made.assert_called_once_with(context, *app)
+        asked.assert_not_called()
+        self.assertEqual(kept.call_args.args[2], {'schema_version': 1, 'needed': False, 'views': 'test_user',
+                                                  'unreached': ['/access', '/rota']})
 
     def test_a_sign_in_that_did_not_take_is_asked_again_on_the_page_the_app_sends_to(self):
         # "I signed in" with the pages still signed out once ended the wait as if nobody came; the browser opened the

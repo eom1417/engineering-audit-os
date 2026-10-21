@@ -234,6 +234,7 @@ def _pictured(screens, visual):
         row['not_seen'] = [page['page'] for page in missed][:LIMIT['rows']]
         row['rules'] = _verdict('improve', f"{len(missed)} page(s) did not open as themselves (another view's, a sign-in or the "
                                 f"app's not-found page): what they show is unknown, never a page missing; {row['rules']['why']}")
+    if screens.get('unreachable'): row['unreachable'] = screens['unreachable'][:LIMIT['rows']]     # proved from the code
     return _kinds(row, screens.get('coverage'))
 
 

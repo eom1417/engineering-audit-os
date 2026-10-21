@@ -7,7 +7,8 @@ session per view on the running app (eaos/test_users.py), the page stages open e
 not have) is not seen, never a missing page; the coverage says which views the check saw and why not the others.
 
     <out>/roles.json   {"roles": [{"id", "name", "evidence": "file:line", "enter": "account" | "switch",
-                                   "switch": "file:line", "pages": ["/admin", ...]}]}
+                                   "switch": "file:line", "pages": ["/admin", ...]}],
+                        "unreachable": [{"page", "why", "evidence": "file:line"}]}   the pages the code proves no one reaches
 """
 import json
 import re
@@ -50,8 +51,17 @@ see the same pages has one; an app with no sign-in has none: {"roles": []}."""
 
 def read(out):
     """The kinds of users of the last reading, [] when it was not made (no assistant) or found none."""
-    try: return json.loads((Path(out) / 'roles.json').read_text(encoding='utf-8')).get('roles') or [] if out else []
-    except (OSError, ValueError): return []
+    return _record(out).get('roles') or []
+
+
+def proven(out):
+    """{page: why} of the pages the assistant proved from the code that no person reaches (prove)."""
+    return {row['page']: row['why'] for row in _record(out).get('unreachable') or []}
+
+
+def _record(out):
+    try: return json.loads((Path(out) / 'roles.json').read_text(encoding='utf-8')) if out else {}
+    except (OSError, ValueError): return {}
 
 
 def pages_of(out, served=True):
@@ -150,12 +160,36 @@ def add(out, target, found):
     return refused
 
 
+def prove(out, target, verdicts):
+    """The pages the assistant says no person reaches, each kept when it is a page of the code and its evidence a line
+    of it (a route never linked and guarded off, a page removed); why each other one was refused."""
+    pages, kept, refused = pages_of(out), [], []
+    for row in verdicts if isinstance(verdicts, list) else []:
+        row = row if isinstance(row, dict) else {}
+        if row.get('page') in pages and str(row.get('why') or '').strip() and _line(target, row.get('evidence')):
+            kept.append({k: row[k] for k in ('page', 'why', 'evidence')})
+        else: refused.append(f"unreachable {row.get('page')!r}: a page of the list, a why and its evidence, a line of the code")
+    if kept: _write(out, read(out), {r['page']: r for r in _record(out).get('unreachable') or []} | {r['page']: r for r in kept})
+    return refused
+
+
+def claim(out, owned):
+    """Each page a view's session opened and no session before it (eaos/test_users.py unreached) made that view's own,
+    so the pictures open it with that session: {view: [pages]}."""
+    kinds = read(out)
+    grown = [{**kind, 'pages': list(dict.fromkeys(kind['pages'] + owned.get(kind['id'], [])))} for kind in kinds]
+    if grown != kinds: _write(out, grown)
+
+
 def _kept(kind):
     return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found') if kind.get(k)} | {'pages': kind.get('pages') or []}
 
 
-def _write(out, kinds):
-    (Path(out) / 'roles.json').write_text(json.dumps({'roles': kinds}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+def _write(out, kinds, unreachable=None):
+    """<out>/roles.json with `kinds`, the pages proved unreachable kept unless given anew ({page: row})."""
+    rows = list(unreachable.values()) if unreachable is not None else _record(out).get('unreachable') or []
+    record = {'roles': kinds, **({'unreachable': rows} if rows else {})}
+    (Path(out) / 'roles.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return kinds
 
 

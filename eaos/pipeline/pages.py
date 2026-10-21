@@ -42,7 +42,9 @@ def screens(context):
     groups, measured = _screen_pages(context)
     rows, speed, audit = _pictured(context, (live, base, made), groups, measured)
     covered = _coverage(context, live, base, made, rows)
+    from ..roles import proven
     _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows, 'coverage': covered,
+                                    'unreachable': [{'page': page, 'why': why} for page, why in proven(context.out).items()],
                                     'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]} for template, paths in groups.items()],
                                     'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
     return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
@@ -103,12 +105,13 @@ def _coverage(context, live, base, made, rows):
 
 def _screen_pages(context):
     """({template: its pages}, the crawl's measured entry or None): the app's static page routes, each kind of user's
-    own pages (eaos/roles.py) and the crawled ones."""
-    from ..roles import pages_of, read
+    own pages (eaos/roles.py) and the crawled ones, never one the code proves no person reaches."""
+    from ..roles import pages_of, proven, read
     from ..screens.crawl import distinct
     pages = ['/'] + pages_of(context.out, served=False) + [page for kind in read(context.out) for page in kind['pages']]
     crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
     pages += [row['path'] for row in crawled]
+    pages = [page for page in pages if page not in proven(context.out)]
     measured = next((row for row in crawled if row.get('measured') and row.get('template') == '/'), None)
     return distinct(pages), measured
 
