@@ -10,7 +10,7 @@
     "web/src/ui/i18n/"
    ],
    "acceptance": [
-    "every word a person sees comes from web/src/ui/i18n/<language>.json; no screen writes its own words",
+    "every word a person sees comes from web/src/ui/i18n/<language>.ts (typed objects of one shape, not JSON: the shared look reads no configuration file); no screen writes its own words",
     "switching the language changes every word and the page direction (dir=rtl for Arabic) without a reload, and is remembered",
     "dates, numbers and money are written with Intl in the chosen language",
     "a test fails when a key is missing in one of the languages"
