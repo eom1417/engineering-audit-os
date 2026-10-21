@@ -1,15 +1,7 @@
 """A project built from its plan, in the Studio (docs/BUILD-FROM-PLAN.md): its milestones and build cards as the plan of
-kind `build`, the spec's open questions in the inbox (answered by build_tools.blueprint_answer), and the build's own
-verdict and next step on the Status page. Everything is read from the blueprint folder; nothing here decides."""
-from .. import blueprint, build_tools
-
-
-def read(state):
-    """{'spec', 'plan', 'built', 'open'} of a project being built from its plan, else None."""
-    if not state or state.get('mode') != 'build': return None
-    spec = build_tools._read(build_tools.folder(state) / 'product-spec.json')
-    if not isinstance(spec, dict): return None
-    return {'spec': spec, 'plan': build_tools._plan(state), 'built': state.get('built') or [], 'open': state.get('open_build')}
+kind `build`, the spec's open questions in the inbox (answered by build_tools.answered), and the build's own
+verdict and next step on the Status page, from what build_tools.studio_build read of the blueprint folder."""
+from .. import blueprint
 
 
 def _in(lang, ar, en):
@@ -47,7 +39,7 @@ def plan(build, lang):
     state = 'closed' if waiting is None else 'active' if build['built'] or build['open'] else 'registered'
     return {'id': 'build', 'title': _in(lang, 'خطة البناء', 'Build plan'), 'kind': 'build', 'parent': None, 'state': state,
             'goal': build['spec'].get('summary') or '', 'indicators': [], 'steps': steps,
-            'open': (build['open'] or {}).get('milestone'), 'next': waiting,
+            'open': (build['open'] or {}).get('milestone'), 'next': waiting, 'requirements': len(build['spec'].get('requirements') or []),
             'progress': {'value': round(done / max(len(by_id), 1), 4), 'src': 'blueprint: cards kept / every build card'}}
 
 
@@ -108,15 +100,8 @@ def next_step(build, lang):
     if not built: return {'action': _in(lang, 'كمّل رسم المخطط', 'Finish drawing the blueprint'), 'tool': 'blueprint_start'}
     if built['open'] or built['next']:
         milestone = built['open'] or built['next']
-        return {'action': _in(lang, f'ابنِ المرحلة {milestone}', f'Build milestone {milestone}'), 'tool': 'build_start', 'milestone': milestone}
+        words = _in(lang, 'ابنِ المنتج كامل', 'Build the whole product') if milestone == built['steps'][0]['id'] else \
+            _in(lang, f'كمّل بناء المنتج من المرحلة {milestone}', f'Go on building the product from milestone {milestone}')
+        return {'action': words, 'tool': 'build_start', 'milestone': milestone}
     return {'action': _in(lang, 'كل المراحل انبنت: قرّر تدمج الفرع الأخير', 'Every milestone is built: decide on the last branch'), 'tool': 'accept'}
 
-
-def answered(project, row, response):
-    """An inbox row of the blueprint answered in the Studio: the choice goes into the spec at once (no assistant reviews
-    it), and the blueprint is checked and drawn again. A technology or the journeys take the option's id, a product
-    decision its words (the option's, or the person's own)."""
-    question = row['id'].removeprefix('blueprint:')
-    by_id = question.startswith('stack-') or question == 'flows'
-    build_tools.blueprint_answer(question, response['option'] if by_id and response['option'] else response['label'], str(project))
-    return {**row, 'response': {**response, 'status': 'applied'}, 'execution': None}

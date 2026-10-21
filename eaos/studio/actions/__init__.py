@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
 from ... import check_choices
-from .. import build_plan
+from ... import build_tools
 from . import chat, handoff, helpers, plan, prompts, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
@@ -327,7 +327,7 @@ class Actions:
             path = self.store.folder / 'decisions.json'
             saved = _read_json(path, {}) or {}
             response = _owner_response(saved, row, (decision, option, text, chosen), path)
-            if question.get('tool') == 'blueprint': return build_plan.answered(self.project, row, response)
+            if question.get('tool') == 'blueprint': return build_tools.answered(self.project, row, response)
             run = response['run']
             try: self.store.load(run)
             except KeyError: self._queue_review(run, question, response, body.get('assistant'))

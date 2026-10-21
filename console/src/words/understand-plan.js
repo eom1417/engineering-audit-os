@@ -48,7 +48,7 @@ export default {
   'bp.milestone': [{ zero: 'لا مراحل', one: 'مرحلة واحدة', two: 'مرحلتان', few: '{n} مراحل', many: '{n} مرحلة', other: '{n} مرحلة' }, { one: '1 milestone', other: '{n} milestones' }],
   'bp.card': [{ zero: 'لا بطاقات', one: 'بطاقة واحدة', two: 'بطاقتان', few: '{n} بطاقات', many: '{n} بطاقة', other: '{n} بطاقة' }, { one: '1 card', other: '{n} cards' }],
   'bp.lede': ['خطة البناء: {m}، فيها {n}، وخلص منها {done}.', 'The build plan: {m} and {n}, {done} built.'],
-  'bp.note': ['يبني مساعدك بطاقات المرحلة في نسخة منفصلة، وكل بطاقة تمر على فحوصاتها، ثم تصلك المرحلة فرعًا جديدًا. تشوف معاينة أولًا.', 'Your assistant builds the milestone\'s cards in a separate copy, each through its checks, and hands the milestone over as a new branch. You see a preview first.'],
+  'bp.note': ['يبني مساعدك المراحل كلها بالترتيب في نسخة منفصلة، وكل بطاقة تمر على فحوصاتها، وآخر مرحلة ما تتسلّم إلا إذا كل متطلب انبنى وشاشاته سليمة. بعدها الفرع الأخير ينتظر قرارك. تشوف معاينة أولًا.', 'Your assistant builds every milestone in order in a separate copy, each card through its checks; the last milestone is delivered only once every requirement is built and its screens pass. The last branch then waits for your decision. You see a preview first.'],
   'bp.answer': ['جاوب على أسئلة المخطط أولًا ({n})', 'Answer the blueprint questions first ({n})'],
   'bp.build': ['ابنِ المرحلة {id}', 'Build milestone {id}'],
   'bp.goon': ['كمّل بناء المرحلة {id}', 'Go on building milestone {id}'],
@@ -59,5 +59,6 @@ export default {
   'bp.files': ['ملفاتها:', 'Its files:'],
   'bp.tests': ['اختباراتها:', 'Its tests:'],
   'bp.after': ['بعد:', 'After:'],
+  'bp.covered': ['كل متطلبات خطتك ({n}) لها بطاقات تبنيها، وآخر مرحلة ما تتسلّم إلا إذا انبنت كلها.', 'Every requirement of your plan ({n}) has cards that build it; the last milestone is delivered only once all are built.'],
   'bp.st.skipped': ['متروكة', 'Set aside'],
 };

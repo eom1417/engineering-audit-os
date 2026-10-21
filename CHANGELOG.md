@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.0.55 (2026-10-21)
+
+- **The blueprint plans a complete product by itself**: HungerLab's blueprint had a card per module, feature and
+  journey only; an assistant added about 50 cards by hand (languages, offline, security, accessibility, speed, release)
+  and measured by hand that every requirement of the plan was covered. The generator collected the spec's
+  `nonfunctional` facts and ignored them. Now the cards every product needs are data (`eaos/data/product-standard.json`),
+  chosen by those facts and the integrations: languages and right-to-left, privacy, offline, one adapter per
+  integration, security and errors in the foundations; accessibility, speed, load and release in a last milestone,
+  "Ready to release".
+- **Every requirement of the plan is built**: the spec lists them with what builds each (`requirements[].covered_by`);
+  one nothing builds stops the blueprint, each card names the requirements it builds, and the last milestone is not
+  delivered while a requirement has no kept card (a card skipped earlier may be built then) or while its running
+  screens have serious accessibility problems (axe, touch targets, Lighthouse accessibility or best practices under
+  0.9; the copy's speed, in development mode, is the release card's to prove).
+- **One press builds the whole product**: "Build the whole product" in the Studio builds every milestone in order,
+  fixing what each milestone's screen review found before the next one, and stops when the last branch waits for the
+  person. The blueprint's page for people moved to `eaos/blueprint_view.py`; an import cycle 0.0.54 brought is gone.
+
 ## 0.0.54 (2026-10-21)
 
 - **A project built from its plan is followed in the Studio, wherever its blueprint was drawn**: HungerLab's blueprint

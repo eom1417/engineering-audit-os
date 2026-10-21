@@ -23,7 +23,7 @@ from pathlib import Path
 
 DATA = Path(__file__).resolve().parent / 'data'
 ISOLATED = ('database', 'auth')          # concerns whose packages only their adapter folder may import
-LINE_BUDGET = {'skeleton': 250, 'foundation': 200, 'module': 250, 'feature': 200, 'flow': 150}
+LINE_BUDGET = {'skeleton': 250, 'foundation': 200, 'module': 250, 'feature': 200, 'flow': 150, 'release': 200}
 
 
 def stacks():
@@ -51,6 +51,9 @@ SPEC = {
              'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'input', 'table', 'card', 'message'],
              'design_md': 'the whole DESIGN.md (Google Stitch format), from the design brief\'s sources and standard',
              'screens': [{'id': 'S1', 'name': 'Orders', 'features': ['F1'], 'picture': 'the path of its picture in the plan, or empty'}]},
+    'requirements': [{'id': 'the plan\'s own id (FR-12), else R1, R2...', 'text': 'one requirement of the plan, in its words',
+                      'covered_by': ['what builds it: a feature id, a flow id, or a standard card (languages, privacy, offline, '
+                                     'integration:<id>, security, errors, accessibility, speed, load, release)']}],
     'stack_preferences': {'database': 'an option id from the catalogue, or empty to take the recommendation'},
     'decisions': [{'id': 'D1', 'question': 'an open product question', 'options': ['A', 'B'], 'recommendation': 'A',
                    'why': 'the research behind it', 'chosen': 'A, once the person chose (empty until then)'}],
@@ -67,7 +70,7 @@ def validate_spec(spec, look=True):
     if not features: problems.append('no feature: list what a user can do')
     problems += (_module_problems(spec.get('modules') or [], features) + _entity_problems(entities, modules, features)
                  + _feature_problems(features, entities, modules, roles) + _flow_problems(spec.get('flows') or [], features)
-                 + _look_problems(spec.get('look'), features, look))
+                 + _look_problems(spec.get('look'), features, look) + _requirement_problems(spec, features))
     return problems, _spec_questions(spec)
 
 
@@ -112,6 +115,59 @@ def _feature_problems(features, entities, modules, roles):
 def _flow_problems(flows, features):
     return [f"flow {flow.get('id')}: uses {feature_id}, which is not a feature"
             for flow in flows for feature_id in flow.get('features') or [] if feature_id not in features]
+
+
+def _requirement_problems(spec, features):
+    """Every requirement of the plan is built by something of the product: a feature, a flow or a standard card."""
+    known = set(features) | set(_by_id(spec, 'flows')) | {key for _, _, key in _applicable(spec)}
+    problems = []
+    for row in spec.get('requirements') or []:
+        if not isinstance(row, dict): continue
+        by = [str(x) for x in row.get('covered_by') or []]
+        if not by: problems.append(f"requirement {row.get('id')}: nothing builds it; name the feature, flow or standard card that does")
+        problems += [f"requirement {row.get('id')}: {x} is not a feature, a flow or a standard card of this product" for x in by if x not in known]
+    return problems
+
+
+# ---------------------------------------------------------------- 3b. the cards every product needs (data/product-standard.json)
+
+def _nonfunctional(spec):
+    return spec.get('nonfunctional') if isinstance(spec.get('nonfunctional'), dict) else {}
+
+
+STANDARD_WHEN = {
+    'always': lambda nf: True,
+    'languages': lambda nf: len(nf.get('languages') or []) > 1,
+    'personal_data': lambda nf: str(nf.get('data_sensitivity') or '') in ('personal', 'health', 'payment'),
+    'mobile': lambda nf: any('mobile' in str(p).lower() or 'phone' in str(p).lower() for p in nf.get('platforms') or []),
+    'users': lambda nf: bool(nf.get('expected_users')),
+}
+
+
+def _applicable(spec):
+    """(row, its spec entry or {}, its key) for each standard card this product needs, in the file's order."""
+    nf = _nonfunctional(spec)
+    for row in json.loads((DATA / 'product-standard.json').read_text(encoding='utf-8'))['rows']:
+        if 'each' in row:
+            for entry in [e for e in spec.get(row['each']) or [] if isinstance(e, dict) and e.get('id')]:
+                yield row, entry, f"{row['id']}:{entry['id']}"
+        elif STANDARD_WHEN[row['when']](nf):
+            yield row, {}, row['id']
+
+
+def standard_cards(spec, stack, stage):
+    """The standard cards of one stage (foundation | release), their words filled from the spec and the stack."""
+    nf, server = _nonfunctional(spec), stack['api']['id'] != 'none'
+    out = []
+    for row, entry, key in _applicable(spec):
+        if row['stage'] != stage: continue
+        words = {'name': entry.get('name') or entry.get('id', ''), 'id': slug(entry.get('id', '')), 'users': nf.get('expected_users'),
+                 'adapter': adapter_folder(stack, slug(entry.get('id', ''))), 'languages': ', '.join(map(str, nf.get('languages') or []))}
+        fill = lambda texts: [str(text).format(**words) for text in texts]
+        out.append({'key': key, 'title': fill([row['title']])[0], 'acceptance': fill(row['acceptance']),
+                    'paths': fill(row['paths'] + (row.get('server_paths', []) if server else [])),
+                    'tests': fill(row['tests'] + (row.get('server_tests', []) if server else []))})
+    return out
 
 
 def _spec_questions(spec):
@@ -257,7 +313,7 @@ def design(spec, stack):
     entities = spec.get('entities') or []
     cards = _Cards()
     look = spec.get('look') or {}
-    foundations = _foundations(cards, stack, look)
+    foundations = _foundations(cards, stack, look, standard_cards(spec, stack, 'foundation'))
     ordered, uses = _module_order(spec['modules'], spec['features'], entities)
     last_of = {}
     for index, module in enumerate(ordered, start=3):
@@ -268,26 +324,39 @@ def design(spec, stack):
     for flow in flows:
         cards.add(f'M{len(ordered) + 3:02d}', 'flow', f"Journey: {flow['name']}", None, ['e2e/'],
                   [f"a {flow.get('actor') or 'user'} completes it in the browser: " + ' → '.join(map(str, flow.get('steps') or []))[:400]],
-                  [f"e2e/{slug(flow['name'])[:40]}.spec.ts"], [last_of[m['id']] for m in ordered if m['id'] in last_of][-1:])
+                  [f"e2e/{slug(flow['name'])[:40]}.spec.ts"], [last_of[m['id']] for m in ordered if m['id'] in last_of][-1:],
+                  source=flow.get('id'))
+    # The last milestone, once the product exists: what makes it ready to release (accessibility, speed, load, CI).
+    release = f'M{len(ordered) + 3 + bool(flows):02d}'
+    for row in standard_cards(spec, stack, 'release'):
+        cards.add(release, 'release', row['title'], None, row['paths'], row['acceptance'], row['tests'], [cards[-1]['id']], source=row['key'])
+    _covers(cards, spec)
     return {'architecture': target(spec, stack, ordered), 'policy': policy(stack),
-            'plan': {'contract_version': 1, 'kind': 'blueprint', 'tasks': cards, 'milestones': _milestones(cards, ordered, flows), 'waves': [],
+            'plan': {'contract_version': 1, 'kind': 'blueprint', 'tasks': cards, 'milestones': _milestones(cards, ordered, flows, release), 'waves': [],
                      'sections': [], 'decisions': []}}
 
 
 class _Cards(list):
     """The build's cards in order: each one added gets the next number."""
 
-    def add(self, milestone, kind, title, module, paths, acceptance, tests, depends=(), feature=None, why=''):
+    def add(self, milestone, kind, title, module, paths, acceptance, tests, depends=(), feature=None, why='', source=None):
         row = {'id': f'BLD-{len(self) + 1:03d}', 'kind': 'build', 'pattern': f'build_{kind}', 'milestone': milestone, 'title': title,
                'module': module, 'paths': paths, 'acceptance': acceptance, 'tests': tests, 'depends_on': list(depends),
-               'feature': feature, 'why': why, 'budget_lines': LINE_BUDGET[kind],
+               'feature': feature, 'source': source or feature, 'why': why, 'budget_lines': LINE_BUDGET[kind],
                'decision': {'kind': 'build', 'readiness': 'ready'}, 'status': 'planned'}
         self.append(row)
         return row['id']
 
 
-def _foundations(cards, stack, look):
-    """M01, the skeleton, and M02, one home for each shared concept: their card ids, the skeleton first."""
+def _covers(cards, spec):
+    """Each card names the plan's requirements it builds (requirements[].covered_by: its feature, flow or standard key)."""
+    for card in cards:
+        card['covers'] = [r['id'] for r in spec.get('requirements') or [] if isinstance(r, dict) and card['source'] in (r.get('covered_by') or [])]
+
+
+def _foundations(cards, stack, look, standard):
+    """M01, the skeleton, and M02, one home for each shared concept and the standard foundations every product needs
+    (languages, privacy, security...): their card ids, the skeleton first, the app shell last."""
     server = stack['api']['id'] != 'none'
     # M01: the skeleton, with every check running from the first commit.
     skeleton = cards.add('M01', 'skeleton', 'The project skeleton: workspaces, strict TypeScript, lint, tests, and one smoke test per part', None,
@@ -322,20 +391,27 @@ def _foundations(cards, stack, look):
                                 ['a person can sign up, sign in and sign out',
                                  'one function answers who the current user is, and every protected route uses it'],
                                 ['web/src/features/auth/auth.test.tsx'], foundations[-1:] if stack['database']['id'] != 'none' else [skeleton]))
-    tokens = ', '.join(f'{name} {value}' for name, value in (look.get('colors') or {}).items())
-    foundations.append(cards.add('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
-                                 ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
-                                 ['web/DESIGN.md is the spec\'s look.design_md; the shared components come from shadcn/ui through its '
-                                  'CLI (rtl true when the app speaks Arabic) and the fonts from Fontsource, served by the app',
-                                  'every screen works at 375 px wide first, with touch targets of 44 px, logical start/end layout and '
-                                  'text contrast of 4.5:1 in light and dark (eaos/data/design.json)',
-                                  'every screen uses the shared components in web/src/ui (' + ', '.join(look.get('components') or
-                                  ['buttons', 'inputs', 'forms', 'tables', 'messages']) + ')',
-                                  f"the one {look.get('theme') or 'light'} theme is design tokens in web/src/ui/theme.css" + (f' ({tokens})' if tokens else '')
-                                  + (f" with the fonts {', '.join(look['fonts'])}" if look.get('fonts') else '') + '; no screen sets its own colour or font',
-                                  'every call to the server goes through web/src/api'],
-                                 ['web/src/ui/ui.test.tsx'], [skeleton]))
+    foundations += [cards.add('M02', 'foundation', row['title'], None, row['paths'], row['acceptance'], row['tests'], [skeleton],
+                              source=row['key']) for row in standard]
+    foundations.append(_shell(cards, look, foundations))
     return foundations
+
+
+def _shell(cards, look, foundations):
+    """The app shell, the shared look and the one server client: the last foundation, after every other one."""
+    tokens = ', '.join(f'{name} {value}' for name, value in (look.get('colors') or {}).items())
+    return cards.add('M02', 'foundation', 'The app shell, the shared look and the one server client', None,
+                     ['web/src/app/', 'web/src/ui/', 'web/src/api/'],
+                     ['web/DESIGN.md is the spec\'s look.design_md; the shared components come from shadcn/ui through its '
+                      'CLI (rtl true when the app speaks Arabic) and the fonts from Fontsource, served by the app',
+                      'every screen works at 375 px wide first, with touch targets of 44 px, logical start/end layout and '
+                      'text contrast of 4.5:1 in light and dark (eaos/data/design.json)',
+                      'every screen uses the shared components in web/src/ui (' + ', '.join(look.get('components') or
+                      ['buttons', 'inputs', 'forms', 'tables', 'messages']) + ')',
+                      f"the one {look.get('theme') or 'light'} theme is design tokens in web/src/ui/theme.css" + (f' ({tokens})' if tokens else '')
+                      + (f" with the fonts {', '.join(look['fonts'])}" if look.get('fonts') else '') + '; no screen sets its own colour or font',
+                      'every call to the server goes through web/src/api'],
+                     ['web/src/ui/ui.test.tsx'], foundations)
 
 
 def _module_order(modules, features, entities):
@@ -389,11 +465,13 @@ def _feature_card(cards, mid, module, feature, depends, stack, screens):
                      depends, feature=feature['id'], why=feature.get('description') or '')
 
 
-def _milestones(cards, ordered, flows):
-    """The plan's milestones, each with its cards: the skeleton, the foundations, one per module, and the journeys."""
+def _milestones(cards, ordered, flows, release):
+    """The plan's milestones, each with its cards: the skeleton, the foundations, one per module, the journeys, and
+    what makes the product ready to release."""
     names = {'M01': ('الهيكل', 'The skeleton'), 'M02': ('الأساسات المشتركة', 'Shared foundations')}
     for index, module in enumerate(ordered, start=3): names[f'M{index:02d}'] = (module['name'], module['name'])
     if flows: names[f'M{len(ordered) + 3:02d}'] = ('الرحلات كاملة', 'Journeys end to end')
+    names[release] = ('جاهز للإطلاق', 'Ready to release')
     milestones = []
     for mid, (ar, en) in names.items():
         ids = [c['id'] for c in cards if c['milestone'] == mid]
@@ -427,146 +505,3 @@ def target(spec, stack, modules):
     edges = [{'from': rule['allow_only']['from'], 'to': to} for rule in drawn['rules'] for to in rule['allow_only']['to']]
     return document([], layers, decided, [], 'A target drawn from a plan: nothing exists yet, so every part is to be built.',
                     status='blueprint', parts=parts, target_edges=edges, forbidden_edges=0)
-
-
-def document(spec, stack, built):
-    """BLUEPRINT.md: the plan's target in words a person reads."""
-    plan, lines = built['plan'], [f"# {spec['name']}: the blueprint", '', spec['summary'], '', '## The parts', '']
-    for module in spec['modules']:
-        lines.append(f"- **{module['name']}**: {module.get('responsibility') or ''}")
-    lines += ['', '## The technologies, and how to change each later', '', '| Concern | Chosen | Why | To change it later |', '| --- | --- | --- | --- |']
-    for concern, row in stack.items():
-        lines.append(f"| {row['title']} | {row['name']} | {row['why']} | {row['switch']} |")
-    lines += ['', '## The rules the structure keeps', '']
-    lines += [f"- {rule['reason']}" for rule in built['policy']['rules']]
-    lines += [f"- Only {' and '.join(f'`{home}`' for home in v['only_in'])} use {', '.join(v['packages'])}." for v in built['policy']['vendors'].values()]
-    lines += ['', '## The build, in order', '']
-    for milestone in plan['milestones']:
-        lines.append(f"### {milestone['id']} · {milestone['name']}")
-        for card_id in milestone['tasks']:
-            card = next(c for c in plan['tasks'] if c['id'] == card_id)
-            lines.append(f"- {card_id}: {card['title']}")
-        lines.append('')
-    return '\n'.join(lines)
-
-
-BUILD_STATE = {'done': ('بُنيت ✓', 'Built ✓', 'good'), 'open': ('لم تُبنَ بعد', 'Not built yet', 'plain'),
-               'skipped': ('تُركت: تحتاج قرارًا', 'Set aside: needs a decision', 'bad')}
-
-
-def build_cards(built, progress):
-    """Every build card with its state: built when a delivered milestone kept it, set aside when it skipped it."""
-    done = {card for record in progress or [] for card in record.get('kept') or []}
-    skipped, batch = _card_batches(progress)
-    return [_card_row(c, done, skipped, batch) for c in built['plan']['tasks']]
-
-
-def _card_batches(progress):
-    """({card set aside: why}, {card: the milestone run that kept or skipped it})."""
-    skipped, batch = {}, {}
-    for record in progress or []:
-        gone = record.get('skipped') or {}
-        skipped.update(gone if isinstance(gone, dict) else {card: '' for card in gone})
-        for card in list(record.get('kept') or []) + list(gone): batch[card] = record.get('number')
-    return skipped, batch
-
-
-def _card_row(c, done, skipped, batch):
-    """One build card as the report's card block draws it: its state, its batch and its acceptance."""
-    from html import escape
-    from .human_report import T
-    state = 'done' if c['id'] in done else 'skipped' if c['id'] in skipped else 'open'
-    checks = ''.join(f'<li>{escape(str(a))}</li>' for a in c.get('acceptance') or [])
-    extra = f'<p class="small"><b>{T("يُقبل حين:", "Accepted when:")}</b></p><ul class="small">{checks}</ul>' if checks else ''
-    return {'id': c['id'], 'key': c['id'], 'title': c['title'], 'pattern': None, 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
-            'before': '', 'after': '', 'state': state, 'new': False, 'batch': batch.get(c['id']), 'at': None,
-            'why': skipped.get(c['id']) or '', 'commit': None, 'module': c.get('module'), 'extra': extra}
-
-
-def layer_map(built, cards):
-    """The target's layers as rows of boxes, from what uses to what is used, each with the build cards in its folders."""
-    from .arch_map import feedback_edges, layer_of
-    from .human_report import target_rows
-    policy, rules = built['policy'], {r['allow_only']['from']: r['reason'] for r in built['policy']['rules']}
-    names = [name for name in policy['layers'] if not name.startswith('_')]
-    edges = [e for e in built['architecture'].get('target_edges') or [] if e.get('from') in names and e.get('to') in names]
-    weights = {(e['from'], e['to']): 1 for e in edges}
-    tier = layer_of(names, [e for e in weights if e not in feedback_edges(names, weights)])
-    progress = {name: _layer_progress(policy['layers'][name], cards) for name in names}
-    comps = [_layer_box(name, tier[name], rules.get(name), progress[name][1]) for name in names]
-    rows = [(label, members) for label, members in target_rows(comps, sorted({c['layer'] for c in comps}, key=int))]
-    return rows, edges, progress
-
-
-def _layer_progress(globs, cards):
-    """(cards built, cards) of the build cards whose paths are in a layer's folders."""
-    homes = [g.split('*')[0] for g in globs if not g.startswith('*')]
-    mine = [c for c in cards if any(p.startswith(h) for p in c['paths'] for h in homes if h)]
-    return sum(c['state'] == 'done' for c in mine), len(mine)
-
-
-def _layer_box(name, tier, reason, count):
-    return {'name': name, 'layer': f'{tier + 1}', 'responsibility': reason or '', 'files': 0,
-            'sub': (f'البطاقات {count}', f'{count} card' + ('' if count == 1 else 's'))}
-
-
-def _milestone_card(milestone, done, delivered, cards, rtl):
-    """One milestone: its name, how many of its cards are built (or its branch once delivered) and each card."""
-    from html import escape
-    ids = milestone['tasks']
-    share = round(100 * sum(c in done for c in ids) / len(ids)) if ids else 0
-    badge = ('✅ ' + escape(delivered[milestone['id']])) if milestone['id'] in delivered else f'{sum(c in done for c in ids)} / {len(ids)}'
-    items = ''.join(f'<li>{"✅" if c in done else "⬜"} {escape(cards[c]["title"])}</li>' for c in ids)
-    return (f'<div class="card"><h4>{escape(milestone.get("name_ar") if rtl else milestone["name"])} '
-            f'<span class="muted small" data-meaning="cards built of this milestone">{badge}</span></h4>'
-            f'<div style="height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0">'
-            f'<div style="width:{share}%;height:100%;background:var(--good)"></div></div><ul class="small">{items}</ul></div>')
-
-
-def page(spec, stack, built, progress=None):
-    """BLUEPRINT.html: the blueprint for a person, in the look of the report for people (eaos/human_report.py),
-    with every milestone's progress when `progress` (the state's `built` list) is given: the target's layers, the parts,
-    and every build card with its state, reusing that page's drawings."""
-    from html import escape
-    from .human_report import CSS, MAP_JS, T, bar, cards_block, target_svg
-    done = {card for record in progress or [] for card in record.get('kept') or []}
-    delivered = {record['milestone']: record.get('branch') for record in progress or []}
-    rtl = any('؀' <= ch <= 'ۿ' for ch in spec.get('name', '') + spec.get('summary', ''))
-    cards = build_cards(built, progress)
-    def module_bar(module):
-        mine = [c for c in cards if c.get('module') == module]
-        finished = sum(c['state'] == 'done' for c in mine)
-        count = f'{finished} / {len(mine)}'
-        return (f'{bar(100 * finished / len(mine) if mine else 0, "thin")}<p class="muted small">'
-                f'<span data-meaning="build cards built of this part">{count}</span> {T("بطاقات بُنيت", "cards built")}</p>')
-    parts = ''.join(f'<div class="card"><h4>{escape(m["name"])}</h4><p class="muted small">{escape(m.get("responsibility") or "")}</p>'
-                    f'<p class="small">{escape(", ".join(f["name"] for f in spec["features"] if f.get("module") == m["id"]))}</p>{module_bar(m["id"])}</div>'
-                    for m in spec['modules'])
-    try:
-        rows, edges, layer_progress = layer_map(built, cards)
-        layers = (f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة: الأعلى يستخدم ما تحته ولا يستخدم ما فوقه. الشريط: كم بُني من بطاقات مجلداتها. مرّر المؤشر على طبقة لترى ما يُسمح لها باستخدامه.", "Each row is a tier: a layer uses what is below it, never what is above. The bar: how many of the cards in its folders are built. Hover a layer to see what it may use.")}</p>'
-                  f'<div class="graph-scroll">{target_svg(rows, edges, layer_progress, True, ("بُني", "built"))}{target_svg(rows, edges, layer_progress, False, ("بُني", "built"))}</div></div>')
-    except Exception:           # the drawing is extra: without it the page still lists the parts and the build
-        layers = ''
-    groups = [((m.get('name_ar') or m['name'], m['name']), m['id'], [c for c in cards if c['milestone'] == m['id']]) for m in built['plan']['milestones']]
-    rows = ''.join(f'<tr><td><b>{escape(row["title"])}</b></td><td>{escape(row["name"])}</td><td>{escape(row["why"])}</td>'
-                   f'<td class="small">{escape(row["switch"])}</td></tr>' for row in stack.values())
-    rules = ''.join(f'<li>{escape(rule["reason"])}</li>' for rule in built['policy']['rules'])
-    cards = {c['id']: c for c in built['plan']['tasks']}
-    stages = [_milestone_card(milestone, done, delivered, cards, rtl) for milestone in built['plan']['milestones']]
-    label = (lambda ar, en: ar if rtl else en)
-    return f"""<!doctype html><html lang="{'ar' if rtl else 'en'}" dir="{'rtl' if rtl else 'ltr'}" data-lang="{'ar' if rtl else 'en'}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(spec['name'])}</title>
-<style>{CSS} .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}} table{{width:100%;border-collapse:collapse}}
-td,th{{border-bottom:1px solid var(--line);padding:10px;text-align:start;vertical-align:top}}</style></head>
-<body><header class="top"><div class="wrap top-in"><div><div class="kicker">EAOS · {label('مخطط البناء', 'Blueprint')}</div>
-<h1>{escape(spec['name'])}</h1></div></div></header><main class="wrap">
-<p>{escape(spec['summary'])}</p>
-<h3>{label('البنية المستهدفة، طبقة طبقة', 'The target structure, layer by layer')}</h3>{layers}
-<h3>{label('الأجزاء', 'The parts')}</h3><div class="grid">{parts}</div>
-<h3>{label('التقنيات، ولماذا، وكيف تُغيَّر لاحقًا', 'The technologies, why, and how to change each later')}</h3>
-<div class="card"><table><tr><th>{label('الجانب', 'Concern')}</th><th>{label('المختار', 'Chosen')}</th><th>{label('لماذا', 'Why')}</th><th>{label('لتغييره لاحقًا', 'To change it later')}</th></tr>{rows}</table></div>
-<h3>{label('القواعد التي يحفظها الهيكل', 'The rules the structure keeps')}</h3><div class="card"><ul>{rules}</ul></div>
-<h3>{label('البناء، مرحلة مرحلة', 'The build, milestone by milestone')}</h3><div class="grid">{''.join(stages)}</div>
-<h3>{label('كل بطاقات البناء', 'Every build card')}</h3>{cards_block(groups, BUILD_STATE)}
-</main><script>{MAP_JS}</script></body></html>"""

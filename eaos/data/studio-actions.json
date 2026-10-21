@@ -1636,8 +1636,8 @@
    "tool": "build_start",
    "group": "build",
    "label": {
-    "en": "Build the next milestone",
-    "ar": "ابنِ المرحلة التالية"
+    "en": "Build the whole product",
+    "ar": "ابنِ المنتج كامل"
    },
    "description": {
     "en": "",

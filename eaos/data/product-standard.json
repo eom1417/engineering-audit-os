@@ -1,0 +1,198 @@
+{
+ "about": "The cards every product needs beyond its own features (eaos/blueprint.py standard_cards). `when` is a fact of the spec (blueprint.STANDARD_WHEN); `stage` is where the card goes: `foundation` (before any module, every screen uses it) or `release` (the last milestone, once the product exists); `server_paths` are added when the stack has a server; `each` repeats the row per spec entry, {name}, {id} and {adapter} (its adapter folder) filled from it. The thresholds are the ones the check measures (axe, Lighthouse, k6, the security engines).",
+ "rows": [
+  {
+   "id": "languages",
+   "when": "languages",
+   "stage": "foundation",
+   "title": "Every language of the product ({languages}), with right-to-left where it applies",
+   "paths": [
+    "web/src/ui/i18n/"
+   ],
+   "acceptance": [
+    "every word a person sees comes from web/src/ui/i18n/<language>.json; no screen writes its own words",
+    "switching the language changes every word and the page direction (dir=rtl for Arabic) without a reload, and is remembered",
+    "dates, numbers and money are written with Intl in the chosen language",
+    "a test fails when a key is missing in one of the languages"
+   ],
+   "tests": [
+    "web/src/ui/i18n/i18n.test.ts"
+   ]
+  },
+  {
+   "id": "privacy",
+   "when": "personal_data",
+   "stage": "foundation",
+   "title": "Personal data: consent, export and deletion",
+   "paths": [
+    "web/src/features/privacy/"
+   ],
+   "server_paths": [
+    "server/src/application/privacy/",
+    "server/src/interface/http/privacy/"
+   ],
+   "acceptance": [
+    "the person agrees before any personal data is kept, and the agreement is stored with its time and version",
+    "the person downloads all their data as one JSON file, and deletes their account with all its data",
+    "personal data never appears in logs, URLs or error messages",
+    "health or payment data is stored encrypted, by the database adapter only"
+   ],
+   "tests": [
+    "web/src/features/privacy/privacy.test.tsx"
+   ]
+  },
+  {
+   "id": "offline",
+   "when": "mobile",
+   "stage": "foundation",
+   "title": "On the phone: installable, and usable without a connection",
+   "paths": [
+    "web/public/manifest.webmanifest",
+    "web/src/app/offline/"
+   ],
+   "acceptance": [
+    "the app installs from the browser (a web manifest, icons, a theme colour)",
+    "the app opens without a connection and says so; what the person does offline is kept and sent when the connection returns, or plainly refused",
+    "every screen is used with one thumb at 375 px: no sideways scroll, targets of 44 px"
+   ],
+   "tests": [
+    "web/src/app/offline/offline.test.ts"
+   ]
+  },
+  {
+   "id": "integration",
+   "each": "integrations",
+   "stage": "foundation",
+   "title": "{name} behind one adapter",
+   "paths": [
+    "{adapter}"
+   ],
+   "acceptance": [
+    "only {adapter} uses {name}'s package; the rest of the code calls its port",
+    "a fake of {name} runs the app and its tests locally with no real key",
+    "a call to {name} times out, and a failure says what failed without breaking the screen",
+    "its keys are read once, from the configuration"
+   ],
+   "tests": [
+    "{adapter}{id}.test.ts"
+   ]
+  },
+  {
+   "id": "security",
+   "when": "always",
+   "stage": "foundation",
+   "title": "Secure by default",
+   "paths": [
+    "web/index.html"
+   ],
+   "server_paths": [
+    "server/src/interface/http/security.ts"
+   ],
+   "acceptance": [
+    "a Content-Security-Policy with no unsafe-inline script, and (with a server) HSTS, X-Content-Type-Options and frame-ancestors on every answer",
+    "no secret in the code: every key comes from the environment, listed in .env.example",
+    "sign-in and every writing route are rate limited, and every input is checked by the one schema helper",
+    "the security engines (semgrep, osv-scanner, gitleaks) find nothing high"
+   ],
+   "tests": [
+    "web/src/app/security.test.ts"
+   ],
+   "server_tests": [
+    "server/src/interface/http/security.test.ts"
+   ]
+  },
+  {
+   "id": "errors",
+   "when": "always",
+   "stage": "foundation",
+   "title": "Errors seen, explained and never lost",
+   "paths": [
+    "web/src/app/errors/"
+   ],
+   "server_paths": [
+    "server/src/interface/http/errors.ts"
+   ],
+   "acceptance": [
+    "one error boundary shows a plain message with a way to try again, never a blank screen",
+    "every screen that loads shows its loading, empty and error states with the shared components",
+    "(with a server) every request is logged as one JSON line with its id, its time and its result, never personal data; /health says whether its dependencies answer"
+   ],
+   "tests": [
+    "web/src/app/errors/errors.test.tsx"
+   ]
+  },
+  {
+   "id": "accessibility",
+   "when": "always",
+   "stage": "release",
+   "title": "Usable by everyone",
+   "paths": [
+    "e2e/accessibility.spec.ts"
+   ],
+   "acceptance": [
+    "axe finds no serious or critical problem on any screen, in every language and theme",
+    "every journey is completed with the keyboard alone, the focus always visible",
+    "every control has a name a screen reader reads, and text contrast is 4.5:1 at least"
+   ],
+   "tests": [
+    "e2e/accessibility.spec.ts"
+   ]
+  },
+  {
+   "id": "speed",
+   "when": "always",
+   "stage": "release",
+   "title": "Fast on a phone",
+   "paths": [
+    "e2e/speed.spec.ts",
+    "web/vite.config.ts"
+   ],
+   "acceptance": [
+    "Lighthouse (mobile) scores 90 or more in performance, accessibility and best practices on the entry page",
+    "the largest content shows in under 2.5 s and nothing jumps (CLS under 0.1)",
+    "each route loads its own code; images are sized and lazy"
+   ],
+   "tests": [
+    "e2e/speed.spec.ts"
+   ]
+  },
+  {
+   "id": "load",
+   "when": "users",
+   "stage": "release",
+   "title": "Holds {users} users",
+   "paths": [
+    "e2e/load/"
+   ],
+   "acceptance": [
+    "e2e/load/expected.js (k6) runs a tenth of the expected users at once through the main journey: 95% of answers under 500 ms, no error",
+    "the database has the indexes the main journey's queries use"
+   ],
+   "tests": [
+    "e2e/load/expected.js"
+   ]
+  },
+  {
+   "id": "release",
+   "when": "always",
+   "stage": "release",
+   "title": "Ready to run, deliver and change",
+   "paths": [
+    ".github/workflows/ci.yml",
+    "README.md",
+    ".env.example"
+   ],
+   "server_paths": [
+    "Dockerfile"
+   ],
+   "acceptance": [
+    "CI runs install, typecheck, lint, the tests, the browser journeys and the security scans on every push",
+    "README says in plain steps how to run it, configure it, test it and deliver it; one command builds it for production",
+    "a person who never saw the code runs it from the README alone"
+   ],
+   "tests": [
+    ".github/workflows/ci.yml"
+   ]
+  }
+ ]
+}

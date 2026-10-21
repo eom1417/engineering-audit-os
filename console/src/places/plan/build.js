@@ -36,6 +36,7 @@ export function buildPage(plan) {
   return `<div class="page page--wide">
     <h1 class="lede">${esc(t('bp.lede', { m: tn('bp.milestone', plan.steps.length), n: tn('bp.card', cards), done: num(done) }))}</h1>
     ${plan.goal ? `<p class="guide">${rich(L(plan.goal))}</p>` : ''}
+    ${plan.requirements ? `<p class="small ink-2">${icon('check', 'icon--sm')} ${esc(t('bp.covered', { n: num(plan.requirements) }))}</p>` : ''}
     <div class="actions">${buildStep()}<p class="actions__note">${t('bp.note')}</p></div>
     <div class="un-progress section" role="img" aria-label="${esc(Math.round(share * 100) + '%')}"><span style="transform:scaleX(${share.toFixed(3)})"></span></div>
     <section class="section" aria-labelledby="bp-h"><div class="section-head"><h2 id="bp-h">${t('bp.milestones')}</h2><span class="small muted">${t('bp.order')}</span></div>

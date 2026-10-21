@@ -368,8 +368,9 @@ def _write(folder, name, data):
     return blob
 
 
-def export(report, lang='ar', name=None, project=None, progress=None, state=None):
-    """Write <report>/studio/ and return {'written': [sections], 'errors': [{section, error}]}."""
+def export(report, lang='ar', name=None, project=None, progress=None, state=None, build=None):
+    """Write <report>/studio/ and return {'written': [sections], 'errors': [{section, error}]}; `build`: a project still built
+    from its plan (build_tools.studio_build), its plan, questions and next step in place of a check's."""
     report = Path(report)
     folder = report / 'studio'
     folder.mkdir(parents=True, exist_ok=True)
@@ -380,7 +381,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         (folder / 'manifest.json').unlink(missing_ok=True)
         (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         return {'written': [], 'errors': errors}
-    m['build'] = build_plan.read(state)
+    m['build'] = build
     stamp = {**build_info.stamp(datetime.now(timezone.utc).isoformat(timespec='seconds')), 'studio_digest': build_info.studio_digest()}
     scan = scan_of(project, state)
     if not scan['at']: scan['at'] = str((m['manifest'] or {}).get('started_at') or '')

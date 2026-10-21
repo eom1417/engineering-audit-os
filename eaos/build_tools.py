@@ -22,7 +22,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import agent_tools, blueprint, design, guided, journeys
+from . import agent_tools, blueprint, blueprint_view, design, guided, journeys
 from .plan_source import read_plan
 from .progress.log import now
 
@@ -76,7 +76,11 @@ def blueprint_start(source=None, text=None, project=None):
                         'the suggestion and the free sources, held to its standard (fonts from fonts.arabic when the app speaks '
                         'Arabic); look.design_md is the whole DESIGN.md (Google Stitch\'s format). Group the features into modules with one '
                         'responsibility each, give every piece of data one owning module, turn each feature into checkable '
-                        'acceptance criteria. Where the plan is thin, research what products of this kind need and add it as a '
+                        'acceptance criteria. List every requirement of the plan in `requirements` (its own id, its words), each '
+                        'with what builds it in covered_by: nothing of the plan may be left out. Fill `nonfunctional` (languages, '
+                        'data_sensitivity, platforms, expected_users): the blueprint adds from it the cards every product needs '
+                        '(languages, privacy, offline, one adapter per integration, security, errors, accessibility, speed, load, '
+                        'release), so never write those as features. Where the plan is thin, research what products of this kind need and add it as a '
                         'decision with options and your recommendation. Ask the person only what they must decide (choices, '
                         'with your recommendation first), including whether they have technology preferences. Then call '
                         'blueprint_spec with the spec.'}
@@ -110,6 +114,16 @@ def blueprint_answer(question, choice, project=None):
     return checked
 
 
+def answered(project, row, response):
+    """An inbox row of the blueprint (eaos/studio/build_plan.py) answered in the Studio: the choice goes into the spec at
+    once, with no assistant to review it. A technology or the journeys take the option's id, a product decision its words
+    (the option's, or the person's own)."""
+    question = row['id'].removeprefix('blueprint:')
+    by_id = question.startswith('stack-') or question == 'flows'
+    blueprint_answer(question, response['option'] if by_id and response['option'] else response['label'], str(project))
+    return {**row, 'response': {**response, 'status': 'applied'}, 'execution': None}
+
+
 def blueprint_design(stack=None, project=None):
     state = _state(project)
     spec = _read(folder(state) / 'product-spec.json')
@@ -125,7 +139,7 @@ def blueprint_design(stack=None, project=None):
     if look.startswith('#'): design.choose(guided.report_of(state), look)       # the one home of the look: the screen review reads it
     _write(where / 'eaos.policy.json', built['policy'])
     _write(where / 'plan.json', built['plan'])
-    (where / 'BLUEPRINT.md').write_text(blueprint.document(spec, chosen, built) + '\n', encoding='utf-8')
+    (where / 'BLUEPRINT.md').write_text(blueprint_view.document(spec, chosen, built) + '\n', encoding='utf-8')
     publish(state, spec, chosen, built)
     state['blueprint'] = {**(state.get('blueprint') or {}), 'designed': agent_tools._now(),
                           'cards': len(built['plan']['tasks']), 'milestones': [m['id'] for m in built['plan']['milestones']]}
@@ -154,8 +168,14 @@ def publish(state, spec=None, stack=None, built=None):
     built = built or {'policy': _read(where / 'eaos.policy.json'), 'plan': _read(where / 'plan.json'),
                       'architecture': _read(guided.report_of(state) / 'target-architecture.json', {})}
     target = guided.outputs(state) / 'BLUEPRINT.html'
-    target.write_text(blueprint.page(spec, stack, built, state.get('built')), encoding='utf-8')
+    target.write_text(blueprint_view.page(spec, stack, built, state.get('built')), encoding='utf-8')
     return target
+
+
+def studio_build(state):
+    """{'spec', 'plan', 'built', 'open'} of a project being built from its plan, for the Studio (eaos/studio/build_plan.py)."""
+    spec = _read(folder(state) / 'product-spec.json')
+    return {'spec': spec, 'plan': _plan(state), 'built': state.get('built') or [], 'open': state.get('open_build')} if isinstance(spec, dict) else None
 
 
 def _studio(state):
@@ -165,7 +185,7 @@ def _studio(state):
     try:
         report = guided.report_of(state)
         report.mkdir(parents=True, exist_ok=True)
-        export(report, state.get('lang') or 'en', Path(state['project']).name, state['project'], None, state)
+        export(report, state.get('lang') or 'en', Path(state['project']).name, state['project'], None, state, studio_build(state))
     except Exception as problem:
         guided.log_failure(guided.outputs(state), problem)
 
@@ -322,7 +342,8 @@ def _folder_listing(path, folder_path):
 def build_edit(card, edits, summary='', project=None):
     state = _state(project)
     build = _open(state)
-    if card not in build['cards'] and card != 'FIX':
+    skipped = {c for record in state.get('built') or [] for c in record['skipped']}       # built late: a requirement waits on it
+    if card not in build['cards'] and card not in skipped and card != 'FIX':
         raise ValueError(f"{card} is not in milestone {build['milestone']}: {', '.join(build['cards'])} (or FIX for a correction)")
     if not edits: raise ValueError('no edit was sent')
     return agent_tools._start('build_edit', state, {'card': card, 'edits': edits, 'summary': summary}, runner='eaos.build_tools')
@@ -442,11 +463,12 @@ def _build_finish_job(project, arguments, progress):
     root = Path(build['root'])
     # Dead code is judged when the whole build is there: a shared part made early is used by a later milestone.
     last = _plan(state)['milestones'][-1]['id'] == build['milestone']
-    problems = _gates(state, root, closing=last, progress=progress)
+    problems, look = _held(state, root, build, last, progress)
     guided.save(state)
     if problems:
         return {'delivered': False, 'why': problems[:25],
-                'what_now': 'The milestone as a whole breaks these: fix them with build_edit (card="FIX"), then build_finish again.'}
+                'what_now': 'The milestone as a whole breaks these: fix them with build_edit (card="FIX"; a requirement no kept card '
+                            'builds: build the card it names with build_edit), then build_finish again.'}
     branch = f"eaos/build-{build['number']}"
     fetched = _git(state['project'], 'fetch', '-q', str(root), f'+{branch}:{branch}')
     if fetched.returncode: raise RuntimeError(f'could not create {branch}: {fetched.stderr[-300:]}')
@@ -464,11 +486,45 @@ def _build_finish_job(project, arguments, progress):
     remaining = [m['id'] for m in _plan(state)['milestones'] if m['id'] not in {r['milestone'] for r in state['built']}]
     screens = any(p.startswith('web/') for c in build['kept'] for p in _cards(state)[c]['paths'])
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
-            'look': _look(state, root, progress) if screens else None,
-            'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found departing '
-                         'from DESIGN.md is fixed there first, with build_edit card="FIX".' if remaining else
+            'look': look or (_look(state, root, progress) if screens else None),
+            'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found (departures '
+                         'from DESIGN.md, screen problems, a Lighthouse score under 0.9) is fixed there first, with build_edit '
+                         'card="FIX".' if remaining else
                          f'Every milestone is built, on {branch}. Tell the person simply what was built and ask whether to take it in '
                          '(accept with person_agreed=true). Then offer the audit of the finished project.')}
+
+
+def _held(state, root, build, last, progress):
+    """(what holds a milestone back, the finished product's look): its gates; the last one's requirements and screens too,
+    pictured before it is delivered."""
+    problems = _gates(state, root, closing=last, progress=progress)
+    if not last: return problems, None
+    problems += _unbuilt(state, build)
+    look = None if problems else _look(state, root, progress)
+    return problems + _unusable(look), look
+
+
+def _unbuilt(state, build):
+    """The plan's requirements no kept card builds (requirements[].covered_by, the cards' `covers`): the last milestone
+    is not delivered while one is left."""
+    kept = {c for record in state.get('built') or [] for c in record['kept']} | set(build['kept'])
+    covering = {}
+    for card in _plan(state)['tasks']:
+        for requirement in card.get('covers') or []: covering.setdefault(requirement, []).append(card['id'])
+    spec = _read(folder(state) / 'product-spec.json', {})
+    return [{'gate': 'requirement', 'where': r['id'], 'what': f"requirement {r['id']} ({str(r.get('text') or '')[:120]}) is built by no "
+             f"kept card: build {', '.join(covering.get(r['id']) or ['a card for it'])}"}
+            for r in spec.get('requirements') or [] if isinstance(r, dict) and not kept & set(covering.get(r.get('id')) or [])]
+
+
+def _unusable(look):
+    """What stops the finished product's delivery in its screens: axe's serious problems, small targets, clipped text,
+    and Lighthouse accessibility or best practices under 0.9. Its speed is the release card's to prove on the production
+    build: the copy runs in development mode, slower than any delivered app."""
+    scores = (look or {}).get('speed') or {}
+    return [{'gate': 'screens', 'where': row['page'], 'what': '; '.join(row['problems'])} for row in (look or {}).get('screen_problems') or []] + \
+        [{'gate': 'screens', 'where': 'the entry page', 'what': f'Lighthouse {name} is {scores[name]}, under 0.9'}
+         for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 0.9]
 
 
 LOOK = ('facts', 'features', 'setup', 'screens', 'visual')      # the check's own stages that picture and review the screens
@@ -488,7 +544,12 @@ def _look(state, root, progress):
     except Exception as problem:              # the review is a help to the build, never a reason it fails
         return {'not_done': f'{type(problem).__name__}: {problem}'[:300]}
     findings = (_read(out / 'nodes/visual_reviewer/findings.json') or {}).get('findings') or []
+    pictured = _read(out / 'live/screens.json') or {}
     return {'screens': (stages.get('screens', {}).get('detail') or {}).get('screens', 0), 'departures': findings[:25],
+            # what axe, the touch targets and Lighthouse found on the running screens: fixed like the departures
+            'screen_problems': [{'page': r.get('url'), 'width': r.get('width'), 'problems': r['failures']}
+                                for r in pictured.get('rows') or [] if r.get('failures')][:25],
+            'speed': (pictured.get('lighthouse') or {}).get('scores'),
             'not_done': {name: stages[name].get('reason') for name in LOOK if stages[name]['status'] != 'ok'}}
 
 

@@ -111,7 +111,7 @@ export default {
   'ac.in.name': ['اسم الملف', 'File name'],
   'ac.in.show': ['اعرضه', 'Show it'],
   'ac.in.person_agreed': ['موافق على تشغيل برنامجك في نسخة معزولة', 'I agree to run my app in an isolated copy'],
-  'ac.in.build_start.person_agreed': ['موافق على بناء المرحلة في نسخة منفصلة، تصلني فرعًا جديدًا', 'I agree to build the milestone in a separate copy, handed to me as a new branch'],
+  'ac.in.build_start.person_agreed': ['موافق على بناء المنتج في نسخة منفصلة، يصلني فرعًا جديدًا', 'I agree to build the product in a separate copy, handed to me as a new branch'],
   'ac.in.proposal': ['ما تعرفه عن تشغيله (JSON، اختياري)', 'What you know about running it (JSON, optional)'],
   'ac.in.mode': ['الطريقة', 'Mode'],
   'ac.in.cards': ['المشاكل', 'Problems'],
