@@ -12,11 +12,11 @@ import time
 
 from .live_assist import _excerpt
 from .live_run import kinds_folder
-from .roles import NOWHERE, about_users, add, nowhere_of, opened, pages_of, read
+from .roles import NOWHERE, about_users, add, claim, nowhere_of, opened, pages_of, proven, prove, read
 from .run_profile import apply, safe
 
-SECONDS = 300
-PAGES = 24                    # the pages of the code each session is tried on, the views' own first
+SECONDS = 900
+PAGES = 150                   # the pages of the code each session is tried on, the views' own first
 
 SYSTEM = """You make the test users of a web app that runs on this computer, in an isolated copy, for automated
 checks. The copy and its database are the check's own and reach no real account or service: finding a way in is your
@@ -28,7 +28,8 @@ a development sign-in the docs describe; signing up and in through the app's pag
 scripts; writing the user straight into the database; making a session the app accepts (its session table, or a token
 signed with AUTH_SECRET). An app that signs in only through an outside provider (Google...) gets its user and its
 session made in the database. Save a signed-in browser state with context.storageState({ path:
-process.env.EAOS_STORAGE_STATE }), and for each view listed, a session in that view saved to
+process.env.EAOS_STORAGE_STATE }) (an app that opens signed in by itself, a development sign-in, is saved as it
+opens), and for each view listed, a session in that view saved to
 EAOS_SESSIONS_DIR/<id>.json: a user of that kind signed in and, for a view entered by a switch, switched into it the way
 the app switches (its "switch" line: the request it sends, the cookie or the stored value it keeps; a record chosen, an
 active program or clinic made in the copy's database when none is there), so that the
@@ -36,8 +37,10 @@ session opens that view's own pages, never the app's page for an address it does
 no session opens tells you a view is missing: find how a person reaches it (its file says what it needs: a profile, a
 program or a record chosen, a role, another account), and add that view to your answer, "views": [{"id", "name":
 {"en", "ar"}, "evidence": "file:line", "enter": "account" | "switch", "switch": "file:line", "pages": [...]}], with its
-session saved to EAOS_SESSIONS_DIR/<id>.json. The output may end with one JSON line of the fixture values it created
-({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1 or localhost; nothing deploys or reaches a hosted
+session saved to EAOS_SESSIONS_DIR/<id>.json. Every such page gets one of two answers, never none: the view
+that opens it, or, only when its code proves no person reaches it (a route no page links to and that refuses every
+user, a page left from a removed feature), "unreachable": [{"page", "why", "evidence": "file:line"}]. The output may
+end with one JSON line of the fixture values it created ({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1 or localhost; nothing deploys or reaches a hosted
 service."""
 # When the person signed in themselves: their session is theirs alone, the script only switches it into each view.
 BY_HAND = ('The person signed in themselves: EAOS_STORAGE_STATE holds a copy of their session. Never sign in, sign up or '
@@ -61,30 +64,34 @@ def lacking(live, base, state, report, hand=False):
                 'it does not have is not opened: the session is not in that view): ' + json.dumps(missing))
     alone = unreached(live, base, state, report)
     return ('these pages of the code open with no session (each shows the app\'s "not found", a refusal or the sign-in): '
-            'a view is missing. Their files:\n' + _sources(live.sandbox.copy, alone)) if alone else ''
+            'a view is missing, or answer each "unreachable" with the line that proves it. Their files:\n'
+            + _sources(live.sandbox.copy, alone)) if alone else ''
 
 
 def unreached(live, base, state, report):
     """The pages of the code (PAGES at most, every view's own first) that open as themselves with none of the sessions
-    made: {page: its file}. The running app says which views the reading of the code missed."""
+    made: {page: its file}. The running app says which views the reading of the code missed; each page a view's session
+    opened, and no session before it, becomes that view's own (eaos/roles.py claim)."""
     from .live_setup import probe
     from .lock_specs import surfaces
-    left = _tried(report)
+    left, owned = _tried(report), {}
     for session in [state, *sorted(kinds_folder(state).glob('*.json'))]:
-        page = probe(live, base, session, None, left + [NOWHERE]) if left and session.is_file() else {}
+        page = probe(live, base, session, None, left + [NOWHERE]) if left and (session.is_file() or session == state) else {}
         nowhere = nowhere_of(page)
         shown = {row.get('path') for row in (page.get('others') or [])[:-1] if _reached(row, nowhere)}
+        if session != state: owned[session.stem] = [path for path in left if path in shown]
         left = [path for path in left if path not in shown]
+    claim(report, owned)
     known = surfaces(report)
     return {path: (known.get(path) or (None, None, None))[2] for path in left}
 
 
 def _tried(report):
     """The pages a session is tried on: every view's own first, then the others of the code, never an interface, the
-    sign-in or a page that signs out or deletes; PAGES at most."""
+    sign-in, a page that signs out or deletes, or one proved unreachable; PAGES at most."""
     from .live_setup import LEAVES, SIGN_IN_PAGE
-    owned = [page for view in read(report) for page in view['pages']]
-    return [page for page in dict.fromkeys(owned + pages_of(report)) if not page.startswith('/api/')
+    owned, gone = [page for view in read(report) for page in view['pages']], proven(report)
+    return [page for page in dict.fromkeys(owned + pages_of(report)) if not page.startswith('/api/') and page not in gone
             and not re.search(LEAVES, page, re.I) and not SIGN_IN_PAGE.search(page)][:PAGES]
 
 
@@ -128,22 +135,23 @@ def make(project, live, base, state, report, provider, hand=False):
                 {'role': 'user', 'content': 'The views:\n' + json.dumps(views(report, hand), ensure_ascii=False)
                  + '\n\nThe documentation:\n' + _excerpt(project, live.profile.get('app') or '.', 12000)
                  + '\n\nThe code about its users and sessions:\n' + about_users(project, 30000, report)
-                 + '\n\nThe seed script today (keep what it makes that still applies):\n' + _today(live)}]
+                 + '\n\nThe seed script today (keep what it makes that still applies):\n' + (_today(live) or '(none)')}]
     tried = []
     while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
         tried.append(wrong)
         messages.append({'role': 'user', 'content': 'What is still lacking: ' + wrong})
         answer, _ = provider.complete(messages, stage='session')
         answer = answer.get('result') or answer
-        script, refused = answer.get('seed_script') or '', add(report, project, answer.get('views') or [])
-        messages.append({'role': 'assistant', 'content': json.dumps({'seed_script': script, 'views': answer.get('views') or []})})
-        wrong = ('these views were not added: ' + '; '.join(refused) + '. ' if refused else '') + _try(live, base, state, report, script, hand)
+        refused = add(report, project, answer.get('views') or []) + prove(report, project, answer.get('unreachable') or [])
+        script = answer.get('seed_script') or _today(live)        # a verdict alone keeps the script
+        messages.append({'role': 'assistant', 'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
+        wrong = ('these were not kept: ' + '; '.join(refused) + '. ' if refused else '') + _try(live, base, state, report, script, hand)
     return wrong
 
 
 def _today(live):
     seed = live.runtime / 'setup' / 'seed.cjs'
-    return seed.read_text(encoding='utf-8') if seed.is_file() else '(none)'
+    return seed.read_text(encoding='utf-8') if seed.is_file() else ''
 
 
 def _try(live, base, state, report, script, hand):

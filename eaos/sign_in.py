@@ -93,9 +93,9 @@ def page_of(page, base):
 
 
 def works(live, base, state, report=None):
-    """Whether the session `state` opens the app's first page and a few screens without being sent to a sign-in."""
+    """Whether the session `state` opens the app's first page and a few screens without being sent to a sign-in; with
+    no session made, whether the app opens signed in by itself (a development sign-in)."""
     from .live_setup import probe
-    if not Path(state).is_file(): return False
     page = probe(live, base, Path(state), report)
     return 200 <= (page.get('status') or 0) < 400 and not from_pages(page)
 

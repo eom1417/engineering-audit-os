@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.50 (2026-10-21)
+
+- **An app that signs in by itself still gets its views**: the third check of chief-ops pictured the support pages
+  alone again, and its sign-in record said `"needed": false`. In development the app signs every request in as a
+  support account, with no sign-in page, so no sign-in was seen and the whole making of the views (0.0.49's, too)
+  was skipped. Now, with no sign-in asked for, the pages of the code are still opened: when the code has views, or
+  some pages open as none of themselves (the program's pages a "not found"), the assistant makes the sessions as for
+  any app, the session of the app as it opens included, and the person is never asked to sign in. The record names
+  the pages that opened with no session (`unreached`).
+- **No page is left without an answer**: a page of the code that no session opens goes back to the assistant until it
+  has one of two answers: the view that opens it, with its session, or the line of the code that proves no person
+  reaches it (a removed feature, a route that refuses every user), kept in `roles.json` (`unreachable`), never
+  pictured and named in the report with its reason. A verdict without a real line is refused. Every page of the code
+  is tried (150 at most, not 24), for fifteen minutes (not five). And a page a view's session opened, and no session
+  before it, becomes that view's own, so the pictures open it with that session, not with one that shows a "not found".
+
 ## 0.0.49 (2026-10-20)
 
 - **A "not found" inside the app's menus is a page not seen**: the second check of chief-ops still asked whether to

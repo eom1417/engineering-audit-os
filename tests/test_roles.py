@@ -111,5 +111,25 @@ class Roles(unittest.TestCase):
         self.assertFalse(test_users._reached({'path': '/rota', 'url': base + '/', 'status': 200, 'text': 'Home'}, nowhere), 'sent home')
         self.assertFalse(test_users._reached({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Home\nPage not found'}, nowhere))
 
+    def test_every_page_no_session_opens_is_either_owned_by_the_view_that_opens_it_or_proved_unreachable(self):
+        # chief-ops (2026-10-21): pages of the program skipped silently; a page a session found went to the wrong one
+        from unittest import mock
+        from eaos import test_users
+        with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
+            (Path(target) / 'routes.js').write_text('one\ntwo\n')
+            roles._write(out, [{'id': 'program', 'enter': 'switch', 'evidence': 'routes.js:1', 'pages': ['/rota']}])
+            with mock.patch.object(roles, 'pages_of', return_value=['/', '/rota', '/access', '/legacy']):
+                refused = roles.prove(out, target, [{'page': '/legacy', 'why': 'refuses every user', 'evidence': 'routes.js:2'},
+                                                    {'page': '/access', 'why': 'no one comes here'}])
+                roles.claim(out, {'program': ['/access']})
+                roles.claim(out, {'program': ['/access']})
+                self.assertNotIn('/legacy', test_users._tried(out))
+            self.assertEqual(len(refused), 1, 'a verdict without a line of the code is refused')
+            self.assertEqual(roles.proven(out), {'/legacy': 'refuses every user'})
+            self.assertEqual(roles.read(out)[0]['pages'], ['/rota', '/access'])
+            roles._write(out, roles.read(out))
+            self.assertEqual(roles.proven(out), {'/legacy': 'refuses every user'}, 'a verdict outlives the views written again')
+
+
 if __name__ == '__main__':
     unittest.main()

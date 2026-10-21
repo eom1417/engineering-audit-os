@@ -27,13 +27,27 @@ def session(context):
     _live(context)
     if chosen.get('how') == 'none': raise SkipStage(CHOSEN_OUT, code='sign_in_declined')
     evidence = sign_in.from_code(context.out) + sign_in.from_pages(_setup_page(context))
-    if not evidence: return _record(context, {'needed': False})
+    if not evidence: return _record(context, _views_alone(context))
     live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
     lacking = '' if sign_in.by_hand(state) or chosen.get('how') == 'hand' else _test_users(context, live, base, state)
     if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
     if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each view
     return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
                              **({'test_users': lacking[:300]} if lacking else {})})
+
+
+def _views_alone(context):
+    """No sign-in asked for (an app that opens signed in by itself, a development sign-in): the views are still made
+    when the code has some, or when pages of the code open as none of themselves (chief-ops opened as support alone,
+    its program's pages a "not found", and no view was ever looked for). Never asks the person to sign in."""
+    from ..roles import read
+    from ..test_users import unreached
+    live, base, state = shared_app(context)              # the page stages start it anyway: no cost of its own
+    alone = unreached(live, base, state, context.out)
+    if not read(context.out) and not alone: return {'needed': False}
+    lacking = _test_users(context, live, base, state)
+    return {'needed': False, 'views': 'test_user', **({'unreached': sorted(alone)[:24]} if alone else {}),
+            **({'test_users': lacking[:300]} if lacking else {})}
 
 
 def _test_users(context, live, base, state, hand=False):
