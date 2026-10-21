@@ -329,15 +329,17 @@ def clear(out, patterns=None):
     return freed
 
 
-def check(target, out, again_from=None, checked=False, paths=None, **options):
-    """A check the person asked for: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
-    goes on from that checkpoint; otherwise, or when the source changed since, a fresh full run, which first clears
-    the previous check's bulky data (clear) unless it runs some stages only. `again_from`: the last check goes on from
-    that stage (again). `paths`: the check follows those paths only (focused)."""
+def check(target, out, again_from=None, checked=False, paths=None, go_on=False, **options):
+    """A check the person asked for: a fresh full run, which first clears the previous check's bulky data (clear) unless
+    it runs some stages only. `go_on`: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
+    goes on from that checkpoint instead, unless the source changed since; a new check never does (one stopped and
+    started again went on at 31 of 37 stages). `again_from`: the last check goes on from that stage (again). `paths`:
+    the check follows those paths only (focused)."""
     if again_from: return again(target, out, again_from, checked=checked, **options)
-    if (Path(out) / CHECKPOINT).is_file():
+    if go_on and (Path(out) / CHECKPOINT).is_file():
         try: return resume(target, out, **options)
         except ValueError: pass                         # the source or the options changed since: its evidence is stale
+    (Path(out) / CHECKPOINT).unlink(missing_ok=True)    # a run stopped midway is no part of a new check
     chosen = resolve(paths)
     if chosen['stages'] is not None: return focused(target, out, chosen, checked, **options)
     if not options.get('only'): clear(out)

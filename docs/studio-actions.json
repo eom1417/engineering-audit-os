@@ -442,6 +442,10 @@
      "run_app": {
       "type": "boolean",
       "description": "The person's yes, in the check's own window, to run their app in an isolated copy (its pages, sign-in and speed); kept for the project."
+     },
+     "go_on": {
+      "type": "boolean",
+      "description": "The check stopped midway goes on from where it stopped (Retry); any other check starts from nothing."
      }
     },
     "required": []
@@ -2629,7 +2633,7 @@
   {
    "method": "POST",
    "path": "/api/chat/control",
-   "does": "Turn direct control on for an hour ({on: true}), or off: while it is on, the Studio runs the assistant's proposals of a few actions and the runs' controls at once, through its own preview and queue; never the person's own steps, never an edit."
+   "does": "Turn direct control on ({on: true}) or off; it is on unless the person turned it off: the Studio runs the assistant's proposals at once, every action and the runs' controls, through its own preview and queue; only accepting or throwing a branch away waits for the person's press."
   },
   {
    "method": "POST",
