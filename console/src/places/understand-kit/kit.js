@@ -300,3 +300,11 @@ export function decisionLink(id) {
   if (!d) return code(id);
   return `<a class="link" href="${href('/waiting/' + enc(d.id))}">${rich(L(d.question))}</a> <span class="tag ${d.state === 'waiting' ? 'tag--you' : 'tag--ok'}">${t(d.state === 'waiting' ? 'un.dec.waiting' : 'un.dec.answered')}</span>`;
 }
+
+/** The build's one next step (model.buildNext): the blueprint's questions first, else the milestone to build. */
+export function buildStep() {
+  const n = model.buildNext();
+  if (!n) return '';
+  if (n.link) return `<a class="btn btn--primary" href="${href(n.link)}">${esc(n.label)}</a>`;
+  return `<button class="btn btn--primary" data-act="sheet" data-sheet="${offline() ? 'open-live' : n.sheet}">${icon('layers', 'icon--sm')}${esc(n.label)}</button>`;
+}

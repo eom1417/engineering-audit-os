@@ -95,6 +95,21 @@ def blueprint_spec(spec, project=None):
                          'The spec is complete: call blueprint_design.')}
 
 
+def blueprint_answer(question, choice, project=None):
+    """The person's choice for one of the spec's questions (from the Studio's inbox): kept in the spec, which is checked
+    again; a blueprint drawn and not built yet is drawn again with it."""
+    state = _state(project)
+    spec = _read(folder(state) / 'product-spec.json')
+    if spec is None: return {'status': 'no_spec', 'what_now': 'Call blueprint_start, then blueprint_spec.'}
+    checked = blueprint_spec(blueprint.answer(spec, question, choice), project)
+    state = _state(project)
+    if not checked['problems'] and (state.get('blueprint') or {}).get('designed') and not (state.get('built') or state.get('open_build')):
+        drawn = {concern: row['id'] for concern, row in (_read(folder(state) / 'stack.json') or {}).items() if question != f'stack-{concern}'}
+        return blueprint_design(drawn, project)
+    publish(state)
+    return checked
+
+
 def blueprint_design(stack=None, project=None):
     state = _state(project)
     spec = _read(folder(state) / 'product-spec.json')

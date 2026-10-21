@@ -128,9 +128,37 @@ def _spec_questions(spec):
             questions.append({'id': decision.get('id'), 'kind': 'choice', 'text': decision.get('question'),
                               'options': decision.get('options') or [], 'recommendation': decision.get('recommendation'),
                               'why': decision.get('why')})
-    if not spec.get('flows'): questions.append({'id': 'flows', 'kind': 'yes_no', 'text': 'The plan names no user journey from start to finish. '
-                                                'May the assistant write the main ones from the features?', 'recommendation': 'yes'})
+    if not spec.get('flows') and not spec.get('no_flows'):
+        questions.append({'id': 'flows', 'kind': 'yes_no', 'text': 'The plan names no user journey from start to finish. '
+                          'May the assistant write the main ones from the features?', 'recommendation': 'yes'})
     return questions
+
+
+def answer(spec, question, choice):
+    """The spec with the person's choice for one of its questions (_spec_questions): a technology, a product decision's
+    option, or whether the journeys are written (yes: one per role, through the features it can use)."""
+    if question.startswith('stack-'):
+        spec.setdefault('stack_preferences', {})[question[len('stack-'):]] = choice
+    elif question == 'flows':
+        if choice == 'yes': spec['flows'] = _role_flows(spec)
+        spec['no_flows'] = not spec.get('flows')
+    else:
+        decision = next((d for d in spec.get('decisions') or [] if isinstance(d, dict) and d.get('id') == question), None)
+        if decision is None: raise KeyError(question)
+        decision['chosen'] = choice
+    return spec
+
+
+def _role_flows(spec):
+    """A journey per role through the features it can use, in the plan's order; one over every feature when no role."""
+    features = _by_id(spec, 'features')
+    roles = [r for r in spec.get('roles') or [] if isinstance(r, dict)] or [{'id': 'user', 'name': 'User', 'can': list(features)}]
+    flows = []
+    for role in roles:
+        can = [f for f in role.get('can') or [] if f in features]
+        if can: flows.append({'id': f'FL{len(flows) + 1}', 'name': f"{role.get('name') or role['id']}: main journey", 'actor': role['id'],
+                              'features': can, 'steps': [features[f].get('name') or f for f in can]})
+    return flows
 
 
 def _look_problems(look, features, drawn=True):

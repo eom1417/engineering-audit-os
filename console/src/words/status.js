@@ -105,4 +105,5 @@ export default {
   'st.fresh.dirty.yes': ['نعم', 'Yes'],
   'st.fresh.files': ['الملفات التي تغيّرت بعده', 'The files changed since'],
   'st.opt.sub': ['الموصى به أولًا، بأرقام مشروعك.', 'Recommended first, with your project\'s numbers.'],
+  'st.build.plan': ['شوف خطة البناء', 'See the build plan'],
 }

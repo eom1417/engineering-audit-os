@@ -93,4 +93,6 @@ export default {
   'wt.q.row.sub.live': ['كل تشغيل سأل يقف حتى تجيب.', 'Each run that asked waits until you answer.'],
   'cf.doing': ['يُنفّذ…', 'Working…'],
   'cf.previewing': ['نسأل EAOS عن المعاينة…', 'Asking EAOS for the preview…'],
+  'wt.from.blueprint': ['من المخطط: اختيار في خطة البناء', 'From the blueprint: a choice in the build plan'],
+  'wt.why.blueprint': ['الخطة ما حسمت هذا، وجوابك ينحفظ في المواصفات وينرسم المخطط من جديد. يُسأل مرة واحدة.', 'The plan left this open; your answer goes into the spec and the blueprint is drawn again. Asked once.'],
 }

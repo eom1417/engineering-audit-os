@@ -323,7 +323,7 @@ sheet('action', {
     const cmd = `eaos act ${a.id}${Object.entries(inputsOf(a, own).inputs || {}).map(([k, v]) => ` --${k} ${Array.isArray(v) ? v.join(',') : typeof v === 'object' ? "'…'" : String(v).replace(/\s+/g, ' ').slice(0, 40)}`).join('')}`;
     const busy = !!ac.liveRun() && a.returns_job;
     const expert = m.group === 'expert' ? `<p class="ac-note small">${icon('info', 'icon--sm')}<span>${t('ac.ax.expert')}</span></p>` : '';
-    const consent = a.needs_consent ? `<div class="owner-band">${icon('seal')}<span><b>${t('ac.ax.consent.title')}</b>${t('ac.ax.consent.how')}</span></div>` : '';
+    const consent = a.needs_consent ? `<div class="owner-band">${icon('seal')}<span><b>${t(has('ac.ax.consent.title.' + a.id) ? 'ac.ax.consent.title.' + a.id : 'ac.ax.consent.title')}</b>${t('ac.ax.consent.how')}</span></div>` : '';
     const estimate = p && p.estimate && p.estimate.minutes_high > 1 ? `<dt>${t('pv.estimate')}</dt><dd>${esc(t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>` : '';
     const facts = p && !reading(a) ? `<dl class="facts">${estimate}
       <dt>${t('pv.risk')}</dt><dd><span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span></dd>

@@ -32,6 +32,13 @@ the blueprint, build milestone by milestone, the acceptance check. The live map 
 each card as its step (`eaos/journeys.py`), and the library's "The blueprint and the look" group shows BLUEPRINT.md and
 DESIGN.md before any check exists.
 
+Wherever the blueprint was drawn (the Studio or the person's own assistant session), the Studio reads it from the
+blueprint folder (`eaos/studio/build_plan.py`): the Plan page lists the milestones and each build card with its
+acceptance, files, tests and state; the spec's open questions wait in "Waiting for you", and an answer there goes into
+the spec at once and draws the blueprint again; Status says where the build stands and offers its one next step.
+"Build the next milestone" starts the person's assistant, which opens the milestone, builds each card through its gates
+and hands the milestone over as its branch.
+
 ## The structure it draws
 
 | Folder | Layer | Depends on |

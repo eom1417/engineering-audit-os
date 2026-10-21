@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.54 (2026-10-21)
+
+- **A project built from its plan is followed in the Studio, wherever its blueprint was drawn**: HungerLab's blueprint
+  was drawn from the person's own assistant session, and the Studio showed none of its 68 build cards, none of its four
+  questions, and "check the project" with "no score". The Studio read only a check's plan and inbox. Now it reads the
+  blueprint folder (`eaos/studio/build_plan.py`): the Plan page lists the milestones and each card with its acceptance,
+  files, tests and state; the spec's open questions wait in "Waiting for you" (a check's share of questions never
+  answers them for the person); Status says where the build stands and offers its one next step.
+- **An answer to the blueprint acts**: it goes into the spec at once (`blueprint_answer`), with no assistant run to
+  review it, and a blueprint not built yet is drawn again with it (the journeys, when the person says yes, are one per
+  role through the features it can use).
+- **"Build the next milestone" builds it**: from the Studio it only opened the milestone and stopped, with no one to
+  build its cards. Now it starts the person's assistant, which opens the milestone, builds every card through its gates
+  and hands the milestone over as its branch, then stops for the person.
+
 ## 0.0.53 (2026-10-21)
 
 - **An answer acts; the same question never comes back**: after the assistant's connection dropped, chief-ops' check
