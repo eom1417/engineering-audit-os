@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.51 (2026-10-21)
+
+- **A new check starts from nothing; going on with a stopped one is a choice**: the owner stopped a check of chief-ops
+  and started a new one, which opened at "31 of 37 stages done": any check found the checkpoint of one stopped midway
+  and went on from it, whether asked or not. Now "Check the project" always starts a new check and drops that
+  checkpoint; Retry on the stopped check goes on from where it stopped (`go_on`), and the Stop window says which does
+  what. Pause and resume are as they were: the same check, frozen and going on.
+- **Stop stops the check**: a check stopped in its first seconds, before the Studio knew its job (a tool call waits up
+  to 50 seconds for it), was marked stopped while it went on to its end. Stop now ends the project's running job then,
+  and a job that comes back to a run already stopped is ended at once.
+
 ## 0.0.50 (2026-10-21)
 
 - **An app that signs in by itself still gets its views**: the third check of chief-ops pictured the support pages

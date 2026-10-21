@@ -224,13 +224,16 @@ def _check_tools(server, reading, working):
                  'its pages are opened (kept): hand (the person signs in on the sign-in page when the check asks; status then says '
                  'so), test_user (a seed script signs a test user in), none (signed out). published=<https address>: only when the '
                  'person names it, its pages are read signed in, read only, for this check. run_app=true: only once the person '
-                 'said yes to running their app in an isolated copy (its pages, sign-in and speed need it; kept). ' + project_doc)
+                 'said yes to running their app in an isolated copy (its pages, sign-in and speed need it; kept). go_on=true: only '
+                 'when the person asks to continue a check they stopped: it goes on from where it stopped; any other check '
+                 'starts from nothing. ' + project_doc)
     @_answer
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
               assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
               paths: list[str] | None = None, mode: str | None = None, sign_in: str | None = None, published: str | None = None,
-              run_app: bool = False) -> str:
-        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in, published, run_app)
+              run_app: bool = False, go_on: bool = False) -> str:
+        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in,
+                           published, run_app, go_on)
 
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '

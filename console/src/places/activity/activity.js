@@ -212,7 +212,7 @@ sheet('stop', {
     if (!r) return { title: esc(t('ac.run.notfound', { id })), body: '' };
     return {
       title: esc(t(r.action === 'audit' ? 'ac.stop.title.check' : 'ac.stop.title', { label: ac.runLabel(r) })),
-      body: `<p>${t('ac.stop.body')}</p><p class="small ink-2">${t('ac.stop.kept')}</p>${own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.refused)}</p>` : ''}`,
+      body: `<p>${t('ac.stop.body')}</p><p class="small ink-2">${t(r.action === 'audit' ? 'ac.stop.kept.check' : 'ac.stop.kept')}</p>${own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.refused)}</p>` : ''}`,
       foot: `<div class="sheet__foot-row"><button class="btn btn--secondary" data-act="sheet-close" data-autofocus>${t('cancel')}</button>
         <button class="btn btn--primary" data-act="ac-stop" data-id="${esc(id)}" ${own.busy ? 'disabled' : ''}>${icon('stop')}${t('ac.ctl.stop.do')}</button></div>`,
     };

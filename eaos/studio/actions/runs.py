@@ -50,6 +50,12 @@ def _signal(pid, number):
         except (ProcessLookupError, PermissionError, OSError): pass
 
 
+def _end(pid, paused=False):
+    """Stop process `pid` (woken first when paused): asked, then made to after STOP_GRACE seconds."""
+    for number in (signal.SIGCONT, signal.SIGTERM) if paused else (signal.SIGTERM,): _signal(pid, number)
+    threading.Thread(target=lambda: (time.sleep(STOP_GRACE), alive(pid) and _signal(pid, signal.SIGKILL)), daemon=True).start()
+
+
 def _read_from(path, offset):
     """What the file holds past `offset`, or None when it cannot be read."""
     try:
@@ -260,7 +266,7 @@ class Manager:
         self.store.append(run, 'step', {'en': self.labels[action]['en'], 'ar': self.labels[action]['ar']}, {'tool': action})
         result = self.call(action, record.get('inputs'))
         if follow and isinstance(result, dict) and result.get('job') and result.get('status') in ('running', 'started', None):
-            self.store.update(run, job=result['job'])
+            if self.store.update(run, job=result['job']).get('state') == 'stopped': return _end(self._job_pid(result))  # stopped before its job was known
             return self._follow_job(run, result['job'])
         self._finish_direct(run, result)
 
@@ -691,9 +697,9 @@ class Manager:
         return self.set_state(run, 'running', 'resumed', paused_pid=None, paused_at=None, paused=(record.get('paused') or []) + [[record.get('paused_at') or now(), now()]])
 
     def _job_pid(self, record):
-        if not record.get('job'): return None
+        """The pid of a run's job; a direct run stopped before its job was known: the project's running one (one at a time)."""
         from ... import jobs
-        try: return jobs.read(record['job'], self.project).get('pid')
+        try: return (jobs.read(record['job'], self.project) if record.get('job') else jobs.running(self.project) if record.get('mode') == 'direct' else {}).get('pid')
         except Exception: return None
 
     def stop(self, run):
@@ -703,19 +709,13 @@ class Manager:
         self.set_state(run, 'stopped', 'you stopped it')
         if run in self.cancels: self.cancels[run].set()
         if record.get('mode') == 'handoff': handoff.drop(self.project, run)
-        if pid and record.get('state') in ('running', 'paused'):
-            if record.get('state') == 'paused': _signal(pid, signal.SIGCONT)
-            _signal(pid, signal.SIGTERM)
-            def finish():
-                time.sleep(STOP_GRACE)
-                if alive(pid): _signal(pid, signal.SIGKILL)
-            threading.Thread(target=finish, daemon=True).start()
+        if pid and record.get('state') in ('running', 'paused'): _end(pid, record.get('state') == 'paused')
         return self.store.load(run)
 
     def retry(self, run):
         record = self.store.load(run)
         if record.get('state') not in RETRYABLE: raise LookupError('only a run that failed, was stopped or changed nothing can be tried again')
-        record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0, usage=None,
+        record = self.set_state(run, 'queued', 'tried again', inputs={**(record.get('inputs') or {}), **({'go_on': True} if record.get('action') == 'audit' else {})}, attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None, resumes=0, usage=None,
                                 question=None, queued_at=now(), mode='assistant' if record.get('assistant') else record.get('mode'),
                                 branches_before=None, waves_before=None)
         self.store.set_queue(self.store.queue())

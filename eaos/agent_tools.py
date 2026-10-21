@@ -319,13 +319,13 @@ def _fresh_report(state):
 # ---------------------------------------------------------------- diagnosis
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None, sign_in=None, published=None, run_app=False):
+          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False):
     """`use_assistant`, `assistant` (claude or codex): the person's choice for the check's AI, kept. One not ready
     (eaos/assistants/readiness.py) stops the check before it starts, with why and the fix; `without_ai`: this one check with
     the rules alone. `again_from`: the last check goes on from that stage on the checked commit, it and the stages reading
     it run again and the rest is kept (`engines`: only those tools). `paths`: only those (eaos/pipeline/paths.py); `mode`:
     normal or speed, `sign_in`: hand, test_user or none, kept (eaos/check_choices.py); `published`: an address read signed in;
-    `run_app`: the person's yes to run their app in an isolated copy, kept (its pages, sign-in and speed need it)."""
+    `run_app`: their yes to run their app in an isolated copy, kept; `go_on`: a stopped check goes on (Retry), else it is new."""
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
@@ -333,12 +333,12 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
         state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
     if check_choices.keep(state, mode, sign_in, run_app): guided.save(state)
     # A check on record stands until asked for anew (fresh): one started because the code moved on stopped fixes (2026-10-10).
-    if guided.scan_done(state) and not fresh and not again_from:
+    if guided.scan_done(state) and not fresh and not again_from and not go_on:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from, use_assistant is not None or assistant)
     blocked = None if without_ai else _assistant_not_ready(state)
     if blocked: return blocked
-    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published)).items() if v}
+    arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published), go_on=go_on).items() if v}
     return _start('audit', state, arguments, watch=True)
 
 
@@ -408,7 +408,7 @@ def _audit_job(project, arguments, progress):
     source = guided.source(state, state.get('scanned_commit') if arguments.get('again_from') else None)   # going on: the checked code
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {} if arguments.get('again_from') else {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
-    check(str(source), out, again_from=arguments.get('again_from'), checked=state.get('scanned_dirty') is False, **options)
+    check(str(source), out, arguments.get('again_from'), state.get('scanned_dirty') is False, go_on=bool(arguments.get('go_on')), **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_with=tool_digest(), **read)

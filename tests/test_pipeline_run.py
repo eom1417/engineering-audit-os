@@ -174,15 +174,22 @@ class ResumeTests(unittest.TestCase):
             self.assertIn('probe', ran)
             self.assertEqual(second['counts'][OK], len(STAGES))
             self.assertFalse((Path(directory) / CHECKPOINT).exists())
-        # Stopped in an AI stage: it resumes at it and never asks a finished one again.
+        # Stopped in an AI stage: going on (Retry) resumes at it and never asks a finished one again.
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(KeyboardInterrupt):
                 execute('.', directory, runners=fake_runners(ideal=KeyboardInterrupt()))
             ran = []
-            second = check('.', directory, runners=recording(ran))
+            second = check('.', directory, go_on=True, runners=recording(ran))
         self.assertEqual(ran[0], 'ideal')
         self.assertFalse({'semantic', 'triage'} & set(ran), 'a finished AI stage was asked again')
         self.assertEqual(second['counts'][OK], len(STAGES))
+        # A new check after one stopped starts from nothing (chief-ops, 2026-10-21: it went on at 31 of 37 stages).
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(KeyboardInterrupt):
+                execute('.', directory, runners=fake_runners(ideal=KeyboardInterrupt()))
+            ran = []
+            check('.', directory, runners=recording(ran))
+        self.assertEqual(sorted(ran), sorted(order), 'every stage ran again')
 
     def test_one_stage_reruns_alone_when_its_inputs_are_on_disk_and_not_otherwise(self):
         with tempfile.TemporaryDirectory() as directory:

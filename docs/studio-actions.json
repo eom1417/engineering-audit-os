@@ -442,6 +442,10 @@
      "run_app": {
       "type": "boolean",
       "description": "The person's yes, in the check's own window, to run their app in an isolated copy (its pages, sign-in and speed); kept for the project."
+     },
+     "go_on": {
+      "type": "boolean",
+      "description": "The check stopped midway goes on from where it stopped (Retry); any other check starts from nothing."
      }
     },
     "required": []
