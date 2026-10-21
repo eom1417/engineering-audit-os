@@ -12,10 +12,11 @@ import time
 
 from .live_assist import _excerpt
 from .live_run import kinds_folder
-from .roles import NOWHERE, about_users, add, claim, nowhere_of, opened, pages_of, proven, prove, read
+from .roles import NOWHERE, about_users, add, claim, nowhere_of, opened, pages_of, proven, prove, read, way_in
 from .run_profile import apply, safe
 
-SECONDS = 900
+SECONDS = 300                 # one round of tries; ROUNDS of them at most: fifteen minutes, as before
+ROUNDS = 3
 PAGES = 150                   # the pages of the code each session is tried on, the views' own first
 
 SYSTEM = """You make the test users of a web app that runs on this computer, in an isolated copy, for automated
@@ -27,10 +28,14 @@ uses one, and require('playwright') and the app's own packages available. Use wh
 a development sign-in the docs describe; signing up and in through the app's pages; the app's own seed or admin
 scripts; writing the user straight into the database; making a session the app accepts (its session table, or a token
 signed with AUTH_SECRET). An app that signs in only through an outside provider (Google...) gets its user and its
-session made in the database. Save a signed-in browser state with context.storageState({ path:
-process.env.EAOS_STORAGE_STATE }) (an app that opens signed in by itself, a development sign-in, is saved as it
-opens), and for each view listed, a session in that view saved to
-EAOS_SESSIONS_DIR/<id>.json: a user of that kind signed in and, for a view entered by a switch, switched into it the way
+session made in the database. The run's own session, saved with context.storageState({ path:
+process.env.EAOS_STORAGE_STATE }), opens every page: its user holds, granted in the copy's database, every role, seat
+and membership the code knows, in every organization, program or workspace (one made when none is there), so nothing
+is refused to it; an app that signs in by itself as one fixed account (a development sign-in) has that account granted
+all of it. Then for each view listed, a session in that view saved to EAOS_SESSIONS_DIR/<id>.json, by the way in
+given: "one_account", that same account switched into the view; "account_per_view", an account of that kind alone,
+granted its own role only, so a page of another kind it opens is seen. A user of that kind signed in and, for a view
+entered by a switch, switched into it the way
 the app switches (its "switch" line: the request it sends, the cookie or the stored value it keeps; a record chosen, an
 active program or clinic made in the copy's database when none is there), so that the
 session opens that view's own pages, never the app's page for an address it does not have. A page of the code that
@@ -40,8 +45,8 @@ program or a record chosen, a role, another account), and add that view to your 
 session saved to EAOS_SESSIONS_DIR/<id>.json. Every such page gets one of two answers, never none: the view
 that opens it, or, only when its code proves no person reaches it (a route no page links to and that refuses every
 user, a page left from a removed feature), "unreachable": [{"page", "why", "evidence": "file:line"}]. The output may
-end with one JSON line of the fixture values it created ({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1 or localhost; nothing deploys or reaches a hosted
-service."""
+end with one JSON line of the fixture values it created ({"E2E_PROFILEID": "..."}). Every address is http://127.0.0.1
+or localhost; nothing deploys or reaches a hosted service."""
 # When the person signed in themselves: their session is theirs alone, the script only switches it into each view.
 BY_HAND = ('The person signed in themselves: EAOS_STORAGE_STATE holds a copy of their session. Never sign in, sign up or '
            'make a user: open that state, switch it into each view listed, and save each to EAOS_SESSIONS_DIR/<id>.json.')
@@ -64,7 +69,8 @@ def lacking(live, base, state, report, hand=False):
                 'it does not have is not opened: the session is not in that view): ' + json.dumps(missing))
     alone = unreached(live, base, state, report)
     return ('these pages of the code open with no session (each shows the app\'s "not found", a refusal or the sign-in): '
-            'a view is missing, or answer each "unreachable" with the line that proves it. Their files:\n'
+            'grant the run\'s own user what they need (every role and seat) and add the view that is missing, or answer '
+            'each "unreachable" with the line that proves it. Their files:\n'
             + _sources(live.sandbox.copy, alone)) if alone else ''
 
 
@@ -96,13 +102,15 @@ def _tried(report):
 
 
 def _reached(row, nowhere):
-    """Whether a probed page was reached: opened as itself, or sent on to a page of its own (/settings to its first tab),
-    never to the first page or the sign-in, nor showing the app's "not found" or a refusal."""
+    """Whether a probed page was reached: opened as itself, or sent on to a page of its own under its address (/settings
+    to /settings/profile, never /admin to /dashboard), never to the sign-in, nor showing the app's "not found" or a
+    refusal. The one rule of a page seen: the sessions' and the pictures' (eaos/pipeline/pages.py _seen)."""
     from urllib.parse import urlsplit
     from .live_setup import SIGN_IN_PAGE
-    landed = urlsplit(row.get('url') or '').path.rstrip('/') or '/'
-    if opened(row.get('path') or '/', row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere): return True
-    return 200 <= (row.get('status') or 0) < 400 and landed != '/' and not row.get('password') and not SIGN_IN_PAGE.search(landed) \
+    path, landed = row.get('path') or '/', urlsplit(row.get('url') or '').path.rstrip('/') or '/'
+    if opened(path, row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere): return True
+    return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') and not row.get('password') \
+        and not SIGN_IN_PAGE.search(landed) \
         and opened(landed, row.get('url'), row.get('status'), 0, row.get('text'), nowhere)
 
 
@@ -128,11 +136,27 @@ def _opens(live, base, session, pages):
 
 
 def make(project, live, base, state, report, provider, hand=False):
-    """The assistant's seed script, run on the running app and told what is still lacking, until nothing is or SECONDS
-    pass; what is still lacking ('' when every session works). `hand`: the person signed in themselves (BY_HAND)."""
-    end, wrong = time.monotonic() + SECONDS, lacking(live, base, state, report, hand)
+    """The assistant's seed script, run on the running app and told what is still lacking, round by round (ROUNDS at
+    most): a round that ends with something lacking goes back to the node that owns the views and the way in, the
+    reading of the code (eaos/roles.py find), with what lacks, and the next round goes on with its answer. What is still
+    lacking ('' when every session works). `hand`: the person signed in themselves (BY_HAND)."""
+    from .roles import find
+    wrong = lacking(live, base, state, report, hand)
+    for again in range(ROUNDS):
+        if not wrong: break
+        if again:
+            try: find(project, report, provider, wrong)
+            except ValueError: pass                # an answer with no real line: the views stay as they were
+        wrong = _round(project, live, base, state, report, provider, hand, wrong)
+    return wrong
+
+
+def _round(project, live, base, state, report, provider, hand, wrong):
+    """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes twice."""
+    end = time.monotonic() + SECONDS
     messages = [{'role': 'system', 'content': SYSTEM + ('\n' + BY_HAND if hand else '')},
-                {'role': 'user', 'content': 'The views:\n' + json.dumps(views(report, hand), ensure_ascii=False)
+                {'role': 'user', 'content': 'The way in: ' + json.dumps(way_in(report), ensure_ascii=False)
+                 + '\n\nThe views:\n' + json.dumps(views(report, hand), ensure_ascii=False)
                  + '\n\nThe documentation:\n' + _excerpt(project, live.profile.get('app') or '.', 12000)
                  + '\n\nThe code about its users and sessions:\n' + about_users(project, 30000, report)
                  + '\n\nThe seed script today (keep what it makes that still applies):\n' + (_today(live) or '(none)')}]
@@ -140,7 +164,7 @@ def make(project, live, base, state, report, provider, hand=False):
     while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
         tried.append(wrong)
         messages.append({'role': 'user', 'content': 'What is still lacking: ' + wrong})
-        answer, _ = provider.complete(messages, stage='session')
+        answer, _ = provider.complete(messages, stage='session', reads=live.sandbox.copy, deep=True)
         answer = answer.get('result') or answer
         refused = add(report, project, answer.get('views') or []) + prove(report, project, answer.get('unreachable') or [])
         script = answer.get('seed_script') or _today(live)        # a verdict alone keeps the script

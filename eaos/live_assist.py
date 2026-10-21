@@ -34,7 +34,9 @@ create folders with commands. The seed script runs with Node after the app start
 with BASE_URL in its environment; require('playwright') is available. It adds a little sample data if the app is
 empty, and its console output ends with one JSON line of fixture values it created, for example
 {"E2E_PROFILEID": "..."}, when the checks need them. A page asking for a sign-in is the app working: the sign-in is
-made in the next step, on the running app."""
+made in the next step, on the running app. An app that opens signed in on a chooser or gate (a profile, workspace or
+organization to pick) gets one picked by the seed, the browser state saved with context.storageState({ path:
+process.env.EAOS_STORAGE_STATE }): the screens open with that state, never a fresh browser that meets the chooser again."""
 
 DOCS = ('README.md', 'README', 'CLAUDE.md', 'AGENTS.md', 'CONTRIBUTING.md', 'docs/DEVELOPMENT.md', 'docs/SETUP.md',
         'docs/development.md', 'docs/setup.md', 'docs/LOCAL.md')

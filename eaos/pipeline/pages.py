@@ -73,9 +73,10 @@ def _seen(context, row, kind, nowhere):
     as itself (eaos/roles.py opened): a sign-in, a refusal or the app's page for an address it does not have is the
     page not seen with that session, never the page itself."""
     from urllib.parse import urlsplit
-    from ..roles import opened
+    from ..test_users import _reached
     path = urlsplit(row['url']).path or '/'
-    shown = row.get('status') != 'observed' or opened(path, row.get('landed'), row.get('http'), row.get('password'), row.pop('text', None), nowhere)
+    shown = row.get('status') != 'observed' or _reached({'path': path, 'url': row.get('landed'), 'status': row.get('http'),
+                                                         'password': row.get('password'), 'text': row.pop('text', None)}, nowhere)
     return {**row, 'kind': kind, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None,
             **({} if shown else {'unseen': True})}
 

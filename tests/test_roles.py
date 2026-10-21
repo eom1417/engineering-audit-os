@@ -130,6 +130,34 @@ class Roles(unittest.TestCase):
             roles._write(out, roles.read(out))
             self.assertEqual(roles.proven(out), {'/legacy': 'refuses every user'}, 'a verdict outlives the views written again')
 
+    def test_a_lack_on_the_running_app_goes_back_to_the_reading_which_adds_views_and_never_drops_one(self):
+        # the owner, 2026-10-21: a loop back to the node that owns the views until every page opens
+        from unittest import mock
+        from eaos import test_users
+        with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
+            (Path(target) / 'routes.js').write_text('one\ntwo\nthree\n')
+            roles._write(out, [{'id': 'support', 'enter': 'account', 'evidence': 'routes.js:1', 'pages': ['/cases']}],
+                         strategy='one_account', sign_in='a development sign-in, routes.js:1')
+            asked = []
+            provider = mock.Mock(complete=lambda messages, **how: (asked.append((messages[-1]['content'], how)) or {
+                'roles': [{'id': 'program', 'evidence': 'routes.js:2', 'enter': 'switch', 'switch': 'routes.js:3', 'pages': ['/rota']}]}, {}))
+            with mock.patch.object(roles, 'pages_of', return_value=['/cases', '/rota']):
+                roles.find(target, out, provider, lacking='/rota opens with no session')
+            self.assertIn('/rota opens with no session', asked[0][0])
+            self.assertEqual(asked[0][1], {'stage': 'roles', 'reads': target, 'deep': True}, 'it reads the code itself')
+            self.assertEqual([k['id'] for k in roles.read(out)], ['support', 'program'])
+            self.assertEqual(roles.way_in(out)['strategy'], 'one_account', 'an answer without the way in keeps it')
+            self.assertIn('"strategy"', ' '.join(roles.errors({'roles': [], 'strategy': 'every'}, target, [])))
+        rounds = []
+        with mock.patch.object(test_users, 'lacking', return_value='/rota'), \
+                mock.patch.object(test_users, '_round', side_effect=lambda *a: rounds.append('round') or ('/rota' if rounds.count('round') < 3 else '')), \
+                mock.patch('eaos.roles.find', side_effect=lambda *a: rounds.append(('find', a[3]))):
+            self.assertEqual(test_users.make('p', None, 'b', 's', 'r', 'provider'), '')
+        self.assertEqual(rounds, ['round', ('find', '/rota'), 'round', ('find', '/rota'), 'round'])
+        nowhere = roles.nowhere_of({'text': 'Home', 'others': [{'text': '404'}]})
+        self.assertFalse(test_users._reached({'path': '/admin', 'url': 'http://h/dashboard', 'status': 200, 'text': 'Dashboard'}, nowhere),
+                         'sent to another page is not the page')
+
 
 if __name__ == '__main__':
     unittest.main()

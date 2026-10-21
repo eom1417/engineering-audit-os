@@ -8,7 +8,8 @@ not have) is not seen, never a missing page; the coverage says which views the c
 
     <out>/roles.json   {"roles": [{"id", "name", "evidence": "file:line", "enter": "account" | "switch",
                                    "switch": "file:line", "pages": ["/admin", ...]}],
-                        "unreachable": [{"page", "why", "evidence": "file:line"}]}   the pages the code proves no one reaches
+                        "unreachable": [{"page", "why", "evidence": "file:line"}],   the pages the code proves no one reaches
+                        "strategy": "one_account" | "account_per_view", "sign_in": "..."}   the way in (WAY_IN)
 """
 import json
 import re
@@ -16,6 +17,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 MOST = 10
+WAY_IN = ('strategy', 'sign_in')
+STRATEGIES = ('one_account', 'account_per_view')
 ROUNDS = 3
 SIGNS = re.compile(r'\b(roles?|is_?admin|admin|permissions?|rbac|authori[sz]\w*|guard\w*|superuser|staff|support|'
                    r'manager|owner|member|sessions?|cookies?|tokens?|profiles?|workspaces?|tenants?|organi[sz]ations?|'
@@ -46,7 +49,13 @@ that defines or checks that view; "enter" is "account" or "switch", and a switch
 of the code that switches into it; "pages" are the page routes from the list given that belong to that view alone by
 what they are for (an /admin page is the administrator's even where the code forgets to check it: the check then finds
 who else opens it), an empty list when it sees only shared pages. At most ten views. An app whose signed-in users all
-see the same pages has one; an app with no sign-in has none: {"roles": []}."""
+see the same pages has one; an app with no sign-in has none: {"roles": []}.
+Read the project's files yourself (Read, Grep, Glob) wherever the excerpt below falls short: the sign-in, the session,
+the profile or program chooser, the guards. And say the way in, at the top of the object: "sign_in", one line on how a
+person signs in (a development sign-in as a fixed account, a code by mail, a password, an outside provider) with its
+file:line; "strategy", "one_account" when one account may hold every view (several profiles, seats or memberships it
+switches between), so one test account granted all of them reaches every view, or "account_per_view" when each account
+enters one view only, so the check makes one account of each kind."""
 
 
 def read(out):
@@ -109,6 +118,7 @@ def errors(answer, target, pages):
     found = [] if len(kinds) <= MOST else [f'at most {MOST} kinds']
     found += [wrong for kind in kinds for wrong in _wrong(kind, target, pages)]
     if len({str(k.get('id')) for k in kinds if isinstance(k, dict)}) < len(kinds): found.append('each "id" once')
+    if answer.get('strategy') not in (None, *STRATEGIES): found.append('"strategy" is "one_account" or "account_per_view"')
     return found
 
 
@@ -129,21 +139,25 @@ def _line(target, cited):
     return bool(file and line.isdigit() and path.is_file() and 0 < int(line) <= len(path.read_text(errors='replace').splitlines()))
 
 
-def find(target, out, provider):
+def find(target, out, provider, lacking=None):
     """Ask the assistant for the kinds of users, its answer sent back with what is wrong with it, ROUNDS times at most;
-    <out>/roles.json. The kinds."""
+    <out>/roles.json. The kinds. `lacking`: what the running app still lacks with the sessions made (eaos/test_users.py
+    make), the reading asked again with it and the views so far, its answer added to them (add), never in their place."""
     pages = pages_of(out)
+    told = f'\n\nThe views so far:\n{json.dumps(read(out), ensure_ascii=False)}\n\nOn the running app, still lacking:\n{lacking}' if lacking else ''
     messages = [{'role': 'system', 'content': SYSTEM},
-                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target, out=out)}]
+                {'role': 'user', 'content': 'The page routes:\n' + json.dumps(pages) + '\n\nThe code about users:\n' + about_users(target, out=out) + told}]
     for _ in range(ROUNDS):
-        answer, _ = provider.complete(messages, stage='roles')
+        answer, _ = provider.complete(messages, stage='roles', reads=target, deep=True)
         wrong = errors(answer, target, pages)
         if not wrong: break
         messages += [{'role': 'assistant', 'content': json.dumps(answer)},
                      {'role': 'user', 'content': 'Correct these and answer again:\n' + '\n'.join(wrong[:20])}]
     else:
         raise ValueError('the kinds of users named no real line or page: ' + '; '.join(wrong[:3]))
-    return _write(out, [_kept(kind) for kind in answer['roles']])
+    if lacking: add(out, target, answer['roles'])
+    return _write(out, read(out) if lacking else [_kept(kind) for kind in answer['roles']],
+                  **{k: answer.get(k) for k in WAY_IN if answer.get(k) or not lacking})
 
 
 def add(out, target, found):
@@ -185,10 +199,18 @@ def _kept(kind):
     return {k: kind.get(k) for k in ('id', 'name', 'evidence', 'enter', 'switch', 'found') if kind.get(k)} | {'pages': kind.get('pages') or []}
 
 
-def _write(out, kinds, unreachable=None):
-    """<out>/roles.json with `kinds`, the pages proved unreachable kept unless given anew ({page: row})."""
+def way_in(out):
+    """{strategy, sign_in} the reading said, {} when it did not."""
+    record = _record(out)
+    return {k: record[k] for k in WAY_IN if record.get(k)}
+
+
+def _write(out, kinds, unreachable=None, **said):
+    """<out>/roles.json with `kinds`, the pages proved unreachable ({page: row}) and the way in (WAY_IN) kept unless
+    given anew."""
     rows = list(unreachable.values()) if unreachable is not None else _record(out).get('unreachable') or []
-    record = {'roles': kinds, **({'unreachable': rows} if rows else {})}
+    way = {k: v for k, v in {**way_in(out), **said}.items() if v}
+    record = {'roles': kinds, **way, **({'unreachable': rows} if rows else {})}
     (Path(out) / 'roles.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return kinds
 
