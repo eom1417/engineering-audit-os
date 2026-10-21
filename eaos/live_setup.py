@@ -333,15 +333,17 @@ def signed_out(page):
 
 
 # The words of a page that shows nothing yet: no data, no report, an empty list.
+SHORT = 40                      # words: a longer first page is the app itself, never an empty state
 EMPTY = re.compile(r'\b(no (data|reports?|results?|items?|records?|content|entries)\b|nothing (here|to show|yet)|is empty\b|'
                    r'(not|none) (found|available|loaded) yet)|لا (يوجد|توجد|شيء|بيانات)|فارغ', re.I)
 
 
 def empty_state(page, unset):
     """Why the first page is no working app although it answered: it shows an empty, "no data" state while the run
-    has no value for a name the app reads, so every screen would be pictured empty. '' otherwise."""
+    has no value for a name the app reads, so every screen would be pictured empty. '' otherwise: a page of more than
+    SHORT words is the app, whatever "no ... yet" it shows (chief-ops' command center, "No new cases", was refused)."""
     text = ' '.join((page.get('text') or '').split())
-    if not unset or not (EMPTY.search(text) or len(text.split()) < 3): return ''
+    if not unset or len(text.split()) > SHORT or not (EMPTY.search(text) or len(text.split()) < 3): return ''
     return ('the first page shows an empty, no-data state while the app runs without a value for: ' + ', '.join(unset[:12])
             + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
 
@@ -363,8 +365,8 @@ def _failure(page, empty):
     # a page asking for a sign-in or a token (401), or refusing this user (403), is the app answering
     bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') not in (401, 403)]
     if stuck(page) and not signed_out(page):         # every screen sent to the sign-in is the app, signed out
-        return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
-                'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
+        return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app: the seed '
+                'picks one and saves the browser state to EAOS_STORAGE_STATE. The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
     if bad: return f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}"
     return empty
 
@@ -539,7 +541,7 @@ def _ask(project, runtime, provider, detected, failure, refusal, needs, name, mo
     """Ask the assistant for a change, write it with what safe() refused to setup/<name>.json, and apply it when safe.
     The refusals, none when it was applied; the last refusal is told on the next ask."""
     if refusal: failure += f'. Your previous proposal was refused and not applied: {refusal}'
-    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs, mode=mode), stage='setup')
+    answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, needs, mode=mode), stage='setup', reads=project)
     proposal = answer.get('result') or {}
     refused = safe(proposal)
     (runtime / f'setup/{name}.json').write_text(json.dumps({'proposal': proposal, 'refused': refused}, ensure_ascii=False, indent=1) + '\n',

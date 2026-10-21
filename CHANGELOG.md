@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.0.52 (2026-10-21)
+
+- **The views and the sign-in are worked out by an assistant that reads the code itself**: chief-ops' check found the
+  program owner's view but never made a session that opened its pages, and a local trial of the same shape stopped at
+  setup. The assistant of the views, the setup and the sessions answered blind, every tool off, from excerpts. Now
+  those three calls read and search the project (or its isolated copy) themselves, read only (Read, Grep, Glob; Codex
+  in its read-only sandbox), and the views and the sessions think as long as they need. Every other call is as it was.
+- **The reading of the code says the way in**: how a person signs in, and whether one account may hold every view
+  (`one_account`: one test account granted every profile, switched between) or each account enters one view
+  (`account_per_view`: one account of each kind, its own role only). The run's own session is always granted
+  everything in the copy's database, so every page opens once.
+- **A lack goes back to the node that owns it**: the sessions are made in up to three rounds of five minutes (fifteen
+  at most, as before); a round that ends with pages no session opens asks the reading of the views again with them,
+  which adds views and never drops one, and the next round goes on with its answer.
+- **A working app is not refused**: a first page of more than forty words is the app, whatever "no ... yet" it shows
+  (chief-ops' command center was taken for an empty state), and a chooser in front of the app is picked by the seed,
+  its browser state saved.
+- **One rule of a page seen**: the sessions and the pictures judge a page the same way, and a page sent on is seen only
+  when it lands under its own address (/settings to /settings/profile, never /admin to /dashboard).
+
 ## 0.0.51 (2026-10-21)
 
 - **A new check starts from nothing; going on with a stopped one is a choice**: the owner stopped a check of chief-ops

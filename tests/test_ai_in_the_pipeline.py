@@ -200,6 +200,25 @@ class Consent(unittest.TestCase):
             agent_tools.audit(str(self.project), use_assistant=False)
         self.assertEqual(guided.check_provider(guided.load(self.project)).code, 'ai_declined')
 
+    def test_the_views_and_the_sign_in_read_the_code_themselves_and_every_other_call_is_as_it_was(self):
+        # chief-ops, 2026-10-21: the assistant of the views and the sign-in saw excerpts only, with every tool off
+        from eaos.assistants import claude_adapter, codex_adapter
+        seen = []
+        with mock.patch.object(claude_adapter, 'stream', side_effect=lambda argv, text, env: seen.append((argv, env)) or {'result': '{}'}):
+            claude_adapter.call([{'role': 'user', 'content': 'hi'}])
+            claude_adapter.call([{'role': 'user', 'content': 'hi'}], reads='/copy', deep=True)
+        (plain, plain_env), (reading, reading_env) = seen
+        self.assertEqual(plain[plain.index('--tools') + 1], '', 'a call as before: no tool')
+        self.assertIsNone(plain_env)
+        self.assertEqual(reading[reading.index('--tools'):reading.index('--tools') + 6],
+                         ['--tools', 'Read,Grep,Glob', '--add-dir', '/copy', '--permission-mode', 'dontAsk'])
+        self.assertEqual(reading_env['MAX_THINKING_TOKENS'], '31999')
+        with mock.patch.object(codex_adapter.subprocess, 'run', return_value=mock.Mock(returncode=1)) as run, self.assertRaises(RuntimeError):
+            codex_adapter.call([{'role': 'user', 'content': 'hi'}], reads='/copy', deep=True)
+        argv = run.call_args.args[0]
+        self.assertEqual((argv[argv.index('-C') + 1], argv[argv.index('-s') + 1]), ('/copy', 'read-only'))
+        self.assertIn('model_reasoning_effort="high"', argv)
+
     def test_the_choice_is_kept_per_project_and_one_not_ready_is_never_used_silently(self):
         state = {'lang': 'en', 'project': str(self.project), 'workspace': str(guided.workspace(self.project)), 'questions': []}
         guided.choose_assistant(state, True, 'codex', via='studio')

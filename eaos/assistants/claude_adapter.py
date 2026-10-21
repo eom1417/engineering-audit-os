@@ -53,15 +53,19 @@ def stream(argv, conversation, env=None):
     return result
 
 
-def call(messages, small=False):
+def call(messages, small=False, reads=None, deep=False):
     """`small`: the work is plain (a translation): the smallest model does it as well for less, and without thinking,
-    which was 77% of a translation's output (EAOS's own check, 2026-10-14) and 20 times its time."""
+    which was 77% of a translation's output (EAOS's own check, 2026-10-14) and 20 times its time. `reads`: a folder it
+    reads and searches itself, nothing else (the views and the sign-in once saw only excerpts, and missed the program
+    chooser); `deep`: the longest thinking."""
     system, conversation = render(messages)
-    argv = ['claude', '-p', '--tools', '', '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
+    tools = ['--tools', 'Read,Grep,Glob', '--add-dir', reads, '--permission-mode', 'dontAsk'] if reads else ['--tools', '']
+    argv = ['claude', '-p', *tools, '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
             '--include-partial-messages', '--system-prompt', system]
     model = 'haiku' if small else os.environ.get('EAOS_CLAUDE_MODEL')
     if model: argv += ['--model', model]
-    envelope = stream(argv, conversation, {**os.environ, 'MAX_THINKING_TOKENS': '0'} if small else None)
+    thinking = '0' if small else '31999' if deep else None
+    envelope = stream(argv, conversation, {**os.environ, 'MAX_THINKING_TOKENS': thinking} if thinking else None)
     if envelope.get('is_error'): raise RuntimeError('claude reported an error: ' + str(envelope.get('result'))[:200])
     from ..usage import from_stream
     record(from_stream([json.dumps(envelope)]))
@@ -78,7 +82,7 @@ def record(row):
 def serve(call, name):
     """An adapter's process: the request on stdin, one JSON object on stdout, or exit 1 with the reason on stderr."""
     request = json.loads(sys.stdin.read())
-    try: answer = call(request['messages'], small=bool(request.get('small')))
+    try: answer = call(request['messages'], small=bool(request.get('small')), reads=request.get('reads'), deep=bool(request.get('deep')))
     except Exception as problem:   # the provider sees a failed exit; the reason goes to stderr, never to stdout
         print(f'{name} adapter: {problem}', file=sys.stderr)
         return 1
