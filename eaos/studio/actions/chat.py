@@ -1,15 +1,15 @@
-"""The person's assistant beside the Studio: a conversation that reads, explains and diagnoses, and proposes.
+"""The person's assistant beside the Studio: a conversation that reads, explains and diagnoses, and does what the person
+asks.
 
 Its assistant may call only EAOS's reading tools (READ_TOOLS: the status, the findings, the plan, a report's files)
-and read the project's files; every tool that works (a check, a fix, run_try...) is out of its reach. What it would do
-comes back as a proposal: a Studio action (docs/studio-actions.json, with its inputs) or a control of a run (CONTROLS).
-The Studio shows each as a card the person confirms, and runs it the way its own buttons do: the action's preview,
-the one-slot queue, the steps only the person may take. So a batch running beside the conversation is never touched by
-it, and every change has the person's yes behind it.
+and read the project's files; what it does comes back as a proposal: a Studio action (docs/studio-actions.json, with its
+inputs) or a control of a run (CONTROLS), which the Studio runs the way its own buttons do: the action's preview and the
+one-slot queue.
 
-Direct control, the person's choice for an hour (CONTROL_HOURS, kept by the server, never by a browser): the Studio
-runs the assistant's proposals at once, still through its own preview and queue, and only DIRECT actions and the
-controls of a run; the person's own steps (accept, undo, choosing a branch) and editing code never. Each turn may ask
+Direct control, on unless the person turned it off (kept by the server, never by a browser): the Studio runs the
+assistant's proposals at once, every action and the controls of a run (the owner, 2026-10-21: an assistant that only
+proposes is of no use; it must do what the person asks, as one does in a terminal). Only what cannot be undone
+(CONFIRMED: merging a branch, throwing one away) still waits for the person's press. Each turn may ask
 a model (MODELS: quick by default, balanced, or the assistant's own for a deep diagnosis). A turn runs on its own
 thread: start() answers at once, and progress() says what the assistant reads now and the answer as it is written.
 A conversation goes on in the assistant's own session (resumed turn by turn); each turn, with what it used
@@ -20,7 +20,7 @@ import re
 import subprocess
 import threading
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from ...usage import from_stream
 
@@ -29,13 +29,12 @@ READ_TOOLS = ('status', 'branches', 'menu', 'impact', 'ask', 'assistant_check', 
 CONTROLS = ('retry', 'stop', 'pause', 'resume')
 # The run controls as the person reads them on the button they pressed (en, ar).
 PRESSED = {'pause': ('Pause', 'أوقف مؤقتًا'), 'resume': ('Resume', 'كمّل'), 'stop': ('Stop', 'أوقف'), 'retry': ('Try again', 'أعد المحاولة')}
-# What direct control may run by itself: a check, the app's run and its speed, the plans of the assistant's nodes, a note.
-DIRECT = ('audit', 'tools_check', 'run_setup', 'run_try', 'safety_net', 'replan_ideal', 'run_nodes', 'note')
-CONTROL_HOURS = 1
+CONFIRMED = ('accept', 'undo')     # what cannot be undone waits for the person's press, direct control or not
 MODELS = {'quick': 'haiku', 'balanced': 'sonnet', 'deep': None}     # Claude's; None: the assistant's own
 LIMIT = 900                 # seconds one turn may take
 RUN_EVENTS = 40             # a run's last events given with a diagnosis
 SESSION = re.compile(r'^[A-Za-z0-9-]{8,80}$')
+NOTE = re.compile(r'<notification_summary>.*?</notification_summary>', re.S)     # a host's own instructions, never the person's
 ANSWER = re.compile(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)')
 TURNS = {}                  # turn id -> {folder, done, result, error}
 SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['answer', 'proposals'], 'properties': {
@@ -47,12 +46,15 @@ SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['answer'
 RULES = '''You are the person's assistant inside EAOS Studio, beside the work it is doing on their project. Answer in
 {language}, in plain words for a person who is not a developer; be short and concrete.
 
-You may read, never change: call EAOS's reading tools (status, findings, finding, plan, report_file, overview...) and read
-the project's files. When something should be done, propose it. A proposal is either
+Read with EAOS's reading tools (status, findings, finding, plan, report_file, overview...) and the project's files, and do
+what the person asks: never answer that you cannot when an action or a control below does it. You do it by proposing
+it; a proposal is either
 {{"kind": "action", "action": "<one of the actions below>", "inputs": {{...its inputs...}}, "run": null, "why": "<one line>"}}
 or {{"kind": "control", "action": "retry"|"stop"|"pause"|"resume", "inputs": {{}}, "run": "<run id>", "why": "<one line>"}}.
-{control} A batch may be running now: reading is always fine, but never
-propose what would compete with it; say it waits for the batch instead. Return JSON: {{"answer": "...", "proposals": [...]}}.
+{control} Only one piece of work runs at a time and the rest waits its turn: when the person
+wants something now (a new check while one runs, say), stop the running one first (a control "stop" with its run id, from
+`status`), then propose theirs. A new check is the action "audit" with {{"fresh": true}}, from nothing; a stopped check
+goes on with the control "retry" on its run. Return JSON: {{"answer": "...", "proposals": [...]}}.
 
 The actions: {actions}
 
@@ -70,7 +72,7 @@ def start(actions, body):
     adapter, direct = actions.adapters[name], control(actions)['on']
     folder = actions.store.folder / 'chat' / (session or datetime.now(timezone.utc).strftime('new-%Y%m%d-%H%M%S-%f'))
     folder.mkdir(parents=True, exist_ok=True)
-    prompt = (('(Direct control is on.) ' if direct else '') + message) if session else _opening(actions, body.get('context'), message, direct)
+    prompt = (('(Direct control is on.) ' if direct else '') + _runs(actions) + message) if session else _opening(actions, body.get('context'), message, direct)
     argv = adapter.argv(prompt, 'chat', folder, session=session, tools=READ_TOOLS)
     model = MODELS.get(body.get('model'), MODELS['quick'])
     if adapter.id == 'claude': argv += ['--json-schema', json.dumps(SCHEMA), '--include-partial-messages'] + (['--model', model] if model else [])
@@ -90,7 +92,7 @@ def _turn(actions, adapter, turn, argv, message, session, direct):
         answer, _, failure = adapter.answer(lines)
         if failure or not isinstance(answer, dict): raise LookupError(f'the assistant did not answer: {failure or "no answer"}')
         proposals = _allowed(actions, answer.get('proposals'))
-        result = {'session': _session(lines) or session, 'answer': str(answer.get('answer') or ''), 'proposals': proposals,
+        result = {'session': _session(lines) or session, 'answer': NOTE.sub('', str(answer.get('answer') or '')).strip(), 'proposals': proposals,
                   'done': [_execute(actions, p) for p in proposals if direct and _direct(p)],
                   'assistant': adapter.name, 'usage': from_stream(lines)}
         with open(record['folder'] / 'turns.jsonl', 'a', encoding='utf-8') as log:
@@ -141,19 +143,17 @@ def _unescaped(text):
 
 
 def control(actions, body=None):
-    """Direct control: {'on', 'until'}; `body` {'on': true|false} turns it on for CONTROL_HOURS, or off."""
-    path = actions.store.folder / 'chat' / 'control.json'
+    """Direct control: {'on', 'confirmed'}, on unless the person turned it off; `body` {'on': true|false} turns it."""
+    path = actions.store.folder / 'chat' / 'control-off'
     if body is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        if body.get('on'): path.write_text(json.dumps({'until': (_now() + timedelta(hours=CONTROL_HOURS)).isoformat()}), encoding='utf-8')
-        else: path.unlink(missing_ok=True)
-    try: until = datetime.fromisoformat(json.loads(path.read_text(encoding='utf-8'))['until'])
-    except (OSError, ValueError, KeyError): until = None
-    return {'on': bool(until and until > _now()), 'until': until.isoformat() if until and until > _now() else None, 'actions': list(DIRECT)}
+        if body.get('on'): path.unlink(missing_ok=True)
+        else: path.touch()
+    return {'on': not path.exists(), 'confirmed': list(CONFIRMED)}
 
 
 def _direct(proposal):
-    return proposal['kind'] == 'control' or proposal['action'] in DIRECT
+    return proposal['kind'] == 'control' or proposal['action'] not in CONFIRMED
 
 
 def _execute(actions, proposal):
@@ -176,10 +176,19 @@ def _opening(actions, context, message, direct=False):
     listed = '; '.join(f"{a['id']} ({a.get('description', {}).get('en', '') if isinstance(a.get('description'), dict) else ''})"[:160]
                        for a in actions.contract['actions'])
     language = 'Arabic (plain, Gulf-friendly)' if actions.lang == 'ar' else 'English'
-    said = (f"Direct control is on: the Studio runs at once your proposals of {', '.join(DIRECT)} and the runs' controls; say "
-            'plainly what you set going. Any other proposal the person confirms.' if direct else 'The person confirms each one and the Studio runs it.')
+    said = (f"Direct control is on: the Studio runs your proposals at once; say plainly what you set going. Only "
+            f"{', '.join(CONFIRMED)} wait for the person's press." if direct else 'The person turned direct control off: they confirm each '
+            'proposal and the Studio runs it.')
     return (RULES.format(language=language, actions=listed, context=json.dumps(context or {}, ensure_ascii=False)[:2000], control=said)
-            + _run_log(actions, (context or {}).get('run')) + '\nThe person: ' + message)
+            + _run_log(actions, (context or {}).get('run')) + '\n' + _runs(actions) + 'The person: ' + message)
+
+
+def _runs(actions):
+    """The runs going on or waiting now, with their ids, so a control names the right one (it once said it stopped a
+    check it had no id for, and the new one waited behind it)."""
+    from .store import ACTIVE
+    now = [f"{r['id']} {r.get('action')} {r.get('state')}" for r in actions.store.all() if r.get('state') in (*ACTIVE, 'queued')]
+    return f"Runs now: {'; '.join(now) if now else 'none'}.\n"
 
 
 def _run_log(actions, run):

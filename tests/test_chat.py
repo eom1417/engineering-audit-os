@@ -1,4 +1,4 @@
-"""The person's assistant beside the Studio reads and proposes; it never changes anything itself."""
+"""The person's assistant beside the Studio reads, and does what the person asks; only what cannot be undone waits."""
 import re
 import unittest
 from pathlib import Path
@@ -25,7 +25,15 @@ class ChatTests(unittest.TestCase):
                                         {'kind': 'control', 'action': 'retry', 'run': 'r9', 'why': 'unknown run'},
                                         {'kind': 'control', 'action': 'accept', 'run': 'r1', 'why': 'only the person'}])
         self.assertEqual([(p['kind'], p['action']) for p in found], [('action', 'run_try'), ('control', 'retry')])
-        # direct control runs by itself only a few actions and the runs' controls; never the person's own steps
-        self.assertTrue(set(chat.DIRECT).isdisjoint({'accept', 'undo', 'choose_branch', 'fix_edit', 'build_edit'}))
+        # the owner, 2026-10-21: it could not start a new check for them; direct control is on unless turned off and
+        # runs every action and control, only merging or throwing a branch away waits for the person's press
         self.assertEqual([chat._direct(p) for p in found], [True, True])
-        self.assertFalse(chat._direct({'kind': 'action', 'action': 'accept'}))
+        self.assertTrue(chat._direct({'kind': 'action', 'action': 'fix_start'}))
+        self.assertFalse(chat._direct({'kind': 'action', 'action': 'accept'}) or chat._direct({'kind': 'action', 'action': 'undo'}))
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            store = SimpleNamespace(store=SimpleNamespace(folder=Path(folder)))
+            self.assertTrue(chat.control(store)['on'], 'on before anyone turned it on')
+            self.assertFalse(chat.control(store, {'on': False})['on'])
+            self.assertFalse(chat.control(store)['on'], 'off stays off')
+            self.assertTrue(chat.control(store, {'on': True})['on'])

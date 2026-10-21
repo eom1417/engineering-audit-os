@@ -104,9 +104,9 @@ function readControl() {
 }
 function control() {
   readControl();
-  const on = dc.on && dc.until;
+  const on = dc.on;
   return `<details class="panel fold" ${on ? 'open' : ''}><summary>${icon('seal', 'muted')}<span class="row__main"><span class="row__title">${t('ac.ask.dc')}</span>
-      <span class="row__meta" style="display:block">${on ? esc(t('ac.ask.dc.on', { time: fmtTime(dc.until) })) : t('ac.ask.dc.off')}</span></span>${icon('chev', 'chev')}</summary>
+      <span class="row__meta" style="display:block">${on ? t('ac.ask.dc.on') : t('ac.ask.dc.off')}</span></span>${icon('chev', 'chev')}</summary>
     <div class="fold__body ac-stack">
       <div class="toggle-row"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('ac.ask.dc.switch')}</span><span class="small muted">${t('owner.only')}</span></span>
         <span class="switch"><input type="checkbox" data-change="ac-direct" data-fk="direct" ${on ? 'checked' : ''} ${offline() ? 'disabled' : ''} aria-label="${esc(t('ac.ask.dc.switch'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
@@ -225,7 +225,7 @@ act('ac-depth', el => { S.ac.depth = el.dataset.d; refresh(); });
 act('ac-new', () => { conv.session = null; conv.turns = []; save(); refresh(); toast(t('ac.ask.new.done')); });
 act('ac-direct', async el => {
   if (!client) return;
-  try { Object.assign(dc, await client.chatControl(el.checked)); toast(dc.on ? t('ac.ask.dc.on', { time: fmtTime(dc.until) }) : t('ac.ask.dc.turned_off')); }
+  try { Object.assign(dc, await client.chatControl(el.checked)); toast(dc.on ? t('ac.ask.dc.on') : t('ac.ask.dc.turned_off')); }
   catch (e) { toast(said(e), { refusal: true }); }
   draw();
 });

@@ -10,6 +10,12 @@
 - **Stop stops the check**: a check stopped in its first seconds, before the Studio knew its job (a tool call waits up
   to 50 seconds for it), was marked stopped while it went on to its end. Stop now ends the project's running job then,
   and a job that comes back to a run already stopped is ended at once.
+- **The Studio's assistant does what the person asks**: asked to start a new check, it could only propose it, and the
+  proposal waited for a press, or for an hour of direct control turned on by hand; and it never knew which run to stop.
+  Now direct control is on unless the person turns it off, and runs every action and control at once; only accepting a
+  branch and throwing one away, which cannot be undone, wait for a press. Each turn names the runs going on with their
+  ids. A real turn, "start a new check from nothing now, even if one is running": it stopped the running check and
+  started a new one, which began from nothing.
 
 ## 0.0.50 (2026-10-21)
 
