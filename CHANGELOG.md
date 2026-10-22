@@ -2,6 +2,13 @@
 
 ## 0.0.69 (2026-10-22)
 
+- **The screens an app's code names are found, however it moves** (HungerLab on 0.0.68 still "pages 1": it opens on
+  `#/onboarding`, a language then a start, moves by buttons, and its development server drew the first screen after
+  seconds, while the crawl read the page after 3): the crawl opens every hash route the code names
+  (`screens.crawl.code_routes`: `'#/now'` in a string, or `'/now'` in a file that routes by the hash), records where the
+  entry led (`#/onboarding`), and waits until a page shows something before reading it; the screens and the safety net
+  wait for it too, so a slow app is never pictured blank. The golden app now behaves so: the 0.0.68 crawl found 1 of its
+  5 screens, this one 5, and the trial demands them.
 - **A card goes in the same batch as the cards it waits for, after them** (chief-ops: ten module splits refused and
   left for "the next batch" while their simplifications were open and ready): the next batch takes a waiting card once
   what it waits for is done or taken before it (`waves.ready_cards`), so a split comes right after its last

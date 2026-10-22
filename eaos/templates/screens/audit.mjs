@@ -231,6 +231,8 @@ async function openContext(browser, viewport, variant, base, blocked) {
 // The page loaded and settled: the network quiet, the selector it waits for, the fonts, then its actions.
 async function settle(page, url, entry) {
   const response = await page.goto(url, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
+  // a development server can take long to draw the first screen: never picture it blank
+  try { await page.waitForFunction(() => document.body && document.body.innerText.trim().length > 0, null, { timeout: 60000 }); } catch {}
   try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
   const ready = entry.wait_for || config.wait_for;
   if (ready) await page.waitForSelector(ready, { timeout: 10000 });

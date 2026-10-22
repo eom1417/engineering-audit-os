@@ -71,14 +71,18 @@ try {
   });
   const seen = new Set([pathOf(base.href)]);
   const queue = [{ path: pathOf(base.href), depth: 0 }];
+  // The screens the code names, opened like links of the entry page
+  for (const seed of config.seeds || []) { const found = pathOf(seed); if (found && !seen.has(found)) { seen.add(found); queue.push({ path: found, depth: 1 }); } }
   while (queue.length && routes.length < config.max_routes) {
     const { path, depth } = queue.shift();
     const page = await context.newPage();
     let status = 'observed', links = [];
     try {
       await page.goto(new URL(path, base).href, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
-      try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
-      links = config.read_only ? await hrefs(page) : await pressed(page, path);
+      // A development server can take long to draw the first screen: wait until the page shows something
+      try { await page.waitForFunction(() => document.body && document.body.innerText.trim().length > 0, null, { timeout: 60000 }); } catch {}
+      try { await page.waitForLoadState('networkidle', { timeout: 5000 }); } catch {}
+      links = [page.url(), ...(config.read_only ? await hrefs(page) : await pressed(page, path))];   // with where it led (a redirect)
     } catch (error) {
       status = 'error';
     }
