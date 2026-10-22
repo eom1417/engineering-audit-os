@@ -98,13 +98,13 @@ def crawled_pages(out):
 
 
 def features_of(out):
-    """features.json's features, plus one named `pages` holding the crawled pages that stand in for the code's
-    (crawled_pages): what the lock, the journeys and the load read as the program's surfaces."""
+    """features.json's features, plus one per crawled page standing in for the code's (crawled_pages): what the lock,
+    the journeys and the load read as the program's surfaces. One each, so a page that differs between two recordings
+    (a clock, a random tip) is refused alone: in one shared spec it failed every page, and the safety net locked none."""
     try: features = json.loads((Path(out) / 'features.json').read_text(encoding='utf-8'))['features']
     except (OSError, ValueError, KeyError): features = []
-    pages = crawled_pages(out)
-    return features + ([{'name': 'pages', 'description': 'The pages of the running app, found by the crawl', 'critical': False,
-                         'surfaces': pages, 'tables': [], 'files': []}] if pages else [])
+    return features + [{'name': f'page {page}', 'description': 'A page of the running app, found by the crawl', 'critical': False,
+                        'surfaces': [page], 'tables': [], 'files': []} for page in crawled_pages(out)]
 
 
 def path_of(route):
@@ -197,6 +197,8 @@ def _page_test(route, target, name, guard):
             '    const messages: string[] = [];',
             "    page.on('pageerror', (error) => messages.push(`pageerror: ${error.message}`));",
             "    page.on('console', (message) => { if (message.type() === 'error') messages.push(`console: ${message.text()}`); });",
+            # The clock held still: a screen showing the time differs between two recordings (HungerLab's "now").
+            "    await page.clock.setFixedTime(new Date('2026-01-01T09:00:00Z'));",
             f'    await page.goto({target});',
             "    await page.waitForLoadState('networkidle');",
             f"    expect(messages.join('\\n')).toMatchSnapshot('{name}.console.txt');",

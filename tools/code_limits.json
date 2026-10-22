@@ -5,7 +5,7 @@
   "eaos/agent_tools.py::_run_job": 17,
   "eaos/agent_tools.py::accept": 17,
   "eaos/agent_tools.py::overview": 17,
-  "eaos/agent_tools.py::status": 35,
+  "eaos/agent_tools.py::status": 32,
   "eaos/agent_tools.py::tools_check": 18,
   "eaos/arch_map.py::_flow_chart": 20,
   "eaos/arch_map.py::component_map": 18,
@@ -116,8 +116,8 @@
   "tools/validate.py::packaged_errors": 16
  },
  "modules": {
-  "eaos/agent_tools.py": 1188,
-  "eaos/guided.py": 1226,
+  "eaos/agent_tools.py": 1187,
+  "eaos/guided.py": 1225,
   "eaos/human_report.py": 2103,
   "eaos/studio/actions/branches.py": 1141,
   "eaos/studio/actions/runs.py": 729,

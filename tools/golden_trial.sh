@@ -35,6 +35,9 @@ live_setup.authorize(guided.source(state), guided.runtime_of(state), 'golden')  
 ran = live_setup.setup(guided.source(state), guided.runtime_of(state), report=guided.report_of(state), provider=None)
 state['setup'] = {'commit': guided._commit(state), 'ok': ran['ok'], 'attempts': ran['attempts'], 'limitations': ran['limitations']}
 safety = guided.safety_run(state)
-if not safety.get('passed'): sys.exit(f"golden trial failed: the safety net recorded {safety.get('screens')} screens, {safety.get('passed')} passed: {safety.get('skipped')}")
-print(f"golden trial: every stage that runs the app ended ok, the report for people opens, the safety net recorded {safety['passed']} screens")
+# the random about screen, alone, is refused: the other screens are locked
+if safety.get('passed') != safety.get('screens', 0) - 1 or 'about' not in str(safety.get('skipped')): sys.exit(f"golden trial failed: the safety net recorded {safety.get('screens')} screens, {safety.get('passed')} passed: {safety.get('skipped')}")
+from eaos import agent_tools
+if (refused := agent_tools._no_safety_net(guided.load(Path(sys.argv[2]).resolve()))): sys.exit(f'golden trial failed: no fix batch would open: {refused}')
+print(f"golden trial: a fix batch opens, every stage that runs the app ended ok, the report for people opens, the safety net recorded {safety['passed']} screens")
 PY

@@ -139,7 +139,7 @@ class BuildTests(Workspace):
             self.assertFalse(behavior_lock._pages_from_app(report, Path(self.tmp), 'http://127.0.0.1:1', runtime), 'crawled once')
         self.assertEqual(crawled.call_count, 1)
         plan = json.loads((report / 'behavior-lock/plan.json').read_text())
-        self.assertEqual([(s['feature'], s['surfaces']) for s in plan['specs']], [('pages', ['/', '/#/now'])])
+        self.assertEqual([(s['feature'], s['surfaces']) for s in plan['specs']], [('page /', ['/']), ('page /#/now', ['/#/now'])])
 
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest">
