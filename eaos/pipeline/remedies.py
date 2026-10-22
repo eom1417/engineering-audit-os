@@ -73,7 +73,7 @@ def pending(report):
     try: manifest = json.loads((Path(report) / MANIFEST).read_text(encoding='utf-8'))
     except (OSError, ValueError): return None
     tried = {r['stage'] for r in manifest.get('remedies') or []}
-    return next((name for name, row in manifest['stages'].items() if row.get('status') != 'ok' and name not in tried
+    return next((name for name, row in (manifest.get('stages') or {}).items() if row.get('status') != 'ok' and name not in tried
                  and (r := remedy_of(row)) and not (r.get('needs') or r.get('consent'))), None)
 
 
