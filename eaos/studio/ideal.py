@@ -27,13 +27,13 @@ from ..aspects import ASPECTS, VERDICTS
 from ..roles import unseen
 from ..assistants.command import Stuck
 from ..card_review import triage_verdicts
-from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _facts, _load, _slug, guard_words
-from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short, UNTRUSTED
+from . import ideal_bundle as read
+from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug, guard_words
+from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short
 
 # The studio sections that draw a target, and the view whose provenance each carries (tools/make_contracts.py).
 SECTION_VIEWS = {'system': 'system', 'story': 'system', 'gaps': 'change', 'operations': 'plan_order', 'plans': 'plan_order',
                  'paths': 'paths', 'journeys': 'journeys', 'data_paths': 'data_paths', 'infra': 'infra', 'pipeline': 'pipeline'}
-DOCS = ('README.md', 'README', 'readme.md', 'ARCHITECTURE.md', 'CONTRIBUTING.md', 'docs/**/*.md', '*.md')
 WORDS = {
     'not_planned': ("The ideal shown is the rules' target. It is not planned yet: re-plan it from the command centre "
                     "with your assistant (Claude Code or Codex).",
@@ -140,81 +140,22 @@ def known_ids(report, project=None):
     return {i for i in known if EVIDENCE.match(i)}
 
 
-def _docs(project):
-    """The project's own documents, cut to size, marked as untrusted data."""
-    if not project or not Path(project).is_dir(): return []
-    project, seen, out, total = Path(project), set(), [], 0
-    for pattern in DOCS:
-        for path in sorted(project.glob(pattern)):
-            rel = path.relative_to(project).as_posix()
-            if rel in seen or not path.is_file() or 'node_modules/' in rel or rel.startswith('.'): continue
-            seen.add(rel)
-            text = path.read_text(encoding='utf-8', errors='replace')[:LIMIT['doc_chars']]
-            if total + len(text) > LIMIT['docs_chars']: return out
-            total += len(text)
-            out.append({'id': f'DOC:{rel}', 'path': rel, 'trust': UNTRUSTED, 'text': text})
-    return out
-
-
-def _facts_digest(report):
-    """The facts a plan needs, each with its id: entries, flows, tables, runtime, cycles, dead code, config names."""
-    report = Path(report)
-    take = lambda rows, make: [make(f) for f in rows[:LIMIT['facts']]]
-    where = lambda f: (f.get('location') or {}).get('path')
-    entry = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'entry_point']
-    access = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'data_access']
-    domain = [f for f in _facts(report, 'domain') if f.get('kind') != 'data_model' or (f.get('value') or {}).get('kind') in ('table', 'sql_table')]
-    graph = [f for f in _facts(report, 'graph') if f.get('kind') == 'graph_node']
-    graph.sort(key=lambda f: (f.get('value') or {}).get('attention_rank', 999))
-    return {
-        'entry_points': take(entry, lambda f: {'id': f['id'], 'surface': (f['value'] or {}).get('surface'),
-                                               'route': (f['value'] or {}).get('route'), 'path': where(f)}),
-        'data_access': take(access, lambda f: {'id': f['id'], 'path': where(f), **{k: (f['value'] or {}).get(k) for k in
-                                                                                  ('operation', 'table', 'route', 'http_method', 'client') if (f['value'] or {}).get(k)}}),
-        'flows': take(_facts(report, 'flows'), lambda f: {'id': f['id'], 'entry': ((f['value'] or {}).get('entry') or {}).get('route'),
-                                                          'files': ((f['value'] or {}).get('touched_files') or [])[:6],
-                                                          'unresolved': len((f['value'] or {}).get('unresolved') or [])}),
-        'domain': take(domain, lambda f: {'id': f['id'], 'kind': f.get('kind'), 'name': (f['value'] or {}).get('name'), 'path': where(f)}),
-        'runtime': take(_facts(report, 'runtime') + _facts(report, 'config'),
-                        lambda f: {'id': f['id'], 'kind': f.get('kind'), 'path': where(f),
-                                   'what': _short(json.dumps({k: v for k, v in (f.get('value') or {}).items() if k != 'snippet'}), 120)}),
-        'hubs': take(graph, lambda f: {'id': f['id'], 'path': where(f), 'fan_in': (f['value'] or {}).get('fan_in'),
-                                       'fan_out': (f['value'] or {}).get('fan_out')}),
-        'cycles': take([f for f in _facts(report, 'graph') if f.get('kind') == 'graph_cycle'],
-                       lambda f: {'id': f['id'], 'members': (f['value'] or {}).get('members')}),
-        'dead_code': take(_facts(report, 'deadcode'), lambda f: {'id': f['id'], 'path': where(f), 'rule': (f['value'] or {}).get('rule')}),
-    }
+def _open_cards(report, triage):
+    """The cards still open that the triage did not reject, most severe first."""
+    severity = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
+    return sorted((c for c in _cards(report) if c.get('state', 'open') not in ('done', 'resolved') and triage.get(c['id']) != 'reject'),
+                  key=lambda c: (severity.get(c.get('severity'), 5), c['id']))
 
 
 def bundle(report, project=None, lang='en'):
     """The compact, grounded picture the assistant plans from. Deterministic for the same records."""
     report = Path(report)
     target = _proposal(report)
-    severity = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
     triage = _verdicts(report)
-    cards = sorted((c for c in _cards(report) if c.get('state', 'open') not in ('done', 'resolved') and triage.get(c['id']) != 'reject'),
-                   key=lambda c: (severity.get(c.get('severity'), 5), c['id']))
-    semantic = _load(report / 'semantic.json', {}) or {}
+    cards = _open_cards(report, triage)
     views = _rules_views(report)
-    decisions = [{'id': d.get('id'), 'problem': _short(d.get('problem'), 200), 'chosen': _short(d.get('chosen'), 200),
-                  'evidence': [e for e in d.get('evidence') or [] if isinstance(e, str) and EVIDENCE.match(e)][:4]}
+    decisions = [{'id': d.get('id'), 'problem': _short(d.get('problem'), 200), 'chosen': _short(d.get('chosen'), 200), 'evidence': read.cited(d, 4)}
                  for d in target.get('decisions') or [] if isinstance(d, dict)]
-    waiting = [{'id': d.get('id'), 'question': _short(d.get('question'), 200), 'state': d.get('state')}
-               for d in (_load(report / 'studio/decisions.json', {}) or {}).get('decisions') or [] if isinstance(d, dict)]
-    if project:
-        from ..places import workspace
-        from .actions.store import _read_json, decision_scope
-        responses = _read_json(workspace(Path(project).resolve()) / 'runs/decisions.json', {}) or {}
-        for item, source in zip(waiting, (_load(report / 'studio/decisions.json', {}) or {}).get('decisions') or []):
-            response = responses.get(decision_scope(report / 'studio', source))
-            if response:
-                item['owner_answer'] = response
-                item['state'] = 'owner_answer_saved'
-    intake = [{'question': _short(q.get('question'), 160), 'answer': _short(q.get('answer'), 160), 'status': q.get('status')}
-              for q in (_load(report / 'intake.json', {}) or {}).get('questions') or [] if isinstance(q, dict)]
-    features = [{'name': f.get('name'), 'surfaces': (f.get('surfaces') or [])[:6], 'tables': (f.get('tables') or [])[:6],
-                 'evidence': [e for e in f.get('evidence') or [] if isinstance(e, str) and EVIDENCE.match(e)][:3]}
-                for f in (_load(report / 'features.json', {}) or {}).get('features') or [] if isinstance(f, dict)]
     return {
         'project': {'name': (project and Path(project).name) or report.name, 'reference': target.get('reference'),
                     'language': 'Arabic' if lang == 'ar' else 'English'},
@@ -229,16 +170,14 @@ def bundle(report, project=None, lang='en'):
                    'paths': (c.get('paths') or [])[:2], 'milestone': c.get('milestone'), 'triage': triage.get(c['id'])}
                   for c in cards[:LIMIT['cards']]],
         'cards_omitted': max(0, len(cards) - LIMIT['cards']),
-        'semantic': {'hypotheses': [{'id': c.get('id'), 'statement': _short(c.get('statement'), 300), 'facts': (c.get('fact_ids') or [])[:4]}
-                                    for c in semantic.get('claims') or [] if isinstance(c, dict)][:30],
-                     'questions': [_short(q.get('question'), 200) for q in semantic.get('questions') or [] if isinstance(q, dict)][:20]},
+        'semantic': read.semantic(report),
         'visual': [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
                    for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30],
         'not_seen': unseen(_load(report / 'live/screens.json', {}))[:40],
-        'facts': _facts_digest(report),
-        'features': features[:40],
-        'decisions': {'structure': decisions[:40], 'waiting_for_the_person': waiting, 'intake': intake[:30]},
-        'documents': _docs(project),
+        'facts': read.facts_digest(report),
+        'features': read.features(report),
+        'decisions': {'structure': decisions[:40], 'waiting_for_the_person': read.waiting(report, project), 'intake': read.intake(report)},
+        'documents': read.docs(project),
         'aspects': _aspects(report),
     }
 
