@@ -168,12 +168,8 @@ def governance_commands(s):
     q.set_defaults(func=terminal('govern_host'))
 
 
-def main(argv=None):
-    from .command_groups import epilog
-    p=argparse.ArgumentParser(prog='eaos',description='Check a project with ready-made tools and your AI assistant, and fix it safely',
-                              epilog=epilog(),formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--version',action='version',version='EAOS '+__version__)
-    s=p.add_subparsers(dest='command',required=True)
+def guided_commands(s):
+    """The guided journey: start, next, status and the few steps around them."""
     for name, text in (('start', 'Start here: check a project and get a plain report (nothing in it changes)'),
                        ('next', 'Do the next step for the project in this folder'),
                        ('status', 'Where this project stands, and what comes next'),
@@ -202,6 +198,15 @@ def main(argv=None):
             q.add_argument('--mode',choices=['normal','speed'],default=None,help='speed: several assistants at once, faster but '
                            'more tokens (kept for this project)')
         q.set_defaults(func=guided_command)
+
+
+def main(argv=None):
+    from .command_groups import epilog
+    p=argparse.ArgumentParser(prog='eaos',description='Check a project with ready-made tools and your AI assistant, and fix it safely',
+                              epilog=epilog(),formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('--version',action='version',version='EAOS '+__version__)
+    s=p.add_subparsers(dest='command',required=True)
+    guided_commands(s)
     q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--lang',choices=['ar','en'],default=None)
