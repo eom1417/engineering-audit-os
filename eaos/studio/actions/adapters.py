@@ -14,6 +14,7 @@ assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `
 """
 import difflib
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -102,7 +103,7 @@ def result_events(tool, arguments, payload, labels=None):
 def said(text):
     """The assistant's words as a `say` event, without the question block (the question has its own event)."""
     from .prompts import QUESTION
-    words = QUESTION.sub('', str(text or '')).strip()
+    words = re.sub(r'<notification_summary>.*?</notification_summary>', '', QUESTION.sub('', str(text or '')), flags=re.S).strip()   # a host's own tag
     return [('say', {'en': words, 'ar': words}, {'words': words}, None)] if words else []
 
 

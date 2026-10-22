@@ -1,5 +1,6 @@
 """The behaviour lock: every feature gets a spec in its tool, describing what it does today."""
 import json
+from unittest import mock
 import shutil
 from pathlib import Path
 
@@ -125,6 +126,20 @@ class BuildTests(Workspace):
         report.mkdir()
         self.assertEqual(build(report, Path(self.tmp))['specs'], [])
         self.assertEqual(run_lock(report, Path(self.tmp), Path(self.tmp) / 'runtime')['results'], [], 'the safety net is empty, never a crash')
+
+    def test_the_safety_net_crawls_the_running_app_for_its_pages_when_the_code_names_none(self):
+        # A real incident (HungerLab, 0.0.59): the safety net recorded 0 screens (the code names no page: an SPA of
+        # /#/now routes), so no fix batch could open. The lock now crawls the app it started and locks those pages.
+        from eaos import behavior_lock
+        report, runtime = Path(self.tmp) / 'report', Path(self.tmp) / 'runtime'
+        report.mkdir(); runtime.mkdir()
+        found = {'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/now'}, {'path': '/#/now?x=1'}]}
+        with mock.patch('eaos.screens.crawl.crawl', return_value=found) as crawled:
+            self.assertTrue(behavior_lock._pages_from_app(report, Path(self.tmp), 'http://127.0.0.1:1', runtime))
+            self.assertFalse(behavior_lock._pages_from_app(report, Path(self.tmp), 'http://127.0.0.1:1', runtime), 'crawled once')
+        self.assertEqual(crawled.call_count, 1)
+        plan = json.loads((report / 'behavior-lock/plan.json').read_text())
+        self.assertEqual([(s['feature'], s['surfaces']) for s in plan['specs']], [('pages', ['/', '/#/now'])])
 
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest">

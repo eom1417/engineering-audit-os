@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.61 (2026-10-22)
+
+- **The safety net finds the app's pages by itself**: HungerLab's fix batch was refused for "0 screens recorded": the
+  lock takes its pages from the code, which names none (an SPA of `/#/now` routes), and no check had crawled the app.
+  The lock now crawls the app it started once, writes its pages to `live/crawl.json`, and locks them: a fix batch opens
+  without a check first. The refusal, when it still happens, says the real reason.
+- A host's own `<notification_summary>` tag in the assistant's words is no longer shown in the Studio.
+
 ## 0.0.60 (2026-10-22)
 
 - **An app whose code names no page is still locked, walked and loaded**: HungerLab's check (an SPA with no client

@@ -188,6 +188,22 @@ def _restore(recorded, lock):
         shutil.copyfile(path, lock / 'approvals' / path.name)
 
 
+def _pages_from_app(report, target, base, runtime):
+    """When the lock has no page (the code names none, no check crawled the app yet), the running app is crawled once
+    and its pages written to live/crawl.json, where the lock reads its stand-in pages (eaos/lock_specs.py crawled_pages);
+    True when the lock was built again with them. A real incident: a fix batch refused for "0 screens recorded"."""
+    from . import lock_specs
+    from .screens.crawl import crawl, distinct
+    report = Path(report)
+    if lock_specs.crawled_pages(report) or lock_specs.PAGE in {row[0] for row in lock_specs.surfaces(report).values()}: return False
+    found = crawl(base, Path(runtime) / 'crawl', measured=0)
+    if found.get('status') != 'observed': return False
+    (report / 'live').mkdir(parents=True, exist_ok=True)
+    pages = [paths[0] for paths in distinct(r['path'] for r in found['routes']).values()]
+    (report / 'live/crawl.json').write_text(json.dumps({'schema_version': 1, **found, 'pages': pages}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return bool(lock_specs.build(report, target)['specs'])
+
+
 def _start(live, lock):
     """Set up, start and seed the project; the address it answers on."""
     live.setup()
@@ -406,15 +422,18 @@ def run_lock(report, target, runtime, app=None):
     from .live_run import LiveRun
     report, runtime = Path(report), Path(runtime)
     recorded = runtime / 'behavior-lock'
-    if not (report / 'behavior-lock').is_dir():         # the check found no feature to lock: nothing is recorded, said so
+    if not (report / 'behavior-lock').is_dir() and not (runtime / 'run.json').is_file():     # nothing to lock, no app to crawl
         return {'results': [], 'limitations': ['the program has no feature to lock']}
     progress.begin('prepare')
     live = app[0] if app else LiveRun(target, runtime, 'S05')
     if not app: live.freeze()
-    lock = _prepare(live, report)
     try:
         progress.begin('start')
-        base = _shared(app, lock) if app else _start(live, lock)
+        lock = _prepare(live, report) if (report / 'behavior-lock').is_dir() else None
+        base = _shared(app, lock) if app else _start(live, lock or live.sandbox.copy / '.eaos-lock')
+        if _pages_from_app(report, target, base, runtime): lock = _prepare(live, report)
+        if lock is None:         # the code names no feature and the running app no page: nothing is recorded, said so
+            return {'results': [], 'limitations': ['the program has no feature to lock']}
         progress.begin('record')
         _run_specs(live, lock, base, recorded, 'record', update=True)
         _keep(lock, recorded)
