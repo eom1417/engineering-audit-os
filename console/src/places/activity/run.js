@@ -3,7 +3,7 @@
 // the batches' progress, the question it waits on, the result or the error and the timeline (derive.deriveRun); a
 // check's stages by layer from /api/progress, and the replay of a finished check at x10 or x30.
 import {
-  t, tn, L, num, esc, rich, icon, code, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has,
+  t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, screen, act, refresh, refreshSoon, afterRender, parseHash, offline, has,
   live, store, model, client, derive, ac, md,
 } from 'eaos';
 import { controls, byOf } from './activity.js';
@@ -211,7 +211,7 @@ function eventGlyph(e) {
   return icon(m[0], 'icon--sm ac-c-' + m[1]);
 }
 function diffHTML(diff) {
-  return `<div class="code diff">${String(diff).split('\n').slice(0, 300).map((l, i) => `<div class="code__line ${l.startsWith('+') && !l.startsWith('+++') ? 'code__line--add' : l.startsWith('-') && !l.startsWith('---') ? 'code__line--del' : ''}"><span class="code__ln">${i + 1}</span><span>${esc(l)}</span></div>`).join('')}</div>`;
+  return `<div class="code diff">${diffLines(String(diff).split('\n').slice(0, 300))}</div>`;
 }
 function eventBody(e) {
   const d = e.data || {}, tx = rich(L(e.text));

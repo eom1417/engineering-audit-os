@@ -5,7 +5,7 @@
 // act spends: choose the branch EAOS checks, merge, delete here or on the remote, protect, unprotect, clean up the
 // merged branches, restore a deleted one, propose a conflict's resolution, compare with another base, fetch.
 import {
-  t, tn, L, num, esc, rich, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, rerenderSheet, local, toast, closeSheetThen, openSheet,
+  t, tn, L, num, esc, rich, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, rerenderSheet, local, toast, closeSheetThen, openSheet,
   parseHash, setQuery, searchTyped, offline, freshness, chk, live, store, client, ActionError, normalize, ac,
 } from 'eaos';
 
@@ -414,7 +414,7 @@ function branchFolds(det) {
           ${det.commits_truncated ? `<p class="small muted">${t('ac.br1.more.cut')}</p>` : ''}` : `<p class="small muted">${t('ac.br1.commits.none')}</p>`)}
       ${ac.fold('files', t('ac.br1.files'), esc(files.length ? tn('pl.file', det.files_total || files.length) : t('ac.br1.files.none')),
         files.length ? `<ul class="rows">${files.map(f => `<li class="row" style="padding-inline:0;min-height:44px"><span class="tag tag--state">${esc(t('ac.br1.fs.' + (['M', 'A', 'D'].includes(f.status[0]) ? f.status[0] : 'M')))}</span><bdi class="mono">${esc(f.path)}</bdi></li>`).join('')}</ul>` : `<p class="small muted">${t('ac.br1.files.none')}</p>`)}
-      ${ac.fold('diff', t('ac.br1.diff'), t('ac.br1.diff.sum'), det.diff ? `<div class="code diff">${det.diff.split('\n').slice(0, 400).map((l, i) => `<div class="code__line ${l.startsWith('+') && !l.startsWith('+++') ? 'code__line--add' : l.startsWith('-') && !l.startsWith('---') ? 'code__line--del' : ''}"><span class="code__ln">${i + 1}</span><span>${esc(l)}</span></div>`).join('')}</div>${det.diff_cut ? `<p class="small muted">${t('wt.fix.cut')}</p>` : ''}` : `<p class="small muted">${t('ac.br1.diff.none')}</p>`)}
+      ${ac.fold('diff', t('ac.br1.diff'), t('ac.br1.diff.sum'), det.diff ? `<div class="code diff">${diffLines(det.diff.split('\n').slice(0, 400))}</div>${det.diff_cut ? `<p class="small muted">${t('wt.fix.cut')}</p>` : ''}` : `<p class="small muted">${t('ac.br1.diff.none')}</p>`)}
       ${ac.fold('runs', t('ac.br1.runs'), esc(runs.length ? tn('ac.pl.run', runs.length) : t('ac.br1.runs.none')),
         runs.length ? `<ul class="rows">${runs.map(r => `<li><a class="row" style="padding-inline:0" href="${href('/activity/run/' + enc(r.id))}">${ac.glyph(r.state === 'waiting_for_person' ? 'you' : r.state)}<span class="row__main small">${esc(L(r.label))}</span><span class="small muted">${esc(fmtWhen(r.created))}</span></a></li>`).join('')}</ul>` : `<p class="small muted">${t('ac.br1.runs.none')}</p>`)}
     </div>`;

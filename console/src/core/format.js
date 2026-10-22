@@ -8,6 +8,10 @@ export function esc(s) {
 }
 export function icon(name, cls) { return `<svg class="icon ${cls || ''}" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
 export function code(s) { return `<bdi class="mono">${esc(s)}</bdi>`; }
+/** A unified diff's lines, numbered, its added and removed lines marked (inside a `code diff` block). */
+export function diffLines(lines) {
+  return lines.map((l, i) => `<div class="code__line ${l.startsWith('+') && !l.startsWith('+++') ? 'code__line--add' : l.startsWith('-') && !l.startsWith('---') ? 'code__line--del' : ''}"><span class="code__ln">${i + 1}</span><span>${esc(l)}</span></div>`).join('');
+}
 /** A report text: isolated in its own script's direction (an Arabic sentence stays right to left on an English
  *  page, an engine's English line left to right on an Arabic one), with its paths and symbols isolated left to right. */
 export function rich(s) {

@@ -3,7 +3,7 @@
 // delivered (live runs that handed a branch over and wait for a decision), the report's decisions with the answers
 // saved in the live console, the sign-in a check waits for and the questions runs ask (their own screens, builder A).
 import {
-  t, tn, L, num, esc, rich, md, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
+  t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk,
 } from 'eaos';
 
@@ -74,7 +74,7 @@ function diffHTML(run) {
   if (got.error) return `<p class="small muted">${esc(got.error)}</p>`;
   const lines = got.diff ? got.diff.split('\n').slice(0, 400) : [];
   return `<ul class="rows">${got.files.map(f => `<li class="row small" style="min-height:40px">${code(f.status)} ${code(f.path)}</li>`).join('')}</ul>
-    ${lines.length ? `<div class="code diff" style="margin-top:8px">${lines.map((l, i) => `<div class="code__line ${l.startsWith('+') && !l.startsWith('+++') ? 'code__line--add' : l.startsWith('-') && !l.startsWith('---') ? 'code__line--del' : ''}"><span class="code__ln">${i + 1}</span><span>${esc(l)}</span></div>`).join('')}</div>` : ''}
+    ${lines.length ? `<div class="code diff" style="margin-top:8px">${diffLines(lines)}</div>` : ''}
     ${got.diff_cut || (got.diff && got.diff.split('\n').length > 400) ? `<p class="small muted">${t('wt.fix.cut')}</p>` : ''}`;
 }
 
