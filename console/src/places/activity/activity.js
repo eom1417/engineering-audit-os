@@ -123,46 +123,59 @@ function loadingPage() {
     <ul class="panel rows section">${[1, 2, 3, 4].map(() => `<li class="row"><span class="skel" style="width:20px;height:20px;border-radius:50%"></span><span style="flex:1;display:grid;gap:8px"><span class="skel-line" style="width:55%"></span><span class="skel-line" style="width:35%"></span></span></li>`).join('')}</ul></div>`;
 }
 
-function activityPage(ctx) {
-  const off = ctx.offline;
-  if (ctx.state === 'loading' || (!off && !live.loaded)) return loadingPage();
-  const all = ac.runs();
-  if (ctx.state === 'empty' || (!off && !all.length)) {
-    return `<div class="page"><h1 class="lede">${t('ac.act.empty')}</h1><p class="guide">${t('ac.act.empty.guide')}</p>
+function emptyPage(off) {
+  return `<div class="page"><h1 class="lede">${t('ac.act.empty')}</h1><p class="guide">${t('ac.act.empty.guide')}</p>
       <div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="${off ? 'open-live' : 'check'}" data-fk="act-check">${t('st.empty.act')}</button>
         <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('ac.act.more')}</button></div>
       <section class="section"><div class="section-head"><h2>${t('ac.act.recent')}</h2></div><div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div></section></div>`;
-  }
-  const lr = ac.liveRun();
-  const last = ac.lastCheck();
-  const flow = ac.checkFlow();
-  let lede;
-  if (off) lede = esc(t('ac.act.lede.offline', { when: fmtWhen(model.project().checked_at) }));
-  else if (lr && lr.action !== 'audit') lede = esc(t(lr.verb === 'fix' ? 'ac.act.lede.fix' : 'ac.act.lede.run', { label: ac.runLabel(lr) }));
-  else if (lr && live.signIn && live.signIn.asked) lede = esc(t('ac.act.lede.signin'));
-  else if (lr && ac.runState(lr) === 'you') lede = esc(t('ac.act.lede.q'));
-  else if (lr && lr.state === 'paused') lede = esc(t('ac.act.lede.paused'));
-  else if (lr) { const list = stagesOf(flow, lr); lede = esc(list.length ? t('ac.act.lede.check', { done: num(finished(list)), total: num(list.length) }) : t('ac.now.check')); }
-  else if (last && ac.took(last)) lede = t('ac.act.lede.idle', { took: `<a href="${runHref(last)}">${esc(ac.minutes(ac.took(last)))}</a>`, when: esc(fmtWhen(last.ended || last.created).replace(/ \d\d:\d\d$/, '')) });
-  else lede = esc(t('ac.act.lede.none'));
-  const busy = !!lr;
+}
+/** What the running run is at, in one sentence. */
+function runLede(lr, flow) {
+  if (lr.action !== 'audit') return esc(t(lr.verb === 'fix' ? 'ac.act.lede.fix' : 'ac.act.lede.run', { label: ac.runLabel(lr) }));
+  if (live.signIn && live.signIn.asked) return esc(t('ac.act.lede.signin'));
+  if (ac.runState(lr) === 'you') return esc(t('ac.act.lede.q'));
+  if (lr.state === 'paused') return esc(t('ac.act.lede.paused'));
+  const list = stagesOf(flow, lr);
+  return esc(list.length ? t('ac.act.lede.check', { done: num(finished(list)), total: num(list.length) }) : t('ac.now.check'));
+}
+/** The page's first sentence: the read-only copy, what runs now, or how long the last check took. */
+function activityLede(off, lr, last, flow) {
+  if (off) return esc(t('ac.act.lede.offline', { when: fmtWhen(model.project().checked_at) }));
+  if (lr) return runLede(lr, flow);
+  if (last && ac.took(last)) return t('ac.act.lede.idle', { took: `<a href="${runHref(last)}">${esc(ac.minutes(ac.took(last)))}</a>`, when: esc(fmtWhen(last.ended || last.created).replace(/ \d\d:\d\d$/, '')) });
+  return esc(t('ac.act.lede.none'));
+}
+/** Check, more, and redo from a stage when nothing runs; in the read-only copy each opens how to go live. */
+function actionsHTML(off, busy, last, flow) {
   const o = a => (off ? 'data-act="sheet" data-sheet="open-live"' : a);
-  /* what waits for the person first; a refresh of the branches is kept in the full list, not here */
-  const done = all.filter(r => ac.ended(r));
-  const recent = done.filter(r => store.awaitsApproval(r)).concat(done.filter(r => !store.awaitsApproval(r) && r.action !== 'branch_fetch')).slice(0, 4);
-  return `<div class="page">
-    <h1 class="lede">${lede}</h1>
-    <p class="guide">${t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide')}</p>
-    <div class="actions">
+  return `<div class="actions">
       <button class="btn ${busy ? 'btn--secondary' : 'btn--primary'}" ${o('data-act="sheet" data-sheet="check"')} data-fk="act-check">${t('st.empty.act')}</button>
       <button class="btn btn--quiet" ${o('data-act="sheet" data-sheet="launcher"')}>${t('ac.act.more')}</button>
       ${!busy && !off && last && ac.ended(last) && flow ? `<button class="btn btn--quiet" data-act="sheet" data-sheet="redo-pick">${t('ac.pick.open')}</button>` : ''}
       <p class="actions__note">${t(busy ? 'ac.act.note.busy' : 'ac.act.note')}</p>
-    </div>
+    </div>`;
+}
+/** The latest ended runs: what waits for the person first; a refresh of the branches is kept in the full list, not here. */
+function recentHTML(all) {
+  const done = all.filter(r => ac.ended(r));
+  const recent = done.filter(r => store.awaitsApproval(r)).concat(done.filter(r => !store.awaitsApproval(r) && r.action !== 'branch_fetch')).slice(0, 4);
+  return `<section class="section" aria-labelledby="recent-h"><div class="section-head"><h2 id="recent-h">${t('ac.act.recent')}</h2><a class="link" href="${href('/activity/runs')}">${esc(t('ac.act.all', { n: num(all.length) }))}</a></div>
+      ${recent.length ? `<ul class="panel rows">${recent.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`}</section>`;
+}
+function activityPage(ctx) {
+  const off = ctx.offline;
+  if (ctx.state === 'loading' || (!off && !live.loaded)) return loadingPage();
+  const all = ac.runs();
+  if (ctx.state === 'empty' || (!off && !all.length)) return emptyPage(off);
+  const lr = ac.liveRun(), last = ac.lastCheck(), flow = ac.checkFlow();
+  const busy = !!lr;
+  return `<div class="page">
+    <h1 class="lede">${activityLede(off, lr, last, flow)}</h1>
+    <p class="guide">${t(off ? 'ac.act.guide.offline' : busy ? 'ac.act.guide.busy' : 'ac.act.guide')}</p>
+    ${actionsHTML(off, busy, last, flow)}
     ${lr ? `<section class="section" aria-labelledby="now-h"><div class="section-head"><h2 id="now-h">${t('ac.act.now')}</h2></div>${lr.action === 'audit' ? checkNow(lr) : otherNow(lr)}${otherFlows()}</section>` : ''}
     <section class="section" aria-labelledby="line-h"><div class="section-head"><h2 id="line-h">${t('ac.act.line')}</h2><span class="small muted">${t('ac.act.line.sub')}</span></div>${queueRows()}</section>
-    <section class="section" aria-labelledby="recent-h"><div class="section-head"><h2 id="recent-h">${t('ac.act.recent')}</h2><a class="link" href="${href('/activity/runs')}">${esc(t('ac.act.all', { n: num(all.length) }))}</a></div>
-      ${recent.length ? `<ul class="panel rows">${recent.map(runRow).join('')}</ul>` : `<div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div>`}</section>
+    ${recentHTML(all)}
     ${lr ? '' : `<section class="section" aria-labelledby="flows-h"><div class="section-head"><h2 id="flows-h">${t('ac.flow.title')}</h2></div>${otherFlows() || `<p class="small muted">${t('ac.flow.none')}</p>`}</section>`}
   </div>`;
 }
