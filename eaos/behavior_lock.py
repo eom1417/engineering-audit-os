@@ -105,7 +105,7 @@ def _outcomes(spec, declared, known=False):
     """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `known`: it fails on the
     code before the batch too (eaos/waves.py _against_control), so it says nothing of the batch."""
     tests = spec.get('tests') or []
-    ran = [(result.get('status'), (result.get('error') or {}).get('message', '')) for test in tests for result in test.get('results') or []]
+    ran = [(result.get('status'), ANSI.sub('', (result.get('error') or {}).get('message', ''))) for test in tests for result in test.get('results') or []]
     return ([('passed' if known else _declared(status, message, declared), message) for status, message in ran] or
             [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in tests])
 
@@ -289,6 +289,13 @@ def _results(report, statuses):
                               ('quarantined', ('nothing to run: ' + ', '.join(spec.get('surfaces') or ['no surface']))[:300]))
         results.append({'path': spec['path'], 'status': status, **({'reason': reason} if reason else {})})
     return results
+
+
+def refused(lock):
+    """[{path, status, reason}] of each screen a run_lock answer could not lock; with none recorded, why (its limitations)."""
+    results = lock['results']
+    return [{k: r.get(k) for k in ('path', 'status', 'reason') if r.get(k)} for r in results if r['status'] != 'passed'] \
+        or ([] if results else [{'reason': '; '.join(lock.get('limitations') or ['no screen could be opened'])}])
 
 
 def _write(runtime, name, live, results):

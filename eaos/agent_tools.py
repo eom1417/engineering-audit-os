@@ -942,7 +942,7 @@ def _no_safety_net(state):
     if not guided.same_code(state, safety.get('commit'), _head(state)):
         return {'status': 'no_safety_net', 'what_now': 'Call safety_net first: it records what the program does today.'}
     if safety.get('passed'): return None
-    why = '; '.join(f"{row.get('path')}: {row.get('reason') or row.get('status')}" for row in (safety.get('skipped') or [])[:3]) or 'the lock has no page: the code names none and the running app could not be crawled (did it start and answer?)'
+    why = '; '.join(f"{row.get('path') or 'the app'}: {row.get('reason') or row.get('status')}" for row in (safety.get('skipped') or [])[:3]) or 'the lock has no page: the code names none and the running app could not be crawled (did it start and answer?)'
     return {'status': 'no_safety_net', 'recorded': 0, 'specs': safety.get('screens', 0), 'why': why,
             'what_now': 'The safety net recorded nothing, so no fix could be checked: no batch was opened. Tell the person '
                         'plainly that EAOS cannot protect this project yet and why (why); do not retry the fixes.'}

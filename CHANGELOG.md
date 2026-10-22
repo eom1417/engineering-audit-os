@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.0.66 (2026-10-22)
+
+- **The safety net no longer refuses a whole batch for one unsteady screen** (HungerLab: the app ran, "0 screens
+  recorded", not one of the five cards tried): the pages the crawl found all went into one spec file, and its result is
+  the file's, so one page that differs between two recordings (a random tip, the time) failed every page. Each crawled
+  page is now its own spec (`lock_specs.features_of`): the steady ones are locked, the unsteady one is refused alone,
+  and the fix check already sets aside what fails on the original too (`waves._against_control`). The clock is held
+  still in every page test (`page.clock.setFixedTime`), so a screen showing the time stays steady.
+- **"Recorded nothing" says why**: the refused screens and their reasons are kept with the state
+  (`behavior_lock.refused`), so the refusal names them instead of "no result file"; Playwright's terminal colours are
+  stripped from the reasons.
+- **The golden trial reproduces it**: the sample app's now screen shows the time and its about screen a random tip;
+  the trial demands every other screen locked, the about screen alone refused, and a fix batch able to open.
+
 ## 0.0.65 (2026-10-22)
 
 - **The plan's leftovers**: every check writes `RUN.md` beside its manifest again (what ran, what did not and why, as

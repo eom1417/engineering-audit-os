@@ -903,7 +903,8 @@ def safety_done(state):
 
 def safety_run(state, step=lambda n: None):
     """The safety net's work, without words: every screen recorded on the original, then its speed under load
-    when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}
+    when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}; the
+    skipped are kept with the state, so "recorded nothing" says why (a real batch was refused with no reason).
     Written as it happens as the flow `safety` of the live map (eaos/behavior_lock.py:FLOW)."""
     from . import progress
     from .behavior_lock import FLOW
@@ -913,17 +914,15 @@ def safety_run(state, step=lambda n: None):
 
 def _safety_run(state, step):
     from . import lock_specs, progress
-    from .behavior_lock import run_lock
+    from .behavior_lock import refused, run_lock
     from .runtime_baseline import run_baseline
     runtime = runtime_of(state)
     step(1)
-    # The specs are written again from the check on record by this EAOS: an update to how they are written (the
-    # approval tests of a CLI project) reaches the safety net without a new check.
+    # The specs written again by this EAOS, so a change in how they are written reaches the safety net with no new check.
     lock_specs.build(report_of(state), source(state))
-    results = run_lock(report_of(state), source(state), runtime)['results']
-    passed = sum(r['status'] == 'passed' for r in results)
-    outcome = {'screens': len(results), 'passed': passed, 'p95_ms': None, 'speed_error': None,
-               'skipped': [{k: r.get(k) for k in ('path', 'status', 'reason') if r.get(k)} for r in results if r['status'] != 'passed']}
+    results = (lock := run_lock(report_of(state), source(state), runtime))['results']
+    skipped = refused(lock)
+    outcome = {'screens': len(results), 'passed': (passed := sum(r['status'] == 'passed' for r in results)), 'p95_ms': None, 'speed_error': None, 'skipped': skipped}
     baseline = json.loads((runtime / 'run.json').read_text(encoding='utf-8')).get('baseline') or {}
     if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
         step(2)
@@ -941,7 +940,7 @@ def _safety_run(state, step):
         outcome['speed'] = 'no_production_run' if baseline.get('build') else 'no_build'
         progress.skip('speed', 'the production build of the app did not run during the setup' if baseline.get('build')
                       else 'the app has no production build', outcome['speed'])
-    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms']}
+    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms'], 'skipped': skipped[:5]}
     save(state)
     return outcome
 

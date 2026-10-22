@@ -130,7 +130,7 @@ class LiveInTheCheck(unittest.TestCase):
                          {stage: 'ok' for stage in ('lock', 'record', 'journeys', 'baseline')})
         self.assertEqual(lock_specs.crawled_pages(self.base / 'up'), ['/', '/#/tasks/1'], 'one page per template')
         plan = json.loads((self.base / 'up/behavior-lock/plan.json').read_text())
-        self.assertIn('pages', [s['feature'] for s in plan['specs']])
+        self.assertIn('page /#/tasks/1', [s['feature'] for s in plan['specs']], 'one spec per page: an unsteady page is refused alone')
         self.assertTrue((self.base / 'up/studio/manifest.json').is_file(), 'the Studio is written once the screens are pictured')
         self.assertEqual(json.loads((self.base / 'up/studio/head.json').read_text()).get('not_run'), [], 'nothing stood still')
 
