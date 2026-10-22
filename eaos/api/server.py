@@ -223,11 +223,10 @@ def _routes(entries):
     return out
 
 
-def create_app(report, project=None, name=None, keys=None, mounts=None, assets=None, watch=True):
+def create_app(report, project=None, keys=None, mounts=None, watch=True):
     report = Path(report)
     ctx = Context(report=report, feed=Feed(report, runtime=_runtime(project)), keys=keys or Keys(),
-                  project=Path(project) if project else None, name=name or (Path(project).name if project else report.name),
-                  assets=Path(assets or ASSETS))
+                  project=Path(project) if project else None, name=Path(project).name if project else report.name)
     mounted = command_centre(ctx) if mounts is None else [route for mount in mounts for route in _routes(mount(ctx))]
     ctx.actions_mounted = bool(mounted)
     ctx.feed.poll()                                   # the state the server starts from, not an event

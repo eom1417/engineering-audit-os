@@ -138,7 +138,7 @@ class ProgressRoute(Project):
 
 def report_client(report):
     keys = server.Keys(port=PORT)
-    app = server.create_app(report, name='shop', keys=keys, mounts=[], watch=False)
+    app = server.create_app(report, keys=keys, mounts=[], watch=False)
     return TestClient(app, base_url=f'http://127.0.0.1:{PORT}'), keys, app
 
 

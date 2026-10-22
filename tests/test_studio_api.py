@@ -43,7 +43,7 @@ def report_with_data(where, cards=30):
 
 def client(report, mounts=None):
     keys = server.Keys(port=PORT)
-    app = server.create_app(report, name='shop', keys=keys, mounts=mounts or [], watch=False)
+    app = server.create_app(report, keys=keys, mounts=mounts or [], watch=False)
     return TestClient(app, base_url=f'http://127.0.0.1:{PORT}'), keys, app
 
 
@@ -384,7 +384,7 @@ class LiveServer(unittest.TestCase):
         patcher = mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': str(Path(self.tmp.name) / 'tools')})
         patcher.start()
         self.addCleanup(patcher.stop)
-        self.app = server.create_app(self.report, name='shop')
+        self.app = server.create_app(self.report)
         self.ctx = self.app.state.ctx
         sock = server.bind(0)
         self.ctx.keys.port = self.port = sock.getsockname()[1]
