@@ -96,8 +96,12 @@ function callGraphSVG(f, cols) {
   cols.forEach((c, ci) => { const shown = c.slice(0, PER), total = shown.length + (c.length > PER ? 1 : 0); shown.forEach((x, i) => { pos[ci + ':' + x.id] = { x: ci * colW + 12, y: 44 + i * rowH + (rows - total) * rowH / 2 }; }); });
   const link = (a, b) => `<path class="un-cg__link" d="M${a.x + nodeW} ${a.y + 14}C${a.x + nodeW + 14} ${a.y + 14} ${b.x - 14} ${b.y + 14} ${b.x} ${b.y + 14}"/>`;
   const links = [];
-  cols[1].slice(0, PER).forEach(x => { const a = pos['1:' + x.id], b = pos['2:' + f.id]; links.push(link(a, b)); x.callers.forEach(id => { const z = pos['0:' + id]; if (z) links.push(link(z, a)); }); });
-  cols[3].slice(0, PER).forEach(x => { const a = pos['2:' + f.id], b = pos['3:' + x.id]; links.push(link(a, b)); x.callees.forEach(id => { const z = pos['4:' + id]; if (z) links.push(link(b, z)); }); });
+  // a column next to f: its links to f, and its own links one column further out (callers flow in, callees out)
+  const side = (ci, far, key, inward) => cols[ci].slice(0, PER).forEach(x => {
+    const n = pos[ci + ':' + x.id], c = pos['2:' + f.id], flow = (p, q) => links.push(inward ? link(p, q) : link(q, p));
+    flow(n, c); x[key].forEach(id => { const z = pos[far + ':' + id]; if (z) flow(z, n); });
+  });
+  side(1, 0, 'callers', true); side(3, 4, 'callees', false);
   const heads = ['un.fn.c0', 'un.fn.c1', 'un.fn.c2', 'un.fn.c3', 'un.fn.c4'].map((k, i) => `<text x="${i * colW + 12}" y="20" class="un-cg__head">${esc(t(k))}</text>`).join('');
   const nodes = cols.map((c, ci) => {
     const shown = c.slice(0, PER);
