@@ -60,11 +60,17 @@ SPEC = {
 }
 
 
+REQUIRED = {'requirements': 'list every requirement of the plan, with its own id and what builds it (covered_by)',
+            'nonfunctional': 'say the languages, the data sensitivity, the platforms and the expected users'}
+
+
 def validate_spec(spec, look=True):
     """(problems, questions): what makes the spec unbuildable, and what the person should decide. `look` false: the
     project's own look holds (a feature added to it, eaos/extend.py), so the spec draws none."""
     if not isinstance(spec, dict): return ['the spec must be one JSON object shaped like the example'], []
     problems = [f'`{key}` is empty' for key in ('name', 'summary') if not str(spec.get(key) or '').strip()]
+    if look:            # a new product: nothing of its plan may be left out, and its facts choose the standard cards
+        problems += [f'`{key}` is empty: {why}' for key, why in REQUIRED.items() if not spec.get(key)]
     modules, entities, features, roles = set(_by_id(spec, 'modules')), _by_id(spec, 'entities'), _by_id(spec, 'features'), set(_by_id(spec, 'roles'))
     if not modules: problems.append('no module: group the features into parts, each with one responsibility')
     if not features: problems.append('no feature: list what a user can do')
