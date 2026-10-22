@@ -125,3 +125,37 @@ def relativise(path, target):
             if 'uri' in artifact: artifact['uri'] = relative(artifact['uri'], target)
     Path(path).write_text(json.dumps(data), encoding='utf-8')
 
+
+class Declared:
+    """An engine a person added (eaos/tools_catalog.py): its `engine` entry says how to run it ({target} and {output} in
+    its args) and that it writes SARIF; its findings read like every SARIF engine's, every rule a `risk` unless mapped."""
+
+    def __init__(self, entry):
+        self.NAME, self.PINNED, self.entry = entry['name'], entry['version'], entry
+
+    def capabilities(self):
+        return []
+
+    def version(self):
+        from . import tool
+        return tool.version(self.entry['binary'])
+
+    def analyze(self, target, workdir, exclude=(), formats=None):
+        from . import tool
+        from .contract import ERROR, OBSERVED, Report
+        from .process import run, which
+        if declined := tool.declined(self.NAME, self.entry['binary'], target): return declined
+        output = Path(workdir) / self.NAME / 'out.sarif'
+        output.parent.mkdir(parents=True, exist_ok=True)
+        args = [str(a).replace('{target}', str(Path(target).resolve())).replace('{output}', str(output)) for a in self.entry['engine']['args']]
+        code, _, error, seconds = run([which(self.entry['binary']), *args], cwd=output.parent)
+        if not output.is_file(): return Report(self.NAME, self.version(), self.PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        findings, unmapped = read(output, self.NAME, self.version(), self.entry['engine'].get('rules') or [{'match': '*', 'kind': 'risk'}])
+        return Report(self.NAME, self.version(), self.PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output))
+
+
+def declared():
+    """{name: engine} of every added tool that declares an `engine`."""
+    from ..toolchain import registry
+    return {t['name']: Declared(t) for t in registry()['tools'] if t.get('engine')}
+

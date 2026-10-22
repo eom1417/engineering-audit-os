@@ -62,7 +62,7 @@
     <h1 class="lede">${(0,t.t)("st.empty.lede")}</h1>
     <p class="guide">${(0,t.t)("st.empty.guide")}</p>
     <div class="actions">${e.offline?`<button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${(0,t.t)("offline.how")}</button>`:`<a class="btn btn--primary" href="${(0,t.href)("/activity",{sheet:"check"})}">${(0,t.t)("st.empty.act")}</a>`}
-      <button class="btn btn--quiet" data-act="copy" data-text="eaos check --preview">${(0,t.icon)("copy")}${(0,t.t)("st.copy_request")}</button></div>
+      <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${(0,t.icon)("copy")}${(0,t.t)("st.copy_request")}</button></div>
     ${s.length?`<div class="section panel">${u("journey",(0,t.t)("st.fold.journey"),(0,t.esc)((0,t.L)(s[0].title)),`<ol class="rows">${s.map(a=>`<li class="row" style="padding-inline:0;min-height:44px">${(0,t.icon)("circle","muted")}<span class="row__main">${(0,t.esc)((0,t.L)(a.title))}</span></li>`).join("")}</ol>`)}</div>`:""}
   </div>`}function it(){return`<div class="page">
     <h1 class="lede">${(0,t.esc)(t.model.project().verdict)}</h1>
@@ -93,4 +93,4 @@
           ${a.checked_at?`<dt>${(0,t.t)("st.fresh.looked")}</dt><dd>${(0,t.esc)((0,t.fmtWhen)(a.checked_at))}</dd>`:""}
         </dl>
         ${r.length?`<div><div class="block-title">${(0,t.t)("st.fresh.files")}</div><ul class="panel rows">${r.slice(0,12).map(i=>`<li class="row small">${(0,t.code)(i)}</li>`).join("")}</ul></div>`:""}`,foot:`<a class="btn btn--primary btn--block" href="${(0,t.href)("/activity",{sheet:"check"})}" data-act="go" data-href="${(0,t.href)("/activity",{sheet:"check"})}">${(0,t.t)("st.fresh.check")}</a>
-        <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos check --branch ${(0,t.esc)(e.branch)} --preview">${(0,t.icon)("copy")}${(0,t.t)("st.fresh.copy")}</button>`}}});(0,t.sheet)("health",{kind:"drawer",needs:["health"],render:()=>({title:(0,t.esc)((0,t.t)("st.health.title")),body:`<div>${A()}</div>`})});})();
+        <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos branch ${(0,t.esc)(e.branch)} && eaos check">${(0,t.icon)("copy")}${(0,t.t)("st.fresh.copy")}</button>`}}});(0,t.sheet)("health",{kind:"drawer",needs:["health"],render:()=>({title:(0,t.esc)((0,t.t)("st.health.title")),body:`<div>${A()}</div>`})});})();

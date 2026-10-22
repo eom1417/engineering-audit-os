@@ -11,7 +11,7 @@ import json
 import os
 from pathlib import Path
 
-from . import __version__
+from . import __version__, node_jobs, tools_catalog
 from .code_laws import LAWS
 
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
@@ -334,6 +334,22 @@ def _fix_tools(server, reading, working):
     @_answer
     def open_studio(show: bool = True, address: str | None = None, project: str | None = None) -> str:
         return tools.open_studio(project, show, address=address)
+
+    @server.tool(annotations=working, description='Run the AI nodes on the latest check, any of them at any time (card_triage, '
+                 'visual_reviewer, ideal_planner, pipeline_gap_planner, plan_orderer, fix_reviewer; all when none named). Returns a job.')
+    @_answer
+    def run_nodes(nodes: list[str] | None = None, fresh: bool = False, project: str | None = None) -> str:
+        return node_jobs.start(project, nodes, fresh)
+
+    @server.tool(annotations=reading, description='GitHub candidates for a tool a stage lacks: stars, license, latest release assets.')
+    @_answer
+    def tools_find(need: str, project: str | None = None) -> str:
+        return tools_catalog.find(need)
+
+    @server.tool(annotations=working, description='Add a pinned tool (version, sha256 or commit, license) after the person agreed, then install it.')
+    @_answer
+    def tools_add(entry: dict, person_agreed: bool = False, project: str | None = None) -> str:
+        return tools_catalog.add(entry, person_agreed)
 
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '
                  'reaches the internet), found from its files. Needs the person\'s agreement once: without it, returns the question to '

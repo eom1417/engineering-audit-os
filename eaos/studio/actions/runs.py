@@ -28,7 +28,7 @@ STOP_GRACE = 5
 SAID = {'type': 'object', 'additionalProperties': False, 'required': ['text'], 'properties': {'text': {'type': 'string'}}}
 # Studio actions that are not an MCP tool: the planner of the ideal, which asks the person's assistant itself
 # (eaos/studio/ideal.py, docs/STUDIO.md D10).
-PLANNERS = ('replan_ideal', 'run_nodes')
+PLANNERS = ('replan_ideal',)
 
 
 def alive(pid):

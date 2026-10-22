@@ -233,7 +233,7 @@ function emptyState(ctx) {
     <p class="guide">${t('st.empty.guide')}</p>
     <div class="actions">${ctx.offline ? `<button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button>`
       : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
-      <button class="btn btn--quiet" data-act="copy" data-text="eaos check --preview">${icon('copy')}${t('st.copy_request')}</button></div>
+      <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button></div>
     ${steps.length ? `<div class="section panel">${fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
   </div>`;
 }
@@ -301,7 +301,7 @@ sheet('freshness', {
         </dl>
         ${files.length ? `<div><div class="block-title">${t('st.fresh.files')}</div><ul class="panel rows">${files.slice(0, 12).map(x => `<li class="row small">${code(x)}</li>`).join('')}</ul></div>` : ''}`,
       foot: `<a class="btn btn--primary btn--block" href="${href('/activity', { sheet: 'check' })}" data-act="go" data-href="${href('/activity', { sheet: 'check' })}">${t('st.fresh.check')}</a>
-        <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos check --branch ${esc(p.branch)} --preview">${icon('copy')}${t('st.fresh.copy')}</button>`,
+        <button class="btn btn--quiet btn--block" data-act="copy" data-text="eaos branch ${esc(p.branch)} && eaos check">${icon('copy')}${t('st.fresh.copy')}</button>`,
     };
   },
 });

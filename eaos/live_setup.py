@@ -128,9 +128,9 @@ def dev_command(manager, package, port):
         return ['npx', 'vite', '--port', port, '--host', '127.0.0.1', '--strictPort'], {}
     if kind == 'astro': return ['npx', 'astro', 'dev', '--port', port, '--host', '127.0.0.1'], {}
     if kind == 'nuxt': return ['npx', 'nuxt', 'dev', '--port', port, '--host', '127.0.0.1'], {}
-    if kind == 'react-scripts': return run_script(manager, 'start'), {'BROWSER': 'none', 'HOST': '127.0.0.1'}
-    for name in ('dev', 'start'):
-        if name in scripts and script_is_safe(scripts, name): return run_script(manager, name), {}
+    if kind == 'react-scripts': return run_script(manager, 'start'), {'BROWSER': 'none', 'HOST': '127.0.0.1', 'PORT': port}
+    for name in ('dev', 'start'):      # PORT: what a plain server reads, named in no .env (the golden trial's app never answered)
+        if name in scripts and script_is_safe(scripts, name): return run_script(manager, name), {'PORT': port}
     return None, {}
 
 

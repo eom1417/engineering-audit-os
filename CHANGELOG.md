@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.63 (2026-10-22)
+
+- **Any AI node at any time**: `run_nodes` is an MCP job (eaos/node_jobs.py) any assistant starts, and the Studio's list
+  names every node (visual_reviewer was missing).
+- **A tool a stage lacks is found and added, safely**: `tools_find` reads GitHub's candidates (stars, license, latest
+  release); `tools_add` keeps a pinned entry (a version and its sha256, or a commit; a license) only after the person
+  agreed, in `<home>/toolchain-added.json`, which the one tool list reads (eaos/tools_catalog.py); an entry with
+  `engine` runs in the engines stage through the SARIF reader with no Python (`sarif.Declared`).
+- **The stupid details are held once for all** (`tests/test_consistency.py`): a stop code with no words for the person,
+  a command the Studio copies with flags `eaos` lacks, a node missing from the list, a stage with no title, a threshold
+  on the wrong scale. It found three on its first run, fixed here: `sign_in_declined` had no words, and the Studio
+  copied `eaos check --preview` and `--branch`, which do not exist.
+- **The golden trial** (`tools/golden_trial.sh`, run by the beta update): a whole check with the app run, without AI,
+  on a small app of hash routes with no client router; any stage that runs the app not ok stops the update. Its first
+  run found that a plain Node server was never given its port (`PORT` set only when an `.env` named it), fixed.
+
 ## 0.0.62 (2026-10-22)
 
 - **EAOS fixes by itself what stops a stage, then runs it again**: the catalog now names a remedy for a reason code
