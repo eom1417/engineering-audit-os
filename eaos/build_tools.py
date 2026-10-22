@@ -22,7 +22,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import agent_tools, blueprint, blueprint_view, design, guided, journeys
+from . import agent_tools, blueprint, blueprint_view, build_look, design, guided, journeys
+from .build_look import read as _read
 from .plan_source import read_plan
 from .progress.log import now
 
@@ -33,11 +34,6 @@ CHECK_SCRIPTS = ('typecheck', 'lint', 'test')
 
 def folder(state):
     return guided.outputs(state) / 'blueprint'
-
-
-def _read(path, default=None):
-    path = Path(path)
-    return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else default
 
 
 def _write(path, data):
@@ -349,8 +345,9 @@ def build_edit(card, edits, summary='', project=None):
     return agent_tools._start('build_edit', state, {'card': card, 'edits': edits, 'summary': summary}, runner='eaos.build_tools')
 
 
-def _checks(root, build, progress):
-    """The project's own scripts, on the copy: install when the manifests changed, then typecheck, lint and test."""
+def _checks(root, build, progress, browsers=None):
+    """The project's own scripts, on the copy: install when the manifests changed, then typecheck, lint and test; with
+    `browsers` (the last milestone) its browser journeys too, e2e, with its own Playwright's browsers in that folder."""
     root = Path(root)
     manifest = root / 'package.json'
     if not manifest.is_file(): return [], build
@@ -364,7 +361,17 @@ def _checks(root, build, progress):
         build = {**build, 'installed': stamp}
     failed = [problem for index, script in enumerate(CHECK_SCRIPTS, start=1)
               for problem in [_run_script(root, env, scripts, script, lambda text, n=index: progress(n, 4, text))] if problem]
+    if browsers and not failed: failed = list(filter(None, [_journeys(root, {**env, 'PLAYWRIGHT_BROWSERS_PATH': str(browsers)}, scripts, progress)]))
     return failed, build
+
+
+def _journeys(root, env, scripts, progress):
+    """The project's browser journeys (npm run e2e), its own Playwright's browsers fetched once into the project's run
+    folder: never EAOS's, read only and of another version (a real build: EAOS's screens never pictured)."""
+    progress(3, 4, 'fetching the browsers of the project\'s own journeys')
+    done = subprocess.run(['npx', 'playwright', 'install', 'chromium'], cwd=root, capture_output=True, text=True, timeout=1800, env=env)
+    if done.returncode: return {'gate': 'e2e', 'where': 'package.json', 'what': 'its Playwright browsers could not be fetched: ' + (done.stdout + done.stderr)[-800:]}
+    return _run_script(root, env, scripts, 'e2e', lambda text: progress(3, 4, text))
 
 
 def _install(root, env, progress):
@@ -396,7 +403,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
     from .facts.run import collect
     from .gates import found
     rules = _read(Path(root) / 'eaos.policy.json') or _read(folder(state) / 'eaos.policy.json')
-    problems, build = _checks(root, state['open_build'], progress)
+    problems, build = _checks(root, state['open_build'], progress, guided.runtime_of(state) / 'browsers' if closing else None)
     state['open_build'] = build
     changed = _git(root, 'ls-files').stdout.split() if closing else _git(root, 'diff', '--name-only', 'HEAD~1', 'HEAD').stdout.split()
     with tempfile.TemporaryDirectory(prefix='eaos-build-facts-') as out:
@@ -468,7 +475,8 @@ def _build_finish_job(project, arguments, progress):
     if problems:
         return {'delivered': False, 'why': problems[:25],
                 'what_now': 'The milestone as a whole breaks these: fix them with build_edit (card="FIX"; a requirement no kept card '
-                            'builds: build the card it names with build_edit), then build_finish again.'}
+                            'builds: build the card it names with build_edit; a design departure: follow DESIGN.md; a load scenario: '
+                            'make that route fast under load, an index or less work per request), then build_finish again.'}
     branch = f"eaos/build-{build['number']}"
     fetched = _git(state['project'], 'fetch', '-q', str(root), f'+{branch}:{branch}')
     if fetched.returncode: raise RuntimeError(f'could not create {branch}: {fetched.stderr[-300:]}')
@@ -483,10 +491,11 @@ def _build_finish_job(project, arguments, progress):
     state.pop('open_build', None)
     guided.save(state)
     publish(state)
+    if last: shutil.rmtree(guided.runtime_of(state) / 'browsers', ignore_errors=True)    # fetched for the journeys alone
     remaining = [m['id'] for m in _plan(state)['milestones'] if m['id'] not in {r['milestone'] for r in state['built']}]
     screens = any(p.startswith('web/') for c in build['kept'] for p in _cards(state)[c]['paths'])
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
-            'look': look or (_look(state, root, progress) if screens else None),
+            'look': look or (build_look.look(state, root, progress) if screens else None),
             'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found (departures '
                          'from DESIGN.md, screen problems, a Lighthouse score under 90) is fixed there first, with build_edit '
                          'card="FIX".' if remaining else
@@ -501,8 +510,8 @@ def _held(state, root, build, last, progress):
     problems = _gates(state, root, closing=last, progress=progress)
     if not last: return problems, None
     problems += _unbuilt(state, build)
-    look = None if problems else _look(state, root, progress)
-    return problems + _unusable(look), look
+    look = None if problems else build_look.look(state, root, progress, final=True)
+    return problems + build_look.unusable(look), look
 
 
 def _unbuilt(state, build):
@@ -516,42 +525,6 @@ def _unbuilt(state, build):
     return [{'gate': 'requirement', 'where': r['id'], 'what': f"requirement {r['id']} ({str(r.get('text') or '')[:120]}) is built by no "
              f"kept card: build {', '.join(covering.get(r['id']) or ['a card for it'])}"}
             for r in spec.get('requirements') or [] if isinstance(r, dict) and not kept & set(covering.get(r.get('id')) or [])]
-
-
-def _unusable(look):
-    """What stops the finished product's delivery in its screens: axe's serious problems, small targets, clipped text,
-    and Lighthouse accessibility or best practices under 90 (of 100). Its speed is the release card's to prove on the production
-    build: the copy runs in development mode, slower than any delivered app."""
-    scores = (look or {}).get('speed') or {}
-    return [{'gate': 'screens', 'where': row['page'], 'what': '; '.join(row['problems'])} for row in (look or {}).get('screen_problems') or []] + \
-        [{'gate': 'screens', 'where': 'the entry page', 'what': f'Lighthouse {name} is {scores[name]}, under 90'}
-         for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 90]
-
-
-LOOK = ('facts', 'features', 'setup', 'screens', 'visual')      # the check's own stages that picture and review the screens
-
-
-def _look(state, root, progress):
-    """The delivered milestone's screens, pictured and reviewed against DESIGN.md by the check's own stages (LOOK), on its
-    copy, in look/ beside the report (so the review reads the same DESIGN.md): what departs from the look, for the next
-    milestone to fix first. A stage that could not run says why; the milestone stays delivered."""
-    from .pipeline import execute
-    out = guided.report_of(state).parent / 'look'
-    shutil.rmtree(out, ignore_errors=True)
-    progress(4, 5, 'picturing the screens and reviewing them against DESIGN.md')
-    try:
-        stages = execute(str(root), out, only=LOOK, language=state.get('lang') or 'en', runtime=guided.runtime_of(state) / 'look',
-                         provider=guided.check_provider(state))['stages']
-    except Exception as problem:              # the review is a help to the build, never a reason it fails
-        return {'not_done': f'{type(problem).__name__}: {problem}'[:300]}
-    findings = (_read(out / 'nodes/visual_reviewer/findings.json') or {}).get('findings') or []
-    pictured = _read(out / 'live/screens.json') or {}
-    return {'screens': (stages.get('screens', {}).get('detail') or {}).get('screens', 0), 'departures': findings[:25],
-            # what axe, the touch targets and Lighthouse found on the running screens: fixed like the departures
-            'screen_problems': [{'page': r.get('url'), 'width': r.get('width'), 'problems': r['failures']}
-                                for r in pictured.get('rows') or [] if r.get('failures')][:25],
-            'speed': (pictured.get('lighthouse') or {}).get('scores'),
-            'not_done': {name: stages[name].get('reason') for name in LOOK if stages[name]['status'] != 'ok'}}
 
 
 def status(project=None):

@@ -368,6 +368,8 @@ def _foundations(cards, stack, look, standard):
     skeleton = cards.add('M01', 'skeleton', 'The project skeleton: workspaces, strict TypeScript, lint, tests, and one smoke test per part', None,
                     ['package.json', 'tsconfig.base.json', 'eslint.config.js', '.gitignore', 'shared/', 'web/'] + (['server/'] if server else []),
                     ['npm install, then npm run typecheck, npm run lint and npm test all pass at the root',
+                     'npm run e2e runs the browser journeys (Playwright, its webServer starting the app), so the last milestone '
+                     'proves every journey in a real browser',
                      'the web app shows its shell page' + ('; the server answers GET /health with ok' if server else '')],
                     ['web/src/app/app.test.tsx'] + (['server/src/main.test.ts'] if server else []),
                     why='Every later card is checked by these scripts, so they exist before any feature.')

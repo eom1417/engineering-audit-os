@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.0.59 (2026-10-22)
+
+- **The finished product is held to every direction the owner named, not only its screens**: the last milestone was
+  delivered once its cards, requirements and screens passed, but three things a person feels were never proven: the
+  browser journeys (written by the journey cards, never run: the gates ran typecheck, lint and unit tests only), its
+  load, and its design beyond small details. Now the last milestone also:
+  - runs the project's own journeys (`npm run e2e`), its own Playwright's browsers fetched once into the project's run
+    folder (never EAOS's) and removed once the build is delivered; the skeleton declares the `e2e` script;
+  - measures its load with the check's own `baseline` stage (k6 on the production build, at the plan's expected users)
+    and is held back while a scenario's p95 or error rate is over its threshold;
+  - is held back by a design departure of high severity from the screen review against DESIGN.md.
+  The finished product's acceptance moved to `eaos/build_look.py` (its screens, design and load); `build_tools.py`
+  reads its JSON through it.
+
 ## 0.0.58 (2026-10-22)
 
 - **EAOS's own tools in the app's isolated run, from one source**: HungerLab's check (an app built with EAOS) stopped
