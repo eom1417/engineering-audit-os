@@ -64,31 +64,41 @@ function routeKey(r) { const q = Object.assign({}, r.query); delete q.sheet; del
 
 export function onRoute() {
   const r = parseHash();
-  // language and theme in the address (LNK-01) apply and are remembered
-  if (r.query.lang && r.query.lang !== prefs.lang) { setLang(r.query.lang); return; }
-  if (r.query.theme && r.query.theme !== prefs.theme) setTheme(r.query.theme, true);
-  const bundle = bundleOfPath(r.path);
-  if (!isLoaded(bundle)) {
-    if (!draws) draw(r, null, true);
-    loadBundle(bundle).then(() => { current.key = null; onRoute(); });
-    return;
-  }
+  if (addressPrefs(r) || !bundleReady(r)) return;
   const key = routeKey(r);
   if (key === current.key) { syncSheet(r.query.sheet || null); refreshAssist(); return; }
-  if (current.path && current.path !== r.path) {
-    scrollMemo[current.path] = window.scrollY;
-    // the selection belongs to Problems and the plan (SEL-03)
-    if (current.path.startsWith('/problems') && !r.path.startsWith('/problems') && picked.ids.size) clearSelection();
-  }
+  leave(r);
+  arrive(r, key);
+  syncSheet(r.query.sheet || null);
+}
+/** Language and theme in the address (LNK-01) apply and are remembered; true when the language draws everything again. */
+function addressPrefs(r) {
+  if (r.query.lang && r.query.lang !== prefs.lang) { setLang(r.query.lang); return true; }
+  if (r.query.theme && r.query.theme !== prefs.theme) setTheme(r.query.theme, true);
+  return false;
+}
+/** Whether the screen's code is read; if not it is read (its loading state drawn on the first route) and the route taken again. */
+function bundleReady(r) {
+  const bundle = bundleOfPath(r.path);
+  if (isLoaded(bundle)) return true;
+  if (!draws) draw(r, null, true);
+  loadBundle(bundle).then(() => { current.key = null; onRoute(); });
+  return false;
+}
+/** Leaving a path for another: its scroll is kept, and the selection, which belongs to Problems and the plan (SEL-03), goes. */
+function leave(r) {
+  if (!current.path || current.path === r.path) return;
+  scrollMemo[current.path] = window.scrollY;
+  if (current.path.startsWith('/problems') && !r.path.startsWith('/problems') && picked.ids.size) clearSelection();
+}
+/** The route's screen: drawn again in place on the same path, else drawn with the scroll it had and the focus on its title. */
+function arrive(r, key) {
   const samePath = current.path === r.path;
   current = { key, path: r.path };
-  if (samePath) refresh();
-  else {
-    draw(r, match(r.path) || match('/status'));
-    window.scrollTo(0, scrollMemo[r.path] || 0);
-    if (draws > 1) focusMain();
-  }
-  syncSheet(r.query.sheet || null);
+  if (samePath) return refresh();
+  draw(r, match(r.path) || match('/status'));
+  window.scrollTo(0, scrollMemo[r.path] || 0);
+  if (draws > 1) focusMain();
 }
 
 function refreshAssist() { renderHooks.forEach(fn => fn(context(parseHash(), match(parseHash().path)))); }
@@ -99,6 +109,19 @@ function focusMain() {
 }
 
 let waiting = null;
+function screenHTML(sc, ctx, bundlePending) {
+  if (bundlePending || !sc) return loadingHTML();
+  if (ctx.state === 'loading') return sc.loading ? sc.loading(ctx) : loadingHTML();
+  return sc.render(ctx);
+}
+/** The sections the screen and its frame read that are not here yet: read once, then the screen drawn again. */
+function readMissing(ctx, bundlePending) {
+  const wanted = SHELL_NEEDS.concat(ctx.needs || []);
+  if (bundlePending || !pendingOf(wanted).length || waiting === current.key) return;
+  waiting = current.key;
+  const key = current.key;
+  need(wanted).then(() => { waiting = null; if (current.key === key) refresh(); });
+}
 /** Draws the screen of `r`; while its bundle or sections are read, its loading state, then itself. */
 function draw(r, m, bundlePending) {
   draws += 1;
@@ -106,9 +129,7 @@ function draw(r, m, bundlePending) {
   const sc = m && m.screen;
   const main = document.getElementById('main');
   document.title = t('doc.title', { place: sc && sc.title ? sc.title(ctx) : 'EAOS', project: project().name || 'EAOS' });
-  if (bundlePending || !sc) main.innerHTML = loadingHTML();
-  else if (ctx.state === 'loading') main.innerHTML = sc.loading ? sc.loading(ctx) : loadingHTML();
-  else main.innerHTML = sc.render(ctx);
+  main.innerHTML = screenHTML(sc, ctx, bundlePending);
   main.dataset.screen = sc ? sc.id : '';
   renderShell(sc ? sc.place || null : null, r.path);
   renderBanner(ctx);
@@ -117,12 +138,7 @@ function draw(r, m, bundlePending) {
   if (sc && sc.after && ctx.state !== 'loading') sc.after(main, ctx);
   a11yRegions(main);
   renderHooks.forEach(fn => fn(ctx));
-  const wanted = SHELL_NEEDS.concat(ctx.needs || []);
-  if (!bundlePending && pendingOf(wanted).length && waiting !== current.key) {
-    waiting = current.key;
-    const key = current.key;
-    need(wanted).then(() => { waiting = null; if (current.key === key) refresh(); });
-  }
+  readMissing(ctx, bundlePending);
 }
 
 /** Redraws in place after a change, keeping the focus on the same control and the scroll where it was. */
