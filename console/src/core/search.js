@@ -41,26 +41,32 @@ const FIRST = () => [
   ['proj.branches', '/project/branches', 'branch'], ['proj.assistants', '/project/assistants', 'ai'], ['proj.settings', '/project/settings', 'gear'],
 ].map(([key, path, ic]) => ({ icon: ic, html: esc(t(key)), href: path }));
 
+/** The list a section of the check holds, or none while it is not read. */
+const listOf = (name, key) => (section(name) && section(name)[key]) || [];
+/** Each kind of result: [group, how many at most, its items, the text searched in one, how one is shown]. */
+const GROUPS = [
+  ['places', 6, places, p => `${p.ar} ${p.en} ${p.href.replace(/[/-]/g, ' ')}`, p => ({ icon: p.icon, html: esc(prefs.lang === 'ar' ? p.ar : p.en), href: p.href })],
+  ['decisions', 4, () => decisions().filter(d => d.state === 'waiting'), d => L(d.question), d => ({ icon: 'waiting', html: esc(L(d.question)), href: '/waiting/' + enc(d.id) })],
+  ['problems', 6, problems, p => [p.id, L(p.title), p.paths.join(' '), p.kind, p.category, p.why ? L(p.why) : ''].join(' '), p => ({ sev: p.severity, html: `${code(p.id)} ${rich(L(p.title))}`, href: '/problems/' + p.id })],
+  ['actions', 5, () => ACTIONS, a => [a.id, a.label.ar, a.label.en, a.description.ar, a.description.en].join(' '), a => ({ icon: 'play', html: esc(L(a.label)), href: href('/activity', { sheet: 'action:' + a.id }).slice(1) })],
+  ['runs', 4, () => live.runs, r => [r.id, labelOf(r.label, 'ar'), labelOf(r.label, 'en'), r.action, (r.cards || []).join(' ')].join(' '), r => ({ icon: 'activity', html: `${code(r.id)} ${esc(labelOf(r.label, prefs.lang))}`, href: '/activity/run/' + enc(r.id) })],
+  ['branches', 4, () => (branches && branches.branches) || [], b => [b.name, b.subject || '', b.upstream || ''].join(' '), b => ({ icon: 'branch', html: code(b.name), href: '/project/branches/' + enc(b.name) })],
+  ['steps', 4, () => plan().steps, st => `${st.id} ${L(st.title || '')} ${L(st.gate || '')}`, st => ({ icon: 'layers', html: `${code(st.id)} ${rich(L(st.title || st.gate || ''))}`, href: '/problems/plan/' + st.id })],
+  ['screens', 4, () => listOf('screens', 'screens'), sc => [sc.id, sc.title, sc.route, sc.file].join(' '), sc => ({ icon: 'screen', html: `${esc(L(sc.title || sc.id))} ${code(sc.route || '')}`, href: '/understand/screens/' + enc(sc.id) })],
+  ['paths', 4, () => listOf('paths', 'paths'), p => [p.id, L(p.title || ''), p.entry && (p.entry.path || p.entry)].join(' '), p => ({ icon: 'map', html: `${code(p.id)} ${esc(L(p.title || ''))}`, href: '/understand/paths/' + enc(p.id) })],
+  ['gaps', 4, () => listOf('gaps', 'gaps'), g => [g.id, g.component, g.operation, g.to].join(' '), g => ({ icon: 'layers', html: `${code(g.id)} ${code(g.component || '')}`, href: '/understand/gaps/' + enc(g.id) })],
+  ['components', 4, () => (section('story') && section('story').current.components) || [], c => c.name, c => ({ icon: 'map', html: code(c.name), href: '/understand/components/' + enc(c.name) })],
+  ['docs', 5, () => listOf('docs', 'docs'), d => [d.id, d.title, (d.titles && (d.titles.ar || '') + ' ' + (d.titles.en || '')) || '', d.path, (d.headings || []).map(h => h.text).join(' ')].join(' '),
+    d => ({ icon: 'book', html: `${esc((d.titles && d.titles[prefs.lang]) || d.title)} ${code(d.path)}`, href: '/understand/library/' + enc(d.id) })],
+];
 function results(q) {
   if (!q.trim()) return [{ group: 'places', items: FIRST() }];
-  const m = hay => matches(hay, q);
-  const docs = (section('docs') && section('docs').docs) || [];
-  const groups = [
-    ['places', 6, places().filter(p => m(`${p.ar} ${p.en} ${p.href.replace(/[/-]/g, ' ')}`)).map(p => ({ icon: p.icon, html: esc(prefs.lang === 'ar' ? p.ar : p.en), href: p.href }))],
-    ['decisions', 4, decisions().filter(d => d.state === 'waiting' && m(L(d.question))).map(d => ({ icon: 'waiting', html: esc(L(d.question)), href: '/waiting/' + enc(d.id) }))],
-    ['problems', 6, problems().filter(p => m([p.id, L(p.title), p.paths.join(' '), p.kind, p.category, p.why ? L(p.why) : ''].join(' '))).map(p => ({ sev: p.severity, html: `${code(p.id)} ${rich(L(p.title))}`, href: '/problems/' + p.id }))],
-    ['actions', 5, ACTIONS.filter(a => m([a.id, a.label.ar, a.label.en, a.description.ar, a.description.en].join(' '))).map(a => ({ icon: 'play', html: esc(L(a.label)), href: href('/activity', { sheet: 'action:' + a.id }).slice(1) }))],
-    ['runs', 4, live.runs.filter(r => m([r.id, labelOf(r.label, 'ar'), labelOf(r.label, 'en'), r.action, (r.cards || []).join(' ')].join(' '))).map(r => ({ icon: 'activity', html: `${code(r.id)} ${esc(labelOf(r.label, prefs.lang))}`, href: '/activity/run/' + enc(r.id) }))],
-    ['branches', 4, ((branches && branches.branches) || []).filter(b => m([b.name, b.subject || '', b.upstream || ''].join(' '))).map(b => ({ icon: 'branch', html: code(b.name), href: '/project/branches/' + enc(b.name) }))],
-    ['steps', 4, plan().steps.filter(st => m(`${st.id} ${L(st.title || '')} ${L(st.gate || '')}`)).map(st => ({ icon: 'layers', html: `${code(st.id)} ${rich(L(st.title || st.gate || ''))}`, href: '/problems/plan/' + st.id }))],
-    ['screens', 4, ((section('screens') && section('screens').screens) || []).filter(sc => m([sc.id, sc.title, sc.route, sc.file].join(' '))).map(sc => ({ icon: 'screen', html: `${esc(L(sc.title || sc.id))} ${code(sc.route || '')}`, href: '/understand/screens/' + enc(sc.id) }))],
-    ['paths', 4, ((section('paths') && section('paths').paths) || []).filter(p => m([p.id, L(p.title || ''), p.entry && (p.entry.path || p.entry)].join(' '))).map(p => ({ icon: 'map', html: `${code(p.id)} ${esc(L(p.title || ''))}`, href: '/understand/paths/' + enc(p.id) }))],
-    ['gaps', 4, ((section('gaps') && section('gaps').gaps) || []).filter(g => m([g.id, g.component, g.operation, g.to].join(' '))).map(g => ({ icon: 'layers', html: `${code(g.id)} ${code(g.component || '')}`, href: '/understand/gaps/' + enc(g.id) }))],
-    ['components', 4, ((section('story') && section('story').current.components) || []).filter(c => m(c.name)).map(c => ({ icon: 'map', html: code(c.name), href: '/understand/components/' + enc(c.name) }))],
-    ['docs', 5, docs.filter(d => m([d.id, d.title, (d.titles && (d.titles.ar || '') + ' ' + (d.titles.en || '')) || '', d.path, (d.headings || []).map(h => h.text).join(' ')].join(' '))).map(d => ({ icon: 'book', html: `${esc((d.titles && d.titles[prefs.lang]) || d.title)} ${code(d.path)}`, href: '/understand/library/' + enc(d.id) }))],
-  ];
   let left = 40; // up to 40 results, grouped by kind
-  return groups.map(([group, cap, items]) => { const take = items.slice(0, Math.min(cap, left)); left -= take.length; return { group, items: take }; }).filter(g => g.items.length);
+  return GROUPS.map(([group, cap, items, text, shown]) => {
+    const take = items().filter(x => matches(text(x), q)).slice(0, Math.min(cap, left));
+    left -= take.length;
+    return { group, items: take.map(shown) };
+  }).filter(g => g.items.length);
 }
 
 function listHTML(q) {
@@ -87,22 +93,26 @@ sheet('search', {
     };
   },
   after(el, arg, local) {
-    if (!local.asked) {
-      local.asked = true;
-      need(SEARCHED).then(() => { if (local.q) rerenderSheet(); });
-      if (client && !branches) client.branches.inventory().then(b => { branches = b; if (local.q) rerenderSheet(); }, () => {});
-    }
+    if (!local.asked) readOnce(local);
     const input = el.querySelector('#search-input');
     input.addEventListener('input', () => { local.q = input.value; el.querySelector('#search-results').innerHTML = listHTML(input.value); });
-    input.addEventListener('keydown', e => {
-      const items = Array.from(el.querySelectorAll('.result'));
-      if (!items.length) return;
-      const i = items.findIndex(x => x.dataset.active === 'true');
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const n = e.key === 'ArrowDown' ? Math.min(items.length - 1, i + 1) : Math.max(0, i - 1);
-        items.forEach(x => delete x.dataset.active); items[n].dataset.active = 'true'; items[n].scrollIntoView({ block: 'nearest' });
-      } else if (e.key === 'Enter') { e.preventDefault(); (items[i] || items[0]).click(); }
-    });
+    input.addEventListener('keydown', e => onKey(el, e));
   },
 });
+/** What the search reads the first time it opens: the sections it searches and the branches; the results are drawn again. */
+function readOnce(local) {
+  local.asked = true;
+  need(SEARCHED).then(() => { if (local.q) rerenderSheet(); });
+  if (client && !branches) client.branches.inventory().then(b => { branches = b; if (local.q) rerenderSheet(); }, () => {});
+}
+/** The arrows move the active result, Enter opens it (or the first). */
+function onKey(el, e) {
+  const items = Array.from(el.querySelectorAll('.result'));
+  if (!items.length) return;
+  const i = items.findIndex(x => x.dataset.active === 'true');
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const n = e.key === 'ArrowDown' ? Math.min(items.length - 1, i + 1) : Math.max(0, i - 1);
+    items.forEach(x => delete x.dataset.active); items[n].dataset.active = 'true'; items[n].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') { e.preventDefault(); (items[i] || items[0]).click(); }
+}
