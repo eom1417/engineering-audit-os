@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.70 (2026-10-22)
+
+- **A fix batch is never lost under its own work** (batch 9 of EAOS: develop moved while its hand-over ran, a `status`
+  call retired it and removed its copy, the hand-over failed with `KeyError: 'open_wave'`, two hours of kept changes
+  lost): a batch is not retired while one of its jobs runs (`jobs.fixing`), and a moved base no longer throws away a
+  batch with kept changes: it goes on, and its merge says whether it still fits. The beta update stops while a batch
+  of the develop check is open.
+- **The assistant's page fits a phone**: an unbroken tag (a refusal) widened the page to 504 px on a 390 px screen, the
+  header and the box shifted; a turn's words, codes and tags now wrap. A proposal that needs the person's confirmation
+  is no longer run by direct control and shown as an English refusal: it stays the card they confirm; the assistant
+  writes a proposal's reason in the person's language; the depth under an answer is a word, not `ac.ask.depth.deep`.
+
 ## 0.0.69 (2026-10-22)
 
 - **The screens an app's code names are found, however it moves** (HungerLab on 0.0.68 still "pages 1": it opens on

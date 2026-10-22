@@ -23,7 +23,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, check_choices, plain, waves
+from . import branches, check_choices, jobs, plain, waves
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
 from .places import home, outputs_root, workspace  # noqa: F401  (one home: eaos/places.py; guided's names stay its API)
 
@@ -660,11 +660,11 @@ def retire_stale_batch(state):
     works on now (a commit of the person's came after it), or the check on record numbered its cards again (a card id
     of the batch is another problem now). Called by `status`, `fix_start` and after every check. The record, or None."""
     wave = state.get('open_wave')
-    if not wave: return None
-    now = tip(state)
-    why = None
+    # never under its own work (a status call retired a batch mid hand-over: KeyError 'open_wave', two hours lost)
+    if not wave or jobs.fixing(state['project']): return None
+    now, why = tip(state), None
     built_on = wave.get('source_commit') or wave.get('base')         # a batch continued on a work branch: its branch's commit
-    if now and not same_code(state, built_on, now):
+    if now and not same_code(state, built_on, now) and not wave.get('kept'):    # kept changes go on: their merge says
         why = f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
     elif wave.get('keys') and (report_of(state) / 'plan.json').is_file():
         from .waves import plan as read_plan
