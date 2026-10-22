@@ -155,7 +155,8 @@ def _own(target, runtime):
     another folder than the project, but its records, the lock's reports among them, are the project's); never another
     project's, whatever it is given."""
     from .places import workspace
-    folder = workspace(target)
+    # a candidate copy (a batch, a milestone) has no workspace of its own: the project's is the one above its runtime
+    folder = next((p for p in (workspace(target), *Path(runtime).resolve().parents) if (p / 'state.json').is_file()), workspace(target))
     try: report = json.loads((folder / 'state.json').read_text(encoding='utf-8')).get('outputs')
     except (OSError, ValueError): report = None
     return [Path(os.path.realpath(path)) for path in (folder, report, runtime) if path]

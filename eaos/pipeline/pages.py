@@ -47,6 +47,8 @@ def screens(context):
                                     'unreachable': [{'page': page, 'why': why} for page, why in proven(context.out).items()],
                                     'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]} for template, paths in groups.items()],
                                     'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
+    from .live_app import studio
+    studio(context)
     return {'pages': len(groups), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
             'lighthouse': (speed.get('scores') or {}).get('performance'),
             'kinds': covered and sum(k['reached'] for k in covered['kinds'])}
@@ -150,5 +152,7 @@ def crawl(context):
             if kind: merged['kinds'].append(kind)
     if not founds:
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
-    _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values())})
+    from ..screens.crawl import distinct
+    _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
+                                  'pages': [paths[0] for paths in distinct(routes).values()]})     # one per template: the lock's stand-in
     return {'pages': len(routes)}

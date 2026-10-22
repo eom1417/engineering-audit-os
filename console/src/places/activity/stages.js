@@ -4,7 +4,7 @@
 // again_from); and the replay of a finished check from its own start and end times (CHK-11).
 import {
   t, tn, L, num, esc, rich, icon, code, has, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, href, offline,
-  data, client, store, model, ActionError, ac,
+  data, client, store, model, ActionError, ac, prefs,
 } from 'eaos';
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
@@ -100,10 +100,11 @@ function stepRow(x) {
 }
 /** A reported value a person reads: numbers and words, never a path of this computer. */
 const shown = v => (v != null && typeof v !== 'object' && !/^\//.test(String(v)));
+/** Why a stage did not run, in the person's language: the catalog's words for its reason code (eaos/data/errors.json,
+ *  carried on the stage row as reason_texts), else EAOS's own sentence. */
 function why(s) {
-  const code = s.raw.reason_code;
-  if (code && has('ac.why.' + code)) return t('ac.why.' + code);
-  return s.raw.reason || null;
+  const said = s.raw.reason_texts;
+  return said ? (said[prefs.lang] || said.en) : (s.raw.reason || null);
 }
 /** What a stage the assistant was lost in says: { assistant, resets } — the assistant the check was given stopped
  *  midway (its limit, its sign-in), so the stage did not run though it was asked for; else null. A check made before
@@ -168,7 +169,7 @@ sheet('stage', {
     if (offline()) redo = `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.stg.redo')}</button>`;
     else if (query.replay) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.replay')}</p>`;
     else if (!ended) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.running')}</p>`;
-    else if (!['ok', 'failed', 'partial'].includes(st) && !lostOf(s)) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.didnt')}</p>`;
+    else if (st === 'notin') redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.didnt')}</p>`;
     else redo = `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}" data-autofocus>${t('ac.stg.redo')}</button>
       ${tools.length ? `<button class="btn btn--secondary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}:failed">${t('ac.stg.redo.failed')}</button>` : ''}`;
     return {
@@ -242,7 +243,7 @@ sheet('redo', {
     const p = own.preview;
     const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
     const title = t(failed ? 'ac.redo.title.failed' : 'ac.redo.title', { stage: stageTitle(id) });
-    const cmd = `eaos check --again-from ${id}${failed ? ' --failed-tools' : ''}`;
+    const cmd = `eaos check --again-from ${id}`;
     const busy = !!ac.liveRun();
     return {
       title: esc(title),

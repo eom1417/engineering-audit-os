@@ -87,6 +87,26 @@ def kind_of(surface, known):
     return (PAGE if surface.startswith('/') or surface == '*' else 'cli', 'GET', None)
 
 
+def crawled_pages(out):
+    """The distinct pages the crawl opened (live/crawl.json, the first address of each template), standing in for the
+    app's pages only when its code names none: an SPA with no client router (one Workspace.tsx, what EAOS's own
+    blueprint builds) has no page in its entry-point facts, yet its running pages were found and pictured; a real
+    check then locked, walked and loaded nothing. [] otherwise, or before the crawl ran."""
+    if PAGE in {row[0] for row in surfaces(out).values()}: return []
+    try: return list(json.loads((Path(out) / 'live/crawl.json').read_text(encoding='utf-8')).get('pages') or [])
+    except (OSError, ValueError): return []
+
+
+def features_of(out):
+    """features.json's features, plus one named `pages` holding the crawled pages that stand in for the code's
+    (crawled_pages): what the lock, the journeys and the load read as the program's surfaces."""
+    try: features = json.loads((Path(out) / 'features.json').read_text(encoding='utf-8'))['features']
+    except (OSError, ValueError, KeyError): features = []
+    pages = crawled_pages(out)
+    return features + ([{'name': 'pages', 'description': 'The pages of the running app, found by the crawl', 'critical': False,
+                         'surfaces': pages, 'tables': [], 'files': []}] if pages else [])
+
+
 def path_of(route):
     """The URL a route id is served at, or None for a layout that has no URL of its own.
 
@@ -226,9 +246,7 @@ def approval_test(feature, target):
 def build(out, target):
     """Write behavior-lock/ and return its plan (behavior-lock/plan.json, schemas/artifacts/behavior-lock-plan)."""
     out, target = Path(out), Path(target)
-    try: features = json.loads((out / 'features.json').read_text(encoding='utf-8'))['features']
-    except (OSError, ValueError, KeyError): features = []
-    known = surfaces(out)
+    features, known = features_of(out), surfaces(out)
     root = out / 'behavior-lock'
     specs = [feature_spec(feature, known, target, root) for feature in features]
     if any(spec['path'].startswith('playwright/') for spec in specs):

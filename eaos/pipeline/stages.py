@@ -63,9 +63,6 @@ STAGES = (
                       'then opened as one user, and the report says its kinds of users are not known',
           description="The kinds of users the app has (an administrator, support, a customer...), each with the code "
                       'that makes it one and its own pages: the app is opened once as each', ai=True),
-    Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), necessity=OPTIONAL,
-          absent_when='the program has no feature to lock',
-          description='A spec per feature, in its own tool, describing what the system does today'),
     Stage('intake', produces=('intake.json',), requires=('features',),
           description='What the owner must protect: answers, or declared defaults, and the quality scenarios'),
     Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL, uses=('memory',),
@@ -87,6 +84,15 @@ STAGES = (
                       "sessions every page stage opens them with: the assistant's test users on the running app, one of "
                       'each kind of user, within five minutes, else the person signing in by hand on the sign-in page '
                       'while the stages that open no page go on', ai=True),
+    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), reads=('session',), necessity=OPTIONAL, uses=('app',),
+          absent_when='the app is not running in an isolated copy, or it serves no page',
+          description="Every page of the app found by following its links; Lighthouse on the entry and the first page of "
+                      'each distinct template, ten at most'),
+    Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), reads=('crawl',), necessity=OPTIONAL,
+          absent_when='the program has no feature to lock: neither its code nor the crawl of its running copy names a page, '
+                      'http route or command',
+          description='A spec per feature, in its own tool, describing what the system does today; the pages the crawl '
+                      'found stand in when the code names none'),
     Stage('record', produces=('live/lock.json',), requires=('lock', 'setup'), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "
@@ -96,10 +102,6 @@ STAGES = (
                       'installed',
           description="Each feature's pages walked once more, rrweb recording them and Playwright keeping the trace of a "
                       'failure, both capped in size: which pages a user walks and where a journey fails'),
-    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), reads=('session',), necessity=OPTIONAL, uses=('app',),
-          absent_when='the app is not running in an isolated copy, or it serves no page',
-          description="Every page of the app found by following its links; Lighthouse on the entry and the first page of "
-                      'each distinct template, ten at most'),
     Stage('screens', produces=('live/screens.json',), requires=('setup',), reads=('session', 'crawl'), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it has no page to open',
           description='Each distinct page, from the code and from the crawl (one per template), in the app\'s own theme at '
@@ -189,7 +191,7 @@ ORDER = tuple(stage.name for stage in STAGES)
 # The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
 PHASES = {'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
           'tools': ('engines', 'claims', 'probe', 'sustainability', 'transform'),
-          'app': ('lock', 'setup', 'verify', 'session', 'record', 'journeys', 'crawl', 'screens', 'baseline', 'readiness'),
+          'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
           'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}
 PHASE = {name: phase for phase, names in PHASES.items() for name in names}

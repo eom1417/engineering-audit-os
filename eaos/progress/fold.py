@@ -27,7 +27,7 @@ def declared(flow, stages):
 
 def _stage(declared, requested):
     return {**declared, 'requested': declared['name'] in requested, 'state': WAITING, 'started_at': None,
-            'ended_at': None, 'seconds': None, 'reason': '', 'reason_code': '', 'artifacts': [], 'detail': {},
+            'ended_at': None, 'seconds': None, 'reason': '', 'reason_code': '', 'reason_texts': None, 'artifacts': [], 'detail': {},
             'steps': [], 'programs': [], 'activity_note': '', 'resumed': False}
 
 
@@ -61,8 +61,10 @@ def _stage_activity(stage, row):
 
 
 def _stage_ended(stage, row):
+    from .reasons import reasons
     stage.update(state=row.get('status'), ended_at=row.get('at'), seconds=row.get('seconds'), reason=row.get('reason') or '',
-                 reason_code=row.get('reason_code') or '', artifacts=list(row.get('artifacts') or []),
+                 reason_code=row.get('reason_code') or '', reason_texts=reasons().get(str(row.get('reason_code') or '')),
+                 artifacts=list(row.get('artifacts') or []),
                  detail=row.get('detail') or {}, resumed=bool(row.get('resumed')), programs=[])
 
 

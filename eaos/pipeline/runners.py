@@ -448,9 +448,9 @@ def proposals(context):
     """The Studio's records of this check so far: what the triage, the ideal and the pipeline-gap planner read."""
     if not context.provider:
         raise _absent(context.provider)
-    from ..studio.export import export
     from ..workspace import write
-    result = export(context.out, context.language, Path(context.target).name, context.target)
+    from .live_app import studio
+    result = studio(context)
     write(context.out / 'proposals.json', result)
     return {'sections': len(result['written']), 'errors': len(result['errors'])}
 

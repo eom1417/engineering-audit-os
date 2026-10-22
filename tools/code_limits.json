@@ -1,7 +1,7 @@
 {
  "functions": {
   "eaos/agent_tools.py::_apply": 16,
-  "eaos/agent_tools.py::_fix_start_job": 25,
+  "eaos/agent_tools.py::_fix_start_job": 23,
   "eaos/agent_tools.py::_run_job": 17,
   "eaos/agent_tools.py::accept": 17,
   "eaos/agent_tools.py::overview": 17,
@@ -51,7 +51,7 @@
   "eaos/human_report.py::severity_bars": 24,
   "eaos/human_report.py::treemap": 20,
   "eaos/human_report.py::work_log": 19,
-  "eaos/live_setup.py::detect": 19,
+  "eaos/live_setup.py::detect": 18,
   "eaos/menu.py::_check_order": 17,
   "eaos/nfr.py::dependencies": 19,
   "eaos/plan.py::_cards_record": 21,
@@ -89,7 +89,6 @@
   "eaos/studio/infra.py::_tables": 16,
   "eaos/studio/infra.py::infra": 18,
   "eaos/studio/journeys.py::from_records": 20,
-  "eaos/studio/journeys.py::records": 17,
   "eaos/studio/model.py::_problem_row": 17,
   "eaos/studio/model.py::score": 16,
   "eaos/studio/nodes/fix_reviewer.py::_cards": 20,
@@ -118,8 +117,8 @@
  },
  "modules": {
   "eaos/agent_tools.py": 1188,
-  "eaos/guided.py": 1227,
-  "eaos/human_report.py": 2104,
+  "eaos/guided.py": 1226,
+  "eaos/human_report.py": 2103,
   "eaos/studio/actions/branches.py": 1141,
   "eaos/studio/actions/runs.py": 729,
   "eaos/toolchain.py": 702,

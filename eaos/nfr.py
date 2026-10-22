@@ -24,10 +24,10 @@ def _facts(report, kind):
 
 def routes(report):
     """GET routes a load or scan can call without a fixture, as URLs."""
-    from .lock_specs import PARAM, kind_of, path_of, surfaces
+    from .lock_specs import PARAM, features_of, kind_of, path_of, surfaces
     known = surfaces(report)
     found = []
-    for feature in (_load(Path(report) / 'features.json', {}) or {}).get('features') or []:
+    for feature in features_of(report):
         for path in (_loadable(surface, known, kind_of, path_of, PARAM) for surface in feature.get('surfaces') or []):
             if path and path not in found: found.append(path)
     return found
@@ -35,9 +35,9 @@ def routes(report):
 
 def server_routes(report):
     """The GET server routes (not pages) a load can call without a fixture: what the program serves beside its pages."""
-    from .lock_specs import PARAM, kind_of, path_of, surfaces
+    from .lock_specs import PARAM, features_of, kind_of, path_of, surfaces
     known = surfaces(report)
-    return sorted({path for feature in (_load(Path(report) / 'features.json', {}) or {}).get('features') or []
+    return sorted({path for feature in features_of(report)
                    for surface in feature.get('surfaces') or [] if kind_of(surface, known)[0] == 'http'
                    and (path := _loadable(surface, known, kind_of, path_of, PARAM))})
 

@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators, owner_share
 from ..compose.labels import impact_of
+from ..pipeline.report import absences
 from ..plan import title_of
 from . import build_plan
 from . import change as change_map
@@ -118,7 +119,8 @@ def head(m, scan, lang, stamp, fresh):
     counted, build = M.problem_counts(m), m.get('build')
     return {'scanned': scan, 'eaos': {k: stamp[k] for k in ('version', 'commit', 'digest')}, 'freshness': freshness, 'freshness_detail': detail,
             'verdict': build_plan.verdict(build, lang) if build else _verdict(m['score'], counted, lang),
-            'next': build_plan.next_step(build, lang) if build else _next_step(counted['fixable'], m['rows'], lang)}
+            'next': build_plan.next_step(build, lang) if build else _next_step(counted['fixable'], m['rows'], lang),
+            'not_run': [{'stage': r['stage'], 'status': r['status'], 'reason': r['reason'][lang]} for r in absences(m['manifest'])]}
 
 
 def _verdict(s, counted, lang):

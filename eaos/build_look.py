@@ -25,7 +25,14 @@ def unusable(look):
         [{'gate': 'screens', 'where': 'the entry page', 'what': f'Lighthouse {name} is {scores[name]}, under 90'}
          for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 90] + \
         [{'gate': 'design', 'where': str(d.get('part') or 'page'), 'what': f"{d.get('title')}: {d.get('why')}"}
-         for d in look.get('departures') or [] if d.get('severity') in ('high', 'critical')] + _overloaded(look.get('load') or [])
+         for d in look.get('departures') or [] if d.get('severity') in ('high', 'critical')] + _overloaded(look.get('load') or []) + _unproven(look)
+
+
+def _unproven(look):
+    """The evidence stages (PROOF) that did not run on the finished product: a measurement that did not happen is no
+    pass (a real build: k6 failed and the milestone was delivered as if measured)."""
+    return [{'gate': 'proof', 'where': stage, 'what': f'{stage} did not run, so the product is not proven there: {why}'}
+            for stage, why in (look.get('not_done') or {}).items() if stage in PROOF and str(why)]
 
 
 def _overloaded(scenarios):
@@ -35,6 +42,7 @@ def _overloaded(scenarios):
              f"over the threshold {row['threshold']}"} for row in scenarios if over(row, 'p95_ms') or over(row, 'error_rate')]
 
 
+PROOF = ('setup', 'screens', 'baseline')      # the finished product's evidence: without it the last milestone is not delivered
 LOOK = ('facts', 'features', 'setup', 'screens', 'visual')      # the check's own stages that picture and review the screens
 FINAL = ('intake', 'baseline')      # the finished product's load too: k6 on its production build, at the plan's expected users
 

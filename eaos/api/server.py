@@ -75,6 +75,7 @@ class Context:
     report: Path
     feed: Feed
     keys: Keys
+    tickets: dict = field(default_factory=dict)     # {ticket: expires_at}: one-use keys of /report/<ticket> (read.report_page)
     project: Path | None = None
     name: str = ''
     assets: Path = ASSETS

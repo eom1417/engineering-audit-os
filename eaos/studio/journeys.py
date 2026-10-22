@@ -105,6 +105,15 @@ def _reach(start, imports, depth, stop=()):
 
 # ---------------------------------------------------------------- the records
 
+def _pages_and_links(report):
+    pages, links = [], []     # the code's page and link rows; the crawl's pages stand in when the code names none
+    for found in map(_page_or_link, arch_map.facts(report, 'entrypoints', 'entry_point') + arch_map.facts(report, 'entrypoints', 'navigation')):
+        if found: (pages if found[0] == 'page' else links).append(found[1])
+    from ..lock_specs import crawled_pages      # the crawl's pages stand in when the code names none
+    return pages or [{'route': p, 'declared': p, 'handler': '', 'router': 'live/crawl.json', 'line': None, 'fact': None, 'framework': 'crawl'}
+                     for p in crawled_pages(report)], links
+
+
 def _page_or_link(fact):
     """('page', row) of a page route, ('link', row) of a navigation; None for anything else, or anything in the tests."""
     value, loc = fact.get('value') or {}, fact.get('location') or {}
@@ -174,9 +183,7 @@ def records(report, media=None):
     """Everything the journeys read, each piece empty when its record is missing. media: media.json's images when the
     exporter has them in hand, else the report's studio/media.json."""
     report = Path(report)
-    pages, links = [], []
-    for found in map(_page_or_link, arch_map.facts(report, 'entrypoints', 'entry_point') + arch_map.facts(report, 'entrypoints', 'navigation')):
-        if found: (pages if found[0] == 'page' else links).append(found[1])
+    pages, links = _pages_and_links(report)
     imports = {arch_map.path_of(node): [d for d in (node.get('value') or {}).get('depends_on') or [] if isinstance(d, str)]
                for node in arch_map.facts(report, 'graph', 'graph_node')}
     names, defined = _names(report)

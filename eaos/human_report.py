@@ -384,17 +384,16 @@ def top_problems(rows):
 def not_checked(m):
     statuses, coverage, manifest = m['statuses'], m['coverage'], m['manifest']
     items = []
-    stages = manifest.get('stages') or {}
     for stage, status in statuses.items():
         if status in ('failed', 'not_reached'):
             items.append(T(f'لم يكتمل: {esc(plain.stage(stage, "ar"))}. ما كان سيجده قد يكون ناقصًا.',
                            f'Did not complete: {esc(plain.stage(stage, "en"))}. What it would have found may be missing.', 'li'))
-    for stage, status in statuses.items():
-        covered = ('semantic',) if coverage else ()
-        if status in ('unavailable', 'skipped') and stage not in covered:
-            reason = (stages.get(stage) or {}).get('reason') or ''
-            words = T(f'لم يُشغَّل: {esc(plain.stage(stage, "ar"))}.', f'Not run: {esc(plain.stage(stage, "en"))}.')
-            items.append(f'<li title="{esc(reason)}">{words}</li>')
+    from .pipeline.report import absences
+    covered = ('semantic',) if coverage else ()
+    for row in absences(manifest):
+        if row['status'] in ('unavailable', 'skipped') and row['stage'] not in covered:
+            items.append(T(f'لم يُشغَّل: {esc(plain.stage(row["stage"], "ar"))}. {esc(row["reason"]["ar"])}',
+                           f'Not run: {esc(plain.stage(row["stage"], "en"))}. {esc(row["reason"]["en"])}', 'li'))
     if coverage:
         if not coverage.get('executed_verification'):
             items.append(T('لم تُشغَّل اختبارات المشروع، فلا نعرف أي أجزاء تغطيها الاختبارات فعلًا.',
