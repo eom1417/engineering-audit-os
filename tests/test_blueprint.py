@@ -204,9 +204,9 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([p['where'] for p in build_tools._unbuilt(state, {'kept': {}})], ['FR-1'], 'skipped or never built')
         self.assertEqual(build_tools._unbuilt(state, {'kept': {card: 'abc'}}), [])
         look = {'screen_problems': [{'page': '/', 'width': 375, 'problems': ['axe: color-contrast (serious, 2)']}],
-                'speed': {'performance': 0.4, 'accessibility': 0.8, 'best-practices': 0.95}}
+                'speed': {'performance': 40, 'accessibility': 80, 'best-practices': 95}}
         self.assertEqual([p['what'] for p in build_tools._unusable(look)],
-                         ['axe: color-contrast (serious, 2)', 'Lighthouse accessibility is 0.8, under 0.9'],
+                         ['axe: color-contrast (serious, 2)', 'Lighthouse accessibility is 80, under 90'],
                          'the copy runs in development mode: its speed never stops a delivery')
 
     def test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder(self):

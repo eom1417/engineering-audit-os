@@ -89,7 +89,7 @@
     "server/src/interface/http/security.ts"
    ],
    "acceptance": [
-    "a Content-Security-Policy with no unsafe-inline script, and (with a server) HSTS, X-Content-Type-Options and frame-ancestors on every answer",
+    "a Content-Security-Policy with no unsafe-inline script, and (with a server) HSTS, X-Content-Type-Options and frame-ancestors on every answer; the policy lets the app load what its own build makes (a font or image the bundler inlines as data: is allowed by font-src or img-src, or the build inlines none), so no page logs a blocked resource",
     "no secret in the code: every key comes from the environment, listed in .env.example",
     "sign-in and every writing route are rate limited, and every input is checked by the one schema helper",
     "the security engines (semgrep, osv-scanner, gitleaks) find nothing high"

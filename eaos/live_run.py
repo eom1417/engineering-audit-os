@@ -195,6 +195,7 @@ class LiveRun:
         """Install, build and prepare; stops at the first command that fails, with its output."""
         for phase in ('install', 'build', 'prepare'):
             for argv in self.profile.get(phase) or []:
+                if _test_browsers(argv): continue
                 code, out, err = self.run(argv)
                 if code != 0:
                     raise RuntimeError(f"{phase} failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
@@ -231,3 +232,10 @@ class LiveRun:
         (self.runtime / name).parent.mkdir(parents=True, exist_ok=True)
         (self.runtime / name).write_text(json.dumps({'commit': self.commit, 'commands': self.log}, ensure_ascii=False, indent=1) + '\n',
                                          encoding='utf-8')
+
+
+def _test_browsers(argv):
+    """`playwright install` (the app's own test browsers): never needed to run the app, which EAOS pictures with its own
+    browsers, and their shared folder is read only in the isolated run (a real build: the setup stopped on it)."""
+    words = [str(word) for word in argv]
+    return any(word.endswith('playwright') for word in words) and 'install' in words

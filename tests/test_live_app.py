@@ -37,6 +37,16 @@ Path(os.environ['EAOS_STORAGE_STATE']).write_text(json.dumps({'cookies': [
 '''
 
 
+class SetupTests(unittest.TestCase):
+    def test_the_apps_own_test_browsers_are_never_installed_to_run_it(self):
+        # A real build: the setup ran `npx playwright install chromium`, whose shared folder is read only in the isolated
+        # run, so the finished product's screens were never pictured.
+        from eaos.live_run import _test_browsers
+        self.assertTrue(_test_browsers(['npx', 'playwright', 'install', 'chromium']))
+        self.assertTrue(_test_browsers(['pnpm', 'exec', 'playwright', 'install', '--with-deps']))
+        self.assertFalse(_test_browsers(['npm', 'install']))
+
+
 class SharedAppTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

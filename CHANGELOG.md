@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.56 (2026-10-22)
+
+- **The whole product built from one press, proven**: a real trial from the Studio built a two-language clinic from its
+  plan, 6 milestones and 20 cards, none skipped, with no question to the person. It showed four faults, fixed here:
+  - **The finished product's screens were never pictured**: the app's setup ran `npx playwright install` into EAOS's
+    browsers, read only in the isolated run; and the probe of the first page, written into the app's copy, loaded the
+    app's own Playwright (another version) instead of EAOS's. The setup now never installs the app's test browsers, and
+    the probe loads EAOS's Playwright by its path. On the same product the screens are now pictured (accessibility 100,
+    best practices 92) and show a real fault: its security policy blocked the font its build inlines.
+  - **Lighthouse scores are out of 100**: the last milestone compared them with 0.9, so they never held it back; now 90.
+  - **Translations as typed modules**: the standard card asked for JSON files in the shared look, which the layer rules
+    read as configuration; the security card now also says the policy lets the app load what its own build makes.
+  - **A shape too small to hold a rule is not a copy**: `() => x.y()` in a few files was refused as copied code; the
+    copy gate now asks the same 30 tokens of shared shape a claim does.
+
 ## 0.0.55 (2026-10-21)
 
 - **The blueprint plans a complete product by itself**: HungerLab's blueprint had a card per module, feature and
