@@ -404,7 +404,7 @@
    }
   }
  ],
- "reasons_description": "Why a stage or a step of the live map did not run, or did not pass, in the person's words: each key is a stable `reason_code` written in the progress files (eaos/progress) and in run-manifest.json; eaos/progress/reasons.py reads it. An unknown code shows the sentence EAOS wrote itself.",
+ "reasons_description": "Why a stage or a step of the live map did not run, or did not pass, in the person's words: each key is a stable `reason_code` written in the progress files (eaos/progress) and in run-manifest.json; eaos/progress/reasons.py reads it. An unknown code shows the sentence EAOS wrote itself. `remedy`: what EAOS does by itself about that reason after a check (eaos/pipeline/remedies.py): a tool to run (tools_check, assistant_check), stages that must be ok first (requires_ok), then the stage run again (again_from); `consent` or `needs: person` when only the person can.",
  "reasons": {
   "not_requested": {
    "ar": "لم تُطلب هذه المرحلة في هذا الفحص.",
@@ -452,19 +452,32 @@
   },
   "tools_failed": {
    "ar": "بعض الأدوات فشلت في هذه المرحلة، فنتيجة الفحص ناقصة: أعد تشغيلها من هنا بدون فحص كامل جديد.",
-   "en": "Some tools failed in this stage, so the check is partial: run them again from here, without a whole new check."
+   "en": "Some tools failed in this stage, so the check is partial: run them again from here, without a whole new check.",
+   "remedy": {
+    "then": "again_from"
+   }
   },
   "no_engine_installed": {
    "ar": "لا توجد أداة خارجية مثبّتة على هذا الجهاز.",
-   "en": "No external tool is installed on this computer."
+   "en": "No external tool is installed on this computer.",
+   "remedy": {
+    "tool": "tools_check",
+    "then": "again_from"
+   }
   },
   "no_test_command": {
    "ar": "ما في خطوات تشغيل برنامجك أمر لاختباراته، فما شغّلتها؛ وكتبت أي اختبار يستورد أي ملف.",
-   "en": "Your app's run steps name no command for its tests, so they were not run; which test imports which file is still written."
+   "en": "Your app's run steps name no command for its tests, so they were not run; which test imports which file is still written.",
+   "remedy": {
+    "needs": "person"
+   }
   },
   "tests_not_run": {
    "ar": "حاولت أشغّل اختبارات مشروعك في النسخة المنفصلة وما اشتغلت (التثبيت أو البناء ما نجح)، فكتبت أي اختبار يستورد أي ملف فقط.",
-   "en": "Your project's tests could not be run in the separate copy (its install or build failed), so only which test imports which file is written."
+   "en": "Your project's tests could not be run in the separate copy (its install or build failed), so only which test imports which file is written.",
+   "remedy": {
+    "needs": "person"
+   }
   },
   "no_policy": {
    "ar": "مشروعك لا يعلن قواعد لبنيته (eaos.policy.json).",
@@ -472,7 +485,11 @@
   },
   "no_provider": {
    "ar": "ما فيه مساعد ذكي مثبّت أو ما سمحت به لهذا الفحص، فبقيت القواعد وحدها.",
-   "en": "No AI assistant was installed or allowed for this check, so the rules stand alone."
+   "en": "No AI assistant was installed or allowed for this check, so the rules stand alone.",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   }
   },
   "ai_failed": {
    "ar": "مساعدك الذكي ما أعطى جوابًا صالحًا هالمرة، فبقيت القواعد وحدها والفحص كمل.",
@@ -484,7 +501,11 @@
   },
   "ai_partial": {
    "ar": "مساعدك الذكي جاوب على جزء من هذي المرحلة بس (خلص رصيده أو تعثّر بنصها)، والقواعد قرّرت الباقي. الفحص ناقص لين تعيد المرحلة، والإعادة تسأله عن الباقي بس.",
-   "en": "Your AI assistant answered only part of this stage (its limit ran out or it failed midway) and the rules decided the rest. The check is partial until you run the stage again, which asks only about the rest."
+   "en": "Your AI assistant answered only part of this stage (its limit ran out or it failed midway) and the rules decided the rest. The check is partial until you run the stage again, which asks only about the rest.",
+   "remedy": {
+    "tool": "assistant_check",
+    "then": "again_from"
+   }
   },
   "claude_ready": {
    "ar": "Claude Code جاهز: سجّل دخوله وجاوب الآن.",
@@ -560,7 +581,13 @@
   },
   "no_features": {
    "ar": "لم أجد في برنامجك ميزات أكتب لها اختبارات تحفظ سلوكها.",
-   "en": "I found no feature in your program to write behaviour-keeping tests for."
+   "en": "I found no feature in your program to write behaviour-keeping tests for.",
+   "remedy": {
+    "requires_ok": [
+     "crawl"
+    ],
+    "then": "again_from"
+   }
   },
   "no_report_linters": {
    "ar": "أدوات تدقيق كتابة التقارير (Vale وmarkdownlint) غير مثبّتة.",
@@ -632,7 +659,10 @@
   },
   "no_production_run": {
    "ar": "نسخة الإنتاج لم تعمل أثناء التجهيز، فلم أقس السرعة.",
-   "en": "The production build did not run during the setup, so speed was not measured."
+   "en": "The production build did not run during the setup, so speed was not measured.",
+   "remedy": {
+    "needs": "person"
+   }
   },
   "speed_failed": {
    "ar": "لم أستطع قياس السرعة، والسبب في السجل.",
@@ -692,15 +722,24 @@
   },
   "no_run_consent": {
    "ar": "ما وافقت على تشغيل برنامجك في نسخة منفصلة، فقرأ الفحص الكود فقط بدون تشغيله.",
-   "en": "You have not agreed to run your app in a separate copy, so the check read the code alone without running it."
+   "en": "You have not agreed to run your app in a separate copy, so the check read the code alone without running it.",
+   "remedy": {
+    "consent": "run"
+   }
   },
   "app_not_running": {
    "ar": "ما اشتغل برنامجك في النسخة المنفصلة، فما انأخذ دليل من تشغيله؛ السبب مكتوب في live/setup.json.",
-   "en": "Your app did not start in the separate copy, so no evidence was taken from running it; the reason is in live/setup.json."
+   "en": "Your app did not start in the separate copy, so no evidence was taken from running it; the reason is in live/setup.json.",
+   "remedy": {
+    "needs": "person"
+   }
   },
   "screens_unavailable": {
    "ar": "ما قدرت أفتح صفحات برنامجك لتصويرها؛ السبب مكتوب في السجل.",
-   "en": "The pages of your app could not be opened to picture them; the reason is in the log."
+   "en": "The pages of your app could not be opened to picture them; the reason is in the log.",
+   "remedy": {
+    "needs": "person"
+   }
   },
   "no_architecture_map": {
    "ar": "ما انرسمت خريطة البنية: أداتا CodeCharta وEmerge غير مثبتتين أو ما تقرآن لغة هذا المشروع.",
@@ -708,11 +747,34 @@
   },
   "no_pages": {
    "ar": "برنامجك ما فيه صفحات يمشي فيها المستخدم، فما فيه رحلات تُسجَّل.",
-   "en": "Your app has no pages a user walks through, so there is no journey to record."
+   "en": "Your app has no pages a user walks through, so there is no journey to record.",
+   "remedy": {
+    "requires_ok": [
+     "crawl"
+    ],
+    "then": "again_from"
+   }
   },
   "no_load_scenario": {
    "ar": "ما فيه صفحة أو مسار في برنامجك يقدر اختبار الضغط يطلبه، فما انقاست السرعة تحت الضغط.",
-   "en": "No page or route of your app is one a load test can request, so speed under load was not measured."
+   "en": "No page or route of your app is one a load test can request, so speed under load was not measured.",
+   "remedy": {
+    "requires_ok": [
+     "crawl"
+    ],
+    "then": "again_from"
+   }
+  },
+  "browser_missing": {
+   "ar": "متصفح Playwright غير مثبّت على هذا الجهاز، فما انفتحت صفحات برنامجك.",
+   "en": "Playwright's browser is not installed on this computer, so your app's pages were not opened.",
+   "remedy": {
+    "tool": "tools_check",
+    "only": [
+     "playwright"
+    ],
+    "then": "again_from"
+   }
   }
  }
 }

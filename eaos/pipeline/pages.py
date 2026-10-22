@@ -25,7 +25,7 @@ def journeys(context):
     try:     # one session, as the lock it compares with was recorded: each kind's pages are walked by the crawl
         result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys', app=shared_app(context))
     except FileNotFoundError as problem:
-        raise SkipStage(str(problem)[:300], code='no_engine_installed') from None
+        raise SkipStage(str(problem)[:300], code='browser_missing') from None
     _keep(context, 'journeys.json', result)
     return {'specs': result['specs'], 'failed': result['failed'], 'recordings': len(result['recordings']),
             'traces': len(result['traces'])}

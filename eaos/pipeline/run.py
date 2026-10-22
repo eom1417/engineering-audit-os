@@ -364,9 +364,11 @@ def again(target, out, stage, checked=False, **options):
     redo), the rest kept as it was: never a whole new check for one stage. `engines` names the tools to run again.
     `checked`: `target` is the very commit the check read clean (eaos/guided.py source), so the same code whatever
     caches lay beside it then (.cache, egg-info), and the files' fingerprint is not asked."""
-    if stage not in BY_NAME: raise ValueError(f'there is no stage named {stage}')
+    stages = (stage,) if isinstance(stage, str) else tuple(stage)
+    for name in stages:
+        if name not in BY_NAME: raise ValueError(f'there is no stage named {name}')
     if _previous(out) is None: raise ValueError('there is no check to go on from: run a check first')
-    return resume(target, out, redo=(stage, *dependents(stage, reading=True)), checked=checked, **options)
+    return resume(target, out, redo={s for name in stages for s in (name, *dependents(name, reading=True))}, checked=checked, **options)
 
 
 def resume(target, out, redo=(), checked=False, **options):

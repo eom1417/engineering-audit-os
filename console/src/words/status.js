@@ -105,5 +105,9 @@ export default {
   'st.fresh.dirty.yes': ['نعم', 'Yes'],
   'st.fresh.files': ['الملفات التي تغيّرت بعده', 'The files changed since'],
   'st.opt.sub': ['الموصى به أولًا، بأرقام مشروعك.', 'Recommended first, with your project\'s numbers.'],
+  'st.notrun': [{ zero: 'كل المراحل عملت', one: 'مرحلة واحدة ما عملت، وهذا سببها', two: 'مرحلتان ما عملتا، وهذا سببهما', few: '{n} مراحل ما عملت، وهذي أسبابها', many: '{n} مرحلة ما عملت، وهذي أسبابها', other: '{n} مرحلة ما عملت، وهذي أسبابها' }, { one: '1 stage did not run, and why', other: '{n} stages did not run, and why' }],
+  'st.notrun.fixed': ['(EAOS أصلح السبب وأعادها)', '(EAOS fixed the cause and ran it again)'],
+  'st.notrun.failed': ['(EAOS حاول يصلح السبب وما قدر)', '(EAOS tried to fix the cause and could not)'],
+  'st.notrun.you': ['(تحتاجك أنت)', '(it needs you)'],
   'st.build.plan': ['شوف خطة البناء', 'See the build plan'],
 }
