@@ -34,8 +34,10 @@ export function fold(id, title, sum, body, open, cls) {
   return `<details class="fold ${cls || ''}" id="fold-${id}" ${open ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${title}</span>${sum ? `<span class="row__meta" style="display:block">${sum}</span>` : ''}</span>${icon('chev', 'chev')}</summary>
     <div class="fold__body">${body}</div></details>`;
 }
-export function when(iso) { return iso ? `<button class="ac-time" data-act="ac-time" data-iso="${esc(iso)}" title="${esc(exactTime(iso))}">${esc(fmtWhen(iso))}</button>` : ''; }
-export function clock(iso) { return iso ? `<button class="ac-time num" data-act="ac-time" data-iso="${esc(iso)}" title="${esc(exactTime(iso))}">${esc(fmtTime(iso))}</button>` : ''; }
+/** A time the person can tap for the exact moment, written by `format`. */
+function timeButton(iso, format, cls) { return iso ? `<button class="ac-time${cls}" data-act="ac-time" data-iso="${esc(iso)}" title="${esc(exactTime(iso))}">${esc(format(iso))}</button>` : ''; }
+export function when(iso) { return timeButton(iso, fmtWhen, ''); }
+export function clock(iso) { return timeButton(iso, fmtTime, ' num'); }
 act('ac-time', el => toast(exactTime(el.dataset.iso)));
 export function secs(s) {
   if (s == null) return '';
