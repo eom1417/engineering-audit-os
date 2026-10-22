@@ -18,6 +18,7 @@ import time
 import urllib.request
 from pathlib import Path
 
+from .. import __version__
 from ..places import home
 
 STARTUP = 15.0       # seconds `start` waits for the server it started to answer
@@ -64,7 +65,8 @@ def start(state):
     when it did not answer in time. It runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder
     it starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one."""
     found = running(state)
-    if found: return found, False
+    if found and found.get('version') == __version__: return found, False
+    if found: _retire(state, found)          # an EAOS updated under a Studio still running the old one (HungerLab: 0.0.59)
     env, argv = own_env(), [sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open']
     if not (durable() and _as_service(state, argv, env, log_path(state, 'studio-server.log'))): detach(state, argv, env, 'studio-server.log')
     deadline = time.monotonic() + STARTUP
@@ -123,6 +125,12 @@ def _as_service(state, argv, env, log):
                            *(f'--setenv={name}' for name in names), *argv], env=env, capture_output=True, text=True)
     return done.returncode == 0
 
+
+
+def _retire(state, record):
+    """Stop a Studio of another EAOS version: its service, which would otherwise come back, else its process."""
+    if durable(): subprocess.run(['systemctl', *([] if os.geteuid() == 0 else ['--user']), 'stop', service_name(state)], capture_output=True)
+    stop(record)
 
 
 def stop(record, seconds=10.0):
