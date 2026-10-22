@@ -62,6 +62,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [],
    "resumed": false,
@@ -284,6 +285,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts"
@@ -314,6 +316,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "features"
@@ -344,6 +347,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "features"
@@ -376,6 +380,7 @@
    ],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts"
@@ -612,6 +617,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts"
@@ -638,6 +644,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts"
@@ -664,6 +671,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts"
@@ -690,6 +698,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts"
@@ -717,6 +726,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "facts",
@@ -743,6 +753,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "claims"
@@ -768,6 +779,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "claims"
@@ -794,6 +806,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "claims"
@@ -820,6 +833,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "sustainability"
@@ -846,6 +860,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "probe"
@@ -872,6 +887,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "plan",
@@ -902,6 +918,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "plan",
@@ -928,6 +945,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "reports"
@@ -953,6 +971,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "reports"
@@ -978,6 +997,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "plan",
@@ -1005,6 +1025,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "sustainability"
@@ -1033,6 +1054,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "plan",
@@ -1071,6 +1093,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "compose"
@@ -1097,6 +1120,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "compose"
@@ -1122,6 +1146,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "compose"
@@ -1148,6 +1173,7 @@
    "programs": [],
    "reason": "",
    "reason_code": "",
+   "reason_texts": null,
    "requested": true,
    "requires": [
     "compose"
