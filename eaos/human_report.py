@@ -1707,7 +1707,6 @@ def write(report, lang='ar', name=None, progress=None):
 
 # ---------------------------------------------------------------- the readability indicator
 
-NUMBER = re.compile(r'\d+(?:[.,]\d+)?')
 
 
 
