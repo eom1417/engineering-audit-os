@@ -265,11 +265,6 @@ def detect(project, report=None):
     env, unset = environment_values(names, port, database)
     data = report_values(project, folder, unset, report)
     env, unset = {**env, **data}, [name for name in unset if name not in data]
-    limitations = []
-    if start is None: limitations.append('no safe command starts the app (its dev and start scripts deploy, or there are none)')
-    if database in ('mysql', 'mongodb'): limitations.append(f'the app uses {database}; EAOS starts PostgreSQL and SQLite only, so pages that need data may be empty')
-    if database == 'supabase': limitations.append('the app talks to Supabase in the cloud; the run never reaches it, so pages that need data show their empty or error state')
-    if unset: limitations.append('no value was chosen for: ' + ', '.join(unset[:12]))
     profile = {'schema_version': 1, 'app': folder, 'install': [install_argv(manager, lockfile)],
                'start': start or ['true'], 'port': port, 'health': '/', 'start_timeout': 180,
                'env': {'NODE_ENV': 'development', **start_env, **env},
@@ -277,14 +272,27 @@ def detect(project, report=None):
     prepare = prepare_commands(manager, package, project, folder, database)
     if prepare: profile['prepare'] = prepare
     if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
-    if production:
-        baseline_env = {k: v for k, v in profile['env'].items() if k != 'NODE_ENV'}
-        profile['baseline'] = {'install': [install_argv(manager, lockfile)[:2] + ['--include=dev'] if manager == 'npm' else install_argv(manager, lockfile)],
-                               'build': build, 'start': production, 'port': int(production[production.index('--port') + 1]) if '--port' in production
-                               else (int(production[production.index('-p') + 1]) if '-p' in production else port),
-                               'env': {**baseline_env, 'NODE_ENV': 'production', 'PORT': str(port)}}
+    if production: profile['baseline'] = _production_profile(manager, lockfile, build, production, profile['env'], port)
     return {'profile': profile, 'facts': {'folder': folder, 'manager': manager, 'framework': framework(package), 'database': database,
-                                          'env_names': sorted(names)}, 'limitations': limitations}
+                                          'env_names': sorted(names)}, 'limitations': _draft_limitations(start, database, unset)}
+
+
+def _draft_limitations(start, database, unset):
+    """What the draft run cannot do, from what detect() found."""
+    limitations = []
+    if start is None: limitations.append('no safe command starts the app (its dev and start scripts deploy, or there are none)')
+    if database in ('mysql', 'mongodb'): limitations.append(f'the app uses {database}; EAOS starts PostgreSQL and SQLite only, so pages that need data may be empty')
+    if database == 'supabase': limitations.append('the app talks to Supabase in the cloud; the run never reaches it, so pages that need data show their empty or error state')
+    if unset: limitations.append('no value was chosen for: ' + ', '.join(unset[:12]))
+    return limitations
+
+
+def _production_profile(manager, lockfile, build, production, env, port):
+    """run.json -> baseline: the built app, installed with its dev dependencies, on the port its start command names."""
+    install = install_argv(manager, lockfile)
+    return {'install': [install[:2] + ['--include=dev'] if manager == 'npm' else install], 'build': build, 'start': production,
+            'port': next((int(production[production.index(flag) + 1]) for flag in ('--port', '-p') if flag in production), port),
+            'env': {**{k: v for k, v in env.items() if k != 'NODE_ENV'}, 'NODE_ENV': 'production', 'PORT': str(port)}}
 
 
 def _unknown_app():
