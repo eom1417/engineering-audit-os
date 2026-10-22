@@ -302,53 +302,55 @@ function recipes(ids) {
   return R;
 }
 
+/** Presses the steps in order into `done` ({presses, labels}): a click counts, typing is free; throws at the first that fails. */
+async function press(page, steps, sub, done) {
+  for (const st of steps) {
+    if (typeof st === 'string') {
+      const loc = page.locator(`${sub(st)} >> visible=true`).first();
+      done.labels.push(await loc.evaluate(e => (e.getAttribute('aria-label') || (e.innerText || '').split('\n').map(x => x.trim()).filter(Boolean)[0] || e.value || '').replace(/\s+/g, ' ').trim().slice(0, 48), null, { timeout: 2500 }));
+      await loc.click({ timeout: 2500 });
+      done.presses++;
+      await page.waitForTimeout(260);
+    } else if (st.type) {
+      await page.locator(st.type[0]).first().fill(st.type[1]);
+      done.labels.push(`(type "${st.type[1]}")`);
+      await page.waitForTimeout(260);
+    }
+  }
+}
+
+/** The expectations ('kind:value') the page does not meet; runs inside the page. */
+function unmet(exp) {
+  const hash = decodeURIComponent(location.hash);
+  const text = document.body.innerText;
+  const root = document.documentElement;
+  const met = {
+    vis: v => [...document.querySelectorAll(v)].some(e => e.checkVisibility && e.checkVisibility()),
+    exists: v => !!document.querySelector(v),
+    hash: v => hash.includes(v),
+    sheet: v => !!document.querySelector('.sheet.is-open') && hash.includes('sheet=' + v),
+    txt: v => text.includes(String(EAOS.t(v)).split('{')[0].trim()),
+    has: v => text.includes(v),
+    title: v => document.title.includes(v),
+    lang: v => root.lang === v,
+    theme: v => root.dataset.theme === v,
+  };
+  return exp.filter(x => { const i = x.indexOf(':'), test = met[x.slice(0, i)]; return test && !test(x.slice(i + 1)); });
+}
+
 async function runOne(page, id, rec, w, lang) {
   const r = Object.assign({}, rec, rec[w === 390 ? 'ph' : 'dk'] || {});
   const other = lang === 'ar' ? 'en' : 'ar';
   const sub = s => s.replace(/\{other\}/g, other);
-  const start = r.start || '/status';
-  await Lib.open(page, start, lang, 'light');
-  let presses = 0; const labels = [];
-  try {
-    for (const st of r.steps) {
-      if (typeof st === 'string') {
-        const loc = page.locator(`${sub(st)} >> visible=true`).first();
-        labels.push(await loc.evaluate(e => (e.getAttribute('aria-label') || (e.innerText || '').split('\n').map(x => x.trim()).filter(Boolean)[0] || e.value || '').replace(/\s+/g, ' ').trim().slice(0, 48), null, { timeout: 2500 }));
-        await loc.click({ timeout: 2500 });
-        presses++;
-        await page.waitForTimeout(260);
-      } else if (st.type) {
-        await page.locator(st.type[0]).first().fill(st.type[1]);
-        labels.push(`(type "${st.type[1]}")`);
-        await page.waitForTimeout(260);
-      }
-    }
-  } catch (e) { return { presses, labels, ok: false, why: 'press failed: ' + String(e.message).split('\n')[0].slice(0, 160) }; }
+  await Lib.open(page, r.start || '/status', lang, 'light');
+  const done = { presses: 0, labels: [] };
+  try { await press(page, r.steps, sub, done); }
+  catch (e) { return { ...done, ok: false, why: 'press failed: ' + String(e.message).split('\n')[0].slice(0, 160) }; }
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  const check = () => page.evaluate(exp => {
-    const bad = [];
-    const vis = css => [...document.querySelectorAll(css)].some(e => e.checkVisibility && e.checkVisibility());
-    const hash = decodeURIComponent(location.hash);
-    const text = document.body.innerText;
-    for (const x of exp) {
-      const i = x.indexOf(':'); const k = x.slice(0, i), v = x.slice(i + 1);
-      let ok = true;
-      if (k === 'vis') ok = vis(v);
-      else if (k === 'exists') ok = !!document.querySelector(v);
-      else if (k === 'hash') ok = hash.includes(v);
-      else if (k === 'sheet') ok = !!document.querySelector('.sheet.is-open') && hash.includes('sheet=' + v);
-      else if (k === 'txt') { const w = String(EAOS.t(v)).split('{')[0].trim(); ok = text.includes(w); }
-      else if (k === 'has') ok = text.includes(v);
-      else if (k === 'title') ok = document.title.includes(v);
-      else if (k === 'lang') ok = document.documentElement.lang === v;
-      else if (k === 'theme') ok = document.documentElement.dataset.theme === v;
-      if (!ok) bad.push(x);
-    }
-    return bad;
-  }, r.expect.map(sub));
+  const check = () => page.evaluate(unmet, r.expect.map(sub));
   /* a press that navigates may land while the page is still swapping documents: look again once it settled */
   const fails = await check().catch(async () => { await page.waitForTimeout(800); return check(); });
-  return { presses, labels, ok: !fails.length, why: fails.length ? 'not reached: ' + fails.join(', ') : '' };
+  return { ...done, ok: !fails.length, why: fails.length ? 'not reached: ' + fails.join(', ') : '' };
 }
 
 (async () => {
