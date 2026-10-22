@@ -779,6 +779,8 @@ class Plan(Base):
         self.assertEqual(record['action'], 'blueprint_start')
         self.assertEqual(record['inputs']['project'], str(self.project.parent / 'my-clinic'))
         self.assertEqual(sorted(p.name for p in Path(record['inputs']['source']).iterdir()), ['plan.md', 'visits.png'])
+        from eaos import guided
+        self.assertEqual(guided.load((self.project.parent / 'my-clinic').resolve())['lang'], self.app.lang, "it speaks the Studio's language")
         status, payload = self.post('/api/plan', {'name': 'project', 'text': 'a plan'})
         self.assertEqual(status, 400, 'never into a folder that already holds a project')
         self.assertIn('not empty', payload['error'])

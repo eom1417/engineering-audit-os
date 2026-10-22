@@ -214,6 +214,7 @@ class BuildTests(unittest.TestCase):
                          'the copy runs in development mode: its speed never stops a delivery')
 
     def test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder(self):
+        self.assertEqual(build_tools.status_of(self.project)['next']['tool'], 'blueprint_start', 'a folder not made yet is no error')
         answer = build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)
         self.assertIn('features', answer['spec_format'])
         self.assertTrue(Path(self.project).is_dir(), 'a new project folder is made')

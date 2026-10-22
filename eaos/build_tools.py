@@ -583,8 +583,12 @@ def _next_step(state, plan, bp, build, done):
 
 def status_of(project=None):
     """The status of the project's way: building from a plan, or checking and fixing. A build whose acceptance check is
-    done goes on as check and fix (its mode becomes the check's)."""
-    state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+    done goes on as check and fix (its mode becomes the check's). A folder not made yet is a new project built from its
+    plan, which reading the plan makes (the Studio's "Build from a plan" names it first)."""
+    where = Path(project or os.getcwd()).expanduser().resolve()
+    if not where.exists():
+        return {'project': str(where), 'mode': 'build from a plan', 'next': {'tool': 'blueprint_start', 'why': 'a new project: reading its plan makes its folder'}}
+    state = guided.load(where)
     if (state or {}).get('mode') == 'build' and journeys.which(state) != 'build':
         state['mode'] = 'check'
         guided.save(state)
