@@ -10,6 +10,7 @@ const J = () => data.section('journeys');
 const scrLink = id => href('/understand/screens/' + enc(id));
 const depthWord = d => (d == null || d < 0 ? t('un.flag.no_way_in') : d === 0 ? t('un.depth.start') : tn('un.depth.n', d));
 const FLAGS = { broken: 'broken', no_way_in: 'no_way_in', dead_ends: 'dead_end', duplicates: 'duplicate', hidden_screens: 'hidden' };
+const focusLink = (id, q, r) => `<a class="link" href="${href(r.path, Object.assign({}, q, { focus: id }))}">${code(id)}</a>`;
 
 function mapSVG(j, task, focus) {
   const g = j.grid;
@@ -56,8 +57,8 @@ function journeysPage(ctx) {
   const focusPart = focused ? `<section class="section panel panel__pad" aria-labelledby="jf-h"><h2 class="h2" id="jf-h">${esc(focused.title)} ${code(focused.route)}</h2>
     ${facts([
       [t('un.scr.depth'), esc(depthWord(focused.depth))],
-      [t('un.j.in'), j.edges.filter(e => e.to === focus).map(e => `<a class="link" href="${href(r.path, Object.assign({}, q, { focus: e.from }))}">${code(e.from)}</a>`).join(' ') || t('un.none')],
-      [t('un.j.out'), j.edges.filter(e => e.from === focus).map(e => `<a class="link" href="${href(r.path, Object.assign({}, q, { focus: e.to }))}">${code(e.to)}</a>`).join(' ') || t('un.none')],
+      [t('un.j.in'), j.edges.filter(e => e.to === focus).map(e => focusLink(e.from, q, r)).join(' ') || t('un.none')],
+      [t('un.j.out'), j.edges.filter(e => e.from === focus).map(e => focusLink(e.to, q, r)).join(' ') || t('un.none')],
       [t('un.fn.where'), focused.file ? code(focused.file) : '—'],
     ])}<div class="actions" style="margin-top:8px"><a class="btn btn--secondary btn--sm" href="${scrLink(focus)}">${t('un.j.open')}</a><a class="link" href="${href(r.path, Object.assign({}, q, { focus: null }))}">${t('flt.clear')}</a></div></section>` : '';
   const depths = [...new Set(pages.map(s => (s.depth == null || s.depth < 0 ? -1 : s.depth)))].sort((a, b) => (a < 0) - (b < 0) || a - b);
