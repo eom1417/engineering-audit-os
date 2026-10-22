@@ -111,6 +111,64 @@ function readUsage(again) {
   return usage;
 }
 const all = u => ac.usedTokens(u) || 0;
+const tok = n => ac.tokens(n) || '0';
+const mins = ms => (ms ? ac.secs(ms / 1000) : '');
+const money = (usd, none) => (usd != null ? ac.money(usd) : none);
+const stageName = id => (has('ac.stage.' + id) ? t('ac.stage.' + id) : id);
+
+/** One assistant of this computer: ready or why not, its version and model, and a check of it alone. */
+function assistantRow(a, k) {
+  const tag = a.ready ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : `<span class="tag tag--caution">${t(a.installed ? 'pv.notsigned' : 'pv.notinstalled')}</span>`;
+  const meta = [a.version, a.model || (a.ready ? t('ac.as.model.default') : ''), a.seconds != null && a.ready ? t('ac.as.answered', { s: num(a.seconds) }) : ''].filter(Boolean).join(' · ');
+  return `<li class="row ac-arow">${ac.glyph(a.ready ? 'ok' : a.installed ? 'notin' : 'unavailable')}<span class="row__main"><span class="row__title">${esc(a.name)} ${tag}</span>
+          <span class="row__meta" style="display:block">${esc(meta)}${a.reason ? ` ${esc(L(a.reason))}` : ''}</span>
+          <span style="display:block;margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-asst-one" data-id="${esc(a.id)}" ${k ? 'disabled' : ''}>${esc(t('ac.as.one.v', { name: a.name }))}</button></span></span></li>`;
+}
+
+/** The last check's cost, stage by stage, costliest first: rows on the phone, a table on the desktop. */
+function lastCheck(check) {
+  const T = check && check.total;
+  const sum = T ? `<span class="small muted num">${esc(t('ac.as.last.sum', { cost: money(T.cost_usd, t('nm')), tokens: tok(all(T)) }))}</span>` : '';
+  const head = `<section class="section" aria-labelledby="lc-h2"><div class="section-head"><h2 id="lc-h2">${t('ac.as.last')}</h2>${sum}</div>`;
+  const stages = check ? Object.entries(check.stages || {}).sort((a, b) => (b[1].cost_usd || 0) - (a[1].cost_usd || 0)) : [];
+  if (!stages.length) return `${head}
+      <div class="panel panel__pad"><p class="small ink-2">${t('ac.as.last.none.v')}</p></div></section>`;
+  const rows = stages.map(([id, s]) => `<li class="row ac-urow"><span class="row__main"><span class="row__title small">${esc(stageName(id))}</span>
+      <span class="row__meta ac-meta"><span>${esc(tok(all(s)))}</span><span>${esc(t('ac.as.turns', { n: num(s.turns || 0) }))}</span><span>${esc(mins(s.duration_ms))}</span></span></span><span class="num ac-urow__cost">${money(s.cost_usd, '')}</span></li>`).join('');
+  const table = `<div class="ac-table-wrap only-desk"><table class="ac-table"><thead><tr><th scope="col">${t('ac.as.col.stage')}</th><th scope="col">${t('ac.as.col.in')}</th><th scope="col">${t('ac.as.col.cw')}</th><th scope="col">${t('ac.as.col.cr')}</th><th scope="col">${t('ac.as.col.out')}</th><th scope="col">${t('ac.as.col.think')}</th><th scope="col">${t('ac.as.col.time')}</th><th scope="col">${t('ac.as.col.cost')}</th></tr></thead>
+    <tbody>${stages.map(([id, s]) => `<tr><th scope="row">${esc(stageName(id))}</th>${['input', 'cache_write', 'cache_read', 'output', 'thinking'].map(k => `<td class="num">${esc(tok(s[k] || 0))}</td>`).join('')}<td class="num">${esc(mins(s.duration_ms))}</td><td class="num">${money(s.cost_usd, '—')}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><th scope="row">${t('ac.as.total')}</th><td colspan="5" class="num">${esc(tok(all(T)))}</td><td class="num">${esc(mins(T.duration_ms))}</td><td class="num">${money(T.cost_usd, '—')}</td></tr></tfoot></table></div>`;
+  return `${head}
+      <p class="small ink-2" style="margin-bottom:12px">${t('ac.as.bill')}</p><ul class="panel rows only-phone">${rows}</ul>${table}</section>`;
+}
+
+/** The runs that used an assistant, the ten newest. */
+function runsUsed(runs) {
+  const rows = runs.filter(r => r.usage).slice(0, 10).map(r => `<li><a class="row" href="${href('/activity/run/' + encodeURIComponent(r.id))}">${ac.glyph(r.state === 'waiting_for_person' ? 'you' : r.state)}<span class="row__main"><span class="row__title small">${esc(L(r.label))}</span>
+      <span class="row__meta ac-meta"><span>${esc(tok(all(r.usage)))}</span><span>${esc(model.assistantName(r.assistant) || 'EAOS')}</span>${r.verb === 'fix' ? `<span>${esc(t('ac.as.closed', { n: num(r.cards) }))}</span>` : ''}<span>${esc(fmtWhen(r.created))}</span></span></span>
+      <span class="num ac-urow__cost">${money(r.usage.cost_usd, '')}</span></a></li>`).join('');
+  return rows ? `<ul class="panel rows">${rows}</ul>` : `<p class="small muted">${t('ac.as.runs.none')}</p>`;
+}
+
+/** Where the spending could improve: per closed card, per check, what was read again, thinking, the chat. */
+function improveFacts(u) {
+  const fixes = u.runs.filter(r => r.verb === 'fix' && r.usage && r.usage.cost_usd != null);
+  const closed = fixes.reduce((a, r) => a + (r.cards || 0), 0), fixCost = fixes.reduce((a, r) => a + r.usage.cost_usd, 0);
+  const T = u.check && u.check.total;
+  const readAgain = T && all(T) ? Math.round((T.cache_read || 0) / ((T.input || 0) + (T.cache_write || 0) + (T.cache_read || 0) || 1) * 100) : null;
+  const think = T && (T.output || T.thinking) ? Math.round((T.thinking || 0) / ((T.output || 0) + (T.thinking || 0)) * 100) : null;
+  const share = v => (v != null ? num(v) + '%' : ac.nmTag());
+  return `<dl class="facts">
+        <dt>${t('ac.as.i.perfix')}</dt><dd>${closed ? ac.money(fixCost / closed) : ac.nmTag()} <span class="small muted">${t('ac.as.i.perfix.v')}</span></dd>
+        <dt>${t('ac.as.i.check')}</dt><dd>${money(T && T.cost_usd, ac.nmTag())}</dd>
+        <dt>${t('ac.as.i.again')}</dt><dd>${share(readAgain)} <span class="small muted">${t('ac.as.i.again.v')}</span></dd>
+        <dt>${t('ac.as.i.think')}</dt><dd>${share(think)} <span class="small muted">${t('ac.as.i.think.v')}</span></dd>
+        <dt>${t('ac.as.i.chat')}</dt><dd>${money(u.chat && u.chat.cost_usd, ac.nmTag())}</dd></dl>`;
+}
+
+const chatFold = chat => ac.fold('chat', t('ac.as.chat'), esc(t('ac.as.chat.sum', { n: num((chat && chat.turns) || 0), cost: money(chat && chat.cost_usd, t('nm')) })),
+  `<p class="small muted">${t('ac.as.chat.note')}</p><a class="link" href="${href('/ask')}">${t('ac.ask.title')}</a>`);
+
 function asstPage(ctx) {
   if (ctx.offline) return offlinePage('ac.as.offline', 'ac.as.offline.guide');
   const check = answer('assistant_check');
@@ -124,25 +182,6 @@ function asstPage(ctx) {
   }
   const lede = ready.length ? t('ac.as.lede.ready', { names: ready.map(a => a.name).join(t('list.sep')) }) : t('ac.as.lede.none');
   const checkedAt = rows.find(a => a.checked_at);
-  const stages = u.check ? Object.entries(u.check.stages || {}).sort((a, b) => (b[1].cost_usd || 0) - (a[1].cost_usd || 0)) : [];
-  const stageName = id => (has('ac.stage.' + id) ? t('ac.stage.' + id) : id);
-  const tok = n => ac.tokens(n) || '0';
-  const mins = ms => (ms ? ac.secs(ms / 1000) : '');
-  const stageRows = stages.map(([id, s]) => `<li class="row ac-urow"><span class="row__main"><span class="row__title small">${esc(stageName(id))}</span>
-      <span class="row__meta ac-meta"><span>${esc(tok(all(s)))}</span><span>${esc(t('ac.as.turns', { n: num(s.turns || 0) }))}</span><span>${esc(mins(s.duration_ms))}</span></span></span><span class="num ac-urow__cost">${s.cost_usd != null ? ac.money(s.cost_usd) : ''}</span></li>`).join('');
-  const table = stages.length ? `<div class="ac-table-wrap only-desk"><table class="ac-table"><thead><tr><th scope="col">${t('ac.as.col.stage')}</th><th scope="col">${t('ac.as.col.in')}</th><th scope="col">${t('ac.as.col.cw')}</th><th scope="col">${t('ac.as.col.cr')}</th><th scope="col">${t('ac.as.col.out')}</th><th scope="col">${t('ac.as.col.think')}</th><th scope="col">${t('ac.as.col.time')}</th><th scope="col">${t('ac.as.col.cost')}</th></tr></thead>
-    <tbody>${stages.map(([id, s]) => `<tr><th scope="row">${esc(stageName(id))}</th>${['input', 'cache_write', 'cache_read', 'output', 'thinking'].map(k => `<td class="num">${esc(tok(s[k] || 0))}</td>`).join('')}<td class="num">${esc(mins(s.duration_ms))}</td><td class="num">${s.cost_usd != null ? ac.money(s.cost_usd) : '—'}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><th scope="row">${t('ac.as.total')}</th><td colspan="5" class="num">${esc(tok(all(u.check.total)))}</td><td class="num">${esc(mins(u.check.total.duration_ms))}</td><td class="num">${u.check.total.cost_usd != null ? ac.money(u.check.total.cost_usd) : '—'}</td></tr></tfoot></table></div>` : '';
-  const used = u.runs.filter(r => r.usage);
-  const runRows = used.slice(0, 10).map(r => `<li><a class="row" href="${href('/activity/run/' + encodeURIComponent(r.id))}">${ac.glyph(r.state === 'waiting_for_person' ? 'you' : r.state)}<span class="row__main"><span class="row__title small">${esc(L(r.label))}</span>
-      <span class="row__meta ac-meta"><span>${esc(tok(all(r.usage)))}</span><span>${esc(model.assistantName(r.assistant) || 'EAOS')}</span>${r.verb === 'fix' ? `<span>${esc(t('ac.as.closed', { n: num(r.cards) }))}</span>` : ''}<span>${esc(fmtWhen(r.created))}</span></span></span>
-      <span class="num ac-urow__cost">${r.usage.cost_usd != null ? ac.money(r.usage.cost_usd) : ''}</span></a></li>`).join('');
-  const fixes = u.runs.filter(r => r.verb === 'fix' && r.usage && r.usage.cost_usd != null);
-  const closed = fixes.reduce((a, r) => a + (r.cards || 0), 0), fixCost = fixes.reduce((a, r) => a + r.usage.cost_usd, 0);
-  const T = u.check && u.check.total;
-  const readAgain = T && all(T) ? Math.round((T.cache_read || 0) / ((T.input || 0) + (T.cache_write || 0) + (T.cache_read || 0) || 1) * 100) : null;
-  const think = T && (T.output || T.thinking) ? Math.round((T.thinking || 0) / ((T.output || 0) + (T.thinking || 0)) * 100) : null;
-  const chat = u.chat;
   const k = asking('assistant_check');
   return `<div class="page">
     ${projBack()}
@@ -151,22 +190,13 @@ function asstPage(ctx) {
     <div class="actions"><button class="btn btn--primary" data-act="ac-asst-again" data-fk="asst-again" ${k ? 'disabled' : ''}>${k ? t('ac.as.asking') : t('ac.asst.again')}</button>
       ${checkedAt ? `<p class="actions__note">${esc(t('ac.as.checked', { when: fmtWhen(checkedAt.checked_at) }))}</p>` : ''}</div>
     <section class="section" aria-labelledby="as-h"><div class="section-head"><h2 id="as-h">${t('ac.as.here')}</h2></div>
-      <ul class="panel rows">${rows.map(a => `<li class="row ac-arow">${ac.glyph(a.ready ? 'ok' : a.installed ? 'notin' : 'unavailable')}<span class="row__main"><span class="row__title">${esc(a.name)} ${a.ready ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : `<span class="tag tag--caution">${t(a.installed ? 'pv.notsigned' : 'pv.notinstalled')}</span>`}</span>
-          <span class="row__meta" style="display:block">${esc([a.version, a.model || (a.ready ? t('ac.as.model.default') : ''), a.seconds != null && a.ready ? t('ac.as.answered', { s: num(a.seconds) }) : ''].filter(Boolean).join(' · '))}${a.reason ? ` ${esc(L(a.reason))}` : ''}</span>
-          <span style="display:block;margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-asst-one" data-id="${esc(a.id)}" ${k ? 'disabled' : ''}>${esc(t('ac.as.one.v', { name: a.name }))}</button></span></span></li>`).join('')}</ul></section>
-    <section class="section" aria-labelledby="lc-h2"><div class="section-head"><h2 id="lc-h2">${t('ac.as.last')}</h2>${T ? `<span class="small muted num">${esc(t('ac.as.last.sum', { cost: T.cost_usd != null ? ac.money(T.cost_usd) : t('nm'), tokens: tok(all(T)) }))}</span>` : ''}</div>
-      ${stages.length ? `<p class="small ink-2" style="margin-bottom:12px">${t('ac.as.bill')}</p><ul class="panel rows only-phone">${stageRows}</ul>${table}` : `<div class="panel panel__pad"><p class="small ink-2">${t('ac.as.last.none.v')}</p></div>`}</section>
+      <ul class="panel rows">${rows.map(a => assistantRow(a, k)).join('')}</ul></section>
+    ${lastCheck(u.check)}
     <section class="section" aria-labelledby="ru-h"><div class="section-head"><h2 id="ru-h">${t('ac.as.runs')}</h2></div>
-      ${runRows ? `<ul class="panel rows">${runRows}</ul>` : `<p class="small muted">${t('ac.as.runs.none')}</p>`}<p class="small muted" style="margin-top:8px">${t('ac.as.runs.note')}</p></section>
+      ${runsUsed(u.runs)}<p class="small muted" style="margin-top:8px">${t('ac.as.runs.note')}</p></section>
     <section class="section" aria-labelledby="im-h"><div class="section-head"><h2 id="im-h">${t('ac.as.improve')}</h2></div>
-      <div class="panel panel__pad"><dl class="facts">
-        <dt>${t('ac.as.i.perfix')}</dt><dd>${closed ? ac.money(fixCost / closed) : ac.nmTag()} <span class="small muted">${t('ac.as.i.perfix.v')}</span></dd>
-        <dt>${t('ac.as.i.check')}</dt><dd>${T && T.cost_usd != null ? ac.money(T.cost_usd) : ac.nmTag()}</dd>
-        <dt>${t('ac.as.i.again')}</dt><dd>${readAgain != null ? num(readAgain) + '%' : ac.nmTag()} <span class="small muted">${t('ac.as.i.again.v')}</span></dd>
-        <dt>${t('ac.as.i.think')}</dt><dd>${think != null ? num(think) + '%' : ac.nmTag()} <span class="small muted">${t('ac.as.i.think.v')}</span></dd>
-        <dt>${t('ac.as.i.chat')}</dt><dd>${chat && chat.cost_usd != null ? ac.money(chat.cost_usd) : ac.nmTag()}</dd></dl></div></section>
-    <section class="section panel">${ac.fold('chat', t('ac.as.chat'), esc(t('ac.as.chat.sum', { n: num((chat && chat.turns) || 0), cost: chat && chat.cost_usd != null ? ac.money(chat.cost_usd) : t('nm') })),
-      `<p class="small muted">${t('ac.as.chat.note')}</p><a class="link" href="${href('/ask')}">${t('ac.ask.title')}</a>`)}</section>
+      <div class="panel panel__pad">${improveFacts(u)}</div></section>
+    <section class="section panel">${chatFold(u.chat)}</section>
   </div>`;
 }
 screen({ id: 'S-49', path: '/project/assistants', place: 'project', title: () => t('proj.assistants'), render: asstPage });
