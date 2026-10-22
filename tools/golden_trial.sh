@@ -17,6 +17,8 @@ import json, sys
 from pathlib import Path
 manifest = json.loads(next(Path(sys.argv[1]).rglob('run-manifest.json')).read_text())
 wanted = ('setup', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline')
+crawled = json.loads(next(Path(sys.argv[1]).rglob('live/crawl.json')).read_text()).get('pages')
+if len(crawled or []) < 4: sys.exit(f'golden trial failed: the crawl found {crawled}, not the four pages behind the welcome and the buttons')
 bad = {s: (manifest['stages'][s]['status'], manifest['stages'][s].get('reason')) for s in wanted if manifest['stages'][s]['status'] != 'ok'}
 human = next(Path(sys.argv[1]).rglob('human/index.html'), None)
 if not (human and (human.parent.parent / 'RUN.md').is_file()): sys.exit('golden trial failed: no RUN.md beside the report')

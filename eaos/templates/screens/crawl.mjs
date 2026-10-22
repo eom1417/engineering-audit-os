@@ -1,4 +1,5 @@
-// EAOS crawl: every page of a running app, found by following its links, through the pinned Playwright.
+// EAOS crawl: every page of a running app, found by following its links and pressing its moving buttons, through the
+// pinned Playwright.
 //
 // Run by eaos/screens/crawl.py as a separate process:  node crawl.mjs <config.json>
 // The config names the Playwright module folder, the app's base URL and the most pages to open. Each page is opened
@@ -29,6 +30,34 @@ function pathOf(href) {
   return (url.pathname || '/') + url.search + route;
 }
 
+// An app that moves by buttons (a tab bar, a menu of buttons) and opens on a welcome: its pages are found by pressing
+// them, never a button that would change or remove something (HungerLab: one page found of many, nothing locked).
+const STARTS = /^\s*(ابدأ|ابدا|ابدأ الآن|يلا|start|get started|begin|continue|متابعة|تابع|skip|تخطَّ?ي?|next|التالي)(\s|!|$)/i;
+const MOVERS = 'nav button, [role=navigation] button, header button, footer button, [role=tablist] button, [role=tab], [role=link], [role=menuitem]';
+const UNSAFE = /delete|remove|clear|reset|save|submit|send|pay|buy|sign|log ?out|حذف|امسح|مسح|احفظ|حفظ|أرسل|ارسل|إرسال|ادفع|دفع|شراء|خروج|تسجيل/i;
+
+const hrefs = (page) => page.evaluate(() => [...document.querySelectorAll('a[href]')].map((a) => a.href));
+
+// The welcome dismissed (once: the context keeps what it stored), then each moving button pressed in turn: the
+// addresses it led to and the links it showed.
+async function pressed(page, path) {
+  const found = [];
+  const start = page.getByRole('button', { name: STARTS }).first();
+  if (await start.isVisible().catch(() => false)) { await start.click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(500); }
+  const movers = page.locator(MOVERS);
+  for (let i = 0; i < Math.min(await movers.count(), 15); i++) {
+    const button = movers.nth(i);
+    if (UNSAFE.test((await button.innerText().catch(() => '')) + (await button.getAttribute('aria-label').catch(() => '') || ''))) continue;
+    try {
+      await button.click({ timeout: 2000 });
+      await page.waitForTimeout(300);
+      found.push(page.url(), ...await hrefs(page));
+      if (pathOf(page.url()) !== path) await page.goto(new URL(path, base).href, { waitUntil: 'load' });
+    } catch {}
+  }
+  return [...found, ...await hrefs(page)];
+}
+
 const browser = await playwright.chromium.launch({ headless: true, args: config.chromium_args || [] });
 const routes = [];
 try {
@@ -49,7 +78,7 @@ try {
     try {
       await page.goto(new URL(path, base).href, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
       try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch {}
-      links = await page.evaluate(() => [...document.querySelectorAll('a[href]')].map((a) => a.href));
+      links = config.read_only ? await hrefs(page) : await pressed(page, path);
     } catch (error) {
       status = 'error';
     }
