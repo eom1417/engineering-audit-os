@@ -263,8 +263,36 @@ def _lookup(py, registry_var):
 
 def _error_lanes(py, rel, node, found):
     """Where failures go inside the function that runs the stages: handlers and the states they record."""
-    constants = {}
+    constants = _string_constants(py, rel)
 
+    def states(body):
+        for sub in ast.walk(ast.Module(body=body, type_ignores=[])):
+            if isinstance(sub, ast.Name) and constants.get(sub.id, '').lower() in ERROR_STATES: yield constants[sub.id].lower()
+
+    seen = {(lane['to'], lane['kind'], lane.get('condition')) for lane in found.errors}
+    for sub in ast.walk(node):
+        for to, kind, condition in _lanes_of(sub, states):
+            if (to, kind, condition) in seen: continue
+            seen.add((to, kind, condition))
+            found.errors.append({'id': f'{found.id}:error:{len(found.errors)}', 'pipeline': found.id, 'from': '*', 'to': to,
+                                 'kind': kind, 'condition': condition, 'evidence': site(rel, sub.lineno, py.line(rel, sub.lineno))})
+
+
+def _lanes_of(sub, states):
+    """(to, kind, condition) of each error state one node records: in an except handler, an if, or a loop over dependencies."""
+    if isinstance(sub, ast.ExceptHandler):
+        label = _unparse(sub.type) if sub.type is not None else 'any exception'
+        return [(state, 'skip' if 'skip' in label.lower() or ERROR_STATES[state] == 'skip' else 'catch', label) for state in states(sub.body)]
+    if isinstance(sub, ast.If) and any(isinstance(s, (ast.Return, ast.Assign, ast.Expr, ast.Continue)) for s in sub.body):
+        return [(state, ERROR_STATES[state], _unparse(sub.test)) for state in states(sub.body)]
+    if isinstance(sub, ast.For) and 'depend' in _unparse(sub.iter).lower():
+        return [(state, 'block', _unparse(sub.iter)) for state in states(sub.body) if ERROR_STATES[state] == 'block']
+    return []
+
+
+def _string_constants(py, rel):
+    """{name: string} of the module's top-level string constants, and of those it imports by name."""
+    constants = {}
     def collect(module_rel, wanted=None, alias=None):
         for assign in py.trees[module_rel].body:
             if not isinstance(assign, ast.Assign): continue
@@ -274,38 +302,10 @@ def _error_lanes(py, rel, node, found):
                 for item, value in zip(names, values):
                     if isinstance(item, ast.Name) and _str(value) is not None and (wanted is None or item.id == wanted):
                         constants[alias or item.id] = _str(value)
-
     collect(rel)
     for imported, (module, attr) in py.imports.get(rel, {}).items():
-        where = py.module_rel(module)
-        if where and attr: collect(where, attr, imported)
-
-    def states(body):
-        for sub in ast.walk(ast.Module(body=body, type_ignores=[])):
-            if isinstance(sub, ast.Name) and constants.get(sub.id, '').lower() in ERROR_STATES: yield constants[sub.id].lower()
-
-    seen = {(lane['to'], lane['kind'], lane.get('condition')) for lane in found.errors}
-
-    def add(to, kind, condition, line):
-        if (to, kind, condition) in seen: return
-        seen.add((to, kind, condition))
-        found.errors.append({'id': f'{found.id}:error:{len(found.errors)}', 'pipeline': found.id, 'from': '*', 'to': to,
-                             'kind': kind, 'condition': condition, 'evidence': site(rel, line, py.line(rel, line))})
-
-    for sub in ast.walk(node):
-        if isinstance(sub, ast.ExceptHandler):
-            label = _unparse(sub.type) if sub.type is not None else 'any exception'
-            for state in states(sub.body):
-                add(state, 'skip' if 'skip' in label.lower() or ERROR_STATES[state] == 'skip' else 'catch', label, sub.lineno)
-        elif isinstance(sub, ast.If):
-            for state in states(sub.body):
-                kind = ERROR_STATES[state]
-                if not any(isinstance(s, (ast.Return, ast.Assign, ast.Expr, ast.Continue)) for s in sub.body): continue
-                add(state, kind, _unparse(sub.test), sub.lineno)
-        elif isinstance(sub, ast.For):
-            for state in states(sub.body):
-                if ERROR_STATES[state] == 'block' and 'depend' in _unparse(sub.iter).lower():
-                    add(state, 'block', _unparse(sub.iter), sub.lineno)
+        if attr and (where := py.module_rel(module)): collect(where, attr, imported)
+    return constants
 
 
 def _context_channels(py, found, functions):
