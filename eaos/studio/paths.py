@@ -405,29 +405,36 @@ def overview(nodes, edges):
     """Every path at once, as clusters: one per lane and part (a gap kind, tables, outside services), with the links
     between clusters counted; parts are cut to their parent folders until at most MAX_CLUSTERS remain. Drawn instead of
     every step, so the map stays readable at any size; `all` says whether every step is small enough to draw too."""
-    level = 0
-    while True:
-        of = {n['id']: cluster_of(n, level) for n in nodes}
-        if len(set(of.values())) <= MAX_CLUSTERS or level >= 8: break
-        level += 1
+    of, level = _clustering(nodes)
     members, gaps = defaultdict(list), Counter()
     for n in nodes:
         members[of[n['id']]].append(n)
         if n['kind'] == 'gap': gaps[of[n['id']]] += 1
     lane_of = {k: k.split(':', 2)[1] for k in members}
     weight = Counter((of[e['from']], of[e['to']]) for e in edges if e['from'] in of and e['to'] in of and of[e['from']] != of[e['to']])
-    clusters = []
-    for k, rows in sorted(members.items()):
-        head, single = rows[0], len(rows) == 1
-        part = _folder(head['component'], level) if head['component'] else None
-        clusters.append({'id': k, 'lane': lane_of[k], 'kind': 'gap' if gaps[k] == len(rows) else head['kind'] if single else 'group',
-                         'label': head['label'] if single else (head['group'] if head['lane'] in ('screen', 'call') or gaps[k] else None)
-                                  or part or head['reason'] or head['kind'],
-                         'component': part, 'reason': head['reason'] if gaps[k] else None,
-                         'size': len(rows), 'gaps': gaps[k], 'nodes': sorted(n['id'] for n in rows)[:200]})
+    clusters = [_cluster(k, lane_of[k], rows, gaps[k], level) for k, rows in sorted(members.items())]
     links = [{'from': a, 'to': b, 'n': n} for (a, b), n in sorted(weight.items())]
     return {'clusters': clusters, 'links': links, 'columns': layout(set(members), lane_of, list(weight)),
             'level': level, 'all': len(nodes) <= CLUSTER_AT}
+
+
+def _clustering(nodes):
+    """({node id: cluster id}, level): the lowest level (8 at most) at which at most MAX_CLUSTERS clusters remain."""
+    for level in range(9):
+        of = {n['id']: cluster_of(n, level) for n in nodes}
+        if len(set(of.values())) <= MAX_CLUSTERS: break
+    return of, level
+
+
+def _cluster(k, lane, rows, gaps, level):
+    """One cluster of the overview: its kind and label from its nodes (`rows`), `gaps` of which are gaps."""
+    head, single = rows[0], len(rows) == 1
+    part = _folder(head['component'], level) if head['component'] else None
+    return {'id': k, 'lane': lane, 'kind': 'gap' if gaps == len(rows) else head['kind'] if single else 'group',
+            'label': head['label'] if single else (head['group'] if head['lane'] in ('screen', 'call') or gaps else None)
+                     or part or head['reason'] or head['kind'],
+            'component': part, 'reason': head['reason'] if gaps else None,
+            'size': len(rows), 'gaps': gaps, 'nodes': sorted(n['id'] for n in rows)[:200]}
 
 
 # ---------------------------------------------------------------- the plan's timeline
