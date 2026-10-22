@@ -92,6 +92,11 @@ if [ -z "${EAOS_SKIP_TOOLS:-}" ]; then
     say "   ⚠️ بعض الأدوات لم تُثبّت. سيخبرك eaos doctor بما ينقص." "   ⚠️ Some tools did not install. eaos doctor will tell you what is missing."
 fi
 
+# A Studio kept as a service still runs the EAOS it started with: restarted, it runs this one (an update showed the old
+# version until then).
+SCOPE=$([ "$(id -u)" = 0 ] || echo --user)
+command -v systemctl >/dev/null 2>&1 && systemctl $SCOPE list-units 'eaos-studio-*' --plain --no-legend 2>/dev/null | awk '{print $1}' | xargs -r systemctl $SCOPE restart >>"$LOG" 2>&1 || true
+
 # EAOS inside the person's AI assistant: the MCP tools and the skill, for Claude Code and Codex when present.
 ASSISTANTS=""
 command -v claude >/dev/null 2>&1 && ASSISTANTS="Claude Code"

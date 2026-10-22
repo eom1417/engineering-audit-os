@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.67 (2026-10-22)
+
+- **An update reaches the Studio already running** (HungerLab's Studio still said 0.0.59 after updating): a Studio kept
+  as a service ran the EAOS it started with until someone restarted it. Its record now carries its version, and
+  opening the Studio with another EAOS stops it and starts this one (`launch.start`, `_retire`); `install.sh` restarts
+  every `eaos-studio-*` service after installing. A Studio that ends no longer removes the record of the one that
+  replaced it.
+
 ## 0.0.66 (2026-10-22)
 
 - **The safety net no longer refuses a whole batch for one unsteady screen** (HungerLab: the app ran, "0 screens

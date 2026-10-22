@@ -43,7 +43,7 @@ from starlette.middleware import Middleware
 from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Route
 
-from .. import guided
+from .. import __version__, guided
 from ..agent_tools import project_state
 from . import guard, launch, projects, read, sign_in
 from .events import Feed
@@ -344,7 +344,7 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     app = create_app(report, project=state['project'], keys=keys)
     ctx = app.state.ctx
     launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
-                                 'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin,
+                                 'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin, 'version': __version__,
                                  'page_reads_token': _remote_login_trusted(ctx)})
     try:
         if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'remote_origin': remote_origin, 'page_reads_token': True})}")
@@ -364,8 +364,16 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     except KeyboardInterrupt:
         pass
     finally:
-        launch.record_path(state).unlink(missing_ok=True)
+        _drop_record(state)
     return 0
+
+
+def _drop_record(state):
+    """This server's record goes as it ends; the record of the Studio that replaced it (an updated EAOS) stays."""
+    path = launch.record_path(state)
+    try:
+        if json.loads(path.read_text(encoding='utf-8')).get('pid') == os.getpid(): path.unlink()
+    except (OSError, ValueError): pass
 
 
 def _bind_kept(state, port, remote_origin, remote=False):

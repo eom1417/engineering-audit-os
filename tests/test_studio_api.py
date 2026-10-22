@@ -520,7 +520,17 @@ class Commands(unittest.TestCase):
         self.assertTrue(first['studio'].startswith('http://127.0.0.1:'))
         second = agent_tools.open_studio(str(self.project), show=False)
         self.assertEqual((second['studio'], second['started']), (first['studio'], False))
-        stop()
+        # EAOS updated under it (HungerLab still showed 0.0.59): the old Studio is stopped and this EAOS's started.
+        with mock.patch.object(launch, '__version__', 'newer'):
+            third = agent_tools.open_studio(str(self.project), show=False)
+        self.assertTrue(third['started'])
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and launch._alive(pid): time.sleep(0.1)
+        self.assertFalse(launch._alive(pid), 'the old Studio is gone')
+        while time.monotonic() < deadline + 10 and not record.is_file(): time.sleep(0.1)       # the new one writes its own
+        self.assertNotEqual(json.loads(record.read_text(encoding='utf-8'))['pid'], pid)
+        pid = json.loads(record.read_text(encoding='utf-8'))['pid']
+        self.stop_later(pid)()
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline and launch._alive(pid): time.sleep(0.1)
         self.assertIsNone(launch.running(server.prepare(str(self.project))[0]), 'a dead server is not reused')
