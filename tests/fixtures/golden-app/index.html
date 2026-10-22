@@ -3,13 +3,17 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>العيّنة</title>
 <style>body{font:16px system-ui;margin:24px;color:#111;background:#fff}a{display:inline-block;padding:12px;min-width:44px;color:#0b5}</style></head>
 <body>
-<nav><a href="#/now">الآن</a> <a href="#/tasks">المهام</a> <a href="#/about">عن العيّنة</a></nav>
+<!-- As HungerLab: a welcome first, then a tab bar of buttons (only one link): the crawl must press them to find pages. -->
+<section id="welcome"><p>أهلًا بك في العيّنة</p><button onclick="localStorage.started = 1; show()">ابدأ</button></section>
+<nav hidden><a href="#/now">الآن</a> <button onclick="location.hash = '#/tasks'">المهام</button> <button onclick="location.hash = '#/about'">عن العيّنة</button></nav>
 <main id="screen"></main>
 <script>
 const screens = { '#/now': 'ما يحدث الآن: ثلاث مهام مفتوحة ومهمتان منجزتان اليوم.', '#/tasks': 'قائمة المهام: كتابة التقرير، مراجعة الطلبات، الرد على العملاء.', '#/about': 'عيّنة صغيرة يفحصها EAOS في كل تحديث.' };
 // The now screen shows the time, as HungerLab's does: two recordings of it differ unless the clock is held still.
 const draw = () => { document.getElementById('screen').textContent = (screens[location.hash] || screens['#/now']) + ' ' + new Date().toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); };
 addEventListener('hashchange', draw); draw(); setInterval(draw, 1000);
+const show = () => { const on = Boolean(localStorage.started); document.getElementById('welcome').hidden = on; document.querySelector('nav').hidden = !on; };
+show();
 // The about screen shows a random tip, as many apps do: it can never be locked, and must not cost the other screens.
 // Large random digits: always far over the 1% of pixels two recordings may differ by (a random colour was not).
 const tip = document.createElement('p'); tip.style.cssText = 'font:900 96px monospace;word-break:break-all';

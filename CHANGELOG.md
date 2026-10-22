@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.68 (2026-10-22)
+
+- **The crawl finds the pages of an app that moves by buttons** (HungerLab: "pages 1", so nothing was locked, walked
+  or protected): it followed links only, and HungerLab opens on a welcome and moves by a tab bar of buttons. The crawl
+  now presses the welcome's start button once, then each moving button (a tab bar, a nav or header menu, tabs and menu
+  items, at most 15 a page) and follows every address they lead to; a button that would change or remove something
+  (save, send, delete, sign out, in English and Arabic) is never pressed, and a published site is still only read.
+- **The golden trial reproduces it**: the sample app opens on a welcome and moves by buttons (one link only); the old
+  crawl found 2 of its 4 pages, the trial demands all 4.
+
 ## 0.0.67 (2026-10-22)
 
 - **An update reaches the Studio already running** (HungerLab's Studio still said 0.0.59 after updating): a Studio kept
