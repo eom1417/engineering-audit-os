@@ -108,7 +108,7 @@ dictionary, never from the report's own sentence (so English is finished too).
 - addresses: `screen(def)`, `href(path, query)`, `navigate`, `setQuery`, `parseHash`, `refresh`, `offline()`,
   `afterRender`, `a11yRegions`
 - sheets: `sheet(name, def)`, `openSheet`, `closeSheet`, `closeSheetThen`, `rerenderSheet`, `local()`
-- acts and notices: `act(name, fn)`, `toast(text, {refusal, link})`, `announce`, `copyText`
+- acts and notices: `act(name, fn)`, `tickAct(name, list, ticks)` (ticking problems in a list), `toast(text, {refusal, link})`, `announce`, `copyText`
 - shell: `liveNow()`, `freshness()`, `setSelbar(fn)`; placeholders `outline(def)`, `outlineSheet(name, title, features)`, `loadingHTML()`
 - data: `data` (source.js), `client` (actions.js, null offline), `ActionError`, `live` and `store` (store.js), `model`,
   `selection`, `derive`, `normalize`, `contract`; `S` (the page's own state: answers being typed, the assistant)

@@ -4,7 +4,7 @@
 // (`verb:fix:step:<id>`, the server resolves its open problems). States: loading, empty (no check), not measured
 // (no waves), offline (every action opens "Open it live").
 import {
-  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, refresh, parseHash, toast, announce, setSelbar, offline,
+  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, toast, announce, setSelbar, offline,
   model, selection, data,
 } from 'eaos';
 import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page, opLinks } from '../understand-kit/kit.js';
@@ -301,14 +301,7 @@ screen({ id: 'S-09', path: '/problems/plan/:step', place: 'problems', needs: NEE
   loading: () => loading(t('un.plan.loading')) });
 
 /* ---------------- the selection over a step's problems (SEL-01): ticks, shift for a range, the bar's verbs ---------------- */
-let shift = false;
-document.addEventListener('click', e => { if (e.target.matches && e.target.matches('.un-tasklist input[type=checkbox]')) shift = e.shiftKey; }, true);
-act('un-sel', el => {
-  const order = Array.from(document.querySelectorAll('#main .un-tasklist input[data-change="un-sel"]')).map(x => x.value);
-  if (selection.toggle(el.value, el.checked, shift, order) === 'max') toast(t('sel.max'), { refusal: true });
-  shift = false;
-  refresh();
-});
+tickAct('un-sel', '.un-tasklist', '.un-tasklist input[type=checkbox]');
 act('un-sel-step', el => {
   selection.pick(el.dataset.ids.split(',').filter(Boolean), { by: 'step', value: el.dataset.step, label: t('un.step.group', { id: el.dataset.step }) });
   refresh();

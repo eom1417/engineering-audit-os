@@ -2,7 +2,7 @@
 // LNK-01). The address carries the view (who, sev, area, pstate, step, comp, q, group, n); the list shows 50 problems
 // at a time. A new check that lands while the person reads leaves the list as it was until they ask (PRB-11).
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, refresh, setQuery, parseHash, toast, announce, closeSheetThen, setSelbar,
+  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, parseHash, toast, announce, closeSheetThen, setSelbar,
   S, model, selection, data,
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
@@ -143,14 +143,7 @@ screen({
 });
 
 /* ---------- selection (SEL-01..04) ---------- */
-let shift = false;
-document.addEventListener('click', e => { if (e.target.matches && e.target.matches('.prow input[type=checkbox], .pdetail input[type=checkbox]')) shift = e.shiftKey; }, true);
-act('sel', el => {
-  const order = Array.from(document.querySelectorAll('#main .plist input[data-change="sel"]')).map(x => x.value);
-  if (selection.toggle(el.value, el.checked, shift, order) === 'max') toast(t('sel.max'), { refusal: true });
-  shift = false;
-  refresh();
-});
+tickAct('sel', '.plist', '.prow input[type=checkbox], .pdetail input[type=checkbox]');
 act('select-ids', el => {
   selection.pick(el.dataset.ids.split(',').filter(Boolean));
   refresh();
