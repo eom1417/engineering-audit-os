@@ -47,7 +47,7 @@ default, errors and their states, then, in the last milestone "Ready to release"
 Every requirement of the plan is listed in the spec with what builds it (`requirements[].covered_by`): a requirement
 nothing builds stops the blueprint, and the last milestone is not delivered while a requirement has no kept card, nor
 while its running screens have serious accessibility problems (axe, touch targets, Lighthouse accessibility and best
-practices under 0.9).
+practices under 90).
 
 ## The structure it draws
 

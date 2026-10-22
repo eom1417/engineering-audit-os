@@ -1,4 +1,5 @@
-const { chromium } = require('playwright');
+// EAOS's own Playwright, by its path: the probe sits in the app's copy, whose own (another version) Node would find first
+const { chromium } = require(process.env.EAOS_PLAYWRIGHT || 'playwright');
 (async () => {
   const browser = await chromium.launch({ args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] });
   const page = await browser.newPage(process.env.EAOS_STORAGE_STATE ? { storageState: process.env.EAOS_STORAGE_STATE } : {});

@@ -488,9 +488,10 @@ def _build_finish_job(project, arguments, progress):
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
             'look': look or (_look(state, root, progress) if screens else None),
             'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found (departures '
-                         'from DESIGN.md, screen problems, a Lighthouse score under 0.9) is fixed there first, with build_edit '
+                         'from DESIGN.md, screen problems, a Lighthouse score under 90) is fixed there first, with build_edit '
                          'card="FIX".' if remaining else
-                         f'Every milestone is built, on {branch}. Tell the person simply what was built and ask whether to take it in '
+                         f'Every milestone is built, on {branch}. Tell the person simply what was built (and, when `look` names '
+                         'stages not done, that the screens were not checked and why) and ask whether to take it in '
                          '(accept with person_agreed=true). Then offer the audit of the finished project.')}
 
 
@@ -519,12 +520,12 @@ def _unbuilt(state, build):
 
 def _unusable(look):
     """What stops the finished product's delivery in its screens: axe's serious problems, small targets, clipped text,
-    and Lighthouse accessibility or best practices under 0.9. Its speed is the release card's to prove on the production
+    and Lighthouse accessibility or best practices under 90 (of 100). Its speed is the release card's to prove on the production
     build: the copy runs in development mode, slower than any delivered app."""
     scores = (look or {}).get('speed') or {}
     return [{'gate': 'screens', 'where': row['page'], 'what': '; '.join(row['problems'])} for row in (look or {}).get('screen_problems') or []] + \
-        [{'gate': 'screens', 'where': 'the entry page', 'what': f'Lighthouse {name} is {scores[name]}, under 0.9'}
-         for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 0.9]
+        [{'gate': 'screens', 'where': 'the entry page', 'what': f'Lighthouse {name} is {scores[name]}, under 90'}
+         for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 90]
 
 
 LOOK = ('facts', 'features', 'setup', 'screens', 'visual')      # the check's own stages that picture and review the screens

@@ -143,6 +143,18 @@ class GateTests(unittest.TestCase):
             gates = {problem['gate'] for problem in found(None, out, [p.relative_to(root).as_posix() for p in root.rglob('*.ts')], rules)}
         self.assertTrue({'layers', 'structure', 'vendor', 'cycle', 'copy'} <= gates, gates)
 
+    def test_a_shape_too_small_to_hold_a_rule_is_not_a_copy(self):
+        # A real build: `() => x.y()` in several files was refused as copied code.
+        from eaos.facts.run import collect
+        from eaos.gates import found
+        with tempfile.TemporaryDirectory() as tmp:
+            root, out = Path(tmp) / 'p', Path(tmp) / 'out'
+            write(root, {f'server/src/application/m{i}/use.ts': f'import {{ db{i} }} from "./db";\nexport const close{i} = () => db{i}.end();\n'
+                         for i in range(8)})
+            collect(root.resolve(), out)
+            problems = found(None, out, [p.relative_to(root).as_posix() for p in root.rglob('*.ts')], blueprint.policy(blueprint.choose_stack(spec())))
+        self.assertNotIn('copy', {problem['gate'] for problem in problems})
+
 
 class BuildTests(unittest.TestCase):
     def setUp(self):
@@ -192,9 +204,9 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([p['where'] for p in build_tools._unbuilt(state, {'kept': {}})], ['FR-1'], 'skipped or never built')
         self.assertEqual(build_tools._unbuilt(state, {'kept': {card: 'abc'}}), [])
         look = {'screen_problems': [{'page': '/', 'width': 375, 'problems': ['axe: color-contrast (serious, 2)']}],
-                'speed': {'performance': 0.4, 'accessibility': 0.8, 'best-practices': 0.95}}
+                'speed': {'performance': 40, 'accessibility': 80, 'best-practices': 95}}
         self.assertEqual([p['what'] for p in build_tools._unusable(look)],
-                         ['axe: color-contrast (serious, 2)', 'Lighthouse accessibility is 0.8, under 0.9'],
+                         ['axe: color-contrast (serious, 2)', 'Lighthouse accessibility is 80, under 90'],
                          'the copy runs in development mode: its speed never stops a delivery')
 
     def test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder(self):

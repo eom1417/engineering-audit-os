@@ -118,10 +118,12 @@ def _broken(folder):
 
 def _copies(folder, paths):
     """The blocks and functions written twice or more outside tests and configuration, with a place in `paths`."""
-    from .fact_claims import worth_a_claim
+    from .fact_claims import SHARED_SIZE_FOR_UI, worth_a_claim
     clusters = [(f['input_sha'], f['value']['occurrences']) for f in _facts(folder, 'metrics') if f['kind'] == 'clone_cluster']
+    # a shape too small to hold a rule (`() => x.y()` in four files, a real build) is how code reads, not a copy
     clusters += [(f['value']['shape_sha'], f['value']['occurrences']) for f in _facts(folder, 'fingerprint')
-                 if f['kind'] == 'duplicate_cluster' and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))]
+                 if f['kind'] == 'duplicate_cluster' and f['value'].get('shared_size', 0) >= SHARED_SIZE_FOR_UI
+                 and worth_a_claim(f['value']['occurrences'], f['value'].get('shared_size', 0))]
     rows = {}
     for key, places in clusters:
         places = [o for o in places if not ASIDE.search(o['path'])]
