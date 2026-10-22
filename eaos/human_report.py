@@ -21,6 +21,7 @@ read here: the Studio and this page show the same numbers.
 import json
 import math
 import re
+from collections import Counter
 from pathlib import Path
 
 from . import plain
@@ -294,6 +295,17 @@ def layer_diagram(target_components, rtl):
 
 # ---------------------------------------------------------------- sections
 
+def _area_sentence(area, a, rows):
+    """An area card's words; an area whose every problem was accepted as a risk weighs in the score with no open row."""
+    if not a['measured']: return T('لم يكتمل الفحص الذي يقيس هذا المجال، فلا نعرف حالته.', 'The check that measures this area did not complete, so its state is unknown.')
+    if not a['total']: return T('لم نجد مشاكل في هذا المجال.', 'No problems found in this area.')
+    worst = next(sv for sv in SEVERITIES if a['counts'][sv])
+    top = next(iter(Counter(r['pattern'] for r in rows if r['area'] == area).most_common(1)), (None,))[0]
+    count = num(a['total'], f'problems in {area}')
+    return T(f'عدد المشاكل: {count}<br>أخطرها: {esc(W[worst][0])}<br>' + (f'أكثرها: {esc(plain.problem(top, "ar")[0])}' if top else 'كلها مخاطر قبلتها'),
+             f'Problems: {count}<br>Most serious: {esc(W[worst][1].lower())}<br>' + (f'Most common: {esc(plain.problem(top, "en")[0])}' if top else 'All are risks you accepted'))
+
+
 def section_summary(m, name):
     s, rows = m['score'], m['rows']
     out = []
@@ -319,19 +331,7 @@ def section_summary(m, name):
         key = 'structure_area' if area == 'structure' else area
         light_word = {'green': ('جيد', 'Good'), 'amber': ('يحتاج انتباهًا', 'Needs attention'),
                       'red': ('يحتاج إصلاحًا', 'Needs fixing'), 'grey': ('لم يُقَس', 'Not measured')}[a['light']]
-        if not a['measured']:
-            sentence = T('لم يكتمل الفحص الذي يقيس هذا المجال، فلا نعرف حالته.', 'The check that measures this area did not complete, so its state is unknown.')
-        elif not a['total']:
-            sentence = T('لم نجد مشاكل في هذا المجال.', 'No problems found in this area.')
-        else:
-            worst = next(sv for sv in SEVERITIES if a['counts'][sv])
-            kinds = {}
-            for r in rows:
-                if r['area'] == area: kinds[r['pattern']] = kinds.get(r['pattern'], 0) + 1
-            top = max(kinds, key=kinds.get)
-            count = num(a['total'], f'problems in {area}')
-            sentence = T(f'عدد المشاكل: {count}<br>أخطرها: {esc(W[worst][0])}<br>أكثرها: {esc(plain.problem(top, "ar")[0])}',
-                         f'Problems: {count}<br>Most serious: {esc(W[worst][1].lower())}<br>Most common: {esc(plain.problem(top, "en")[0])}')
+        sentence = _area_sentence(area, a, rows)
         area_score = (T(f'{num(a["score"], f"{area} score out of 100")} من {HUNDRED}', f'{num(a["score"], f"{area} score out of 100")} out of {HUNDRED}')
                       if a['score'] is not None else '')
         cards.append(f'<div class="card area light-{a["light"]}" data-area="{area}"><div class="area-head">'

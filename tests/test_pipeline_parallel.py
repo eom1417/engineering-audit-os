@@ -78,7 +78,7 @@ def _contents(out):
     where left out."""
     found = {}
     for path in sorted(Path(out).rglob('*')):
-        if path.is_file() and path.suffix in ('.json', '.md') and not path.name.startswith(('run-', 'report-result')):
+        if path.is_file() and path.suffix in ('.json', '.md') and not path.name.startswith(('run-', 'RUN.', 'report-result')):
             text = path.read_text(encoding='utf-8').replace(str(Path(out).resolve()), '<out>')
             kept = [line for line in text.splitlines() if not any(s in line for s in STAMPS)]
             found[path.relative_to(out).as_posix()] = hashlib.sha256('\n'.join(kept).encode()).hexdigest()

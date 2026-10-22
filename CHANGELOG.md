@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.65 (2026-10-22)
+
+- **The plan's leftovers**: every check writes `RUN.md` beside its manifest again (what ran, what did not and why, as
+  the plan said; `pipeline/report.document` was only read by a test); the golden trial also demands `journeys` and
+  `baseline` ok and `RUN.md` present; three Studio words nobody read (`ac.why.*`) removed.
+- **The report's summary no longer breaks** when every problem of an area was accepted as a risk (it weighs in the
+  score but is no open row): the whole summary of the develop report showed `max() iterable argument is empty`; found
+  by opening the report from the Studio in a real browser.
+
 ## 0.0.64 (2026-10-22)
 
 - **The remedies, whole**: a failed stage the catalog knows no remedy for is put to the person's assistant once in the

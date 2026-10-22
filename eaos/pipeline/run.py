@@ -15,6 +15,7 @@ from ..progress import ProgressLog, previous_seconds, using
 from ..usage import FILE as USAGE
 from .live_app import PAGE_STAGES, close_app
 from .paths import resolve
+from .report import document
 from .schedule import LimitedProvider, assistants, run_ready
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
@@ -203,6 +204,8 @@ def _manifest(head, began, results):
         'measured': _measured(Path(head['out']) / MANIFEST, results),
     }
     _write(Path(head['out']) / MANIFEST, manifest)
+    # RUN.md beside it: what ran, what did not and why, read before any finding.
+    (Path(head['out']) / 'RUN.md').write_text(document(manifest, head['options']['language'] or 'ar').render(), encoding='utf-8')
     return manifest
 
 

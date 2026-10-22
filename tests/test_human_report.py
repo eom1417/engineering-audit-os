@@ -97,6 +97,9 @@ class HumanReportTests(unittest.TestCase):
         (self.out / 'cards.json').write_text(json.dumps({'closed': [{'card': 'TASK-9', 'claim_id': 'CLM-1', 'title': 'braces'}]}))
         security = human_report.model(self.out)['score']['areas']['security']
         self.assertEqual((security['score'], security['accepted']), (65, 1))     # 9 + the kept medium 2: 100 x 20 / 31
+        # An area whose every problem was accepted still has its card (a real report lost its whole summary to it).
+        m = human_report.model(self.out)
+        self.assertIn('All are risks you accepted', human_report.section_summary({**m, 'rows': [r for r in m['rows'] if r['area'] != 'security']}, 'x'))
         # A serious problem is never called low priority.
         self.assertIn('Urgent because of its severity', priority_words(90, 'high'))
         self.assertIn('Low priority', priority_words(90, 'low'))
