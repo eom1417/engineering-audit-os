@@ -217,9 +217,10 @@ class LiveRun:
             self.profile.update(port=port, start=[swap(part) for part in self.profile['start']],
                                 env={name: swap(value) for name, value in (self.profile.get('env') or {}).items()})
             self.__dict__.pop('_extra', None)
-        self.sandbox.start(self.profile['start'], self.profile['port'], self.profile.get('health', '/'),
+        base = f"http://127.0.0.1:{self.profile['port']}"
+        self.sandbox.start(self.profile['start'], base + self.profile.get('health', '/'),
                            timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=self.extra())
-        return f"http://127.0.0.1:{self.profile['port']}"
+        return base
 
     def stop(self):
         """Stop the project and remove its copy, leave the run's database (stopped once no other run is on it, its data

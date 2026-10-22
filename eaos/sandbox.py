@@ -32,6 +32,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -215,6 +216,15 @@ def _listens(port, group):
     return False
 
 
+def _answers(health, group):
+    """Whether `health` answers 200, or refuses (4xx), from a process of process group `group` (_listens)."""
+    try:
+        with urllib.request.urlopen(health, timeout=2) as response: up = response.status == 200
+    except urllib.error.HTTPError as answer: up = answer.code < 500
+    except (urllib.error.URLError, OSError): return False
+    return up and _listens(urlsplit(health).port, group) is not False
+
+
 class Sandbox:
     def __init__(self, target, authorization, workdir, stage):
         self.target, self.workdir, self.stage = Path(target), Path(workdir), stage
@@ -313,8 +323,8 @@ class Sandbox:
         self._record()
         return process.returncode, out, err
 
-    def start(self, argv, port, health_path='/health', timeout=30, cwd=None, env=None):
-        """Start a service in the copy and return once http://127.0.0.1:port<health_path> answers 200, or refuses (4xx:
+    def start(self, argv, health, timeout=30, cwd=None, env=None):
+        """Start a service in the copy and return once `health` (http://127.0.0.1:<port><path>) answers 200, or refuses (4xx:
         it is up and decided; what it refuses is the next step's evidence, not minutes of waiting), from the service
         itself (_listens): another program answering on that port does not count."""
         argv = [str(part) for part in argv]
@@ -324,24 +334,18 @@ class Sandbox:
         full, where = self._command(argv, environment, self._inside(cwd), True)
         process = subprocess.Popen(full, cwd=where, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         self.started.append((process, argv, time.monotonic(), log))
+        from .assistants.command import check_cancelled
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            from .assistants.command import check_cancelled
             check_cancelled()
             if process.poll() is not None:
                 self.stop()
                 raise RuntimeError(f'{argv[0]} exited with {process.returncode} before answering; see {log.name}; '
                                    f'it said: {_tail(log.name)}')
-            try:
-                with urllib.request.urlopen(f'http://127.0.0.1:{port}{health_path}', timeout=2) as response:
-                    if response.status == 200 and _listens(port, process.pid) is not False: return
-            except urllib.error.HTTPError as answer:
-                if answer.code < 500 and _listens(port, process.pid) is not False: return
-            except (urllib.error.URLError, OSError):
-                pass
+            if _answers(health, process.pid): return
             time.sleep(0.3)
         self.stop()
-        raise RuntimeError(f'no 200 from http://127.0.0.1:{port}{health_path} within {timeout}s; see {log.name}; '
+        raise RuntimeError(f'no 200 from {health} within {timeout}s; see {log.name}; '
                            f'it said: {_tail(log.name)}')
 
     @staticmethod

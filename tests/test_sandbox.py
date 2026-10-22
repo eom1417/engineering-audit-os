@@ -118,9 +118,9 @@ class SandboxTests(Workspace):
 
     def test_a_service_that_stops_says_why_and_the_record_keeps_its_exit(self):
         with self.assertRaisesRegex(RuntimeError, 'APP_URL must be an https'):
-            self.box().start([sys.executable, '-c', 'import sys; print("APP_URL must be an https address"); sys.exit(1)'], 9, '/')
+            self.box().start([sys.executable, '-c', 'import sys; print("APP_URL must be an https address"); sys.exit(1)'], 'http://127.0.0.1:9/')
         with self.assertRaisesRegex(RuntimeError, 'exited with 3 before answering'):
-            self.box().start([sys.executable, '-c', 'raise SystemExit(3)'], 9, '/health', timeout=10)
+            self.box().start([sys.executable, '-c', 'raise SystemExit(3)'], 'http://127.0.0.1:9/health', timeout=10)
         record = self.record()
         self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
         self.assertEqual(record['commands'][-1]['exit'], 3)
@@ -135,7 +135,7 @@ class SandboxTests(Workspace):
         self.addCleanup(other.shutdown)
         taken = other.server_address[1]                         # another project's app, answering 200
         with self.assertRaisesRegex(RuntimeError, 'no 200'):
-            self.box().start([sys.executable, '-c', 'import time; time.sleep(30)'], taken, '/', timeout=3)
+            self.box().start([sys.executable, '-c', 'import time; time.sleep(30)'], f'http://127.0.0.1:{taken}/', timeout=3)
         (Path(self.tmp) / 'run.json').write_text(json.dumps({'schema_version': 1, 'install': [], 'port': taken, 'health': '/',
                                                              'start': [sys.executable, '-m', 'http.server', str(taken), '--bind', '127.0.0.1'],
                                                              'env': {'APP_URL': f'http://127.0.0.1:{taken}'}}))
