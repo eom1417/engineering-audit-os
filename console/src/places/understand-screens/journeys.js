@@ -47,26 +47,10 @@ function journeysPage(ctx) {
   const focus = q.focus || null;
   const c = j.counts || {}, v = k => (c[k] ? c[k].value : null);
   const pages = j.screens.filter(s => s.kind === 'page');
-  const taskChips = (j.tasks || []).length ? `<nav class="un-chips" aria-label="${esc(t('un.j.tasks'))}"><a href="${href(r.path, Object.assign({}, q, { task: null }))}" ${!task ? 'aria-current="true"' : ''}>${t('un.j.notask')}</a>${j.tasks.map(x => `<a href="${href(r.path, Object.assign({}, q, { task: x.id, focus: null }))}" ${task === x ? 'aria-current="true"' : ''}>${esc(L(x.name))}</a>`).join('')}</nav>`
-    : `<p class="small muted">${t('un.j.notasks')}</p>`;
-  const taskSteps = task ? `<section class="section" aria-labelledby="ts-h"><h2 class="h2" id="ts-h" style="margin-bottom:8px">${esc(L(task.name))}</h2><ol class="un-chain">${task.path.map((id, k) => {
-    const s = j.screens.find(x => x.id === id);
-    return `<li class="un-chain__step"><a class="un-chain__a" href="${scrLink(id)}"><span class="un-chain__n num">${k + 1}</span><span class="row__main"><span class="un-chain__label">${esc(s ? s.title : id)}</span><span class="small muted" style="display:block">${code(id)}</span></span></a></li>`;
-  }).join('')}</ol>${task.dead ? `<p class="small caution-ic">${t('un.j.task.dead')}</p>` : ''}</section>` : '';
-  const focused = focus && j.screens.find(s => s.id === focus);
-  const focusPart = focused ? `<section class="section panel panel__pad" aria-labelledby="jf-h"><h2 class="h2" id="jf-h">${esc(focused.title)} ${code(focused.route)}</h2>
-    ${facts([
-      [t('un.scr.depth'), esc(depthWord(focused.depth))],
-      [t('un.j.in'), j.edges.filter(e => e.to === focus).map(e => focusLink(e.from, q, r)).join(' ') || t('un.none')],
-      [t('un.j.out'), j.edges.filter(e => e.from === focus).map(e => focusLink(e.to, q, r)).join(' ') || t('un.none')],
-      [t('un.fn.where'), focused.file ? code(focused.file) : '—'],
-    ])}<div class="actions" style="margin-top:8px"><a class="btn btn--secondary btn--sm" href="${scrLink(focus)}">${t('un.j.open')}</a><a class="link" href="${href(r.path, Object.assign({}, q, { focus: null }))}">${t('flt.clear')}</a></div></section>` : '';
-  const depths = [...new Set(pages.map(s => (s.depth == null || s.depth < 0 ? -1 : s.depth)))].sort((a, b) => (a < 0) - (b < 0) || a - b);
-  const groups = depths.map(d => {
-    const list = pages.filter(s => (s.depth == null || s.depth < 0 ? -1 : s.depth) === d);
-    return `<div class="group-head"><span>${esc(depthWord(d))}</span><span class="num">${num(list.length)}</span></div>
-      <div class="rows">${list.map(s => `<a class="row ${focus === s.id ? 'is-open' : ''}" href="${scrLink(s.id)}"><span class="row__main"><span class="row__title small">${esc(s.title)}</span><span class="row__meta" style="display:block">${code(s.route)}${(s.flags || []).map(fl => `${t('list.sep')}<span class="caution-ic">${t('un.flag.' + fl)}</span>`).join('')}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</a>`).join('')}</div>`;
-  }).join('');
+  const taskChips = taskNav(j, task, q, r);
+  const taskSteps = task ? taskPath(j, task) : '';
+  const focusPart = focusSection(j, focus, q, r);
+  const groups = byDepth(pages, focus);
   const flagRow = Object.keys(FLAGS).map(k => `<span class="un-diff"><b class="num">${num(v(k))}</b><span>${t('un.flag.' + FLAGS[k])}</span></span>`).join('');
   return `<div class="page page--wide">
     ${tabs('journeys')}
@@ -82,5 +66,43 @@ function journeysPage(ctx) {
       ${(j.broken || []).length ? fold(t('un.j.broken'), esc(tn('un.pl.link', j.broken.length)), `<ul class="rows">${j.broken.map(b => `<li class="row small" style="padding-inline:0">${code(b.target)}<span class="row__main muted">${esc(where(b.file, b.line))}</span></li>`).join('')}</ul>`) : ''}</div>
     ${(j.missing || []).map(missingRow).join('')}
   </div>`;
+}
+
+// The main tasks as chips: one lights its path on the map, "no task" none
+function taskNav(j, task, q, r) {
+  if (!(j.tasks || []).length) return `<p class="small muted">${t('un.j.notasks')}</p>`;
+  return `<nav class="un-chips" aria-label="${esc(t('un.j.tasks'))}"><a href="${href(r.path, Object.assign({}, q, { task: null }))}" ${!task ? 'aria-current="true"' : ''}>${t('un.j.notask')}</a>${j.tasks.map(x => `<a href="${href(r.path, Object.assign({}, q, { task: x.id, focus: null }))}" ${task === x ? 'aria-current="true"' : ''}>${esc(L(x.name))}</a>`).join('')}</nav>`;
+}
+
+// A task's screens in order, and whether it ends nowhere
+function taskPath(j, task) {
+  return `<section class="section" aria-labelledby="ts-h"><h2 class="h2" id="ts-h" style="margin-bottom:8px">${esc(L(task.name))}</h2><ol class="un-chain">${task.path.map((id, k) => {
+    const s = j.screens.find(x => x.id === id);
+    return `<li class="un-chain__step"><a class="un-chain__a" href="${scrLink(id)}"><span class="un-chain__n num">${k + 1}</span><span class="row__main"><span class="un-chain__label">${esc(s ? s.title : id)}</span><span class="small muted" style="display:block">${code(id)}</span></span></a></li>`;
+  }).join('')}</ol>${task.dead ? `<p class="small caution-ic">${t('un.j.task.dead')}</p>` : ''}</section>`;
+}
+
+// The focused screen: its depth, the screens that lead to it and those it leads to, and its file; '' when none is focused
+function focusSection(j, focus, q, r) {
+  const focused = focus && j.screens.find(s => s.id === focus);
+  if (!focused) return '';
+  return `<section class="section panel panel__pad" aria-labelledby="jf-h"><h2 class="h2" id="jf-h">${esc(focused.title)} ${code(focused.route)}</h2>
+    ${facts([
+      [t('un.scr.depth'), esc(depthWord(focused.depth))],
+      [t('un.j.in'), j.edges.filter(e => e.to === focus).map(e => focusLink(e.from, q, r)).join(' ') || t('un.none')],
+      [t('un.j.out'), j.edges.filter(e => e.from === focus).map(e => focusLink(e.to, q, r)).join(' ') || t('un.none')],
+      [t('un.fn.where'), focused.file ? code(focused.file) : '—'],
+    ])}<div class="actions" style="margin-top:8px"><a class="btn btn--secondary btn--sm" href="${scrLink(focus)}">${t('un.j.open')}</a><a class="link" href="${href(r.path, Object.assign({}, q, { focus: null }))}">${t('flt.clear')}</a></div></section>`;
+}
+
+// The pages by their depth in clicks from the start, those with no way in last: the map's twin on a phone
+const depthOf = s => (s.depth == null || s.depth < 0 ? -1 : s.depth);
+function byDepth(pages, focus) {
+  const depths = [...new Set(pages.map(depthOf))].sort((a, b) => (a < 0) - (b < 0) || a - b);
+  return depths.map(d => {
+    const list = pages.filter(s => depthOf(s) === d);
+    return `<div class="group-head"><span>${esc(depthWord(d))}</span><span class="num">${num(list.length)}</span></div>
+      <div class="rows">${list.map(s => `<a class="row ${focus === s.id ? 'is-open' : ''}" href="${scrLink(s.id)}"><span class="row__main"><span class="row__title small">${esc(s.title)}</span><span class="row__meta" style="display:block">${code(s.route)}${(s.flags || []).map(fl => `${t('list.sep')}<span class="caution-ic">${t('un.flag.' + fl)}</span>`).join('')}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</a>`).join('')}</div>`;
+  }).join('');
 }
 screen({ id: 'S-39', path: '/understand/journeys', place: 'understand', needs: NEEDS, title: () => t('un.v.journeys'), render: journeysPage, after: readout, loading: () => loading(t('un.j.loading')) });
