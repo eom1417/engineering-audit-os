@@ -156,21 +156,30 @@ def brief(state, steps=12, notes=8):
     from . import jobs
     from .ledger import load
     log = entries(state, 400)
-    acting = [e for e in log if e.get('tool') not in READING]
-    last = log[-1] if log else None
+    last = log[-1] if log else {}
     busy = jobs.running(state['project'])
-    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     work, on = _open_work(state), in_progress(state, log)
     return {'mode': 'build from a plan' if state.get('mode') == 'build' else 'check and fix', 'branch': state.get('branch'),
-            'last_assistant': last.get('by') if last else None, 'last_activity': last.get('at') if last else None,
-            'running_job': {'id': busy['id'], 'kind': busy['kind'], 'progress': busy.get('progress')} if busy else None,
-            'open_work': work, 'in_progress': on,
-            'waiting_for_the_person': {'branch': waiting['branch'], 'decision': 'accept or undo'} if waiting else None,
+            'last_assistant': last.get('by'), 'last_activity': last.get('at'),
+            'running_job': busy and {'id': busy['id'], 'kind': busy['kind'], 'progress': busy.get('progress')},
+            'open_work': work, 'in_progress': on, 'waiting_for_the_person': _waiting(state),
             'progress': (load(state) or {}).get('totals'),
             'person_already_answered': _answered(state),
-            'last_steps': [{k: e.get(k) for k in ('at', 'by', 'tool', 'card', 'outcome') if e.get(k)} for e in acting[-steps:]],
+            'last_steps': _last_steps(log, steps),
             'notes': [{k: e.get(k) for k in ('at', 'by', 'card', 'note')} for e in log if e.get('tool') == 'note'][-notes:],
             'how_to_continue': _how_to_continue(busy, work, on)}
+
+
+def _waiting(state):
+    """The batch branch handed over and waiting for the person's accept or undo, None when none is."""
+    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    return {'branch': waiting['branch'], 'decision': 'accept or undo'} if waiting else None
+
+
+def _last_steps(log, count):
+    """The last `count` steps that acted (reading tools left out), each with the fields it has."""
+    acting = [e for e in log if e.get('tool') not in READING]
+    return [{k: e.get(k) for k in ('at', 'by', 'tool', 'card', 'outcome') if e.get(k)} for e in acting[-count:]]
 
 
 def _answered(state):
