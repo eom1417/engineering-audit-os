@@ -56,9 +56,12 @@ sheet('file', {
 act('un-openreport', async el => {
   if (!client) return;
   el.disabled = true;
+  const tab = window.open('', '_blank');        // in the click itself: a tab opened after an await is a blocked pop-up
   try {
-    const run = await client.start({ action: 'open_report', inputs: {} });
-    const a = (run.result && run.result.answer) || {};
-    closeSheetThen(() => toast(a.opened_in_browser ? t('un.files.opened') : t('un.files.where', { path: a.report_for_people || '' })));
-  } catch (e) { el.disabled = false; toast(e instanceof ActionError ? e.message : String(e), { refusal: true }); }
+    await client.start({ action: 'open_report', inputs: { show: false } });   // rebuilt with the fixes so far; opened here, never on the server
+    const url = await data.reportPage();
+    if (!url) throw new Error(t('un.files.unread'));
+    tab.location = url;
+    closeSheetThen(() => toast(t('un.files.opened')));
+  } catch (e) { if (tab) tab.close(); el.disabled = false; toast(e instanceof ActionError ? e.message : String(e), { refusal: true }); }
 });

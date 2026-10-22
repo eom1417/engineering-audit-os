@@ -22,6 +22,7 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
                                 behavior-lock/snapshots), at most 2 MB
 """
 import json
+import time
 from pathlib import Path
 
 from starlette.concurrency import run_in_threadpool
@@ -33,6 +34,10 @@ from ..studio.pipeline import SAFE
 
 PREFIX = 'studio-'
 NO_STORE = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
+MAX_PAGE, TICKET_SECONDS = 32 * 2 ** 20, 120
+# the report for people: its own inline style and script, nothing from the network, never in a frame
+PAGE_CSP = ("default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:; "
+            "connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 TEXT_TYPES = ('.md', '.json', '.jsonl', '.txt', '.csv', '.html', '.yaml', '.yml', '.sarif', '.xml', '.log')
 MAX_FILE = 2 * 2 ** 20
 MAX_IMAGE = 8 * 2 ** 20
@@ -173,7 +178,11 @@ def routes(ctx):
 
 def progress_routes(ctx):
     """The live map's routes: the progress of every flow, the check's alone, the files the check produced, the
-    screens the safety flow recorded and the check's screen pictures."""
+    screens the safety flow recorded, the check's screen pictures, and the report for people by a one-use ticket."""
+    async def ticket(request):
+        return JSONResponse(report_ticket(ctx.tickets), headers=NO_STORE)
+    async def page(request):
+        return await run_in_threadpool(report_page, ctx.report, ctx.tickets, request.path_params['ticket'])
     async def scan_progress(request):
         return JSONResponse(await run_in_threadpool(scan_state, ctx.report, ctx.feed.last_id()), headers=NO_STORE)
 
@@ -191,7 +200,8 @@ def progress_routes(ctx):
         return await run_in_threadpool(image_file, ctx.report, PICTURES, request.query_params.get('path') or '')
 
     return [Route('/api/scan-progress', scan_progress), Route('/api/progress', all_progress), Route('/api/report-file', produced),
-            Route('/api/screen', screen), Route('/api/report-image', picture)]
+            Route('/api/screen', screen), Route('/api/report-image', picture), Route('/api/report-ticket', ticket),
+            Route('/report/{ticket}', page)]
 
 
 def declaration(flow):
@@ -237,6 +247,29 @@ def progress_state(report, state, last_id=None):
     if state: flows.update((flow, flow_state(journeys.folder(state, flow), flow)) for flow in journeys.flows(state)[1:])
     needed = toolchain.needed(toolchain.project_files(state['project']) if state else ())
     return {'journey': journeys.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now(), 'feed_last': last_id}
+
+
+def report_ticket(tickets):
+    """`/api/report-ticket` (with the launch token): a one-use key, good for TICKET_SECONDS, to open the report for people
+    in a tab of the person's own browser (`/report/<ticket>`, no token: a page GET passes the guard), local or remote.
+    (A real incident: "Open the full report" opened a browser on the server and showed the person a server path.)"""
+    import secrets
+    now = time.time()
+    for old in [key for key, until in tickets.items() if until < now]: tickets.pop(old)
+    key = secrets.token_urlsafe(24)
+    tickets[key] = now + TICKET_SECONDS
+    return {'url': f'/report/{key}', 'seconds': TICKET_SECONDS}
+
+
+def report_page(report, tickets, ticket):
+    """`/report/<ticket>`: human/index.html (what REPORT.html is a copy of, guided.publish) as text/html with a policy of
+    its own (PAGE_CSP), once per ticket."""
+    if tickets.pop(ticket, 0) < time.time(): return _refuse(404, 'ticket', 'this address was used or has expired: open the report again')
+    target = Path(report) / 'human' / 'index.html'
+    if not target.is_file(): return _refuse(404, 'not_found', 'no report for people has been built yet')
+    if target.stat().st_size > MAX_PAGE: return _refuse(413, 'size', 'the page is larger than 32 MB')
+    return Response(target.read_bytes(), media_type='text/html; charset=utf-8',
+                    headers={**NO_STORE, 'Content-Security-Policy': PAGE_CSP, 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY'})
 
 
 def report_file(report, path):

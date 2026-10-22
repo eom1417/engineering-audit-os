@@ -218,6 +218,15 @@ class BuildTests(unittest.TestCase):
                                                {'id': 'L2', 'p95_ms': 120, 'error_rate': 0, 'threshold': {'p95_ms': 500, 'error_rate': 0.01}}]})
         self.assertEqual([(p['gate'], p['where']) for p in held], [('design', 'page'), ('load', 'L1')],
                          'a high design departure and a load scenario over its threshold hold the finished product back')
+        # A real build: k6 failed (its script unseen in the isolated run) and the milestone was delivered as if measured.
+        unproven = build_tools.build_look.unusable({'not_done': {'baseline': 'RuntimeError: k6 did not run', 'visual': 'nothing to decide'}})
+        self.assertEqual([(p['gate'], p['where']) for p in unproven], [('proof', 'baseline')])
+        from eaos import sandbox
+        runtime = Path(self.tmp.name) / 'home/projects/p-1/runtime'
+        (runtime / 'look').mkdir(parents=True)
+        (runtime.parent / 'state.json').write_text(json.dumps({'outputs': str(Path(self.tmp.name) / 'EAOS/p')}))
+        self.assertIn(Path(self.tmp.name) / 'EAOS/p', sandbox._own(Path(self.tmp.name) / 'copy', runtime / 'look'),
+                      "a candidate copy's report is the project's: k6 reads its scenario from it")
 
     def test_the_last_milestone_runs_the_projects_own_journeys_with_its_own_browsers(self):
         # Two real builds: the e2e journeys were written but never run, and EAOS's browsers are another Playwright's.

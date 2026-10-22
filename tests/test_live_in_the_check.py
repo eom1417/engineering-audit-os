@@ -112,6 +112,28 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertEqual(json.loads((self.base / 'up/load-model.json').read_text())['measured']['scenarios'][0]['p95_ms'], 312.5)
         self.assertLess(max(ORDER.index(stage) for stage in LIVE), ORDER.index('claims'))
 
+    def test_an_app_whose_code_names_no_page_locks_walks_and_loads_the_pages_the_crawl_found(self):
+        # A real check (HungerLab, an SPA with no client router): the code named no page, so lock, record, journeys and
+        # baseline stood still while the crawl had found and pictured the pages; and the Studio showed 0 screens.
+        from eaos import lock_specs
+        speed = {'conditions': {'vus': 10}, 'scenarios': []}
+        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
+                mock.patch('eaos.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live_run.LiveRun', FakeRun), \
+                mock.patch('eaos.live_setup.probe', return_value=PROBED), mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
+                mock.patch('eaos.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.lock_specs.surfaces', return_value={}), \
+                mock.patch('eaos.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
+                mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/tasks/1'}, {'path': '/#/tasks/2'}]}), \
+                mock.patch('eaos.nfr.write', side_effect=scenario), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
+            manifest, live = self.run_check('up', runtime=self.base / 'runtime')
+        self.assertLess(ORDER.index('crawl'), ORDER.index('lock'), 'the lock reads the crawl')
+        self.assertEqual({stage: manifest['stages'][stage]['status'] for stage in ('lock', 'record', 'journeys', 'baseline')},
+                         {stage: 'ok' for stage in ('lock', 'record', 'journeys', 'baseline')})
+        self.assertEqual(lock_specs.crawled_pages(self.base / 'up'), ['/', '/#/tasks/1'], 'one page per template')
+        plan = json.loads((self.base / 'up/behavior-lock/plan.json').read_text())
+        self.assertIn('pages', [s['feature'] for s in plan['specs']])
+        self.assertTrue((self.base / 'up/studio/manifest.json').is_file(), 'the Studio is written once the screens are pictured')
+        self.assertEqual(json.loads((self.base / 'up/studio/head.json').read_text()).get('not_run'), [], 'nothing stood still')
+
 
 if __name__ == '__main__':
     unittest.main()

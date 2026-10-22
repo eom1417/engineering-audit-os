@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.0.60 (2026-10-22)
+
+- **An app whose code names no page is still locked, walked and loaded**: HungerLab's check (an SPA with no client
+  router, what EAOS's own blueprint builds) had no `page` in its facts, so `lock`, `record`, `journeys` and `baseline`
+  stood still while the crawl had found and pictured its pages. `lock` now runs after `crawl` and reads it: the crawl's
+  distinct pages stand in for the code's (`lock_specs.crawled_pages`), one source for the lock, the load and the
+  Studio's journeys and screens.
+- **A stage that did not run says why, in the person's language**: the Studio's stage sheet showed EAOS's English
+  sentence; now every stage row carries the catalog's words (`reason_texts`), the report for people says the reason
+  beside "not run", the Studio's head lists what did not run (`not_run`, one source: `pipeline.report.absences`), "Redo
+  from here" is offered for every stage once the check ended, and the copied command `eaos check --again-from <stage>`
+  exists.
+- **The report for people opens in the person's own browser**: "Open the full report" ran a browser on the server and
+  showed a server path. The Studio now opens a tab at `/report/<ticket>`, a one-use address minted with the launch
+  token, served as HTML with a policy of its own; local or remote alike.
+- **The Studio's data is written once the screens are pictured**, so Understand shows them mid-check.
+- **A measurement that did not happen is no pass**: a real build's k6 failed (the isolated run of a candidate copy did
+  not show it the report folder, `sandbox._own`) and the last milestone was delivered as if measured. The report folder
+  of the project is shown to a copy's run, and `setup`, `screens` or `baseline` not run on the finished product hold the
+  last milestone (`proof`).
+
 ## 0.0.59 (2026-10-22)
 
 - **The finished product is held to every direction the owner named, not only its screens**: the last milestone was

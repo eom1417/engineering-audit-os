@@ -160,6 +160,22 @@ class ReportFile(Project):
             self.assertEqual((answer.status_code, answer.json()['error']), (status, error), path)
         self.assertEqual(self.get('/api/report-file', path='edge.json').status_code, 200)
 
+    def test_the_report_for_people_opens_by_a_one_use_ticket_as_html_with_its_own_policy(self):
+        # A real incident, remote Studio: "Open the full report" ran a browser on the server and showed its file path.
+        (self.report / 'human').mkdir(exist_ok=True)
+        (self.report / 'human/index.html').write_text('<!doctype html><html lang="ar"><script>1</script><p>تقرير</p></html>', encoding='utf-8')
+        http, keys, _ = self.client()
+        self.assertEqual(http.get('/api/report-ticket').status_code, 401, 'the ticket needs the launch token')
+        url = http.get('/api/report-ticket', headers={'X-EAOS-Token': keys.token}).json()['url']
+        self.assertTrue(url.startswith('/report/'))
+        answer = http.get(url)
+        self.assertEqual((answer.status_code, answer.headers['content-type']), (200, 'text/html; charset=utf-8'))
+        self.assertIn('تقرير', answer.text)
+        self.assertIn("script-src 'unsafe-inline'", answer.headers['content-security-policy'])
+        self.assertIn("connect-src 'none'", answer.headers['content-security-policy'])
+        self.assertEqual(http.get(url).json()['error'], 'ticket', 'one use')
+        self.assertEqual(http.get('/report/made-up').status_code, 404)
+
     def test_paths_that_leave_the_report_are_refused_and_only_recorded_screens_are_served(self):
         outside = Path(self.tmp.name) / 'secret.md'
         outside.write_text('secret\n')

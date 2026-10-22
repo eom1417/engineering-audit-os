@@ -22,7 +22,6 @@ export default {
   'un.files.lede.v': ['{n} ملفًا نصيًا في التقرير.', '{n} text files in the report.'],
   'un.files.unread': ['تعذّرت قراءة الملف', 'The file could not be read'],
   'un.files.unread.why': ['الملف أكبر من 2 ميغابايت، أو ليس نصًا.', 'The file is over 2 MB, or it is not text.'],
-  'un.files.where': ['التقرير الكامل هنا: {path}', 'The full report is here: {path}'],
   'un.his.lede.v': ['سجّل EAOS {n} لمشروعك.', 'EAOS recorded {n} of your project.'],
   'un.pl.check': [{ zero: 'لا فحوص', one: 'فحصًا واحدًا', two: 'فحصين', few: '{n} فحوص', many: '{n} فحصًا', other: '{n} فحص' }, { one: '1 check', other: '{n} checks' }],
   'un.pl.event': [{ zero: 'لا أحداث', one: 'حدث واحد', two: 'حدثان', few: '{n} أحداث', many: '{n} حدثًا', other: '{n} حدث' }, { one: '1 event', other: '{n} events' }],

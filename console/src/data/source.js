@@ -132,6 +132,13 @@ export async function reportFile(path) {
   return answer.ok ? answer.text() : null;
 }
 
+/** A one-use address of the report for people, opened in a tab of this browser (live only), or null. */
+export async function reportPage() {
+  if (mode !== 'live') return null;
+  const answer = await apiGet('/api/report-ticket');
+  return answer.ok ? (await answer.json()).url : null;
+}
+
 /** A picture the server gives only with the launch token, as a data: address (the page allows data: images, not
  *  blob:), or null when it cannot be read. */
 export async function tokenImage(path) {

@@ -21,11 +21,17 @@ STATE = {'ar': {'ok': 'تمّت', 'skipped': 'مُستبعدة', 'unavailable': 
                 'not_reached': 'not reached'}}
 
 
-def _reason(row, language):
-    """Why a stage did not run, in the reader's language from its reason_code (an AI stage names the assistant and what
-    is wrong with it), else EAOS's own sentence."""
-    from ..progress.reasons import reason_text
-    return reason_text(row.get('reason_code'), language) or row['reason']
+def absences(manifest):
+    """[{stage, status, reason: {ar, en}}] of every stage that did not end ok: the catalog's words for its reason_code
+    (eaos/data/errors.json reasons), else EAOS's own sentence in both. The one list the report for people, RUN.md and
+    the Studio's head read (a real check: ten stages stood still and nobody said why in the person's language)."""
+    from ..progress.reasons import reasons
+    rows = []
+    for name, row in (manifest.get('stages') or {}).items():
+        if row.get('status') == 'ok': continue
+        said = reasons().get(str(row.get('reason_code') or '')) or {}
+        rows.append({'stage': name, 'status': row.get('status'), 'reason': {lang: said.get(lang) or row.get('reason') or '' for lang in ('ar', 'en')}})
+    return rows
 
 
 def document(manifest, language='ar'):
@@ -37,11 +43,10 @@ def document(manifest, language='ar'):
                 f"{words['total']}: {manifest['seconds']}s · {manifest['status']}",
                 f"{words['without']}: {', '.join(without)}" if without else ''])
     ran = [(name, row) for name, row in manifest['stages'].items() if row['status'] == 'ok']
-    absent = [(name, row) for name, row in manifest['stages'].items() if row['status'] != 'ok']
     doc.section(words['examined'])
     doc.table([words['stage'], words['seconds'], words['produced']],
               [[name, f"{row['seconds']:.2f}", ', '.join(row['artifacts']) or '—'] for name, row in ran])
     doc.section(words['absent'])
     doc.table([words['stage'], words['status'], words['reason']],
-              [[name, states.get(row['status'], row['status']), _reason(row, language)] for name, row in absent])
+              [[row['stage'], states.get(row['status'], row['status']), row['reason'][language]] for row in absences(manifest)])
     return doc
