@@ -7,7 +7,7 @@ import {
   t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, refresh, parseHash, toast, announce, setSelbar, offline,
   model, selection, data,
 } from 'eaos';
-import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page } from '../understand-kit/kit.js';
+import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page, opLinks } from '../understand-kit/kit.js';
 import { buildPage } from './build.js';
 
 const NEEDS = ['plans', 'cards', 'paths', 'operations', 'history'];
@@ -240,7 +240,7 @@ function stepPage(ctx) {
   const tl = timeline();
   const wave = id => { const x = tl && tl.tasks.find(y => y.id === id); return x ? x.wave : null; };
   const ops = ((data.section('operations') || {}).operations || []).filter(o => o.step === s.id);
-  const opsLine = ops.map(o => `<a class="link" href="${href('/understand/operations', { sheet: 'op:' + o.order })}">#${num(o.order)}</a>`).join(' ');
+  const opsLine = opLinks(ops);
   const waitsLine = s.waits.length ? s.waits.map(w => `<a class="link" href="${href('/problems/plan/' + enc(w[0]))}">${code(w[0])}</a> <span class="small muted">${esc(tn('pl.problem', w[1]))}</span>`).join(t('list.sep')) : t('un.step.free');
   const weights = all.reduce((sum, x) => sum + (x.weight || 0), 0);
   const row = p => {

@@ -44,6 +44,8 @@ export const OPS = ['introduce', 'rebuild', 'merge', 'modify', 'delete', 'retain
 const SAME_OP = { refactor: 'modify', new: 'introduce', missing: 'introduce', keep: 'retain' };
 export const opOf = op => SAME_OP[op] || (GLYPH[op] ? op : 'modify');
 export const glyph = (op, size) => `<svg class="opg opg--${opOf(op)}" viewBox="0 0 16 16" ${size ? `width="${size}" height="${size}"` : ''} aria-hidden="true"><path d="${GLYPH[opOf(op)]}"/></svg>`;
+/** Links to operations by their order, each opening its sheet in Operations. */
+export const opLinks = ops => ops.map(o => `<a class="link" href="${href('/understand/operations', { sheet: 'op:' + o.order })}">#${num(o.order)}</a>`).join(' ');
 export const opTag = (op, quiet) => `<span class="optag optag--${opOf(op)}${quiet ? ' optag--quiet' : ''}"><span class="optag__sw">${glyph(op)}</span>${t('un.op.' + opOf(op))}</span>`;
 
 /** The severity mix of a component or a check: one 100 % bar, critical at the start, words for screen readers. */

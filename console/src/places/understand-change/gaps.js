@@ -3,7 +3,7 @@
 // decision. "Fix its problems…" picks the gap's open problems and opens the one Fix preview in Problems.
 import { t, tn, L, num, esc, icon, code, href, rich, screen, data, model } from 'eaos';
 import {
-  tabs, seg, prov, search, count, opTag, opOf, facts, prow, fixBtn, enc, loading, notFound, back, matches, notMeasured, empty, openOf, decisionLink,
+  tabs, seg, prov, search, count, opTag, opOf, facts, prow, fixBtn, enc, loading, notFound, back, matches, notMeasured, empty, openOf, decisionLink, opLinks,
 } from '../understand-kit/kit.js';
 import { targetOf } from '../understand-kit/model.js';
 
@@ -83,7 +83,7 @@ function gapPage(ctx) {
         [t('un.gap.files'), esc(tn('pl.file', g.files))],
         [t('un.gap.cover'), coverTag(g.cover)],
         merged.length ? [t('un.gap.merged'), merged.map(code).join(' ')] : null,
-        [t('un.gap.ops'), ops.length ? ops.map(o => `<a class="link" href="${href('/understand/operations', { sheet: 'op:' + o.order })}">#${num(o.order)}</a>`).join(' ') : `<span class="muted">${t('un.none')}</span>`],
+        [t('un.gap.ops'), ops.length ? opLinks(ops) : `<span class="muted">${t('un.none')}</span>`],
         [t('un.gap.steps'), (g.steps || []).length ? g.steps.map(s => `<a class="link" href="${href('/problems/plan/' + enc(s))}">${code(s)}</a>`).join(' ') : `<span class="muted">${t('un.gap.nostep')}</span>`],
         [t('un.gap.decision'), decisionLink(g.decision)],
         g.closed && g.closed.value != null ? [t('un.gap.share'), Math.round(g.closed.value * 100) + '%'] : null,
