@@ -131,33 +131,43 @@ function actionsHTML(r, rs) {
 }
 
 /* ---------- its result ---------- */
-function resultHTML(r, rs, view) {
-  const e = view.error;
-  if (e && ['failed', 'stopped'].includes(rs)) {
-    return `<section class="panel ac-result ac-result--fail" aria-label="${esc(t('ac.run.error'))}">
+function errorHTML(e) {
+  return `<section class="panel ac-result ac-result--fail" aria-label="${esc(t('ac.run.error'))}">
       <dl class="facts"><dt>${t('ac.run.what')}</dt><dd>${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}</dd>
         ${e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : ''}
         <dt>${t('ac.run.recoverable')}</dt><dd>${t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')}</dd></dl>
       ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}</section>`;
-  }
-  const res = view.result || r.result;
-  if (!res) return '';
-  const d = res.diff_stat, tests = res.tests;
-  const rows = [];
+}
+/** The checks' verdict: changes kept and left out. */
+function testsHTML(tests) {
+  /* older records carry only the engine's English sentence: its two numbers are read back so the page speaks the person's language */
+  const said = tests.kept == null && /^(\d+) change\(s\) passed every check; (\d+) left out/.exec(tests.summary || '');
+  if (said) Object.assign(tests, { kept: +said[1], left: +said[2] });
+  return ac.mark(tests.passed ? 'ok' : tests.passed === false ? 'failed' : 'skipped', esc(tests.kept != null ? t('ac.run.tests.n', { kept: tn('ac.run.change', tests.kept), left: num(tests.left || 0) }) : t(tests.passed ? 'wt.fix.tests.ok' : 'wt.fix.tests.no')));
+}
+const indicatorsHTML = list => list.map(x => esc(t('ac.run.indicator', { id: x.id, before: x.before == null ? '—' : num(x.before), after: x.after == null ? '—' : num(x.after) }))).join('<br>');
+const decisionHTML = r => (r.outcome ? esc(t(r.outcome === 'accepted' ? 'wt.done.accepted' : 'wt.done.rejected', { when: fmtWhen(r.decided), target: ac.mergedInto(r) }))
+  : `<span class="ac-c-accent">${t('ac.out.waits')}</span>`);
+/** A check's own rows: the problems it found and the paths it checked. */
+const checkRows = r => [[t('ac.run.check.found'), `<a class="link" href="${href('/problems')}">${esc(tn('pl.problem', model.totals().problems))}</a>`],
+  [t('ac.run.check.paths'), esc(((r.inputs && r.inputs.paths) || ['complete']).map(pathName).join(t('list.sep')))]];
+/** The result's facts as [label, value] rows. */
+function resultRows(r, res) {
+  const rows = [], d = res.diff_stat;
   if (res.branch) rows.push([t('ac.run.branch'), `<a class="link" href="${href('/project/branches/' + enc(res.branch))}">${code(res.branch)}</a>`]);
   if (d) rows.push([t('ac.run.diffstat'), `${esc(tn('pl.file_changed', d.files))} <bdi dir="ltr" class="num">+${num(d.insertions)} −${num(d.deletions)}</bdi>`]);
-  /* older records carry only the engine's English sentence: its two numbers are read back so the page speaks the person's language */
-  const said = tests && tests.kept == null && /^(\d+) change\(s\) passed every check; (\d+) left out/.exec(tests.summary || '');
-  if (said) Object.assign(tests, { kept: +said[1], left: +said[2] });
-  if (tests) rows.push([t('ac.run.tests'), ac.mark(tests.passed ? 'ok' : tests.passed === false ? 'failed' : 'skipped', esc(tests.kept != null ? t('ac.run.tests.n', { kept: tn('ac.run.change', tests.kept), left: num(tests.left || 0) }) : t(tests.passed ? 'wt.fix.tests.ok' : 'wt.fix.tests.no')))]);
+  if (res.tests) rows.push([t('ac.run.tests'), testsHTML(res.tests)]);
   if ((r.left_out || []).length) rows.push([t('ac.run.leftout'), r.left_out.slice(0, 8).map(x => code(x.id)).join(' ')]);
   if ((res.cards_closed || []).length) rows.push([t('ac.run.closes'), res.cards_closed.slice(0, 12).map(c => `<a class="link" href="${href('/problems/' + enc(c))}">${code(c)}</a>`).join(' ')]);
-  if ((res.indicators || []).length) rows.push([t('ac.run.indicators'), res.indicators.map(x => esc(t('ac.run.indicator', { id: x.id, before: x.before == null ? '—' : num(x.before), after: x.after == null ? '—' : num(x.after) }))).join('<br>')]);
-  if (res.branch) rows.push([t('ac.run.decision'), r.outcome ? esc(t(r.outcome === 'accepted' ? 'wt.done.accepted' : 'wt.done.rejected', { when: fmtWhen(r.decided), target: ac.mergedInto(r) })) : `<span class="ac-c-accent">${t('ac.out.waits')}</span>`]);
-  if (r.action === 'audit' && ac.flowOfRun(r)) {
-    rows.push([t('ac.run.check.found'), `<a class="link" href="${href('/problems')}">${esc(tn('pl.problem', model.totals().problems))}</a>`]);
-    rows.push([t('ac.run.check.paths'), esc(((r.inputs && r.inputs.paths) || ['complete']).map(pathName).join(t('list.sep')))]);
-  }
+  if ((res.indicators || []).length) rows.push([t('ac.run.indicators'), indicatorsHTML(res.indicators)]);
+  if (res.branch) rows.push([t('ac.run.decision'), decisionHTML(r)]);
+  return r.action === 'audit' && ac.flowOfRun(r) ? rows.concat(checkRows(r)) : rows;
+}
+function resultHTML(r, rs, view) {
+  if (view.error && ['failed', 'stopped'].includes(rs)) return errorHTML(view.error);
+  const res = view.result || r.result;
+  if (!res) return '';
+  const rows = resultRows(r, res);
   const words = typeof res.answer === 'string' || r.action !== 'audit' ? ac.answerHTML(res.answer) : '';
   if (!rows.length && !words) return '';
   return `<section class="panel ac-result ${r.outcome === 'undone' ? '' : 'ac-result--ok'}" aria-label="${esc(t('ac.run.result'))}">
