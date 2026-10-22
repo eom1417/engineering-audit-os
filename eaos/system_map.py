@@ -449,16 +449,18 @@ def _handler_edges(h, module_of, holds):
     return edges
 
 
+def _call_edges(cols, links, uses, kept_apis):
+    """The client side's links, (from, to, weight, kind): page or caller -> API, page -> shared caller, API -> handler."""
+    sources = [p['id'] for p in cols['pages']] + [c['id'] for c in cols['callers']]
+    return ([(s, a, 1, 'call') for s in sources for a in sorted(links[s]) if a in kept_apis]
+            + [(p['id'], c, 1, 'uses') for p in cols['pages'] for c in sorted(uses[p['id']])]
+            + [(a['id'], 'H:' + h['path'], 1, 'answer' if h['function'] else 'guess') for a in cols['apis'] for h in a['handlers']])
+
+
 def _edges(view):
     """(the links drawn, module id -> data ids its files hold or use)."""
-    cols, links, uses, kept_apis = view['cols'], view['links'], view['uses'], view['kept_apis']
-    edges = []                                  # (from, to, weight, kind)
-    for source in [p['id'] for p in cols['pages']] + [c['id'] for c in cols['callers']]:
-        edges += [(source, a, 1, 'call') for a in sorted(links[source]) if a in kept_apis]
-    for p in cols['pages']:
-        edges += [(p['id'], c, 1, 'uses') for c in sorted(uses[p['id']])]
-    for a in cols['apis']:
-        edges += [(a['id'], 'H:' + h['path'], 1, 'answer' if h['function'] else 'guess') for h in a['handlers']]
+    cols = view['cols']
+    edges = _call_edges(cols, view['links'], view['uses'], view['kept_apis'])
     module_of = {m['id']: m for m in cols['modules']}
     holds = defaultdict(set)
     for h in cols['handlers']: edges += _handler_edges(h, module_of, holds)
