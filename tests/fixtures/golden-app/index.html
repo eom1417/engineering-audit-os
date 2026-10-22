@@ -11,7 +11,8 @@ const screens = { '#/now': 'ما يحدث الآن: ثلاث مهام مفتوح
 const draw = () => { document.getElementById('screen').textContent = (screens[location.hash] || screens['#/now']) + ' ' + new Date().toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); };
 addEventListener('hashchange', draw); draw(); setInterval(draw, 1000);
 // The about screen shows a random tip, as many apps do: it can never be locked, and must not cost the other screens.
-const tip = document.createElement('p'); tip.style.cssText = `padding:80px;background:hsl(${Math.random() * 360} 70% 60%)`;
-tip.textContent = 'نصيحة اليوم ' + Math.random(); if (location.hash === '#/about') document.body.append(tip);
+// Large random digits: always far over the 1% of pixels two recordings may differ by (a random colour was not).
+const tip = document.createElement('p'); tip.style.cssText = 'font:900 96px monospace;word-break:break-all';
+tip.textContent = Array.from({ length: 40 }, () => Math.floor(Math.random() * 10)).join(''); if (location.hash === '#/about') document.body.append(tip);
 </script>
 </body></html>
