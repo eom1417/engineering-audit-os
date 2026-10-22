@@ -8,6 +8,9 @@
   seed script (the setup assistant was told `require('playwright')`) loaded the app's own, another version with no
   browsers. Now the run's environment names EAOS's Playwright once (`EAOS_PLAYWRIGHT`), the probe and the seed load it
   by that path, and a test runs the probe in an app whose own Playwright fails: it must never be loaded.
+- **A long Studio run keeps the person's language**: the salon's build from the Studio wrote 67 of its 69 notes in
+  English: the run's first words asked for Arabic, and a long session forgets them. Every EAOS answer in a Studio run
+  now carries the person's language (`notes_language`), read at every step.
 
 ## 0.0.57 (2026-10-22)
 
