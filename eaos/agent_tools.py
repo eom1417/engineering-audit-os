@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import batch_finish, branches, check_choices, guided, handover, jobs, lanes, plain, sign_in as signing, toolchain
+from .assistants.readiness import NoAssistant
+from .pipeline import remedies
 from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
 from .finish_line import proof
 from .api import launch
@@ -254,6 +256,10 @@ def choose_branch(branch, project=None, person_said=''):
             'what_now': ('This branch was checked before: call status.' if checked else
                          'Call audit: the check runs on this branch (its own copy; the person\'s checkout is not switched).')}
 
+def _batches(wave, retired):     # status' open and retired batches
+    return {'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None, 'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None}
+
+
 def status(project=None):
     from . import ledger
     try: state = project_state(project)
@@ -267,9 +273,7 @@ def status(project=None):
                 'more than one branch with different code: the person chooses which one EAOS works on'},
                 'handover': handover.brief(state)}
     guided.reconcile(state)
-    retired = guided.retire_stale_batch(state)
-    head = _head(state)
-    checked = guided.scan_done(state)
+    retired, head, checked = guided.retire_stale_batch(state), _head(state), guided.scan_done(state)
     setup, safety, wave = state.get('setup') or {}, state.get('safety') or {}, state.get('open_wave')
     waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     busy = jobs.running(state['project'])
@@ -280,12 +284,12 @@ def status(project=None):
               'app_runs': setup.get('ok') if _set_up(state, head) else None,
               'safety_net': safety if guided.same_code(state, safety.get('commit'), head) else None,
               'progress': ((ledger.load(state) or {}).get('totals') if checked else None),
-              'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None,
-              'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None,
+              **_batches(wave, retired),
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
     if busy: step = signing.step(state, ('wait', f"a {busy['kind']} is running"))
     elif not checked: step = ('audit', 'the project has not been checked')
+    elif (pending := remedies.pending(guided.report_of(state))): step = ('audit', f'again_from={pending}: a remedy EAOS knows was not tried on it yet')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
     elif wave and (_no_safety_net(state) or {}).get('recorded') == 0:
         step = ('fix_abandon', f"batch {wave['number']} cannot be closed: the safety net recorded nothing")
@@ -319,13 +323,12 @@ def _fresh_report(state):
 # ---------------------------------------------------------------- diagnosis
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False):
-    """`use_assistant`, `assistant` (claude or codex): the person's choice for the check's AI, kept. One not ready
-    (eaos/assistants/readiness.py) stops the check before it starts, with why and the fix; `without_ai`: this one check with
-    the rules alone. `again_from`: the last check goes on from that stage on the checked commit, it and the stages reading
-    it run again and the rest is kept (`engines`: only those tools). `paths`: only those (eaos/pipeline/paths.py); `mode`:
-    normal or speed, `sign_in`: hand, test_user or none, kept (eaos/check_choices.py); `published`: an address read signed in;
-    `run_app`: their yes to run their app, kept; `go_on`: a stopped check goes on (Retry); `fixed`: their assistant is fixed."""
+          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False, person_agreed=False):
+    """`use_assistant`, `assistant`: the person's choice for the check's AI, kept (one not ready stops it, with why);
+    `without_ai`: the rules alone; `again_from`: the last check goes on from that stage (`engines`: only those tools);
+    `paths`, `mode`, `sign_in`, `published`, `run_app` (kept: eaos/check_choices.py); `go_on`: Retry; `fixed`: the assistant
+    is fixed; `person_agreed`: their yes to a remedy's question (eaos/pipeline/remedies.py): the app runs, from setup."""
+    run_app, again_from = remedies.agreed(run_app, again_from, person_agreed)
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
@@ -392,7 +395,6 @@ def _older_check(state):
 def _audit_job(project, arguments, progress):
     """The check, once none of the tools it needs here is still being installed; without those that failed only when
     the person chose to start without them (`without_tools`)."""
-    from .pipeline import check
     from .start_here import start_here
     state = guided.load(project)
     out = guided.report_of(state)
@@ -401,21 +403,19 @@ def _audit_job(project, arguments, progress):
     if failed and not without: raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = check_choices.options(state, progress, failed, guided.check_provider(state), guided.check_runtime(state),
                                     arguments.get('paths'), arguments.get('engines'), arguments.get('published'))
-    if arguments.get('without_ai'):
-        from .assistants.readiness import NoAssistant
-        options['provider'] = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
+    if arguments.get('without_ai'): options['provider'] = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
     source = guided.source(state, state.get('scanned_commit') if arguments.get('again_from') else None)   # going on: the checked code
     read = {} if arguments.get('again_from') else {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}   # taken before the scan reads: a commit made meanwhile is not in it
-    from .pipeline import remedies
+    from .pipeline import check
     done = check(str(source), out, arguments.get('again_from'), state.get('scanned_dirty') is False, go_on=bool(arguments.get('go_on')), **options)
-    remedies.apply(done, lambda stages: check(str(source), out, stages, True, **options), out, progress, guided.chosen_assistant(state))
+    done = remedies.apply(done, lambda stages: check(str(source), out, stages, True, **options), out, progress, guided.chosen_assistant(state), options['provider'])
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_with=tool_digest(), **read)
     guided.retire_stale_batch(state)
     guided.publish(state)
     guided.save(state)
-    return overview(project)
+    return {**overview(project), **remedies.consent(done, CONSENT)}
 
 
 def overview(project=None):
@@ -937,8 +937,7 @@ def _chosen(state, cards, size):
 
 
 def _no_safety_net(state):
-    """Why no batch may open: the safety net of this code is missing, or recorded nothing, so fix_finish would refuse
-    every change after the work was done (owner's trial, 2026-10-10); None when it holds."""
+    """Why no batch may open (the safety net is missing or recorded nothing: fix_finish would refuse every change); None."""
     safety = state.get('safety') or {}
     if not guided.same_code(state, safety.get('commit'), _head(state)):
         return {'status': 'no_safety_net', 'what_now': 'Call safety_net first: it records what the program does today.'}

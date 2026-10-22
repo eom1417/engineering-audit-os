@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.64 (2026-10-22)
+
+- **The remedies, whole**: a failed stage the catalog knows no remedy for is put to the person's assistant once in the
+  whole check (one allowed action: run it again, or advice for the person); a remedy that needs the person's yes
+  (running the app) comes back as their question (`needs_agreement`), and their yes runs the check again from setup
+  (`audit person_agreed`); a tool that could not be installed points to `tools_find`; "where things stand" proposes
+  `again_from` for a remedy not tried yet; after `run_nodes` the stage that reads the decisions is named to run again.
+- **The golden trial proves the fix flow and the report too**: after the check, the app is set up as a fix starts, the
+  safety net must record a screen (HungerLab's batch was refused for 0), and the report for people must open by its
+  address.
+
 ## 0.0.63 (2026-10-22)
 
 - **Any AI node at any time**: `run_nodes` is an MCP job (eaos/node_jobs.py) any assistant starts, and the Studio's list

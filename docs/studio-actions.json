@@ -447,6 +447,10 @@
       "type": "boolean",
       "description": "The check stopped midway goes on from where it stopped (Retry); any other check starts from nothing."
      },
+     "person_agreed": {
+      "type": "boolean",
+      "description": "The person said yes to a remedy's question: the app runs, from setup on."
+     },
      "fixed": {
       "type": "boolean",
       "description": "The person said their assistant is fixed: the check starts, never asked again whether it is ready."
