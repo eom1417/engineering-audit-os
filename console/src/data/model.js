@@ -24,21 +24,21 @@ export const SEV_RANK = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const CLOSED = ['done', 'resolved'];
 const pct = m => (m && m.value != null ? Math.round(m.value * 100) : null);
 
+const scannedOf = s => ({ branch: s.branch || '', commit: s.commit || '', checked_at: s.at || null, detached: !!s.detached, dirty: !!s.dirty });
+const headOf = h => ({ freshness: h.freshness || 'unknown', freshness_detail: h.freshness_detail || null, next_tool: h.next ? h.next.tool : null,
+  next_action: h.next ? h.next.action : null, verdict: h.verdict || '' });
 /** The project and the check this report is of. */
 export function project() {
   const m = manifest() || {}, head = section('head') || {};
-  const scanned = head.scanned || m.scanned || {};
-  return { name: (m.project && m.project.name) || '', branch: scanned.branch || '', commit: scanned.commit || '', checked_at: scanned.at || null,
-    detached: !!scanned.detached, dirty: !!scanned.dirty, eaos_version: (head.eaos && head.eaos.version) || (m.built && m.built.version) || '',
-    freshness: head.freshness || 'unknown', freshness_detail: head.freshness_detail || null, next_tool: head.next ? head.next.tool : null,
-    next_action: head.next ? head.next.action : null, verdict: head.verdict || '' };
+  return Object.assign({ name: (m.project && m.project.name) || '', eaos_version: (head.eaos && head.eaos.version) || (m.built && m.built.version) || '' },
+    scannedOf(head.scanned || m.scanned || {}), headOf(head));
 }
 
 /** One problem as the screens draw it: the card's own fields, and what the assistant decided for it. */
 function problemOf(card) {
   const r = card.resolution;
   const decision = !r ? null : r.kind === 'fix' ? { state: 'fixes', text: r.change || r.words, why: r.why, capped: !!r.capped }
-    : { state: 'asks', question: r.question, options: r.options || [], recommendation: r.recommendation, decision: `card:${card.id}` };
+    : { state: 'asks', question: r.question, options: r.options || [], recommendation: r.recommendation, decision: 'card:' + card.id };
   return Object.assign({}, card, { decision });
 }
 
