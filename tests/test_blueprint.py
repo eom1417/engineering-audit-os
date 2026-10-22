@@ -24,6 +24,8 @@ def spec(**changes):
                           'roles': ['staff'], 'acceptance': ['a booked visit shows on its day']}],
             'roles': [{'id': 'staff', 'name': 'Staff', 'can': ['F1', 'F2']}],
             'flows': [{'id': 'FL1', 'name': 'First booking', 'actor': 'staff', 'features': ['F1', 'F2'], 'steps': ['add', 'book']}],
+            'requirements': [{'id': 'R1', 'text': 'staff register their patients', 'covered_by': ['F1']}],
+            'nonfunctional': {'languages': ['en'], 'data_sensitivity': 'none', 'platforms': ['web']},
             'look': {'theme': 'light', 'colors': {'primary': '#0F766E'}, 'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'table'],
                      'design_md': '# Clinic\n\nCalm teal on white, IBM Plex Sans Arabic.',
                      'screens': [{'id': 'S1', 'name': 'Visits', 'features': ['F2'], 'picture': 'screens/visits.png'}]}}
@@ -111,6 +113,8 @@ class DesignTests(unittest.TestCase):
         problems = '\n'.join(blueprint.validate_spec(spec(requirements=[{'id': 'FR-9', 'text': 'pay', 'covered_by': []},
                                                                         {'id': 'FR-8', 'text': 'x', 'covered_by': ['payments']}]))[0])
         self.assertIn('requirement FR-9: nothing builds it', problems)
+        self.assertIn('`requirements` is empty', '\n'.join(blueprint.validate_spec(spec(requirements=[]))[0]), 'never optional')
+        self.assertEqual(blueprint.validate_spec(spec(requirements=[], nonfunctional={}), look=False)[0], [], 'a feature added to a project')
         self.assertIn('requirement FR-8: payments is not a feature', problems)
 
 
@@ -210,6 +214,7 @@ class BuildTests(unittest.TestCase):
                          'the copy runs in development mode: its speed never stops a delivery')
 
     def test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder(self):
+        self.assertEqual(build_tools.status_of(self.project)['next']['tool'], 'blueprint_start', 'a folder not made yet is no error')
         answer = build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)
         self.assertIn('features', answer['spec_format'])
         self.assertTrue(Path(self.project).is_dir(), 'a new project folder is made')

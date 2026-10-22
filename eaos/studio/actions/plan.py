@@ -25,11 +25,20 @@ def start(actions, body):
         kept = Path(str(row.get('name') or '')).name
         if not kept.lower().endswith(SOURCE_SUFFIXES + IMAGE_SUFFIXES): raise ValueError(f'{kept}: not a plan document or a picture')
         (folder / kept).write_bytes(base64.b64decode(str(row.get('data') or ''), validate=True))
+    if not extend: _speak(project, actions.lang)
     inputs = {'source': str(folder) if files else None, 'text': text or None}
     action = 'extend_start' if extend else 'blueprint_start'
     seen = actions.preview(action, {'inputs': inputs})      # the person's press is the confirmation
     return {'run': actions.public(actions.create({'action': action, 'inputs': inputs, 'confirm': seen.get('confirm')},
                                                  project=str(project)))}
+
+
+def _speak(project, lang):
+    """The new project starts in the Studio's language: its blueprint, questions and Status speak it."""
+    from ... import agent_tools, guided
+    state = agent_tools.project_state(str(project), new=True)
+    state['lang'] = lang
+    guided.save(state)
 
 
 def _new(actions, body):
