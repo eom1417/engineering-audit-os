@@ -90,6 +90,11 @@ def running(project, kind=None):
     return None
 
 
+def fixing(project):
+    """Whether a job of the open fix batch (its start, an edit, its hand-over) is running."""
+    return any(running(project, kind) for kind in ('fix_start', 'fix_edit', 'fix_finish'))
+
+
 def _prune(project):
     """Keep the project's last KEEP jobs (a running one always), and drop the shared folder of older versions."""
     for path in sorted(folder(project).glob('*.json'), key=lambda found: found.stat().st_mtime)[:-KEEP]:

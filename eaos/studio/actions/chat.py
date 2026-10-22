@@ -49,8 +49,8 @@ RULES = '''You are the person's assistant inside EAOS Studio, beside the work it
 Read with EAOS's reading tools (status, findings, finding, plan, report_file, overview...) and the project's files, and do
 what the person asks: never answer that you cannot when an action or a control below does it. You do it by proposing
 it; a proposal is either
-{{"kind": "action", "action": "<one of the actions below>", "inputs": {{...its inputs...}}, "run": null, "why": "<one line>"}}
-or {{"kind": "control", "action": "retry"|"stop"|"pause"|"resume", "inputs": {{}}, "run": "<run id>", "why": "<one line>"}}.
+{{"kind": "action", "action": "<one of the actions below>", "inputs": {{...its inputs...}}, "run": null, "why": "<one line, in {language}>"}}
+or {{"kind": "control", "action": "retry"|"stop"|"pause"|"resume", "inputs": {{}}, "run": "<run id>", "why": "<one line, in {language}>"}}.
 {control} Only one piece of work runs at a time and the rest waits its turn: when the person
 wants something now (a new check while one runs, say), stop the running one first (a control "stop" with its run id, from
 `status`), then propose theirs. A new check is the action "audit" with {{"fresh": true}}, from nothing; a stopped check
@@ -93,7 +93,7 @@ def _turn(actions, adapter, turn, argv, message, session, direct):
         if failure or not isinstance(answer, dict): raise LookupError(f'the assistant did not answer: {failure or "no answer"}')
         proposals = _allowed(actions, answer.get('proposals'))
         result = {'session': _session(lines) or session, 'answer': NOTE.sub('', str(answer.get('answer') or '')).strip(), 'proposals': proposals,
-                  'done': [_execute(actions, p) for p in proposals if direct and _direct(p)],
+                  'done': [done for p in proposals if direct and _direct(p) if (done := _execute(actions, p))],
                   'assistant': adapter.name, 'usage': from_stream(lines)}
         with open(record['folder'] / 'turns.jsonl', 'a', encoding='utf-8') as log:
             log.write(json.dumps({'at': _now().isoformat(timespec='seconds'), 'message': message, **result}, ensure_ascii=False) + '\n')
@@ -165,6 +165,8 @@ def _execute(actions, proposal):
             run = actions.create({'action': proposal['action'], 'inputs': proposal['inputs'], 'confirm': seen.get('confirm')})
         return {'proposal': proposal, 'run': run.get('id')}
     except Exception as problem:
+        # one that needs the person's own confirmation stays the proposal they confirm, not a refusal in their chat
+        if getattr(problem, 'extra', {}).get('needs') == 'confirm': return None
         return {'proposal': proposal, 'error': str(problem)[:300]}
 
 

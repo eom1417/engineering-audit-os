@@ -153,6 +153,9 @@ li.ac-cmd { min-height: 56px; }
 /* Ask */
 .ac-chat { display: grid; gap: var(--s5); }
 .ac-turn { display: grid; gap: 4px; }
+/* a long word, a code or a tag wraps in its turn: one left unbroken widened the whole page on a phone */
+.ac-turn > * { min-width: 0; overflow-wrap: anywhere; }
+.ac-turn .tag { white-space: normal; }
 .ac-turn--you { justify-items: end; }
 .ac-bubble { max-width: 88%; padding: var(--s3) var(--s4); background: var(--sunken); border-radius: var(--r-lg); border-end-end-radius: var(--r-xs); }
 .ac-turn__meta { padding-inline: var(--s2); }

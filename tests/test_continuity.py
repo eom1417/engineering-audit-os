@@ -139,15 +139,17 @@ class Continuity(Base):
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), list(wave['kept'])), (kept, ['TASK-001']), 'the batch as it was')
         self.assertIn('S09', wave['last_error'])
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'fix_abandon')
-        # The person commits: the batch no longer fits the code, and status retires it, with why, its copy removed.
+        # The person commits: a batch with kept changes goes on (EAOS lost one so, mid hand-over), its merge says the rest;
+        # the person closes it, its copy removed.
         (self.project / 'src/e.js').write_text('export const e = 1;\n')
         git(self.project, 'add', '-A')
         git(self.project, '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-qm', 'the person works')
         answer = agent_tools.status(str(self.project))
-        self.assertIsNone(answer['open_batch'])
-        self.assertIn('code moved on', answer['retired_batch']['why'])
+        self.assertIsNotNone(answer['open_batch'])
+        self.assertIsNone(answer.get('retired_batch'))
+        agent_tools.fix_abandon(str(self.project))
         state = guided.load(self.project)
-        self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('superseded', False))
+        self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('abandoned', False))
         from eaos import ledger
         self.assertEqual({c['state'] for c in ledger.load(state)['cards'].values() if c['id'] == 'TASK-001'}, {'open'},
                          'its cards are free at once, not left "in the batch" for every next one to refuse')

@@ -57,7 +57,7 @@ function turnHTML(x, i) {
       ${md(x.answer)}
       ${done ? `<p class="small" style="margin-top:8px">${done}</p>` : ''}
       ${props ? `<div class="block-title" style="margin-top:12px">${t('ac.ask.props')}</div><ul class="ac-props">${props}</ul>` : ''}</div>
-    <span class="ac-turn__meta small muted">${esc(fmtTime(x.at))}, ${t('ac.ask.depth.' + (x.depth || 'quick'))}${c != null ? `, ${ac.money(c)}` : ''}</span></li>`;
+    <span class="ac-turn__meta small muted">${esc(fmtTime(x.at))}, ${t('as.depth.' + (x.depth || 'quick'))}${c != null ? `, ${ac.money(c)}` : ''}</span></li>`;
 }
 
 /* ---------- asking ---------- */
