@@ -335,6 +335,13 @@ def _fix_tools(server, reading, working):
     def open_studio(show: bool = True, address: str | None = None, project: str | None = None) -> str:
         return tools.open_studio(project, show, address=address)
 
+    @server.tool(annotations=working, description='Run the AI nodes on the latest check, any of them at any time (card_triage, '
+                 'visual_reviewer, ideal_planner, pipeline_gap_planner, plan_orderer, fix_reviewer; all when none named). Returns a job.')
+    @_answer
+    def run_nodes(nodes: list[str] | None = None, fresh: bool = False, project: str | None = None) -> str:
+        from .node_jobs import start
+        return start(project, nodes, fresh)
+
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '
                  'reaches the internet), found from its files. Needs the person\'s agreement once: without it, returns the question to '
                  'ask. person_agreed=true only after they said yes. Returns a job.')

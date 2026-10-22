@@ -75,9 +75,7 @@ def run_nodes(manager, run):
     try: guided.publish(guided.load(manager.project), manager.lang)
     except Exception as problem:
         say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
-    summary = {name: {'state': r['state'], 'method': r['method'], 'model': r['model'], 'cached': r['cached'],
-                      'routes': {x['decision']: len(x['subjects']) for x in r['routes']}, 'dropped': len(r['dropped'])}
-               for name, r in records.items()}
+    summary = nodes.summary(records)
     by_model = sum(r['method'] == 'model' for r in records.values())
     payload = {**manager._outcome(run, answer=None), 'nodes': summary}
     manager.store.append(run, 'result', {'en': f'{len(records)} AI nodes decided ({by_model} by your assistant, the rest by the rules only)',

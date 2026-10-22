@@ -1871,7 +1871,7 @@
   },
   {
    "id": "run_nodes",
-   "tool": null,
+   "tool": "run_nodes",
    "group": "understand",
    "label": {
     "en": "Run the AI nodes",
@@ -1885,7 +1885,7 @@
    "needs_assistant": true,
    "irreversible": false,
    "needs_consent": false,
-   "returns_job": false,
+   "returns_job": true,
    "changes_code": false,
    "inputs": {
     "type": "object",
@@ -1907,6 +1907,7 @@
        "type": "string",
        "enum": [
         "card_triage",
+        "visual_reviewer",
         "ideal_planner",
         "pipeline_gap_planner",
         "plan_orderer",

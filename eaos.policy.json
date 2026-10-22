@@ -122,6 +122,7 @@
       "eaos/design.py",
       "eaos/build_tools.py",
       "eaos/build_look.py",
+      "eaos/node_jobs.py",
       "eaos/extend.py",
       "eaos/gates.py",
       "eaos/journeys.py",

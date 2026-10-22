@@ -512,7 +512,7 @@ class RunFromTheStudio(Base):
         headers = {'X-EAOS-Token': app.token, 'X-EAOS-CSRF': app.csrf, 'Origin': 'http://127.0.0.1:8765', 'Host': '127.0.0.1:8765'}
         contract = json.loads((ROOT / 'docs/studio-actions.json').read_text(encoding='utf-8'))
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
-        self.assertTrue(action['needs_assistant'] and not action['changes_code'] and action['tool'] is None)
+        self.assertTrue(action['needs_assistant'] and not action['changes_code'] and action['tool'] == 'run_nodes')
         with mock.patch('eaos.guided.publish'), mock.patch('eaos.guided.load', return_value={}):
             status, body = app.handle('POST', '/api/runs', headers, {'action': 'run_nodes', 'inputs': {'nodes': ['card_triage', 'plan_orderer']}})
             self.assertEqual(status, 200, body)
@@ -525,3 +525,21 @@ class RunFromTheStudio(Base):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AnyNodeAnyTime(unittest.TestCase):
+    def test_any_node_runs_as_a_job_an_assistant_starts_and_the_studio_lists_every_node(self):
+        # The owner (2026-10-22): the AI must re-run any node at any time; visual_reviewer was missing from the list and no
+        # assistant outside the Studio could run a node at all.
+        import json
+        from pathlib import Path
+        from eaos import node_jobs
+        from eaos.studio import nodes
+        contract = json.loads((Path(__file__).resolve().parents[1] / 'docs/studio-actions.json').read_text())
+        action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
+        self.assertEqual(set(action['inputs']['properties']['nodes']['items']['enum']), {n.name for n in nodes.NODES})
+        with mock.patch('eaos.agent_tools._start', return_value={'job': 'j1', 'status': 'started'}) as started, \
+                mock.patch('eaos.agent_tools.project_state', return_value={'project': '/p'}):
+            self.assertEqual(node_jobs.start('/p', ['visual_reviewer'])['job'], 'j1')
+        self.assertEqual(started.call_args.kwargs['runner'], 'eaos.node_jobs')
+        self.assertIn('run_nodes', node_jobs.JOBS)

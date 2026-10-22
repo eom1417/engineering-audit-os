@@ -102,3 +102,10 @@ def run(report, names=None, launcher=None, adapters=None, project=None, lang='en
                         **inputs)
         if result is not None: records[each.name] = result
     return records
+
+
+def summary(records):
+    """{node: what it decided}: its state, how (the assistant or the rules), its routes and what it dropped."""
+    return {name: {'state': r['state'], 'method': r['method'], 'model': r['model'], 'cached': r['cached'],
+                   'routes': {x['decision']: len(x['subjects']) for x in r['routes']}, 'dropped': len(r['dropped'])}
+            for name, r in records.items()}
