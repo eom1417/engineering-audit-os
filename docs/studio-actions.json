@@ -1926,6 +1926,87 @@
     },
     "required": []
    }
+  },
+  {
+   "id": "tools_find",
+   "tool": "tools_find",
+   "group": "understand",
+   "label": {
+    "en": "Find a tool",
+    "ar": "ابحث عن أداة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "need": {
+      "type": "string",
+      "description": "What the tool must do, in a few words."
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "need"
+    ]
+   }
+  },
+  {
+   "id": "tools_add",
+   "tool": "tools_add",
+   "group": "understand",
+   "label": {
+    "en": "Add a tool",
+    "ar": "أضف أداة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "entry": {
+      "type": "object",
+      "description": "The pinned tool entry, as in toolchain.json."
+     },
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "entry"
+    ]
+   }
   }
  ],
  "verbs": [

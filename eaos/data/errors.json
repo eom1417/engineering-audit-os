@@ -775,6 +775,13 @@
     ],
     "then": "again_from"
    }
+  },
+  "sign_in_declined": {
+   "ar": "اخترت تفحص برنامجك بدون دخول، فما انفتحت الصفحات اللي تحتاج دخول.",
+   "en": "You chose to check your app without signing in, so the pages behind a sign-in were not opened.",
+   "remedy": {
+    "needs": "person"
+   }
   }
  }
 }

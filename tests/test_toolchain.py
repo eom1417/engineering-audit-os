@@ -267,3 +267,24 @@ class PreparingTests(ToolchainBase):
         built_on = _built_on()               # an AI stage reading what the tools found comes after them
         ai = [ORDER.index(stage.name) for stage in STAGES if stage.ai and built_on[stage.name] & set(check.values())]
         self.assertTrue(ai and all(ORDER.index(stage) < min(ai) for stage in set(check.values())))
+
+
+class AddedTools(ToolchainBase):
+    def test_a_tool_the_person_adds_is_pinned_agreed_installed_and_runs_as_an_engine_with_no_python(self):
+        # The owner (2026-10-22): the assistant must find a tool it lacks (GitHub) and add it, safely.
+        from unittest import mock
+        from eaos import tools_catalog
+        from eaos.engines import sarif
+        self.write()
+        entry = {**tool('fake', '1.2.3', self.archive.as_uri(), self.sha), 'license': 'MIT', 'repository': 'https://github.com/o/fake',
+                 'engine': {'args': ['{target}', '{output}']}}
+        unsafe = {**entry, 'install': {**entry['install'], 'sha256': ''}, 'license': ''}
+        self.assertEqual(tools_catalog.add(unsafe, True)['status'], 'refused', 'never without its sha256 and license')
+        self.assertEqual(tools_catalog.add(entry)['status'], 'needs_agreement', 'never without the person')
+        self.assertEqual(tools_catalog.add(entry, person_agreed=True)['status'], 'installed')
+        self.assertEqual([t['name'] for t in toolchain.registry()['tools']], ['fake'], 'part of the one list')
+        self.assertEqual(list(sarif.declared()), ['fake'])
+        self.assertIn('already a tool', ' '.join(tools_catalog.problems(entry)))
+        hits = {'items': [{'full_name': 'o/fake', 'html_url': 'https://github.com/o/fake', 'stargazers_count': 9, 'license': {'spdx_id': 'MIT'}}]}
+        with mock.patch.object(tools_catalog, '_get', side_effect=[hits, {'tag_name': 'v1.2.3', 'assets': []}]):
+            self.assertEqual(tools_catalog.find('fake checks')['candidates'][0]['license'], 'MIT')

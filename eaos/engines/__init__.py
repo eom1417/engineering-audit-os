@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import (ast_grep, bandit, checkov, codegraph, codeql, complexipy, dependency_cruiser, enola, gitleaks, gitnexus, jscpd,
-               knip, lizard, oasdiff, osv_scanner, react_docgen, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
+               knip, lizard, oasdiff, osv_scanner, react_docgen, reforge, sarif, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from .. import progress
@@ -20,7 +20,7 @@ from ..assistants import resources
 
 ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov,
                                                bandit, gitleaks, codeql, dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
-                                               ast_grep, lizard, complexipy, vulture, knip, react_docgen)}
+                                               ast_grep, lizard, complexipy, vulture, knip, react_docgen)} | sarif.declared()
 # What an engine may take while it runs; an adapter that takes more says so (CodeQL's database: codeql.MEMORY).
 ENGINE_MB = 1024
 

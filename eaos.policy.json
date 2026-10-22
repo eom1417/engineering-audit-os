@@ -123,6 +123,7 @@
       "eaos/build_tools.py",
       "eaos/build_look.py",
       "eaos/node_jobs.py",
+      "eaos/tools_catalog.py",
       "eaos/extend.py",
       "eaos/gates.py",
       "eaos/journeys.py",

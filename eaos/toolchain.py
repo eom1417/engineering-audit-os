@@ -33,22 +33,22 @@ from pathlib import Path
 
 from . import progress
 
-# The source is upstreams/toolchain.json; an installed package reads its packaged mirror, which
-# tools/validate.py keeps identical (an installed EAOS has no upstreams/ folder beside it).
+# upstreams/toolchain.json, else its packaged mirror (tools/validate.py keeps them identical; an installed EAOS has no upstreams/)
 _SOURCE = Path(__file__).resolve().parent.parent / 'upstreams/toolchain.json'
 REGISTRY = _SOURCE if _SOURCE.is_file() else Path(__file__).resolve().parent / 'data/toolchain.json'
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
 FLOW = 'tools'
 # Tools installed at once: the downloads overlap, and a 4 GB computer copes with three npm installs side by side
 WORKERS = 3
-CHUNK = 2 ** 20
-TRIVY_CACHE = 'cache/trivy'
-DAY = 24 * 3600
+CHUNK, TRIVY_CACHE, DAY = 2 ** 20, 'cache/trivy', 24 * 3600
 _PIP = threading.Lock()                 # one virtualenv for every Python tool: pip installs into it one at a time
 
 
 def registry():
-    return json.loads(REGISTRY.read_text(encoding='utf-8'))
+    """The pinned tools, and those the person added (eaos/tools_catalog.py: <home>/toolchain-added.json)."""
+    base = json.loads(REGISTRY.read_text(encoding='utf-8'))
+    added = Path(os.environ.get(base['home']['env']) or base['home']['default']).expanduser() / 'toolchain-added.json'
+    return {**base, 'tools': base['tools'] + json.loads(added.read_text(encoding='utf-8'))['tools']} if added.is_file() else base
 
 
 SKIP = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'dist', 'build', '.next', 'vendor'}
