@@ -483,22 +483,27 @@ def _step_functions(rel, data, line_of):
     found = Found(f'{rel}:states', f'{Path(rel).name} state machine', 'step_functions', site(rel, line_of('"StartAt"'), None))
     for name in data['States']: found.stage(name, site(rel, line_of(f'"{name}"'), None))
     for name, state in data['States'].items():
-        if isinstance(state, dict): _state_links(found, rel, name, state, data['States'], site(rel, line_of(f'"{name}"'), None))
+        if isinstance(state, dict): _state_links(found, name, state, data['States'], site(rel, line_of(f'"{name}"'), None))
     return found
 
 
-def _state_links(found, rel, name, state, states, where):
+def _state_links(found, name, state, states, where):
     """One state's edges to its next, default and chosen states, its choice router and its catches."""
-    stage = f'{found.id}/{slug(name)}'
-    for target in [state.get('Next'), state.get('Default')] + [c.get('Next') for c in state.get('Choices') or [] if isinstance(c, dict)]:
+    stage, choices = f'{found.id}/{slug(name)}', [c for c in state.get('Choices') or [] if isinstance(c, dict)]
+    for target in [state.get('Next'), state.get('Default')] + [c.get('Next') for c in choices]:
         if target in states: found.edge(stage, f'{found.id}/{slug(target)}', 'declared', where)
     if state.get('Type') == 'Choice':
         found.routers.append({'id': f'{found.id}:{slug(name)}', 'pipeline': found.id, 'stage': stage, 'kind': 'switch',
                               'table': name, 'on': name, 'entry': where,
                               'branches': [{'condition': _unparse_choice(c), 'to': f"{found.id}/{slug(c.get('Next'))}", 'evidence': where}
-                                           for c in state.get('Choices') or [] if isinstance(c, dict)],
+                                           for c in choices],
                               'total': bool(state.get('Default')), 'default': state.get('Default'), 'unhandled': []})
-    for catch in state.get('Catch') or []:
+    _state_catches(found, name, stage, state.get('Catch') or [], where)
+
+
+def _state_catches(found, name, stage, catches, where):
+    """A state's catches: an error lane to the state each one sends its failures to."""
+    for catch in catches:
         if isinstance(catch, dict) and catch.get('Next'):
             found.errors.append({'id': f'{found.id}:{slug(name)}:catch', 'pipeline': found.id, 'from': stage,
                                  'to': catch['Next'], 'kind': 'catch', 'condition': ','.join(catch.get('ErrorEquals') or []),
