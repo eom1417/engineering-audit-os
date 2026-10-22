@@ -102,54 +102,81 @@ function screenPage(ctx) {
   const backTo = q.from === 'reviewed' ? ['/understand/screens', t('un.v.screens')] : ['/understand/screens/all', t('un.v.screens-all')];
   const s = scr(id);
   if (!s) return notFound(id, backTo[0], backTo[1]);
-  const js = jscreen(id) || {};
-  const pg = pageOf(id, q.kind);
-  const pics = pg ? pg.pictures || [] : [];
-  const shots = (s.shots || []).length ? s.shots : pics.map(p => ({ path: p.path, width: p.width, phase: null, batch: null }));
-  const widths = [...new Set(pics.map(p => p.width).concat(shots.map(x => x.width)))].filter(Boolean).sort((a, b) => b - a);
-  const vp = widths.includes(+q.vp) ? +q.vp : widths[0];
-  const shown = pics.find(p => p.width === vp) || (shots.find(x => x.width === vp) ? Object.assign({ findings: [] }, shots.find(x => x.width === vp)) : null);
-  const before = shots.find(x => x.width === vp && x.phase === 'before'), after = shots.find(x => x.width === vp && x.phase === 'after');
-  const view = q.view === 'compare' && before && after ? 'compare' : 'one';
-  const findings = shown ? shown.findings || [] : [];
+  const p = picturesOf(s, pageOf(id, q.kind), q);
+  const { shots, findings } = p;
   const issues = openIssues(s);
   const sel = q.finding != null ? +q.finding : null;
-  const r = parseHash();
-  let picsHTML;
-  if (!shots.length && !pics.length) picsHTML = nm(t('un.scr.notcaptured'), t('un.scr.notcaptured.why'), `<a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'launcher' })}">${t('un.all.empty.act')}</a>`);
-  else if (view === 'compare') picsHTML = `<div class="un-compare"><div><div class="block-title">${t('un.phase.before')}</div>${figure(before, [], t('un.pic.cap', { w: num(vp) }))}</div><div><div class="block-title">${t('un.phase.after')}</div>${figure(after, [], t('un.pic.cap', { w: num(vp) }))}</div></div>
-    ${before.batch ? `<p class="small muted">${esc(t('un.scr.batch', { batch: before.batch }))}</p>` : ''}`;
-  else picsHTML = shown ? figure(shown, findings.map((f, i) => ({ n: i + 1, region: f.region, on: sel === i })), `${t('un.pic.cap', { w: num(vp) })}${t('list.sep')}${vpWord(shown.viewport || vp)}`) : '';
-  const issueList = findings.length ? `<ol class="panel rows un-issues">${findings.map((f, i) => `<li><a class="row ${sel === i ? 'is-open' : ''}" href="${href(r.path, Object.assign({}, q, { finding: sel === i ? null : i }))}">
-      <span class="un-num num">${i + 1}</span><span class="row__main"><span class="row__title small">${rich(L(f.title))}</span>
-      <span class="row__meta" style="display:block">${t('un.fkind.' + f.kind)}${t('list.sep')}${rich(L(f.why || ''))}${f.region ? '' : `${t('list.sep')}${t('un.scr.wholepage')}`}</span></span>${sev(f.severity)}</a></li>`).join('')}</ol>`
-    : issues.length ? `<ul class="panel rows">${issues.map(x => `<li class="row"><span class="row__main"><span class="row__title small">${rich(L(x.summary))}</span><span class="row__meta" style="display:block">${t('un.fkind.' + x.rule)}${t('list.sep')}${esc(t('un.pic.cap', { w: num(x.width) }))}</span></span>${sev(x.severity)}</li>`).join('')}</ul>`
-    : `<p class="small muted">${t(shots.length ? 'un.scr.noissues' : 'un.scr.nocheck')}</p>`;
   const inputs = s.inputs || [];
   return `<div class="page page--wide">
     ${back(backTo[0], backTo[1])}
     <div class="un-itemtags">${code(s.route)}${(s.flags || []).map(fl => `<span class="tag tag--caution">${t('un.flag.' + fl)}</span>`).join('')}</div>
     <h1 class="lede un-lede-sm">${esc(s.title)}</h1>
     <p class="guide">${esc(shots.length ? ((findings.length || issues.length) ? tn('un.scr.guide', findings.length || issues.length) : t('un.scr.guide.clean')) : t('un.scr.guide.none'))}</p>
-    ${widths.length ? `<div class="ptools"><div class="un-tools">${widths.length > 1 ? seg('vp', widths.map(w => [String(w), w <= 480 ? t('un.vp.phone') : t('un.vp.desk')]), String(vp), t('un.vp'), { dflt: String(widths[0]), cls: 'un-seg2' }) : ''}
-      ${before && after ? seg('view', [['one', t('un.scr.now')], ['compare', t('un.scr.compare')]], view, t('un.path.view'), { dflt: 'one', cls: 'un-seg2' }) : ''}</div></div>` : ''}
+    ${toolsBar(p)}
     <div class="un-scrgrid">
-      <div class="un-scrgrid__pic">${picsHTML}</div>
+      <div class="un-scrgrid__pic">${picturesHTML(p, sel)}</div>
       <div class="un-scrgrid__side">
-        <section><h2 class="h2" style="margin-bottom:8px">${t('un.scr.issues')}</h2>${issueList}</section>
+        <section><h2 class="h2" style="margin-bottom:8px">${t('un.scr.issues')}</h2>${issuesHTML(p, issues, sel, q)}</section>
         <section class="section"><h2 class="h2" style="margin-bottom:8px">${t('un.scr.inputs')}</h2>${inputs.length ? `<ul class="rows">${inputs.map(x => `<li class="row small" style="padding-inline:0">${code(x.label || x.name || '')}<span class="row__main muted">${esc(x.kind || '')}</span></li>`).join('')}</ul>` : nm(t('un.scr.inputs.nm'), t('un.scr.inputs.why'))}</section>
-        <section class="section"><h2 class="h2" style="margin-bottom:8px">${t('un.scr.where')}</h2>${facts([
-          [t('un.fn.where'), s.file ? code(s.file) : '—'],
-          [t('un.scr.router'), code(where(s.router, s.line))],
-          [t('un.path.comp'), s.component ? `<a class="link" href="${href('/understand/components/' + enc(s.component))}">${code(s.component)}</a>` : '—'],
-          (js.twins || []).length ? [t('un.scr.twin'), js.twins.map(x => `<a class="link" href="${scrLink(x)}">${code(x)}</a>`).join(' ')] : null,
-          [t('un.scr.depth'), js.depth == null || js.depth < 0 ? `<span class="caution-ic">${t('un.flag.no_way_in')}</span>` : esc(js.depth === 0 ? t('un.depth.start') : tn('un.depth.n', js.depth))],
-        ])}
-          <div class="un-insp__more" style="margin-top:12px"><a class="link" href="${href('/understand/journeys', { focus: id })}">${icon('map', 'icon--sm')}${t('un.scr.injourneys')}</a>
-            ${s.file ? `<a class="link" href="${href('/understand/functions', { module: s.file })}">${icon('code', 'icon--sm')}${t('un.scr.fns')}</a>` : ''}</div></section>
-        ${shots.length ? `<section class="section"><h2 class="h2" style="margin-bottom:8px">${t('un.scr.images')}</h2><ul class="rows">${shots.map(x => `<li class="row" style="padding-inline:0">${icon('screen', 'muted')}<span class="row__main small">${code(x.path)}<span class="row__meta" style="display:block">${num(x.width)} px${x.phase ? `${t('list.sep')}${t('un.phase.' + x.phase)}` : ''}${x.batch ? `${t('list.sep')}${code(x.batch)}` : ''}</span></span></li>`).join('')}</ul></section>` : ''}
+        ${whereSection(s, id)}
+        ${shotsSection(shots)}
       </div>
     </div>
   </div>`;
 }
+
+// One screen's pictures at the chosen width (q.vp): its own shots, else its reviewed page's; before and after a batch
+function picturesOf(s, pg, q) {
+  const pics = pg ? pg.pictures || [] : [];
+  const shots = (s.shots || []).length ? s.shots : pics.map(p => ({ path: p.path, width: p.width, phase: null, batch: null }));
+  const widths = [...new Set(pics.map(p => p.width).concat(shots.map(x => x.width)))].filter(Boolean).sort((a, b) => b - a);
+  const vp = widths.includes(+q.vp) ? +q.vp : widths[0];
+  const shot = shots.find(x => x.width === vp);
+  const shown = pics.find(p => p.width === vp) || (shot ? Object.assign({ findings: [] }, shot) : null);
+  const before = shots.find(x => x.width === vp && x.phase === 'before'), after = shots.find(x => x.width === vp && x.phase === 'after');
+  const view = q.view === 'compare' && before && after ? 'compare' : 'one';
+  return { pics, shots, widths, vp, shown, before, after, view, findings: shown ? shown.findings || [] : [] };
+}
+
+// The width switch, and now against before when a batch pictured both
+function toolsBar({ widths, vp, before, after, view }) {
+  if (!widths.length) return '';
+  return `<div class="ptools"><div class="un-tools">${widths.length > 1 ? seg('vp', widths.map(w => [String(w), vpWord(w)]), String(vp), t('un.vp'), { dflt: String(widths[0]), cls: 'un-seg2' }) : ''}
+    ${before && after ? seg('view', [['one', t('un.scr.now')], ['compare', t('un.scr.compare')]], view, t('un.path.view'), { dflt: 'one', cls: 'un-seg2' }) : ''}</div></div>`;
+}
+
+// The picture shown with its numbered findings, before and after side by side, or why there is none
+function picturesHTML({ pics, shots, shown, before, after, view, vp, findings }, sel) {
+  if (!shots.length && !pics.length) return nm(t('un.scr.notcaptured'), t('un.scr.notcaptured.why'), `<a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'launcher' })}">${t('un.all.empty.act')}</a>`);
+  if (view === 'compare') return `<div class="un-compare"><div><div class="block-title">${t('un.phase.before')}</div>${figure(before, [], t('un.pic.cap', { w: num(vp) }))}</div><div><div class="block-title">${t('un.phase.after')}</div>${figure(after, [], t('un.pic.cap', { w: num(vp) }))}</div></div>
+    ${before.batch ? `<p class="small muted">${esc(t('un.scr.batch', { batch: before.batch }))}</p>` : ''}`;
+  return shown ? figure(shown, findings.map((f, i) => ({ n: i + 1, region: f.region, on: sel === i })), `${t('un.pic.cap', { w: num(vp) })}${t('list.sep')}${vpWord(shown.viewport || vp)}`) : '';
+}
+
+// The findings on the picture shown (one opens on it), else the screen's open issues, else why there are none
+function issuesHTML({ shots, findings }, issues, sel, q) {
+  const r = parseHash();
+  if (findings.length) return `<ol class="panel rows un-issues">${findings.map((f, i) => `<li><a class="row ${sel === i ? 'is-open' : ''}" href="${href(r.path, Object.assign({}, q, { finding: sel === i ? null : i }))}">
+      <span class="un-num num">${i + 1}</span><span class="row__main"><span class="row__title small">${rich(L(f.title))}</span>
+      <span class="row__meta" style="display:block">${t('un.fkind.' + f.kind)}${t('list.sep')}${rich(L(f.why || ''))}${f.region ? '' : `${t('list.sep')}${t('un.scr.wholepage')}`}</span></span>${sev(f.severity)}</a></li>`).join('')}</ol>`;
+  if (issues.length) return `<ul class="panel rows">${issues.map(x => `<li class="row"><span class="row__main"><span class="row__title small">${rich(L(x.summary))}</span><span class="row__meta" style="display:block">${t('un.fkind.' + x.rule)}${t('list.sep')}${esc(t('un.pic.cap', { w: num(x.width) }))}</span></span>${sev(x.severity)}</li>`).join('')}</ul>`;
+  return `<p class="small muted">${t(shots.length ? 'un.scr.noissues' : 'un.scr.nocheck')}</p>`;
+}
+
+// Where the screen is declared: its file, router line, part, twins and depth, with its journeys and functions
+function whereSection(s, id) {
+  const js = jscreen(id) || {};
+  return `<section class="section"><h2 class="h2" style="margin-bottom:8px">${t('un.scr.where')}</h2>${facts([
+    [t('un.fn.where'), s.file ? code(s.file) : '—'],
+    [t('un.scr.router'), code(where(s.router, s.line))],
+    [t('un.path.comp'), s.component ? `<a class="link" href="${href('/understand/components/' + enc(s.component))}">${code(s.component)}</a>` : '—'],
+    (js.twins || []).length ? [t('un.scr.twin'), js.twins.map(x => `<a class="link" href="${scrLink(x)}">${code(x)}</a>`).join(' ')] : null,
+    [t('un.scr.depth'), js.depth == null || js.depth < 0 ? `<span class="caution-ic">${t('un.flag.no_way_in')}</span>` : esc(js.depth === 0 ? t('un.depth.start') : tn('un.depth.n', js.depth))],
+  ])}
+    <div class="un-insp__more" style="margin-top:12px"><a class="link" href="${href('/understand/journeys', { focus: id })}">${icon('map', 'icon--sm')}${t('un.scr.injourneys')}</a>
+      ${s.file ? `<a class="link" href="${href('/understand/functions', { module: s.file })}">${icon('code', 'icon--sm')}${t('un.scr.fns')}</a>` : ''}</div></section>`;
+}
+
+// Every picture of the screen, its width, its phase and its batch
+const shotsSection = shots => (shots.length ? `<section class="section"><h2 class="h2" style="margin-bottom:8px">${t('un.scr.images')}</h2><ul class="rows">${shots.map(x => `<li class="row" style="padding-inline:0">${icon('screen', 'muted')}<span class="row__main small">${code(x.path)}<span class="row__meta" style="display:block">${num(x.width)} px${x.phase ? `${t('list.sep')}${t('un.phase.' + x.phase)}` : ''}${x.batch ? `${t('list.sep')}${code(x.batch)}` : ''}</span></span></li>`).join('')}</ul></section>` : '');
 screen({ id: 'S-38', path: '/understand/screens/:id', place: 'understand', needs: NEEDS, title: ctx => ctx.params.id + ' - ' + t('un.v.screens-all'), render: screenPage, loading: () => loading(t('un.all.loading')) });
