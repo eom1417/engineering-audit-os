@@ -708,14 +708,7 @@ class BranchControl:
         if not target_tip: raise KeyError(target)
         source_tip = row['tip']
         reasons = self._merge_blocks(row, target, inventory)
-        waves = self.waves()
-        wave = waves.get(source) or {}
-        latest = next((w for w in reversed(self.state().get('waves') or []) if w.get('status') == 'applied'), None)
-        managed = bool(wave) and wave.get('status') == 'applied' and latest is not None and latest.get('branch') == source \
-            and target == inventory['context']['analysis']['branch']
-        if wave and wave.get('status') == 'applied' and not managed:
-            reasons.append(say('This EAOS batch is accepted only into the branch it was made for, newest batch first.',
-                               'تُعتمد دفعة EAOS فقط في الفرع الذي صُنعت له، والأحدث أولًا.', 'wave_order'))
+        managed = self._wave_path(source, target, inventory, reasons)
         merged = git(self.project, 'merge-base', '--is-ancestor', source_tip, target_tip).returncode == 0
         if merged: reasons.append(say(f'Nothing to merge: {target} already has every commit of {source}.', f'لا شيء يُدمج: {target} فيه كل commit في {source}.', 'merged'))
         held = next((w for w in inventory['worktrees'] if w['branch'] == target), None)
@@ -727,12 +720,9 @@ class BranchControl:
         files = [{'status': line.split('\t')[0], 'path': line.split('\t')[-1]} for line in
                  git(self.project, '-c', 'core.quotePath=false', 'diff', '--name-status', f'{target_tip}...{source_tip}').stdout.splitlines()[:FILES_SHOWN]]
         trial = git(self.project, 'merge-tree', '--write-tree', '--name-only', '--no-messages', target_tip, source_tip)
-        lines = trial.stdout.splitlines()
-        conflicts = [line for line in lines[1:] if line.strip()] if trial.returncode == 1 else []
+        conflicts = [line for line in trial.stdout.splitlines()[1:] if line.strip()] if trial.returncode == 1 else []
         if trial.returncode not in (0, 1): reasons.append(say('git could not try the merge.', 'git ما قدر يجرّب الدمج.', 'merge_tree_failed'))
-        if conflicts:
-            reasons.append(say(f'{len(conflicts)} file(s) conflict: nothing is merged; both sides stay as they are.',
-                               f'{len(conflicts)} ملف فيه تعارض: ما يُدمج شيء، والطرفان يبقيان كما هما.', 'conflict'))
+        elif conflicts: reasons.append(say(f'{len(conflicts)} file(s) conflict: nothing is merged; both sides stay as they are.', f'{len(conflicts)} ملف فيه تعارض: ما يُدمج شيء، والطرفان يبقيان كما هما.', 'conflict'))
         checks = self.checks_of(source, source_tip)
         if checks['status'] == 'failed':
             reasons.append(say('The recorded checks of this exact commit failed.', 'الفحوص المسجلة لهذا الـcommit نفسه فشلت.', 'checks_failed'))
@@ -744,6 +734,15 @@ class BranchControl:
                 'needs_unchecked_ack': unchecked, 'target_checked_out': bool(held), 'blocked': reasons,
                 'recommended_target': row['ownership'].get('base'), 'protected': inventory['protected'].get(target),
                 'confirm': None if reasons else self.locks.confirm('branch_merge', bound, self.project), 'checked_at': now()}
+
+    def _wave_path(self, source, target, inventory, reasons):
+        """True for the newest applied EAOS batch into its own branch (it goes through accept); refuses any other one."""
+        if (self.waves().get(source) or {}).get('status') != 'applied': return False
+        latest = next((w for w in reversed(self.state().get('waves') or []) if w.get('status') == 'applied'), None)
+        if latest is not None and latest.get('branch') == source and target == inventory['context']['analysis']['branch']: return True
+        reasons.append(say('This EAOS batch is accepted only into the branch it was made for, newest batch first.',
+                           'تُعتمد دفعة EAOS فقط في الفرع الذي صُنعت له، والأحدث أولًا.', 'wave_order'))
+        return False
 
     def merge(self, body):
         """Merge a tool-owned branch at the heads its preview showed. A managed EAOS batch goes through EAOS's accept
