@@ -28,24 +28,21 @@ _MIN_SIZE = 8
 _CLUSTER_MIN_MEMBERS = 2
 
 
+_UNSHAPED = frozenset({'ctx', 'type_comment', 'type_ignore', 'end_lineno', 'end_col_offset', 'lineno', 'col_offset', 'parent'})
+
+
+def _field_shape(value, depth):
+    """One field of a node: a subtree, a list of subtrees and plain values, or the type of a plain value."""
+    if isinstance(value, ast.AST): return _python_shape(value, depth)
+    if isinstance(value, list): return [_python_shape(item, depth) if isinstance(item, ast.AST) else item for item in value]
+    return type(value).__name__
+
+
 def _python_shape(node, depth=0):
     """Render a Python AST as a normalised shape tree, with depth to bound recursion."""
     if depth > 60: return ('<over>',)
-    if isinstance(node, ast.AST):
-        attrs = []
-        for field, value in ast.iter_fields(node):
-            if field in {'ctx', 'type_comment', 'type_ignore', 'end_lineno', 'end_col_offset',
-                         'lineno', 'col_offset', 'parent'}:
-                continue
-            if isinstance(value, ast.AST):
-                attrs.append((field, _python_shape(value, depth + 1)))
-            elif isinstance(value, list):
-                attrs.append((field, [_python_shape(item, depth + 1) if isinstance(item, ast.AST) else item
-                                       for item in value]))
-            else:
-                attrs.append((field, type(value).__name__))
-        return (type(node).__name__, tuple(attrs))
-    return type(node).__name__
+    return (type(node).__name__, tuple((field, _field_shape(value, depth + 1)) for field, value in ast.iter_fields(node)
+                                       if field not in _UNSHAPED))
 
 
 _PY_FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
