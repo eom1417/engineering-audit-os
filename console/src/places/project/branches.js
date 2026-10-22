@@ -6,7 +6,7 @@
 // merged branches, restore a deleted one, propose a conflict's resolution, compare with another base, fetch.
 import {
   t, tn, L, num, esc, rich, icon, code, href, fmtWhen, expiresAt, screen, sheet, act, refresh, rerenderSheet, local, toast, closeSheetThen, openSheet,
-  parseHash, setQuery, offline, freshness, chk, live, store, client, ActionError, normalize, ac,
+  parseHash, setQuery, searchTyped, offline, freshness, chk, live, store, client, ActionError, normalize, ac,
 } from 'eaos';
 
 const enc = encodeURIComponent;
@@ -166,8 +166,7 @@ function branchesPage(ctx) {
   </div>`;
 }
 screen({ id: 'S-46', path: '/project/branches', place: 'project', title: () => t('proj.branches'), render: branchesPage });
-let bqTimer = null;
-act('ac-bq', el => { clearTimeout(bqTimer); const v = el.value; bqTimer = setTimeout(() => { setQuery({ q: v || null }); const i = document.getElementById('bq'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 180); });
+act('ac-bq', el => searchTyped(el));
 act('ac-br-reload', () => { inv.problem = null; changed(); });
 act('ac-fetch', async el => {
   if (el.disabled || !client || !inv.data) return;

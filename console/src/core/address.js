@@ -33,6 +33,14 @@ export function setQuery(patch, opts) {
   Object.keys(q).forEach(k => { if (q[k] == null || q[k] === '') delete q[k]; });
   navigate(r.path, q, opts || { replace: true });
 }
+const typing = {};
+/** A search box typed into: its words become the address's `q` once typing pauses, and the redrawn box keeps the
+ *  cursor at the end of its words. */
+export function searchTyped(el, pause = 180) {
+  const id = el.id, v = el.value;
+  clearTimeout(typing[id]);
+  typing[id] = setTimeout(() => { setQuery({ q: v || null }); const i = document.getElementById(id); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, pause);
+}
 
 /** Asks for the screen to be drawn again in place (main.js hands it to the router). */
 export function redraw() { window.dispatchEvent(new Event('eaos:redraw')); }

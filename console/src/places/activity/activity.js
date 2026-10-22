@@ -3,7 +3,7 @@
 // controls (pause, resume, stop with its question, retry, move up and down, remove from the line) on the live
 // action API (POST /api/runs/<id>/<op>, /api/runs/reorder). Everything comes from the live command state (EAOS.live).
 import {
-  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, parseHash, closeSheetThen, offline, local, rerenderSheet,
+  t, tn, num, esc, icon, href, fmtWhen, screen, sheet, act, refresh, toast, announce, setQuery, searchTyped, parseHash, closeSheetThen, offline, local, rerenderSheet,
   live, store, client, ActionError, normalize, model, ac,
 } from 'eaos';
 import { stagesOf, stageButton, counts, finished, stageTitle } from './stages.js';
@@ -268,11 +268,6 @@ function runsPage(ctx) {
   </div>`;
 }
 screen({ id: 'S-14', path: '/activity/runs', place: 'activity', title: () => t('ac.runs.title'), render: runsPage, loading: loadingPage });
-let rqTimer = null;
-act('ac-rq', el => {
-  clearTimeout(rqTimer);
-  const v = el.value;
-  rqTimer = setTimeout(() => { setQuery({ q: v || null }); const i = document.getElementById('rq'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 180);
-});
+act('ac-rq', el => searchTyped(el));
 act('ac-quick', el => setQuery({ quick: el.checked ? '1' : null }));
 export { runHref };

@@ -6,7 +6,7 @@
 // the assistant's own session and is kept for the tab. Also ?q= (asks at once), ?run=<id> (about a run),
 // ?records=1&q= (the check's records, the free `ask` tool) and ?note=project (a note, the `note` action).
 import {
-  t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery, openSheet, offline,
+  t, num, L, esc, rich, icon, code, href, fmtTime, screen, act, refresh, refreshSoon, redrawAssist, toast, announce, parseHash, setQuery, searchTyped, openSheet, offline,
   S, live, store, client, contract, ActionError, prefs, ac, md,
 } from 'eaos';
 
@@ -255,8 +255,7 @@ act('ac-ask-retry', el => {
   if (prev) send(prev.text, null, S.ac.depth || 'quick');
 });
 const q0 = () => parseHash().query;
-let recTimer = null;
-act('ac-rec-q', el => { clearTimeout(recTimer); const v = el.value; recTimer = setTimeout(() => { setQuery({ q: v || null }); const i = document.getElementById('rec-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 400); });
+act('ac-rec-q', el => searchTyped(el, 400));
 act('ac-pnote', async () => {
   const ta = document.getElementById('pnote');
   if (!ta || !ta.value.trim() || !client) return;
