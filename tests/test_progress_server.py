@@ -265,7 +265,7 @@ class Watch(Checked):
             self.assertNotIn('watch', answer)
         open_studio = self.studio.temp_original
         self.assertTrue(guided.scan_done(guided.load(self.project)))
-        with mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32}), \
+        with mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32, 'version': launch.__version__}), \
                 mock.patch.object(guided, 'publish') as publish:
             opened = open_studio(str(self.project), show=False, route='/scan')
         publish.assert_not_called()
