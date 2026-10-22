@@ -474,20 +474,10 @@ def _detect_connection_pools(text):
     Undeclared pools are not facts: we report what we observed, not what we assumed.
     A file with no pool patterns emits no pool facts.
     """
-    rows = []
-    for kind, regex in _POOL_PATTERNS:
-        for match in regex.finditer(text):
-            line = text.count('\n', 0, match.start()) + 1
-            # Numeric capture if present
-            declared = None
-            if match.groups():
-                try:
-                    declared = int(match.group(1))
-                except (ValueError, TypeError):
-                    declared = None
-            rows.append({'resource': kind, 'declared_size': declared,
-                          'source': 'code', 'line': line})
-    return rows
+    # a pattern's capture, when it has one, is always \d+: the declared size
+    return [{'resource': kind, 'declared_size': int(match.group(1)) if match.groups() else None,
+             'source': 'code', 'line': text.count('\n', 0, match.start()) + 1}
+            for kind, regex in _POOL_PATTERNS for match in regex.finditer(text)]
 
 
 # A file's facts are (kind, line, value) rows: line is None for a fact about the whole file.
