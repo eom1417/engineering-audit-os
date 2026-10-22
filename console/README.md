@@ -103,7 +103,7 @@ dictionary, never from the report's own sentence (so English is finished too).
 ## The API every place uses (`import { … } from 'eaos'`)
 
 - words: `t(key, vars)`, `tn(key, n, vars)`, `L(text)`, `num(n)`, `has(key)`, `prefs` {lang, theme, tz}
-- markup: `esc`, `rich` (report text, paths isolated), `icon`, `code`, `sev`, `chk`, `band`, `fmtWhen`, `fmtTime`,
+- markup: `esc`, `rich` (report text, paths isolated), `icon`, `code`, `sev`, `chk`, `assistantPicker` (who runs an action), `band`, `fmtWhen`, `fmtTime`,
   `exactTime`, `inMinutes`, `expiresAt`
 - addresses: `screen(def)`, `href(path, query)`, `navigate`, `setQuery`, `parseHash`, `refresh`, `offline()`,
   `afterRender`, `a11yRegions`

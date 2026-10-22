@@ -23,6 +23,15 @@ export function sev(level, withWord) {
 export function chk(attrs, checked, label) {
   return `<label class="check"><input type="checkbox" ${attrs || ''} ${checked ? 'checked' : ''} aria-label="${esc(label || '')}"><span class="check__box">${icon('tick')}</span></label>`;
 }
+/** Who runs an action: one radio per assistant, off until it is installed and signed in; `prefix` keeps each sheet's
+ *  names and handlers its own. */
+export function assistantPicker(all, picked, prefix) {
+  return `<div class="block-title">${t('pv.who')}</div><div class="opts">${all.map(a => {
+    const ready = a.installed && a.logged_in;
+    return `<label class="opt ${ready ? '' : 'opt--off'}"><input type="radio" name="${prefix}asst" value="${esc(a.id)}" data-change="${prefix}pv-asst" data-fk="${prefix}asst-${esc(a.id)}" ${a.id === picked ? 'checked' : ''} ${ready ? '' : 'disabled'}>
+      <span class="opt__dot"></span><span class="opt__text">${esc(a.name)}<span class="opt__note">${t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready')}${a.version ? ' · ' + esc(a.version) : ''}</span></span></label>`;
+  }).join('')}</div>`;
+}
 export function band(score) {
   if (score == null) return null;
   return score < 40 ? 'critical' : score < 60 ? 'weak' : score < 75 ? 'fair' : score < 90 ? 'good' : 'excellent';

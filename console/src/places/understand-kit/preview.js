@@ -5,7 +5,7 @@
 // copy the sheet explains how to open the console live.
 import {
   t, L, num, esc, icon, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, offline,
-  client, ActionError, contract, store,
+  client, ActionError, contract, store, assistantPicker,
 } from 'eaos';
 import { facts } from './kit.js';
 
@@ -30,11 +30,7 @@ function assistants(p, own) {
   const all = p.assistants || [];
   if (!all.length) return '';
   const picked = own.assistant || (p.assistant && p.assistant.id);
-  return `<div><div class="block-title">${t('pv.who')}</div><div class="opts">${all.map(a => {
-    const ready = a.installed && a.logged_in;
-    return `<label class="opt ${ready ? '' : 'opt--off'}"><input type="radio" name="un-asst" value="${esc(a.id)}" data-change="un-pv-asst" data-fk="un-asst-${esc(a.id)}" ${a.id === picked ? 'checked' : ''} ${ready ? '' : 'disabled'}>
-      <span class="opt__dot"></span><span class="opt__text">${esc(a.name)}<span class="opt__note">${t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready')}${a.version ? ' · ' + esc(a.version) : ''}</span></span></label>`;
-  }).join('')}</div></div>`;
+  return `<div>${assistantPicker(all, picked, 'un-')}</div>`;
 }
 
 function estimate(p) {

@@ -6,7 +6,7 @@
 // preview again, since the token is bound to it. Address: ?sheet=verb:<verb>[:fixable | :assistant | :<problem> |
 // :step:<id>]; without a target, the current selection.
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
+  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
   model, selection, store, client, ActionError, contract, prefs,
 } from 'eaos';
 
@@ -95,11 +95,7 @@ function assistantsHTML(p, own) {
   const all = p.assistants || (p.assistant ? [p.assistant] : []);
   if (!all.length) return '';
   const picked = own.assistant || (p.assistant && p.assistant.id);
-  return `<div><div class="block-title">${t('pv.who')}</div><div class="opts">${all.map(a => {
-    const ready = a.installed && a.logged_in;
-    return `<label class="opt ${ready ? '' : 'opt--off'}"><input type="radio" name="asst" value="${esc(a.id)}" data-change="pv-asst" data-fk="asst-${esc(a.id)}" ${a.id === picked ? 'checked' : ''} ${ready ? '' : 'disabled'}>
-      <span class="opt__dot"></span><span class="opt__text">${esc(a.name)}<span class="opt__note">${t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready')}${a.version ? ' · ' + esc(a.version) : ''}</span></span></label>`;
-  }).join('')}</div>
+  return `<div>${assistantPicker(all, picked, '')}
   ${!p.assistant && p.handoff && p.handoff.available ? `<p class="small ink-2">${t('pv.handoff')}</p>` : ''}</div>`;
 }
 
