@@ -7,6 +7,11 @@ MERMAID_SAFE = str.maketrans({'"': "'", '<': '(', '>': ')', '\n': ' ', '|': '/'}
 def safe(text): return str(text).translate(MERMAID_SAFE)
 
 
+def say(language, arabic, english):
+    """The text a reader of `language` reads."""
+    return arabic if language == 'ar' else english
+
+
 class Document:
     """Sections render in order; tables truncate against a declared budget instead of overflowing."""
 

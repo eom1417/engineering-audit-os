@@ -4,11 +4,12 @@ Everything a reader sees is derived from `dossier.json`. Nothing is written into
 that does not exist in the ledger, and no claim reaches a reader without its confidence and source.
 """
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 from . import __version__
 from . import claims as ledger
 from . import progress
-from .compose import Document
+from .compose import Document, say
 from .compose.labels import detail_artifact, impact_of, statement_of
 from .compose.rules import validate
 from .fact_documents import (ONBOARDING_SECTIONS, contracts_document, describe, domain_document, flows_document,
@@ -292,47 +293,41 @@ def onboarding_document(target, dossier, sets, verification, language):
 
 
 def index_document(target, dossier, sets, verification, language):
-    words = Document('', language).words
-    document = Document('الفهرس وترتيب القراءة' if language == 'ar' else 'Index and reading order',
-                        language, budget_lines=120)
+    tr = partial(say, language)
+    document = Document(tr('الفهرس وترتيب القراءة', 'Index and reading order'), language, budget_lines=120)
+    words = document.words
     provenance = dossier['provenance']
     coverage = dossier['coverage']
     semantic = sum(1 for claim in dossier['claims'] if 'model_inference' in claim.get('method', []))
     document.header([f"{target} · eaos {provenance['tool_version']} · {provenance['generated_at']} · "
                      f"model calls {provenance['model_calls']}",
                      f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} · "
-                     f"claims {len(dossier['claims'])} ({semantic} من طبقة دلالية)" if language == 'ar' else
-                     f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} · "
-                     f"claims {len(dossier['claims'])} ({semantic} semantic)",
+                     f"claims {len(dossier['claims'])} ({semantic} {tr('من طبقة دلالية', 'semantic')})",
                      f"tasks {len(dossier.get('tasks', []))} · waves {len(dossier.get('waves', []))}"])
-    document.section('اقرأ بهذا الترتيب' if language == 'ar' else 'Read in this order')
+    document.section(tr('اقرأ بهذا الترتيب', 'Read in this order'))
     rows = [
-        ('تريد الصورة كاملة: التقارير الأربعة، وبقية الوثائق ملاحق لها' if language == 'ar' else
-         'wanting the whole picture: the four reports; every other document is an appendix to them',
+        [tr('تريد الصورة كاملة: التقارير الأربعة، وبقية الوثائق ملاحق لها',
+            'wanting the whole picture: the four reports; every other document is an appendix to them'),
          '[CURRENT-STATE.md](CURRENT-STATE.md) → [TARGET-STATE.md](TARGET-STATE.md) → '
-         '[GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'),
-        ('تقرّر أين يذهب الجهد' if language == 'ar' else 'deciding where effort goes',
-         '[DECISION-BRIEF.md](DECISION-BRIEF.md) → [RISK-REGISTER.md](RISK-REGISTER.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'),
-        ('تنضم للمشروع اليوم' if language == 'ar' else 'joining the project today',
-         '[ONBOARDING.md](ONBOARDING.md) → [SYSTEM-MAP.md](SYSTEM-MAP.md) → [FLOWS.md](FLOWS.md)', '45 min'),
-        ('تراجع البنية' if language == 'ar' else 'reviewing the architecture',
-         '[POLICY.md](POLICY.md) → [COUPLING-ATLAS.md](COUPLING-ATLAS.md) → [CONTRACTS.md](CONTRACTS.md)', '30 min'),
-        ('ستغيّر ملفًا محددًا' if language == 'ar' else 'about to change one file',
-         "the assistant's `impact` tool (/eaos)", '1 min'),
+         '[GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'],
+        [tr('تقرّر أين يذهب الجهد', 'deciding where effort goes'),
+         '[DECISION-BRIEF.md](DECISION-BRIEF.md) → [RISK-REGISTER.md](RISK-REGISTER.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'],
+        [tr('تنضم للمشروع اليوم', 'joining the project today'),
+         '[ONBOARDING.md](ONBOARDING.md) → [SYSTEM-MAP.md](SYSTEM-MAP.md) → [FLOWS.md](FLOWS.md)', '45 min'],
+        [tr('تراجع البنية', 'reviewing the architecture'),
+         '[POLICY.md](POLICY.md) → [COUPLING-ATLAS.md](COUPLING-ATLAS.md) → [CONTRACTS.md](CONTRACTS.md)', '30 min'],
+        [tr('ستغيّر ملفًا محددًا', 'about to change one file'), "the assistant's `impact` tool (/eaos)", '1 min'],
     ]
-    document.table(['إن كنت…' if language == 'ar' else 'If you are…', 'ابدأ بـ' if language == 'ar' else 'Start with',
-                    'الوقت' if language == 'ar' else 'Time'], [list(row) for row in rows])
-    document.section('درجة الإسناد لكل قسم' if language == 'ar' else 'How well each section is sourced')
-    document.table(['القسم' if language == 'ar' else 'Section', 'المصدر' if language == 'ar' else 'Source',
-                    'الدرجة' if language == 'ar' else 'Grade', 'ملاحظة' if language == 'ar' else 'Note'],
+    document.table([tr('إن كنت…', 'If you are…'), tr('ابدأ بـ', 'Start with'), tr('الوقت', 'Time')], rows)
+    document.section(tr('درجة الإسناد لكل قسم', 'How well each section is sourced'))
+    document.table([tr('القسم', 'Section'), tr('المصدر', 'Source'), tr('الدرجة', 'Grade'), tr('ملاحظة', 'Note')],
                    [[row['section'], row['source'], row['grade'], row['note']]
                     for row in trust_grades(dossier, sets, verification)])
     document.section(words['not_examined'])
     document.bullets(coverage['not_examined'])
-    document.section('كل الملفات' if language == 'ar' else 'Every file')
-    document.table(['#', 'الملف' if language == 'ar' else 'File', 'لماذا' if language == 'ar' else 'Why'],
-                   inventory_rows(language))
-    document.section('إعادة الإنتاج' if language == 'ar' else 'Reproduce')
+    document.section(tr('كل الملفات', 'Every file'))
+    document.table(['#', tr('الملف', 'File'), tr('لماذا', 'Why')], inventory_rows(language))
+    document.section(tr('إعادة الإنتاج', 'Reproduce'))
     document.bullets([f'eaos audit {target} --out <dir> --engines',
                       f'eaos audit {target} --out <dir> --resume'])
     return document
