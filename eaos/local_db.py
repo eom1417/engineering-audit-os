@@ -46,6 +46,11 @@ def _sockets(root):
     return Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'
 
 
+def _private(path, text):
+    """Write a password to path, readable by its owner alone from the first byte."""
+    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as out: out.write(text)
+
+
 def free_port():
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 0))
@@ -121,8 +126,7 @@ class LocalPostgres:
         if not self.password_file.is_file():
             self._run(bin_dir, 'pg_ctl', '-D', str(self.data), '-m', 'immediate', 'stop', check=False)
             shutil.rmtree(self.data, ignore_errors=True)
-            descriptor = os.open(self.password_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-            with os.fdopen(descriptor, 'w') as out: out.write(secrets.token_urlsafe(24))
+            _private(self.password_file, secrets.token_urlsafe(24))
         return self.password_file.read_text().strip()
 
     def start(self):
@@ -145,7 +149,7 @@ class LocalPostgres:
             self.data.mkdir(parents=True, exist_ok=True)
             if self.owner: shutil.chown(self.data, self.owner)
             given = self.data.with_name(self.data.name + '.pw')         # where initdb's account reads it, then gone
-            given.write_text(password)
+            _private(given, password)
             if self.owner: shutil.chown(given, self.owner)
             try: self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=scram-sha-256', f'--pwfile={given}',
                            '-E', 'UTF8', '--no-instructions')
