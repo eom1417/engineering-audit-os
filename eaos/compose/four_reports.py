@@ -167,6 +167,30 @@ def _unexamined(coverage, external, ar):
             + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
 
 
+def _current_number_items(numbers, ar):
+    """The summary's three numbers, each with the record it comes from."""
+    return [f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed') + f" ({numbers['files_parsed'][1]})",
+            f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which') + f" {numbers['critical_features'][0]} "
+            + ('حرجة' if ar else 'critical') + f" ({numbers['features'][1]})",
+            f"{numbers['debt_items'][0]} " + ('بند دَين، منها' if ar else 'debt items, of which') + f" {numbers['high_or_critical'][0]} "
+            + ('عالية أو حرجة' if ar else 'high or critical') + f" ({numbers['debt_items'][1]})"]
+
+
+def _current_evidence(page, features, items, measured, ar):
+    """What the program does today, its debt by category, and its most complex, most changed files."""
+    page.para(('الوظائف التي يقدمها البرنامج اليوم، بأسطحها والبيانات التي تمسها:' if ar else
+               'What the program does today, by its surfaces and the data each feature touches:'))
+    page.items(_feature_items(features, ar))
+    by_category = {}
+    for item in items: by_category[item['category']] = by_category.get(item['category'], 0) + 1
+    page.para(('الدَّين حسب الفئة (debt-register.json): ' if ar else 'Debt by category (debt-register.json): ')
+              + ', '.join(f'{k} {v}' for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])))
+    hottest = sorted(measured, key=lambda r: (-(r.get('complexity_max') or 0), -(r.get('churn') or 0)))[:5]
+    if hottest:
+        page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar else 'The most complex, most changed files (measurements.json):'))
+        page.items([f"{r['path']}: complexity {r.get('complexity_max')}, commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
+
+
 def current_state(out, ar):
     L = _labels(ar)
     dossier = _load(out, 'dossier.json', {}) or {}
@@ -182,25 +206,11 @@ def current_state(out, ar):
     page.heading(L['summary'])
     page.para(f"{L['decision']}: " + _baseline_decision(severe, ar))
     page.heading(L['numbers'], 3)
-    page.items([f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed') + f" ({numbers['files_parsed'][1]})",
-                f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which') + f" {numbers['critical_features'][0]} "
-                + ('حرجة' if ar else 'critical') + f" ({numbers['features'][1]})",
-                f"{numbers['debt_items'][0]} " + ('بند دَين، منها' if ar else 'debt items, of which') + f" {numbers['high_or_critical'][0]} "
-                + ('عالية أو حرجة' if ar else 'high or critical') + f" ({numbers['debt_items'][1]})"])
+    page.items(_current_number_items(numbers, ar))
     page.heading(L['risks'], 3)
     page.items(_risks(register) or ['—'])
     page.heading(L['evidence'])
-    page.para(('الوظائف التي يقدمها البرنامج اليوم، بأسطحها والبيانات التي تمسها:' if ar else
-               'What the program does today, by its surfaces and the data each feature touches:'))
-    page.items(_feature_items(features, ar))
-    by_category = {}
-    for item in items: by_category[item['category']] = by_category.get(item['category'], 0) + 1
-    page.para(('الدَّين حسب الفئة (debt-register.json): ' if ar else 'Debt by category (debt-register.json): ')
-              + ', '.join(f'{k} {v}' for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])))
-    hottest = sorted(measured, key=lambda r: (-(r.get('complexity_max') or 0), -(r.get('churn') or 0)))[:5]
-    if hottest:
-        page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar else 'The most complex, most changed files (measurements.json):'))
-        page.items([f"{r['path']}: complexity {r.get('complexity_max')}, commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
+    _current_evidence(page, features, items, measured, ar)
     _diagram(page, out, 'current', ar)
     page.heading(L['impact'])
     page.para(('كل بند عالي الخطورة في السجل له شاهد حتمي أو أداتان؛ تركه يعني أن الخطر المعروف يبقى في كل إصدار.' if ar else
