@@ -16,14 +16,12 @@ document.addEventListener('click', e => {
   if (el.tagName === 'A' || el.tagName === 'BUTTON' || el.classList.contains('scrim')) e.preventDefault();
   fn(el, e);
 });
-document.addEventListener('change', e => {
-  const el = e.target.closest('[data-change]');
-  if (el && acts[el.dataset.change]) acts[el.dataset.change](el, e);
-});
-document.addEventListener('input', e => {
-  const el = e.target.closest('[data-input]');
-  if (el && acts[el.dataset.input]) acts[el.dataset.input](el, e);
-});
+for (const type of ['change', 'input']) {
+  document.addEventListener(type, e => {
+    const el = e.target.closest(`[data-${type}]`);
+    if (el && acts[el.dataset[type]]) acts[el.dataset[type]](el, e);
+  });
+}
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); openSheet('search'); return; }
   if (e.key === 'Escape') {
