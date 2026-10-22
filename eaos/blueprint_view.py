@@ -97,39 +97,55 @@ def _milestone_card(milestone, done, delivered, cards, rtl):
             f'<div style="width:{share}%;height:100%;background:var(--good)"></div></div><ul class="small">{items}</ul></div>')
 
 
+def _layers(built, cards):
+    """The target's layers drawn in both reading directions, or nothing when they cannot be drawn."""
+    from .human_report import T, target_svg
+    try:
+        rows, edges, layer_progress = layer_map(built, cards)
+        return (f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة: الأعلى يستخدم ما تحته ولا يستخدم ما فوقه. الشريط: كم بُني من بطاقات مجلداتها. مرّر المؤشر على طبقة لترى ما يُسمح لها باستخدامه.", "Each row is a tier: a layer uses what is below it, never what is above. The bar: how many of the cards in its folders are built. Hover a layer to see what it may use.")}</p>'
+                  f'<div class="graph-scroll">{target_svg(rows, edges, layer_progress, True, ("بُني", "built"))}{target_svg(rows, edges, layer_progress, False, ("بُني", "built"))}</div></div>')
+    except Exception:           # the drawing is extra: without it the page still lists the parts and the build
+        return ''
+
+
+def _parts(spec, cards):
+    """The parts, each with its features and how many of its build cards are built."""
+    from html import escape
+    return ''.join(f'<div class="card"><h4>{escape(m["name"])}</h4><p class="muted small">{escape(m.get("responsibility") or "")}</p>'
+                   f'<p class="small">{escape(", ".join(f["name"] for f in spec["features"] if f.get("module") == m["id"]))}</p>{_module_bar(cards, m["id"])}</div>'
+                   for m in spec['modules'])
+
+
+def _module_bar(cards, module):
+    """How many of a part's build cards are built, as a bar and a count."""
+    from .human_report import T, bar
+    mine = [c for c in cards if c.get('module') == module]
+    finished = sum(c['state'] == 'done' for c in mine)
+    count = f'{finished} / {len(mine)}'
+    return (f'{bar(100 * finished / len(mine) if mine else 0, "thin")}<p class="muted small">'
+            f'<span data-meaning="build cards built of this part">{count}</span> {T("بطاقات بُنيت", "cards built")}</p>')
+
+
 def page(spec, stack, built, progress=None):
     """BLUEPRINT.html: the blueprint for a person, in the look of the report for people (eaos/human_report.py),
     with every milestone's progress when `progress` (the state's `built` list) is given: the target's layers, the parts,
     and every build card with its state, reusing that page's drawings."""
     from html import escape
-    from .human_report import CSS, MAP_JS, T, bar, cards_block, target_svg
+    from .human_report import CSS, MAP_JS, cards_block
     done = {card for record in progress or [] for card in record.get('kept') or []}
     delivered = {record['milestone']: record.get('branch') for record in progress or []}
     rtl = any('؀' <= ch <= 'ۿ' for ch in spec.get('name', '') + spec.get('summary', ''))
     cards = build_cards(built, progress)
-    def module_bar(module):
-        mine = [c for c in cards if c.get('module') == module]
-        finished = sum(c['state'] == 'done' for c in mine)
-        count = f'{finished} / {len(mine)}'
-        return (f'{bar(100 * finished / len(mine) if mine else 0, "thin")}<p class="muted small">'
-                f'<span data-meaning="build cards built of this part">{count}</span> {T("بطاقات بُنيت", "cards built")}</p>')
-    parts = ''.join(f'<div class="card"><h4>{escape(m["name"])}</h4><p class="muted small">{escape(m.get("responsibility") or "")}</p>'
-                    f'<p class="small">{escape(", ".join(f["name"] for f in spec["features"] if f.get("module") == m["id"]))}</p>{module_bar(m["id"])}</div>'
-                    for m in spec['modules'])
-    try:
-        rows, edges, layer_progress = layer_map(built, cards)
-        layers = (f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة: الأعلى يستخدم ما تحته ولا يستخدم ما فوقه. الشريط: كم بُني من بطاقات مجلداتها. مرّر المؤشر على طبقة لترى ما يُسمح لها باستخدامه.", "Each row is a tier: a layer uses what is below it, never what is above. The bar: how many of the cards in its folders are built. Hover a layer to see what it may use.")}</p>'
-                  f'<div class="graph-scroll">{target_svg(rows, edges, layer_progress, True, ("بُني", "built"))}{target_svg(rows, edges, layer_progress, False, ("بُني", "built"))}</div></div>')
-    except Exception:           # the drawing is extra: without it the page still lists the parts and the build
-        layers = ''
+    parts, layers = _parts(spec, cards), _layers(built, cards)
     groups = [((m.get('name_ar') or m['name'], m['name']), m['id'], [c for c in cards if c['milestone'] == m['id']]) for m in built['plan']['milestones']]
     rows = ''.join(f'<tr><td><b>{escape(row["title"])}</b></td><td>{escape(row["name"])}</td><td>{escape(row["why"])}</td>'
                    f'<td class="small">{escape(row["switch"])}</td></tr>' for row in stack.values())
     rules = ''.join(f'<li>{escape(rule["reason"])}</li>' for rule in built['policy']['rules'])
-    cards = {c['id']: c for c in built['plan']['tasks']}
-    stages = [_milestone_card(milestone, done, delivered, cards, rtl) for milestone in built['plan']['milestones']]
+    by_id = {c['id']: c for c in built['plan']['tasks']}
+    stages = [_milestone_card(milestone, done, delivered, by_id, rtl) for milestone in built['plan']['milestones']]
     label = (lambda ar, en: ar if rtl else en)
-    return f"""<!doctype html><html lang="{'ar' if rtl else 'en'}" dir="{'rtl' if rtl else 'ltr'}" data-lang="{'ar' if rtl else 'en'}">
+    lang, side = ('ar', 'rtl') if rtl else ('en', 'ltr')
+    return f"""<!doctype html><html lang="{lang}" dir="{side}" data-lang="{lang}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(spec['name'])}</title>
 <style>{CSS} .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}} table{{width:100%;border-collapse:collapse}}
 td,th{{border-bottom:1px solid var(--line);padding:10px;text-align:start;vertical-align:top}}</style></head>
