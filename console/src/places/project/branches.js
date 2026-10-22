@@ -353,6 +353,33 @@ function checksLine(ch) {
   if (!ch || ch.status === 'not_recorded') return ac.nmTag(t('ac.br.checks.none'));
   return ac.mark(ch.status === 'passed' ? 'ok' : ch.status === 'failed' ? 'failed' : 'skipped', esc(ch.summary || ch.status));
 }
+const branchLede = (b, det, waits) => (waits ? t('ac.br1.lede.eaos', { b: code(b.name) }) : b.protected ? t('ac.br1.lede.protected', { b: code(liveName(b)) })
+  : (b.roles || []).includes('analysis') ? t('ac.br1.lede.analysed', { b: code(b.name) }) : b.compare && b.compare.merged && !b.compare.ahead ? t('ac.br1.lede.merged', { b: code(liveName(b)), t: code(b.compare.base) })
+    : t('ac.br1.lede', { b: code(liveName(b)), a: num(b.compare ? b.compare.ahead : 0), base: code(det.base || '') }));
+const mainAction = (b, waits, primary, target) => (waits ? `<div class="actions"><a class="btn btn--primary" href="${href('/waiting/' + enc(waits.id))}">${icon('seal')}${t('ac.run.r12.decide')}</a><p class="actions__note">${t('ac.br1.eaos.note')}</p></div>`
+  : primary ? `<div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="merge:${esc(b.name)}">${icon('seal')}${esc(t('ac.cmd.merge', { t: target }))}</button><p class="actions__note">${t('ac.br1.merge.note')}</p></div>` : '');
+/** The merge's warnings: the conflicts a trial merge found (`tries`: the merge is the page's press), or why it is blocked. */
+function mergeNotes(b, det, merge, tries, target) {
+  const conflict = merge && conflictOf({ blocked: (det.commands.merge || {}).blocked }), tryMerge = tries && b.kind === 'local' ? mergeTry(b) : null;
+  const clash = tryMerge && (tryMerge.conflicts || []).length ? tryMerge.conflicts : null;
+  return `${clash ? `<div class="ac-note ac-note--caution" style="margin-top:16px">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(tn('ac.br1.clash', clash.length, { t: tryMerge.target || target }))}</span>
+      <button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="resolve:${esc(b.name)}">${icon('ai')}${t('ac.cmd.resolve')}</button></div>` : ''}
+    ${conflict ? `<div style="margin-top:16px"><div class="ac-note ac-note--caution">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(reasonsOf(det.commands.merge.blocked))}</span></div></div>` : ''}`;
+}
+function branchFacts(b, det, target) {
+  return `<section class="section" aria-labelledby="bf-h"><div class="section-head"><h2 id="bf-h">${t('ac.br1.facts')}</h2></div>
+      <div class="panel panel__pad"><dl class="facts ac-facts">
+        <dt>${t('ac.br1.tip')}</dt><dd>${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span></dd>
+        <dt>${t('ac.br1.where')}</dt><dd>${b.kind === 'local' ? t('ac.br1.local') + (b.upstream ? `, ${t('ac.br1.tracks', { u: code(b.upstream) })}${b.tracking ? ` <span class="small muted">${esc(b.tracking)}</span>` : ''}` : '') : t('ac.br1.remote_only', { r: code(b.remote) })}</dd>
+        <dt>${t('ac.br1.vs')}</dt><dd>${aheadBehind(b)}</dd>
+        <dt>${t('ac.br1.who')}</dt><dd>${whoLine(b)}</dd>
+        ${b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : ''}
+        <dt>${t('ac.br1.wt')}</dt><dd>${b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')}</dd>
+        <dt>${t('ac.br1.checks')}</dt><dd>${checksLine(det.checks)}</dd>
+        ${det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : ''}
+        <dt>${t('ac.br1.dest')}</dt><dd>${target ? t('ac.br1.dest.v', { t: code(target) }) : '—'}</dd>
+      </dl></div></section>`;
+}
 function branchPage(ctx) {
   const name = ctx.params.name, kind = ctx.query.kind || 'local', remote = ctx.query.remote || null;
   const back = `<a class="back" href="${href('/project/branches')}">${icon('back', 'icon--dir')}${t('proj.branches')}</a>`;
@@ -364,47 +391,24 @@ function branchPage(ctx) {
       <p class="small ink-2">${t('ac.br.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/project/branches')}">${t('proj.branches')}</a></div></div>`;
   }
   if (!det) return `<div class="page" aria-busy="true">${back}<h1 class="lede">${t('ac.br.loading')}</h1>${loadingRows()}</div>`;
-  const b = det.branch;
-  const cmds = commands(b, det);
-  const target = (det.destination && det.destination.recommended) || '';
-  const waits = waitingRun(b.name);
-  const merge = cmds.find(c => c[0] === 'merge');
-  const primary = merge && merge[1] ? merge : null;
-  let lede;
-  if (waits) lede = t('ac.br1.lede.eaos', { b: code(b.name) });
-  else if (b.protected) lede = t('ac.br1.lede.protected', { b: code(liveName(b)) });
-  else if ((b.roles || []).includes('analysis')) lede = t('ac.br1.lede.analysed', { b: code(b.name) });
-  else if (b.compare && b.compare.merged && !b.compare.ahead) lede = t('ac.br1.lede.merged', { b: code(liveName(b)), t: code(b.compare.base) });
-  else lede = t('ac.br1.lede', { b: code(liveName(b)), a: num(b.compare ? b.compare.ahead : 0), base: code(det.base || '') });
-  const conflict = merge && conflictOf({ blocked: (det.commands.merge || {}).blocked });
-  const tryMerge = primary && !waits && b.kind === 'local' ? mergeTry(b) : null;
-  const clash = tryMerge && (tryMerge.conflicts || []).length ? tryMerge.conflicts : null;
-  const commits = det.commits || [], files = det.files || [];
-  const runs = det.runs || [];
+  const b = det.branch, cmds = commands(b, det);
+  const target = (det.destination && det.destination.recommended) || '', waits = waitingRun(b.name);
+  const merge = cmds.find(c => c[0] === 'merge'), primary = merge && merge[1] ? merge : null;
   return `<div class="page">
     ${back}
     <div class="context"><bdi class="mono" style="align-self:center;font-weight:500">${esc(liveName(b))}</bdi>${roleTags(b)}</div>
-    <h1 class="lede">${lede}</h1>
+    <h1 class="lede">${branchLede(b, det, waits)}</h1>
     <p class="guide">${t(waits ? 'ac.br1.guide.eaos' : 'ac.br1.guide')}</p>
-    ${waits ? `<div class="actions"><a class="btn btn--primary" href="${href('/waiting/' + enc(waits.id))}">${icon('seal')}${t('ac.run.r12.decide')}</a><p class="actions__note">${t('ac.br1.eaos.note')}</p></div>`
-      : primary ? `<div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="merge:${esc(b.name)}">${icon('seal')}${esc(t('ac.cmd.merge', { t: target }))}</button><p class="actions__note">${t('ac.br1.merge.note')}</p></div>` : ''}
-    ${clash ? `<div class="ac-note ac-note--caution" style="margin-top:16px">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(tn('ac.br1.clash', clash.length, { t: tryMerge.target || target }))}</span>
-      <button class="btn btn--secondary btn--sm" data-act="sheet" data-sheet="resolve:${esc(b.name)}">${icon('ai')}${t('ac.cmd.resolve')}</button></div>` : ''}
-    ${conflict ? `<div style="margin-top:16px"><div class="ac-note ac-note--caution">${icon('warn', 'icon--sm ac-c-caution')}<span class="small">${esc(reasonsOf(det.commands.merge.blocked))}</span></div></div>` : ''}
+    ${mainAction(b, waits, primary, target)}
+    ${mergeNotes(b, det, merge, primary && !waits, target)}
     <section class="section" aria-labelledby="cmd-h"><div class="section-head"><h2 id="cmd-h">${t('ac.br1.cmds')}</h2></div><ul class="panel rows">${cmds.filter(c => c !== primary).map(c => cmdButton(b, c, det)).join('')}</ul></section>
-    <section class="section" aria-labelledby="bf-h"><div class="section-head"><h2 id="bf-h">${t('ac.br1.facts')}</h2></div>
-      <div class="panel panel__pad"><dl class="facts ac-facts">
-        <dt>${t('ac.br1.tip')}</dt><dd>${code(String(b.tip).slice(0, 7))} <span class="small ink-2">${rich(b.subject || '')}</span> <span class="small muted">${esc(fmtWhen(b.last_commit))}</span></dd>
-        <dt>${t('ac.br1.where')}</dt><dd>${b.kind === 'local' ? t('ac.br1.local') + (b.upstream ? `, ${t('ac.br1.tracks', { u: code(b.upstream) })}${b.tracking ? ` <span class="small muted">${esc(b.tracking)}</span>` : ''}` : '') : t('ac.br1.remote_only', { r: code(b.remote) })}</dd>
-        <dt>${t('ac.br1.vs')}</dt><dd>${aheadBehind(b)}</dd>
-        <dt>${t('ac.br1.who')}</dt><dd>${whoLine(b)}</dd>
-        ${b.protected ? `<dt>${t('ac.br.r.protected')}</dt><dd>${esc(L(b.protected))}</dd>` : ''}
-        <dt>${t('ac.br1.wt')}</dt><dd>${b.worktree ? `${code(b.worktree.path)} ${t(b.worktree.current ? 'ac.br.wt.here' : 'ac.br.wt.other')}` : t('ac.br1.wt.none')}</dd>
-        <dt>${t('ac.br1.checks')}</dt><dd>${checksLine(det.checks)}</dd>
-        ${det.lineage && det.lineage.parent ? `<dt>${t('ac.br1.lineage')}</dt><dd>${t('ac.br1.lineage.v', { p: code(det.lineage.parent), c: code(String(det.lineage.parent_commit || '').slice(0, 7)) })}</dd>` : ''}
-        <dt>${t('ac.br1.dest')}</dt><dd>${target ? t('ac.br1.dest.v', { t: code(target) }) : '—'}</dd>
-      </dl></div></section>
-    <div class="section panel">
+    ${branchFacts(b, det, target)}
+    ${branchFolds(det)}
+  </div>`;
+}
+function branchFolds(det) {
+  const commits = det.commits || [], files = det.files || [], runs = det.runs || [];
+  return `<div class="section panel">
       ${ac.fold('commits', t('ac.br1.commits', { base: det.base || '' }), esc(commits.length ? tn('ac.pl.commit', commits.length) : t('ac.br1.commits.none')),
         commits.length ? `<ul class="rows">${commits.map(c => `<li class="row" style="padding-inline:0;min-height:48px">${code(String(c.commit).slice(0, 7))}<span class="row__main small">${rich(c.subject)}<span class="row__meta" style="display:block">${esc(c.author || '')}, ${esc(fmtWhen(c.at))}</span></span></li>`).join('')}</ul>
           ${det.commits_truncated ? `<p class="small muted">${t('ac.br1.more.cut')}</p>` : ''}` : `<p class="small muted">${t('ac.br1.commits.none')}</p>`)}
@@ -413,8 +417,7 @@ function branchPage(ctx) {
       ${ac.fold('diff', t('ac.br1.diff'), t('ac.br1.diff.sum'), det.diff ? `<div class="code diff">${det.diff.split('\n').slice(0, 400).map((l, i) => `<div class="code__line ${l.startsWith('+') && !l.startsWith('+++') ? 'code__line--add' : l.startsWith('-') && !l.startsWith('---') ? 'code__line--del' : ''}"><span class="code__ln">${i + 1}</span><span>${esc(l)}</span></div>`).join('')}</div>${det.diff_cut ? `<p class="small muted">${t('wt.fix.cut')}</p>` : ''}` : `<p class="small muted">${t('ac.br1.diff.none')}</p>`)}
       ${ac.fold('runs', t('ac.br1.runs'), esc(runs.length ? tn('ac.pl.run', runs.length) : t('ac.br1.runs.none')),
         runs.length ? `<ul class="rows">${runs.map(r => `<li><a class="row" style="padding-inline:0" href="${href('/activity/run/' + enc(r.id))}">${ac.glyph(r.state === 'waiting_for_person' ? 'you' : r.state)}<span class="row__main small">${esc(L(r.label))}</span><span class="small muted">${esc(fmtWhen(r.created))}</span></a></li>`).join('')}</ul>` : `<p class="small muted">${t('ac.br1.runs.none')}</p>`)}
-    </div>
-  </div>`;
+    </div>`;
 }
 screen({ id: 'S-47', path: '/project/branches/:name', place: 'project', title: ctx => ctx.params.name + ' - ' + t('proj.branches'), render: branchPage });
 
