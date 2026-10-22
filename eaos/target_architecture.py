@@ -289,12 +289,13 @@ def gap_matrix(current_components, target_components, claims=None, tasks=None, s
     return rows
 
 
-def document(current, targets, decided, gaps, limits, status='REVIEW_REQUIRED', **more):
+def document(current, targets, decided, gaps, **more):
     """target-architecture.json, whichever journey drew it: a check, from today's code (build), or a build, from its plan
     (eaos/blueprint.py target). One shape for the reports, the Studio's maps and the assistant's `structure` tool: the
-    target's parts are its layers, `target_edges` what each may use, `forbidden_edges` how many imports go against them."""
-    return {'schema_version': 2, 'status': status, 'current_components': current, 'components': targets or current,
-            'target_components': targets, 'decisions': decided, 'gap_matrix': gaps, 'limits': limits, **more}
+    target's parts are its layers, `target_edges` what each may use, `forbidden_edges` how many imports go against them.
+    `more` starts with its `limits`, and may set the `status` (REVIEW_REQUIRED by default)."""
+    return {'schema_version': 2, 'status': 'REVIEW_REQUIRED', 'current_components': current, 'components': targets or current,
+            'target_components': targets, 'decisions': decided, 'gap_matrix': gaps, **more}
 
 
 def _record(path, default):
@@ -371,7 +372,7 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
     target_components = _proposed_targets(out, target_components, current)
     matrix = gap_matrix(current, target_components, claims, _record(Path(out) / 'plan.json', {}).get('tasks', []), [])
     _carry_moves(matrix, current)
-    result = document(current, target_components, decisions([*current, *target_components]), matrix, ' '.join(LIMITATIONS),
+    result = document(current, target_components, decisions([*current, *target_components]), matrix, limits=' '.join(LIMITATIONS),
                       retained_structure='Source inventory is shown below. Missing target decisions remain explicit gaps.')
     if projection:
         result.update(reference=projection['reference'], root=projection.get('root', ''), target_components=projection['target_components'],

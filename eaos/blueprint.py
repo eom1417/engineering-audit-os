@@ -511,5 +511,5 @@ def target(spec, stack, modules):
     decided = [{'id': f'ADR-{concern}', 'concern': stack[concern]['title'], 'chosen': stack[concern]['name'], 'why': stack[concern]['why'],
                 'alternatives': stack[concern]['alternatives'], 'how_to_change_later': stack[concern]['switch']} for concern in stack]
     edges = [{'from': rule['allow_only']['from'], 'to': to} for rule in drawn['rules'] for to in rule['allow_only']['to']]
-    return document([], layers, decided, [], 'A target drawn from a plan: nothing exists yet, so every part is to be built.',
+    return document([], layers, decided, [], limits='A target drawn from a plan: nothing exists yet, so every part is to be built.',
                     status='blueprint', parts=parts, target_edges=edges, forbidden_edges=0)
