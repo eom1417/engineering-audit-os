@@ -61,10 +61,11 @@ async function open(page, route, lang, theme) {
   await page.waitForTimeout(route.includes('sheet=') ? 260 : 80);
 }
 
-/** The lead's routes on the real report (the ids come from the served data: see routes()). */
-async function routes(page) {
+/** The report's own ids the checks open, from the served data, with Status left open: the first problem with code in
+ *  its evidence, its first fact, the first waiting decision, the delivered run waiting, and the first two problems. */
+async function reportIds(page) {
   await open(page, '/status', 'ar');
-  const ids = await page.evaluate(async () => {
+  return page.evaluate(async () => {
     const E = window.EAOS;
     await E.data.need(['cards', 'decisions', 'evidence']);
     const problems = E.model.problems();
@@ -72,8 +73,13 @@ async function routes(page) {
     const decision = E.model.decisions().find(d => d.state === 'waiting') || E.model.decisions()[0];
     const run = E.store.awaiting()[0];
     return { problem: withFacts && withFacts.id, fact: withFacts && (withFacts.evidence || [])[0], decision: decision && decision.id, run: run && run.id,
-      other: problems[1] && problems[1].id };
+      first: problems[0] && problems[0].id, other: problems[1] && problems[1].id };
   });
+}
+
+/** The lead's routes on the real report (the ids come from the served data: see reportIds()). */
+async function routes(page) {
+  const ids = await reportIds(page);
   const enc = encodeURIComponent;
   const out = ['/status', '/status?state=empty', '/status?state=loading', '/status?state=offline', '/status?sheet=freshness', '/status?sheet=health',
     '/status?sheet=search', '/status?sheet=project', '/status?state=offline&sheet=open-live', '/status?sheet=verb:fix:fixable',
@@ -89,4 +95,4 @@ async function routes(page) {
   return out;
 }
 
-module.exports = { chromium, AXE, URL: URL_, TOKEN, COMBOS, context, address, open, routes };
+module.exports = { chromium, AXE, URL: URL_, TOKEN, COMBOS, context, address, open, reportIds, routes };

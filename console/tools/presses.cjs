@@ -19,14 +19,9 @@ const CSS_ID = s => String(s).replace(/[^\w-]/g, c => '\\' + c);
 
 /** The report's own ids the lead's recipes press. */
 async function discover(page) {
-  await Lib.open(page, '/status', 'ar');
-  return page.evaluate(async () => {
+  const ids = await Lib.reportIds(page);
+  return Object.assign(ids, await page.evaluate(async run => {
     const E = window.EAOS;
-    await E.data.need(['cards', 'decisions', 'evidence']);
-    const problems = E.model.problems();
-    const p = problems.find(x => (x.evidence || []).some(id => E.model.fact(id) && E.model.fact(id).code)) || problems[0];
-    const d = E.model.decisions().find(x => x.state === 'waiting');
-    const run = E.store.awaiting()[0];
     /* builder A's: the last check, a run that ended badly, a run that handed a branch over, a branch to merge or
        delete, one in conflict, a deleted one to restore (the scratch home makes them; a recipe without one fails) */
     const runs = E.ac.runs(), check = E.ac.lastCheck();
@@ -47,17 +42,16 @@ async function discover(page) {
     const waiting = tl && tl.tasks.find(x => x.waits.some(w => { const o = tl.tasks.find(y => y.id === w.task); return o && o.step !== x.step; }));
     const scans = (sec('history') || {}).scans || [];
     const doc = ((sec('docs') || {}).docs || []).filter(x => x.order != null).sort((a, b) => a.order - b.order)[0];
-    return { problem: p && p.id, fact: p && p.evidence[0], decision: d && d.id, run: run && run.id, first: problems[0] && problems[0].id,
-      total: E.model.totals().problems, version: E.model.project().eaos_version,
+    return { total: E.model.totals().problems, version: E.model.project().eaos_version,
       check: check && check.id, stage: failedStage, ended: (runs.find(r => ['failed', 'stopped', 'unchanged'].includes(r.state)) || {}).id,
-      branchRun: (run || runs.find(r => r.result && r.result.branch) || {}).id, handoff: (runs.find(r => r.mode === 'handoff') || {}).id,
+      branchRun: run || (runs.find(r => r.result && r.result.branch) || {}).id, handoff: (runs.find(r => r.mode === 'handoff') || {}).id,
       branch, conflict, restore: restore && restore.id,
       step: (steps.find(x => x.tasks.length > 1) || steps[0] || {}).id, stepWaits: waiting && waiting.step,
       gap: (((sec('gaps') || {}).gaps || []).find(g => g.cards.length) || {}).id, comp: (((sec('system') || {}).current || {}).nodes || [])[0].id,
       path: (((sec('paths') || {}).paths || [])[0] || {}).id, store: (((sec('data_paths') || {}).stores || [])[0] || {}).id,
       screen: ((((sec('screens') || {}).screens || []).find(x => (x.shots || []).length)) || {}).id, doc: doc && doc.path,
       lastScan: (scans[scans.length - 1] || {}).id };
-  });
+  }, ids.run));
 }
 
 function recipes(ids) {
