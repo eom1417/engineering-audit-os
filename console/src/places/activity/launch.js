@@ -52,68 +52,59 @@ function toolsLine() {
   return { ready, total: list.length, failed };
 }
 
-sheet('check', {
-  kind: 'drawer',
-  render(arg, q, c) {
-    if (offline()) return { title: esc(t('ac.chk.title')), body: `<p>${t('ac.chk.does')}</p>`, foot: `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.chk.start')}</button>` };
-    if (!c.init) {
-      Object.assign(c, { init: true, paths: q.path && q.path !== 'complete' ? [q.path] : [], published: '', kept: true });
-      const ready = readyOnes();
-      c.asst = ready.length ? ready[0].id : 'rules';
-    }
-    if (!c.preview && !c.asking && !c.problem) askCheck(c);
-    const offer = c.offer;
-    const p = c.preview;
-    const lr = ac.liveRun();
-    const first = !ac.lastCheck();
-    const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
-    const pathCard = (id, on, name, looks) => `<label class="opt ac-path"><input type="checkbox" data-change="ac-path" value="${esc(id)}" data-fk="path-${esc(id)}" ${on ? 'checked' : ''}><span class="ac-path__box" aria-hidden="true">${icon('tick')}</span>
-      <span class="opt__text"><b class="ac-path__name">${esc(name)}</b><span class="opt__note">${rich(looks)}</span></span></label>`;
-    const paths = offer ? offer.paths.map(x => pathCard(x.id, x.id === 'complete' ? !c.paths.length : c.paths.includes(x.id), L(x.name), L(x.looks_at))).join('') : `<p class="small muted" aria-busy="true">${t('pv.updating')}</p>`;
-    const ready = readyOnes();
-    const asst = (live.assistants || []).map(a => {
-      const ok = a.installed && a.logged_in;
-      return `<label class="opt ${ok ? '' : 'opt--off'}"><input type="radio" name="ac-asst" value="${esc(a.id)}" data-change="ac-asst" data-fk="asst-${esc(a.id)}" ${c.asst === a.id ? 'checked' : ''} ${ok ? '' : 'disabled'}><span class="opt__dot" aria-hidden="true"></span>
-        <span class="opt__text">${esc(a.name)}${ok ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : ''}<span class="opt__note">${esc(ok ? t('ac.chk.asst.ready', { version: a.version || '' }) : !a.installed ? t('pv.notinstalled') : t('ac.chk.asst.notsigned', { cmd: a.id + ' login' }))}</span></span></label>`;
-    }).join('') + `<label class="opt"><input type="radio" name="ac-asst" value="rules" data-change="ac-asst" data-fk="asst-rules" ${c.asst === 'rules' ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
-        <span class="opt__text">${t('ac.chk.rules')}<span class="opt__note">${t('ac.chk.rules.note')}</span></span></label>`;
-    const dec5 = live.assistants && live.assistants.length && !ready.length ? `<div class="ac-refuse" role="note"><p class="small"><b>${esc(t('ac.chk.dec5.q', { name: live.assistants.map(a => a.name).join(t('list.sep')) }))}</b> ${t('ac.chk.dec5.why', { cmd: code('claude login') })}</p>
-      <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
-      <p class="small ink-2">${t('ac.chk.dec5.noai.v')}</p></div>` : '';
-    const needsSignin = !c.paths.length || c.paths.includes('look');
-    c.signinAsked = needsSignin;
-    // without the person's yes to run the app, its pages, sign-in and speed are never checked: asked here, once
-    c.runAppAsked = !!offer && offer.run_app === false && (!c.paths.length || c.paths.some(id => ['look', 'speed'].includes(id)));
-    const runApp = c.runAppAsked ? `<div class="toggle-row"><span><span style="display:block">${t('ac.chk.run')}</span><span class="small muted">${t(c.runApp ? 'ac.chk.run.note' : 'ac.chk.run.off')}</span></span>
-      <span class="switch"><input type="checkbox" data-change="ac-run" data-fk="run-app" ${c.runApp ? 'checked' : ''} aria-label="${esc(t('ac.chk.run'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : '';
-    const seen = offer && offer.sign_in_seen && offer.sign_in_seen[0] ? offer.sign_in_seen[0].split(':')[0] : null;
-    const signin = needsSignin ? `${seen ? `<p class="small ink-2" style="margin-bottom:8px">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
-      <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => `<label class="opt"><input type="radio" name="ac-si" value="${id}" data-change="ac-si" data-fk="si-${id}" ${c.signin === id ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
-        <span class="opt__text">${t(k)}<span class="opt__note">${t(k + '.note')}</span></span></label>`).join('')}</div>
-      ${c.signin === 'hand' && live.signIn && live.signIn.kept ? `<p class="small ink-2 ac-iline">${icon('check', 'icon--sm ac-c-ok')}<span>${t('ac.chk.si.kept')}</span></p>` : ''}`
-      : `<p class="small muted">${t('ac.chk.si.notneeded')}</p>`;
-    const tools = toolsLine();
-    const pubErr = publishedProblem(c.published);
-    const label = c.paths.length ? t('ac.chk.start.paths', { paths: c.paths.map(id => pathName(c, id)).join(t('ac.and')) }) : t('ac.chk.start');
-    const noai = c.asst === 'rules' && !ready.length;
-    return {
-      title: esc(t('ac.chk.title')),
-      sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
-      body: `<p>${t('ac.chk.does')}</p>
-        <dl class="facts">
+function initCheck(c, q) {
+  const ready = readyOnes();
+  Object.assign(c, { init: true, paths: q.path && q.path !== 'complete' ? [q.path] : [], published: '', kept: true, asst: ready.length ? ready[0].id : 'rules' });
+}
+function checkFacts(p) {
+  const first = !ac.lastCheck();
+  const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
+  return `<dl class="facts">
           <dt>${t('pv.estimate')}</dt><dd>${p ? esc(est) : `<span class="muted" aria-busy="true">${t('pv.updating')}</span>`}<span class="small muted" style="display:block">${p && p.estimate ? esc(L(p.estimate.basis)) : t(first ? 'ac.chk.est.basis.none' : 'ac.chk.est.basis.wait')}</span></dd>
           <dt>${t('pv.risk')}</dt><dd><span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.chk.risk')}</span></dd>
           <dt>${t('pv.fail')}</dt><dd class="small">${p ? esc(L(p.on_failure)) : t('ac.chk.fail')}</dd>
-        </dl>
-        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.paths')}</legend><div class="opts">${paths}</div>
-          <p class="small muted" style="margin-top:8px">${t('ac.chk.paths.note')}</p></fieldset>
-        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.asst')}</legend>${dec5}<div class="opts">${asst}</div>
-          <p class="small muted" style="margin-top:8px">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
-        ${runApp}
-        ${c.runAppAsked && !c.runApp ? '' : `<fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signin}</fieldset>`}
-        <a class="row panel" href="${href('/project/tools')}" data-act="go" data-href="${href('/project/tools')}" style="min-height:52px">${ac.glyph(tools.failed.length ? 'failed' : 'ok')}<span class="row__main small">${esc(tools.total ? t(tools.failed.length ? 'ac.chk.tools.failed' : 'ac.chk.tools', { n: num(tools.ready), total: num(tools.total), failed: tools.failed.map(s => s.name).join(t('list.sep')) }) : t('ac.chk.tools.none'))}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>
-        ${tools.failed.length ? `<div class="toggle-row"><span>${t('ac.chk.without')}</span><span class="switch"><input type="checkbox" data-change="ac-without" data-fk="without" ${c.withoutTools ? 'checked' : ''} aria-label="${esc(t('ac.chk.without'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}
-        <details class="panel fold" ${c.speed || c.published ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.chk.options')}</span><span class="row__meta" style="display:block">${t('ac.chk.options.sum')}</span></span>${icon('chev', 'chev')}</summary>
+        </dl>`;
+}
+function pathsHTML(c) {
+  const pathCard = (id, on, name, looks) => `<label class="opt ac-path"><input type="checkbox" data-change="ac-path" value="${esc(id)}" data-fk="path-${esc(id)}" ${on ? 'checked' : ''}><span class="ac-path__box" aria-hidden="true">${icon('tick')}</span>
+      <span class="opt__text"><b class="ac-path__name">${esc(name)}</b><span class="opt__note">${rich(looks)}</span></span></label>`;
+  return c.offer ? c.offer.paths.map(x => pathCard(x.id, x.id === 'complete' ? !c.paths.length : c.paths.includes(x.id), L(x.name), L(x.looks_at))).join('') : `<p class="small muted" aria-busy="true">${t('pv.updating')}</p>`;
+}
+/** The assistants to choose from, the rules alone, and the question when none is ready (DEC-05). */
+function assistantsHTML(c) {
+  const ready = readyOnes();
+  const asst = (live.assistants || []).map(a => {
+    const ok = a.installed && a.logged_in;
+    return `<label class="opt ${ok ? '' : 'opt--off'}"><input type="radio" name="ac-asst" value="${esc(a.id)}" data-change="ac-asst" data-fk="asst-${esc(a.id)}" ${c.asst === a.id ? 'checked' : ''} ${ok ? '' : 'disabled'}><span class="opt__dot" aria-hidden="true"></span>
+        <span class="opt__text">${esc(a.name)}${ok ? `<span class="tag tag--ok">${icon('check')}${t('pv.ready')}</span>` : ''}<span class="opt__note">${esc(ok ? t('ac.chk.asst.ready', { version: a.version || '' }) : !a.installed ? t('pv.notinstalled') : t('ac.chk.asst.notsigned', { cmd: a.id + ' login' }))}</span></span></label>`;
+  }).join('') + `<label class="opt"><input type="radio" name="ac-asst" value="rules" data-change="ac-asst" data-fk="asst-rules" ${c.asst === 'rules' ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
+        <span class="opt__text">${t('ac.chk.rules')}<span class="opt__note">${t('ac.chk.rules.note')}</span></span></label>`;
+  const dec5 = live.assistants && live.assistants.length && !ready.length ? `<div class="ac-refuse" role="note"><p class="small"><b>${esc(t('ac.chk.dec5.q', { name: live.assistants.map(a => a.name).join(t('list.sep')) }))}</b> ${t('ac.chk.dec5.why', { cmd: code('claude login') })}</p>
+      <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-again" data-fk="ask-again" ${c.asking2 ? 'disabled' : ''}>${c.asking2 ? t('ac.as.asking') : t('ac.chk.dec5.fixed')}</button></div>
+      <p class="small ink-2">${t('ac.chk.dec5.noai.v')}</p></div>` : '';
+  return `${dec5}<div class="opts">${asst}</div>`;
+}
+function runAppHTML(c) {
+  if (!c.runAppAsked) return '';
+  return `<div class="toggle-row"><span><span style="display:block">${t('ac.chk.run')}</span><span class="small muted">${t(c.runApp ? 'ac.chk.run.note' : 'ac.chk.run.off')}</span></span>
+      <span class="switch"><input type="checkbox" data-change="ac-run" data-fk="run-app" ${c.runApp ? 'checked' : ''} aria-label="${esc(t('ac.chk.run'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`;
+}
+function signinHTML(c, needed) {
+  if (!needed) return `<p class="small muted">${t('ac.chk.si.notneeded')}</p>`;
+  const offer = c.offer;
+  const seen = offer && offer.sign_in_seen && offer.sign_in_seen[0] ? offer.sign_in_seen[0].split(':')[0] : null;
+  return `${seen ? `<p class="small ink-2" style="margin-bottom:8px">${t('ac.chk.si.found', { path: code(seen) })}</p>` : ''}
+      <div class="opts">${[['hand', 'ac.chk.si.hand'], ['test_user', 'ac.chk.si.test'], ['none', 'ac.chk.si.none']].map(([id, k]) => `<label class="opt"><input type="radio" name="ac-si" value="${id}" data-change="ac-si" data-fk="si-${id}" ${c.signin === id ? 'checked' : ''}><span class="opt__dot" aria-hidden="true"></span>
+        <span class="opt__text">${t(k)}<span class="opt__note">${t(k + '.note')}</span></span></label>`).join('')}</div>
+      ${c.signin === 'hand' && live.signIn && live.signIn.kept ? `<p class="small ink-2 ac-iline">${icon('check', 'icon--sm ac-c-ok')}<span>${t('ac.chk.si.kept')}</span></p>` : ''}`;
+}
+function toolsHTML(c) {
+  const tools = toolsLine();
+  return `<a class="row panel" href="${href('/project/tools')}" data-act="go" data-href="${href('/project/tools')}" style="min-height:52px">${ac.glyph(tools.failed.length ? 'failed' : 'ok')}<span class="row__main small">${esc(tools.total ? t(tools.failed.length ? 'ac.chk.tools.failed' : 'ac.chk.tools', { n: num(tools.ready), total: num(tools.total), failed: tools.failed.map(s => s.name).join(t('list.sep')) }) : t('ac.chk.tools.none'))}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>
+        ${tools.failed.length ? `<div class="toggle-row"><span>${t('ac.chk.without')}</span><span class="switch"><input type="checkbox" data-change="ac-without" data-fk="without" ${c.withoutTools ? 'checked' : ''} aria-label="${esc(t('ac.chk.without'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}`;
+}
+function optionsHTML(c, pubErr) {
+  return `<details class="panel fold" ${c.speed || c.published ? 'open' : ''}><summary><span class="row__main"><span class="row__title">${t('ac.chk.options')}</span><span class="row__meta" style="display:block">${t('ac.chk.options.sum')}</span></span>${icon('chev', 'chev')}</summary>
           <div class="fold__body ac-stack">
             <div class="toggle-row"><span><span style="display:block">${t('ac.chk.speed')}</span><span class="small muted">${t('ac.chk.speed.note')}</span></span>
               <span class="switch"><input type="checkbox" data-change="ac-speed" data-fk="speed" ${c.speed ? 'checked' : ''} aria-label="${esc(t('ac.chk.speed'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>
@@ -121,12 +112,46 @@ sheet('check', {
             <label class="ac-label" for="ac-pub">${t('ac.chk.pub')}</label>
             <div class="field">${icon('globe')}<input id="ac-pub" type="url" inputmode="url" dir="ltr" data-fk="ac-pub" data-input="ac-pub" value="${esc(c.published)}" placeholder="app.example.com" autocomplete="off" aria-describedby="ac-pub-note"></div>
             <p class="small ${pubErr ? 'ac-c-danger' : 'muted'}" id="ac-pub-note">${pubErr ? esc(pubErr) : t('ac.chk.pub.note')}</p>
-          </div></details>
-        <p class="small muted">${t('ac.chk.kept')}</p>`,
-      foot: `${c.problem || c.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(c.problem || c.refused)}</p>` : ''}
+          </div></details>`;
+}
+function checkFoot(c, p, pubErr) {
+  const lr = ac.liveRun();
+  const label = c.paths.length ? t('ac.chk.start.paths', { paths: c.paths.map(id => pathName(c, id)).join(t('ac.and')) }) : t('ac.chk.start');
+  const noai = c.asst === 'rules' && !readyOnes().length;
+  return `${c.problem || c.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(c.problem || c.refused)}</p>` : ''}
         ${lr ? `<p class="small ink-2 ac-iline">${icon('clock', 'icon--sm')}<span>${esc(t('ac.chk.busy', { label: ac.runLabel(lr) }))}</span></p>` : ''}
         <button class="btn btn--primary btn--block" data-act="ac-start-check" data-fk="chk-start" ${pubErr || !p || c.busy ? 'disabled' : ''}>${esc(c.busy ? t('pv.starting') : lr ? t('ac.chk.queue') : noai ? t('ac.chk.start.noai') : label)}</button>
-        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(checkCmd(c))}">${icon('copy')}${t('pv.copy')}</button>`,
+        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(checkCmd(c))}">${icon('copy')}${t('pv.copy')}</button>`;
+}
+
+sheet('check', {
+  kind: 'drawer',
+  render(arg, q, c) {
+    if (offline()) return { title: esc(t('ac.chk.title')), body: `<p>${t('ac.chk.does')}</p>`, foot: `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.chk.start')}</button>` };
+    if (!c.init) initCheck(c, q);
+    if (!c.preview && !c.asking && !c.problem) askCheck(c);
+    const offer = c.offer;
+    const p = c.preview;
+    const needsSignin = !c.paths.length || c.paths.includes('look');
+    c.signinAsked = needsSignin;
+    // without the person's yes to run the app, its pages, sign-in and speed are never checked: asked here, once
+    c.runAppAsked = !!offer && offer.run_app === false && (!c.paths.length || c.paths.some(id => ['look', 'speed'].includes(id)));
+    const pubErr = publishedProblem(c.published);
+    return {
+      title: esc(t('ac.chk.title')),
+      sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
+      body: `<p>${t('ac.chk.does')}</p>
+        ${checkFacts(p)}
+        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.paths')}</legend><div class="opts">${pathsHTML(c)}</div>
+          <p class="small muted" style="margin-top:8px">${t('ac.chk.paths.note')}</p></fieldset>
+        <fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.asst')}</legend>${assistantsHTML(c)}
+          <p class="small muted" style="margin-top:8px">${t('ac.chk.asst.checked')} <button class="link ac-inline" data-act="ac-ask-again">${t('ac.asst.again')}</button></p></fieldset>
+        ${runAppHTML(c)}
+        ${c.runAppAsked && !c.runApp ? '' : `<fieldset class="ac-fs"><legend class="block-title">${t('ac.chk.si')}</legend>${signinHTML(c, needsSignin)}</fieldset>`}
+        ${toolsHTML(c)}
+        ${optionsHTML(c, pubErr)}
+        <p class="small muted">${t('ac.chk.kept')}</p>`,
+      foot: checkFoot(c, p, pubErr),
     };
   },
 });
