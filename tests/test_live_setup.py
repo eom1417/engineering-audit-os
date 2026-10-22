@@ -327,7 +327,7 @@ class HashRouteProbeTests(unittest.TestCase):
             try:
                 done = subprocess.run(['node', str(script)], capture_output=True, text=True, timeout=180, env={
                     **os.environ, 'BASE_URL': f'http://127.0.0.1:{server.server_port}/', 'EAOS_ROUTES': json.dumps(['/#/system', '/#/problems']),
-                    'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())})
+                    'EAOS_PLAYWRIGHT': str(home() / 'node/node_modules/playwright'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())})
             finally:
                 server.shutdown()
         page = json.loads(done.stdout.strip().splitlines()[-1])

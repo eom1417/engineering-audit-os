@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.58 (2026-10-22)
+
+- **EAOS's own tools in the app's isolated run, from one source**: HungerLab's check (an app built with EAOS) stopped
+  ten stages, every one that runs the app: it never answered in the isolated copy. An app with its own Playwright
+  (every app built from a plan has one, for its browser tests) met EAOS's scripts there twice: the setup probe and the
+  seed script (the setup assistant was told `require('playwright')`) loaded the app's own, another version with no
+  browsers. Now the run's environment names EAOS's Playwright once (`EAOS_PLAYWRIGHT`), the probe and the seed load it
+  by that path, and a test runs the probe in an app whose own Playwright fails: it must never be loaded.
+
 ## 0.0.57 (2026-10-22)
 
 - **From a real plan document to a complete blueprint, in the Studio**: a salon's PRD (10 functional and 5 other

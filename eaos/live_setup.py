@@ -353,9 +353,8 @@ def probe(live, base, state, report, paths=None):
     file)."""
     script = live.sandbox.copy / '.eaos-probe.cjs'
     script.write_text(PROBE, encoding='utf-8')
-    from .toolchain import home
     code, out, err = live.run(['node', str(script)], timeout=600, env={
-        'BASE_URL': base, 'EAOS_PLAYWRIGHT': str(home() / 'node/node_modules/playwright'), 'EAOS_STORAGE_STATE': str(state) if state.is_file() else '',
+        'BASE_URL': base, 'EAOS_STORAGE_STATE': str(state) if state.is_file() else '',
         'EAOS_ROUTES': json.dumps(routes(report) if paths is None else paths)})
     return json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
 

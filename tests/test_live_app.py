@@ -46,6 +46,29 @@ class SetupTests(unittest.TestCase):
         self.assertTrue(_test_browsers(['pnpm', 'exec', 'playwright', 'install', '--with-deps']))
         self.assertFalse(_test_browsers(['npm', 'install']))
 
+    def test_eaos_scripts_in_the_app_load_eaos_playwright_never_the_apps_own(self):
+        # A real build: the probe, written into the app's copy, loaded the app's own Playwright (another version, no
+        # browsers), so every page stage stopped. One variable names EAOS's own, for the probe and the seed alike.
+        from eaos import live_assist
+        from eaos.live_setup import PROBE
+        from eaos.toolchain import home
+        with tempfile.TemporaryDirectory() as tmp:
+            app, eaos = Path(tmp) / 'app', Path(tmp) / 'eaos-playwright'
+            (app / 'node_modules/playwright').mkdir(parents=True)
+            (app / 'node_modules/playwright/index.js').write_text("throw new Error('the app own playwright')")
+            eaos.mkdir()
+            (eaos / 'index.js').write_text("module.exports = { chromium: { launch: async () => { throw new Error('eaos playwright') } } }")
+            (app / '.eaos-probe.cjs').write_text(PROBE)
+            done = subprocess.run(['node', '.eaos-probe.cjs'], cwd=app, capture_output=True, text=True, timeout=60,
+                                  env={'PATH': __import__('os').environ['PATH'], 'EAOS_PLAYWRIGHT': str(eaos), 'BASE_URL': 'http://127.0.0.1:9'})
+        self.assertIn('eaos playwright', done.stdout + done.stderr)
+        self.assertNotIn('the app own playwright', done.stdout + done.stderr)
+        run = LiveRun.__new__(LiveRun)
+        run.profile, run.runtime, run.apart = {}, Path(tempfile.gettempdir()), None
+        run.database_url = lambda: None
+        self.assertEqual(run.extra()['EAOS_PLAYWRIGHT'], str(home() / 'node/node_modules/playwright'))
+        self.assertIn('process.env.EAOS_PLAYWRIGHT', live_assist.PROMPT if hasattr(live_assist, 'PROMPT') else Path(live_assist.__file__).read_text())
+
 
 class SharedAppTests(unittest.TestCase):
     def setUp(self):
