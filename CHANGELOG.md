@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.57 (2026-10-22)
+
+- **From a real plan document to a complete blueprint, in the Studio**: a salon's PRD (10 functional and 5 other
+  requirements) given to "Build from a plan" was read by the assistant into a spec with all 15 requirements and the
+  product's facts, five real choices asked once in "Waiting for you", and a blueprint of 44 cards in 11 milestones.
+  It showed three faults, fixed here:
+  - **Requirements were optional**: a spec without them was drawn with nothing proving the plan was built. A new
+    product's spec now needs `requirements` and `nonfunctional` (a feature added to a project does not).
+  - **The new project spoke English in an Arabic Studio**: its state took the computer's language; it now starts in
+    the Studio's.
+  - **"Where things stand" failed before the project's folder existed**: it now says the next step is reading the plan.
+
 ## 0.0.56 (2026-10-22)
 
 - **The whole product built from one press, proven**: a real trial from the Studio built a two-language clinic from its
