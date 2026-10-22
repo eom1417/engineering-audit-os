@@ -415,7 +415,7 @@ class _Run:
         if hit:
             self.tell(f'{node.title}: the same inputs as before, the cached decision stands', f'{node.title}: المدخلات نفسها، فيبقى القرار المحفوظ')
             return self.done({**hit, 'at': self.at, 'cached': True})
-        if not asks: return self._decided(None, ({'decisions': before}, None), asks, [], key, cached=True)
+        if not asks: return self._decided(None, ({'decisions': before}, None), asks, [], key)
         launcher = self._launcher()
         if launcher is None: return self.rules_only('rules_only', WORDS['no_assistant'])
         asked = [p for _, _, p in asks]
@@ -531,7 +531,8 @@ class _Run:
                                prompt=digest(asked), schema=digest([s for _, s, _ in asks]),
                                seconds=round(time.monotonic() - self.began, 1), cost=spent(launcher))
 
-    def _decided(self, launcher, answered, asks, asked, key, cached=False):
+    def _decided(self, launcher, answered, asks, asked, key):
+        """The record of the decisions that stand; no launcher: every one was judged before (_judged), none asked."""
         node, spec, data = self.node, self.spec, self.data
         answer, critique = answered
         self.tell(f'{node.title}: checking that every decision stands on evidence', f'{node.title}: يتحقق أن كل قرار قائم على دليل')
@@ -540,7 +541,7 @@ class _Run:
         left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
         row = record(node, {**self.base, 'state': 'decided', 'method': 'model', 'assistant': getattr(launcher, 'assistant', None),
                             'model': getattr(launcher, 'model', None),
-                            'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': cached, 'calls': len(asked),
+                            'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': launcher is None, 'calls': len(asked),
                             'seconds': round(time.monotonic() - self.began, 1),
                             'cost_usd': spent(launcher), 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
                      kept + left, dropped, critique=critique if isinstance(critique, dict) else None,
