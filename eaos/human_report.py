@@ -20,7 +20,6 @@ read here: the Studio and this page show the same numbers.
 """
 import json
 import math
-import re
 from collections import Counter
 from pathlib import Path
 

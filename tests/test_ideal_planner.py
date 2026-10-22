@@ -166,7 +166,7 @@ class Planning(unittest.TestCase):
         one, two = ideal.bundle(self.report, project), ideal.bundle(self.report, project)
         self.assertEqual(ideal.digest(one), ideal.digest(two))
         self.assertEqual({d['path'] for d in one['documents']}, {'README.md', 'docs/arch.md'})
-        self.assertTrue(all(d['trust'] == ideal.UNTRUSTED for d in one['documents']))
+        self.assertTrue(all(d['trust'] == core.UNTRUSTED for d in one['documents']))
         self.assertEqual([c['id'] for c in one['cards']], ['TASK-001'])
         self.assertEqual({e['id'] for e in one['baseline']['system']['elements']}, {'T-src', 'T-old', 'TC-api-client'})
         src = next(e for e in one['baseline']['system']['elements'] if e['id'] == 'T-src')
