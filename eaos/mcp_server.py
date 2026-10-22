@@ -105,6 +105,9 @@ def _status(project=None):
     return result
 
 
+SPOKEN = {'ar': 'Arabic', 'en': 'English'}
+
+
 def _answer(function):
     """A tool's dict as JSON text; an error as the reason and what to do, never a bare traceback. Every call is written
     to the project's journal and its HANDOVER.md (eaos/handover.py), so another assistant can take over."""
@@ -126,6 +129,9 @@ def _answer(function):
         try: arguments = dict(signature.bind_partial(*args, **kwargs).arguments)
         except TypeError: arguments = dict(kwargs)
         record(function.__name__, arguments, result, _status)
+        # a long Studio run forgets its first words: every answer carries the person's language (a real build drifted to English)
+        if isinstance(result, dict) and os.environ.get('EAOS_STUDIO_LANG') in SPOKEN:
+            result['notes_language'] = f"{SPOKEN[os.environ['EAOS_STUDIO_LANG']]}: the person reads every note you write, live."
         return json.dumps(result, ensure_ascii=False, indent=1, default=str)
     return call
 

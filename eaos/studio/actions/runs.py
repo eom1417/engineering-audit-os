@@ -319,7 +319,7 @@ class Manager:
         argv = adapter.argv(prompt, run, folder, session, tools=tools)
         stream = folder / 'stream.jsonl'
         offset = stream.stat().st_size if stream.is_file() else 0
-        env = {**os.environ, 'EAOS_STUDIO_RUN': run}
+        env = {**os.environ, 'EAOS_STUDIO_RUN': run, 'EAOS_STUDIO_LANG': self.lang}
         with open(stream, 'ab') as out, open(folder / 'stderr.log', 'ab') as err:
             process = subprocess.Popen(argv, cwd=self.project, stdout=out, stderr=err, stdin=subprocess.DEVNULL, env=env, start_new_session=True)
         self.children[run] = process

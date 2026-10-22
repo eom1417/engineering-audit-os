@@ -117,7 +117,9 @@ class LiveRun:
             fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder)).replace('{mail_port}', mail)
             self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
-                           'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}
+                           'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers()),
+                           # EAOS's own Playwright, by its path: Node finds the app's own first (another version, no browsers)
+                           'EAOS_PLAYWRIGHT': str(home() / 'node/node_modules/playwright')}
             self._extra.setdefault('AUTH_SECRET', getattr(self, 'auth_secret', None) or secrets.token_urlsafe(48))
         return self._extra
 

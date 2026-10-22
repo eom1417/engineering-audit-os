@@ -31,7 +31,8 @@ folder.
 Use "{database_url}" for the local database's address, and "{run_dir}" (an empty folder of the run's own,
 outside the app, made for you) for any folder the app needs outside its code: backups, uploads, data. Never
 create folders with commands. The seed script runs with Node after the app starts,
-with BASE_URL in its environment; require('playwright') is available. It adds a little sample data if the app is
+with BASE_URL in its environment; EAOS's Playwright is require(process.env.EAOS_PLAYWRIGHT) (never require('playwright'): the
+app's own, another version, has no browsers here). It adds a little sample data if the app is
 empty, and its console output ends with one JSON line of fixture values it created, for example
 {"E2E_PROFILEID": "..."}, when the checks need them. A page asking for a sign-in is the app working: the sign-in is
 made in the next step, on the running app. An app that opens signed in on a chooser or gate (a profile, workspace or

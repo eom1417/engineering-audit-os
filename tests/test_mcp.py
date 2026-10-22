@@ -91,6 +91,14 @@ class ServerTests(Home):
         self.assertIn('eaos start .', answer['what_now'])
 
 class ToolTests(Home):
+    def test_every_answer_in_a_studio_run_carries_the_persons_language(self):
+        # A real build from the Studio: after its first notes the assistant wrote 67 of 69 notes in English.
+        from eaos import mcp_server
+        def status(project=None): return {'next': 'audit'}
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_LANG': 'ar'}):
+            self.assertTrue(json.loads(mcp_server._answer(status)(str(self.project)))['notes_language'].startswith('Arabic'))
+        self.assertNotIn('notes_language', json.loads(mcp_server._answer(status)(str(self.project))), 'outside a Studio run, nothing')
+
     def test_the_assistant_way_never_calls_a_model_itself(self):
         source = (ROOT / 'eaos/agent_tools.py').read_text()
         for call in ('from .assistants import provider', 'provider()', '.complete('):
