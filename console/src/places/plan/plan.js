@@ -228,48 +228,37 @@ screen({ id: 'S-10', path: '/problems/plan/waves', place: 'problems', needs: NEE
 
 /* ---------------- S-09 one step ---------------- */
 const BUCKET = { open: 'todo', in_batch: 'active', on_branch: 'active', done: 'done', resolved: 'done', skipped: 'left' };
-function stepPage(ctx) {
-  const all = steps();
-  const s = all.find(x => x.id === ctx.params.step);
-  const backLink = back('/problems/plan', t('pb.view.plan'));
-  if (!s) return `<div class="page">${backLink}<div class="empty panel" style="margin-top:12px"><h1 class="empty__title">${esc(t('pd.notfound', { id: ctx.params.step }))}</h1><p class="small ink-2">${t('un.notfound.guide')}</p></div></div>`;
-  const tasks = s.ids.map(id => model.problem(id) || Object.assign({ id, severity: 'info', paths: [] }, s.tasks.find(x => x.id === id), { state: 'open' }));
-  const before = all.filter(x => x.waits.some(w => w[0] === s.id));
-  const states = { todo: 0, active: 0, done: 0, left: 0 };
-  tasks.forEach(p => { states[BUCKET[p.state] || 'todo'] += 1; });
-  const tl = timeline();
-  const wave = id => { const x = tl && tl.tasks.find(y => y.id === id); return x ? x.wave : null; };
-  const ops = ((data.section('operations') || {}).operations || []).filter(o => o.step === s.id);
-  const opsLine = opLinks(ops);
-  const waitsLine = s.waits.length ? s.waits.map(w => `<a class="link" href="${href('/problems/plan/' + enc(w[0]))}">${code(w[0])}</a> <span class="small muted">${esc(tn('pl.problem', w[1]))}</span>`).join(t('list.sep')) : t('un.step.free');
-  const weights = all.reduce((sum, x) => sum + (x.weight || 0), 0);
-  const row = p => {
-    const on = selection.picked.ids.has(p.id);
-    const w = wave(p.id);
-    return `<li class="prow ${on ? 'is-selected' : ''}">
+/** A task's wave in the plan's timeline, null when it has none. */
+function waveOf(id) { const tl = timeline(); const x = tl && tl.tasks.find(y => y.id === id); return x ? x.wave : null; }
+function taskRow(p) {
+  const on = selection.picked.ids.has(p.id);
+  const w = waveOf(p.id);
+  return `<li class="prow ${on ? 'is-selected' : ''}">
       ${chk(`data-change="un-sel" value="${esc(p.id)}" data-fk="sel-${esc(p.id)}" ${p.state !== 'open' ? 'disabled' : ''}`, on, `${t('pd.select')}: ${p.id}`)}
       <a class="prow__link" href="${href('/problems/' + enc(p.id))}"><span class="prow__top">${sev(p.severity)}${p.state !== 'open' ? `<span class="tag tag--state">${t('state.' + p.state)}</span>` : ''}<span class="prow__end small muted">${esc(w ? t('un.waves.w', { w }) : t('un.waves.nowave'))}</span></span>
         <span class="prow__title">${rich(L(p.title || p.id))}</span>
         <span class="prow__meta">${code(p.id)}<span>${waitText(p.id, true)}</span></span></a></li>`;
-  };
-  const guide = t('un.step.guide', { n: tn('pl.problem', s.ids.length), waits: s.waits.length ? t('un.step.guide.waits', { list: s.waits.map(w => w[0]).join(t('list.sep')) }) : t('un.step.guide.free'), before: before.length ? t('un.step.guide.before', { list: before.map(x => x.id).join(t('list.sep')) }) : '' });
-  const primary = s.decision ? `<a class="btn btn--primary" href="${href('/waiting/' + enc(s.decision.id))}">${icon('seal', 'icon--sm')}${t('un.step.answer')}</a>`
-    : s.review ? `<a class="btn btn--primary" href="${href('/waiting/' + enc(s.review))}">${icon('seal', 'icon--sm')}${t('un.step.decide')}</a>` : fixBtn(s, 'btn--primary', t('un.step.fix'));
-  const open = openIds(s);
-  const pg = page(tasks, row);
-  return `<div class="page page--wide">
-    ${backLink}
-    <div class="un-itemtags">${code(s.id)}${stateTag(s.state)}${s.sub_plan ? `<span class="tag tag--state">${t('un.plan.sub')}</span>` : ''}</div>
-    <h1 class="lede un-lede-sm">${title(s)}</h1>
-    <p class="guide">${esc(guide)}</p>
-    <div class="actions">${primary}
-      ${open.length ? `<button class="btn btn--quiet" data-act="un-sel-step" data-ids="${esc(open.join(','))}" data-step="${esc(s.id)}">${icon('select', 'icon--sm')}${t('un.step.selectall')}</button>` : ''}
-      <p class="actions__note">${t(s.decision ? 'un.step.blocked.note' : 'st.next.note')}</p></div>
-    <div class="un-stepgrid">
-      <section class="panel panel__pad un-stepfacts" aria-label="${esc(t('un.gap.props'))}">
-        <div class="un-share" role="img" aria-label="${esc(t('un.step.share', { todo: states.todo, active: states.active, done: states.done, left: states.left }))}">
+}
+/** What a step asks of the person first: the decision that holds it, its branch to decide, or its fix. */
+function stepPrimary(s) {
+  if (s.decision) return `<a class="btn btn--primary" href="${href('/waiting/' + enc(s.decision.id))}">${icon('seal', 'icon--sm')}${t('un.step.answer')}</a>`;
+  if (s.review) return `<a class="btn btn--primary" href="${href('/waiting/' + enc(s.review))}">${icon('seal', 'icon--sm')}${t('un.step.decide')}</a>`;
+  return fixBtn(s, 'btn--primary', t('un.step.fix'));
+}
+/** A step's tasks by state: one bar and its legend. */
+function shareHTML(tasks) {
+  const states = { todo: 0, active: 0, done: 0, left: 0 };
+  tasks.forEach(p => { states[BUCKET[p.state] || 'todo'] += 1; });
+  return `<div class="un-share" role="img" aria-label="${esc(t('un.step.share', { todo: states.todo, active: states.active, done: states.done, left: states.left }))}">
           ${['done', 'active', 'todo', 'left'].filter(k => states[k]).map(k => `<span class="un-share__s un-share__s--${k}" style="flex:${states[k]}"></span>`).join('')}</div>
-        <div class="legend">${['todo', 'active', 'done', 'left'].map(k => `<span class="${states[k] ? '' : 'zero'}"><i class="un-share__dot un-share__dot--${k}" aria-hidden="true"></i>${t('un.tst.' + k)} <b>${num(states[k])}</b></span>`).join('')}</div>
+        <div class="legend">${['todo', 'active', 'done', 'left'].map(k => `<span class="${states[k] ? '' : 'zero'}"><i class="un-share__dot un-share__dot--${k}" aria-hidden="true"></i>${t('un.tst.' + k)} <b>${num(states[k])}</b></span>`).join('')}</div>`;
+}
+function stepFacts(s, all, before, tasks) {
+  const ops = ((data.section('operations') || {}).operations || []).filter(o => o.step === s.id);
+  const waitsLine = s.waits.length ? s.waits.map(w => `<a class="link" href="${href('/problems/plan/' + enc(w[0]))}">${code(w[0])}</a> <span class="small muted">${esc(tn('pl.problem', w[1]))}</span>`).join(t('list.sep')) : t('un.step.free');
+  const weights = all.reduce((sum, x) => sum + (x.weight || 0), 0);
+  return `<section class="panel panel__pad un-stepfacts" aria-label="${esc(t('un.gap.props'))}">
+        ${shareHTML(tasks)}
         ${facts([
           [t('un.step.gate'), s.gate ? rich(L(s.gate)) : `<span class="muted">${t('un.none')}</span>`],
           [t('un.step.weight'), weights ? Math.round((s.weight || 0) / weights * 100) + '%' : '—'],
@@ -277,9 +266,30 @@ function stepPage(ctx) {
           [t('un.step.waitsfor'), waitsLine],
           [t('un.step.comesbefore'), before.length ? before.map(x => `<a class="link" href="${href('/problems/plan/' + enc(x.id))}">${code(x.id)}</a>`).join(' ') : t('un.none')],
           [t('un.step.subplan'), s.sub_plan ? code(s.sub_plan) : t('un.none')],
-          [t('un.gap.ops'), opsLine || t('un.none')],
+          [t('un.gap.ops'), opLinks(ops) || t('un.none')],
         ])}
-      </section>
+      </section>`;
+}
+function stepPage(ctx) {
+  const all = steps();
+  const s = all.find(x => x.id === ctx.params.step);
+  const backLink = back('/problems/plan', t('pb.view.plan'));
+  if (!s) return `<div class="page">${backLink}<div class="empty panel" style="margin-top:12px"><h1 class="empty__title">${esc(t('pd.notfound', { id: ctx.params.step }))}</h1><p class="small ink-2">${t('un.notfound.guide')}</p></div></div>`;
+  const tasks = s.ids.map(id => model.problem(id) || Object.assign({ id, severity: 'info', paths: [] }, s.tasks.find(x => x.id === id), { state: 'open' }));
+  const before = all.filter(x => x.waits.some(w => w[0] === s.id));
+  const guide = t('un.step.guide', { n: tn('pl.problem', s.ids.length), waits: s.waits.length ? t('un.step.guide.waits', { list: s.waits.map(w => w[0]).join(t('list.sep')) }) : t('un.step.guide.free'), before: before.length ? t('un.step.guide.before', { list: before.map(x => x.id).join(t('list.sep')) }) : '' });
+  const open = openIds(s);
+  const pg = page(tasks, taskRow);
+  return `<div class="page page--wide">
+    ${backLink}
+    <div class="un-itemtags">${code(s.id)}${stateTag(s.state)}${s.sub_plan ? `<span class="tag tag--state">${t('un.plan.sub')}</span>` : ''}</div>
+    <h1 class="lede un-lede-sm">${title(s)}</h1>
+    <p class="guide">${esc(guide)}</p>
+    <div class="actions">${stepPrimary(s)}
+      ${open.length ? `<button class="btn btn--quiet" data-act="un-sel-step" data-ids="${esc(open.join(','))}" data-step="${esc(s.id)}">${icon('select', 'icon--sm')}${t('un.step.selectall')}</button>` : ''}
+      <p class="actions__note">${t(s.decision ? 'un.step.blocked.note' : 'st.next.note')}</p></div>
+    <div class="un-stepgrid">
+      ${stepFacts(s, all, before, tasks)}
       <section aria-labelledby="tk-h">
         <div class="listhead"><h2 class="h2" id="tk-h">${t('un.step.tasks')}</h2><span class="listhead__count">${esc(t('un.showing', { shown: num(pg.shown), total: num(tasks.length) }))}</span></div>
         ${tasks.length ? `<ul class="panel rows plist un-tasklist">${pg.html}</ul>${pg.more}` : `<div class="panel empty"><p class="empty__title">${t('un.step.none')}</p></div>`}
