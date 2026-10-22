@@ -548,15 +548,18 @@ def _ordered(out, plan):
     left = [task for wave in plan.get('waves') or [] for task in wave.get('tasks') or [] if task not in seen]
     if left: steps.append({'id': 'not-placed', 'title': 'Not placed by the order', 'tasks': left,
                            'why': "The order did not place these cards; they follow in the rules' waves."})
+    return {**body, 'steps': steps} if _holds(steps, tasks) else None
+
+
+def _holds(steps, tasks):
+    """Whether `steps` place every card of `tasks` ({id: task}) once, none before its prerequisites."""
     place = {}
     for index, step in enumerate(steps):
         for task in step.get('tasks') or []:
-            if task not in tasks or task in place: return None
+            if task not in tasks or task in place: return False
             place[task] = index
-    if set(place) != set(tasks): return None
-    if any(place.get(ref.get('task_id'), -1) > place[task] for task in tasks for ref in tasks[task].get('prerequisites') or []):
-        return None
-    return {**body, 'steps': steps}
+    return set(place) == set(tasks) and not any(place.get(ref.get('task_id'), -1) > place[task]
+                                                for task in tasks for ref in tasks[task].get('prerequisites') or [])
 
 
 SOURCE_WORDS = {'assistant': ("The assistant's order: every prerequisite kept, each step says why.",
