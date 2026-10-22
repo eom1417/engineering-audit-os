@@ -34,12 +34,12 @@ export function setQuery(patch, opts) {
   navigate(r.path, q, opts || { replace: true });
 }
 const typing = {};
-/** A search box typed into: its words become the address's `q` once typing pauses, and the redrawn box keeps the
- *  cursor at the end of its words. */
-export function searchTyped(el, pause = 180) {
-  const id = el.id, v = el.value;
-  clearTimeout(typing[id]);
-  typing[id] = setTimeout(() => { setQuery({ q: v || null }); const i = document.getElementById(id); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, pause);
+/** A search box typed into: its words become the address's `q` once typing pauses (`also`: more of the address set
+ *  with them), and the redrawn box, found by its data-fk, keeps the cursor at the end of its words. */
+export function searchTyped(el, pause = 180, also = {}) {
+  const fk = el.dataset.fk, v = el.value;
+  clearTimeout(typing[fk]);
+  typing[fk] = setTimeout(() => { setQuery({ q: v || null, ...also }); const i = document.querySelector(`[data-fk="${fk}"]`); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, pause);
 }
 
 /** Asks for the screen to be drawn again in place (main.js hands it to the router). */

@@ -4,7 +4,7 @@
 // (SYS-18), the readout of marks, the two-column flow (bridge, seen and unseen), and picking problems for the one Fix
 // preview in Problems. A kit: stateless helpers bundled into each place that imports them (scripts/build.mjs).
 import {
-  t, tn, L, num, esc, icon, code, sev, rich, href, parseHash, setQuery, navigate, act, announce, fmtWhen, exactTime, offline, openSheet,
+  t, tn, L, num, esc, icon, code, sev, rich, href, parseHash, searchTyped, navigate, act, announce, fmtWhen, exactTime, offline, openSheet,
   model, selection, data, normalize,
 } from 'eaos';
 
@@ -79,16 +79,7 @@ export function seg(param, items, cur, label, opts) {
 /** Each view's own search (SRC-03), the same matching as everywhere (SRC-02); the address keeps it. */
 export const search = (value, ph) => `<label class="field un-search">${icon('search')}<span class="sr-only">${esc(ph)}</span>
     <input type="search" data-input="unq" data-fk="unq" value="${esc(value || '')}" placeholder="${esc(ph)}" autocomplete="off"></label>`;
-let qTimer = 0;
-act('unq', el => {
-  clearTimeout(qTimer);
-  const v = el.value;
-  qTimer = setTimeout(() => {
-    setQuery({ q: v || null, n: null });
-    const inp = document.querySelector('[data-fk="unq"]');
-    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-  }, 180);
-});
+act('unq', el => searchTyped(el, 180, { n: null }));
 
 /** A large list 50 rows at a time (?n= keeps how many are shown): the rows, the "Show 50 more" link, how many shown. */
 export function page(items, render, step) {

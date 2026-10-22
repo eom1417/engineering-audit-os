@@ -2,7 +2,7 @@
 // LNK-01). The address carries the view (who, sev, area, pstate, step, comp, q, group, n); the list shows 50 problems
 // at a time. A new check that lands while the person reads leaves the list as it was until they ask (PRB-11).
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, parseHash, toast, announce, closeSheetThen, setSelbar,
+  t, tn, L, num, esc, rich, icon, code, sev, chk, href, screen, sheet, act, tickAct, refresh, setQuery, searchTyped, parseHash, toast, announce, closeSheetThen, setSelbar,
   S, model, selection, data,
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
@@ -163,16 +163,7 @@ setSelbar(() => {
 });
 
 /* ---------- search inside the view (PRB-02) ---------- */
-let qTimer = 0;
-act('pq', el => {
-  clearTimeout(qTimer);
-  const v = el.value;
-  qTimer = setTimeout(() => {
-    setQuery({ q: v || null, n: null });
-    const inp = document.getElementById('pq');
-    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-  }, 180);
-});
+act('pq', el => searchTyped(el, 180, { n: null }));
 
 /* ---------- filters (PRB-04, PRB-05) ---------- */
 function facetValues(f) {
