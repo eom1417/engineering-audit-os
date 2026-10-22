@@ -11,16 +11,12 @@
 // {press: 'Control+k'}, {type: 'text'}, {click: 'css selector'} (its first visible match), {wait: ms}.
 // `viewports` and `variants` name the subset the page is audited in; `wait_for` is a selector to wait for
 // (config.wait_for for every page).
-import { createRequire } from 'node:module';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fromFolder, playwrightFrom } from './pinned.mjs';
 
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const fromFolder = (folder) => createRequire(join(folder, 'eaos-resolve.js'));
-const playwright = (() => {
-  const require = fromFolder(config.modules.playwright);
-  try { return require('playwright'); } catch { return require('@playwright/test'); }
-})();
+const playwright = playwrightFrom(config.modules.playwright);
 const { AxeBuilder } = fromFolder(config.modules.axe)('@axe-core/playwright');
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];

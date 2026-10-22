@@ -9,15 +9,11 @@
 // a link matching config.leaves (sign out, delete, change) is never opened; config.read_only (a published site) lets
 // nothing but GET through.
 // The result is one JSON object on stdout: {routes: [{path, depth, status}]}.
-import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { playwrightFrom } from './pinned.mjs';
 
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const playwright = (() => {
-  const require = createRequire(join(config.modules.playwright, 'eaos-resolve.js'));
-  try { return require('playwright'); } catch { return require('@playwright/test'); }
-})();
+const playwright = playwrightFrom(config.modules.playwright);
 const base = new URL(config.base);
 const leaves = config.leaves ? new RegExp(config.leaves, 'i') : null;
 

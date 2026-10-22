@@ -8,16 +8,12 @@
 //   {do: 'done'}    the browser's storage state saved to config.state (its owner only), the browser closed -> {saved}
 //   {do: 'close'}   the browser closed, nothing saved -> {closed}
 // The picture is a JPEG of the page as it is now (none when headed). Nothing typed is written anywhere.
-import { createRequire } from 'node:module';
 import { chmodSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { playwrightFrom } from './pinned.mjs';
 
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const playwright = (() => {
-  const require = createRequire(join(config.modules.playwright, 'eaos-resolve.js'));
-  try { return require('playwright'); } catch { return require('@playwright/test'); }
-})();
+const playwright = playwrightFrom(config.modules.playwright);
 const say = (answer) => process.stdout.write(JSON.stringify(answer) + '\n');
 
 const browser = await playwright.chromium.launch({ headless: !config.headed });

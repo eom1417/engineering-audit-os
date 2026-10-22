@@ -1,14 +1,13 @@
 // Lighthouse in the same signed-in browser state as the crawl and screenshots, never on the sign-in page instead.
-import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:net';
+import { fromFolder, playwrightFrom } from './pinned.mjs';
 
 const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const require = createRequire(join(config.modules.playwright, 'eaos-resolve.js'));
-const { chromium } = (() => { try { return require('playwright'); } catch { return require('@playwright/test'); } })();
-const resolve = createRequire(join(config.modules.lighthouse, 'eaos-resolve.js'));
+const { chromium } = playwrightFrom(config.modules.playwright);
+const resolve = fromFolder(config.modules.lighthouse);
 const { default: lighthouse } = await import(pathToFileURL(resolve.resolve('lighthouse')).href);
 const state = JSON.parse(readFileSync(config.storage_state, 'utf8'));
 const listener = createServer();
