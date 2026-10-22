@@ -18,7 +18,7 @@ const GLYPH = {
   queued: ['circle', 'muted'], waiting: ['circle', 'muted'], paused: ['pause', 'ink-2'], done: ['check', 'ok'], ok: ['check', 'ok'],
   unchanged: ['dash', 'ink-2'], stopped: ['stop', 'ink-2'], failed: ['fail', 'danger'], skipped: ['dash', 'muted'], notin: ['dash', 'muted'],
   notreached: ['dash', 'muted'], partial: ['warn', 'caution'], handoff: ['terminal', 'ink-2'], error: ['fail', 'danger'], ready: ['check', 'ok'],
-  unavailable: ['dash', 'muted'], downloading: [null, 'live'], notneeded: ['dash', 'muted'],
+  unavailable: ['info', 'muted'], downloading: [null, 'live'], notneeded: ['dash', 'muted'],
 };
 export function glyph(st) {
   if (st === 'running' || st === 'downloading') return '<span class="dot dot--live" aria-hidden="true"></span>';

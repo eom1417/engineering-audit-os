@@ -120,7 +120,7 @@ def head(m, scan, lang, stamp, fresh):
     return {'scanned': scan, 'eaos': {k: stamp[k] for k in ('version', 'commit', 'digest')}, 'freshness': freshness, 'freshness_detail': detail,
             'verdict': build_plan.verdict(build, lang) if build else _verdict(m['score'], counted, lang),
             'next': build_plan.next_step(build, lang) if build else _next_step(counted['fixable'], m['rows'], lang),
-            'not_run': [{'stage': r['stage'], 'status': r['status'], 'reason': r['reason'][lang]} for r in absences(m['manifest'])]}
+            'not_run': [{'stage': r['stage'], 'status': r['status'], 'reason': r['reason'][lang], 'did': r['did']} for r in absences(m['manifest'])]}
 
 
 def _verdict(s, counted, lang):

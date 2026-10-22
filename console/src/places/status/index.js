@@ -1,7 +1,7 @@
 // S-01 Status: where the project stands and the one step that fits now (PRJ-01..12, HIS-02, BLD-04, SET-06), on the
 // report and the live command state. Its sheets: freshness (PRJ-04) and health on the phone (PRJ-02).
 import {
-  t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive,
+  t, tn, L, num, esc, icon, code, sev, href, band, fmtWhen, exactTime, screen, sheet, liveNow, freshness, live, model, data, contract, prefs, derive, has,
 } from 'eaos';
 import { buildStep } from '../understand-kit/kit.js';
 
@@ -27,6 +27,16 @@ function verdictHTML() {
     problems: `<a href="${href('/problems')}">${esc(tn('pl.problem', tot.problems))}</a>`,
     fixable: `<a href="${href('/problems', { who: 'eaos' })}">${num(tot.fixable)}</a>`,
   });
+}
+
+/** The stages that did not run, each with its reason in the person's language and what EAOS did about it (head.not_run). */
+function notRun() {
+  const rows = (data.section('head') || {}).not_run || [];
+  if (!rows.length) return '';
+  const DID = { fixed: 'st.notrun.fixed', failed: 'st.notrun.failed', needs_person: 'st.notrun.you' };
+  const list = rows.map(r => `<li><b>${esc(has('ac.stage.' + r.stage) ? t('ac.stage.' + r.stage) : r.stage)}</b>: ${esc(r.reason)}${r.did ? ` <span class="muted">${t(DID[r.did] || 'st.notrun.failed')}</span>` : ''}</li>`).join('');
+  return `<details class="fold panel" style="margin-top:8px"><summary>${icon('info', 'muted')}<span class="row__main small">${esc(tn('st.notrun', rows.length))}</span>${icon('chev', 'chev icon--sm')}</summary>
+    <ul class="fold__body small ink-2">${list}</ul></details>`;
 }
 
 function contextChips() {
@@ -258,6 +268,7 @@ screen({
     return `<div class="page page--status">
       ${contextChips()}
       <h1 class="lede">${verdictHTML()}</h1>
+      ${notRun()}
       ${nextStep(ctx)}
       <div class="status-cols">
         <div class="status-main">${nowRows()}${glance(false)}${healthRow()}${folds(ctx)}</div>

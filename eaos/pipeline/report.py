@@ -30,7 +30,9 @@ def absences(manifest):
     for name, row in (manifest.get('stages') or {}).items():
         if row.get('status') == 'ok': continue
         said = reasons().get(str(row.get('reason_code') or '')) or {}
-        rows.append({'stage': name, 'status': row.get('status'), 'reason': {lang: said.get(lang) or row.get('reason') or '' for lang in ('ar', 'en')}})
+        did = [r for r in manifest.get('remedies') or [] if r['stage'] == name]
+        rows.append({'stage': name, 'status': row.get('status'), 'reason': {lang: said.get(lang) or row.get('reason') or '' for lang in ('ar', 'en')},
+                     'did': did[-1]['outcome'] if did else None})
     return rows
 
 

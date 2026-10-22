@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.62 (2026-10-22)
+
+- **EAOS fixes by itself what stops a stage, then runs it again**: the catalog now names a remedy for a reason code
+  (`errors.json` reasons[code].remedy): a tool to install (`no_engine_installed`, `browser_missing`), the assistant to
+  ask again (`no_provider`, `ai_partial`), a stage that must be ok first (`no_features`, `no_pages`, `no_load_scenario`
+  after the crawl), or the person alone (`no_run_consent`, `app_not_running`). After every check the remedies that
+  need no person are applied, rules first, and their stages run again once the change is proven, up to three rounds,
+  a reason tried once (`eaos/pipeline/remedies.py`; `run.again` takes several stages). The manifest keeps what was
+  done (`remedies`), the Status page lists the stages that did not run with their reason in the person's language and
+  what EAOS did about it, and the stage board tells "not applicable here" from a failure by its glyph.
+
 ## 0.0.61 (2026-10-22)
 
 - **The safety net finds the app's pages by itself**: HungerLab's fix batch was refused for "0 screens recorded": the

@@ -398,17 +398,17 @@ def _audit_job(project, arguments, progress):
     out = guided.report_of(state)
     without = arguments.get('without_tools')
     failed = guided.tools_for_check(state, lambda done, total: progress and progress(done, total, 'tools'), install=not without)
-    if failed and not without:
-        raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
+    if failed and not without: raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = check_choices.options(state, progress, failed, guided.check_provider(state), guided.check_runtime(state),
                                     arguments.get('paths'), arguments.get('engines'), arguments.get('published'))
     if arguments.get('without_ai'):
         from .assistants.readiness import NoAssistant
         options['provider'] = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
     source = guided.source(state, state.get('scanned_commit') if arguments.get('again_from') else None)   # going on: the checked code
-    # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
-    read = {} if arguments.get('again_from') else {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
-    check(str(source), out, arguments.get('again_from'), state.get('scanned_dirty') is False, go_on=bool(arguments.get('go_on')), **options)
+    read = {} if arguments.get('again_from') else {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}   # taken before the scan reads: a commit made meanwhile is not in it
+    from .pipeline import remedies
+    done = check(str(source), out, arguments.get('again_from'), state.get('scanned_dirty') is False, go_on=bool(arguments.get('go_on')), **options)
+    remedies.apply(done, lambda stages: check(str(source), out, stages, True, **options), out, progress, guided.chosen_assistant(state))
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_with=tool_digest(), **read)
