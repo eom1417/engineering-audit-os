@@ -37,5 +37,22 @@ class RemedyTests(unittest.TestCase):
                          {'engines': 'failed', 'lock': 'failed', 'crawl': 'needs_person'}, 'the crawl is not ok, so the lock is not retried')
 
 
+    def test_the_assistant_is_asked_once_and_a_run_consent_becomes_the_persons_question(self):
+        class Provider:
+            calls = 0
+            def complete(self, messages, small=False, stage=None):
+                Provider.calls += 1
+                return {'result': {'action': 'again_from', 'stage': 'measure', 'advice': 'it timed out'}}, {}
+        broken = manifest(measure=('failed', 'stage_error'), setup=('unavailable', 'no_run_consent'))
+        passed = manifest(measure=('ok', ''), setup=('unavailable', 'no_run_consent'))
+        with tempfile.TemporaryDirectory() as tmp:
+            done = remedies.apply(broken, lambda stages: passed if stages == ['measure'] else self.fail(stages), tmp, provider=Provider())
+            self.assertEqual(remedies.pending(tmp), None, 'nothing left untried')
+        self.assertEqual(Provider.calls, 1, 'once in the whole check')
+        self.assertEqual({r['stage']: r['after'] for r in done['remedies']}, {'setup': 'unavailable', 'measure': 'ok'})
+        self.assertEqual(remedies.consent(done, 'May I run your app?')['ask_the_person'], 'May I run your app?')
+        self.assertEqual(remedies.agreed(False, None, True), (True, 'setup'))
+
+
 if __name__ == '__main__':
     unittest.main()

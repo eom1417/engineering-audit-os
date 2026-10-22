@@ -238,9 +238,9 @@ def _check_tools(server, reading, working):
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
               assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
               paths: list[str] | None = None, mode: str | None = None, sign_in: str | None = None, published: str | None = None,
-              run_app: bool = False, go_on: bool = False, fixed: bool = False) -> str:
+              run_app: bool = False, go_on: bool = False, fixed: bool = False, person_agreed: bool = False) -> str:
         return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in,
-                           published, run_app, go_on, fixed)
+                           published, run_app, go_on, fixed, person_agreed)
 
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '
