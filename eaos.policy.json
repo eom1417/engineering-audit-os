@@ -121,6 +121,7 @@
       "eaos/plan_source.py",
       "eaos/design.py",
       "eaos/build_tools.py",
+      "eaos/build_look.py",
       "eaos/extend.py",
       "eaos/gates.py",
       "eaos/journeys.py",

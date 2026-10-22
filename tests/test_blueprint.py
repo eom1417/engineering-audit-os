@@ -209,9 +209,29 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(build_tools._unbuilt(state, {'kept': {card: 'abc'}}), [])
         look = {'screen_problems': [{'page': '/', 'width': 375, 'problems': ['axe: color-contrast (serious, 2)']}],
                 'speed': {'performance': 40, 'accessibility': 80, 'best-practices': 95}}
-        self.assertEqual([p['what'] for p in build_tools._unusable(look)],
+        self.assertEqual([p['what'] for p in build_tools.build_look.unusable(look)],
                          ['axe: color-contrast (serious, 2)', 'Lighthouse accessibility is 80, under 90'],
                          'the copy runs in development mode: its speed never stops a delivery')
+        held = build_tools.build_look.unusable({'departures': [{'title': 'Two button styles', 'why': 'the look breaks', 'severity': 'high'},
+                                                     {'title': 'A tight margin', 'why': 'minor', 'severity': 'low'}],
+                                      'load': [{'id': 'L1', 'p95_ms': 900, 'error_rate': 0, 'threshold': {'p95_ms': 500, 'error_rate': 0.01}},
+                                               {'id': 'L2', 'p95_ms': 120, 'error_rate': 0, 'threshold': {'p95_ms': 500, 'error_rate': 0.01}}]})
+        self.assertEqual([(p['gate'], p['where']) for p in held], [('design', 'page'), ('load', 'L1')],
+                         'a high design departure and a load scenario over its threshold hold the finished product back')
+
+    def test_the_last_milestone_runs_the_projects_own_journeys_with_its_own_browsers(self):
+        # Two real builds: the e2e journeys were written but never run, and EAOS's browsers are another Playwright's.
+        root, browsers, bin_ = Path(self.tmp.name) / 'copy', Path(self.tmp.name) / 'run/browsers', Path(self.tmp.name) / 'bin'
+        (root / 'node_modules').mkdir(parents=True)
+        bin_.mkdir()
+        (bin_ / 'npx').write_text('#!/bin/sh\necho "$PLAYWRIGHT_BROWSERS_PATH" > "$PWD/fetched"\n')
+        (bin_ / 'npx').chmod(0o755)
+        (root / 'package.json').write_text(json.dumps({'scripts': {'typecheck': 'true', 'lint': 'true', 'test': 'true', 'e2e': 'exit 1'}}))
+        with mock.patch.dict(os.environ, {'PATH': f"{bin_}:{os.environ['PATH']}"}):
+            self.assertEqual(build_tools._checks(root, {'installed': ''}, lambda *_: None)[0], [], 'a milestone before the last runs no journey')
+            failed, _ = build_tools._checks(root, {'installed': ''}, lambda *_: None, browsers)
+        self.assertEqual([p['gate'] for p in failed], ['e2e'])
+        self.assertEqual((root / 'fetched').read_text().strip(), str(browsers), "the project's own browsers, in its own folder")
 
     def test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder(self):
         self.assertEqual(build_tools.status_of(self.project)['next']['tool'], 'blueprint_start', 'a folder not made yet is no error')
@@ -245,7 +265,7 @@ class BuildTests(unittest.TestCase):
         self.assertFalse(refused['kept'])
         self.assertFalse((root / 'package.json').exists(), 'a refused card is taken back')
         with mock.patch.object(build_tools, '_gates', return_value=[]), \
-                mock.patch.object(build_tools, '_look', return_value={'screens': 2, 'departures': []}) as looked:
+                mock.patch.object(build_tools.build_look, 'look', return_value={'screens': 2, 'departures': []}) as looked:
             kept = build_tools._build_edit_job(self.project, edit, lambda *_: None)
             self.assertTrue(kept['kept'])
             finished = build_tools._build_finish_job(self.project, {}, lambda *_: None)
