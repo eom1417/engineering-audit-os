@@ -98,6 +98,12 @@ class RebuildTests(unittest.TestCase):
             ledger._reopen_waited({c['id']: c for c in book.values()}, [card('SPLIT', ['SIMPLIFY'])])
             self.assertEqual(book[keys['SPLIT']]['state'], 'open', 'set aside by the order, not by its own change')
             self.assertEqual(waves.next_batch(report, state), ['SPLIT'], 'tried, but opened again by the ledger')
+        # chief-ops: ten splits left for "the next batch" while their simplifications were open: now in the same batch, after
+        book[keys['SIMPLIFY']].update(state='open', batch=None)
+        with mock.patch.object(ledger, 'load', return_value={'cards': book}):
+            self.assertEqual(waves.next_batch(report, state), ['SIMPLIFY', 'SPLIT'], 'listed first, the split comes after what it waits for')
+            self.assertEqual(waves.with_prerequisites(report, state, ['SPLIT']), ['SIMPLIFY', 'SPLIT'], 'asked alone, it brings it')
+            self.assertIsNone(waves.too_early(state, [card('SIMPLIFY'), card('SPLIT', ['SIMPLIFY'])]))
 
     def test_the_branch_is_the_base_plus_exactly_the_kept_commits_and_the_card_at_fault_is_found_by_halving(self):
         root = repository()

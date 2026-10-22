@@ -201,6 +201,7 @@ def _page_test(route, target, name, guard):
             "    await page.clock.setFixedTime(new Date('2026-01-01T09:00:00Z'));",
             f'    await page.goto({target});',
             "    await page.waitForLoadState('networkidle');",
+            "    await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, { timeout: 60000 }).catch(() => {});",
             f"    expect(messages.join('\\n')).toMatchSnapshot('{name}.console.txt');",
             f"    await expect(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: 0.01 }});",
             '  });']

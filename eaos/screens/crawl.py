@@ -76,7 +76,29 @@ def distinct(paths):
     return found
 
 
-def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False):
+# A screen address the code itself names: '#/now', '/#/plan/today' in a string, as a hash-routed app writes its menu and
+# its redirects. The crawl opens these too, so a screen behind a welcome, a button or a slow first load is still found
+# (HungerLab: the app opened on #/onboarding, its tab bar never showed, and the crawl found one page).
+HASH_ROUTE = re.compile(r'''["'`]/?#(/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*)/?["'`]''')
+CODE = ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.vue', '.svelte', '.html')
+# In a file that routes by the hash (its own table, a HashRouter), a plain '/now' is a screen too; never an /api call.
+HASH_ROUTER = re.compile(r'location\.hash|hashchange|HashRouter|createHashRouter|createWebHashHistory')
+PATH = re.compile(r'''["'`](/(?!api\b)[a-z][a-z0-9_-]*(?:/[a-z0-9_-]+)*)["'`]''')
+
+
+def code_routes(root, most=60):
+    """['/#/now', ...]: the hash routes the project's code names, in the order first met, `most` at most."""
+    from ..workspace import inventory
+    found = {}
+    for row in inventory(root)['files']:
+        if not row['path'].endswith(CODE): continue
+        try: text = (Path(root) / row['path']).read_text(encoding='utf-8', errors='replace')
+        except OSError: continue
+        found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text) + (PATH.findall(text) if HASH_ROUTER.search(text) else [])))
+    return list(found)[:most]
+
+
+def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False, seeds=()):
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]. Signed in
     (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never followed; `read_only` (a
     published address) sends nothing but GET."""
@@ -84,7 +106,7 @@ def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=F
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
-              'read_only': read_only}
+              'read_only': read_only, 'seeds': list(seeds)}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
     result, error = _node('crawl.mjs', config, timeout)
     return (result or {}).get('routes'), error
@@ -100,9 +122,9 @@ def _measure(row, base, out, number, storage_state):
                report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
 
 
-def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read_only=False):
+def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read_only=False, seeds=()):
     if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
-    routes, error = discover(base, max_routes, storage_state=storage_state, read_only=read_only)
+    routes, error = discover(base, max_routes, storage_state=storage_state, read_only=read_only, seeds=seeds)
     if routes is None:
         return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']

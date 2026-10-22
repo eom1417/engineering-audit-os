@@ -139,12 +139,12 @@ def crawl(context):
     the kinds that reached it. The published address the person named, read only, a few."""
     if not _published(context): _live(context)
     from .live_app import sessions
-    from ..screens.crawl import MEASURED, crawl as find
+    from ..screens.crawl import MEASURED, code_routes, crawl as find
     live, base, made = sessions(context, published=True)
-    founds, routes = [], {}
+    founds, routes, seeds = [], {}, code_routes(context.target) if live else []
     for kind, state in made:
         found = find(base, context.out / 'live/crawl' / (kind or ''), measured=0 if founds else MEASURED,
-                     storage_state=state if state.is_file() else None, read_only=not live)
+                     storage_state=state if state.is_file() else None, read_only=not live, seeds=seeds)
         if found['status'] != 'observed': continue
         founds.append(found)
         for row in found['routes']:
