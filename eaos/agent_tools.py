@@ -919,10 +919,10 @@ def _not_ready(state, deliver_as):
 
 def _chosen(state, cards, size):
     """(why nothing opens, or None; the batch's cards): those asked for, else the next ready ones."""
-    from .waves import next_batch, plan as read_plan, too_early
+    from .waves import next_batch, plan as read_plan, too_early, with_prerequisites
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
-    chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
+    chosen = with_prerequisites(report, state, list(dict.fromkeys(cards))) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
     undecided = [c for c in chosen if not _ready(known[c])]
