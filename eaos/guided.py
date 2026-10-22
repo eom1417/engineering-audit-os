@@ -954,18 +954,16 @@ def safety(state, args):
         say(f'   [{n}/2] ' + (('أصوّر الشاشات…' if lang == 'ar' else 'Recording the screens…') if n == 1 else
                               ('أقيس السرعة تحت ضغط مستخدمين كثيرين…' if lang == 'ar' else 'Measuring speed under many users…')))
     outcome = safety_run(state, step)
-    passed, total, speed, notes = outcome['passed'], outcome['screens'], outcome['p95_ms'], []
+    passed, total, speed, ar = outcome['passed'], outcome['screens'], outcome['p95_ms'], lang == 'ar'
+    unmeasured = {'no_production_run': ('لم تعمل نسخة الإنتاج من برنامجك هنا، فلم أقس السرعة؛ السبب في run.json', 'The production build of your app did not run here, so speed was not measured; the reason is in run.json'),
+                  'no_build': ('لا يوجد أمر بناء للإنتاج، فلم أقس السرعة', 'No production build, so speed was not measured')}.get(outcome['speed'])
+    notes = [unmeasured[0 if ar else 1]] if unmeasured else []
     if outcome['speed'] == 'failed':
-        notes.append(('لم أستطع قياس السرعة: ' if lang == 'ar' else 'Could not measure speed: ')
+        notes.append(('لم أستطع قياس السرعة: ' if ar else 'Could not measure speed: ')
                      + explain(RuntimeError(outcome['speed_error']))[lang]['message'] + f" ({outcome['speed_log']})")
-    elif outcome['speed'] == 'no_production_run':
-        notes.append('لم تعمل نسخة الإنتاج من برنامجك هنا، فلم أقس السرعة؛ السبب في run.json' if lang == 'ar'
-                     else 'The production build of your app did not run here, so speed was not measured; the reason is in run.json')
-    elif outcome['speed'] == 'no_build':
-        notes.append('لا يوجد أمر بناء للإنتاج، فلم أقس السرعة' if lang == 'ar' else 'No production build, so speed was not measured')
     happened = (f"صوّرت {passed} من {total} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
-                if lang == 'ar' else f"Recorded {passed} of {total} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
-    if outcome['skipped']: notes.append((f"{len(outcome['skipped'])} شاشة لم تُصوَّر، وأسبابها في السجل" if lang == 'ar'
+                if ar else f"Recorded {passed} of {total} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
+    if outcome['skipped']: notes.append((f"{len(outcome['skipped'])} شاشة لم تُصوَّر، وأسبابها في السجل" if ar
                                          else f"{len(outcome['skipped'])} screens were not recorded; the reasons are in the record"))
     box(lang, happened, where=runtime / 'behavior-lock/results.json', commands=['eaos next'],
         status='ok' if passed else 'warn', note=notes or None)
