@@ -99,6 +99,7 @@ export default {
   'ai.label': ['مساعدك', 'Your assistant'],
   'ai.hypothesis': ['رأي مساعدك فرضية حتى تؤكدها الفحوص.', 'Your assistant\'s view is a hypothesis until the checks confirm it.'],
   'offline.banner': ['نسخة للقراءة فقط من {when}. الإجراءات تعمل من الواجهة الحية.', 'A read-only copy from {when}. Actions run in the live interface.'],
+  'offline.banner.bare': ['نسخة للقراءة فقط. الإجراءات تعمل من الواجهة الحية.', 'A read-only copy. Actions run in the live interface.'],
   'offline.how': ['كيف أفتحها حية', 'How to open it live'],
   'offline.sheet.title': ['افتح الواجهة الحية', 'Open the live interface'],
   'offline.sheet.body': ['الإجراءات تعمل من الواجهة الحية فقط. افتح الطرفية في مجلد المشروع واكتب:', 'Actions run in the live interface only. Open a terminal in the project folder and type:'],

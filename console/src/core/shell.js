@@ -148,7 +148,7 @@ export function renderBanner(ctx) {
   const el = document.getElementById('banner');
   const f = freshness();
   if (ctx.offline) {
-    el.innerHTML = `<div class="banner banner--offline" role="note">${icon('lock')}<span>${esc(t('offline.banner', { when: fmtWhen(project().checked_at) }))}</span>
+    el.innerHTML = `<div class="banner banner--offline" role="note">${icon('lock')}<span>${esc(project().checked_at ? t('offline.banner', { when: fmtWhen(project().checked_at) }) : t('offline.banner.bare'))}</span>
       <button class="btn btn--quiet btn--sm banner__act" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div>`;
   } else if (ctx.query.state === 'reconnecting' || live.feed === 'reconnecting') {
     el.innerHTML = `<div class="banner banner--caution" role="status">${icon('offline')}<span>${esc(t('reconnect.banner', { time: fmtTime(new Date(live.heard || Date.now()).toISOString()) }))}</span></div>`;
