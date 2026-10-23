@@ -892,7 +892,7 @@ export default {
   'un.pl.step': [{ zero: 'لا خطوات', one: 'خطوة واحدة', two: 'خطوتان', few: '{n} خطوات', many: '{n} خطوة', other: '{n} خطوة' }, { one: '1 step', other: '{n} steps' }],
   'un.plan.under': ['داخل الخطوة {id}', 'inside step {id}'],
   'un.plan.buildnext': ['ابنِ المنتج كامل…', 'Build the whole product…'],
-  'un.plan.buildnext.note': ['يفتح «عمل آخر» في النشاط، بمعاينة مجانية أولًا.', 'Opens More work in Activity, with a free preview first.'],
+  'un.plan.buildnext.note': ['يفتح «كل ما يقدر EAOS يفعله» في النشاط، بمعاينة مجانية أولًا.', 'Opens Everything EAOS can do in Activity, with a free preview first.'],
   'un.pst.todo': ['لم تبدأ', 'Not started'],
   'un.pst.active': ['جارية', 'Under way'],
   'un.pst.done': ['انتهت', 'Done'],

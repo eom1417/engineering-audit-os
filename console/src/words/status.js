@@ -7,7 +7,7 @@ export default {
   'st.stale': ['تغيّر بعده: {commits}', 'Changed since: {commits}'],
   'st.fresh.sr': ['هل هذا الفحص ما زال يطابق الكود؟', 'Does this check still match the code?'],
   'st.next.note': ['ترى أولًا ما سيحدث، مجانًا. لا يتغيّر شيء قبل أن تبدأ.', 'You see what will happen first, free. Nothing changes until you start.'],
-  'st.other': ['عمل آخر…', 'More work…'],
+  'st.other': ['كل ما يقدر EAOS يفعله…', 'Everything EAOS can do…'],
   'st.guide': ['حال مشروعك الآن، والخطوة التي تناسب الآن.', 'Where your project stands, and the step that fits now.'],
   'st.copy_request': ['انسخ الطلب لمساعدك', 'Copy the request for your assistant'],
   'st.queued': ['ينتظر دوره: {label}', 'Waiting its turn: {label}'],

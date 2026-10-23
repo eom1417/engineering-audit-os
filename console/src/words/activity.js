@@ -46,7 +46,6 @@ export default {
   'ac.act.loading': ['نقرأ التشغيلات…', 'Reading the runs…'],
   'ac.act.empty': ['لم يعمل شيء في هذا المشروع بعد.', 'Nothing has run in this project yet.'],
   'ac.act.empty.guide': ['أول خطوة فحص: يقرأ الكود ولا يغيّر فيه شيئًا. بعده يظهر هنا كل ما يعمل وما عمل.', 'The first step is a check: it reads the code and changes nothing in it. After it, everything that runs and ran shows here.'],
-  'ac.act.more': ['عمل آخر…', 'More work…'],
   'ac.act.recent': ['آخر التشغيلات', 'Recent runs'],
   'ac.act.recent.empty': ['لا تشغيلات بعد.', 'No runs yet.'],
   'ac.act.lede.offline': ['نسخة للقراءة فقط من {when}: التشغيلات كما كانت.', 'A read-only copy from {when}: the runs as they were.'],

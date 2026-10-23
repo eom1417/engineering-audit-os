@@ -126,7 +126,7 @@ function loadingPage() {
 function emptyPage(off) {
   return `<div class="page"><h1 class="lede">${t('ac.act.empty')}</h1><p class="guide">${t('ac.act.empty.guide')}</p>
       <div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="${off ? 'open-live' : 'check'}" data-fk="act-check">${t('st.empty.act')}</button>
-        <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('ac.act.more')}</button></div>
+        <button class="btn btn--quiet" data-act="sheet" data-sheet="${off ? 'open-live' : 'launcher'}">${t('st.other')}</button></div>
       <section class="section"><div class="section-head"><h2>${t('ac.act.recent')}</h2></div><div class="panel empty"><p class="small ink-2">${t('ac.act.recent.empty')}</p></div></section></div>`;
 }
 /** What the running run is at, in one sentence. */
@@ -150,7 +150,7 @@ function actionsHTML(off, busy, last, flow) {
   const o = a => (off ? 'data-act="sheet" data-sheet="open-live"' : a);
   return `<div class="actions">
       <button class="btn ${busy ? 'btn--secondary' : 'btn--primary'}" ${o('data-act="sheet" data-sheet="check"')} data-fk="act-check">${t('st.empty.act')}</button>
-      <button class="btn btn--quiet" ${o('data-act="sheet" data-sheet="launcher"')}>${t('ac.act.more')}</button>
+      <button class="btn btn--quiet" ${o('data-act="sheet" data-sheet="launcher"')}>${t('st.other')}</button>
       ${!busy && !off && last && ac.ended(last) && flow ? `<button class="btn btn--quiet" data-act="sheet" data-sheet="redo-pick">${t('ac.pick.open')}</button>` : ''}
       <p class="actions__note">${t(busy ? 'ac.act.note.busy' : 'ac.act.note')}</p>
     </div>`;
