@@ -41,7 +41,7 @@ class SustainabilityTests(unittest.TestCase):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def test_six_indicators_against_their_target_and_a_move_with_a_falsifier_for_each_gap(self):
-        result = sustainability.render(self.out, language='en')
+        result = sustainability.write(self.out)
         self.assertEqual({row['indicator'] for row in result['rows']}, set(sustainability.INDICATORS))
         single = next(row for row in result['rows'] if row['indicator'] == 'single_source')
         self.assertGreater(single['gap'], 0)
@@ -49,14 +49,13 @@ class SustainabilityTests(unittest.TestCase):
         self.assertTrue(all(move['falsifier'] and move['indicator'] for move in result['moves']))
         record = json.loads((self.out / 'sustainability.json').read_text())
         self.assertEqual(record['rows'], result['rows'])
-        self.assertIn('# Sustainability dashboard', (self.out / 'SUSTAINABILITY.md').read_text())
 
     def test_a_detector_that_saw_too_little_of_the_snapshot_reports_unmeasured_not_a_clean_zero(self):
         row = sustainability._too_little_coverage('redundancy detection', {'files_observed': 1, 'files_blocked': 1020})
         self.assertEqual((row['value'], row['measured']), (None, False))
         self.assertIsNone(sustainability._too_little_coverage('redundancy detection', {'files_observed': 5, 'files_blocked': 5}))
 
-    def test_each_repeated_definition_gets_a_canonical_home_an_acceptance_and_a_bounded_document(self):
+    def test_each_repeated_definition_gets_a_canonical_home_and_an_acceptance(self):
         plan = transform_plan.build(self.out)
         homes = [s for s in plan['stages'] if s['move'] == 'canonicalize']
         self.assertTrue(homes)
@@ -64,8 +63,8 @@ class SustainabilityTests(unittest.TestCase):
             self.assertIsNotNone(stage['canonical_home'])
             self.assertEqual(stage['acceptance']['expected_exit'], 0)
             self.assertTrue(stage['falsifier'] and stage['rollback'])
-        transform_plan.render(self.out, plan, language='en')
-        self.assertLessEqual(len((self.out / 'transform-plan.md').read_text().splitlines()), transform_plan._budget())
+        transform_plan.write(self.out, plan)
+        self.assertEqual(len(json.loads((self.out / 'transform-plan.json').read_text())['stages']), len(plan['stages']))
 
     def test_a_canonical_home_never_closes_an_import_cycle(self):
         body = 'def run(x, y, z):\n    if x > 0:\n        return y + z\n    return y - z\n'

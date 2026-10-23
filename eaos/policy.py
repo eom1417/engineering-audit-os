@@ -123,42 +123,17 @@ def run(target, out, policy_path=None, **options):
             'input_sha': digest(json.dumps(policy, sort_keys=True).encode()), 'reason': None}
 
 
-def check(target, out, policy_path=None, language='ar'):
-    from .compose import Document
+def check(target, out, policy_path=None):
     from .facts.store import write_set
     target, out = Path(target).resolve(), Path(out).resolve()
     result = run(target, out, policy_path)
     write_set(out, NAME, NAME, VERSION, result['facts'], result['input_sha'], LIMITATIONS,
               result['summary'], result['available'], result['reason'])
-    ar = language == 'ar'
-    document = Document('السياسة المعمارية' if ar else 'Architecture policy', language, budget_lines=160)
     summary = result['summary']
-    if not summary.get('declared'):
-        document.header([summary['interpretation']])
-        document.text(f"expected at: {summary['expected_at']}")
-    else:
-        _write_policy(document, summary, result['facts'], ar)
-    (out / 'POLICY.md').write_text(document.render(), encoding='utf-8')
     return {'target': str(target), 'out': str(out), 'declared': summary.get('declared', False),
-            'violations': summary.get('violations', 0), 'unclassified_count': summary.get('unclassified_count', 0), 'artifact': str(out / 'POLICY.md'),
-            'status': _status(summary),
+            'violations': summary.get('violations', 0), 'unclassified_count': summary.get('unclassified_count', 0),
+            'record': str(out / 'facts' / 'policy.json'), 'status': _status(summary),
             'limits': 'Statically resolved imports only; a policy cannot see dynamic wiring.'}
-
-
-def _write_policy(document, summary, facts, ar):
-    """The declared layers, every violation and the paths outside every layer."""
-    document.header([f"{summary['policy_file']} · layers {len(summary['layers'])} · rules {summary['rules']} · "
-                     f"violations {summary['violations']}"])
-    document.section('الطبقات المعلنة' if ar else 'Declared layers')
-    document.bullets(summary['layers'])
-    document.section('المخالفات' if ar else 'Violations')
-    document.table(['من' if ar else 'from', 'إلى' if ar else 'to', 'السبب' if ar else 'reason'],
-                   [[f"{fact['location']['path']}:{fact['location'].get('start_line') or 1} [{fact['value']['from_layer']}]",
-                     f"{fact['value']['to_path']} [{fact['value']['to_layer']}]", fact['value']['reason']]
-                    for fact in facts], limit=30)
-    if summary['paths_outside_every_layer']:
-        document.section('خارج كل طبقة' if ar else 'Outside every layer')
-        document.bullets(summary['paths_outside_every_layer'][:15])
 
 
 def _status(summary):

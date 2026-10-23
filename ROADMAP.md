@@ -154,7 +154,7 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M1.1 | done: an EAOS run in a sandbox uses the one copy of the tools (611 MB were installed again), the run's pip and npm caches go with it, batch patches kept for the last two batches, the AI run log without copies of its outputs; old scratch and the autopilot's 21 MB removed | 0.0.73 | 2026-10-23 |
 | M1.2 | done: the syntax cache in the runtime (63 MB out of the report), no `.js` twins of the Studio data, engine findings once in `engines.json` and their raw outputs removed, REPORT.html a second name of the page, compact facts, stale translations cleared | 0.0.73 | 2026-10-23 |
 | M1.3 | not started | | |
-| M1.4 | not started | | |
+| M1.4 | done: 8 documents (START-HERE, the four reports, TARGET-ARCHITECTURE, RUN, README) plus PLAN/ and adr/; the 19 others removed with their writers and tests, their JSON records kept, every claim shown in full in debt-register.json, a run removes the retired documents of a check before | 0.0.73 | 2026-10-23 |
 | M1.5 | not started | | |
 | M2.1 | not started | | |
 | M2.2 | not started | | |

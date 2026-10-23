@@ -23,6 +23,9 @@ class ParityTests(unittest.TestCase):
         cls.arabic = Path(cls.directory) / 'ar'
         cls.english = Path(cls.directory) / 'en'
         execute(FIXTURE, cls.arabic, skip=('engines',), language='ar')
+        # A document a check before M1.4 wrote and none writes now goes, or both languages would not list the same files.
+        cls.english.mkdir(parents=True)
+        (cls.english / 'DECISION-BRIEF.md').write_text('# Decision brief\n', encoding='utf-8')
         execute(FIXTURE, cls.english, skip=('engines',), language='en')
 
     @classmethod
@@ -43,7 +46,7 @@ class ParityTests(unittest.TestCase):
             if ARABIC.findall(text):
                 leaking[path.name] = ARABIC.findall(text)[:3]
         self.assertEqual(leaking, {}, 'the reader asked for English')
-        text = (self.arabic / 'SYSTEM-MAP.md').read_text(encoding='utf-8')
+        text = (self.arabic / 'CURRENT-STATE.md').read_text(encoding='utf-8')
         self.assertTrue(LATIN_WORD.search(text), 'symbol and path names must not be translated')
 
     def test_both_languages_render_the_same_records(self):

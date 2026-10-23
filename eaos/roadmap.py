@@ -162,30 +162,3 @@ def sections(tasks):
             if other and other['section'] != task['section']: needs[task['section']].add(other['section'])
     order = ['security', 'infrastructure', 'data', 'backend', 'frontend', 'quality', 'general']
     return [{'section': name, 'tasks': grouped[name], 'depends_on': sorted(needs[name])} for name in order if grouped[name]]
-
-
-def clip(text, n):
-    text = ' '.join(str(text).split())
-    return text if len(text) <= n else text[:n - 1].rstrip() + '…'
-
-
-def render(plan_milestones, tasks, language='ar', shown=5):
-    from .compose import Document
-    ar = language == 'ar'
-    by_id = {t['id']: t for t in tasks}
-    document = Document('خارطة التنفيذ' if ar else 'Roadmap', language, budget_lines=120)
-    document.header([('المعالم بترتيب ثابت: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب. كل بطاقة في معلم واحد.'
-                      if ar else 'Milestones in a fixed order: stabilize, safety net, boundaries, build, hardening. '
-                                 'Every card is in exactly one.')])
-    for milestone in plan_milestones:
-        document.section(f"{milestone['id']} · {milestone['name']} ({len(milestone['tasks'])})")
-        document.bullets(_milestone_lines(milestone, by_id, ar, shown))
-    return document
-
-
-def _milestone_lines(milestone, by_id, ar, shown):
-    """A milestone's goal and exit, then its first cards with their size and section."""
-    return ([('الهدف: ' if ar else 'Goal: ') + milestone['goal_ar' if ar else 'goal'],
-             ('الخروج: ' if ar else 'Exit: ') + milestone['exit_ar' if ar else 'exit']]
-            + [f"{tid} [{by_id[tid].get('effort', '?')}/{by_id[tid].get('section', '?')}] {clip(by_id[tid].get('title', ''), 80)}"
-               for tid in milestone['tasks'][:shown]])

@@ -161,20 +161,6 @@ class EngineClaimTests(unittest.TestCase):
         self.assertEqual((claim['confidence'], row['status']), ('CONFIRMED', 'CONFIRMED'))
 
 
-class ReportRenderingTests(unittest.TestCase):
-    def test_the_engine_artifact_leads_with_disagreements_and_says_so_when_nothing_ran(self):
-        from eaos.engines_report import document
-        self.assertIn('No external engine ran', document({}, 'en').render())
-        sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': evaluated_at(cycle=('observed', 'file')),
-                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
-        sets['external']['summary'].update({'engines_observed': ['codegraph', 'enola'], 'engines_unavailable': [],
-                                            'by_engine': {'enola': 1, 'codegraph': 0}})
-        text = document(sets, 'en').render()
-        self.assertIn('Contested', text)
-        self.assertIn('pkg', text)
-
-
 class InstalledEngineTests(unittest.TestCase):
     """Runs only where the pinned engines exist; skips rather than pretending elsewhere."""
 

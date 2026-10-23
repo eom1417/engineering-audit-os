@@ -12,8 +12,6 @@ hotspot, for the item's hottest file, from measurements.json:
     score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in))
 where pct is the file's percentile rank (0..1) among the analysed files. The item keeps the three ranks,
 not only the product, so a reader sees why a place is hot.
-
-RISK-REGISTER.md is rendered from this record; there is one register.
 """
 import json
 from pathlib import Path
@@ -248,33 +246,3 @@ def build(out, dossier):
                               -((i['hotspot'] or {}).get('score') or 0), i['title']))
     for index, item in enumerate(items, 1): item['id'] = f'DEBT-{index:03d}'
     return {'schema_version': 1, 'formula': FORMULA, 'items': [{'id': i.pop('id'), **i} for i in items]}
-
-
-def _header_lines(record, ar):
-    from .ranking import WEIGHTS
-    counts = {s: sum(i['severity'] == s for i in record['items']) for s in reversed(SEVERITIES)}
-    return [(f"{len(record['items'])} بندًا: " if ar else f"{len(record['items'])} items: ")
-            + ', '.join(f'{s} {n}' for s, n in counts.items()),
-            ('الخطورة العالية تحتاج شاهدًا حتميًا أو أداتين مستقلتين؛ ما سواها يُكتب متوسطًا حتى يقرر مجس.' if ar else
-             'High needs one deterministic witness or two independent tools; otherwise it is written as medium until a probe decides.'),
-            ('الأولوية داخل كل مستوى: ' if ar else 'Priority within a level: ') + WEIGHTS['formula'],
-            ('السخونة: ' if ar else 'Hotspot: ') + record['formula']]
-
-
-def _row(item):
-    return [item['id'], item['severity'], item['category'], str(item['title'])[:100],
-            ', '.join(sorted({w['tool'] for w in item['witnesses']}))[:40],
-            '—' if not item['hotspot'] else f"{item['hotspot']['score']} ({item['hotspot']['file']})"[:50]]
-
-
-def render(record, language='ar', limit=30):
-    from .compose import Document
-    ar = language == 'ar'
-    document = Document('سجل الدَّين والمخاطر' if ar else 'Debt and risk register', language, budget_lines=200)
-    document.header(_header_lines(record, ar))
-    rows = [_row(item) for item in record['items']]
-    document.table(['#', 'الخطورة' if ar else 'Severity', 'الفئة' if ar else 'Category', 'البند' if ar else 'Item',
-                    'الشهود' if ar else 'Witnesses', 'السخونة' if ar else 'Hotspot'], rows, limit=limit)
-    document.bullets([('السجل الكامل مع الملفات والتوصية لكل بند: debt-register.json' if ar
-                       else 'The full register, with files and a recommendation per item: debt-register.json')])
-    return document

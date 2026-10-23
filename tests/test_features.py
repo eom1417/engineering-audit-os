@@ -1,7 +1,7 @@
 """features.py: groups user-facing surfaces into named features with bound evidence.
 
 This is a unit test of the ``build`` function over constructed fact sets. The integration
-test (the audit pipeline writing features.json + FEATURES.md on every project and the
+test (the audit pipeline writing features.json on every project and the
 measurement reading it back) lives in tests/test_audit_pipeline.py and the contract suite.
 """
 import unittest
@@ -137,23 +137,3 @@ class FeatureDataTests(unittest.TestCase):
         self.assertFalse(found['tolls']['critical'])
         self.assertEqual([features._count(n, features._NOUNS['page']) for n in (1, 2, 4, 12)],
                          ['صفحة واحدة', 'صفحتان', '4 صفحات', '12 صفحة'])
-
-
-class FeaturesMarkdownBudget(unittest.TestCase):
-    """FEATURES.md stays within its line budget however many features a large program has."""
-
-    def test_many_features_fit_the_budget_and_name_the_rest_and_a_small_program_keeps_all(self):
-        from eaos.compose.artifacts import BUDGETS
-        from eaos.pipeline.runners import features_markdown
-        record = {'features': [{'name': f'f{i}', 'critical': i % 2 == 0, 'description': 'd', 'surfaces': ['GET /x'],
-                                'tables': ['t'], 'files': ['a.py']} for i in range(80)],
-                  'unassigned_surfaces': [f'GET /u{i}' for i in range(60)]}
-        text = features_markdown(record)
-        self.assertLessEqual(len(text.splitlines()), BUDGETS['FEATURES.md'])
-        self.assertIn('more features in features.json', text)
-        self.assertIn('`GET /u59`', text)
-        record = {'features': [{'name': 'Orders', 'critical': True, 'description': 'd', 'surfaces': ['GET /o'],
-                                'tables': [], 'files': []}], 'unassigned_surfaces': []}
-        text = features_markdown(record)
-        self.assertIn('## Orders', text)
-        self.assertNotIn('more features', text)

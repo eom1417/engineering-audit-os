@@ -117,7 +117,10 @@ red at the top of the report.
 
 ## 6. Outputs (what a check leaves)
 
-- `output/<project>/REPORT.html`: the one page people read; `START-HERE.md`, the four reports, `TARGET-ARCHITECTURE.md`
-  and `RUN.md` beside it (M1.4 reduces the 27 documents to these).
-- `technical/`: records later stages and the Studio read. Caches never live here (M1.2).
+- `output/<project>/REPORT.html`: the one page people read; beside it eight documents: `START-HERE.md`, the four reports
+  (`CURRENT-STATE.md`, `TARGET-STATE.md`, `GAP-AND-STRATEGY.md`, `EXECUTION-PLAN.md`), `TARGET-ARCHITECTURE.md`, `RUN.md`
+  and the index `README.md`; plus `PLAN/` (STEPS, WAVES, one TASK card each) and `adr/`, which assistants read when
+  fixing cards (M1.4: the other 19 Markdown renderings removed; their records stay).
+- `technical/`: records later stages and the Studio read. Caches never live here (M1.2). A run removes the documents
+  a check no longer writes (`eaos/pipeline/run.py` RETIRED).
 - `runtime/` in EAOS's home: working copies, caches, batch copies, bounded by a retention rule (M1.1).

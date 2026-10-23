@@ -25,9 +25,6 @@ LIMITATIONS = [
     'A falsifier is a hint at the kind of evidence that would reject the move; it is not a guard.',
 ]
 
-SHOWN_MOVES = 6
-# Each move lists where it applies; a cluster with sixty sites is a record, not a paragraph.
-SHOWN_SITES = 6
 INDICATORS = ['single_source', 'minimal_path', 'data_owners', 'honest_boundaries',
                'verifiable_paths', 'understandable_units']
 
@@ -238,104 +235,12 @@ def _redundancy_moves(redundancy, row):
             for kind, facts in by_kind.items()]
 
 
-NAME_AR = {'single_source': 'P1 تعريف واحد', 'minimal_path': 'P2 مسار أدنى',
-           'data_owners': 'P3 مالك واحد للبيانات', 'honest_boundaries': 'P4 حدود صادقة',
-           'verifiable_paths': 'P5 قابلية التحقق', 'understandable_units': 'P6 قابلية الفهم'}
-NAME_EN = {'single_source': 'P1 Single source', 'minimal_path': 'P2 Minimal path',
-           'data_owners': 'P3 Single owner per field', 'honest_boundaries': 'P4 Honest boundaries',
-           'verifiable_paths': 'P5 Verifiable paths', 'understandable_units': 'P6 Understandable units'}
-
-
-def _label(indicator, ar):
-    return NAME_AR.get(indicator) if ar else NAME_EN.get(indicator)
-
-
-def _header(ar):
-    if ar:
-        return ['# لوحة الاستدامة', '',
-                '> الخصائص الست قابلة للقياس. القيم من الحقائق الحتمية، والأهداف من عقد الارتباط. الفجوة هي '
-                'المسافة إلى الهدف؛ الحركة المقترحة تقلبها.', '']
-    return ['# Sustainability dashboard', '',
-            '> Six measurable properties. Values come from deterministic facts; targets from the engagement '
-            'contract. The gap is the distance to the target; a proposed move closes it.', '']
-
-
-def _indicator_table(rows, ar):
-    lines = ['## ' + ('المؤشرات' if ar else 'Indicators'), '']
-    lines += ['| ' + ('المؤشر' if ar else 'Indicator') + ' | ' + ('القيمة' if ar else 'Current')
-              + ' | ' + ('الهدف' if ar else 'Target') + ' | ' + ('الفجوة' if ar else 'Gap') + ' |']
-    lines += ['| --- | --- | --- | --- |']
-    for row in rows:
-        shown = row['value'] if row['measured'] else ('لم يُقَس' if ar else 'not measured')
-        gap = row['gap'] if row['measured'] else '—'
-        lines += [f"| {_label(row['indicator'], ar)} | {shown} | {row['target']} | {gap} |"]
-    return lines
-
-
-def _more(rows, ar):
-    """The line saying how many sites are left out of the document, when any are."""
-    if len(rows) <= SHOWN_SITES: return []
-    return [f"  - … {len(rows) - SHOWN_SITES} " + ('أخرى في `sustainability.json`' if ar else 'more in `sustainability.json`')]
-
-
-def _move_lines(index, move, ar):
-    lines = [f"### Move {index}: {move['move']}",
-             "- " + ('مؤشر' if ar else 'indicator') + f": {move['indicator']}"]
-    if 'rule' in move:
-        lines += [f"- cluster: {move['rule'][:16]}"]
-        lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
-        lines += [f"  - {occ['path']}:{occ['line']} {occ['symbol']}" for occ in move['occurrences'][:SHOWN_SITES]]
-        lines += _more(move['occurrences'], ar)
-    if 'kind' in move:
-        lines += [f"- kind: {move['kind']}",
-                  "- " + ('المواضع' if ar else 'sites') + ":"]
-        lines += [f"  - {site['path']}:{site['line']} {site['symbol']} ({site['callee']})" for site in move['sites'][:SHOWN_SITES]]
-        lines += _more(move['sites'], ar)
-    lines += [f"- predicted {k}: {v}" for k, v in (move.get('predicted') or {}).items()]
-    if 'falsifier' in move:
-        lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {move['falsifier']}"]
-    return lines + ['']
-
-
-def _moves_section(moves, ar):
-    lines = ['', '## ' + ('الحركات المقترحة' if ar else 'Proposed moves'), '']
-    if not moves:
-        return lines + [('لا حركات مطلوبة؛ الفجوات صفر.' if ar else 'No moves required; every gap is zero.')]
-    # The document shows the moves a reader can act on today; sustainability.json holds them all.
-    # Printing 60 moves produced a 664-line document nobody reads and the contract never checked.
-    for index, move in enumerate(moves[:SHOWN_MOVES], start=1): lines += _move_lines(index, move, ar)
-    if len(moves) > SHOWN_MOVES:
-        lines += [(f'عُرضت {SHOWN_MOVES} حركة من {len(moves)}؛ البقية في `sustainability.json`.' if ar else
-                   f'Showing {SHOWN_MOVES} of {len(moves)} moves; the rest are in `sustainability.json`.'), '']
-    return lines
-
-
-def _details(rows, ar):
-    lines = ['## ' + ('التفاصيل' if ar else 'Details'), '']
-    # The measured detail behind each indicator is a record, not prose: R8 forbids dumping it here.
-    lines += [('قياس كل مؤشر بالكامل — المدخلات والعتبات والمواضع — في `sustainability.json`.' if ar else
-               'The full measurement behind every indicator — inputs, thresholds and sites — is in '
-               '`sustainability.json`.'), '']
-    for row in rows:
-        summary = ', '.join(f'{key}={value}' for key, value in sorted(row['details'].items())
-                            if isinstance(value, (int, float, str, bool)) and key != 'note')
-        lines += [f"- **{_label(row['indicator'], ar)}** — {summary or ('لا تفاصيل' if ar else 'no detail')}"]
-    return lines
-
-
-def render(out, targets=None, language='ar'):
-    """Render SUSTAINABILITY.md from the computed dashboard."""
+def write(out, targets=None):
+    """Write sustainability.json from the computed dashboard."""
     dashboard = compute(out, targets)
-    moves = dashboard['moves']
-    ar = language == 'ar'
-    lines = _header(ar) + _indicator_table(dashboard['rows'], ar) + _moves_section(moves, ar) + _details(dashboard['rows'], ar)
-    lines += ['', '## ' + ('الحدود' if ar else 'Limits'), '']
-    for line in LIMITATIONS: lines += [f"- {line}"]
-    (Path(out) / 'SUSTAINABILITY.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     record = {'schema_version': 1, 'rows': dashboard['rows'], 'indicators': dashboard['indicators'],
-              'targets': dashboard['targets'], 'moves': moves, 'shown_in_document': min(SHOWN_MOVES, len(moves)),
+              'targets': dashboard['targets'], 'moves': dashboard['moves'],
               'interpretation': dashboard['interpretation'], 'limitations': LIMITATIONS}
     (Path(out) / 'sustainability.json').write_text(
         json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    return {'rows': dashboard['rows'], 'moves': moves,
-            'artifact': str(Path(out) / 'SUSTAINABILITY.md'), 'record': str(Path(out) / 'sustainability.json')}
+    return {'rows': dashboard['rows'], 'moves': dashboard['moves'], 'record': str(Path(out) / 'sustainability.json')}

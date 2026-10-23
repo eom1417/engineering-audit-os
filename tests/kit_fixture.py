@@ -47,9 +47,9 @@ def build(root, stack='js'):
         {'name': 'home', 'critical': True, 'surfaces': ['/', '/health']},
         {'name': 'admin', 'critical': False, 'surfaces': ['/admin']}]})
     for name in ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md'):
-        write(report / name, f'# {name[:-3]}\n\nSee [the roadmap](ROADMAP.md), [the first decision](adr/ADR-001.md) '
+        write(report / name, f'# {name[:-3]}\n\nSee [the run](RUN.md), [the first decision](adr/ADR-001.md) '
                              f'and [the guide](EXECUTION-GUIDE.md).\n')
-    write(report / 'ROADMAP.md', '# Roadmap\n\nBack to [the plan](EXECUTION-PLAN.md).\n')
+    write(report / 'RUN.md', '# Run\n\nBack to [the plan](EXECUTION-PLAN.md).\n')
     write(report / 'adr/ADR-001.md', '# ADR-001: One API client\n\nSee [ADR-002](ADR-002.md).\n')
     write(report / 'adr/ADR-002.md', '# ADR-002: Layers\n\nText.\n')
     return project, report

@@ -9,7 +9,6 @@ from eaos.facts.domain import js_mutable_globals
 from eaos.facts.frameworks.http_access import bounded
 from eaos.facts.frameworks.supabase_access import extract_calls
 from eaos.load_model import BLOCKERS, QUESTIONS, blockers, compute, project, validate
-from eaos.load_report import render
 from eaos.pipeline import execute
 
 FIXTURES = Path(__file__).resolve().parent / 'fixtures'
@@ -125,21 +124,6 @@ class ProjectionTests(unittest.TestCase):
         ranked = project(record_of(lambda q: {'status': 'answered', 'value': values[q], 'evidence': ['x']}))
         self.assertEqual(ranked['entry_points'][0]['projection']['bottlenecks'],
                          ['no_rate_limit', 'n_plus_one', 'unbounded_query', 'shared_mutable_state'])
-
-    def test_the_document_stays_readable_on_a_large_project(self):
-        meta = {'projection': {'multiplier': 1000, 'method': 'structural'}, 'limits': 'structural projection'}
-        entries = [{'id': f'E{index}', 'entry': {'route': f'/r{index}', 'surface': 'http'},
-                    'answers': {q: {'status': 'undetectable', 'reason': 'the flow could not be traced'} for q in QUESTIONS},
-                    'projection': {'incomplete': True, 'unanswered_questions': list(QUESTIONS)}} for index in range(300)]
-        text = render({'entry_points': entries, **meta}, language='en')
-        self.assertIn('The 260 entry points ranked below these are in `load-model.json`.', text)
-        self.assertLessEqual(text.count('\n'), 200)
-        entries = [{'id': f'E{index}', 'entry': {'route': f'/r{index}', 'surface': 'http'},
-                    'answers': {QUESTIONS[0]: {'status': 'undetectable', 'reason': 'one shared reason'}},
-                    'projection': {}} for index in range(20)]
-        text = render({'entry_points': entries, **meta}, language='en')
-        self.assertEqual(text.count('one shared reason'), 1)
-        self.assertIn('20:', text)
 
 
 class BlockerTests(unittest.TestCase):

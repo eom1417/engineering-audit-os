@@ -45,10 +45,8 @@ def engines(context):
     entries = collect_external(context.target, context.out, context['source'], only=context.engines or None,
                                keep=bool(context.get('again')))
     external_entry = _index_engines(context, entries if isinstance(entries, list) else [entries], add_to_index)
-    from ..engines_report import document
     from ..facts.store import read_set
     external = read_set(context.out, 'external')
-    (context.out / 'ENGINES.md').write_text(document({'external': external}, context.language).render(), encoding='utf-8')
     return {'findings': external_entry['facts'], 'tools_failed': external['summary'].get('engines_failed') or {}}
 
 
@@ -171,18 +169,18 @@ def architecture(context):
 
 
 def sustainability(context):
-    """The six indicators against their targets (eaos/sustainability.py): SUSTAINABILITY.md and sustainability.json."""
-    from ..sustainability import render
-    result = render(context.out, language=context.language)
+    """The six indicators against their targets (eaos/sustainability.py): sustainability.json."""
+    from ..sustainability import write
+    result = write(context.out)
     return {'measured': sum(1 for row in result['rows'] if row['measured']), 'moves': len(result['moves'])}
 
 
 def transform(context):
     """A canonical home for each repeated definition and the move that gets there (eaos/transform_plan.py)."""
-    from ..transform_plan import build, render
+    from ..transform_plan import build, write
     policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
     plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
-    render(context.out, plan, language=context.language)
+    write(context.out, plan)
     return {'stages': plan['summary']['stages'], 'without_home': plan['summary']['moves_with_no_viable_candidate']}
 
 
@@ -190,7 +188,7 @@ def policy(context):
     if not context.policy_path and not (Path(context.target) / POLICY_FILE).is_file():
         raise SkipStage(f'the project declares no {POLICY_FILE}', code='no_policy')
     from ..policy import check
-    result = check(context.target, context.out, policy_path=context.policy_path, language=context.language)
+    result = check(context.target, context.out, policy_path=context.policy_path)
     return {'violations': result.get('violations')}
 
 
@@ -325,7 +323,7 @@ def order(context):
 
 def load(context):
     from ..load_model import compute, project
-    from ..load_report import write
+    from ..workspace import write
     record = compute(context.out)
     record = project(record)
     if _ran(context, 'baseline'):
@@ -333,7 +331,7 @@ def load(context):
         record['measured'] = {'source': 'live/baseline.json', 'conditions': measured['conditions'],
                               'scenarios': [{'id': s['id'], 'threshold': s['threshold'], **(s.get('before') or {})}
                                             for s in measured['scenarios']]}
-    write(context.out, record, language=context.language)
+    write(context.out / 'load-model.json', record)
     return {'entry_points': len(record.get('entry_points', [])),
             'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
 
@@ -364,40 +362,13 @@ def reports(context):
 
 def measure(context):
     from ..measurements import run
-    return run(context.out, context.language)
+    return run(context.out)
 
 
 def intake(context):
     from ..intake import write
     record = write(context.target, context.out, context.get('intake'))
     return {'answered': sum(q['status'] == 'answered' for q in record['questions']), 'scenarios': len(record['scenarios'])}
-
-
-def _feature_block(feature):
-    """One feature's lines in FEATURES.md: its name, critical or not, what it does, its surfaces, tables and files."""
-    block = [f"## {feature['name']}"] + (['**critical**'] if feature['critical'] else []) + [feature['description'],
-             'Surfaces: ' + ', '.join(f"`{s}`" for s in feature['surfaces'])]
-    if feature['tables']: block.append('Tables: ' + ', '.join(f"`{t}`" for t in feature['tables']))
-    if feature['files']: block.append('Files: ' + ', '.join(f"`{f}`" for f in feature['files']))
-    return block + ['']
-
-
-def features_markdown(record):
-    """FEATURES.md within its line budget (compose/artifacts.py): every feature while they fit, then a line naming how
-    many more features.json holds; the surfaces no feature claims on one line."""
-    from ..compose.artifacts import BUDGETS
-    budget = BUDGETS['FEATURES.md']
-    tail = []
-    if record['unassigned_surfaces']:
-        tail = ['## Surfaces not assigned to a feature', ', '.join(f"`{s}`" for s in record['unassigned_surfaces'])]
-    lines = ['# Features', '']
-    for shown, feature in enumerate(record['features']):
-        block = _feature_block(feature)
-        if len(lines) + len(block) + len(tail) + 2 > budget:
-            lines += [f"… {len(record['features']) - shown} more features in features.json", '']
-            break
-        lines += block
-    return '\n'.join(lines + tail)
 
 
 def features(context):
@@ -422,7 +393,6 @@ def features(context):
             continue
     record = build(facts)
     write(context.out / 'features.json', record)
-    (context.out / 'FEATURES.md').write_text(features_markdown(record), encoding='utf-8')
     return {'features': len(record['features']),
             'unassigned': len(record['unassigned_surfaces']),
             'critical': sum(1 for f in record['features'] if f['critical'])}

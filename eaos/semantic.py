@@ -235,7 +235,7 @@ def _claims_of(response, first):
                                      'reason': 'Model interpretation: confirm with a probe before acting.'},
                         assessment={key: value for key, value in row.get('assessment', {}).items() if key in ASSESSMENT_KEYS},
                         basis=row['basis'], basis_source=row.get('basis_source'),
-                        artifacts=['SEMANTIC.md'])
+                        artifacts=['semantic.json'])
             for index, row in enumerate(response['claims'], start=first)]
 
 
@@ -279,23 +279,6 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     write(out / 'semantic.json', {'claims': added, 'questions': questions,
                                   'provider': provider.identity(), 'digest_components': len(digest['components']), 'source_omissions': sources.omissions,
                                   'digest_omissions': digest['omissions'], 'source_ranges': digest.get('source_ranges', [])})
-    render(out, added, questions, provider, language)
     return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions), 'calls': calls,
             'confidence': 'HYPOTHESIS for every semantic claim; only a probe can raise it',
             'limits': 'Interpretation over facts. Source ranges are budgeted, revision-checked and redacted; runtime behavior remains unverified.'}
-
-
-def render(out, produced, questions, provider, language='ar'):
-    from .compose import Document
-    document = Document('الطبقة الدلالية' if language == 'ar' else 'Semantic layer', language, budget_lines=200)
-    document.header(['كل ما هنا استنتاج نموذج فوق حقائق، ولا يبلغ درجة «مؤكد» إلا بمجسّ.' if language == 'ar'
-                     else 'Everything here is model inference over facts; none of it reaches CONFIRMED without a probe.',
-                     f"provider: {json.dumps(provider.identity(), ensure_ascii=False)}"])
-    document.section('الادعاءات الدلالية' if language == 'ar' else 'Semantic claims')
-    document.table(['#', 'النوع' if language == 'ar' else 'Type', 'الادعاء' if language == 'ar' else 'Claim',
-                    'الناقض' if language == 'ar' else 'Falsifier'],
-                   [[claim['id'], claim['claim_type'], claim['statement'][:120], claim['falsifier'][:90]]
-                    for claim in produced], limit=30)
-    document.section('أسئلة فتحها النموذج' if language == 'ar' else 'Questions the model opened')
-    document.bullets([row['question'] for row in questions] or ['—'])
-    (Path(out) / 'SEMANTIC.md').write_text(document.render(), encoding='utf-8')
