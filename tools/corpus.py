@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(ROOT), str(ROOT / 'tools')]   # this folder too: PYTHONSAFEPATH leaves it out
 from dev_paths import CORPUS  # noqa: E402  (beside this file)
 
 CATALOG = ROOT / 'tools' / 'corpus.json'

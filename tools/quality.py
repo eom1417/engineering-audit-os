@@ -13,7 +13,7 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(ROOT), str(ROOT / 'tools')]   # this folder too: PYTHONSAFEPATH leaves it out
 import code_limits  # noqa: E402  (beside this file)
 from eaos import engines  # noqa: E402
 from eaos.engines.process import which  # noqa: E402
