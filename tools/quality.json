@@ -11,8 +11,6 @@
  "code:functions": 107,
  "code:modules": 7,
  "code:parameters": 130,
- "enola:cycles": 2,
- "enola:dead-code": 426,
  "jscpd:exact_clone": 25,
  "knip:exports": 46,
  "semgrep:eaos.dataflow.fetch-unchecked-status": 1,

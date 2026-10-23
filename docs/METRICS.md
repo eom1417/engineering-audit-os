@@ -1,7 +1,9 @@
 # EAOS metrics
 
-Measured at each milestone end (M0.4 makes this a script). Numbers are compared with the line before; a worse number
-needs its reason here.
+Measured at each milestone end by `tools/metrics.py <check output> <project home> --write "<title>"` (its docstring
+names this container's folders): the repository as it is, the latest check of `develop`, the corpus
+(`tools/corpus.json`) and the detection baseline (`tests/fixtures/baseline-problems.json`). Numbers are compared with
+the section before; a worse number needs its reason here.
 
 ## Baseline: 0.0.71 (2026-10-23), EAOS's own check of `develop`
 
@@ -18,6 +20,27 @@ needs its reason here.
 | Engine findings | 3,853 (`semgrep` 1,672 of which 1,554 one rule; `reforge` 1,557) |
 | Compatibility corpus | not built yet (M0.3) |
 | Detection baseline | not built yet (M0.2) |
+
+## After M0: 0.0.72 (2026-10-23)
+
+The check figures are those of the last check of `develop` (2026-10-22, 0.0.71): M0 changed no code a check runs.
+The cards are counted as the plan's tasks and the claims they come from (the baseline counted every card record); the
+stages as the manifest recorded them (37 of the 38 declared ran); the runtime without the tools it links (the baseline
+counted them through the links).
+
+| Measure | Value |
+|---|---|
+| Python lines (`eaos/`) | 62,125 in 297 files (119 flat at the package root) |
+| Studio UI (`console/src`) | 13,274 JS lines in 98 files (words 3,087) |
+| Tests | 19,988 lines in 123 files, 705 test functions |
+| Check time | 3,599 s wall (ideal 1,462 · verify 650 · triage 490 · engines 291) |
+| Stages / documents / engines | 37 / 27 `.md` / 41 tools |
+| Output | 403 MB, 2,483 files |
+| Runtime | 773 MB |
+| Cards on itself | 101 plan tasks (45 hotspot, 13 extend_feature, 12 canonicalize) from 418 claims |
+| Engine findings | 3,853 (`semgrep` 1,673, `reforge` 1,557) |
+| Compatibility corpus | 2 of 12 apps pass (12 pinned) |
+| Detection baseline | 5 of 8 planted problems found |
 
 ## Findings of the M-1 measurement (inputs for M1-M7)
 

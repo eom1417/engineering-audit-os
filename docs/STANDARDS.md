@@ -12,7 +12,7 @@ ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, 
 | Function length | ≤ 50 lines, today's 12 longer ones listed | same | same |
 | Function parameters | ≤ 5 (self, cls aside), today's 130 listed | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
-| No dead code | no unused import or variable (pyflakes); `vulture`, `enola`, `knip` not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` |
+| No dead code | no unused import or variable (pyflakes); `vulture`, `knip` not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` (not `enola`: its count moves with the documents' words) |
 | Layers | today's direct imports between subpackages may not go backwards (5 contracts in `pyproject.toml`) | each layer imports only the layers under it (`docs/ARCHITECTURE.md`) | `import-linter` |
 
 What exceeds a limit today is listed in `tools/code_limits.json` and may only shrink: after shrinking one, run

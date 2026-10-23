@@ -6,7 +6,6 @@ recorded in tools/quality.json and may only go down: one that grew, or a finding
 number went down, `tools/quality.sh --record` writes the new numbers (refused while anything is worse).
 """
 import json
-import re
 import subprocess
 import sys
 import tempfile
@@ -17,18 +16,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import code_limits  # noqa: E402  (beside this file)
 from eaos import engines  # noqa: E402
-from eaos.engines import enola  # noqa: E402
 from eaos.engines.process import which  # noqa: E402
 
 BASELINE = ROOT / 'tools' / 'quality.json'
-ENGINES = ('jscpd', 'vulture', 'enola', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
+# enola is not one of them: its dead-code count moves with the words of the documents (CHANGELOG, METRICS), not the code.
+ENGINES = ('jscpd', 'vulture', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
 # Not what EAOS ships: the tests and their fixtures, the developer tools (tools/, console/tools: the code limits still
 # hold them), the built Studio, the examples beside EAOS's semgrep rules, and what is vendored or generated.
 EXCLUDE = ('tests', 'tools', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
 CODE = ('python', 'javascript', 'css')  # what jscpd compares: the code, not data or prose
-MORE = re.compile(r'(\d+) more')
-# What of enola's insights a law covers: dead code and import cycles; its performance and coupling hints are no law.
-ENOLA_LAWS = ('dead_code', 'cycle')
 
 
 def engine_counts(workdir):
@@ -36,12 +32,7 @@ def engine_counts(workdir):
     manifest = engines.analyze(ROOT, workdir, exclude=EXCLUDE, only=ENGINES, formats=CODE)
     failed = [f'{name} did not run: {row["status"]} {row["reason"]}'.strip()
               for name, row in manifest['coverage'].items() if row['status'] != 'observed']
-    counts = Counter(f"{row['engine']}:{row['rule']}" for row in manifest['findings']
-                     if row['engine'] != 'enola' or row['kind'] in ENOLA_LAWS)
-    # enola lists 50 of a kind and rolls the rest into one line ("355 more"): the rest counts too.
-    for insight in json.loads((Path(workdir) / 'enola' / 'insights.json').read_text(encoding='utf-8')):
-        if (found := MORE.search(insight['title'])) and enola.KIND_BY_SOURCE.get(insight['source']) in ENOLA_LAWS:
-            counts[f"enola:{insight['source']}"] += int(found.group(1))
+    counts = Counter(f"{row['engine']}:{row['rule']}" for row in manifest['findings'])
     return counts, failed
 
 
