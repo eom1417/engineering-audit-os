@@ -3,7 +3,7 @@
 export default {
   'wt.place': ['ينتظرك', 'Waiting for you'],
   'wt.guide': ['كل ما يحتاج جوابك أو موافقتك هنا، ولا شيء غيره ينتظرك.', 'Everything that needs your answer or approval is here. Nothing else waits for you.'],
-  'wt.empty.guide': ['حين يحتاجك EAOS يظهر هنا، ويرتفع العدد في الأسفل.', 'When EAOS needs you, it shows here and the count below rises.'],
+  'wt.empty.guide': ['حين يحتاجك EAOS يظهر هنا، ويظهر العدد بجانب «ينتظرك».', 'When EAOS needs you, it shows here and a count appears next to Waiting.'],
   'wt.g.fixes': ['إصلاحات جاهزة لقرارك', 'Fixes ready for your decision'],
   'wt.q.row.sub': ['حين يحتاج تشغيل جوابك يسألك هنا، ويقف حتى تجيب.', 'When a run needs your answer it asks here, and waits until you answer.'],
   'wt.g.decisions': ['قرارات من الفحص', 'Decisions from the check'],
