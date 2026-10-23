@@ -168,7 +168,7 @@ def governance_commands(s):
     q.set_defaults(func=terminal('govern_host'))
 
 
-def guided_commands(s):
+def _guided_commands(s):
     """The guided journey: start, next, status and the few steps around them."""
     for name, text in (('start', 'Start here: check a project and get a plain report (nothing in it changes)'),
                        ('next', 'Do the next step for the project in this folder'),
@@ -206,7 +206,7 @@ def main(argv=None):
                               epilog=epilog(),formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--version',action='version',version='EAOS '+__version__)
     s=p.add_subparsers(dest='command',required=True)
-    guided_commands(s)
+    _guided_commands(s)
     q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--lang',choices=['ar','en'],default=None)
