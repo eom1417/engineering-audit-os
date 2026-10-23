@@ -58,7 +58,7 @@ function indicators(story) {
 }
 
 function storyPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return empty(t('un.story.empty'), t('un.story.empty.guide'), tabs('story'));
   const story = data.section('story');
   if (!story) return notMeasured('story', 'story');
   const c = storyCounts(), d = targetDecision();

@@ -2,6 +2,8 @@
 export default {
   'un.story.today.n': ['مكوّنًا اليوم', 'components today'],
   'un.story.target.n': ['مكوّنات في الهدف', 'components in the target'],
+  'un.story.empty': ['التغيير والهدف يظهران بعد أول فحص.', 'The change and the target show after the first check.'],
+  'un.story.empty.guide': ['الفحص يقرأ الكود ولا يغيّر فيه شيئًا، ثم يقترح هنا البنية المستهدفة وما يتغيّر في كل مكوّن ليصل إليها.', 'A check reads the code and changes nothing in it, then proposes here the target structure and what changes in each component to reach it.'],
   'un.story.nochange': ['لا تغيير: كل مكوّن يبقى كما هو.', 'No change: every component stays as it is.'],
   'un.story.today.sum': ['المشروع اليوم {n} موزّعة على مجلداته.', 'Today the project is {n} across its folders.'],
   'un.story.target.sum': ['الهدف {n} مرتبة حسب مسؤولياتها.', 'The target is {n} arranged by responsibility.'],
