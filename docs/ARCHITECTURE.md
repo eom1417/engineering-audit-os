@@ -21,7 +21,8 @@ engineering-audit-os/
     data/          contracts, words, catalogs, the built Studio (data/studio)
   console/         the Studio UI (JS, esbuild; built into eaos/data/studio)
   tests/           unittest suite
-  tools/           developer tools: quality (every code law), validate, code_limits, golden_trial, dev_setup
+  tools/           developer tools: quality (every code law), golden_trial with detection_baseline, corpus,
+                   metrics, validate, code_limits, dev_setup
   upstreams/       the pinned external tools (registry, licenses)
   docs/            this page and the other references
 ```

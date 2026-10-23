@@ -149,7 +149,7 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M-1.3 | done: a cold-start assistant answered 11 of 11 from the files; its 17 notes fixed | 0.0.71 | 2026-10-23 |
 | M0.1 | done: `tools/quality.sh` (code limits incl. length and parameters, 5 layer contracts, jscpd, vulture, enola, knip, bandit, semgrep, gitleaks, osv-scanner) records today's numbers in `tools/quality.json` and refuses a worse one; the beta update runs it | 0.0.72 | 2026-10-23 |
 | M0.2 | done: `tests/fixtures/baseline-app` with 8 planted problems; the golden trial refuses finding fewer (`tools/detection_baseline.py`); today 5 of 8 (command injection, sign-in, logic flaw missed) | 0.0.72 | 2026-10-23 |
-| M0.3 | not started | | |
+| M0.3 | done: 12 pinned apps in `tools/corpus.json`, `tools/corpus.py` records ran and screens pictured; today 2 of 12 pass (Python apps not started without an assistant, Expo and the static site never answered, SvelteKit's facts failed, CoreUI and Vitesse missing screens) | 0.0.72 | 2026-10-23 |
 | M0.4 | not started | | |
 | M1.1 | not started | | |
 | M1.2 | not started | | |

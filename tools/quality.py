@@ -22,9 +22,9 @@ from eaos.engines.process import which  # noqa: E402
 
 BASELINE = ROOT / 'tools' / 'quality.json'
 ENGINES = ('jscpd', 'vulture', 'enola', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
-# Not EAOS's own code: the tests and their fixtures, the built Studio, the examples beside EAOS's semgrep rules, and
-# what is vendored or generated.
-EXCLUDE = ('tests', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
+# Not what EAOS ships: the tests and their fixtures, the developer tools (tools/, console/tools: the code limits still
+# hold them), the built Studio, the examples beside EAOS's semgrep rules, and what is vendored or generated.
+EXCLUDE = ('tests', 'tools', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
 CODE = ('python', 'javascript', 'css')  # what jscpd compares: the code, not data or prose
 MORE = re.compile(r'(\d+) more')
 # What of enola's insights a law covers: dead code and import cycles; its performance and coupling hints are no law.

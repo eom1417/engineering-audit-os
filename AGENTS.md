@@ -81,7 +81,9 @@ why, from the real incident, then what changed). `1.0.0` only when the owner dec
 `unittest`, one test per real behaviour, a fix adds a test only when it reproduces a real failure. Guards that always
 stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`, `test_artifact_contract`,
 the golden trial (`tools/golden_trial.sh`, with the detection baseline of `tests/fixtures/baseline-app`).
-`tests/test_journey.py` is the fast end-to-end proof.
+`tests/test_journey.py` is the fast end-to-end proof. A change to running apps or finding screens also runs the
+compatibility corpus (`tools/corpus.py`, a background job of about an hour: `/workspace/HANDOFF.md`); a milestone end
+measures `docs/METRICS.md` with `tools/metrics.py`.
 
 ## Setting up a computer
 

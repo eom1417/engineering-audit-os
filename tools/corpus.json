@@ -1,0 +1,376 @@
+{
+ "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23.",
+ "apps": [
+  {
+   "name": "rr-basic",
+   "stack": "react-vite",
+   "repository": "https://github.com/remix-run/react-router-examples",
+   "commit": "60e61f64cc96566f02361ccd0109d6c894f32324",
+   "subdir": "basic",
+   "licence": "MIT",
+   "screens": [
+    "/",
+    "/about",
+    "/dashboard",
+    "/nothing-here"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": true,
+    "pictured": [
+     "/",
+     "/about",
+     "/dashboard",
+     "/nothing-here"
+    ],
+    "missing": [],
+    "passed": true,
+    "seconds": 117
+   }
+  },
+  {
+   "name": "coreui-react-admin",
+   "stack": "react-vite-hash",
+   "repository": "https://github.com/coreui/coreui-free-react-admin-template",
+   "commit": "2609f5995035973e00c16ec723165a5fff87cceb",
+   "licence": "MIT",
+   "screens": [
+    "/#/dashboard",
+    "/#/charts",
+    "/#/components/accordion",
+    "/#/forms/form-control",
+    "/#/login",
+    "/#/404"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": true,
+    "pictured": [
+     "/#/authentication/login",
+     "/#/charts",
+     "/#/components/accordion",
+     "/#/dashboard",
+     "/#/error-pages/404",
+     "/#/forms/checks-radios",
+     "/#/icons/brands",
+     "/#/icons/coreui-icons",
+     "/#/icons/flags",
+     "/#/widgets",
+     "/authentication/change-password#/dashboard",
+     "/components#/authentication/login",
+     "/components#/charts",
+     "/components#/components/accordion",
+     "/components#/dashboard",
+     "/components#/error-pages/404",
+     "/components#/forms/checks-radios",
+     "/components#/icons/brands",
+     "/components#/icons/coreui-icons",
+     "/components#/icons/flags",
+     "/components#/widgets",
+     "/error-pages/404#/dashboard",
+     "/forms#/authentication/login",
+     "/forms#/charts",
+     "/forms#/components/accordion",
+     "/forms#/dashboard",
+     "/forms#/error-pages/404",
+     "/forms#/forms/checks-radios",
+     "/forms#/icons/brands",
+     "/forms#/icons/coreui-icons",
+     "/forms#/icons/flags",
+     "/forms#/widgets",
+     "/icons#/authentication/login",
+     "/icons#/charts",
+     "/icons#/components/accordion",
+     "/icons#/dashboard",
+     "/icons#/error-pages/404",
+     "/icons#/forms/checks-radios",
+     "/icons#/icons/brands",
+     "/icons#/icons/coreui-icons",
+     "/icons#/icons/flags",
+     "/icons#/widgets"
+    ],
+    "missing": [
+     "/#/forms/form-control",
+     "/#/login",
+     "/#/404"
+    ],
+    "passed": false,
+    "seconds": 1778,
+    "why": "not pictured: /#/forms/form-control, /#/login, /#/404"
+   }
+  },
+  {
+   "name": "next-blog-starter",
+   "stack": "nextjs",
+   "repository": "https://github.com/vercel/next.js",
+   "commit": "ba182aa1a68185844738ed60529cdf6ff6aac683",
+   "subdir": "examples/blog-starter",
+   "licence": "MIT",
+   "screens": [
+    "/",
+    "/posts/hello-world",
+    "/posts/dynamic-routing",
+    "/posts/preview"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": true,
+    "pictured": [
+     "/",
+     "/posts/dynamic-routing",
+     "/posts/hello-world",
+     "/posts/preview"
+    ],
+    "missing": [],
+    "passed": true,
+    "seconds": 164
+   }
+  },
+  {
+   "name": "vitesse",
+   "stack": "vue",
+   "repository": "https://github.com/antfu-collective/vitesse",
+   "commit": "a8785264f83c2ebe1b3cf689296775a4949957c8",
+   "licence": "MIT",
+   "screens": [
+    "/",
+    "/about",
+    "/README"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": true,
+    "pictured": [
+     "/",
+     "/about"
+    ],
+    "missing": [
+     "/README"
+    ],
+    "passed": false,
+    "seconds": 189,
+    "why": "not pictured: /README"
+   }
+  },
+  {
+   "name": "sveltekit-blog-starter",
+   "stack": "svelte",
+   "repository": "https://github.com/josh-collinsworth/sveltekit-blog-starter",
+   "commit": "6a1873dca5c2912d49ce38ff76242bed9b513b4c",
+   "licence": "MIT",
+   "screens": [
+    "/",
+    "/about",
+    "/contact",
+    "/blog"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/",
+     "/about",
+     "/contact",
+     "/blog"
+    ],
+    "passed": false,
+    "seconds": 5,
+    "why": "facts did not produce its artifacts (failed)"
+   }
+  },
+  {
+   "name": "expo-react-navigation",
+   "stack": "expo-web",
+   "repository": "https://github.com/expo/examples",
+   "commit": "10b801de07b5ca47459c869264fe2f472e8657c9",
+   "subdir": "with-react-navigation",
+   "licence": "MIT",
+   "screens": [
+    "/",
+    "/explore"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/",
+     "/explore"
+    ],
+    "passed": false,
+    "seconds": 272,
+    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:42085/ within 180s; see /workspace/eaos-work/corpus/expo-react-navigation-hgequ9l1/home/projects/app-7b25f785/runtime/sandbox/service-0.log; it said: > expo-template-tabs-react-navigation@1.0.0 start\n> expo start\n\nStarting project at /workspace/eaos-work/corpus/expo-react-navigation-hgequ9l1/home/projects/app-7b2"
+   }
+  },
+  {
+   "name": "flaskr",
+   "stack": "flask",
+   "repository": "https://github.com/pallets/flask",
+   "commit": "d086db856be187255b8ec61ef409357393020f32",
+   "subdir": "examples/tutorial",
+   "licence": "BSD-3-Clause",
+   "screens": [
+    "/",
+    "/auth/register",
+    "/auth/login",
+    "/hello"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/",
+     "/auth/register",
+     "/auth/login",
+     "/hello"
+    ],
+    "passed": false,
+    "seconds": 6,
+    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/flaskr-a36a2s_r/home/projects/app-e649619c/runtime/sandbox/service-0.log; it said: "
+   }
+  },
+  {
+   "name": "django-locallibrary",
+   "stack": "django",
+   "repository": "https://github.com/mdn/django-locallibrary-tutorial",
+   "commit": "342d4e9a590caa50bb0749b48cee80b5a3146439",
+   "licence": "CC0-1.0",
+   "screens": [
+    "/catalog",
+    "/catalog/books",
+    "/catalog/authors",
+    "/accounts/login"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/catalog",
+     "/catalog/books",
+     "/catalog/authors",
+     "/accounts/login"
+    ],
+    "passed": false,
+    "seconds": 6,
+    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/django-locallibrary-27lcr5kk/home/projects/app-da647a8e/runtime/sandbox/service-0.log; it said: "
+   }
+  },
+  {
+   "name": "streamlit-multipage",
+   "stack": "streamlit",
+   "repository": "https://github.com/fsmosca/multipage-app",
+   "commit": "78047ffc152af613361049f9358e64738cd94667",
+   "licence": "Apache-2.0",
+   "screens": [
+    "/",
+    "/basketball",
+    "/cricket",
+    "/baseball",
+    "/chat"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/",
+     "/basketball",
+     "/cricket",
+     "/baseball",
+     "/chat"
+    ],
+    "passed": false,
+    "seconds": 5,
+    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/streamlit-multipage-1ll5_urp/home/projects/app-c0b7fd82/runtime/sandbox/service-0.log; it said: "
+   }
+  },
+  {
+   "name": "flask-microblog",
+   "stack": "sign-in",
+   "repository": "https://github.com/miguelgrinberg/microblog",
+   "commit": "a975ef64864354867c88e0ed3a17ba7d17dca752",
+   "licence": "MIT",
+   "screens": [
+    "/auth/login",
+    "/auth/register",
+    "/index",
+    "/explore",
+    "/user/demo"
+   ],
+   "sign_in": true,
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/auth/login",
+     "/auth/register",
+     "/index",
+     "/explore",
+     "/user/demo"
+    ],
+    "passed": false,
+    "seconds": 6,
+    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/flask-microblog-x3jco3ce/home/projects/app-7ee6f46e/runtime/sandbox/service-0.log; it said: "
+   }
+  },
+  {
+   "name": "expo-onboarding",
+   "stack": "welcome",
+   "repository": "https://github.com/Solarin-Johnson/react-native-onboarding",
+   "commit": "0e15bf710b82783fe2aea7a9b6a2b7520fbfb688",
+   "licence": "MIT",
+   "screens": [
+    "/onboarding/step-1",
+    "/onboarding/step-2",
+    "/onboarding/step-3",
+    "/onboarding/welcome"
+   ],
+   "welcome": true,
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/onboarding/step-1",
+     "/onboarding/step-2",
+     "/onboarding/step-3",
+     "/onboarding/welcome"
+    ],
+    "passed": false,
+    "seconds": 202,
+    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:44479/ within 180s; see /workspace/eaos-work/corpus/expo-onboarding-liupc9xc/home/projects/app-a350f17e/runtime/sandbox/service-0.log; it said: > react-native-onboarding@1.0.0 start\n> expo start\n\nStarting project at /workspace/eaos-work/corpus/expo-onboarding-liupc9xc/home/projects/app-a350f17e/runtime/sandbox/ru"
+   }
+  },
+  {
+   "name": "clean-blog-static",
+   "stack": "static",
+   "repository": "https://github.com/StartBootstrap/startbootstrap-clean-blog",
+   "commit": "1ebc4f8f3b6194335df237a2a7837955a5a4a9aa",
+   "licence": "MIT",
+   "screens": [
+    "/",
+    "/about.html",
+    "/post.html",
+    "/contact.html"
+   ],
+   "result": {
+    "date": "2026-10-23",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/",
+     "/about.html",
+     "/post.html",
+     "/contact.html"
+    ],
+    "passed": false,
+    "seconds": 193,
+    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:32921/ within 180s; see /workspace/eaos-work/corpus/clean-blog-static-kmcgecd0/home/projects/app-1ce31642/runtime/sandbox/service-0.log; it said: Rendering /workspace/eaos-work/corpus/clean-blog-static-kmcgecd0/home/projects/app-1ce31642/runtime/sandbox/run-ihh9ll8a/project/src/pug/index.pug to /workspace/eaos-wo"
+   }
+  }
+ ]
+}
