@@ -2,6 +2,8 @@
 # The golden trial (the owner, 2026-10-22: "half the checks never run" must never reach beta-trial again): a whole check
 # with the app run, without AI, on a small app whose screens are hash routes with no client router (as EAOS builds),
 # copied to a scratch folder. It fails when a stage that runs the app did not end ok, or the report page is missing.
+# Then the detection baseline (M0.2): the same check of tests/fixtures/baseline-app, refused when it finds any of its
+# planted problems less than tests/fixtures/baseline-problems.json records (tools/detection_baseline.py).
 # Usage: tools/golden_trial.sh <eaos executable>   (update.sh runs it with the beta-trial's own eaos)
 set -euo pipefail
 EAOS=${1:-eaos}
@@ -43,3 +45,8 @@ from eaos import agent_tools
 if (refused := agent_tools._no_safety_net(guided.load(Path(sys.argv[2]).resolve()))): sys.exit(f'golden trial failed: no fix batch would open: {refused}')
 print(f"golden trial: a fix batch opens, every stage that runs the app ended ok, the report for people opens, the safety net recorded {safety['passed']} screens")
 PY
+cp -r "$HERE/tests/fixtures/baseline-app" "$W/baseline"
+( cd "$W/baseline" && git init -q && git add . && git -c user.name=t -c user.email=t@t commit -qm baseline )
+( cd "$W/baseline" && EAOS_OUTPUT="$W/baseline-output" "$EAOS" check --run-app --assistant none --lang en --watch >"$W/baseline.log" 2>&1 ) \
+  || { tail -40 "$W/baseline.log"; exit 1; }
+"$(dirname "$EAOS")/python" "$HERE/tools/detection_baseline.py" "$W/baseline-output"
