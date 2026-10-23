@@ -1,8 +1,6 @@
-// The report, read one section at a time from one of two sources that give the same JSON:
-// - live: the read API of `eaos studio` (eaos/api/read.py), every call carrying the launch token as a header (never
-//   in a URL, so it reaches no log), with the sign-in cookie of a remote address (credentials: same-origin);
-// - the read-only copy: classic scripts beside index.html (<name>.js, written by eaos/studio/export.py), which a page
-//   opened from a file may run where fetch() is refused.
+// The report, read one section at a time from the read API of `eaos studio` (eaos/api/read.py), every call carrying
+// the launch token as a header (never in a URL, so it reaches no log), with the sign-in cookie of a remote address
+// (credentials: same-origin). Without a token (a read-only page) there is nothing to read: the console says so.
 // A section is read when a screen first needs it (screen `needs`), once; a live reload re-reads only the sections
 // whose sha256 in the manifest changed.
 import { prefs } from '../core/prefs.js';
@@ -30,8 +28,6 @@ export function apiGet(path) {
   return fetch(path, { headers: { 'X-EAOS-Token': token, Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' });
 }
 
-const snapshotData = () => (window.EAOS_STUDIO = window.EAOS_STUDIO || {});
-
 async function readManifest() {
   if (mode === 'live') {
     const answer = await apiGet('/api/manifest');
@@ -39,8 +35,7 @@ async function readManifest() {
     if (!answer.ok) throw new Error(`manifest: ${answer.status}`);
     return answer.json();
   }
-  if (!snapshotData().manifest) await self.EAOS_SCRIPT('./manifest.js');
-  return snapshotData().manifest || null;
+  return null;
 }
 
 async function readSection(name) {
@@ -50,8 +45,7 @@ async function readSection(name) {
       return answer.ok ? await answer.json() : undefined;
     } catch (e) { return undefined; }
   }
-  if (!snapshotData()[name]) await self.EAOS_SCRIPT(`./${name}.js`);
-  return snapshotData()[name];
+  return undefined;
 }
 
 async function readLocale(manifest) {
@@ -59,7 +53,7 @@ async function readLocale(manifest) {
   if (mode === 'live') {
     try { const answer = await apiGet('/api/locales/en'); return answer.ok ? await answer.json() : null; } catch (e) { return null; }
   }
-  return (await self.EAOS_SCRIPT('./locale.js')) ? window.EAOS_LOCALE || null : null;
+  return null;
 }
 
 /** Reads the manifest: 'ready', 'empty' (no check has written the data yet) or 'error' (another contract). */

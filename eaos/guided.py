@@ -25,7 +25,7 @@ from pathlib import Path
 
 from . import branches, check_choices, jobs, plain, waves
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
-from .places import home, outputs_root, workspace  # noqa: F401  (one home: eaos/places.py; guided's names stay its API)
+from .places import home, outputs_root, second_name, workspace  # noqa: F401  (one home: eaos/places.py; guided's names stay its API)
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
@@ -441,7 +441,7 @@ def publish(state, lang=None, event=None):
                         + f'</ul><p>{html.escape(str(outputs(state) / "logs"))}</p></body>', encoding='utf-8')
     page = report / 'human' / 'index.html'
     home_folder.mkdir(parents=True, exist_ok=True)
-    if page.is_file(): shutil.copyfile(page, target)
+    if page.is_file(): second_name(page, target)
     (home_folder / '.report.json').write_text(json.dumps({**stamp(made), 'scanned_commit': state.get('scanned_commit'),
                                                          'errors': errors}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return target if target.is_file() else report / 'START-HERE.md'

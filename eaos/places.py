@@ -24,3 +24,12 @@ def workspace(project):
     project = Path(project).resolve()
     ident = hashlib.sha256(str(project).encode('utf-8')).hexdigest()[:8]
     return home() / 'projects' / f'{project.name}-{ident}'
+
+
+def second_name(page, target):
+    """`target` as a second name of `page` in the outputs (REPORT.html: one file on disk, it was a 1.5 MB copy); a copy
+    where no link can be made."""
+    import shutil
+    Path(target).unlink(missing_ok=True)
+    try: os.link(page, target)
+    except OSError: shutil.copyfile(page, target)

@@ -19,6 +19,7 @@ out mixed. Translating what is written is small, and kept small this way (EAOS's
   or still in the wrong language, is asked once more, then left as written.
 """
 import json
+import shutil
 import re
 import contextvars
 from concurrent.futures import ThreadPoolExecutor
@@ -146,6 +147,7 @@ def translate(report, provider, say=lambda done, total: None):
     counts = {'pieces': len(wanted), 'remembered': len(wanted) - len(missing), **_ask_all(provider, missing, memory, say)}
     used = {lang: {source: memory[lang][source] for one, source in wanted if one == lang and source in memory[lang]} for lang in LANGS}
     memory_file.write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding='utf-8')
+    shutil.rmtree(report / 'i18n', ignore_errors=True)     # the translations of documents gone (1,070 of 1,214 files)
     for name, text in texts:
         for lang in LANGS:
             target = report / 'i18n' / lang / name

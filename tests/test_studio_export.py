@@ -26,12 +26,6 @@ SECTIONS_V2 = ('history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 
-def js_string_value(literal):
-    """The text of a single-quoted JavaScript string literal as eaos/studio/export.py writes it."""
-    assert literal[0] == literal[-1] == "'", literal[:20]
-    return re.sub(r"\\(\\|'|u2028|u2029)", lambda m: {'u2028': ' ', 'u2029': ' '}.get(m.group(1), m.group(1)), literal[1:-1])
-
-
 class Export(Workspace):
     def setUp(self):
         super().setUp()
@@ -43,7 +37,7 @@ class Export(Workspace):
     def load(self, name):
         return json.loads((self.folder / f'{name}.json').read_text(encoding='utf-8'))
 
-    def test_every_section_meets_its_contract_with_its_fingerprint_its_js_twin_and_coverage_last(self):
+    def test_every_section_meets_its_contract_with_its_fingerprint_once_and_coverage_last(self):
         from eaos import __version__
         self.assertEqual(self.result['errors'], [])
         self.assertEqual(self.result['written'], [*SECTIONS, *SECTIONS_V2, 'coverage'])
@@ -55,16 +49,7 @@ class Export(Workspace):
         for entry in manifest['sections']:
             blob = (self.folder / entry['file']).read_bytes()
             self.assertEqual((entry['sha256'], entry['bytes']), (hashlib.sha256(blob).hexdigest(), len(blob)), entry['name'])
-        for name in ('manifest', *SECTIONS):
-            text = (self.folder / f'{name}.js').read_text(encoding='utf-8')
-            prefix = f"(window.EAOS_STUDIO=window.EAOS_STUDIO||{{}})[\"{name}\"]=JSON.parse('"
-            self.assertTrue(text.startswith(prefix) and text.endswith("');\n"), name)
-            self.assertEqual(json.loads(js_string_value(text[len(prefix) - 1:-len(');\n')])), self.load(name))
-        tricky = {'title': "it's a \\ \"path\"     \n </script> ما'"}
-        export._write(self.folder, 'tricky', tricky)
-        text = (self.folder / 'tricky.js').read_text(encoding='utf-8')
-        self.assertNotIn(' ', text)
-        self.assertEqual(json.loads(js_string_value(text[text.index('JSON.parse(') + len('JSON.parse('):-len(');\n')])), tricky)
+        self.assertEqual(sorted(self.folder.glob('*.js')), [], 'one copy of each section: no .js twin')
         self.assertEqual((manifest['built']['version'], self.load('head')['eaos']['version']), (__version__, __version__))
         data = self.load('coverage')
         rows = {row['section']: row for row in data['sections']}
@@ -78,7 +63,6 @@ class Export(Workspace):
             self.assertTrue(rows[name]['detail'], name)
         self.assertEqual(data['not_measured']['value'], sum(r['state'] in ('not_measured', 'failed') for r in data['sections']))
         self.assertEqual([d['id'] for d in self.load('library')['documents']], ['START-HERE.md'])
-        self.assertTrue((self.folder / 'library.js').is_file())
 
     def test_a_reexport_in_arabic_keeps_every_decision_identity_and_writes_plain_arabic(self):
         before = {row['id']: row for row in self.load('decisions')['decisions']}

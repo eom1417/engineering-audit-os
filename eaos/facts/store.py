@@ -11,7 +11,7 @@ def facts_dir(out):
     return path
 
 
-def serialise(payload): return json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+def serialise(payload): return json.dumps(payload, ensure_ascii=False, separators=(',', ':')) + '\n'
 
 
 def write_set(out, name, extractor, version, facts, input_sha, limitations, summary=None, available=True, reason=None):

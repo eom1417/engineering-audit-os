@@ -24,8 +24,10 @@ def lines(paths):
 
 
 def size(folder):
-    files = [path for path in Path(folder).rglob('*') if path.is_file() and not path.is_symlink()]
-    return sum(path.stat().st_size for path in files) // MB, len(files)
+    """(MB, files) as the disk holds them: a file with two names (REPORT.html) counted once."""
+    files = {(stat.st_dev, stat.st_ino): stat.st_size for path in Path(folder).rglob('*')
+             if path.is_file() and not path.is_symlink() for stat in [path.stat()]}
+    return sum(files.values()) // MB, len(files)
 
 
 def read(path, default=None):
@@ -46,6 +48,11 @@ def code():
             ('Tests', f'{test_lines:,} lines in {test_files} files, {cases} test functions')]
 
 
+def engine_findings(technical):
+    reports = ((read(technical / 'engines' / 'engines.json', {}) or {}).get('engines') or {}).values()
+    return [row for report in reports for row in report.get('findings') or []]
+
+
 def check(output, home):
     technical = Path(output) / 'technical'
     manifest = read(technical / 'run-manifest.json', {})
@@ -53,7 +60,7 @@ def check(output, home):
     slowest = sorted(stages.items(), key=lambda item: -(item[1].get('seconds') or 0))[:4]
     tasks = (read(technical / 'plan.json', {}) or {}).get('tasks') or []
     patterns = Counter(task.get('pattern') for task in tasks).most_common(3)
-    findings = (read(technical / 'engines' / 'engines.json', {}) or {}).get('findings') or []
+    findings = engine_findings(technical)
     engines = Counter(row['engine'] for row in findings).most_common(2)
     tools = len((read(ROOT / 'eaos' / 'data' / 'toolchain.json', {}) or {}).get('tools') or [])
     out_mb, out_files = size(output)

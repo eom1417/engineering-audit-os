@@ -5,7 +5,7 @@ from pathlib import Path
 from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax
 from .source import Source
 from .. import progress
-from .store import facts_dir, write_index, write_set
+from .store import write_index, write_set
 from hashlib import sha256 as _sha256
 def digest(data): return _sha256(data).hexdigest()
 
@@ -157,10 +157,10 @@ def _run_extractor(name, target, source, produced, context, step, done, total):
 
 
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
-            exclude=(), engines=None, step=None):
-    """Each extractor's start and end is reported as a step of the running stage (eaos/progress/context.py), or to
-    `step(name, done, total, status, seconds)` when given: the live map shows where the facts stage is inside. It
-    does not change what runs."""
+            exclude=(), engines=None, cache=None):
+    """Each extractor's start and end is reported as a step of the running stage (eaos/progress/context.py): the live
+    map shows where the facts stage is inside. It does not change what runs. `cache`: the file the parsed files are kept in between checks (in the check's runtime,
+    never in the report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only."""
     target, out = _checked_paths(target, out)
     # What the project declared out of scope applies to every caller, not only the ones that
     # remembered to ask. Two commands honoured it and three did not.
@@ -170,10 +170,9 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     exclusion_reason_map = exclusion_reasons(target)
     names = ordered(selected)
     source = source or Source(target, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
-    cache_path = facts_dir(out) / 'syntax-cache.json'
-    context = {'cache': _load_cache(cache_path), 'max_commits': max_commits}
+    context = {'cache': _load_cache(Path(cache)) if cache else {}, 'max_commits': max_commits}
     entries, produced, reuse = [], {}, {}
-    step = step or progress.step
+    step = progress.step
     for name in names: step(name, 0, len(names), 'waiting')
     for done, name in enumerate(names):
         module, result = _run_extractor(name, target, source, produced, context, step, done, len(names))
@@ -183,7 +182,9 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
                                  module.LIMITATIONS, result['summary'], result['available'], result['reason']))
     if engines is not None:
         entries += collect_external(target, out, source, only=engines or None)
-    cache_path.write_text(json.dumps(context['cache'], ensure_ascii=False), encoding='utf-8')
+    if cache:
+        Path(cache).parent.mkdir(parents=True, exist_ok=True)       # the facts come before the runtime's other parts
+        Path(cache).write_text(json.dumps(context['cache'], ensure_ascii=False), encoding='utf-8')
     index = write_index(out, target, entries)
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],
             'facts': sum(e['facts'] for e in entries), 'reused_from_cache': reuse,
