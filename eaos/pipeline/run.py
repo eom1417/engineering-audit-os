@@ -105,10 +105,12 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
 
 
 def _outside(target, out):
+    """(target, out) resolved, `out` outside the target and made, without the documents a check no longer writes."""
     target, out = Path(target).resolve(), Path(out).resolve()
     if out == target or target in out.parents:
         raise ValueError('Pipeline output must live outside the target; the target stays read-only')
     out.mkdir(parents=True, exist_ok=True)
+    for name in RETIRED: (out / name).unlink(missing_ok=True)
     return target, out
 
 
@@ -306,6 +308,11 @@ def _previous(out):
 # START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
 BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
          'START-HERE.md')
+# The documents a check no longer writes (M1.4: 27 down to 8, their records kept): any run removes a previous check's,
+# or the output contract (R13) finds them undeclared and the Studio's Library lists them as if current.
+RETIRED = ('CONTRACTS.md', 'COUPLING-ATLAS.md', 'DECISION-BRIEF.md', 'DOMAIN-AND-DATA.md', 'ENGINES.md', 'EVOLUTION.md',
+           'FEATURES.md', 'FLOWS.md', 'LOAD-MODEL.md', 'MEASUREMENTS.md', 'ONBOARDING.md', 'POLICY.md', 'PROVENANCE.md',
+           'RISK-REGISTER.md', 'ROADMAP.md', 'SEMANTIC.md', 'SUSTAINABILITY.md', 'SYSTEM-MAP.md', 'transform-plan.md')
 PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs', 'ideal/run-*')     # what `eaos clean --pictures` removes from every report
 
 

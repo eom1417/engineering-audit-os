@@ -8,7 +8,7 @@
  "bandit:B324": 2,
  "bandit:B608": 1,
  "code:function_lines": 12,
- "code:functions": 107,
+ "code:functions": 106,
  "code:modules": 7,
  "code:parameters": 130,
  "jscpd:exact_clone": 25,

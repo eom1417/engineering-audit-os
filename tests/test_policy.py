@@ -62,9 +62,9 @@ class PolicyTests(unittest.TestCase):
                 if status == 'OK':
                     self.assertEqual(result['unclassified_count'], 0)
                 if shown:
-                    self.assertIn(shown, (out / 'POLICY.md').read_text(encoding='utf-8'))
+                    self.assertIn(shown, (out / 'facts/policy.json').read_text(encoding='utf-8'))
                 if status == 'VIOLATED' and not drop_core:
-                    self.assertIn('app/facts/reader.py', (out / 'POLICY.md').read_text(encoding='utf-8'))
+                    self.assertIn('app/facts/reader.py', (out / 'facts/policy.json').read_text(encoding='utf-8'))
 
     def test_the_gate_exits_nonzero_on_a_violation(self):
         with tempfile.TemporaryDirectory() as tmp:

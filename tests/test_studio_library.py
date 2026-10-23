@@ -22,9 +22,9 @@ class Library(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.out = Path(self.tmp.name) / 'report'
         write(self.out, {
-            'README.md': '# Index\n\n| 1 | [START-HERE.md](START-HERE.md) |\n| 2 | [FLOWS.md](FLOWS.md) | then [adr/ADR-001.md](adr/ADR-001.md#context) |\n',
+            'README.md': '# Index\n\n| 1 | [START-HERE.md](START-HERE.md) |\n| 2 | [RUN.md](RUN.md) | then [adr/ADR-001.md](adr/ADR-001.md#context) |\n',
             'START-HERE.md': '# Start here\n\n## What was found\n\n```\n## not a heading\n```\n\n### Next\n',
-            'FLOWS.md': f'# Flows\n\nRead from {Path.home()}/projects/shop/src/a.ts\n',
+            'RUN.md': f'# Run\n\nRead from {Path.home()}/projects/shop/src/a.ts\n',
             'adr/ADR-001.md': '# ADR-001\n',
             'engines/mirror/README.md': '# A copy of the project\n',
             'engines/mirror/logo.png': PNG,
@@ -36,9 +36,9 @@ class Library(unittest.TestCase):
 
     def test_documents_follow_the_reading_order_and_travel_with_the_studio_and_the_machines_folders_and_oversized_images_do_not(self):
         rows = {d['path']: d for d in library.docs(self.out)}
-        self.assertEqual(sorted(rows), ['FLOWS.md', 'README.md', 'START-HERE.md', 'adr/ADR-001.md'], "the engines' copies are left out")
-        self.assertLess(rows['START-HERE.md']['order'], rows['FLOWS.md']['order'])
-        self.assertLess(rows['FLOWS.md']['order'], rows['adr/ADR-001.md']['order'])
+        self.assertEqual(sorted(rows), ['README.md', 'RUN.md', 'START-HERE.md', 'adr/ADR-001.md'], "the engines' copies are left out")
+        self.assertLess(rows['START-HERE.md']['order'], rows['RUN.md']['order'])
+        self.assertLess(rows['RUN.md']['order'], rows['adr/ADR-001.md']['order'])
         self.assertEqual(rows['adr/ADR-001.md']['group'], 'adr')
         self.assertEqual(rows['START-HERE.md']['headings'], [{'level': 2, 'text': 'What was found'}, {'level': 3, 'text': 'Next'}],
                          'a line inside a code block is not a heading')
@@ -47,8 +47,8 @@ class Library(unittest.TestCase):
         self.assertEqual(media[0]['title'], 'Map of pages and APIs')
         body = library.library(self.out, docs, media, project=None)
         text = {d['id']: d['text'] for d in body['documents']}
-        self.assertIn('~/projects/shop/src/a.ts', text['FLOWS.md'])
-        self.assertNotIn(str(Path.home()), text['FLOWS.md'])
+        self.assertIn('~/projects/shop/src/a.ts', text['RUN.md'])
+        self.assertNotIn(str(Path.home()), text['RUN.md'])
         images = {i['id']: i for i in body['images']}
         self.assertEqual(images['architecture/system.mmd']['source'], 'flowchart LR\n  a --> b\n')
         self.assertTrue(images['shots/home.png']['data'].startswith('data:image/png;base64,'))

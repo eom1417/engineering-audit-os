@@ -546,7 +546,7 @@ def structure(project=None):
             'forbidden_edges': trim(target.get('forbidden_edges')), 'target_edges': trim(target.get('target_edges')),
             'decisions': trim(target.get('decisions'), 20), 'gaps': trim(target.get('gap_matrix'), 40),
             'import_cycles': cycles[:30], 'import_cycle_count': len(cycles), 'limits': target.get('limits'),
-            'documents': [str(report / name) for name in ('TARGET-ARCHITECTURE.md', 'SYSTEM-MAP.md', 'COUPLING-ATLAS.md', 'CURRENT-STATE.md')
+            'documents': [str(report / name) for name in ('TARGET-ARCHITECTURE.md', 'CURRENT-STATE.md')
                           if (report / name).is_file()]}
 
 

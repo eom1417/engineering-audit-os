@@ -8,7 +8,7 @@ from shared_fixture import TemporaryWorkspace
 from eaos import claims as ledger
 from eaos import probes
 from eaos.ask import answer
-from eaos.compose.labels import detail_artifact, statement_of
+from eaos.compose.labels import statement_of
 from eaos.compose.rules import validate
 from eaos.dossier import assemble, refresh_views
 from eaos.facts.run import collect
@@ -25,18 +25,14 @@ class DossierTests(TemporaryWorkspace):
         cls.out = Path(cls.workspace().name) / 'out'
         assemble(FIXTURE, cls.out)
 
-    def test_the_dossier_opens_with_an_index_that_says_how_well_each_section_is_sourced(self):
+    def test_the_dossier_opens_with_an_index_in_reading_order(self):
         text = (self.out / 'README.md').read_text()
-        for section in ['DECISION-BRIEF.md', 'ONBOARDING.md', 'SYSTEM-MAP.md', 'FLOWS.md']:
-            self.assertIn(section, text)
-        self.assertIn('not assessed: needs the model path', text)
-        self.assertIn('](DOMAIN-AND-DATA.md)', (self.out / 'DECISION-BRIEF.md').read_text())
+        for document in ['START-HERE.md', 'CURRENT-STATE.md', 'EXECUTION-PLAN.md', 'TARGET-ARCHITECTURE.md', 'RUN.md']:
+            self.assertIn(f']({document})', text)
         dossier = json.loads((self.out / 'dossier.json').read_text())
         self.assertEqual([p for p in validate(self.out, dossier) if p.startswith('R12')], [])
         with tempfile.TemporaryDirectory() as tmp:
-            bare = Path(tmp)
-            (bare / 'DECISION-BRIEF.md').write_text('# brief\n\nالتغطية: 1\n\n⬤ x\n\n## ما لم يُفحص\n\n- none\n')
-            self.assertTrue(any(problem.startswith('R12') for problem in validate(bare, dossier)))
+            self.assertTrue(any(problem.startswith('R12') for problem in validate(Path(tmp), dossier)))
 
     def test_the_dossier_speaks_the_readers_language(self):
         claim = {'statement': 'Import cycle between: a.py, b.py', 'render': {'key': 'cycle', 'params': {'members': 'a.py, b.py'}}}
@@ -44,13 +40,9 @@ class DossierTests(TemporaryWorkspace):
         self.assertEqual(statement_of(claim, 'en'), 'Import cycle between: a.py, b.py')
         plain = {'statement': 'something specific', 'render': {}}
         self.assertEqual(statement_of(plain, 'ar'), 'something specific')
-        self.assertIsNone(detail_artifact(plain))
-        text = (self.out / 'DECISION-BRIEF.md').read_text()
-        self.assertIn('معرّف في', text)
-        self.assertNotIn('is defined in', text)
-        onboarding = (self.out / 'ONBOARDING.md').read_text()
-        for heading in ['ابنِ وشغّل', 'اختبر', 'نقاط الدخول لتجربتها', 'أول عشرة ملفات تقرؤها', 'مصائد معروفة']:
-            self.assertIn(heading, onboarding)
+        text = (self.out / 'README.md').read_text()
+        self.assertIn('اقرأ بهذا الترتيب', text)
+        self.assertNotIn('Read in this order', text)
 
     def test_a_question_gets_a_grounded_answer_or_says_why_not(self):
         self.assertEqual(answer(self.out, 'what handles POST /orders')['answers'][0]['kind'], 'entry point')
@@ -110,7 +102,7 @@ class ViewFreshnessTests(unittest.TestCase):
             text = (out / 'README.md').read_text()
             updated = json.loads((out / 'dossier.json').read_text())
         self.assertNotIn('semantic review: not performed', text)
-        self.assertIn('model inference over facts', text)
+        self.assertIn('(1 من طبقة دلالية)', text)
         self.assertNotIn('not assessed in a facts-only run', updated['description'])
         self.assertIn('model inference', updated['description'])
         self.assertFalse(any(q['question'].startswith('No semantic review was run') for q in updated['questions']),

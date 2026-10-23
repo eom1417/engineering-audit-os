@@ -39,7 +39,7 @@ class RuleThirteenTests(unittest.TestCase):
 
     def _report(self, directory, statuses=None, extra=None):
         out = Path(directory)
-        (out / 'README.md').write_text('# index\n\n[brief](DECISION-BRIEF.md)\n', encoding='utf-8')
+        (out / 'README.md').write_text('# index\n\n[start](START-HERE.md)\n', encoding='utf-8')
         if statuses:
             (out / 'run-manifest.json').write_text(json.dumps(
                 {'stages': {stage.name: {'status': statuses} for stage in STAGES}}), encoding='utf-8')
@@ -49,7 +49,7 @@ class RuleThirteenTests(unittest.TestCase):
 
     def test_undeclared_and_unexplained_missing_artifacts_are_violations(self):
         cases = [('ok', {'SURPRISE.md': '# surprise\n'}, 'R13 SURPRISE.md'), (None, {'STRAY.md': '# stray\n'}, 'R13 STRAY.md'),
-                 ('ok', None, 'R13 SYSTEM-MAP.md')]
+                 ('ok', None, 'R13 CURRENT-STATE.md')]
         for statuses, extra, expected in cases:
             with self.subTest(expected), tempfile.TemporaryDirectory() as directory:
                 self.assertTrue(any(p.startswith(expected) for p in self._report(directory, statuses, extra)))

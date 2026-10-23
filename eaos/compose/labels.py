@@ -239,18 +239,6 @@ def falsifier_of(claim, language):
     translated = FALSIFIERS.get(language, {}).get(key)
     return translated or stored or '—'
 
-# Which artifact carries the detail behind each kind of claim, so a reader is never left searching.
-DETAIL_ARTIFACT = {
-    'cycle': 'COUPLING-ATLAS.md', 'cochange': 'EVOLUTION.md', 'duplicated_rule': 'DOMAIN-AND-DATA.md',
-    'trace_gap': 'FLOWS.md', 'hotspot': 'COUPLING-ATLAS.md', 'large_module': 'COUPLING-ATLAS.md', 'mutable_global': 'DOMAIN-AND-DATA.md', 'access_gap_no_rls': 'RISK-REGISTER.md', 'access_gap_open_write': 'RISK-REGISTER.md',
-    'external_write': 'DOMAIN-AND-DATA.md', 'untested': 'RISK-REGISTER.md', 'policy': 'POLICY.md',
-    'structural_duplicate': 'DOMAIN-AND-DATA.md', 'copied_function': 'DOMAIN-AND-DATA.md', 'sequence_duplicate': 'DOMAIN-AND-DATA.md',
-    'redundant_work': 'DOMAIN-AND-DATA.md', 'engine_cluster': 'ENGINES.md', 'load_blocker': 'LOAD-MODEL.md',
-    'dead_code': 'SYSTEM-MAP.md', 'dead_code_review': 'SYSTEM-MAP.md', 'broken_code': 'SYSTEM-MAP.md',
-    'vulnerable_dependency': 'ENGINES.md', 'security_weakness': 'RISK-REGISTER.md',
-}
-
-
 # The kinds external engines report, in Arabic: an engine-cluster title names the kind, not the engines' own word.
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
                      'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
@@ -271,10 +259,6 @@ def statement_of(claim, language):
     if key == 'engine_cluster' and language == 'ar': params = {**params, 'kind': ENGINE_KIND_WORDS.get(params.get('kind'), params.get('kind'))}
     try: return template.format(**params)
     except (KeyError, IndexError): return claim['statement']
-
-
-def detail_artifact(claim):
-    return DETAIL_ARTIFACT.get((claim.get('render') or {}).get('key'))
 
 
 def labels(language): return LABELS.get(language, LABELS['ar'])

@@ -49,13 +49,14 @@ class SemanticTests(unittest.TestCase):
             out = self.prepared(tmp)
             self.assertEqual(run(FIXTURE, out, ScriptedSemanticProvider(grounded))['claims'], 1)
             dossier = json.loads((out / 'dossier.json').read_text())
-            semantic = (out / 'SEMANTIC.md').read_text()
+            semantic = json.loads((out / 'semantic.json').read_text())
         added = next(claim for claim in dossier['claims'] if claim['claim_type'] == 'responsibility')
         self.assertEqual((added['confidence'], added['method']), ('HYPOTHESIS', ['model_inference']))
         self.assertTrue(added['falsifier'])
         self.assertFalse([c for c in dossier['claims'] if c['method'] == ['model_inference'] and c['confidence'] == 'CONFIRMED'])
         self.assertTrue(any(row['source'] == 'semantic pass' for row in dossier['questions']))
-        self.assertIn('الطبقة الدلالية', semantic)
+        self.assertEqual([claim['id'] for claim in semantic['claims']], [added['id']])
+        self.assertEqual(added['artifacts'], ['semantic.json'])
 
     def test_an_ungrounded_answer_is_fed_back_and_a_persistently_invalid_one_fails_loudly(self):
         def invented(digest, call):
@@ -173,7 +174,7 @@ class UntrustedInputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out:
             sets = collected(fixture, out)
             result = assemble(fixture, out, language='en')
-            brief = Path(out, 'DECISION-BRIEF.md').read_text(encoding='utf-8')
+            brief = Path(out, 'README.md').read_text(encoding='utf-8')
             dossier = json.loads(Path(out, 'dossier.json').read_text(encoding='utf-8'))
             session = SourceSession(fixture, out, sets)
             blocks = session.retrieve([{'path': 'README.md', 'start_line': 1, 'end_line': 4}]) \

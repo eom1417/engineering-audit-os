@@ -10,7 +10,7 @@ import { actionSheet } from '../understand-kit/preview.js';
 const NEEDS = ['docs', 'system'];
 const waitHTML = got => (got.state === 'loading' ? `<p class="small muted" role="status" aria-busy="true">${t('un.arch.reading')}</p>`
   : got.state === 'offline' ? nm(t('un.arch.offline'), t('un.arch.offline.why')) : `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(got.error || '')}</p>`);
-const DOCS = ['TARGET-ARCHITECTURE.md', 'SYSTEM-MAP.md', 'COUPLING-ATLAS.md', 'CURRENT-STATE.md'];
+const DOCS = ['TARGET-ARCHITECTURE.md', 'CURRENT-STATE.md'];
 
 /** The architecture in brief, from the report's sections (system.json, docs.json): no action to run. */
 function summary() {

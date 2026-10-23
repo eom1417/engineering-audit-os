@@ -29,18 +29,16 @@ def size_of(paths, dependents):
     return effort(paths, dependents)
 
 
-def schedule(out, target, tasks, language):
-    """Milestones and sections for the cards, and ROADMAP.md: the build milestones follow the target projection."""
-    from .roadmap import milestones, render, sections
+def schedule(out, target, tasks):
+    """Milestones and sections for the cards: the build milestones follow the target projection."""
+    from .roadmap import milestones, sections
     from .target_projection import project
     projection = project(out, target)
     placements = (projection or {}).get('placements') or {}
     rebuilt = {}
     for judged in ((projection or {}).get('current') or {}).values():
         if judged['relation'] == 'rebuild': rebuilt[judged['target_component']] = 'rebuild'
-    plan_milestones = milestones(tasks, placements, rebuilt)
-    (Path(out) / 'ROADMAP.md').write_text(render(plan_milestones, tasks, language).render(), encoding='utf-8')
-    return plan_milestones, sections(tasks)
+    return milestones(tasks, placements, rebuilt), sections(tasks)
 
 
 def _radius(out, paths, sets):
@@ -410,7 +408,7 @@ def rebuild(out, dossier, language='ar', target=None):
     write(out / 'dossier.json', dossier)
     from .codemods import attach
     attach(tasks, out, source)
-    plan_milestones, plan_sections = schedule(out, source, tasks, language)
+    plan_milestones, plan_sections = schedule(out, source, tasks)
     write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones, 'sections': plan_sections, 'decisions': dossier.get('decisions', [])})
     return len(tasks)
 
@@ -429,7 +427,7 @@ def build(target, out, language='ar', patterns=None):
     write(dossier_path, dossier)
     from .codemods import attach
     attach(tasks, out, target)
-    plan_milestones, plan_sections = schedule(out, target, tasks, language)
+    plan_milestones, plan_sections = schedule(out, target, tasks)
     write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones, 'sections': plan_sections, 'decisions': [decide(claim) for claim in dossier['claims']]})
     from .dossier import refresh_views
     refresh_views(out, language)
@@ -533,7 +531,7 @@ def _publish_plan(target, out, plan, tasks, language):
     dossier = read(out / 'dossier.json')
     dossier['tasks'], dossier['waves'] = tasks, order
     write(out / 'dossier.json', dossier)
-    milestones, sections = schedule(out, target, tasks, language)
+    milestones, sections = schedule(out, target, tasks)
     write(out / 'plan.json', {**plan, 'tasks': tasks, 'waves': order, 'milestones': milestones, 'sections': sections})
 
 

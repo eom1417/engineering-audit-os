@@ -1,4 +1,4 @@
-"""The debt register: severity from the evidence, witnesses named, one register behind RISK-REGISTER.md."""
+"""The debt register: severity from the evidence, witnesses named, one register (debt-register.json)."""
 import json
 from pathlib import Path
 
@@ -76,15 +76,3 @@ class RegisterTests(Workspace):
         record = self.register([finding('F1', 'enola', 'coupling', 'c.ts')], [cluster('CLM-1', 'coupling', ['F1'])],
                                measurements={'files': rows})
         self.assertEqual(self.item(record, 'CLM-1')['hotspot']['file'], 'c.ts')
-
-    def test_the_risk_register_document_is_rendered_from_the_record(self):
-        from eaos.dossier import write_register
-        facts = [finding('F1', 'enola', 'coupling', 'a.ts')]
-        out = Path(self.tmp)
-        (out / 'facts').mkdir()
-        (out / 'facts/all.json').write_text(json.dumps({'facts': facts}))
-        write_register(out, {'claims': [cluster('CLM-7', 'coupling', ['F1'])]}, 'en')
-        record = json.loads((out / 'debt-register.json').read_text())
-        text = (out / 'RISK-REGISTER.md').read_text()
-        self.assertIn(record['items'][0]['id'], text)
-        self.assertIn(record['formula'], text)

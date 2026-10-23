@@ -101,7 +101,7 @@ def policy_command(args):
     from .policy import check as check_policy, init as init_policy
     if args.action=='init':
         print(json.dumps(init_policy(args.target,args.out,args.policy),ensure_ascii=False,indent=2));return 0
-    result=check_policy(args.target,args.out,args.policy,args.lang)
+    result=check_policy(args.target,args.out,args.policy)
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 2 if result['status']=='VIOLATED' else 0
 
@@ -251,7 +251,7 @@ def main(argv=None):
     q.set_defaults(func=recheck_command)
     q=s.add_parser('policy',help='Check the declared architecture policy, or scaffold one')
     q.add_argument('action',choices=['check','init']);q.add_argument('target');q.add_argument('--out',required=True)
-    q.add_argument('--policy',default=None);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--policy',default=None)
     q.set_defaults(func=policy_command)
     q=s.add_parser('tools',help='Install every external tool at its pinned version, or check what is installed')
     q.add_argument('action',choices=['install','doctor','refresh'],help='refresh: a new vulnerability database, moved in whole')

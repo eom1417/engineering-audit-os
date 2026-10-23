@@ -33,7 +33,6 @@
   "eaos/compose/four_reports.py::current_state": 17,
   "eaos/compose/four_reports.py::target_state": 25,
   "eaos/debt_register.py::_item": 17,
-  "eaos/dossier.py::brief": 22,
   "eaos/engines/codegraph.py::run": 16,
   "eaos/facts/deadcode.py::run": 19,
   "eaos/facts/frameworks/http_access.py::extract_calls": 17,
@@ -124,7 +123,7 @@
  },
  "modules": {
   "eaos/agent_tools.py": 1187,
-  "eaos/guided.py": 1223,
+  "eaos/guided.py": 1219,
   "eaos/human_report.py": 2097,
   "eaos/studio/actions/branches.py": 1140,
   "eaos/studio/actions/runs.py": 729,

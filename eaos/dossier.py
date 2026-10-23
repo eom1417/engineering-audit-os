@@ -10,27 +10,12 @@ from . import __version__
 from . import claims as ledger
 from . import progress
 from .compose import Document, say
-from .compose.labels import detail_artifact, impact_of, statement_of
 from .compose.rules import validate
-from .fact_documents import (ONBOARDING_SECTIONS, contracts_document, describe, domain_document, flows_document,
-                             inventory_rows, provenance_document, semantic_claims, trust_grades)
 from .facts.store import read_set
-from .map import ARTIFACTS, generate
 from .workspace import read, write
 
-MARKER = {'CONFIRMED': '⬤', 'LIKELY': '◐', 'HYPOTHESIS': '○', 'REFUTED': '⊘'}
-
-
-def shorten(text, limit):
-    """Cut on a word boundary; a decision artifact should not end a sentence mid-word."""
-    text = ' '.join(str(text).split())
-    if len(text) <= limit: return text
-    cut = text[:limit]
-    space = cut.rfind(' ')
-    return (cut[:space] if space > limit * 0.6 else cut).rstrip(' ,،') + '…'
-BRIEF = 'DECISION-BRIEF.md'
-PROVENANCE = 'PROVENANCE.md'
-RANK = {'CONFIRMED': 0, 'LIKELY': 1, 'HYPOTHESIS': 2, 'REFUTED': 3}
+# Every live claim is an item of the debt register, the one record that shows it in full (rule R4).
+REGISTER = 'debt-register.json'
 
 
 def legacy_records(run):
@@ -187,7 +172,7 @@ def _gathered_claims(sets, records, load_record, target):
 def _settle_claim(row, fact_index):
     """A numbered claim's origin, the artifact that shows it, and a disposition when it asserts a problem."""
     row['origin'] = origin_of(row, fact_index)
-    row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else (detail_artifact(row) or 'SYSTEM-MAP.md')])
+    row.setdefault('artifacts', [REGISTER])
     if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
         row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
 
@@ -214,91 +199,46 @@ def build_claims(sets, records, load_record=None, target=None):
     return rows, fact_index, withheld
 
 
-def _brief_header(target, dossier, words):
-    coverage = dossier['coverage']
-    counts = dossier['claim_counts']
-    return [
-        f"{target}  ·  {dossier['provenance']['generated_at']}  ·  eaos {dossier['provenance']['tool_version']}",
-        f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} "
-        f"({round(coverage['parse_coverage'] * 100)}%) · internal imports resolved "
-        f"{round(coverage['internal_imports_resolved_rate'] * 100)}% ({coverage['external_imports']} external) · "
-        f"entry points {coverage['production_entry_points']}"
-        + (f" (+{coverage['entry_points'] - coverage['production_entry_points']} in tests)"
-           if coverage['entry_points'] != coverage['production_entry_points'] else '')
-        + f" · runtime-confirmed {coverage['runtime_confirmation']}",
-        '⬤ %d · ◐ %d · ○ %d · ؟ %d' % (counts.get('CONFIRMED', 0), counts.get('LIKELY', 0), counts.get('HYPOTHESIS', 0), len(dossier['questions'])),
-        f"model calls: {dossier['provenance']['model_calls']}",
-    ]
+def semantic_claims(dossier):
+    return sum(1 for claim in dossier['claims'] if 'model_inference' in claim.get('method', []))
 
 
-ORIGIN_TAGS = {('test', True): ' [كود اختبارات]', ('test', False): ' [test code]',
-               ('archive', True): ' [كود مؤرشف]', ('archive', False): ' [archived code]'}
+def inventory_rows(language):
+    """Every declared document in reading order, with the reason a reader would open it.
+
+    Generated from the artifact contract, not written by hand, so a document that is added,
+    renamed or dropped appears here instead of being discoverable only by listing the directory.
+    Whether this particular run produced it is RUN.md's question, not this one's.
+    """
+    from .compose.artifacts import reading_order
+    rows = []
+    for position, artifact in enumerate(reading_order(), start=1):
+        note = artifact.purpose
+        if not artifact.required:
+            note += (' — يغيب حين: ' if language == 'ar' else ' — absent when: ') + artifact.absent_when
+        rows.append([str(position), f'[{artifact.name}]({artifact.name})', note])
+    return rows
 
 
-def _brief_row(claim, language):
-    return [claim['id'], shorten(statement_of(claim, language), 150) + ORIGIN_TAGS.get((claim.get('origin'), language == 'ar'), ''),
-            MARKER[claim['confidence']] + ' ' + claim['confidence'],
-            shorten(impact_of(claim, language), 120),
-            f"[{detail_artifact(claim) or 'dossier.json'}]({detail_artifact(claim) or 'dossier.json'})"]
+def describe(sets, records):
+    syntax = sets['syntax']['summary']
+    entry = sets['entrypoints']['summary']
+    languages = ', '.join(f'{name} ({count})' for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
+    surfaces = ', '.join(f'{name} ({count})' for name, count in sorted(entry['by_surface'].items()))
+    line = (f"⬤ {syntax['source_files']} source files, {syntax['symbols']} symbols, languages: {languages}. "
+            f"Invocation surfaces: {surfaces or 'none detected'}.")
+    if not records['findings']:
+        line += ' ○ Responsibilities and contracts are not assessed in a facts-only run.'
+    return line
 
 
-def _do_now(dossier, top, language):
-    """The first three tasks, else the first three ranked claims with where to read them."""
-    return ([f"{task['id']} — {task.get('kind', 'legacy')}: "
-             f"{statement_of({'statement': task['title'], 'render': task.get('render')}, language)[:120]}"
-             for task in dossier['tasks'][:3]] or
-            [claim['id'] + ' — ' + shorten(statement_of(claim, language), 120)
-             + f" → [{detail_artifact(claim) or 'PLAN/'}]({detail_artifact(claim) or 'PLAN/WAVES.md'})" for claim in top[:3]])
-
-
-def brief(target, dossier, language):
-    document = Document(Document('', language).words['decision_brief'], language, budget_lines=120)
-    words = document.words
-    coverage = dossier['coverage']
-    document.header(_brief_header(target, dossier, words))
-    document.section('ما هذا النظام' if language == 'ar' else 'What this system is')
-    document.text(dossier['description'])
-    document.section('ملاحظات تستحق المراجعة' if language == 'ar' else 'Observations for review')
-    ranked = sorted(dossier['claims'], key=lambda c: (-c.get('priority', 0), RANK[c['confidence']], c['id']))
-    # Anything with a stated consequence competes for the five slots, whatever its record type.
-    top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
-    document.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence',
-                    'الأثر' if language == 'ar' else 'Impact', 'التفصيل' if language == 'ar' else 'Detail'],
-                   [_brief_row(claim, language) for claim in top])
-    from .decisions import decide
-    decisions = [decide(claim) for claim in ranked]
-    document.bullets([('القرارات: ' if language == 'ar' else 'Decisions: ') +
-                      ', '.join(f"{kind}: {sum(d['kind'] == kind for d in decisions)}" for kind in ('repair', 'investigate', 'retain'))])
-    document.section('افعل الآن' if language == 'ar' else 'Do now')
-    document.bullets(_do_now(dossier, top, language))
-    document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
-    document.bullets(dossier['do_not'])
-    document.section('أسئلة مفتوحة' if language == 'ar' else 'Open questions')
-    document.table(['#', 'السؤال' if language == 'ar' else 'Question', 'المصدر' if language == 'ar' else 'Source'],
-                   [[q['id'], shorten(q['question'], 160), q['source']] for q in dossier['questions']], limit=10)
-    document.section(words['not_examined'])
-    document.bullets(coverage['not_examined'])
-    return document
-
-
-def onboarding_document(target, dossier, sets, verification, language):
-    """What a new engineer needs on day one, assembled from manifests, entry points and the graph."""
-    ar = language == 'ar'
-    document = Document('دليل الانضمام' if ar else 'Onboarding runbook', language, budget_lines=200)
-    document.header(['مولَّد من الحقائق: الأوامر من الملفات المعلنة، وترتيب القراءة من الرسم.' if ar else
-                     'Generated from facts: commands come from declared manifests, reading order from the graph.'])
-    for write_section in ONBOARDING_SECTIONS:
-        write_section(document, sets, verification, ar)
-    return document
-
-
-def index_document(target, dossier, sets, verification, language):
+def index_document(target, dossier, language):
     tr = partial(say, language)
     document = Document(tr('الفهرس وترتيب القراءة', 'Index and reading order'), language, budget_lines=120)
     words = document.words
     provenance = dossier['provenance']
     coverage = dossier['coverage']
-    semantic = sum(1 for claim in dossier['claims'] if 'model_inference' in claim.get('method', []))
+    semantic = semantic_claims(dossier)
     document.header([f"{target} · eaos {provenance['tool_version']} · {provenance['generated_at']} · "
                      f"model calls {provenance['model_calls']}",
                      f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} · "
@@ -311,18 +251,13 @@ def index_document(target, dossier, sets, verification, language):
          '[CURRENT-STATE.md](CURRENT-STATE.md) → [TARGET-STATE.md](TARGET-STATE.md) → '
          '[GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'],
         [tr('تقرّر أين يذهب الجهد', 'deciding where effort goes'),
-         '[DECISION-BRIEF.md](DECISION-BRIEF.md) → [RISK-REGISTER.md](RISK-REGISTER.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'],
-        [tr('تنضم للمشروع اليوم', 'joining the project today'),
-         '[ONBOARDING.md](ONBOARDING.md) → [SYSTEM-MAP.md](SYSTEM-MAP.md) → [FLOWS.md](FLOWS.md)', '45 min'],
+         '[START-HERE.md](START-HERE.md) → [PLAN/STEPS.md](PLAN/STEPS.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'],
         [tr('تراجع البنية', 'reviewing the architecture'),
-         '[POLICY.md](POLICY.md) → [COUPLING-ATLAS.md](COUPLING-ATLAS.md) → [CONTRACTS.md](CONTRACTS.md)', '30 min'],
+         '[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md) → [GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md)', '30 min'],
+        [tr('تريد أن تعرف كيف جرى الفحص', 'checking how this check ran'), '[RUN.md](RUN.md)', '2 min'],
         [tr('ستغيّر ملفًا محددًا', 'about to change one file'), "the assistant's `impact` tool (/eaos)", '1 min'],
     ]
     document.table([tr('إن كنت…', 'If you are…'), tr('ابدأ بـ', 'Start with'), tr('الوقت', 'Time')], rows)
-    document.section(tr('درجة الإسناد لكل قسم', 'How well each section is sourced'))
-    document.table([tr('القسم', 'Section'), tr('المصدر', 'Source'), tr('الدرجة', 'Grade'), tr('ملاحظة', 'Note')],
-                   [[row['section'], row['source'], row['grade'], row['note']]
-                    for row in trust_grades(dossier, sets, verification)])
     document.section(words['not_examined'])
     document.bullets(coverage['not_examined'])
     document.section(tr('كل الملفات', 'Every file'))
@@ -333,16 +268,14 @@ def index_document(target, dossier, sets, verification, language):
     return document
 
 
-def write_register(out, dossier, language):
-    """debt-register.json, and RISK-REGISTER.md rendered from it: one register (eaos/debt_register.py)."""
-    from .debt_register import build, render
-    record = build(out, dossier)
-    write(Path(out) / 'debt-register.json', record)
-    (Path(out) / 'RISK-REGISTER.md').write_text(render(record, language).render(), encoding='utf-8')
+def write_register(out, dossier):
+    """debt-register.json: one register (eaos/debt_register.py)."""
+    from .debt_register import build
+    write(Path(out) / REGISTER, build(out, dossier))
 
 
 def refresh_views(out, language='ar'):
-    """Re-render the views the ledger owns: the brief, the risk register and the index.
+    """Re-render the views the ledger owns: the debt register and the index.
 
     Rebuilding the plan or the product report belongs to eaos.views, one layer up. Doing it here
     made dossier, plan and product_review import each other in a cycle.
@@ -369,16 +302,15 @@ def refresh_views(out, language='ar'):
     for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
     write(dossier_path, dossier)
-    (out / BRIEF).write_text(brief(target, dossier, language).render(), encoding='utf-8')
-    write_register(out, dossier, language)
-    (out / 'README.md').write_text(index_document(target, dossier, sets, verification, language).render(), encoding='utf-8')
+    write_register(out, dossier)
+    (out / 'README.md').write_text(index_document(target, dossier, language).render(), encoding='utf-8')
     return {'out': str(out), 'claims': len(dossier['claims']), 'tasks': len(dossier.get('tasks', [])),
-            'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
+            'refreshed': [REGISTER, 'README.md']}
 
 
 def _settle_disposition(claim):
     """A claim added after assembly gets the artifact that shows it and, when it needs one, a disposition."""
-    claim.setdefault('artifacts', [BRIEF if asserts_a_problem(claim) else (detail_artifact(claim) or 'SYSTEM-MAP.md')])
+    claim.setdefault('artifacts', [REGISTER])
     if needs_a_disposition(claim) and (claim.get('disposition') or {}).get('kind') in (None, 'none_yet'):
         claim['disposition'] = {'kind': 'investigate',
                                 'reason': ('Not established yet; decide it before acting on it.'
@@ -401,19 +333,26 @@ def _note_semantic(dossier):
         'and none is confirmed by inference alone.')
 
 
-# The counted steps of assemble(): the structural map, the claims, their ranking, the dossier, the documents.
+# The counted steps of assemble(): the facts, the claims, their ranking, the dossier, the index and the verdict.
 CLAIM_STEPS = 5
+
+
+def _collected(target, out, exclude, engines, collected):
+    """(collection result, fact sets): the facts a pipeline already collected, else collected now."""
+    from .facts.run import collect
+    result = collected or collect(target, out, None, exclude=exclude, engines=engines)
+    return result, {entry['set']: read_set(out, entry['set']) for entry in result['sets']}
 
 
 def assemble(target, out, run=None, language='ar', version=None, exclude=(), engines=None, collected=None):
     target, out = Path(target).resolve(), Path(out).resolve()
     progress.count('claim steps', 0, CLAIM_STEPS)
-    map_result, sets = generate(target, out, language, exclude=exclude, engines=engines, collected=collected)
+    map_result, sets = _collected(target, out, exclude, engines, collected)
     progress.count('claim steps', 1, CLAIM_STEPS)
     # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
     from .policy import FILENAME as POLICY_FILE, check as check_policy
     if (target / POLICY_FILE).is_file():
-        check_policy(target, out, language=language)
+        check_policy(target, out)
         sets['policy'] = read_set(out, 'policy')
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
@@ -429,13 +368,8 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
     write(out / 'dossier.json', dossier)
     progress.count('claim steps', 4, CLAIM_STEPS)
-    (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
-    for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
-        (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
-    write_register(out, dossier, language)
-    (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
-    (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
-    (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
+    write_register(out, dossier)
+    (out / 'README.md').write_text(index_document(str(target), dossier, language).render(), encoding='utf-8')
     violations = validate(out, dossier)
     result = write_verdict(out, dossier, violations, target=str(target), facts=map_result['facts'])
     progress.count('claim steps', CLAIM_STEPS, CLAIM_STEPS)
@@ -460,7 +394,7 @@ def _claims(target, out, sets, records, verification, exclude):
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)
-        row.setdefault('artifacts', [BRIEF])
+        row.setdefault('artifacts', [REGISTER])
         row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
     from .ranking import rank
     return rank(rows + runtime, sets, fact_index), withheld
@@ -495,13 +429,8 @@ def _dossier(target, out, run, language, version, exclude, map_result, sets, rec
         ['Do not treat this as a security review or a production-readiness certificate.',
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
-        'artifacts': _artifacts(target, out),
+        'artifacts': ['README.md'],
     }
-
-
-def _artifacts(target, out):
-    return sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
-                  + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else []) + (['ENGINES.md'] if (out / 'facts/external.json').is_file() else []))
 
 
 VERDICT = 'report-result.json'

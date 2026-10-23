@@ -7,9 +7,6 @@ from .artifacts import BY_NAME, BUDGETS, DOCUMENT
 # One source for what may be produced and how long it may be; rules.py used to keep its own list,
 # and sixteen documents were outside it and therefore never checked at all.
 CLAIM_REFERENCE = re.compile(r'\bCLM-\d{3,}\b')
-MARKERS = {'⬤', '◐', '○', '؟'}
-COVERAGE_MARKERS = ('التغطية', 'Coverage')
-GAP_MARKERS = ('ما لم يُفحص', 'Not examined')
 
 
 def rendered(out):
@@ -29,7 +26,6 @@ def validate(out, dossier):
         problems.append('R12 README.md: the dossier has no index or reading order')
     problems += missing_required(out, documents)
     problems += documents_without_a_record_twin()
-    problems += _brief_rules(documents, claims)
     problems += [f"R5 {claim['id']}: a live risk needs a task or a documented acceptance" for claim in claims if _undecided_risk(claim)]
     for task in dossier.get('tasks', []): problems += _task_rules(task)
     problems += [f"R11 {claim['id']}: priority without the inputs it was computed from"
@@ -51,23 +47,6 @@ def _document_rules(name, text, known):
         problems.append(f'R8 {name}: raw record dump in a human artifact')
     problems += [f'R1 {name}: references {reference}, which is absent from the ledger'
                  for reference in sorted(set(CLAIM_REFERENCE.findall(text))) if reference not in known]
-    return problems
-
-
-def _brief_rules(documents, claims):
-    """R12, R6 and R3 on the decision brief."""
-    brief = documents.get('DECISION-BRIEF.md')
-    if brief is None: return ['R6 DECISION-BRIEF.md: the decision artifact is missing']
-    problems = []
-    # A brief with nothing to report has nothing to link to; the rule applies when claims exist.
-    if claims and '](' not in brief:
-        problems.append('R12 DECISION-BRIEF.md: no cross-reference to the artifact holding the detail')
-    if not any(marker in brief for marker in COVERAGE_MARKERS):
-        problems.append('R6 DECISION-BRIEF.md: no coverage header')
-    if not any(marker in brief for marker in GAP_MARKERS):
-        problems.append('R6 DECISION-BRIEF.md: the unexamined-scope section may not be omitted')
-    if not any(marker in brief for marker in MARKERS):
-        problems.append('R3 DECISION-BRIEF.md: no confidence markers on stated claims')
     return problems
 
 

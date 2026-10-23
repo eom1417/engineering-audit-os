@@ -150,12 +150,12 @@ def follow_ups(answers):
     suggestions = []
     if top['kind'] in {'entry point', 'flow'}:
         suggestions.append(f"the `impact` tool on {path} — what a change to this entry point would reach")
-        suggestions.append('FLOWS.md — the traced steps of this entry point')
+        suggestions.append('facts/flows.json — the traced steps of this entry point')
     elif top['kind'] == 'rule constant':
-        suggestions.append('DOMAIN-AND-DATA.md — every definition site of this rule')
+        suggestions.append('facts/domain.json — every definition site of this rule')
         suggestions.append(f"the `impact` tool on {path}")
     elif top['kind'] == 'claim':
-        suggestions.append('RISK-REGISTER.md — where this claim sits against the others')
+        suggestions.append('debt-register.json — where this claim sits against the others')
         suggestions.append('PLAN/ — the task card generated for it, if any')
     else:
         suggestions.append(f"the `impact` tool on {path} — who depends on this")

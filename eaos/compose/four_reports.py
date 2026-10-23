@@ -159,7 +159,7 @@ def _baseline_decision(severe, ar):
 
 def _feature_items(features, ar):
     return ([clip(f"{f['name']}: {f.get('description', '')}", 160) for f in features[:12]]
-            + ([f"… {len(features) - 12} " + ('أخرى في FEATURES.md' if ar else 'more in FEATURES.md')] if len(features) > 12 else []))
+            + ([f"… {len(features) - 12} " + ('أخرى في features.json' if ar else 'more in features.json')] if len(features) > 12 else []))
 
 
 def _unexamined(coverage, external, ar):
@@ -220,8 +220,7 @@ def current_state(out, ar):
     page.heading(L['unexamined'])
     page.items(_unexamined(coverage, external, ar))
     page.heading(L['appendices'])
-    page.items(['[FEATURES.md](FEATURES.md)', '[MEASUREMENTS.md](MEASUREMENTS.md)', '[RISK-REGISTER.md](RISK-REGISTER.md)',
-                '[LOAD-MODEL.md](LOAD-MODEL.md)', '[ENGINES.md](ENGINES.md)'])
+    page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`', '`facts/external.json`'])
     return page.text(), numbers
 
 
@@ -334,7 +333,7 @@ def gap_and_strategy(out, ar):
     page.items([('الكلفة بالزمن غير مقيسة: الحجم S/M/L قاعدة على الملفات والتابعين.' if ar else
                  'Duration is not measured: S/M/L is a rule on files and dependents.')])
     page.heading(L['appendices'])
-    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[ROADMAP.md](ROADMAP.md)'])
+    page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[EXECUTION-PLAN.md](EXECUTION-PLAN.md)'])
     return page.text(), numbers
 
 
@@ -383,7 +382,7 @@ def _plan_sections(page, L, plan, tasks, ar):
     page.items([('لم تُشغَّل أي بطاقة على كود المشروع بعد؛ التنفيذ يحتاج تفويض المالك (authorization.json).' if ar else
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
     page.heading(L['appendices'])
-    page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)'])
+    page.items(['[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)'])
 
 
 def _section_line(s, ar):

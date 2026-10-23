@@ -71,7 +71,7 @@ class SemanticStage(unittest.TestCase):
                                (ScriptedSemanticProvider(slow), 'ai_failed')):
             row = _one(BY_NAME['semantic'], self.context(provider), runners.RUNNERS, {})
             self.assertEqual((row['status'], row['reason_code']), ('unavailable', code))
-        self.assertFalse((self.out / 'SEMANTIC.md').exists())
+        self.assertFalse((self.out / 'semantic.json').exists())
         answers = iter([invented, grounded])
         provider = ScriptedSemanticProvider(lambda digest, call: next(answers)(digest, call))
         detail = runners.semantic(self.context(provider))
