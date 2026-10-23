@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Orders</title>
+<style>body{font:16px system-ui;margin:24px;color:#111;background:#fff}a{margin-inline-end:16px}input,button{padding:10px;margin:4px}</style></head>
+<body>
+<nav><a href="#/home">Home</a><a href="#/orders">My orders</a><a href="#/reports">Reports</a><a href="#/account">Account</a></nav>
+<main id="screen"></main>
+<script>
+const screen = document.getElementById('screen');
+const get = path => fetch(path).then(r => r.ok ? r.json() : Promise.reject(r.status));
+const screens = {
+  '#/home': () => { screen.innerHTML = '<h1>Orders</h1><p>Your orders, their reports and your account.</p>'; },
+  '#/orders': () => get('/api/orders').then(list => {
+    screen.innerHTML = '<h1>My orders</h1>' + (list.length ? '<ul>' + list.map(o => `<li>${o.item}: ${o.price}</li>`).join('') + '</ul>' : '<p>Sign in to see your orders.</p>');
+  }),
+  '#/reports': () => get('/api/report').then(report => {
+    screen.innerHTML = '<h1>Reports</h1>' + report.rows.map(row => `<p>${row.item}: ${row.amount}</p>`).join('') + `<p>Total ${report.total}</p>`;
+  }),
+  '#/account': () => get('/api/me').then(me => { screen.innerHTML = `<h1>Account</h1><p>Signed in as ${me.user}</p>`; }, () => {
+    screen.innerHTML = '<h1>Sign in</h1><form id="login"><input name="user" placeholder="Name"><input name="password" type="password" placeholder="Password"><button>Sign in</button></form>';
+    document.getElementById('login').onsubmit = event => {
+      event.preventDefault();
+      const form = new FormData(event.target);
+      fetch('/api/login', { method: 'POST', body: JSON.stringify(Object.fromEntries(form)) }).then(() => draw());
+    };
+  }),
+};
+const draw = () => (screens[location.hash] || screens['#/home'])();
+addEventListener('hashchange', draw);
+draw();
+</script>
+</body></html>

@@ -64,7 +64,11 @@ the Studio's entries from `console/knip.json`.
   condition can be awaited; no test of exact wording unless the wording is the contract.
 - Guards that always stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`,
   `test_artifact_contract`, the golden trial (`tools/golden_trial.sh`).
-- **Detection baseline** (M0.2): a trial app with known problems; every change finds them all.
+- **Detection baseline** (M0.2): `tests/fixtures/baseline-app` carries eight planted problems (a command injection, a
+  secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw), listed in
+  `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed). The golden trial checks
+  the app and `tools/detection_baseline.py` refuses a check that reaches any of them less; `--record` after reaching
+  more. Today 5 of 8 (the three missed say why).
 - **Compatibility corpus** (M0.3): pinned real open-source apps; a change to running apps or screens never lowers its
   pass rate.
 

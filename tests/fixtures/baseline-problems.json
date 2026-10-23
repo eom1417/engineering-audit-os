@@ -1,0 +1,90 @@
+{
+ "about": "The detection baseline (docs/STANDARDS.md §5, M0.2): the problems planted in tests/fixtures/baseline-app and how far EAOS finds each, in the golden trial's check (the app run, no assistant). 'found' is what the last recorded check reached: card (a fix card names it), finding (an engine or a screen recorded it, no card), missed. tools/detection_baseline.py refuses a check that finds any of them less; --record writes what a check found after it found more.",
+ "problems": [
+  {
+   "id": "command-injection",
+   "what": "a request parameter runs in a shell (exec('ping -c 1 ' + host))",
+   "path": "server.js",
+   "line": 58,
+   "kinds": [
+    "injection",
+    "command"
+   ],
+   "found": "missed",
+   "why": "missed 2026-10-23: CodeQL runs only on code public on GitHub, and semgrep's rules want a framework request as the source"
+  },
+  {
+   "id": "secret",
+   "what": "a Supabase service-role key written in the code",
+   "path": "config.js",
+   "line": 5,
+   "kinds": [
+    "secret"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "dead-function",
+   "what": "a function nothing calls (memberPrice)",
+   "path": "server.js",
+   "line": 36,
+   "kinds": [
+    "dead"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "dead-module",
+   "what": "a module nothing imports (legacy.js)",
+   "path": "legacy.js",
+   "kinds": [
+    "dead"
+   ],
+   "found": "card"
+  },
+  {
+   "id": "duplication",
+   "what": "the same 18 lines in report.js and export.js",
+   "path": "export.js",
+   "line": 2,
+   "kinds": [
+    "duplication",
+    "canonicalize"
+   ],
+   "found": "finding"
+  },
+  {
+   "id": "broken-screen",
+   "what": "the reports screen fails as it draws (report.rows is undefined)",
+   "route": "#/reports",
+   "kinds": [
+    "Cannot read properties"
+   ],
+   "found": "finding"
+  },
+  {
+   "id": "sign-in",
+   "what": "the account screen needs a sign-in (name and password, /api/login)",
+   "route": "#/account",
+   "kinds": [
+    "sign_in"
+   ],
+   "found": "missed",
+   "why": "missed 2026-10-23: the account screen answers 401 and draws its form; sign-in.json says not needed (M5.3)"
+  },
+  {
+   "id": "logic-flaw",
+   "what": "any signed-in person reads any order: /api/orders/:id never checks the owner",
+   "path": "server.js",
+   "line": 52,
+   "kinds": [
+    "authoriz",
+    "owner",
+    "idor",
+    "access control"
+   ],
+   "found": "missed",
+   "why": "missed 2026-10-23: no rule reads ownership; an assistant judge would (M6.4, M8.2)"
+  }
+ ]
+}
