@@ -1,7 +1,7 @@
-"""The code limits EAOS holds itself to: each function's cyclomatic complexity, each module's length, logic written
-once, and no unused import or variable.
+"""The code limits EAOS holds itself to: each function's cyclomatic complexity, length and parameters, each module's
+length, logic written once, and no unused import or variable.
 
-Complexity and length: what exceeds the limit today is listed in tools/code_limits.json with its current size and may
+Complexity, lengths and parameters: what exceeds the limit today is listed in tools/code_limits.json with its current size and may
 only shrink; a new entry, or a listed one that grew, fails tests/test_code_limits.py. When an entry shrinks or drops
 under the limit, `python tools/code_limits.py --tighten` rewrites the list. Duplicates and leftovers have no list:
 there are none, and the test keeps it so.
@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from eaos.code_laws import MAX_COMPLEXITY, MAX_LINES  # noqa: E402
+from eaos.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools' / 'code_limits.json'
@@ -24,6 +24,9 @@ FOLDERS = ('eaos', 'tools')
 BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.ExceptHandler, ast.match_case,
             ast.comprehension)
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+# Each kind of limit and its number; every kind but 'modules' is keyed by function.
+LIMITS = {'functions': MAX_COMPLEXITY, 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
+          'modules': MAX_LINES}
 
 
 def complexity(function):
@@ -54,14 +57,23 @@ def modules():
         yield from sorted(path for path in (ROOT / folder).rglob('*.py') if '__pycache__' not in path.parts)
 
 
+def parameters(function):
+    """The parameters a caller passes, self and cls aside (*args and **kwargs are not counted)."""
+    named = function.args.posonlyargs + function.args.args + function.args.kwonlyargs
+    return sum(arg.arg not in ('self', 'cls') for arg in named)
+
+
 def measure():
-    """Everything over a limit today: {'functions': {path::name: complexity}, 'modules': {path: lines}}."""
-    over = {'functions': {}, 'modules': {}}
+    """Everything over a limit today: {kind: {path::name or path: size}}, a kind per LIMITS."""
+    over = {kind: {} for kind in LIMITS}
     for path in modules():
         text, rel = path.read_text(encoding='utf-8'), path.relative_to(ROOT).as_posix()
         if (lines := len(text.splitlines())) > MAX_LINES: over['modules'][rel] = lines
         for name, node in functions(ast.parse(text, rel)):
-            if (score := complexity(node)) > MAX_COMPLEXITY: over['functions'][f'{rel}::{name}'] = score
+            sizes = {'functions': complexity(node), 'function_lines': node.end_lineno - node.lineno + 1,
+                     'parameters': parameters(node)}
+            for kind, size in sizes.items():
+                if size > LIMITS[kind]: over[kind][f'{rel}::{name}'] = size
     return over
 
 
@@ -106,11 +118,11 @@ def breaches(over, baseline):
     """What is over a limit and not allowed by the baseline: new entries, and listed entries that grew. A listed function
     moved to another module, or out of its class, keeps its allowance (_moved): splitting a module is how it shrinks, and
     the move alone made each of its complex functions "new" (EAOS's five largest modules could not be split, 2026-10-15)."""
-    allowed = {'functions': {**_moved(over['functions'], baseline['functions']), **baseline['functions']},
-               'modules': baseline['modules']}
+    allowed = {kind: baseline.get(kind, {}) if kind == 'modules' else
+               {**_moved(over.get(kind, {}), baseline.get(kind, {})), **baseline.get(kind, {})} for kind in LIMITS}
     return [f'{key}: {size} (allowed {allowed[kind].get(key, limit)})'
-            for kind, limit in (('functions', MAX_COMPLEXITY), ('modules', MAX_LINES))
-            for key, size in sorted(over[kind].items()) if size > allowed[kind].get(key, limit)]
+            for kind, limit in LIMITS.items()
+            for key, size in sorted(over.get(kind, {}).items()) if size > allowed[kind].get(key, limit)]
 
 
 def _moved(now, listed):
@@ -137,5 +149,7 @@ if __name__ == '__main__':
         if found := breaches(current, load()): sys.exit('cannot tighten, over the limits:\n' + '\n'.join(found))
         write(current)
     print(f"{len(current['functions'])} functions over complexity {MAX_COMPLEXITY}, "
+          f"{len(current['function_lines'])} over {MAX_FUNCTION_LINES} lines, "
+          f"{len(current['parameters'])} over {MAX_PARAMETERS} parameters, "
           f"{len(current['modules'])} modules over {MAX_LINES} lines, {len(duplicates())} duplicated functions, "
           f"{len(leftovers())} leftovers")

@@ -1,5 +1,5 @@
-"""EAOS's own code stays within its limits: no new complex function or long module and none of today's grows, logic
-written once, no unused import or variable."""
+"""EAOS's own code stays within its limits: no new complex, long or many-parameter function, no new long module, none
+of today's grows, logic written once, no unused import or variable."""
 import ast
 import sys
 import unittest
@@ -14,8 +14,8 @@ class CodeLimits(unittest.TestCase):
         current, baseline = code_limits.measure(), code_limits.load()
         self.assertEqual(code_limits.breaches(current, baseline), [],
                          'split the function or module; the limits only move down')
-        stale = {kind: sorted(set(baseline[kind]) - set(current[kind])) for kind in baseline}
-        self.assertEqual(stale, {'functions': [], 'modules': []},
+        stale = {kind: sorted(set(baseline.get(kind, {})) - set(current[kind])) for kind in code_limits.LIMITS}
+        self.assertEqual(stale, {kind: [] for kind in code_limits.LIMITS},
                          'now under the limit: run python tools/code_limits.py --tighten')
 
     def test_a_listed_function_moved_by_a_split_keeps_its_allowance_and_may_not_grow(self):
@@ -25,6 +25,11 @@ class CodeLimits(unittest.TestCase):
         self.assertEqual(code_limits.breaches(moved, baseline), [])
         grown = {'functions': {'eaos/runs_answer.py::_answer': 42}, 'modules': {}}
         self.assertEqual(code_limits.breaches(grown, baseline), ['eaos/runs_answer.py::_answer: 42 (allowed 41)'])
+
+    def test_quality_refuses_a_number_that_grew_or_a_kind_not_recorded(self):
+        import quality
+        now, recorded = {'bandit:B602': 1, 'semgrep:x': 3, 'vulture:y': 1}, {'semgrep:x': 3, 'vulture:y': 2}
+        self.assertEqual(quality.worse(now, recorded), ['bandit:B602: 1 (recorded 0)'])
 
     def test_logic_is_written_once(self):
         self.assertEqual(code_limits.duplicates(), [], 'keep one copy and call it from the other places')

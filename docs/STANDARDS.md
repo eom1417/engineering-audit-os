@@ -1,22 +1,25 @@
 # EAOS engineering standards
 
-The laws every line of EAOS obeys. Each one names what enforces it; a law nothing enforces yet is marked
-**(M0.1)** until `tools/quality.sh` does. Numbers only ever get stricter: a change that worsens one is refused.
+The laws every line of EAOS obeys, all checked by one command: **`tools/quality.sh`** (about a minute). Numbers only
+ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, and by the beta update, step 5a).
 
 ## 1. Code
 
 | Law | Today (enforced) | Target (ratchet, reached by M3) | Enforced by |
 |---|---|---|---|
-| Module size | ≤ 600 lines | ≤ 400 lines | `tests/test_code_limits.py` (`tools/code_limits.py`) |
+| Module size | ≤ 600 lines | ≤ 400 lines | `tools/code_limits.py` (`tests/test_code_limits.py`) |
 | Function complexity | ≤ 15 decisions | ≤ 10 decisions | same |
-| Function length | — | ≤ 50 lines | `tools/quality.sh` **(M0.1)** |
-| Function parameters | — | ≤ 5 | `tools/quality.sh` **(M0.1)** |
-| One source of truth | no function written twice | no duplicated block | `test_code_limits` + `jscpd` **(M0.1)** |
-| No dead code | no unused import or variable (pyflakes) | no unused function, module or JS export | `vulture`, `enola`, `knip` **(M0.1)** |
-| Layers | — | each layer imports only the layers under it (`docs/ARCHITECTURE.md`) | `import-linter` **(M0.1)** |
+| Function length | ≤ 50 lines, today's 12 longer ones listed | same | same |
+| Function parameters | ≤ 5 (self, cls aside), today's 130 listed | same | same |
+| One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
+| No dead code | no unused import or variable (pyflakes); `vulture`, `enola`, `knip` not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` |
+| Layers | today's direct imports between subpackages may not go backwards (5 contracts in `pyproject.toml`) | each layer imports only the layers under it (`docs/ARCHITECTURE.md`) | `import-linter` |
 
-Today's listed exceptions (`tools/code_limits.json`) may only shrink: after shrinking one, run
-`python tools/code_limits.py --tighten`.
+What exceeds a limit today is listed in `tools/code_limits.json` and may only shrink: after shrinking one, run
+`python tools/code_limits.py --tighten`. Every engine's number (findings per engine and rule) is recorded in
+`tools/quality.json` and may only go down: after it went down, run `tools/quality.sh --record`. The engines are EAOS's
+own adapters (`eaos/engines/`), over EAOS's code without the tests, the built Studio and the rule examples; `knip` reads
+the Studio's entries from `console/knip.json`.
 
 **How code is written** (owner, 2026-10-13):
 1. **Least code, best result**: the shortest, most direct code that does the job best; no needless layer, option or
@@ -33,8 +36,9 @@ Today's listed exceptions (`tools/code_limits.json`) may only shrink: after shri
 - No shell built from strings; subprocesses take argument lists. Paths from outside are resolved and kept inside
   their root.
 - Studio and API: launch token, CSRF and Origin checks on every write; bound to the hosts it was started for.
-- EAOS's own code carries **no medium or high finding** from `bandit`, `semgrep`, `gitleaks`, `osv-scanner`
-  **(M0.1)**.
+- EAOS's own code carries **no medium or high finding** from `bandit`, `semgrep`, `gitleaks`, `osv-scanner`: today's
+  findings are recorded in `tools/quality.json` and may only go down (M2.1 silences `semgrep`'s noisy rule; the rest
+  are reviewed in M3). `osv-scanner` reads the Studio's `package-lock.json`; the Python dependencies have no lock file.
 
 ## 3. Safety
 
@@ -74,7 +78,7 @@ Today's listed exceptions (`tools/code_limits.json`) may only shrink: after shri
 ## 7. Definition of Done
 
 **A card is done when, on its own `dev/<topic>` branch:**
-1. `tools/quality.sh` passes (until M0.1: `tests/test_code_limits.py`).
+1. `tools/quality.sh` passes.
 2. The full suite and `tools/validate.py` pass; the Studio is built when `console/` changed.
 3. The golden trial passes; the detection baseline finds the same problems or more; the compatibility corpus does not
    get worse (once they exist).

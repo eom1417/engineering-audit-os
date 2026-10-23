@@ -44,10 +44,12 @@ before the turn ends.
 ## The laws (in full: `docs/STANDARDS.md`)
 
 - Least code, best result; one source of truth; clear and clean; nothing replaced is left behind.
-- Module ≤ 600 lines and function complexity ≤ 15 today, ratcheting to 400 / 10 with functions ≤ 50 lines and ≤ 5
-  parameters; no dead code, no duplication, no medium or high security finding; layers per `docs/ARCHITECTURE.md`.
-- `tests/test_code_limits.py` enforces what is measured today (`python tools/code_limits.py`; `--tighten` after
-  shrinking a listed module); `tools/quality.sh` will enforce every law (M0.1).
+- Module ≤ 600 lines, function complexity ≤ 15, functions ≤ 50 lines and ≤ 5 parameters (today's exceptions listed),
+  ratcheting to 400 / 10; no dead code, no duplication, no medium or high security finding; layers per
+  `docs/ARCHITECTURE.md`.
+- **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded
+  (`tools/code_limits.json`, `tools/quality.json`, the layer contracts in `pyproject.toml`); `--record` after a number
+  went down, `python tools/code_limits.py --tighten` after a listed function or module shrank.
 
 ## The development flow: EAOS develops EAOS
 
@@ -56,14 +58,14 @@ before the turn ends.
    says so).
 1. **Develop and verify** there: affected tests while working, then before merging:
    ```bash
-   .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
+   tools/quality.sh && .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
    (cd console && npm run build)     # only when console/ or docs/studio-actions.json changed
    ```
    The full suite (~7 min) runs as a background job; one heavy job at a time.
 2. **Merge into `develop`** (`--no-ff`), push `origin/develop`, delete the branch.
 3. **`develop` into `beta-trial`** with `bash /workspace/eaos-beta-trial/update.sh --approved` (as a systemd unit:
    `/workspace/HANDOFF.md`): at each milestone end, approved in advance; otherwise only when the owner approves.
-   It stops at the first failure, runs the suite and the golden trial, restarts the Studio, and deletes merged
+   It stops at the first failure, runs the suite, `tools/quality.py` and the golden trial, restarts the Studio, and deletes merged
    `dev/` branches.
 4. **Then the check**: of `develop`, from the Studio that runs `beta-trial`.
 

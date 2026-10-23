@@ -3,6 +3,8 @@ assistant's work, from the semantic reading and the planning to the triage, the 
 
 MAX_COMPLEXITY = 15     # decisions in one function
 MAX_LINES = 600         # lines in one module
+MAX_FUNCTION_LINES = 50 # lines in one function
+MAX_PARAMETERS = 5      # parameters of one function, self and cls aside
 
 LAWS = '''THE CODE LAWS (the target of every plan and every fix, always under one condition: the program keeps doing its job,
 as well as it can):
