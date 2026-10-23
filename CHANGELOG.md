@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.0.72 (2026-10-23)
+
+M0, foundations and guards: before any clean-up (M1-M3) can break something silently, every law and every ability of
+EAOS has a number that may only get better.
+- **One command for every code law** (`tools/quality.sh`, about a minute): the code limits now hold function length
+  (12 longer than 50 lines) and parameters (130 with more than 5), listed and only allowed to shrink; `import-linter`
+  holds today's imports between subpackages (5 contracts); EAOS's own engines measure what it ships (jscpd, vulture,
+  knip, bandit, semgrep, gitleaks, osv-scanner) and `tools/quality.json` records each number. Not enola: its dead-code
+  count moved with the words of the CHANGELOG and METRICS, with no code changed. Proved by planting a `shell=True`
+  call: refused by bandit and semgrep. The beta update runs it (step 5a). `knip` reads the Studio's real
+  entries (`console/knip.json`): with the adapter's defaults it took all 104 of its files for unused.
+- **The detection baseline** (`tests/fixtures/baseline-app`, eight planted problems): the golden trial checks it and
+  refuses finding fewer. Today 5 of 8: the secret and the dead function and module become cards, the duplication and
+  the broken screen are recorded; the command injection (CodeQL runs only on code public on GitHub), the sign-in screen
+  and the logic flaw are missed.
+- **The compatibility corpus** (`tools/corpus.json`, 12 real open-source apps pinned at a commit; `tools/corpus.py`):
+  today 2 of 12 pass (React Router, Next.js). Without an assistant the Flask, Django and Streamlit apps are not started
+  (the start command found is `true`), the Expo apps and the static site never answer, SvelteKit's facts fail, CoreUI
+  and Vitesse miss screens: the input of M5.
+- **`docs/METRICS.md` from a script** (`tools/metrics.py`).
+
 ## 0.0.71 (2026-10-23)
 
 - **A branch decided anywhere waits no more** (EAOS on itself: batches 10 and 11 were merged by EAOS outside the
