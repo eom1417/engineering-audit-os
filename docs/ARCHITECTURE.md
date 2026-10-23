@@ -38,9 +38,11 @@ eaos/
   core/        state store (the one truth), contracts, paths, jobs, ledger, words (i18n), errors
   engines/     one adapter per tool + one registry (toolchain.json): run, parse, normalise
   facts/       deterministic extractors over one snapshot
-  live/        run the app in its sandbox, sign-in, screen discovery (rules -> AI explorer -> replay), behaviour lock
+  live/        run the app in its sandbox, sign-in, screen discovery (rules -> AI explorer -> replay), behaviour lock,
+               the one browser-agent layer (drive towards a goal, record each step, replay without AI)
   analysis/    claims, correlation, weaknesses, debt, cards, plan, estimates (repair or rebuild)
-  ai/          assistant adapters, model tiers and escalation, prompts, AI nodes (triage, semantic, ideal)
+  ai/          assistant adapters, model tiers and escalation, prompts, AI nodes (triage, semantic, ideal),
+               the simulation's scenario planner, data generator and actors (M9)
   journeys/    repair (check -> envision -> plan -> fix batches -> hand over), build (from an idea), extend
   pipeline/    loops and stages declared as data, one runner
   report/      REPORT.html and the few documents people read
@@ -72,7 +74,8 @@ The table names the main stages of each loop; M4.2 assigns all 38 of `stages.py`
 |---|---|---|
 | L1 Understand | facts, features, intake, policy, engines | facts complete; coverage ledger written |
 | L2 Run and see | setup, session, crawl, screens, journeys, lock, record | expected screens pictured, or the AI explorer tried, or a failure explained |
-| L3 Judge | claims, probe, triage, weaknesses, visual | every finding confirmed / needs validation / rejected, with evidence |
+| L2b Try as a user (optional, M9) | replay of saved journeys (always); scenario, data, actors, tickets (short or full simulation) | replays green or their breaks shown; each persona reached its goals or its difficulties recorded with evidence |
+| L3 Judge | claims, probe, triage, weaknesses, visual, the simulation's difficulties | every finding confirmed / needs validation / rejected, with evidence |
 | L4 Envision | semantic, ideal, target, reconcile, estimate | ideal picture; repair-or-rebuild decision with its estimate |
 | L5 Plan | plan, order, cards, steps | every card has an acceptance check and a place in the order |
 | L6 Fix | fix batches (~15 cards) | every card fixed, or left with its reason |
@@ -90,6 +93,8 @@ red at the top of the report.
 | running the app, signing in, finding screens | today `live_*.py`, `screens/`, `pipeline/pages.py` → target `live/` |
 | judging findings by rules, cards, plan, estimates | today flat modules (`claims.py`, `plan.py`, …) → target `analysis/` |
 | judging findings with an assistant (triage, the strict judge of M6.4) | today `studio/nodes/` → target `ai/`; `analysis/` takes its verdicts as data |
+| driving the browser for a goal, recording, replaying | target `live/` (the one browser-agent layer, M5.2) |
+| a simulated user: scenario, personas, data, actors, tickets | target `ai/` (M9); its replays run from `live/` |
 | anything that calls an assistant | today `assistants/`, `studio/nodes/`, `studio/ideal*.py` → target `ai/` |
 | a journey's steps (check, fix batches, build, extend) | today `guided.py`, `waves.py`, `blueprint.py`, `extend.py` → target `journeys/` |
 | a stage or loop declaration | `pipeline/stages.py` (target: plus `pipeline/loops.py`) |
@@ -101,7 +106,15 @@ red at the top of the report.
 | a developer tool | `tools/` |
 | scratch of a task | `/workspace/eaos-work/<task>/`, removed when the task ends: never in the repository |
 
-## 5. Outputs (what a check leaves)
+## 5. Check paths
+
+| Path | What runs |
+|---|---|
+| Full check | every loop; L2b replays the saved journeys without AI; the short simulation only when chosen in the check's preview, which shows its time and cost |
+| A focused path (look, security, …) | only the loops it needs |
+| Try the experience (M9) | L1 and L2 as far as needed to run the app, then L2b's full simulation, L3 and the experience report |
+
+## 6. Outputs (what a check leaves)
 
 - `output/<project>/REPORT.html`: the one page people read; `START-HERE.md`, the four reports, `TARGET-ARCHITECTURE.md`
   and `RUN.md` beside it (M1.4 reduces the 27 documents to these).

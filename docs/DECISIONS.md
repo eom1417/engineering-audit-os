@@ -25,6 +25,12 @@ Newest first. Each decision binds every assistant, in any chat, until the owner 
   engines are not replaced by it.
 - **Model tiers with escalation** come in M8.1.
 - **Branches**: only `main`, `develop` and `beta-trial` stay; `update.sh` deletes merged `dev/` branches.
+- **The user's full experience is simulated** (M9): AI actors try the program as its users would (a user asks, an
+  admin approves, the user goes on; support tickets when stuck), with realistic dummy data, only in the isolated copy.
+  Three levels: the saved journeys are **replayed without AI in every full check**; a **short simulation** is an option
+  of the full check, shown with its time and cost; the **full simulation** is its own check path, runnable alone.
+  Whether the short simulation joins every full check is decided from the numbers of M9.10. It is built last, on M5's
+  browser-agent layer, M6.4's judge and M8.1's model tiers.
 
 ## 2026-10-17
 - Every development starts on a new `dev/<topic>` branch from `develop` without asking; directly on `develop` only

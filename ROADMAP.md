@@ -59,7 +59,8 @@ owner can take. **After each card, its row in the status table below is updated 
   complexity or security card.
 
 ### M4 The pipeline as loops
-- **M4.1** `Loop` declared as data with one runner; reordering is a data change.
+- **M4.1** `Loop` declared as data with one runner; reordering is a data change. A loop may be optional, switched on
+  by a check path or an option of the full check (the simulation of M9 is the first such loop).
 - **M4.2** The 38 stages assigned to the seven loops; a stage with no consumer removed.
 - **M4.3** The coverage ledger: each loop writes what it covered and what it could not; big gaps in red at the top.
 - **M4.4** The ideal picture faster, never dropped: a compact bundle, reuse when the code did not change, parallel
@@ -69,7 +70,9 @@ owner can take. **After each card, its row in the status table below is updated 
 ### M5 Seeing any app
 - **M5.1** Running the app detected for the common stacks; green on the corpus.
 - **M5.2** Layered screen discovery: rules, then an AI explorer driving the browser, its steps saved and replayed
-  without AI next time.
+  without AI next time. The explorer is built as **the one browser-agent layer** (drive with a goal, record each step
+  with its picture, replay without AI) that M9's simulated users reuse; an open-source agent (`browser-use`,
+  `Stagehand` or Playwright MCP) is adopted only if it measures better than our own on the corpus.
 - **M5.3** Sign-in handled generically: a test account, clear questions when the owner is needed.
 - **M5.4** HungerLab joins the corpus (from the owner's snapshot repository).
 - Target: ≥ 90% of the corpus pictures its expected screens; every failure explained with its fix.
@@ -79,7 +82,7 @@ owner can take. **After each card, its row in the status table below is updated 
 - **M6.2** The change that broke something found from the failure output first; halving last.
 - **M6.3** Batches of about 15 cards, each handed over and merged on its own.
 - **M6.4** A strict judge inside the existing triage: every finding names the harmed party, the broken boundary and
-  the source evidence (Cloudflare security-audit style).
+  the source evidence (Cloudflare security-audit style). The same judge rules on what a simulated user reports (M9.7).
 
 ### M7 Interfaces: CLI and MCP first, Studio light
 - **M7.1** Parity: everything the Studio does is done through MCP; the whole journey tested from the CLI alone.
@@ -90,15 +93,51 @@ owner can take. **After each card, its row in the status table below is updated 
 
 ### M8 Intelligence, cost and the final proof
 - **M8.1** Model tiers (light / standard / deep) per stage with escalation; a cheaper model never drops or closes
-  anything.
+  anything. Simulated users act on the light tier; the scenario planner and the judge use the deep one.
 - **M8.2** Logic-vulnerability hunting (from Cloudflare's security-audit skill) as an optional deep check.
 - **M8.3** The three journeys proved end to end, from the CLI and from the Studio: repair a corpus app, build from a
   PRD, add a feature.
+
+### M9 The user's full experience, simulated
+A professional firm has people try the program as its users would. Here AI actors do it in the isolated copy, from
+EAOS's understanding of the project, and every difficulty they meet becomes evidence. Three levels:
+
+| Level | What runs | Cost | When |
+|---|---|---|---|
+| Replay | the saved journeys, step by step, **without AI** | almost none | **in every full check** |
+| Short simulation | one persona doing the app's main task, within a step budget | about the ideal picture's | an **option of the full check**, its time and cost shown before it starts |
+| Full simulation | several personas, hand-offs between them, support tickets, complete data | high | **its own check path** ("try the experience"), runnable alone |
+
+- **M9.1** Scenario planner: from the facts, features, roles and screens, the personas, each one's goals and the
+  hand-offs between them (the user asks, the admin approves, the user goes on), written as data.
+- **M9.2** Domain data: realistic dummy data fitting the project; the key flows are entered through the UI, bulk
+  history is seeded into the copy's database; external services (mail, payment, paid APIs) are stubbed, and what
+  needs a real one is said as not covered.
+- **M9.3** One actor, complete: drives the browser towards its goal on the M5.2 layer, within step, time and cost
+  budgets; every step recorded with its picture.
+- **M9.4** Save and replay: a finished journey is saved and replayed without AI in every full check, as part of the
+  behaviour lock; a replay that breaks shows in red.
+- **M9.5** Several actors and hand-offs: an actor waits for the event another one makes (approval, reply), then goes on.
+- **M9.6** Support and tickets: an actor stuck sends a ticket, a support actor answers or escalates; the friction log
+  records what was hard to find, understand or finish.
+- **M9.7** Judging: each difficulty is confirmed by a second independent attempt and its evidence (steps, pictures),
+  ruled on by the M6.4 judge, then becomes a fix card with its steps to reproduce.
+- **M9.8** The experience report: the user's story step by step with pictures, difficulties ranked, time per task, the
+  tickets; in the Studio, the CLI and MCP.
+- **M9.9** The paths: "try the experience" as its own check path; the short simulation as an option of the full check
+  with its estimate; the replay always in the full check.
+- **M9.10** Proof and decision: three app kinds of the corpus simulated; time, cost and the quality of the findings
+  measured in `docs/METRICS.md`; the owner decides from the numbers whether the short simulation becomes part of
+  every full check.
+- Target: the full simulation runs on the corpus apps that have more than one role; every finding carries evidence;
+  replays are free and green.
 
 ## Order and why
 - M-1 and M0 first: without references, guards and measures, any clean-up can break something silently.
 - M1-M2 before M3: what is removed is not moved.
 - M3 before M4-M5: the big work lands on a clean layout.
+- M9 last: it stands on M5 (seeing and signing into any app, the browser-agent layer), M6.4 (the judge) and M8.1
+  (model tiers); built earlier it would be noise and cost on a base that cannot yet picture every app.
 - Each milestone ends with one version, `beta-trial` updated and a short Arabic summary (`docs/STANDARDS.md` §7).
 
 ## Status (updated after every card)
@@ -145,3 +184,13 @@ owner can take. **After each card, its row in the status table below is updated 
 | M8.1 | not started | | |
 | M8.2 | not started | | |
 | M8.3 | not started | | |
+| M9.1 | not started | | |
+| M9.2 | not started | | |
+| M9.3 | not started | | |
+| M9.4 | not started | | |
+| M9.5 | not started | | |
+| M9.6 | not started | | |
+| M9.7 | not started | | |
+| M9.8 | not started | | |
+| M9.9 | not started | | |
+| M9.10 | not started | | |
