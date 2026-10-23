@@ -635,9 +635,9 @@ def _spawn(argv, log):
 
 def prepare(project=None):
     """Interface first: called when EAOS opens on a project, it starts the full install in the background when one is
-    needed (`stale`), in the order this project needs the tools, and waits until it holds the lock; an install already
-    running is asked to try again what failed once it ends. A vulnerability database a day old is refreshed in the
-    background. Returns True when it started the install."""
+    needed (`stale`), in the project's order, and waits until it holds the lock; an install already running is asked to
+    retry what failed once it ends. A day-old vulnerability database is refreshed. True when it started the install."""
+    if home().exists() and not os.access(home(), os.W_OK): return False   # shown read-only (in a sandbox): used as is
     if installing():
         (home() / 'install.again').touch()
         return False

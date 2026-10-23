@@ -263,7 +263,7 @@ class Sandbox:
         the project's own tests and tools write to a temporary folder inside the run's, removed with it. A Python
         command (`argv`), and every command after one, finds the run's own virtual environment first."""
         env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'HOME': str(self.home), 'TMPDIR': str(self.tmp),
-               'LANG': os.environ.get('LANG', 'C.UTF-8')}
+               'LANG': os.environ.get('LANG', 'C.UTF-8'), **self.caches()}
         env.update({name: os.environ[name] for name in self.allowed if name in os.environ})
         env.update({name: str(value) for name, value in (extra or {}).items()})
         own = self.folder / 'python'        # last: no PATH a run chose puts EAOS's own python before it
@@ -272,6 +272,12 @@ class Sandbox:
             venv.create(own, with_pip=True, symlinks=True)
         if own.exists(): env.update(PATH=f"{own / 'bin'}{os.pathsep}{env['PATH']}", VIRTUAL_ENV=str(own))
         return env
+
+    def caches(self):
+        """Where the run's package managers cache (pip, npm, and what follows XDG): inside TMPDIR, removed with the run,
+        even when the profile moves HOME to a folder that stays (EAOS on itself: 160 MB of npm and pip caches kept)."""
+        cache = str(self.tmp / 'cache')
+        return {'XDG_CACHE_HOME': cache, 'PIP_CACHE_DIR': cache + '/pip', 'npm_config_cache': cache + '/npm'}
 
     def _record(self):
         record = {'schema_version': 1, 'backend': 'unshare' if self.offline else 'process', 'own_view': not self.refused,

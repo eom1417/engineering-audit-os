@@ -118,6 +118,8 @@ class LiveRun:
             self._extra = {**{k: self._frozen(k, fill(v)) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers()),
+                           # the one copy of the tools, for an app that is EAOS itself: it installed 611 MB of its own
+                           'EAOS_ENGINE_TOOLS': str(home()),
                            # EAOS's own Playwright, by its path: Node finds the app's own first (another version, no browsers)
                            'EAOS_PLAYWRIGHT': str(home() / 'node/node_modules/playwright')}
             self._extra.setdefault('AUTH_SECRET', getattr(self, 'auth_secret', None) or secrets.token_urlsafe(48))

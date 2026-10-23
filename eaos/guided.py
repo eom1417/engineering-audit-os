@@ -449,11 +449,7 @@ def publish(state, lang=None, event=None):
 
 def publish_fixes(state, wave):
     """outputs/fixes/wave-N: the batch's patches, wave.json, and a summary a person can read."""
-    source = runtime_of(state) / 'waves' / f"wave-{wave['number']}"
-    target = branches.home(state) / 'fixes' / f"wave-{wave['number']}"
-    shutil.rmtree(target, ignore_errors=True)
-    if source.is_dir(): shutil.copytree(source, target)
-    else: target.mkdir(parents=True)
+    target = waves.publish(state, runtime_of(state), branches.home(state) / 'fixes', wave['number'])
     ar = state.get('lang') == 'ar'
     lines = [f"# {'الدفعة' if ar else 'Batch'} {wave['number']}", '',
              (f"الفرع في مشروعك: `{wave.get('branch')}`" if ar else f"The branch in your project: `{wave.get('branch')}`") if wave.get('kept') else
