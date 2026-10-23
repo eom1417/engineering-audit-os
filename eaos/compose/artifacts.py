@@ -46,6 +46,8 @@ ARTIFACTS = (
     Artifact('dossier.json', 'claims', RECORD, 'The claim ledger this report renders',
              mutated_by=('probe', 'plan', 'semantic', 'cards')),
     Artifact('plan.json', 'plan', RECORD, 'Task cards, their milestones, sections, waves and order'),
+    Artifact('proposals.json', 'proposals', RECORD, "Which of the Studio's records of the proposals were written for the assistant",
+             required=False, absent_when='no assistant was installed or allowed, so nobody reads the proposals before the reports'),
     Artifact('roles.json', 'roles', RECORD, 'The kinds of users of the app, each with the code that makes it one and its own pages',
              required=False, absent_when='no assistant was installed or allowed, or its answer named no real line of the code'),
     Artifact('live/setup.json', 'setup', RECORD, 'How the app was started in an isolated copy, or why it was not',
@@ -96,6 +98,9 @@ ARTIFACTS = (
     Artifact('transform-plan.json', 'transform', RECORD, 'Every transform stage in full'),
     Artifact('verification.json', 'verify', RECORD, "What the project's own tests reached when they ran, or which test imports which file",
              required=False, absent_when='the person did not agree to run the app, or its run profile names no test command'),
+    Artifact('live/sign-in.json', 'session', RECORD, "Whether the app's pages need a sign-in, its evidence, and how they were opened; "
+             'never the session itself', required=False,
+             absent_when='the app is not running in an isolated copy, the person chose no sign-in, or nobody signed in within the wait'),
     Artifact('live/journeys.json', 'journeys', RECORD, "Each feature's pages walked, with where a journey fails; its capped rrweb recordings "
              'and failure traces under live/journeys/', required=False,
              absent_when='the app is not running in an isolated copy, or the lock has no page'),

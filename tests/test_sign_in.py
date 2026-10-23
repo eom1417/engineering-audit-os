@@ -62,7 +62,7 @@ class SignInTests(unittest.TestCase):
             result = execute(self.root / 'project', self.root / 'out', runners=runners, runtime=self.root / 'runtime',
                              sign_in={'folder': str(self.root)})
         self.assertEqual(result['stages']['session']['status'], 'ok')
-        self.assertEqual(result['stages']['session']['detail'], {'needed': False})
+        self.assertEqual(json.loads((self.root / 'out/live/sign-in.json').read_text()), {'schema_version': 1, 'needed': False})
         made.assert_not_called()                        # every page opens and the code has no view: nothing made
         asked.assert_not_called()
 
@@ -78,10 +78,12 @@ class SignInTests(unittest.TestCase):
                 mock.patch.object(sign_in_stage, '_setup_page', return_value=None), \
                 mock.patch('eaos.test_users.unreached', return_value={'/access': 'src/programme/Access.tsx', '/rota': None}), \
                 mock.patch.object(sign_in_stage, '_test_users', return_value='') as made, \
-                mock.patch.object(sign_in_stage, '_ask') as asked:
-            self.assertEqual(sign_in_stage.session(context), {'needed': False})
+                mock.patch.object(sign_in_stage, '_ask') as asked, mock.patch.object(sign_in_stage, '_keep') as kept:
+            sign_in_stage.session(context)
         made.assert_called_once_with(context, *app)
         asked.assert_not_called()
+        self.assertEqual(kept.call_args.args[2], {'schema_version': 1, 'needed': False, 'views': 'test_user',
+                                                  'unreached': ['/access', '/rota']})
 
     def test_a_sign_in_that_did_not_take_is_asked_again_on_the_page_the_app_sends_to(self):
         # "I signed in" with the pages still signed out once ended the wait as if nobody came; the browser opened the
@@ -134,7 +136,9 @@ class SignInTests(unittest.TestCase):
                     self.assertLess(seen['measure'], seen['ended'])
                 else:
                     self.assertEqual((row['status'], row['detail'].get('how')), ('ok', 'hand'), row)
-                    self.assertNotIn('cookies', json.dumps(row), 'the report never holds the session')
+                    record = (out / 'live/sign-in.json').read_text()
+                    self.assertNotIn('signed', json.loads(record).get('evidence', [''])[0])
+                    self.assertNotIn('cookies', record, 'the report never holds the session')
                     self.assertEqual(os.stat(sign_in.session(live.runtime)).st_mode & 0o777, 0o600)
 
     @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')

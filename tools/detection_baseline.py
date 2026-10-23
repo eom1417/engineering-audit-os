@@ -36,13 +36,7 @@ def evidence(technical):
              for row in report.get('findings') or [] for path, line in row['sites']]
     rows += [('finding', ' '.join(row['page_errors']).lower(), _route(row.get('landed') or row['url']), None)
              for row in _read(technical / 'live' / 'screens.json').get('rows') or [] if row.get('page_errors')]
-    return rows + _sign_in(technical)
-
-
-def _sign_in(technical):
-    """A row for the app as a whole when the session stage found its pages need a sign-in (the manifest's detail)."""
-    session = (_read(technical / 'run-manifest.json').get('stages') or {}).get('session') or {}
-    return [('finding', 'sign_in', '*', None)] if (session.get('detail') or {}).get('needed') else []
+    return rows + ([('finding', 'sign_in', '*', None)] if _read(technical / 'live' / 'sign-in.json').get('needed') else [])
 
 
 def level(problem, rows):

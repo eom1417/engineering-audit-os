@@ -308,13 +308,13 @@ def _previous(out):
 # START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
 BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
          'START-HERE.md')
-# The documents and records a check no longer writes (M1.4: 27 documents down to 8, their records kept; M1.5: the
-# records nobody read): any run removes a previous check's,
+# The documents and records a check no longer writes (M1.4: 27 documents down to 8, their records kept; M1.5:
+# reports.json, which nothing read): any run removes a previous check's,
 # or the output contract (R13) finds them undeclared and the Studio's Library lists them as if current.
 RETIRED = ('CONTRACTS.md', 'COUPLING-ATLAS.md', 'DECISION-BRIEF.md', 'DOMAIN-AND-DATA.md', 'ENGINES.md', 'EVOLUTION.md',
            'FEATURES.md', 'FLOWS.md', 'LOAD-MODEL.md', 'MEASUREMENTS.md', 'ONBOARDING.md', 'POLICY.md', 'PROVENANCE.md',
            'RISK-REGISTER.md', 'ROADMAP.md', 'SEMANTIC.md', 'SUSTAINABILITY.md', 'SYSTEM-MAP.md', 'transform-plan.md',
-           'proposals.json', 'reports.json', 'live/sign-in.json')
+           'reports.json')
 PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs', 'ideal/run-*')     # what `eaos clean --pictures` removes from every report
 
 

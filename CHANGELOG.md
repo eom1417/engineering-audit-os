@@ -15,8 +15,10 @@ M1, the disk and outputs diet: EAOS's check of itself left 873 MB in its runtime
   EAOS's facts: 281 to about 74 MB.
 - **Documents from 27 to 8** (START-HERE, the four reports, TARGET-ARCHITECTURE, RUN, the index; PLAN/ and adr/ for
   the assistants): 19 documents read only by the Studio Library removed with their writers; every record kept.
-- **Records nobody read removed**: `proposals.json`, `reports.json`, `live/sign-in.json`. A run removes the retired
-  documents and records a check before left.
+- **Records nobody reads**: of the eight the measurement listed, only `reports.json` had no reader (the four reports
+  name each number's source in their text): removed. `live/sign-in.json` is read by the detection baseline,
+  `proposals.json` marks the stage three planners require, and five feed the target and the four reports. A run
+  removes the retired documents and records a check before left.
 
 ## 0.0.72 (2026-10-23)
 
