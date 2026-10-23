@@ -2,7 +2,7 @@
 // largest section: read only when these screens open (never by the search box), indexed once per read, shown 50 at a
 // time. Every number is the exporter's (lizard's complexity and lines, the traced calls), with its source.
 import { t, tn, L, num, esc, icon, code, href, rich, screen, data, model, normalize, parseHash, selection } from 'eaos';
-import { tabs, seg, search, page, count, fold, facts, prow, enc, back, loading, notMeasured, empty, notFound, readout, where, missingRow } from '../understand-kit/kit.js';
+import { tabs, seg, search, page, count, fold, facts, prow, enc, back, loading, notMeasured, emptyView, notFound, readout, where, missingRow } from '../understand-kit/kit.js';
 
 const NEEDS = ['functions', 'cards', 'coverage'];
 const COMPLEX = 15, WATCH = 10; // lizard's warning line (eaos/engines/lizard.py), half of it to watch
@@ -39,7 +39,7 @@ function fnRow(f) {
 }
 
 function fnsPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('functions');
   const d = F();
   if (!d) return notMeasured('functions', 'functions');
   const q = ctx.query, sort = ORDER[q.sort] ? q.sort : 'complex', show = q.show || 'all';

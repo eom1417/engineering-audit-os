@@ -99,6 +99,8 @@ export const nm = (title, why, actHTML) => `<div class="nm"><div class="nm__titl
 /** The empty state of a view (no check has written the report yet): what will be here, and the one action. */
 export const empty = (lede, guide, head) => `<div class="page">${head || ''}<h1 class="lede">${lede}</h1><p class="guide">${guide}</p>
     <div class="actions">${checkAct('btn--primary')}</div></div>`;
+/** The empty state of one Understand view: its name, then what will show in it once a check drew the project. */
+export const emptyView = view => empty(t('un.v.' + vkey(view)), `${t('un.vs.' + vkey(view))}. ${t('un.idx.empty.guide')}`);
 export const checkBtn = () => checkAct('btn--secondary btn--sm');
 // a check is never offered in the read-only copy: there the action says how to open it live
 const checkAct = cls => (offline() ? start('open-live', t('offline.how'), cls)

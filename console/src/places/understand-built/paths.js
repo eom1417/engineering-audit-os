@@ -2,7 +2,7 @@
 // through the seven layers, each node and link with its evidence, and a gap where the records stop (never an invented
 // link). A link reached only through imports is possible, not traced ("Only what the trace confirms" hides it).
 import { t, tn, L, num, esc, icon, code, href, screen, data, model, parseHash } from 'eaos';
-import { tabs, seg, search, count, fold, facts, opTag, enc, back, loading, notMeasured, empty, notFound, matches, readout, where, page, q as query } from '../understand-kit/kit.js';
+import { tabs, seg, search, count, fold, facts, opTag, enc, back, loading, notMeasured, emptyView, notFound, matches, readout, where, page, q as query } from '../understand-kit/kit.js';
 
 const NEEDS = ['paths', 'cards', 'gaps', 'system', 'coverage'];
 const LANES = ['screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data'];
@@ -67,7 +67,7 @@ function pathRow(p) {
 const reachKey = () => ['on', 'maybe', 'gap'].map((k, i) => `<span class="un-key__item"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5" class="un-reach__${k}"/></svg>${t(['un.how.traced', 'un.how.possible', 'un.how.stop'][i])}</span>`).join('');
 
 function pathsPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('paths');
   const d = P();
   if (!d) return notMeasured('paths', 'paths');
   const q = ctx.query, f = q.filter || 'all';

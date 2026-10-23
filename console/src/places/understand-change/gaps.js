@@ -3,7 +3,7 @@
 // decision. "Fix its problems…" picks the gap's open problems and opens the one Fix preview in Problems.
 import { t, tn, L, num, esc, icon, code, href, rich, screen, data, model } from 'eaos';
 import {
-  tabs, seg, prov, search, count, opTag, opOf, facts, prow, fixBtn, enc, loading, notFound, back, matches, notMeasured, empty, openOf, decisionLink, opLinks,
+  tabs, seg, prov, search, count, opTag, opOf, facts, prow, fixBtn, enc, loading, notFound, back, matches, notMeasured, emptyView, openOf, decisionLink, opLinks,
 } from '../understand-kit/kit.js';
 import { targetOf } from '../understand-kit/model.js';
 
@@ -25,7 +25,7 @@ export function gapRow(g) {
 }
 
 function gapsPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('gaps');
   if (!data.section('gaps')) return notMeasured('gaps', 'gaps');
   const q = ctx.query, all = gapsOf();
   const op = q.op || 'all', order = q.order || 'size';

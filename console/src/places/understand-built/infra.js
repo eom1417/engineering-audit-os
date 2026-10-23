@@ -3,13 +3,13 @@
 // facts and evidence, an empty area with its reason; and the target per area (keep or introduce, the decision, the
 // tool), with the areas the target is silent on.
 import { t, num, esc, code, screen, data } from 'eaos';
-import { tabs, seg, prov, loading, notMeasured, empty, where } from '../understand-kit/kit.js';
+import { tabs, seg, prov, loading, notMeasured, emptyView, where } from '../understand-kit/kit.js';
 
 const NEEDS = ['infra', 'coverage'];
 const detail = d => Object.entries(d || {}).filter(([, v]) => v != null && v !== false).map(([k, v]) => (v === true ? t('un.infrad.' + k) : t('un.infrad.n', { what: t('un.infrad.' + k), n: num(v) }))).join(t('list.sep'));
 
 function infraPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('infra');
   const d = data.section('infra');
   if (!d) return notMeasured('infra', 'infra');
   const mode = ctx.query.mode === 'target' ? 'target' : 'today';

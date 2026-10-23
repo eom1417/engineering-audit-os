@@ -3,7 +3,7 @@
 // data travels from the field to the column (each tier known or not, and why), the server routes, and the chain of
 // every write. Today, the change and the target.
 import { t, tn, num, esc, icon, code, href, screen, data } from 'eaos';
-import { tabs, seg, prov, search, count, fold, facts, enc, back, loading, notMeasured, empty, notFound, matches, where } from '../understand-kit/kit.js';
+import { tabs, seg, prov, search, count, fold, facts, enc, back, loading, notMeasured, emptyView, notFound, matches, where } from '../understand-kit/kit.js';
 
 const NEEDS = ['data_paths', 'coverage'];
 const TIERS = ['field', 'form', 'key', 'caller', 'endpoint', 'handler', 'column'];
@@ -35,7 +35,7 @@ function tiers(d) {
 }
 
 function dataPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('data');
   const d = D();
   if (!d) return notMeasured('data', 'data_paths');
   const q = ctx.query;

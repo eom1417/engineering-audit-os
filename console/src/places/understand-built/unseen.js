@@ -3,13 +3,13 @@
 // services, configuration, build and deploy, dead code), joined by what each area sets in motion where the check
 // traced it; a group opens its items, "only what has no screen in front" narrows them.
 import { t, tn, L, num, esc, icon, code, href, screen, data, parseHash } from 'eaos';
-import { tabs, flow, page, loading, notMeasured, empty, readout, where, missingRow, enc } from '../understand-kit/kit.js';
+import { tabs, flow, page, loading, notMeasured, emptyView, readout, where, missingRow, enc } from '../understand-kit/kit.js';
 
 const NEEDS = ['hidden', 'coverage'];
 const H = () => data.section('hidden');
 
 function unseenPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('unseen');
   const h = H();
   if (!h) return notMeasured('unseen', 'hidden');
   const q = ctx.query, r = parseHash();

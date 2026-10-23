@@ -3,7 +3,7 @@
 // screen, captured or not, with its open issues and journey flags; one screen with its pictures per width (before and
 // after a batch when the media pairs them), its findings, its inputs, where it is declared and its pictures.
 import { t, tn, L, num, esc, icon, code, sev, href, rich, screen, data, parseHash } from 'eaos';
-import { tabs, seg, search, count, facts, nm, enc, back, loading, notMeasured, empty, notFound, matches, where, missingRow, page } from '../understand-kit/kit.js';
+import { tabs, seg, search, count, facts, nm, enc, back, loading, notMeasured, empty, emptyView, notFound, matches, where, missingRow, page } from '../understand-kit/kit.js';
 import { figure } from '../understand-kit/pictures.js';
 
 const NEEDS = ['screens', 'journeys', 'media', 'coverage'];
@@ -21,7 +21,7 @@ const vpWord = v => (v === 'phone' || v <= 480 ? t('un.vp.phone') : t('un.vp.des
 
 /* ---------- S-36 reviewed pages ---------- */
 function pagesPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('screens');
   if (!S()) return notMeasured('screens', 'screens');
   const kinds = kindsOf(), kind = kinds.some(k => k.id === ctx.query.kind) ? ctx.query.kind : null;
   const pages = (S().pages || []).filter(p => !kind || p.kind === kind).sort((a, b) => (worst(findingsOf(a)) - worst(findingsOf(b))) || (b.findings - a.findings));

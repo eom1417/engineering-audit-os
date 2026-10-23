@@ -3,7 +3,7 @@
 // dropped for lack of evidence, the critique, the departures, the questions and the planning runs. Re-planning is the
 // replan_ideal action, previewed free first.
 import { t, tn, L, num, esc, icon, code, href, rich, fmtWhen, screen, data, model } from 'eaos';
-import { tabs, prov, fold, opTag, pct, start, enc, loading, notMeasured, empty } from '../understand-kit/kit.js';
+import { tabs, prov, fold, opTag, pct, start, enc, loading, notMeasured, emptyView } from '../understand-kit/kit.js';
 import { actionSheet } from '../understand-kit/preview.js';
 
 const NEEDS = ['ideal', 'decisions', 'coverage'];
@@ -89,7 +89,7 @@ function folds(ideal, key, planned, rules) {
 }
 
 function idealPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('ideal');
   const ideal = data.section('ideal');
   if (!ideal) return notMeasured('ideal', 'ideal');
   const [addr, key] = VIEWS.find(x => x[0] === ctx.query.view) || VIEWS[0];

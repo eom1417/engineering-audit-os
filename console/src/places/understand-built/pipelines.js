@@ -2,7 +2,7 @@
 // is a pipeline, every pipeline with its stages in EAOS's reading order (layer, then order), the stages' kinds and
 // marks; the ideal by the rules (operations on stages) and the gap (one row per broken rule); what was looked for.
 import { t, tn, L, num, has, esc, icon, code, href, rich, screen, sheet, data } from 'eaos';
-import { tabs, seg, prov, nm, fold, facts, opTag, opOf, OPS, pct, glyph, enc, loading, notMeasured, empty, where } from '../understand-kit/kit.js';
+import { tabs, seg, prov, nm, fold, facts, opTag, opOf, OPS, pct, glyph, enc, loading, notMeasured, emptyView, where } from '../understand-kit/kit.js';
 
 const NEEDS = ['pipeline', 'coverage'];
 const MARK = { slow: 'clock', risky: 'warn', external: 'external' };
@@ -21,7 +21,7 @@ function stageChip(d, s, i, view) {
 const lookedFor = (d, open) => fold(t('un.pipes.looked'), esc(t('un.pipes.looked.sum', { n: num(d.looked_for.length) })), `<ul class="un-looked">${d.looked_for.map(l => `<li class="${l.found ? '' : 'muted'}"><span>${esc(has('un.lf.' + l.kind) ? t('un.lf.' + l.kind) : l.label)}</span><b class="num">${num(l.found)}</b></li>`).join('')}</ul>`, { open });
 
 function pipesPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('pipelines');
   const d = P();
   if (!d) return notMeasured('pipelines', 'pipeline');
   const view = ctx.query.view === 'ideal' || ctx.query.view === 'gap' ? ctx.query.view : 'current';

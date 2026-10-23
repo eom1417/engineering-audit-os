@@ -2,7 +2,7 @@
 // (?sheet=file:<path>: at most 2 MB, never rendered); the full report for people (REPORT.html) opened on this computer
 // through the open_report action.
 import { t, num, esc, icon, code, href, screen, sheet, act, data, refresh, client, toast, closeSheetThen, offline, ActionError } from 'eaos';
-import { tabs, search, count, nm, enc, loading, empty, matches, page } from '../understand-kit/kit.js';
+import { tabs, search, count, nm, enc, loading, emptyView, matches, page } from '../understand-kit/kit.js';
 import { read } from '../understand-kit/reads.js';
 
 const texts = new Map();
@@ -16,7 +16,7 @@ function text(path) {
 }
 
 function filesPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('report-files');
   const q = ctx.query;
   const got = read('report_file', {});
   const all = got.state === 'ready' ? (got.answer || {}).files || [] : [];

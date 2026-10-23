@@ -6,7 +6,7 @@
 import { t, tn, L, num, esc, icon, code, href, rich, screen, sheet, data, parseHash, offline } from 'eaos';
 import {
   tabs, seg, prov, nm, search, opTag, opOf, glyph, OPS, sevMix, findings, band, facts, fold, enc, back, zoomBar, after, loading, matches,
-  empty, keyItem, openOf, q as query, decisionLink,
+  emptyView, keyItem, openOf, q as query, decisionLink,
 } from '../understand-kit/kit.js';
 import { components, component, targets, targetOf, storyCounts, problemsOf } from '../understand-kit/model.js';
 
@@ -175,7 +175,7 @@ function targetInspector(x, q) {
 
 /* ---------- the page ---------- */
 function page(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('components');
   const s = sys();
   if (!s) {
     return `<div class="page page--wide">${tabs('components')}<h1 class="lede">${t('un.comp.nm.lede')}</h1>

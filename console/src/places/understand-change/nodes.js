@@ -2,7 +2,7 @@
 // its list twin; one node is a sheet (?sheet=node:<id>) with its routes, its last run, its decisions with their
 // evidence and its run log. "Run the AI nodes…" is the run_nodes action, previewed free first, with the nodes to ask.
 import { t, tn, L, num, esc, icon, code, href, rich, fmtWhen, screen, sheet, act, local, chk, data } from 'eaos';
-import { tabs, facts, start, loading, notMeasured, empty, keyItem, readout, pct } from '../understand-kit/kit.js';
+import { tabs, facts, start, loading, notMeasured, emptyView, keyItem, readout, pct } from '../understand-kit/kit.js';
 import { actionSheet, again } from '../understand-kit/preview.js';
 
 const NEEDS = ['nodes', 'coverage'];
@@ -55,7 +55,7 @@ function nodesSVG(all) {
 }
 
 function nodesPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('ai-decisions');
   if (!data.section('nodes')) return notMeasured('ai-decisions', 'nodes');
   const all = nodesOf();
   const byAi = all.filter(ai).length;

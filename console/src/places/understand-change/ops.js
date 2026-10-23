@@ -2,7 +2,7 @@
 // (?sheet=op:<order>) with its reason, what it comes after, its step, its gap, its sources, its branch and its open
 // problems, which "Fix this operation's problems…" picks for the one Fix preview.
 import { t, tn, L, num, esc, icon, code, href, rich, screen, sheet, data, model } from 'eaos';
-import { tabs, seg, prov, count, opTag, opOf, OPS, facts, prow, fixBtn, enc, loading, notMeasured, empty, openOf } from '../understand-kit/kit.js';
+import { tabs, seg, prov, count, opTag, opOf, OPS, facts, prow, fixBtn, enc, loading, notMeasured, emptyView, openOf } from '../understand-kit/kit.js';
 
 const NEEDS = ['operations', 'gaps', 'cards', 'coverage'];
 const opsOf = () => (data.section('operations') || {}).operations || [];
@@ -23,7 +23,7 @@ function opRow(o, all) {
 }
 
 function opsPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('operations');
   if (!data.section('operations')) return notMeasured('operations', 'operations');
   const view = ctx.query.view === 'kind' ? 'kind' : 'order';
   const ops = opsOf().slice().sort((a, b) => a.order - b.order), all = byId();

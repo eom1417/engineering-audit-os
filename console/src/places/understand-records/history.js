@@ -3,7 +3,7 @@
 // taken in after each check and each merge as a step line, the score's trend once two checks have one, open problems
 // by severity, the events, and the cards closed or found new between two checks.
 import { t, tn, num, esc, icon, code, href, rich, fmtWhen, exactTime, screen, act, setQuery, data, sev, L } from 'eaos';
-import { tabs, back, facts, fold, loading, notMeasured, empty, notFound, rtl, missingRow, enc, readout } from '../understand-kit/kit.js';
+import { tabs, back, facts, fold, loading, notMeasured, emptyView, notFound, rtl, missingRow, enc, readout } from '../understand-kit/kit.js';
 
 const NEEDS = ['history', 'health', 'coverage'];
 const SEVS = ['critical', 'high', 'medium', 'low', 'info'];
@@ -50,7 +50,7 @@ function trend(scored) {
 }
 
 function historyPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('history');
   const h = H();
   if (!h || !h.scans.length) return notMeasured('history', 'history');
   const scans = h.scans, last = scans[scans.length - 1];

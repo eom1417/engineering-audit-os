@@ -3,7 +3,7 @@
 // (design_brief), a suggested design for "what the product is", and "Adopt this design…" (design_choose saves it as
 // DESIGN.md beside the report; the screen review then judges every page against it), previewed free first.
 import { t, tn, num, esc, icon, code, href, screen, act, setQuery, parseHash, data, offline } from 'eaos';
-import { tabs, facts, fold, start, nm, enc, loading, empty } from '../understand-kit/kit.js';
+import { tabs, facts, fold, start, nm, enc, loading, emptyView } from '../understand-kit/kit.js';
 import { read } from '../understand-kit/reads.js';
 import { actionSheet } from '../understand-kit/preview.js';
 
@@ -40,7 +40,7 @@ function sources(got) {
 }
 
 function archPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('architecture');
   const product = ctx.query.product || '';
   // the design sources are an action of their own: asked when the person opens them or describes the product
   const brief = product || ctx.query.sources ? read('design_brief', product ? { product } : {}) : null;

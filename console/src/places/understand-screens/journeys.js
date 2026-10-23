@@ -3,7 +3,7 @@
 // dead end, duplicate). A task lights its path; a screen focused keeps its links in and out. The list by depth is the
 // map's twin.
 import { t, tn, L, num, esc, icon, code, href, screen, data, parseHash } from 'eaos';
-import { tabs, fold, facts, enc, loading, notMeasured, empty, readout, q as query, where, missingRow } from '../understand-kit/kit.js';
+import { tabs, fold, facts, enc, loading, notMeasured, emptyView, readout, q as query, where, missingRow } from '../understand-kit/kit.js';
 
 const NEEDS = ['journeys', 'coverage'];
 const J = () => data.section('journeys');
@@ -39,7 +39,7 @@ function mapSVG(j, task, focus) {
 }
 
 function journeysPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('journeys');
   const j = J();
   if (!j) return notMeasured('journeys', 'journeys');
   const q = ctx.query, r = parseHash();

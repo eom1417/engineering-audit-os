@@ -3,7 +3,7 @@
 // documents by purpose and reading order, search over titles, paths and headings, the images and diagrams; a document
 // in the reader's language when the check wrote both, its contents, its links opening in place, its diagrams drawn.
 import { t, tn, L, num, esc, icon, code, href, rich, screen, sheet, act, data, prefs, refresh, model, offline, normalize, markdown } from 'eaos';
-import { tabs, seg, search, count, fold, nm, enc, back, loading, notMeasured, empty, notFound, zoomBar, zoomable, page, matches } from '../understand-kit/kit.js';
+import { tabs, seg, search, count, fold, nm, enc, back, loading, notMeasured, emptyView, notFound, zoomBar, zoomable, page, matches } from '../understand-kit/kit.js';
 import { flowchartSVG, parseFlowchart, mermaidOf, mermaidBlock } from './markdown.js';
 
 const NEEDS = ['docs', 'media', 'cards', 'coverage'];
@@ -43,7 +43,7 @@ function docRow(d, heading) {
     <span class="row__meta" style="display:block">${heading ? `${esc(heading)}${t('list.sep')}` : ''}${code(d.path)}${t('list.sep')}${esc(size(d))}</span></span>${icon('chev', 'icon--sm icon--dir muted')}</a>`;
 }
 function libraryPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return emptyView('library');
   if (!data.section('docs')) return notMeasured('library', 'docs');
   const q = ctx.query, tab = q.tab === 'images' ? 'images' : 'docs';
   const all = docs(), images = (data.section('media') || {}).images || [];
