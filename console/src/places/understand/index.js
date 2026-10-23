@@ -2,7 +2,7 @@
 // view and its count. The counts come from the coverage rows, so the door never reads a large section to count it; a
 // section the check did not write says "not measured".
 import { t, num, esc, icon, href, screen, data } from 'eaos';
-import { GROUPS, vkey, row, loading, empty, opBar } from '../understand-kit/kit.js';
+import { GROUPS, groupTabs, vkey, row, loading, empty, opBar } from '../understand-kit/kit.js';
 import { storyCounts, targetDecision, covered } from '../understand-kit/model.js';
 
 const NEEDS = ['coverage', 'story', 'system'];
@@ -23,7 +23,7 @@ function storyCard() {
 }
 
 function indexPage(ctx) {
-  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'));
+  if (ctx.state === 'empty') return empty(t('un.idx.empty'), t('un.idx.empty.guide'), groupTabs());
   const groups = GROUPS.map(g => `<section class="un-group" aria-labelledby="ug-${g.id}">
       <h2 class="un-group__h" id="ug-${g.id}">${t('nav.u.' + g.id)}</h2>
       <div class="panel rows">${g.views.map(v => {
@@ -34,6 +34,7 @@ function indexPage(ctx) {
         return row(href('/understand/' + v), VICON[v], t('un.v.' + vkey(v)), t('un.vs.' + vkey(v)), end);
       }).join('')}</div></section>`).join('');
   return `<div class="page page--wide un-index">
+    ${groupTabs()}
     <h1 class="lede">${t('un.idx.lede')}</h1>
     <p class="guide">${t('un.idx.guide')}</p>
     <div class="actions"><a class="btn btn--primary" href="${href('/understand/story')}">${t('un.idx.start')}</a></div>

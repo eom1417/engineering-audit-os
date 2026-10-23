@@ -24,7 +24,7 @@
 .un-tabs a { flex: none; display: inline-flex; align-items: center; min-height: var(--target); padding-inline: var(--s3);
   color: var(--ink-3); text-decoration: none; font-size: var(--fs-small); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
 .un-tabs a:hover { color: var(--ink); }
-.un-tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
+.un-tabs a[aria-current] { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
 
 /* Operations: glyph on its colour, the word in ink. */
 .opg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

@@ -23,9 +23,11 @@ export const GROUPS = [
 ];
 export const groupOf = v => GROUPS.find(g => g.views.includes(v));
 export const vkey = v => v.replace('/', '-');
+/** Understand's groups as tabs, on the phone only: the desktop has them in the sidebar. */
+export const groupTabs = id => `<nav class="un-tabs only-phone" aria-label="${esc(t('nav.understand'))}">${GROUPS.map(g => `<a href="${href('/understand/' + g.views[0])}" ${g.id === id ? 'aria-current="true"' : ''}>${t('nav.u.' + g.id)}</a>`).join('')}</nav>`;
 export function tabs(view) {
   const g = groupOf(view);
-  return `<nav class="un-tabs" aria-label="${esc(t('nav.u.' + g.id))}">${g.views.map(v => `<a href="${href('/understand/' + v)}" ${v === view ? 'aria-current="page"' : ''}>${t('un.v.' + vkey(v))}</a>`).join('')}</nav>`;
+  return `${groupTabs(g.id)}<nav class="un-tabs" aria-label="${esc(t('nav.u.' + g.id))}">${g.views.map(v => `<a href="${href('/understand/' + v)}" ${v === view ? 'aria-current="page"' : ''}>${t('un.v.' + vkey(v))}</a>`).join('')}</nav>`;
 }
 export const back = (path, label, query) => `<a class="back" href="${href(path, query)}">${icon('back', 'icon--dir')}${esc(label)}</a>`;
 
@@ -100,7 +102,7 @@ export const nm = (title, why, actHTML) => `<div class="nm"><div class="nm__titl
 export const empty = (lede, guide, head) => `<div class="page">${head || ''}<h1 class="lede">${lede}</h1><p class="guide">${guide}</p>
     <div class="actions">${checkAct('btn--primary')}</div></div>`;
 /** The empty state of one Understand view: its name, then what will show in it once a check drew the project. */
-export const emptyView = view => empty(t('un.v.' + vkey(view)), `${t('un.vs.' + vkey(view))}. ${t('un.idx.empty.guide')}`);
+export const emptyView = view => empty(t('un.v.' + vkey(view)), `${t('un.vs.' + vkey(view))}. ${t('un.idx.empty.guide')}`, tabs(view));
 export const checkBtn = () => checkAct('btn--secondary btn--sm');
 // a check is never offered in the read-only copy: there the action says how to open it live
 const checkAct = cls => (offline() ? start('open-live', t('offline.how'), cls)
