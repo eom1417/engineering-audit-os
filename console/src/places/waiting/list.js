@@ -124,9 +124,11 @@ function decided() {
       <span class="row__meta" style="display:block">${esc(t('wt.decided.row', { answer }))}${d.saved && d.saved.at ? `. ${esc(t('wt.decided.by', { when: fmtWhen(d.saved.at) }))}` : ''}</span></span>
       <button class="btn btn--icon" data-act="copy" data-text="${esc(`"${L(d.question)}" — ${answer} (eaos answer ${d.id} ${opt ? opt.id : ''})`)}" aria-label="${esc(t('wt.decided.copy'))}">${icon('copy')}</button></li>`);
   });
+  // nothing decided: a plain row, no arrow promising details that are not there
+  if (!rows.length) return `<section class="section"><div class="panel rows" id="decided"><div class="row"><span class="row__main"><span class="row__title">${t('wt.decided')}</span><span class="row__meta" style="display:block">${t('wt.decided.none')}</span></span></div></div></section>`;
   return `<section class="section"><details class="panel fold" id="decided" ${parseHash().path === '/waiting/decided' ? 'open' : ''}>
     <summary><span class="row__main"><span class="row__title">${t('wt.decided')}</span><span class="row__meta" style="display:block">${esc(tn('pl.decided', rows.length))}</span></span>${icon('chev', 'chev')}</summary>
-    ${rows.length ? `<ul class="rows" style="margin:0 -16px -16px">${rows.join('')}</ul>` : `<p class="small muted">${t('wt.decided.none')}</p>`}</details></section>`;
+    <ul class="rows" style="margin:0 -16px -16px">${rows.join('')}</ul></details></section>`;
 }
 
 function group(id, title, count, body) {
@@ -146,8 +148,10 @@ function listPage(ctx) {
   if (branches.length) groups.push(group('fixes', t('wt.g.fixes'), branches.length, `<div style="display:grid;gap:12px">${branches.map(run => branchCard(run, false)).join('')}</div>`));
   if (open.length) groups.push(group('dec', t('wt.g.decisions'), open.length, `<div style="display:grid;gap:12px">${open.map(d => decisionCard(d, false)).join('')}</div>`));
   const asked = live.questions.length;
-  const questions = group('q', t('wt.g.questions'), asked, `<div class="panel rows"><a class="row" href="${href('/waiting/questions')}">${icon(asked ? 'waiting' : 'info', 'muted')}<span class="row__main"><span class="row__title">${esc(asked ? tn('pl.question_waits', asked) : t('wt.q.none'))}</span>
-      <span class="row__meta" style="display:block">${t(asked ? 'wt.q.row.sub.live' : 'wt.q.row.sub')}</span></span>${icon('chev', 'icon--dir muted')}</a></div>`);
+  const qRow = `${icon(asked ? 'waiting' : 'info', 'muted')}<span class="row__main"><span class="row__title">${esc(asked ? tn('pl.question_waits', asked) : t('wt.q.none'))}</span>
+      <span class="row__meta" style="display:block">${t(asked ? 'wt.q.row.sub.live' : 'wt.q.row.sub')}</span></span>`;
+  // only a waiting question opens; "no question" is a plain line without an arrow
+  const questions = group('q', t('wt.g.questions'), asked, `<div class="panel rows">${asked ? `<a class="row" href="${href('/waiting/questions')}">${qRow}${icon('chev', 'icon--dir muted')}</a>` : `<div class="row">${qRow}</div>`}</div>`);
   return `<div class="page">
     <h1 class="lede">${esc(tn('pl.thing_waits', wc))}.</h1>
     <p class="guide">${t(wc ? 'wt.guide' : 'wt.empty.guide')}</p>
