@@ -32,10 +32,6 @@ class FourReportsTests(Workspace):
             text = (out / name).read_text()
             for heading in ('## Summary', '### The numbers that matter', '### The largest risks', '## Not examined', '## Appendices'):
                 self.assertIn(heading, text, name)
-        record = json.loads((out / 'reports.json').read_text())
-        self.assertEqual(sorted(record['reports']), sorted(NAMES))
-        for numbers in record['reports'].values():
-            for row in numbers.values(): self.assertTrue(row['source'])
         # A cut text shows it was cut, and lines fit.
         self.assertTrue(clip('word ' * 40, 20).endswith('…'))
         text = (out / 'CURRENT-STATE.md').read_text()

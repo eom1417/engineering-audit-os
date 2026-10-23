@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from .. import sign_in
-from .live_app import _keep, _live, shared_app
+from .live_app import _live, shared_app
 from .stages import SkipStage
 
 CHOSEN_OUT = 'the person chose no sign-in: the pages behind it were seen signed out, as a visitor sees them'
@@ -96,6 +96,6 @@ def _published(context, chosen):
 
 
 def _record(context, record):
-    """live/sign-in.json: whether a sign-in was needed and how the pages were opened; never the session itself."""
-    _keep(context, 'sign-in.json', {'schema_version': 1, **record})
+    """The stage's detail in the manifest: whether a sign-in was needed and how the pages were opened; never the
+    session. (Its own record, live/sign-in.json, went in 0.0.73: nothing read it.)"""
     return {key: record[key] for key in ('needed', 'how', 'published') if key in record}

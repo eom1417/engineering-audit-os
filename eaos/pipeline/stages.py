@@ -77,7 +77,7 @@ STAGES = (
                       'command; which test imports which file is still written',
           description="The project's own tests, from its run profile, run in the isolated copy with coverage: what they "
                       'reach, what they miss, and whether they pass on the code as it is'),
-    Stage('session', produces=('live/sign-in.json',), requires=('setup',), reads=('roles',), necessity=OPTIONAL, uses=('app',),
+    Stage('session', produces=(), requires=('setup',), reads=('roles',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, the person chose no sign-in, or nobody signed in '
                       'within the wait: the pages behind the sign-in are then seen signed out, and the report says so',
           description="Whether the app's pages need a sign-in (its code, and the pages the setup opened), and the "
@@ -141,7 +141,7 @@ STAGES = (
     Stage('target', produces=('target-architecture.json', 'target-proposal.json'), requires=('plan',),
           description="The rules' target proposal: today's components with their disposition and the reference's target "
                       'components; the assistant judges it before it is final'),
-    Stage('proposals', produces=('proposals.json',), requires=('plan', 'target'), gathers=True, necessity=OPTIONAL,
+    Stage('proposals', produces=(), requires=('plan', 'target'), gathers=True, necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, so nobody reads the proposals before the reports',
           description="The tools' proposals as the Studio draws them (cards with their evidence, system, journeys, "
                       'paths, data, infrastructure, pipeline gaps), which the assistant reads'),
@@ -175,7 +175,7 @@ STAGES = (
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
     Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',), reads=('order',), amends=('plan.json',),
           description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
-    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json', 'START-HERE.md'),
+    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'START-HERE.md'),
           requires=('reconcile', 'steps'),
           description='The four reports a client reads first, written from the final target and plan; every other '
                       'document is an appendix to them'),
