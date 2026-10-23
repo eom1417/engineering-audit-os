@@ -18,7 +18,7 @@ ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, 
 What exceeds a limit today is listed in `tools/code_limits.json` and may only shrink: after shrinking one, run
 `python tools/code_limits.py --tighten`. Every engine's number (findings per engine and rule) is recorded in
 `tools/quality.json` and may only go down: after it went down, run `tools/quality.sh --record`. The engines are EAOS's
-own adapters (`eaos/engines/`), over EAOS's code without the tests, the built Studio and the rule examples; `knip` reads
+own adapters (`eaos/engines/`), over what EAOS ships (without the tests, the developer tools, the built Studio and the rule examples); `knip` reads
 the Studio's entries from `console/knip.json`.
 
 **How code is written** (owner, 2026-10-13):
@@ -71,8 +71,12 @@ the Studio's entries from `console/knip.json`.
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed). The golden trial checks
   the app and `tools/detection_baseline.py` refuses a check that reaches any of them less; `--record` after reaching
   more. Today 5 of 8 (the three missed say why).
-- **Compatibility corpus** (M0.3): pinned real open-source apps; a change to running apps or screens never lowers its
-  pass rate.
+- **Compatibility corpus** (M0.3): 12 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without
+  hash routes, Next.js, Vue, SvelteKit, Expo web, Flask, Django, Streamlit, one behind a sign-in, one with a welcome
+  flow, a static site). `tools/corpus.py` checks each as a person would (`--path look --run-app`, no assistant; about
+  50 minutes, a background job), records whether it ran and which expected screens were pictured, and refuses when an
+  app that passed now fails; `--record` writes the results. A change to running apps or finding screens never lowers
+  its pass rate. Today 2 of 12 (each failure says why: the input of M5).
 
 ## 6. Language
 
