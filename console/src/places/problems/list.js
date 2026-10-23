@@ -7,6 +7,7 @@ import {
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
 import { detailHTML } from './detail.js';
+import { empty } from '../understand-kit/kit.js';
 
 const PAGE = 50;
 
@@ -111,10 +112,7 @@ export function listColumn(q, openId) {
 function page(ctx) {
   const q = ctx.query, id = ctx.params.id;
   watchScan();
-  if (ctx.state === 'empty') {
-    return `<div class="page"><h1 class="lede">${t('pb.nocheck')}</h1><p class="guide">${t('pb.nocheck.guide')}</p>
-      <div class="actions"><a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a></div></div>`;
-  }
+  if (ctx.state === 'empty') return empty(t('pb.nocheck'), t('pb.nocheck.guide'));
   const p = id ? shown().find(x => x.id === id) : null;
   const detail = id
     ? (p ? detailHTML(p, ctx) : `<div class="empty"><p class="empty__title">${esc(t('pd.notfound', { id }))}</p><p class="small ink-2">${t('pd.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/problems')}">${t('pd.back')}</a></div>`)
