@@ -1,113 +1,96 @@
-> **أول قاعدة قبل أي شي: كل رد للمالك بالعربي فقط، بدون أي استثناء.** قبل ما ترسل أي رسالة (رد، تحديث، سؤال، ملخص، تقرير، ملخص إشعار) تأكد إنها مكتوبة بالعربي. الرد بالإنجليزي للمالك خطأ ممنوع، حتى لو كانت المحادثة طويلة أو كان الكلام تقني. الكود والتعليقات ورسائل commit فقط بالإنجليزي.
-> **First rule, before anything: every reply to the owner is in Arabic only, no exception.** Check every message before sending it; an English reply to the owner is a forbidden mistake, however long the session or technical the topic. Only code, comments and commit messages are in English.
-> **وأثناء البرمجة نفسها:** حتى السطر القصير بين خطوة وخطوة ("أشغّل الاختبارات الآن"، "أقرأ الملف") بالعربي، وتقارير المساعدين الفرعيين تُترجم للعربي قبل ما تُنقل للمالك. أي جملة إنجليزية يراها المالك خطأ.
-> **While programming too:** even the one-line update between two tool calls is Arabic, and subagents' English reports are translated before they reach the owner.
-> **مواضع الزلل المعروفة (تكررت):** بعد ما تنقطع الجلسة وترجع، وبعد شغل برمجي طويل، ولما تشرح تصميم أو تقترح حل، وفي عناوين الجداول. في هذي اللحظات بالذات اكتب أول كلمة بالعربي وراجع الرسالة كلها قبل الإرسال. لا تكتب الرد بالإنجليزي ثم تترجمه: اكتبه من أوله بالعربي.
-> **Known slip points (they repeated):** after the session breaks and resumes, after long coding, when explaining a design or proposing a fix, and in table headers. At those moments write the first word in Arabic and reread the whole message before sending. Never draft in English then translate: write it in Arabic from the start.
+> **أول قاعدة قبل أي شي: كل رد للمالك بالعربي فقط، بدون أي استثناء.** قبل ما ترسل أي رسالة (رد، تحديث، سؤال، ملخص، تقرير، ملخص إشعار) تأكد إنها مكتوبة بالعربي. حتى السطر القصير بين خطوة وخطوة بالعربي، وتقارير المساعدين الفرعيين تُترجم قبل ما تُنقل. الكود والتعليقات ورسائل commit والوثائق التقنية فقط بالإنجليزي.
+> **First rule: every word to the owner is Arabic, no exception** (replies, the one-line updates between steps, questions, tables and their headers, summaries, the notification summary; subagents' reports translated). Known slip points: after a session resumes, after long coding, when explaining a design, in table headers. Write the first word in Arabic and reread before sending. Code, comments, commits and technical docs are English.
 
-# Developing EAOS: what every assistant working on this repository must know
+# Developing EAOS
 
-This file is for the assistant developing EAOS itself (Codex reads it; CLAUDE.md points Claude Code here).
-It is not what EAOS tells the assistants of the projects it audits; that lives in `eaos/data/`.
+For the assistant developing EAOS itself (Codex reads this file; `CLAUDE.md` imports it for Claude Code). What EAOS
+tells the assistants of the projects it checks lives in `eaos/data/`, not here.
+
+## Start of every session (any assistant, any account, any model)
+
+1. Read `/workspace/AGENTS.md` and `/workspace/HANDOFF.md` (the container's rules and the state now); run
+   `bash /workspace/eaos-dev/workers/disk-budget.sh`.
+2. Read `ROADMAP.md`: where the work stands (status table) and the cards of the milestone the owner names.
+3. Read only the reference the card needs:
+
+| Reference | What it holds |
+|---|---|
+| `docs/NORTH-STAR.md` | what EAOS is for, the three journeys, the principles |
+| `docs/STANDARDS.md` | the laws (code, security, safety, disk, tests, language) and the Definition of Done |
+| `docs/ARCHITECTURE.md` | the layout today and the target, the layers, the loops, where a new file goes |
+| `docs/DECISIONS.md` | the owner's decisions, newest first |
+| `docs/METRICS.md` | the numbers, baseline and after each milestone |
+| `CHANGELOG.md` | what each version changed and why |
+
+4. "Execute Mx" means every card of Mx, in order, to the Definition of Done, without asking again except for a
+   decision only the owner can take.
+
+## Keep the context current (owner, 2026-10-23)
+
+After every finished card or new decision, in the same change: update its row in `ROADMAP.md`, and whatever is no
+longer true in `docs/DECISIONS.md`, `docs/ARCHITECTURE.md`, `docs/STANDARDS.md`, this file, `/workspace/AGENTS.md`
+and `/workspace/HANDOFF.md`; `docs/METRICS.md` at each milestone end. Nothing about the work is kept in an account's
+or assistant's folders: a plan made in a provider's plan mode is copied into `ROADMAP.md` or `docs/DECISIONS.md`
+before the turn ends.
 
 ## The owner
 
-- The owner writes Gulf Arabic and is not a developer. **Every message to them is in Arabic, always**:
-  replies, the short progress updates between steps, questions, summaries and the notification summary;
-  plain words, no jargon; tables are welcome. **Everything programmed is in English**: code, code
-  comments, file and symbol names, commit messages and the technical docs. A command or a file name
-  inside an Arabic sentence stays as it is.
-- They judge EAOS by what a non-developer feels when using it on a Mac with Codex and Claude Code.
-  Fix the cause, not the symptom; prove it with a real assistant trial, not only unit tests; keep the
-  progress numbers honest.
-- **`main` is the owner's mother copy and is never touched**: no commit, push or merge into it; only the
-  owner decides about it. Work is built on a new branch from `develop` (directly on `develop` only when the owner says
-  so), verified clean (full suite, gates), merged into `develop` and pushed: the whole flow is in "The development flow".
+- Writes Gulf Arabic and is not a developer: plain words, no jargon, the visible result first, honest about what is
+  not done or not proven. Short answers; no loops, no long waits.
+- Judges EAOS by what a non-developer feels using it. Fix the cause, not the symptom, with the least change; prove it
+  with a real trial, not only unit tests.
+- **`main` is the owner's mother copy and is never touched** (git hooks refuse it).
 
-## The code laws (owner, 2026-10-13)
+## The laws (in full: `docs/STANDARDS.md`)
 
-Always under one condition: EAOS does its job in the best possible way.
-1. **Least code, best performance**: the shortest, most direct code that does the job best; no needless layers,
-   options or abstractions. A change that adds lines must earn them.
-2. **One source of truth**: a function, rule or calculation needed in more than one place is written once, clearly,
-   and called from everywhere else; never rewritten, never re-exported from a second home. A change then happens in
-   one place.
-3. **Clear and clean**: no dead code, no unused import or variable, small functions with one job, modules with one
-   responsibility, easy to extend.
+- Least code, best result; one source of truth; clear and clean; nothing replaced is left behind.
+- Module ≤ 600 lines and function complexity ≤ 15 today, ratcheting to 400 / 10 with functions ≤ 50 lines and ≤ 5
+  parameters; no dead code, no duplication, no medium or high security finding; layers per `docs/ARCHITECTURE.md`.
+- `tests/test_code_limits.py` enforces what is measured today (`python tools/code_limits.py`; `--tighten` after
+  shrinking a listed module); `tools/quality.sh` will enforce every law (M0.1).
 
-`tests/test_code_limits.py` enforces what can be measured (`python tools/code_limits.py` prints it): no function over
-cyclomatic complexity 15 and no module over 600 lines, except today's listed ones, which may only shrink (run it
-with `--tighten` after shrinking one); no function written twice; no pyflakes finding unless its line says why
-(`# noqa`). The bar: an outside reviewer of logic, cohesion, layout, robustness, load and efficiency should conclude
-that a top professional engineering house wrote it.
+## The development flow: EAOS develops EAOS
+
+`beta-trial` is the working EAOS (code, tools, Studio); `develop` is the project under check, as anyone else's.
+0. **Build on a new branch** `dev/<topic>` from `develop`, without asking (directly on `develop` only when the owner
+   says so).
+1. **Develop and verify** there: affected tests while working, then before merging:
+   ```bash
+   .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
+   (cd console && npm run build)     # only when console/ or docs/studio-actions.json changed
+   ```
+   The full suite (~7 min) runs as a background job; one heavy job at a time.
+2. **Merge into `develop`** (`--no-ff`), push `origin/develop`, delete the branch.
+3. **`develop` into `beta-trial`** with `bash /workspace/eaos-beta-trial/update.sh --approved` (as a systemd unit:
+   `/workspace/HANDOFF.md`): at each milestone end, approved in advance; otherwise only when the owner approves.
+   It stops at the first failure, runs the suite and the golden trial, restarts the Studio, and deletes merged
+   `dev/` branches.
+4. **Then the check**: of `develop`, from the Studio that runs `beta-trial`.
+
+For everyone else EAOS lets the person choose the branch and when to merge; it never decides that for them.
 
 ## Versions
 
-`0.0.1`, `0.0.2`, … (`pyproject.toml`, `CHANGELOG.md`). Bump the patch number with each published
-update. `1.0.0` is reserved for the first official release, which only the owner declares: after
-progress reaches 100%, everything is fixed, and EAOS has audited its own structure with itself.
-
-## Setting up a computer
-
-```bash
-bash tools/dev_setup.sh
-```
-
-It builds `.venv`, installs every external tool at its pinned version in `~/.eaos/tools`
-(`$EAOS_ENGINE_TOOLS`), and fetches the development material into `~/.eaos/dev` (`$EAOS_DEV_HOME`):
-the pinned sample corpus and the engines' source checkouts. `python tools/dev_paths.py` shows where
-each part is. Never write a path of one machine in code: `tests/test_platforms.py` fails if you do.
-
-## The plan
-
-`ROADMAP.md` is the only plan: the fixes in order and what comes after. There is no other plan, score or
-progress file; a finished item is removed from it and recorded in `CHANGELOG.md`.
+`0.0.x`: one version per milestone (M-1, documents only, has none) (`pyproject.toml`, `eaos/__init__.py`, the badges in `README.md` and `README.ar.md`, a `CHANGELOG.md` entry:
+why, from the real incident, then what changed). `1.0.0` only when the owner declares it.
 
 ## Tests
 
-`unittest`, at most about 550 tests and 15 minutes. A fix adds a test only when it reproduces a real failure;
-one test per real behaviour, no tests for their own sake. Run the affected modules while working
-(`.venv/bin/python -m unittest tests.test_x`), the full suite before pushing, as a background job (the machine is
-small, its size changes: one heavy job at a time). `tests/test_journey.py` is the fast end-to-end proof: check, change,
-check again, fix, accept.
+`unittest`, one test per real behaviour, a fix adds a test only when it reproduces a real failure. Guards that always
+stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`, `test_artifact_contract`,
+the golden trial (`tools/golden_trial.sh`). `tests/test_journey.py` is the fast end-to-end proof.
+
+## Setting up a computer
+
+`bash tools/dev_setup.sh` builds `.venv`, installs every external tool at its pinned version in `~/.eaos/tools`
+(`$EAOS_ENGINE_TOOLS`) and the development material in `~/.eaos/dev`; `python tools/dev_paths.py` shows where each
+part is. Never write one machine's path in code (`tests/test_platforms.py`).
 
 ## The disk: a helping tool never weighs on the machine (owner, 2026-10-17)
 
-134 GB had piled up in old trials, measurements, project copies and caches that nobody removed. So:
-- **Scratch of a task lives in `/workspace/eaos-work/<task>/`** and is removed when the task ends; at most a small
-  summary (under 100 KB) stays. Never a copy of a project, a report or a measurement kept past its task: a project is
-  on GitHub, a measurement is rebuilt by running it again.
-- **One copy of the tools**: `~/.eaos/tools` is the working EAOS's (`/workspace/eaos-beta-trial/tools`).
-- **What EAOS makes, EAOS removes** (`CHANGELOG` 0.0.36): a new kind of file it writes comes with the rule that removes
-  it or bounds it, and the test of that rule.
-- **The disk budget** (`/workspace/eaos-dev/workers/disk-budget.sh`) names each folder and the most it may hold; it is
-  said at the start of every session and the beta update stops while a folder is over it.
-
-## Before every commit
-
-```bash
-.venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
-(cd console && npm run build)     # only when console/ changed (console/README.md)
-```
-
-## The development flow: EAOS develops EAOS (owner's order, 2026-10-13)
-
-Here EAOS is built with EAOS itself, so it is developed as a tool apart from the project it checks: `beta-trial` is the
-working EAOS (its code, its tools, its Studio); `develop` is the project under check, as if it were anyone else's.
-Every piece of work follows these steps, in this order, every time:
-0. **Build on a new branch from `develop`** (`dev/<topic>`), without asking: that is the owner's standing rule
-   (2026-10-17). Work directly on `develop` only when the owner says so explicitly.
-1. **Develop and verify** there (full suite, `tools/validate.py`, the Studio built when `console/` changed).
-2. **Merge into `develop`** when the work is done (a new branch: merged, then deleted), and push `origin/develop`.
-3. **`develop` goes into `beta-trial` only once the owner approved it**: then
-   `bash /workspace/eaos-beta-trial/update.sh --approved`, which stops at the first failure:
-   develop clean and pushed; develop merged into `beta-trial` (fast-forward) and pushed; EAOS and its tools
-   installed locally from the `beta-trial` checkout, through EAOS; version, commit, every tool and Claude Code up to
-   date; that checkout's suite passes; the Studio restarted on it.
-4. **Then the check**: of the `develop` branch, from the Studio that runs `beta-trial`, as an outside tool.
-A check started any other way does not count; if a fix lands during a check, stop it and start again from step 1.
-`main` is never touched (the hooks refuse it).
-
-This flow is ours, for developing EAOS. For everyone else EAOS lets the person choose (the Studio's fix preview):
-build on a new branch, continue an EAOS branch, or work directly on their branch; and they decide when and where to
-merge. EAOS never decides that for them.
+- Scratch of a task lives in `/workspace/eaos-work/<task>/` and is removed when the task ends; never a copy of a
+  project, report or measurement kept past its task.
+- One copy of the tools: `~/.eaos/tools` is the working EAOS's (`/workspace/eaos-beta-trial/tools`).
+- What EAOS makes, EAOS removes: a new kind of file comes with the rule that removes or bounds it, and its test.
+- The disk budget (`/workspace/eaos-dev/workers/disk-budget.sh`) is said at the start of every session; the beta
+  update stops while a folder is over it.
