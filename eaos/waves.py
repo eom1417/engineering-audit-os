@@ -512,7 +512,28 @@ def saved(state, runtime):
         name = f"{'BUILD' if closed.get('via') == 'build' else 'WAVE'}-{closed['number']}"
         shutil.rmtree(Path(runtime) / 'candidates' / name, ignore_errors=True)
         for log in (Path(runtime) / 'runtime').glob(f"checks-wave-{closed['number']}-bisect-*-log.json"): log.unlink()
+    for number in older(state): shutil.rmtree(Path(runtime) / 'waves' / f'wave-{number}', ignore_errors=True)
     draw(state, runtime)
+
+
+KEPT_BATCHES = 2     # the batches whose patches stay beside the run and in the outputs; the older ones are in git
+
+
+def older(state):
+    """The numbers of the closed batches past the last KEPT_BATCHES: their patches go (eight batches had kept 18 MB
+    twice, beside the run and in the outputs); their branches and the state's record of them stay."""
+    numbers = sorted({wave['number'] for wave in state.get('waves') or []})
+    return numbers[:-KEPT_BATCHES]
+
+
+def publish(state, runtime, fixes, number):
+    """<fixes>/wave-N: a copy of the batch's patches and wave.json beside the run, the older batches' copies removed."""
+    source, target = Path(runtime) / 'waves' / f'wave-{number}', Path(fixes) / f'wave-{number}'
+    shutil.rmtree(target, ignore_errors=True)
+    if source.is_dir(): shutil.copytree(source, target)
+    else: target.mkdir(parents=True)
+    for old in older(state): shutil.rmtree(Path(fixes) / f'wave-{old}', ignore_errors=True)
+    return target
 
 
 def draw(state, runtime):

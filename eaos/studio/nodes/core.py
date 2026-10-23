@@ -13,7 +13,7 @@ then sends each subject on by its decision.
                           every subject takes the route "rules only"; a subject the model left out keeps the rules'
                           decision, marked `source: rules`. The assistant takes the time the work needs: its time and
                           cost are recorded, never cut.
-    the run log           <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output
+    the run log           <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the cost and the routes
     the cache             <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call
                           (also when no assistant is here: a decision already made stands); `fresh` asks again
 
@@ -324,12 +324,12 @@ def keep(report, node, row, key=None, logged=True):
 
 
 def log_run(report, node, row):
-    """The run log's line of one run of the node: its record, its time and what it cost."""
+    """The run log's line of one run of the node: its time, what it cost and how it routed; its decisions are in its
+    last record and cache, not copied here (99 lines had grown to 6 MB)."""
     _append(report, {'node': node.name, 'at': row['at'], 'state': row['state'], 'method': row['method'], 'assistant': row['assistant'],
                      'model': row['model'], 'prompt': row['prompt'], 'inputs': row['inputs'], 'schema': row.get('schema'),
                      'cached': row['cached'], 'seconds': row['seconds'], 'cost_usd': row['cost_usd'], 'why': row['why'],
-                     'routes': {r['decision']: len(r['subjects']) for r in row['routes']}, 'dropped': len(row['dropped']),
-                     'output': row['decisions']})
+                     'routes': {r['decision']: len(r['subjects']) for r in row['routes']}, 'dropped': len(row['dropped'])})
 
 
 def cached(report, node, key):
