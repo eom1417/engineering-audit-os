@@ -21,7 +21,7 @@ engineering-audit-os/
     data/          contracts, words, catalogs, the built Studio (data/studio)
   console/         the Studio UI (JS, esbuild; built into eaos/data/studio)
   tests/           unittest suite
-  tools/           developer tools: validate, code_limits, golden_trial, dev_setup
+  tools/           developer tools: quality (every code law), validate, code_limits, golden_trial, dev_setup
   upstreams/       the pinned external tools (registry, licenses)
   docs/            this page and the other references
 ```
@@ -48,7 +48,7 @@ eaos/
 console/       the Studio UI: optional and light
 ```
 
-**Dependency rule** (enforced by `import-linter`, M0.1/M3.1): a layer imports only the layers to its right.
+**Dependency rule** (enforced by `import-linter`: today's direct imports since M0.1, these layers from M3.1): a layer imports only the layers to its right.
 
 `interfaces → journeys → pipeline → (analysis | ai | live | report) → (facts | engines) → core`
 

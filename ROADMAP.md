@@ -108,7 +108,7 @@ owner can take. **After each card, its row in the status table below is updated 
 | M-1.1 | done | 0.0.71 (docs only) | 2026-10-23 |
 | M-1.2 | done | 0.0.71 (docs only) | 2026-10-23 |
 | M-1.3 | done: a cold-start assistant answered 11 of 11 from the files; its 17 notes fixed | 0.0.71 | 2026-10-23 |
-| M0.1 | not started | | |
+| M0.1 | done: `tools/quality.sh` (code limits incl. length and parameters, 5 layer contracts, jscpd, vulture, enola, knip, bandit, semgrep, gitleaks, osv-scanner) records today's numbers in `tools/quality.json` and refuses a worse one; the beta update runs it | 0.0.72 | 2026-10-23 |
 | M0.2 | not started | | |
 | M0.3 | not started | | |
 | M0.4 | not started | | |
