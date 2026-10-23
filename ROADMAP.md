@@ -155,7 +155,7 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M1.2 | done: the syntax cache in the runtime (63 MB out of the report), no `.js` twins of the Studio data, engine findings once in `engines.json` and their raw outputs removed, REPORT.html a second name of the page, compact facts, stale translations cleared | 0.0.73 | 2026-10-23 |
 | M1.3 | done: one reader (`eaos/facts/store.py`: `facts(kind)`, `by_id`, lazy `Sets`) reads only the sets that can hold what is asked; the 7 copies of "read every set" removed; a field every fact of a set repeats written once (EAOS's facts 281 → ~74 MB) | 0.0.73 | 2026-10-23 |
 | M1.4 | done: 8 documents (START-HERE, the four reports, TARGET-ARCHITECTURE, RUN, README) plus PLAN/ and adr/; the 19 others removed with their writers and tests, their JSON records kept, every claim shown in full in debt-register.json, a run removes the retired documents of a check before | 0.0.73 | 2026-10-23 |
-| M1.5 | not started | | |
+| M1.5 | done: `reports.json` removed (the four reports already name each number's source in their text); the other records the M-1 measurement listed have a reader and stay: `live/sign-in.json` (the detection baseline), `proposals.json` (the declared mark of the stage the triage, ideal and pipeline-gap planners require), and five read by `eaos/aspects.py` for the target and the four reports; a run removes a previous check's `reports.json` | 0.0.73 | 2026-10-23 |
 | M2.1 | not started | | |
 | M2.2 | not started | | |
 | M2.3 | not started | | |

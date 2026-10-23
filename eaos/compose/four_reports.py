@@ -8,8 +8,7 @@
 Each follows docs/MASTER-BLUEPRINT.md §6: a one-page summary (the decision asked for, the three numbers that
 matter, the three largest risks), then evidence, inference, impact and recommendation, then what was not
 examined, then links to the reference documents. Every number names where it comes from: a record, an item
-id or a claim id. They repeat nothing the appendices hold; they link to them. Their record is reports.json:
-the numbers each report states, with their sources.
+id or a claim id. They repeat nothing the appendices hold; they link to them.
 """
 import json
 import re
@@ -221,7 +220,7 @@ def current_state(out, ar):
     page.items(_unexamined(coverage, external, ar))
     page.heading(L['appendices'])
     page.items(['`features.json`', '`measurements.json`', '`debt-register.json`', '`load-model.json`', '`facts/external.json`'])
-    return page.text(), numbers
+    return page.text()
 
 
 def target_state(out, ar):
@@ -261,7 +260,7 @@ def target_state(out, ar):
                                                      'No service split is proposed: no quality scenario justifies one.')])
     page.heading(L['appendices'])
     page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[adr/](adr/)', '[architecture/](architecture/)'])
-    return page.text(), numbers
+    return page.text()
 
 
 def _target_numbers(target, components, features, infrastructure, absent, ar):
@@ -334,7 +333,7 @@ def gap_and_strategy(out, ar):
                  'Duration is not measured: S/M/L is a rule on files and dependents.')])
     page.heading(L['appendices'])
     page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[EXECUTION-PLAN.md](EXECUTION-PLAN.md)'])
-    return page.text(), numbers
+    return page.text()
 
 
 def execution_plan(out, ar):
@@ -348,7 +347,7 @@ def execution_plan(out, ar):
                                        f"staff the first milestone ({(plan.get('milestones') or [{}])[0].get('name', '—')})."))
     _numbers_section(page, L, tasks, numbers, ar)
     _plan_sections(page, L, plan, tasks, ar)
-    return page.text(), numbers
+    return page.text()
 
 
 def _numbers_section(page, L, tasks, numbers, ar):
@@ -421,10 +420,6 @@ def _milestone_section(page, milestone, by_id, ar):
 
 def write(out, language='ar'):
     ar = language == 'ar'
-    record = {'schema_version': 1, 'reports': {}}
     for name, builder in zip(NAMES, (current_state, target_state, gap_and_strategy, execution_plan)):
-        text, numbers = builder(out, ar)
-        (Path(out) / name).write_text(text, encoding='utf-8')
-        record['reports'][name] = {key: {'value': value, 'source': source} for key, (value, source) in numbers.items()}
-    (Path(out) / 'reports.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+        (Path(out) / name).write_text(builder(out, ar), encoding='utf-8')
     return {'reports': len(NAMES)}

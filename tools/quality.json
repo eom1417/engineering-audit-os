@@ -11,7 +11,7 @@
  "code:functions": 106,
  "code:modules": 7,
  "code:parameters": 130,
- "jscpd:exact_clone": 25,
+ "jscpd:exact_clone": 24,
  "knip:exports": 46,
  "semgrep:eaos.dataflow.fetch-unchecked-status": 1,
  "semgrep:javascript.browser.security.insecure-document-method": 17,

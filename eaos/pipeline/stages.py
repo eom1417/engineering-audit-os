@@ -175,7 +175,7 @@ STAGES = (
                       'the pipeline steps, then reviews the order; every prerequisite is kept', ai=True),
     Stage('steps', produces=('PLAN/STEPS.md',), requires=('cards',), reads=('order',), amends=('plan.json',),
           description="The plan's order: the assistant's steps when they keep every prerequisite, else the rules' waves"),
-    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json', 'START-HERE.md'),
+    Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'START-HERE.md'),
           requires=('reconcile', 'steps'),
           description='The four reports a client reads first, written from the final target and plan; every other '
                       'document is an appendix to them'),

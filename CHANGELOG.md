@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.0.73 (2026-10-23)
+
+M1, the disk and outputs diet: EAOS's check of itself left 873 MB in its runtime that nothing ever removed and wrote a
+409 MB report of 2,483 files, a third of it caches and copies, read whole on every call.
+- **The runtime bounded**: an app that is EAOS itself, run in its sandbox, uses the one copy of the tools (it had
+  installed its own 611 MB in `run-data`); the run's npm and pip caches go with it; a fix batch's patches are kept for
+  the last two batches; the AI run log no longer copies each run's outputs (6 MB for 99 lines).
+- **The outputs without duplicates**: the syntax cache moved to the runtime (63 MB), the Studio's data written once
+  (no `.js` twins), engine findings once in `engines.json`, `REPORT.html` a second name of the page, compact facts,
+  translations of documents that are gone cleared (1,070 of 1,214 files).
+- **One lazy facts reader** (`eaos/facts/store.py`): a caller reads only the sets that can hold what it asks; seven
+  copies of "read every set" (280 MB per call on EAOS) are gone; a field every fact of a set repeats is written once.
+  EAOS's facts: 281 to about 74 MB.
+- **Documents from 27 to 8** (START-HERE, the four reports, TARGET-ARCHITECTURE, RUN, the index; PLAN/ and adr/ for
+  the assistants): 19 documents read only by the Studio Library removed with their writers; every record kept.
+- **Records nobody reads**: of the eight the measurement listed, only `reports.json` had no reader (the four reports
+  name each number's source in their text): removed. `live/sign-in.json` is read by the detection baseline,
+  `proposals.json` marks the stage three planners require, and five feed the target and the four reports. A run
+  removes the retired documents and records a check before left.
+
 ## 0.0.72 (2026-10-23)
 
 M0, foundations and guards: before any clean-up (M1-M3) can break something silently, every law and every ability of
