@@ -15,7 +15,8 @@ ideal shape the project should reach, a decision, a plan, and fixes that prove t
 ## The three journeys
 
 1. **Repair an existing project.** Study it from every side (structure, screens, user journeys, dead code,
-   unreachable pages, duplication, complexity, security, performance, data, documentation) → ask the owner what only
+   unreachable pages, duplication, complexity, security, performance, data, documentation, and the user's experience
+   itself, tried by simulated users) → ask the owner what only
    they can answer → draw the ideal picture from the PRD and the current state → decide **repair or rebuild**, with
    the time and effort of each → plan → fix in small batches that prove themselves → a clean, sustainable program.
 2. **Build from an idea.** From an idea or a PRD to a complete plan, then a build held to the professional standard
@@ -43,3 +44,4 @@ ideal shape the project should reach, a decision, a plan, and fixes that prove t
 - Known problems found in the detection baseline (never fewer).
 - Check time, output size, lines of code.
 - Accepted cards against false alarms.
+- Saved user journeys replayed green; difficulties found by simulated users that became fixes.

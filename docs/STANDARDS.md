@@ -46,6 +46,8 @@ the Studio's entries from `console/knip.json`.
   (directly on `develop` only when the owner says so).
 - A project's app runs only in its isolated copy (`eaos/sandbox.py`, `eaos/live_run.py`): its own database, port and
   scratch home; never the owner's real data.
+- A simulated user (M9) acts only in the isolated copy: external services stubbed, dummy data only, within step,
+  time and cost budgets; what needs a real service is reported as not covered.
 - The owner's own projects are never checked from the EAOS development container; fixes are proved on trial apps and
   on the compatibility corpus.
 - Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the owner.
