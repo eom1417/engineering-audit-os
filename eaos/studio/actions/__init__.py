@@ -21,8 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
-from ... import check_choices
-from ... import build_tools
+from ... import batch_branch, build_tools, check_choices, guided
 from . import chat, handoff, helpers, plan, prompts, selection as selecting
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
@@ -281,8 +280,9 @@ class Actions:
         out = {key: value for key, value in record.items() if key not in hidden}
         try: out['work_branch'] = self.branches.work_branch(record)
         except Exception: out['work_branch'] = None
-        queue = self.store.queue() if queue is None else queue
-        if record['id'] in queue: out['position'] = queue.index(record['id']) + 1
+        if record['id'] in (queue := self.store.queue() if queue is None else queue): out['position'] = queue.index(record['id']) + 1
+        if (branch := (record.get('result') or {}).get('branch')) and not record.get('outcome'):
+            out['outcome'] = batch_branch.decided(guided.load(self.project) or {}, branch)   # decided anywhere, it waits no more
         return out
 
     def runs(self, query):

@@ -741,6 +741,20 @@ class Direct(Base):
         self.assertEqual(self.kinds('r-three')[-1], 'error')
 
 
+    def test_a_branch_decided_outside_the_studio_waits_no_more(self):
+        """The owner's chat, 2026-10-23: the batch was merged by EAOS outside the Studio and its question stayed, its
+        accept answering "not waiting any more". Whether a branch waits is read from EAOS's state, the one truth."""
+        self.app.store.save({'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
+                             'created': '0', 'result': {'branch': 'eaos/develop/wave-10'}}, new=True)
+        listed = lambda waves: mock.patch('eaos.guided.load', return_value={'waves': waves})
+        with listed([{'number': 10, 'status': 'applied', 'branch': 'eaos/develop/wave-10'}]):
+            self.assertIsNone(self.get('/api/runs')[1]['runs'][0].get('outcome'), 'handed over, it waits')
+        with listed([{'number': 10, 'status': 'accepted', 'branch': 'eaos/develop/wave-10'},
+                     {'number': 11, 'status': 'accepted', 'branch': 'eaos/develop/wave-10'}]):
+            self.assertEqual(self.get('/api/runs')[1]['runs'][0]['outcome'], 'accepted')
+        with listed([{'number': 10, 'status': 'undone', 'branch': 'eaos/develop/wave-10'}]):
+            self.assertEqual(self.get('/api/runs')[1]['runs'][0]['outcome'], 'undone')
+
     def test_a_fix_accepts_its_own_batch_only_when_the_person_chose_it_in_its_preview(self):
         """The owner's rule: "accept automatically when the checks pass" is the person's choice in that Fix preview, for
         that run only; without it, or into a protected branch, or with nothing kept, the branch waits for the person."""
