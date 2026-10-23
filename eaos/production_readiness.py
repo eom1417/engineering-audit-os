@@ -18,7 +18,8 @@ Each finding: {id, aspect, status (ok | gap | unmeasured), title, detail, eviden
 import json
 from pathlib import Path
 
-from .nfr import _facts, _load, dependencies, routes, scenarios
+from .facts.store import facts
+from .nfr import _load, dependencies, routes, scenarios
 
 ASPECTS = ('resilience', 'security', 'observability', 'performance')
 TOXICS = ('latency 2000 ms', 'timeout', 'down')
@@ -48,7 +49,7 @@ def _dependency_row(dependency, guards):
 
 def _resilience(report):
     policies = {}
-    for fact in _facts(report, 'resilience_policy'):
+    for fact in facts(report, 'resilience_policy'):
         policies.setdefault((fact.get('value') or {}).get('host'), []).append(fact)
     found = dependencies(report)
     if not found:
@@ -67,8 +68,8 @@ def _scan_row(paths):
 
 def _security(report):
     paths = routes(report)
-    auth = _facts(report, 'security_surface')
-    limits = _facts(report, 'rate_limit')
+    auth = facts(report, 'security_surface')
+    limits = facts(report, 'rate_limit')
     rows = [_scan_row(paths)]
     if not paths: return rows                          # nothing reachable to guard: the scan row says so
     rows.append(_row('security', 'authentication', 'ok' if auth else 'gap',
@@ -90,7 +91,7 @@ def _health_row(report):
 
 
 def _telemetry_row(report):
-    signals = _facts(report, 'observability_signal')
+    signals = facts(report, 'observability_signal')
     kinds = {(f.get('value') or {}).get('kind') for f in signals}
     telemetry = [TELEMETRY[k] for k in TELEMETRY if k in kinds]
     evidence = [f.get('id') for f in signals if (f.get('value') or {}).get('kind') in TELEMETRY]

@@ -30,20 +30,11 @@ def candidate(target, runtime, card_id):
     return where
 
 
-def _facts_by_id(report):
-    """Every fact of the report's fact sets, by id; a set that does not read is skipped."""
-    facts_by_id = {}
-    for path in sorted((Path(report) / 'facts').glob('*.json')):
-        try: data = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-        facts_by_id.update((fact['id'], fact) for fact in data.get('facts') or [] if isinstance(fact, dict) and fact.get('id'))
-    return facts_by_id
-
-
 def run_codemod(card, root, report):
     """The card's codemod on the candidate, rebuilt from the report's facts exactly as the plan's dry run built it."""
     from .codemods import _commands, card_for
-    detail = card_for(card, _facts_by_id(report), root)
+    from .facts.store import by_id
+    detail = card_for(card, by_id(report, (card.get('evidence') or {}).get('fact_ids') or []), root)
     steps = _commands(detail, Path(root)) if detail else None
     if not steps: raise RuntimeError(f"{card['id']}: its codemod cannot be rebuilt from the report's facts")
     for step, _ in steps:

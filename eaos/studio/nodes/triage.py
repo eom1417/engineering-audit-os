@@ -106,11 +106,10 @@ def _number(value):
 def _measurements(report, wanted):
     """{fact id: [{name, value, threshold}]}: the measurements of the facts in `wanted`, read from the report's fact
     sets (an engine finding's measurements, a metric's branches)."""
-    from ... import indicators
+    from ...facts.store import by_id
     out = {}
-    for row in indicators.facts(report):
-        found = _measured(row) if row.get('id') in wanted else []
-        if found: out[row['id']] = found
+    for row in by_id(report, wanted).values():
+        if found := _measured(row): out[row['id']] = found
     return out
 
 

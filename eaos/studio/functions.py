@@ -24,7 +24,7 @@ so coverage.json says so and the page shows it, rather than an empty list.
 from collections import defaultdict
 from pathlib import Path
 
-from .. import indicators
+from ..facts.store import facts as facts_of
 from ..facts import flows
 from .model import LANGUAGES
 
@@ -98,7 +98,7 @@ def _touch(fact):
 def _external(report):
     """({file: Lizard's function rows}, {(file, name): react-docgen's component})."""
     lizard, components = defaultdict(list), {}
-    for f in indicators.facts(report, 'symbol_metric_external'):
+    for f in facts_of(report, 'symbol_metric_external'):
         where, value = f.get('location') or {}, f.get('value') or {}
         if value.get('engine') not in ('lizard', 'react-docgen'): continue
         if value['engine'] == 'lizard' and isinstance(where.get('line'), int): lizard[where.get('path')].append(f)
@@ -108,7 +108,7 @@ def _external(report):
 
 def _metrics(report):
     metrics = {}
-    for f in indicators.facts(report, 'metric'):
+    for f in facts_of(report, 'metric'):
         where, value = f.get('location') or {}, f.get('value') or {}
         if value.get('scope') in ('function', 'method'): metrics[(where.get('path'), where.get('start_line'), where.get('symbol'))] = value
     return metrics
@@ -177,12 +177,12 @@ def _resolve_call(call, key_of, index):
 
 def _calls(report, syntax, key_of):
     """(callers of each function, callees of each function, call sites, calls resolved), as the flow tracer resolves."""
-    edges = indicators.facts(report, 'module_edge')
+    edges = facts_of(report, 'module_edge')
     index_file, index_name = flows.index_symbols([f for f in syntax if isinstance((f.get('location') or {}).get('end_line'), int)])
-    index = (index_file, index_name, flows.imported_files(edges, syntax), flows.external_name_index(indicators.facts(report, 'import_edge'), edges))
+    index = (index_file, index_name, flows.imported_files(edges, syntax), flows.external_name_index(facts_of(report, 'import_edge'), edges))
     callers, callees = defaultdict(set), defaultdict(set)
     sites = resolved = 0
-    for caller, callee in (_resolve_call(call, key_of, index) for call in indicators.facts(report, 'call_edge')):
+    for caller, callee in (_resolve_call(call, key_of, index) for call in facts_of(report, 'call_edge')):
         if not caller: continue
         sites += 1
         if not callee: continue
@@ -201,7 +201,7 @@ def _holder(fact, by_file):
 def _touches(report, by_file):
     """{function id: {reads, writes}} of the data and environment each function touches."""
     touches = defaultdict(lambda: {'reads': [], 'writes': []})
-    for fact in indicators.facts(report, 'data_access') + indicators.facts(report, 'env_read'):
+    for fact in facts_of(report, 'data_access') + facts_of(report, 'env_read'):
         holder = _holder(fact, by_file)
         if not holder: continue
         side, touch = _touch(fact)
@@ -283,7 +283,7 @@ def _languages(report, out):
     """Each language of the project: measured (the parser read it: its functions and calls), partial (only Lizard
     measured its functions: no calls), or not measured (its files were not read for functions); and what is missing."""
     read, unread = set(), set()
-    for f in indicators.facts(report, 'source_file'):
+    for f in facts_of(report, 'source_file'):
         name, status = _language(str((f.get('location') or {}).get('path') or '')), (f.get('value') or {}).get('parse_status')
         if name: (read if status == 'OBSERVED' else unread).add(name)
     with_functions = defaultdict(int)
@@ -303,8 +303,8 @@ def functions(report, card_rows=(), evidence=()):
     """The body of functions.json (without the contract fields), or None when the check read no source file and no
     engine measured a function: nothing was measured, which is not the same as "no functions"."""
     report = Path(report)
-    if not indicators.facts(report, 'source_file') and not indicators.facts(report, 'symbol_metric_external'): return None
-    syntax = indicators.facts(report, 'symbol')
+    if not facts_of(report, 'source_file') and not facts_of(report, 'symbol_metric_external'): return None
+    syntax = facts_of(report, 'symbol')
     symbols = [f for f in syntax if (f.get('value') or {}).get('kind') in ('function', 'method')
                and isinstance((f.get('location') or {}).get('start_line'), int)]
     lizard, components = _external(report)

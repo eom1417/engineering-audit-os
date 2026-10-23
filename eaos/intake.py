@@ -14,6 +14,7 @@ schemas/artifacts/intake.schema.json; engagement.json reads its scenarios from t
 import json
 import re
 from pathlib import Path
+from .facts.store import facts
 
 QUESTIONS = Path(__file__).resolve().parent / 'rules/intake-questions.json'
 # Fields that identify a person wherever they appear, and fields that do so only on a person entity.
@@ -26,15 +27,6 @@ BLOCK = 60
 
 def questions():
     return json.loads(QUESTIONS.read_text(encoding='utf-8'))['questions']
-
-
-def _facts(out, kind):
-    rows = []
-    for path in sorted((Path(out) / 'facts').glob('*.json')):
-        try: data = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-        rows += [row for row in data.get('facts') or [] if isinstance(row, dict) and row.get('kind') == kind]
-    return rows
 
 
 def _block(target, location):
@@ -52,7 +44,7 @@ def _block(target, location):
 def personal_data(target, out):
     """(True, where) if a table or model holds a field that identifies a person, else (False, why not)."""
     seen = set()
-    for row in _facts(out, 'data_table') + _facts(out, 'data_model'):
+    for row in facts(out, 'data_table') + facts(out, 'data_model'):
         location, name = row.get('location') or {}, (row.get('value') or {}).get('name') or ''
         if not location.get('path') or (location['path'], location.get('start_line')) in seen: continue
         seen.add((location['path'], location.get('start_line')))

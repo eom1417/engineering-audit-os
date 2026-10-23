@@ -54,3 +54,20 @@ class IncrementalCacheTests(unittest.TestCase):
             after_edit = collect(repo, out, SETS, cache=cache)['reused_from_cache']['syntax']
             self.assertEqual(after_edit, warm - 1, 'exactly one changed file should fall out of the cache')
             self.assertEqual(len(json.loads(cache.read_text())), warm, 'the edited file\'s old entry is gone')
+
+
+class StoreTests(unittest.TestCase):
+    def test_a_set_reads_back_as_made_and_a_kind_is_read_from_the_sets_holding_it_only(self):
+        # EAOS, 2026-10-23: the fields every fact repeated were half of each set, and every reader read all 280 MB
+        from eaos.facts import make, store
+        with tempfile.TemporaryDirectory() as out:
+            rows = [make('symbol', 'syntax', '3', 'sha', {'path': f'a{i}.py'}, {'n': i}, limitations=['syntax only'])
+                    for i in range(3)]
+            entries = [store.write_set(out, 'syntax', 'syntax', '3', rows, 'sha', ['syntax only']),
+                       store.write_set(out, 'graph', 'graph', '1', [], 'sha', [])]
+            store.write_index(out, out, entries)
+            self.assertNotIn('limitations', json.loads((Path(out) / 'facts/syntax.json').read_text())['facts'][0])
+            self.assertEqual(read_set(out, 'syntax')['facts'], rows)
+            (Path(out) / 'facts/graph.json').write_text('not json')     # never read: the index says it holds no symbol
+            self.assertEqual(store.facts(out, 'symbol'), rows)
+            self.assertEqual(store.by_id(out, [rows[1]['id']]), {rows[1]['id']: rows[1]})

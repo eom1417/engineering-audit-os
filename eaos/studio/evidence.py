@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .. import indicators
+from ..facts.store import by_id, facts
 
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 CODE_CONTEXT = 2           # lines shown before and after a fact's line
@@ -64,9 +64,8 @@ def summary(value, kind):
 
 def evidence(report, cited, source=None):
     source = source or (lambda path: None)
-    rows = indicators.facts(report)
-    secrets = _secret_lines(rows)
-    return [_fact_evidence(row, source, secrets) for row in rows if row.get('id') in cited]
+    secrets = _secret_lines(facts(report, 'engine_finding', *SECRET_KINDS))     # the only facts that name a secret
+    return [_fact_evidence(row, source, secrets) for row in by_id(report, cited).values()]
 
 
 def _site_lines(where, value):

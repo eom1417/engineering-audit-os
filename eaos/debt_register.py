@@ -60,14 +60,6 @@ def _load(path, default):
     except (OSError, ValueError): return default
 
 
-def _facts(out):
-    rows = {}
-    for path in sorted((Path(out) / 'facts').glob('*.json')):
-        for fact in (_load(path, {}) or {}).get('facts') or []:
-            if isinstance(fact, dict) and fact.get('id'): rows[fact['id']] = fact
-    return rows
-
-
 def percentiles(rows, field):
     """{path: rank in 0..1} among the rows that have the field; ties share their lowest rank."""
     values = sorted(r[field] for r in rows if r.get(field) is not None)
@@ -230,11 +222,19 @@ def _settle(item, heat):
     item['hotspot'] = max((heat[path] for path in item['files'] if path in heat), key=lambda h: h['score'], default=None)
 
 
+def _facts(out, claims):
+    """{id: fact}: the claims' facts and every engine finding and committed credential (the witnesses), read from
+    the sets that hold them only."""
+    from .facts.store import by_id, facts
+    witnesses = {row['id']: row for row in facts(out, 'engine_finding', 'committed_credential') if row.get('id')}
+    return {**by_id(out, {i for claim in claims for i in claim.get('fact_ids') or []}), **witnesses}
+
+
 def build(out, dossier):
     out = Path(out)
-    all_facts = _facts(out)
-    heat = hotspots(_load(out / 'measurements.json', {}))
     claims = dossier.get('claims') or []
+    all_facts = _facts(out, claims)
+    heat = hotspots(_load(out / 'measurements.json', {}))
     items = _claim_items(claims, all_facts, _probes(out))
     # A credential already witnessing an item (the scanners' secret cluster on its file) is that item, not a second one.
     claimed = {i for claim in claims for i in claim.get('fact_ids') or []}

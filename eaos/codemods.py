@@ -226,8 +226,10 @@ MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')
 
 def attach(tasks, out, target):
     """Give every mechanical card its codemod, dry-run on an isolated copy; returns how many were attached."""
-    facts_by_id = _facts_by_id(out)
-    cards = [(task, card_for(task, facts_by_id, target)) for task in tasks if task.get('pattern') in MECHANICAL]
+    from .facts.store import by_id
+    mechanical = [task for task in tasks if task.get('pattern') in MECHANICAL]
+    facts_by_id = by_id(out, {i for task in mechanical for i in (task.get('evidence') or {}).get('fact_ids') or []})
+    cards = [(task, card_for(task, facts_by_id, target)) for task in mechanical]
     cards = [(task, card) for task, card in cards if card]
     if not cards: return 0
     from .verify import isolated_copy
@@ -238,16 +240,6 @@ def attach(tasks, out, target):
         return _try_cards(cards, target, isolated_copy(Path(target), holder / 'project'))
     finally:
         shutil.rmtree(holder, ignore_errors=True)
-
-
-def _facts_by_id(out):
-    facts_by_id = {}
-    for path in sorted((Path(out) / 'facts').glob('*.json')):
-        try: data = json.loads(path.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-        for fact in data.get('facts') or []:
-            if isinstance(fact, dict) and fact.get('id'): facts_by_id[fact['id']] = fact
-    return facts_by_id
 
 
 def _try_cards(cards, target, copy):

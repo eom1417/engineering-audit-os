@@ -16,7 +16,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .. import artifact_contracts, build_info, indicators, owner_share
+from .. import artifact_contracts, build_info, owner_share
+from ..facts.store import facts as facts_of
 from ..compose.labels import impact_of
 from ..pipeline.report import absences
 from ..plan import title_of
@@ -101,11 +102,11 @@ def _language_counts(nodes):
 
 
 def meta(report, m):
-    counts = _language_counts(indicators.facts(report, 'graph_node'))
+    counts = _language_counts(facts_of(report, 'graph_node'))
     total = sum(counts.values())
     stages = [{'id': name, 'title': name, 'state': STAGE_STATE.get((row or {}).get('status'), 'partial')}
               for name, row in (m['manifest'].get('stages') or {}).items()]
-    lines = sum((row.get('value') or {}).get('lines') or 0 for row in indicators.facts(report, 'metric')
+    lines = sum((row.get('value') or {}).get('lines') or 0 for row in facts_of(report, 'metric')
                 if (row.get('value') or {}).get('scope') == 'file') or None
     return {'languages': [{'name': name, 'files': count, 'share': round(count / total, 4)}
                           for name, count in sorted(counts.items(), key=lambda item: -item[1])],

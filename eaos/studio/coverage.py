@@ -11,7 +11,7 @@ it) or not (so an engine step must produce them first).
 """
 from pathlib import Path
 
-from .. import indicators
+from ..facts.store import facts as facts_of
 from .model import LANGUAGES
 
 FUNCTION_SCOPES = ('function', 'method')
@@ -35,7 +35,7 @@ def _count(value, src):
 def _languages_with_functions(report):
     """{language: functions} from the function and method metrics the engines wrote."""
     out = {}
-    for row in indicators.facts(report, 'metric'):
+    for row in facts_of(report, 'metric'):
         if (row.get('value') or {}).get('scope') not in FUNCTION_SCOPES: continue
         name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
         if name: out[name] = out.get(name, 0) + 1
@@ -44,7 +44,7 @@ def _languages_with_functions(report):
 
 def _languages(report):
     names = set()
-    for row in indicators.facts(report, 'graph_node'):
+    for row in facts_of(report, 'graph_node'):
         name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
         if name: names.add(name)
     return names
