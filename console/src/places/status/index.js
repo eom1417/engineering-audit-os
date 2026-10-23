@@ -231,8 +231,7 @@ function emptyState(ctx) {
   return `<div class="page">
     <h1 class="lede">${t('st.empty.lede')}</h1>
     <p class="guide">${t('st.empty.guide')}</p>
-    <div class="actions">${ctx.offline ? `<button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button>`
-      : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
+    <div class="actions">${ctx.offline ? '' : `<a class="btn btn--primary" href="${href('/activity', { sheet: 'check' })}">${t('st.empty.act')}</a>`}
       <button class="btn btn--quiet" data-act="copy" data-text="eaos check">${icon('copy')}${t('st.copy_request')}</button></div>
     ${steps.length ? `<div class="section panel">${fold('journey', t('st.fold.journey'), esc(L(steps[0].title)), `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${icon('circle', 'muted')}<span class="row__main">${esc(L(s.title))}</span></li>`).join('')}</ol>`)}</div>` : ''}
   </div>`;
