@@ -475,16 +475,6 @@ def _wanted(task, kind, path, text, fixable_only):      # each filter only when 
     return ((not kind or task.get('pattern') == kind) and (not path or any(path in p for p in task.get('paths') or [])) and (not text or text.lower() in (task.get('title') or '').lower()) and (not fixable_only or _ready(task)))
 
 
-def _facts_index(report):
-    index = {}
-    for path in sorted((report / 'facts').glob('*.json')):
-        try: data = _read(path)
-        except (OSError, ValueError): continue
-        for fact in data.get('facts') or []:
-            if isinstance(fact, dict) and fact.get('id'): index[fact['id']] = fact
-    return index
-
-
 def _excerpt(root, location, around=8, limit=60):
     path = Path(root) / (location.get('path') or '')
     if not location.get('path') or not path.is_file(): return None
@@ -508,8 +498,9 @@ def _card_and_claim(report, id):
 
 def _evidence(state, report, card, claim):
     """The facts behind a card and its claim (up to EVIDENCE; shown six, an assistant missed the rest), with their code."""
-    facts = _facts_index(report)
+    from .facts.store import by_id
     fact_ids = list(dict.fromkeys((claim.get('fact_ids') or []) + ((card.get('evidence') or {}).get('fact_ids') or [])))
+    facts = by_id(report, fact_ids[:EVIDENCE])
     return [{'fact': fact_id, 'kind': facts[fact_id].get('kind'), 'value': facts[fact_id].get('value'),
              'code': _excerpt(guided.source(state), facts[fact_id].get('location') or {})}
             for fact_id in fact_ids[:EVIDENCE] if facts.get(fact_id)]

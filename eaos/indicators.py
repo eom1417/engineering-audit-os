@@ -1,4 +1,4 @@
-"""Reading a report's records: one JSON file, and every fact of the fact sets (of one kind, or all)."""
+"""Reading a report's records: one JSON file (the facts are read through eaos/facts/store.py)."""
 import json
 from pathlib import Path
 
@@ -9,9 +9,3 @@ def load(out, name, default=None):
     except (OSError, ValueError): return default
 
 
-def facts(out, kind=None):
-    rows = []
-    for path in sorted((Path(out) / 'facts').glob('*.json')):
-        data = load(out, 'facts/' + path.name, {})
-        rows += [row for row in (data.get('facts') or []) if isinstance(row, dict)]
-    return [row for row in rows if kind is None or row.get('kind') == kind]

@@ -29,11 +29,9 @@ GRAPH_PREREQUISITES = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 
 
 
 def read_available(out):
-    """Load every fact set present in a report directory, whoever produced it."""
-    from pathlib import Path as _Path
-    from .store import read_set
-    return {name: read_set(out, name) for name in ALL_SETS
-            if (_Path(out) / 'facts' / (name + '.json')).is_file()}
+    """Every fact set present in a report directory, whoever produced it, each read when first asked for."""
+    from .store import Sets
+    return Sets(out, ALL_SETS)
 
 
 def ordered(selected):

@@ -4,6 +4,7 @@ needs no fixture. Nothing from the project runs here."""
 import json
 import re
 from pathlib import Path
+from .facts.store import facts
 from string import Template
 
 TEMPLATES = Path(__file__).resolve().parent / 'templates'
@@ -13,13 +14,6 @@ NOT_HOSTS = re.compile(r'(^|\.)(w3\.org|xmlns\.com|schema\.org|example\.(com|org
 def _load(path, default):
     try: return json.loads(Path(path).read_text(encoding='utf-8'))
     except (OSError, ValueError): return default
-
-
-def _facts(report, kind):
-    rows = []
-    for path in sorted((Path(report) / 'facts').glob('*.json')):
-        rows += [f for f in (_load(path, {}) or {}).get('facts') or [] if isinstance(f, dict) and f.get('kind') == kind]
-    return rows
 
 
 def routes(report):
@@ -53,9 +47,9 @@ def _loadable(surface, known, kind_of, path_of, param):
 def dependencies(report):
     """[(name, upstream variable, features)] for every external dependency the facts show."""
     features = (_load(Path(report) / 'features.json', {}) or {}).get('features') or []
-    clients = {(f.get('value') or {}).get('client') for f in _facts(report, 'data_access')}
+    clients = {(f.get('value') or {}).get('client') for f in facts(report, 'data_access')}
     # A host named only in a module nothing reaches (facts/deadcode) is not a dependency of the running program.
-    unreachable = {(f.get('location') or {}).get('path') for f in _facts(report, 'engine_finding')
+    unreachable = {(f.get('location') or {}).get('path') for f in facts(report, 'engine_finding')
                    if (f.get('value') or {}).get('rule') == 'unreachable-module'}
     found = []
     if 'supabase' in clients:
@@ -77,7 +71,7 @@ def _counted_host(host, path, unreachable):
 def _hosts(report, unreachable):
     """{host: the files that name it}."""
     hosts = {}
-    for fact in _facts(report, 'integration_target'):
+    for fact in facts(report, 'integration_target'):
         host, path = (fact.get('value') or {}).get('host') or '', (fact.get('location') or {}).get('path') or ''
         if _counted_host(host, path, unreachable): hosts.setdefault(host, set()).add(path)
     return hosts

@@ -185,8 +185,10 @@ class Evidence(unittest.TestCase):
     def test_the_evidence_section_hides_secret_lines_and_a_card_says_why_in_both_languages(self):
         facts = [{'id': 'F1', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts', 'line': 4}, 'value': {'kind': 'complexity', 'message': 'complex'}},
                  {'id': 'F2', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'}, 'value': {'kind': 'secret', 'sites': [{'path': 'src/a.ts', 'line': 3}]}}]
-        with mock.patch.object(evidence.indicators, 'facts', return_value=facts):
-            rows = {f['id']: f for f in evidence.evidence('report', {'F1', 'F2'}, self.source)}
+        from eaos.facts.store import write_set
+        with tempfile.TemporaryDirectory() as report:
+            write_set(report, 'external', 'external', '1', facts, 'sha', [])
+            rows = {f['id']: f for f in evidence.evidence(report, {'F1', 'F2'}, self.source)}
         self.assertEqual((rows['F1']['line'], rows['F1']['code']['hidden']), (4, [3]))
         self.assertIsNone(rows['F2']['code'])
         self.assertNotIn('sk_live', json.dumps(rows))
