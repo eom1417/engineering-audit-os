@@ -351,22 +351,14 @@ def _published(built, stamps):
         yield section, {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built[section], **made}
 
 
-def _js_string(text):
-    """A JavaScript single-quoted string literal holding `text` exactly."""
-    return "'" + text.replace('\\', '\\\\').replace("'", "\\'").replace('\u2028', '\\u2028').replace('\u2029', '\\u2029') + "'"
-
-
 def _write(folder, name, data):
-    """name.json and its .js twin, each written whole and renamed into place; returns the JSON bytes. The twin, for a
-    page opened from a file, hands the same JSON text to JSON.parse: a browser parses a large section that way much
-    faster than the same data written as a JavaScript object literal."""
-    text = json.dumps(data, ensure_ascii=False, separators=(',', ':'), sort_keys=True)
-    blob = text.encode('utf-8')
-    twin = f'(window.EAOS_STUDIO=window.EAOS_STUDIO||{{}})[{json.dumps(name)}]=JSON.parse({_js_string(text)});\n'
-    for target, body in ((folder / f'{name}.json', blob), (folder / f'{name}.js', twin.encode('utf-8'))):
-        temporary = target.with_name(f'.{target.name}.tmp')
-        temporary.write_bytes(body)
-        os.replace(temporary, target)
+    """name.json, written whole and renamed into place; returns its bytes. (Its .js twin, for a page opened from a file,
+    went in 0.0.73: nothing made such a page, and the twin doubled every section.)"""
+    blob = json.dumps(data, ensure_ascii=False, separators=(',', ':'), sort_keys=True).encode('utf-8')
+    target = folder / f'{name}.json'
+    temporary = target.with_name(f'.{target.name}.tmp')
+    temporary.write_bytes(blob)
+    os.replace(temporary, target)
     return blob
 
 

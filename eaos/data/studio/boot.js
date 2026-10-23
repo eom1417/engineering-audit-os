@@ -62,12 +62,4 @@
       document.head.appendChild(link);
     });
   }
-  // The read-only copy (no launch token, or opened from a file): the report's sections are classic scripts beside
-  // index.html (<name>.js, written by eaos/studio/export.py). The manifest and the sections every screen draws with
-  // start now; the rest are read when a screen asks for them (src/data/source.js). The live console reads the API.
-  if (!(served && token)) {
-    window.EAOS_SCRIPT('./manifest.js').then(function () {
-      ['head', 'decisions', 'cards'].forEach(function (name) { window.EAOS_SCRIPT('./' + name + '.js'); });
-    });
-  }
 })();

@@ -148,15 +148,16 @@ def run(target, source, out=None, only=None, keep=False):
             'reason': None if present else 'no external engine is installed'}
 
 
-# The engines' working folders: their indexes, caches and copies of the project. Once their findings are normalised
-# above nothing reads them, and the code index alone is 130 MB on a five-file project.
-SCRATCH = ('codegraph/index-home', 'gitnexus/copy', 'gitnexus/home', 'semgrep/rules', 'complexipy/cache', 'mirror')
+# The engines' working folders: their indexes, caches, copies of the project and raw outputs. Once their findings are
+# normalised above (engines.json keeps them, once, for an engine run again within the check) nothing reads them: the
+# code index alone is 130 MB on a five-file project, and reforge's and semgrep's raw reports were 10 MB on EAOS.
+SCRATCH = ('*/',)
 
 
 def _drop_scratch(engines):
     import shutil
-    for part in SCRATCH:
-        shutil.rmtree(engines / part, ignore_errors=True)
+    for folder in Path(engines).glob('*/'):
+        shutil.rmtree(folder, ignore_errors=True)
 
 
 def _as_symbol_metrics(input_sha, metric_facts):

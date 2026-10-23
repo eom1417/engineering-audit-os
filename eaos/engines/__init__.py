@@ -122,7 +122,10 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
                      for name in selected},
         'limits': 'External engines are recorded, never trusted: we did not implement their rules, so every '
                   'finding enters as heuristic evidence and needs corroboration or a probe to rise above it.'}
-    (workdir / 'engines.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding='utf-8')
+    # On disk each finding once, under its engine (the list above repeats them for the caller): compact, read back
+    # by _with_kept; the facts carry them on (facts/external.json).
+    on_disk = {key: value for key, value in manifest.items() if key != 'findings'}
+    (workdir / 'engines.json').write_text(json.dumps(on_disk, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     return manifest
 
 
