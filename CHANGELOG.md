@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.71 (2026-10-23)
+
+- **A branch decided anywhere waits no more** (EAOS on itself: batches 10 and 11 were merged by EAOS outside the
+  Studio, and their question stayed in "Waiting"; its accept answered "not waiting for a decision any more"): whether a
+  handed-over branch waits is read from EAOS's state, the one truth (`batch_branch.decided`), not from the Studio's
+  record of the run.
+
 ## 0.0.70 (2026-10-22)
 
 - **A fix batch is never lost under its own work** (batch 9 of EAOS: develop moved while its hand-over ran, a `status`
