@@ -239,7 +239,7 @@ export default {
   'ac.si.open': ['افتح المتصفح', 'Open the browser'],
   'ac.si.notskipped': ['لم يُغيَّر شيء.', 'Nothing was changed.'],
   'ac.q.offline': ['أسئلة التشغيلات في الواجهة الحية فقط.', 'Questions from runs show in the live interface only.'],
-  'ac.q.offline.guide': ['هذه نسخة للقراءة.', 'This is a read-only copy.'],
+  'ac.q.offline.guide': ['الأسئلة تصل من التشغيلات الجارية على جهازك، وهذه النسخة محفوظة من وقت الفحص فلا تتصل بها.', 'Questions come from the runs going on on your computer; this copy was saved at check time, so it does not reach them.'],
   'ac.q.none.guide': ['حين يتوقف تشغيل عند قرار لك وحدك، يظهر سؤاله هنا ويرتفع العدد.', 'When a run stops at a decision only you make, its question shows here and the count rises.'],
   'ac.q.why.other': ['سؤال من مساعدك أثناء العمل: لا يكمل حتى تجيب.', 'A question your assistant asked while working: it does not go on until you answer.'],
   /* opening states */

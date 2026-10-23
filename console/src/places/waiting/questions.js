@@ -47,7 +47,7 @@ function card(q) {
 
 function questionsPage(ctx) {
   const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
-  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.q.offline')}</h1><p class="guide">${t('ac.q.offline.guide')}</p><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
+  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.q.offline')}</h1><p class="guide">${t('ac.q.offline.guide')}</p></div>`;
   const list = live.questions.concat(Object.keys(answered).filter(id => !live.questions.some(q => q.id === id)).map(id => answered[id].question));
   return `<div class="page">
     ${back}
