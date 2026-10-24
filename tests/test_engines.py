@@ -136,7 +136,7 @@ class CorrelationTests(unittest.TestCase):
 
 class EngineClaimTests(unittest.TestCase):
     def test_engine_evidence_becomes_a_claim_only_when_corroborated_and_never_above_its_ceiling(self):
-        from eaos.analysis.claims import from_engines
+        from eaos.analysis.engine_claims import from_engines
         from eaos.analysis.probes import _apply_ceiling
         self.assertEqual(from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
                                                {'enola': evaluated_at(complexity=('observed', 'file'))})), [])

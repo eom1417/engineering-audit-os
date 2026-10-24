@@ -33,17 +33,30 @@ def _row(aspect, key, status, title, detail='', evidence=()):
             'evidence': [e for e in dict.fromkeys(evidence) if e][:8]}
 
 
+def _guard_values(guards):
+    """(guard, whether the call has it) of every has_ value of the resilience policies on a dependency's calls."""
+    return [(k[4:], v) for f in guards for k, v in (f.get('value') or {}).items() if k.startswith('has_')]
+
+
+def _guarded(guards):
+    """(status, the guards missing) of a dependency's calls: a gap when one is missing, ok when every one shows."""
+    values = _guard_values(guards)
+    missing = sorted({k for k, v in values if v is False})
+    return 'gap' if missing else 'ok' if values and all(v is True for _, v in values) else 'unmeasured', missing
+
+
+def _guard_words(status, missing):
+    if missing: return f"Its calls show no {', '.join(m.replace('_', ' ') for m in missing)}."
+    return 'Its calls show a timeout, a retry and a circuit breaker.' if status == 'ok' else 'No call guard could be read for it.'
+
+
 def _dependency_row(dependency, guards):
     """One external dependency: where a fault plan would hit it, who depends on it, and the guards its calls show."""
     name, variable, features = dependency
-    values = [(k[4:], v) for f in guards for k, v in (f.get('value') or {}).items() if k.startswith('has_')]
-    missing = sorted({k for k, v in values if v is False})
-    status = 'gap' if missing else 'ok' if values and all(v is True for _, v in values) else 'unmeasured'
+    status, missing = _guarded(guards)
     detail = (f"A fault plan would put a proxy in front of it ({variable}) and inject {', '.join(TOXICS)}; "
               f"{len(features)} feature(s) depend on it" + (f": {', '.join(features[:5])}" if features else '') + '. '
-              + (f"Its calls show no {', '.join(m.replace('_', ' ') for m in missing)}." if missing else
-                 'Its calls show a timeout, a retry and a circuit breaker.' if status == 'ok' else
-                 'No call guard could be read for it.'))
+              + _guard_words(status, missing))
     return _row('resilience', name, status, f'External dependency {name}', detail, [f.get('id') for f in guards])
 
 
@@ -72,19 +85,29 @@ def _security(report):
     limits = facts(report, 'rate_limit')
     rows = [_scan_row(paths)]
     if not paths: return rows                          # nothing reachable to guard: the scan row says so
-    rows.append(_row('security', 'authentication', 'ok' if auth else 'gap',
-                     'Authentication is declared in the code' if auth else 'No authentication guard was found in the code',
-                     ', '.join(sorted({(f.get('value') or {}).get('hint') for f in auth if (f.get('value') or {}).get('hint')}))[:200],
-                     [f.get('id') for f in auth]))
-    rows.append(_row('security', 'rate_limit', 'ok' if limits else 'gap',
-                     'A rate limit is declared' if limits else 'No rate limit was found in the code or its configuration',
-                     ', '.join(sorted({(f.get('value') or {}).get('mechanism') or '' for f in limits}))[:200], [f.get('id') for f in limits]))
-    return rows
+    return rows + [_authentication_row(auth), _rate_limit_row(limits)]
+
+
+def _authentication_row(auth):
+    return _row('security', 'authentication', 'ok' if auth else 'gap',
+                'Authentication is declared in the code' if auth else 'No authentication guard was found in the code',
+                ', '.join(sorted({(f.get('value') or {}).get('hint') for f in auth if (f.get('value') or {}).get('hint')}))[:200],
+                [f.get('id') for f in auth])
+
+
+def _rate_limit_row(limits):
+    return _row('security', 'rate_limit', 'ok' if limits else 'gap',
+                'A rate limit is declared' if limits else 'No rate limit was found in the code or its configuration',
+                ', '.join(sorted({(f.get('value') or {}).get('mechanism') or '' for f in limits}))[:200], [f.get('id') for f in limits])
+
+
+def _surfaces(report):
+    """Every surface of every feature in features.json."""
+    return [s for f in (_load(Path(report) / 'features.json', {}) or {}).get('features') or [] for s in f.get('surfaces') or []]
 
 
 def _health_row(report):
-    every = [s for f in (_load(Path(report) / 'features.json', {}) or {}).get('features') or [] for s in f.get('surfaces') or []]
-    health = sorted({s for s in every if isinstance(s, str) and any(w in s.lower().split('/')[-1] for w in HEALTH_WORDS)})
+    health = sorted({s for s in _surfaces(report) if isinstance(s, str) and any(w in s.lower().split('/')[-1] for w in HEALTH_WORDS)})
     if health: return _row('observability', 'health', 'ok', f"A health route: {', '.join(health[:3])}", '', ['features.json'])
     return _row('observability', 'health', 'gap', 'No health route a load balancer or uptime check could call',
                 'A running release cannot be checked from outside without one.', ['features.json'])

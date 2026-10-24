@@ -7,10 +7,8 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-from ..core.words import ENGINE_KIND_WORDS, IMPACTS
-from .fact_claims import BUILDERS, engine_measurement
+from .fact_claims import BUILDERS
 from ..core.vocabulary import schema_errors
-from .weaknesses import SECURITY
 from ..core.workspace import DATA, read, write
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
@@ -179,7 +177,8 @@ def from_legacy(findings, model, flows, coverage, revision=None):
 
 def from_facts(fact_sets, target=None):
     """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation; one builder per
-    kind of fact (eaos/analysis/fact_claims.py BUILDERS), numbered in that order.
+    kind of fact (eaos/analysis/fact_claims.py BUILDERS), numbered in that order,
+    then the claims the engines earn (eaos/analysis/engine_claims.py).
 
     ``target`` is the audited root, used to bind a runnable acceptance check to
     a declared-policy violation. It is optional so test fixtures can build a
@@ -191,8 +190,17 @@ def from_facts(fact_sets, target=None):
         claims.append(make(len(claims) + 1, statement, claim_type, confidence, method, [], falsifier, **extra))
         return claims[-1]
 
+    from .engine_claims import from_engines
     for build in BUILDERS: build(fact_sets, add, target)
     return one_card_per_hotspot(claims + from_engines(fact_sets, len(claims)))
+
+
+def _hotspot_of(claim, hotspots):
+    """The hotspot whose file an engines' complexity claim is about, or None."""
+    render = claim.get('render') or {}
+    params = render.get('params') or {}
+    if render.get('key') != 'engine_cluster' or params.get('kind') != 'complexity': return None
+    return hotspots.get(params.get('place'))
 
 
 def one_card_per_hotspot(claims):
@@ -201,10 +209,8 @@ def one_card_per_hotspot(claims):
     hotspots = {c['render']['params']['path']: c for c in claims if (c.get('render') or {}).get('key') == 'hotspot'}
     kept = []
     for claim in claims:
-        render = claim.get('render') or {}
-        params = render.get('params') or {}
-        same = hotspots.get(params.get('place')) if render.get('key') == 'engine_cluster' else None
-        if same is not None and params.get('kind') == 'complexity':
+        same = _hotspot_of(claim, hotspots)
+        if same is not None:
             same['fact_ids'] = sorted(set(same.get('fact_ids') or []) | set(claim.get('fact_ids') or []))
             continue
         kept.append(claim)
@@ -243,117 +249,25 @@ def from_load_model(fact_sets, offset=0):
     return made
 
 
-def _corroborated(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
-    impact_key, measured = engine_measurement(kind, cluster, fact_sets)
-    return {'statement': f"{len(detail['asserted_by'])} محركات مستقلة ({engines}) تبلّغ عن {word} في {cluster['place']}",
-            'confidence': 'LIKELY',
-            'falsifier': ('Show the measurement each engine reports is below the threshold it declares, '
-                          'or that the engines share one implementation and are therefore one witness.'),
-            'impact': {'scenario': IMPACTS['ar'][impact_key].format(**measured)}, 'impact_key': impact_key, 'measured': measured}
+ORDER = {level: index for index, level in enumerate(CONFIDENCE)}
+# The same sentence recorded twice is one claim; the more specific type wins.
+SPECIFICITY = {level: index for index, level in enumerate(
+    ['business_rule', 'contract', 'cause', 'risk', 'flow_step', 'responsibility', 'structure', 'capability_gap', 'cost'])}
 
 
-def _counted(kind, detail, cluster, fact_sets):
-    """One engine counting exactly: too many parameters, nesting too deep, a function too long (finish_line.EXACT)."""
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
-    return {**_corroborated(kind, detail, cluster, fact_sets), 'statement': f"{engines} يعدّ {word} في {cluster['place']}",
-            'falsifier': 'Show that the count the engine states (parameters, nesting depth, lines) is within its threshold.'}
-
-
-def _granularity_gap(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
-    elsewhere = ', '.join(detail['silent_at_another_resolution'])
-    level = ', '.join(detail['asserted_at']) or 'unknown'
-    return {'statement': (f"{engines} يبلّغ عن {word} في {cluster['place']} على مستوى {level}، "
-                          f"و{elsewhere} فحص على مستوى آخر ولم يجدها"),
-            'confidence': 'LIKELY',
-            'falsifier': ('Show that no import inside this package reaches back into it, so the loop '
-                          'does not close at that resolution either.'),
-            'impact': {'scenario': 'الخاصية قائمة عند دقة قياس ومنتفية عند أخرى؛ القرار يتبع الدقة التي تهمّ المشروع.'},
-            'impact_key': None, 'measured': {}}
-
-
-def _contested(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
-    denied = ', '.join(detail['denied_by'])
-    return {'statement': (f"{engines} يبلّغ عن {word} في {cluster['place']}، و{denied} فحص الخاصية نفسها ولم يجدها"),
-            'confidence': 'HYPOTHESIS',
-            'falsifier': ('Resolve the contradiction: exhibit the edges that close the cycle in the source, '
-                          'or show the asserting engine inferred an edge no import supports.'),
-            'impact': {'scenario': 'محركان يتناقضان في خاصية بنيوية؛ أحدهما مخطئ ولا يصح البناء على أي منهما قبل الحسم.'},
-            'impact_key': None, 'measured': {}}
-
-
-def _engine_claim(index, kind, cluster, detail, said, finish=(None, None)):
-    """The claim of one kind at one place, from what its verdict says. With a finish line (`finish`: the targets and the
-    engines that state them, complexity) its probe judges exactly those targets, and only those engines are run again: a
-    branch count is EAOS's own; with none left to clear (only sizes, or scores EAOS counts within the limit) it is a
-    hypothesis for the person, never work a batch cannot finish."""
-    (finish, judges), engines, impact_key = finish, ', '.join(detail['asserted_by']), said['impact_key']
-    confidence = 'HYPOTHESIS' if finish == [] else said['confidence']
-    return make(index, said['statement'][:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
-                confidence, ['external_engine'], [],
-                said['falsifier'], fact_ids=cluster['fact_ids_by_kind'][kind], confidence_ceiling=confidence,
-                render={'key': 'engine_cluster',
-                        'params': {'place': cluster['place'], 'kind': kind,
-                                   'engines': engines, 'verdict': detail['verdict'],
-                                   **said['measured'], **({'impact_key': impact_key} if impact_key else {})}},
-                probe_spec={'probe_type': 'graph_query',
-                            'specification': {'query': 'engine_cluster_present',
-                                              'engines': detail['asserted_by'] if judges is None else judges,
-                                              'place': cluster['place'], 'kind': kind,
-                                              **({'targets': finish} if finish else {}),
-                                              'expected': 'The same engines still report this kind at this place.'}},
-                impact=said['impact'])
-
-
-def from_engines(fact_sets, offset=0):
-    """External evidence becomes a claim only when it has earned one.
-
-    Two independent engines agreeing is worth a LIKELY claim that a probe can raise. One engine
-    contradicted by another that fully evaluated the same property is worth a HYPOTHESIS that a
-    probe must settle. One engine speaking alone is left as a fact: promoting it would flood the
-    ledger with 586 findings and teach a reader to ignore it. Except a count it states exactly (M2.2): a function with
-    eight parameters has eight whoever counts them, so that count alone is a claim, on those targets only.
-    """
-    from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP, SINGLE
-    if not fact_sets.get('external'):
-        return []
-    says = {CORROBORATED: _corroborated, GRANULARITY_GAP: _granularity_gap, CONTESTED: _contested}
-    made, index = [], offset
-    for cluster in clusters(fact_sets):
-        for kind, detail in sorted(cluster['corroboration'].items()):
-            # Security findings are cards of their own, alone or agreed (eaos/analysis/weaknesses.py), a vulnerable dependency too;
-            # dead code EAOS's own detector also reports is its card (fact_claims.dead_code), not a second one.
-            counted = detail['verdict'] == SINGLE and kind == 'complexity'
-            if kind in SECURITY or (kind == 'dead_code' and 'eaos' in detail['asserted_by']) \
-                    or not (detail['verdict'] in says or counted):
-                continue
-            finish = _finish(kind, cluster, fact_sets, exact=counted)
-            if counted and not finish[0]: continue
-            index += 1
-            said = (_counted if counted else says[detail['verdict']])(kind, detail, cluster, fact_sets)
-            made.append(_engine_claim(index, kind, cluster, detail, said, finish))
-    return made
-
-
-def _finish(kind, cluster, fact_sets, exact=False):
-    """(finish line, the engines that judge it) of a complexity claim (eaos/analysis/finish_line.py), (None, None) for another kind.
-    `exact`: only the counts an engine states exactly."""
-    if kind != 'complexity': return None, None
-    from .finish_line import EXACT, judges, targets
-    facts = {f['id']: f for f in (fact_sets.get('external') or {}).get('facts') or []}
-    rows = [facts[i] for i in cluster['fact_ids_by_kind'][kind] if i in facts]
-    found = targets([f for f in rows if f['value'].get('rule') in EXACT] if exact else rows, fact_sets)
-    return found, judges(found, rows) if found else None
+def _absorb(existing, claim):
+    """A second record of the same claim joins the first: its sources added, the higher confidence and the more
+    specific type kept."""
+    existing['evidence_ids'] = sorted(set(existing.get('evidence_ids', []) + claim.get('evidence_ids', [])))
+    existing['fact_ids'] = sorted(set(existing.get('fact_ids', []) + claim.get('fact_ids', [])))
+    existing['method'] = sorted(set(existing['method'] + claim['method']))
+    if ORDER[claim['confidence']] < ORDER[existing['confidence']]: existing['confidence'] = claim['confidence']
+    if SPECIFICITY[claim['claim_type']] < SPECIFICITY[existing['claim_type']]: existing['claim_type'] = claim['claim_type']
+    if claim.get('legacy_id'): existing['legacy_ids'] = sorted(set(existing.get('legacy_ids', []) + [claim['legacy_id']]))
 
 
 def merge(claims):
     """Two records asserting the same thing are one claim with two sources, not two claims."""
-    order = {level: index for index, level in enumerate(CONFIDENCE)}
-    # The same sentence recorded twice is one claim; the more specific type wins.
-    specificity = {level: index for index, level in enumerate(
-        ['business_rule', 'contract', 'cause', 'risk', 'flow_step', 'responsibility', 'structure', 'capability_gap', 'cost'])}
     grouped = {}
     for claim in claims:
         key = (' '.join(claim['statement'].split()).lower(),
@@ -363,12 +277,7 @@ def merge(claims):
             grouped[key] = dict(claim)
             if claim.get('legacy_id'): grouped[key]['legacy_ids'] = [claim['legacy_id']]
             continue
-        existing['evidence_ids'] = sorted(set(existing.get('evidence_ids', []) + claim.get('evidence_ids', [])))
-        existing['fact_ids'] = sorted(set(existing.get('fact_ids', []) + claim.get('fact_ids', [])))
-        existing['method'] = sorted(set(existing['method'] + claim['method']))
-        if order[claim['confidence']] < order[existing['confidence']]: existing['confidence'] = claim['confidence']
-        if specificity[claim['claim_type']] < specificity[existing['claim_type']]: existing['claim_type'] = claim['claim_type']
-        if claim.get('legacy_id'): existing['legacy_ids'] = sorted(set(existing.get('legacy_ids', []) + [claim['legacy_id']]))
+        _absorb(existing, claim)
     merged = []
     for claim in grouped.values():
         if not claim.get('fact_ids'): claim.pop('fact_ids', None)

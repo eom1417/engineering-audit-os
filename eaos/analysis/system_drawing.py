@@ -122,15 +122,26 @@ def svg_edge(e, place, rtl):
     return f'<path d="{d}" class="sm-edge k-{e["kind"]}" style="stroke-width:{width:.1f}" data-from="{esc(e["from"])}" data-to="{esc(e["to"])}"/>'
 
 
+def _clip(text, room):
+    """The text, cut to the room with an ellipsis when it is longer."""
+    return text if len(text) <= room else text[:room - 1] + '…'
+
+
+def _spans(tag, first, second):
+    """A box's text: its tag (an API's method), its name, and its second line."""
+    return ((f'<tspan class="sm-tag t-{METHOD_CLASS.get(tag, "any")}">{esc(tag)} </tspan>' if tag else '')
+            + f'<tspan class="sm-l">{esc(first)}</tspan>' + (f'<tspan class="sm-s"> {esc(second)}</tspan>' if second else ''))
+
+
 def _node(place, rtl, i, c, first, second='', cls='', tip='', search='', tag='', words=False):
     """One box: its tag (an API's method), its name fitted to the column, and a second line when there is room."""
     x, y = _x(c, rtl), place[i][1]
     tx, anchor = (x + COLUMNS[c][1] - 7, 'start' if words else 'end') if rtl else (x + 7, 'start')
     space = int((COLUMNS[c][1] - 14) / 6.5) - len(tag) - (1 if tag else 0)
-    first = (first if len(first) <= space else first[:space - 1] + '…') if words else fit(first, max(space, 8))
+    first = _clip(first, space) if words else fit(first, max(space, 8))
     room2 = space - len(first) - 1
-    second = (second if len(second) <= room2 else second[:room2 - 1] + '…') if second and room2 > 4 else ''
-    spans = (f'<tspan class="sm-tag t-{METHOD_CLASS.get(tag, "any")}">{esc(tag)} </tspan>' if tag else '') + f'<tspan class="sm-l">{esc(first)}</tspan>' + (f'<tspan class="sm-s"> {esc(second)}</tspan>' if second else '')
+    second = _clip(second, room2) if second and room2 > 4 else ''
+    spans = _spans(tag, first, second)
     return (f'<g class="sm-node {cls}" data-node="{esc(i)}" data-search="{esc(search.lower())}" tabindex="0"><title data-literal="1">{esc(tip or first)}</title>'
             f'<rect x="{x}" y="{y:.1f}" width="{COLUMNS[c][1]}" height="{BOX_H}" rx="5"/>'
             f'<text x="{tx}" y="{y + 13:.1f}" text-anchor="{anchor}" direction="{"rtl" if words and rtl else "ltr"}" data-literal="1">{spans}</text></g>')
@@ -144,12 +155,16 @@ def svg_nodes(sm, place, rtl):
         tip = f'{p["route"]} → {p["component"]} ({p["file"]})'
         out.append(node(p['id'], 0, p['route'], p['component'], 'n-page' + ('' if p['traced'] else ' untraced'), tip, f'{p["route"]} {p["component"]} {p["file"]}'))
     out += [node(c['id'], 0, c['short'], '', 'n-caller', c['path'], c['path']) for c in sm['callers']]
-    for a in sm['apis']:
-        cls = 'n-api' + ('' if a['handlers'] else ' unknown') + ('' if a['exact'] or not a['handlers'] else ' guessed')
-        out.append(node(a['id'], 1, a['path'], '', cls, a['key'], a['key'] + ' ' + ' '.join(a['features']), a['method']))
+    out += [_api_node(node, a) for a in sm['apis']]
     out += [node(h['id'], 2, h['short'], '', 'n-handler' + ('' if h['apis'] else ' idle'), h['path'], h['path']) for h in sm['handlers']]
     out += [node(mo['id'], 3, mo['short'], '', 'n-module', mo['name'], mo['name']) for mo in sm['modules']]
     return out + [_data_node(node, d, rtl) for d in sm['data']]
+
+
+def _api_node(node, a):
+    """An API, its method as its tag: unknown when no handler answers it, guessed when one does only by its file name."""
+    cls = 'n-api' + ('' if a['handlers'] else ' unknown') + ('' if a['exact'] or not a['handlers'] else ' guessed')
+    return node(a['id'], 1, a['path'], '', cls, a['key'], a['key'] + ' ' + ' '.join(a['features']), a['method'])
 
 
 def _data_node(node, d, rtl):
@@ -181,11 +196,16 @@ def _shape(node_id, label):
     return form.format(str(label).replace('"', "'"))
 
 
+def _reaches(sm, drawn):
+    """The tables and services each drawn handler reaches, when they are drawn too, sorted."""
+    handler_data = {(h['id'], d) for h in sm['handlers'] for d in ['T:' + t for t in h['tables']] + ['S:' + s for s in h['services']]}
+    return sorted((a, b, 'reaches') for a, b in handler_data if a in drawn and b in drawn)
+
+
 def _mermaid_edges(sm, drawn):
     """The links between drawn boxes, each pair once, in the order of importance."""
     edges = [(e['from'], e['to'], EDGE_WORDS.get(e['kind'], '')) for e in sm['edges'] if e['from'] in drawn and e['to'] in drawn]
-    handler_data = {(h['id'], d) for h in sm['handlers'] for d in ['T:' + t for t in h['tables']] + ['S:' + s for s in h['services']]}
-    edges += sorted((a, b, 'reaches') for a, b in handler_data if a in drawn and b in drawn)
+    edges += _reaches(sm, drawn)
     rank = lambda edge: EDGE_ORDER.index(edge[2]) if edge[2] in EDGE_ORDER else len(EDGE_ORDER)
     return sorted({(a, b): (a, b, w) for a, b, w in edges}.values(), key=rank)
 

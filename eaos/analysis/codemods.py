@@ -201,12 +201,17 @@ def _upgrade_card(fact, target):
     # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
     folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
     if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
-    # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
-    # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it.
-    folders = [folder] + [where for where in _lock_folders_with(target, package, rest.rpartition('@')[2]) if where != folder]
-    folders = [where for where in folders if (Path(target) / where / 'package.json').is_file()]
+    folders = _upgrade_folders(target, folder, package, rest.rpartition('@')[2])
     return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': _direct_in(target, folder, package), 'folder': folder,
             'folders': [(where, _direct_in(target, where, package)) for where in folders]}
+
+
+def _upgrade_folders(target, folder, package, version):
+    """The folder of the lock file the scanner read, then the others holding the same version, each with a package.json."""
+    # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
+    # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it.
+    folders = [folder] + [where for where in _lock_folders_with(target, package, version) if where != folder]
+    return [where for where in folders if (Path(target) / where / 'package.json').is_file()]
 
 
 def _lock_folders_with(target, package, version):
@@ -224,13 +229,18 @@ def _lock_folders_with(target, package, version):
 MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')
 
 
-def attach(tasks, out, target):
-    """Give every mechanical card its codemod, dry-run on an isolated copy; returns how many were attached."""
+def _codemod_cards(tasks, out, target):
+    """(task, codemod) of every mechanical card whose family has a tool."""
     from ..facts.store import by_id
     mechanical = [task for task in tasks if task.get('pattern') in MECHANICAL]
     facts_by_id = by_id(out, {i for task in mechanical for i in (task.get('evidence') or {}).get('fact_ids') or []})
     cards = [(task, card_for(task, facts_by_id, target)) for task in mechanical]
-    cards = [(task, card) for task, card in cards if card]
+    return [(task, card) for task, card in cards if card]
+
+
+def attach(tasks, out, target):
+    """Give every mechanical card its codemod, dry-run on an isolated copy; returns how many were attached."""
+    cards = _codemod_cards(tasks, out, target)
     if not cards: return 0
     from ..live.verify import isolated_copy
     holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))

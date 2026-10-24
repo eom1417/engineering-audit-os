@@ -184,32 +184,47 @@ def _existing(target, prefix):
 def _observed_in_facts(facts):
     tests = [f for f in facts['source_file'] if (f.get('value') or {}).get('category') == 'test']
     env_files = sorted({f['location']['path'] for f in facts['env_read']})
-    secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')]
-    tables = [f for f in facts['data_table'] if 'rls_enabled' in (f.get('value') or {})]
     return {
         'ci': (bool(facts['ci_step']), f"{len(facts['ci_step'])} CI step(s) in the repository"),
         'configuration': (len(env_files) <= 1, f"the environment is read in {len(env_files)} file(s)"
                           + (f": {', '.join(env_files[:4])}" if env_files else '')),
         'tests': (bool(tests), f"{len(tests)} test file(s)"),
         'observability': (bool(facts['observability_signal']), f"{len(facts['observability_signal'])} observability signal(s)"),
-        'secrets': (not secrets, f"{len(secrets)} secret-class credential(s) committed"),
-        'identity': (bool(tables) and all(f['value']['rls_enabled'] for f in tables),
-                     f"{sum(1 for f in tables if f['value']['rls_enabled'])} of {len(tables)} tables with row-level security"),
+        'secrets': _secrets_item(facts),
+        'identity': _identity_item(facts),
     }
+
+
+def _secrets_item(facts):
+    """(present, evidence) of the secrets item: no secret-class credential is committed."""
+    secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')]
+    return not secrets, f"{len(secrets)} secret-class credential(s) committed"
+
+
+def _identity_item(facts):
+    """(present, evidence) of the identity item: every table declares row-level security."""
+    tables = [f for f in facts['data_table'] if 'rls_enabled' in (f.get('value') or {})]
+    return (bool(tables) and all(f['value']['rls_enabled'] for f in tables),
+            f"{sum(1 for f in tables if f['value']['rls_enabled'])} of {len(tables)} tables with row-level security")
 
 
 def _observed_in_files(exists, files):
     bots, migrations, hosting = exists(*DEPENDENCY_BOTS), exists(*MIGRATIONS), exists(*HOSTING)
-    schema = next((p for p in files if re.search(r'(supabase/types\.ts|openapi\.|schema\.prisma|alembic/)', p)), None)
-    backup = next((p for p in files if 'backup' in p.lower()), None)
     return {
         'dependencies': (bool(bots), 'renovate or dependabot configuration: ' + (', '.join(bots) or 'none')),
         'migrations': (bool(migrations), 'migrations folder: ' + (', '.join(migrations) or 'none')),
-        'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p) for p in files),
-                 'typed schema source: ' + (schema or 'none')),
-        'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (backup or 'none')),
+        **_observed_in_code(files),
         'hosting': (bool(hosting), 'hosting configuration: ' + (', '.join(hosting) or 'none')),
     }
+
+
+def _observed_in_code(files):
+    """The data and backup items: a typed schema source, and code that backs the data up."""
+    schema = next((p for p in files if re.search(r'(supabase/types\.ts|openapi\.|schema\.prisma|alembic/)', p)), None)
+    backup = next((p for p in files if 'backup' in p.lower()), None)
+    return {'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p) for p in files),
+                     'typed schema source: ' + (schema or 'none')),
+            'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (backup or 'none'))}
 
 
 def _baseline_items(reference):
@@ -246,9 +261,7 @@ def project(out, target=None):
     placed = place(files, features, reference)
     edges = [(path, sink) for path, node in nodes.items() for sink in node.get('depends_on') or []]
     bad = forbidden(edges, placed, reference)
-    known = {'measured': {row['path']: row for row in (_load(out / 'measurements.json', {}) or {}).get('files') or []},
-             'unreachable': {f['location']['path'] for f in facts['engine_finding'] if (f.get('value') or {}).get('rule') == 'unreachable-module'},
-             'critical': _critical_by_file(out)}
+    known = _known(out, facts)
     components = _target_components(features, placed, reference, reference_id)
     _fill_components(components, placed, bad, reference)
     rules = json.loads(RULES.read_text(encoding='utf-8'))
@@ -257,6 +270,14 @@ def project(out, target=None):
             'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad,
             'current': _current_packages(files, placed, reference, bad, known, rules),
             'infrastructure': infrastructure(reference, facts, target, files, prefix)}
+
+
+def _known(out, facts):
+    """What decides a package's disposition beside its placement: each file's measurements, the unreachable modules,
+    the critical debt items per file."""
+    return {'measured': {row['path']: row for row in (_load(out / 'measurements.json', {}) or {}).get('files') or []},
+            'unreachable': {f['location']['path'] for f in facts['engine_finding'] if (f.get('value') or {}).get('rule') == 'unreachable-module'},
+            'critical': _critical_by_file(out)}
 
 
 def _reference_of(out, target):
@@ -303,13 +324,16 @@ def _fill_components(components, placed, bad, reference):
         component['paths'] = members[:50]
 
 
+def _measured_stats(members, measured):
+    """A package's largest file complexity and its lines copied elsewhere."""
+    return {'complexity_max': max([measured.get(p, {}).get('complexity_max') or 0 for p in members] or [0]),
+            'duplicated_lines': sum(measured.get(p, {}).get('duplicated_lines') or 0 for p in members)}
+
+
 def _package_stats(members, placed, reference, bad, known):
     moved = sum(moves(p, placed[p][0], placed[p][1], reference) for p in members)
-    measured = known['measured']
     return {'files': len(members), 'moved': moved, 'moved_share': moved / len(members),
-            'forbidden': sum(1 for source, _ in bad if source in members),
-            'complexity_max': max([measured.get(p, {}).get('complexity_max') or 0 for p in members] or [0]),
-            'duplicated_lines': sum(measured.get(p, {}).get('duplicated_lines') or 0 for p in members),
+            'forbidden': sum(1 for source, _ in bad if source in members), **_measured_stats(members, known['measured']),
             'unreachable': sum(1 for p in members if p in known['unreachable']),
             'critical': sum(known['critical'][p] for p in members)}
 

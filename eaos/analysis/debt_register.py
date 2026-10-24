@@ -109,30 +109,47 @@ def _witnesses_same(fact, category, paths, packages):
         return value.get('kind') == 'secret' and (fact.get('location') or {}).get('path') in paths
     if category != 'supply_chain' or value.get('kind') != 'vulnerability' or value.get('engine') == 'osv-scanner':
         return False
+    return _names_a_package(value, packages)
+
+
+def _names_a_package(value, packages):
+    """Whether a finding's message names one of the packages."""
     message = (value.get('message') or '') + ' '
     return any(package and package + ' ' in message for package in packages)
+
+
+def _packages(facts):
+    """The packages of the vulnerability findings among the facts."""
+    return {str((f.get('location') or {}).get('symbol', '')).split(':', 1)[-1].rsplit('@', 1)[0]
+            for f in facts if (f.get('value') or {}).get('kind') == 'vulnerability'}
 
 
 def _second_witnesses(facts, all_facts, category):
     """Other tools reporting the same thing at the same place: a scanner's secret on a committed key's file,
     a scanner's vulnerability on the same package."""
-    paths = {(f.get('location') or {}).get('path') for f in facts}
-    packages = {str((f.get('location') or {}).get('symbol', '')).split(':', 1)[-1].rsplit('@', 1)[0]
-                for f in facts if (f.get('value') or {}).get('kind') == 'vulnerability'}
+    paths, packages = {(f.get('location') or {}).get('path') for f in facts}, _packages(facts)
     return [fact for fact in all_facts.values()
             if fact.get('kind') == 'engine_finding' and fact not in facts and _witnesses_same(fact, category, paths, packages)]
 
 
-def _severity(claim, key, default, facts):
-    params = (claim.get('render') or {}).get('params') or {}
+def _severity(claim, key, default):
     # Archived code does not run: whatever it breaks is a leftover to remove, not a product defect.
     if claim.get('origin') == 'archive' and key != 'vulnerable_dependency': return 'low'
-    if key in ('vulnerable_dependency', 'security_weakness'): return params.get('severity') or 'medium'
+    if key in ('vulnerable_dependency', 'security_weakness'): return _stated_severity(claim)
     if key == 'broken_code': return 'high' if claim.get('claim_type') == 'risk' else 'medium'
-    if key == 'engine_cluster':
-        kind = ((claim.get('probe_spec') or {}).get('specification') or {}).get('kind')
-        return ENGINE_KINDS.get(kind, ('maintainability', 'medium'))[1]
+    if key == 'engine_cluster': return _cluster_severity(claim)
     return default or 'medium'
+
+
+def _stated_severity(claim):
+    """The severity the finding states itself (an advisory's, a scanner's), else medium."""
+    return ((claim.get('render') or {}).get('params') or {}).get('severity') or 'medium'
+
+
+def _cluster_severity(claim):
+    """An engine cluster's severity, by its kind of finding."""
+    kind = ((claim.get('probe_spec') or {}).get('specification') or {}).get('kind')
+    return ENGINE_KINDS.get(kind, ('maintainability', 'medium'))[1]
 
 
 def _witness_rows(evidence):
@@ -153,23 +170,29 @@ def _credentials_at(evidence, all_facts):
     return [f for f in all_facts.values() if f.get('kind') == 'committed_credential' and (f.get('location') or {}).get('path') in places]
 
 
+def _with_credentials(evidence, all_facts, severity):
+    """(evidence, severity) of a scanner's secret cluster with the committed credentials on its files: the key family
+    decides, not the scanner's pattern (EAOS reads what kind of key it is)."""
+    credentials = _credentials_at(evidence, all_facts)
+    families = [(f.get('value') or {}).get('severity') for f in credentials]
+    if families: severity = 'low' if all(CREDENTIAL_SEVERITY.get(x) == 'low' for x in families) else 'critical'
+    return evidence + credentials, severity
+
+
+def _probe_witnesses(probes):
+    return [{'tool': 'eaos.probe', 'finding_id': probe['id'], 'kind': 'probe'} for probe in probes if probe.get('status') == 'CONFIRMED']
+
+
 def _item(claim, facts, all_facts, probes):
     render = claim.get('render') or {}
     specification = (claim.get('probe_spec') or {}).get('specification') or {}
     key = render.get('key') or ('cycle' if specification.get('query') == 'cycle_present' else None)
     kind = specification.get('kind')
     category, facts = _category(key, kind, facts)
-    severity = _severity(claim, key, KEYS.get(key, (None, None))[1], facts)
+    severity = _severity(claim, key, KEYS.get(key, (None, None))[1])
     evidence = facts + _second_witnesses(facts, all_facts, category)
-    if key == 'engine_cluster' and kind == 'secret':
-        # The key family decides, not the scanner's pattern: EAOS reads what kind of key it is.
-        credentials = _credentials_at(evidence, all_facts)
-        evidence += credentials
-        families = [(f.get('value') or {}).get('severity') for f in credentials]
-        if families: severity = 'low' if all(CREDENTIAL_SEVERITY.get(x) == 'low' for x in families) else 'critical'
-    witnesses = _witness_rows(evidence)
-    witnesses += [{'tool': 'eaos.probe', 'finding_id': probe['id'], 'kind': 'probe'}
-                  for probe in probes.get(claim['id'], []) if probe.get('status') == 'CONFIRMED']
+    if key == 'engine_cluster' and kind == 'secret': evidence, severity = _with_credentials(evidence, all_facts, severity)
+    witnesses = _witness_rows(evidence) + _probe_witnesses(probes.get(claim['id'], []))
     return {'title': claim['statement'], 'category': category, 'severity': severity, 'witnesses': witnesses,
             'files': _files(evidence), 'impact': (claim.get('impact') or {}).get('scenario') or claim.get('falsifier', ''),
             'recommendation': RECOMMENDATIONS[category], 'claim_id': claim['id'], 'priority': claim.get('priority')}
@@ -228,17 +251,21 @@ def _facts(out, claims):
     return {**by_id(out, {i for claim in claims for i in claim.get('fact_ids') or []}), **witnesses}
 
 
+def _unclaimed_credentials(claims, items, all_facts):
+    """The committed credentials no claim or item holds: each is an item of its own."""
+    # A credential already witnessing an item (the scanners' secret cluster on its file) is that item, not a second one.
+    claimed = {i for claim in claims for i in claim.get('fact_ids') or []}
+    claimed |= {w['finding_id'] for item in items for w in item['witnesses']}
+    return [fact for fact in all_facts.values() if fact.get('kind') == 'committed_credential' and fact['id'] not in claimed]
+
+
 def build(out, dossier):
     out = Path(out)
     claims = dossier.get('claims') or []
     all_facts = _facts(out, claims)
     heat = hotspots(_load(out / 'measurements.json', {}))
     items = _claim_items(claims, all_facts, _probes(out))
-    # A credential already witnessing an item (the scanners' secret cluster on its file) is that item, not a second one.
-    claimed = {i for claim in claims for i in claim.get('fact_ids') or []}
-    claimed |= {w['finding_id'] for item in items for w in item['witnesses']}
-    items += [_credential_item(fact, all_facts) for fact in all_facts.values()
-              if fact.get('kind') == 'committed_credential' and fact['id'] not in claimed]
+    items += [_credential_item(fact, all_facts) for fact in _unclaimed_credentials(claims, items, all_facts)]
     for item in items: _settle(item, heat)
     # Severity first; within a level, the claim's declared priority (reach x confidence x origin / cost, which
     # ranks product code above fixtures), then how hot the place is.
