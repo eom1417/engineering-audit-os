@@ -6,9 +6,7 @@
   "eaos/interfaces/mcp_server.py::_check_tools": 108,
   "eaos/interfaces/mcp_server.py::_fix_tools": 190,
   "eaos/journeys/agent_tools/fixing.py::_fix_start_job": 57,
-  "eaos/report/target_architecture.py::_adr": 68,
-  "tools/studio_synthetic.py::build": 54,
-  "tools/studio_synthetic.py::synthetic_pipeline": 53
+  "eaos/report/target_architecture.py::_adr": 68
  },
  "functions": {
   "eaos/analysis/arch_map.py::_flow_chart": 20,
@@ -30,21 +28,6 @@
   "eaos/analysis/system_map.py::_link_callers": 18,
   "eaos/analysis/system_map.py::component_file": 18,
   "eaos/analysis/target_projection.py::_observed_in_facts": 16,
-  "eaos/facts/deadcode.py::run": 19,
-  "eaos/facts/frameworks/http_access.py::extract_calls": 17,
-  "eaos/facts/graph.py::run": 16,
-  "eaos/facts/pipeline_code.py::_context_use": 24,
-  "eaos/facts/pipeline_code.py::_drivers": 16,
-  "eaos/facts/pipeline_code.py::_stage_call": 21,
-  "eaos/facts/pipeline_code.py::orchestrators": 21,
-  "eaos/facts/pipeline_code.py::phases": 27,
-  "eaos/facts/pipeline_frameworks.py::_read_jobs": 16,
-  "eaos/facts/pipeline_frameworks.py::_task_options": 21,
-  "eaos/facts/pipeline_frameworks.py::celery": 24,
-  "eaos/facts/pipeline_frameworks.py::json_exports": 17,
-  "eaos/facts/pipeline_frameworks.py::luigi": 19,
-  "eaos/facts/pipeline_frameworks.py::npm_scripts": 17,
-  "eaos/facts/resolve.py::_matches": 17,
   "eaos/interfaces/menu.py::_check_order": 17,
   "eaos/interfaces/studio/__init__.py::Actions.decide": 18,
   "eaos/interfaces/studio/branches/deleting.py::Deleting._cleanup_plan": 24,
@@ -98,14 +81,10 @@
   "eaos/report/target_architecture.py::current_gap": 17,
   "eaos/report/target_architecture.py::gap_matrix": 17,
   "eaos/report/target_architecture.py::protected_paths": 18,
-  "eaos/report/target_architecture.py::reconcile": 16,
-  "tools/studio_synthetic.py::synthetic_ideal": 17,
-  "tools/studio_synthetic.py::synthetic_pipeline": 25,
-  "tools/validate.py::packaged_errors": 16
+  "eaos/report/target_architecture.py::reconcile": 16
  },
  "modules": {
-  "eaos/interfaces/studio/runs.py": 720,
-  "tools/make_contracts.py": 708
+  "eaos/interfaces/studio/runs.py": 720
  },
  "parameters": {
   "eaos/ai/headless.py::ask": 7,
@@ -148,16 +127,16 @@
   "eaos/facts/__init__.py::make": 8,
   "eaos/facts/broken.py::_fact": 8,
   "eaos/facts/deadcode.py::_finding": 10,
-  "eaos/facts/deadcode.py::_walk": 6,
+  "eaos/facts/deadcode_reach.py::_walk": 6,
   "eaos/facts/flows.py::_resolve_handler": 6,
   "eaos/facts/flows.py::resolve_callee": 7,
   "eaos/facts/flows.py::run": 8,
   "eaos/facts/flows.py::trace": 7,
   "eaos/facts/graph.py::run": 6,
   "eaos/facts/history.py::extract": 8,
-  "eaos/facts/pipeline_code.py::_context_channel": 6,
   "eaos/facts/pipeline_code.py::_declare": 6,
   "eaos/facts/pipeline_code.py::_declared_sequence": 7,
+  "eaos/facts/pipeline_context.py::_context_channel": 6,
   "eaos/facts/pipeline_frameworks.py::_branch_operator": 7,
   "eaos/facts/pipeline_frameworks.py::_callable": 8,
   "eaos/facts/pipeline_frameworks.py::_canvas": 7,
@@ -234,9 +213,9 @@
   "eaos/report/studio/territory.py::_lay_row": 6,
   "eaos/report/studio/territory.py::_move": 7,
   "eaos/report/studio/territory.py::_spot": 7,
-  "tools/studio_synthetic.py::_Graph.node": 6,
-  "tools/studio_synthetic.py::_synthetic_call": 7,
-  "tools/studio_synthetic.py::_synthetic_page": 6,
-  "tools/studio_synthetic.py::synthetic_paths": 6
+  "tools/studio_synthetic_maps.py::_Graph.node": 6,
+  "tools/studio_synthetic_maps.py::_synthetic_call": 7,
+  "tools/studio_synthetic_maps.py::_synthetic_page": 6,
+  "tools/studio_synthetic_maps.py::synthetic_paths": 6
  }
 }
