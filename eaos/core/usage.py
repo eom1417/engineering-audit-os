@@ -60,10 +60,19 @@ def total(rows):
     """The sum of several calls' use: tokens, cost (None when no call gave one), time, turns, calls and models."""
     rows = [r for r in rows if r]
     if not rows: return None
-    costs = [r['cost_usd'] for r in rows if isinstance(r.get('cost_usd'), (int, float))]
     return {**{field: sum(r.get(field) or 0 for r in rows) for field in TOKENS + ('duration_ms', 'turns')},
-            'cost_usd': round(sum(costs), 4) if costs else None, 'calls': sum(r.get('calls', 1) for r in rows),
-            'models': sorted({m for r in rows for m in r.get('models') or ()})}
+            'cost_usd': _cost(rows), 'calls': sum(r.get('calls', 1) for r in rows), 'models': _models(rows)}
+
+
+def _cost(rows):
+    """The calls' summed cost, or None when no call gave one."""
+    costs = [r['cost_usd'] for r in rows if isinstance(r.get('cost_usd'), (int, float))]
+    return round(sum(costs), 4) if costs else None
+
+
+def _models(rows):
+    """Every model the calls used, sorted."""
+    return sorted({m for r in rows for m in r.get('models') or ()})
 
 
 def of_check(report):

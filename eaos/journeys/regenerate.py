@@ -43,7 +43,7 @@ def _bring_back(root, copy):
     """Every file the build changed in `copy` that git keeps in `root`, written there; tracked files it removed,
     removed. The copy started as exactly the tracked files of `root`'s commit (eaos/live/sandbox.py committed_copy)."""
     tracked = set(git(root, 'ls-files').stdout.splitlines())
-    made = [str(p.relative_to(copy)) for p in copy.rglob('*') if p.is_file() and not {'node_modules', '.git'} & set(p.relative_to(copy).parts)]
+    made = _files(copy)
     ignored = set(subprocess.run(['git', '-C', str(root), 'check-ignore', '--stdin'], input='\n'.join(made),
                                  capture_output=True, text=True).stdout.splitlines())
     changed = [rel for rel in made if rel not in ignored and (rel not in tracked or (root / rel).read_bytes() != (copy / rel).read_bytes())]
@@ -53,3 +53,8 @@ def _bring_back(root, copy):
     gone = [rel for rel in tracked - set(made) if not Path(rel).name.startswith('.env')]
     for rel in gone: (root / rel).unlink(missing_ok=True)
     return changed + gone
+
+
+def _files(copy):
+    """Every file of `copy`, relative to it, outside node_modules and .git."""
+    return [str(p.relative_to(copy)) for p in copy.rglob('*') if p.is_file() and not {'node_modules', '.git'} & set(p.relative_to(copy).parts)]

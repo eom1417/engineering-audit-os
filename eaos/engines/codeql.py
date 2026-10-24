@@ -14,12 +14,12 @@ import json
 import re
 import shutil
 import subprocess
-import urllib.request
 from pathlib import Path
 
 from . import sarif, tool
 from .contract import ERROR, NOT_APPLICABLE, OBSERVED, Capability, Report
 from .process import run, which
+from ..core.web import opened
 
 NAME = BINARY = 'codeql'
 PINNED = tool.pinned(NAME)
@@ -41,8 +41,7 @@ def capabilities():
     return [Capability('vulnerability', '*/security/*'), Capability('secret', '*/credentials*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def license_of(target):
@@ -64,7 +63,7 @@ def public_repository(target):
     found = GITHUB.search(url)
     if not found: return None
     try:
-        with urllib.request.urlopen(f"https://api.github.com/repos/{found.group('repo')}", timeout=20) as response:  # nosec B310: GitHub's https API
+        with opened(f"https://api.github.com/repos/{found.group('repo')}", timeout=20) as response:
             data = json.loads(response.read())
     except (OSError, ValueError):
         return None                     # a private repository answers 404 to a visitor; no answer is no permission
@@ -84,17 +83,12 @@ def allowed(target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
     permitted, why = allowed(target)
     if not permitted: return Report(NAME, found, PINNED, NOT_APPLICABLE, reason=why)
-    workdir = Path(workdir) / NAME
-    if workdir.exists(): shutil.rmtree(workdir)
-    workdir.mkdir(parents=True)
-    config = workdir / 'codeql-config.yml'
-    ignored = [name.strip('/') for name in EXCLUDED + tuple(exclude) if name.strip('/')]
-    config.write_text('paths-ignore:\n' + ''.join(f"  - '{name}'\n  - '**/{name}'\n" for name in ignored), encoding='utf-8')
+    workdir = tool.folder(workdir, NAME, fresh=True)
+    config, ignored = _config(workdir, exclude)
     files = _files(target, ignored)
     findings, unmapped, seconds, outputs = [], {}, 0.0, {}
     for language, suffixes in LANGUAGES.items():
@@ -102,14 +96,21 @@ def analyze(target, workdir, exclude=(), formats=None):
         output, spent, problem = _language(target, workdir, config, language)
         seconds += spent
         if problem: return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=f'{language}: {problem}')
-        sarif.relativise(output, target)
-        more, missed = sarif.read(output, NAME, found)
+        more, missed = sarif.collected(output, target, NAME, found)
         findings += more
         for rule, count in missed.items(): unmapped[rule] = unmapped.get(rule, 0) + count
         outputs[language] = str(output)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped,
                   raw=json.dumps(outputs), coverage={'status': 'observed', 'permitted': why, 'languages': sorted(outputs)},
                   evaluated={'vulnerability': {'status': 'observed', 'granularity': 'file'}})
+
+
+def _config(workdir, exclude):
+    """(codeql-config.yml written in `workdir`, the folders it leaves out: EXCLUDED and the check's own)."""
+    config = workdir / 'codeql-config.yml'
+    ignored = [name.strip('/') for name in EXCLUDED + tuple(exclude) if name.strip('/')]
+    config.write_text('paths-ignore:\n' + ''.join(f"  - '{name}'\n  - '**/{name}'\n" for name in ignored), encoding='utf-8')
+    return config, ignored
 
 
 def _files(target, ignored):

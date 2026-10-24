@@ -15,12 +15,7 @@ def section_structure(m):
         return unavailable('structure')
     counts = M.component_problems(m)
     root = target.get('root') or ''
-    items = []
-    for c in components:
-        files, found = counts.get(c.get('id'), (0, 0))
-        name = c.get('name') or c.get('id') or ''
-        short = name[len(root):] if root and name.startswith(root) and len(name) > len(root) else name
-        items.append({'name': name, 'short': short or name, 'files': files, 'problems': found, **M.density_counts(files, found), 'relation': c.get('relation'), 'target': c.get('target_component')})
+    items = [_part_item(c, counts, root) for c in components]
     legend_steps = ''.join(
         f'<span class="heat-key"><i style="background:{HEAT[i]}"></i>{T(label_ar, label_en)}</span>'
         for i, (label_ar, label_en) in enumerate(heat_labels()))
@@ -28,24 +23,40 @@ def section_structure(m):
     out = [f'<div class="grid map-grid"><div class="card"><h4>{T("البنية اليوم", "The structure today")}</h4>'
            f'<p class="muted small">{T("كل مربع جزء من المشروع؛ مساحته بعدد ملفاته، ولونه بكثافة المشاكل فيه (مشاكل لكل عشرة ملفات). مرّر المؤشر لترى التفاصيل.", "Each box is a part of the project; its size is its number of files, its colour the density of problems in it (problems per ten files). Hover for details.")}</p>'
            f'{treemap(items, True)}{treemap(items, False)}<div class="heat-legend">{legend_steps}</div></div>']
-    tcomps = target.get('target_components') or []
-    if tcomps:
-        out.append(f'<div class="card"><h4>{T("البنية المستهدفة", "The target structure")}</h4>'
-                   f'<p class="muted small">{T("الطبقات من الأعلى (ما يراه المستخدم) إلى الأسفل (الأساس). كل طبقة تعتمد فقط على ما تحتها.", "Layers from the top (what users see) to the bottom (the foundation). Each layer depends only on those below it.")}</p>'
-                   f'{layer_diagram(tcomps, True)}{layer_diagram(tcomps, False)}'
-                   f'<p class="small"><a href="#target" data-go="target">{T("البنية المستهدفة كاملة وتقدّم كل جزء ←", "The full target structure and each part’s progress →")}</a></p></div>')
-    else:
-        out.append(f'<div class="card"><h4>{T("البنية المستهدفة", "The target structure")}</h4>{unavailable("target")}</div>')
+    out.append(_target_card(target.get('target_components') or []))
     out.append('</div>')
     out.append(architecture_map(m))
     out.append(f'<h3>{T("الفرق بين اليوم والمستهدف", "The difference between today and the target")}</h3><div class="card"><ul class="diff">{"".join(differences(m, items))}</ul></div>')
     out.append(cycles(m))
-    out.append(f'<details class="card"><summary>{T("كل الأجزاء كجدول", "All parts as a table")}</summary><table class="tbl"><thead><tr>'
-               f'<th>{T("الجزء", "Part")}</th><th>{T("الملفات", "Files")}</th><th>{T("المشاكل", "Problems")}</th><th>{T("مشاكل لكل عشرة ملفات", "Problems per ten files")}</th></tr></thead><tbody>'
-               + ''.join(f'<tr><td>{lit(i["name"])}</td><td>{num(i["files"], "files in this part")}</td><td>{num(i["problems"], "problems in this part")}</td>'
-                         f'<td>{num(i["per_ten"], "problems per ten files in this part")}</td></tr>'
-                         for i in sorted(items, key=lambda i: -i['problems'])) + '</tbody></table></details>')
+    out.append(_parts_table(items))
     return ''.join(out)
+
+
+def _part_item(c, counts, root):
+    """One part of today as the treemap and the table take it: its name (and without the project's root), files and
+    problems."""
+    files, found = counts.get(c.get('id'), (0, 0))
+    name = c.get('name') or c.get('id') or ''
+    short = name[len(root):] if root and name.startswith(root) and len(name) > len(root) else name
+    return {'name': name, 'short': short or name, 'files': files, 'problems': found, **M.density_counts(files, found), 'relation': c.get('relation'), 'target': c.get('target_component')}
+
+
+def _target_card(tcomps):
+    """The target's layers beside today's parts; "not available" without a target."""
+    if not tcomps: return f'<div class="card"><h4>{T("البنية المستهدفة", "The target structure")}</h4>{unavailable("target")}</div>'
+    return (f'<div class="card"><h4>{T("البنية المستهدفة", "The target structure")}</h4>'
+            f'<p class="muted small">{T("الطبقات من الأعلى (ما يراه المستخدم) إلى الأسفل (الأساس). كل طبقة تعتمد فقط على ما تحتها.", "Layers from the top (what users see) to the bottom (the foundation). Each layer depends only on those below it.")}</p>'
+            f'{layer_diagram(tcomps, True)}{layer_diagram(tcomps, False)}'
+            f'<p class="small"><a href="#target" data-go="target">{T("البنية المستهدفة كاملة وتقدّم كل جزء ←", "The full target structure and each part’s progress →")}</a></p></div>')
+
+
+def _parts_table(items):
+    """Every part of today as a table, the most problems first."""
+    return (f'<details class="card"><summary>{T("كل الأجزاء كجدول", "All parts as a table")}</summary><table class="tbl"><thead><tr>'
+            f'<th>{T("الجزء", "Part")}</th><th>{T("الملفات", "Files")}</th><th>{T("المشاكل", "Problems")}</th><th>{T("مشاكل لكل عشرة ملفات", "Problems per ten files")}</th></tr></thead><tbody>'
+            + ''.join(f'<tr><td>{lit(i["name"])}</td><td>{num(i["files"], "files in this part")}</td><td>{num(i["problems"], "problems in this part")}</td>'
+                      f'<td>{num(i["per_ten"], "problems per ten files in this part")}</td></tr>'
+                      for i in sorted(items, key=lambda i: -i['problems'])) + '</tbody></table></details>')
 
 
 def heat_labels():
@@ -63,14 +74,8 @@ def heat_labels():
 
 def differences(m, items):
     target = m['target']
-    lines = []
     counts = M.structure_counts(target)
-    relations = counts['relations']
-    if relations:
-        ar = '، '.join(f'{num(n, "parts with this fate")} {esc(RELATION.get(k, (k, k))[0])}' for k, n in sorted(relations.items(), key=lambda kv: -kv[1]))
-        en = ', '.join(f'{num(n, "parts with this fate")} {esc(RELATION.get(k, (k, k))[1])}' for k, n in sorted(relations.items(), key=lambda kv: -kv[1]))
-        total = counts['current']
-        lines.append(T(f'من {num(total, "parts of the project today")} جزءًا اليوم: {ar}.', f'Of the {num(total, "parts of the project today")} parts today: {en}.', 'li'))
+    lines = _fates(counts)
     tcomps = target.get('target_components') or []
     if tcomps:
         layers = counts['layers']
@@ -83,19 +88,40 @@ def differences(m, items):
     moves = counts['moves']
     if moves:
         lines.append(T(f'{num(moves, "files that move to another place")} ملفًا ينتقل إلى مكان آخر.', f'{num(moves, "files that move to another place")} files move to another place.', 'li'))
+    lines += _worst_parts(items) + _missing(target)
+    return lines or [T('لا توجد بيانات كافية للمقارنة.', 'Not enough data to compare.', 'li')]
+
+
+def _fates(counts):
+    """What becomes of today's parts in the target, the most common fate first; nothing when none has one."""
+    relations = counts['relations']
+    if not relations: return []
+    ar = '، '.join(f'{num(n, "parts with this fate")} {esc(RELATION.get(k, (k, k))[0])}' for k, n in sorted(relations.items(), key=lambda kv: -kv[1]))
+    en = ', '.join(f'{num(n, "parts with this fate")} {esc(RELATION.get(k, (k, k))[1])}' for k, n in sorted(relations.items(), key=lambda kv: -kv[1]))
+    total = counts['current']
+    return [T(f'من {num(total, "parts of the project today")} جزءًا اليوم: {ar}.', f'Of the {num(total, "parts of the project today")} parts today: {en}.', 'li')]
+
+
+def _worst_parts(items):
+    """The (up to) three parts with the most problems, and what each becomes."""
+    lines = []
     for item in sorted(items, key=lambda i: -i['problems'])[:3]:
         if not item['problems']: break
         rel = RELATION.get(item['relation'], ('', ''))
         dest = (T(f' ← يصبح {lit(item["target"])}', f' → becomes {lit(item["target"])}') if item['target'] else '')
         lines.append(f'<li>{lit(item["name"])} ' + T(f'— المشاكل: {num(item["problems"], "problems in this part")} في ملفات عددها {num(item["files"], "files in this part")}؛ {esc(rel[0])}.',
                                                      f'{num(item["problems"], "problems in this part")} problems in {num(item["files"], "files in this part")} files; it {esc(rel[1])}.') + dest + '</li>')
+    return lines
+
+
+def _missing(target):
+    """The basic infrastructure the target adds because the project lacks it; nothing when it lacks none."""
     missing = [i for i in target.get('infrastructure') or [] if not i.get('present')]
-    if missing:
-        names = ' '.join(lit(i.get('area', '')) for i in missing)
-        count = num(M.collection_count(missing), 'pieces of infrastructure the target adds')
-        words = T(f'ينقص المشروع {count} من أساسيات البنية التحتية:', f'The project lacks {count} pieces of basic infrastructure:')
-        lines.append(f'<li>{words} {names}</li>')
-    return lines or [T('لا توجد بيانات كافية للمقارنة.', 'Not enough data to compare.', 'li')]
+    if not missing: return []
+    names = ' '.join(lit(i.get('area', '')) for i in missing)
+    count = num(M.collection_count(missing), 'pieces of infrastructure the target adds')
+    words = T(f'ينقص المشروع {count} من أساسيات البنية التحتية:', f'The project lacks {count} pieces of basic infrastructure:')
+    return [f'<li>{words} {names}</li>']
 
 
 def cycles(m):

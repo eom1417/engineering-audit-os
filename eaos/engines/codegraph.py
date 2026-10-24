@@ -7,7 +7,7 @@ Four tools, all run as one-shot invocations against the pinned CodeGraph binary:
   codegraph_analyze_complexity    per-symbol complexity (lines, branches, etc.)
   codegraph_find_hot_paths        ranked call-paths through the codebase
 
-Each tool returns a JSON payload. The wrapper flattens the payload into the engine's
+Each tool returns a JSON payload. codegraph_payloads.py flattens the payload into the engine's
 fact shape and emits a `module_edge_external` / `call_edge_external` fact for each
 call or import. Tools that return a warning ("unknown tool", "invalid URI", "missing
 parameter") are downgraded to `partial` and the reason recorded in the summary.
@@ -20,6 +20,7 @@ import subprocess
 from pathlib import Path
 
 from ..core import toolchain
+from .codegraph_payloads import CONVERTERS, _complexity_facts, _parse_payload
 from .contract import OBSERVED, Report, SYMBOL, UNAVAILABLE, finding, measurement, subject
 
 NAME, VERSION, PINNED = 'codegraph', '1', 'v0.20.1'
@@ -69,126 +70,6 @@ def _outcome(result):
     return (out, None) if out else (None, 'empty payload')
 
 
-def _parse_payload(text):
-    if not text: return None
-    text = text.strip()
-    if not text.startswith('{'):
-        for line in text.splitlines():
-            line = line.strip()
-            if line.startswith('{'):
-                text = line; break
-    try: return json.loads(text)
-    except ValueError: return None
-
-
-def _module_edges_from_dep_graph(payload, root):
-    """Turn one file's dependency payload into module edges whose ends are named, not numbered.
-
-    The payload numbers its ends: `edges[].from` and `.to` are node ids. Only a node of type
-    `codefile` carries a real path; a `module` node carries a name and an empty path. Emitting the
-    raw ids would hand the reader a number it cannot resolve, so an edge whose ends we cannot name
-    is dropped rather than recorded as an edge between unknowns.
-    """
-    if not isinstance(payload, dict): return []
-    nodes = {str(node.get('id')): node for node in payload.get('nodes') or []}
-    edges = (_dep_edge(edge, nodes, root) for edge in payload.get('edges') or [] if edge.get('type') in (None, 'import'))
-    return [fact for fact in edges if fact]
-
-
-def _dep_edge(edge, nodes, root):
-    """The module edge between two named ends; None when either end cannot be named."""
-    source, destination = nodes.get(str(edge.get('from'))), nodes.get(str(edge.get('to')))
-    if not source or not destination: return None
-    from_path = source.get('path') or ''
-    to_name = destination.get('name') or destination.get('path') or ''
-    if not from_path or not to_name: return None
-    return {'kind': 'module_edge_external',
-            'location': {'path': _relative(from_path, root)},
-            'value': {'from': _relative(from_path, root), 'to': to_name,
-                      'to_path': _relative(destination.get('path') or '', root) or None,
-                      'to_is_external': bool(destination.get('is_external')),
-                      'language': destination.get('language') or source.get('language') or '',
-                      'weight': 1, 'tool': 'codegraph_get_dependency_graph'}}
-
-
-def _relative(path, root):
-    """A path the reader can open: relative to the scanned tree, never the engine's absolute path."""
-    if not path: return ''
-    try: return str(Path(path).resolve().relative_to(Path(root).resolve()))
-    except (ValueError, OSError): return str(path)
-
-
-def _call_edges_from_call_graph(payload, root):
-    facts = []
-    symbol = payload.get('symbol', {}) if isinstance(payload, dict) else {}
-    path = symbol.get('path', root) if isinstance(symbol, dict) else root
-    for call in payload.get('callees', []) or []:
-        facts.append({'kind': 'call_edge_external',
-                      'location': {'path': path},
-                      'value': {'caller': symbol.get('name', ''),
-                                 'callee': call.get('name', ''),
-                                 'callee_path': call.get('path', ''),
-                                 'line': call.get('line_start', 0),
-                                 'tool': 'codegraph_get_call_graph'}})
-    for call in payload.get('callers', []) or []:
-        facts.append({'kind': 'call_edge_external',
-                      'location': {'path': path},
-                      'value': {'caller': call.get('name', ''),
-                                 'callee': symbol.get('name', ''),
-                                 'caller_path': call.get('path', ''),
-                                 'line': call.get('line_start', 0),
-                                 'tool': 'codegraph_get_call_graph'}})
-    return facts
-
-
-def _complexity_facts(payload, root, path=None):
-    """Per-symbol complexity for one file. The file is the caller's, not the payload's.
-
-    `codegraph_analyze_complexity` answers about the file named in its `uri` and does not repeat
-    that path in every function it returns. Recording the scanned root instead would put every
-    measurement at `.` and make it unjoinable to a flow, so the caller's path is authoritative.
-    """
-    if not isinstance(payload, dict): return []
-    fns = payload.get('functions', payload.get('symbols', [])) or []
-    out = []
-    for fn in fns:
-        detail = fn.get('details') or {}
-        out.append({'kind': 'symbol_metric_external',
-                     'location': {'path': path or fn.get('path') or root,
-                                  'line': fn.get('line_start', 0)},
-                     'value': {'name': fn.get('name', ''),
-                                'lines': detail.get('lines_of_code', fn.get('lines', 0)),
-                                'branches': detail.get('complexity_branches', fn.get('branches', 0)),
-                                'loops': detail.get('complexity_loops', 0),
-                                'nesting': detail.get('complexity_nesting', 0),
-                                'complexity': fn.get('complexity', 0),
-                                'grade': fn.get('grade', ''),
-                                'rule': 'performance',
-                                'tool': 'codegraph_analyze_complexity'}})
-    return out
-
-
-def _hot_paths(payload, root):
-    if not isinstance(payload, dict): return []
-    out = []
-    for path in payload.get('paths', payload.get('hot_paths', [])) or []:
-        out.append({'kind': 'hot_path_external',
-                     'location': {'path': root},
-                     'value': {'symbol': path.get('symbol', ''),
-                                'transitive_callers': path.get('transitive_callers', 0),
-                                'score': path.get('score', 0),
-                                'tool': 'codegraph_find_hot_paths'}})
-    return out
-
-
-CONVERTERS = {
-    'codegraph_get_dependency_graph': _module_edges_from_dep_graph,
-    'codegraph_get_call_graph': _call_edges_from_call_graph,
-    'codegraph_analyze_complexity': _complexity_facts,
-    'codegraph_find_hot_paths': _hot_paths,
-}
-
-
 # One `--run-tool` invocation costs about two seconds against a warm index, so asking about
 # every file in a large tree would turn an optional stage into the longest one in the run. We ask
 # about the files the report actually speaks about -- entry points and the files their flows
@@ -229,22 +110,35 @@ def run(target, out, tools=None, files=None, **options):
     index_home.mkdir(parents=True, exist_ok=True)
     summary['index_home'] = str(index_home)
 
-    asked = [path for path in (files or []) if (target / path).is_file() and _is_the_reader_s_code(path)]
-    summary['files_offered'] = len(files or [])
-    asked = sorted(dict.fromkeys(asked))[:FILE_BUDGET]
-    summary['files_asked'] = len(asked)
+    asked = _asked(target, files, summary)
     if not asked: _nothing_asked(summary, tool_selection)
     context = (target, index_home)
-    if asked and tool_selection.get('get_dependency_graph', True):
-        facts += _per_file(summary, 'codegraph_get_dependency_graph', asked, context,
-                           ({'direction': 'both', 'depth': 1}, lambda payload, path: CONVERTERS['codegraph_get_dependency_graph'](payload, target)))
-    if asked and tool_selection.get('analyze_complexity', True):
-        facts += _per_file(summary, 'codegraph_analyze_complexity', asked, context,
-                           ({}, lambda payload, path: _complexity_facts(payload, target, path=path)))
+    if asked: facts += _file_facts(summary, asked, context, tool_selection)
     if tool_selection.get('find_hot_paths', True): facts += _hot_path_facts(summary, context)
     if asked and tool_selection.get('get_call_graph', True): facts += _call_graph_facts(summary, asked, context)
     return {'facts': facts, 'summary': summary,
             'available': True, 'input_sha': '', 'reason': None}
+
+
+def _asked(target, files, summary):
+    """The files to ask about: the reader's own that exist, each once, at most FILE_BUDGET; both counts in `summary`."""
+    asked = [path for path in (files or []) if (target / path).is_file() and _is_the_reader_s_code(path)]
+    summary['files_offered'] = len(files or [])
+    asked = sorted(dict.fromkeys(asked))[:FILE_BUDGET]
+    summary['files_asked'] = len(asked)
+    return asked
+
+
+def _file_facts(summary, asked, context, tool_selection):
+    """What the tools asked file by file say, as selected: each file's dependencies, then its symbols' complexity."""
+    target, facts = context[0], []
+    if tool_selection.get('get_dependency_graph', True):
+        facts += _per_file(summary, 'codegraph_get_dependency_graph', asked, context,
+                           ({'direction': 'both', 'depth': 1}, lambda payload, path: CONVERTERS['codegraph_get_dependency_graph'](payload, target)))
+    if tool_selection.get('analyze_complexity', True):
+        facts += _per_file(summary, 'codegraph_analyze_complexity', asked, context,
+                           ({}, lambda payload, path: _complexity_facts(payload, target, path=path)))
+    return facts
 
 
 def _nothing_asked(summary, tool_selection):
@@ -385,8 +279,27 @@ def analyze(target, workdir, exclude=(), formats=None):
         json.dumps({'facts': produced['facts'], 'summary': produced['summary']},
                    ensure_ascii=False, sort_keys=True, indent=2), encoding='utf-8')
     summary = produced['summary']
+    findings, unmapped = _findings(produced['facts'], found)
+    # An engine we asked nothing of has not observed anything. Saying otherwise would let an empty
+    # answer read as a clean result.
+    if not summary.get('files_asked'):
+        return Report(NAME, found, PINNED, UNAVAILABLE,
+                      reason='no file in this report was named for CodeGraph to answer about',
+                      coverage={'status': 'unavailable'}, raw=str(workdir / GRAPH_FACTS))
+    evaluated = {'coupling': {'status': 'observed', 'granularity': SYMBOL}}
+    coverage = {'status': 'observed', 'scanned_files': summary.get('files_asked'),
+                'tools': summary.get('tools', {}), 'partial': summary.get('partial', []),
+                'file_budget': summary.get('file_budget'),
+                'files_offered': summary.get('files_offered')}
+    return Report(NAME, found, PINNED, OBSERVED, findings=findings, coverage=coverage,
+                  raw=str(workdir / GRAPH_FACTS), unmapped=unmapped, evaluated=evaluated,
+                  provenance={'binary': BINARY, 'pinned': PINNED})
+
+
+def _findings(facts, found):
+    """(the hot paths as coupling findings, {kind: count} of the facts of a kind no finding or fact set reads)."""
     findings, unmapped = [], {}
-    for fact in produced['facts']:
+    for fact in facts:
         value = fact['value']
         # A per-symbol metric carries no threshold: it stays a symbol metric (facts/external.py), never a finding.
         if fact['kind'] == 'symbol_metric_external':
@@ -403,20 +316,7 @@ def analyze(target, workdir, exclude=(), formats=None):
                 raw_ref=f'codegraph/{GRAPH_FACTS}'))
         elif fact['kind'] not in ('module_edge_external', 'call_edge_external'):
             unmapped[fact['kind']] = unmapped.get(fact['kind'], 0) + 1
-    # An engine we asked nothing of has not observed anything. Saying otherwise would let an empty
-    # answer read as a clean result.
-    if not summary.get('files_asked'):
-        return Report(NAME, found, PINNED, UNAVAILABLE,
-                      reason='no file in this report was named for CodeGraph to answer about',
-                      coverage={'status': 'unavailable'}, raw=str(workdir / GRAPH_FACTS))
-    evaluated = {'coupling': {'status': 'observed', 'granularity': SYMBOL}}
-    coverage = {'status': 'observed', 'scanned_files': summary.get('files_asked'),
-                'tools': summary.get('tools', {}), 'partial': summary.get('partial', []),
-                'file_budget': summary.get('file_budget'),
-                'files_offered': summary.get('files_offered')}
-    return Report(NAME, found, PINNED, OBSERVED, findings=findings, coverage=coverage,
-                  raw=str(workdir / GRAPH_FACTS), unmapped=unmapped, evaluated=evaluated,
-                  provenance={'binary': BINARY, 'pinned': PINNED})
+    return findings, unmapped
 
 
 def files_of_interest(workdir):

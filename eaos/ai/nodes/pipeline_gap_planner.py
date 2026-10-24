@@ -11,7 +11,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import core
+from . import core, runner
 from .. import ideal
 
 VERSION = '1'
@@ -101,4 +101,4 @@ def finish(report, record, data):
 
 
 def run(node, report, **options):
-    return core.run_node(node, sys.modules[__name__], report, **options)
+    return runner.run_node(node, sys.modules[__name__], report, **options)

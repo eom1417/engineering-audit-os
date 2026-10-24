@@ -202,10 +202,15 @@ IMPACTS = {
 }
 
 
+def _render_key(render):
+    """The key of a claim's words; a duplicated rule whose copies differ has its own."""
+    key = render.get('key')
+    return 'duplicated_rule_differs' if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes' else key
+
+
 def impact_of(claim, language):
     render = claim.get('render') or {}
-    key = render.get('key')
-    if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes': key = 'duplicated_rule_differs'
+    key = _render_key(render)
     params = render.get('params') or {}
     if key == 'engine_cluster' and params.get('impact_key') in IMPACTS.get(language, {}):
         try: return IMPACTS[language][params['impact_key']].format(**params)
@@ -265,9 +270,8 @@ ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycl
 def statement_of(claim, language):
     """Render a claim in the reader language when it declares a template; otherwise keep it verbatim."""
     render = claim.get('render') or {}
-    key = render.get('key')
+    key = _render_key(render)
     if not key: return claim['statement']
-    if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes': key = 'duplicated_rule_differs'
     template = TEMPLATES.get(language, TEMPLATES['ar']).get(key)
     if not template: return claim['statement']
     params = (render.get('params_en') if language == 'en' else render.get('params')) or render.get('params', {})

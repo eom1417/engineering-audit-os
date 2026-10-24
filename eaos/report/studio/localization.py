@@ -15,14 +15,7 @@ def publish(report, source_locale):
     source = report / 'studio-translations.json'
     if not source.exists():
         return None
-    translations = json.loads(source.read_text(encoding='utf-8'))
-    if not isinstance(translations, dict) or not isinstance(translations.get('en'), dict):
-        raise ValueError('Report translations must provide an English text catalog')
-    if any(not isinstance(k, str) or not isinstance(v, str) or not v.strip()
-           for k, v in translations['en'].items()):
-        raise ValueError('Each English translation must be a nonempty string')
-    if any(re.search(r'[\u0600-\u06ff]', value) for value in translations['en'].values()):
-        raise ValueError('English translations must not contain Arabic prose')
+    translations = _checked(json.loads(source.read_text(encoding='utf-8')))
     body = {'schema_version': 1, 'source_locale': source_locale, 'translations': translations}
     text = json.dumps(body, ensure_ascii=False, separators=(',', ':'), sort_keys=True)
     folder = report / 'studio'
@@ -31,3 +24,15 @@ def publish(report, source_locale):
         temporary.write_text(content, encoding='utf-8')
         temporary.replace(folder / filename)
     return {'en': {'file': 'locale.js', 'sha256': hashlib.sha256(text.encode('utf-8')).hexdigest()}}
+
+
+def _checked(translations):
+    """The translations as read, once they are an English catalog of nonempty strings with no Arabic prose."""
+    if not isinstance(translations, dict) or not isinstance(translations.get('en'), dict):
+        raise ValueError('Report translations must provide an English text catalog')
+    if any(not isinstance(k, str) or not isinstance(v, str) or not v.strip()
+           for k, v in translations['en'].items()):
+        raise ValueError('Each English translation must be a nonempty string')
+    if any(re.search(r'[\u0600-\u06ff]', value) for value in translations['en'].values()):
+        raise ValueError('English translations must not contain Arabic prose')
+    return translations

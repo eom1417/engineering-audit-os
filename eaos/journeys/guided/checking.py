@@ -58,6 +58,11 @@ def agree_to_assistant(state, yes):
     if not answered(state, 'use_assistant'): return True
     found = readiness.probe(name)
     if found['ready']: return True
+    return _start_without_ai(state, found, lang, yes)
+
+
+def _start_without_ai(state, found, lang, yes):
+    """The assistant `found` not ready: its reason said, and the person asked whether this check starts without AI."""
     say(f"❌ {(found.get('reason') or {}).get(lang) or found['code']}")
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'start_without_ai']
     try: return ask(state, 'start_without_ai', WITHOUT_AI_QUESTION[lang].format(name=found['name']), yes)
@@ -70,7 +75,7 @@ def agree_to_assistant(state, yes):
 
 
 def tools_for_check(state, echo=lambda done, total: None, install=True):
-    """Waits until none of the tools the check needs on this project is still being installed (eaos/core/toolchain.py);
+    """Waits until none of the tools the check needs on this project is still being installed (eaos/core/toolchain/runs.py);
     {name: reason} of those that could not be. `install=False` once the person chose to start without them."""
     from ...core import toolchain
     return toolchain.wait_for_check(source(state), echo, install)['failed']

@@ -23,7 +23,7 @@ def code_excerpt(source, path, line, kind, secrets=frozenset()):
     """{start, line, lines, hidden}: the lines around `line` of `path` as the check read them, or None: no line, a
     secret (its value is never written), or a file that cannot be read as text. A line where any fact found a secret
     (`secrets`: {(path, line)}) is written empty and named in `hidden`. `source(path)` returns the file's text or None."""
-    if not path or not isinstance(line, int) or line < 1 or kind in SECRET_KINDS: return None
+    if not _may_show(path, line, kind): return None
     text = source(path)
     if text is None or '\0' in text[:4096]: return None
     rows = text.splitlines()
@@ -34,6 +34,11 @@ def code_excerpt(source, path, line, kind, secrets=frozenset()):
     return {'start': start, 'line': line, 'lines': ['' if n in hidden else rows[n - 1][:CODE_WIDTH] for n in shown], 'hidden': hidden}
 
 
+def _may_show(path, line, kind):
+    """Whether a fact's code may be shown: it names a file and a line, and it is not a secret."""
+    return bool(path) and isinstance(line, int) and line >= 1 and kind not in SECRET_KINDS
+
+
 def sources(project, commit):
     """path -> text: the file at the scanned commit (git show), else the project's working copy; never a path
     outside the project. Cached, so each file is read once."""
@@ -42,17 +47,25 @@ def sources(project, commit):
 
     def read(path):
         if path in cache: return cache[path]
-        text = None
-        if root and commit:
-            done = subprocess.run(['git', '-C', str(root), 'show', f'{commit}:{path}'], capture_output=True)
-            if done.returncode == 0 and len(done.stdout) <= 2_000_000: text = done.stdout.decode('utf-8', 'replace')
-        if text is None and root:
-            file = (root / path).resolve()
-            if file.is_relative_to(root) and file.is_file() and file.stat().st_size <= 2_000_000:
-                text = file.read_text(encoding='utf-8', errors='replace')
+        text = _at_commit(root, commit, path) if root and commit else None
+        if text is None and root: text = _working_copy(root, path)
         cache[path] = text
         return text
     return read
+
+
+def _at_commit(root, commit, path):
+    """A file's text at the scanned commit (git show), or None: not there, or over 2 MB."""
+    done = subprocess.run(['git', '-C', str(root), 'show', f'{commit}:{path}'], capture_output=True)
+    return done.stdout.decode('utf-8', 'replace') if done.returncode == 0 and len(done.stdout) <= 2_000_000 else None
+
+
+def _working_copy(root, path):
+    """A file's text in the project's working copy, or None: outside the project, not a file, or over 2 MB."""
+    file = (root / path).resolve()
+    if file.is_relative_to(root) and file.is_file() and file.stat().st_size <= 2_000_000:
+        return file.read_text(encoding='utf-8', errors='replace')
+    return None
 
 
 def summary(value, kind):
@@ -88,12 +101,22 @@ def _secret_lines(rows):
 
 def _fact_evidence(row, source, secrets):
     value, where = row.get('value') or {}, row.get('location') or {}
-    sites = [{'path': rel(s.get('path')), 'line': s.get('line') if isinstance(s.get('line'), int) else None}
-             for s in value.get('sites') or [] if isinstance(s, dict) and rel(s.get('path'))]
+    sites = _sites(value)
     fact = {'id': row['id'], 'kind': value.get('kind') or row.get('kind') or '', 'engine': value.get('engine'),
-            'path': rel(where.get('path')), 'line': next((n for n in (where.get('start_line'), where.get('line')) if isinstance(n, int)), None),
+            'path': rel(where.get('path')), 'line': _first_line(where),
             'summary': summary(value, row.get('kind')), 'sites': sites[:20]}
     # the code around the fact's line, else around its first site in the same file
     line = fact['line'] or next((site['line'] for site in sites if site['path'] == fact['path'] and site['line']), None)
     fact['code'] = code_excerpt(source, fact['path'], line, fact['kind'], secrets)
     return fact
+
+
+def _sites(value):
+    """The places a fact names that the Studio may show, each with its line when known."""
+    return [{'path': rel(s.get('path')), 'line': s.get('line') if isinstance(s.get('line'), int) else None}
+            for s in value.get('sites') or [] if isinstance(s, dict) and rel(s.get('path'))]
+
+
+def _first_line(where):
+    """A location's line: where it starts, else its line; None when it has neither."""
+    return next((n for n in (where.get('start_line'), where.get('line')) if isinstance(n, int)), None)

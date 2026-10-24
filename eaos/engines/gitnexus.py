@@ -33,8 +33,7 @@ def capabilities():
             Capability('coupling', f'gitnexus.fan_in>={FAN_IN}', granularity=FILE)]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def table(markdown):
@@ -139,9 +138,8 @@ def _communities(members, exclude):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
     index, failure = _indexed(target, workdir)
     if failure:
         return Report(NAME, found, PINNED, ERROR, seconds=index.seconds, reason=failure)

@@ -44,8 +44,9 @@ before the turn ends.
 ## The laws (in full: `docs/STANDARDS.md`)
 
 - Least code, best result; one source of truth; clear and clean; nothing replaced is left behind.
-- Module ≤ 600 lines, function complexity ≤ 15, functions ≤ 50 lines and ≤ 5 parameters (today's exceptions listed),
-  ratcheting to 400 / 10; no dead code, no duplication, no medium or high security finding; layers per
+- EAOS itself: module ≤ 400 lines and function complexity ≤ 10 with no exception (M3); functions ≤ 50 lines and ≤ 5
+  parameters (today's exceptions listed). The laws EAOS holds every project to stay 600 / 15 (`eaos/core/code_laws.py`,
+  the owner's to change). No dead code, no duplication, no medium or high security finding; layers per
   `docs/ARCHITECTURE.md`.
 - **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded
   (`tools/code_limits.json`, `tools/quality.json`, the layer contracts in `pyproject.toml`); `--record` after a number

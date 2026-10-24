@@ -7,14 +7,21 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-from ..core.words import ENGINE_KIND_WORDS, IMPACTS
-from .fact_claims import BUILDERS, engine_measurement
+from .duplicate_claims import duplicated_rules, redundant_work, sequences, structural_duplicates
+from .engine_measures import engine_measurement
+from .fact_claims import (access_gaps, broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
+                          mutable_globals, policy_violations, trace_gaps, vulnerable_dependencies)
+from .weaknesses import SECURITY, claims as weaknesses
 from ..core.vocabulary import schema_errors
-from .weaknesses import SECURITY
+from ..core.words import ENGINE_KIND_WORDS, IMPACTS
 from ..core.workspace import DATA, read, write
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fact'}
+# The builders of the claims facts earn (eaos/analysis/fact_claims.py), in ledger order: the claims are numbered in it.
+BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, access_gaps, external_writes,
+            structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
+            vulnerable_dependencies, weaknesses)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
 
 
@@ -133,53 +140,9 @@ def save(path, claims, evidence_ids=(), fact_ids=()):
     return claims
 
 
-def from_legacy(findings, model, flows, coverage, revision=None):
-    """Bridge existing audit records into the ledger without losing or inventing anything."""
-    claims, index = [], 0
-    confidence_of = {'confirmed': 'LIKELY', 'probable': 'HYPOTHESIS', 'requires_verification': 'HYPOTHESIS',
-                     'refuted': 'REFUTED', 'false_positive': 'REFUTED'}
-    for finding in sorted(findings, key=lambda f: f['id']):
-        index += 1
-        status = finding.get('claim_status', 'probable')
-        claims.append(make(index, finding['current_behavior'][:600], 'cause',
-                           'REFUTED' if finding.get('status') in {'false_positive'} else confidence_of.get(status, 'HYPOTHESIS'),
-                           ['model_inference'], finding.get('evidence_ids', []),
-                           'Source or test evidence showing the described behaviour does not occur, or that the stated root cause is not the actual one.',
-                           legacy_id=finding['id'],
-                           impact={'scenario': finding.get('why_this_matters', '')[:400],
-                                   'affected_nodes': finding.get('affected_components', [])},
-                           disposition={'kind': 'task'} if finding.get('status') == 'open' else {'kind': 'none_yet'},
-                           revision=revision))
-    for node in sorted(model.get('nodes', []), key=lambda n: n['id']):
-        index += 1
-        claims.append(make(index, f"{node['name']} owns: {node['responsibility']}"[:600], 'responsibility', 'HYPOTHESIS',
-                           ['model_inference'], node.get('evidence_ids', []),
-                           'A source range showing this responsibility lives elsewhere, or that this component owns a different rule.',
-                           legacy_id=node['id'], revision=revision))
-    for contract in sorted(model.get('contracts', []), key=lambda c: c['id']):
-        index += 1
-        claims.append(make(index, contract['invariant'][:600], 'contract', 'HYPOTHESIS', ['model_inference'],
-                           contract.get('evidence_ids', []),
-                           'A caller or test that violates the stated invariant without failing.',
-                           legacy_id=contract['id'], revision=revision))
-    for rule in sorted(model.get('business_rules', []), key=lambda r: r['id']):
-        index += 1
-        claims.append(make(index, rule['invariant'][:600], 'business_rule', 'HYPOTHESIS', ['model_inference'],
-                           rule.get('evidence_ids', []),
-                           'A second implementation of this rule with different behaviour, or a path that bypasses it.',
-                           legacy_id=rule['id'], revision=revision))
-    for flow in sorted(flows or [], key=lambda f: f['id']):
-        index += 1
-        claims.append(make(index, f"{flow['name']}: " + ' → '.join(flow.get('steps', []))[:500], 'flow_step', 'HYPOTHESIS',
-                           ['model_inference'], flow.get('evidence_ids', []),
-                           'An execution trace or test showing the flow takes a different path.',
-                           legacy_id=flow['id'], revision=revision))
-    return claims
-
-
 def from_facts(fact_sets, target=None):
     """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation; one builder per
-    kind of fact (eaos/analysis/fact_claims.py BUILDERS), numbered in that order.
+    kind of fact (BUILDERS), numbered in that order, then the claims the engines earn.
 
     ``target`` is the audited root, used to bind a runnable acceptance check to
     a declared-policy violation. It is optional so test fixtures can build a
@@ -195,52 +158,26 @@ def from_facts(fact_sets, target=None):
     return one_card_per_hotspot(claims + from_engines(fact_sets, len(claims)))
 
 
+def _hotspot_of(claim, hotspots):
+    """The hotspot whose file an engines' complexity claim is about, or None."""
+    render = claim.get('render') or {}
+    params = render.get('params') or {}
+    if render.get('key') != 'engine_cluster' or params.get('kind') != 'complexity': return None
+    return hotspots.get(params.get('place'))
+
+
 def one_card_per_hotspot(claims):
     """A hotspot and the engines' complexity card on the same file are one problem: the engines' card leaves and its
     measurements join the hotspot's evidence."""
     hotspots = {c['render']['params']['path']: c for c in claims if (c.get('render') or {}).get('key') == 'hotspot'}
     kept = []
     for claim in claims:
-        render = claim.get('render') or {}
-        params = render.get('params') or {}
-        same = hotspots.get(params.get('place')) if render.get('key') == 'engine_cluster' else None
-        if same is not None and params.get('kind') == 'complexity':
+        same = _hotspot_of(claim, hotspots)
+        if same is not None:
             same['fact_ids'] = sorted(set(same.get('fact_ids') or []) | set(claim.get('fact_ids') or []))
             continue
         kept.append(claim)
     return kept
-
-
-def from_load_model(fact_sets, offset=0):
-    """Every load blocker becomes a claim, so a scaling risk reaches a task card like any other.
-
-    A blocker comes only from an answered question. An unanswered one is never a claim: we do not
-    know, and a risk we invented is worse than a risk we missed.
-    """
-    record = fact_sets.get('load_model')
-    if not record:
-        return []
-    from .load_model import blockers
-    made, index = [], offset
-    for blocker in blockers(record):
-        index += 1
-        where = blocker['route'] or blocker['path'] or blocker['entry_point']
-        made.append(make(index, f"{where}: {blocker['statement']}"[:600], 'risk', 'CONFIRMED',
-                         ['static_fact'], [], blocker['falsifier'],
-                         fact_ids=blocker['evidence'],
-                         render={'key': 'load_blocker',
-                                 'params': {'where': str(where), 'kind': blocker['kind'],
-                                            'statement': blocker['statement']},
-                                 'params_en': {'where': str(where), 'kind': blocker['kind'],
-                                               'statement': blocker['statement_en']}},
-                         probe_spec={'probe_type': 'graph_query',
-                                     'specification': {'query': 'load_blocker_present',
-                                                       'entry_point': blocker['entry_point'],
-                                                       'question': blocker['question'],
-                                                       'expected': 'The same question still answers the '
-                                                                   'same way for this entry point.'}},
-                         impact={'scenario': blocker['scenario']}))
-    return made
 
 
 def _corroborated(kind, detail, cluster, fact_sets):
@@ -323,12 +260,8 @@ def from_engines(fact_sets, offset=0):
     made, index = [], offset
     for cluster in clusters(fact_sets):
         for kind, detail in sorted(cluster['corroboration'].items()):
-            # Security findings are cards of their own, alone or agreed (eaos/analysis/weaknesses.py), a vulnerable dependency too;
-            # dead code EAOS's own detector also reports is its card (fact_claims.dead_code), not a second one.
             counted = detail['verdict'] == SINGLE and kind == 'complexity'
-            if kind in SECURITY or (kind == 'dead_code' and 'eaos' in detail['asserted_by']) \
-                    or not (detail['verdict'] in says or counted):
-                continue
+            if not _earns_a_claim(kind, detail, detail['verdict'] in says or counted): continue
             finish = _finish(kind, cluster, fact_sets, exact=counted)
             if counted and not finish[0]: continue
             index += 1
@@ -337,23 +270,48 @@ def from_engines(fact_sets, offset=0):
     return made
 
 
+def _earns_a_claim(kind, detail, said):
+    """Whether a kind of finding at a place is a claim of the engines; `said`: its verdict is one a claim is made of."""
+    # Security findings are cards of their own, alone or agreed (eaos/analysis/weaknesses.py), a vulnerable dependency too;
+    # dead code EAOS's own detector also reports is its card (fact_claims.dead_code), not a second one.
+    return not (kind in SECURITY or (kind == 'dead_code' and 'eaos' in detail['asserted_by']) or not said)
+
+
+def _complexity_rows(cluster, fact_sets):
+    """The engines' findings of a cluster's complexity."""
+    facts = {f['id']: f for f in (fact_sets.get('external') or {}).get('facts') or []}
+    return [facts[i] for i in cluster['fact_ids_by_kind']['complexity'] if i in facts]
+
+
 def _finish(kind, cluster, fact_sets, exact=False):
     """(finish line, the engines that judge it) of a complexity claim (eaos/analysis/finish_line.py), (None, None) for another kind.
     `exact`: only the counts an engine states exactly."""
     if kind != 'complexity': return None, None
     from .finish_line import EXACT, judges, targets
-    facts = {f['id']: f for f in (fact_sets.get('external') or {}).get('facts') or []}
-    rows = [facts[i] for i in cluster['fact_ids_by_kind'][kind] if i in facts]
+    rows = _complexity_rows(cluster, fact_sets)
     found = targets([f for f in rows if f['value'].get('rule') in EXACT] if exact else rows, fact_sets)
     return found, judges(found, rows) if found else None
 
 
+ORDER = {level: index for index, level in enumerate(CONFIDENCE)}
+# The same sentence recorded twice is one claim; the more specific type wins.
+SPECIFICITY = {level: index for index, level in enumerate(
+    ['business_rule', 'contract', 'cause', 'risk', 'flow_step', 'responsibility', 'structure', 'capability_gap', 'cost'])}
+
+
+def _absorb(existing, claim):
+    """A second record of the same claim joins the first: its sources added, the higher confidence and the more
+    specific type kept."""
+    existing['evidence_ids'] = sorted(set(existing.get('evidence_ids', []) + claim.get('evidence_ids', [])))
+    existing['fact_ids'] = sorted(set(existing.get('fact_ids', []) + claim.get('fact_ids', [])))
+    existing['method'] = sorted(set(existing['method'] + claim['method']))
+    if ORDER[claim['confidence']] < ORDER[existing['confidence']]: existing['confidence'] = claim['confidence']
+    if SPECIFICITY[claim['claim_type']] < SPECIFICITY[existing['claim_type']]: existing['claim_type'] = claim['claim_type']
+    if claim.get('legacy_id'): existing['legacy_ids'] = sorted(set(existing.get('legacy_ids', []) + [claim['legacy_id']]))
+
+
 def merge(claims):
     """Two records asserting the same thing are one claim with two sources, not two claims."""
-    order = {level: index for index, level in enumerate(CONFIDENCE)}
-    # The same sentence recorded twice is one claim; the more specific type wins.
-    specificity = {level: index for index, level in enumerate(
-        ['business_rule', 'contract', 'cause', 'risk', 'flow_step', 'responsibility', 'structure', 'capability_gap', 'cost'])}
     grouped = {}
     for claim in claims:
         key = (' '.join(claim['statement'].split()).lower(),
@@ -363,12 +321,7 @@ def merge(claims):
             grouped[key] = dict(claim)
             if claim.get('legacy_id'): grouped[key]['legacy_ids'] = [claim['legacy_id']]
             continue
-        existing['evidence_ids'] = sorted(set(existing.get('evidence_ids', []) + claim.get('evidence_ids', [])))
-        existing['fact_ids'] = sorted(set(existing.get('fact_ids', []) + claim.get('fact_ids', [])))
-        existing['method'] = sorted(set(existing['method'] + claim['method']))
-        if order[claim['confidence']] < order[existing['confidence']]: existing['confidence'] = claim['confidence']
-        if specificity[claim['claim_type']] < specificity[existing['claim_type']]: existing['claim_type'] = claim['claim_type']
-        if claim.get('legacy_id'): existing['legacy_ids'] = sorted(set(existing.get('legacy_ids', []) + [claim['legacy_id']]))
+        _absorb(existing, claim)
     merged = []
     for claim in grouped.values():
         if not claim.get('fact_ids'): claim.pop('fact_ids', None)

@@ -2,9 +2,10 @@
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.analysis import claims
+from eaos.analysis import claims, record_claims
 from eaos.analysis.claims import from_facts
-from eaos.analysis.fact_claims import engine_measurement, naming
+from eaos.analysis.engine_measures import engine_measurement
+from eaos.analysis.fact_claims import naming
 from eaos.core.words import IMPACTS, impact_of
 from eaos.facts.run import collect
 from eaos.facts.store import read_set
@@ -62,7 +63,7 @@ class LedgerTests(unittest.TestCase):
                    'claim_status': 'confirmed', 'status': 'open', 'evidence_ids': ['SRC-1'], 'affected_components': ['N-1']}
         model = {'nodes': [{'id': 'N-1', 'name': 'remediate', 'responsibility': 'runs checks', 'evidence_ids': ['SRC-1']}],
                  'contracts': [], 'business_rules': []}
-        legacy = claims.from_legacy([finding], model, [], [])
+        legacy = record_claims.from_legacy([finding], model, [], [])
         self.assertEqual((legacy[0]['confidence'], legacy[0]['method']), ('LIKELY', ['model_inference']))
         self.assertEqual(claims.errors(legacy, evidence_ids={'SRC-1'}), [])
 

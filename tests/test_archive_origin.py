@@ -3,7 +3,7 @@ import unittest
 
 from eaos.analysis.debt_register import _severity
 from eaos.core.decisions import decide
-from eaos.analysis.dossier import archived, origin_of
+from eaos.analysis.dossier_claims import archived, origin_of
 
 INDEX = {'F1': 'archive/removed-screens/EventEditor.tsx', 'F2': 'app/src/features/rota/Rota.tsx', 'F3': 'app/tests/a.test.mjs'}
 

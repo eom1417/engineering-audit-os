@@ -43,6 +43,7 @@ from 80 with no high or critical problem, red below 50 or with a critical proble
 
 A priority (eaos/analysis/ranking.py: reach x confidence x origin / cost) is shown as its rank among all cards,
 in words: "very high, in the top 7%". The raw value is kept in a data attribute, not in the text.
+The counts and scales the views show beside them are in eaos/analysis/model_counts.py.
 """
 import json
 import math
@@ -50,6 +51,10 @@ from pathlib import Path
 
 from ..core.decisions import ready, waiting
 from ..core.plain import kind as plain_kind
+from .model_counts import (all_card_count, architecture_counts, collection_count, density_counts,  # noqa: F401  (the views read them here)
+                           history_scale, history_ticks, layer_counts, pipeline_counts, problems_left, remaining,
+                           structure_counts, system_counts, unparsed_count)
+from .model_counts import drill_counts, system_details
 from .ranking import CONFIDENCE_WEIGHT
 
 # The language of a source file by its suffix: the Studio's languages bar and the coverage of function facts.
@@ -119,9 +124,8 @@ def problems(report):
     """One row per plan card, with its area, severity, confidence and plain words."""
     report = Path(report)
     plan = _load(report / 'plan.json', {}) or {}
-    claims, debt = _ledger(report)
-    rows = [_problem_row(task, claims.get(task.get('claim_id')) or {}, debt.get(task.get('claim_id')) or {})
-            for task in plan.get('tasks') or [] if isinstance(task, dict)]
+    ledger = _ledger(report)
+    rows = [_row_of(task, task.get('claim_id'), ledger) for task in plan.get('tasks') or [] if isinstance(task, dict)]
     ranked = sorted((r['priority'] for r in rows), reverse=True)
     for row in rows:
         above = sum(1 for p in ranked if p > row['priority'])
@@ -133,24 +137,36 @@ def accepted_risks(report):
     """The security cards the assistant closed, as problem rows of the score only (module docstring)."""
     report = Path(report)
     closed = [c for c in (_load(report / 'cards.json', {}) or {}).get('closed') or [] if isinstance(c, dict)]
-    claims, debt = _ledger(report) if closed else ({}, {})
-    rows = [_problem_row({'id': c.get('card'), 'title': c.get('title')}, claims.get(c.get('claim_id')) or {},
-                         debt.get(c.get('claim_id')) or {}) for c in closed]
+    ledger = _ledger(report) if closed else ({}, {})
+    rows = [_row_of({'id': c.get('card'), 'title': c.get('title')}, c.get('claim_id'), ledger) for c in closed]
     return [{**row, 'accepted': True} for row in rows if row['area'] == 'security']
+
+
+def _row_of(task, claim_id, ledger):
+    """A card's problem row, with its claim and its debt register item when the ledger has them."""
+    claims, debt = ledger
+    return _problem_row(task, claims.get(claim_id) or {}, debt.get(claim_id) or {})
+
+
+def _words(task, claim, assessment):
+    """What a card says: its change, title, before and after, the claim's assessment first."""
+    return {'change': assessment.get('proposed_change') or task.get('change') or '',
+            'title': task.get('title') or claim.get('statement') or '',
+            'before': assessment.get('before') or task.get('before') or '',
+            'after': assessment.get('after') or task.get('after') or ''}
 
 
 def _problem_row(task, claim, item):
     area, severity = classify(task, item.get('severity'), item.get('category'))
-    assessment = claim.get('assessment') or {}
+    words = _words(task, claim, claim.get('assessment') or {})
     decision = task.get('decision') or {}
     return {'id': task.get('id', ''), 'pattern': plain_kind(task), 'area': area, 'severity': severity,
             'confidence': claim.get('confidence') or task.get('confidence') or 'CONFIRMED',
             'auto': ready(task),
             'outcomes': decision.get('allowed_outcomes') or [], 'options': task.get('options') or [],
-            'effort': task.get('effort'), 'change': assessment.get('proposed_change') or task.get('change') or '', 'priority': task.get('priority') or 0,
-            'title': task.get('title') or claim.get('statement') or '', 'paths': task.get('paths') or [],
-            'before': assessment.get('before') or task.get('before') or '',
-            'after': assessment.get('after') or task.get('after') or '', 'prerequisites': task.get('prerequisites', [])}
+            'effort': task.get('effort'), 'change': words['change'], 'priority': task.get('priority') or 0,
+            'title': words['title'], 'paths': task.get('paths') or [],
+            'before': words['before'], 'after': words['after'], 'prerequisites': task.get('prerequisites', [])}
 
 
 def stage_status(report):
@@ -166,12 +182,21 @@ def score(rows, source_files, statuses=None, known=True):
     statuses = statuses or {}
     size = max(source_files or 0, 100) / 100
     areas = {area: _area_score(area, rows, size, known and _area_measured(area, statuses)) for area in AREAS}
+    overall, capped = _overall(areas, rows)
+    return {'score': overall, 'grade': _grade(overall), 'areas': areas, 'capped': capped, 'size': round(size * 100)}
+
+
+def _overall(areas, rows):
+    """(the mean of the measured areas' scores, capped when a confirmed critical problem is known; whether it is)."""
     measured = [a['score'] for a in areas.values() if a['score'] is not None]
     overall = round(sum(measured) / len(measured)) if measured else None
     capped = any(r['severity'] == 'critical' and r['confidence'] == 'CONFIRMED' for r in rows)
     if overall is not None and capped: overall = min(overall, CRITICAL_CAP)
-    grade = next(name for floor, name in GRADES if (overall or 0) >= floor) if overall is not None else None
-    return {'score': overall, 'grade': grade, 'areas': areas, 'capped': capped, 'size': round(size * 100)}
+    return overall, capped
+
+
+def _grade(overall):
+    return next(name for floor, name in GRADES if (overall or 0) >= floor) if overall is not None else None
 
 
 def _area_measured(area, statuses):
@@ -231,12 +256,22 @@ def task_cards(m):
     problem the check no longer finds, or one fixed and merged before it) is not a card: it never reaches a page, it
     only counts in the progress (gap_totals). With no ledger, a card kept by a batch is done and one that failed needs
     a decision, as before the ledger."""
-    stones = {t: s.get('id') for s in m['plan'].get('milestones') or [] if isinstance(s, dict) for t in s.get('tasks') or []}
+    stones = _milestone_of(m['plan'])
     ledger = ledger_of(m)
     kept, failed = waves_state(m['progress'])
-    mine = {c.get('id'): c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict) and c.get('id')}
+    mine = _ledger_cards(ledger)
     done = {i for i, c in mine.items() if c.get('state') == 'done'}
     return [{**_task_card(r, mine.get(r['id']) or {}, stones, ledger, (kept, failed)), 'waits': waiting(r, done)} for r in m['rows']]
+
+
+def _milestone_of(plan):
+    """{card: the milestone it is in}."""
+    return {t: s.get('id') for s in plan.get('milestones') or [] if isinstance(s, dict) for t in s.get('tasks') or []}
+
+
+def _ledger_cards(ledger):
+    """{card id: its ledger row}."""
+    return {c.get('id'): c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict) and c.get('id')}
 
 
 def _card_state(r, c, ledger, kept, failed):
@@ -265,10 +300,14 @@ def gap_totals(m, cards):
     counts = {s: sum(c['state'] == s for c in cards) for s in CARD_STATES}
     t = {'total': len(cards), 'closed': counts['done'], 'new': sum(c['new'] for c in cards), **counts}
     given = (ledger_of(m) or {}).get('totals')
-    if isinstance(given, dict):
-        t.update({k: v for k, v in given.items() if isinstance(v, (int, float)) and not isinstance(v, bool)})
+    if isinstance(given, dict): t.update(_numbers(given))
     t['percent'] = float(t['percent']) if 'percent' in (given or {}) else (100 * t['closed'] / t['total'] if t['total'] else 0.0)
     return t
+
+
+def _numbers(totals):
+    """The ledger's totals that are numbers (a bool is not one)."""
+    return {k: v for k, v in totals.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
 
 
 def maps(report, target, pipeline_builder=None):
@@ -300,15 +339,19 @@ def pipeline_sections(report):
     return sections if all(sections.values()) else None
 
 
+def _owners(components):
+    """{path: the id of today's component it belongs to}, the last one naming it."""
+    owner = {}
+    for c in components:
+        for path in c.get('paths') or []: owner[path] = c.get('id')
+    return owner
 
 
 def component_problems(m):
     """{component id: (files, problems)}: a card counts in every part one of its files belongs to."""
     target = m['target']
     components = target.get('current_components') or target.get('components') or []
-    owner = {}
-    for c in components:
-        for path in c.get('paths') or []: owner[path] = c.get('id')
+    owner = _owners(components)
     counts = {c.get('id'): [c.get('files') or len(c.get('paths') or []), 0] for c in components}
     for r in m['rows']:
         for cid in {owner.get(p) for p in r['paths']} - {None}:
@@ -316,17 +359,11 @@ def component_problems(m):
     return {k: tuple(v) for k, v in counts.items()}
 
 
-
-
 def group_counts(rows):
     """Counts and weight for a group of problem rows, shared by report views."""
     automatic = sum(row['auto'] for row in rows)
     return {'total': len(rows), 'automatic': automatic, 'decision': len(rows) - automatic,
             'weight': sum(SEVERITY_WEIGHT[row['severity']] * CONFIDENCE_WEIGHT.get(row['confidence'], 1.0) for row in rows)}
-
-
-def remaining(items, shown):
-    return max(0, len(items) - shown)
 
 
 def closed_share(closed, total):
@@ -344,128 +381,8 @@ def milestone_counts(stone, cards, by_id):
     closed = card_counts(mine)['closed']
     return {'total': total, 'closed': closed, 'percent': round(closed_share(closed, total)),
             'automatic': sum(by_id[t]['auto'] for t in stone.get('tasks') or [] if t in by_id),
-            'state': 'done' if total and closed == total else 'active' if closed else 'todo'}
+            'state': _milestone_state(total, closed)}
 
 
-def structure_counts(target):
-    current = target.get('current_components') or target.get('components') or []
-    components = target.get('target_components') or []
-    relations = {}
-    for component in current:
-        relation = component.get('relation')
-        relations[relation] = relations.get(relation, 0) + 1
-    return {'relations': relations, 'current': len(current), 'target': len(components),
-            'layers': len({c.get('layer') for c in components}),
-            'moves': sum(g.get('files_to_move') or 0 for g in target.get('gap_matrix') or [])}
-
-
-def layer_counts(members):
-    return {'parts': len(members), 'files': sum(c.get('files') or 0 for c in members)}
-
-
-def density_counts(files, found):
-    density = found / max(files, 1)
-    return {'size': max(files, 1), 'density': density, 'per_ten': round(density * 10)}
-
-
-def architecture_counts(cmap):
-    return {'parts': len(cmap['nodes']), 'links': len(cmap['edges']),
-            'loops': sum(e['cycle'] for e in cmap['edges']), 'wrong': sum(e['wrong'] for e in cmap['edges'])}
-
-
-def system_counts(sm):
-    counts = {key: len(sm[key]) for key in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data')}
-    counts.update(answered=sum(bool(a['handlers']) for a in sm['apis']),
-                  tables=sum(d['id'].startswith('T:') for d in sm['data']),
-                  untraced=sum(not p['traced'] for p in sm['pages']))
-    counts['services'] = counts['data'] - counts['tables']
-    counts['columns'] = (counts['pages'] + counts['callers'], counts['apis'], counts['handlers'], counts['modules'], counts['data'])
-    return counts
-
-
-def collection_count(items):
-    return len(items)
-
-
-def all_card_count(groups):
-    return sum(len(cards) for _, _, cards in groups)
-
-
-def problems_left(totals):
-    return totals['total'] - totals['closed']
-
-
-def unparsed_count(coverage):
-    return (coverage.get('source_files') or 0) - (coverage.get('files_parsed') or 0)
-
-
-def history_scale(points):
-    top = max(h['percent'] for h in points)
-    return next((s for s in (5, 10, 20, 25, 50, 100) if s >= top * 1.1), 100)
-
-
-def history_ticks(points):
-    scale = history_scale(points)
-    return (0, scale / 2, scale)
-
-
-def drill_counts(drill):
-    """Displayed drill counts, including the same truncation as the drawing."""
-    if not drill: return drill
-    reverse = [[] for _ in drill['files']]
-    for source, imports in enumerate(drill['imports']):
-        for destination in imports: reverse[destination].append(source)
-    for component in drill['comps']: component['counts'] = _component_counts(component, drill['imports'], reverse)
-    outgoing, incoming = {}, {}
-    for call in drill['calls']:
-        outgoing.setdefault(call[0], []).append(call)
-        incoming.setdefault(call[2], []).append(call)
-    drill['file_counts'] = [_file_counts(f, own, outgoing.get(f, []), incoming.get(f, [])) for f, own in enumerate(drill['functions'])]
-    return drill
-
-
-def _component_counts(component, imports, reverse):
-    files = sorted(component['files'], key=lambda f: -(len(reverse[f]) + len(imports[f])))[:30]
-    selected = set(files)
-    return {'inside': sum(g in selected for f in files for g in imports[f]),
-            'shown': len(files), 'more': len(component['files']) - len(files),
-            'used_by': len(component['used_by']), 'uses': len(component['uses'])}
-
-
-def _file_counts(f, own, outgoing, incoming):
-    """A file's functions, and the calls in and out of the 30 it draws (at most 14 a side)."""
-    touched = {}
-    for call in outgoing: touched[call[1]] = touched.get(call[1], 0) + 1
-    for call in incoming: touched[call[3]] = touched.get(call[3], 0) + 1
-    selected = set(sorted(own, key=lambda name: -touched.get(name, 0))[:30])
-    left = {(c[0], c[1]) for c in incoming if c[0] != f and c[3] in selected}
-    right = {(c[2], c[3]) for c in outgoing if c[2] != f and c[1] in selected}
-    return {'own': len(own), 'left': min(len(left), 14), 'right': min(len(right), 14)}
-
-
-def system_details(sm):
-    """Counts shown by each selectable system node and feature."""
-    if not sm: return sm
-    for node in (node for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for node in sm[group]):
-        node['counts'] = _node_counts(node, sm['related'].get(node['id'], []))
-    sm['feature_counts'] = {feature['name']: len(feature['pages']) for feature in sm['features']}
-    return sm
-
-
-
-def _node_counts(node, related):
-    groups = {kind: sum(item.startswith(kind) and item != node['id'] for item in related) for kind in 'PCAHMTS'}
-    return {'calls': len(node.get('calls') or []), 'shared': len(node.get('shared') or []),
-            'pages': len(node.get('pages') or []), 'groups': groups,
-            'more': {kind: max(0, count - 40) for kind, count in groups.items()}}
-
-
-def pipeline_counts(section, pipelines=None, shown=60):
-    """Scalar labels for the report's selected pipelines, from the Studio section."""
-    pipelines = section.get('pipelines') or [] if pipelines is None else pipelines
-    ids = {p['id'] for p in pipelines}
-    confidence = section.get('confidence', {}).get('value')
-    return {'stages': {p['id']: len(p['stages']) for p in pipelines},
-            'drawn': {p['id']: sum(s['pipeline'] == p['id'] for s in section['stages']) for p in pipelines},
-            'more': max(0, sum(s['pipeline'] in ids for s in section['stages']) - shown),
-            'confidence': round(confidence * 100) if confidence is not None else '—'}
+def _milestone_state(total, closed):
+    return 'done' if total and closed == total else 'active' if closed else 'todo'

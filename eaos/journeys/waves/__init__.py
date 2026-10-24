@@ -7,8 +7,8 @@ holds more than a hundred. So a batch (a wave) is executed together, and the exp
      eaos/<branch>/wave-<n>, or the name the person gave in the fix preview.
   2. Each card: its codemod, or the assistant's edit (eaos/journeys/execute), committed alone, then the quick gate: no
      new broken code. A card that breaks something is taken back at once (its commit is dropped).
-  3. The acceptance of every card from one collection of facts (batch_acceptance); a card whose problem is
-     still there is dropped the same way.
+  3. The acceptance of every card from one collection of facts (batch_acceptance, waves/acceptance.py); a card whose
+     problem is still there is dropped the same way.
   4. The project's own checks and the behaviour lock, once for the whole batch. When they fail, the batch is
      split in half until the card responsible is found (culprits), and only the cards that pass together stay.
   5. runtime/execution.json gets one row per card; the kept commits are the branch.
@@ -17,129 +17,24 @@ apply() fetches that branch into the person's project without touching their cur
 undo() deletes it again while it is not merged. Nothing else in the project is written.
 
 A wave is the flow `fix` of the live map (FLOW), drawn from the state at each save (draw, called by guided.save) to
-<runtime>/progress/fix.jsonl: each card a step of `change`, then the end checks as they are reached, then the handover.
+<runtime>/progress/fix.jsonl: each card a step of `change`, then the end checks as they are reached, then the handover
+(waves/live_map.py). The cards a batch takes: waves/cards.py.
 """
 import json
-import re
-import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..core import progress
-from ..core import ledger
-from ..core.decisions import ready, waiting
-from ..core.ledger import TRAILER, key, keys
-from ..core.progress.flow import OPTIONAL, Stage
-from .execute import candidate, git, original_checks, project_checks, record, regressions, run_codemod
-
-SIZE = 10
-FLOW = (
-    Stage('open', description='Make the separate copy the fixes are tried in, from the commit you allowed'),
-    Stage('change', requires=('open',),
-          description='Change the code card by card, by a codemod or your assistant; a change that breaks something '
-                      'is taken back at once'),
-    Stage('acceptance', requires=('change',), description='Check that each fixed problem is really gone'),
-    Stage('gates', requires=('acceptance',),
-          description="Run your project's own checks and compare every recorded screen, once for the whole batch"),
-    Stage('culprit', requires=('gates',), necessity=OPTIONAL, absent_when='the batch passed its checks',
-          description='Split the batch in half until the change that broke a check is found'),
-    Stage('handover', requires=('gates',),
-          description='Write down every card\'s result and hand the kept changes over as a branch in your project'),
-)
-FIX = 'fix'                     # the flow a batch draws (draw)
-PHASES = {'acceptance': 'acceptance', 'regenerate': 'gates', 'gates': 'gates', 'control': 'gates', 'bisect': 'culprit'}
-HANDED = ('applied', 'accepted', 'empty')
-DEADCODE = re.compile(r"== \('([^']+)', '([^']*)', '([\w-]+)'\)")
+from ...core import progress
+from ...core.ledger import TRAILER, key
+from ..execute import candidate, git, original_checks, project_checks, record, regressions, run_codemod
+from .acceptance import _still, batch_acceptance, engines_for
+from .cards import SIZE, next_batch, plan, ready_cards, too_early, with_prerequisites  # noqa: F401
+from .live_map import FLOW, publish, saved  # noqa: F401
 
 
-def plan(report):
-    """plan.json, each card with its key (eaos/core/ledger.py), which its commit carries."""
-    data = json.loads((Path(report) / 'plan.json').read_text(encoding='utf-8'))
-    ids = keys(data.get('tasks') or [])
-    for card in data.get('tasks') or []: card['key'] = ids[card['id']]
-    return data
-
-
-def ready_cards(report, state=None):
-    """The ready cards in the plan's order: milestone by milestone, and inside one, as the plan lists them; without a card
-    the ledger holds other than open, nor one tried before (the state's `tried`, by key: a new check numbers the cards
-    again) unless the ledger opened it again (ledger._reopen_waited), nor one waiting for a card not done yet
-    (decisions.waiting) unless that card is taken before it: the split goes in the same batch, after its simplifications
-    (chief-ops: ten splits left for "the next batch" while their simplifications were open)."""
-    if not (Path(report) / 'plan.json').is_file(): return []
-    book, tried = _book(state), set((state or {}).get('tried') or ())
-    done, taken, ids = ledger.done(book), [], set()
-    cards = [card for card in _in_order(plan(report)) if ready(card) and _free(card['key'], book, tried)]
-    # each time the first card in the plan's order whose waits are done or taken: a split comes right after the last of them
-    while card := next((c for c in cards if c['id'] not in ids and set(waiting(c, done)) <= ids), None):
-        taken.append(card)
-        ids.add(card['id'])
-    return taken
-
-
-def _free(key, book, tried):
-    """Whether a batch may take the card: open in the ledger, and not tried before unless the ledger opened it again."""
-    entry = book.get(key) or {'state': 'open'}
-    return entry['state'] == 'open' and (key not in tried or bool(entry.get('reopened')))
-
-
-def _in_order(data):
-    """The plan's cards milestone by milestone, then the rest as listed."""
-    by_id = {card['id']: card for card in data.get('tasks') or [] if card.get('id')}
-    order = [card_id for milestone in data.get('milestones') or [] for card_id in milestone['tasks']]
-    return [by_id[i] for i in dict.fromkeys(order + list(by_id)) if i in by_id]
-
-
-def _book(state):
-    """The ledger's cards by key; none before the project has one."""
-    return ((ledger.load(state) if (state or {}).get('project') else None) or {}).get('cards') or {}
-
-
-def with_prerequisites(report, state, chosen):
-    """The cards asked for, each after the ready cards it waits for, added when not asked (ready_cards' rule)."""
-    known, done = {c['id']: c for c in plan(report)['tasks']}, ledger.done(_book(state))
-    free, out = {c['id'] for c in ready_cards(report, state)}, []
-    def put(card_id):
-        for needed in waiting(known[card_id], done) if card_id in known else []:
-            if needed in free and needed not in out: put(needed)
-        if card_id not in out: out.append(card_id)
-    for card_id in chosen: put(card_id)
-    return out
-
-
-def too_early(state, cards):
-    """Why the cards asked for cannot open a batch yet: some wait for cards neither done (decisions.waiting) nor taken
-    before them in the batch; else None."""
-    done = set(ledger.done(_book(state)))
-    early = {}
-    for card in cards:
-        if wait := waiting(card, done): early[card['id']] = wait
-        done.add(card['id'])
-    if not early: return None
-    return {'error': '; '.join(f'{c} waits for {", ".join(w)}' for c, w in list(early.items())[:5]) + ': no batch was opened',
-            'waits': early, 'what_now': 'A card goes in a batch once the cards it waits for are done (a module is split after '
-                                        'its complex functions are simplified): call fix_start again without these cards.'}
-
-
-def next_batch(report, state, size=SIZE):
-    return [card['id'] for card in ready_cards(report, state)[:size]]
-
-
-# ---------------------------------------------------------------- one collection, every acceptance
-
-def engines_for(cards):
-    """The engines a collection of facts on a changed copy runs: the security gate's (eaos/journeys/execute.py GATE_ENGINES),
-    and those a card's own recheck asks again (a security card names the engines that found it)."""
-    from .execute import GATE_ENGINES
-    named = set()
-    for card in cards:
-        argv = card.get('verify_command') or []
-        if 'recheck' in argv and '--spec' in argv:
-            named |= set((json.loads(argv[argv.index('--spec') + 1]).get('specification') or {}).get('engines') or [])
-    return sorted(set(GATE_ENGINES) | named)
-
+# ---------------------------------------------------------------- one change, its gates
 
 def edit_gates(where, root, card, changed, repair):
     """(what one change of a batch broke or added against the code laws, the card's own check's exit (None for a
@@ -147,9 +42,9 @@ def edit_gates(where, root, card, changed, repair):
     on the copy `root`; `where`: (report, project, runtime). A change to the app's
     files also runs the app's own checks (app_breakage): an unused import in a Studio file broke its type check, then
     its build, and was found only when the 51 changes of a batch met (EAOS, 2026-10-14)."""
-    from .execute import app_breakage, new_breakage
-    from ..facts.run import collect
-    from ..analysis.gates import debt, words
+    from ..execute import app_breakage, new_breakage
+    from ...facts.run import collect
+    from ...analysis.gates import debt, words
     report, project, runtime = where
     with tempfile.TemporaryDirectory(prefix='eaos-edit-facts-') as out:
         collect(root.resolve(), out, engines=engines_for([card]))
@@ -157,29 +52,6 @@ def edit_gates(where, root, card, changed, repair):
                  + app_breakage(project, runtime, root, changed))
         exit_code = None if repair else batch_acceptance(report, [card], root, collected=out).get(card['id'])
         return broke, exit_code, _still(card, out) if exit_code not in (0, None) else ''
-
-
-def batch_acceptance(report, cards, root, collected=None):
-    """{card id: exit code} for every card's acceptance, from one collection of facts on `root` (`collected`,
-    when the caller already made it, with engines_for(cards)). A `recheck --spec` acceptance and the dead-code check
-    are read from that collection; anything else runs as written."""
-    from ..facts.run import collect, read_available
-    with tempfile.TemporaryDirectory(prefix='eaos-wave-facts-') as scratch:
-        out = Path(collected or scratch)
-        if not collected: collect(Path(root).resolve(), out, engines=engines_for(cards))
-        sets = read_available(out)
-        dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
-                for f in (sets.get('deadcode') or {}).get('facts', [])}
-        return {card['id']: _acceptance_exit(card, sets, dead, out, root) for card in cards}
-
-
-def _probe_exit(spec, sets, out):
-    from ..analysis.probes import decide_probe
-    if (spec.get('specification') or {}).get('query') == 'load_blocker_present' and 'load_model' not in sets:
-        from ..analysis.load_model import compute, project
-        sets['load_model'] = project(compute(out))
-    status, _ = decide_probe(spec, sets)
-    return 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
 
 
 def _sizes_before(root, paths):
@@ -191,26 +63,6 @@ def _sizes_before(root, paths):
         shown = git(root, 'show', f'HEAD~1:{path}')
         if not shown.returncode: out[path] = len(shown.stdout.split('\n'))
     return out
-
-
-def _still(card, out):
-    """What a card's own probe still finds on the copy, in its words; '' when its check is not a probe."""
-    from ..facts.run import read_available
-    from ..analysis.probes import decide_probe
-    argv = card.get('verify_command') or []
-    if not ('recheck' in argv and '--spec' in argv): return ''
-    return decide_probe(json.loads(argv[argv.index('--spec') + 1]), read_available(out))[1]
-
-
-def _acceptance_exit(card, sets, dead, out, root):
-    """One card's acceptance exit: read from the collection when it is a probe or the dead-code check, else run."""
-    argv = card.get('verify_command') or []
-    if 'recheck' in argv and '--spec' in argv:
-        return _probe_exit(json.loads(argv[argv.index('--spec') + 1]), sets, out)
-    found = DEADCODE.search(argv[-1]) if argv else None
-    if found: return 1 if found.groups() in dead else 0
-    if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode
-    return None
 
 
 # ---------------------------------------------------------------- the batch
@@ -265,11 +117,11 @@ def gates(batch, name):
         broken = regressions(batch['before'], project_checks(batch['root'], batch['runtime'], 'S09', name))
         if broken: return "the project's own check failed: " + ', '.join(broken)
     if batch['lock']:
-        from ..live.behavior_lock import verify_lock
+        from ...live.behavior_lock import verify_lock
         verdict = verify_lock(batch['report'], batch['root'], batch['runtime'], name=name, declared=batch['declared'],
                               known=batch.get('known') or ())
         if verdict['failed']:      # every screen that differs, at once: one per run cost a batch hours
-            from ..live.behavior_lock import failing_tests
+            from ...live.behavior_lock import failing_tests
             return (f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
                     + '; '.join(sorted(failing_tests(batch['runtime'], name)))[:600])
     return ''
@@ -307,7 +159,7 @@ def declared_screens(cards):
 
 def open_batch(target, runtime, number):
     """The wave's candidate, cloned from the authorised commit: (root, base)."""
-    from ..live.sandbox import head, refusal
+    from ...live.sandbox import head, refusal
     reason = refusal(Path(runtime) / 'authorization.json', 'S08', head(target))
     if reason: raise PermissionError(reason)
     root = candidate(target, runtime, f'WAVE-{number}')
@@ -361,11 +213,16 @@ def _accepted(batch, cards, kept, failed, repairs):
     exits = batch_acceptance(batch['report'], [cards[c] for c in kept], batch['root'])
     for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
         if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
+    _rebuilt_without(batch, kept, failed, repairs)
+    _acceptance_steps(kept, failed, exits)
+    return {c: s for c, s in kept.items() if c not in failed}
+
+
+def _rebuilt_without(batch, kept, failed, repairs):
+    """The copy rebuilt with the kept changes not failed (the repairs on top); each that no longer applies, failed."""
     still = [kept[c] for c in kept if c not in failed]
     for sha in set(rebuild(batch['root'], batch['base'], still + repairs)) - set(repairs):
         failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'
-    _acceptance_steps(kept, failed, exits)
-    return {c: s for c, s in kept.items() if c not in failed}
 
 
 def _acceptance_steps(kept, failed, exits):
@@ -402,7 +259,7 @@ def _against_control(batch):
     or time that moved since the recording), not from its changes: the checks are judged against this control from now
     on, so no card is blamed for it (EAOS on itself, 2026-10-13: a screen reading live data failed with every card, and
     a whole batch of sound fixes was left out). True when the control set something aside."""
-    from ..live.behavior_lock import failing_tests, verify_lock
+    from ...live.behavior_lock import failing_tests, verify_lock
     head, name = git(batch['root'], 'rev-parse', 'HEAD').stdout.strip(), f"{batch['name']}-control"
     batch['say']('control')
     rebuild(batch['root'], batch['base'], [])
@@ -429,14 +286,19 @@ def _named(batch, commits):
     print. When it then passes, they are the culprits; halving 68 changes ran the whole suite again and again, on half
     applied splits, for hours, though the output named the one file (EAOS, 2026-10-15). {} when none or all are named, or
     leaving the named ones out is not enough."""
-    said = ' '.join(c['output'] for n in (batch['name'], f"{batch['name']}-again") for c in failing_output(batch['runtime'], n))
-    files = {sha: git(batch['root'], 'show', '--name-only', '--format=', sha).stdout.split() for sha in commits}
-    named = [sha for sha in commits if any(f in said or f.removesuffix('.py').replace('/', '.') in said for f in files[sha])]
+    named = _named_in_output(batch, commits)
     if not named or len(named) == len(commits): return {}
     _rebuilt(batch, [sha for sha in commits if sha not in named])
     batch['say']('bisect')
     if gates(batch, f"{batch['name']}-named"): return {}
     return {sha: "the project's checks failed naming the files it changed, and passed without it" for sha in named}
+
+
+def _named_in_output(batch, commits):
+    """The commits that change a file the failing checks' output names (by its path, or a Python file by its module)."""
+    said = ' '.join(c['output'] for n in (batch['name'], f"{batch['name']}-again") for c in failing_output(batch['runtime'], n))
+    files = {sha: git(batch['root'], 'show', '--name-only', '--format=', sha).stdout.split() for sha in commits}
+    return [sha for sha in commits if any(f in said or f.removesuffix('.py').replace('/', '.') in said for f in files[sha])]
 
 
 def _without_culprits(batch, kept, failed):
@@ -498,89 +360,3 @@ def undo(project, branch):
     if merged(project, branch): return 'merged'
     git(project, 'branch', '-D', branch)
     return 'deleted'
-
-
-# ---------------------------------------------------------------- the batch, on the live map
-
-def saved(state, runtime):
-    """What every save of the state does for the batches (guided.save): the open one drawn on the live map, and the copies
-    of the closed ones removed. A closed batch's or build's commits are in the person's project by then (its branch), its
-    patches beside the run (_write_wave), and nothing opens its copy again (six had kept 690 MB). A copy whose batch is
-    still opening has no record yet, so it is never touched. Its bisection's logs go too (104 had piled up): the batch's
-    own gates log stays, the summary of what failed."""
-    for closed in state.get('waves') or []:
-        name = f"{'BUILD' if closed.get('via') == 'build' else 'WAVE'}-{closed['number']}"
-        shutil.rmtree(Path(runtime) / 'candidates' / name, ignore_errors=True)
-        for log in (Path(runtime) / 'runtime').glob(f"checks-wave-{closed['number']}-bisect-*-log.json"): log.unlink()
-    for number in older(state): shutil.rmtree(Path(runtime) / 'waves' / f'wave-{number}', ignore_errors=True)
-    draw(state, runtime)
-
-
-KEPT_BATCHES = 2     # the batches whose patches stay beside the run and in the outputs; the older ones are in git
-
-
-def older(state):
-    """The numbers of the closed batches past the last KEPT_BATCHES: their patches go (eight batches had kept 18 MB
-    twice, beside the run and in the outputs); their branches and the state's record of them stay."""
-    numbers = sorted({wave['number'] for wave in state.get('waves') or []})
-    return numbers[:-KEPT_BATCHES]
-
-
-def publish(state, runtime, fixes, number):
-    """<fixes>/wave-N: a copy of the batch's patches and wave.json beside the run, the older batches' copies removed."""
-    source, target = Path(runtime) / 'waves' / f'wave-{number}', Path(fixes) / f'wave-{number}'
-    shutil.rmtree(target, ignore_errors=True)
-    if source.is_dir(): shutil.copytree(source, target)
-    else: target.mkdir(parents=True)
-    for old in older(state): shutil.rmtree(Path(fixes) / f'wave-{old}', ignore_errors=True)
-    return target
-
-
-def draw(state, runtime):
-    """The open batch as the flow `fix` (waves.FLOW), drawn again from the state at each of its saves, and once more when it
-    closes. No process holds a batch, the assistant's tool calls work it card by card, so nothing drew it and the live map
-    read "waiting" through every batch (owner, 2026-10-15). Called by saved(); None when there is nothing to draw."""
-    wave, last = state.get('open_wave'), (state.get('waves') or [None])[-1]
-    if not wave:
-        if not (last or {}).get('cards') or state.get('fix_drawn') == last['number']: return None   # a build's: draw_build
-        wave, state['fix_drawn'] = last, last['number']
-    progress.path_for(runtime, FIX).unlink(missing_ok=True)       # a drawing, not a run
-    log = progress.ProgressLog(runtime, FIX, pulse=False, sampler=None, alive_every=None)
-    log.started(FLOW, [s.name for s in FLOW], {}, steps={}, process=False, at=wave.get('opened'))
-    _draw_cards(log, wave)
-    _draw_phases(log, wave)
-    if wave.get('status') in HANDED:
-        log.stage_started('handover')
-        _end(log, 'handover', 'ok', None, wave.get('branch') or '')
-        log.finish('COMPLETE')
-    elif wave.get('status'): log.finish('STOPPED', reason=wave.get('why') or wave['status'])
-    else: log.close()
-    return progress.path_for(runtime, FIX)
-
-
-def _draw_phases(log, wave):
-    """The checks at the batch's end, each from when it was reached (batch_finish._phase) to when the next one was."""
-    reached = {}
-    for kind, at in (wave.get('phases') or {}).items(): reached.setdefault(PHASES.get(kind, kind), at)
-    phases = list(reached.items())
-    for (stage, at), after in zip(phases, phases[1:] + [None]):
-        log.stage_started(stage, at=at)
-        if after or wave.get('status'): _end(log, stage, 'ok', after[1] if after else None)
-
-
-def _draw_cards(log, wave):
-    """The copy opened, then a step per card: kept, or set aside with why; the change ends once the checks begin."""
-    log.stage_started('open', at=wave.get('opened'))
-    _end(log, 'open', 'ok', wave.get('opened'))
-    log.stage_started('change', at=wave.get('opened'))
-    step, cards = log.stepper('change'), wave['cards']
-    for done, card in enumerate(cards, 1):
-        if card in wave['kept']: step(card, done, len(cards), 'ok', seconds=0)
-        elif card in wave['failed']: step(card, done, len(cards), 'skipped', reason=str(wave['failed'][card]))
-    if wave.get('phases') or wave.get('status'):
-        _end(log, 'change', 'ok', next(iter((wave.get('phases') or {}).values()), None))
-
-
-def _end(log, stage, status, at, artifact=''):
-    log.ended({'stage': stage, 'status': status, 'reason': '', 'seconds': None, 'necessity': 'required',
-               'artifacts': [artifact] if artifact else []}, **({'at': at} if at else {}))

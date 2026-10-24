@@ -93,15 +93,21 @@ def _on_base(state, base, base_commit):
     working = state.get('branch') or branches.checked_out(state['project'])
     base = (base or '').strip() or working
     now = commit_of(state['project'], base) if base else _head(state)
-    if base and not now: return {'status': 'error', 'error': f'no branch named {base} in this project'}, state
-    if base_commit and not (now or '').startswith(str(base_commit).strip()):
-        return {'status': 'base_moved', 'branch': base, 'expected': base_commit, 'now': now,
-                'what_now': f'The branch {base} moved since the preview (it was at {str(base_commit)[:12]}, it is at {(now or "")[:12]} '
-                            'now): nothing was opened. Show the preview again, so the person confirms the batch on the code as it is.'}, state
+    if (stop := _base_problem(base, base_commit, now)): return stop, state
     if base and base != working:
         try: state = guided.choose(state, base)
         except ValueError as problem: return {'status': 'error', 'error': str(problem)}, state
     return None, state
+
+
+def _base_problem(base, base_commit, now):
+    """Why nothing opens on `base`, at commit `now`: no such branch, or it moved since the preview; else None."""
+    if base and not now: return {'status': 'error', 'error': f'no branch named {base} in this project'}
+    if base_commit and not (now or '').startswith(str(base_commit).strip()):
+        return {'status': 'base_moved', 'branch': base, 'expected': base_commit, 'now': now,
+                'what_now': f'The branch {base} moved since the preview (it was at {str(base_commit)[:12]}, it is at {(now or "")[:12]} '
+                            'now): nothing was opened. Show the preview again, so the person confirms the batch on the code as it is.'}
+    return None
 
 
 def _not_ready(state, deliver_as):
@@ -126,15 +132,20 @@ def _chosen(state, cards, size):
     chosen = with_prerequisites(report, state, list(dict.fromkeys(cards))) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
-    undecided = [c for c in chosen if not _ready(known[c])]
-    if undecided:
-        return {'error': f'{", ".join(undecided[:5])} need(s) a decision by the person before any fix (not ready): no batch '
-                         'was opened', 'needs_decision': undecided,
-                'what_now': 'Explain the decision each card needs (see `finding`), plainly, and leave it out of the batch; '
-                            'call fix_start again with ready cards only, or with no cards for the next ready batch.'}, chosen
+    if (undecided := _undecided(chosen, known)): return undecided, chosen
     if early := too_early(state, [known[c] for c in chosen]): return early, chosen
     if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}, chosen
     return None, chosen
+
+
+def _undecided(chosen, known):
+    """Why the batch does not open when some of its cards need the person's decision first; else None."""
+    undecided = [c for c in chosen if not _ready(known[c])]
+    if not undecided: return None
+    return {'error': f'{", ".join(undecided[:5])} need(s) a decision by the person before any fix (not ready): no batch '
+                     'was opened', 'needs_decision': undecided,
+            'what_now': 'Explain the decision each card needs (see `finding`), plainly, and leave it out of the batch; '
+                        'call fix_start again with ready cards only, or with no cards for the next ready batch.'}
 
 
 def _no_safety_net(state):
@@ -160,17 +171,12 @@ def fix_abandon(project=None):
 
 
 def _fix_start_job(project, arguments, progress):
-    from ..waves import change, commit, drop_last, open_batch, plan as read_plan
-    from ..execute import new_breakage
-    from ...live.sandbox import head
+    from ..waves import open_batch, plan as read_plan
     state = project_state.load(project)
     report, runtime = guided.report_of(state), project_state.runtime_of(state)
     number = len(state.get('waves') or []) + 1
-    grant = runtime / 'authorization.json'
-    granted = _read(grant).get('commit') if grant.is_file() else None
     source = guided.source(state)
-    if granted != head(source) and guided.same_code(state, granted):     # a merged batch: the agreement still holds
-        live_setup.authorize(source, runtime, _read(grant).get('granted_by') or 'the owner')
+    _agreement_kept(state, source, runtime)
     progress(0, 1, 'copying the project into the isolated copy')
     root, base = open_batch(source, runtime, number)
     cards = {t['id']: t for t in read_plan(report)['tasks'] if t['id'] in set(arguments['cards'])}
@@ -178,6 +184,31 @@ def _fix_start_job(project, arguments, progress):
             'opened': _now(), 'keys': {c: cards[c]['key'] for c in arguments['cards']},
             'base_branch': state.get('branch') or branches.checked_out(state['project']),
             'deliver_as': arguments.get('deliver_as'), 'merge_into': arguments.get('merge_into')}
+    _settle_delivery(state, wave, root)
+    _automatic_fixes(wave, [cards[c] for c in arguments['cards']], root, report, progress)
+    helpers = lanes.open_lanes(wave, cards, arguments.get('assistants'))
+    state = project_state.load(project)
+    state['open_wave'] = wave
+    guided.save(state)
+    guided.publish(state)
+    return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
+            'to_do': [_brief(cards[c]) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
+            'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
+                        'fix_edit. Keep every feature, route and behaviour. When every card is kept or skipped, call fix_finish.',
+            **lanes.told(helpers)}
+
+
+def _agreement_kept(state, source, runtime):
+    """The person's agreement to run the app renewed for the commit now, when only merged batches came since it."""
+    from ...live.sandbox import head
+    grant = runtime / 'authorization.json'
+    granted = _read(grant).get('commit') if grant.is_file() else None
+    if granted != head(source) and guided.same_code(state, granted):     # a merged batch: the agreement still holds
+        live_setup.authorize(source, runtime, _read(grant).get('granted_by') or 'the owner')
+
+
+def _settle_delivery(state, wave, root):
+    """Where a new batch goes: its own branch, direct onto its base, or on top of a work branch waiting for a decision."""
     if not wave['deliver_as']: wave['deliver_as'], wave['merge_into'] = delivery(state, None, wave['merge_into'])
     if wave['deliver_as'] == wave['base_branch']:
         # direct: the batch is still built and checked here, handed over on a branch of its own and merged into the base
@@ -189,13 +220,20 @@ def _fix_start_job(project, arguments, progress):
         fetched = guided._git(root, 'fetch', '--quiet', str(state['project']), f"+refs/heads/{wave['deliver_as']}:refs/eaos/continued")
         if fetched.returncode or guided._git(root, 'reset', '--hard', '--quiet', tip).returncode:
             raise RuntimeError(f"could not start from {wave['deliver_as']}: {fetched.stderr[-300:]}")
-        wave.update(base=tip, source_commit=base, continues=wave['deliver_as'])
-    automatic = [c for c in arguments['cards'] if ((cards[c].get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
-    for index, card_id in enumerate(automatic, 1):
+        wave.update(base=tip, source_commit=wave['base'], continues=wave['deliver_as'])
+
+
+def _automatic_fixes(wave, cards, root, report, progress):
+    """The cards with a codemod, fixed by it in the copy: each kept, or taken back when it fails or breaks something."""
+    from ..waves import change, commit, drop_last
+    from ..execute import new_breakage
+    automatic = [c for c in cards if ((c.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
+    for index, card in enumerate(automatic, 1):
+        card_id = card['id']
         progress(index, len(automatic) + 1, f'automatic fix of {card_id}')
         try:
-            tool, _ = change(cards[card_id], root, report)
-            sha = commit(root, cards[card_id], tool)
+            tool, _ = change(card, root, report)
+            sha = commit(root, card, tool)
             broke = new_breakage(report, root)
             if broke:
                 drop_last(root)
@@ -206,16 +244,6 @@ def _fix_start_job(project, arguments, progress):
             guided._git(root, 'reset', '--hard', '--quiet', 'HEAD')
             guided._git(root, 'clean', '-fdq')
             wave['failed'][card_id] = f'{type(problem).__name__}: {problem}'[:300]
-    helpers = lanes.open_lanes(wave, cards, arguments.get('assistants'))
-    state = project_state.load(project)
-    state['open_wave'] = wave
-    guided.save(state)
-    guided.publish(state)
-    return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
-            'to_do': [_brief(cards[c]) for c in lanes.mine(wave, lanes.untried(wave, arguments['cards']))],
-            'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
-                        'fix_edit. Keep every feature, route and behaviour. When every card is kept or skipped, call fix_finish.',
-            **lanes.told(helpers)}
 
 
 def _inside(root, relative):
@@ -267,19 +295,7 @@ def _apply(root, edits):
     staged = {}
     for edit in edits:
         path = _inside(root, edit.get('path') or '')
-        relative = edit['path']
-        if edit.get('delete'): staged[relative] = None; continue
-        if 'content' in edit:
-            if not isinstance(edit['content'], str): raise ValueError(f'{relative}: content must be text')
-            staged[relative] = edit['content']; continue
-        text = staged.get(relative) if relative in staged else (_kept(path) if path.is_file() else None)
-        if text is None: raise ValueError(f'{relative}: does not exist; send its whole content instead')
-        find, replace = edit.get('find'), edit.get('replace')
-        if not isinstance(find, str) or not isinstance(replace, str) or not find:
-            raise ValueError(f'{relative}: an edit needs `find` and `replace`, or `content`, or `delete`')
-        find, replace = _line_ends(text, find, replace)
-        if text.count(find) != 1: raise ValueError(_not_once(relative, text.count(find)))
-        staged[relative] = text.replace(find, replace, 1)
+        staged[edit['path']] = _edited(edit, path, staged)
     for relative, text in staged.items():
         path = _inside(root, relative)
         if text is None:
@@ -288,6 +304,27 @@ def _apply(root, edits):
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open('w', encoding='utf-8', newline='') as out: out.write(text)
     return sorted(staged)
+
+
+def _edited(edit, path, staged):
+    """What one edit leaves of its file: None (deleted), its new content, or its text so far with `find` replaced once."""
+    relative = edit['path']
+    if edit.get('delete'): return None
+    if 'content' in edit:
+        if not isinstance(edit['content'], str): raise ValueError(f'{relative}: content must be text')
+        return edit['content']
+    text = staged.get(relative) if relative in staged else (_kept(path) if path.is_file() else None)
+    if text is None: raise ValueError(f'{relative}: does not exist; send its whole content instead')
+    return _replaced(relative, text, edit.get('find'), edit.get('replace'))
+
+
+def _replaced(relative, text, find, replace):
+    """`text` with `find` replaced by `replace`, once: ValueError unless `find` occurs exactly once."""
+    if not isinstance(find, str) or not isinstance(replace, str) or not find:
+        raise ValueError(f'{relative}: an edit needs `find` and `replace`, or `content`, or `delete`')
+    find, replace = _line_ends(text, find, replace)
+    if text.count(find) != 1: raise ValueError(_not_once(relative, text.count(find)))
+    return text.replace(find, replace, 1)
 
 
 def fix_edit(card, edits, summary='', project=None):
@@ -320,9 +357,7 @@ def _fix_edit_job(project, arguments, progress):
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     if broke or exit_code not in (0, None):
         drop_last(root)
-        why = (f'it broke something or broke the code laws: {"; ".join(broke[:3])}' if broke else
-               "the problem is still there: the card's own check still finds it" + (f': {still}' if still else f' (exit {exit_code})'))
-        return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
+        return {'card': card_id, 'kept': False, 'why': _not_kept(broke, exit_code, still), 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
     if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
     with lanes.changing(project) as state:
@@ -333,6 +368,12 @@ def _fix_edit_job(project, arguments, progress):
         wave.setdefault('summaries', {})[card_id] = arguments.get('summary') or ''
     left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
     return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
+
+
+def _not_kept(broke, exit_code, still):
+    """Why an edit's change was taken back: it broke something, or the card's own check still finds the problem."""
+    if broke: return f'it broke something or broke the code laws: {"; ".join(broke[:3])}'
+    return "the problem is still there: the card's own check still finds it" + (f': {still}' if still else f' (exit {exit_code})')
 
 
 def fix_skip(card, reason, project=None):

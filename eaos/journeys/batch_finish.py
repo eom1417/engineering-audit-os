@@ -1,6 +1,6 @@
 """Handing a batch of fixes over (the job behind the MCP fix_finish), and the repair on top of it.
 
-Every kept change goes together through the project's checks (eaos/journeys/waves.py finish_batch). When the changes pass one
+Every kept change goes together through the project's checks (eaos/journeys/waves finish_batch). When the changes pass one
 by one but fail together, no sound card is left out at first: the answer asks the assistant for a repair on top of
 them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAIRS repairs, or when asked to leave
 them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands
@@ -103,10 +103,7 @@ def _handed_over(project, wave, summary):
     from .waves import apply as hand_over
     state = project_state.load(project)
     score = _score(state, wave, summary)
-    record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
-              'opened': wave.get('opened'), 'phases': (state.get('open_wave') or {}).get('phases') or {},
-              'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {},
-              **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch', 'direct', 'continues') if wave.get(k)}}
+    record = _record(state, wave, summary)
     if summary['kept']:
         hand_over(state['project'], summary)
         record['status'] = 'applied'
@@ -128,6 +125,14 @@ def _handed_over(project, wave, summary):
                          "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
                          "The report counts these fixes as done only once they are taken in."
                          if summary['kept'] else 'No change passed every gate; nothing reached the project.')}
+
+
+def _record(state, wave, summary):
+    """The closed batch's record among the waves, empty until its branch is handed over."""
+    return {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
+            'opened': wave.get('opened'), 'phases': (state.get('open_wave') or {}).get('phases') or {},
+            'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {},
+            **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch', 'direct', 'continues') if wave.get(k)}}
 
 
 def _land(project, record, files):

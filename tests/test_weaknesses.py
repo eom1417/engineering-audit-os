@@ -7,7 +7,7 @@ from unittest import mock
 
 from eaos.analysis import weaknesses
 from eaos.engines import codeql
-from eaos.analysis.probes import run_graph_query
+from eaos.analysis.probe_queries import run_graph_query
 
 
 def fact(id_, engine, path, line, rule, cwe=(), kind='vulnerability', severity='high', confidence=None):

@@ -19,7 +19,7 @@ import shutil
 from pathlib import Path
 
 from . import sarif, tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'semgrep'
@@ -41,8 +41,7 @@ def capabilities():
             Capability('secret', 'generic.secrets.*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def official_checkout():
@@ -91,11 +90,9 @@ def normalise(path, target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
-    workdir = Path(workdir) / NAME
-    workdir.mkdir(parents=True, exist_ok=True)
+    workdir = tool.folder(workdir, NAME)
     used, commit = assemble(workdir)
     output = workdir / 'semgrep.sarif'
     # No time limit per rule and file: semgrep's own (5 s, a file skipped after three) dropped findings in silence on a
@@ -105,7 +102,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     for pattern in EXCLUDED + tuple(exclude): command += ['--exclude', pattern]
     code, _, error, seconds = run(command + [str(Path(target).resolve())], cwd=workdir, timeout=LIMIT)
     if code not in (0, 1) or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     normalise(output, target)
     findings, unmapped = sarif.read(output, NAME, found)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),

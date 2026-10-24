@@ -21,6 +21,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from ..core.security import THIS_COMPUTER
+
 SESSION = 'session.json'                     # in the run's folder: the session of the app in its isolated copy
 PUBLISHED = 'published-session.json'         # in the project's workspace: the published address's, for one check only
 ASKED = 'sign-in.json'                       # in the project's workspace: the check waits for the person to sign in
@@ -182,12 +184,12 @@ def codes(record, lines=40):
 def _mail(address):
     """The newest mails Mailpit caught (its API at `address`): who to, the subject and the text."""
     if not address: return []
-    import urllib.request
+    from ..core.web import opened
     try:
-        with urllib.request.urlopen(f'{address}/api/v1/messages?limit=5', timeout=3) as response: listed = json.loads(response.read())
+        with opened(f'{address}/api/v1/messages?limit=5', timeout=3) as response: listed = json.loads(response.read())
         found = []
         for row in listed.get('messages') or []:
-            with urllib.request.urlopen(f"{address}/api/v1/message/{row['ID']}", timeout=3) as response: whole = json.loads(response.read())
+            with opened(f"{address}/api/v1/message/{row['ID']}", timeout=3) as response: whole = json.loads(response.read())
             found.append({'to': ', '.join(t.get('Address', '') for t in whole.get('To') or []), 'subject': whole.get('Subject'),
                           'text': (whole.get('Text') or '')[:2000], 'at': row.get('Created')})
         return found
@@ -199,7 +201,7 @@ def published(address):
     """The published address the person named, checked: an http(s) address of a site, never this computer."""
     if not address: return None
     match = re.fullmatch(r'(https?)://([A-Za-z0-9.-]+)(:\d+)?(/[^\s]*)?', str(address).strip())
-    if not match or match[2] in ('localhost', '127.0.0.1', '0.0.0.0'):
+    if not match or match[2] in THIS_COMPUTER:
         raise ValueError(f'{address}: a published address is the http(s) address of the site, as people open it')
     return match[0].rstrip('/')
 

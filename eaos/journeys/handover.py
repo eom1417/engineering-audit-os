@@ -100,9 +100,10 @@ def record(tool, arguments, result, status=None):
     """One tool call in the journal, then HANDOVER.md rewritten (`status`: the way's status tool, for its next step).
     Never raises: the tool's answer matters more."""
     try:
-        state = _state((arguments or {}).get('project'))
+        given = arguments or {}
+        state = _state(given.get('project'))
         if not state or tool == 'note': return               # a note writes its own line
-        card = (arguments or {}).get('card') or ((arguments or {}).get('id') if tool == 'finding' else None)
+        card = given.get('card') or (given.get('id') if tool == 'finding' else None)
         _append(state, {'at': _now(), 'by': assistant(), 'tool': tool, 'card': card,
                         'arguments': _arguments(arguments), 'outcome': _outcome(result)})
         if tool not in READING or tool == 'wait': refresh(state, status)
@@ -122,20 +123,28 @@ def note(text, card=None, project=None, status=None):
 
 def _open_work(state):
     wave, build = state.get('open_wave'), state.get('open_build')
-    if wave:
-        left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
-        return {'kind': 'fix batch', 'number': wave['number'], 'cards': wave['cards'], 'kept': list(wave['kept']),
-                'not_kept': dict(wave['failed']), 'left': left,
-                'resume': (f"batch {wave['number']} is open: fix_start returns its cards left ({', '.join(left) or 'none'}); "
-                           "fix each with fix_edit (finding + fix_read first), then fix_finish" if left else
-                           f"batch {wave['number']} has every card kept or skipped: call fix_finish")}
-    if build:
-        kept, skipped = list(build.get('kept') or []), dict(build.get('skipped') or {})
-        left = [c for c in build.get('cards') or [] if c not in kept and c not in skipped]
-        return {'kind': 'build milestone', 'milestone': build.get('milestone'), 'kept': kept, 'not_kept': skipped, 'left': left,
-                'resume': (f"milestone {build.get('milestone')} is open: build_start returns its cards left; build each with "
-                           "build_edit, then build_finish")}
+    if wave: return _open_batch(wave)
+    if build: return _open_milestone(build)
     return None
+
+
+def _open_batch(wave):
+    """The open fix batch: its cards kept, not kept and left, and how to go on with it."""
+    left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
+    return {'kind': 'fix batch', 'number': wave['number'], 'cards': wave['cards'], 'kept': list(wave['kept']),
+            'not_kept': dict(wave['failed']), 'left': left,
+            'resume': (f"batch {wave['number']} is open: fix_start returns its cards left ({', '.join(left) or 'none'}); "
+                       "fix each with fix_edit (finding + fix_read first), then fix_finish" if left else
+                       f"batch {wave['number']} has every card kept or skipped: call fix_finish")}
+
+
+def _open_milestone(build):
+    """The open build milestone: its cards kept, set aside and left, and how to go on with it."""
+    kept, skipped = list(build.get('kept') or []), dict(build.get('skipped') or {})
+    left = [c for c in build.get('cards') or [] if c not in kept and c not in skipped]
+    return {'kind': 'build milestone', 'milestone': build.get('milestone'), 'kept': kept, 'not_kept': skipped, 'left': left,
+            'resume': (f"milestone {build.get('milestone')} is open: build_start returns its cards left; build each with "
+                       "build_edit, then build_finish")}
 
 
 def in_progress(state, log=None):
@@ -147,10 +156,20 @@ def in_progress(state, log=None):
     at = next((index for index in range(len(log) - 1, -1, -1) if log[index].get('card') in work['left']), None)
     if at is None: return None
     card = log[at]['card']
+    return {'card': card, 'since': log[at]['at'], 'by': log[at].get('by'), 'files_read': _files_read(log[at:]),
+            'last_try': _last_try(log, card)}
+
+
+def _files_read(log):
+    """The last twelve files the steps of `log` read, each once."""
+    read = [e['arguments'].get('path') for e in log if e.get('tool') in ('fix_read', 'build_read') and (e.get('arguments') or {}).get('path')]
+    return list(dict.fromkeys(read))[-12:]
+
+
+def _last_try(log, card):
+    """How the last edit of `card` ended; None when it was never tried."""
     tries = [e for e in log if e.get('card') == card and e.get('tool') in ('fix_edit', 'build_edit')]
-    read = [e['arguments'].get('path') for e in log[at:] if e.get('tool') in ('fix_read', 'build_read') and (e.get('arguments') or {}).get('path')]
-    return {'card': card, 'since': log[at]['at'], 'by': log[at].get('by'), 'files_read': list(dict.fromkeys(read))[-12:],
-            'last_try': tries[-1].get('outcome') if tries else None}
+    return tries[-1].get('outcome') if tries else None
 
 
 def brief(state, steps=12, notes=8):
@@ -219,16 +238,20 @@ def refresh(state, status=None):
     lines += _where_things_are(b)
     lines += ['', '## What the person already answered (do not ask again)', '']
     lines += [f"- {a['question']}: {a['answer']}" for a in b['person_already_answered']] or ['- Nothing yet.']
-    lines += ['', '## Notes from the assistants', '']
-    lines += [f"- {n['at']} · {n['by']}{' · ' + n['card'] if n.get('card') else ''}: {n['note']}" for n in b['notes']] or ['- None.']
-    lines += ['', '## The last steps', '', '| When | Assistant | Tool | Card | What came of it |', '| --- | --- | --- | --- | --- |']
-    lines += [f"| {s.get('at', '')} | {s.get('by', '')} | {s.get('tool', '')} | {s.get('card') or ''} | {str(s.get('outcome') or '').replace('|', '/')} |"
-              for s in b['last_steps']] or ['| | | | | nothing yet |']
+    lines += _notes_and_steps(b)
     lines += ['', 'The full journal: `' + str(journal(state)) + '`', '']
     target = guided.outputs(state) / 'HANDOVER.md'
     target.write_text('\n'.join(lines), encoding='utf-8')
     return target
 
+
+def _notes_and_steps(b):
+    """The handover's sections of the assistants' notes and of the last steps."""
+    lines = ['', '## Notes from the assistants', '']
+    lines += [f"- {n['at']} · {n['by']}{' · ' + n['card'] if n.get('card') else ''}: {n['note']}" for n in b['notes']] or ['- None.']
+    lines += ['', '## The last steps', '', '| When | Assistant | Tool | Card | What came of it |', '| --- | --- | --- | --- | --- |']
+    return lines + ([f"| {s.get('at', '')} | {s.get('by', '')} | {s.get('tool', '')} | {s.get('card') or ''} | {str(s.get('outcome') or '').replace('|', '/')} |"
+                     for s in b['last_steps']] or ['| | | | | nothing yet |'])
 
 
 def _where_things_are(b):
@@ -237,11 +260,15 @@ def _where_things_are(b):
     if p: lines.append(f"- Progress (in the person's branch): {p.get('closed', 0)} of {p.get('total', 0)} cards closed ({p.get('percent', 0)}%); "
                        f"{p.get('on_branch', 0)} waiting on a branch, {p.get('in_batch', 0)} in the open batch, {p.get('skipped', 0)} need a decision.")
     if b['running_job']: lines.append(f"- A job is running: `{b['running_job']['id']}` ({b['running_job']['kind']}). Follow it with `wait`.")
-    if work:
-        lines.append(f"- Open {work['kind']} {work.get('number') or work.get('milestone')}: kept {', '.join(work['kept']) or 'none'}; "
-                     f"not kept {', '.join(work['not_kept']) or 'none'}; left {', '.join(work['left']) or 'none'}.")
+    if work: lines.append(_work_line(work))
     if b['waiting_for_the_person']: lines.append(f"- Waiting for the person: take in or throw away `{b['waiting_for_the_person']['branch']}`.")
     return lines or ['- Nothing is open.']
+
+
+def _work_line(work):
+    """The handover's line on the open batch or milestone: its cards kept, not kept and left."""
+    return (f"- Open {work['kind']} {work.get('number') or work.get('milestone')}: kept {', '.join(work['kept']) or 'none'}; "
+            f"not kept {', '.join(work['not_kept']) or 'none'}; left {', '.join(work['left']) or 'none'}.")
 
 
 # ---------------------------------------------------------------- when a new session starts, and for the person

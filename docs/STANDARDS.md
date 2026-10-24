@@ -5,12 +5,12 @@ ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, 
 
 ## 1. Code
 
-| Law | Today (enforced) | Target (ratchet, reached by M3) | Enforced by |
+| Law | Today (enforced) | Target | Enforced by |
 |---|---|---|---|
-| Module size | ≤ 600 lines | ≤ 400 lines | `tools/code_limits.py` (`tests/test_code_limits.py`) |
-| Function complexity | ≤ 15 decisions | ≤ 10 decisions | same |
-| Function length | ≤ 50 lines, today's 12 longer ones listed | same | same |
-| Function parameters | ≤ 5 (self, cls aside), today's 130 listed | same | same |
+| Module size | ≤ 400 lines, no exception (M3, 0.0.75) | same | `tools/code_limits.py` (`tests/test_code_limits.py`) |
+| Function complexity | ≤ 10 decisions, no exception (M3, 0.0.75) | same | same |
+| Function length | ≤ 50 lines, today's 5 longer ones listed | same | same |
+| Function parameters | ≤ 5 (self, cls aside), today's 129 listed | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
 | No dead code | no unused import or variable (pyflakes); EAOS's own dead-code detector (the Python) and `knip` (the Studio) not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` (not `enola`: its count moves with the documents' words) |
 | Layers | each layer imports only the layers under it, directly or not (`docs/ARCHITECTURE.md` §2; one layers contract in `pyproject.toml`, no exception) | same (reached by M3.1) | `import-linter` |

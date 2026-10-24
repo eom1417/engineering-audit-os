@@ -32,16 +32,20 @@ def _package_names(root):
     return set(data.get('dependencies') or {}) | set(data.get('devDependencies') or {})
 
 
+def _pyproject_requirements(pyproject):
+    """The requirement lines of pyproject.toml: its dependencies, then every optional group's."""
+    if not pyproject.is_file(): return []
+    import tomllib
+    try: data = tomllib.loads(pyproject.read_text(encoding='utf-8'))
+    except (tomllib.TOMLDecodeError, UnicodeDecodeError): data = {}
+    project = data.get('project') or {}
+    names = list(project.get('dependencies') or [])
+    for group in (project.get('optional-dependencies') or {}).values(): names += group
+    return names
+
+
 def _python_names(root):
-    names = []
-    pyproject = root / 'pyproject.toml'
-    if pyproject.is_file():
-        import tomllib
-        try: data = tomllib.loads(pyproject.read_text(encoding='utf-8'))
-        except (tomllib.TOMLDecodeError, UnicodeDecodeError): data = {}
-        project = data.get('project') or {}
-        names += project.get('dependencies') or []
-        for group in (project.get('optional-dependencies') or {}).values(): names += group
+    names = _pyproject_requirements(root / 'pyproject.toml')
     for path in root.glob('requirements*.txt'):
         names += path.read_text(encoding='utf-8', errors='replace').splitlines()
     return {m.group(1).lower().replace('_', '-') for line in names for m in [REQUIREMENT.match(line)] if m}

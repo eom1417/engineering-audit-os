@@ -87,8 +87,13 @@ def impact(model, node, depth=2):
     return {'node': node, 'potential_dependents': sorted(n for n in distances if n != node), 'distances': distances,
             'direct_dependencies': sorted(graph[node]), 'declared_contract_or_rule_consumers': _declared_consumers(model, node),
             'depth': depth, 'unexpanded_frontier': frontier,
-            'hypothesis_edges': [e['id'] for e in model['edges'] if e['status'] == 'HYPOTHESIS' and (e['from'] in distances or e['to'] in distances)],
+            'hypothesis_edges': _hypothesis_edges(model, distances),
             'interpretation': 'Potential review scope in the supplied model, not proof that every node must change. Missing/dynamic edges can expand impact.'}
+
+
+def _hypothesis_edges(model, distances):
+    """The ids of the model's unconfirmed (HYPOTHESIS) edges that touch a node the impact reaches."""
+    return [e['id'] for e in model['edges'] if e['status'] == 'HYPOTHESIS' and (e['from'] in distances or e['to'] in distances)]
 
 
 def _policy_violations(model):

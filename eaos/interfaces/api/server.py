@@ -3,6 +3,8 @@
     app = create_app(report)          # report: the technical report folder, with studio/ in it
     serve(app)                        # blocks; launch.url_of gives the address with its token
 
+Where it listens and for how long (bind, serve, the port and token it keeps, its exit once idle): listening.py.
+
 The Studio pages themselves hold no project data and are served to any request that names this server; everything
 under /api/ needs the launch token (guard.py). The page is served with `connect-src 'self'` in place of the snapshot's
 `'none'`, so it may call this server and nothing else; opened from a file it stays offline as before.
@@ -27,7 +29,6 @@ import inspect
 import json
 import logging
 import os
-import re
 import secrets
 import signal
 import socket
@@ -50,6 +51,8 @@ from . import guard, projects, read, sign_in
 from ...core import launch, project_state, security
 from ...core.security import Locks
 from .events import Feed
+from .listening import (_bind_kept, _drop_record, _exit_when_idle, _interrupt, _kept_token,  # noqa: F401
+                        _remote_login_trusted, bind, serve)
 
 ASSETS = Path(__file__).resolve().parents[2] / 'data' / 'studio'
 POLL = 0.4               # seconds between two looks at the manifest or the event log
@@ -113,16 +116,21 @@ def plain(method, path, handler):
             raw = await request.body()
             try: body = json.loads(raw) if raw else None
             except ValueError: return JSONResponse({'error': 'body', 'message': 'the body is not JSON'}, status_code=400)
-        call = {'method': request.method, 'path': request.url.path, 'params': dict(request.path_params),
-                'query': dict(request.query_params), 'body': body, 'headers': {k.lower(): v for k, v in request.headers.items()
-                                                                               if k.lower() not in (security.TOKEN_HEADER, security.CSRF_HEADER)},
-                'last_event_id': request.headers.get('last-event-id')}
+        call = _call_of(request, body)
         result = await handler(call) if inspect.iscoroutinefunction(handler) else await run_in_threadpool(handler, call)
         status, payload = result if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], int) else (200, result)
         if hasattr(payload, '__next__'):
             return EventSourceResponse(_drain(payload), ping=HEARTBEAT)
         return JSONResponse(payload, status_code=status, headers=read.NO_STORE)
     return Route(path, endpoint, methods=[method])
+
+
+def _call_of(request, body):
+    """A plain handler's request: {method, path, params, query, body, headers (the tokens' aside), last_event_id}."""
+    return {'method': request.method, 'path': request.url.path, 'params': dict(request.path_params),
+            'query': dict(request.query_params), 'body': body, 'headers': {k.lower(): v for k, v in request.headers.items()
+                                                                           if k.lower() not in (security.TOKEN_HEADER, security.CSRF_HEADER)},
+            'last_event_id': request.headers.get('last-event-id')}
 
 
 async def _drain(iterator):
@@ -271,45 +279,10 @@ class _Seen:
         await self.app(scope, receive, send)
 
 
-def _exit_when_idle(ctx, every=30):
-    """Stop this server (as `launch.stop` does) once it is idle."""
-    while not ctx.idle(time.monotonic()): time.sleep(every)
-    os.kill(os.getpid(), signal.SIGTERM)
-
-
 def _runtime(project):
     """The project's runtime folder, where the flows after the check write their progress; None without a project."""
     known = project_state.load(Path(project)) if project else None
     return project_state.runtime_of(known) if known else None
-
-
-def bind(port=0, host=security.LOOPBACK, remote_origin=None, routed=False):
-    """A loopback socket, or 0.0.0.0 with an exact authenticated Remote origin (or `routed`: one made from the port once
-    bound, launch.remote_template), on `port` or a free one."""
-    if remote_origin:
-        Locks(port, remote_origin=remote_origin)
-    if host != security.LOOPBACK and not (host == '0.0.0.0' and (remote_origin or routed)):
-        raise ValueError(f'the Studio server listens on {security.LOOPBACK} only, not {host}')
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((host, port))
-    sock.listen(128)
-    sock.set_inheritable(True)
-    return sock
-
-
-def serve(app, sock=None, ready=None):
-    """Run until stopped. `sock` from bind(); the port is put in the app's keys before the first request."""
-    import uvicorn
-    sock = sock or bind(app.state.ctx.keys.port)
-    app.state.ctx.keys.port = sock.getsockname()[1]
-    # No forwarding header is believed (uvicorn trusts X-Forwarded-For from 127.0.0.1 by default): the peer the token
-    # checks (live-token.js) is always the socket's, so a program here cannot pass for the Remote sign-in's proxy.
-    config = uvicorn.Config(app, log_level='warning', access_log=False, lifespan='on', timeout_graceful_shutdown=2,
-                            proxy_headers=False, forwarded_allow_ips='')
-    server = uvicorn.Server(config)
-    if ready: ready(server)
-    server.run(sockets=[sock])
 
 
 def prepare(project=None):
@@ -326,14 +299,7 @@ def prepare(project=None):
 def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lambda text: print(text, flush=True)):
     """`eaos studio`: serve until stopped, with the record launch.py reuses. Returns the exit code."""
     state, report = prepare(project)
-    found = launch.running(state)
-    if found and (remote_origin or found.get('remote_origin')) and not launch.remote_template():
-        out('The Studio is already running; use its protected launch record to open it.')
-        return 0
-    if found:
-        out(f'The Studio of this project is already open: {launch.url_of(found)}')
-        launch._open(launch.url_of(found), show)
-        return 0
+    if _reopened(launch.running(state), remote_origin, show, out): return 0
     template = None if remote_origin else launch.remote_template()
     sock = _bind_kept(state, port, remote_origin, remote=bool(template))
     if template: remote_origin = template.format(port=sock.getsockname()[1])
@@ -347,11 +313,7 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
                                  'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin, 'version': __version__,
                                  'page_reads_token': _remote_login_trusted(ctx)})
     try:
-        if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'remote_origin': remote_origin, 'page_reads_token': True})}")
-        elif remote_origin:
-            out(f"EAOS Studio, live on {remote_origin}. Launch token is stored in the protected project launch record; no token is printed.")
-        else: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'token': keys.token})}\n"
-                  '(only this computer can open it; press Ctrl-C to stop)')
+        _say_address(keys, remote_origin, template, out)
         if not guided.scan_done(state):
             out('This project has not been checked yet: the Studio opens empty until `eaos start` checks it.')
         if not remote_origin: launch._open(launch.url_of({'port': keys.port, 'token': keys.token}), show)
@@ -368,23 +330,48 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     return 0
 
 
-def _drop_record(state):
-    """This server's record goes as it ends; the record of the Studio that replaced it (an updated EAOS) stays."""
-    path = launch.record_path(state)
-    try:
-        if json.loads(path.read_text(encoding='utf-8')).get('pid') == os.getpid(): path.unlink()
-    except (OSError, ValueError): pass
+def _reopened(found, remote_origin, show, out):
+    """Whether the project's Studio runs already: said (and opened, when local) instead of a second server."""
+    if found and (remote_origin or found.get('remote_origin')) and not launch.remote_template():
+        out('The Studio is already running; use its protected launch record to open it.')
+        return True
+    if found:
+        out(f'The Studio of this project is already open: {launch.url_of(found)}')
+        launch._open(launch.url_of(found), show)
+        return True
+    return False
 
 
-def _bind_kept(state, port, remote_origin, remote=False):
-    """The socket of `port`, or the port the project's Studio used last when it is free, so its address stays the same;
-    else a free one. `remote`: a server whose Remote address is made from its port (launch.remote_template), so it
-    listens beyond loopback like one given --remote-origin."""
-    host = '0.0.0.0' if remote_origin or remote else security.LOOPBACK
-    if not port and not remote_origin and launch.kept_port(state):
-        try: return bind(launch.kept_port(state), host=host, routed=remote)
-        except OSError: pass
-    return bind(port, host=host, remote_origin=remote_origin, routed=remote)
+def _say_address(keys, remote_origin, template, out):
+    """Where the Studio is live: its routed Remote address, a Remote origin (its token never printed), or this computer's."""
+    if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'remote_origin': remote_origin, 'page_reads_token': True})}")
+    elif remote_origin:
+        out(f"EAOS Studio, live on {remote_origin}. Launch token is stored in the protected project launch record; no token is printed.")
+    else: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'token': keys.token})}\n"
+              '(only this computer can open it; press Ctrl-C to stop)')
+
+
+def serve_sign_in(project, say):
+    """The sign-in page alone, on a port of its own, for a terminal on a computer without a display: the Studio's own
+    page and guard (its launch token, and on a Remote server its routed address behind the Remote sign-in), with no other
+    action; it ends once the check no longer waits (the session saved, the person went on signed out, or the wait ended)."""
+    state = project_state.load(project)
+    template = launch.remote_template()
+    sock = bind(0, host=security.EVERY_NETWORK if template else security.LOOPBACK, routed=bool(template))
+    port = sock.getsockname()[1]
+    keys = Keys(port=port, remote_origin=template.format(port=port) if template else None)
+    app = create_app(guided.report_of(state), project=state['project'], keys=keys, mounts=[])
+    say(launch.url_of({'port': port, 'token': keys.token, 'remote_origin': keys.remote_origin,
+                       'page_reads_token': _remote_login_trusted(app.state.ctx)}, '/sign-in'))
+    running = []
+
+    def until_answered():
+        while sign_in.waits(project): time.sleep(1)
+        if running: running[0].should_exit = True
+    import threading
+    threading.Thread(target=until_answered, daemon=True).start()
+    serve(app, sock, ready=running.append)
+    sign_in.close(project)
 
 
 def _gateways(table='/proc/net/route'):
@@ -400,53 +387,3 @@ def _gateway_peer(address, table='/proc/net/route'):
     other peer (a program here, this computer's own address, another container on the same bridge with a forged Host)
     never gets the token from live-token.js. The peer is the socket's, never a header's."""
     return bool(address) and address.removeprefix('::ffff:') in _gateways(table)
-
-
-def _remote_login_trusted(ctx):
-    """EAOS_STUDIO_TRUST_REMOTE_LOGIN=1 on a server started with --remote-origin: the sign-in in front of it guards the
-    Studio, so the launch token travels in live-token.js rather than in the address. Never on a local Studio."""
-    return bool(ctx.keys.remote_origin) and (os.environ.get('EAOS_STUDIO_TRUST_REMOTE_LOGIN') == '1' or bool(launch.remote_template()))
-
-
-def _kept_token(path):
-    """A remote Studio's launch token kept across restarts, so the owner's address keeps working: read from (or first
-    written to) a file only its owner can read. None without a path."""
-    if not path: return None
-    file = Path(path)
-    try:
-        token = file.read_text(encoding='utf-8').strip()
-        if re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token) and (file.stat().st_mode & 0o077) == 0: return token
-    except OSError:
-        pass
-    token = security.new_token()
-    fd = os.open(file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, 'w', encoding='utf-8') as out: out.write(token + '\n')
-    os.chmod(file, 0o600)
-    return token
-
-
-def _interrupt(number, frame):
-    raise KeyboardInterrupt
-
-
-def serve_sign_in(project, say):
-    """The sign-in page alone, on a port of its own, for a terminal on a computer without a display: the Studio's own
-    page and guard (its launch token, and on a Remote server its routed address behind the Remote sign-in), with no other
-    action; it ends once the check no longer waits (the session saved, the person went on signed out, or the wait ended)."""
-    state = project_state.load(project)
-    template = launch.remote_template()
-    sock = bind(0, host='0.0.0.0' if template else security.LOOPBACK, routed=bool(template))
-    port = sock.getsockname()[1]
-    keys = Keys(port=port, remote_origin=template.format(port=port) if template else None)
-    app = create_app(guided.report_of(state), project=state['project'], keys=keys, mounts=[])
-    say(launch.url_of({'port': port, 'token': keys.token, 'remote_origin': keys.remote_origin,
-                       'page_reads_token': _remote_login_trusted(app.state.ctx)}, '/sign-in'))
-    running = []
-
-    def until_answered():
-        while sign_in.waits(project): time.sleep(1)
-        if running: running[0].should_exit = True
-    import threading
-    threading.Thread(target=until_answered, daemon=True).start()
-    serve(app, sock, ready=running.append)
-    sign_in.close(project)

@@ -19,6 +19,11 @@ WEIGHTS = {'reach': 'dependents + flows + entry-point exposure',
 SEVERITY_CAP = 3.0
 
 
+def _number(n):
+    """An int or a float, a bool not counted as one."""
+    return isinstance(n, (int, float)) and not isinstance(n, bool)
+
+
 def severity_of(claim):
     """{value, threshold, factor}: how far the claim's measurement passes its declared threshold (min(value ÷ threshold,
     3)); factor 1 for a claim that carries no measured value with a threshold."""
@@ -27,8 +32,7 @@ def severity_of(claim):
     value, threshold = params.get('value'), params.get('threshold')
     if threshold is None and specification.get('max_branches'):
         value, threshold = params.get('branches'), specification['max_branches']
-    numbers = all(isinstance(n, (int, float)) and not isinstance(n, bool) for n in (value, threshold))
-    if not numbers or threshold <= 0: return {'value': None, 'threshold': None, 'factor': 1.0}
+    if not all(map(_number, (value, threshold))) or threshold <= 0: return {'value': None, 'threshold': None, 'factor': 1.0}
     return {'value': value, 'threshold': threshold, 'factor': round(min(value / threshold, SEVERITY_CAP), 4)}
 
 

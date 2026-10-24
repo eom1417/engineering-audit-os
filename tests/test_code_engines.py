@@ -92,7 +92,7 @@ class OfflineAdapterTests(Workspace):
         self.assertTrue({('billing.py', 'unused_helper'), ('src/lib/format.ts', 'plate')} <= {(m['path'], m['symbol']) for m in metrics})
         self.assertEqual(rules_of(type('R', (), {'findings': findings})), {('ccn', 'billing.py', 'billing.py::tariff')})
         self.assertEqual(findings[0]['measurements'][0], {'name': 'cyclomatic_complexity', 'value': 22, 'threshold': 15, 'unit': None})
-        with mock.patch.object(lizard.tool, 'declined', return_value=None), mock.patch.object(lizard, 'version', return_value=lizard.PINNED), \
+        with mock.patch.object(lizard.tool, 'started', return_value=(None, lizard.PINNED)), \
                 mock.patch.object(lizard, 'which', return_value='lizard'), \
                 mock.patch.object(lizard, 'run', return_value=(0, sample('lizard')['lizard.csv'], '', 0.1)):
             report = lizard.analyze(self.tmp, Path(self.tmp) / 'work')
@@ -110,7 +110,7 @@ class OfflineAdapterTests(Workspace):
         config = knip.configuration(['vite', 'eslint'], exclude=('legacy',))
         self.assertEqual((config['vite'], config['eslint']), (False, False))
         self.assertIn('**/legacy/**', config['ignore'])
-        with mock.patch.object(knip.tool, 'declined', return_value=None), mock.patch.object(knip, 'version', return_value=knip.PINNED), \
+        with mock.patch.object(knip.tool, 'started', return_value=(None, knip.PINNED)), \
                 mock.patch.object(knip, 'which', return_value='/nowhere/bin/knip'), mock.patch.object(knip, 'run') as ran:
             self.assertEqual(knip.analyze(self.tmp, Path(self.tmp) / 'work').status, 'error')
         ran.assert_not_called()

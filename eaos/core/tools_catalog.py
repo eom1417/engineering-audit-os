@@ -1,6 +1,6 @@
 """Tools the assistant finds and the person adds (the owner, 2026-10-22: "it can search GitHub and add the tools it
 needs"). `find` reads GitHub's search and each candidate's latest release; `add` writes a pinned entry to
-<home>/toolchain-added.json, which eaos/core/toolchain.py reads beside its own list, and installs it. Nothing is installed
+<home>/toolchain-added.json, which eaos/core/toolchain/pins.py reads beside its own list, and installs it. Nothing is installed
 without the person's agreement, a pinned version and a sha256 (a commit for git), and a license; an entry with
 `engine` ({"args": [...], "output": "sarif"}) runs in the engines stage through eaos/engines/sarif.py, with no Python.
 """
@@ -10,14 +10,14 @@ import urllib.parse
 import urllib.request
 
 from . import toolchain
+from .web import opened
 
 METHODS = ('release', 'pip', 'npm', 'git')
 SHA256, COMMIT = re.compile(r'^[0-9a-f]{64}$'), re.compile(r'^[0-9a-f]{40}$')
 
 
 def _get(url):
-    request = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'eaos'})
-    with urllib.request.urlopen(request, timeout=20) as answer: return json.loads(answer.read().decode('utf-8'))
+    with opened(url, {'Accept': 'application/vnd.github+json', 'User-Agent': 'eaos'}, timeout=20) as answer: return json.loads(answer.read().decode('utf-8'))
 
 
 def find(need, limit=5):
@@ -39,10 +39,16 @@ def problems(entry):
     install = entry.get('install') or {}
     found = [f'{key} is missing' for key in ('name', 'version', 'license', 'repository', 'binary') if not entry.get(key)]
     if install.get('method') not in METHODS: found.append(f"install.method must be one of {', '.join(METHODS)}")
-    if install.get('method') == 'release' and not SHA256.match(str(install.get('sha256') or '')): found.append('a release needs its sha256')
-    if install.get('method') == 'git' and not COMMIT.match(str(entry.get('version') or '')): found.append('a git tool is pinned to a commit')
+    found += _unpinned(entry, install)
     if any(t['name'] == entry.get('name') for t in toolchain.registry()['tools']): found.append(f"{entry.get('name')} is already a tool")
     return found
+
+
+def _unpinned(entry, install):
+    """What a release (its sha256) or a git tool (a commit as its version) lacks to be pinned."""
+    if install.get('method') == 'release' and not SHA256.match(str(install.get('sha256') or '')): return ['a release needs its sha256']
+    if install.get('method') == 'git' and not COMMIT.match(str(entry.get('version') or '')): return ['a git tool is pinned to a commit']
+    return []
 
 
 def add(entry, person_agreed=False):

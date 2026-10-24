@@ -9,7 +9,8 @@ from eaos.analysis import card_review, plan as plan_module
 from eaos.core.document import Document
 from eaos.core.document_rules import validate
 from eaos.analysis.dossier import assemble
-from eaos.analysis.plan import build, waves, waves_document
+from eaos.analysis.plan import build, waves
+from eaos.analysis.plan_documents import waves_document
 from eaos.analysis.remediation_patterns import PATTERNS, _ENGINE_CLUSTER_KINDS, classify, cost_of_inaction, pattern_for
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'

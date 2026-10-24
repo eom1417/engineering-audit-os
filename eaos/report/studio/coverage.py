@@ -226,11 +226,15 @@ def _ideal_row(body, lang):
     views = (body or {}).get('views') or {}
     planned = [name for name, view in views.items() if (view.get('provenance') or {}).get('method') == 'planned']
     parts = _view_parts(views, planned, lang)
-    count = _count(sum(len((v.get('planned') or {}).get('elements') or []) for v in views.values()) if planned else None,
-                   'ideal.json#views[].planned.elements')
+    count = _count(_planned_elements(views) if planned else None, 'ideal.json#views[].planned.elements')
     if (body or {}).get('state') == 'planned':
         return {'count': count, 'parts': parts}
     return _rules_ideal(body, lang, count, parts)
+
+
+def _planned_elements(views):
+    """How many elements the person's assistant planned over every view of the ideal."""
+    return sum(len((v.get('planned') or {}).get('elements') or []) for v in views.values())
 
 
 def _view_parts(views, planned, lang):

@@ -134,7 +134,7 @@ def _run_ready(names, start, mode, quick, stopped):
                 waiting = False
                 for name in ready_stages(left, ended, running.values(), mode, width(mode) - len(running), quick):
                     # no room for it yet: a lighter stage behind it may still start (it never waits for this one)
-                    if running and name not in quick and not room(need(BY_NAME[name]) + _starting(running.values(), began)):
+                    if _no_room(name, running.values(), began, quick):
                         waiting = True
                         continue
                     left.remove(name)
@@ -149,6 +149,12 @@ def _run_ready(names, start, mode, quick, stopped):
             stopped.set()
             for future in running: future.cancel()
             raise
+
+
+def _no_room(name, running, began, quick):
+    """Whether `name` waits for room: others run, it holds something (not `quick`), and the computer has no room for it
+    beside them and what they are starting."""
+    return bool(running) and name not in quick and not room(need(BY_NAME[name]) + _starting(running, began))
 
 
 def _starting(running, began):

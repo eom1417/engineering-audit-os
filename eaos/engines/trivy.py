@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 from . import sarif, tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'trivy'
@@ -28,8 +28,7 @@ def capabilities():
     return [Capability('secret', '<secret rule>'), Capability('misconfiguration', 'AVD-*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def redact(path):
@@ -68,17 +67,15 @@ def _command(output, exclude):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
     code, _, error, seconds = run(_command(output, exclude) + [str(target)])
     if code or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     redact(output)
-    sarif.relativise(output, target)
-    findings, unmapped = sarif.read(output, NAME, found)
+    findings, unmapped = sarif.collected(output, target, NAME, found)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
                   coverage={'status': 'observed', 'scanners': ['secret', 'misconfig'],
                             'by_kind': {kind: sum(f['kind'] == kind for f in findings) for kind in sorted({f['kind'] for f in findings})}},

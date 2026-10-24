@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.journeys import guided
-from eaos.interfaces import terminal  # noqa: F401  (the terminal's accept, undo and check, registered in guided)
+from eaos.interfaces import terminal, terminal_branches  # noqa: F401  (the terminal's check, accept and undo, registered in guided)
 from eaos.core import project_state
 from eaos.report.start_here import start_here
 

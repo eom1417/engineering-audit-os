@@ -74,12 +74,17 @@ def start(actions, body):
     folder.mkdir(parents=True, exist_ok=True)
     prompt = (('(Direct control is on.) ' if direct else '') + _runs(actions) + message) if session else _opening(actions, body.get('context'), message, direct)
     argv = adapter.argv(prompt, 'chat', folder, session=session, tools=READ_TOOLS)
-    model = MODELS.get(body.get('model'), MODELS['quick'])
-    if adapter.id == 'claude': argv += ['--json-schema', json.dumps(SCHEMA), '--include-partial-messages'] + (['--model', model] if model else [])
+    if adapter.id == 'claude': argv += _claude_options(body)
     turn = uuid.uuid4().hex
     TURNS[turn] = {'folder': folder, 'done': False, 'result': None, 'error': None}
     threading.Thread(target=_turn, args=(actions, adapter, turn, argv, message, session, direct), daemon=True).start()
     return {'turn': turn}
+
+
+def _claude_options(body):
+    """Claude Code's own options for a turn: the answer's schema, the answer as it is written, the model asked."""
+    model = MODELS.get(body.get('model'), MODELS['quick'])
+    return ['--json-schema', json.dumps(SCHEMA), '--include-partial-messages'] + (['--model', model] if model else [])
 
 
 def _turn(actions, adapter, turn, argv, message, session, direct):
@@ -93,7 +98,7 @@ def _turn(actions, adapter, turn, argv, message, session, direct):
         if failure or not isinstance(answer, dict): raise LookupError(f'the assistant did not answer: {failure or "no answer"}')
         proposals = _allowed(actions, answer.get('proposals'))
         result = {'session': _session(lines) or session, 'answer': NOTE.sub('', str(answer.get('answer') or '')).strip(), 'proposals': proposals,
-                  'done': [done for p in proposals if direct and _direct(p) if (done := _execute(actions, p))],
+                  'done': _done_at_once(actions, proposals) if direct else [],
                   'assistant': adapter.name, 'usage': from_stream(lines)}
         with open(record['folder'] / 'turns.jsonl', 'a', encoding='utf-8') as log:
             log.write(json.dumps({'at': _now().isoformat(timespec='seconds'), 'message': message, **result}, ensure_ascii=False) + '\n')
@@ -101,6 +106,11 @@ def _turn(actions, adapter, turn, argv, message, session, direct):
     except Exception as problem:                       # the conversation says why; the Studio goes on
         record['error'] = str(problem)[:500]
     record['done'] = True
+
+
+def _done_at_once(actions, proposals):
+    """Under direct control: each proposal that need not wait for the person's press, run now; what came of each."""
+    return [done for p in proposals if _direct(p) if (done := _execute(actions, p))]
 
 
 def progress(actions, turn):
@@ -117,14 +127,20 @@ def _live(lines):
     """(the tools called so far, the answer written so far) from a Claude Code stream with partial messages."""
     reading, structured, buffer = [], set(), {}
     for inner in filter(None, map(_partial, lines)):
-        block, delta = inner.get('content_block') or {}, inner.get('delta') or {}
-        if inner.get('type') == 'content_block_start' and block.get('type') == 'tool_use':
+        delta = inner.get('delta') or {}
+        if (block := _tool_started(inner)):
             if block.get('name') == 'StructuredOutput': structured.add(inner.get('index'))
             else: reading.append(str(block.get('name') or '').removeprefix('mcp__eaos__'))
         elif delta.get('type') == 'input_json_delta' and inner.get('index') in structured:
             buffer[inner.get('index')] = buffer.get(inner.get('index'), '') + str(delta.get('partial_json') or '')
     found = ANSWER.search(''.join(buffer.values()))
     return reading, _unescaped(found.group(1)) if found else ''
+
+
+def _tool_started(inner):
+    """The tool call a partial-message event starts (its content block), or None."""
+    block = inner.get('content_block') or {}
+    return block if inner.get('type') == 'content_block_start' and block.get('type') == 'tool_use' else None
 
 
 def _partial(line):
@@ -217,15 +233,18 @@ def _session(lines):
 def _allowed(actions, proposals):
     """The proposals the Studio can run: a known action, or a control of a known run."""
     known = {a['id'] for a in actions.contract['actions']}
-    out = []
-    for item in proposals if isinstance(proposals, list) else []:
-        if not isinstance(item, dict): continue
-        if item.get('kind') == 'action' and item.get('action') in known:
-            out.append({'kind': 'action', 'action': item['action'], 'inputs': item.get('inputs') if isinstance(item.get('inputs'), dict) else {},
-                        'why': str(item.get('why') or '')[:300]})
-        elif item.get('kind') == 'control' and item.get('action') in CONTROLS and _run_exists(actions, item.get('run')):
-            out.append({'kind': 'control', 'action': item['action'], 'run': item['run'], 'why': str(item.get('why') or '')[:300]})
-    return out[:4]
+    return [kept for item in (proposals if isinstance(proposals, list) else []) if (kept := _proposal(actions, item, known))][:4]
+
+
+def _proposal(actions, item, known):
+    """One proposal as the Studio runs it: a known action with its inputs, or a control of a known run; None."""
+    if not isinstance(item, dict): return None
+    if item.get('kind') == 'action' and item.get('action') in known:
+        return {'kind': 'action', 'action': item['action'], 'inputs': item.get('inputs') if isinstance(item.get('inputs'), dict) else {},
+                'why': str(item.get('why') or '')[:300]}
+    if item.get('kind') == 'control' and item.get('action') in CONTROLS and _run_exists(actions, item.get('run')):
+        return {'kind': 'control', 'action': item['action'], 'run': item['run'], 'why': str(item.get('why') or '')[:300]}
+    return None
 
 
 def _run_exists(actions, run):

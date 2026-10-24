@@ -7,6 +7,7 @@ other: its live words, its stop, going on with another assistant when it stops m
 the way, its lane is released: the cards it did not try go to the first assistant, at the end. When the first run ends
 before them (stopped, failed), its helpers are stopped.
 """
+import os
 import threading
 
 from ...journeys import check_choices, guided, lanes
@@ -39,8 +40,7 @@ def speed_of(project, body):
 def after(manager, run, state):
     """Start the helpers of `run` once fix_start answered lanes for them (`state`: its assistant's stream read so far;
     the answer comes from fix_start, or from `wait` on its job), once."""
-    seen, state['looked'] = state.get('looked', 0), len(state['eaos_results'])      # each answer looked at once
-    payload = next((payload for _, payload in state['eaos_results'][seen:] if isinstance(payload, dict) and payload.get('helpers')), None)
+    payload = _lanes_answer(state)
     if not payload: return
     record = manager.store.load(run)
     if record.get('helpers') is not None: return              # a turn after the one that started them
@@ -63,6 +63,12 @@ def after(manager, run, state):
                          {'tool': None, 'helpers': sorted(made)})
 
 
+def _lanes_answer(state):
+    """The first answer not looked at before that names lanes for helpers; None. Each answer is looked at once."""
+    seen, state['looked'] = state.get('looked', 0), len(state['eaos_results'])
+    return next((payload for _, payload in state['eaos_results'][seen:] if isinstance(payload, dict) and payload.get('helpers')), None)
+
+
 def ended(manager, record):
     """A run ended: a helper's lane is released (what it did not try goes to the first assistant), and a first run ending
     stops the helpers still at work."""
@@ -72,3 +78,23 @@ def ended(manager, record):
             if record['id'] in (wave.get('helpers') or {}): lanes.release(wave, record['lane'])
     for child in record.get('helpers') or []:
         if manager.store.load(child).get('state') not in TERMINAL: manager.stop(child)
+
+
+class Refused(Exception):
+    """An action the Studio refuses: its HTTP status, the reason, what it needs (a preview, a confirmation)."""
+    def __init__(self, status, reason, **extra):
+        super().__init__(reason)
+        self.status, self.reason, self.extra = status, reason, extra
+
+
+def alive(pid):
+    """Whether the process `pid` still runs (a child that ended is reaped, not counted)."""
+    if not pid: return False
+    try: os.kill(int(pid), 0)
+    except ProcessLookupError: return False
+    except PermissionError: return True
+    try:
+        done, _ = os.waitpid(int(pid), os.WNOHANG)
+        return done == 0
+    except ChildProcessError:
+        return True

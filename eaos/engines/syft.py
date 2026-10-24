@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'syft'
@@ -25,8 +25,7 @@ def capabilities():
     return []
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*([^;#]*)')
@@ -34,13 +33,8 @@ REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*([
 
 def declared(target):
     """[(name, range, file)] for Python dependencies declared as ranges in pyproject.toml or requirements*.txt."""
-    target, found = Path(target), []
-    pyproject = target / 'pyproject.toml'
-    if pyproject.is_file():
-        import tomllib
-        try: project = tomllib.loads(pyproject.read_text(encoding='utf-8')).get('project') or {}
-        except (tomllib.TOMLDecodeError, UnicodeDecodeError): project = {}
-        found += [(line, 'pyproject.toml [project.dependencies]') for line in project.get('dependencies') or []]
+    target = Path(target)
+    found = _pyproject(target / 'pyproject.toml')
     for path in sorted(target.glob('requirements*.txt')):
         found += [(line, path.name) for line in path.read_text(encoding='utf-8', errors='replace').splitlines()
                   if line.strip() and not line.lstrip().startswith(('#', '-'))]
@@ -49,6 +43,15 @@ def declared(target):
         match = REQUIREMENT.match(line)
         if match: rows.append((match.group(1).lower().replace('_', '-'), match.group(3).strip(), where))
     return rows
+
+
+def _pyproject(pyproject):
+    """[(line, where)] of the dependencies pyproject.toml declares in [project.dependencies]."""
+    if not pyproject.is_file(): return []
+    import tomllib
+    try: project = tomllib.loads(pyproject.read_text(encoding='utf-8')).get('project') or {}
+    except (tomllib.TOMLDecodeError, UnicodeDecodeError): project = {}
+    return [(line, 'pyproject.toml [project.dependencies]') for line in project.get('dependencies') or []]
 
 
 def complete(sbom, target):
@@ -67,28 +70,31 @@ def complete(sbom, target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
-    workdir = Path(workdir) / NAME
-    workdir.mkdir(parents=True, exist_ok=True)
+    workdir = tool.folder(workdir, NAME)
     sbom = workdir / 'sbom.cdx.json'
     command = [which(BINARY), 'scan', f'dir:{target}', '-o', f'cyclonedx-json={sbom}', '-q']
     for pattern in exclude: command += ['--exclude', f'./{pattern}/**']
     code, _, error, seconds = run(command)
     if code or not sbom.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     record = json.loads(sbom.read_text(encoding='utf-8'))
     unlocked = complete(record, target)
     merged = workdir / 'sbom.report.cdx.json'
     merged.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     components = record.get('components') or []
+    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, raw=str(sbom),
+                  coverage={'status': 'observed', 'components': len(components), 'by_type': _by_type(components),
+                            'declared_not_locked': unlocked},
+                  artifacts={'sbom.cdx.json': str(merged)})
+
+
+def _by_type(components):
+    """{package type: how many components}, sorted: Syft's own type of each, else its CycloneDX type."""
     by_type = {}
     for component in components:
         kind = next((p['value'] for p in component.get('properties') or [] if p.get('name') == 'syft:package:type'),
                     component.get('type', 'unknown'))
         by_type[kind] = by_type.get(kind, 0) + 1
-    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, raw=str(sbom),
-                  coverage={'status': 'observed', 'components': len(components), 'by_type': dict(sorted(by_type.items())),
-                            'declared_not_locked': unlocked},
-                  artifacts={'sbom.cdx.json': str(merged)})
+    return dict(sorted(by_type.items()))

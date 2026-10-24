@@ -86,22 +86,25 @@ def write(path, contract):
     Path(path).write_text(json.dumps(contract, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
+def _ranked(index, scenario, formula):
+    """One scenario's row, scored when its four inputs are finite, non-negative numbers and its cost is above zero."""
+    import math
+    values = [scenario.get(key) for key in ('reach', 'confidence', 'origin', 'cost')]
+    known = all(type(value) in (int, float) and math.isfinite(value) and value >= 0 for value in values)
+    weighted = values[0] * values[1] * values[2] / values[3] if known and values[3] > 0 else None
+    return {'id': scenario.get('id', f'SCEN-{index+1:03d}'),
+            'name': scenario.get('name', ''),
+            'stimulus': scenario.get('stimulus', ''),
+            'response': scenario.get('response', ''),
+            'measure': scenario.get('measure', ''),
+            'score': round(weighted, 4) if weighted is not None else None,
+            'formula': formula, 'estimate_status': 'measured_inputs' if weighted is not None else 'unknown_inputs'}
+
+
 def rank(scenarios, contract):
     """Apply the priority formula (reach × confidence × origin ÷ cost) and order by score."""
-    import math
     formula = contract['priority'].get('formula')
     if formula != 'reach × confidence × origin ÷ cost': raise ValueError('Unsupported priority formula')
-    ranked = []
-    for index, scenario in enumerate(scenarios):
-        values = [scenario.get(key) for key in ('reach', 'confidence', 'origin', 'cost')]
-        known = all(type(value) in (int, float) and math.isfinite(value) and value >= 0 for value in values)
-        weighted = values[0] * values[1] * values[2] / values[3] if known and values[3] > 0 else None
-        ranked.append({'id': scenario.get('id', f'SCEN-{index+1:03d}'),
-                        'name': scenario.get('name', ''),
-                        'stimulus': scenario.get('stimulus', ''),
-                        'response': scenario.get('response', ''),
-                        'measure': scenario.get('measure', ''),
-                        'score': round(weighted, 4) if weighted is not None else None,
-                        'formula': formula, 'estimate_status': 'measured_inputs' if weighted is not None else 'unknown_inputs'})
+    ranked = [_ranked(index, scenario, formula) for index, scenario in enumerate(scenarios)]
     ranked.sort(key=lambda row: (row['score'] is None, -(row['score'] or 0)))
     return ranked

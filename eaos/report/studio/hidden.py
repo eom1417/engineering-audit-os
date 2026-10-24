@@ -75,19 +75,28 @@ def _item(group, kind, name, fact, more=None):
             'files': sorted(set(more.get('files') or ([file] if file else [])))[:40], 'detail': more.get('detail')}
 
 
+def _value(fact):
+    """A fact's value; {} without one."""
+    return fact.get('value') or {}
+
+
 def _entry_item(fact):
     """A job or container (a trigger), a web hook (a trigger) or another server route, or a command; None otherwise."""
-    v = fact.get('value') or {}
+    v = _value(fact)
     if v.get('category') == 'test': return None
     if v.get('surface') in ('job', 'container'):
         return _item('triggers', v['surface'], v.get('route') or v.get('handler') or '?', fact, {'detail': v.get('framework')})
-    if v.get('surface') == 'http':
-        route = str(v.get('route') or '')
-        kind = 'webhook' if HOOK.search(route) else 'endpoint'
-        return _item('triggers' if kind == 'webhook' else 'server', kind, f"{v.get('http_method') or 'ANY'} {route}", fact, {'detail': v.get('framework')})
+    if v.get('surface') == 'http': return _route_item(fact, v)
     if v.get('surface') == 'cli':
         return _item('build', 'command', v.get('route') or '?', fact, {'detail': v.get('framework')})
     return None
+
+
+def _route_item(fact, v):
+    """A server route: a web hook is a trigger, any other route the server's."""
+    route = str(v.get('route') or '')
+    kind = 'webhook' if HOOK.search(route) else 'endpoint'
+    return _item('triggers' if kind == 'webhook' else 'server', kind, f"{v.get('http_method') or 'ANY'} {route}", fact, {'detail': v.get('framework')})
 
 
 def _edge_function_items(report):
@@ -114,8 +123,8 @@ def _write_items(report):
     """One item per client and resource written to, with every write operation on it."""
     writes = defaultdict(list)
     for fact in arch_map.facts(report, 'entrypoints', 'data_access'):
-        v = fact.get('value') or {}
-        if str(v.get('operation') or '').lower() in WRITES and v.get('category') != 'test':
+        v = _value(fact)
+        if _writes(v):
             writes[(str(v.get('client') or 'http'), _resource(v.get('target')))].append(fact)
     items = []
     for (client, resource), facts in sorted(writes.items()):
@@ -127,10 +136,15 @@ def _write_items(report):
     return items
 
 
+def _writes(v):
+    """Whether a data access (its value `v`) writes, outside the tests."""
+    return str(v.get('operation') or '').lower() in WRITES and v.get('category') != 'test'
+
+
 def _host_items(report):
     hosts = defaultdict(list)
     for fact in arch_map.facts(report, 'runtime', 'integration_target'):
-        host = (fact.get('value') or {}).get('host')
+        host = _value(fact).get('host')
         if host: hosts[str(host)].append(fact)
     items = []
     for host, facts in sorted(hosts.items()):
@@ -142,7 +156,7 @@ def _host_items(report):
 def _env_items(report):
     envs = defaultdict(list)
     for fact in arch_map.facts(report, 'config', 'env_read'):
-        name = (fact.get('value') or {}).get('name') or (fact.get('value') or {}).get('key')
+        name = _value(fact).get('name') or _value(fact).get('key')
         if name: envs[str(name)].append(fact)
     items = []
     for name, facts in sorted(envs.items()):
@@ -153,29 +167,29 @@ def _env_items(report):
 
 def _config_items(report):
     """Secret-shaped configuration names, configuration files nothing reads, and committed credentials."""
-    items = [_item('config', 'secret_name', (fact.get('value') or {}).get('key') or '?', fact)
-             for fact in arch_map.facts(report, 'config', 'config_key') if (fact.get('value') or {}).get('secret_shaped')]
+    items = [_item('config', 'secret_name', _value(fact).get('key') or '?', fact)
+             for fact in arch_map.facts(report, 'config', 'config_key') if _value(fact).get('secret_shaped')]
     items += [_item('config', 'unread_file', arch_map.path_of(fact), fact) for fact in arch_map.facts(report, 'config', 'config_file_unread')]
-    items += [_item('config', 'credential', (fact.get('value') or {}).get('key_family') or 'credential', fact,
-                    {'detail': (fact.get('value') or {}).get('severity')})
+    items += [_item('config', 'credential', _value(fact).get('key_family') or 'credential', fact,
+                    {'detail': _value(fact).get('severity')})
               for fact in arch_map.facts(report, 'secrets', 'committed_credential')]
     return items
 
 
 def _build_items(report):
-    return [_item('build', kind, (fact.get('value') or {}).get('name') or (fact.get('value') or {}).get('target')
-                  or (fact.get('value') or {}).get('platform') or arch_map.path_of(fact), fact)
+    return [_item('build', kind, _value(fact).get('name') or _value(fact).get('target')
+                  or _value(fact).get('platform') or arch_map.path_of(fact), fact)
             for kind in ('ci_step', 'deployment_target') for fact in arch_map.facts(report, 'runtime', kind)]
 
 
 def _dead_items(report):
     """Code nothing reaches, leftovers, and broken references."""
     where = lambda fact: (fact.get('location') or {}).get('symbol') or arch_map.path_of(fact)
-    items = [_item('dead', (fact.get('value') or {}).get('rule') or 'dead_code', where(fact), fact)
+    items = [_item('dead', _value(fact).get('rule') or 'dead_code', where(fact), fact)
              for fact in arch_map.facts(report, 'deadcode', 'engine_finding')]
-    items += [_item('dead', 'leftover', arch_map.path_of(fact), fact, {'detail': (fact.get('value') or {}).get('reason')})
+    items += [_item('dead', 'leftover', arch_map.path_of(fact), fact, {'detail': _value(fact).get('reason')})
               for fact in arch_map.facts(report, 'leftovers', 'leftover')]
-    items += [_item('dead', 'broken', where(fact), fact, {'detail': (fact.get('value') or {}).get('rule')})
+    items += [_item('dead', 'broken', where(fact), fact, {'detail': _value(fact).get('rule')})
               for fact in arch_map.facts(report, 'broken', 'broken_code')]
     return items
 
@@ -261,24 +275,39 @@ def assemble(items, journeys, reach, owners, card_rows=()):
     seen, area_files = _seen(screens, reach)
     links, components = _tally(items, area_files, owners, _card_of(card_rows))
     groups = [_group(g, items) for g in GROUPS]
-    shown = {i for g in groups for i in g['items']}
-    missing = [{'id': 'controls', 'state': 'not_measured', 'step': 'NS40.T1', 'count': _measure(None, 'screens.json#screens[].inputs'),
-             'detail': {'ar': 'الأزرار والحقول على كل شاشة لم تُقرأ بعد.', 'en': 'The buttons and inputs on each screen are not read yet.'}}] if screens else []
     return {
-        'counts': {
-            'seen': _measure(len(screens), SRC['seen']),
-            'dialogs': _measure(sum(a['dialog_count'] for a in seen), SRC['dialogs']),
-            'unseen': _measure(len(items), 'every item of the unseen groups'),
-            'no_screen': _measure(sum(i['no_screen'] for i in items), SRC['no_screen']),
-            **{g['id']: g['count'] for g in groups},
-        },
+        'counts': _counts(screens, seen, items, groups),
         'src': SRC,
         'seen': seen,
         'groups': groups,
-        'items': [i for i in items if i['id'] in shown],
+        'items': _shown(groups, items),
         'links': [{'from': a, 'to': g, 'count': v['count'], 'items': v['items']} for (a, g), v in sorted(links.items())],
         'components': {c: dict(v) for c, v in sorted(components.items())},
-        'missing': missing,
+        'missing': _missing_controls(screens),
+    }
+
+
+def _shown(groups, items):
+    """The items some group shows."""
+    shown = {i for g in groups for i in g['items']}
+    return [i for i in items if i['id'] in shown]
+
+
+def _missing_controls(screens):
+    """What is not measured yet: the buttons and inputs of the screens; nothing when there is no screen."""
+    return [{'id': 'controls', 'state': 'not_measured', 'step': 'NS40.T1', 'count': _measure(None, 'screens.json#screens[].inputs'),
+             'detail': {'ar': 'الأزرار والحقول على كل شاشة لم تُقرأ بعد.', 'en': 'The buttons and inputs on each screen are not read yet.'}}] if screens else []
+
+
+def _counts(screens, seen, items, groups):
+    """The section's counts: the screens seen and their dialogs, the items unseen and those on no screen, and each
+    group's."""
+    return {
+        'seen': _measure(len(screens), SRC['seen']),
+        'dialogs': _measure(sum(a['dialog_count'] for a in seen), SRC['dialogs']),
+        'unseen': _measure(len(items), 'every item of the unseen groups'),
+        'no_screen': _measure(sum(i['no_screen'] for i in items), SRC['no_screen']),
+        **{g['id']: g['count'] for g in groups},
     }
 
 

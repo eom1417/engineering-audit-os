@@ -132,10 +132,10 @@ class Contract(unittest.TestCase):
     def test_every_tool_status_can_name_next_is_allowed_to_the_fix_verb(self):
         """The incident: status said fix_abandon, the fix run was not allowed it, and the stuck batch could not be closed."""
         import inspect
-        from eaos.journeys import agent_tools
-        source = inspect.getsource(agent_tools.status)
+        from eaos.journeys.agent_tools import where
+        source = ''.join(inspect.getsource(f) for f in (where.status, where._next_step, where._batch_step, where._setup_step))
         named = set()
-        for step in re.findall(r"step = \('([^']+)'", source) + re.findall(r"'next': \{'tool': '([^']+)'", source):
+        for step in re.findall(r"return \('([^']+)'", source) + re.findall(r"'next': \{'tool': '([^']+)'", source):
             named.update(word for word in re.split(r',? then | or ', step) if word != 'none')
         verbs = {verb['id']: set(verb['tools']) for verb in actions.contract()['verbs']}
         self.assertIn('fix_abandon', named)
@@ -399,7 +399,7 @@ class Selection(Base):
 
 
 def alive(pid):
-    from eaos.interfaces.studio.runs import alive
+    from eaos.interfaces.studio.helpers import alive
     return alive(pid)
 
 

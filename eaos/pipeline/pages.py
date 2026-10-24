@@ -122,15 +122,20 @@ def _screen_pages(context):
 def _audit_pages(context, groups, measured, live, base, state, kind, speed):
     """(the page audit, the entry's speed) of `groups` opened with session `state` (as kind of user `kind`): Lighthouse
     only with `speed`, and only when the crawl did not measure the entry already."""
-    from ..live.screens.audit import VIEWPORTS, lighthouse, page_audit, variants
+    from ..live.screens.audit import VIEWPORTS, page_audit, variants
     state = state if state.is_file() else None
     folder = context.out / 'live/screens' / (kind or '')
     audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
                        variants(**((live.profile.get('screens') if live else None) or {})), out=folder, storage_state=state,
                        read_only=not live)
-    speed = None if not speed else ({'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
-                                    if measured else lighthouse(base + '/', out=folder, storage_state=state if live else None))   # published: as a visitor
-    return audit, speed
+    return audit, _entry_speed(measured, base, folder, state, live) if speed else None
+
+
+def _entry_speed(measured, base, folder, state, live):
+    """The entry's speed: what the crawl measured, else Lighthouse's, with session `state` (a published address as a visitor)."""
+    from ..live.screens.audit import lighthouse
+    if measured: return {'status': 'observed', 'source': 'live/crawl.json', **{k: measured.get(k) for k in ('scores', 'lcp_ms', 'cls')}}
+    return lighthouse(base + '/', out=folder, storage_state=state if live else None)
 
 
 def crawl(context):
@@ -147,12 +152,17 @@ def crawl(context):
                      storage_state=state if state.is_file() else None, read_only=not live, seeds=seeds)
         if found['status'] != 'observed': continue
         founds.append(found)
-        for row in found['routes']:
-            merged = routes.setdefault(row['path'], {**row, 'kinds': []})
-            if kind: merged['kinds'].append(kind)
+        _merge_routes(routes, found, kind)
     if not founds:
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
     from ..live.screens.crawl import distinct
     _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
                                   'pages': [paths[0] for paths in distinct(routes).values()]})     # one per template: the lock's stand-in
     return {'pages': len(routes)}
+
+
+def _merge_routes(routes, found, kind):
+    """Each route one crawl found into `routes`, once, with every kind of user that reached it."""
+    for row in found['routes']:
+        merged = routes.setdefault(row['path'], {**row, 'kinds': []})
+        if kind: merged['kinds'].append(kind)

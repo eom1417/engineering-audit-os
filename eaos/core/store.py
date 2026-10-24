@@ -121,15 +121,18 @@ class Store:
         """Every ended run past the newest KEEP (quick answers aside) keeps its record alone, with what it used
         (eaos/core/usage.py) and when it was trimmed; its raw stream, events and error output go (57 runs had kept 64 MB,
         most of it raw streams)."""
-        from .usage import of_run
         ended = [row for row in self.all() if row.get('state') in TERMINAL]
         # a quick answer (a reading tool, `read`) keeps its answer in its record and never pushes a run's details out
         kept = {row['id'] for row in [row for row in ended if not row.get('read')][:KEEP]}
         for row in ended:
-            if row['id'] in kept or row.get('trimmed'): continue
-            folder = self.path(row['id'])
-            self.update(row['id'], usage=row.get('usage') or of_run(folder), trimmed=now())
-            for name in ('stream.jsonl', 'stderr.log', 'events.jsonl', 'mcp.json'): (folder / name).unlink(missing_ok=True)
+            if row['id'] not in kept and not row.get('trimmed'): self._trim_one(row)
+
+    def _trim_one(self, row):
+        """One ended run's record notes what it used and when it was trimmed; its raw stream, events and errors go."""
+        from .usage import of_run
+        folder = self.path(row['id'])
+        self.update(row['id'], usage=row.get('usage') or of_run(folder), trimmed=now())
+        for name in ('stream.jsonl', 'stderr.log', 'events.jsonl', 'mcp.json'): (folder / name).unlink(missing_ok=True)
 
     def update(self, run, **fields):
         with self.lock:

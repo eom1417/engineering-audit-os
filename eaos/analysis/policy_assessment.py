@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .acceptance import fingerprint
 from .policy import FILENAME as POLICY_FILENAME
-from .remediation_patterns import PATTERNS
+from .remediation_patterns import PATTERNS, cited
 
 
 def _policy_signature(target):
@@ -59,9 +59,7 @@ def _violation(claim, fact_sets, target):
         return None
     if (claim.get('render') or {}).get('key') != 'policy':
         return None
-    own = set(claim.get('fact_ids') or [])
-    facts = [fact for fact in (fact_sets.get('policy') or {}).get('facts', [])
-             if fact.get('kind') == 'policy_violation' and fact.get('id') in own]
+    facts = [fact for fact in cited(claim, fact_sets, 'policy') if fact.get('kind') == 'policy_violation']
     return facts[0] if facts else None
 
 

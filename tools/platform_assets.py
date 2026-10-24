@@ -5,19 +5,21 @@
 For each `release` tool, the release named by its pinned version is read from the GitHub API; the asset for
 each platform (linux-x86_64, darwin-arm64, darwin-x86_64) is chosen by name, downloaded, its sha256 computed,
 and, for an archive, the member that is the tool found inside it. A platform with no asset is left out and
-eaos/core/toolchain.py says so instead of installing a binary that cannot run. The Linux pin already in the file
+eaos/core/toolchain/pins.py says so instead of installing a binary that cannot run. The Linux pin already in the file
 stays as it is.
 """
 import hashlib
+import sys
 import io
 import json
 import re
 import tarfile
-import urllib.request
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from eaos.core.web import opened  # noqa: E402
 REGISTRY = ROOT / 'eaos/data/toolchain.json'
 WORDS = {'darwin-arm64': (r'(darwin|macos|mac|apple)', r'(arm64|aarch64|universal|_all)'),
          'darwin-x86_64': (r'(darwin|macos|mac|apple)', r'(x86_64|amd64|x64|64bit|64-bit|universal|_all)(?!.*arm)')}
@@ -26,8 +28,7 @@ SKIP = re.compile(r'\.(sha256|sha512|sig|pem|asc|sbom|json|txt|deb|rpm|apk|msi|p
 
 
 def fetch(url):
-    request = urllib.request.Request(url, headers={'User-Agent': 'eaos-platform-assets'})
-    with urllib.request.urlopen(request, timeout=600) as response: return response.read()
+    with opened(url, {'User-Agent': 'eaos-platform-assets'}, timeout=600) as response: return response.read()
 
 
 def archive_of(name):
@@ -104,6 +105,13 @@ def _pin_tool(tool):
         spec['platforms'] = {p: platforms['linux-x86_64'] for p in ('linux-x86_64', *WORDS)}
         print(f"{tool['name']}: the same build on every platform")
         return
+    platforms.update(_platform_builds(tool, spec, assets, linux_name, tag))
+    spec['platforms'] = platforms
+
+
+def _platform_builds(tool, spec, assets, linux_name, tag):
+    """{platform: install entry} of each other platform whose build the release holds."""
+    builds = {}
     for platform, words in WORDS.items():
         asset = _asset_for(assets, words, spec, linux_name)
         if asset is None:
@@ -111,9 +119,9 @@ def _pin_tool(tool):
             continue
         entry = _platform_entry(tool, spec, asset)
         if entry is None: continue
-        platforms[platform] = entry
+        builds[platform] = entry
         print(f"{tool['name']}: {platform} <- {asset['name']}")
-    spec['platforms'] = platforms
+    return builds
 
 
 def main():

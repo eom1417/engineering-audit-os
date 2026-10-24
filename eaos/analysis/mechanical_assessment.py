@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .acceptance import fingerprint
 from .engagement import rules_for
+from .remediation_patterns import cited
 
 # render key (or probe query) -> (engagement rule, invariant, what "after" looks like)
 FAMILIES = {
@@ -54,7 +55,7 @@ def same_value(claim, fact_sets):
     """A rule defined twice with one value, in one language, has one home every copy can import. With different
     values, which is right is a person's decision; across languages no file can import another, so the home
     (a shared configuration, the API) is a design decision. Neither is a mechanical repair."""
-    facts = [f for f in (fact_sets.get('domain') or {}).get('facts', []) if f.get('id') in set(claim.get('fact_ids') or [])]
+    facts = cited(claim, fact_sets, 'domain')
     languages = {FAMILY_OF.get(Path(d.get('path', '')).suffix, Path(d.get('path', '')).suffix)
                  for f in facts for d in (f.get('value') or {}).get('definitions') or []}
     return bool(facts) and len(languages) == 1 and all((f.get('value') or {}).get('distinct_values') == 1 for f in facts)

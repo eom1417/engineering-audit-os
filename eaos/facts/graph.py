@@ -149,9 +149,13 @@ def _cycle_fact(index, group):
                 {'group': index, 'members': group, 'size': len(group)}, limitations=LIMITATIONS)
 
 
+def _attention_order(ranking, scored, factors):
+    """The files to look at first, each with its score and the factors that make it."""
+    return [{'path': path, 'score': scored[path], 'factors': {n: round(factors[n][path], 3) for n in WEIGHTS}} for path in ranking]
+
+
 def _summary(nodes, graph, groups, entry_files, ranking):
     adjacency, fan_in, distance = graph['adjacency'], graph['fan_in'], graph['distance']
-    factors, scored = graph['factors'], graph['scored']
     reachable = [path for path in nodes if path in distance]
     orphans = [path for path in nodes if not fan_in[path] and not adjacency[path]]
     # Per-edge source breakdown: how much of the graph is our own work, how much came from an engine.
@@ -163,10 +167,30 @@ def _summary(nodes, graph, groups, entry_files, ranking):
             'reachable_from_entry': len(reachable),
             'unreachable_from_entry': len(nodes) - len(reachable),
             'weights': WEIGHTS,
-            'attention_order': [{'path': path, 'score': scored[path], 'factors': {n: round(factors[n][path], 3) for n in WEIGHTS}} for path in ranking[:30]],
+            'attention_order': _attention_order(ranking[:30], graph['scored'], graph['factors']),
             'most_depended_on': [{'path': path, 'fan_in': fan_in[path]} for path in sorted(nodes, key=lambda p: (-fan_in[p], p))[:15]],
             'isolated_files': orphans[:50],
             'interpretation': 'Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict. Engine-resolved edges are listed separately so they cannot be mistaken for edges we resolved ourselves.'}
+
+
+def _entry_files(entry_points):
+    """The files an entry point is declared in (a navigation link aside), sorted."""
+    return sorted({fact['location']['path'] for fact in entry_points if fact.get('kind') != 'navigation'})
+
+
+def _rank(nodes, graph):
+    """Each file's attention score (its weighted factors) and place in the order; returns the order."""
+    graph['scored'] = {path: round(sum(WEIGHTS[name] * graph['factors'][name][path] for name in WEIGHTS), 4) for path in nodes}
+    ranking = sorted(nodes, key=lambda path: (-graph['scored'][path], path))
+    graph['position'] = {path: index + 1 for index, path in enumerate(ranking)}
+    return ranking
+
+
+def _cycle_groups(graph):
+    """The import cycles, each file's group noted in the graph (in_cycle)."""
+    groups = cycles({path: set(targets) for path, targets in graph['adjacency'].items()})
+    graph['in_cycle'] = {path: index for index, group in enumerate(groups) for path in group}
+    return groups
 
 
 def run(target, source, edges=None, entry_points=None, metrics=None, history=None, **options):
@@ -174,15 +198,12 @@ def run(target, source, edges=None, entry_points=None, metrics=None, history=Non
     edges = edges or []
     nodes = _nodes(source, edges)
     adjacency, edge_source = _adjacency(nodes, edges)
-    entry_files = sorted({fact['location']['path'] for fact in entry_points or [] if fact.get('kind') != 'navigation'})
+    entry_files = _entry_files(entry_points or [])
     graph = {'adjacency': adjacency, 'edge_source': edge_source, 'fan_in': _fan_in(nodes, adjacency),
              'distance': _distances(entry_files, adjacency)}
     graph['factors'] = _factors(nodes, graph, _file_branches(metrics or []), _file_commits(history or []))
-    graph['scored'] = {path: round(sum(WEIGHTS[name] * graph['factors'][name][path] for name in WEIGHTS), 4) for path in nodes}
-    ranking = sorted(nodes, key=lambda path: (-graph['scored'][path], path))
-    graph['position'] = {path: index + 1 for index, path in enumerate(ranking)}
-    groups = cycles({path: set(targets) for path, targets in adjacency.items()})
-    graph['in_cycle'] = {path: index for index, group in enumerate(groups) for path in group}
+    ranking = _rank(nodes, graph)
+    groups = _cycle_groups(graph)
     facts = [_node_fact(path, graph) for path in nodes]
     facts += [_cycle_fact(index, group) for index, group in enumerate(groups)]
     facts.sort(key=lambda f: (f['kind'], f['location']['path']))

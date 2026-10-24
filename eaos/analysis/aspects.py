@@ -45,16 +45,26 @@ def _verdict(verdict, why):
     return {'verdict': verdict, 'why': why}
 
 
+def _summary(out, name):
+    """The summary of one fact set, {} when it is missing."""
+    return (_load(out, f'facts/{name}.json', {}) or {}).get('summary') or {}
+
+
+def _hotspots(digest):
+    return [{k: h.get(k) for k in ('path', 'complexity', 'commits', 'rloc')} for h in (digest.get('hotspots') or [])[:LIMIT['rows']]]
+
+
+def _clusters(digest):
+    return [{'id': c.get('id'), 'files': c.get('files'), 'members': (c.get('members') or [])[:LIMIT['members']],
+             'most_depended_on': c.get('most_depended_on')} for c in (digest.get('clusters') or [])[:LIMIT['rows']]]
+
+
 def _structure(out, ran):
     arch = (_load(out, 'architecture/map.json', {}) or {}) if ran.get('architecture') else {}
     digest = arch.get('digest') or {}
-    graph = (_load(out, 'facts/graph.json', {}) or {}).get('summary') or {}
-    policy = (_load(out, 'facts/policy.json', {}) or {}).get('summary') or {}
-    hot = [{k: h.get(k) for k in ('path', 'complexity', 'commits', 'rloc')} for h in (digest.get('hotspots') or [])[:LIMIT['rows']]]
-    clusters = [{'id': c.get('id'), 'files': c.get('files'), 'members': (c.get('members') or [])[:LIMIT['members']],
-                 'most_depended_on': c.get('most_depended_on')} for c in (digest.get('clusters') or [])[:LIMIT['rows']]]
-    row = {'source': 'architecture/map.json, facts/graph.json, facts/policy.json, facts/metrics.json', 'city_hotspots': hot,
-           'clusters': clusters, 'large_modules': _large_modules(out), 'modularity': digest.get('modularity'), 'cycles': graph.get('cycles'),
+    graph, policy = _summary(out, 'graph'), _summary(out, 'policy')
+    row = {'source': 'architecture/map.json, facts/graph.json, facts/policy.json, facts/metrics.json', 'city_hotspots': _hotspots(digest),
+           'clusters': _clusters(digest), 'large_modules': _large_modules(out), 'modularity': digest.get('modularity'), 'cycles': graph.get('cycles'),
            'policy_violations': policy.get('violations') if policy.get('declared') else None,
            'map': {k: (arch.get(k) or {}).get('status') for k in ('city', 'clusters')} if arch else None}
     row['rules'] = _structure_verdict(graph.get('cycles'), row['policy_violations'], arch, row['large_modules'])
@@ -75,17 +85,22 @@ def _large_modules(out):
 def _structure_verdict(cycles, violations, arch, large=None):
     if cycles is None and not arch:
         return _verdict('unmeasured', 'neither the dependency graph nor the architecture map was drawn in this check')
-    oversized = (large or {}).get('count') or 0
+    large = large or {}
+    oversized = large.get('count') or 0
     if cycles or violations or oversized:
         return _verdict('improve', f"{cycles or 0} import cycle(s), {violations or 0} breach(es) of the declared layering and "
-                                   f"{oversized} module(s) past {(large or {}).get('limit')} lines")
+                                   f"{oversized} module(s) past {large.get('limit')} lines")
     return _verdict('keep', 'no import cycle, no breach of a declared layering and no module past the line limit')
+
+
+def _indicators(record):
+    return [{'indicator': r.get('indicator'), 'value': r.get('value'), 'target': r.get('target'), 'gap': r.get('gap'),
+             'measured': r.get('measured')} for r in record.get('rows') or []]
 
 
 def _sustainability(out):
     record = _load(out, 'sustainability.json', {}) or {}
-    rows = [{'indicator': r.get('indicator'), 'value': r.get('value'), 'target': r.get('target'), 'gap': r.get('gap'),
-             'measured': r.get('measured')} for r in record.get('rows') or []]
+    rows = _indicators(record)
     row = {'source': 'sustainability.json', 'indicators': rows, 'moves': len(record.get('moves') or [])}
     measured = [r for r in rows if r['measured']]
     gaps = [r['indicator'] for r in measured if (r['gap'] or 0) > 0]
@@ -95,13 +110,17 @@ def _sustainability(out):
     return row
 
 
+def _home_row(stage):
+    """A repeated definition: its rule, the home it should live in, how many places define it and their files."""
+    return {'rule': str(stage.get('rule'))[:16], 'canonical_home': stage.get('canonical_home'), 'sites': len(stage.get('sites') or []),
+            'files': sorted({x.get('path') for x in stage.get('sites') or [] if x.get('path')})[:LIMIT['members']]}
+
+
 def _canonical_homes(out):
     plan = _load(out, 'transform-plan.json', None)
     stages = [s for s in (plan or {}).get('stages') or [] if s.get('move') == 'canonicalize']
     row = {'source': 'transform-plan.json',
-           'homes': [{'rule': str(s.get('rule'))[:16], 'canonical_home': s.get('canonical_home'), 'sites': len(s.get('sites') or []),
-                      'files': sorted({x.get('path') for x in s.get('sites') or [] if x.get('path')})[:LIMIT['members']]}
-                     for s in stages[:LIMIT['rows']]],
+           'homes': [_home_row(s) for s in stages[:LIMIT['rows']]],
            'repeated_definitions': len(stages),
            'without_a_viable_home': sum(1 for s in stages if not s.get('canonical_home'))}
     row['rules'] = (_verdict('unmeasured', 'no transform plan was written in this check') if plan is None else
@@ -110,16 +129,26 @@ def _canonical_homes(out):
     return row
 
 
+def _risky(out):
+    """The measured files of complexity 10 or more, the most complex and then the most changed first."""
+    measured = (_load(out, 'measurements.json', {}) or {}).get('files') or []
+    return sorted((r for r in measured if (r.get('complexity_max') or 0) >= 10),
+                  key=lambda r: (-(r.get('complexity_max') or 0), -(r.get('churn') or 0)))
+
+
+def _tested(coverage, record):
+    """Whether a test reaches a file: one of its lines ran when coverage was measured, else a test imports it."""
+    declared = record.get('declared_coverage') or {}
+    return (lambda p: (coverage.get(p) or {}).get('percent', 0) > 0) if coverage else (lambda p: p in declared)
+
+
 def _tests(out):
     record = _load(out, 'verification.json', None)
-    measured = (_load(out, 'measurements.json', {}) or {}).get('files') or []
-    risky = sorted((r for r in measured if (r.get('complexity_max') or 0) >= 10),
-                   key=lambda r: (-(r.get('complexity_max') or 0), -(r.get('churn') or 0)))
+    risky = _risky(out)
     if record is None:
         return {'source': 'verification.json', 'rules': _verdict('unmeasured', 'the tests were not looked at in this check')}
     coverage = record.get('coverage') or {}
-    declared = record.get('declared_coverage') or {}
-    tested = (lambda p: (coverage.get(p) or {}).get('percent', 0) > 0) if coverage else (lambda p: p in declared)
+    tested = _tested(coverage, record)
     untested = [{'path': r['path'], 'complexity': r.get('complexity_max'), 'commits': r.get('churn')}
                 for r in risky if not tested(r['path'])][:LIMIT['rows']]
     failing = [a for a in record.get('attempts') or [] if a.get('exit_code') not in (0, None)]
@@ -135,9 +164,13 @@ def _tests_row(record, failing, untested):
            'test_files': len(record.get('test_files') or []), 'failing_commands': [' '.join(a.get('argv') or []) for a in failing][:4],
            'risky_code_without_tests': untested,
            'uncovered_entry_reachable_files': (record.get('uncovered_entry_reachable_files') or [])[:LIMIT['rows']],
-           # The suite itself: its time, its slowest tests, and the tests that run no line no other test runs.
-           'suite': {k: v for k, v in (record.get('suite') or {}).items() if k != 'redundant'} | (
-               {'redundant': (record.get('suite') or {}).get('redundant', [])[:LIMIT['rows']]} if record.get('suite') else {})}
+           'suite': _suite(record)}
+
+
+def _suite(record):
+    """The suite itself: its time, its slowest tests, and the tests that run no line no other test runs."""
+    return {k: v for k, v in (record.get('suite') or {}).items() if k != 'redundant'} | (
+        {'redundant': (record.get('suite') or {}).get('redundant', [])[:LIMIT['rows']]} if record.get('suite') else {})
 
 
 def _tests_verdict(row, record, failing, reach):
@@ -190,20 +223,33 @@ def _readiness(out, aspect):
     rows = [f for f in (record or {}).get('findings') or [] if f.get('aspect') == aspect]
     row = {'source': 'readiness.json', 'findings': [{k: f.get(k) for k in ('id', 'status', 'title', 'detail', 'evidence')}
                                                      for f in rows[:LIMIT['rows']]]}
-    gaps = [f for f in rows if f.get('status') == 'gap']
-    ok = [f for f in rows if f.get('status') == 'ok']
-    row['rules'] = (_verdict('unmeasured', 'readiness was not computed in this check') if record is None else
-                    _verdict('improve', '; '.join(f['title'] for f in gaps[:3])) if gaps else
-                    _verdict('keep', '; '.join(f['title'] for f in ok[:3])) if ok else
-                    _verdict('unmeasured', '; '.join(f['title'] for f in rows[:2]) or 'nothing to judge'))
+    row['rules'] = _readiness_verdict(record, rows)
     return row
+
+
+def _readiness_verdict(record, rows):
+    """improve with the gaps, else keep with what is ready, else unmeasured with what was found."""
+    if record is None: return _verdict('unmeasured', 'readiness was not computed in this check')
+    gaps = [f for f in rows if f.get('status') == 'gap']
+    if gaps: return _verdict('improve', _titles(gaps[:3]))
+    ok = [f for f in rows if f.get('status') == 'ok']
+    if ok: return _verdict('keep', _titles(ok[:3]))
+    return _verdict('unmeasured', _titles(rows[:2]) or 'nothing to judge')
+
+
+def _titles(findings):
+    return '; '.join(f['title'] for f in findings)
+
+
+def _projected(load):
+    """The entry points the load model projects, the costliest first."""
+    return sorted((e for e in load.get('entry_points') or [] if e.get('projection')),
+                  key=lambda e: -((e.get('projection') or {}).get('cost_score') or 0))
 
 
 def _performance(out):
     row = _readiness(out, 'performance')
-    load = _load(out, 'load-model.json', {}) or {}
-    ranked = sorted((e for e in load.get('entry_points') or [] if e.get('projection')),
-                    key=lambda e: -((e.get('projection') or {}).get('cost_score') or 0))
+    ranked = _projected(_load(out, 'load-model.json', {}) or {})
     row['source'] += ', load-model.json'
     row['projected_at_1000x'] = [{'entry': e.get('label'), 'cost_score': e['projection'].get('cost_score'),
                                   'bottlenecks': e['projection'].get('bottlenecks')} for e in ranked[:LIMIT['rows']]]
@@ -221,19 +267,27 @@ def _screens(out, ran):
     return _pictured(screens, visual)
 
 
-def _pictured(screens, visual):
-    failing = [r for r in screens.get('rows') or [] if r.get('failures')]
-    row = {'source': 'live/screens.json, nodes/visual_reviewer/findings.json', 'screens': len(screens.get('rows') or []),
-           'with_accessibility_failures': [{'page': r.get('page') or r.get('url'), 'failures': len(r.get('failures') or [])}
-                                           for r in failing[:LIMIT['rows']]],
-           'lighthouse': (screens.get('lighthouse') or {}).get('scores'), 'visual_findings': len(visual)}
-    row['rules'] = (_verdict('improve', f'{len(failing)} screen(s) fail an accessibility check, {len(visual)} visual finding(s)')
-                    if failing or visual else _verdict('keep', 'every pictured screen passes its accessibility checks'))
+def _failing_screen(row):
+    return {'page': row.get('page') or row.get('url'), 'failures': len(row.get('failures') or [])}
+
+
+def _not_seen(row, screens):
+    """The pages that did not open as themselves, listed, and the verdict made improve on them."""
     from ..live.roles import unseen
     if (missed := unseen(screens)):
         row['not_seen'] = [page['page'] for page in missed][:LIMIT['rows']]
         row['rules'] = _verdict('improve', f"{len(missed)} page(s) did not open as themselves (another view's, a sign-in or the "
                                 f"app's not-found page): what they show is unknown, never a page missing; {row['rules']['why']}")
+
+
+def _pictured(screens, visual):
+    failing = [r for r in screens.get('rows') or [] if r.get('failures')]
+    row = {'source': 'live/screens.json, nodes/visual_reviewer/findings.json', 'screens': len(screens.get('rows') or []),
+           'with_accessibility_failures': [_failing_screen(r) for r in failing[:LIMIT['rows']]],
+           'lighthouse': (screens.get('lighthouse') or {}).get('scores'), 'visual_findings': len(visual)}
+    row['rules'] = (_verdict('improve', f'{len(failing)} screen(s) fail an accessibility check, {len(visual)} visual finding(s)')
+                    if failing or visual else _verdict('keep', 'every pictured screen passes its accessibility checks'))
+    _not_seen(row, screens)
     if screens.get('unreachable'): row['unreachable'] = screens['unreachable'][:LIMIT['rows']]     # proved from the code
     return _kinds(row, screens.get('coverage'))
 

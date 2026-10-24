@@ -18,8 +18,13 @@ def read_plan(path=None, text=None):
     return read_source(path, text), []
 
 
+def _visible_files(where):
+    """Every file under the folder, sorted, leaving out hidden files and whatever is inside a hidden folder."""
+    return sorted(p for p in where.rglob('*') if p.is_file() and not any(part.startswith('.') for part in p.relative_to(where).parts))
+
+
 def _folder(where, text):
-    files = sorted(p for p in where.rglob('*') if p.is_file() and not any(part.startswith('.') for part in p.relative_to(where).parts))
+    files = _visible_files(where)
     pictures = [str(p) for p in files if p.suffix.lower() in IMAGE_SUFFIXES]
     words = [f'## {p.relative_to(where)}\n\n{read_source(p)}' for p in files if p.suffix.lower() in SOURCE_SUFFIXES]
     plan = '\n\n'.join(part for part in [text, *words] if part)

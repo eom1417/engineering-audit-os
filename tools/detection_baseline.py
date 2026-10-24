@@ -29,14 +29,24 @@ def _route(url):
 def evidence(technical):
     """(level, text, place, line) for everything the check recorded: its cards, engine findings, screen errors and
     whether the pages need a sign-in (place '*': the app as a whole)."""
-    rows = [('card', f"{task.get('pattern')} {task.get('title')}".lower(), path, None)
-            for task in _read(technical / 'plan.json').get('tasks') or [] for path in task.get('paths') or []]
-    rows += [('finding', f"{row['kind']} {row['rule']} {row['message']}".lower(), path, line)
-             for report in (_read(technical / 'engines' / 'engines.json').get('engines') or {}).values()
-             for row in report.get('findings') or [] for path, line in row['sites']]
-    rows += [('finding', ' '.join(row['page_errors']).lower(), _route(row.get('landed') or row['url']), None)
-             for row in _read(technical / 'live' / 'screens.json').get('rows') or [] if row.get('page_errors')]
+    rows = _cards(technical) + _engine_findings(technical) + _screen_errors(technical)
     return rows + ([('finding', 'sign_in', '*', None)] if _read(technical / 'live' / 'sign-in.json').get('needed') else [])
+
+
+def _cards(technical):
+    return [('card', f"{task.get('pattern')} {task.get('title')}".lower(), path, None)
+            for task in _read(technical / 'plan.json').get('tasks') or [] for path in task.get('paths') or []]
+
+
+def _engine_findings(technical):
+    return [('finding', f"{row['kind']} {row['rule']} {row['message']}".lower(), path, line)
+            for report in (_read(technical / 'engines' / 'engines.json').get('engines') or {}).values()
+            for row in report.get('findings') or [] for path, line in row['sites']]
+
+
+def _screen_errors(technical):
+    return [('finding', ' '.join(row['page_errors']).lower(), _route(row.get('landed') or row['url']), None)
+            for row in _read(technical / 'live' / 'screens.json').get('rows') or [] if row.get('page_errors')]
 
 
 def level(problem, rows):

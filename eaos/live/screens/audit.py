@@ -49,13 +49,17 @@ def unavailable(reason, **extra):
 def missing(*names):
     """'' when Node.js and the named pinned tools are installed, else what is missing and how to install it."""
     if not shutil.which('node'): return 'Node.js is not installed (https://nodejs.org, version 22 or newer)'
-    absent = []
-    for name in names:
-        tool = next((t for t in toolchain.registry()['tools'] if t['name'] == name), None)
-        found, reason = toolchain.found_version(tool) if tool else (None, 'not in eaos/data/toolchain.json')
-        if found != (tool or {}).get('version'): absent.append(f"{name} ({reason or f'found {found}'})")
-        elif name == 'playwright' and toolchain.browser_missing(): absent.append(f'playwright ({toolchain.browser_missing()})')
+    absent = [why for name in names if (why := _absent(name))]
     if absent: return f"not installed: {', '.join(absent)}; run: python -m eaos tools install --only {','.join(names)}"
+    return ''
+
+
+def _absent(name):
+    """What is missing of one pinned tool: not at its version, or Playwright without its browser; '' when installed."""
+    tool = next((t for t in toolchain.registry()['tools'] if t['name'] == name), None)
+    found, reason = toolchain.found_version(tool) if tool else (None, 'not in eaos/data/toolchain.json')
+    if found != (tool or {}).get('version'): return f"{name} ({reason or f'found {found}'})"
+    if name == 'playwright' and toolchain.browser_missing(): return f'playwright ({toolchain.browser_missing()})'
     return ''
 
 
@@ -90,14 +94,20 @@ def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, l
 
 def _variant(lang, theme, keys, params):
     """One variant: its localStorage values (merged into a JSON object when the key has a field) and its query."""
-    storage = {}
-    for (key, field), value in zip(keys, (lang, theme)):
-        if not (key and value): continue
-        if field: storage[key] = {**(storage.get(key) if isinstance(storage.get(key), dict) else {}), field: value}
-        else: storage[key] = value
+    storage = _storage(keys, (lang, theme))
     query = {param: value for param, value in zip(params, (lang, theme)) if value and param}
     return {'name': '-'.join(part for part in (lang, theme) if part) or 'default', 'lang': lang, 'theme': theme,
             'color_scheme': theme if theme in ('light', 'dark') else 'light', 'storage': storage, 'query': query}
+
+
+def _storage(keys, values):
+    """The localStorage values of a variant: each value under its key, merged into a JSON object when the key has a field."""
+    storage = {}
+    for (key, field), value in zip(keys, values):
+        if not (key and value): continue
+        if field: storage[key] = {**(storage.get(key) if isinstance(storage.get(key), dict) else {}), field: value}
+        else: storage[key] = value
+    return storage
 
 
 def _budget(row, height_budget, own_budget):
@@ -118,19 +128,34 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, **limits
     are the names it is audited in, and its own height budget wins over `height_budget`."""
     phone_width, height_budget = limits.get('phone_width', PHONE_WIDTH), limits.get('height_budget')
     urls = [urls] if isinstance(urls, (str, dict)) else list(urls)
-    own_budget = {u['name']: u['height_budget'] for u in urls if isinstance(u, dict) and u.get('name') and u.get('height_budget')}
+    own_budget = _own_budgets(urls)
     absent = missing('playwright', 'axe-core')
     if absent: return unavailable(absent, rows=[])
-    config = {'urls': [{k: v for k, v in u.items() if k != 'height_budget'} if isinstance(u, dict) else u for u in urls], 'viewports': list(viewports), 'variants': page_variants or variants(),
+    config = {'urls': _sent(urls), 'viewports': list(viewports), 'variants': page_variants or variants(),
               'phone_width': phone_width, 'target_min': limits.get('target_min', TARGET_MIN),
               'screenshots_dir': str(Path(out) / 'screenshots') if out else None,
               'storage_state': limits.get('storage_state'), 'read_only': bool(limits.get('read_only')),
               'modules': {'playwright': str(toolchain.home() / 'node/node_modules'), 'axe': str(toolchain.node_modules('axe-core'))}}
     result, error = _node('audit.mjs', config, limits.get('timeout', 900))
     if error: return {'status': 'error', 'reason': error, 'rows': []}
-    tools = {name: next(t['version'] for t in toolchain.registry()['tools'] if t['name'] == name) for name in ('playwright', 'axe-core')}
+    tools = _versions(('playwright', 'axe-core'))
     for row in result['rows']: row['failures'] = failures(row, phone_width, _budget(row, height_budget, own_budget))
     return {'status': 'observed', 'tools': {**tools, 'chromium': result.get('chromium')}, 'rows': result['rows']}
+
+
+def _own_budgets(urls):
+    """{page name: its own height budget} of the pages that name one."""
+    return {u['name']: u['height_budget'] for u in urls if isinstance(u, dict) and u.get('name') and u.get('height_budget')}
+
+
+def _sent(urls):
+    """The URLs and pages as the audit script reads them: a page without its height budget, which is checked here."""
+    return [{k: v for k, v in u.items() if k != 'height_budget'} if isinstance(u, dict) else u for u in urls]
+
+
+def _versions(names):
+    """{tool: its pinned version} of the named tools."""
+    return {name: next(t['version'] for t in toolchain.registry()['tools'] if t['name'] == name) for name in names}
 
 
 def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
@@ -142,7 +167,7 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     taller than `height_budget` screens, or a page that did not load. A fragment that starts with '/' is a route
     (#/problems), not an anchor: such a page must still open at the top."""
     if row.get('status') != 'observed': return [f"error: {row.get('reason', 'not audited')}"]
-    found = _layout_failures(row) + _content_failures(row, phone_width) + _variant_failures(row)
+    found = _layout_failures(row) + _access_failures(row, phone_width) + _content_failures(row) + _variant_failures(row)
     if height_budget and row['width'] <= phone_width and row.get('page_height', 0) > height_budget * row['height']:
         found.append(f"height: {row['page_height']}px tall, over the budget of {height_budget:g} x {row['height']}px screens")
     return found
@@ -164,14 +189,20 @@ def _layout_failures(row):
     return found
 
 
-def _content_failures(row, phone_width):
-    """Accessibility, small targets, clipped text, letter-spaced Arabic, script errors and blocked requests."""
+def _access_failures(row, phone_width):
+    """Accessibility: the serious axe violations, and small targets at phone width."""
     found = []
     serious = [v for v in row['axe']['violations'] if v['impact'] in FAILING_IMPACTS]
     if serious:
         found.append('axe: ' + ', '.join(f"{v['id']} ({v['impact']}, {v['nodes']})" for v in serious))
     if row['width'] <= phone_width and row['small_target_count']:
         found.append(f"targets: {row['small_target_count']} interactive element(s) under {TARGET_MIN}x{TARGET_MIN}px")
+    return found
+
+
+def _content_failures(row):
+    """Clipped text, letter-spaced Arabic, script errors and blocked requests."""
+    found = []
     if row.get('truncated_count'):
         found.append(f"truncation: {row['truncated_count']} clipped text element(s) without data-truncate and a full-text path: "
                      + ', '.join(t['selector'] for t in row['truncated'][:3]))

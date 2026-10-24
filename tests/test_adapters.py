@@ -183,7 +183,7 @@ class ReportedRunTests(Workspace):
         def fake_run(command, **_):
             out.write_text(text)
             return 0, '', '', 0.1
-        with mock.patch.object(scc.tool, 'declined', return_value=None), mock.patch.object(scc, 'version', return_value=scc.PINNED), \
+        with mock.patch.object(scc.tool, 'started', return_value=(None, scc.PINNED)), \
                 mock.patch.object(scc, 'run', fake_run), mock.patch.object(scc, 'which', return_value='scc'):
             report = scc.analyze(Path(self.tmp) / 'project', Path(self.tmp) / 'work')
         self.assertEqual(report.findings, [])
@@ -207,7 +207,7 @@ class ReportedRunTests(Workspace):
         def fake_run(command, **_):
             Path(command[command.index('--write-output') + 1]).write_text(json.dumps(payload))
             return 0, '', '', 0.1
-        with mock.patch.object(sqlfluff.tool, 'declined', return_value=None), mock.patch.object(sqlfluff, 'version', return_value='4.3.0'), \
+        with mock.patch.object(sqlfluff.tool, 'started', return_value=(None, '4.3.0')), \
                 mock.patch.object(sqlfluff, 'run', fake_run), mock.patch.object(sqlfluff, 'which', return_value='sqlfluff'):
             report = sqlfluff.analyze(self.tmp, Path(self.tmp) / 'work')
         codes = [v['code'] for entry in payload for v in entry['violations']]
@@ -221,7 +221,7 @@ class ReportedRunTests(Workspace):
             (out / 'results_json.json').write_text(json.dumps({'check_type': 'github_actions',
                                                                'summary': {'passed': 116, 'failed': 0, 'skipped': 0}}))
             return 0, '', '', 0.1
-        with mock.patch.object(checkov.tool, 'declined', return_value=None), mock.patch.object(checkov, 'version', return_value='3.3.19'), \
+        with mock.patch.object(checkov.tool, 'started', return_value=(None, '3.3.19')), \
                 mock.patch.object(checkov, 'run', fake_run), mock.patch.object(checkov, 'which', return_value='checkov'):
             report = checkov.analyze(self.tmp, Path(self.tmp) / 'work')
         self.assertEqual((report.status, report.findings), ('observed', []))
@@ -233,8 +233,7 @@ class ReportedRunTests(Workspace):
                                                    'environment': {'issues': [{'name': 'missing-typescript-transpiler'}]}}}))
             return 0, '', '', 0.1
         (Path(self.tmp) / 'a.ts').write_text('export const a = 1;\n')
-        with mock.patch.object(dependency_cruiser.tool, 'declined', return_value=None), \
-                mock.patch.object(dependency_cruiser, 'version', return_value='18.4.0'), \
+        with mock.patch.object(dependency_cruiser.tool, 'started', return_value=(None, '18.4.0')), \
                 mock.patch.object(dependency_cruiser, 'run', fake_run), mock.patch.object(dependency_cruiser, 'which', return_value='depcruise'):
             report = dependency_cruiser.analyze(self.tmp, Path(self.tmp) / 'work-depcruise')
         self.assertEqual(report.status, 'error')
@@ -253,7 +252,7 @@ class ReportedRunTests(Workspace):
             header = '| x | y |\n| --- | --- |\n'
             return 0, json.dumps({'markdown': header + ''.join(f'| {a} | {b} |\n' for a, b in rows)}), '', 0.1
         (Path(self.tmp) / 'p').mkdir(exist_ok=True)
-        with mock.patch.object(gitnexus.tool, 'declined', return_value=None), mock.patch.object(gitnexus, 'version', return_value='1.6.12'), \
+        with mock.patch.object(gitnexus.tool, 'started', return_value=(None, '1.6.12')), \
                 mock.patch.object(gitnexus, 'run', fake_run), mock.patch.object(gitnexus, 'which', return_value='gitnexus'):
             return gitnexus.analyze(Path(self.tmp) / 'p', Path(self.tmp) / 'work'), calls
 

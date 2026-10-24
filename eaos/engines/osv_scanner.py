@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 from . import tool
-from .contract import DETERMINISTIC, ERROR, OBSERVED, Report, finding, measurement, subject
+from .contract import DETERMINISTIC, OBSERVED, Report, finding, measurement, subject
 from .process import run, which
 
 NAME = BINARY = 'osv-scanner'
@@ -27,8 +27,7 @@ def capabilities():
     return [Capability('vulnerability', 'osv.vulnerable_dependency', method=DETERMINISTIC)]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def _key(text):
@@ -102,8 +101,7 @@ def normalise(payload, target, found):
         advisories = entry['advisories']
         if not advisories: continue
         worst = max((a['severity'] for a in advisories.values()), key=SEVERITIES.index)
-        fixes = [a['fixed_in'] for a in advisories.values() if a['fixed_in']]
-        upgrade = max(fixes, key=_key) if fixes and len(fixes) == len(advisories) else None
+        upgrade = _upgrade(advisories)
         ids = sorted(advisories)
         # The SBOM is a report file, not the project's: it is a site only when no lockfile names the package.
         sites = sorted(entry['sites'] - {'sbom.cdx.json'}) or ['sbom.cdx.json']
@@ -120,6 +118,12 @@ def normalise(payload, target, found):
     return findings
 
 
+def _upgrade(advisories):
+    """The one version that fixes every advisory of a package, or None when one of them has no known fix."""
+    fixes = [a['fixed_in'] for a in advisories.values() if a['fixed_in']]
+    return max(fixes, key=_key) if fixes and len(fixes) == len(advisories) else None
+
+
 def _scan(target, workdir):
     """Run the scanner on the project's lockfiles, and on Syft's SBOM when there is one: (exit code, stderr, seconds,
     report path, SBOM path)."""
@@ -133,9 +137,8 @@ def _scan(target, workdir):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
     target = Path(target)
     code, error, seconds, output, sbom = _scan(target, Path(workdir))
     # 0: nothing vulnerable; 1: vulnerabilities found; 128: no package source at all. Anything else failed.
@@ -145,14 +148,19 @@ def analyze(target, workdir, exclude=(), formats=None):
                                 'note': 'no lockfile or SBOM component OSV-Scanner can read'},
                       evaluated={'vulnerability': {'status': 'observed', 'granularity': 'package'}})
     if code not in (0, 1) or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     payload = json.loads(output.read_text(encoding='utf-8'))
     findings = normalise(payload, target, found)
-    sources = sorted({(r.get('source') or {}).get('type', '?') + ':' + Path((r.get('source') or {}).get('path', '')).name
-                      for r in payload.get('results') or []})
+    sources = _sources(payload)
     checked = re.findall(r'found (\d+) packages', error)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, raw=str(output),
                   coverage={'status': 'observed', 'sources_with_findings': sources,
                             'packages_checked': sum(int(n) for n in checked) or None,
                             'sbom_read': sbom.is_file()},
                   evaluated={'vulnerability': {'status': 'observed', 'granularity': 'package'}})
+
+
+def _sources(payload):
+    """Each source OSV-Scanner read, as `<its type>:<its file name>`."""
+    return sorted({(r.get('source') or {}).get('type', '?') + ':' + Path((r.get('source') or {}).get('path', '')).name
+                   for r in payload.get('results') or []})

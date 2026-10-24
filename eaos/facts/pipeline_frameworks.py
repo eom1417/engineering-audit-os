@@ -1,14 +1,10 @@
-"""Pipelines declared in a framework's own syntax (Airflow, Celery, LangGraph, Luigi, queue topics) and in build, CI and
-workflow files (GitHub Actions, Make, just, npm scripts, Step Functions, n8n, Node-RED), read without running them
-(eaos/facts/pipeline.py)."""
+"""Pipelines declared in a Python framework's own syntax (Airflow, Celery, Luigi), read without running them
+(eaos/facts/pipeline.py; LangGraph: eaos/facts/pipeline_langgraph.py; build, CI and workflow files:
+eaos/facts/pipeline_files.py)."""
 import ast
-import json
 import re
-from collections import defaultdict
-from pathlib import Path
 
 from . import call_name
-from .pipeline_langgraph import graphs_of
 from .pipeline_read import slug, site, Found, _str, _strs, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES
 
 
@@ -33,10 +29,16 @@ def _dag(py, rel, tree):
     found, tasks = None, {}
     for sub in ast.walk(tree):
         if found is None and isinstance(sub, ast.Call) and call_name(sub.func) == 'DAG': found = _found(py, rel, sub)
-        if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
-            task_id = next((_str(k.value) for k in sub.value.keywords if k.arg == 'task_id'), None)
-            if task_id: tasks[sub.targets[0].id] = (task_id, sub.value)
+        task_id = _task_id(sub)
+        if task_id: tasks[sub.targets[0].id] = (task_id, sub.value)
     return found, tasks
+
+
+def _task_id(sub):
+    """The task_id of `variable = Operator(task_id='...')`, or None."""
+    if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
+        return next((_str(k.value) for k in sub.value.keywords if k.arg == 'task_id'), None)
+    return None
 
 
 def _found(py, rel, call):
@@ -161,18 +163,11 @@ def _branch_operator(py, found, key, target, tasks, rel, call):
 
 
 def celery(py, out):
-    tasks = {}
-    for rel, name, node in py.functions():
-        decorators = _decorators(node)
-        if any(d in ('shared_task', 'task') for d in decorators) and any(
-                (module or '').split('.')[0] in ('celery', 'director') or (module or '') in py.modules
-                for module, _ in py.imports.get(rel, {}).values()):
-            tasks[name] = (rel, node)
+    tasks = _celery_tasks(py)
     if not tasks: return tasks
     by_file = {}
     for rel, fn_name, fn in py.functions():
-        canvases = [sub for sub in ast.walk(fn) if isinstance(sub, ast.Call) and call_name(sub.func) in ('chain', 'group', 'chord')]
-        pipes = [sub for sub in ast.walk(fn) if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr) and _signature(sub.left, tasks)]
+        canvases, pipes = _canvas_calls(fn, tasks)
         if not canvases and not pipes: continue
         found = by_file.get(rel)
         if found is None:
@@ -184,6 +179,25 @@ def celery(py, out):
     out.extend(f for f in by_file.values() if f.stages)
     _task_routes(py, out, tasks)
     return tasks
+
+
+def _celery_tasks(py):
+    """{name: (rel, def)} of the functions a Celery (or director) task decorator declares."""
+    tasks = {}
+    for rel, name, node in py.functions():
+        decorators = _decorators(node)
+        if any(d in ('shared_task', 'task') for d in decorators) and any(
+                (module or '').split('.')[0] in ('celery', 'director') or (module or '') in py.modules
+                for module, _ in py.imports.get(rel, {}).values()):
+            tasks[name] = (rel, node)
+    return tasks
+
+
+def _canvas_calls(fn, tasks):
+    """A function's canvas calls (chain, group, chord) and its `|` pipes of task signatures."""
+    canvases = [sub for sub in ast.walk(fn) if isinstance(sub, ast.Call) and call_name(sub.func) in ('chain', 'group', 'chord')]
+    pipes = [sub for sub in ast.walk(fn) if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr) and _signature(sub.left, tasks)]
+    return canvases, pipes
 
 
 def _canvas(py, found, rel, fn_name, canvases, pipes, tasks):
@@ -274,24 +288,34 @@ def _signature(expr, tasks):
 
 
 def _task_options(py, found, key, rel, node):
+    """A task's retries and timeout (its decorator's options), and the handlers its failure goes to (@task.on_failure)."""
     for item in node.decorator_list:
-        if not isinstance(item, ast.Call): continue
-        for keyword in item.keywords:
-            if keyword.arg in ('autoretry_for', 'max_retries', 'retry_backoff', 'retry_kwargs') and \
-                    not any(c['id'] == f'{key}:retry' for c in found.control):
-                text = _unparse(keyword.value).replace(' ', '')
-                if text in ('()', '0', 'None', 'False') or re.search(r"max_retries['\"]?:0\b", text): continue
-                found.control.append({'id': f'{key}:retry', 'pipeline': found.id, 'stage': key, 'kind': 'retry',
-                                      'condition': _unparse(keyword.value), 'evidence': site(rel, item.lineno, py.line(rel, item.lineno))})
-                found.errors.append({'id': f'{key}:retry', 'pipeline': found.id, 'from': key, 'to': key, 'kind': 'retry',
-                                     'condition': _unparse(keyword.value), 'evidence': site(rel, item.lineno, py.line(rel, item.lineno))})
-            if keyword.arg in TIMEOUT_WORDS: found.stages[key]['timeout'] = True
+        if isinstance(item, ast.Call): _decorator_options(py, found, key, rel, item)
     for other in py.defs.get(rel, {}).values():
         for item in other.decorator_list:
             if isinstance(item, ast.Attribute) and item.attr == 'on_failure' and isinstance(item.value, ast.Name) and item.value.id == node.name:
-                queue = next((_str(k.value) for s in ast.walk(other) if isinstance(s, ast.Call) for k in s.keywords if k.arg == 'queue'), None)
-                found.errors.append({'id': f'{key}:on_failure', 'pipeline': found.id, 'from': key, 'to': queue or other.name, 'kind': 'fail',
-                                     'condition': 'retries exhausted', 'evidence': site(rel, other.lineno, py.line(rel, other.lineno))})
+                found.errors.append({'id': f'{key}:on_failure', 'pipeline': found.id, 'from': key, 'to': _queue_of(other) or other.name,
+                                     'kind': 'fail', 'condition': 'retries exhausted',
+                                     'evidence': site(rel, other.lineno, py.line(rel, other.lineno))})
+
+
+def _decorator_options(py, found, key, rel, item):
+    """A task decorator's retry options (one retry lane, unless they turn retrying off) and its timeout."""
+    for keyword in item.keywords:
+        if keyword.arg in ('autoretry_for', 'max_retries', 'retry_backoff', 'retry_kwargs') and \
+                not any(c['id'] == f'{key}:retry' for c in found.control):
+            text = _unparse(keyword.value).replace(' ', '')
+            if text in ('()', '0', 'None', 'False') or re.search(r"max_retries['\"]?:0\b", text): continue
+            found.control.append({'id': f'{key}:retry', 'pipeline': found.id, 'stage': key, 'kind': 'retry',
+                                  'condition': _unparse(keyword.value), 'evidence': site(rel, item.lineno, py.line(rel, item.lineno))})
+            found.errors.append({'id': f'{key}:retry', 'pipeline': found.id, 'from': key, 'to': key, 'kind': 'retry',
+                                 'condition': _unparse(keyword.value), 'evidence': site(rel, item.lineno, py.line(rel, item.lineno))})
+        if keyword.arg in TIMEOUT_WORDS: found.stages[key]['timeout'] = True
+
+
+def _queue_of(handler):
+    """The queue a failure handler sends to (a call's queue='...'), or None."""
+    return next((_str(k.value) for s in ast.walk(handler) if isinstance(s, ast.Call) for k in s.keywords if k.arg == 'queue'), None)
 
 
 def _task_routes(py, out, tasks):
@@ -327,33 +351,26 @@ def _route_branches(py, rel, sub, found):
         label = _str(key)
         if label is None: continue
         queue = next((_str(v) for k, v in zip(value.keys, value.values) if _str(k) == 'queue'), None) if isinstance(value, ast.Dict) else None
-        to = next((k for symbol, k in by_symbol.items() if symbol and (label == symbol or label.endswith('.' + found.stages[k]['label'])
-                                                                       and symbol.endswith(found.stages[k]['label']))), None)
-        branches.append({'condition': label, 'to': to, 'evidence': site(rel, key.lineno, py.line(rel, key.lineno)), 'queue': queue})
+        branches.append({'condition': label, 'to': _routed_stage(found, by_symbol, label),
+                         'evidence': site(rel, key.lineno, py.line(rel, key.lineno)), 'queue': queue})
     return branches
 
 
-def langgraph(py, out):
-    """The LangGraph graphs of every module that imports LangGraph (eaos/facts/pipeline_langgraph.py reads them)."""
-    for rel, tree in py.trees.items():
-        if any((module or '').split('.')[0] == 'langgraph' for module, _ in py.imports.get(rel, {}).values()):
-            out.extend(graphs_of(py, rel, tree))
+def _routed_stage(found, by_symbol, label):
+    """The stage a task name of the routes table names: its symbol, or a dotted name ending on the stage's task."""
+    return next((k for symbol, k in by_symbol.items() if symbol and (label == symbol or label.endswith('.' + found.stages[k]['label'])
+                                                                    and symbol.endswith(found.stages[k]['label']))), None)
 
 
 def luigi(py, out):
-    tasks = {}
-    for rel, classes in py.classes.items():
-        for name, node in classes.items():
-            if any(call_name(base) in ('Task', 'WrapperTask', 'ExternalTask') for base in node.bases) and \
-                    any((m or '').startswith('luigi') for m, _ in py.imports.get(rel, {}).values()):
-                tasks[name] = (rel, node)
+    tasks = _luigi_tasks(py)
     if len(tasks) < 2: return
     rel0 = sorted(tasks.values(), key=lambda t: t[0])[0][0]
     found = Found(f'{rel0}:luigi', f'luigi tasks ({rel0})', 'luigi', site(rel0, 1, py.line(rel0, 1)))
     for name, (rel, node) in tasks.items():
         found.stage(name, site(rel, node.lineno, py.line(rel, node.lineno)), symbol=f"{rel[:-3].replace('/', '.')}.{name}")
     for name, (rel, node) in tasks.items():
-        requires = next((f for f in node.body if isinstance(f, ast.FunctionDef) and f.name == 'requires'), None)
+        requires = _method(node, 'requires')
         if not requires: continue
         for sub in ast.walk(requires):
             if isinstance(sub, ast.Call) and call_name(sub.func) in tasks:
@@ -361,192 +378,17 @@ def luigi(py, out):
     if found.edges: out.append(found)
 
 
-def _need_values(value):
-    """The jobs a `needs:` value names on its own line: a list in brackets or one name."""
-    if value.startswith('['): return [v.strip(' "\'') for v in value.strip('[]').split(',') if v.strip()]
-    return [value.strip('"\'')] if value else []
+def _method(cls, name):
+    """The method `name` a class defines, or None."""
+    return next((f for f in cls.body if isinstance(f, ast.FunctionDef) and f.name == name), None)
 
 
-def _read_jobs(lines, jobs_at):
-    """{job: {line, needs, needs_line}} of a workflow's `jobs:` block, its `needs` inline or as a list below."""
-    jobs, current, indent, needs_line = {}, None, None, None
-    for number, line in enumerate(lines[jobs_at + 1:], start=jobs_at + 2):
-        if not line.strip() or line.lstrip().startswith('#'): continue
-        depth = len(line) - len(line.lstrip())
-        if depth == 0: break
-        match = re.match(r'^(\s*)([A-Za-z0-9_-]+):\s*(#.*)?$', line)
-        if indent is None and match: indent = depth
-        if match and depth == indent:
-            current, needs_line = match.group(2), None
-            jobs[current] = {'line': number, 'needs': [], 'needs_line': None}
-            continue
-        if current is None: continue
-        need = re.match(r'^\s*needs:\s*(.*)$', line)
-        if need and depth == indent + 2:
-            value = need.group(1).split('#')[0].strip()
-            jobs[current]['needs_line'] = number
-            jobs[current]['needs'] += _need_values(value)
-            if not value: needs_line = depth
-            continue
-        if needs_line is not None:
-            item = re.match(r'^\s*-\s*([A-Za-z0-9_-]+)', line)
-            if item and depth > needs_line:
-                jobs[current]['needs'].append(item.group(1))
-                continue
-            needs_line = None
-    return jobs
-
-
-def github_actions(rel, text, out):
-    lines = text.splitlines()
-    jobs_at = next((i for i, line in enumerate(lines) if re.match(r'^jobs:\s*$', line)), None)
-    if jobs_at is None: return
-    jobs = _read_jobs(lines, jobs_at)
-    if not any(job['needs'] for job in jobs.values()): return
-    found = Found(f'{rel}:jobs', f'{Path(rel).name} jobs', 'github_actions', site(rel, jobs_at + 1, lines[jobs_at]),
-                  [site(rel, jobs_at + 1, lines[jobs_at])])
-    for name, job in jobs.items(): found.stage(name, site(rel, job['line'], lines[job['line'] - 1]))
-    for name, job in jobs.items():
-        for need in job['needs']:
-            found.edge(f'{found.id}/{slug(need)}', f'{found.id}/{slug(name)}', 'declared',
-                       site(rel, job['needs_line'] or job['line'], lines[(job['needs_line'] or job['line']) - 1]), kind='control')
-    _fans(found)
-    out.append(found)
-
-
-def _targets(lines, kind):
-    """{target: (line, [targets it depends on])} of a Makefile or a justfile."""
-    targets = {}
-    pattern = re.compile(r'^([A-Za-z0-9_.\-/]+)\s*:(?!=)\s*([^#=]*)$' if kind == 'makefile' else r'^@?([A-Za-z0-9_-]+)(?:\s+[^:]*)?:\s*([^#=]*)$')
-    for number, line in enumerate(lines, start=1):
-        match = pattern.match(line)
-        if match and not match.group(1).startswith('.'):
-            targets[match.group(1)] = (number, [t for t in match.group(2).split() if not t.startswith(('$', '"', "'"))])
-    return targets
-
-
-def make_targets(rel, text, out, kind):
-    lines = text.splitlines()
-    targets = _targets(lines, kind)
-    edges = [(need, name) for name, (_, needs) in targets.items() for need in needs if need in targets]
-    if len(edges) < 2: return
-    found = Found(f'{rel}:targets', f'{Path(rel).name} targets', kind, site(rel, 1, lines[0] if lines else ''))
-    for name, (number, _) in targets.items():
-        if any(name in edge for edge in edges): found.stage(name, site(rel, number, lines[number - 1]))
-    for need, name in edges:
-        found.edge(f'{found.id}/{slug(need)}', f'{found.id}/{slug(name)}', 'declared', site(rel, targets[name][0], lines[targets[name][0] - 1]), kind='control')
-    out.append(found)
-
-
-def npm_scripts(rel, text, out):
-    try: scripts = (json.loads(text) or {}).get('scripts') or {}
-    except (ValueError, AttributeError): return
-    lines = text.splitlines()
-    for name, command in scripts.items():
-        if not isinstance(command, str) or '&&' not in command: continue
-        parts = [p.strip() for p in command.split('&&') if p.strip()]
-        if len(parts) < 2: continue
-        number = next((i for i, line in enumerate(lines, start=1) if re.search(rf'"{re.escape(name)}"\s*:', line)), 1)
-        found = Found(f'{rel}:{name}', f'npm run {name}', 'npm_scripts', site(rel, number, lines[number - 1] if lines else ''),
-                      [site(rel, number, lines[number - 1] if lines else '')])
-        previous = None
-        for part in parts:
-            match = re.match(r'^(?:npm|pnpm|yarn|bun)(?:\s+run)?\s+([A-Za-z0-9:_.-]+)', part)
-            label = match.group(1) if match else part
-            key = found.stage(label, site(rel, number, lines[number - 1]))
-            found.stages[key]['tools'] = [part.split()[0]]
-            if previous: found.edge(previous, key, 'order', site(rel, number, lines[number - 1]), kind='control')
-            previous = key
-        out.append(found)
-
-
-def json_exports(rel, text, out):
-    if not text.lstrip().startswith(('{', '[')) or len(text) > 2_000_000: return
-    try: data = json.loads(text)
-    except ValueError: return
-    lines = text.splitlines()
-    line_of = lambda word: next((i for i, line in enumerate(lines, start=1) if word in line), 1)
-    if isinstance(data, dict) and isinstance(data.get('States'), dict) and data.get('StartAt'):
-        out.append(_step_functions(rel, data, line_of))
-        return
-    if isinstance(data, dict) and isinstance(data.get('nodes'), list) and isinstance(data.get('connections'), dict):
-        found = _n8n(rel, data, line_of)
-    elif isinstance(data, list) and data and all(isinstance(n, dict) for n in data) and any('wires' in n for n in data):
-        found = _node_red(rel, data, line_of)
-    else:
-        return
-    if found.edges: out.append(found)
-
-
-def _step_functions(rel, data, line_of):
-    """A Step Functions state machine: its states, their next states, its choices and its catches."""
-    found = Found(f'{rel}:states', f'{Path(rel).name} state machine', 'step_functions', site(rel, line_of('"StartAt"'), None))
-    for name in data['States']: found.stage(name, site(rel, line_of(f'"{name}"'), None))
-    for name, state in data['States'].items():
-        if isinstance(state, dict): _state_links(found, name, state, data['States'], site(rel, line_of(f'"{name}"'), None))
-    return found
-
-
-def _state_links(found, name, state, states, where):
-    """One state's edges to its next, default and chosen states, its choice router and its catches."""
-    stage, choices = f'{found.id}/{slug(name)}', [c for c in state.get('Choices') or [] if isinstance(c, dict)]
-    for target in [state.get('Next'), state.get('Default')] + [c.get('Next') for c in choices]:
-        if target in states: found.edge(stage, f'{found.id}/{slug(target)}', 'declared', where)
-    if state.get('Type') == 'Choice':
-        found.routers.append({'id': f'{found.id}:{slug(name)}', 'pipeline': found.id, 'stage': stage, 'kind': 'switch',
-                              'table': name, 'on': name, 'entry': where,
-                              'branches': [{'condition': _unparse_choice(c), 'to': f"{found.id}/{slug(c.get('Next'))}", 'evidence': where}
-                                           for c in choices],
-                              'total': bool(state.get('Default')), 'default': state.get('Default'), 'unhandled': []})
-    _state_catches(found, name, stage, state.get('Catch') or [], where)
-
-
-def _state_catches(found, name, stage, catches, where):
-    """A state's catches: an error lane to the state each one sends its failures to."""
-    for catch in catches:
-        if isinstance(catch, dict) and catch.get('Next'):
-            found.errors.append({'id': f'{found.id}:{slug(name)}:catch', 'pipeline': found.id, 'from': stage,
-                                 'to': catch['Next'], 'kind': 'catch', 'condition': ','.join(catch.get('ErrorEquals') or []),
-                                 'evidence': where})
-
-
-def _n8n(rel, data, line_of):
-    """An n8n workflow: its nodes and their main connections."""
-    found = Found(f'{rel}:n8n', str(data.get('name') or Path(rel).stem), 'n8n', site(rel, line_of('"nodes"'), None))
-    for node in data['nodes']:
-        if isinstance(node, dict) and node.get('name'): found.stage(node['name'], site(rel, line_of(f'"{node["name"]}"'), None))
-    for source, outputs in data['connections'].items():
-        targets = [target for lane in (outputs or {}).get('main') or [] for target in lane or [] if isinstance(target, dict)]
-        for target in targets:
-            found.edge(f'{found.id}/{slug(source)}', f"{found.id}/{slug(target.get('node'))}", 'declared', site(rel, line_of(f'"{source}"'), None))
-    return found
-
-
-def _node_red(rel, data, line_of):
-    """A Node-RED flow: its wired nodes and their wires."""
-    found = Found(f'{rel}:flow', Path(rel).stem, 'node_red', site(rel, 1, None))
-    ids = {n.get('id'): n.get('name') or n.get('type') or n.get('id') for n in data if n.get('id')}
-    for node in data:
-        if node.get('id') and node.get('wires') is not None: found.stage(ids[node['id']], site(rel, line_of(f'"{node["id"]}"'), None))
-    for node in data:
-        targets = [target for port in node.get('wires') or [] for target in port or [] if target in ids]
-        for target in targets:
-            found.edge(f'{found.id}/{slug(ids[node["id"]])}', f'{found.id}/{slug(ids[target])}', 'declared', site(rel, line_of(f'"{node["id"]}"'), None))
-    return found
-
-
-def _unparse_choice(choice):
-    keys = [k for k in choice if k not in ('Next',)]
-    return ' '.join(f'{k}={choice[k]}' for k in keys)[:80] or 'choice'
-
-
-def _fans(found):
-    """Forks (one stage feeding several) and their joins (one stage fed by all of them)."""
-    outgoing, incoming = defaultdict(list), defaultdict(set)
-    for a, b in found.edges: outgoing[a].append(b); incoming[b].add(a)
-    for fork, branches in outgoing.items():
-        if len(branches) < 2: continue
-        joins = [stage for stage, sources in incoming.items() if set(branches) <= sources]
-        found.fans.append({'id': f'{fork}:fan', 'pipeline': found.id, 'fork': fork, 'join': joins[0] if joins else None,
-                           'branches': branches, 'matched': bool(joins), 'kind': 'parallel', 'evidence': found.stages[fork]['entry']})
-
+def _luigi_tasks(py):
+    """{name: (rel, class)} of the Luigi task classes of the modules importing luigi."""
+    tasks = {}
+    for rel, classes in py.classes.items():
+        for name, node in classes.items():
+            if any(call_name(base) in ('Task', 'WrapperTask', 'ExternalTask') for base in node.bases) and \
+                    any((m or '').startswith('luigi') for m, _ in py.imports.get(rel, {}).values()):
+                tasks[name] = (rel, node)
+    return tasks

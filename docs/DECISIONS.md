@@ -2,6 +2,12 @@
 
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
+## 2026-10-24
+- **Efficiency**: the owner's time and tokens are spent only on what proves the change: the affected tests while
+  working, the full verify once per batch of changes, real (not padded) estimates (`/workspace/AGENTS.md` §4).
+- **EAOS holds itself to 400 lines / complexity 10** with no exception from M3 on (`tools/code_limits.py`); the laws it
+  holds every project to stay 600 / 15 until the owner says otherwise.
+
 ## 2026-10-23
 - **The account is only the mind.** Everything about the work lives locally with the project (this repository and
   `/workspace`): plans, decisions, progress, hand-overs. Nothing is kept in an assistant's or account's folders; any

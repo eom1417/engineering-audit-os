@@ -12,7 +12,7 @@ lands there and goes with the run, never in EAOS's own environment, whose python
 A run's copy, HOME and TMPDIR share one folder, held (flock) while the run lives: dispose() removes it, and the next
 run removes any folder no live run holds, so a check stopped or killed midway leaves nothing behind for long.
 
-Where the kernel allows it, every command sees the disk as its own run only (eaos/live/sandbox_view.py): the person's HOME,
+Where the kernel allows it, every command sees the disk as its own run only (eaos/live/sandbox_disk.py, sandbox_view.py): the person's HOME,
 EAOS's home, the reports, the temporary folder and every project EAOS knows are hidden, its copy, the paths it is
 given and the tools (read-only) are shown, so one project's code never reads another's state, sign-in or database.
 A command runs with no network, so a test suite cannot reach anything outside. A started service must answer the
@@ -20,14 +20,11 @@ host, so it keeps the network; that, and every other thing this sandbox could no
 sandbox-run.json -> limitations, never implied.
 """
 import fcntl
-import functools
 import json
 import os
-import re
 import shutil
 import signal
 import subprocess
-import sys
 import tempfile
 import time
 import urllib.error
@@ -36,6 +33,9 @@ from urllib.parse import urlsplit
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
+
+from ..core.web import opened
+from .sandbox_disk import _launcher, _own, _view_refusal, _within, hidden, mounts, named
 
 PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')     # also what a run profile may start with
 
@@ -61,22 +61,28 @@ def refusal(path, stage, commit=None, target=None):
     problems = validate(grant, contracts()['authorization'])
     if problems: return f'authorization: {path} breaks schemas/artifacts/authorization.schema.json: {problems[0]}'
     expires = grant['expires']
-    try:
-        if len(expires) == 10:  # a date: valid through that whole day
-            expired = date.fromisoformat(expires) < date.today()
-        else:
-            moment = datetime.fromisoformat(expires.replace('Z', '+00:00'))
-            expired = (moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)) <= datetime.now(timezone.utc)
+    try: expired = _expired(expires)
     except ValueError:
         return f'authorization: expires {expires!r} is not an ISO date'
     if expired: return f'authorization: expired at {expires}'
     if stage not in grant['stages']: return f"authorization: {stage} is not among the granted stages {grant['stages']}"
-    if commit is not None and grant['commit'] != commit:
-        descends = (stage in EXECUTION_STAGES and target is not None and subprocess.run(
-            ['git', '-C', str(target), 'merge-base', '--is-ancestor', grant['commit'], commit], capture_output=True).returncode == 0)
-        if not descends:
-            return f"authorization: granted for commit {grant['commit'][:12]}, but the project is at {commit[:12]}"
+    if commit is not None and grant['commit'] != commit and not _descends(stage, target, grant['commit'], commit):
+        return f"authorization: granted for commit {grant['commit'][:12]}, but the project is at {commit[:12]}"
     return ''
+
+
+def _expired(expires):
+    """Whether the grant's `expires` (an ISO date or moment) has passed; ValueError when it is neither."""
+    if len(expires) == 10:  # a date: valid through that whole day
+        return date.fromisoformat(expires) < date.today()
+    moment = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+    return (moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)) <= datetime.now(timezone.utc)
+
+
+def _descends(stage, target, granted, commit):
+    """Whether an execution stage's `commit` is a candidate on top of the `granted` one in the checkout `target`."""
+    return (stage in EXECUTION_STAGES and target is not None and subprocess.run(
+        ['git', '-C', str(target), 'merge-base', '--is-ancestor', granted, commit], capture_output=True).returncode == 0)
 
 
 def head(target):
@@ -118,81 +124,6 @@ def _network_isolation():
     return (unshare, '-rn') if done.returncode == 0 else ()
 
 
-LAUNCHER = Path(__file__).with_name('sandbox_view.py')
-
-
-def _launcher(spec):
-    return [sys.executable, '-I', str(LAUNCHER), json.dumps(spec)]
-
-
-@functools.cache
-def _view_refusal():
-    """'' when a command can have a view of its own run here (a user and a mount namespace), else why it cannot."""
-    try:
-        done = subprocess.run([*_launcher({'offline': True, 'cwd': '/', 'mounts': [['hide', tempfile.gettempdir()]]}), 'true'],
-                              capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.TimeoutExpired) as problem:
-        return str(problem)[:200]
-    return '' if done.returncode == 0 else (done.stderr.strip()[-200:] or f'exit {done.returncode}')
-
-
-def hidden():
-    """The real folders a sandboxed command never sees: the person's HOME, EAOS's home, its projects and Studio records,
-    the reports, the temporary folder (other runs' databases), and every project EAOS knows with its report, the run's
-    own included (it sees its copy, never the working folder and its .env). The outermost ones only."""
-    from ..core.places import home, outputs_root
-    folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(), Path('/tmp'), Path(tempfile.gettempdir())]
-    from ..core.project_state import every
-    folders += [Path(state[key]) for state in every() for key in ('project', 'outputs') if state.get(key)]
-    real = {Path(os.path.realpath(folder)) for folder in folders if folder.is_dir()} - {Path('/')}
-    return sorted(folder for folder in real if not any(other in folder.parents for other in real))
-
-
-def _own(target, runtime):
-    """The real folders a run's command may be shown again when it is given a path in them: its project's own EAOS
-    workspace (records, runtime, data), its own report, and the runtime it runs from (a batch's candidate copy is
-    another folder than the project, but its records, the lock's reports among them, are the project's); never another
-    project's, whatever it is given."""
-    from ..core.places import workspace
-    # a candidate copy (a batch, a milestone) has no workspace of its own: the project's is the one above its runtime
-    from ..core.project_state import FILE, of_workspace
-    folder = next((p for p in (workspace(target), *Path(runtime).resolve().parents) if (p / FILE).is_file()), workspace(target))
-    try: report = (of_workspace(folder) or {}).get('outputs')
-    except (OSError, ValueError): report = None
-    return [Path(os.path.realpath(path)) for path in (folder, report, runtime) if path]
-
-
-def _within(path, folders):
-    return any(path == folder or folder in path.parents for folder in folders)
-
-
-def mounts(masks, keeps):
-    """The launcher's mounts: each of `masks` hidden, then each (path, read_only) of `keeps` shown again at its own name
-    and at its real one, outermost first, so a path shown inside a hidden folder stays shown. A kept path is shown when
-    a mask hides it, a read-only one always (to make it read-only); never one that holds a mask, which it would show."""
-    planned = [(mask, 'hide') for mask in masks]
-    for path, read_only in keeps:
-        real = Path(os.path.realpath(path))
-        if not real.exists() or any(_within(mask, [real]) for mask in masks): continue
-        for target in dict.fromkeys((Path(os.path.abspath(path)), real)):
-            if read_only or any(mask in target.parents for mask in masks): planned.append((target, 'show', str(real), read_only))
-    planned.sort(key=lambda row: len(row[0].parts))
-    return [[kind, str(target), *rest] for target, kind, *rest in planned]
-
-
-def named(argv, env):
-    """(path, read_only) of each absolute path a command is given, in its arguments (`--x=/path` too) and its values (a
-    file still to be written: its folder). The folders of PATH are given read-only. Only those inside the run's own
-    workspace and report are shown again (_own): naming another project's path shows nothing."""
-    found = []
-    for name, text in [('', part) for part in argv] + list(env.items()):
-        for piece in re.split(f'[={os.pathsep}]', str(text)):
-            path = Path(piece) if piece.startswith('/') else None
-            if path and not path.exists(): path = path.parent
-            if path and path != Path('/') and path.exists(): found.append((str(path), name == 'PATH'))
-    return found
-
-
 def _listening(port):
     """The sockets listening on `port` (as /proc/<pid>/fd names them), None where /proc does not say."""
     tables = [Path(f'/proc/net/{name}') for name in ('tcp', 'tcp6')]
@@ -218,7 +149,7 @@ def _listens(port, group):
 def _answers(health, group):
     """Whether `health` answers 200, or refuses (4xx), from a process of process group `group` (_listens)."""
     try:
-        with urllib.request.urlopen(health, timeout=2) as response: up = response.status == 200
+        with opened(health, timeout=2) as response: up = response.status == 200
     except urllib.error.HTTPError as answer: up = answer.code < 500
     except (urllib.error.URLError, OSError): return False
     return up and _listens(urlsplit(health).port, group) is not False

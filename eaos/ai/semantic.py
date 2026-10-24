@@ -129,6 +129,11 @@ def _claim_errors(row, known_facts):
     """What is wrong with one claim the model returned."""
     if not isinstance(row, dict): return ['each claim must be an object']
     name = str(row.get('statement', '?'))[:40]
+    return _wording_errors(row, name) + _reference_errors(row, name, known_facts)
+
+
+def _wording_errors(row, name):
+    """What is wrong with a claim's words: its statement, type, falsifier and basis."""
     problems = []
     if not _sentence(row.get('statement')): problems.append(f'{name}: statement must be a sentence')
     if row.get('claim_type') not in TYPES: problems.append(f'{name}: claim_type must be one of {sorted(TYPES)}')
@@ -138,18 +143,24 @@ def _claim_errors(row, known_facts):
                         f'down, observed in the code, or inferred')
     if row.get('basis') == 'documented' and not row.get('basis_source'):
         problems.append(f'{name}: a documented basis must name where it is written down')
+    return problems
+
+
+def _reference_errors(row, name, known_facts):
+    """What is wrong with the fact ids a claim and its assessment cite."""
     references = row.get('fact_ids')
-    if not isinstance(references, list) or not references:
-        return problems + [f'{name}: cite at least one fact id from the digest']
+    if not isinstance(references, list) or not references: return [f'{name}: cite at least one fact id from the digest']
     unknown = [reference for reference in references if not isinstance(reference, str) or reference not in known_facts]
-    if unknown: problems.append(f'{name}: unknown fact ids {unknown[:3]}')
+    problems = [f'{name}: unknown fact ids {unknown[:3]}'] if unknown else []
     assessment = row.get('assessment', {})
     if not isinstance(assessment, dict): return problems + [f'{name}: assessment must be an object']
-    for field in ('requirement_refs', 'evidence_refs'):
-        refs = assessment.get(field, [])
-        if not isinstance(refs, list) or any(not isinstance(ref, str) or ref not in known_facts for ref in refs):
-            problems.append(f'{name}: unknown assessment references')
-    return problems
+    return problems + [f'{name}: unknown assessment references' for field in ('requirement_refs', 'evidence_refs')
+                       if not _known_refs(assessment.get(field, []), known_facts)]
+
+
+def _known_refs(refs, known_facts):
+    """Whether an assessment's references are a list of known fact ids."""
+    return isinstance(refs, list) and all(isinstance(ref, str) and ref in known_facts for ref in refs)
 
 
 def errors_in(response, known_facts):
@@ -257,6 +268,12 @@ def _restates(claim, existing):
     return bool(names) and all(any(name in old['statement'] for old in existing) for name in names)
 
 
+def _questions(response):
+    """The model's questions, as the dossier's open questions of the semantic pass."""
+    return [{'id': 'Q-S%02d' % (number + 1), 'question': text, 'source': 'semantic pass'}
+            for number, text in enumerate(response.get('questions', []) or [])]
+
+
 def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     target, out = Path(target).resolve(), Path(out).resolve()
     dossier_path = out / 'dossier.json'
@@ -272,8 +289,7 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     added = [claim for claim in produced if not _restates(claim, dossier['claims'])]
     dossier['claims'] += added
     _count_claims(dossier, calls)
-    questions = [{'id': 'Q-S%02d' % (number + 1), 'question': text, 'source': 'semantic pass'}
-                 for number, text in enumerate(response.get('questions', []) or [])]
+    questions = _questions(response)
     dossier['questions'] += questions
     write(dossier_path, dossier)
     write(out / 'semantic.json', {'claims': added, 'questions': questions,

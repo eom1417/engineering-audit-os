@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'scc'
@@ -19,14 +19,12 @@ def capabilities():
     return []
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
     target = Path(target)
     output = Path(workdir) / NAME / 'scc.json'
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -34,17 +32,21 @@ def analyze(target, workdir, exclude=(), formats=None):
                '--exclude-dir', ','.join(EXCLUDED + tuple(exclude)), str(target)]
     code, _, error, seconds = run(command)
     if code or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     languages = json.loads(output.read_text(encoding='utf-8')) or []
     metrics, totals = [], {}
     for language in languages:
         totals[language['Name']] = {'files': language['Count'], 'code': language['Code'], 'complexity': language['Complexity']}
-        for row in language.get('Files') or []:
-            location = Path(row['Location'])
-            path = location.relative_to(target).as_posix() if location.is_absolute() and target in location.parents else row['Location']
-            metrics.append({'path': path, 'granularity': 'file',
-                            'measurements': {'language': row['Language'], 'lines': row['Lines'], 'code': row['Code'],
-                                             'comment': row['Comment'], 'blank': row['Blank'], 'complexity': row['Complexity'],
-                                             'generated': row.get('Generated', False), 'minified': row.get('Minified', False)}})
+        for row in language.get('Files') or []: metrics.append(_metric(row, target))
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, raw=str(output), metrics=sorted(metrics, key=lambda m: m['path']),
                   coverage={'status': 'observed', 'files': len(metrics), 'languages': dict(sorted(totals.items()))})
+
+
+def _metric(row, target):
+    """One file's measurements, at its path relative to the project when scc wrote it absolute."""
+    location = Path(row['Location'])
+    path = location.relative_to(target).as_posix() if location.is_absolute() and target in location.parents else row['Location']
+    return {'path': path, 'granularity': 'file',
+            'measurements': {'language': row['Language'], 'lines': row['Lines'], 'code': row['Code'],
+                             'comment': row['Comment'], 'blank': row['Blank'], 'complexity': row['Complexity'],
+                             'generated': row.get('Generated', False), 'minified': row.get('Minified', False)}}

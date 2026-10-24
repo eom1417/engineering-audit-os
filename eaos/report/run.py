@@ -25,15 +25,20 @@ def absences(manifest):
     """[{stage, status, reason: {ar, en}}] of every stage that did not end ok: the catalog's words for its reason_code
     (eaos/data/errors.json reasons), else EAOS's own sentence in both. The one list the report for people, RUN.md and
     the Studio's head read (a real check: ten stages stood still and nobody said why in the person's language)."""
-    from ..core.progress.reasons import reasons
     rows = []
     for name, row in (manifest.get('stages') or {}).items():
         if row.get('status') == 'ok': continue
-        said = reasons().get(str(row.get('reason_code') or '')) or {}
         did = [r for r in manifest.get('remedies') or [] if r['stage'] == name]
-        rows.append({'stage': name, 'status': row.get('status'), 'reason': {lang: said.get(lang) or row.get('reason') or '' for lang in ('ar', 'en')},
+        rows.append({'stage': name, 'status': row.get('status'), 'reason': _reason(row),
                      'did': did[-1]['outcome'] if did else None})
     return rows
+
+
+def _reason(row):
+    """{ar, en} of why a stage did not end ok: the catalog's words for its reason_code, else EAOS's own sentence."""
+    from ..core.progress.reasons import reasons
+    said = reasons().get(str(row.get('reason_code') or '')) or {}
+    return {lang: said.get(lang) or row.get('reason') or '' for lang in ('ar', 'en')}
 
 
 def document(manifest, language='ar'):

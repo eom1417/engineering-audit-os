@@ -76,6 +76,12 @@ def reading_order(report):
     return order
 
 
+def _doc_group(name, groups):
+    """A document's group: the look for a file beside the report, else its listed group, else its folder (technical at
+    the top)."""
+    return 'look' if name in BESIDE else groups.get(name) or (name.split('/', 1)[0] if '/' in name else 'technical')
+
+
 def docs(report):
     report = Path(report)
     groups, first = dict(DOC_GROUPS), {name: i for i, (name, _) in enumerate(DOC_GROUPS)}
@@ -85,7 +91,7 @@ def docs(report):
         text = path.read_text(encoding='utf-8', errors='replace')
         lines = text.lstrip().split('\n', 1)
         title = lines[0].lstrip('#').strip() if lines[0].startswith('#') else path.stem
-        group = 'look' if name in BESIDE else groups.get(name) or (name.split('/', 1)[0] if '/' in name else 'technical')
+        group = _doc_group(name, groups)
         order = first.get(name, len(first) + indexed[name] if name in indexed else None)
         out.append({'id': name, 'title': title[:200] or path.stem, 'path': name, 'group': group, 'bytes': path.stat().st_size,
                     'order': order, 'headings': [h for h in _headings(text) if h['level'] > 1][:60],

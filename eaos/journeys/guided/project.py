@@ -142,29 +142,8 @@ def publish(state, lang=None, event=None):
     part('branch', lambda: branch_links(state))
     for name, build in REPORT_PARTS.items(): part(name, lambda build=build: build(state))
     progress.update(eaos=stamp(made), report_errors=errors)
-    try:                                    # the Studio's data, from the same ledger as the page (eaos/report/studio/export.py)
-        from ...report.studio.export import export as studio
-        errors += [f"studio {e['section']}: {e['error']}"[:300]
-                   for e in studio(report, lang or state.get('lang') or 'en', Path(state['project']).name, state['project'],
-                                   progress, state)['errors']]
-    except Exception as problem:
-        errors.append(f'studio: {type(problem).__name__}: {problem}'[:300])
-        log_failure(outputs(state), problem)
-    try:
-        from ...report.human_report import write
-        write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
-        try: errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in json.loads((report / 'human/errors.json').read_text(encoding='utf-8'))]
-        except (OSError, ValueError): pass
-    except Exception as problem:            # the page itself could not be made: say so on it, never leave the old one
-        errors.append(f'page: {type(problem).__name__}: {problem}'[:300])
-        log_failure(outputs(state), problem)
-        page = report / 'human' / 'index.html'
-        page.parent.mkdir(parents=True, exist_ok=True)
-        import html
-        page.write_text('<!doctype html><meta charset="utf-8"><title>EAOS</title><body style="font:16px system-ui;padding:32px">'
-                        '<h1>تعذّر بناء التقرير · The report could not be built</h1><ul>'
-                        + ''.join(f'<li>{html.escape(e)}</li>' for e in errors)
-                        + f'</ul><p>{html.escape(str(outputs(state) / "logs"))}</p></body>', encoding='utf-8')
+    _studio_data(state, report, lang, progress, errors)
+    _human_page(state, report, lang, progress, errors)
     page = report / 'human' / 'index.html'
     home_folder.mkdir(parents=True, exist_ok=True)
     if page.is_file(): second_name(page, target)
@@ -173,22 +152,69 @@ def publish(state, lang=None, event=None):
     return target if target.is_file() else report / 'START-HERE.md'
 
 
+def _studio_data(state, report, lang, progress, errors):
+    """The Studio's data, from the same ledger as the page (eaos/report/studio/export.py); what failed added to `errors`."""
+    try:
+        from ...report.studio.export import export as studio
+        errors += [f"studio {e['section']}: {e['error']}"[:300]
+                   for e in studio(report, lang or state.get('lang') or 'en', Path(state['project']).name, state['project'],
+                                   progress, state)['errors']]
+    except Exception as problem:
+        errors.append(f'studio: {type(problem).__name__}: {problem}'[:300])
+        log_failure(outputs(state), problem)
+
+
+def _human_page(state, report, lang, progress, errors):
+    """The page for people (human/index.html); what failed added to `errors`, and when the page itself could not be
+    made, a page that says so in its place."""
+    try:
+        from ...report.human_report import write
+        write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
+        try: errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in json.loads((report / 'human/errors.json').read_text(encoding='utf-8'))]
+        except (OSError, ValueError): pass
+    except Exception as problem:            # the page itself could not be made: say so on it, never leave the old one
+        errors.append(f'page: {type(problem).__name__}: {problem}'[:300])
+        log_failure(outputs(state), problem)
+        _failed_page(state, report, errors)
+
+
+def _failed_page(state, report, errors):
+    """human/index.html when the page could not be built: the errors, and where the logs are."""
+    page = report / 'human' / 'index.html'
+    page.parent.mkdir(parents=True, exist_ok=True)
+    import html
+    page.write_text('<!doctype html><meta charset="utf-8"><title>EAOS</title><body style="font:16px system-ui;padding:32px">'
+                    '<h1>تعذّر بناء التقرير · The report could not be built</h1><ul>'
+                    + ''.join(f'<li>{html.escape(e)}</li>' for e in errors)
+                    + f'</ul><p>{html.escape(str(outputs(state) / "logs"))}</p></body>', encoding='utf-8')
+
+
 def publish_fixes(state, wave):
     """outputs/fixes/wave-N: the batch's patches, wave.json, and a summary a person can read."""
     target = waves.publish(state, runtime_of(state), branches.home(state) / 'fixes', wave['number'])
-    ar = state.get('lang') == 'ar'
-    lines = [f"# {'الدفعة' if ar else 'Batch'} {wave['number']}", '',
-             (f"الفرع في مشروعك: `{wave.get('branch')}`" if ar else f"The branch in your project: `{wave.get('branch')}`") if wave.get('kept') else
-             ('لم ينجح أي إصلاح، فلم يتغير شيء في مشروعك.' if ar else 'No fix passed, so nothing changed in your project.'), '']
-    if wave.get('stat'): lines += [(f"التغييرات: {wave['stat']}" if ar else f"The changes: {wave['stat']}"), '']
+    words = SUMMARY_WORDS['ar' if state.get('lang') == 'ar' else 'en']
+    lines = [f"# {words['batch']} {wave['number']}", '',
+             words['branch'].format(branch=wave.get('branch')) if wave.get('kept') else words['nothing'], '']
+    if wave.get('stat'): lines += [words['changes'].format(stat=wave['stat']), '']
     if wave.get('kept'):
-        lines += ['## ' + ('ما أُصلح' if ar else 'Fixed'), ''] + [f'- {card}' for card in wave['kept']] + ['']
+        lines += ['## ' + words['fixed'], ''] + [f'- {card}' for card in wave['kept']] + ['']
     if wave.get('failed'):
-        lines += ['## ' + ('ما لم ينجح، ولماذا' if ar else 'Not fixed, and why'), ''] + [f'- {card}: {why}' for card, why in wave['failed'].items()] + ['']
-    lines += [('ملفات .patch هنا هي التغييرات نفسها، واحدًا لكل إصلاح.' if ar else 'The .patch files here are the changes themselves, one per fix.'), '']
+        lines += ['## ' + words['failed'], ''] + [f'- {card}: {why}' for card, why in wave['failed'].items()] + ['']
+    lines += [words['patches'], '']
     (target / 'SUMMARY.md').write_text('\n'.join(lines), encoding='utf-8')
     publish(state)
     return target
+
+
+# The words of a batch's SUMMARY.md, in the person's language.
+SUMMARY_WORDS = {'ar': {'batch': 'الدفعة', 'branch': 'الفرع في مشروعك: `{branch}`',
+                        'nothing': 'لم ينجح أي إصلاح، فلم يتغير شيء في مشروعك.', 'changes': 'التغييرات: {stat}',
+                        'fixed': 'ما أُصلح', 'failed': 'ما لم ينجح، ولماذا',
+                        'patches': 'ملفات .patch هنا هي التغييرات نفسها، واحدًا لكل إصلاح.'},
+                 'en': {'batch': 'Batch', 'branch': 'The branch in your project: `{branch}`',
+                        'nothing': 'No fix passed, so nothing changed in your project.', 'changes': 'The changes: {stat}',
+                        'fixed': 'Fixed', 'failed': 'Not fixed, and why',
+                        'patches': 'The .patch files here are the changes themselves, one per fix.'}}
 
 
 def scan_done(state):
@@ -197,7 +223,7 @@ def scan_done(state):
         and (report_of(state) / 'START-HERE.md').is_file()
 
 
-# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_tools.publish}, registered
+# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_blueprint.publish}, registered
 # by that module itself, so that this one does not import it.
 PUBLISHERS = {}
 

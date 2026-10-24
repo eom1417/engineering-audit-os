@@ -1,5 +1,5 @@
 """The interface first, the tools in the order they are needed: the Studio opens on "Preparing the tools", the check
-waits for the tools it needs on the project (eaos/core/toolchain.py readiness), a tool that failed stops it unless the
+waits for the tools it needs on the project (eaos/core/toolchain/runs.py readiness), a tool that failed stops it unless the
 person starts without it, and the report records that it did."""
 import os
 import subprocess

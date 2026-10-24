@@ -31,10 +31,10 @@ def facts_digest(report):
     report = Path(report)
     take = lambda rows, make: [make(f) for f in rows[:LIMIT['facts']]]
     where = lambda f: (f.get('location') or {}).get('path')
-    entry = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'entry_point']
-    access = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'data_access']
+    entry = _of_kind(_facts(report, 'entrypoints'), 'entry_point')
+    access = _of_kind(_facts(report, 'entrypoints'), 'data_access')
     domain = [f for f in _facts(report, 'domain') if f.get('kind') != 'data_model' or (f.get('value') or {}).get('kind') in ('table', 'sql_table')]
-    graph = [f for f in _facts(report, 'graph') if f.get('kind') == 'graph_node']
+    graph = _of_kind(_facts(report, 'graph'), 'graph_node')
     graph.sort(key=lambda f: (f.get('value') or {}).get('attention_rank', 999))
     return {
         'entry_points': take(entry, lambda f: {'id': f['id'], 'surface': (f['value'] or {}).get('surface'),
@@ -50,10 +50,15 @@ def facts_digest(report):
                                    'what': short(json.dumps({k: v for k, v in (f.get('value') or {}).items() if k != 'snippet'}), 120)}),
         'hubs': take(graph, lambda f: {'id': f['id'], 'path': where(f), 'fan_in': (f['value'] or {}).get('fan_in'),
                                        'fan_out': (f['value'] or {}).get('fan_out')}),
-        'cycles': take([f for f in _facts(report, 'graph') if f.get('kind') == 'graph_cycle'],
+        'cycles': take(_of_kind(_facts(report, 'graph'), 'graph_cycle'),
                        lambda f: {'id': f['id'], 'members': (f['value'] or {}).get('members')}),
         'dead_code': take(_facts(report, 'deadcode'), lambda f: {'id': f['id'], 'path': where(f), 'rule': (f['value'] or {}).get('rule')}),
     }
+
+
+def _of_kind(facts, kind):
+    """The facts of one kind."""
+    return [f for f in facts if f.get('kind') == kind]
 
 
 def cited(row, most):

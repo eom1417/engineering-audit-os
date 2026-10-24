@@ -6,7 +6,7 @@ many looked and did not, and therefore what a claim built on it may honestly ass
 The candidates a distribution registry of the project holds by name are tagged by eaos/facts/registry.py (NS4.T2): they
 stay on disk, but clusters() skips them so no dead_code claim is raised for them.
 """
-from hashlib import sha1
+from hashlib import sha256
 
 from ..facts.registry import filter_in_sets
 
@@ -65,6 +65,12 @@ def over_threshold(fact):
                and m['value'] > m['threshold'] for m in (fact.get('value') or {}).get('measurements') or [])
 
 
+def _by_resolution(engines, evaluated, kind, levels):
+    """(the engines that looked at one of these resolutions, those that looked at another), each sorted."""
+    return (sorted(engine for engine in engines if _resolution(evaluated, engine, kind) in levels),
+            sorted(engine for engine in engines if _resolution(evaluated, engine, kind) not in levels))
+
+
 def verdict(kind, asserted_by, evaluated, over=None):
     """How much weight a kind of finding at one place has earned. `over`: the engines whose value of a MEASURED kind
     exceeds their declared threshold here; with none, more engines are not corroboration."""
@@ -72,8 +78,7 @@ def verdict(kind, asserted_by, evaluated, over=None):
               if (state := _status(evaluated, engine, kind)) and engine not in asserted_by}
     asserted_at = {_resolution(evaluated, engine, kind) for engine in asserted_by}
     observed = [engine for engine, state in silent.items() if state == OBSERVED]
-    same_resolution = sorted(engine for engine in observed if _resolution(evaluated, engine, kind) in asserted_at)
-    other_resolution = sorted(engine for engine in observed if _resolution(evaluated, engine, kind) not in asserted_at)
+    same_resolution, other_resolution = _by_resolution(observed, evaluated, kind, asserted_at)
     denied_fully = same_resolution if kind in DENIABLE else []
     decision = _decision(kind, asserted_by, over, denied_fully, other_resolution)
     return {'verdict': decision, 'asserted_by': sorted(asserted_by),
@@ -145,22 +150,30 @@ def _cluster(place, facts, evaluated):
         return None
     alive = [fact for fact in facts if _alive(fact)]
     return {
-        'id': 'CLU-' + sha1(place.encode('utf-8')).hexdigest()[:10],
+        'id': 'CLU-' + sha256(place.encode('utf-8')).hexdigest()[:10],
         'place': place,
         'engines': sorted({fact['value']['engine'] for fact in alive}),
         'kinds': sorted(kinds),
         'corroboration': corroboration,
         'fact_ids': sorted(fact['id'] for fact in alive),
         # A claim about one kind cites only the evidence of that kind, so its files are where that evidence lies.
-        'fact_ids_by_kind': {kind: sorted(fact['id'] for fact in alive if fact['value']['kind'] == kind)
-                             for kind in sorted(kinds)},
+        'fact_ids_by_kind': _ids_by_kind(alive, kinds),
         'standing': _standing(alive),
         'scope': 'group' if place.startswith('group:') else 'place',
         'findings': len(alive),
         'weight': _weight(corroboration),
-        'measurements': sorted({(m['name'], m.get('unit')) for fact in facts
-                                for m in fact['value'].get('measurements', []) if m.get('name')}),
+        'measurements': _measurements(facts),
     }
+
+
+def _ids_by_kind(facts, kinds):
+    """Per kind, sorted, the ids of the findings of that kind."""
+    return {kind: sorted(fact['id'] for fact in facts if fact['value']['kind'] == kind) for kind in sorted(kinds)}
+
+
+def _measurements(facts):
+    """(name, unit) of every named measurement the findings carry, sorted."""
+    return sorted({(m['name'], m.get('unit')) for fact in facts for m in fact['value'].get('measurements', []) if m.get('name')})
 
 
 def _standing(facts):

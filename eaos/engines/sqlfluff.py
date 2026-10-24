@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, Report, finding, measurement, subject
+from .contract import OBSERVED, Report, finding, measurement, subject
 from .process import run, which
 
 NAME = BINARY = 'sqlfluff'
@@ -25,8 +25,7 @@ def capabilities():
     return [Capability('sql_quality', 'AM*,ST*,CV*,RF01,RF02,RF04,PRS')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def style(code):
@@ -40,9 +39,8 @@ def sql_files(target, exclude=()):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
+    declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
-    found = version()
     target = Path(target).resolve()
     files = sql_files(target, exclude)
     output = Path(workdir) / NAME / 'sqlfluff.json'
@@ -51,9 +49,20 @@ def analyze(target, workdir, exclude=(), formats=None):
                '--write-output', str(output), *files]
     code, _, error, seconds = run(command, cwd=target)
     if code or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
+    findings, by_code = _findings(json.loads(output.read_text(encoding='utf-8')), found)
+    counted_style = {c: n for c, n in sorted(by_code.items()) if style(c)}
+    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, raw=str(output),
+                  coverage={'status': 'observed', 'files': len(files), 'dialect': 'postgres',
+                            'violations_by_code': dict(sorted(by_code.items())),
+                            'style_only_not_findings': sum(counted_style.values())},
+                  evaluated={'sql_quality': {'status': 'observed', 'granularity': 'file'}})
+
+
+def _findings(entries, found):
+    """(findings, {code: count}) of sqlfluff's report: every violation counted; a style one is never a finding."""
     findings, by_code = [], {}
-    for entry in json.loads(output.read_text(encoding='utf-8')):
+    for entry in entries:
         path = entry['filepath']
         for violation in entry.get('violations') or []:
             code_ = violation['code']
@@ -64,9 +73,4 @@ def analyze(target, workdir, exclude=(), formats=None):
                                     f"{code_} {violation.get('name', '')}: {violation.get('description', '')}".strip(),
                                     measurements=[measurement('severity', 'medium' if code_ == 'PRS' else 'low')],
                                     raw_ref=f'{NAME}/sqlfluff.json'))
-    counted_style = {c: n for c, n in sorted(by_code.items()) if style(c)}
-    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, raw=str(output),
-                  coverage={'status': 'observed', 'files': len(files), 'dialect': 'postgres',
-                            'violations_by_code': dict(sorted(by_code.items())),
-                            'style_only_not_findings': sum(counted_style.values())},
-                  evaluated={'sql_quality': {'status': 'observed', 'granularity': 'file'}})
+    return findings, by_code

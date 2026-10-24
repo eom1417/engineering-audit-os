@@ -1,10 +1,12 @@
 """How a card is judged and settled (eaos/analysis/plan.py builds and orders the cards): its acceptance and verify command, what
 to do about its claim and what must still hold after, the assistant's triage verdicts applied to the ledger, the screen
-reviewer's findings as design cards, and the resolution that settles each card.
+reviewer's findings as design cards, the resolution that settles each card, and cards.json, the record of who decided
+each card.
 """
 from pathlib import Path
 from ..core.words import falsifier_of
 from .remediation_patterns import pattern_for
+from ..core.decisions import ready
 from ..core.workspace import read, write
 
 # A design finding's share of the top code card's priority, by its severity, times the weight of an unconfirmed
@@ -113,8 +115,14 @@ def _also_shown(card, group, finding):
     card['finding_ids'] = images
     card['evidence']['evidence_ids'] = images
     card['evidence']['images'] = list(dict.fromkeys(show['file'] for show in shown))
+    card['change'] += _also_on_page(group, finding)
+
+
+def _also_on_page(group, finding):
+    """The other problems of the group, in words for the card's change; '' when there are none."""
     titles = list(dict.fromkeys(f['title'] for f in group[1:] if f['title'] != finding['title']))
-    if titles: card['change'] += ' Also on this page: ' + '; '.join(titles[:6]) + (f' (+{len(titles) - 6})' if len(titles) > 6 else '') + '.'
+    if not titles: return ''
+    return ' Also on this page: ' + '; '.join(titles[:6]) + (f' (+{len(titles) - 6})' if len(titles) > 6 else '') + '.'
 
 
 def _group_card(number, group, scale):
@@ -224,6 +232,17 @@ def _design_resolution(card):
             'severity': card['design'].get('severity'), 'reach': pictures}
 
 
+def _triaged(verdict, reach):
+    """The resolution the triage gave a code card it confirmed or doubted; None otherwise."""
+    if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
+        return {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
+                'severity': verdict.get('severity'), 'reach': reach}
+    if verdict.get('decision') == 'doubt':
+        return {'resolution': 'keep', 'severity': verdict.get('severity'), 'reach': reach,
+                'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); the next check judges it again."}
+    return None
+
+
 def resolutions(tasks, verdicts, design):
     """{card: resolution} the assistant gave: the triage's for the code cards it confirmed (nodes/card_triage), the
     screen reviewer's for the design cards (a design card is the change it named, unless its finding asked the
@@ -231,14 +250,8 @@ def resolutions(tasks, verdicts, design):
     the next check judges it again on its new evidence."""
     out = {}
     for task in tasks:
-        verdict = verdicts.get(task['id']) or {}
-        reach = (task.get('blast_radius') or {}).get('total') or 0
-        if verdict.get('decision') == 'confirm' and verdict.get('resolution') in RESOLUTIONS:
-            out[task['id']] = {**{k: verdict.get(k) for k in RESOLUTION_FIELDS if verdict.get(k) is not None}, 'why': verdict.get('why'),
-                               'severity': verdict.get('severity'), 'reach': reach}
-        elif verdict.get('decision') == 'doubt':
-            out[task['id']] = {'resolution': 'keep', 'severity': verdict.get('severity'), 'reach': reach,
-                               'why': f"Not proven by its evidence ({verdict.get('why') or 'no reason given'}); the next check judges it again."}
+        row = _triaged(verdicts.get(task['id']) or {}, (task.get('blast_radius') or {}).get('total') or 0)
+        if row: out[task['id']] = row
     for card in design: out[card['id']] = _design_resolution(card)
     return out
 
@@ -264,7 +277,6 @@ def fix_checks(where, tasks, resolved, verdicts):
     if not any(r['resolution'] == 'fix' for r in resolved.values()): return None
     from .acceptance import fingerprint
     from ..facts.run import read_available
-    from .mechanical_assessment import spec_for
     target, out = where
     revision = fingerprint(target)
     claims = {c['id']: c for c in read(out / 'dossier.json').get('claims') or []}
@@ -272,11 +284,15 @@ def fix_checks(where, tasks, resolved, verdicts):
     sets = read_available(out)
     for card, row in resolved.items():
         if row['resolution'] != 'fix' or card not in verdicts: continue
-        claim = of_card.get(card)
-        decidable = claim and (claim.get('probe_spec') or {}).get('probe_type') in RECHECKED
-        spec = spec_for(claim, sets) if decidable else None
-        row['checks'] = [fix_check(card, row['change'], revision, spec)]
+        row['checks'] = [fix_check(card, row['change'], revision, _recheck_spec(of_card.get(card), sets))]
     return revision
+
+
+def _recheck_spec(claim, sets):
+    """The claim's own probe to ask again, when a changed copy can answer it by its facts; None otherwise."""
+    from .mechanical_assessment import spec_for
+    decidable = claim and (claim.get('probe_spec') or {}).get('probe_type') in RECHECKED
+    return spec_for(claim, sets) if decidable else None
 
 
 def resolve(task, resolution, claim, target, out, revision):
@@ -301,3 +317,49 @@ def resolve(task, resolution, claim, target, out, revision):
         task['rollback'] = 'One commit on the fix branch; reverting it restores the screen.'
         task['kind'] = 'remediate'
     return task
+
+
+def cards_record(cards, verdicts, resolved, outcome):
+    """cards.json: who decided each card. `cards`: (the plan's, the design cards, those kept); `outcome`: (rejected,
+    closed, turned to fix)."""
+    tasks, design, kept = cards
+    rejected, closed, turned = outcome
+    owner = [t for t in kept if _resolution(t) == 'owner']
+    return {'schema_version': 1, 'decided_by': 'assistant' if verdicts or design else 'rules', 'kept': [t['id'] for t in kept],
+            'design': [t['id'] for t in design if t['id'] not in closed],
+            'set_aside': _set_aside(tasks, rejected, verdicts),
+            'closed': _closed(tasks + design, closed, resolved),
+            'doubted': _doubted(verdicts, rejected),
+            'resolved': {'fix': _count(kept, 'fix'), 'keep': len(closed), 'owner': len(owner), 'turned_to_fix': len(turned)},
+            'owner': [t['id'] for t in owner],
+            'ready': sum(map(ready, kept)),
+            'why': ('The assistant triaged every card on its own evidence: the rejected ones left the plan, the ones it '
+                    'resolved are fixed, closed or asked of you.' if verdicts else
+                    'No triage by an assistant in this check: every card stands as the rules wrote it.')}
+
+
+def _resolution(task):
+    return (task.get('resolution') or {}).get('resolution')
+
+
+def _count(cards, resolution):
+    return sum(_resolution(t) == resolution for t in cards)
+
+
+def _closed(cards, closed, resolved):
+    """The cards the assistant closed, each with why."""
+    return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': resolved[t['id']].get('why')}
+            for t in cards if t['id'] in closed]
+
+
+def _set_aside(tasks, rejected, verdicts):
+    """The cards the triage rejected, each with its why and evidence."""
+    return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'),
+             'why': verdicts[t['id']].get('why'), 'evidence': verdicts[t['id']].get('evidence') or []}
+            for t in tasks if t['id'] in rejected]
+
+
+def _doubted(verdicts, rejected):
+    """The cards the triage doubted, each with why."""
+    return [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
+            if v.get('decision') == 'doubt' and card not in rejected]

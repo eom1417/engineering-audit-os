@@ -257,13 +257,19 @@ function foot(kind, local, danger) {
 function missingRun(id) {
   return { title: esc(t('pd.notfound', { id })), body: `<p class="small ink-2">${t('wt.fix.notwaiting')}</p>` };
 }
+/** The run a confirm sheet decides and its preview asked, or what the sheet says instead (gone, or still loading). */
+function deciding(id, op, local) {
+  const run = runOf(id);
+  if (!run || !store.awaitsApproval(run)) return { instead: live.loaded ? missingRun(id) : { title: esc(t('st.loading')), body: '' } };
+  ask(op, local);
+  return { run };
+}
 
 sheet('accept', {
   kind: 'dialog', confirm: true,
   render(id, query, local) {
-    const run = runOf(id);
-    if (!run || !store.awaitsApproval(run)) return live.loaded ? missingRun(id) : { title: esc(t('st.loading')), body: '' };
-    ask('accept', local);
+    const { run, instead } = deciding(id, 'accept', local);
+    if (instead) return instead;
     const merge = local.preview && local.preview.merge;
     const target = local.target || (merge && merge.target) || '';
     const blocked = blockedOf(local);
@@ -294,9 +300,8 @@ sheet('accept', {
 sheet('reject', {
   kind: 'dialog', confirm: true,
   render(id, query, local) {
-    const run = runOf(id);
-    if (!run || !store.awaitsApproval(run)) return live.loaded ? missingRun(id) : { title: esc(t('st.loading')), body: '' };
-    ask('undo', local);
+    const { run, instead } = deciding(id, 'undo', local);
+    if (instead) return instead;
     const d = run.result.diff_stat;
     return {
       title: esc(t('cf.reject.title')),

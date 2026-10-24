@@ -35,16 +35,26 @@ def _place(target, folder):
     if not os.path.exists(target): open(target, 'a').close()
 
 
+def _map_user(uid, gid):
+    """The caller's user and group (taken before unshare) as the namespace's own; root becomes INSIDE."""
+    for name, text in (('setgroups', 'deny'), ('uid_map', f'{uid or INSIDE} {uid} 1'), ('gid_map', f'{gid or INSIDE} {gid} 1')):
+        with open(f'/proc/self/{name}', 'w') as out: out.write(text)
+
+
+def _opened(mounts):
+    """({source: descriptor}, the sources that are folders) of the mounts that show a source."""
+    # Each source is opened in this namespace before anything hides it, then bound from its descriptor.
+    sources = {mount[2]: os.open(mount[2], os.O_PATH) for mount in mounts if mount[0] == 'show'}
+    return sources, {source for source, descriptor in sources.items() if stat.S_ISDIR(os.fstat(descriptor).st_mode)}
+
+
 def enter(spec):
     libc = ctypes.CDLL(None, use_errno=True)
     uid, gid = os.getuid(), os.getgid()
     _call(libc, 'unshare', CLONE_NEWUSER | CLONE_NEWNS | (CLONE_NEWNET if spec['offline'] else 0))
-    for name, text in (('setgroups', 'deny'), ('uid_map', f'{uid or INSIDE} {uid} 1'), ('gid_map', f'{gid or INSIDE} {gid} 1')):
-        with open(f'/proc/self/{name}', 'w') as out: out.write(text)
+    _map_user(uid, gid)
     _mount(libc, None, '/', None, MS_REC | MS_PRIVATE)
-    # Each source is opened in this namespace before anything hides it, then bound from its descriptor.
-    sources = {mount[2]: os.open(mount[2], os.O_PATH) for mount in spec['mounts'] if mount[0] == 'show'}
-    folders = {source for source, descriptor in sources.items() if stat.S_ISDIR(os.fstat(descriptor).st_mode)}
+    sources, folders = _opened(spec['mounts'])
     for mount in spec['mounts']:
         if mount[0] == 'hide':
             _mount(libc, 'tmpfs', mount[1], 'tmpfs', 0)

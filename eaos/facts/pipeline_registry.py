@@ -18,10 +18,14 @@ def _looked_up(sub, var):
     """The name of the dict `sub` looks `var` up in (`table[var]` or `table.get(var)`), else None."""
     if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) and isinstance(sub.slice, ast.Name) and sub.slice.id == var:
         return sub.value.id
-    if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'get' and sub.args \
-            and isinstance(sub.args[0], ast.Name) and sub.args[0].id == var and isinstance(sub.func.value, ast.Name):
+    if _get_call(sub) and isinstance(sub.args[0], ast.Name) and sub.args[0].id == var and isinstance(sub.func.value, ast.Name):
         return sub.func.value.id
     return None
+
+
+def _get_call(sub):
+    """Whether `sub` is a `something.get(key, ...)` call."""
+    return isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'get' and bool(sub.args)
 
 
 def _table_of(py, rel, loop, var):
@@ -30,10 +34,14 @@ def _table_of(py, rel, loop, var):
         key = _looked_up(sub, var)
         if not key or not isinstance(sub.ctx if isinstance(sub, ast.Subscript) else ast.Load(), ast.Load): continue
         found_value = py.value(rel, key)
-        if found_value and isinstance(found_value[1], ast.Dict) and len(found_value[1].keys) >= 3 and \
-                all(_str(k) is not None and isinstance(v, ast.Name) for k, v in zip(found_value[1].keys, found_value[1].values)):
-            return key, sub.lineno, found_value
+        if found_value and _function_table(found_value[1]): return key, sub.lineno, found_value
     return None
+
+
+def _function_table(value):
+    """Whether a value is a dict of three or more functions, each under a string key."""
+    return isinstance(value, ast.Dict) and len(value.keys) >= 3 and \
+        all(_str(k) is not None and isinstance(v, ast.Name) for k, v in zip(value.keys, value.values))
 
 
 def _accumulators(loop, var):
@@ -127,7 +135,7 @@ def _named(node, names):
 def _read_of(sub, accumulators):
     """(stage label, line, accumulator) when `sub` reads an earlier stage's result (`acc.get('a')`, `acc['a']`,
     `'a' in acc`), else None."""
-    if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'get' and sub.args:
+    if _get_call(sub):
         acc, label = _named(sub.func.value, accumulators), _str(sub.args[0])
     elif isinstance(sub, ast.Subscript):
         acc, label = _named(sub.value, accumulators), _str(sub.slice)
@@ -180,13 +188,17 @@ def _if_chain(r, statement):
             branches.append({'condition': 'else', 'to': None, 'evidence': r.at(r.rel, node.orelse[0].lineno)})
             _flow(r, _reads(r, node.orelse), [l for l in r.order if l not in covered], 'else')
         break
-    if branches:
-        found, at = r.found, r.at(r.rel, statement.lineno)
-        router_key = found.stage(f'if {r.var} ==', at, kind='router')
-        found.routers.append({'id': f'{found.id}:{slug(r.var)}-chain', 'pipeline': found.id, 'stage': router_key, 'kind': 'if_chain',
-                              'table': r.var, 'on': r.var, 'entry': at,
-                              'branches': branches, 'total': any(b['condition'] == 'else' for b in branches),
-                              'default': None, 'unhandled': []})
+    if branches: _chain_router(r, statement, branches)
+
+
+def _chain_router(r, statement, branches):
+    """The if-chain as a router of its branches, total when it ends on an else."""
+    found, at = r.found, r.at(r.rel, statement.lineno)
+    router_key = found.stage(f'if {r.var} ==', at, kind='router')
+    found.routers.append({'id': f'{found.id}:{slug(r.var)}-chain', 'pipeline': found.id, 'stage': router_key, 'kind': 'if_chain',
+                          'table': r.var, 'on': r.var, 'entry': at,
+                          'branches': branches, 'total': any(b['condition'] == 'else' for b in branches),
+                          'default': None, 'unhandled': []})
 
 
 def _flows(r):

@@ -245,10 +245,14 @@ class ProgressLog:
                         previous=previous or {}, previous_steps=steps, **({'alive_every': self.alive_every} if self.alive_every else {}),
                         pid=os.getpid() if process else None, host=socket.gethostname() if process else None, **_at(at),
                         **({'mode': mode} if mode else {}), **({'assistants': assistants} if assistants else {}))
+        self._start_beat()
+        return row
+
+    def _start_beat(self):
+        """Start the background thread, unless it is kept off or the file cannot be written."""
         if self.pulse and not self.broken:
             self.thread = threading.Thread(target=self._beat, name=f'eaos-progress-{self.flow}', daemon=True)
             self.thread.start()
-        return row
 
     def stage_started(self, stage, at=None):
         return self.emit('stage.started', stage=stage, **_at(at))
@@ -275,17 +279,21 @@ class ProgressLog:
         with self.lock:
             moment = self.clock()
             last = self.written.get(key)
-            if fields['status'] == RUNNING:
-                if key not in self.step_began or (last and last[1] != RUNNING): self.step_began[key] = moment
-            elif fields['status'] != 'waiting':
-                began = self.step_began.pop(key, None)
-                if 'seconds' not in fields and began is not None: fields['seconds'] = round(moment - began, 2)
+            self._time(key, fields, last, moment)
             if fields['status'] == RUNNING and last and last[1] == RUNNING and moment - last[0] < COALESCE:
                 self.pending[key] = fields           # moving forward too fast: keep the newest, write it soon
                 return
             self.pending.pop(key, None)
             self.written[key] = (moment, fields['status'])
             self.emit('stage.step', **fields)
+
+    def _time(self, key, fields, last, moment):
+        """Note when a step began running (again, after a line of another status); give one that ended its seconds."""
+        if fields['status'] == RUNNING:
+            if key not in self.step_began or (last and last[1] != RUNNING): self.step_began[key] = moment
+        elif fields['status'] != 'waiting':
+            began = self.step_began.pop(key, None)
+            if 'seconds' not in fields and began is not None: fields['seconds'] = round(moment - began, 2)
 
     def _flush(self, stage=None):
         """Write the newest value of each coalesced step whose 4-a-second window has passed (all of `stage`'s now)."""
@@ -317,16 +325,7 @@ class ProgressLog:
         never reached are `not_reached`, each with the reason the run ended. A second call is left out (None)."""
         with self.lock:
             if self.finished: return None
-            why = (reason or status)[:200]
-            for name, necessity in self.declared.items():
-                if name in self.ended_stages: continue
-                if name in self.running:
-                    self.ended({'stage': name, 'status': 'failed', 'reason': f'the run ended ({status}) while this stage ran: {why}',
-                                'reason_code': 'run_ended', 'seconds': round(self.clock() - self.running[name], 2),
-                                'necessity': necessity, 'artifacts': []})
-                else:
-                    self.ended({'stage': name, 'status': 'not_reached', 'reason': f'the run ended ({status}) before this stage: {why}',
-                                'reason_code': 'run_ended', 'seconds': 0.0, 'necessity': necessity, 'artifacts': []})
+            self._end_the_rest(status, (reason or status)[:200])
             fields = {'status': status}
             if reason: fields['reason'] = reason[:300]
             if seconds is not None: fields['seconds'] = seconds
@@ -334,6 +333,18 @@ class ProgressLog:
             row = self.emit('run.ended', **fields)
             if not self.broken and self.enabled: keep(self.path, self.folder, self.flow)
             return row
+
+    def _end_the_rest(self, status, why):
+        """End every declared stage that has no end yet: `failed` if it runs, `not_reached` if it never began."""
+        for name, necessity in self.declared.items():
+            if name in self.ended_stages: continue
+            if name in self.running:
+                self.ended({'stage': name, 'status': 'failed', 'reason': f'the run ended ({status}) while this stage ran: {why}',
+                            'reason_code': 'run_ended', 'seconds': round(self.clock() - self.running[name], 2),
+                            'necessity': necessity, 'artifacts': []})
+            else:
+                self.ended({'stage': name, 'status': 'not_reached', 'reason': f'the run ended ({status}) before this stage: {why}',
+                            'reason_code': 'run_ended', 'seconds': 0.0, 'necessity': necessity, 'artifacts': []})
 
     def close(self):
         """Stop the background thread without ending the run (a reader will judge it by its silence)."""
@@ -366,14 +377,18 @@ class ProgressLog:
                 self.sampler_said = True
                 self.emit('stage.activity', stage=stage, programs=[], reason=self.sampler.reason)
                 return
-            mine = {name: [] for name in self.running}
-            for program in found:
-                owner = program.pop('stage', None)
-                mine[owner if owner in mine else stage].append(program)
-            for name, programs in mine.items():
+            for name, programs in self._by_stage(found, stage).items():
                 if [(p['pid'], p['name']) for p in programs] != [(p['pid'], p['name']) for p in self.programs.get(name, [])]:
                     self.programs[name] = programs
                     self.emit('stage.activity', stage=name, programs=programs)
+
+    def _by_stage(self, found, stage):
+        """{running stage: the programs it started}, a program of no running stage under `stage`."""
+        mine = {name: [] for name in self.running}
+        for program in found:
+            owner = program.pop('stage', None)
+            mine[owner if owner in mine else stage].append(program)
+        return mine
 
     def _beat(self):
         while not self.stop.wait(TICK):

@@ -129,17 +129,21 @@ def _available(answer, folder):
 
 def _check_order(answer, open_work):
     """A checked (or not yet checked) project's options: open work, a waiting branch, the check, then fixing."""
-    checked = bool(answer.get('checked'))
-    step = (answer.get('next') or {}).get('tool') or ''
-    left = (answer.get('progress') or {}).get('total', 0) - (answer.get('progress') or {}).get('closed', 0)
+    step = (answer.get('next') or {}).get('tool')
     waiting = bool(answer.get('waiting_branch'))
     order = (['continue'] if open_work else []) + (['decide'] if waiting else [])
-    if not checked or step == 'audit': order.append('audit')
-    if checked and not open_work and not waiting and left > 0 and step != 'audit': order.append('fix')
-    if checked: order += ['report', 'tasks', 'ask']
-    order.append('status')
-    if checked and 'audit' not in order: order.append('audit')
+    if not answer.get('checked'): return order + ['audit', 'status', 'build', 'tools']
+    if step == 'audit': order.append('audit')
+    elif not open_work and not waiting and _left(answer) > 0: order.append('fix')
+    order += ['report', 'tasks', 'ask', 'status']
+    if 'audit' not in order: order.append('audit')
     return order + ['build', 'tools']
+
+
+def _left(answer):
+    """How many cards of the plan are not closed yet."""
+    progress = answer.get('progress') or {}
+    return progress.get('total', 0) - progress.get('closed', 0)
 
 
 def pages(ids):

@@ -21,12 +21,21 @@ def unusable(look):
     a load scenario over its threshold on the production build. Lighthouse speed is not held to: the copy's screens run
     in development mode, slower than any delivered app; the load is measured on the production build instead."""
     look = look or {}
+    return _bad_screens(look) + _departures(look) + _overloaded(look.get('load') or []) + _unproven(look)
+
+
+def _bad_screens(look):
+    """The screens' problems, and Lighthouse accessibility or best practices under 90 of 100."""
     scores = look.get('speed') or {}
     return [{'gate': 'screens', 'where': row['page'], 'what': '; '.join(row['problems'])} for row in look.get('screen_problems') or []] + \
         [{'gate': 'screens', 'where': 'the entry page', 'what': f'Lighthouse {name} is {scores[name]}, under 90'}
-         for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 90] + \
-        [{'gate': 'design', 'where': str(d.get('part') or 'page'), 'what': f"{d.get('title')}: {d.get('why')}"}
-         for d in look.get('departures') or [] if d.get('severity') in ('high', 'critical')] + _overloaded(look.get('load') or []) + _unproven(look)
+         for name in ('accessibility', 'best-practices') if isinstance(scores.get(name), (int, float)) and scores[name] < 90]
+
+
+def _departures(look):
+    """The design departures of high or critical severity."""
+    return [{'gate': 'design', 'where': str(d.get('part') or 'page'), 'what': f"{d.get('title')}: {d.get('why')}"}
+            for d in look.get('departures') or [] if d.get('severity') in ('high', 'critical')]
 
 
 def _unproven(look):
@@ -73,5 +82,10 @@ def _found(out):
             'screen_problems': [{'page': r.get('url'), 'width': r.get('width'), 'problems': r['failures']}
                                 for r in pictured.get('rows') or [] if r.get('failures')][:25],
             'speed': (pictured.get('lighthouse') or {}).get('scores'),
-            'load': [{'id': row['id'], **(row.get('before') or {}), 'threshold': row.get('threshold')}
-                     for row in (read(out / 'live/baseline.json') or {}).get('scenarios') or []],}
+            'load': _load(out),}
+
+
+def _load(out):
+    """The load scenarios measured on the production build, each with its numbers and threshold."""
+    return [{'id': row['id'], **(row.get('before') or {}), 'threshold': row.get('threshold')}
+            for row in (read(out / 'live/baseline.json') or {}).get('scenarios') or []]

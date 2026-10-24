@@ -129,14 +129,20 @@ def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read
         return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']
     if not routes: return {'status': 'error', 'reason': 'the crawl opened no page of the app', 'routes': []}
+    # a published site: Lighthouse cannot be held to reading only, so it loads the pages as any visitor, signed out
+    rows, shapes = _measured_rows(routes, base, Path(out), measured, None if read_only else storage_state)
+    return {'status': 'observed', 'routes': rows, 'templates': len(set(shapes.values())),
+            'measured': sum(r['measured'] for r in rows)}
+
+
+def _measured_rows(routes, base, out, measured, storage_state):
+    """(a row per page with its template, Lighthouse on the first page of each distinct template, `measured` at most;
+    {path: template})."""
     shapes = templates([r['path'] for r in routes])
     chosen = list(dict.fromkeys(paths[0] for paths in distinct(r['path'] for r in routes).values()))[:measured]
-    out = Path(out)
     rows = []
     for route in routes:
         row = {'path': route['path'], 'template': shapes[route['path']], 'depth': route.get('depth'), 'measured': False}
-        # a published site: Lighthouse cannot be held to reading only, so it loads the pages as any visitor, signed out
-        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']), None if read_only else storage_state)
+        if route['path'] in chosen: _measure(row, base, out, chosen.index(route['path']), storage_state)
         rows.append(row)
-    return {'status': 'observed', 'routes': rows, 'templates': len(set(shapes.values())),
-            'measured': sum(r['measured'] for r in rows)}
+    return rows, shapes

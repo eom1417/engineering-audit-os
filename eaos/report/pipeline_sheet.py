@@ -34,14 +34,19 @@ def flowchart(section, pipeline):
     data's shape, failure routes dashed to their ends; drawn left to right in both languages."""
     stages = [s for s in section['stages'] if s['pipeline'] == pipeline['id']]
     at = {s['id']: (PAD + s['layer'] * STEP_X, PAD + s['order'] * STEP_Y) for s in stages}
-    width = PAD * 2 + NODE_W + max([s['layer'] for s in stages] + [0]) * STEP_X
-    height = PAD * 2 + NODE_H + max([s['order'] for s in stages] + [0]) * STEP_Y
+    width, height = _size(stages)
     parts = [_edge(e, at) for e in section['edges'] if e['pipeline'] == pipeline['id'] and e['from'] in at and e['to'] in at]
     parts += [_stage_box(s, *at[s['id']]) for s in stages]
     return (f'<svg class="ps-svg" data-literal="pipeline stage labels and evidence" viewBox="0 0 {width} {height}" role="img" direction="ltr" '
             f'aria-label="{esc(pipeline["title"])}: {M.pipeline_counts(section)['drawn'][pipeline['id']]} stages">'
             '<defs><marker id="ps-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'
             '<path d="M0,0 L8,4 L0,8 z" class="ps-arrow"/></marker></defs>' + ''.join(parts) + '</svg>')
+
+
+def _size(stages):
+    """The drawing's width and height: room for the farthest layer and the deepest order."""
+    return (PAD * 2 + NODE_W + max([s['layer'] for s in stages] + [0]) * STEP_X,
+            PAD * 2 + NODE_H + max([s['order'] for s in stages] + [0]) * STEP_Y)
 
 
 def _edge(e, at):
@@ -108,8 +113,7 @@ def sheet(sections):
     """<section id="pipeline-sheet"> for {'ar': section, 'en': section}, or '' when the project holds no pipeline."""
     ar, en = sections.get('ar'), sections.get('en')
     if not ar or not en or not en.get('pipelines'): return ''
-    product = [p for p in en['pipelines'] if p['role'] == 'product'] or en['pipelines']
-    top = [p for p in product if not p.get('parent')] or product
+    product, top = _product(en)
     counts = M.pipeline_counts(en)
     def figure(p):
         n = counts['stages'][p['id']]
@@ -120,6 +124,12 @@ def sheet(sections):
         return f'<figure class="ps-fig"><figcaption>{code(p["title"])} · {both(f"{label} مرحلة", f"{label} stages")}</figcaption>{body}</figure>'
     drawn = ''.join(figure(p) for p in top)
     return _sheet_body(ar, en, product, counts, drawn)
+
+
+def _product(en):
+    """The product pipelines (all of them when none is a product's) and, of those, the ones not inside another's stage."""
+    product = [p for p in en['pipelines'] if p['role'] == 'product'] or en['pipelines']
+    return product, [p for p in product if not p.get('parent')] or product
 
 
 def _sheet_body(ar, en, product, counts, drawn):

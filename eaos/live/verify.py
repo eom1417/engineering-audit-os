@@ -9,7 +9,8 @@ CONFIRMED by something that ran, and untested critical paths stop being a guess.
                                         or Node's own V8 coverage (NODE_V8_COVERAGE) per file
     declared(target, out, reason)       what the files alone say: which test imports which file; nothing runs
 
-Each writes verification.json and the `verification` fact set the dossier and the assistant read.
+Each writes verification.json and the `verification` fact set the dossier and the assistant read; run_profile also
+measures the suite's health (eaos/live/verify_suite.py).
 """
 from collections import defaultdict
 import json
@@ -28,6 +29,7 @@ from ..facts.store import read_set, write_set
 NAME = 'verification'
 VERSION = '1'
 from ..core.workspace import SKIP_DIRS, write
+from .verify_suite import COVERAGERC, suite_health, with_timing
 
 LIMITATIONS = [
     'An isolated copy is not an operating-system sandbox; do not run untrusted projects here.',
@@ -116,7 +118,7 @@ def run(target, out, command=None, timeout=900, execute=True):
         from ..facts.run import collect
         from ..facts.run import GRAPH_PREREQUISITES
         collect(target, out, GRAPH_PREREQUISITES, source=source)
-    sets = {name: read_set(out, name) for name in needed if (out / 'facts' / (name + '.json')).is_file()}
+    sets = _read_sets(out, needed)
     tests, declared = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests,
               'declared_coverage': declared, 'executed': False, 'limitations': LIMITATIONS}
@@ -148,6 +150,11 @@ def run(target, out, command=None, timeout=900, execute=True):
     write(out / 'verification.json', result)
     publish_facts(out, result)
     return result
+
+
+def _read_sets(out, names):
+    """{name: fact set} of the `names` the report holds."""
+    return {name: read_set(out, name) for name in names if (out / 'facts' / (name + '.json')).is_file()}
 
 
 def _first_passing(project, candidates, timeout):
@@ -209,7 +216,7 @@ def declared(target, out, reason, source=None):
     nothing ran. Overwrites a record an earlier check left, which would otherwise speak for this one."""
     target, out = Path(target).resolve(), Path(out).resolve()
     out.mkdir(parents=True, exist_ok=True)
-    sets = {name: read_set(out, name) for name in ('resolve',) if (out / 'facts' / (name + '.json')).is_file()}
+    sets = _read_sets(out, ('resolve',))
     tests, covered = discover_tests(source or Source(target), sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered, 'executed': False,
               'reason': reason, 'limitations': LIMITATIONS}
@@ -251,66 +258,6 @@ def _count_functions(row, script):
         row['functions_hit'] += ranges[0].get('count', 0) > 0
 
 
-# Per-test measurements, read from the runners' own reports and Coverage.py's "who tests what" (dynamic contexts):
-# how long each test takes, and which tests run no line another test does not run too (redundant).
-COVERAGERC = '[run]\nbranch = True\ndynamic_context = test_function\n'
-TIMING = {'pytest': ['--junitxml=.eaos-junit.xml'], 'vitest': ['--reporter=default', '--reporter=json', '--outputFile.json=.eaos-tests.json'],
-          'jest': ['--json', '--outputFile=.eaos-tests.json']}
-
-
-def with_timing(argv, app):
-    """The test command with its runner's own per-test report switched on; `npm test` passes it through `--`."""
-    words = [Path(str(a)).name for a in argv]
-    runner = next((r for r in TIMING if any(w == r or w.startswith(r + '.') for w in words)), None)
-    if runner is None and words[:2] in (['npm', 'test'], ['npm', 'run']):
-        try: script = json.loads((Path(app) / 'package.json').read_text(encoding='utf-8'))['scripts']['test']
-        except (OSError, ValueError, KeyError, TypeError): script = ''
-        runner = next((r for r in ('vitest', 'jest') if r in script), None)
-        return [*argv, '--', *TIMING[runner]] if runner else argv
-    return [*argv, *TIMING[runner]] if runner else argv
-
-
-def test_times(app):
-    """[(test, file, seconds)] from a JUnit XML (pytest) or a Jest-format JSON (vitest, jest) report, if one was written."""
-    app = Path(app)
-    return _junit_times(app / '.eaos-junit.xml') + _jest_times(app / '.eaos-tests.json', app)
-
-
-def _junit_times(junit):
-    if not junit.is_file(): return []
-    import xml.etree.ElementTree as ET
-    return [(f"{case.get('classname', '')}::{case.get('name', '')}", case.get('file') or case.get('classname', ''), float(case.get('time') or 0))
-            for case in ET.parse(junit).iter('testcase')]
-
-
-def _jest_times(report, app):
-    if not report.is_file(): return []
-    return [(case.get('fullName') or case.get('title') or '', os.path.relpath(suite.get('name') or '', app), (case.get('duration') or 0) / 1000)
-            for suite in json.loads(report.read_text(encoding='utf-8')).get('testResults') or []
-            for case in suite.get('assertionResults') or []]
-
-
-def redundant_tests(contexts):
-    """The tests every line of which another test also runs: {test: lines} from Coverage.py's contexts."""
-    runs = defaultdict(int)
-    for lines in contexts.values():
-        for line in lines: runs[line] += 1
-    return sorted(test for test, lines in contexts.items() if lines and all(runs[line] > 1 for line in lines))
-
-
-def suite_health(app, contexts):
-    """What the person's assistant judges the test suite on: its size, its time, its slowest and its redundant tests."""
-    times = test_times(app)
-    redundant = redundant_tests(contexts)
-    total = sum(seconds for _, _, seconds in times)
-    return {'tests': len(times) or len(contexts), 'seconds': round(total, 1),
-            'slowest': [{'test': t, 'file': f, 'seconds': round(s, 2)} for t, f, s in sorted(times, key=lambda r: -r[2])[:10]],
-            'redundant': redundant[:30], 'redundant_count': len(redundant),
-            'redundant_share': round(len(redundant) / len(contexts), 3) if contexts else None,
-            'source': 'the runner\'s own per-test report; Coverage.py dynamic contexts (dynamic_context = test_function)'}
-
-
-
 def run_profile(target, out, runtime, timeout=1800):
     """The run profile's test commands in the sandbox copy (eaos/live/run.py), with coverage: verification.json and the
     `verification` facts. Raises LookupError when the profile names no test command. The project's own interpreter
@@ -320,15 +267,14 @@ def run_profile(target, out, runtime, timeout=1800):
     target, out, runtime = Path(target).resolve(), Path(out).resolve(), Path(runtime)
     out.mkdir(parents=True, exist_ok=True)
     profile = load_profile(runtime)
-    # The profile's tests run in the app's folder; a Python suite beside it (eaos/journeys/execute.py python_tests) from the root.
-    suites = [(group, at_root) for group, at_root in ((test_commands(profile), False), (python_tests(target, profile), True)) if group]
+    suites = _suites(target, profile)
     if not suites: raise LookupError("the run profile's checks name no test command, and no Python suite was found")
     live = LiveRun(target, runtime, 'S05', apart='tests')     # its own database: it runs beside the page stages
     v8 = runtime / 'verify-v8'
     shutil.rmtree(v8, ignore_errors=True)
     v8.mkdir(parents=True)
     source = Source(target)
-    sets = {name: read_set(out, name) for name in ('resolve', 'graph') if (out / 'facts' / (name + '.json')).is_file()}
+    sets = _read_sets(out, ('resolve', 'graph'))
     tests, covered = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered,
               'executed': False, 'limitations': LIMITATIONS, 'attempts': []}
@@ -362,15 +308,20 @@ def run_profile(target, out, runtime, timeout=1800):
     return result
 
 
+def _suites(target, profile):
+    """[(test commands, run from the root)] of the project's suites: the profile's tests, and a Python suite beside it."""
+    # The profile's tests run in the app's folder; a Python suite beside it (eaos/journeys/execute.py python_tests) from the root.
+    return [(group, at_root) for group, at_root in ((test_commands(profile), False), (python_tests(target, profile), True)) if group]
+
+
 def _one_suite(suites):
     """The health of every suite the project has, as one: their tests and time added, the slowest and redundant of all."""
     if len(suites) == 1: return suites[0]
     slowest = sorted((row for s in suites for row in s['slowest']), key=lambda row: -row['seconds'])[:10]
     redundant = [row for s in suites for row in s['redundant']]
-    tests = sum(s['tests'] for s in suites)
+    tests, count = sum(s['tests'] for s in suites), sum(s['redundant_count'] for s in suites)
     return {**suites[0], 'tests': tests, 'seconds': round(sum(s['seconds'] for s in suites), 1), 'slowest': slowest,
-            'redundant': redundant[:30], 'redundant_count': sum(s['redundant_count'] for s in suites),
-            'redundant_share': round(sum(s['redundant_count'] for s in suites) / tests, 3) if tests else None}
+            'redundant': redundant[:30], 'redundant_count': count, 'redundant_share': round(count / tests, 3) if tests else None}
 
 
 def _run_tests(live, commands, app, v8, timeout, attempts, at_root=False):

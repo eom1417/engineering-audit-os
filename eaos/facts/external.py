@@ -105,12 +105,10 @@ def _summary(manifest, facts, present, absent, edge_merge):
     # kind for it, and keeps one missing key from taking the whole stage down.
     counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     return {'engines_observed': present, 'engines_unavailable': absent,
-            # An engine that ran and broke: the check says so instead of reading its silence as clean.
-            'engines_failed': {name: detail.get('reason') or detail['status'] for name, detail in manifest['coverage'].items()
-                               if detail['status'] in (ERROR, SCHEMA_MISMATCH)},
+            'engines_failed': _failed(manifest),
             'engines_not_applicable': not_applicable(manifest),
             # Candidate boundaries of today's components (GitNexus communities), for the map and the target.
-            'communities': ((manifest['coverage'].get('gitnexus') or {}).get('detail') or {}).get('communities') or [],
+            'communities': _communities(manifest),
             # What each engine actually looked for, so silence can be told from absence.
             'evaluated_kinds': _evaluated_kinds(manifest, present),
             'findings': len(facts), 'target_unchanged': manifest['target_unchanged'],
@@ -121,6 +119,17 @@ def _summary(manifest, facts, present, absent, edge_merge):
             'by_kind': _kind_counts(facts),
             'graph_edges_without_a_finding_kind': len([f for f in facts if not f['value'].get('kind')]),
             'unmapped_rules': {name: manifest['engines'][name].get('unmapped_rules', {}) for name in present}}
+
+
+def _failed(manifest):
+    """{engine: why} of each engine that ran and broke: the check says so instead of reading its silence as clean."""
+    return {name: detail.get('reason') or detail['status'] for name, detail in manifest['coverage'].items()
+            if detail['status'] in (ERROR, SCHEMA_MISMATCH)}
+
+
+def _communities(manifest):
+    """GitNexus's communities: candidate boundaries of today's components."""
+    return ((manifest['coverage'].get('gitnexus') or {}).get('detail') or {}).get('communities') or []
 
 
 NO_CODEGRAPH = {'status': 'not_available', 'reason': 'codegraph was not observed in this run',

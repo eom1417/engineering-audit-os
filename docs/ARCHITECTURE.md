@@ -86,6 +86,7 @@ red at the top of the report.
 | It is… | It goes in |
 |---|---|
 | something every layer reads (a contract, a path, a word, the store) | `core/`: it imports nothing of EAOS |
+| a read of an http(s) address | `core/web.py` `opened`: http and https only (urllib also opens `file://`) |
 | a rule that reads source and produces facts | `facts/` |
 | an adapter for an external tool | `engines/<name>.py` + its entry in `eaos/data/toolchain.json` (`check: engines`) |
 | running the app, signing in, finding screens | `live/` (`live/screens/` for the crawl and the audit) |

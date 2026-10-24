@@ -275,7 +275,7 @@ def _target_view(target, sources, by_name, findings):
 
 def _between(graph_nodes, current):
     """Counter {(component, component): imports} between the components that own the two files."""
-    owner = {p: c['name'] for c in current for p in c.get('paths') or [] if isinstance(p, str)}
+    owner = _owners(current)
     between = Counter()
     for node in graph_nodes:
         here = owner.get(arch_map.path_of(node))
@@ -283,6 +283,11 @@ def _between(graph_nodes, current):
         for there in (owner.get(dep) if isinstance(dep, str) else None for dep in (node.get('value') or {}).get('depends_on') or []):
             if there and there != here: between[(here, there)] += 1
     return between
+
+
+def _owners(current):
+    """{file: the component that owns it}."""
+    return {p: c['name'] for c in current for p in c.get('paths') or [] if isinstance(p, str)}
 
 
 def _cycle_groups(names, between):
@@ -312,11 +317,16 @@ def _operation(op, ops, tops):
                     + ' current components (count)')
 
 
+def _named_components(target):
+    """Today's components that have a name."""
+    return [c for c in target.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
+
+
 def system(report, card_rows):
     """The section's body: {world, counts, operations, src, current, target, capped}."""
     report = Path(report)
     target = arch_map._load(report / 'target-architecture.json', {}) or {}
-    comps = [c for c in target.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
+    comps = _named_components(target)
     ranked = sorted(comps, key=lambda c: (-(c.get('files') or 0), c['name']))
     current = sorted(ranked[:MAX_NODES], key=lambda c: c['name'])
     names = {c['name'] for c in current}

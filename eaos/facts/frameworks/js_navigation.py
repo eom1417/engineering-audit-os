@@ -53,16 +53,21 @@ def target_of(raw):
 
 def _links(text, rel):
     """(offset, written target, via) of every link the text writes: attributes, then calls, then menu entries."""
-    for match in ATTRIBUTE.finditer(text):
-        tag = TAG_BEFORE.search(text, max(0, match.start() - 400), match.start())
-        if not tag or (match.group('attr') == 'href' and not match.group('target').startswith('/')): continue
-        yield match.start(), match.group('target'), 'redirect' if tag.group('tag').split('.')[-1] in REDIRECTS else 'link'
+    yield from _attribute_links(text)
     for match in CALL.finditer(text):
         yield match.start(), match.group('target'), 'navigate'
     menu = bool(MENU_FILE.search(rel))
     for match in MENU_ENTRY.finditer(text):
         if match.group('target').startswith('/') and (menu or match.group('key') == 'to'):
             yield match.start(), match.group('target'), 'menu'
+
+
+def _attribute_links(text):
+    """A link or redirect a tag's attribute writes (an href only when it is a path of the app)."""
+    for match in ATTRIBUTE.finditer(text):
+        tag = TAG_BEFORE.search(text, max(0, match.start() - 400), match.start())
+        if not tag or (match.group('attr') == 'href' and not match.group('target').startswith('/')): continue
+        yield match.start(), match.group('target'), 'redirect' if tag.group('tag').split('.')[-1] in REDIRECTS else 'link'
 
 
 def detect(context):

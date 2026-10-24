@@ -39,19 +39,24 @@ NEXT_MARK = re.compile(r'''from\s+['"]next/|\bget(?:ServerSide|Static)Props\b'''
 
 def _open_tag_end(text, start):
     """(end, self_closing) of the JSX tag opening at `start`: the first '>' outside braces and quotes."""
-    depth, quote, i = 0, None, start + 1
+    depth, i = 0, start + 1
     while i < len(text):
         ch = text[i]
-        if quote:
-            if ch == '\\': i += 1
-            elif ch == quote: quote = None
-        elif ch in '\'"`' and (depth == 0 or STRING_BEFORE.search(text, start, i)): quote = ch
+        if ch in '\'"`' and (depth == 0 or STRING_BEFORE.search(text, start, i)): i = _string_end(text, i)
         elif ch == '{': depth += 1
         elif ch == '}': depth = max(depth - 1, 0)
         elif ch == '>' and depth == 0:
             return i + 1, text[start:i].rstrip().endswith('/')
         i += 1
     return len(text), True
+
+
+def _string_end(text, i):
+    """The index of the quote closing the string that opens at text[i], an escaped one skipped; len(text) or past it
+    when none does."""
+    quote, i = text[i], i + 1
+    while i < len(text) and text[i] != quote: i += 2 if text[i] == '\\' else 1
+    return i
 
 
 def route_tags(text):

@@ -135,14 +135,18 @@ def _current_links(cmap, current):
             {(name_of[e['from']], name_of[e['to']]) for e in cmap['edges'] if e['cycle']})
 
 
+def _in_loops(names, edges):
+    """The links whose two ends are in one strongly connected group of the parts: each reaches the other."""
+    from .graph_layout import strong_groups
+    group = strong_groups(names, [(a, b) for a, b, _ in edges if a in names and b in names])
+    return {(a, b) for a, b, _ in edges if a in group and b in group and group[a] == group[b]}
+
+
 def _target_diagram(target):
-    from .arch_map import strong_groups
     comps = [c for c in target.get('target_components') or [] if isinstance(c, dict) and c.get('name')]
     names = [c['name'] for c in comps]
     edges = [(e['from'], e['to'], e.get('imports')) for e in target.get('target_edges') or [] if isinstance(e, dict)]
-    group = strong_groups(names, [(a, b) for a, b, _ in edges if a in names and b in names])
-    cycles = {(a, b) for a, b, _ in edges if a in group and b in group and group[a] == group[b]}
-    return readable(names, edges, {c['name']: c.get('layer') for c in comps}, cycles,
+    return readable(names, edges, {c['name']: c.get('layer') for c in comps}, _in_loops(names, edges),
                     title='the target parts by layer; only the links the layer rules allow')
 
 

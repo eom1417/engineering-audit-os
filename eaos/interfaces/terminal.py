@@ -1,6 +1,6 @@
 """The governance commands of the terminal (docs/GUIDE.md "Without the Studio"): what they print and ask, nothing
 more. Each one calls eaos/interfaces/govern.py, which calls the Studio's own core; every line the person reads comes from
-govern.WORDS, the contract (docs/studio-actions.json) or the core's own words, in Arabic and English.
+govern_words.WORDS, the contract (docs/studio-actions.json) or the core's own words, in Arabic and English.
 
     eaos check [--path …] [--mode …] [--assistant …] [--watch]     the estimate, then a new check in the background
     eaos watch [run]                                                a run live: stages, time left, cost so far, questions
@@ -9,12 +9,11 @@ govern.WORDS, the contract (docs/studio-actions.json) or the core's own words, i
     eaos sign-in [--signed-out | --forget]                          sign in to the app while a check asks for it
     eaos problems [--kind …]   eaos problem <id>                    what the check found
     eaos fix|verify|explain|plan <ids…> | --group by=value           the verbs, previewed first
-    eaos branch [name]   eaos branches [merge|delete|protect|unprotect|cleanup|restore] …
+    eaos branch [name]   eaos branches [merge|delete|protect|unprotect|cleanup|restore] …   (eaos accept, undo and these: terminal_branches.py)
     eaos history   eaos compare <a> <b>   eaos usage
 """
 import functools
 import shlex
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -22,7 +21,7 @@ from pathlib import Path
 from . import govern
 from ..journeys import guided
 from .mcp_server import refuse_in_studio_run
-from .govern import WORDS, text_of, words
+from .govern_words import text_of, words
 from ..core.store import ACTIVE, TERMINAL, contract
 from ..core import project_state
 
@@ -138,20 +137,32 @@ def follow(project, run, lang):
             if asked != govern.SIGN_IN and govern.signing_in(project):
                 asked = govern.SIGN_IN
                 say(f"🔑 {words('sign_in_waits', lang)}\n   eaos sign-in")
-            for event in actions.store.events(run, after):
-                after = event['seq']
-                if event['kind'] != 'question': say(f"   · {text_of(event.get('text'), lang)}")
+            after = _said_since(actions, run, after, lang)
             if record.get('state') in TERMINAL: return _ended(record, lang)
-            question = record.get('question') if record.get('state') == 'waiting_for_person' else None
-            if question and question['id'] != asked:
-                asked = question['id']
-                _ask_inline(project, question, lang)
+            asked = _asked_once(project, record, asked, lang)
             line = _status_line(actions, record, lang) if time.monotonic() - beat > 30 else None
             if line and line != shown: say(line); shown, beat = line, time.monotonic()
             time.sleep(1)
     except KeyboardInterrupt:
         say(words('still', lang))
         return 0
+
+
+def _said_since(actions, run, after, lang):
+    """The run's events after `after` printed (its questions aside); the last one's number."""
+    for event in actions.store.events(run, after):
+        after = event['seq']
+        if event['kind'] != 'question': say(f"   · {text_of(event.get('text'), lang)}")
+    return after
+
+
+def _asked_once(project, record, asked, lang):
+    """The run's question asked here when it is a new one; the question asked last."""
+    question = record.get('question') if record.get('state') == 'waiting_for_person' else None
+    if question and question['id'] != asked:
+        _ask_inline(project, question, lang)
+        return question['id']
+    return asked
 
 
 def _ended(record, lang):
@@ -271,12 +282,16 @@ def _show_preview(shown, lang):
         say(f"   {card['id']}  {card.get('title') or ''}")
     for left in shown['left_out'][:10]:
         say('   ' + words('left_out', lang, id=left['id'], why=left.get('why_ar') if lang == 'ar' and left.get('why_ar') else left.get('why')))
-    where = shown.get('where')
+    _show_where(shown.get('where'), lang)
+    if shown.get('auto_accept'): say(words('auto', lang))
+    if shown['handoff']['available'] and not shown.get('assistant'): say(words('handoff', lang))
+
+
+def _show_where(where, lang):
+    """Where a Fix builds and delivers, as its preview set it; its problem refuses the run."""
     if where and where.get('base'):
         say(words('where', lang, base=where['base']['branch'], deliver=where.get('deliver_as'), target=where.get('merge_into')))
     if where and where.get('problem'): raise LookupError(text_of(where['problem'], lang))
-    if shown.get('auto_accept'): say(words('auto', lang))
-    if shown['handoff']['available'] and not shown.get('assistant'): say(words('handoff', lang))
 
 
 @command
@@ -297,97 +312,6 @@ def act(args, lang):
 
 def contract_verb(verb):
     return next(v for v in contract()['verbs'] if v['id'] == verb)
-
-
-# ---------------------------------------------------------------- accept, undo, the branch, branches
-
-def _files(project, base, branch):
-    out = subprocess.run(['git', '-C', str(project), 'diff', '--name-only', f'{base}...{branch}'], capture_output=True, text=True).stdout
-    return [line for line in out.splitlines() if line]
-
-
-def decide(args, lang, operation):
-    """Accept or undo the batch waiting: what will happen said first, the person's yes (or --yes), then the Studio's own
-    way when a run handed it over (the run records it), else the assistant's tool."""
-    from ..journeys import agent_tools
-    from ..core.project_state import waiting_batch
-    refuse_in_studio_run(operation)
-    actions = govern.core(args.project)
-    state = project_state.current(args.project)
-    guided.reconcile(state)
-    wave = waiting_batch(state)
-    if wave is None: return guided.box(lang, words('nothing', lang), commands=['eaos next'], status='warn')
-    target = (actions.branches.accept_where() if actions.branches.is_repo() else {}).get('target') or state.get('branch')
-    count = len(_files(actions.project, target, wave['branch']))
-    agreed(actions.project, operation, words(f'{operation}_what', lang, branch=wave['branch'], target=target, count=count), args.yes)
-    run = next((r for r in actions.store.all() if (r.get('result') or {}).get('branch') == wave['branch'] and not r.get('outcome')), None)
-    if run: result = actions.decide(run['id'], operation, {'confirm': actions.preview(operation, {})['confirm']['token']})['result']
-    else: result = getattr(agent_tools, operation)(str(actions.project), person_agreed=True)
-    totals = result.get('progress') or {}
-    if result.get('status') in ('accepted', 'undone'):
-        return guided.box(lang, words(result['status'], lang, branch=wave['branch'], target=result.get('merged_into'), closed=totals.get('closed', 0),
-                                      total=totals.get('total', 0)), where=result.get('report_for_people'), commands=['eaos next'])
-    guided.box(lang, words('not_done', lang, why=result.get('what_now') or result.get('error') or result.get('status')), status='warn',
-               commands=[f"git merge {wave['branch']}"] if result.get('status') == 'conflict' else ['eaos status'])
-    return 0
-
-
-accept = command(lambda args, lang: decide(args, lang, 'accept'))
-undo = command(lambda args, lang: decide(args, lang, 'undo'))
-
-
-@command
-def branch(args, lang):
-    from ..journeys.agent_tools import branches_of
-    if not args.name:
-        found = branches_of(args.project)
-        for row in found['branches']:
-            mark = '✓' if row['name'] == found['working_branch'] else '★' if row['name'] == (found.get('recommended') or {}).get('name', found.get('recommended')) else ' '
-            say(f"{mark} {row['name']:<30} {(row.get('last_commit') or '')[:10]}  +{row.get('ahead_of_main') or 0}/-{row.get('behind_main') or 0}")
-        return guided.box(lang, words('branches', lang, branch=found['working_branch'] or '-'), commands=['eaos branch <name>'])
-    actions = govern.core(args.project)
-    agreed(actions.project, 'choose_branch', words('branch_what', lang, branch=args.name), args.yes)
-    done = actions.branches.select({'branch': args.name})
-    guided.box(lang, text_of(_said(actions, done['run']), lang), commands=['eaos check', 'eaos status'])
-
-
-def _branch_list(project, lang):
-    found = govern.core(project).branches.inventory()
-    for row in found['branches']:
-        compare = row['compare']
-        say(f"{'🔒' if row['protected'] else '  '} {row['name']:<34} {row['kind']:<6} {row['ownership'].get('owner', ''):<8} "
-            f"+{compare['ahead'] if compare['ahead'] is not None else '?'}/-{compare['behind'] if compare['behind'] is not None else '?'}")
-    guided.box(lang, words('branches', lang, branch=found.get('base') or '-'), commands=['eaos branches merge <name>', 'eaos branches cleanup'])
-
-
-def _preview_lines(preview, lang):
-    """The main facts of a branch change's preview."""
-    for commit in (preview.get('commits') or [])[:10]: say(f"   {commit['commit'][:9]} {commit['subject']}")
-    for row in (preview.get('files') or [])[:20]: say(f"   {row['status']} {row['path']}")
-    for commit in (preview.get('lost_commits') or [])[:10]: say(f"   ⚠️ {commit.get('commit', '')[:9]} {commit.get('subject', '')}")
-    for row in preview.get('branches') or []: say(f"   − {row.get('branch')}")
-    for row in preview.get('worktrees') or []: say(f"   − {row.get('path')}")
-    if preview.get('needs_unchecked_ack'): say('   ' + words('unchecked_merge', lang))
-
-
-@command
-def branches(args, lang):
-    project = _project(args)
-    if args.op == 'list': return _branch_list(project, lang)
-    actions = govern.core(project)
-    if args.op == 'restore':
-        agreed(project, 'branches restore', words('restore_what', lang, name=args.name), args.yes)
-        return guided.box(lang, text_of(_said(actions, govern.restore(project, args.name)['run']), lang), commands=['eaos branches'])
-    preview = govern.branch_preview(project, args.op, args.name, args.into)
-    _preview_lines(preview, lang)
-    if preview.get('blocked') or not preview.get('confirm'):
-        from .studio.branches import Blocked
-        raise Blocked(preview.get('blocked') or [WORDS['blocked']], needs='blocked')
-    question = words(f'{args.op}_what', lang, name=args.name, target=preview.get('target'), commits=len(preview.get('commits') or []),
-                     files=len(preview.get('files') or []), branches=len(preview.get('branches') or []), worktrees=len(preview.get('worktrees') or []))
-    agreed(project, 'branches ' + ('protect' if args.op == 'unprotect' else args.op), question, args.yes)
-    done = govern.branch_change(project, args.op, preview, preview['confirm']['token'], (preview.get('confirm_unmerged') or {}).get('token'))
-    guided.box(lang, text_of(_said(actions, done['run']), lang), commands=['eaos branches', 'eaos status'])
 
 
 # ---------------------------------------------------------------- history, comparison, use
@@ -434,5 +358,5 @@ def govern_host(args):
     return govern.host(args.project, (args.answer, args.option, args.text) if args.answer else None)
 
 
+
 guided.TERMINAL['check'] = check                # eaos start --path/--mode: the check, followed (registered here: see guided)
-guided.COMMANDS.update(accept=accept, undo=undo)

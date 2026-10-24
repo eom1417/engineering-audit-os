@@ -23,6 +23,7 @@ LIMITATIONS = [
 TEMP_NAME = re.compile(r'temp_\w+|\w+_old\b|\w+_copy\b|\w+_backup\b|\w+_bak\b|\w+_orig\b', re.I)
 # Build-output patterns: a file whose name starts with "build_" or lives under a generated artifact dir.
 BUILD_PREFIX = re.compile(r'(^|[\\/])build[_-]')
+BACKUP_DIRS = {'backup', 'bak', 'old', 'orig'}
 BUILD_DIRS = {'dist', 'build', 'out', 'target', 'bin', 'obj', '.next', '.nuxt', '.svelte-kit', '.cache',
               'node_modules', '__pycache__', '.gradle', '.terraform', 'coverage', '.pytest_cache',
               'dist-ssr', 'storybook-static', 'public/build', 'artifacts'}
@@ -68,9 +69,9 @@ def classify(rel):
     ext = os.path.splitext(name)[1].lower()
     if ext in BINARY_EXT: return 'committed_binary'
     if TEMP_NAME.search(name): return 'temp_or_backup_name'
-    if any(part in {'backup', 'bak', 'old', 'orig'} for part in parts): return 'temp_or_backup_name'
+    if BACKUP_DIRS & set(parts): return 'temp_or_backup_name'
     if ARCHIVE_DIR.match(rel): return 'archived_directory'
-    if any(part in BUILD_DIRS for part in parts): return 'build_output'
+    if BUILD_DIRS & set(parts): return 'build_output'
     if BUILD_PREFIX.match(name): return 'build_output'
     return None
 

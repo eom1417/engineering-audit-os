@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
-from eaos.analysis import probes
+from eaos.analysis import probe_queries, probes
 from eaos.analysis.dossier import assemble
 from eaos.facts.run import collect
 
@@ -126,12 +126,12 @@ class ProbeTests(unittest.TestCase):
         wanted = finish_line.targets(found, sets)
         self.assertEqual([(t['rule'], t['name']) for t in wanted], [('branches', 'decide'), ('reforge.codebase.many_parameters', 'start')])
         spec = {'query': 'engine_cluster_present', 'place': 'a.py', 'kind': 'complexity', 'targets': wanted}
-        self.assertEqual(probes._engine_cluster(spec, sets)[0], 'CONFIRMED')
+        self.assertEqual(probe_queries._engine_cluster(spec, sets)[0], 'CONFIRMED')
         fixed = {'metrics': counted(run=12, decide=9), 'external': {'facts': [found[0], found[3]]}}     # what is left is not its
-        self.assertEqual(probes._engine_cluster(spec, fixed), ('REFUTED', 'every target is cleared'))
+        self.assertEqual(probe_queries._engine_cluster(spec, fixed), ('REFUTED', 'every target is cleared'))
         moved = {'metrics': {'facts': [{'value': {'scope': 'function', 'branches': 19}, 'location': {'path': 'b.py', 'symbol': 'decide'}}]},
                  'external': {'facts': []}}
-        self.assertIn('`decide` in a.py', probes._engine_cluster(spec, moved)[1], 'moving it to another file does not clear it')
+        self.assertIn('`decide` in a.py', probe_queries._engine_cluster(spec, moved)[1], 'moving it to another file does not clear it')
 
     def test_a_function_with_no_name_is_judged_in_its_file_and_a_name_follows_only_where_it_was_not(self):
         # TASK-131 of a React project (2026-10-24): a target named <anonymous> was looked for in the whole project, and

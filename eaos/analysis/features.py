@@ -219,13 +219,17 @@ def _namer(surface_facts):
 def _feature_of(fact, commands):
     """The feature of one surface (see _namer); `commands`: the program has commands of its own."""
     value, path = fact.get('value') or {}, (fact.get('location') or {}).get('path') or ''
-    if value.get('surface') == 'cli':
-        if _DEV_TOOLING & set(path.split('/')[:-1]): return None
-        if value.get('framework') in _COMMANDS and value.get('route'): return f"cli:{value['route']}"
-        return None if commands else f"cli:{_surface_identifier(fact)}"
+    if value.get('surface') == 'cli': return _command_feature(fact, value, path, commands)
     feature = _feature_name(_surface_identifier(fact))
     if feature == 'home' and commands and '/' in path: return path.split('/', 1)[0]
     return feature
+
+
+def _command_feature(fact, value, path, commands):
+    """A CLI surface's feature: its command, else its file in a program with no commands; None for dev tooling."""
+    if _DEV_TOOLING & set(path.split('/')[:-1]): return None
+    if value.get('framework') in _COMMANDS and value.get('route'): return f"cli:{value['route']}"
+    return None if commands else f"cli:{_surface_identifier(fact)}"
 
 
 def build(facts):
@@ -240,10 +244,15 @@ def build(facts):
     for feature, record in by_feature.items():
         _bind(feature, record, reached[feature], nearest, data_access_index)
         record['kinds'] = kinds_by_feature.get(feature, {})
-    unassigned = [(fact.get('location') or {}).get('path') or '' for fact in surface_facts if fact.get('id') not in consumed]
     return {'schema_version': 1,
             'features': [_feature_row(feature, record) for feature, record in by_feature.items()],
-            'unassigned_surfaces': sorted(set([s for s in unassigned if s]))}
+            'unassigned_surfaces': _unassigned(surface_facts, consumed)}
+
+
+def _unassigned(surface_facts, consumed):
+    """The files of the surfaces no feature took, sorted, each once."""
+    unassigned = [(fact.get('location') or {}).get('path') or '' for fact in surface_facts if fact.get('id') not in consumed]
+    return sorted(set([s for s in unassigned if s]))
 
 
 def _group(surface_facts, feature_of):
@@ -310,15 +319,19 @@ def _owned(feature, path):
     return feature.lower() in {part.lower() for part in path.split('/')[:-1]}
 
 
+def _kept(feature, seeds, hops, nearest):
+    """The reached files whose data is the feature's: reached most directly by it, and no provider of another feature."""
+    return {path for path, hop in hops.items() if path not in seeds and hop == nearest[path]
+            and (not _PROVIDER.search(path.rsplit('/', 1)[-1]) or _owned(feature, path))}
+
+
 def _bind(feature, record, reach, nearest, data_access_index):
     """A feature's files, tables, endpoints and evidence. A file's data belongs to the features that reach it most
     directly: a page that imports operatorsApi owns what it calls; a page that meets it three imports deep through a
     shared component does not. A context or provider (AuthContext.tsx) wraps the whole app and every page reaches it
     through a hook: its data goes only to the feature its own path names (components/auth/ belongs to `auth`)."""
     seeds, hops = reach
-    kept = {path for path, hop in hops.items() if path not in seeds and hop == nearest[path]
-            and (not _PROVIDER.search(path.rsplit('/', 1)[-1]) or _owned(feature, path))}
-    files = list(OrderedDict.fromkeys(seeds + sorted(kept)))
+    files = list(OrderedDict.fromkeys(seeds + sorted(_kept(feature, seeds, hops, nearest))))
     record['files'] = files
     record['tables'], record['writes_tables'], endpoints = _table_access(files, data_access_index)
     # Its own endpoints first (/operators for drivers is not guessable, /settlements for settlements is).
@@ -356,10 +369,15 @@ def _count(n, nouns):
     return f'{n} {few}' if 3 <= n <= 10 else f'{n} {one}'
 
 
+def _reached_words(record):
+    """What the user reaches, counted by kind of surface."""
+    return (' و'.join(_count(n, _NOUNS.get(kind, _NOUNS['page'])) for kind, n in sorted(record.get('kinds', {}).items()))
+            or _count(len(record['surfaces']), _NOUNS['page']))
+
+
 def _describe(record):
     """A factual sentence from the data: what the user reaches, what it reads, what it writes."""
-    reach = ' و'.join(_count(n, _NOUNS.get(kind, _NOUNS['page'])) for kind, n in sorted(record.get('kinds', {}).items())) \
-        or _count(len(record['surfaces']), _NOUNS['page'])
+    reach = _reached_words(record)
     reads = [t for t in record['tables'] if t not in record['writes_tables']]
     parts = [reach]
     if reads: parts.append('تقرأ ' + '، '.join(reads))

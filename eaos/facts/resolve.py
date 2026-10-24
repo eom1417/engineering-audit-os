@@ -91,10 +91,15 @@ def js_aliases(source, known):
         if '/node_modules/' in '/' + path: continue
         if name.startswith(('tsconfig', 'jsconfig')) and name.endswith('.json'): _config_aliases(source, path, aliases)
         elif name.startswith('vite.config.'): _vite_aliases(source, path, aliases)
+    _default_aliases(aliases, known)
+    return sorted(((prefix, list(dict.fromkeys(folders))) for prefix, folders in aliases.items()), key=lambda row: -len(row[0]))
+
+
+def _default_aliases(aliases, known):
+    """`@/` and `~/`, when nothing declares them, point at src/ if the snapshot has one."""
     has_src = any(p.startswith('src/') for p in known)
     for prefix in ('@/', '~/'):
         if prefix not in aliases and has_src: aliases[prefix] = ['src/']
-    return sorted(((prefix, list(dict.fromkeys(folders))) for prefix, folders in aliases.items()), key=lambda row: -len(row[0]))
 
 
 def _alias_folder(base, target):
@@ -164,17 +169,22 @@ def package_main(directory, source, known):
     try: data = json_module.loads(source.text(manifest) or '{}')
     except ValueError: return []
     base = (directory + '/').lstrip('/')
+    out = []
+    for entry in _package_entries(data):
+        if not isinstance(entry, str): continue
+        cleaned = (base + entry.lstrip('./')).replace('//', '/')
+        out += [cleaned] + [cleaned + suffix for suffix in JS_SUFFIXES] + [cleaned + index for index in JS_INDEX]
+    return out
+
+
+def _package_entries(data):
+    """What a package.json names as its entry: its main, its module, and the root of its exports (or its require)."""
     entries = [data.get('main'), data.get('module')]
     exports = data.get('exports')
     if isinstance(exports, dict):
         root = exports.get('.')
         entries.append(root if isinstance(root, str) else (root or {}).get('require') if isinstance(root, dict) else None)
-    out = []
-    for entry in entries:
-        if not isinstance(entry, str): continue
-        cleaned = (base + entry.lstrip('./')).replace('//', '/')
-        out += [cleaned] + [cleaned + suffix for suffix in JS_SUFFIXES] + [cleaned + index for index in JS_INDEX]
-    return out
+    return entries
 
 
 def go_candidates(module, go_module):
@@ -231,14 +241,27 @@ def _matches(language, importer, module, candidates, context):
     known = context['known']
     matches = [c for c in dict.fromkeys(candidates) if c in known]
     if matches: return matches
-    if language in JVM_LANGUAGES:
-        suffix = jvm_candidates(module)
-        return sorted(p for p in known if any(p.endswith('/' + s) for s in suffix))
-    if language in JS_LANGUAGES and module.startswith('.'):
-        return [c for c in dict.fromkeys(package_main(js_directory(importer, module), context['source'], known)) if c in known]
-    if language == 'go' and candidates:
-        return sorted(p for p in known if p.startswith(candidates[0]) and language_of(p) == 'go')
+    if language in JVM_LANGUAGES: return _jvm_matches(module, known)
+    if language in JS_LANGUAGES and module.startswith('.'): return _package_matches(importer, module, context)
+    if language == 'go' and candidates: return _go_matches(candidates[0], known)
     return matches
+
+
+def _jvm_matches(module, known):
+    """A JVM import's file anywhere under a source root: the files ending on its package path."""
+    suffix = jvm_candidates(module)
+    return sorted(p for p in known if any(p.endswith('/' + s) for s in suffix))
+
+
+def _package_matches(importer, module, context):
+    """A relative JavaScript import of a directory: the files its package.json names."""
+    known = context['known']
+    return [c for c in dict.fromkeys(package_main(js_directory(importer, module), context['source'], known)) if c in known]
+
+
+def _go_matches(folder, known):
+    """A Go import of a package: the Go files under its directory."""
+    return sorted(p for p in known if p.startswith(folder) and language_of(p) == 'go')
 
 
 def _go_package(matches):
@@ -265,11 +288,11 @@ def _resolution(edge, candidates, matches, context):
     language, module, level = edge
     if language == 'go' and len(matches) > 1: return _go_package(matches)
     if len(matches) == 1: return 'RESOLVED', matches[0], None, None
-    out_of_scope = context['out_of_scope']
-    if not matches and any(c in out_of_scope for c in candidates):
+    excluded = None if matches else next((c for c in dict.fromkeys(candidates) if c in context['out_of_scope']), None)
+    if excluded is not None:
         # The target exists but sits in an excluded vendored directory (components/ui): outside the
         # analysed system like a package, not an unresolved import. package_path keeps where it points.
-        return 'EXTERNAL', None, 'excluded', next(c for c in dict.fromkeys(candidates) if c in out_of_scope)
+        return 'EXTERNAL', None, 'excluded', excluded
     if len(matches) > 1: return 'AMBIGUOUS', None, None, None
     if _external(language, module, level, candidates, context): return 'EXTERNAL', None, None, None
     return 'UNRESOLVED', None, None, None
@@ -293,6 +316,31 @@ def _module_edge(row, context):
                             resolution=resolution, limitations=LIMITATIONS)
 
 
+def _context(source, known):
+    """What resolving every import shares: the files, the Go module, the JavaScript aliases, the excluded files, and the
+    top folders a Python import of the project starts with."""
+    directories = {PurePosixPath(p).parent.as_posix() for p in known}
+    return {'source': source, 'known': known, 'go_module': go_module_name(source), 'aliases': js_aliases(source, known),
+            'out_of_scope': set(getattr(source, 'excluded_files', ())),
+            'roots': {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}}
+
+
+def _summary(facts, counts, go_module):
+    internal = counts['RESOLVED'] + counts['AMBIGUOUS'] + counts['UNRESOLVED']
+    return {'edges': len(facts), 'by_resolution': counts,
+            'resolved_by_us': counts['RESOLVED'],
+            'resolved_by_engine': counts['RESOLVED_BY_ENGINE'],
+            'internal_resolution_rate': round(counts['RESOLVED'] / internal, 3) if internal else 0.0,
+            'go_module': go_module,
+            'interpretation': 'Source dependencies only. Unresolved and ambiguous edges stay visible and must never be drawn as confirmed dependencies.'}
+
+
+def _read_imports(target, source):
+    """The import observations the syntax extractor reads, when the caller passed none."""
+    from . import syntax
+    return [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'import_edge']
+
+
 def run(target, source, imports=None, external_edges=None, **options):
     """Augment our import graph with what the external engine resolved.
 
@@ -301,15 +349,10 @@ def run(target, source, imports=None, external_edges=None, **options):
     separate from edges we resolved ourselves so a reviewer can tell which
     engine claimed the relationship.
     """
-    from . import syntax
     facts, fingerprints = [], []
     known = {item['path'] for item in source.readable()}
-    directories = {PurePosixPath(p).parent.as_posix() for p in known}
-    go_module = go_module_name(source)
-    context = {'source': source, 'known': known, 'go_module': go_module, 'aliases': js_aliases(source, known),
-               'out_of_scope': set(getattr(source, 'excluded_files', ())),
-               'roots': {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}}
-    rows = imports if imports is not None else [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'import_edge']
+    context = _context(source, known)
+    rows = imports if imports is not None else _read_imports(target, source)
     counts = {'RESOLVED': 0, 'EXTERNAL': 0, 'AMBIGUOUS': 0, 'UNRESOLVED': 0,
                 'RESOLVED_BY_ENGINE': 0}
     ordered = sorted(rows, key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['value']['module']))
@@ -322,13 +365,5 @@ def run(target, source, imports=None, external_edges=None, **options):
     engine_facts = list(external_edges or [])
     facts.extend(engine_facts)
     counts['RESOLVED_BY_ENGINE'] = sum(1 for f in engine_facts if f.get('resolution') == 'RESOLVED_BY_ENGINE')
-
-    internal = counts['RESOLVED'] + counts['AMBIGUOUS'] + counts['UNRESOLVED']
-    summary = {'edges': len(facts), 'by_resolution': counts,
-               'resolved_by_us': counts['RESOLVED'],
-               'resolved_by_engine': counts['RESOLVED_BY_ENGINE'],
-               'internal_resolution_rate': round(counts['RESOLVED'] / internal, 3) if internal else 0.0,
-               'go_module': go_module,
-               'interpretation': 'Source dependencies only. Unresolved and ambiguous edges stay visible and must never be drawn as confirmed dependencies.'}
-    return {'facts': facts, 'summary': summary, 'available': True,
+    return {'facts': facts, 'summary': _summary(facts, counts, context['go_module']), 'available': True,
             'input_sha': digest(''.join(sorted(fingerprints)).encode('utf-8')), 'reason': None}
