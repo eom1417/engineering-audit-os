@@ -38,7 +38,7 @@ def test_times(app):
 
 def _junit_times(junit):
     if not junit.is_file(): return []
-    import xml.etree.ElementTree as ET
+    from defusedxml import ElementTree as ET       # a report the project's tests wrote: no entities
     return [(f"{case.get('classname', '')}::{case.get('name', '')}", case.get('file') or case.get('classname', ''), float(case.get('time') or 0))
             for case in ET.parse(junit).iter('testcase')]
 

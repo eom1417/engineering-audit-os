@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from eaos.core.web import opened  # noqa: E402
 
 REPOSITORIES = {
     'enola': 'enola-labs/enola',
@@ -42,7 +43,7 @@ def installed():
 def latest(repository, timeout=10):
     url = f'https://api.github.com/repos/{repository}/releases/latest'
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with opened(url, timeout=timeout) as response:
             return json.loads(response.read()).get('tag_name')
     except (urllib.error.URLError, TimeoutError, ValueError, OSError) as problem:
         return f'unavailable: {type(problem).__name__}'

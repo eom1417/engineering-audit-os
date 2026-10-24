@@ -19,6 +19,8 @@ import time
 from urllib.parse import parse_qs, urlsplit
 
 LOOPBACK = '127.0.0.1'
+# The names of this computer an address may give: compared, never bound.
+THIS_COMPUTER = ('localhost', LOOPBACK, '::1', '0.0.0.0')  # nosec B104
 HOSTS = ('127.0.0.1', 'localhost')
 TOKEN_HEADER, CSRF_HEADER = 'x-eaos-token', 'x-eaos-csrf'
 READS = frozenset({'GET', 'HEAD', 'OPTIONS'})

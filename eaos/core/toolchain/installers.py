@@ -13,6 +13,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from ..web import opened
 from .pins import TRIVY_CACHE, _link, browsers, checkout, home, npm_prefix, release_spec, tool_env, uv, venv_of
 from .versions import browser_missing, found_version
 
@@ -37,7 +38,7 @@ def _download(url, part, step):
     earlier attempt left there (an HTTP range), `step(done, total)` in bytes as it comes."""
     have = part.stat().st_size if part.exists() else 0
     request = urllib.request.Request(url, headers={'Range': f'bytes={have}-'} if have else {})
-    try: response = urllib.request.urlopen(request, timeout=300)
+    try: response = opened(request, timeout=300, files=True)
     except urllib.error.HTTPError as problem:
         if problem.code == 416 and have: return                         # the earlier attempt had it all
         raise
@@ -90,10 +91,10 @@ def _tree(tool, spec, blob, folder):
         with zipfile.ZipFile(blob) as archive:
             unsafe = next((name for name in archive.namelist() if name.startswith('/') or '..' in Path(name).parts), None)
             if unsafe: raise RuntimeError(f"{tool['name']}: unsafe path {unsafe!r} in the archive; nothing installed")
-            archive.extractall(folder)
+            archive.extractall(folder)  # nosec B202: every name was checked just above
     else:
         with tarfile.open(fileobj=blob, mode=TAR_MODES[spec['archive']]) as archive:
-            archive.extractall(folder, filter='data')
+            archive.extractall(folder, filter='data')  # nosec B202: the 'data' filter refuses any path leaving the folder
     target = folder / spec['entry']
     if not target.is_file(): raise RuntimeError(f"{tool['name']}: {spec['entry']} is not in the archive")
     return target

@@ -34,6 +34,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from ..core.web import opened
 from .sandbox_disk import _launcher, _own, _view_refusal, _within, hidden, mounts, named
 
 PYTHON = ('python', 'python3', 'pip', 'pip3', 'uv', 'poetry', 'uvicorn', 'gunicorn')     # also what a run profile may start with
@@ -148,7 +149,7 @@ def _listens(port, group):
 def _answers(health, group):
     """Whether `health` answers 200, or refuses (4xx), from a process of process group `group` (_listens)."""
     try:
-        with urllib.request.urlopen(health, timeout=2) as response: up = response.status == 200
+        with opened(health, timeout=2) as response: up = response.status == 200
     except urllib.error.HTTPError as answer: up = answer.code < 500
     except (urllib.error.URLError, OSError): return False
     return up and _listens(urlsplit(health).port, group) is not False
