@@ -66,6 +66,9 @@ owner can take. **After each card, its row in the status table below is updated 
 - **M4.4** The ideal picture faster, never dropped: a compact bundle, reuse when the code did not change, parallel
   calls. Target: from 24 minutes to under 8.
 - **M4.5** The repair-or-rebuild decision with the time and effort of each option.
+- **M4.6** The laws reach all of EAOS (found by M3's measure, `docs/METRICS.md`): the Studio's JavaScript held to
+  complexity 10 and 400 lines as the Python is; one complexity count, the code laws' and the hotspots' the same (nested
+  functions counted alone); GitNexus's 10 import cycles settled (real, or lazy imports it should not count).
 
 ### M5 Seeing any app
 - **M5.1** Running the app detected for the common stacks; green on the corpus.
