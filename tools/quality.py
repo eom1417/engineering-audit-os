@@ -38,9 +38,10 @@ def engine_counts(workdir):
 
 def dead_counts(workdir):
     """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/deadcode.py) over the Python code, the one
-    every check runs (vulture's were all names called by dispatch, M2.3); the Studio's is knip's below."""
+    every check runs (vulture's were all names called by dispatch, M2.3); the Studio's is knip's below. tools/ is EAOS's
+    code too: what only it reads is read (the code laws' limits were said never read)."""
     from eaos.facts.run import collect
-    collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'], exclude=(*EXCLUDE, 'console'))
+    collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'], exclude=(*(e for e in EXCLUDE if e != 'tools'), 'console'))
     facts = json.loads((Path(workdir) / 'facts' / 'deadcode.json').read_text(encoding='utf-8'))['facts']
     return Counter(f"deadcode:{fact['value']['rule']}" for fact in facts if fact.get('kind') == 'engine_finding'
                    and fact['value']['adjudication']['verdict'] == 'confirmed')
