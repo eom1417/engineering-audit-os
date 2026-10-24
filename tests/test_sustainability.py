@@ -42,7 +42,7 @@ class SustainabilityTests(unittest.TestCase):
 
     def test_six_indicators_against_their_target_and_a_move_with_a_falsifier_for_each_gap(self):
         result = sustainability.write(self.out)
-        self.assertEqual({row['indicator'] for row in result['rows']}, set(sustainability.INDICATORS))
+        self.assertEqual({row['indicator'] for row in result['rows']}, set(sustainability.DEFAULT_TARGETS))
         single = next(row for row in result['rows'] if row['indicator'] == 'single_source')
         self.assertGreater(single['gap'], 0)
         self.assertTrue(result['moves'])

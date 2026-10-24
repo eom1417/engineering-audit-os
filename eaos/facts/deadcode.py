@@ -24,7 +24,7 @@ import re
 from collections import Counter, defaultdict
 from pathlib import PurePosixPath
 
-from . import make
+from . import bundled, make
 from .source import classify, language_of
 
 NAME = 'deadcode'
@@ -255,6 +255,7 @@ def _reachable(seeds, graph, texts):
         frontier = named
 
 
+BUILD_SCRIPTS = ('.js', '.mjs', '.cjs', '.ts', '.mts')
 PROGRAM_FOLDERS = {'scripts', 'script', 'bin', 'tools', 'tool'}
 REVIEW_REASONS = {'test_only': 'only tests name it: delete it with them, or keep it as the contract they pin',
                   'review': 'a program is run, not imported, and a person may run it by hand: nothing in CI, the '
@@ -313,12 +314,15 @@ def _roots(source, known, seeds):
     # A tool configuration (vite.config.ts, next.config.mjs) is loaded by the tool itself whenever it runs; what it
     # imports (a dev-server plugin, the API it mounts) is reached through it. It is a root to walk from, not an entry
     # point: a library with only a test-runner config still has no production entry, and is judged as a library.
-    # A program a CI step or a document says to run is walked from the same way.
+    # A program a CI step or a document says to run is walked from the same way, and the files a build script hands
+    # its bundler (eaos/facts/bundled.py).
     if not seeds: return seeds
     configs = {path for path in known if NOT_CANDIDATES[0].search(path) and not _is_test(path)}
     folders = {PurePosixPath(path).parent for path in known if PurePosixPath(path).name == 'package.json'}
     commanded = {path for path in _commanded(source, known, folders) if not _is_test(path)}
-    return seeds | configs | commanded
+    bundles = {found for path in known if path.endswith(BUILD_SCRIPTS) and not _is_test(path)
+               for found in bundled.entries(path, source.text(path) or '', known)}
+    return seeds | configs | commanded | bundles
 
 
 def _candidate_file(path):

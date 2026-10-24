@@ -38,14 +38,18 @@ class SampleTests(unittest.TestCase):
                     self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
 
 
+# enola's sources the adapter sees and deliberately does not map: they report scope rather than a finding.
+DECLINED_SOURCES = ('domain', 'coverage', 'crossrepo', 'entry-points', 'intent', 'messaging-coverage', 'package-metrics')
+
+
 class EnolaContractTests(unittest.TestCase):
     def test_every_insight_source_is_mapped_or_deliberately_declined_and_still_locates_itself(self):
         payload = sample('enola')
         unmapped = {row['source'] for row in payload['insights.json'] if row['source'] not in enola.KIND_BY_SOURCE}
-        self.assertEqual(sorted(unmapped - set(enola.DECLINED_SOURCES)), [],
+        self.assertEqual(sorted(unmapped - set(DECLINED_SOURCES)), [],
                          'an insight source appeared that the adapter neither maps nor declines')
-        self.assertTrue(enola.DECLINED_SOURCES)
-        self.assertEqual(sorted(set(enola.DECLINED_SOURCES) & set(enola.KIND_BY_SOURCE)), [])
+        self.assertTrue(DECLINED_SOURCES)
+        self.assertEqual(sorted(set(DECLINED_SOURCES) & set(enola.KIND_BY_SOURCE)), [])
         receipt = payload['receipt.json']
         for field in ('snapshot_id', 'extractor_version', 'extractors', 'explainers'):
             self.assertIn(field, receipt, f'enola stopped reporting {field}')
