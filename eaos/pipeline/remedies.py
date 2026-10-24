@@ -23,15 +23,13 @@ def apply(manifest, redo, out, progress=None, assistant=None, provider=None):
     the catalog knows no remedy for is put to the person's assistant once (`provider`), its answer one allowed action."""
     tried, record = set(), []
     for round_ in range(1, ROUNDS + 1):
-        todo = [(name, row, remedy) for name, row in manifest['stages'].items() if row.get('status') != 'ok'
-                and (remedy := remedy_of(row)) and (name, row.get('reason_code')) not in tried]
+        todo = _todo(manifest, tried)
         if not todo: break
         stages = []
         for name, row, remedy in todo:
             tried.add((name, row.get('reason_code')))
             outcome = _try(remedy, manifest, assistant)
-            record.append({'stage': name, 'code': row.get('reason_code'), 'remedy': remedy, 'round': round_, 'outcome': outcome,
-                           **({'next': 'tools_find'} if outcome == 'failed' and remedy.get('tool') == 'tools_check' else {})})
+            record.append(_tried(name, row, remedy, round_, outcome))
             if outcome == 'fixed' and remedy.get('then') == 'again_from': stages.append(name)
         if not stages: break
         if progress: progress(round_, ROUNDS, 'remedies')
@@ -43,20 +41,43 @@ def apply(manifest, redo, out, progress=None, assistant=None, provider=None):
     return manifest
 
 
+def _todo(manifest, tried):
+    """(name, row, remedy) of each stage not ok whose reason has a remedy, not tried yet for that reason."""
+    return [(name, row, remedy) for name, row in manifest['stages'].items() if row.get('status') != 'ok'
+            and (remedy := remedy_of(row)) and (name, row.get('reason_code')) not in tried]
+
+
+def _tried(name, row, remedy, round_, outcome):
+    """The record of one try; a tool that still failed to install points to finding another (tools_find)."""
+    return {'stage': name, 'code': row.get('reason_code'), 'remedy': remedy, 'round': round_, 'outcome': outcome,
+            **({'next': 'tools_find'} if outcome == 'failed' and remedy.get('tool') == 'tools_check' else {})}
+
+
 def _ask_once(manifest, redo, record, provider):
     """The assistant, once in the whole check, on the failed stages no remedy is known for: run one again (an error it
     reads as passing, a timeout) or say what the person should do. Rules first: it is asked only here."""
-    unknown = {name: row.get('reason') for name, row in manifest['stages'].items() if row.get('status') == 'failed' and not remedy_of(row)}
+    unknown = _unremedied(manifest)
     if not (provider and unknown): return manifest
-    ask = ('These stages of an EAOS check failed, each with its reason: ' + json.dumps(unknown, ensure_ascii=False)[:4000] + '. Answer one '
-           'JSON object: {"action": "again_from" or "none", "stage": "<one of them, for again_from>", "advice": "<what the person should do, '
-           'one sentence>"}. again_from only when running it again may pass (a timeout, a passing hiccup); otherwise none.')
-    try: answer = (provider.complete([{'role': 'user', 'content': ask}], small=True, stage='remedies')[0] or {}).get('result') or {}
-    except Exception: return manifest            # the rules' record stands; the assistant is a help, never a failure
+    answer = _answer(provider, unknown)
+    if answer is None: return manifest           # the rules' record stands; the assistant is a help, never a failure
     stage = answer.get('stage') if answer.get('action') == 'again_from' and answer.get('stage') in unknown else None
     record.append({'stage': stage or next(iter(unknown)), 'code': 'stage_error', 'remedy': {'assistant': answer.get('advice') or ''},
                    'round': ROUNDS + 1, 'outcome': 'fixed' if stage else 'needs_person'})
     return redo([stage]) if stage else manifest
+
+
+def _unremedied(manifest):
+    """{stage: reason} of the failed stages the catalog knows no remedy for."""
+    return {name: row.get('reason') for name, row in manifest['stages'].items() if row.get('status') == 'failed' and not remedy_of(row)}
+
+
+def _answer(provider, unknown):
+    """The assistant's answer about the failed stages `unknown` ({stage: reason}), or None when it could not be asked."""
+    ask = ('These stages of an EAOS check failed, each with its reason: ' + json.dumps(unknown, ensure_ascii=False)[:4000] + '. Answer one '
+           'JSON object: {"action": "again_from" or "none", "stage": "<one of them, for again_from>", "advice": "<what the person should do, '
+           'one sentence>"}. again_from only when running it again may pass (a timeout, a passing hiccup); otherwise none.')
+    try: return (provider.complete([{'role': 'user', 'content': ask}], small=True, stage='remedies')[0] or {}).get('result') or {}
+    except Exception: return None
 
 
 def consent(manifest, question):
@@ -74,7 +95,13 @@ def pending(report):
     except (OSError, ValueError): return None
     tried = {r['stage'] for r in manifest.get('remedies') or []}
     return next((name for name, row in (manifest.get('stages') or {}).items() if row.get('status') != 'ok' and name not in tried
-                 and (r := remedy_of(row)) and not (r.get('needs') or r.get('consent'))), None)
+                 and _unattended(row)), None)
+
+
+def _unattended(row):
+    """Whether a stage row's reason has a remedy EAOS applies alone: one that needs neither the person nor their consent."""
+    remedy = remedy_of(row)
+    return bool(remedy) and not (remedy.get('needs') or remedy.get('consent'))
 
 
 def agreed(run_app, again_from, person_agreed):
@@ -85,7 +112,7 @@ def agreed(run_app, again_from, person_agreed):
 def _try(remedy, manifest, assistant):
     """'fixed' once the remedy's change is proven, 'failed' when it is not, 'needs_person' when only the person can."""
     if remedy.get('needs') == 'person' or remedy.get('consent'): return 'needs_person'
-    if any(manifest['stages'].get(s, {}).get('status') != 'ok' for s in remedy.get('requires_ok') or []): return 'failed'
+    if _unmet(remedy, manifest): return 'failed'
     tool = remedy.get('tool')
     if tool == 'tools_check':
         from ..core.toolchain import install
@@ -94,3 +121,8 @@ def _try(remedy, manifest, assistant):
         from ..ai.readiness import probe
         return 'fixed' if assistant and probe(assistant, fresh=True).get('ready') else 'failed'
     return 'fixed'                       # the stage alone runs again (tools_failed: the engines stage, its tools again)
+
+
+def _unmet(remedy, manifest):
+    """Whether a stage the remedy needs ok (`requires_ok`) is not ok."""
+    return any(manifest['stages'].get(s, {}).get('status') != 'ok' for s in remedy.get('requires_ok') or [])

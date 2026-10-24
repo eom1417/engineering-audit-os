@@ -67,12 +67,19 @@ def completion(rows, missing=()):
     was not reached, or a required one was unavailable; PARTIAL when a required one was skipped or the assistant was
     lost midway; else COMPLETE."""
     rows = list(rows)
-    if missing or any(r['status'] in (FAILED, NOT_REACHED) or (r['necessity'] == REQUIRED and r['status'] == 'unavailable')
-                      for r in rows):
-        return 'INCOMPLETE'
-    if any((r['necessity'] == REQUIRED and r['status'] == SKIPPED) or (r.get('detail') or {}).get('assistant_lost') for r in rows):
-        return 'PARTIAL'
+    if missing or any(incomplete(r) for r in rows): return 'INCOMPLETE'
+    if any(partial(r) for r in rows): return 'PARTIAL'
     return 'COMPLETE'
+
+
+def incomplete(row):
+    """Whether a stage's row makes its run INCOMPLETE: failed, not reached, or required and unavailable."""
+    return row['status'] in (FAILED, NOT_REACHED) or (row['necessity'] == REQUIRED and row['status'] == 'unavailable')
+
+
+def partial(row):
+    """Whether a stage's row makes its run PARTIAL: required and skipped, or the assistant lost midway."""
+    return (row['necessity'] == REQUIRED and row['status'] == SKIPPED) or (row.get('detail') or {}).get('assistant_lost')
 
 
 class Flow:
@@ -113,12 +120,15 @@ class Flow:
             return False
         if self.current: self.end(self.current)
         missing = [name for name in self.declared if name not in self.results]
-        counts = {state: sum(1 for row in self.results.values() if row['status'] == state) + (len(missing) if state == NOT_REACHED else 0)
-                  for state in (OK, SKIPPED, 'unavailable', FAILED, NOT_REACHED)}
         status = completion(self.results.values(), missing)
         self.log.finish(status, reason='' if not missing else 'the flow ended before: ' + ', '.join(missing),
-                        seconds=seconds, counts=counts)
+                        seconds=seconds, counts=self._counts(missing))
         return False
+
+    def _counts(self, missing):
+        """{state: how many stages ended in it}, the `missing` ones counted not reached."""
+        return {state: sum(1 for row in self.results.values() if row['status'] == state) + (len(missing) if state == NOT_REACHED else 0)
+                for state in (OK, SKIPPED, 'unavailable', FAILED, NOT_REACHED)}
 
     # the stages
 

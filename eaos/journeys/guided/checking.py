@@ -70,7 +70,7 @@ def agree_to_assistant(state, yes):
 
 
 def tools_for_check(state, echo=lambda done, total: None, install=True):
-    """Waits until none of the tools the check needs on this project is still being installed (eaos/core/toolchain.py);
+    """Waits until none of the tools the check needs on this project is still being installed (eaos/core/toolchain/runs.py);
     {name: reason} of those that could not be. `install=False` once the person chose to start without them."""
     from ...core import toolchain
     return toolchain.wait_for_check(source(state), echo, install)['failed']

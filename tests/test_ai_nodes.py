@@ -266,9 +266,9 @@ class Framework(Base):
         # the unanswered batch makes the stage and the check partial (a 429 midway once ended COMPLETE), and is the only
         # one asked again: the answered cards keep their verdicts
         from types import SimpleNamespace
-        from eaos.pipeline import run, runners
+        from eaos.pipeline import ai_runners, run
         self.assertEqual((record['batches']['asked'], record['batches']['failed']), (4, 1))
-        lost = runners._partly(SimpleNamespace(provider=None), record['batches'])['assistant_lost']
+        lost = ai_runners._partly(SimpleNamespace(provider=None), record['batches'])['assistant_lost']
         self.assertEqual((lost['answered'], lost['asked']), (3, 4))
         self.assertEqual(run.completion_status({'triage': {'status': 'OK', 'necessity': 'optional', 'detail': {'assistant_lost': lost}}}), 'PARTIAL')
         asked = []

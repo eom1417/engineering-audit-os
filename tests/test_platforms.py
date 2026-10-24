@@ -22,13 +22,13 @@ class PlatformTests(unittest.TestCase):
                 self.assertRegex(platforms[key]['sha256'], r'^[0-9a-f]{64}$', f"{tool['name']} {key}")
         # The build is the one for this computer; none for it is a skip, not a broken install.
         syft = next(t for t in toolchain.registry()['tools'] if t['name'] == 'syft')
-        with mock.patch.object(toolchain, 'platform_key', return_value='darwin-arm64'):
+        with mock.patch.object(toolchain.pins, 'platform_key', return_value='darwin-arm64'):
             self.assertIn('darwin_arm64', toolchain.release_spec(syft)['url'])
-        with mock.patch.object(toolchain, 'platform_key', return_value='windows-arm64'), tempfile.TemporaryDirectory() as tmp, \
+        with mock.patch.object(toolchain.pins, 'platform_key', return_value='windows-arm64'), tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}):
             with self.assertRaises(toolchain.Unavailable):
                 toolchain.release_spec(syft)
-            with mock.patch.object(toolchain, 'found_version', return_value=(None, 'not installed')):
+            with mock.patch.object(toolchain.installers, 'found_version', return_value=(None, 'not installed')):
                 self.assertEqual(toolchain.install(names=['syft'], echo=lambda line: None), [], 'skipped, not failed')
 
     def test_tools_and_the_browser_live_in_the_persons_eaos_folder_where_the_engines_find_them(self):
@@ -65,32 +65,32 @@ class PlatformTests(unittest.TestCase):
         buffer = io.BytesIO()
         with tarfile.open(fileobj=buffer, mode='w:gz') as archive:        # reforge's Mac archive: ./demo
             info = tarfile.TarInfo('./demo'); data = b'binary'; info.size = len(data); archive.addfile(info, io.BytesIO(data))
-        self.assertEqual(toolchain._member(tool, {'archive': 'tar.gz', 'member': './demo'}, io.BytesIO(buffer.getvalue())), b'binary')
+        self.assertEqual(toolchain.installers._member(tool, {'archive': 'tar.gz', 'member': './demo'}, io.BytesIO(buffer.getvalue())), b'binary')
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, 'w') as archive:                      # k6's Mac build is a zip
             archive.writestr('demo-v1-macos-arm64/demo', b'zipped')
-        self.assertEqual(toolchain._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, io.BytesIO(buffer.getvalue())), b'zipped')
+        self.assertEqual(toolchain.installers._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, io.BytesIO(buffer.getvalue())), b'zipped')
         tools = [{'name': 'first', 'version': '1', 'stages': ['S01'], 'install': {'method': 'release'}},
                  {'name': 'second', 'version': '1', 'stages': ['S01'], 'install': {'method': 'pip'}}]
         installed = []
-        with mock.patch.object(toolchain, 'selected', return_value=tools), tempfile.TemporaryDirectory() as tmp, \
+        with mock.patch.object(toolchain.runs, 'selected', return_value=tools), tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}), \
-                mock.patch.object(toolchain, 'found_version', side_effect=lambda t: ('1', '') if t['name'] in installed else (None, '')), \
-                mock.patch.object(toolchain, '_release', side_effect=KeyError('zip')), \
-                mock.patch.object(toolchain, '_pip', side_effect=lambda t: installed.append(t['name'])):
+                mock.patch.object(toolchain.installers, 'found_version', side_effect=lambda t: ('1', '') if t['name'] in installed else (None, '')), \
+                mock.patch.object(toolchain.installers, '_release', side_effect=KeyError('zip')), \
+                mock.patch.object(toolchain.installers, '_pip', side_effect=lambda t: installed.append(t['name'])):
             self.assertEqual(toolchain.install(echo=lambda line: None), ['first'])
         self.assertEqual(installed, ['second'])
 
     def test_a_tool_that_refuses_this_node_says_so_and_is_not_read_as_another_version(self):
         cruiser = next(t for t in toolchain.registry()['tools'] if t['name'] == 'dependency-cruiser')
         refusal = mock.Mock(returncode=1, stdout='', stderr='ERROR: node 20.20.2 is not supported; it requires ^22||^24||>=26')
-        with mock.patch.object(toolchain, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.subprocess, 'run', return_value=refusal):
+        with mock.patch.object(toolchain.versions, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.versions.subprocess, 'run', return_value=refusal):
             found, reason = toolchain.found_version(cruiser)
         self.assertIsNone(found)
         self.assertIn('needs a newer Node.js', reason)
         noisy = mock.Mock(returncode=0, stdout='node v20.20.2 detected\n18.4.0\n', stderr='')
-        with mock.patch.object(toolchain, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.subprocess, 'run', return_value=noisy), \
-                mock.patch.object(toolchain, '_companions_missing', return_value=''):
+        with mock.patch.object(toolchain.versions, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.versions.subprocess, 'run', return_value=noisy), \
+                mock.patch.object(toolchain.versions, '_companions_missing', return_value=''):
             self.assertEqual(toolchain.found_version(cruiser), ('18.4.0', ''), 'its own version, wherever it is printed')
 
 class PortabilityTests(unittest.TestCase):
@@ -123,7 +123,7 @@ class InstalledPackageTests(unittest.TestCase):
             done = subprocess.run([sys.executable, '-m', 'pip', '--python', str(venv / 'bin/python'), 'install', '--quiet',
                                    '--no-deps', str(ROOT)], capture_output=True, text=True)
             if done.returncode: self.skipTest('pip could not build the package here: ' + done.stderr[-200:])
-            probe = ('import json, eaos.core.toolchain as t, eaos.analysis.load_model as l, eaos.journeys.guided as g, eaos.core.artifact_contracts as a;'
+            probe = ('import json, eaos.core.toolchain.pins as t, eaos.analysis.load_model as l, eaos.journeys.guided as g, eaos.core.artifact_contracts as a;'
                      'assert "site-packages" in str(t.REGISTRY), t.REGISTRY; print(len(t.registry()["tools"]));'
                      'from pathlib import Path; import eaos;'
                      'assert (Path(eaos.__file__).parent / "data/schemas/load-model.schema.json").is_file();'

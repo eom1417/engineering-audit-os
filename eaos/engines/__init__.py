@@ -84,9 +84,8 @@ def _run_all(selected, target, workdir, exclude, formats):
     with ThreadPoolExecutor(resources.capacity()[0], thread_name_prefix='eaos-engine') as pool:
         while left or running:
             waiting = False
-            for name in [n for n in left if not set(getattr(ADAPTERS[n], 'AFTER', ())) & (set(left) | set(running.values())) - {n}]:
-                starting = sum(_need(n) for n in running.values() if time.monotonic() - began[n] < resources.STARTING)
-                waiting = bool(running) and not resources.room(_need(name) + starting)
+            for name in _startable(left, running):
+                waiting = _no_room(name, running, began)
                 if waiting: break
                 left.remove(name)
                 began[name] = time.monotonic()
@@ -98,6 +97,17 @@ def _run_all(selected, target, workdir, exclude, formats):
     return {name: reports[name] for name in selected}
 
 
+def _startable(left, running):
+    """The engines left that read (AFTER) none of the engines left or running."""
+    return [n for n in left if not set(getattr(ADAPTERS[n], 'AFTER', ())) & (set(left) | set(running.values())) - {n}]
+
+
+def _no_room(name, running, began):
+    """Whether `name` waits: others run, and the computer has no room for it beside them and what they are starting."""
+    starting = sum(_need(n) for n in running.values() if time.monotonic() - began[n] < resources.STARTING)
+    return bool(running) and not resources.room(_need(name) + starting)
+
+
 def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
@@ -107,7 +117,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
     from it."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
-    selected = ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
+    selected = _selected(only)
     unknown = sorted(set(only or ()) - set(ADAPTERS))
     before = state_digest(target)
     reports = _run_all(selected, target, workdir, exclude, formats)
@@ -134,6 +144,11 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
     on_disk = {key: value for key, value in manifest.items() if key != 'findings'}
     (workdir / 'engines.json').write_text(json.dumps(on_disk, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     return manifest
+
+
+def _selected(only):
+    """The engines asked for (`only`, by default all), each after the ones it reads."""
+    return ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
 
 
 def _with_kept(workdir, selected, reports):

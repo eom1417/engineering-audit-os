@@ -126,7 +126,7 @@ def sync(state, event=None, report=None):
     if not plan or not isinstance(plan.get('tasks'), list): return load(state)
     ledger = load(state)
     stamp = f"{state.get('scanned_commit')}@{state.get('scanned')}"
-    milestone = {i: m['id'] for m in plan.get('milestones') or [] for i in m.get('tasks') or []}
+    milestone = _milestones(plan)
     ids = keys(plan['tasks'])
     first = ledger is None
     if first:
@@ -144,9 +144,19 @@ def sync(state, event=None, report=None):
     _reopen_waited(by_id, plan['tasks'])
     _apply_open_batch(cards, by_id, state.get('open_wave') or {})
     totals = _record_history(ledger, first, event, project, state)
-    ledger.update(updated=_now(), commit=_git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None, totals=totals)
+    ledger.update(updated=_now(), commit=_head(project, state), totals=totals)
     _save(state, ledger)
     return ledger
+
+
+def _milestones(plan):
+    """{card id: the id of the plan's milestone that holds it}."""
+    return {i: m['id'] for m in plan.get('milestones') or [] for i in m.get('tasks') or []}
+
+
+def _head(project, state):
+    """The commit the person's branch is at, or None."""
+    return _git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None
 
 
 def _merge_plan(cards, tasks, ids, milestone, first):
@@ -188,16 +198,19 @@ def _apply_wave(wave, cards, known):
     """What a batch did to its cards. One closed without handing anything over (abandoned, superseded) changed nothing:
     its cards stay open, whatever it failed on, and the next batch can pick them (EAOS on itself, 2026-10-13: the 7 module
     splits a gate bug had refused stayed "skipped" after their batch was abandoned, out of every later batch)."""
-    if wave.get('status') in CLOSED_UNUSED:
-        for card in cards.values():                                       # skipped by it before this rule: open again
-            if card['state'] == 'skipped' and card.get('batch') == wave.get('number'): card.update(state='open', batch=None, why='')
-        return
+    if wave.get('status') in CLOSED_UNUSED: return _reopen_skipped(wave, cards)
     for card_id, reason in (wave.get('failed') or {}).items():
         card = cards.get(known.get(card_id))
         if card: card['attempts'] += 1                                       # a card failed twice is EAOS's defect
         if card and card['state'] in ('open', 'in_batch'):
             card.update(state='skipped', why=str(reason)[:300], batch=wave.get('number'))
     for card_id in wave.get('kept') or []: _apply_kept(wave, cards.get(known.get(card_id)))
+
+
+def _reopen_skipped(wave, cards):
+    """The cards a batch closed unused had skipped before _apply_wave's rule are open again."""
+    for card in cards.values():
+        if card['state'] == 'skipped' and card.get('batch') == wave.get('number'): card.update(state='open', batch=None, why='')
 
 
 CLOSED_UNUSED = ('abandoned', 'superseded')
@@ -216,9 +229,13 @@ def _reopen_waited(by_id, tasks):
     it, not its own change (EAOS, 2026-10-15: five module splits set aside before their simplifications, never again)."""
     for task in tasks:
         card, needs = by_id.get(task['id']), [by_id.get(p['task_id']) for p in task.get('prerequisites') or []]
-        if card and card['state'] == 'skipped' and needs and all(
-                need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0) for need in needs):
+        if card and card['state'] == 'skipped' and needs and _done_after(needs, card):
             card.update(state='open', batch=None, why='', reopened=True)
+
+
+def _done_after(needs, card):
+    """Whether every card waited for is done, and in a later batch than the one that set `card` aside."""
+    return all(need and need['state'] == 'done' and (need.get('batch') or float('inf')) > (card.get('batch') or 0) for need in needs)
 
 
 def _apply_open_batch(cards, by_id, open_wave):
@@ -238,7 +255,7 @@ def _record_history(ledger, first, event, project, state):
     moved = not last or last['closed'] != totals['closed'] or last['total'] != totals['total']
     if first or event or moved:
         history.append({'at': _now(), 'event': 'baseline' if first else event or 'merged', 'closed': totals['closed'],
-                        'total': totals['total'], 'percent': totals['percent'], 'commit': _git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None})
+                        'total': totals['total'], 'percent': totals['percent'], 'commit': _head(project, state)})
         del history[:-200]
     return totals
 

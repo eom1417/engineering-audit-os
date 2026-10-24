@@ -20,7 +20,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from unittest import mock
 
-from eaos.pipeline import runners as stage_runners
+from eaos.pipeline import ai_runners, runners as stage_runners
 from eaos.pipeline.run import execute
 from eaos.pipeline.schedule import assistants, forecast, ready_stages, run_ready
 from eaos.pipeline.stages import BY_NAME, ORDER, STAGES, WAITS
@@ -132,8 +132,8 @@ class ParallelCheckTests(unittest.TestCase):
 
     def test_each_stage_asks_of_the_run_only_what_it_waits_for(self):
         """_ran(context, name) reads the run's results while other stages run: only a stage it waits for has surely ended."""
-        tree = ast.parse(Path(stage_runners.__file__).read_text(encoding='utf-8'))
-        functions = {f.name: f for f in tree.body if isinstance(f, ast.FunctionDef)}
+        trees = [ast.parse(Path(module.__file__).read_text(encoding='utf-8')) for module in (stage_runners, ai_runners)]
+        functions = {f.name: f for tree in trees for f in tree.body if isinstance(f, ast.FunctionDef)}
         def asked(function, seen):
             names = set()
             for node in ast.walk(function):

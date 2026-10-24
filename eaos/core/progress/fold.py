@@ -37,7 +37,12 @@ def _run_started(state, row):
     state.update(empty(), flow=row.get('flow') or 'check', run=row.get('run'), state=RUNNING, started_at=row.get('at'),
                  requested=list(requested), previous=row.get('previous') or {}, previous_steps=row.get('previous_steps') or {},
                  alive_every=row.get('alive_every'), pid=row.get('pid'), host=row.get('host'), **{key: row[key] for key in ('mode', 'assistants') if row.get(key)})
-    state['stages'] = [_stage(s, set(requested)) for s in row.get('stages') or [] if isinstance(s, dict) and s.get('name')]
+    state['stages'] = _stages(row, set(requested))
+
+
+def _stages(row, requested):
+    """The stages a run's first line declares, each waiting; a malformed one left out."""
+    return [_stage(s, requested) for s in row.get('stages') or [] if isinstance(s, dict) and s.get('name')]
 
 
 def _stage_started(stage, row):

@@ -102,8 +102,7 @@ def normalise(payload, target, found):
         advisories = entry['advisories']
         if not advisories: continue
         worst = max((a['severity'] for a in advisories.values()), key=SEVERITIES.index)
-        fixes = [a['fixed_in'] for a in advisories.values() if a['fixed_in']]
-        upgrade = max(fixes, key=_key) if fixes and len(fixes) == len(advisories) else None
+        upgrade = _upgrade(advisories)
         ids = sorted(advisories)
         # The SBOM is a report file, not the project's: it is a site only when no lockfile names the package.
         sites = sorted(entry['sites'] - {'sbom.cdx.json'}) or ['sbom.cdx.json']
@@ -118,6 +117,12 @@ def normalise(payload, target, found):
                           measurement('fixed_in', upgrade), measurement('advisory_ids', ids)],
             method=DETERMINISTIC, raw_ref='osv-scanner/osv.json', sites=[{'path': site, 'line': None} for site in sites]))
     return findings
+
+
+def _upgrade(advisories):
+    """The one version that fixes every advisory of a package, or None when one of them has no known fix."""
+    fixes = [a['fixed_in'] for a in advisories.values() if a['fixed_in']]
+    return max(fixes, key=_key) if fixes and len(fixes) == len(advisories) else None
 
 
 def _scan(target, workdir):
@@ -148,11 +153,16 @@ def analyze(target, workdir, exclude=(), formats=None):
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     payload = json.loads(output.read_text(encoding='utf-8'))
     findings = normalise(payload, target, found)
-    sources = sorted({(r.get('source') or {}).get('type', '?') + ':' + Path((r.get('source') or {}).get('path', '')).name
-                      for r in payload.get('results') or []})
+    sources = _sources(payload)
     checked = re.findall(r'found (\d+) packages', error)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, raw=str(output),
                   coverage={'status': 'observed', 'sources_with_findings': sources,
                             'packages_checked': sum(int(n) for n in checked) or None,
                             'sbom_read': sbom.is_file()},
                   evaluated={'vulnerability': {'status': 'observed', 'granularity': 'package'}})
+
+
+def _sources(payload):
+    """Each source OSV-Scanner read, as `<its type>:<its file name>`."""
+    return sorted({(r.get('source') or {}).get('type', '?') + ':' + Path((r.get('source') or {}).get('path', '')).name
+                   for r in payload.get('results') or []})

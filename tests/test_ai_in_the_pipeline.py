@@ -13,7 +13,8 @@ from unittest import mock
 from eaos.journeys import agent_tools, guided
 from eaos.analysis.dossier import assemble
 from eaos.pipeline import runners
-from eaos.pipeline.run import Context, _one
+from eaos.pipeline.run import Context
+from eaos.pipeline.stage_run import _one
 from eaos.pipeline.stages import BY_NAME, STAGES, SkipStage
 from eaos.core.progress import stage_rows
 from eaos.core.progress.log import _small

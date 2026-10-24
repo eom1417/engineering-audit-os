@@ -41,7 +41,6 @@ def analyze(target, workdir, exclude=(), formats=None):
     if not report_path.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     report = json.loads(report_path.read_text(encoding='utf-8'))
-    total = (report.get('statistics') or {}).get('total') or {}
     findings = []
     for clone in report.get('duplicates', []):
         first, second = clone['firstFile'], clone['secondFile']
@@ -55,9 +54,14 @@ def analyze(target, workdir, exclude=(), formats=None):
             raw_ref='jscpd/jscpd-report.json',
             sites=[{'path': first['name'], 'line': first.get('start')},
                    {'path': second['name'], 'line': second.get('start')}]))
-    coverage = {'status': 'observed', 'files': total.get('sources'), 'lines': total.get('lines'),
-                'formats': sorted((report.get('statistics') or {}).get('formats', {})),
-                'duplicated_line_percentage': total.get('percentage'), 'ignored': ignored,
-                'formats_requested': sorted(formats) if formats else 'every format jscpd detects'}
-    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, coverage=coverage,
+    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, coverage=_coverage(report, ignored, formats),
                   provenance={'threshold_tokens': 50}, raw=str(report_path), evaluated={'literal_duplication': {'status': 'observed', 'granularity': FILE}})
+
+
+def _coverage(report, ignored, formats):
+    """What jscpd read: its files, lines and formats, the share of lines duplicated, and what it was told to skip."""
+    total = (report.get('statistics') or {}).get('total') or {}
+    return {'status': 'observed', 'files': total.get('sources'), 'lines': total.get('lines'),
+            'formats': sorted((report.get('statistics') or {}).get('formats', {})),
+            'duplicated_line_percentage': total.get('percentage'), 'ignored': ignored,
+            'formats_requested': sorted(formats) if formats else 'every format jscpd detects'}

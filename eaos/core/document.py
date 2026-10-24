@@ -12,6 +12,20 @@ def say(language, arabic, english):
     return arabic if language == 'ar' else english
 
 
+def _table(payload):
+    """A Markdown table: its headers, the rule under them and its rows, a cell's '|' escaped."""
+    headers, rows = payload[0], payload[1]
+    return (['| ' + ' | '.join(headers) + ' |', '|' + '---|' * len(headers)]
+            + ['| ' + ' | '.join(cell.replace('|', '\\|') for cell in row) + ' |' for row in rows] + [''])
+
+
+# The Markdown lines of each kind of block, from its payload.
+_BLOCKS = {'title': lambda title: ['# ' + title, ''], 'header': lambda rows: ['> ' + row for row in rows] + [''],
+           'heading': lambda heading: ['#' * heading[1] + ' ' + heading[0], ''], 'text': lambda body: [body, ''],
+           'note': lambda body: [body, ''], 'bullets': lambda items: ['- ' + item for item in items] + [''],
+           'mermaid': lambda lines: ['```mermaid'] + lines + ['```', ''], 'table': _table}
+
+
 class Document:
     """Sections render in order; tables truncate against a declared budget instead of overflowing."""
 
@@ -66,18 +80,7 @@ class Document:
 
     def _emit(self):
         out = []
-        for kind, payload in self.blocks:
-            if kind == 'title': out += ['# ' + payload, '']
-            elif kind == 'header': out += ['> ' + row for row in payload] + ['']
-            elif kind == 'heading': out += ['#' * payload[1] + ' ' + payload[0], '']
-            elif kind in ('text', 'note'): out += [payload, '']
-            elif kind == 'bullets': out += ['- ' + item for item in payload] + ['']
-            elif kind == 'mermaid': out += ['```mermaid'] + payload + ['```', '']
-            elif kind == 'table':
-                headers, rows = payload[0], payload[1]
-                out += ['| ' + ' | '.join(headers) + ' |', '|' + '---|' * len(headers)]
-                out += ['| ' + ' | '.join(cell.replace('|', '\\|') for cell in row) + ' |' for row in rows]
-                out += ['']
+        for kind, payload in self.blocks: out += _BLOCKS[kind](payload)
         return '\n'.join(out).rstrip() + '\n'
 
     def _longest_table(self):

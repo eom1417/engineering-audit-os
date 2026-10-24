@@ -92,9 +92,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     workdir = Path(workdir) / NAME
     if workdir.exists(): shutil.rmtree(workdir)
     workdir.mkdir(parents=True)
-    config = workdir / 'codeql-config.yml'
-    ignored = [name.strip('/') for name in EXCLUDED + tuple(exclude) if name.strip('/')]
-    config.write_text('paths-ignore:\n' + ''.join(f"  - '{name}'\n  - '**/{name}'\n" for name in ignored), encoding='utf-8')
+    config, ignored = _config(workdir, exclude)
     files = _files(target, ignored)
     findings, unmapped, seconds, outputs = [], {}, 0.0, {}
     for language, suffixes in LANGUAGES.items():
@@ -110,6 +108,14 @@ def analyze(target, workdir, exclude=(), formats=None):
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped,
                   raw=json.dumps(outputs), coverage={'status': 'observed', 'permitted': why, 'languages': sorted(outputs)},
                   evaluated={'vulnerability': {'status': 'observed', 'granularity': 'file'}})
+
+
+def _config(workdir, exclude):
+    """(codeql-config.yml written in `workdir`, the folders it leaves out: EXCLUDED and the check's own)."""
+    config = workdir / 'codeql-config.yml'
+    ignored = [name.strip('/') for name in EXCLUDED + tuple(exclude) if name.strip('/')]
+    config.write_text('paths-ignore:\n' + ''.join(f"  - '{name}'\n  - '**/{name}'\n" for name in ignored), encoding='utf-8')
+    return config, ignored
 
 
 def _files(target, ignored):

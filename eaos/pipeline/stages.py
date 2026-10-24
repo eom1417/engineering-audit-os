@@ -245,12 +245,17 @@ def _waits():
     under, maker = _built_on(), {artifact: stage.name for stage in STAGES for artifact in stage.produces}
     waits = {stage.name: set(stage.requires + stage.reads) | (set(ORDER[:ORDER.index(stage.name)]) if stage.gathers else set())
              for stage in STAGES}
-    for resource in IN_ORDER:
-        holders = [stage.name for stage in STAGES if resource in stage.uses]
-        for before, name in zip(holders, holders[1:]): waits[name].add(before)
+    _hold_in_order(waits)
     for stage in STAGES:
         for artifact in stage.amends: _keep_order(waits, stage.name, maker[artifact], under)
     return {name: frozenset(found) for name, found in waits.items()}
+
+
+def _hold_in_order(waits):
+    """Each stage holding a resource held in order (IN_ORDER) waits for the stage holding it before it."""
+    for resource in IN_ORDER:
+        holders = [stage.name for stage in STAGES if resource in stage.uses]
+        for before, name in zip(holders, holders[1:]): waits[name].add(before)
 
 
 def _keep_order(waits, amending, maker, under):

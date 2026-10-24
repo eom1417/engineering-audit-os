@@ -138,7 +138,7 @@ def _missing_first(project, lang):
 
 
 def watch(state, args):
-    """Interface first: the install of the tools starts in the background (eaos/core/toolchain.py), and the project's Studio,
+    """Interface first: the install of the tools starts in the background (eaos/core/toolchain/runs.py), and the project's Studio,
     started when it is not running, is printed and opened in the browser, unless `eaos start --no-watch`: on
     "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
     if getattr(args, 'no_watch', False): return

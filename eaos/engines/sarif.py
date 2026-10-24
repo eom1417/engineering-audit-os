@@ -54,10 +54,13 @@ def _severity(result, rule, floor):
     score = _score((result.get('properties') or {}).get('security-severity') or (rule.get('properties') or {}).get('security-severity'))
     if score is not None:
         severity = 'critical' if score >= 9 else 'high' if score >= 7 else 'medium' if score >= 4 else 'low'
-    else:
-        level = result.get('level') or (rule.get('defaultConfiguration') or {}).get('level') or 'warning'
-        severity = {'error': 'high', 'warning': 'medium'}.get(level, 'low')
+    else: severity = {'error': 'high', 'warning': 'medium'}.get(_level(result, rule), 'low')
     return floor if floor and ORDER.index(floor) > ORDER.index(severity) else severity
+
+
+def _level(result, rule):
+    """A result's SARIF level: its own, else its rule's default, else SARIF's default, warning."""
+    return result.get('level') or (rule.get('defaultConfiguration') or {}).get('level') or 'warning'
 
 
 def _tags(result, rule):
@@ -90,7 +93,7 @@ def read(path, engine, version, rules=None):
     findings, unmapped = [], {}
     for known, result in _results(data):
         rule_id = result.get('ruleId') or ''
-        row = next((row for row in rules if fnmatch(rule_id, row['match'])), None)
+        row = _row(rules, rule_id)
         if row is None:
             unmapped[rule_id] = unmapped.get(rule_id, 0) + 1
             continue
@@ -103,6 +106,11 @@ def read(path, engine, version, rules=None):
                                 measurements=[measurement('severity', severity)], sites=sites,
                                 engine_confidence=_confidence(result, rule), cwe=_cwe(result, rule)))
     return findings, unmapped
+
+
+def _row(rules, rule_id):
+    """The first row of the rules whose `match` fits the ruleId, or None."""
+    return next((row for row in rules if fnmatch(rule_id, row['match'])), None)
 
 
 def relative(uri, target):

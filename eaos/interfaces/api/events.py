@@ -185,7 +185,7 @@ class Feed:
 
     def progress_files(self):
         """(flow, path) of every progress file: the check's, each other flow's in the runtime folder, and the install of
-        the tools, shared by every project on this computer (eaos/core/toolchain.py)."""
+        the tools, shared by every project on this computer (eaos/core/toolchain/runs.py)."""
         files = [('check', self.report / PROGRESS)]
         if self.runtime: files += [(path.stem, path) for path in sorted((self.runtime / FOLDER).glob('*.jsonl'))]
         return files + [(toolchain.FLOW, path_for(toolchain.home(), toolchain.FLOW))]
