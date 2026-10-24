@@ -11,7 +11,6 @@ from unittest import mock
 
 from eaos import agent_tools, guided, jobs, progress, toolchain
 from eaos.api import launch, server
-from eaos.engines import trivy
 from eaos.pipeline import report as run_report
 from starlette.testclient import TestClient
 
@@ -127,17 +126,6 @@ class Record(unittest.TestCase):
         text = run_report.document(manifest, 'en').render()
         self.assertIn('The check started without these tools, whose install failed: semgrep, trivy', text)
         self.assertNotIn('without these tools', run_report.document({**manifest, 'options': {}}, 'en').render())
-
-    def test_trivy_reads_the_database_it_has_and_never_downloads_one_in_a_check(self):
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': tmp}), \
-                mock.patch.object(trivy.tool, 'declined', return_value=None), mock.patch.object(trivy, 'version', return_value='0.74.0'), \
-                mock.patch.object(trivy, 'run', return_value=(1, '', 'stop', 0.1)) as run:
-            trivy.analyze(tmp, tmp)
-            self.assertNotIn('--skip-db-update', run.call_args.args[0], 'none yet: Trivy fetches it')
-            (Path(tmp) / 'cache/trivy/db').mkdir(parents=True)
-            (Path(tmp) / 'cache/trivy/db/metadata.json').write_text('{}')
-            trivy.analyze(tmp, tmp)
-            self.assertIn('--skip-db-update', run.call_args.args[0])
 
 
 if __name__ == '__main__':

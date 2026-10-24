@@ -31,6 +31,7 @@ PREFIXES = ('rules.eaos.', 'rules.official.')
 # and holds a value: 1,554 of semgrep's 1,673 findings on EAOS, none a weakness. Where such text becomes a page is what
 # insecure-innerhtml, insecure-document-method and raw-html-join report, and they stay.
 SILENCED = ('javascript/lang/security/html-in-template-string.yaml',)
+LIMIT = 1800         # seconds for the whole scan: 213 on EAOS's 62,000 lines
 EXCLUDED = ('node_modules', '.git', '.venv', 'venv', 'dist', 'build', '__pycache__', 'vendor', '.next')
 
 
@@ -97,10 +98,12 @@ def analyze(target, workdir, exclude=(), formats=None):
     workdir.mkdir(parents=True, exist_ok=True)
     used, commit = assemble(workdir)
     output = workdir / 'semgrep.sarif'
+    # No time limit per rule and file: semgrep's own (5 s, a file skipped after three) dropped findings in silence on a
+    # loaded computer (37 of 40 on EAOS, 2026-10-24); the run's own limit (LIMIT) still ends it, as an error said.
     command = [which(BINARY), 'scan', '--config', 'rules', '--sarif', '--output', str(output), '--metrics', 'off',
-               '--disable-version-check', '--quiet']
+               '--disable-version-check', '--quiet', '--timeout', '0']
     for pattern in EXCLUDED + tuple(exclude): command += ['--exclude', pattern]
-    code, _, error, seconds = run(command + [str(Path(target).resolve())], cwd=workdir)
+    code, _, error, seconds = run(command + [str(Path(target).resolve())], cwd=workdir, timeout=LIMIT)
     if code not in (0, 1) or not output.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     normalise(output, target)

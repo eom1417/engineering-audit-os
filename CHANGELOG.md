@@ -11,7 +11,9 @@ facts, 1,012 claims became 871, no work target was lost but three test functions
 - **semgrep** (M2.1): `html-in-template-string` silenced (the DOM sinks stay: insecure-innerhtml, insecure-document-method,
   raw-html-join). Reviewing the rest found why the baseline's command injection was missed: the official rule wants
   `child_process` required whole, not `exec` taken from `node:child_process`. EAOS's own rule
-  `eaos.security.command-from-text-js` finds a shell command built from text.
+  `eaos.security.command-from-text-js` finds a shell command built from text. Semgrep runs with no time limit per rule
+  and file: its own (5 s, a file skipped after three) dropped findings in silence on a loaded computer (37 of 40 of one
+  rule on EAOS); the whole scan keeps a limit of 30 minutes, and passing it is said as an error.
 - **Complexity** (M2.2): complexipy removed (Python only; on the corpus it found nothing the others did not, on EAOS
   eight files, every one judged by EAOS's own branch count anyway). Reforge and Lizard stay, beside EAOS's own count. A
   count one engine states exactly (too many parameters, nesting too deep, a function too long) is a claim on its own,

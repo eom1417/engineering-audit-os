@@ -25,7 +25,7 @@
  "semgrep:python.django.security.audit.avoid-query-set-extra": 7,
  "semgrep:python.lang.security.audit.dangerous-os-exec-audit": 1,
  "semgrep:python.lang.security.audit.dangerous-os-exec-tainted-env-args": 1,
- "semgrep:python.lang.security.audit.dangerous-subprocess-use-audit": 37,
+ "semgrep:python.lang.security.audit.dangerous-subprocess-use-audit": 40,
  "semgrep:python.lang.security.audit.dangerous-subprocess-use-tainted-env-args": 1,
  "semgrep:python.lang.security.audit.dynamic-urllib-use-detected": 9,
  "semgrep:python.lang.security.audit.insecure-file-permissions": 2,
