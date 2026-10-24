@@ -13,7 +13,7 @@ def from_load_model(fact_sets, offset=0):
     record = fact_sets.get('load_model')
     if not record:
         return []
-    from .load_model import blockers
+    from .load_projection import blockers
     made, index = [], offset
     for blocker in blockers(record):
         index += 1

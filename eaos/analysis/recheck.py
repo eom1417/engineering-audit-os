@@ -21,7 +21,8 @@ def recheck(root, spec):
         collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines') or None)
         sets = read_available(out)
         if (spec.get('specification') or {}).get('query') == 'load_blocker_present':
-            from .load_model import compute, project
+            from .load_model import compute
+            from .load_projection import project
             sets['load_model'] = project(compute(out))
         return decide_probe(spec, sets)
 

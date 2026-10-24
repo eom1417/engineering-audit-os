@@ -48,7 +48,7 @@ def _same_blocker(blocker, specification):
 
 def _load_blocker(specification, sets):
     # Re-derive the blocker from the load model: the claim is about what the questions answer.
-    from .load_model import blockers
+    from .load_projection import blockers
     found = next((blocker for blocker in blockers(sets['load_model']) if _same_blocker(blocker, specification)), None)
     if found: return 'CONFIRMED', f"{found['question']} still answers {found['value']!r}"
     return 'REFUTED', 'the question no longer answers that way for this entry point'
