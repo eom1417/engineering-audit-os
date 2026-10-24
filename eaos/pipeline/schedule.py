@@ -18,8 +18,8 @@ import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
 from .stages import BY_NAME, WAITS
-from ..assistants.resources import RESERVE_MB, STARTING, WAIT, capacity, room
-from ..assistants.command import STOP, check_cancelled
+from ..core.resources import RESERVE_MB, STARTING, WAIT, capacity, room
+from ..core.process import STOP, check_cancelled
 
 MODES = ('normal', 'speed', 'one')
 MOST_ASSISTANTS = 5          # past the card triage's five batches more assistants save a minute and cost a program each

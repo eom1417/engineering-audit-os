@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "description": "Every known failure a user can meet, in plain words, with a fix to copy. eaos/guided.py matches an error against `match` (regular expressions over the error type and text) in order; the first match is shown: `message` says what happened, `fix` what to do, `commands` what to copy, and `after` what to do if it happens again. An unknown error falls back to `unknown`, and the technical detail always goes to a log file, never to the screen.",
+ "description": "Every known failure a user can meet, in plain words, with a fix to copy. eaos/journeys/guided.py matches an error against `match` (regular expressions over the error type and text) in order; the first match is shown: `message` says what happened, `fix` what to do, `commands` what to copy, and `after` what to do if it happens again. An unknown error falls back to `unknown`, and the technical detail always goes to a log file, never to the screen.",
  "errors": [
   {
    "id": "not_a_folder",
@@ -404,7 +404,7 @@
    }
   }
  ],
- "reasons_description": "Why a stage or a step of the live map did not run, or did not pass, in the person's words: each key is a stable `reason_code` written in the progress files (eaos/progress) and in run-manifest.json; eaos/progress/reasons.py reads it. An unknown code shows the sentence EAOS wrote itself. `remedy`: what EAOS does by itself about that reason after a check (eaos/pipeline/remedies.py): a tool to run (tools_check, assistant_check), stages that must be ok first (requires_ok), then the stage run again (again_from); `consent` or `needs: person` when only the person can.",
+ "reasons_description": "Why a stage or a step of the live map did not run, or did not pass, in the person's words: each key is a stable `reason_code` written in the progress files (eaos/core/progress) and in run-manifest.json; eaos/core/progress/reasons.py reads it. An unknown code shows the sentence EAOS wrote itself. `remedy`: what EAOS does by itself about that reason after a check (eaos/pipeline/remedies.py): a tool to run (tools_check, assistant_check), stages that must be ok first (requires_ok), then the stage run again (again_from); `consent` or `needs: person` when only the person can.",
  "reasons": {
   "not_requested": {
    "ar": "لم تُطلب هذه المرحلة في هذا الفحص.",

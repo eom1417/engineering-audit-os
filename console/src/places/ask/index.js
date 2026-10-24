@@ -1,6 +1,6 @@
 // Ask your assistant (builder A): S-52, and EAOS.askAPI, the one conversation the floating assistant shows too
 // (src/core/assist.js). CHT-01..07, PRB-13, PRB-15, AST-05. A turn goes to the person's own assistant (POST /api/chat:
-// it may only read; eaos/studio/actions/chat.py) and is followed as it is written (GET /api/chat/<turn>: what it reads
+// it may only read; eaos/interfaces/studio/chat.py) and is followed as it is written (GET /api/chat/<turn>: what it reads
 // now and the answer so far); what it proposes comes back as cards the person confirms in the action's usual preview,
 // or a run's control they send. Direct control for an hour (owner) on /api/chat/control. The conversation goes on in
 // the assistant's own session and is kept for the tab. Also ?q= (asks at once), ?run=<id> (about a run),

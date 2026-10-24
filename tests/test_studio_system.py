@@ -7,8 +7,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos import artifact_contracts
-from eaos.studio import system, territory
+from eaos.core import artifact_contracts
+from eaos.report.studio import system, territory
 
 FLEET = ['(root)', 'DbTest', 'DbTest/obj/Debug/net8.0', 'src', 'src/Service', 'src/components', 'src/components/auth',
          'src/components/drivers', 'src/components/drivers/tabs', 'src/components/fuel', 'src/components/maintenance',

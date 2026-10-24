@@ -43,14 +43,15 @@ status, time and reason). `REPORT.html` and `HANDOVER.md` sit one level up.
 
 | Folder | What it holds |
 |---|---|
-| `eaos/facts/`, `eaos/engines/` | The facts EAOS reads itself, and the external tools normalised into facts |
+| `eaos/core/` | What every layer reads: the state store, contracts, jobs, the ledger, words, processes, the tools registry |
+| `eaos/engines/`, `eaos/facts/` | The external tools normalised into facts, and the facts EAOS reads itself |
+| `eaos/live/` | Running the app in its sandbox, signing in, the screens, the behaviour lock |
+| `eaos/analysis/` | Claims, weaknesses, the debt register, the cards and the plan, the model of a report |
+| `eaos/ai/` | Running the person's assistant (Claude Code, Codex), its readiness, and the AI nodes |
+| `eaos/report/` | REPORT.html, the four reports, START-HERE, and the Studio's data (`eaos/report/studio/`) |
 | `eaos/pipeline/` | The stages, their runners and the run driver |
-| `eaos/compose/` | The four reports and their labels |
-| `eaos/assistants/` | Running the person's assistant (Claude Code, Codex) and checking it is ready |
-| `eaos/studio/`, `eaos/api/` | The Studio's data, actions and server |
-| `eaos/agent_tools.py`, `eaos/mcp_server.py` | The MCP tools, including the fix journey (`fix_start` … `fix_finish`, `accept`, `undo`) |
-| `eaos/waves.py`, `eaos/execute.py`, `eaos/sandbox.py` | A batch of fixes in an isolated copy, its gates, and the branch handed over |
-| `eaos/guided.py` | The guided commands (`start`, `next`, …) |
-| `studio/` | The Studio's source (React); `npm run build` ships it to `eaos/data/studio` |
+| `eaos/journeys/` | Check and fix (`agent_tools.py`, `guided.py`, `waves.py`, `execute.py`), build, extend |
+| `eaos/interfaces/` | The CLI, MCP (`mcp_server.py`), the local API (`api/`) and the Studio's actions (`studio/`) |
+| `console/` | The Studio's source (plain JavaScript, esbuild); `npm run build` ships it to `eaos/data/studio` |
 | `tests/` | The test suite (`python -m unittest discover -s tests`) |
 | `tools/` | Development helpers: `validate.py`, `make_contracts.py`, `dev_setup.sh` |

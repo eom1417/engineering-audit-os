@@ -9,7 +9,9 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
-from eaos import blueprint, build_tools, guided, plan_source
+from eaos.report import blueprint
+from eaos.journeys import build_tools, guided
+from eaos.analysis import plan_source
 
 
 def spec(**changes):
@@ -143,14 +145,14 @@ class GateTests(unittest.TestCase):
                 'server/src/application/patients/two.ts': f'export function two(input, rate, offset) {{\n{copied}  return 1;\n}}\n',
                 'server/src/stray/thing.ts': 'export const t = 1;\n'})
             collect(root.resolve(), out)
-            from eaos.gates import found
+            from eaos.analysis.gates import found
             gates = {problem['gate'] for problem in found(None, out, [p.relative_to(root).as_posix() for p in root.rglob('*.ts')], rules)}
         self.assertTrue({'layers', 'structure', 'vendor', 'cycle', 'copy'} <= gates, gates)
 
     def test_a_shape_too_small_to_hold_a_rule_is_not_a_copy(self):
         # A real build: `() => x.y()` in several files was refused as copied code.
         from eaos.facts.run import collect
-        from eaos.gates import found
+        from eaos.analysis.gates import found
         with tempfile.TemporaryDirectory() as tmp:
             root, out = Path(tmp) / 'p', Path(tmp) / 'out'
             write(root, {f'server/src/application/m{i}/use.ts': f'import {{ db{i} }} from "./db";\nexport const close{i} = () => db{i}.end();\n'
@@ -171,7 +173,7 @@ class BuildTests(unittest.TestCase):
     def test_a_blueprint_drawn_outside_the_studio_shows_there_its_build_plan_its_questions_and_its_next_step(self):
         # The incident (HungerLab): the blueprint was drawn from the person's own assistant session; the Studio showed
         # no build card, none of its four questions, and "check the project" with no score.
-        from eaos.studio import actions
+        from eaos.interfaces import studio as actions
         build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)
         asked = spec(decisions=[{'id': 'D1', 'question': 'Reminders by SMS or e-mail?', 'options': ['SMS', 'E-mail'],
                                  'recommendation': 'E-mail', 'why': 'e-mail costs nothing'}], flows=[])
@@ -221,7 +223,7 @@ class BuildTests(unittest.TestCase):
         # A real build: k6 failed (its script unseen in the isolated run) and the milestone was delivered as if measured.
         unproven = build_tools.build_look.unusable({'not_done': {'baseline': 'RuntimeError: k6 did not run', 'visual': 'nothing to decide'}})
         self.assertEqual([(p['gate'], p['where']) for p in unproven], [('proof', 'baseline')])
-        from eaos import sandbox
+        from eaos.live import sandbox
         runtime = Path(self.tmp.name) / 'home/projects/p-1/runtime'
         (runtime / 'look').mkdir(parents=True)
         (runtime.parent / 'state.json').write_text(json.dumps({'outputs': str(Path(self.tmp.name) / 'EAOS/p')}))
@@ -289,7 +291,8 @@ class BuildTests(unittest.TestCase):
         self.assertTrue((Path(nxt['copy']) / 'package.json').is_file(), 'it starts where the last milestone ended')
         state = guided.load(Path(self.project).resolve())
         self.assertEqual([w['status'] for w in state['waves']], ['applied'])
-        from eaos import journeys, progress
+        from eaos.journeys import catalog as journeys
+        from eaos.core import progress
         steps = {s['id']: s for s in journeys.journey(state)}
         self.assertEqual(list(steps), ['plan', 'spec', 'blueprint', 'build', 'accept'], 'the build journey, as declared')
         self.assertTrue(steps['blueprint']['done'] and not steps['build']['done'])
@@ -309,8 +312,8 @@ if __name__ == '__main__':
 
 class LookTests(unittest.TestCase):
     def test_a_chosen_design_is_kept_beside_the_report_and_the_screen_review_judges_against_it(self):
-        from eaos import design
-        from eaos.studio.nodes import visual_reviewer
+        from eaos.analysis import design
+        from eaos.ai.nodes import visual_reviewer
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': tmp}):
             self.assertIn('tools install --only ui-ux-pro-max', design.brief()['sources']['ui-ux-pro-max']['install'],
                           'a source not fetched says how to fetch it')
@@ -327,7 +330,9 @@ class LookTests(unittest.TestCase):
 class ExtendTests(unittest.TestCase):
     def test_a_feature_is_planned_into_the_checked_project_reusing_it_and_built_as_a_batch(self):
         import json
-        from eaos import agent_tools, decisions, extend
+        from eaos.journeys import agent_tools, extend
+        from eaos.core import decisions
+        from eaos.analysis import extension
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):
             project = Path(tmp) / 'shop'
             (project / 'src/domain').mkdir(parents=True)
@@ -357,4 +362,4 @@ class ExtendTests(unittest.TestCase):
             cards = json.loads((report / 'plan.json').read_text())['tasks']
             self.assertEqual([(c['id'], c['milestone'], decisions.ready(c)) for c in cards], [('EXT-001', 'X01', True)])
             (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))     # a new check
-            self.assertEqual(extend.carry(project, report), 1, 'a card not built yet is kept by the next check')
+            self.assertEqual(extension.carry(project, report), 1, 'a card not built yet is kept by the next check')

@@ -9,7 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, batch_finish, guided, jobs, lanes
+from eaos.journeys import agent_tools, batch_finish, guided, lanes
+from eaos.core import jobs
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,7 +84,7 @@ class ServerTests(Home):
         self.assertTrue(noted['noted'])
         self.assertEqual(after['handover']['notes'][-1]['by'], 'Codex')
         self.assertEqual([s['tool'] for s in after['handover']['last_steps']], ['choose_branch', 'note'])
-        from eaos.mcp_server import _answer
+        from eaos.interfaces.mcp_server import _answer
         empty = Path(self.tmp.name) / 'empty'                 # no project file and no repository under it
         empty.mkdir()
         answer = json.loads(_answer(lambda: agent_tools.status(str(empty)))())
@@ -93,14 +94,14 @@ class ServerTests(Home):
 class ToolTests(Home):
     def test_every_answer_in_a_studio_run_carries_the_persons_language(self):
         # A real build from the Studio: after its first notes the assistant wrote 67 of 69 notes in English.
-        from eaos import mcp_server
+        from eaos.interfaces import mcp_server
         def status(project=None): return {'next': 'audit'}
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_LANG': 'ar'}):
             self.assertTrue(json.loads(mcp_server._answer(status)(str(self.project)))['notes_language'].startswith('Arabic'))
         self.assertNotIn('notes_language', json.loads(mcp_server._answer(status)(str(self.project))), 'outside a Studio run, nothing')
 
     def test_the_assistant_way_never_calls_a_model_itself(self):
-        source = (ROOT / 'eaos/agent_tools.py').read_text()
+        source = (ROOT / 'eaos/journeys/agent_tools.py').read_text()
         for call in ('from .assistants import provider', 'provider()', '.complete('):
             self.assertNotIn(call, source)
 
@@ -155,8 +156,8 @@ class ToolTests(Home):
                               'kept': {}, 'failed': {}, 'tools': {}}
         guided.save(state)
         with mock.patch('eaos.facts.run.collect'), \
-             mock.patch('eaos.execute.new_breakage', side_effect=[[], ['src/b.js: import of a file that is gone']]), \
-             mock.patch('eaos.waves.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
+             mock.patch('eaos.journeys.execute.new_breakage', side_effect=[[], ['src/b.js: import of a file that is gone']]), \
+             mock.patch('eaos.journeys.waves.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
             kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                 {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             broke = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-002', 'edits': [
@@ -172,8 +173,8 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
         agent_tools.fix_skip('TASK-002', 'needs a product decision', str(self.project))
         self.assertEqual(guided.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
-        with mock.patch('eaos.waves.batch_acceptance', return_value={'TASK-001': 0}), \
-                mock.patch('eaos.waves.original_checks', return_value=[]), mock.patch('eaos.waves.gates', return_value=''):
+        with mock.patch('eaos.journeys.waves.batch_acceptance', return_value={'TASK-001': 0}), \
+                mock.patch('eaos.journeys.waves.original_checks', return_value=[]), mock.patch('eaos.journeys.waves.gates', return_value=''):
             done = batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         self.assertEqual((done['branch'], done['kept']), ('eaos/wave-1', ['TASK-001']))
         self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout, 'the fix arrives as a branch')
@@ -215,8 +216,8 @@ class ToolTests(Home):
         self.assertIn('a = 1', (copy / 'src/a.js').read_text(), 'the refused change was never tried')
         with as_first, mock.patch.object(lanes, 'WAIT', 0):
             self.assertEqual(lanes.mine(guided.load(self.project)['open_wave'], list(tasks)), ['TASK-001', 'TASK-002', 'TASK-003'])
-            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.execute.new_breakage', return_value=[]), \
-                    mock.patch('eaos.waves.batch_acceptance', return_value={'TASK-001': 0}):
+            with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.journeys.execute.new_breakage', return_value=[]), \
+                    mock.patch('eaos.journeys.waves.batch_acceptance', return_value={'TASK-001': 0}):
                 kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                     {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             self.assertEqual(kept['left'], ['TASK-003'], 'its own: the card left for the end comes with fix_finish')
@@ -286,13 +287,13 @@ class OutputsTests(Home):
     def test_a_page_that_cannot_be_built_never_stops_the_step_and_every_page_names_the_eaos_that_made_it(self):
         state = agent_tools.project_state(str(self.project))
         guided.report_of(state).mkdir(parents=True)
-        with mock.patch('eaos.human_report.write', side_effect=RuntimeError('broken record')):
+        with mock.patch('eaos.report.human_report.write', side_effect=RuntimeError('broken record')):
             page = guided.publish(state)                           # the step goes on
         self.assertEqual(page, guided.outputs(state) / 'REPORT.html')
         self.assertIn('broken record', page.read_text(), 'the page says why, instead of an old page left in silence')
         self.assertIn('page: RuntimeError: broken record', guided.report_stamp(state)['errors'])
         self.assertTrue(list((guided.outputs(state) / 'logs').glob('*.log')))
-        from eaos.build_info import digest
+        from eaos.core.build_info import digest
         guided.publish(state)
         made = guided.report_stamp(state)
         self.assertEqual((made['digest'], made['version'], made['errors']), (digest(), __import__('eaos').__version__, []))
@@ -309,7 +310,7 @@ class JobTests(Home):
         patcher.start(); self.addCleanup(patcher.stop)
 
     def test_work_sent_while_other_work_runs_waits_its_turn(self):
-        # the assistants of one batch (eaos/lanes.py) send their changes at once: one is checked at a time
+        # the assistants of one batch (eaos/journeys/lanes.py) send their changes at once: one is checked at a time
         import threading
         state = {'project': str(self.project)}
         first = agent_tools._start('fix_edit', state, {}, seconds=0)
@@ -375,14 +376,14 @@ class QuestionTests(Home):
     """The person's questions about their code: impact, ask and tools_check."""
 
     def call(self, name, arguments):
-        from eaos.mcp_server import build
+        from eaos.interfaces.mcp_server import build
         os.chdir(self.project)
         self.addCleanup(os.chdir, ROOT)
         return json.loads(asyncio.run(build().call_tool(name, arguments)).content[0].text)
 
     def test_questions_wait_for_a_check_then_answer_from_its_facts(self):
         import shutil
-        from eaos.dossier import assemble
+        from eaos.analysis.dossier import assemble
         self.assertIn('audit', self.call('impact', {'target': 'src/a.js'})['error'])
         self.assertIn('audit', self.call('ask', {'question': 'pricing'})['error'])
         project = Path(self.tmp.name) / 'polyglot'
@@ -417,11 +418,11 @@ if __name__ == '__main__':
 
 class PersonOnly(Home):
     """What only the person decides, from a terminal and from the governance tools: refused without their word, and
-    refused inside a Studio run even with it (eaos/govern.py, eaos/terminal.py, eaos/mcp_govern.py)."""
+    refused inside a Studio run even with it (eaos/interfaces/govern.py, eaos/interfaces/terminal.py, eaos/interfaces/mcp_govern.py)."""
 
     def setUp(self):
         super().setUp()
-        from eaos import govern
+        from eaos.interfaces import govern
         govern._core.cache_clear()
         self.addCleanup(govern._core.cache_clear)
         wave_branch(self.project)
@@ -432,7 +433,7 @@ class PersonOnly(Home):
     def eaos(self, *argv, studio_run=False):
         """(exit, printed) of one eaos command, nobody at the terminal."""
         import contextlib, io
-        from eaos import cli
+        from eaos.interfaces import cli
         env = {'EAOS_STUDIO_RUN': 'r1'} if studio_run else {}
         with contextlib.redirect_stdout(io.StringIO()) as printed, mock.patch.dict(os.environ, env), \
                 mock.patch('sys.stdin.isatty', return_value=False):
@@ -450,7 +451,7 @@ class PersonOnly(Home):
         self.assertEqual(self.eaos('accept', str(self.project), '--yes', studio_run=True)[0], 3)
         self.assertEqual(self.eaos('undo', str(self.project), '--yes', studio_run=True)[0], 3)
         with mock.patch('sys.stdin.isatty', return_value=True), mock.patch('builtins.input', side_effect=EOFError):
-            from eaos import cli
+            from eaos.interfaces import cli
             self.assertEqual(cli.main(['accept', str(self.project), '--lang', 'en']), 5, 'the input ended: a no, never a traceback')
         self.assertEqual(agent_tools.undo(str(self.project))['status'], 'needs_agreement', 'the tool waits for the person too')
         self.assertTrue(self.has('eaos/wave-1'), 'nothing happened without the person')
@@ -459,7 +460,7 @@ class PersonOnly(Home):
         self.assertFalse(self.has('eaos/wave-1'))
 
     def test_branch_changes_answers_and_a_fix_that_accepts_itself_need_the_persons_word_and_never_in_a_studio_run(self):
-        from eaos import govern, mcp_govern
+        from eaos.interfaces import govern, mcp_govern
         subprocess.run(['git', '-C', str(self.project), 'branch', 'feature'], check=True)
         for argv in (('branch', 'eaos/wave-1', '--yes'), ('branches', 'delete', 'feature', '--yes'), ('answer', 'q1', 'yes'),
                      ('fix', 'TASK-001', '--auto-accept', '--yes')):
@@ -493,7 +494,7 @@ class PersonOnly(Home):
         answered.assert_called_once()
 
     def test_the_mcp_wait_follows_a_job_of_the_project_it_names(self):
-        from eaos import mcp_server
+        from eaos.interfaces import mcp_server
         with mock.patch.object(agent_tools, 'wait', return_value={'status': 'running'}) as waited:
             mcp_server.functions()['wait'](job='audit-1', seconds=0, project=str(self.project))
         waited.assert_called_once_with('audit-1', 0, str(self.project))

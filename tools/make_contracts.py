@@ -89,7 +89,7 @@ CONTRACTS = {
        'env': {'type': 'object', 'additionalProperties': {'type': 'string'}},
        'seed': arr(arr(S, 1)), 'sign_in': arr(S), 'baseline': {'type': 'object'},
        'checks': arr(arr(S, 1)), 'database': obj({'kind': enum('postgres', 'sqlite'), 'name': S}, ['kind', 'name']),
-       'screens': {'description': 'How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/screens/audit.py variants).', 'type': 'object', 'properties': {k: S for k in ('lang_key', 'lang_field', 'lang_param', 'theme_key', 'theme_field', 'theme_param')}},
+       'screens': {'description': 'How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/live/screens/audit.py variants).', 'type': 'object', 'properties': {k: S for k in ('lang_key', 'lang_field', 'lang_param', 'theme_key', 'theme_field', 'theme_param')}},
        'limitations': arr(S)}, ['schema_version', 'install', 'start', 'port', 'health'])),
  'approvals': ('approvals.json', 'NS17.T4', 'A person\'s recorded approval of a stage whose gate needs a human (S06: the target architecture). EAOS never writes it; eaos engage approve does, on the owner\'s command.',
   obj({'schema_version': {'const': 1},
@@ -152,7 +152,7 @@ REFS = arr(S)
 
 
 # The system section (studio/system.json): the territory maps of today and of the target, laid out by EAOS so the
-# Studio only draws (eaos/studio/system.py, eaos/studio/territory.py). The precursor of NS39.T1's unified graph.
+# Studio only draws (eaos/report/studio/system.py, eaos/report/studio/territory.py). The precursor of NS39.T1's unified graph.
 _COUNT = {'type': 'integer', 'minimum': 0}
 _XY = {'type': 'number'}
 _OP = enum('retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce')
@@ -225,7 +225,7 @@ STUDIO = {
                              'evidence': arr(S), 'state': enum(*CARD_STATES), 'milestone': NS,
                              'confidence': {'type': ['number', 'null'], 'minimum': 0, 'maximum': 1},
                              'why': obj({'ar': S, 'en': S}),
-                             # what the assistant decided for the card (eaos/studio/export.py resolution_of): fix it, or
+                             # what the assistant decided for the card (eaos/report/studio/export.py resolution_of): fix it, or
                              # ask the owner one real product choice
                              'resolution': obj({'kind': enum('fix', 'owner'), 'by': S, 'words': S, 'why': S, 'change': S,
                                                 'capped': B, 'question': S, 'options': arr(S), 'recommendation': S},
@@ -282,7 +282,7 @@ STUDIO = {
   SYSTEM_SECTION)
 }
 # The visual maps of NS46.T6 (STUDIO-COMPLETE.md "the owner's must-haves"): the user's journeys between screens
-# (eaos/studio/journeys.py) and what the user sees against what runs unseen (eaos/studio/hidden.py). Every element
+# (eaos/report/studio/journeys.py) and what the user sees against what runs unseen (eaos/report/studio/hidden.py). Every element
 # carries its evidence (fact, file, line); a gap in the engine's data is written in `missing` and counted in coverage.
 _EVIDENCE = obj({'file': NS, 'line': NI, 'fact': NS}, ['file'])
 _MAP_GAP = obj({'id': S, 'state': enum(*COVERAGE_STATES), 'step': {'type': 'string', 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
@@ -330,7 +330,7 @@ HIDDEN_SECTION = section_v2({
     'components': {'type': 'object', 'additionalProperties': {'type': 'object', 'additionalProperties': COUNT}},
     'missing': arr(_MAP_GAP),
 }, ['counts', 'src', 'seen', 'groups', 'items', 'links', 'components', 'missing'])
-# The data paths and infrastructure maps (eaos/studio/data_paths.py, eaos/studio/infra.py): each element carries its
+# The data paths and infrastructure maps (eaos/report/studio/data_paths.py, eaos/report/studio/infra.py): each element carries its
 # evidence (path, line, fact); a tier or lane the records do not reach is a gap with its reason, never a guessed link.
 _SITE = obj({'path': S, 'line': NI, 'fact': NS}, ['path', 'line', 'fact'])
 _DP_STEP = obj({'state': enum('known', 'gap', 'direct'), 'reason': S}, ['state'])
@@ -411,7 +411,7 @@ STUDIO_V2 = {
                                   'flags': arr(enum('no_way_in', 'dead_end', 'duplicate', 'broken_link'))},
                                  ['id', 'route', 'title', 'shots', 'inputs', 'issues'])),
               'missing': arr(_MAP_GAP),
-              # the gallery of what the check pictured (eaos/studio/screens.py gallery): each page once, its pictures, and
+              # the gallery of what the check pictured (eaos/report/studio/screens.py gallery): each page once, its pictures, and
               # the visual reviewer's findings on each with their region as fractions 0-1 of the picture
               'pages': arr(obj({'path': S, 'template': S, 'same_as': arr(S), 'state': enum('findings', 'clean', 'not_reviewed'),
                                 'findings': COUNT,
@@ -479,7 +479,7 @@ STUDIO_V2 = {
               'not_measured': REF('measure')},
              ['sections', 'not_measured'])),
 }
-# The code paths (studio/paths.json, eaos/studio/paths.py): each entry through its layers as swimlanes, every node and
+# The code paths (studio/paths.json, eaos/report/studio/paths.py): each entry through its layers as swimlanes, every node and
 # link with its evidence, a gap node where the records stop; and the fix plan's timeline in waves.
 _LANE = enum('screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data')
 _PATH_EVIDENCE = {'fact': NS, 'path': {'type': ['string', 'null'], 'pattern': r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$))'},
@@ -522,7 +522,7 @@ STUDIO_V2['paths'] = (
                  'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
                  ['plan', 'waves', 'steps', 'tasks', 'counts'])]}},
             ['lanes', 'paths', 'nodes', 'edges', 'components', 'new', 'overview', 'counts', 'src', 'timeline']))
-# The pipeline map (studio/pipeline.json, eaos/studio/pipeline.py from facts/pipeline.json): whether the project, or a
+# The pipeline map (studio/pipeline.json, eaos/analysis/pipeline_map.py from facts/pipeline.json): whether the project, or a
 # part of it, is a pipeline; its stages with their tools, inputs, outputs and side effects; the edges matched by value
 # flow; routers and their branches; fan-out and fan-in; the error lanes; what bypasses the declared flow; the steps
 # EAOS could not follow (drawn as gaps, never invented); and the ideal pipeline and the gap, by rules.
@@ -598,7 +598,7 @@ STUDIO_V2['pipeline'] = (
              'src': {'type': 'object', 'additionalProperties': REF('source')}},
             ['detected', 'confidence', 'verdict', 'kinds', 'evidence', 'looked_for', 'pipelines', 'stages', 'edges', 'routers',
              'fans', 'control', 'error_lanes', 'hidden', 'unresolved', 'rules', 'views', 'counts', 'src']))
-# The planned ideal (studio/ideal.json, eaos/studio/ideal.py, docs/STUDIO.md D10): every Target/Ideal view from the
+# The planned ideal (studio/ideal.json, eaos/ai/ideal.py, docs/STUDIO.md D10): every Target/Ideal view from the
 # rules, then planned by the person's assistant on top of them, each element citing the evidence it stands on, and each
 # view with its provenance. Every section that draws a target carries the same optional `provenance`.
 IDEAL_VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
@@ -640,7 +640,7 @@ STUDIO_V2['ideal'] = (
              'runs': arr(obj({'at': S, 'state': enum(*IDEAL_STATES), 'assistant': NS, 'model': NS, 'seconds': NN,
                               'passes': REFS, 'message': S}, ['at', 'state', 'passes']))},
             ['state', 'message', 'provenance', 'views', 'evidence', 'critique', 'questions', 'runs']))
-# The AI nodes (eaos/studio/nodes/, docs/STUDIO.md D11): a stage whose input is a deterministic output and whose output is
+# The AI nodes (eaos/ai/nodes/, docs/STUDIO.md D11): a stage whose input is a deterministic output and whose output is
 # a structured decision, routed on by declared branches. `ai-node` is one node's run (<report>/nodes/<node>/last.json),
 # whose decisions all share one shape; `studio-nodes` is what the Studio draws of every node.
 NODE_STATES = ('decided', 'rules_only', 'failed')
@@ -681,7 +681,7 @@ STUDIO_V2['nodes'] = (
                                   ['id', 'node', 'subject', 'question', 'options'])),
              'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
             ['nodes', 'sinks', 'questions', 'counts']))
-# The sections that draw a target, and the ideal view whose provenance they carry (eaos/studio/ideal.py SECTION_VIEWS).
+# The sections that draw a target, and the ideal view whose provenance they carry (eaos/ai/ideal.py SECTION_VIEWS).
 TARGET_SECTIONS = ('system', 'story', 'plans', 'gaps', 'operations', 'paths', 'journeys', 'data_paths', 'infra', 'pipeline')
 for _sections in (STUDIO, STUDIO_V2):
     for _name in TARGET_SECTIONS:

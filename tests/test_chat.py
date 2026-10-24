@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from eaos.studio.actions import chat
+from eaos.interfaces.studio import chat
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -14,7 +14,7 @@ class ChatTests(unittest.TestCase):
     def test_it_reaches_only_reading_tools_and_proposes_only_what_the_studio_can_run(self):
         # The owner, 2026-10-14: an assistant that helps inside the work, governed: it may read and diagnose, and every
         # change waits for the person
-        source = (ROOT / 'eaos/mcp_server.py').read_text(encoding='utf-8')
+        source = (ROOT / 'eaos/interfaces/mcp_server.py').read_text(encoding='utf-8')
         reading = {name for kind, name in re.findall(r"@server\.tool\(annotations=(\w+)[\s\S]*?def (\w+)\(", source) if kind == 'reading'}
         self.assertLessEqual(set(chat.READ_TOOLS), reading, 'a tool that works is out of the conversation\'s reach')
         actions = SimpleNamespace(contract={'actions': [{'id': 'audit'}, {'id': 'run_try'}]},
@@ -40,9 +40,9 @@ class ChatTests(unittest.TestCase):
 
     def test_an_answer_to_a_step_s_question_acts_and_the_same_question_never_comes_back(self):
         # the owner, 2026-10-21: "your assistant is not answering" came back after every answer, picked or written
-        from eaos import agent_tools
-        from eaos.studio.actions import prompts
-        from eaos.studio.actions.runs import Manager
+        from eaos.journeys import agent_tools
+        from eaos.ai import prompts
+        from eaos.interfaces.studio.runs import Manager
         question = prompts.assistant_question({'assistant': {'name': 'Claude Code'}})
         direct = {'mode': 'direct'}
         self.assertEqual(prompts.picked(direct, question, None, 'رجع الاتصال، كمّل'), 'retry', 'words act: the recommended option')

@@ -26,7 +26,7 @@ human = next(Path(sys.argv[1]).rglob('human/index.html'), None)
 if not (human and (human.parent.parent / 'RUN.md').is_file()): sys.exit('golden trial failed: no RUN.md beside the report')
 if bad or human is None: sys.exit(f'golden trial failed: {bad or "no report for people"}')
 from starlette.testclient import TestClient
-from eaos.api import server
+from eaos.interfaces.api import server
 keys = server.Keys(port=8765)
 http = TestClient(server.create_app(human.parent.parent, keys=keys, mounts=[], watch=False), base_url='http://127.0.0.1:8765')
 url = http.get('/api/report-ticket', headers={'X-EAOS-Token': keys.token}).json()['url']

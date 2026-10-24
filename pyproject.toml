@@ -16,50 +16,18 @@ live = ["pgserver>=0.1.4"]
 dev = ["pyflakes>=3,<5", "import-linter>=2.1,<3"]
 
 [project.scripts]
-eaos = "eaos.cli:main"
+eaos = "eaos.interfaces.cli:main"
 [tool.setuptools.packages.find]
 include = ["eaos*"]
 [tool.setuptools.package-data]
 eaos = ["data/*.json", "data/schemas/*.json", "data/schemas/artifacts/*.json", "data/studio/*", "data/studio/**/*", "rules/*.json", "rules/**/*", "templates/**/*"]
 
-# The layers as they stand (0.0.71), refused from going backwards (tools/quality.sh); M3.1 replaces them with the
-# target layers of docs/ARCHITECTURE.md. Only direct imports are held: today everything reaches everything through
-# the flat package root.
+# The layers of docs/ARCHITECTURE.md §2 (M3.1): each imports only the layers under it, directly or not (tools/quality.sh).
 [tool.importlinter]
 root_package = "eaos"
 
 [[tool.importlinter.contracts]]
-name = "Analyzers never import the pipeline, the reports or the interfaces"
-type = "forbidden"
-source_modules = ["eaos.assistants", "eaos.engines", "eaos.facts", "eaos.screens"]
-forbidden_modules = ["eaos.api", "eaos.studio", "eaos.compose", "eaos.pipeline"]
-allow_indirect_imports = true
-
-[[tool.importlinter.contracts]]
-name = "Facts never import the assistants or the screens"
-type = "forbidden"
-source_modules = ["eaos.facts"]
-forbidden_modules = ["eaos.assistants", "eaos.screens"]
-allow_indirect_imports = true
-
-[[tool.importlinter.contracts]]
-name = "Assistants never import the analyzers"
-type = "forbidden"
-source_modules = ["eaos.assistants"]
-forbidden_modules = ["eaos.engines", "eaos.facts", "eaos.screens"]
-allow_indirect_imports = true
-
-[[tool.importlinter.contracts]]
-name = "Reports never import the pipeline or the API"
-type = "forbidden"
-source_modules = ["eaos.compose"]
-forbidden_modules = ["eaos.api", "eaos.pipeline"]
-allow_indirect_imports = true
-
-[[tool.importlinter.contracts]]
-name = "Progress imports only the pipeline"
-type = "forbidden"
-source_modules = ["eaos.progress"]
-forbidden_modules = ["eaos.api", "eaos.studio", "eaos.compose", "eaos.assistants", "eaos.engines", "eaos.facts", "eaos.screens"]
-allow_indirect_imports = true
-
+name = "Each layer imports only the layers under it"
+type = "layers"
+layers = ["eaos.interfaces", "eaos.journeys", "eaos.pipeline", "eaos.report", "eaos.ai", "eaos.analysis", "eaos.live",
+          "eaos.facts", "eaos.engines", "eaos.core"]

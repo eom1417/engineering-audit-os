@@ -1,5 +1,5 @@
 // S-04 Sign in to your app (builder A): SGN-03..07. While a check waits for the owner's sign-in (GET /api/sign-in),
-// a real browser on this computer (eaos/api/sign_in.py) is shown as a picture they drive: a press on the picture
+// a real browser on this computer (eaos/interfaces/api/sign_in.py) is shown as a picture they drive: a press on the picture
 // clicks there, typing and keys go to the field they clicked, scrolling and back; what the app sent (its last output
 // lines, the mails its mail catcher caught) beside it. "I have signed in" saves the session for the owner alone and
 // the check goes on; "Go on without" lets it go on signed out. Nothing typed is kept or logged.

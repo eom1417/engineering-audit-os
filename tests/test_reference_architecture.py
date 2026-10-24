@@ -4,7 +4,7 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.reference_architecture import by_id, catalogue, choose, layer_of
+from eaos.analysis.reference_architecture import by_id, catalogue, choose, layer_of
 
 
 class ReferenceTests(Workspace):

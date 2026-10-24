@@ -1,4 +1,4 @@
-"""The command centre (eaos/studio/actions): the contract, the locks, the event log, the adapters on real recorded
+"""The command centre (eaos/interfaces/studio): the contract, the locks, the event log, the adapters on real recorded
 streams, and runs end to end with a fake assistant (tests/fixtures/studio/actions/fake_assistant.py)."""
 import json
 import os
@@ -16,9 +16,12 @@ ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / 'tests/fixtures/studio/actions'
 FAKE = FIXTURES / 'fake_assistant.py'
 
-from eaos.studio import actions  # noqa: E402
+from eaos.interfaces import studio as actions  # noqa: E402
 from tests.shared_fixture import Workspace  # noqa: E402
-from eaos.studio.actions import adapters, handoff, prompts, resume, runs, security, selection, store  # noqa: E402
+from eaos.ai import headless as adapters, prompts
+from eaos.interfaces.studio import handoff, resume, runs
+from eaos.core import security, store
+from eaos.journeys import selection  # noqa: E402
 
 
 def card(id, **extra):
@@ -96,7 +99,7 @@ class Base(Workspace):
 class Contract(unittest.TestCase):
     def test_the_packaged_contract_is_the_documented_one_names_every_tool_and_every_endpoint_is_routed(self):
         self.assertEqual((ROOT / 'docs/studio-actions.json').read_bytes(), (ROOT / 'eaos/data/studio-actions.json').read_bytes())
-        from eaos import mcp_server
+        from eaos.interfaces import mcp_server
         data = actions.contract()
         names = {action['id'] for action in data['actions'] if action['tool']}
         self.assertEqual(set(mcp_server.functions()), names)
@@ -128,7 +131,7 @@ class Contract(unittest.TestCase):
     def test_every_tool_status_can_name_next_is_allowed_to_the_fix_verb(self):
         """The incident: status said fix_abandon, the fix run was not allowed it, and the stuck batch could not be closed."""
         import inspect
-        from eaos import agent_tools
+        from eaos.journeys import agent_tools
         source = inspect.getsource(agent_tools.status)
         named = set()
         for step in re.findall(r"step = \('([^']+)'", source) + re.findall(r"'next': \{'tool': '([^']+)'", source):
@@ -208,7 +211,7 @@ class Locks(Base):
 
 
     def test_speed_mode_is_offered_in_a_fixs_preview_kept_for_the_project_and_given_to_its_assistant(self):
-        from eaos import agent_tools, check_choices, guided
+        from eaos.journeys import agent_tools, check_choices, guided
         from eaos.pipeline import schedule
         guided.save(agent_tools.project_state(str(self.project)))              # a project checked once: its fixes come after
         subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--allow-empty', '-m', 'm'], check=True)
@@ -395,7 +398,7 @@ class Selection(Base):
 
 
 def alive(pid):
-    from eaos.studio.actions.runs import alive
+    from eaos.interfaces.studio.runs import alive
     return alive(pid)
 
 
@@ -483,7 +486,7 @@ class Runs(Base):
         Retry its bar read "2 of 55" though 12 cards were done."""
         os.environ['FAKE_MODE'] = 'crash_once'
         wave = {'open_wave': {'number': 1, 'cards': ['TASK-001', 'TASK-002'], 'kept': {'TASK-001': 'abc'}, 'failed': {}}}
-        with mock.patch('eaos.guided.load', return_value=wave):
+        with mock.patch('eaos.journeys.guided.load', return_value=wave):
             run = self.start('fix', cards=('TASK-001', 'TASK-002'))
             self.app.wait(run, ('done', 'failed'), 30)
         events = self.app.store.events(run)
@@ -495,8 +498,8 @@ class Runs(Base):
         self.assertNotIn('something broke', ' '.join(str(e['data'].get('reason')) for e in events if e['kind'] == 'error'))
 
     def test_a_fix_in_speed_mode_starts_an_assistant_per_lane_beside_its_own_and_gets_back_what_one_left(self):
-        from eaos import agent_tools, guided
-        from eaos.studio.actions import helpers
+        from eaos.journeys import agent_tools, guided
+        from eaos.interfaces.studio import helpers
         state = agent_tools.project_state(str(self.project))
         state['open_wave'] = {'number': 1, 'cards': ['TASK-001', 'TASK-002', 'TASK-004'], 'kept': {}, 'failed': {},
                               'lanes': [['TASK-001'], ['TASK-002'], ['TASK-004']], 'claims': {}, 'helpers': {}, 'later': [], 'released': []}
@@ -633,10 +636,10 @@ class Direct(Base):
         return (lambda: {name: tool(name) for name in {a['id'] for a in actions.contract()['actions']}}), calls
 
     def test_a_reading_action_answers_at_once_and_a_job_is_followed_with_its_progress(self):
-        from eaos import jobs
+        from eaos.core import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'}, 'audit': {'job': 'audit-1', 'status': 'running'}})
         applied = {'branch': 'main', 'waves': [{'status': 'applied', 'branch': 'eaos/main/wave-1', 'kept': ['TASK-1']}]}
-        with mock.patch('eaos.guided.load', return_value=applied):     # a batch handed over earlier is not this read's
+        with mock.patch('eaos.journeys.guided.load', return_value=applied):     # a batch handed over earlier is not this read's
             status, payload = self.post('/api/runs', {'action': 'status'})
         self.assertEqual((status, payload['run']['state'], payload['run']['result']['answer']), (200, 'done', {'next': 'audit'}))
         self.assertEqual((payload['run']['result']['branch'], payload['run']['result']['cards_closed']), (None, []))
@@ -649,7 +652,7 @@ class Direct(Base):
             state['n'] += 1
             if state['n'] < 3: return {'id': job, 'kind': 'audit', 'status': 'running', 'progress': {'done': state['n'], 'total': 3, 'stage': 'engines'}}
             return {'id': job, 'kind': 'audit', 'status': 'done', 'result': {'overview': 'fine'}}
-        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.guided.load', return_value=applied):
+        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.journeys.guided.load', return_value=applied):
             run = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
             done = self.app.wait(run, ('done', 'failed'), 20)
         self.assertEqual(done['state'], 'done')
@@ -746,7 +749,7 @@ class Direct(Base):
         accept answering "not waiting any more". Whether a branch waits is read from EAOS's state, the one truth."""
         self.app.store.save({'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
                              'created': '0', 'result': {'branch': 'eaos/develop/wave-10'}}, new=True)
-        listed = lambda waves: mock.patch('eaos.guided.load', return_value={'waves': waves})
+        listed = lambda waves: mock.patch('eaos.journeys.guided.load', return_value={'waves': waves})
         with listed([{'number': 10, 'status': 'applied', 'branch': 'eaos/develop/wave-10'}]):
             self.assertIsNone(self.get('/api/runs')[1]['runs'][0].get('outcome'), 'handed over, it waits')
         with listed([{'number': 10, 'status': 'accepted', 'branch': 'eaos/develop/wave-10'},
@@ -793,7 +796,7 @@ class Plan(Base):
         self.assertEqual(record['action'], 'blueprint_start')
         self.assertEqual(record['inputs']['project'], str(self.project.parent / 'my-clinic'))
         self.assertEqual(sorted(p.name for p in Path(record['inputs']['source']).iterdir()), ['plan.md', 'visits.png'])
-        from eaos import guided
+        from eaos.journeys import guided
         self.assertEqual(guided.load((self.project.parent / 'my-clinic').resolve())['lang'], self.app.lang, "it speaks the Studio's language")
         status, payload = self.post('/api/plan', {'name': 'project', 'text': 'a plan'})
         self.assertEqual(status, 400, 'never into a folder that already holds a project')
@@ -810,8 +813,8 @@ class Handoff(Base):
         self.assertEqual(list(self.project.rglob('studio-requests.json')), [], 'the request waits in the EAOS workspace, never the project')
         [written] = list((self.base / 'home').rglob('studio-requests.json'))
         self.assertIn(f'studio-request {run} done', json.loads(written.read_text())[0]['request']['en'])
-        from eaos import mcp_server
-        with mock.patch('eaos.build_tools.status_of', side_effect=lambda project: {'next': 'audit'}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'Codex'}):
+        from eaos.interfaces import mcp_server
+        with mock.patch('eaos.journeys.build_tools.status_of', side_effect=lambda project: {'next': 'audit'}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'Codex'}):
             answer = mcp_server._status(str(self.project))
             self.assertEqual(mcp_server._status(str(self.project)), {'next': 'audit'})
         self.assertEqual(answer['studio_request']['id'], run)
@@ -824,8 +827,8 @@ class Handoff(Base):
 
     def test_the_studios_own_calls_neither_take_the_request_nor_use_the_person_only_tools(self):
         handoff.add(self.project, 'r1', 'do it', {'en': 'x', 'ar': 'x'})
-        from eaos import mcp_server
-        with mock.patch('eaos.build_tools.status_of', return_value={}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': mcp_server.STUDIO}):
+        from eaos.interfaces import mcp_server
+        with mock.patch('eaos.journeys.build_tools.status_of', return_value={}), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': mcp_server.STUDIO}):
             self.assertEqual(mcp_server._status(str(self.project)), {})
         self.assertEqual(len(handoff.pending(self.project)), 1)
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_RUN': 'r1'}):
@@ -918,7 +921,7 @@ class ReportDecisions(Base):
         self.assertEqual(self.response()['run'], run, 'the same revision in another language is the same question')
 
     def test_later_plans_fixes_and_the_ideal_planner_receive_the_saved_answer_as_context_only(self):
-        from eaos.studio import ideal
+        from eaos.ai import ideal
         self.answer_report(None, '  Preserve this exact planning choice.  ')
         for verb in ('plan', 'fix'):
             prompt = self.app.manager.prompt_of(self.app.store.load(self.start(verb)))
@@ -978,7 +981,7 @@ if __name__ == '__main__':
 
 
 class Headless(unittest.TestCase):
-    """Without the Studio (eaos/govern.py): a command queues without starting anything, one host starts the runs."""
+    """Without the Studio (eaos/interfaces/govern.py): a command queues without starting anything, one host starts the runs."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -992,7 +995,7 @@ class Headless(unittest.TestCase):
         (self.project / 'package.json').write_text('{}')
         for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
             subprocess.run(['git', '-C', str(self.project), *argv], check=True, capture_output=True)
-        from eaos import govern
+        from eaos.interfaces import govern
         self.govern = govern
         govern._core.cache_clear()
         self.addCleanup(govern._core.cache_clear)

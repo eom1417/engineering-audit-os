@@ -1,4 +1,4 @@
-// The thin adapter between the report's sections (eaos/studio/export.py, schemas/artifacts/studio-*.schema.json) and
+// The thin adapter between the report's sections (eaos/report/studio/export.py, schemas/artifacts/studio-*.schema.json) and
 // the shapes the screens draw, which are the prototype's (studio-design/prototype/assets/data.js) wherever the report
 // carries the same facts. Every getter reads the sections already loaded and is cached on their identity, so a live
 // reload (a new section object) recomputes it and nothing else does. A getter whose section is not read returns the
@@ -50,7 +50,7 @@ export function problem(id) { return memo('problemIndex', ['cards'], () => new M
 /** Who acts on a problem: the owner ('you', a decision or a skipped card) or EAOS by itself ('eaos'). */
 export const who = p => (p.needs_decision ? 'you' : 'eaos');
 
-/** The counts every page says (eaos/studio/model.py problem_counts): every card of the plan, those EAOS fixes by
+/** The counts every page says (eaos/analysis/model.py problem_counts): every card of the plan, those EAOS fixes by
  *  itself, those that need the owner, by severity; and the closed of every card seen over the checks (history). */
 export function totals() {
   return memo('totals', ['cards', 'history'], (cards, history) => {
@@ -118,7 +118,7 @@ export function buildPlan() {
   return memo('buildPlan', ['plans'], p => (p && p.plans.find(x => x.kind === 'build')) || null);
 }
 
-/** The build's next step as the report's head names it (eaos/studio/build_plan.next_step): its words, and the inbox
+/** The build's next step as the report's head names it (eaos/report/studio/build_plan.next_step): its words, and the inbox
  *  for the blueprint's questions or the `build_start` action; null when the next step is neither. */
 export function buildNext() {
   const p = project();

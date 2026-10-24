@@ -59,7 +59,7 @@ def public_repository(target):
     """`owner/name` when the project's origin is a public repository on GitHub.com, else None."""
     done = subprocess.run(['git', '-C', str(target), 'remote', 'get-url', 'origin'], capture_output=True, text=True)
     url = done.stdout.strip() if done.returncode == 0 else ''
-    # EAOS's own copy of the project (eaos/guided.py source) has the project's folder as origin: the project's own counts.
+    # EAOS's own copy of the project (eaos/journeys/guided.py source) has the project's folder as origin: the project's own counts.
     if url and Path(url).is_dir() and Path(url).resolve() != Path(target).resolve(): return public_repository(url)
     found = GITHUB.search(url)
     if not found: return None
@@ -113,7 +113,7 @@ def analyze(target, workdir, exclude=(), formats=None):
 
 
 def _files(target, ignored):
-    from ..toolchain import project_files
+    from ..core.toolchain import project_files
     return [path for path in project_files(target) if not tool.excluded(path, ignored)]
 
 

@@ -13,7 +13,7 @@ ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, 
 | Function parameters | ≤ 5 (self, cls aside), today's 130 listed | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
 | No dead code | no unused import or variable (pyflakes); EAOS's own dead-code detector (the Python) and `knip` (the Studio) not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` (not `enola`: its count moves with the documents' words) |
-| Layers | today's direct imports between subpackages may not go backwards (5 contracts in `pyproject.toml`) | each layer imports only the layers under it (`docs/ARCHITECTURE.md`) | `import-linter` |
+| Layers | each layer imports only the layers under it, directly or not (`docs/ARCHITECTURE.md` §2; one layers contract in `pyproject.toml`, no exception) | same (reached by M3.1) | `import-linter` |
 
 What exceeds a limit today is listed in `tools/code_limits.json` and may only shrink: after shrinking one, run
 `python tools/code_limits.py --tighten`. Every engine's number (findings per engine and rule) is recorded in
@@ -44,7 +44,7 @@ the Studio's entries from `console/knip.json`.
 
 - `main` is never touched (git hooks refuse it). Every change goes through a `dev/<topic>` branch from `develop`
   (directly on `develop` only when the owner says so).
-- A project's app runs only in its isolated copy (`eaos/sandbox.py`, `eaos/live_run.py`): its own database, port and
+- A project's app runs only in its isolated copy (`eaos/live/sandbox.py`, `eaos/live/run.py`): its own database, port and
   scratch home; never the owner's real data.
 - A simulated user (M9) acts only in the isolated copy: external services stubbed, dummy data only, within step,
   time and cost budgets; what needs a real service is reported as not covered.

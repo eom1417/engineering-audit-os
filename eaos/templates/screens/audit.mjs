@@ -1,6 +1,6 @@
 // EAOS screen audit: one rendered page per viewport and variant, through the pinned Playwright and axe.
 //
-// Run by eaos/screens/audit.py as a separate process:  node audit.mjs <config.json>
+// Run by eaos/live/screens/audit.py as a separate process:  node audit.mjs <config.json>
 // The config names the module folders (EAOS installs each tool in its own prefix; ES modules ignore NODE_PATH),
 // the URL, the viewports, the variants and where screenshots go. The result is one JSON object on stdout.
 // Requests to any origin other than the tested URL's are aborted and counted, so a gate run reaches
@@ -281,7 +281,7 @@ async function auditOne(browser, entry, viewport, variant, index) {
     variant: variant.name, mobile, expect: variant.expect || null };
   try {
     const response = await settle(page, url, entry);
-    // Where the page ended, its answer and a password field: whether it opened as itself (eaos/roles.py opened)
+    // Where the page ended, its answer and a password field: whether it opened as itself (eaos/live/roles.py opened)
     Object.assign(row, { landed: page.url(), http: response ? response.status() : null,
       password: await page.locator('input[type=password]').count(),
       text: (await page.locator('body').innerText().catch(() => '')).slice(0, 4000) });

@@ -7,8 +7,8 @@ lends it a second engine; and a claim about one kind cites only the evidence of 
 """
 import unittest
 
-from eaos import claims, correlate
-from eaos.ranking import claim_paths
+from eaos.analysis import claims, correlate
+from eaos.analysis.ranking import claim_paths
 
 
 def finding(fact_id, engine, kind, subject_kind, paths):

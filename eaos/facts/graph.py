@@ -5,7 +5,7 @@ It is never a quality score and never an ordering of severity.
 """
 from collections import deque
 from . import digest, make
-from ..architecture import cycles
+from .architecture import cycles
 
 NAME = 'graph'
 VERSION = '1'

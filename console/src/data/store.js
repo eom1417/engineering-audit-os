@@ -75,7 +75,7 @@ export function rememberDecision(row) {
 
 let progressTimer = 0;
 /** The progress of every flow (/api/progress), at most once a second however many progress events arrive (a stage's
- *  counted steps are written up to four times a second, eaos/progress/log.py); its `now` sets the server's clock. */
+ *  counted steps are written up to four times a second, eaos/core/progress/log.py); its `now` sets the server's clock. */
 export function refreshProgress() {
   if (!client || progressTimer) return;
   progressTimer = setTimeout(async () => {

@@ -47,10 +47,10 @@ def version():
 
 def official_checkout():
     """The pinned official library on this machine, or None when `eaos tools install` has not fetched it."""
-    from ..toolchain import found_version, registry
+    from ..core.toolchain import found_version, registry
     entry = next(t for t in registry()['tools'] if t['name'] == 'semgrep-rules')
     found, _ = found_version(entry)
-    from ..toolchain import home
+    from ..core.toolchain import home
     return (home() / entry['install']['dir'], found) if found == entry['version'] else (None, found)
 
 

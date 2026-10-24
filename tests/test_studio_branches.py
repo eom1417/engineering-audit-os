@@ -1,4 +1,4 @@
-"""Branch control and scan freshness (eaos/studio/actions/branches.py, eaos/branches.py freshness) on real temporary
+"""Branch control and scan freshness (eaos/interfaces/studio/branches.py, eaos/core/branches.py freshness) on real temporary
 git repositories through the command centre's own authenticated handler."""
 import json
 import os
@@ -6,9 +6,9 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from eaos import branches as reading
-from eaos import guided
-from eaos.studio import actions
+from eaos.core import branches as reading
+from eaos.journeys import guided
+from eaos.interfaces import studio as actions
 from tests.shared_fixture import Workspace
 
 
@@ -94,7 +94,7 @@ class Inventory(Repo):
         self.app.branches.record('eaos/task-1', checks={'commit': self.work_tip, 'status': 'passed'})
         entry = self.app.branches._registry()['branches']['eaos/task-1']
         self.assertEqual((entry['kind'], entry['tip'], entry['checks'][0]['status']), ('task', self.work_tip, 'passed'), 'merged, never replaced')
-        from eaos.studio.actions import branches as control
+        from eaos.interfaces.studio import branches as control
         self.assertEqual(control.git(self.project, 'log', timeout=0.000001).returncode, 124, 'a git timeout is an exit code')
 
     def test_detached_head_no_origin_dirty_checkout_worktree_and_no_repository(self):

@@ -12,144 +12,37 @@
     "reason": "مستودعات التثبيت ومجموعة القياس بيانات اختبار للأداة، وليست جزءًا من النظام قيد المراجعة؛ و build/ و upstream-src/ نسخ مبنية أو منسوخة من مصدر آخر، وقياسها يقيس شيئًا آخر. و eaos/data/studio هو الاستوديو بعد بنائه وضغطه من console/src (ملفات مولَّدة)، فمصدره console/src هو ما يُراجع. و eaos/rules/semgrep أمثلة مكتوبة عمدًا بالثغرة التي تكشفها كل قاعدة، يختبر بها semgrep --test القواعد، وليست كودًا يعمل."
   },
   "layers": {
-    "facts": [
-      "eaos/facts/**",
-      "eaos/correlate.py"
-    ],
-    "compose": [
-      "eaos/compose/**"
-    ],
-    "runtime": [
-      "eaos/assistants/**",
-      "eaos/usage.py"
-    ],
-    "ledger": [
-      "eaos/ask.py",
-      "eaos/claims.py",
-      "eaos/fact_claims.py",
-      "eaos/decisions.py",
-      "eaos/dossier.py",
-      "eaos/debt_register.py",
-      "eaos/engines_report.py",
-      "eaos/fact_documents.py",
-      "eaos/features.py",
-      "eaos/impact.py",
-      "eaos/load_model.py",
-      "eaos/load_report.py",
-      "eaos/map.py",
-      "eaos/policy.py",
-      "eaos/probes.py",
-      "eaos/finish_line.py",
-      "eaos/ranking.py",
-      "eaos/semantic.py",
-      "eaos/semantic_source.py",
-      "eaos/sustainability.py",
-      "eaos/verify.py",
-      "eaos/weaknesses.py"
-    ],
-    "planning": [
-      "eaos/acceptance.py",
-      "eaos/card_review.py",
-      "eaos/plan.py",
-      "eaos/remediation_patterns.py",
-      "eaos/target_architecture.py",
-      "eaos/target_document.py",
-      "eaos/target_projection.py",
-      "eaos/roadmap.py",
-      "eaos/codemods.py",
-      "eaos/canonical_home.py",
-      "eaos/transform_plan.py"
-    ],
-    "orchestration": [
-      "eaos/__main__.py",
-      "eaos/cli.py",
-      "eaos/pipeline/**",
-      "eaos/views.py"
-    ],
     "core": [
-      "eaos/__init__.py",
-      "eaos/owner_share.py",
-      "eaos/code_laws.py",
-      "eaos/architecture.py",
-      "eaos/command_groups.py",
-      "eaos/discovery.py",
-      "eaos/engagement.py",
-      "eaos/dead_code_assessment.py",
-      "eaos/policy_assessment.py",
-      "eaos/vocabulary.py",
-      "eaos/workspace.py",
-      "eaos/toolchain.py",
-      "eaos/indicators.py",
-      "eaos/artifact_contracts.py",
-      "eaos/sandbox.py",
-      "eaos/sandbox_view.py",
-      "eaos/locks.py",
-      "eaos/live_run.py",
-      "eaos/runtime_baseline.py",
-      "eaos/execute.py",
-      "eaos/guided.py", "eaos/check_choices.py",
-      "eaos/places.py",
-      "eaos/progress/**",
-      "eaos/live_setup.py",
-      "eaos/run_profile.py",
-      "eaos/live_assist.py",
-      "eaos/local_db.py",
-      "eaos/waves.py", "eaos/lanes.py",
-      "eaos/intents.py",
-      "eaos/assistant_setup.py",
-      "eaos/mcp_server.py",
-      "eaos/mcp_govern.py",
-      "eaos/govern.py",
-      "eaos/roles.py",
-      "eaos/test_users.py",
-      "eaos/sign_in.py",
-      "eaos/terminal.py",
-      "eaos/agent_tools.py",
-      "eaos/batch_finish.py",
-      "eaos/batch_branch.py",
-      "eaos/regenerate.py",
-      "eaos/jobs.py",
-      "eaos/plain.py",
-      "eaos/language.py",
-      "eaos/start_here.py",
-      "eaos/bilingual.py",
-      "eaos/human_report.py",
-      "eaos/studio/**",
-      "eaos/api/**",
-      "eaos/blueprint.py",
-      "eaos/blueprint_view.py",
-      "eaos/plan_source.py",
-      "eaos/design.py",
-      "eaos/build_tools.py",
-      "eaos/build_look.py",
-      "eaos/node_jobs.py",
-      "eaos/tools_catalog.py",
-      "eaos/extend.py",
-      "eaos/gates.py",
-      "eaos/journeys.py",
-      "eaos/menu.py",
-      "eaos/ledger.py",
-      "eaos/handover.py",
-      "eaos/arch_map.py",
-      "eaos/system_map.py",
-      "eaos/system_drawing.py",
-      "eaos/branches.py",
-      "eaos/build_info.py",
-      "eaos/intake.py",
-      "eaos/dependency_assessment.py",
-      "eaos/mechanical_assessment.py",
-      "eaos/recheck.py",
-      "eaos/decided.py",
-      "eaos/measurements.py",
-      "eaos/behavior_lock.py",
-      "eaos/lock_specs.py",
-      "eaos/screens/**",
-      "eaos/reference_architecture.py",
-      "eaos/c4.py",
-      "eaos/nfr.py",
-      "eaos/adr.py",
-      "eaos/aspects.py",
-      "eaos/production_readiness.py"
+      "eaos/core/**",
+      "eaos/__init__.py"
+    ],
+    "engines": [
+      "eaos/engines/**"
+    ],
+    "facts": [
+      "eaos/facts/**"
+    ],
+    "live": [
+      "eaos/live/**"
+    ],
+    "analysis": [
+      "eaos/analysis/**"
+    ],
+    "ai": [
+      "eaos/ai/**"
+    ],
+    "report": [
+      "eaos/report/**"
+    ],
+    "pipeline": [
+      "eaos/pipeline/**"
+    ],
+    "journeys": [
+      "eaos/journeys/**"
+    ],
+    "interfaces": [
+      "eaos/interfaces/**",
+      "eaos/__main__.py"
     ],
     "tools": [
       "tools/**",
@@ -166,9 +59,6 @@
       "acceptance/**",
       "examples/**"
     ],
-    "engines": [
-      "eaos/engines/**"
-    ],
     "studio": [
       "console/**",
       "eaos/data/studio/**",
@@ -179,87 +69,325 @@
   "rules": [
     {
       "deny": {
-        "from": "facts",
-        "to": "runtime"
+        "from": "core",
+        "to": "engines"
       },
-      "reason": "الطبقة الحتمية يجب أن تعمل بلا مسار النموذج؛ اعتمادها عليه يكسر eaos map بلا مزوّد"
+      "reason": "الأساس لا تستورد المحركات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
     },
     {
       "deny": {
-        "from": "facts",
-        "to": "ledger"
-      },
-      "reason": "استخراج الحقائق لا يعرف كيف تُفسَّر أو تُعرض"
-    },
-    {
-      "deny": {
-        "from": "compose",
-        "to": "ledger"
-      },
-      "reason": "المؤلّف يعرض السجلات فقط ولا يعرف منطق التجميع"
-    },
-    {
-      "deny": {
-        "from": "compose",
+        "from": "core",
         "to": "facts"
       },
-      "reason": "العرض لا يستخرج حقائق بنفسه"
+      "reason": "الأساس لا تستورد الحقائق: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
     },
     {
       "deny": {
-        "from": "ledger",
-        "to": "planning"
+        "from": "core",
+        "to": "live"
       },
-      "reason": "السجل لا يعتمد على ما يخطط انطلاقًا منه؛ عكس هذا الاتجاه أنتج دورة استيراد فعلية"
+      "reason": "الأساس لا تستورد تشغيل التطبيق: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
     },
     {
       "deny": {
-        "from": "ledger",
-        "to": "orchestration"
+        "from": "core",
+        "to": "analysis"
       },
-      "reason": "السجل لا يستدعي طبقة التنسيق التي تستدعيه"
+      "reason": "الأساس لا تستورد التحليل: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
     },
     {
       "deny": {
-        "from": "planning",
-        "to": "orchestration"
+        "from": "core",
+        "to": "ai"
       },
-      "reason": "التخطيط يُستدعى من التنسيق ولا يستدعيه"
+      "reason": "الأساس لا تستورد المساعد الذكي: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
     },
     {
       "deny": {
-        "from": "runtime",
+        "from": "core",
+        "to": "report"
+      },
+      "reason": "الأساس لا تستورد التقارير: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "core",
+        "to": "pipeline"
+      },
+      "reason": "الأساس لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "core",
+        "to": "journeys"
+      },
+      "reason": "الأساس لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "core",
+        "to": "interfaces"
+      },
+      "reason": "الأساس لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "facts"
+      },
+      "reason": "المحركات لا تستورد الحقائق: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "live"
+      },
+      "reason": "المحركات لا تستورد تشغيل التطبيق: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "analysis"
+      },
+      "reason": "المحركات لا تستورد التحليل: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "ai"
+      },
+      "reason": "المحركات لا تستورد المساعد الذكي: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "report"
+      },
+      "reason": "المحركات لا تستورد التقارير: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "pipeline"
+      },
+      "reason": "المحركات لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "journeys"
+      },
+      "reason": "المحركات لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "interfaces"
+      },
+      "reason": "المحركات لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "live"
+      },
+      "reason": "الحقائق لا تستورد تشغيل التطبيق: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "analysis"
+      },
+      "reason": "الحقائق لا تستورد التحليل: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "ai"
+      },
+      "reason": "الحقائق لا تستورد المساعد الذكي: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "report"
+      },
+      "reason": "الحقائق لا تستورد التقارير: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "pipeline"
+      },
+      "reason": "الحقائق لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "journeys"
+      },
+      "reason": "الحقائق لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "interfaces"
+      },
+      "reason": "الحقائق لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "live",
+        "to": "analysis"
+      },
+      "reason": "تشغيل التطبيق لا تستورد التحليل: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "live",
+        "to": "ai"
+      },
+      "reason": "تشغيل التطبيق لا تستورد المساعد الذكي: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "live",
+        "to": "report"
+      },
+      "reason": "تشغيل التطبيق لا تستورد التقارير: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "live",
+        "to": "pipeline"
+      },
+      "reason": "تشغيل التطبيق لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "live",
+        "to": "journeys"
+      },
+      "reason": "تشغيل التطبيق لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "live",
+        "to": "interfaces"
+      },
+      "reason": "تشغيل التطبيق لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "analysis",
+        "to": "ai"
+      },
+      "reason": "التحليل لا تستورد المساعد الذكي: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "analysis",
+        "to": "report"
+      },
+      "reason": "التحليل لا تستورد التقارير: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "analysis",
+        "to": "pipeline"
+      },
+      "reason": "التحليل لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "analysis",
+        "to": "journeys"
+      },
+      "reason": "التحليل لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "analysis",
+        "to": "interfaces"
+      },
+      "reason": "التحليل لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "ai",
+        "to": "report"
+      },
+      "reason": "المساعد الذكي لا تستورد التقارير: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "ai",
+        "to": "pipeline"
+      },
+      "reason": "المساعد الذكي لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "ai",
+        "to": "journeys"
+      },
+      "reason": "المساعد الذكي لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "ai",
+        "to": "interfaces"
+      },
+      "reason": "المساعد الذكي لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "report",
+        "to": "pipeline"
+      },
+      "reason": "التقارير لا تستورد خط الفحص: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "report",
+        "to": "journeys"
+      },
+      "reason": "التقارير لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "report",
+        "to": "interfaces"
+      },
+      "reason": "التقارير لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "pipeline",
+        "to": "journeys"
+      },
+      "reason": "خط الفحص لا تستورد المسارات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "pipeline",
+        "to": "interfaces"
+      },
+      "reason": "خط الفحص لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "journeys",
+        "to": "interfaces"
+      },
+      "reason": "المسارات لا تستورد الواجهات: كل طبقة تستورد ما تحتها فقط (docs/ARCHITECTURE.md §2)"
+    },
+    {
+      "deny": {
+        "from": "interfaces",
         "to": "tools"
       },
       "reason": "أدوات التطوير ليست جزءًا من زمن التشغيل"
-    },
-    {
-      "deny": {
-        "from": "engines",
-        "to": "ledger"
-      },
-      "reason": "المحوّل ينقل ما قاله المحرك ولا يعرف كيف يُفسَّر أو تُبنى عليه ادعاءات"
-    },
-    {
-      "deny": {
-        "from": "engines",
-        "to": "facts"
-      },
-      "reason": "الاتجاه واحد: طبقة الحقائق تستهلك المحوّلات، والعكس يصنع دورة"
-    },
-    {
-      "deny": {
-        "from": "engines",
-        "to": "planning"
-      },
-      "reason": "أداة خارجية لا تقرر ما يُصلَح"
-    },
-    {
-      "deny": {
-        "from": "engines",
-        "to": "compose"
-      },
-      "reason": "المحوّل لا يعرض شيئًا"
     }
   ]
 }

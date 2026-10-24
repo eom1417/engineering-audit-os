@@ -4,12 +4,12 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from eaos.dossier import assemble
+from eaos.analysis.dossier import assemble
 from eaos.facts.store import read_set
-from eaos import semantic
+from eaos.ai import semantic
 from eaos.facts.run import collect
-from eaos.semantic import digest_of, errors_in, run
-from eaos.semantic_source import SourceSession
+from eaos.ai.semantic import digest_of, errors_in, run
+from eaos.analysis.semantic_source import SourceSession
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 

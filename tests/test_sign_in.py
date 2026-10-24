@@ -14,10 +14,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from eaos import sign_in
+from eaos.live import sign_in
 from eaos.pipeline import sign_in_stage
 from eaos.pipeline.run import execute
-from eaos.screens.audit import missing
+from eaos.live.screens.audit import missing
 from test_pipeline_run import fake_runners
 
 OTP_APP = Path(__file__).parent / 'fixtures/otp_app'
@@ -49,7 +49,7 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(sign_in.from_pages({**SIGNED_OUT_PAGE, 'url': 'http://127.0.0.1:1/'}), [])
         (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'auth', 'surfaces': ['/login']}, {'name': 'shop', 'surfaces': ['/']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/login: a sign-in route of the code'])
-        from eaos.live_setup import routes
+        from eaos.live.setup import routes
         (self.root / 'behavior-lock').mkdir()
         (self.root / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': ['/logout', '/settings', '/sign-out', '/reports']}]}))
         self.assertEqual(routes(self.root), ['/settings', '/reports'], 'the probe of a session never opens a page that ends it')
@@ -57,7 +57,7 @@ class SignInTests(unittest.TestCase):
         runners['session'] = sign_in_stage.session
         (self.root / 'project').mkdir()
         app = (SimpleNamespace(), 'http://127.0.0.1:1', self.root / 'runtime/session.json')
-        with mock.patch.object(sign_in_stage, 'shared_app', return_value=app), mock.patch('eaos.test_users.unreached', return_value={}), \
+        with mock.patch.object(sign_in_stage, 'shared_app', return_value=app), mock.patch('eaos.live.test_users.unreached', return_value={}), \
                 mock.patch.object(sign_in_stage, '_test_users') as made, mock.patch.object(sign_in_stage, '_ask') as asked:
             result = execute(self.root / 'project', self.root / 'out', runners=runners, runtime=self.root / 'runtime',
                              sign_in={'folder': str(self.root)})
@@ -76,7 +76,7 @@ class SignInTests(unittest.TestCase):
                 mock.patch.object(sign_in_stage.sign_in, 'from_code', return_value=[]), \
                 mock.patch.object(sign_in_stage.sign_in, 'from_pages', return_value=[]), \
                 mock.patch.object(sign_in_stage, '_setup_page', return_value=None), \
-                mock.patch('eaos.test_users.unreached', return_value={'/access': 'src/programme/Access.tsx', '/rota': None}), \
+                mock.patch('eaos.live.test_users.unreached', return_value={'/access': 'src/programme/Access.tsx', '/rota': None}), \
                 mock.patch.object(sign_in_stage, '_test_users', return_value='') as made, \
                 mock.patch.object(sign_in_stage, '_ask') as asked, mock.patch.object(sign_in_stage, '_keep') as kept:
             sign_in_stage.session(context)
@@ -143,9 +143,9 @@ class SignInTests(unittest.TestCase):
 
     @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
     def test_the_person_signs_in_by_hand_with_the_code_the_app_prints_and_mails_and_the_browser_saves_and_ends(self):
-        from eaos.api.sign_in import Browser
-        from eaos.live_setup import free_port
-        from eaos.toolchain import home
+        from eaos.interfaces.api.sign_in import Browser
+        from eaos.live.setup import free_port
+        from eaos.core.toolchain import home
         port, log, smtp, mail = free_port(), self.root / 'app.log', free_port(), free_port()
         catcher = [] if not (home() / 'bin/mailpit').exists() else [subprocess.Popen(
             [str(home() / 'bin/mailpit'), '--smtp', f'127.0.0.1:{smtp}', '--listen', f'127.0.0.1:{mail}', '--quiet'])]
@@ -182,7 +182,7 @@ class SignInTests(unittest.TestCase):
 
     @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
     def test_a_published_site_is_read_with_get_only_and_never_through_a_link_that_signs_out(self):
-        from eaos.screens.crawl import discover
+        from eaos.live.screens.crawl import discover
         asked = []
 
         class Site(BaseHTTPRequestHandler):
@@ -210,7 +210,7 @@ class SignInTests(unittest.TestCase):
 
     def test_lighthouse_on_a_published_site_never_carries_the_persons_session(self):
         from eaos.pipeline import pages
-        from eaos.screens import crawl
+        from eaos.live.screens import crawl
         session = self.root / 'published-session.json'
         session.write_text(json.dumps({'cookies': [{'name': 'session', 'value': 'live'}], 'origins': []}))
         measured = []
@@ -220,15 +220,16 @@ class SignInTests(unittest.TestCase):
             crawl.crawl('https://app.example.com', self.root, storage_state=session, read_only=True)
         context = SimpleNamespace(out=self.root, get=lambda key, default=None: {'sign_in': {'published': 'https://app.example.com',
                                                                                              'folder': str(self.root)}}.get(key, default))
-        with mock.patch('eaos.screens.audit.lighthouse', side_effect=speed), \
-                mock.patch('eaos.screens.audit.page_audit', return_value={'status': 'observed', 'rows': [], 'tools': {}}):
+        with mock.patch('eaos.live.screens.audit.lighthouse', side_effect=speed), \
+                mock.patch('eaos.live.screens.audit.page_audit', return_value={'status': 'observed', 'rows': [], 'tools': {}}):
             pages._audit_pages(context, {'/': ['/']}, None, None, 'https://app.example.com', session, None, True)
         self.assertEqual(measured, [None, None], 'Lighthouse loads the live site as any visitor, never signed in')
 
     def test_the_sign_in_page_alone_answers_behind_its_guard_and_ends_once_the_person_answers(self):
-        from eaos import govern, guided
-        from eaos.api import server
-        from eaos.studio.actions import adapters
+        from eaos.interfaces import govern
+        from eaos.journeys import guided
+        from eaos.interfaces.api import server
+        from eaos.ai import headless as adapters
         project, apps = self.root / 'shop', []
         project.mkdir()
         (project / 'package.json').write_text('{}')
@@ -263,7 +264,7 @@ class SignInTests(unittest.TestCase):
             self.assertEqual(json.loads((Path(workspace) / sign_in.ASKED).read_text())['state'], sign_in.SIGNED_OUT)
 
     def test_the_session_is_its_owners_and_eaos_clean_forgets_it(self):
-        from eaos import guided
+        from eaos.journeys import guided
         home = self.root / 'home'
         with mock.patch.dict(os.environ, {'EAOS_HOME': str(home)}):
             state = home / 'projects/shop/runtime/session.json'

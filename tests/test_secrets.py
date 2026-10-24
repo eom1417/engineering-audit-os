@@ -72,7 +72,7 @@ class SecretTests(unittest.TestCase):
         self.assertNotIn(token, json.dumps(result['facts'], ensure_ascii=False))
 
     def test_a_secrets_file_is_never_read_but_code_named_after_secrets_is(self):
-        from eaos.workspace import SENSITIVE
+        from eaos.core.workspace import SENSITIVE
         for name in ('secrets.json', 'app-secrets.yaml', 'google-credentials.json', 'credentials', '.env.local', 'id_rsa'):
             self.assertTrue(SENSITIVE.search(name), name)
         for name in ('adminSecrets.ts', 'credentialsForm.tsx', 'secrets.ts'):

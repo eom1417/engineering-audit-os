@@ -1,8 +1,8 @@
 """Shared read-only access to a target snapshot for every extractor."""
 from fnmatch import fnmatch
 from pathlib import Path
-from ..discovery import classify
-from ..workspace import digest, inventory, safe_file
+from .discovery import classify
+from ..core.workspace import digest, inventory, safe_file
 
 LANGUAGE_BY_SUFFIX = {
     '.py': 'python', '.pyi': 'python', '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript',

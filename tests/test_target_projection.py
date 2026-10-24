@@ -4,8 +4,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.reference_architecture import by_id
-from eaos.target_projection import disposition, forbidden, infrastructure, moves, place, project
+from eaos.analysis.reference_architecture import by_id
+from eaos.analysis.target_projection import disposition, forbidden, infrastructure, moves, place, project
 
 RULES = json.loads((Path(__file__).resolve().parents[1] / 'eaos/rules/disposition-rules.json').read_text())
 REFERENCE = by_id('react-tanstack-start-supabase')
@@ -81,8 +81,8 @@ class InfrastructureTests(Workspace):
 
 class ProjectTests(Workspace):
     def test_the_projection_keeps_its_contract_and_places_every_feature(self):
-        from eaos.artifact_contracts import contracts, validate
-        from eaos.target_architecture import build
+        from eaos.core.artifact_contracts import contracts, validate
+        from eaos.report.target_architecture import build
         out, target = Path(self.tmp) / 'out', Path(self.tmp) / 'project'
         (out / 'facts').mkdir(parents=True)
         target.mkdir()

@@ -1,12 +1,12 @@
 // Runs first, before the first paint: the language, direction and theme, the launch token, and the start of every
 // download the first view needs, so nothing waits for the console's own script to arrive.
 // Order of the choices: ?lang= / ?theme= in the address (search or route), then the last choice (localStorage
-// 'eaos.studio'), then the system's colour scheme. The search part is removed from the address once read, so the hash
+// 'eaos.report.studio'), then the system's colour scheme. The search part is removed from the address once read, so the hash
 // routes own the URL.
 (function () {
   var q = new URLSearchParams(location.search), h = document.documentElement, saved = {};
   var route = new URLSearchParams((location.hash.split('?')[1] || ''));
-  try { saved = JSON.parse(localStorage.getItem('eaos.studio') || '{}') || {}; } catch (e) { saved = {}; }
+  try { saved = JSON.parse(localStorage.getItem('eaos.report.studio') || '{}') || {}; } catch (e) { saved = {}; }
   var lang = q.get('lang') || route.get('lang'), theme = q.get('theme') || route.get('theme');
   if (lang) saved.lang = lang === 'en' ? 'en' : 'ar';
   if (theme) saved.theme = theme === 'dark' ? 'dark' : 'light';
@@ -17,11 +17,11 @@
     window.EAOS_BOOT_TOKEN = asked;
     try { sessionStorage.setItem('eaos.token', asked); } catch (e) { /* storage refused: this visit only */ }
   }
-  if (lang || theme) { try { localStorage.setItem('eaos.studio', JSON.stringify(saved)); } catch (e) { /* private mode */ } }
+  if (lang || theme) { try { localStorage.setItem('eaos.report.studio', JSON.stringify(saved)); } catch (e) { /* private mode */ } }
   if (location.search) {
     try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* some file:// pages refuse */ }
   }
-  // The live server's launch token (#token=…, or #/<route>?…&token=…, eaos/api/launch.py): kept for this tab only,
+  // The live server's launch token (#token=…, or #/<route>?…&token=…, eaos/core/launch.py): kept for this tab only,
   // then removed from the address so it is never bookmarked, shared or shown; the route, if any, stays.
   var live = /^#token=([A-Za-z0-9_-]{16,128})$/.exec(location.hash) || /^(#\/[^?]*\?(?:.*&)?)token=([A-Za-z0-9_-]{16,128})$/.exec(location.hash);
   if (live) {

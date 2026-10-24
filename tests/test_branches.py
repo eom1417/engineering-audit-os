@@ -1,6 +1,6 @@
 """The owner's second finding (2026-09-29): a project whose work went on in a branch far ahead of main was checked on
 whatever was checked out, and nothing said which branch. EAOS asks which branch when there is a real choice, and the
-check, the fixes, the merges, the progress and the report follow it (eaos/branches.py, guided.choose/source)."""
+check, the fixes, the merges, the progress and the report follow it (eaos/core/branches.py, guided.choose/source)."""
 import json
 import os
 import subprocess
@@ -9,8 +9,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, batch_finish, branches, guided, ledger, live_setup
-from eaos.waves import commit as eaos_commit, plan as read_plan
+from eaos.journeys import agent_tools, batch_finish, guided
+from eaos.core import branches, ledger
+from eaos.live import setup as live_setup
+from eaos.journeys.waves import commit as eaos_commit, plan as read_plan
 
 
 def card(number, pattern, path, title):
@@ -191,8 +193,8 @@ class Branches(unittest.TestCase):
         cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
         wave['kept'][card] = eaos_commit(root, cards[card], 'assistant')
         guided.save(state)
-        with mock.patch('eaos.waves.gates', return_value=''), mock.patch('eaos.waves.original_checks', return_value={}), \
-                mock.patch('eaos.waves.batch_acceptance', side_effect=lambda report, chosen, root, collected=None: {c['id']: None for c in chosen}):
+        with mock.patch('eaos.journeys.waves.gates', return_value=''), mock.patch('eaos.journeys.waves.original_checks', return_value={}), \
+                mock.patch('eaos.journeys.waves.batch_acceptance', side_effect=lambda report, chosen, root, collected=None: {c['id']: None for c in chosen}):
             return batch_finish.finish_job(str(self.project), {}, lambda *_: None)
 
     def work_branches(self):

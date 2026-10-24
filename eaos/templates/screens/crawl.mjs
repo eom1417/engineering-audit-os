@@ -1,7 +1,7 @@
 // EAOS crawl: every page of a running app, found by following its links and pressing its moving buttons, through the
 // pinned Playwright.
 //
-// Run by eaos/screens/crawl.py as a separate process:  node crawl.mjs <config.json>
+// Run by eaos/live/screens/crawl.py as a separate process:  node crawl.mjs <config.json>
 // The config names the Playwright module folder, the app's base URL and the most pages to open. Each page is opened
 // once, breadth first from the base, and the links it shows are read after it settles; nothing is measured here (the
 // heavy Lighthouse audit runs on a few distinct pages only, in crawl.py). A hash-routed app (#/problems) is followed

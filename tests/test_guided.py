@@ -11,7 +11,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from eaos import guided, terminal  # noqa: F401  (the terminal's accept, undo and check, registered in guided)
+from eaos.journeys import guided
+from eaos.interfaces import terminal  # noqa: F401  (the terminal's accept, undo and check, registered in guided)
 
 BOX_END = guided.LINE
 
@@ -59,9 +60,9 @@ def run(command, project=None, **options):
     with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), mock.patch.object(guided, 'watch'), \
             mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(guided.current(args.project), args)), \
             mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
-            mock.patch('eaos.toolchain.doctor', return_value={'tools': []}), \
-            mock.patch('eaos.assistants.readiness.probe_all', return_value=NO_ASSISTANT), \
-            mock.patch('eaos.assistant_setup.install', return_value=['Claude Code', 'Codex']):
+            mock.patch('eaos.core.toolchain.doctor', return_value={'tools': []}), \
+            mock.patch('eaos.ai.readiness.probe_all', return_value=NO_ASSISTANT), \
+            mock.patch('eaos.ai.setup.install', return_value=['Claude Code', 'Codex']):
         code = guided.main(args)
     return code, printed.getvalue()
 
@@ -164,7 +165,7 @@ class Journey(unittest.TestCase):
         guided.report_of(state).mkdir(parents=True, exist_ok=True)
         (guided.report_of(state) / 'plan.json').write_text(json.dumps(PLAN))
         printed = io.StringIO()
-        with redirect_stdout(printed), mock.patch('eaos.waves.open_batch') as opened, mock.patch('eaos.waves.finish_batch') as finished:
+        with redirect_stdout(printed), mock.patch('eaos.journeys.waves.open_batch') as opened, mock.patch('eaos.journeys.waves.finish_batch') as finished:
             self.assertEqual(guided.fix(state, Namespace(yes=True)), 0)
         opened.assert_not_called()
         finished.assert_not_called()

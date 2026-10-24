@@ -5,9 +5,9 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos import c4
-from eaos.adr import render, write_all
-from eaos.c4 import quote, workspace, write
+from eaos.analysis import c4
+from eaos.report.adr import render, write_all
+from eaos.analysis.c4 import quote, workspace, write
 
 DECISION = {'id': 'ADR-007', 'component_id': 'T-src', 'problem': 'It breaks two layer rules. ' * 8,
             'evidence': ['CLM-1', 'FACT-2'], 'options': ['Move 3 file(s) into `features`.', 'Add an adapter.', 'Do nothing.'],

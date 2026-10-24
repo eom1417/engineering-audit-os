@@ -14,7 +14,7 @@ VERSION = re.compile(r'(\d+\.\d+\.\d+)')
 
 
 def pinned(name):
-    from ..toolchain import registry
+    from ..core.toolchain import registry
     return next(t['version'] for t in registry()['tools'] if t['name'] == name)
 
 
@@ -31,7 +31,7 @@ def package_version(name, binary):
     """The version of an npm tool that has no --version (the react-docgen CLI): the one its pinned package
     records, when its command is installed; else None."""
     if not which(binary): return None
-    from .. import toolchain
+    from ..core import toolchain
     record = next(t for t in toolchain.registry()['tools'] if t['name'] == name)
     return toolchain.package_version(record)
 
@@ -62,7 +62,7 @@ def declined(name, binary, target, probe=None):
     if found is None:
         return Report(name, None, pinned(name), UNAVAILABLE,
                       reason=f'{binary} is not installed: python -m eaos tools install --only {name}')
-    from ..toolchain import applies
+    from ..core.toolchain import applies
     applicable, rule = applies(name, target)
     if not applicable:
         return Report(name, found, pinned(name), NOT_APPLICABLE,

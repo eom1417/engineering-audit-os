@@ -67,8 +67,8 @@ class AttentionBudgetTests(unittest.TestCase):
     """The declared attention budget must defer files visibly, never silently."""
 
     def test_deferred_files_are_recorded_as_omissions(self):
-        from eaos.assistants.context import Context
-        from eaos.workspace import inventory, write
+        from eaos.core.repo_context import Context
+        from eaos.core.workspace import inventory, write
         with tempfile.TemporaryDirectory() as tmp:
             target, run = Path(tmp) / 'target', Path(tmp) / 'run'
             shutil.copytree(FIXTURE, target); run.mkdir()

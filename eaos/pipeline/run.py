@@ -11,11 +11,11 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..progress import ProgressLog, previous_seconds, using
-from ..usage import FILE as USAGE
+from ..core.progress import ProgressLog, previous_seconds, using
+from ..core.usage import FILE as USAGE
 from .live_app import PAGE_STAGES, close_app
 from .paths import resolve
-from .report import document
+from ..report.run import document
 from .schedule import LimitedProvider, assistants, run_ready
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
@@ -55,16 +55,16 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants run at
     once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths (eaos/pipeline/paths.py), recorded;
     `patterns`: the card patterns the plan keeps, None for all. `sign_in`: how the page stages sign in to the app
-    (eaos/check_choices.py options: how, the published address named for this check, the project's folder).
+    (eaos/journeys/check_choices.py options: how, the published address named for this check, the project's folder).
 
-    Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
+    Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/core/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
     and the run's end. Every stage gets exactly one end, so the folded file equals the manifest when the run is over;
     a run stopped or broken midway ends the stage it was in and every stage it did not reach before it says so.
-    While a stage runs it is the current stage of eaos/progress/context.py, so `progress.count()` anywhere below it
+    While a stage runs it is the current stage of eaos/core/progress/context.py, so `progress.count()` anywhere below it
     reports into it."""
     target, out = _outside(target, out)
-    if isinstance(getattr(provider, 'config', None), dict): provider.config['usage'] = str(out / USAGE)    # eaos/usage.py
+    if isinstance(getattr(provider, 'config', None), dict): provider.config['usage'] = str(out / USAGE)    # eaos/core/usage.py
     runners = runners if runners is not None else _runners()
     _refuse_unknown(only, skip)
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
@@ -183,7 +183,7 @@ def _block_dependents(stage, results, blocked):
 def _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake):
     """What the manifest says of the run whatever its stages do; with the stages so far it is also the checkpoint
     written after each stage, which a run stopped or killed midway is resumed from."""
-    from ..workspace import inventory
+    from ..core.workspace import inventory
     return {'contract_version': 1, 'target': str(target), 'out': str(out), 'started_at': started_at,
             'requested': requested,
             'options': {'language': language, 'exclude': list(exclude), 'max_files': max_files, 'max_bytes': max_bytes,
@@ -374,7 +374,7 @@ def focused(target, out, chosen, checked=False, **options):
 def again(target, out, stage, checked=False, **options):
     """The last check with `stage` and every stage that reads what it makes run again (a tool that failed, a step to
     redo), the rest kept as it was: never a whole new check for one stage. `engines` names the tools to run again.
-    `checked`: `target` is the very commit the check read clean (eaos/guided.py source), so the same code whatever
+    `checked`: `target` is the very commit the check read clean (eaos/journeys/guided.py source), so the same code whatever
     caches lay beside it then (.cache, egg-info), and the files' fingerprint is not asked."""
     stages = (stage,) if isinstance(stage, str) else tuple(stage)
     for name in stages:
@@ -408,7 +408,7 @@ def resume(target, out, redo=(), checked=False, **options):
 
 def _resumable(target, previous):
     """The previous run's options, once it is shown to be about this source: the same files, wherever the copy is."""
-    from ..workspace import inventory
+    from ..core.workspace import inventory
     stored = previous.get('options', {})
     fingerprint = inventory(target, max_files=stored.get('max_files', 100000), max_bytes=stored.get('max_bytes', 2_000_000))['fingerprint']
     if fingerprint != previous.get('source_fingerprint'):

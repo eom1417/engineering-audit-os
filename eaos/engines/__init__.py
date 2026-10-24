@@ -11,13 +11,14 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import (ast_grep, bandit, checkov, codegraph, codeql, dependency_cruiser, enola, gitleaks, gitnexus, jscpd, knip, lizard,
-               oasdiff, osv_scanner, react_docgen, reforge, sarif, scc, semgrep, spectral, sqlfluff, syft, trivy)
+from . import (ast_grep, bandit, checkov, codegraph, codeql, dependency_cruiser, enola, gitleaks, gitnexus, jscpd, knip,
+               lizard, oasdiff, osv_scanner, react_docgen, reforge, sarif, scc, semgrep, spectral, sqlfluff, syft,
+               trivy)
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
-from .. import progress
-from ..assistants import resources
-from ..toolchain import registry
+from ..core import progress
+from ..core import resources
+from ..core.toolchain import registry
 
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a
 # command of its own has its adapter here, by its NAME; an added tool that declares an `engine` runs through sarif.py.
@@ -100,7 +101,7 @@ def _run_all(selected, target, workdir, exclude, formats):
 def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
-    Each engine of the registry is reported as a step of the running stage (eaos/progress/context.py), from waiting
+    Each engine of the registry is reported as a step of the running stage (eaos/core/progress/context.py), from waiting
     to its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs. `keep`:
     the engines named in `only` are run again within the same check (one that failed), beside the others' results kept
     from it."""

@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class Consistency(unittest.TestCase):
     def test_every_stop_code_has_words_and_every_copied_command_and_node_exists(self):
         from eaos.pipeline.stages import ORDER
-        from eaos.studio.nodes import NODES
+        from eaos.ai.nodes import NODES
         reasons = json.loads((ROOT / 'eaos/data/errors.json').read_text())['reasons']
         codes = {m for p in (ROOT / 'eaos').rglob('*.py') for m in re.findall(r"SkipStage\([^)]*?code=['\"]([a-z_]+)['\"]", p.read_text(), re.S)}
         self.assertEqual(sorted(c for c in codes if not (reasons.get(c) or {}).get('ar')), [], 'a stop code the person cannot read')
@@ -27,7 +27,7 @@ class Consistency(unittest.TestCase):
         contract = json.loads((ROOT / 'docs/studio-actions.json').read_text())
         enum = next(a for a in contract['actions'] if a['id'] == 'run_nodes')['inputs']['properties']['nodes']['items']['enum']
         self.assertEqual(set(enum), {n.name for n in NODES}, 'a node the AI cannot run')
-        self.assertNotRegex((ROOT / 'eaos/build_look.py').read_text(), r'scores\[name\] < 0\.\d', 'Lighthouse scores are out of 100')
+        self.assertNotRegex((ROOT / 'eaos/journeys/build_look.py').read_text(), r'scores\[name\] < 0\.\d', 'Lighthouse scores are out of 100')
 
 
 if __name__ == '__main__':

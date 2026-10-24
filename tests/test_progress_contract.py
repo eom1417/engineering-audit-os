@@ -1,4 +1,4 @@
-"""The progress contract (live scan map v2, phase 1): eaos/progress/ and eaos/data/schemas/progress.json.
+"""The progress contract (live scan map v2, phase 1): eaos/core/progress/ and eaos/data/schemas/progress.json.
 
 What every flow's progress file promises its readers, each promise a test:
 - every event written validates against the versioned schema;
@@ -26,10 +26,10 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 import jsonschema  # noqa: E402
 
-from eaos import progress  # noqa: E402
+from eaos.core import progress  # noqa: E402
 from eaos.pipeline import STAGES, SkipStage, execute, resume  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
-from eaos.progress import log as writer, sampler  # noqa: E402
+from eaos.core.progress import log as writer, sampler  # noqa: E402
 from test_pipeline_run import fake_runners  # noqa: E402
 from test_progress_server import report_with_data  # noqa: E402
 from shared_fixture import scratch  # noqa: E402
@@ -418,7 +418,7 @@ class Liveness(unittest.TestCase):
                          'a run that promised no heartbeat is not judged by its silence')
         self.assertEqual(progress.judge({**state, 'state': 'done'}, heard=1000.0, now=9999.0), 'done')
         self.assertEqual(progress.judge(state, heard=None, now=9999.0), 'running')
-        from eaos.api.read import scan_state
+        from eaos.interfaces.api.read import scan_state
         report = report_with_data(scratch())
         log = progress.ProgressLog(report, pulse=False, sampler=None)
         log.started(STAGES, list(ORDER), {})
@@ -478,7 +478,7 @@ class TimeLeft(unittest.TestCase):
     def test_a_stage_whose_work_changed_does_not_scale_the_others(self):
         # EAOS on itself (2026-10-13): the live stages had stopped in seconds the check before and ran this time, and
         # the time left read 104 to 141 minutes for about 45.
-        from eaos.progress.estimate import pace
+        from eaos.pipeline.estimate import pace
         same = {'facts': 100, 'engines': 200, 'claims': 50}
         stages = [{'name': name, 'state': 'ok', 'seconds': seconds} for name, seconds in same.items()]
         live = [{'name': 'crawl', 'state': 'ok', 'seconds': 350}, {'name': 'setup', 'state': 'ok', 'seconds': 80}]

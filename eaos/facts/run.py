@@ -2,9 +2,10 @@
 import json
 import time as _time
 from pathlib import Path
-from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax
+from . import (broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers,
+               metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax)
 from .source import Source
-from .. import progress
+from ..core import progress
 from .store import write_index, write_set
 from hashlib import sha256 as _sha256
 def digest(data): return _sha256(data).hexdigest()
@@ -49,7 +50,7 @@ def collect_external(target, out, source, only=None, keep=False):
     stay as written, and value.adjudication says whether EAOS asserts it.
     """
     result = external.run(target, source, out=out, only=only, keep=keep)
-    from ..correlate import filter_dead_code_references as _filter_dead_code_references
+    from .registry import filter_dead_code_references as _filter_dead_code_references
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
     # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
     # textual reference test decide what the report asserts (see facts/deadcode.adjudicate).
@@ -156,7 +157,7 @@ def _run_extractor(name, target, source, produced, context, step, done, total):
 
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
             exclude=(), engines=None, cache=None):
-    """Each extractor's start and end is reported as a step of the running stage (eaos/progress/context.py): the live
+    """Each extractor's start and end is reported as a step of the running stage (eaos/core/progress/context.py): the live
     map shows where the facts stage is inside. It does not change what runs. `cache`: the file the parsed files are kept in between checks (in the check's runtime,
     never in the report: 63 MB of it sat among EAOS's facts); without one they are kept for this call only."""
     target, out = _checked_paths(target, out)

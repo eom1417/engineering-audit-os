@@ -8,9 +8,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import live_assist, live_setup, run_profile
-from eaos.live_run import LiveRun, load_profile
-from eaos.sandbox import AuthorizationError
+from eaos.live import assist as live_assist, setup as live_setup, run_profile
+from eaos.live.run import LiveRun, load_profile
+from eaos.live.sandbox import AuthorizationError
 from shared_fixture import scratch
 
 
@@ -96,7 +96,7 @@ class DetectTests(unittest.TestCase):
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'dev': 'node x'}}, 4000), (None, None))
         # a plain Node server has no build step: it is its own production (its speed was never measured)
         self.assertEqual(live_setup.production_commands('npm', {'scripts': {'start': 'node server.js'}}, 4000), ([], ['npm', 'run', 'start']))
-        from eaos.runtime_baseline import shape
+        from eaos.live.runtime_baseline import shape
         script = Path(scratch()) / 'qs-001.js'
         script.write_text(K6)
         self.assertEqual(shape(script), ({'p95_ms': 800.0, 'error_rate': 0.01}, 100, 300, 60))
@@ -123,8 +123,8 @@ class ProposalTests(unittest.TestCase):
         # project was pictured in one language only
         profile = run_profile.apply(runtime, {'env': {'NEW': '2', 'DATABASE_URL': '{database_url}'}, 'prepare': [], 'database': 'none',
                                              'fixtures': {'E2E_ID': '7'}, 'seed_script': 'console.log(1)',
-                                             'screens': {'lang_key': 'eaos.studio', 'lang_field': 'lang', 'shell': 'rm'}})
-        self.assertEqual(profile['screens'], {'lang_key': 'eaos.studio', 'lang_field': 'lang'})
+                                             'screens': {'lang_key': 'eaos.report.studio', 'lang_field': 'lang', 'shell': 'rm'}})
+        self.assertEqual(profile['screens'], {'lang_key': 'eaos.report.studio', 'lang_field': 'lang'})
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'})
         self.assertNotIn('prepare', profile)
         self.assertNotIn('database', profile)
@@ -136,7 +136,7 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(profile['env'], {'NEW': '2', 'E2E_ID': '7'}, 'the lock run is untouched')
         self.assertEqual(profile['baseline']['env'], {'APP_URL': 'https://127.0.0.1:5', 'DATABASE_URL': '{database_url}'})
         self.assertEqual(profile['baseline']['build'], [['npm', 'run', 'build:server']])
-        with mock.patch('eaos.live_run.Sandbox'), mock.patch('eaos.live_run.head', return_value='c'):
+        with mock.patch('eaos.live.run.Sandbox'), mock.patch('eaos.live.run.head', return_value='c'):
             self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [], 'the load test signs nobody in')
             self.assertEqual(LiveRun('p', runtime, 'S05').profile['seed'][0][0], 'node')
 
@@ -197,7 +197,7 @@ class VerifyTests(unittest.TestCase):
         studio = {'studio/package.json': {'scripts': {'dev': 'vite'}, 'devDependencies': {'vite': '8'}},
                   'studio/vite.config.ts': '// In development: STUDIO_DATA=/path/to/report/studio npm run dev\n'
                                            'const folder = process.env.STUDIO_DATA\n',
-                  'studio/src/i18n/prefs.tsx': "const KEY = 'eaos.studio'\nexport type Theme = 'light' | 'dark'\n"
+                  'studio/src/i18n/prefs.tsx': "const KEY = 'eaos.report.studio'\nexport type Theme = 'light' | 'dark'\n"
                                                "function saved(): { theme?: Theme } { return JSON.parse(localStorage.getItem(KEY) || '{}') }\n"}
         bare = live_setup.detect(project(studio))
         self.assertNotIn('STUDIO_DATA', bare['profile']['env'])
@@ -250,7 +250,7 @@ class RunEnvironmentTests(unittest.TestCase):
                         {'database': {'kind': 'postgres', 'name': 'app'}, 'env': {'DATABASE_URL': '{database_url}', 'NODE_ENV': 'development'}}):
             live = bare_run(runtime=Path(scratch()), profile=profile)
             with mock.patch.dict(os.environ, {'DATABASE_URL': 'postgres://owner@production.example/live', 'OWNER_SECRET_TOKEN': 'x'}), \
-                    mock.patch('eaos.local_db.LocalPostgres') as database:
+                    mock.patch('eaos.core.local_db.LocalPostgres') as database:
                 database.return_value.create.return_value = 'postgresql://postgres@127.0.0.1:5/app'
                 extra = live.extra()
             self.assertEqual(extra['DATABASE_URL'], 'postgresql://postgres@127.0.0.1:5/app')
@@ -265,7 +265,7 @@ class RunEnvironmentTests(unittest.TestCase):
             self.assertIn('signed in', live.seed_output)
 
     def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home_and_gone_once_its_runtime_is(self):
-        from eaos.local_db import LocalPostgres, binaries
+        from eaos.core.local_db import LocalPostgres, binaries
         if binaries() is None: self.skipTest('no PostgreSQL binaries')
         holder = tempfile.TemporaryDirectory()
         deep = Path(holder.name) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
@@ -288,7 +288,7 @@ class RunEnvironmentTests(unittest.TestCase):
 
     def test_a_run_leaving_the_database_never_stops_it_under_another_run(self):
         # the project's tests stopped the server when they ended, under the app the page stages were opening
-        from eaos.local_db import LocalPostgres, binaries
+        from eaos.core.local_db import LocalPostgres, binaries
         if binaries() is None: self.skipTest('no PostgreSQL binaries')
         with tempfile.TemporaryDirectory() as runtime:
             pages, tests = LocalPostgres(runtime), LocalPostgres(runtime)
@@ -312,8 +312,8 @@ class HashRouteProbeTests(unittest.TestCase):
         # 0.0.15 found EAOS's Studio routes (/#/system...): the probe read the null answer of a same-page navigation as
         # status 0, so the app "did not start" and every live stage of the check stood still.
         import http.server, subprocess, threading, functools
-        from eaos.screens import audit
-        from eaos.toolchain import browsers, home
+        from eaos.live.screens import audit
+        from eaos.core.toolchain import browsers, home
         if audit.missing('playwright'): self.skipTest(audit.missing('playwright'))
         with tempfile.TemporaryDirectory() as folder:
             Path(folder, 'index.html').write_text(

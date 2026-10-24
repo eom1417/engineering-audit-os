@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "The EAOS design standard and its free sources (eaos/design.py): every look EAOS draws or reviews, built from pinned libraries (upstreams/toolchain.json, stage S06) and held to the same rules.",
+  "description": "The EAOS design standard and its free sources (eaos/analysis/design.py): every look EAOS draws or reviews, built from pinned libraries (upstreams/toolchain.json, stage S06) and held to the same rules.",
   "standard": [
     "Phone first: every screen is designed at 375 px wide first, then widened; nothing needs sideways scrolling.",
     "Touch targets of at least 44 by 44 px; primary actions within thumb reach on a phone (a bottom bar for the main sections).",

@@ -7,7 +7,7 @@ import tempfile
 
 from shared_fixture import Workspace
 
-from eaos.codemods import TRANSFORM, _commands, attach, card_for, dry_run, remove_python
+from eaos.analysis.codemods import TRANSFORM, _commands, attach, card_for, dry_run, remove_python
 from eaos.engines.process import state_digest, which
 
 

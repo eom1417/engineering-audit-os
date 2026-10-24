@@ -1,5 +1,5 @@
 """studio/paths.json: the code paths through their layers, with evidence, gaps instead of invented links, the target of
-every step, the layout EAOS computes, the clustered overview and the plan's timeline (eaos/studio/paths.py)."""
+every step, the layout EAOS computes, the clustered overview and the plan's timeline (eaos/report/studio/paths.py)."""
 import json
 import sys
 import tempfile
@@ -8,8 +8,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos import artifact_contracts
-from eaos.studio import export, paths
+from eaos.core import artifact_contracts
+from eaos.report.studio import export, paths
 
 ROOT = Path(__file__).resolve().parent.parent
 

@@ -4,13 +4,13 @@ from pathlib import Path
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos import claims as ledger
-from eaos import card_review, plan as plan_module
-from eaos.compose import Document
-from eaos.compose.rules import validate
-from eaos.dossier import assemble
-from eaos.plan import build, waves, waves_document
-from eaos.remediation_patterns import PATTERNS, _ENGINE_CLUSTER_KINDS, classify, cost_of_inaction, pattern_for
+from eaos.analysis import claims as ledger
+from eaos.analysis import card_review, plan as plan_module
+from eaos.core.document import Document
+from eaos.core.document_rules import validate
+from eaos.analysis.dossier import assemble
+from eaos.analysis.plan import build, waves, waves_document
+from eaos.analysis.remediation_patterns import PATTERNS, _ENGINE_CLUSTER_KINDS, classify, cost_of_inaction, pattern_for
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 NOTHING = 'لا نفعل شيئًا'
@@ -56,8 +56,8 @@ class TaskCardTests(TemporaryWorkspace):
         # The self-audit: 64 design cards for 53 titles (`/` and `/#/` two pages), each at a fixed 0.4 above every
         # code claim (top 0.366), all counted as "other notes" in ease of change; private mutable state was
         # described as "changed by several parts".
-        from eaos import plain
-        from eaos.studio.model import classify
+        from eaos.core import plain
+        from eaos.analysis.model import classify
         def finding(page, severity, image):
             return {'title': 'Crowded header', 'kind': 'crowding', 'severity': severity, 'page': page, 'viewport': 'phone',
                     'theme': 'light', 'image': image, 'file': f'live/{image}.png', 'why': 'Four buttons on one line',
@@ -73,7 +73,7 @@ class TaskCardTests(TemporaryWorkspace):
         mutable = lambda private: {'pattern': 'mutable_state', 'render': {'key': 'mutable_global', 'params': {'encapsulated': private}}}
         self.assertEqual((plain.kind(mutable(False)), plain.kind(mutable(True))), ('mutable_state', 'mutable_state_private'))
         self.assertNotIn('several parts', plain.problem('mutable_state_private', 'en')[1])
-        # The self-audit's code cards: four dead symbols of eaos/screens/audit.py were four cards for one change.
+        # The self-audit's code cards: four dead symbols of eaos/live/screens/audit.py were four cards for one change.
         def task(claim, pattern, path):
             return {'id': 'TASK-X', 'claim_id': claim, 'title': claim, 'pattern': pattern, 'kind': 'remediate', 'origin': 'source',
                     'paths': [path], 'finding_ids': [claim], 'acceptance': [{'command': f'check {claim}', 'expect': ''}],
@@ -178,7 +178,7 @@ class ResolutionTests(unittest.TestCase):
         fixed = tasks[fix]
         self.assertEqual((fixed['kind'], fixed['decision']['readiness'], fixed['change']),
                          ('remediate', 'ready', 'Define `process` before api.py uses it'))
-        from eaos.decisions import task_errors
+        from eaos.core.decisions import task_errors
         self.assertEqual(task_errors(fixed), [])
         self.assertEqual(record['owner'], [asked[-1]], 'the most severe question stays the owner\'s')
         self.assertEqual((tasks[asked[-1]]['decision']['readiness'], tasks[asked[-1]]['resolution']['question']),

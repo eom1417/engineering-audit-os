@@ -1,4 +1,4 @@
-"""The page stages: the app opened in a browser, once as each kind of user of its code (eaos/roles.py, live_app
+"""The page stages: the app opened in a browser, once as each kind of user of its code (eaos/live/roles.py, live_app
 sessions), its pages walked, crawled and pictured. The published address the person named is read only."""
 import json
 from pathlib import Path
@@ -14,13 +14,13 @@ def _published(context):
 
 def journeys(context):
     """Each feature's pages walked once more, rrweb recording and the trace of a failure kept, capped in size
-    (eaos/behavior_lock.py run_journeys)."""
+    (eaos/live/behavior_lock.py run_journeys)."""
     runtime = _live(context)
     plan = json.loads((context.out / 'behavior-lock/plan.json').read_text(encoding='utf-8')) \
         if (context.out / 'behavior-lock/plan.json').is_file() else {}
     if not any(spec.get('tool') == 'playwright' and spec.get('path') for spec in plan.get('specs') or []):
         raise SkipStage('the lock has no page to walk through', code='no_pages')
-    from ..behavior_lock import run_journeys
+    from ..live.behavior_lock import run_journeys
     from .live_app import shared_app
     try:     # one session, as the lock it compares with was recorded: each kind's pages are walked by the crawl
         result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys', app=shared_app(context))
@@ -34,15 +34,15 @@ def journeys(context):
 def screens(context):
     """Each distinct page of the running app (one picture per template: /items/1 stands for /items/2) at phone and
     desktop width, in the app's own theme, with axe; Lighthouse on the entry, unless the crawl measured it already
-    (eaos/screens/audit.py, eaos/screens/crawl.py distinct). Each kind of user of the code pictures its own pages, the
-    first one the shared pages too (eaos/roles.py share); the published address the person named, read only."""
+    (eaos/live/screens/audit.py, eaos/live/screens/crawl.py distinct). Each kind of user of the code pictures its own pages, the
+    first one the shared pages too (eaos/live/roles.py share); the published address the person named, read only."""
     if not _published(context): _live(context)
     from .live_app import sessions
     live, base, made = sessions(context, published=True)
     groups, measured = _screen_pages(context)
     rows, speed, audit = _pictured(context, (live, base, made), groups, measured)
     covered = _coverage(context, live, base, made, rows)
-    from ..roles import proven
+    from ..live.roles import proven
     _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows, 'coverage': covered,
                                     'unreachable': [{'page': page, 'why': why} for page, why in proven(context.out).items()],
                                     'pages': [{'path': paths[0], 'template': template, 'same_as': paths[1:]} for template, paths in groups.items()],
@@ -56,8 +56,8 @@ def screens(context):
 
 def _pictured(context, app, groups, measured):
     """(rows, the entry's speed, the last audit) of every session of `app` (live run, address, [(view, session)]), each
-    picturing its view's pages (eaos/roles.py share)."""
-    from ..roles import read, share
+    picturing its view's pages (eaos/live/roles.py share)."""
+    from ..live.roles import read, share
     live, base, made = app
     rows, speed, held = [], None, {kind for kind, _ in made if kind}
     for n, (kind, state) in enumerate(made):
@@ -72,10 +72,10 @@ def _pictured(context, app, groups, measured):
 
 def _seen(context, row, kind, nowhere):
     """A picture's row, with the view that saw it, its file within the report, and `unseen` when the page did not open
-    as itself (eaos/roles.py opened): a sign-in, a refusal or the app's page for an address it does not have is the
+    as itself (eaos/live/roles.py opened): a sign-in, a refusal or the app's page for an address it does not have is the
     page not seen with that session, never the page itself."""
     from urllib.parse import urlsplit
-    from ..test_users import _reached
+    from ..live.test_users import _reached
     path = urlsplit(row['url']).path or '/'
     shown = row.get('status') != 'observed' or _reached({'path': path, 'url': row.get('landed'), 'status': row.get('http'),
                                                          'password': row.get('password'), 'text': row.pop('text', None)}, nowhere)
@@ -84,19 +84,19 @@ def _seen(context, row, kind, nowhere):
 
 
 def _nowhere(live, base, state):
-    """The lines of the app's page for an address it does not have, opened with session `state` (eaos/roles.py
+    """The lines of the app's page for an address it does not have, opened with session `state` (eaos/live/roles.py
     nowhere_of); None read only."""
-    from ..live_setup import probe
-    from ..roles import NOWHERE, nowhere_of
+    from ..live.setup import probe
+    from ..live.roles import NOWHERE, nowhere_of
     return nowhere_of(probe(live, base, state, None, [NOWHERE])) if live else None
 
 
 def _coverage(context, live, base, made, rows):
-    """{kinds, breaches} (eaos/roles.py), None when the kinds of users are not known: which kinds the pictures saw and
+    """{kinds, breaches} (eaos/live/roles.py), None when the kinds of users are not known: which kinds the pictures saw and
     why not the others, and each page of one kind another kind's session opened (a session per kind is local only)."""
     from urllib.parse import urlsplit
-    from ..live_setup import probe
-    from ..roles import breaches, coverage, read
+    from ..live.setup import probe
+    from ..live.roles import breaches, coverage, read
     kinds = read(context.out)
     if not kinds: return None
     seen = {urlsplit(row['url']).path for row in rows if row.get('status') == 'observed' and not row.get('unseen')}
@@ -108,9 +108,9 @@ def _coverage(context, live, base, made, rows):
 
 def _screen_pages(context):
     """({template: its pages}, the crawl's measured entry or None): the app's static page routes, each kind of user's
-    own pages (eaos/roles.py) and the crawled ones, never one the code proves no person reaches."""
-    from ..roles import pages_of, proven, read
-    from ..screens.crawl import distinct
+    own pages (eaos/live/roles.py) and the crawled ones, never one the code proves no person reaches."""
+    from ..live.roles import pages_of, proven, read
+    from ..live.screens.crawl import distinct
     pages = ['/'] + pages_of(context.out, served=False) + [page for kind in read(context.out) for page in kind['pages']]
     crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
     pages += [row['path'] for row in crawled]
@@ -122,7 +122,7 @@ def _screen_pages(context):
 def _audit_pages(context, groups, measured, live, base, state, kind, speed):
     """(the page audit, the entry's speed) of `groups` opened with session `state` (as kind of user `kind`): Lighthouse
     only with `speed`, and only when the crawl did not measure the entry already."""
-    from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
+    from ..live.screens.audit import VIEWPORTS, lighthouse, page_audit, variants
     state = state if state.is_file() else None
     folder = context.out / 'live/screens' / (kind or '')
     audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],
@@ -135,11 +135,11 @@ def _audit_pages(context, groups, measured, live, base, state, kind, speed):
 
 def crawl(context):
     """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
-    distinct template, ten at most (eaos/screens/crawl.py), once as each kind of user (eaos/roles.py): each route with
+    distinct template, ten at most (eaos/live/screens/crawl.py), once as each kind of user (eaos/live/roles.py): each route with
     the kinds that reached it. The published address the person named, read only, a few."""
     if not _published(context): _live(context)
     from .live_app import sessions
-    from ..screens.crawl import MEASURED, code_routes, crawl as find
+    from ..live.screens.crawl import MEASURED, code_routes, crawl as find
     live, base, made = sessions(context, published=True)
     founds, routes, seeds = [], {}, code_routes(context.target) if live else []
     for kind, state in made:
@@ -152,7 +152,7 @@ def crawl(context):
             if kind: merged['kinds'].append(kind)
     if not founds:
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
-    from ..screens.crawl import distinct
+    from ..live.screens.crawl import distinct
     _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
                                   'pages': [paths[0] for paths in distinct(routes).values()]})     # one per template: the lock's stand-in
     return {'pages': len(routes)}

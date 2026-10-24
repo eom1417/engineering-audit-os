@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 import unittest
-from eaos import architecture as arch
+from eaos.facts import architecture as arch
 
 MODEL = Path(__file__).resolve().parent / 'fixtures/architecture-model.json'
 

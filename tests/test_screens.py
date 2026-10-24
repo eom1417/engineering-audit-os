@@ -9,8 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import toolchain
-from eaos.screens import audit
+from eaos.core import toolchain
+from eaos.live.screens import audit
 from shared_fixture import TemporaryWorkspace
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,7 +110,7 @@ class PageStateTests(unittest.TestCase):
                          ({'studio-lang': 'ar'}, {'theme': 'dark'}, 'dark'))
         self.assertEqual([(v['name'], v['storage'], v['query'], v['color_scheme']) for v in audit.variants(theme_key='t', theme_param='t')],
                          [('default', {}, {}, 'light')], "by default nothing is set: the app's own theme")
-        # The theme kept in a key's JSON object (the EAOS Studio's "eaos.studio"): merged in, so dark is pictured
+        # The theme kept in a key's JSON object (the EAOS Studio's "eaos.report.studio"): merged in, so dark is pictured
         in_json = audit.variants(lang_key='studio-lang', theme_key='studio', theme_field='theme', themes=('light', 'dark'))
         self.assertEqual({v['name']: v['storage'] for v in in_json}['ar-dark'], {'studio-lang': 'ar', 'studio': {'theme': 'dark'}})
         self.assertEqual(audit.variants(lang_key='p', lang_field='lang', theme_key='p', theme_field='theme', themes=('dark',))[-1]['storage'],
@@ -180,7 +180,7 @@ class ServeAndLighthouseTests(unittest.TestCase):
 class DistinctPagesTests(unittest.TestCase):
     def test_pages_of_one_template_with_other_data_are_pictured_once(self):
         # The self-check pictured 77 routes of the Studio, 8 task pages and 8 flow pages among them, each light and dark
-        from eaos.screens.crawl import distinct
+        from eaos.live.screens.crawl import distinct
         crawled = ['/', '/#/', '/#/problems', '/#/problems?severity=low', '/#/tasks/TASK-001', '/#/tasks/TASK-004',
                    '/#/plans/fix', '/#/plans/fix/M01', '/#/plans/fix/M02', '/#/system/f/eaos%2Fplan.py%23confirm',
                    '/#/system/functions', '/#/system/paths', '/#/system/pipeline', '/#/history', '/#/history/e8fb378a06cc',

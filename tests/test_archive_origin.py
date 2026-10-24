@@ -1,9 +1,9 @@
 """Code a project archived is reported as archived: never a product defect, never an automatic repair."""
 import unittest
 
-from eaos.debt_register import _severity
-from eaos.decisions import decide
-from eaos.dossier import archived, origin_of
+from eaos.analysis.debt_register import _severity
+from eaos.core.decisions import decide
+from eaos.analysis.dossier import archived, origin_of
 
 INDEX = {'F1': 'archive/removed-screens/EventEditor.tsx', 'F2': 'app/src/features/rota/Rota.tsx', 'F3': 'app/tests/a.test.mjs'}
 

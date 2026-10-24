@@ -247,7 +247,7 @@
    "reason": "found",
    "count": {
     "value": 1,
-    "src": "facts/resolve.json#module_edge[EXTERNAL] matched against eaos/studio/infra.py PACKAGES (distinct nodes)",
+    "src": "facts/resolve.json#module_edge[EXTERNAL] matched against eaos/report/studio/infra.py PACKAGES (distinct nodes)",
     "unit": "count"
    },
    "nodes": [
@@ -473,7 +473,7 @@
   "ci": "facts/runtime.json#ci_step",
   "environments": "facts/config.json#env_read (names) + config_file_unread",
   "databases": "facts/entrypoints.json#data_access[client=supabase] + facts/resolve.json#module_edge[EXTERNAL] + facts/domain.json#data_table + facts/runtime.json#migration_step",
-  "queues": "facts/resolve.json#module_edge[EXTERNAL] matched against eaos/studio/infra.py PACKAGES",
+  "queues": "facts/resolve.json#module_edge[EXTERNAL] matched against eaos/report/studio/infra.py PACKAGES",
   "services": "facts/runtime.json#integration_target + resilience_policy + facts/resolve.json#module_edge[EXTERNAL]",
   "observability": "facts/runtime.json#observability_signal + facts/resolve.json#module_edge[EXTERNAL]",
   "target": "target-architecture.json#infrastructure"

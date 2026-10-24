@@ -49,7 +49,7 @@ class EveryEngineTests(Workspace):
                 self.assertEqual((report.findings, report.metrics), ([], []))
         # An adapter reads its own version when the binary prints none.
         with mock.patch.object(tool, 'version', return_value=None), \
-                mock.patch('eaos.toolchain.applies', return_value=(True, 'react')):
+                mock.patch('eaos.core.toolchain.applies', return_value=(True, 'react')):
             self.assertIsNone(tool.declined('react-docgen', 'react-docgen', self.tmp, probe=lambda: '3.0.7'))
             self.assertEqual(tool.declined('react-docgen', 'react-docgen', self.tmp, probe=lambda: None).status, UNAVAILABLE)
 

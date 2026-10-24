@@ -26,7 +26,7 @@ class FakeRun:
     def stop(self): pass
 
 
-# the app's page for an address it does not have, as the screens open it (eaos/roles.py nowhere_of)
+# the app's page for an address it does not have, as the screens open it (eaos/live/roles.py nowhere_of)
 PROBED = {'text': 'Home', 'others': [{'text': 'Not found'}]}
 WALKED = {'specs': 1, 'walked': [{'spec': 'a.spec.ts', 'pages': ['/'], 'status': 'passed', 'reason': ''}], 'failed': 0,
           'recordings': ['a.rrweb.json'], 'traces': [], 'recordings_dropped': [], 'traces_dropped': []}
@@ -69,8 +69,8 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertEqual(live, {stage: ('unavailable', 'no_run_consent') for stage in LIVE})
         self.assertEqual(manifest['status'], 'COMPLETE')
         failed = {'ok': False, 'attempts': 3, 'limitations': ['npm ci failed'], 'page': None}
-        from eaos.assistants.readiness import NoAssistant
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', return_value=failed) as setup:
+        from eaos.ai.readiness import NoAssistant
+        with mock.patch('eaos.live.setup.authorize'), mock.patch('eaos.live.setup.setup', return_value=failed) as setup:
             manifest, live = self.run_check('down', runtime=self.base / 'runtime', provider=NoAssistant('declined', 'without AI'))
         self.assertIsNone(setup.call_args.kwargs['provider'], 'without AI the app is set up without one, never asked of its stand-in')
         self.assertEqual(live, {'setup': ('unavailable', 'app_not_running'), 'record': ('unavailable', 'app_not_running'),
@@ -80,12 +80,12 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertEqual(manifest['status'], 'COMPLETE')
 
     def test_an_app_with_no_load_scenario_is_not_measured_and_says_why(self):
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
-                mock.patch('eaos.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live_run.LiveRun', FakeRun), mock.patch('eaos.live_setup.probe', return_value=PROBED), \
-                mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
-                mock.patch('eaos.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.screens.audit.lighthouse', return_value={}), \
-                mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': []}), \
-                mock.patch('eaos.nfr.write', return_value=[]), mock.patch('eaos.runtime_baseline.run_baseline') as measured:
+        with mock.patch('eaos.live.setup.authorize'), mock.patch('eaos.live.setup.setup', side_effect=started), \
+                mock.patch('eaos.live.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live.run.LiveRun', FakeRun), mock.patch('eaos.live.setup.probe', return_value=PROBED), \
+                mock.patch('eaos.live.behavior_lock.run_journeys', return_value=WALKED), \
+                mock.patch('eaos.live.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.live.screens.audit.lighthouse', return_value={}), \
+                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': []}), \
+                mock.patch('eaos.live.nfr.write', return_value=[]), mock.patch('eaos.live.runtime_baseline.run_baseline') as measured:
             manifest, live = self.run_check('no-scenario', runtime=self.base / 'runtime')
         self.assertEqual(live['baseline'], ('unavailable', 'no_load_scenario'))
         measured.assert_not_called()
@@ -95,13 +95,13 @@ class LiveInTheCheck(unittest.TestCase):
         lock = {'results': [{'path': 'a.spec.ts', 'status': 'passed'}, {'path': 'b.spec.ts', 'status': 'failed'}]}
         speed = {'conditions': {'vus': 100}, 'scenarios': [{'id': 'QS-001', 'threshold': {'p95_ms': 800.0, 'error_rate': 0.01},
                                                                   'before': {'p95_ms': 312.5, 'error_rate': 0}}]}
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
-                mock.patch('eaos.behavior_lock.run_lock', return_value=lock), mock.patch('eaos.live_run.LiveRun', FakeRun), mock.patch('eaos.live_setup.probe', return_value=PROBED), \
-                mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
-                mock.patch('eaos.screens.audit.page_audit', side_effect=audited), \
-                mock.patch('eaos.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
-                mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}), \
-                mock.patch('eaos.nfr.write', side_effect=scenario), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
+        with mock.patch('eaos.live.setup.authorize'), mock.patch('eaos.live.setup.setup', side_effect=started), \
+                mock.patch('eaos.live.behavior_lock.run_lock', return_value=lock), mock.patch('eaos.live.run.LiveRun', FakeRun), mock.patch('eaos.live.setup.probe', return_value=PROBED), \
+                mock.patch('eaos.live.behavior_lock.run_journeys', return_value=WALKED), \
+                mock.patch('eaos.live.screens.audit.page_audit', side_effect=audited), \
+                mock.patch('eaos.live.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
+                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}), \
+                mock.patch('eaos.live.nfr.write', side_effect=scenario), mock.patch('eaos.live.runtime_baseline.run_baseline', return_value=speed):
             manifest, live = self.run_check('up', runtime=self.base / 'runtime')
         self.assertEqual(manifest['status'], 'COMPLETE')
         self.assertEqual(manifest['stages']['crawl']['detail'], {'pages': 1})
@@ -115,15 +115,15 @@ class LiveInTheCheck(unittest.TestCase):
     def test_an_app_whose_code_names_no_page_locks_walks_and_loads_the_pages_the_crawl_found(self):
         # A real check (HungerLab, an SPA with no client router): the code named no page, so lock, record, journeys and
         # baseline stood still while the crawl had found and pictured the pages; and the Studio showed 0 screens.
-        from eaos import lock_specs
+        from eaos.live import lock_specs
         speed = {'conditions': {'vus': 10}, 'scenarios': []}
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
-                mock.patch('eaos.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live_run.LiveRun', FakeRun), \
-                mock.patch('eaos.live_setup.probe', return_value=PROBED), mock.patch('eaos.behavior_lock.run_journeys', return_value=WALKED), \
-                mock.patch('eaos.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.lock_specs.surfaces', return_value={}), \
-                mock.patch('eaos.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
-                mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/tasks/1'}, {'path': '/#/tasks/2'}]}), \
-                mock.patch('eaos.nfr.write', side_effect=scenario), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
+        with mock.patch('eaos.live.setup.authorize'), mock.patch('eaos.live.setup.setup', side_effect=started), \
+                mock.patch('eaos.live.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live.run.LiveRun', FakeRun), \
+                mock.patch('eaos.live.setup.probe', return_value=PROBED), mock.patch('eaos.live.behavior_lock.run_journeys', return_value=WALKED), \
+                mock.patch('eaos.live.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.live.lock_specs.surfaces', return_value={}), \
+                mock.patch('eaos.live.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
+                mock.patch('eaos.live.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/tasks/1'}, {'path': '/#/tasks/2'}]}), \
+                mock.patch('eaos.live.nfr.write', side_effect=scenario), mock.patch('eaos.live.runtime_baseline.run_baseline', return_value=speed):
             manifest, live = self.run_check('up', runtime=self.base / 'runtime')
         self.assertLess(ORDER.index('crawl'), ORDER.index('lock'), 'the lock reads the crawl')
         self.assertEqual({stage: manifest['stages'][stage]['status'] for stage in ('lock', 'record', 'journeys', 'baseline')},
@@ -145,7 +145,7 @@ class LoadTarget(unittest.TestCase):
         # in 8 ms, and the Python server behind the Studio was never measured.
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-        from eaos import runtime_baseline
+        from eaos.live import runtime_baseline
 
         def serve(api):
             class Handler(BaseHTTPRequestHandler):
@@ -163,7 +163,7 @@ class LoadTarget(unittest.TestCase):
             self.addCleanup(server.shutdown)
             return f'http://127.0.0.1:{server.server_address[1]}'
 
-        with mock.patch('eaos.nfr.server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
+        with mock.patch('eaos.live.nfr.server_routes', return_value=['/', '/api/session', '/api/runs', '/index.html']):
             with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):
                 runtime_baseline.refuse_a_page_server('report', serve(api=False))
             with self.assertRaisesRegex(RuntimeError, 'serves only its pages'):    # its routes not found: still the pages
@@ -176,7 +176,7 @@ class LoadTarget(unittest.TestCase):
         # and four routes need a value: the load measured refusals and timeouts, never the program.
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-        from eaos import runtime_baseline
+        from eaos.live import runtime_baseline
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):

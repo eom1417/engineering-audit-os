@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from eaos import cli
-from eaos.command_groups import GROUPS, group_of
+from eaos.interfaces import cli
+from eaos.interfaces.command_groups import GROUPS, group_of
 from eaos.pipeline import resume
 
 

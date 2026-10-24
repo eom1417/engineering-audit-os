@@ -158,7 +158,7 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertIn('probe', WAITS['semantic'], 'the semantic pass rewrites the probed ledger')
 
     def test_speed_uses_available_container_memory_and_leaves_room_for_the_app(self):
-        from eaos.assistants.resources import capacity
+        from eaos.core.resources import capacity
         gb = 2 ** 30
         files = {'/sys/fs/cgroup/cpu.max': '200000 100000', '/sys/fs/cgroup/memory.max': str(4 * gb),
                  '/sys/fs/cgroup/memory.current': str(gb), '/sys/fs/cgroup/memory.stat': 'inactive_file 0\nslab_reclaimable 0',
@@ -194,8 +194,8 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertEqual(most(True, answers)[0], 3)
 
     def test_stopping_one_stage_interrupts_the_commands_running_beside_it_and_their_children(self):
-        from eaos.assistants.command import run_command
-        from eaos.live_setup import free_port
+        from eaos.core.process import run_command
+        from eaos.live.setup import free_port
         import urllib.request
         port = free_port()
         code = ('import subprocess,sys,time,urllib.request\nfrom pathlib import Path\n'

@@ -1,5 +1,5 @@
 """The six sustainability indicators, the transform plan built on them and the canonical home of a repeated definition
-(eaos/sustainability.py, eaos/transform_plan.py, eaos/canonical_home.py), restored from the archive in 0.0.9."""
+(eaos/analysis/sustainability.py, eaos/analysis/transform_plan.py, eaos/analysis/canonical_home.py), restored from the archive in 0.0.9."""
 import json
 import shutil
 import tempfile
@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
-from eaos import sustainability, transform_plan
-from eaos.canonical_home import suggest
+from eaos.analysis import sustainability, transform_plan
+from eaos.analysis.canonical_home import suggest
 from eaos.facts.run import collect
 from shared_fixture import scratch
 

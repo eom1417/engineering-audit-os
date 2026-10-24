@@ -5,16 +5,16 @@ from pathlib import Path
 import tempfile
 import unittest
 from shared_fixture import TemporaryWorkspace
-from eaos import claims as ledger
-from eaos import probes
-from eaos.ask import answer
-from eaos.compose.labels import statement_of
-from eaos.compose.rules import validate
-from eaos.dossier import assemble, refresh_views
+from eaos.analysis import claims as ledger
+from eaos.analysis import probes
+from eaos.ai.ask import answer
+from eaos.core.words import statement_of
+from eaos.core.document_rules import validate
+from eaos.analysis.dossier import assemble, refresh_views
 from eaos.facts.run import collect
 from eaos.facts.store import read_set
-from eaos.plan import build
-from eaos.views import refresh
+from eaos.analysis.plan import build
+from eaos.report.views import refresh
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
@@ -114,7 +114,7 @@ class LayeringTests(unittest.TestCase):
 
     def test_the_ledger_is_below_its_views_and_the_package_has_no_import_cycle(self):
         root = Path(__file__).resolve().parents[1]
-        tree = ast.parse((root / 'eaos/dossier.py').read_text())
+        tree = ast.parse((root / 'eaos/analysis/dossier.py').read_text())
         imported = {node.module.lstrip('.') for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
         self.assertFalse(imported & {'plan', 'views'}, f'dossier must not import the layers that render from it: {imported}')
         with tempfile.TemporaryDirectory() as tmp:

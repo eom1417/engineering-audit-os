@@ -18,7 +18,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.correlate import filter_dead_code_references, _filter_registry_referenced_dead_code
+from eaos.facts.registry import filter_dead_code_references, filter_in_sets
 from eaos.facts.source import Source
 
 
@@ -71,8 +71,8 @@ class RegistryReferenceTests(unittest.TestCase):
 
     def test_a_compatibility_path_finding_is_left_alone(self):
         with tempfile.TemporaryDirectory() as tmp:
-            facts = [_dead_fact('eaos/claims.py', 'compatibility path has 6 markers without a clear sunset or migration boundary'),
-                     _dead_fact('eaos/dossier.py', 'compatibility path has 3 markers without a clear sunset')]
+            facts = [_dead_fact('eaos/analysis/claims.py', 'compatibility path has 6 markers without a clear sunset or migration boundary'),
+                     _dead_fact('eaos/analysis/dossier.py', 'compatibility path has 3 markers without a clear sunset')]
             kept, dropped = filter_dead_code_references(facts, Source(Path(tmp)))
         self.assertEqual((dropped, len(kept)), (0, 2))
         self.assertFalse(any(f['value'].get('referenced_by_registry') for f in kept))
@@ -80,7 +80,7 @@ class RegistryReferenceTests(unittest.TestCase):
     def test_the_cluster_pass_skips_registry_marked_facts(self):
         kept, _ = marked({'pkgs/__init__.py': 'MODULES = [bar]\n', 'pkgs/bar.py': 'def detect(): return 1\n'},
                          ['pkgs/bar.detect', 'pkgs/bar.unrelated'])
-        filtered = _filter_registry_referenced_dead_code(kept, {})
+        filtered = filter_in_sets(kept, {})
         found = {f['location']['symbol'] for f in filtered if not f['value'].get('referenced_by_registry')}
         self.assertIn('pkgs/bar.unrelated', found)
         self.assertNotIn('pkgs/bar.detect', found)

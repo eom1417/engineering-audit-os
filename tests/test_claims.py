@@ -2,13 +2,13 @@
 from pathlib import Path
 import tempfile
 import unittest
-from eaos import claims
-from eaos.claims import from_facts
-from eaos.fact_claims import engine_measurement, naming
-from eaos.compose.labels import IMPACTS, impact_of
+from eaos.analysis import claims
+from eaos.analysis.claims import from_facts
+from eaos.analysis.fact_claims import engine_measurement, naming
+from eaos.core.words import IMPACTS, impact_of
 from eaos.facts.run import collect
 from eaos.facts.store import read_set
-from eaos.vocabulary import schema_errors
+from eaos.core.vocabulary import schema_errors
 
 
 def valid(**overrides):
@@ -161,7 +161,7 @@ class HotspotTests(unittest.TestCase):
     same file, and a complexity-1 file ranked third among the risks: ranking had no severity term."""
 
     def test_a_hotspot_is_one_function_one_card_and_the_worst_measurement_ranks_first(self):
-        from eaos.ranking import rank
+        from eaos.analysis.ranking import rank
         node = lambda path, rank_, deps=(): {'id': 'G-' + path, 'kind': 'graph_node', 'location': {'path': path},
                                              'value': {'attention_rank': rank_, 'depends_on': list(deps)}}
         observed = {'status': 'observed', 'granularity': 'symbol'}

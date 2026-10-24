@@ -11,7 +11,7 @@ from shared_fixture import TemporaryWorkspace
 
 from eaos.pipeline.run import execute
 from eaos.pipeline.stages import BY_NAME, ORDER
-from eaos.studio.nodes import core
+from eaos.ai.nodes import core
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -142,7 +142,7 @@ class JointDecision(TemporaryWorkspace):
 
     def test_the_assistant_saying_what_the_rules_say_is_never_a_disagreement(self):
         # it was asked of the owner as "the rules say delete and your assistant said delete", on protected files
-        from eaos.target_architecture import _decide_current
+        from eaos.report.target_architecture import _decide_current
         component = {'relation': 'delete', 'paths': ['console/src/core/main.js']}
         self.assertEqual(_decide_current(component, {'operation': 'delete', 'cites': []}, 'both', lambda path: True)[0], 'agreed')
 
@@ -171,8 +171,8 @@ class JointDecision(TemporaryWorkspace):
 class OwnerShareTests(unittest.TestCase):
     def test_every_source_shares_one_owner_cap_and_a_doubted_card_is_kept_not_proven(self):
         # The self-check asked the owner 20 questions for 123 cards (14 from the planner) and left 16 doubted cards to them.
-        from eaos.card_review import resolutions
-        from eaos.owner_share import capped as _capped
+        from eaos.analysis.card_review import resolutions
+        from eaos.core.owner_share import capped as _capped
         rows = [{'id': 'target-architecture', 'state': 'waiting', 'recommended_option': 'review'},
                 {'id': 'ideal-OQ-a', 'state': 'waiting', 'recommended_option': 'o1'},
                 {'id': 'ideal-OQ-b', 'state': 'waiting', 'recommended_option': None},

@@ -26,7 +26,7 @@ class LeftoverTests(unittest.TestCase):
                              ('dist/bundle.js', 'build_output'), ('build_output.txt', 'build_output'),
                              ('unused-archive/old.ts', 'archived_directory'), ('legacy/old.ts', 'archived_directory'),
                              ('.env', 'env_file_committed'), ('.env.production', 'env_file_committed'),
-                             ('bin/runner.dll', 'committed_binary'), ('src/app.tsx', None), ('eaos/policy.py', None),
+                             ('bin/runner.dll', 'committed_binary'), ('src/app.tsx', None), ('eaos/analysis/policy.py', None),
                              ('README.md', None), ('.env.example', None), ('.env.sample', None), ('.env.template', None),
                              ('.env.test', None)]:
             self.assertEqual(classify(path), reason, path)

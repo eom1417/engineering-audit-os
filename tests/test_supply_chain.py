@@ -74,7 +74,7 @@ class UpgradeCheckTests(Workspace):
 
     def test_the_check_fails_before_the_upgrade_and_passes_after(self):
         if osv_scanner.version() is None or syft.version() is None: self.skipTest('syft and osv-scanner are not installed')
-        from eaos.dependency_assessment import _check_argv
+        from eaos.analysis.dependency_assessment import _check_argv
         root = Path(self.tmp)
         (root / 'package.json').write_text(json.dumps({'name': 'f', 'dependencies': {'picomatch': '2.3.1'}}))
         (root / 'package-lock.json').write_text(json.dumps(self.LOCK))
@@ -96,7 +96,7 @@ class ClaimTests(Workspace):
                                        {'name': 'advisories', 'value': 2}]}}
 
     def claims(self):
-        from eaos.claims import from_facts
+        from eaos.analysis.claims import from_facts
         return [c for c in from_facts({'external': {'facts': [self.FACT]}}, target=self.tmp)
                 if (c.get('render') or {}).get('key') == 'vulnerable_dependency']
 
@@ -105,7 +105,7 @@ class ClaimTests(Workspace):
         self.assertEqual(claim['confidence'], 'CONFIRMED')
         self.assertTrue(claim['assessment']['reviewed_by'].startswith('engagement rule upgrade_vulnerable_dependencies'))
         self.assertEqual(claim['checks'][0]['expected_exit'], 0)
-        from eaos.compose.labels import IMPACTS
+        from eaos.core.words import IMPACTS
         self.assertIn('not yet shown', IMPACTS['en']['vulnerable_dependency'], 'reachability is not claimed')
         (Path(self.tmp) / 'eaos.engagement.json').write_text(json.dumps({'rules': {'upgrade_vulnerable_dependencies': False}}))
         [claim] = self.claims()

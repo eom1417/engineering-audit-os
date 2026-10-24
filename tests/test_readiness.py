@@ -1,4 +1,4 @@
-"""Which assistant EAOS uses (eaos/assistants), and its readiness probe (eaos/assistants/readiness.py) against fake `claude`
+"""Which assistant EAOS uses (eaos/ai), and its readiness probe (eaos/ai/readiness.py) against fake `claude`
 and `codex` commands that behave like the real ones in each state: ready, signed out, the sign-in expired, a usage limit,
 silent, not installed."""
 import json
@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos.assistants import readiness
+from eaos.ai import readiness
 
 CLAUDE = r'''#!/bin/sh
 echo "claude $*" >> "$FAKE_LOG"
@@ -179,19 +179,19 @@ class Probe(unittest.TestCase):
 
 class Choice(unittest.TestCase):
     def test_the_installed_assistant_is_used_and_none_means_none(self):
-        import eaos.assistants as assistants
+        import eaos.ai as assistants
         with mock.patch.object(assistants.shutil, 'which', side_effect=lambda n: '/bin/codex' if n == 'codex' else None), \
                 mock.patch.dict(os.environ, {'EAOS_ASSISTANT': ''}):
             name, provider = assistants.provider()
         self.assertEqual(name, 'codex')
-        self.assertIn('eaos.assistants.codex_adapter', provider.config['argv'])
+        self.assertIn('eaos.ai.codex_adapter', provider.config['argv'])
         with mock.patch.object(assistants.shutil, 'which', return_value=None):
             self.assertEqual(assistants.provider(), (None, None))
         with mock.patch.object(assistants.shutil, 'which', return_value='/bin/x'), mock.patch.dict(os.environ, {'EAOS_ASSISTANT': 'none'}):
             self.assertEqual(assistants.provider(), (None, None), '`none` turns every assistant off')
 
     def test_codex_reads_only_what_eaos_sends_changes_nothing_and_needs_no_key(self):
-        from eaos.assistants import codex_adapter
+        from eaos.ai import codex_adapter
 
         def fake(argv, **kwargs):
             Path(argv[argv.index('-o') + 1]).write_text('{"action": "final"}')

@@ -1,4 +1,4 @@
-"""Fixes in waves: the expensive gates once per batch (eaos/waves.py finish_batch, behind the MCP fix_finish), the card
+"""Fixes in waves: the expensive gates once per batch (eaos/journeys/waves.py finish_batch, behind the MCP fix_finish), the card
 at fault found by halving, and the result handed over as a branch that leaves the person's branch and files alone."""
 import json
 import subprocess
@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import waves
+from eaos.journeys import waves
 from shared_fixture import scratch
 
 
@@ -33,7 +33,7 @@ def commit_file(root, name, text):
 class OrderTests(unittest.TestCase):
     def test_a_batch_with_a_design_card_may_change_any_screens_look_but_not_its_errors(self):
         # EAOS, 2026-10-15: a design card's shared change showed on pages its finding never named; each run found one more
-        from eaos.behavior_lock import _declared
+        from eaos.live.behavior_lock import _declared
         self.assertEqual(waves.declared_screens([{'design': {'findings': [{'page': '/library'}]}}, {}]), {'*'})
         self.assertEqual(waves.declared_screens([{'id': 'TASK-1'}]), set(), 'a batch of code changes keeps every screen locked')
         shot = 'expect(page).toHaveScreenshot(expected) failed\n  Snapshot: change-ideal.png'
@@ -75,7 +75,7 @@ class OrderTests(unittest.TestCase):
         probe_card = {'id': 'P', 'verify_command': ['eaos', 'recheck', '--spec', json.dumps({'probe_type': 'graph_query', 'specification': {'query': 'q'}}), '.']}
         sets = {'deadcode': {'facts': [{'location': {'path': 'src/a.ts', 'symbol': 'still'}, 'value': {'rule': 'unused-symbol'}}]}}
         with mock.patch('eaos.facts.run.collect') as collect, mock.patch('eaos.facts.run.read_available', return_value=sets), \
-                mock.patch('eaos.probes.decide_probe', return_value=('REFUTED', 'gone')):
+                mock.patch('eaos.analysis.probes.decide_probe', return_value=('REFUTED', 'gone')):
             exits = waves.batch_acceptance(scratch(), [dead_card, gone_card, probe_card], scratch())
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
@@ -83,7 +83,7 @@ class OrderTests(unittest.TestCase):
 class RebuildTests(unittest.TestCase):
     def test_a_module_is_split_only_after_its_complex_functions_and_a_split_tried_too_early_comes_back(self):
         # EAOS, 2026-10-15: five module splits went into batches before their simplifications, failed, never came back
-        from eaos import ledger
+        from eaos.core import ledger
         report = Path(scratch())
         card = lambda i, needs=(): {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'},
                                     'prerequisites': [{'task_id': n} for n in needs]}
@@ -239,8 +239,8 @@ class FinishTests(unittest.TestCase):
         live_page = lambda batch, name: '' if 'problems' in (batch.get('known') or ()) else 'the behaviour lock broke on 1 of 2 specs'
         with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
                 mock.patch.object(waves, 'original_checks', return_value=[]), mock.patch.object(waves, 'gates', side_effect=live_page), \
-                mock.patch('eaos.behavior_lock.verify_lock') as control, \
-                mock.patch('eaos.behavior_lock.failing_tests', return_value={'problems'}):
+                mock.patch('eaos.live.behavior_lock.verify_lock') as control, \
+                mock.patch('eaos.live.behavior_lock.failing_tests', return_value={'problems'}):
             summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=True)
         self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
         self.assertEqual(control.call_args.kwargs['name'], 'wave-1-control', 'checked once on the base alone')
@@ -251,7 +251,7 @@ class RegenerateTests(unittest.TestCase):
     def test_what_the_build_makes_from_the_batchs_source_comes_back_as_one_commit_and_nothing_ignored(self):
         # EAOS on itself (2026-10-13): Studio fixes changed studio/src, the shipped build in eaos/data/studio no longer
         # matched it, and four sound fixes were about to be left out of the batch for it.
-        from eaos import regenerate
+        from eaos.journeys import regenerate
         root, runtime = repository(), Path(scratch())
         (root / 'app').mkdir(); (root / 'shipped').mkdir()
         commit_file(root, 'app/src.ts', 'one')
@@ -283,7 +283,7 @@ class RegenerateTests(unittest.TestCase):
 
 class CodeLawsGateTests(unittest.TestCase):
     def test_a_change_that_copies_leaves_dead_code_or_adds_complexity_is_refused_and_a_partial_split_is_kept(self):
-        from eaos.gates import debt, words
+        from eaos.analysis.gates import debt, words
         new_debt = lambda before, after, paths: words(debt(before, after, paths))
 
         def facts(folder, functions, clones=(), dead=()):
@@ -312,7 +312,7 @@ class CodeLawsGateTests(unittest.TestCase):
     def test_a_module_past_the_line_limit_or_outside_the_declared_layers_is_refused_on_the_card(self):
         # EAOS, batch 5 (2026-10-14): a new module in no layer of eaos.policy.json and modules grown past their limit were
         # found only when the 51 changes met, by the project's own suite
-        from eaos import gates
+        from eaos.analysis import gates
 
         def lines(folder, sizes):
             (Path(folder) / 'facts').mkdir(parents=True, exist_ok=True)
@@ -334,19 +334,19 @@ class PythonSuiteGateTests(unittest.TestCase):
     def test_a_change_to_the_apps_files_runs_the_apps_checks_on_the_card_itself(self):
         # EAOS, batch 5 (2026-10-14): an unused import in studio/ broke its type check and its build; no card's gate ran
         # them, and it was found only when the 51 changes met
-        from eaos import execute
+        from eaos.journeys import execute
         typecheck = {'argv': ['npm', 'run', 'typecheck'], 'exit': 0, 'failing': []}
-        with mock.patch('eaos.live_run.load_profile', return_value={'app': 'studio'}), \
+        with mock.patch('eaos.live.run.load_profile', return_value={'app': 'studio'}), \
                 mock.patch.object(execute, 'original_checks', return_value=[typecheck]), \
                 mock.patch.object(execute, 'project_checks', return_value=[{**typecheck, 'exit': 2}]) as ran:
-            self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['eaos/plan.py']), [])
+            self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['eaos/analysis/plan.py']), [])
             self.assertEqual(execute.app_breakage('project', 'runtime', 'copy', ['studio/src/x.tsx']),
                              ["the app's own check failed: npm run typecheck"])
         self.assertEqual(ran.call_args.kwargs, {'python': False}, 'the whole Python suite stays for the batch')
 
     def test_a_python_suite_beside_the_app_is_a_gate_and_only_its_new_failures_count(self):
-        from eaos.execute import failing, regressions
-        from eaos.verify import python_tests
+        from eaos.journeys.execute import failing, regressions
+        from eaos.live.verify import python_tests
         root = Path(scratch())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
         (root / 'tests').mkdir()

@@ -13,8 +13,12 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tests'))
 
-from eaos import agent_tools, behavior_lock, cli, guided, jobs, journeys, live_setup, progress, run_profile, toolchain, waves  # noqa: E402
-from eaos.api import launch, server  # noqa: E402
+from eaos.journeys import agent_tools, guided, catalog as journeys, waves
+from eaos.live import behavior_lock, setup as live_setup, run_profile
+from eaos.interfaces import cli
+from eaos.core import jobs, progress, toolchain  # noqa: E402
+from eaos.core import launch
+from eaos.interfaces.api import server  # noqa: E402
 from eaos.pipeline import STAGES  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
 from test_continuity import Base as Checked  # noqa: E402

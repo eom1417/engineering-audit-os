@@ -8,7 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import arch_map, blueprint, blueprint_view, c4, human_report, system_drawing, system_map
+from eaos.analysis import arch_map, c4, system_drawing, system_map
+from eaos.report import blueprint, blueprint_view, human_report
 from test_human_report import report, section
 
 def node(path, depends, group=None):
@@ -275,14 +276,14 @@ class WorkLogStampErrorTests(unittest.TestCase):
         clean = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
         self.assertNotIn('data-part="report-errors"', clean)
         self.assertNotIn('data-part="stamp"', clean)
-        with mock.patch('eaos.human_report.section_target', side_effect=RuntimeError('a broken record')):
+        with mock.patch('eaos.report.human_report.section_target', side_effect=RuntimeError('a broken record')):
             page = human_report.write(self.out, 'en').read_text(encoding='utf-8')
         self.assertEqual(json.loads((self.out / 'human' / 'errors.json').read_text(encoding='utf-8')),
                          [{'section': 'target', 'error': 'RuntimeError: a broken record'}])
         self.assertIn('data-part="report-errors"', page)
         self.assertIn('Not available in this report.', section(page, 'target'))
         self.assertIn('data-report="plan"', page, 'the rest of the page is built')
-        with mock.patch('eaos.system_map.build', side_effect=ValueError('bad facts')):
+        with mock.patch('eaos.analysis.system_map.build', side_effect=ValueError('bad facts')):
             human_report.write(self.out, 'en')
         self.assertEqual(json.loads((self.out / 'human' / 'errors.json').read_text(encoding='utf-8')),
                          [{'section': 'system map', 'error': 'ValueError: bad facts'}])

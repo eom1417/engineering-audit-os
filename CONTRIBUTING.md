@@ -35,7 +35,7 @@ bash tools/dev_setup.sh          # .venv, every external tool at its pinned vers
 
 - **A new Python module is declared in `eaos.policy.json`**, in its layer, or the policy gate fails.
 - **Every text a person reads exists in English and in Arabic**, added to both at once.
-- **A new report document is declared in `eaos/compose/artifacts.py`**, with its owner, purpose and line budget.
+- **A new report document is declared in `eaos/core/artifacts.py`**, with its owner, purpose and line budget.
 - **A test is added only when it reproduces a real failure**, one test per real behaviour.
 - **Never write a path of one machine in code**: `tests/test_platforms.py` fails if you do.
 

@@ -1,0 +1,173 @@
+"""What the person selected, as cards, and what running it would do (docs/studio-actions.json `selection`, `preview`).
+
+The cards come from the Studio data of the latest check (`studio/cards.json`, and `gaps.json` and `operations.json` for
+those groups): the same data the page showed, so the preview names what the person saw. Only open cards run.
+"""
+import json
+from pathlib import Path
+
+BATCH = 10                                  # fix_start's default batch size
+OPEN = ('open',)
+GROUPS = {'area': 'category', 'severity': 'severity'}
+LISTED = {'gap': ('gaps', 'id', 'the gap register'), 'component': ('gaps', 'component', 'the gap register'),     # (file, field, words)
+          'operation': ('operations', 'id', 'the operations')}
+
+
+STATE_AR = {'done': 'انحلّت', 'on_branch': 'على فرع ينتظر قرارك', 'in_batch': 'في الدفعة الحالية', 'skipped': 'انتركت'}
+
+
+class SelectionError(ValueError):
+    """A selection that cannot run, said in both languages: the Studio shows it in the person's."""
+    def __init__(self, en, ar):
+        super().__init__(en)
+        self.reason = {'en': en, 'ar': ar}
+
+
+def _load(folder, name):
+    try: return json.loads((Path(folder) / f'{name}.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError, TypeError): return None
+
+
+def studio_folder(project):
+    """The Studio data of the project's latest check, or None before the first check."""
+    from . import guided
+    state = guided.load(Path(project).resolve())
+    if not state: return None
+    try: folder = guided.report_of(state) / 'studio'
+    except Exception: return None
+    return folder if folder.is_dir() else None
+
+
+def resolve(selection, folder):
+    """(cards to run, cards left out with why): every card the selection names, in the order of cards.json."""
+    cards = _checked_cards(selection, folder)
+    wanted = _wanted(selection, cards, folder)
+    return _split([card for card in cards if card['id'] in wanted])
+
+
+def _checked_cards(selection, folder):
+    """The cards of the latest check, for a selection that says its kind."""
+    if not isinstance(selection, dict) or selection.get('kind') not in ('card', 'cards', 'group', 'step'):
+        raise SelectionError('the selection must say its kind: card, cards, group or step', 'الاختيار لازم يحدد نوعه: بطاقة أو بطاقات أو مجموعة أو مرحلة')
+    data = _load(folder, 'cards') if folder else None
+    if not data: raise SelectionError('this project has no check yet: run the check first (audit)', 'المشروع ما انفحص بعد: افحصه أول')
+    return data.get('cards') or []
+
+
+def _wanted(selection, cards, folder):
+    """The ids the selection names: its cards, a step's cards, or a group's."""
+    if selection['kind'] in ('card', 'cards'): return _named(selection, {card['id'] for card in cards})
+    if selection['kind'] == 'step':
+        step = str(selection.get('step') or '')
+        return {card['id'] for card in cards if str(card.get('milestone') or '') == step}
+    return _grouped(selection.get('group') or {}, cards, folder)
+
+
+def _named(selection, known):
+    """The ids a card or cards selection names, each a card of the latest check."""
+    ids = [str(i) for i in selection.get('cards') or []]
+    if selection['kind'] == 'card': ids = ids[:1]
+    if len(ids) > 500: raise SelectionError('at most 500 cards at once', 'الحد 500 بطاقة في المرة الوحدة')
+    unknown = [i for i in ids if i not in known]
+    if unknown: raise SelectionError(f"no card named {', '.join(unknown[:5])} in the latest check", f"آخر فحص ما فيه بطاقة باسم {'، '.join(unknown[:5])}")
+    return set(ids)
+
+
+def cards_in(folder, by, value):
+    """The ids of the latest check's cards in one group (by=value), every state: the terminal's problems filter."""
+    return _grouped({'by': by, 'value': value}, (_load(folder, 'cards') or {}).get('cards') or [], folder)
+
+
+def _grouped(group, cards, folder):
+    """The ids of a group: by a card field (area, severity), or by a gap, component or operation of the Studio data."""
+    by, value = group.get('by'), str(group.get('value') or '')
+    if by in GROUPS:
+        return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
+    if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation', 'المجموعة تكون حسب المجال أو الخطورة أو المكوّن أو الفجوة أو العملية')
+    name, field, words = LISTED[by]
+    rows = (_load(folder, name) or {}).get(name)
+    if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet', f'هذا الفحص ما كتب {name}.json بعد')
+    return {c for row in rows if str(row.get(field)) == value for c in row.get('cards') or []}
+
+
+def _split(chosen):
+    """(open cards to run, the others with why they are left out); an error when none is left to run. A card waiting for
+    cards not done yet (its `waits`, decisions.waiting) is left out: it goes in a later batch, once they are done."""
+    if not chosen: raise SelectionError('the selection names no card', 'الاختيار ما فيه أي بطاقة')
+    run = [card for card in chosen if card.get('state', 'open') in OPEN and not card.get('waits')]
+    left = [_left(card) for card in chosen if card not in run]
+    if not run:
+        raise SelectionError('no selected card can run now: ' + ', '.join(f"{c['id']} ({c['why']})" for c in left[:5]),
+                             'ولا بطاقة من المختارة تقدر تشتغل الحين (متعامل معها، أو تنتظر بطاقات قبلها): '
+                             + '، '.join(c['id'] for c in left[:5]))
+    return run, left
+
+
+def _left(card):
+    """A card left out of the run, with why in both languages."""
+    if card.get('state', 'open') in OPEN:
+        names = ', '.join(card['waits'])
+        return {'id': card['id'], 'why': f'waits for {names} (done first)', 'why_ar': f'تنتظر {names} (تنحل قبلها)'}
+    state = card.get('state')
+    return {'id': card['id'], 'why': f'already {state}', 'why_ar': f"متعامل معها: {STATE_AR.get(state, state)}"}
+
+
+def _paths(card):
+    return [str(p) for p in card.get('paths') or [] if p] or ([str(card['place'])] if card.get('place') else [])
+
+
+def estimate(verb, count, past):
+    """(low, high, basis) in minutes. From the person's own past runs of this verb when there are three or more; else a
+    rough rule, said as such."""
+    rates = sorted(minutes / max(cards, 1) for minutes, cards in past if minutes and cards)
+    if len(rates) >= 3:
+        middle = rates[len(rates) // 2]
+        low, high = max(1, round(middle * count * 0.7)), max(2, round(middle * count * 1.5 + 1))
+        return low, high, {'en': f'from your last {len(rates)} runs of this kind', 'ar': f'من آخر {len(rates)} تشغيلات من هذا النوع'}
+    if verb == 'fix':
+        low, high = 5 + 3 * count, 15 + 8 * count
+        return low, high, {'en': 'a rough rule: about 3 to 8 minutes a card, plus preparing the safe copy; it improves with your runs',
+                           'ar': 'تقدير تقريبي: من 3 إلى 8 دقائق للبطاقة، مع تجهيز النسخة الآمنة؛ يتحسن مع تشغيلاتك'}
+    low, high = 1, max(2, 1 + count)
+    return low, high, {'en': 'a rough rule: under a minute or two a card; nothing in the project changes',
+                       'ar': 'تقدير تقريبي: دقيقة أو دقيقتان للبطاقة؛ لا يتغير شيء في المشروع'}
+
+
+def risk(verb, cards, files):
+    if verb != 'fix':
+        return {'level': 'low', 'why': {'en': 'It only reads: nothing in the project changes.', 'ar': 'قراءة فقط: لا يتغير شيء في المشروع.'}}
+    hard = [card for card in cards if not card.get('fixable', True) or card.get('needs_decision')]
+    severe = [card for card in cards if card.get('severity') in ('critical', 'high')]
+    if hard or len(files) > 20:
+        return {'level': 'high', 'why': {'en': f'{len(hard)} card(s) need judgement or a decision, and {len(files)} file(s) are touched; '
+                                               'each change is still checked, and your branch is not touched.',
+                                         'ar': f'{len(hard)} بطاقة تحتاج حكمًا أو قرارًا، و{len(files)} ملفًا ستُمس؛ كل تغيير يُفحص، وفرعك لا يُلمس.'}}
+    if severe or len(files) > 5:
+        return {'level': 'medium', 'why': {'en': f'{len(severe)} important card(s), {len(files)} file(s); every change is checked in a copy first.',
+                                           'ar': f'{len(severe)} بطاقة مهمة و{len(files)} ملفًا؛ كل تغيير يُفحص في نسخة أولًا.'}}
+    return {'level': 'low', 'why': {'en': 'Few files, and every change is checked in a copy first.', 'ar': 'ملفات قليلة، وكل تغيير يُفحص في نسخة أولًا.'}}
+
+
+ON_FAILURE = {
+    'fix': {'en': 'A change that fails its checks is taken back with the reason. Nothing reaches your branch; at the end you choose to take '
+                  'the new branch or throw it away.',
+            'ar': 'التغيير الذي يفشل في الفحص يُرجَع مع السبب. لا يصل شيء إلى فرعك؛ وفي النهاية أنت تختار تعتمد الفرع الجديد أو ترميه.'},
+    'read': {'en': 'Nothing changes. If the assistant stops, the run says why and you can try again.',
+             'ar': 'لا يتغير شيء. إن توقف المساعد يقول التشغيل السبب وتقدر تعيد.'},
+}
+
+
+def preview_of(verb, cards, left, past):
+    files = sorted({path for card in cards for path in _paths(card)})
+    low, high, basis = estimate(verb, len(cards), past)
+    batches = [{'number': index + 1, 'cards': [card['id'] for card in cards[at:at + BATCH]]}
+               for index, at in enumerate(range(0, len(cards), BATCH))] if verb == 'fix' else []
+    return {'cards': [{'id': card['id'], 'title': card.get('title'), 'severity': card.get('severity'), 'paths': _paths(card)} for card in cards],
+            'left_out': left, 'files': files, 'batches': batches,
+            'estimate': {'minutes_low': low, 'minutes_high': high, 'basis': basis},
+            'risk': risk(verb, cards, files), 'on_failure': ON_FAILURE['fix' if verb == 'fix' else 'read']}
+
+
+def decision_scope(folder, question):
+    from ..core.store import decision_scope as scope
+    return scope(folder, question)
