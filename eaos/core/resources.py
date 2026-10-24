@@ -11,11 +11,7 @@ WAIT = 2                     # seconds between two looks at the room while work 
 
 def capacity():
     """(CPU count, memory bytes, available bytes). Unknown memory is None; reclaimable cache is available."""
-    cpus = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else os.cpu_count() or 1
-    try:
-        quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
-        if quota != 'max': cpus = min(cpus, max(1, (int(quota) + int(period) - 1) // int(period)))
-    except (OSError, ValueError): pass
+    cpus = _cpus()
     try: memory = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
     except (ValueError, OSError, AttributeError): memory = None
     available = memory
@@ -32,6 +28,16 @@ def capacity():
         available = min(available or limit, max(0, limit - current + reclaimable))
     except (OSError, ValueError): pass
     return cpus, memory, available
+
+
+def _cpus():
+    """The processors this process may use, held to the container's CPU quota."""
+    cpus = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else os.cpu_count() or 1
+    try:
+        quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
+        if quota != 'max': cpus = min(cpus, max(1, (int(quota) + int(period) - 1) // int(period)))
+    except (OSError, ValueError): pass
+    return cpus
 
 
 def cpu_pressure():
