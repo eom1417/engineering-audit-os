@@ -25,12 +25,23 @@ def load(out):
     return sets
 
 
-def dependents(sets, paths, depth=DEFAULT_DEPTH):
-    """Files that reach the given paths through resolved imports, with their distance."""
-    nodes = {fact['location']['path']: fact['value'] for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+def _graph_nodes(sets):
+    """Each file of the resolved import graph and its node."""
+    return {fact['location']['path']: fact['value'] for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+
+
+def _importers(nodes):
+    """Each file and the files that import it."""
     reverse = {}
     for path, value in nodes.items():
         for target in value['depends_on']: reverse.setdefault(target, set()).add(path)
+    return reverse
+
+
+def dependents(sets, paths, depth=DEFAULT_DEPTH):
+    """Files that reach the given paths through resolved imports, with their distance."""
+    nodes = _graph_nodes(sets)
+    reverse = _importers(nodes)
     distance, queue = {}, deque((path, 0) for path in paths if path in nodes)
     seen = set(paths)
     while queue:
@@ -100,7 +111,7 @@ def symbols_in(sets, paths, symbol=None):
 
 def resolve_target(sets, target):
     """A target is a path in the snapshot, or a symbol name; both resolve to a set of files."""
-    nodes = {fact['location']['path'] for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+    nodes = _graph_nodes(sets)
     if target in nodes: return [target], None
     matches = sorted({fact['location']['path'] for fact in sets.get('syntax', {}).get('facts', [])
                       if fact['kind'] == 'symbol'
@@ -111,19 +122,21 @@ def resolve_target(sets, target):
     raise ValueError('Unknown path or symbol: ' + target)
 
 
+def _resolve_all(sets, targets):
+    """(the files of every target together, the first symbol among them, the targets in one line)."""
+    paths, symbol = [], None
+    for item in sorted(targets):
+        resolved, found = resolve_target(sets, item)
+        paths += resolved
+        symbol = symbol or found
+    return sorted(set(paths)), symbol, ', '.join(sorted(targets))
+
+
 def assess(out, target, depth=DEFAULT_DEPTH, sets=None):
     """target is a path, a symbol, or a list of them; the radius covers all of them together."""
     sets = sets or load(out)
-    if isinstance(target, (list, tuple, set)):
-        paths, symbol = [], None
-        for item in sorted(target):
-            resolved, found = resolve_target(sets, item)
-            paths += resolved
-            symbol = symbol or found
-        paths = sorted(set(paths))
-        target = ', '.join(sorted(target))
-    else:
-        paths, symbol = resolve_target(sets, target)
+    if isinstance(target, (list, tuple, set)): paths, symbol, target = _resolve_all(sets, target)
+    else: paths, symbol = resolve_target(sets, target)
     distance, nodes = dependents(sets, paths, depth)
     coverage = coverage_of(sets, paths)
     direct = sorted(path for path, level in distance.items() if level == 1)
@@ -132,7 +145,7 @@ def assess(out, target, depth=DEFAULT_DEPTH, sets=None):
         'target': target, 'resolved_paths': paths, 'symbol': symbol, 'depth': depth,
         'symbols': symbols_in(sets, paths, symbol)[:40],
         'direct_dependents': direct,
-        'transitive_dependents': sorted(path for path in distance if path not in direct),
+        'transitive_dependents': sorted(set(distance) - set(direct)),
         'depends_on': sorted({other for path in paths for other in nodes.get(path, {}).get('depends_on', [])}),
         'flows': flows_through(sets, paths),
         'entry_points': entry_points_in(sets, paths),

@@ -41,6 +41,14 @@ def _block(target, location):
     return block
 
 
+def _personal_field(target, location, name):
+    """(line number, match) of the first field of the table or model that identifies a person, or None."""
+    for number, line in _block(target, location):
+        field = PERSONAL.search(line) or (NAMED.search(line) if PERSON.search(name) else None)
+        if field: return number, field
+    return None
+
+
 def personal_data(target, out):
     """(True, where) if a table or model holds a field that identifies a person, else (False, why not)."""
     seen = set()
@@ -48,10 +56,8 @@ def personal_data(target, out):
         location, name = row.get('location') or {}, (row.get('value') or {}).get('name') or ''
         if not location.get('path') or (location['path'], location.get('start_line')) in seen: continue
         seen.add((location['path'], location.get('start_line')))
-        for number, line in _block(target, location):
-            field = PERSONAL.search(line) or (NAMED.search(line) if PERSON.search(name) else None)
-            if field:
-                return True, f"{location['path']}:{number}: {name} has a {field.group(1)} field"
+        found = _personal_field(target, location, name)
+        if found: return True, f"{location['path']}:{found[0]}: {name} has a {found[1].group(1)} field"
     return False, f'no email, phone or CPF field, and no name on a person, in {len(seen)} tables and models'
 
 

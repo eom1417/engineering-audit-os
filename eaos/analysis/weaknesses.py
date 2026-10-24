@@ -56,11 +56,16 @@ def groups(sets):
     return sorted(built, key=lambda g: (-SEVERITIES.index(g['severity']), not g['agreed'], g['key']))
 
 
+def _weak(facts, agreed):
+    """The indices of the findings no engine agrees on whose severity or engine confidence is low."""
+    return {i for i, fact in enumerate(facts) if i not in agreed
+            and (_severity(fact) == 'low' or fact['value'].get('engine_confidence') == 'low')}
+
+
 def _keys(facts, agreed):
     """The card each finding belongs to: its file and weakness, or the project's for a weak one no engine confirms,
     unless a sound finding of the same weakness is in the same file."""
-    weak = {i for i, fact in enumerate(facts) if i not in agreed
-            and (_severity(fact) == 'low' or fact['value'].get('engine_confidence') == 'low')}
+    weak = _weak(facts, agreed)
     keys = [(fact['location']['path'], _label(fact)) for fact in facts]
     sound = {key for i, key in enumerate(keys) if i not in weak}
     return [(PROJECT, key[1]) if i in weak and key not in sound else key for i, key in enumerate(keys)]
