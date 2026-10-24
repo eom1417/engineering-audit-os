@@ -107,9 +107,10 @@ def _metric(specification, sets):
             if fact['location'].get('symbol') == specification['symbol']
             and fact['location']['path'] == specification['path']]
     if not rows: return 'INCONCLUSIVE', 'the symbol is no longer present under that name'
-    branches = rows[0]['value']['branches']
-    return _verdict(branches > specification['max_branches'], f"{branches} branches, limit {specification['max_branches']}",
-                    f"{branches} branches, now within the limit of {specification['max_branches']}")
+    value = rows[0]['value']          # the code laws' count (eaos/facts/metrics.py); its branches in older facts
+    measured = value.get('complexity') or value['branches']
+    return _verdict(measured > specification['max_branches'], f"complexity {measured}, limit {specification['max_branches']}",
+                    f"complexity {measured}, now within the limit of {specification['max_branches']}")
 
 
 def _module_size(specification, sets):

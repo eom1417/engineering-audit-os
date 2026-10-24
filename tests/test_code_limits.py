@@ -65,7 +65,8 @@ class CodeLimits(unittest.TestCase):
                   '    if a and b: return [x for x in a if x]\n'
                   '    def inner():\n        if b: return 1\n'
                   '    return 0 if a else 1\n')
-        self.assertEqual(code_limits.complexity(ast.parse(source).body[0]), 6)
+        from eaos.core.code_laws import complexity
+        self.assertEqual(complexity(ast.parse(source).body[0]), 6)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,9 @@
 """The laws of good code EAOS holds every project to, and itself (AGENTS.md): written here once, and carried into every
-assistant's work, from the semantic reading and the planning to the triage, the review and the fix."""
+assistant's work, from the semantic reading and the planning to the triage, the review and the fix.
+
+`complexity` is the one count of a function's complexity: the code laws' (tools/code_limits.py) and a check's hotspots
+(eaos/facts/metrics.py) alike, each nested function counted alone."""
+import ast
 
 MAX_COMPLEXITY = 15     # decisions in one function
 MAX_LINES = 600         # lines in one module
@@ -18,3 +22,18 @@ as well as it can):
    responsibility and clear boundaries, so the program is easy to read and to extend.
 A fix never adds a copy, dead code or a new complex function, and never makes the project bigger or harder to read
 than the problem requires.'''
+
+BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.ExceptHandler, ast.match_case, ast.comprehension)
+FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def complexity(function):
+    """McCabe complexity of one Python function: 1 + its decisions, not counting the functions nested in it."""
+    score, pending = 1, list(ast.iter_child_nodes(function))
+    while pending:
+        node = pending.pop()
+        if isinstance(node, FUNCTIONS + (ast.ClassDef,)): continue
+        if isinstance(node, BRANCHES): score += 1 + (len(node.ifs) if isinstance(node, ast.comprehension) else 0)
+        elif isinstance(node, ast.BoolOp): score += len(node.values) - 1
+        pending.extend(ast.iter_child_nodes(node))
+    return score

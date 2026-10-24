@@ -6,8 +6,10 @@ command centre's launcher (eaos/ai/headless.py `ask`), then plans the ideal on t
 
     bundle(report)    a compact, grounded picture: the rules' target of every view with the rules it applied, the cards,
                       the facts that matter, the decisions, and the project's own documents as untrusted data
-    pass 'plan'       the ideal of every view in a strict JSON schema, every element citing fact, claim, card or rule ids
-    pass 'critique'   the same assistant reviews the draft (what was missed, risks, order) and returns the revised ideal
+    pass 'plan'       the ideal of every view in a strict JSON schema, every element citing fact, claim, card or rule ids,
+                      asked in parts side by side (eaos/ai/ideal_passes.py)
+    pass 'critique'   the same assistant reviews the draft (what was missed, risks, order) and returns its changes,
+                      applied to the draft
     check(...)        deterministic: a citation resolves only to an id of this report; an element with no resolving
                       citation is dropped and listed, never shown
     <report>/ideal/plan.json   the checked ideal with its inputs, both answers and the dropped elements
@@ -31,7 +33,7 @@ from . import ideal_bundle as read
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug
 from .ideal_rules import proposal as _proposal, views as _rules_views
 from .ideal_studio import SECTION_VIEWS, _words, current, decisions, disagreements, provenance_of, scan_key, section  # noqa: F401  (the names others read here)
-from .nodes.core import check_shape, digest, launcher_of, short as _short
+from .nodes.core import digest, launcher_of, short as _short
 
 
 def _now():
@@ -308,21 +310,6 @@ def _record(folder, row):
     path.write_text(json.dumps(rows, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 
-def _passes(launcher, data, passes, tell):
-    """(draft, reviewed): the planning pass and the critique pass, each answer held to its schema; each pass done is
-    added to `passes`."""
-    from .ideal_prompts import CRITIQUE_SCHEMA, IDEAL_SCHEMA, prompt_critique, prompt_plan
-    tell(f'{getattr(launcher, "assistant", "The assistant")} plans the ideal of every view', f'{getattr(launcher, "assistant", "المساعد")} يخطّط المثالي لكل عرض')
-    draft = launcher('plan', prompt_plan(data), IDEAL_SCHEMA)
-    passes.append('plan')
-    check_shape(draft, IDEAL_SCHEMA, 'plan')
-    tell('A second pass reviews the plan: what was missed, the risks, the order', 'تمرير ثانٍ يراجع الخطة: ما فات، والمخاطر، والترتيب')
-    reviewed = launcher('critique', prompt_critique(data, draft), CRITIQUE_SCHEMA)
-    passes.append('critique')
-    check_shape(reviewed, CRITIQUE_SCHEMA, 'review')
-    return draft, reviewed
-
-
 def _why(problem, cancel):
     """Why a planning run did not finish: it was stopped, the assistant was stuck, or the error's own words."""
     if getattr(cancel, 'is_set', lambda: False)(): return 'stopped'
@@ -348,7 +335,8 @@ def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=N
     tell('Reading the check and the rules\' target', 'يقرأ الفحص وهدف القواعد')
     data = bundle(report, project, lang)
     passes, began = [], datetime.now(timezone.utc)
-    try: draft, reviewed = _passes(launcher, data, passes, tell)
+    from .ideal_passes import passes as asked          # it reads the prompts, which read the nodes, which read this module
+    try: draft, revised, critique = asked(launcher, data, passes, tell)
     except Exception as problem:
         why = _why(problem, cancel)
         message = _words('failed', why=why)
@@ -359,13 +347,12 @@ def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=N
     tell('Checking that every element stands on evidence', 'يتحقق أن كل عنصر قائم على دليل')
     known = known_ids(report, project)
     context = {d['id'] for d in data['documents']}
-    revised = reviewed['ideal']
     kept, dropped = check(revised, known, context)
     elements = sum(len(v['elements']) for v in kept['views'].values())
     record = {'schema_version': 1, 'at': at, 'scan': scan_key(report), 'inputs': digest(data), 'lang': lang,
               'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
               'seconds': round((datetime.now(timezone.utc) - began).total_seconds(), 1), 'passes': passes,
-              'ideal': kept, 'dropped': dropped, 'critique': reviewed.get('critique'), 'draft': draft,
+              'ideal': kept, 'dropped': dropped, 'critique': critique, 'draft': draft,
               'elements': elements, 'raw_share': share(revised, known), 'share': share(kept, known) if elements else None,
               'draft_share': share(draft, known), 'bundle_bytes': len(json.dumps(data, ensure_ascii=False).encode('utf-8'))}
     (folder / 'plan.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

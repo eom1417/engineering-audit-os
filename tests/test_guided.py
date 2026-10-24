@@ -210,6 +210,19 @@ class Bulk(unittest.TestCase):
 
 
 class Pages(unittest.TestCase):
+    def test_the_first_page_says_repair_or_rebuild_from_the_target_with_each_options_effort_and_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            components = [{'files': 30, 'relation': 'rebuild'}, {'files': 10, 'relation': 'retain'}]
+            (Path(tmp) / 'target-architecture.json').write_text(json.dumps({'current_components': components}))
+            (Path(tmp) / 'plan.json').write_text(json.dumps({'tasks': [{'pattern': 'remove_dead', 'effort': 'S', 'paths': ['a.ts']}] * 2}))
+            text = start_here(tmp, 'en', 'shop').read_text()
+            self.assertIn('**I recommend: rebuild.** The target rebuilds or deletes 30', text)
+            self.assertIn('- Repair: 2 cards (2 small, 0 medium, 0 large), touching 1 files, about 11–31 minutes.', text)
+            self.assertIn('- Rebuild: 40 files in 2 parts written anew, about 4–11 hours.', text)
+            components[0]['relation'] = 'modify'
+            (Path(tmp) / 'target-architecture.json').write_text(json.dumps({'current_components': components}))
+            self.assertIn('**أنصح بـالإصلاح.**', start_here(tmp, 'ar', 'shop').read_text())
+
     def test_the_first_page_counts_from_the_plan_in_the_persons_language_and_the_run_says_which_stage_it_is_on(self):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'plan.json').write_text(json.dumps({'tasks': [

@@ -100,13 +100,15 @@ def _clashes(stage, taken, mode):
 
 
 def ready_stages(left, ended, running, mode, room, quick=()):
-    """The stages of `left`, in the declared order, that may start now beside `running`: all they wait for has ended,
-    they clash with nothing running (_clashes), and at most `room` of them. A stage of `quick` only settles its row
-    (resumed, not requested): it holds nothing."""
+    """The stages of `left`, in the declared order, that may start now beside `running`: all they wait for has ended
+    (`ended`, or what `ended(name)` shows it: a loop that may run again hides what it broke), they clash with nothing
+    running (_clashes), and at most `room` of them. A stage of `quick` only settles its row (resumed, not requested): it
+    holds nothing."""
     taken, chosen = [BY_NAME[name] for name in running if name not in quick], []
+    seen = ended if callable(ended) else (lambda name: ended)
     for name in left:
         if len(chosen) >= room: break
-        if not WAITS[name] <= ended: continue
+        if not WAITS[name] <= seen(name): continue
         if name not in quick:
             if _clashes(BY_NAME[name], taken, mode): continue
             taken.append(BY_NAME[name])
@@ -114,41 +116,69 @@ def ready_stages(left, ended, running, mode, room, quick=()):
     return chosen
 
 
-def run_ready(names, start, mode='normal', quick=()):
+def run_ready(names, start, mode='normal', quick=(), rounds=None):
     """start(name) for every name of `names` (the declared stages, in order), each once ready_stages lets it. A stage
-    that raises stops the run: the stages already running end, none starts, and the error goes on."""
+    that raises stops the run: the stages already running end, none starts, and the error goes on. `rounds` (the
+    loops' runner, eaos/pipeline/rounds.py): `seen` what a stage sees ended, `ended(name, ended)` the stages to run
+    again once `name` ended."""
     if mode not in MODES: raise ValueError(f'Unknown check mode: {mode}')
     stopped = threading.Event()
     token = STOP.set(stopped)
     try:
-        _run_ready(names, start, mode, quick, stopped)
+        _run_ready(_Run(names, start, mode, quick, rounds), stopped)
     finally: STOP.reset(token)
 
 
-def _run_ready(names, start, mode, quick, stopped):
+def _run_ready(run, stopped):
     """One scheduler at any width; on interruption signal every running stage before waiting for it to release."""
-    left, ended, running, began = list(names), set(), {}, {}
-    with ThreadPoolExecutor(max_workers=width(mode), thread_name_prefix='eaos-stage') as pool:
+    with ThreadPoolExecutor(max_workers=width(run.mode), thread_name_prefix='eaos-stage') as pool:
         try:
-            while left or running:
-                waiting = False
-                for name in ready_stages(left, ended, running.values(), mode, width(mode) - len(running), quick):
-                    # no room for it yet: a lighter stage behind it may still start (it never waits for this one)
-                    if _no_room(name, running.values(), began, quick):
-                        waiting = True
-                        continue
-                    left.remove(name)
-                    began[name] = time.monotonic()
-                    running[pool.submit(contextvars.copy_context().run, start, name)] = name
-                if not running: raise ValueError('Stages cannot run: their prerequisites are missing')
-                done, _ = wait(running, timeout=WAIT if waiting else None, return_when=FIRST_COMPLETED)
-                for future in done:
-                    ended.add(running.pop(future))
-                    future.result()
+            while run.left or run.running:
+                waiting = run.launch(pool)
+                if not run.running: raise ValueError('Stages cannot run: their prerequisites are missing')
+                run.collect(waiting)
         except BaseException:
             stopped.set()
-            for future in running: future.cancel()
+            for future in run.running: future.cancel()
             raise
+
+
+class _Run:
+    """What one scheduler holds: the stages left, ended and running, when each began, and the loops' runner."""
+
+    def __init__(self, names, start, mode, quick, rounds):
+        self.names, self.start, self.mode, self.quick, self.rounds = list(names), start, mode, quick, rounds
+        self.left, self.ended, self.running, self.began = list(names), set(), {}, {}
+
+    def seen(self, name):
+        """What `name` sees ended: a loop that may run again hides what it broke (eaos/pipeline/rounds.py)."""
+        return self.rounds.seen(name, self.ended) if self.rounds else self.ended
+
+    def launch(self, pool):
+        """Start every stage ready now; whether one waits for room."""
+        waiting = False
+        for name in ready_stages(self.left, self.seen, self.running.values(), self.mode, width(self.mode) - len(self.running), self.quick):
+            # no room for it yet: a lighter stage behind it may still start (it never waits for this one)
+            if _no_room(name, self.running.values(), self.began, self.quick):
+                waiting = True
+                continue
+            self.left.remove(name)
+            self.began[name] = time.monotonic()
+            self.running[pool.submit(contextvars.copy_context().run, self.start, name)] = name
+        return waiting
+
+    def collect(self, waiting):
+        """Wait for a stage to end (a while only, when one waits for room); its error goes on; what a loop runs again
+        once it ended goes back to the stages left, in the declared order."""
+        done, _ = wait(self.running, timeout=WAIT if waiting else None, return_when=FIRST_COMPLETED)
+        finished = [self.running.pop(future) for future in done]
+        self.ended.update(finished)
+        for future in done: future.result()
+        if not self.rounds: return
+        for name in {again for name in finished for again in self.rounds.ended(name, self.ended)}:
+            self.ended.discard(name)
+            self.left.append(name)
+        self.left.sort(key=self.names.index)
 
 
 def _no_room(name, running, began, quick):

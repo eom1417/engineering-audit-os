@@ -99,14 +99,18 @@ class Planner:
     def __init__(self): self.bundles = []
 
     def __call__(self, name, prompt, schema):
-        bundle = json.loads(prompt[prompt.rindex('The bundle:\n') + len('The bundle:\n'):])
+        bundle = json.loads(prompt[prompt.rindex('The bundle:\n') + len('The bundle:\n'):].split('\n\nTHIS PASS\n')[0])
         self.bundles.append(bundle)
+        if name == 'critique':
+            return {'critique': {'missed': [], 'risks': [], 'order': []},
+                    'changes': {'put': [], 'remove': [], 'summaries': [], 'aspects': [], 'departures': [], 'open_questions': [],
+                                'drop_questions': [], 'confidence': None}}
         card = bundle['cards'][0]['id']
-        answer = {'views': {}, 'departures': [], 'open_questions': [], 'confidence': 0.7, 'aspects': [
-            {'aspect': 'sustainability', 'verdict': 'keep', 'why': 'Every measured indicator meets its target.', 'plan': '', 'cards': [], 'cites': []},
-            {'aspect': 'canonical_homes', 'verdict': 'improve', 'why': 'The rule is written twice.', 'plan': 'Move it to one module.',
-             'cards': [card, 'TASK-invented'], 'cites': []}]}
-        return answer if name == 'plan' else {'critique': {'missed': [], 'risks': [], 'order': []}, 'ideal': answer}
+        aspects = [{'aspect': 'sustainability', 'verdict': 'keep', 'why': 'Every measured indicator meets its target.', 'plan': '', 'cards': [], 'cites': []},
+                   {'aspect': 'canonical_homes', 'verdict': 'improve', 'why': 'The rule is written twice.', 'plan': 'Move it to one module.',
+                    'cards': [card, 'TASK-invented'], 'cites': []}]
+        return {'views': {}, 'departures': [], 'open_questions': [], 'confidence': 0.7,
+                **({'aspects': aspects} if 'aspects' in schema['properties'] else {})}
 
 
 class EveryAspectReachesTheAssistant(unittest.TestCase):

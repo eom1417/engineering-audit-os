@@ -62,10 +62,26 @@ loop; a loop runs until its exit condition holds or its rounds are spent, then a
 pipeline, or turning a step into a loop, is a change of data, never of code.
 
 ```python
-Loop(name, stages, exit=<measurable condition>, max_rounds=N, on_fail='explain' | 'escalate' | 'stop')
+Loop(name, stages, needs=(...), max_rounds=N, on_fail='explain' | 'escalate' | 'stop', switch='<check path>')
 ```
 
-The table names the main stages of each loop; M4.2 assigns all 38 of `stages.py` and removes those with no consumer.
+`eaos/pipeline/loops.py` is the declaration (M4.1): every stage of `stages.py` in one loop, the stages' order the loops'
+order. A loop's exit: `met` (every stage ok or absent with its reason), `explained` (a stage of `needs` absent with its
+reason) or `not_met` (a stage broke). Not met, it runs its broken stages again while its rounds last
+(`pipeline/rounds.py`), hiding what it broke from the other loops until then; then `explain`, `escalate` or `stop`.
+A loop with a `switch` runs only when the check follows that path (alone or beside `complete`). Today's loops, by the
+stages' real dependencies:
+
+| Loop (`loops.py`) | Stages | needs, rounds, on_fail |
+|---|---|---|
+| understand | facts, features, roles, intake, engines, policy | facts; 1; stop |
+| run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline | setup, screens; 2; explain |
+| judge | measure, architecture, load, readiness, claims, probe, sustainability, transform, semantic, plan, target, proposals, triage, visual, cards | claims, triage; 1; explain |
+| envision | ideal, pipeline_gaps, reconcile (the repair-or-rebuild decision: `analysis/repair_or_rebuild.py`) | ideal, reconcile; 1; explain |
+| plan | order, steps | steps; 1; explain |
+| hand_over | reports, translate | reports; 1; escalate |
+
+The target loops of the North Star, which these grow into:
 
 | Loop | Stages (today's names) | Exit condition |
 |---|---|---|
@@ -78,8 +94,9 @@ The table names the main stages of each loop; M4.2 assigns all 38 of `stages.py`
 | L6 Fix | fix batches (~15 cards) | every card fixed, or left with its reason |
 | L7 Hand over | handover, report | one clear report; a branch waiting for the owner's decision |
 
-Every loop writes its part of the **coverage ledger**: what it covered, what it could not, and why; a big gap shows in
-red at the top of the report.
+Every loop writes its part of the **coverage ledger** (`pipeline/coverage.py`, `coverage` in the checkpoint and the
+manifest): what it covered, what it could not, and why; a big gap (a stage broke, or one its goal stands on is absent
+for a reason the person did not choose) shows in red at the top of START-HERE.md and RUN.md.
 
 ## 4. Where a new file goes
 

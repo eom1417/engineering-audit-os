@@ -256,6 +256,18 @@ class ReportedRunTests(Workspace):
                 mock.patch.object(gitnexus, 'run', fake_run), mock.patch.object(gitnexus, 'which', return_value='gitnexus'):
             return gitnexus.analyze(Path(self.tmp) / 'p', Path(self.tmp) / 'work'), calls
 
+    def test_its_misreadings_of_python_are_no_cycle_and_a_real_cycle_stays(self):
+        # EAOS, 2026-10-24: all six of GitNexus's cycles were `from . import core` and `import html` misread
+        from eaos.engines import gitnexus
+        copy = Path(self.tmp) / 'copy'
+        (copy / 'core').mkdir(parents=True)
+        (copy / 'core/markup.py').write_text('import html\nfrom . import words\n')
+        (copy / 'a.py').write_text('import b\n')
+        self.assertTrue(gitnexus.misread(['nodes/__init__.py', 'nodes/triage.py', 'nodes/__init__.py'], copy))
+        self.assertTrue(gitnexus.misread(['core/markup.py', 'report/html.py'], copy))
+        self.assertFalse(gitnexus.misread(['a.py', 'b.py'], copy))
+        self.assertFalse(gitnexus.misread(['core/markup.py', 'core/words.py'], copy))
+
     def test_every_page_is_read_until_a_short_one_and_a_page_at_the_output_limit_is_an_error(self):
         from eaos.engines import gitnexus
         total = gitnexus.PAGE + 7

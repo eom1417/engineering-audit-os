@@ -17,6 +17,9 @@ from ..core.usage import FILE as USAGE
 from .live_app import close_app
 from .paths import resolve
 from ..report.run import document
+from .coverage import ledger
+from .loops import switched_off
+from .rounds import Rounds
 from .schedule import LimitedProvider, assistants, run_ready
 from .stage_run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE, Context, _stage, _write
 from .stages import BY_NAME, ORDER, STAGES, dependents
@@ -58,7 +61,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                       intake=_resolved(intake), runtime=str(runtime) if runtime else None, assistants=assistants(mode),
                       patterns=patterns, sign_in=dict(sign_in or {}))
     if provider: context['provider'] = LimitedProvider(provider, context.assistants)
-    requested = _requested(only, skip)
+    requested = _requested(only, (*skip, *switched_off(paths or ['complete'])))
     completed = _completed or {}
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
@@ -88,8 +91,9 @@ def _go(run, mode):
     so in its progress file, then the error goes on."""
     log, began, context = run['log'], run['began'], run['context']
     try:
-        run_ready(ORDER, lambda name: _stage(BY_NAME[name], run), mode, quick=set(ORDER) - set(run['todo']))
-        manifest = _manifest(run['head'], began, run['results'])
+        rounds = Rounds(run)
+        run_ready(ORDER, lambda name: _stage(BY_NAME[name], run), mode, quick=set(ORDER) - set(run['todo']), rounds=rounds)
+        manifest = _manifest(run['head'], began, run['results'], rounds.record())
         (run['out'] / CHECKPOINT).unlink(missing_ok=True)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
         log.finish('STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
@@ -137,11 +141,12 @@ def _head(target, out, started_at, requested, language, exclude, max_files, max_
             'source_fingerprint': inventory(target, max_files=max_files, max_bytes=max_bytes)['fingerprint']}
 
 
-def _manifest(head, began, results):
+def _manifest(head, began, results, loops):
+    """The run's record: its stages' rows and each loop's outcome (`loops`, eaos/pipeline/rounds.py), written with RUN.md."""
     manifest = {
         **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at', 'mode', 'paths') if key in head},
         'seconds': round(time.monotonic() - began, 2), 'requested': head['requested'],
-        'stages': results,
+        'stages': results, 'loops': loops, 'coverage': ledger(results, loops),
         'counts': _counts(results),
         'status': completion_status(results),
         'limits': 'A stage that did not run proves nothing. Read the skipped and unavailable rows before '
@@ -286,6 +291,7 @@ def resume(target, out, redo=(), checked=False, **options):
     merged = execute(target, out, only=remaining, _completed=kept, **options)
     merged['stages'].update(kept)
     merged['counts'] = _counts(merged['stages'])
+    merged['coverage'] = ledger(merged['stages'], merged.get('loops'))
     merged['resumed_from'] = previous['started_at']
     _write(Path(out) / MANIFEST, merged)
     return merged

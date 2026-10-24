@@ -10,6 +10,8 @@ from pathlib import Path
 from ..core import plain
 from ..core.words import who_decided
 from ..core.decisions import ready as is_ready
+from ..analysis.repair_or_rebuild import decide
+from .run import big_gaps
 
 
 def _read_json(path, empty):
@@ -66,10 +68,32 @@ def _problem_lines(report, tasks, counts, lang, ar):
         lines += [_say(ar, 'وأنواع أخرى: ', 'And other kinds: ') + _say(ar, '، ', ', ').join(rest), '']
     target = _read_json(report / 'target-architecture.json', {})
     lines += ['## ' + _say(ar, 'من قرر', 'Who decided'), '', who_decided(target, lang), '']
+    lines += _decision_lines(decide(report), ar)
     lines += ['## ' + _say(ar, 'ما أنصح به', 'What I recommend'), '',
               _say(ar, 'ابدأ بالإصلاحات الآلية: هي الأكثر أمانًا، وكل واحدة تُجرَّب في نسخة منفصلة من مشروعك قبل أن تراها.',
                    'Start with the automatic fixes: they are the safest, and each is tried on a separate copy of your project before you see it.'), '']
     return lines
+
+
+def _span(minutes, ar):
+    """'3–8 minutes', or in hours from two hours up."""
+    if minutes[1] < 120: return f"{minutes[0]}–{minutes[1]} " + _say(ar, 'دقيقة', 'minutes')
+    return f"{minutes[0] / 60:.0f}–{minutes[1] / 60:.0f} " + _say(ar, 'ساعة', 'hours')
+
+
+def _decision_lines(found, ar):
+    """Repair or rebuild (eaos/analysis/repair_or_rebuild.py): the recommendation and each option's effort and time."""
+    if not found: return []
+    repair, rebuild, lang = found['options']['repair'], found['options']['rebuild'], 'ar' if ar else 'en'
+    chosen = _say(ar, 'الإصلاح', 'repair') if found['recommend'] == 'repair' else _say(ar, 'إعادة البناء', 'rebuild')
+    small, medium, large = (repair['sizes'][size] for size in 'SML')
+    return ['## ' + _say(ar, 'أصلح أو أعيد البناء؟', 'Repair or rebuild?'), '',
+            _say(ar, f'**أنصح بـ{chosen}.** ', f'**I recommend: {chosen}.** ') + found['why'][lang], '',
+            _say(ar, f"- الإصلاح: {repair['cards']} بطاقة (صغيرة {small}، متوسطة {medium}، كبيرة {large})، تمس {repair['files']} ملفًا، نحو {_span(repair['minutes'], ar)}.",
+                 f"- Repair: {repair['cards']} cards ({small} small, {medium} medium, {large} large), touching {repair['files']} files, about {_span(repair['minutes'], ar)}."),
+            _say(ar, f"- إعادة البناء: {rebuild['files']} ملفًا في {rebuild['components']} جزءًا تُكتب من جديد، نحو {_span(rebuild['minutes'], ar)}.",
+                 f"- Rebuild: {rebuild['files']} files in {rebuild['components']} parts written anew, about {_span(rebuild['minutes'], ar)}."),
+            '', found['basis'][lang], '']
 
 
 def _this_run(report):
@@ -137,6 +161,8 @@ def start_here(report, lang, name):
     tasks = _read_json(report / 'plan.json', {'tasks': []}).get('tasks') or []
     ar = lang == 'ar'
     lines = [f"# {_say(ar, 'ابدأ هنا', 'Start here')}: {name}", '']
+    gaps = big_gaps(_this_run(report), lang)          # the coverage ledger's big gaps, in red before anything else
+    if gaps: lines += [*gaps, '']
     if not tasks:
         lines += [_say(ar, 'لم أجد مشاكل تحتاج إصلاحًا.', 'I found no problems that need fixing.'), '']
     else:

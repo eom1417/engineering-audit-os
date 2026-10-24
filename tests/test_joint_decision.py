@@ -42,6 +42,10 @@ class Assistant:
 
     def __call__(self, name, prompt, schema):
         text = json.dumps(schema)
+        if 'changes' in schema['properties']:          # the ideal's critique answers only its changes: none here
+            return {'critique': {'missed': [], 'risks': [], 'order': []},
+                    'changes': {'put': [], 'remove': [], 'summaries': [], 'aspects': [], 'departures': [], 'open_questions': [],
+                                'drop_questions': [], 'confidence': None}}
         if '"views"' in text:
             ideal = {'views': {view: {'summary': '', 'confidence': 0.8, 'elements': []} for view in
                                ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')},
@@ -52,7 +56,9 @@ class Assistant:
                                                     element('T-worker', 'delete'), element('TC-domain', 'delete'),
                                                     element('TC-events', 'new'),
                                                     dict(element('T-core', 'rebuild'), cites=sorted(Assistant.rejected))]
-            return {'critique': {'missed': [], 'risks': [], 'order': []}, 'ideal': ideal} if name == 'critique' else ideal
+            mine = set(schema['properties']['views']['properties'])          # one part of the plan pass: its views
+            return {**ideal, 'views': {k: v for k, v in ideal['views'].items() if k in mine},
+                    'departures': [d for d in ideal['departures'] if d['view'] in mine]}
         subjects = schema['properties']['decisions']['items']['properties']['subject']['enum']
         if subjects == ['plan']:
             tasks = [t['id'] for t in bundle(prompt)['tasks']]

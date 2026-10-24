@@ -85,22 +85,28 @@ def hotspots(fact_sets, add, target):
     from ..core.code_laws import MAX_COMPLEXITY
     from .system_map import is_test
     nodes = {fact['location']['path']: fact['value'] for fact in facts_of(fact_sets, 'graph', 'graph_node')}
-    for fact in sorted(facts_of(fact_sets, 'metrics', 'metric'), key=lambda fact: -(fact['value'].get('branches') or 0)):
+    for fact in sorted(facts_of(fact_sets, 'metrics', 'metric'), key=lambda fact: -_complexity(fact)):
         value, path = fact['value'], fact['location']['path']
-        if value.get('scope') in ('function', 'method') and (value.get('branches') or 0) > MAX_COMPLEXITY and not is_test(path):
+        if value.get('scope') in ('function', 'method') and _complexity(fact) > MAX_COMPLEXITY and not is_test(path):
             _hotspot(fact, (nodes.get(path) or {}).get('attention_rank'), MAX_COMPLEXITY, add)
+
+
+def _complexity(fact):
+    """A function's complexity, the code laws' count (eaos/facts/metrics.py); its branches in facts from before it."""
+    value = fact['value']
+    return value.get('complexity') or value.get('branches') or 0
 
 
 def _hotspot(fact, rank, limit, add):
     path, symbol = fact['location']['path'], fact['location'].get('symbol')
-    add(f"{symbol} in {path} carries {fact['value']['branches']} branches over "
+    add(f"{symbol} in {path} has complexity {_complexity(fact)} over "
         f"{fact['value']['lines']} lines, in a file ranked {rank or '-'} for attention",
         'structure', 'CONFIRMED', ['static_fact'],
         'A measurement showing the branching is within the limit, or evidence that the '
         'complexity is inherent to the problem and isolated behind a tested contract.',
         fact_ids=[fact['id']],
         render={'key': 'hotspot', 'params': {'symbol': symbol, 'path': path,
-                                             'branches': fact['value']['branches'],
+                                             'branches': _complexity(fact),
                                              'lines': fact['value']['lines'],
                                              'rank': rank or '-'}},
         probe_spec=graph_query('metric_threshold', path=path, symbol=symbol, max_branches=limit,
