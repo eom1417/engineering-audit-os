@@ -117,6 +117,20 @@ class DeadCodeTests(unittest.TestCase):
                      'app/server/guard.ts': 'export function guard() { return 1; }\n'})
         self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
 
+    def test_what_a_build_script_hands_its_bundler_or_loads_is_reached(self):
+        # EAOS's own Studio (2026-10-24): esbuild's entry points and the words the build imports are computed paths,
+        # and 96 of its modules were said to be dead
+        build = ("import path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nimport * as esbuild from 'esbuild';\n"
+                 "const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');\nconst SRC = path.join(HERE, 'src');\n"
+                 "await esbuild.build({ entryPoints: [path.join(SRC, 'core/main.js')], outfile: path.join(HERE, 'out/main.js') });\n"
+                 "for (const place of ['a']) await esbuild.build({ entryPoints: [path.join(SRC, 'places', place, 'index.js')] });\n"
+                 "for (const file of ['ar.js']) await import(pathToFileURL(path.join(SRC, 'words', file)).href);\n")
+        found = run({'pkg/__main__.py': 'print(1)\n', 'console/package.json': '{"scripts": {"build": "node scripts/build.mjs"}}',
+                     'console/scripts/build.mjs': build, 'console/src/core/main.js': 'import { go } from "./go.js";\ngo();\n',
+                     'console/src/core/go.js': 'export function go() {}\n', 'console/src/places/a/index.js': 'document.title = "a";\n',
+                     'console/src/words/ar.js': 'export default {};\n', 'console/src/places/a/deep/gone.js': 'export const x = 1;\n'})
+        self.assertEqual({key[1] for key in found if key[0] == 'unreachable-module'}, {'console/src/places/a/deep/gone.js'})
+
     def test_without_an_entry_point_only_private_names_are_judged(self):
         found = run({'lib/api.py': 'def public():\n    return 1\n\ndef _private():\n    return 2\n'})
         self.assertEqual(set(found), {('unused-symbol', '_private')})

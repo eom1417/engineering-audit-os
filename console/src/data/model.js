@@ -20,7 +20,6 @@ function memo(key, from, make) {
 }
 
 export const SEV = ['critical', 'high', 'medium', 'low', 'info'];
-export const SEV_RANK = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const CLOSED = ['done', 'resolved'];
 const pct = m => (m && m.value != null ? Math.round(m.value * 100) : null);
 

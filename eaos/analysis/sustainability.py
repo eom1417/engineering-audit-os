@@ -25,9 +25,6 @@ LIMITATIONS = [
     'A falsifier is a hint at the kind of evidence that would reject the move; it is not a guard.',
 ]
 
-INDICATORS = ['single_source', 'minimal_path', 'data_owners', 'honest_boundaries',
-               'verifiable_paths', 'understandable_units']
-
 DEFAULT_TARGETS = {
     'single_source': 0.0,
     'minimal_path': 0.0,

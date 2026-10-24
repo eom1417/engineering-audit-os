@@ -67,18 +67,6 @@ what the tools returned.
 
 """ + LAWS
 
-# Every capability of the guided way (eaos/journeys/guided.py STEPS and its commands), and the tool that gives it to the
-# assistant. X8 counts those registered and exercised by tests/test_mcp.py.
-CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_start', 'check the product spec': 'blueprint_spec',
-                'draw the target and the build plan': 'blueprint_design', 'plan a feature into the project': 'extend_plan', 'build a milestone': 'build_edit',
-                'hand a milestone over': 'build_finish', 'check the project': 'audit', 'follow long work': 'wait',
-                'show the report for people': 'open_report', 'offer what EAOS can do now': 'menu',
-                'what a change touches': 'impact', 'answer from the records': 'ask', 'check the tools': 'tools_check',
-                'check the assistant before the check': 'assistant_check',
-                'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
-                'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'close a stuck batch': 'fix_abandon', 'accept': 'accept', 'undo': 'undo',
-                'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
-
 
 # What only the person decides: these tools, and these operations of the governance tools and commands (eaos/interfaces/govern.py).
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio), the assistant asks instead, and the person
