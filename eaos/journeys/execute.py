@@ -1,6 +1,6 @@
 """What every fix runs in the sandbox: the candidate clone, a card's codemod, the gates (nothing newly broken, the
 project's own checks that passed before still pass) and the row of runtime/execution.json. The batch itself is
-eaos/journeys/waves.py; the assistant's edits come through the MCP tools (eaos/journeys/agent_tools.py fix_edit).
+eaos/journeys/waves; the assistant's edits come through the MCP tools (eaos/journeys/agent_tools.py fix_edit).
 
 Nothing is written to the original project; the candidate is a clone, and its commit is the reviewable change.
 """
@@ -71,7 +71,7 @@ def new_breakage(report, root, collected=None):
     return broke
 
 
-# The security engines that answer in seconds: they run on every change a batch makes (eaos/journeys/waves.py edit_gates).
+# The security engines that answer in seconds: they run on every change a batch makes (eaos/journeys/waves edit_gates).
 GATE_ENGINES = ('bandit', 'gitleaks')
 
 

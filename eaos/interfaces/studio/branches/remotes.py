@@ -36,17 +36,21 @@ class Remotes:
                 raise Blocked([say("EAOS's own main stays protected.", 'main في EAOS نفسه يبقى محميًا.', 'eaos_main')])
         handle = self._locked()
         try:
-            path = self.store.folder / reading.POLICY
-            saved = _read_json(path, {}) or {}
-            protected, unprotected = set(saved.get('protected') or []), set(saved.get('unprotected') or [])
-            (protected.add if bound['protected'] else protected.discard)(name)
-            (unprotected.discard if bound['protected'] else unprotected.add)(name)
-            _write_json(path, {'protected': sorted(protected), 'unprotected': sorted(unprotected), 'at': now()})
+            self._save_protection(name, bound['protected'])
             run = self._start('branch_protect', {'en': f"{'Protect' if bound['protected'] else 'Unprotect'} {name}", 'ar': f"{'احمِ' if bound['protected'] else 'ارفع الحماية عن'} {name}"},
                               [name], bound)
             return {'run': self._finish(run, True, {'en': 'Policy saved.', 'ar': 'حُفظت السياسة.'}, {**bound, 'branches': [name]}), 'protected': self.policy()['protected']}
         finally:
             handle.close()
+
+    def _save_protection(self, name, protect):
+        """The project's policy file with `name` protected (`protect`) or unprotected."""
+        path = self.store.folder / reading.POLICY
+        saved = _read_json(path, {}) or {}
+        protected, unprotected = set(saved.get('protected') or []), set(saved.get('unprotected') or [])
+        (protected.add if protect else protected.discard)(name)
+        (unprotected.discard if protect else unprotected.add)(name)
+        _write_json(path, {'protected': sorted(protected), 'unprotected': sorted(unprotected), 'at': now()})
 
     # ------------------------------------------------------------------ freshness
     def freshness(self):

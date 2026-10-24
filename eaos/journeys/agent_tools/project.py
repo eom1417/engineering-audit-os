@@ -44,9 +44,8 @@ def locate(folder):
 def _project_folder(project, new):
     """The project's folder, checked: made when it is to be built, else it must exist and look like a project."""
     folder = Path(project or os.getcwd()).expanduser().resolve()
-    if not new and not (project_state.load(folder) if folder.is_dir() else None): folder = locate(folder)
-    state = project_state.load(folder) if folder.is_dir() else None
-    if new or (state or {}).get('mode') == 'build':
+    if not new and not _state_in(folder): folder = locate(folder)
+    if new or (_state_in(folder) or {}).get('mode') == 'build':
         if folder in (Path.home().resolve(), Path(folder.anchor)):
             raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the assistant there)')
         folder.mkdir(parents=True, exist_ok=True)
@@ -56,6 +55,11 @@ def _project_folder(project, new):
         raise ValueError(f'not a project folder: {folder} (no .git, package.json or other project file at its top; '
                          'pass the project folder as `project`)')
     return folder
+
+
+def _state_in(folder):
+    """The EAOS state kept for `folder`, None when it is not a folder or has none."""
+    return project_state.load(folder) if folder.is_dir() else None
 
 
 def state_of(project=None, new=False):

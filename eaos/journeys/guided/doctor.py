@@ -37,7 +37,6 @@ def _tools_row(row_id, when, ar, en, tools):
 def doctor_rows(project=None, probe=False):
     """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]. `probe`: ask each AI
     assistant for one word (eaos/ai/readiness.py) instead of only looking for its command."""
-    from ...core.toolchain import doctor as tools
     js = bool(project) and any((Path(project) / folder / 'package.json').is_file() for folder in ('.', 'app', 'web', 'client', 'frontend'))
     rows = [{'id': 'python', 'ok': sys.version_info >= (3, 10), 'when': 'now', 'ar': 'Python 3.10 أو أحدث', 'en': 'Python 3.10 or newer',
              'fix': 'https://www.python.org/downloads/'},
@@ -47,11 +46,7 @@ def doctor_rows(project=None, probe=False):
         rows.append({'id': 'project_git', 'ok': (Path(project) / '.git').exists(), 'when': 'later',
                      'ar': 'المشروع محفوظ في git (للإصلاح فقط)', 'en': 'The project is saved in git (only for fixing)',
                      'fix': 'git init && git add -A && git commit -m "first save"'})
-    # The check runs without any of them, and the report names what it could not look at: missing ones warn.
-    rows.append(_tools_row('scan_tools', 'optional', 'أدوات الفحص', 'Checking tools',
-                           [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate') and not t.get('unavailable')]))
-    rows.append(_tools_row('fix_tools', 'later', 'أدوات تشغيل برنامجك وإصلاحه', 'Tools to run and fix your app',
-                           [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift') and not t.get('unavailable')]))
+    rows += _tool_rows()
     from ...core.local_db import binaries
     free = shutil.disk_usage(str(home().parent if not home().exists() else home())).free / 2 ** 30
     return rows + [{'id': 'database', 'ok': binaries() is not None, 'when': 'later',
@@ -59,6 +54,16 @@ def doctor_rows(project=None, probe=False):
                     'fix': 'eaos doctor --fix'}, assistant_row(probe),
                    {'id': 'disk', 'ok': free >= 5, 'when': 'now', 'ar': f'مساحة فارغة 5 GB على الأقل (المتاح {free:.0f} GB)',
                     'en': f'At least 5 GB free (you have {free:.0f} GB)', 'fix': 'eaos clean'}]
+
+
+def _tool_rows():
+    """The rows of the checking tools, and of the tools that run and fix the app."""
+    from ...core.toolchain import doctor as tools
+    # The check runs without any of them, and the report names what it could not look at: missing ones warn.
+    return [_tools_row('scan_tools', 'optional', 'أدوات الفحص', 'Checking tools',
+                       [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate') and not t.get('unavailable')]),
+            _tools_row('fix_tools', 'later', 'أدوات تشغيل برنامجك وإصلاحه', 'Tools to run and fix your app',
+                       [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift') and not t.get('unavailable')])]
 
 
 def assistant_row(probe=False):
@@ -111,14 +116,19 @@ def doctor(args):
     for row in rows: say(_doctor_line(row, lang))
     tools_missing = [row for row in rows if not row['ok'] and row['fix'] == 'eaos doctor --fix']
     if args.fix and tools_missing:
-        from ...core.toolchain import install
-        if any(row['id'] == 'database' for row in tools_missing):
-            say('…' + ('أثبّت PostgreSQL المؤقت' if lang == 'ar' else 'Installing the temporary PostgreSQL'))
-            _pip_install('pgserver>=0.1.4')
-        say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
-        install(echo=lambda line: say('   ' + str(line)))
+        _install_missing(tools_missing, lang)
         return doctor(type(args)(project=args.project, lang=lang, fix=False))
     return _doctor_verdict(rows, lang, args.project)
+
+
+def _install_missing(tools_missing, lang):
+    """`eaos doctor --fix`: the temporary PostgreSQL when it is missing, then the missing tools, installed."""
+    from ...core.toolchain import install
+    if any(row['id'] == 'database' for row in tools_missing):
+        say('…' + ('أثبّت PostgreSQL المؤقت' if lang == 'ar' else 'Installing the temporary PostgreSQL'))
+        _pip_install('pgserver>=0.1.4')
+    say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
+    install(echo=lambda line: say('   ' + str(line)))
 
 
 def _doctor_line(row, lang):
@@ -130,11 +140,20 @@ def _doctor_line(row, lang):
 
 def _doctor_verdict(rows, lang, project):
     blocking = [row for row in rows if not row['ok'] and row['when'] == 'now']
-    if blocking:
-        fixable = all(row['fix'] == 'eaos doctor --fix' for row in blocking)
-        box(lang, ('ينقصك شيء قبل البدء' if lang == 'ar' else 'Something is missing before you start'),
-            commands=['eaos doctor --fix'] if fixable else [blocking[0]['fix'], 'eaos doctor'], status='fail')
-        return 1
+    if blocking: return _missing_box(lang, blocking)
+    return _ready_box(rows, lang, project)
+
+
+def _missing_box(lang, blocking):
+    """The doctor's verdict when something the check needs now is missing: 1."""
+    fixable = all(row['fix'] == 'eaos doctor --fix' for row in blocking)
+    box(lang, ('ينقصك شيء قبل البدء' if lang == 'ar' else 'Something is missing before you start'),
+        commands=['eaos doctor --fix'] if fixable else [blocking[0]['fix'], 'eaos doctor'], status='fail')
+    return 1
+
+
+def _ready_box(rows, lang, project):
+    """The doctor's verdict when the computer is ready to check, with what is left to install: 0."""
     box(lang, ('جهازك جاهز للفحص' if lang == 'ar' else 'Your computer is ready to check a project'),
         commands=[f"eaos start {project}" if project and project != '.' else 'eaos start .'], status='ok',
         note=None if all(row['ok'] for row in rows) else ('ما تبقى لا يمنع الفحص. لتثبيته: eaos doctor --fix' if lang == 'ar'

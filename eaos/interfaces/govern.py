@@ -29,96 +29,13 @@ from ..live import sign_in
 from ..core.launch import HEADLESS
 from ..core.store import ACTIVE, RETRYABLE
 from ..core import project_state
+from .govern_words import WORDS, text_of
 
 SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/live/sign_in.py)
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
 # What a branch change previews, then does (BranchControl's methods), and the body both take.
 BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 'delete'), 'protect': ('preview_protect', 'protect'),
               'unprotect': ('preview_protect', 'protect'), 'cleanup': ('preview_cleanup', 'cleanup')}
-
-# Every line the terminal shows the person, in both languages.
-WORDS = {
-    'estimate': {'en': 'This check: about {low} to {high} minutes ({basis}).', 'ar': 'هذا الفحص: حوالي {low} إلى {high} دقيقة ({basis}).'},
-    'started': {'en': 'Started in the background ({run}); nothing in your project changes. Follow it, or close this window: it goes on.',
-                'ar': 'بدأ في الخلفية ({run})؛ ما يتغير شي في مشروعك. تابعه، أو سكّر هالنافذة: يكمل.'},
-    'queued_run': {'en': 'Queued: {label} ({run}).', 'ar': 'في الطابور: {label} ({run}).'},
-    'checked': {'en': '{problems} problem(s) found, {ready} of them can be fixed automatically', 'ar': 'لقيت {problems} مشكلة، منها {ready} تنصلح آليًا'},
-    'left': {'en': 'about {minutes} min left', 'ar': 'باقي حوالي {minutes} دقيقة'},
-    'elapsed': {'en': '{clock} since it began', 'ar': 'مضى {clock}'},
-    'cost': {'en': 'used so far: ${cost}', 'ar': 'المستخدم حتى الآن: ${cost}'},
-    'ask': {'en': 'Your answer (one of: {options}): ', 'ar': 'جوابك (واحد من: {options}): '},
-    'answer_with': {'en': 'To answer: eaos answer {id} <option>', 'ar': 'للجواب: eaos answer {id} <الخيار>'},
-    'still': {'en': 'It goes on in the background.', 'ar': 'يكمل في الخلفية.'},
-    'ended': {'en': 'The run ended: {state}', 'ar': 'انتهى التشغيل: {state}'},
-    'none_waiting': {'en': 'Nothing waits for you.', 'ar': 'ما فيه شي ينتظرك.'},
-    'waiting': {'en': '{count} thing(s) wait for you', 'ar': '{count} شي ينتظرك'},
-    'answered': {'en': 'Answered: {id}', 'ar': 'تم الجواب: {id}'},
-    'handed': {'en': 'Your answer was handed over ({id}); the run takes it in a moment.', 'ar': 'وصل جوابك ({id})؛ التشغيل ياخذه بعد لحظة.'},
-    'branch_waits': {'en': 'The branch {branch} waits for you: take it in or throw it away.', 'ar': 'الفرع {branch} ينتظرك: اعتمده أو ارمه.'},
-    'no_runs': {'en': 'No run yet.', 'ar': 'ما فيه تشغيل بعد.'},
-    'nothing': {'en': 'No batch of fixes is waiting.', 'ar': 'ما فيه دفعة إصلاحات تنتظر.'},
-    'accept_what': {'en': 'Accept merges {branch} into {target} ({count} file(s) change), then deletes {branch}. Go ahead?',
-                    'ar': 'الاعتماد يدمج {branch} في {target} (يتغير {count} ملف)، ثم يحذف {branch}. أكمل؟'},
-    'undo_what': {'en': 'Undo deletes the branch {branch}: its {count} changed file(s) never reach your project. Go ahead?',
-                  'ar': 'الرمي يحذف الفرع {branch}: ملفاته المتغيرة ({count}) ما توصل مشروعك أبدًا. أكمل؟'},
-    'accepted': {'en': '{branch} is in {target}; the report is up to date: {closed} of {total} closed.',
-                 'ar': '{branch} صار في {target}، والتقرير محدّث: انحلّت {closed} من {total}.'},
-    'undone': {'en': 'Removed the branch {branch}; your project is as it was.', 'ar': 'حذفت الفرع {branch}؛ مشروعك كما كان.'},
-    'not_done': {'en': 'Nothing was done: {why}', 'ar': 'ما تم شي: {why}'},
-    'branch_what': {'en': 'From now on EAOS checks and fixes {branch} (your checkout is not switched). Go ahead?',
-                    'ar': 'من الحين EAOS يفحص ويصلح {branch} (فرعك المفتوح ما يتغير). أكمل؟'},
-    'blocked': {'en': 'It cannot be done now:', 'ar': 'ما ينفع الحين:'},
-    'merge_what': {'en': 'Merge {name} into {target} ({commits} commit(s), {files} file(s))?', 'ar': 'أدمج {name} في {target} ({commits} commit، {files} ملف)؟'},
-    'delete_what': {'en': 'Delete the branch {name}? It stays recoverable (eaos branches restore).', 'ar': 'أحذف الفرع {name}؟ يبقى قابل للاسترجاع (eaos branches restore).'},
-    'protect_what': {'en': 'Protect {name}: nothing is merged into it from EAOS?', 'ar': 'أحمي {name}: ما يندمج فيه شي من EAOS؟'},
-    'unprotect_what': {'en': 'Remove the protection of {name}?', 'ar': 'أشيل الحماية عن {name}؟'},
-    'cleanup_what': {'en': 'Remove {branches} merged branch(es) and {worktrees} old worktree(s)? Each branch stays recoverable.',
-                     'ar': 'أشيل {branches} فرع مدموج و{worktrees} نسخة عمل قديمة؟ كل فرع يبقى قابل للاسترجاع.'},
-    'restore_what': {'en': 'Bring the deleted branch of {name} back?', 'ar': 'أرجّع الفرع المحذوف {name}؟'},
-    'verb_what': {'en': '{label}: {count} card(s), {files} file(s), about {low} to {high} minutes; risk {risk}.',
-                  'ar': '{label}: {count} بطاقة، {files} ملف، حوالي {low} إلى {high} دقيقة؛ الخطورة {risk}.'},
-    'go_ahead': {'en': 'Go ahead?', 'ar': 'أكمل؟'},
-    'where': {'en': 'Built on {base}, handed over as {deliver}, merged later into {target} once you accept.',
-              'ar': 'يُبنى على {base}، ويُسلَّم كفرع {deliver}، ويندمج لاحقًا في {target} بعد اعتمادك.'},
-    'auto': {'en': 'It is accepted by itself when its checks pass (never into a protected branch).',
-             'ar': 'يُعتمد تلقائيًا إذا نجحت فحوصه (أبدًا في فرع محمي).'},
-    'handoff': {'en': 'No assistant can start here: the request waits for your assistant (open Claude Code or Codex in this folder and say /eaos).',
-                'ar': 'ما فيه مساعد يقدر يشتغل هنا: الطلب ينتظر مساعدك (افتح Claude Code أو Codex في هالمجلد واكتب /eaos).'},
-    'left_out': {'en': 'Left out: {id} ({why})', 'ar': 'متروكة: {id} ({why})'},
-    'no_history': {'en': 'No check on record yet.', 'ar': 'ما فيه فحص مسجل بعد.'},
-    'agree': {'en': 'To agree, type the command below; nothing happens until you do', 'ar': 'للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق'},
-    'said_no': {'en': 'you said no', 'ar': 'قلت لا'},
-    'runs': {'en': '{count} run(s)', 'ar': '{count} تشغيل'},
-    'problems': {'en': '{shown} of {total} problem(s) shown', 'ar': 'معروض {shown} من {total} مشكلة'},
-    'branches': {'en': 'EAOS works on {branch}', 'ar': 'EAOS يشتغل على {branch}'},
-    'unchecked_merge': {'en': 'No checks are recorded for this commit: agreeing merges it without them.',
-                        'ar': 'ما فيه فحوص مسجلة لهذا الـcommit: موافقتك تدمجه بدونها.'},
-    'history': {'en': '{count} check(s) on record', 'ar': '{count} فحص مسجل'},
-    'compared': {'en': '{a} → {b}: {closed} card(s) closed between', 'ar': '{a} ← {b}: انحلّت {closed} بطاقة بينهما'},
-    'usage': {'en': 'The last check: {check}; the chat: {chat}', 'ar': 'آخر فحص: {check}؛ المحادثة: {chat}'},
-    'sign_in_waits': {'en': 'The check waits for you to sign in to your app, so it sees the pages behind the sign-in (the other steps go on).',
-                      'ar': 'الفحص ينتظرك تسجّل دخولك في تطبيقك، عشان يشوف الصفحات اللي ورا الدخول (باقي الخطوات تكمل).'},
-    'signed_out_option': {'en': 'Go on without signing in (those pages are seen signed out)', 'ar': 'كمّل بدون دخول (تنشاف هالصفحات بدون دخول)'},
-    'sign_in_none': {'en': 'The check does not wait for a sign-in now: it asks when it needs one.', 'ar': 'الفحص ما ينتظر دخول الحين: يطلبه لما يحتاجه.'},
-    'sign_in_open': {'en': 'Open this address and sign in to your app as you always do; then press "I have signed in":',
-                     'ar': 'افتح هالرابط وسجّل دخولك في تطبيقك مثل كل مرة، وبعدها اضغط «سجّلت دخولي»:'},
-    'sign_in_window': {'en': 'Sign in to your app in the browser window that opened, as you always do; then press Enter here: ',
-                       'ar': 'سجّل دخولك في تطبيقك في نافذة المتصفح اللي انفتحت مثل كل مرة، وبعدها اضغط Enter هنا: '},
-    'sign_in_done': {'en': 'Signed in: the check goes on with your session (kept only for you, on this computer).',
-                     'ar': 'تم الدخول: الفحص يكمل بجلستك (محفوظة لك وحدك على هالجهاز).'},
-    'sign_in_skipped': {'en': 'The check goes on without signing in.', 'ar': 'الفحص يكمل بدون دخول.'},
-    'sign_in_forgot': {'en': 'Your sign-in to the app is forgotten; the next check asks again.', 'ar': 'نسيت دخولك في التطبيق؛ الفحص الجاي يطلبه من جديد.'},
-    'app_said': {'en': 'What the app sent (codes, links):', 'ar': 'اللي أرسله التطبيق (رموز، روابط):'},
-}
-
-
-def words(key, lang, **values):
-    return WORDS[key]['ar' if lang == 'ar' else 'en'].format(**values)
-
-
-def text_of(value, lang):
-    """A text in the person's language from {en, ar}, or the text itself."""
-    return (value.get(lang) or value.get('en') or '') if isinstance(value, dict) else str(value or '')
 
 
 # ---------------------------------------------------------------- the core, and who starts its runs
@@ -264,13 +181,18 @@ def progress(actions, record):
     """Where a run is: its stage (done of total), the minutes left at its pace so far, and what the assistant used."""
     last = next((e['data'] for e in reversed(actions.store.events(record['id'])) if e['kind'] == 'progress'), {})
     done, total = last.get('done') or 0, last.get('total') or 0
+    used = _used(actions, record) or {}
+    return {'stage': last.get('stage'), 'done': done, 'total': total, **_pace(record, done, total),
+            'cost_usd': used.get('cost_usd'), 'tokens': sum(used.get(k) or 0 for k in ('input', 'cache_write', 'output', 'thinking'))}
+
+
+def _pace(record, done, total):
+    """{seconds, minutes_left}: how long the run has worked, and what is left of it at its pace so far."""
     began = datetime.fromisoformat(record['started']) if record.get('started') else None
     elapsed = (datetime.now(timezone.utc) - began).total_seconds() if began else 0
     running = done and total and record.get('state') == 'running'
-    used = _used(actions, record) or {}
-    return {'stage': last.get('stage'), 'done': done, 'total': total, 'seconds': round(elapsed) if began else None,
-            'minutes_left': round(elapsed / done * (total - done) / 60) if running else None,
-            'cost_usd': used.get('cost_usd'), 'tokens': sum(used.get(k) or 0 for k in ('input', 'cache_write', 'output', 'thinking'))}
+    return {'seconds': round(elapsed) if began else None,
+            'minutes_left': round(elapsed / done * (total - done) / 60) if running else None}
 
 
 def _used(actions, record):
@@ -296,11 +218,7 @@ def waiting(project):
     handed over for accept or undo, and the sign-in a check waits for."""
     from ..core.project_state import waiting_batch
     actions = core(project)
-    rows = [{'id': q['id'], 'kind': 'question', 'run': q.get('run'), 'text': q.get('text'), 'options': q.get('options') or [],
-             'recommendation': q.get('recommendation')} for q in actions.questions()]
-    rows += [{'id': d['id'], 'kind': 'decision', 'scope': d['scope'], 'text': d['question'].get('question'),
-              'options': d['question'].get('options') or [], 'recommendation': d['question'].get('recommended_option')}
-             for d in actions.report_decisions() if not d['response'] and d['question'].get('state', 'waiting') == 'waiting']
+    rows = _questions(actions)
     state = project_state.load(actions.project) or {}
     wave = waiting_batch(state)
     if wave: rows.append({'id': wave['branch'], 'kind': 'branch', 'text': WORDS['branch_waits'], 'branch': wave['branch'],
@@ -309,6 +227,15 @@ def waiting(project):
         rows.append({'id': SIGN_IN, 'kind': 'sign_in', 'text': WORDS['sign_in_waits'],
                      'options': [{'id': SIGN_IN, 'label': 'eaos sign-in'}, {'id': sign_in.SIGNED_OUT, 'label': WORDS['signed_out_option']}]})
     return [{**row, 'text': {lang: text_of(row['text'], lang).format(branch=row.get('branch')) for lang in ('en', 'ar')}} for row in rows]
+
+
+def _questions(actions):
+    """The runs' questions, then the report's questions not answered yet, as waiting lists them."""
+    rows = [{'id': q['id'], 'kind': 'question', 'run': q.get('run'), 'text': q.get('text'), 'options': q.get('options') or [],
+             'recommendation': q.get('recommendation')} for q in actions.questions()]
+    return rows + [{'id': d['id'], 'kind': 'decision', 'scope': d['scope'], 'text': d['question'].get('question'),
+                    'options': d['question'].get('options') or [], 'recommendation': d['question'].get('recommended_option')}
+                   for d in actions.report_decisions() if not d['response'] and d['question'].get('state', 'waiting') == 'waiting']
 
 
 def signing_in(project):
@@ -331,6 +258,13 @@ def answer(project, ident, option=None, text=None, assistant=None):
         decided = actions.answer_decision(ident, {'scope': row['scope'], 'option': option, 'text': text, 'assistant': assistant})
         wake(actions.project)
         return {'status': 'answered', 'decision': decided}
+    return _answer_run(actions, row, option, text)
+
+
+def _answer_run(actions, row, option, text):
+    """A run's question answered in a host (where the work it lets go on lives), checked here first; answered once the
+    run took it within twenty seconds, else handed over."""
+    ident = row['id']
     actions.manager._checked(ident, option, text)
     wake(actions.project, (ident, option, text))
     end = time.monotonic() + 20
@@ -421,10 +355,14 @@ def compare(project, first, second):
     if missing: raise LookupError(f'no check named {missing}: eaos history lists them')
     a, b = scans[first], scans[second]
     opened = a.get('open') or {}, b.get('open') or {}
-    closed = [c for c in found.get('cards') or [] if a['at'] < (c.get('at') or '') <= b['at'] and not c.get('new')]
     return {'from': a, 'to': b, 'score': _delta(a.get('score'), b.get('score')), 'open': _delta(a.get('open_total'), b.get('open_total')),
             'severity': {s: _delta(opened[0].get(s), opened[1].get(s)) for s in opened[1]},
-            'closed': _delta(a.get('closed'), b.get('closed')), 'closed_between': closed[:50]}
+            'closed': _delta(a.get('closed'), b.get('closed')), 'closed_between': _closed_between(found, a, b)[:50]}
+
+
+def _closed_between(found, a, b):
+    """The cards closed after the check `a` and up to the check `b` (not those new in between)."""
+    return [c for c in found.get('cards') or [] if a['at'] < (c.get('at') or '') <= b['at'] and not c.get('new')]
 
 
 def usage(project):

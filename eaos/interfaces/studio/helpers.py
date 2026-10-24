@@ -39,8 +39,7 @@ def speed_of(project, body):
 def after(manager, run, state):
     """Start the helpers of `run` once fix_start answered lanes for them (`state`: its assistant's stream read so far;
     the answer comes from fix_start, or from `wait` on its job), once."""
-    seen, state['looked'] = state.get('looked', 0), len(state['eaos_results'])      # each answer looked at once
-    payload = next((payload for _, payload in state['eaos_results'][seen:] if isinstance(payload, dict) and payload.get('helpers')), None)
+    payload = _lanes_answer(state)
     if not payload: return
     record = manager.store.load(run)
     if record.get('helpers') is not None: return              # a turn after the one that started them
@@ -61,6 +60,12 @@ def after(manager, run, state):
     manager.store.append(run, 'step', {'en': f'{len(made)} more assistants fix the other cards at the same time, each its own files',
                                        'ar': f'{len(made)} مساعدين ثانيين يصلحون باقي البطاقات بنفس الوقت، كل واحد ملفاته'},
                          {'tool': None, 'helpers': sorted(made)})
+
+
+def _lanes_answer(state):
+    """The first answer not looked at before that names lanes for helpers; None. Each answer is looked at once."""
+    seen, state['looked'] = state.get('looked', 0), len(state['eaos_results'])
+    return next((payload for _, payload in state['eaos_results'][seen:] if isinstance(payload, dict) and payload.get('helpers')), None)
 
 
 def ended(manager, record):

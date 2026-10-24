@@ -36,19 +36,7 @@ class StateView:
 
     def _worktrees(self):
         """Every worktree of the repository: path, branch (or detached), head, and its unsaved changes."""
-        done = git(self.project, 'worktree', 'list', '--porcelain')
-        rows, row = [], {}
-        for line in done.stdout.splitlines() + ['']:
-            if not line:
-                if row: rows.append(row)
-                row = {}
-                continue
-            key, _, value = line.partition(' ')
-            if key == 'worktree': row = {'path': value, 'branch': None, 'head': None, 'detached': False, 'locked': False, 'prunable': False}
-            elif key == 'HEAD': row['head'] = value
-            elif key == 'branch': row['branch'] = value[len('refs/heads/'):] if value.startswith('refs/heads/') else value
-            elif key == 'detached': row['detached'] = True
-            elif key in ('locked', 'prunable'): row[key] = True
+        rows = _listed_worktrees(git(self.project, 'worktree', 'list', '--porcelain').stdout)
         here = Path(self.project).resolve()
         for row in rows:
             path = Path(row['path'])
@@ -125,22 +113,17 @@ class StateView:
         wave, entry = waves.get(name), registry.get(name)
         if not wave and not (entry and entry.get('created_by') == 'eaos'):
             return {'owner': 'unknown', 'kind': None, 'evidence': None, 'base': None, 'base_commit': None, 'foreign_commits': None}
-        if wave:
-            out = {'owner': 'eaos', 'kind': 'build' if wave.get('via') == 'build' else 'wave', 'wave': wave.get('number'),
-                   'status': wave.get('status'), 'evidence': f"EAOS state: {'build' if wave.get('via') == 'build' else 'wave'} {wave.get('number')} ({wave.get('status')})",
-                   'base': wave.get('target'), 'base_commit': wave.get('base'), 'recorded_tip': wave.get('tip') or (entry or {}).get('tip'),
-                   'run': (entry or {}).get('run')}
-        else:
-            out = {'owner': 'eaos', 'kind': entry.get('kind') or 'task', 'evidence': f"EAOS provenance record ({entry.get('kind') or 'task'})", 'recorded_at': entry.get('at'),
-                   'base': entry.get('base'), 'base_commit': entry.get('base_commit'), 'recorded_tip': entry.get('tip'), 'run': entry.get('run')}
-        start = out['base_commit']
-        foreign = None
-        if start and tip and git(self.project, 'cat-file', '-e', start + '^{commit}').returncode == 0:
-            authors = git(self.project, 'log', '--no-merges', '--format=%ae', f'{start}..{tip}')
-            if authors.returncode == 0: foreign = sum(1 for a in authors.stdout.split() if a != EAOS_EMAIL)
+        out = _made_by_a_batch(wave, entry) if wave else _made_as_recorded(entry)
+        foreign = self._foreign_commits(out['base_commit'], tip)
         out['foreign_commits'] = foreign
         if foreign: out['owner'] = 'shared'
         return out
+
+    def _foreign_commits(self, start, tip):
+        """How many commits since `start` someone other than EAOS made; None when git cannot say."""
+        if not (start and tip and git(self.project, 'cat-file', '-e', start + '^{commit}').returncode == 0): return None
+        authors = git(self.project, 'log', '--no-merges', '--format=%ae', f'{start}..{tip}')
+        return sum(1 for a in authors.stdout.split() if a != EAOS_EMAIL) if authors.returncode == 0 else None
 
     def policy(self, default=None):
         """The branches protected from a merge, enforced on the server: eaos/core/branches.py policy."""
@@ -150,14 +133,8 @@ class StateView:
         """{branch: [{id, role, state, label, created}]}: the runs whose recorded context or work branch is this branch."""
         links = {}
         for row in self.store.all():
-            context = row.get('context') or {}
-            work = work_of(row)
             summary = {'id': row['id'], 'state': row.get('state'), 'label': row.get('label'), 'created': row.get('created'), 'action': row.get('action')}
-            if work: links.setdefault(work, []).append({**summary, 'role': 'work'})
-            if context.get('analysis_branch') and context.get('analysis_branch') != work and not row.get('branch_op'):
-                links.setdefault(context['analysis_branch'], []).append({**summary, 'role': 'base'})
-            for name in (row.get('branch_op') or {}).get('branches') or []:
-                if name not in (work, context.get('analysis_branch')): links.setdefault(name, []).append({**summary, 'role': 'operation'})
+            for name, role in _branches_of(row): links.setdefault(name, []).append({**summary, 'role': role})
         return links
 
     def active_runs(self, exclude=None, queued=False):
@@ -192,20 +169,27 @@ class StateView:
     def work_branch(self, record):
         """A run's work branch as it is now: {name, exists, tip, recorded_tip, deleted, recovery} | {state: not_created_yet |
         not_required}."""
+        base = (record.get('context') or {}).get('analysis_branch')
         if record.get('branch_op'):
-            return {'state': 'not_required', 'acted_on': record['branch_op'].get('branches') or [], 'base': (record.get('context') or {}).get('analysis_branch')}
+            return {'state': 'not_required', 'acted_on': record['branch_op'].get('branches') or [], 'base': base}
         name = work_of(record)
-        if name:
-            tip = self.tip(f'refs/heads/{name}') if self.is_repo() else None
-            recovery = next((r for r in reversed(self.recoveries()) if r['branch'] == name and r['where'] == 'local'), None)
-            wave = self.waves().get(name) or {}
-            return {'state': 'exists' if tip else ('merged_and_deleted' if wave.get('status') == 'accepted' else 'deleted'),
-                    'name': name, 'tip': tip, 'recorded_tip': (record.get('result') or {}).get('branch_tip'),
-                    'recovery': recovery['id'] if recovery and not recovery.get('restored') else None,
-                    'base': (record.get('context') or {}).get('analysis_branch')}
+        if name: return self._work_now(record, name, base)
         changes = record.get('verb') == 'fix' or record.get('action') in ('fix_start', 'fix_finish', 'build_start', 'build_finish')
-        if changes and record.get('state') not in TERMINAL: return {'state': 'not_created_yet', 'base': (record.get('context') or {}).get('analysis_branch')}
-        return {'state': 'not_required' if not changes else 'none_created', 'base': (record.get('context') or {}).get('analysis_branch')}
+        if changes and record.get('state') not in TERMINAL: return {'state': 'not_created_yet', 'base': base}
+        return {'state': 'not_required' if not changes else 'none_created', 'base': base}
+
+    def _work_now(self, record, name, base):
+        """A run's work branch `name` as it is now: there, merged and deleted, or deleted (with its recovery)."""
+        tip = self.tip(f'refs/heads/{name}') if self.is_repo() else None
+        wave = self.waves().get(name) or {}
+        return {'state': 'exists' if tip else ('merged_and_deleted' if wave.get('status') == 'accepted' else 'deleted'),
+                'name': name, 'tip': tip, 'recorded_tip': (record.get('result') or {}).get('branch_tip'),
+                'recovery': self._open_recovery(name), 'base': base}
+
+    def _open_recovery(self, name):
+        """The id of the last recovery of the local branch `name`, while it is not restored; None."""
+        recovery = next((r for r in reversed(self.recoveries()) if r['branch'] == name and r['where'] == 'local'), None)
+        return recovery['id'] if recovery and not recovery.get('restored') else None
 
     def blocked_target(self, name, protected=None, head=None):
         """Why nothing is merged into `name` from here, or None (eaos/core/branches.py blocked_target)."""
@@ -237,8 +221,7 @@ class StateView:
             return out
         out['base'] = {'branch': base, 'commit': row[1], 'short': row[1][:7], 'when': row[2] or None, 'checked_out': base == head['branch']}
         view = self._fix_view(state, base, working)
-        tips = {name: tip for name, tip, _ in locals_}
-        out['continuable'] = [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in agent_tools.work_branches(view)]
+        out['continuable'] = _continuable(agent_tools.work_branches(view), locals_)
         out['direct_blocked'] = self._direct_blocked(base, blocked(base))
         return self._fix_delivery(out, view, base, wanted, hint, head, blocked)
 
@@ -248,11 +231,9 @@ class StateView:
         asked = str(wanted.get('deliver_as') or '').strip()
         merge = str(wanted.get('merge_into') or '') or head['branch']
         if asked == base and out['direct_blocked']: return out | {'mode': 'direct', 'deliver_as': base, 'merge_into': base, 'problem': out['direct_blocked']}
-        named = self._named_after(view, base, hint) if hint and not asked else ''
         try:
-            out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, asked or named or None, merge)
-        except ValueError as problem:
-            return out | {'problem': say(str(problem), str(problem), 'delivery'), 'deliver_as': asked or None, 'merge_into': merge, 'mode': 'direct' if asked == base else 'new'}
+            out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, asked or self._named_after(view, base, hint) or None, merge)
+        except ValueError as problem: return _undeliverable(out, problem, asked, base, merge)
         return self._fix_merge(out, base, blocked)
 
     def _fix_merge(self, out, base, blocked):
@@ -286,8 +267,9 @@ class StateView:
                    f"{base} محمي ({why['ar']}): الإصلاحات ما تنزل عليه مباشرة أبدًا.", 'protected_direct')
 
     def _named_after(self, view, base, hint):
-        """`eaos/<base>/<group>` for a group of cards, when that name is free and git takes it; else ''."""
+        """`eaos/<base>/<group>` for a group of cards (`hint`), when that name is free and git takes it; else ''."""
         from ....journeys import agent_tools
+        if not hint: return ''
         named = f"eaos/{reading.slug(base)}/{reading.slug(str(hint)).lower()[:40]}"
         if agent_tools.guided._branch_exists(view, named) or git(self.project, 'check-ref-format', '--branch', named).returncode: return ''
         return named
@@ -305,3 +287,59 @@ class StateView:
         target = (wave or {}).get('merge_into') or head['branch'] or state.get('branch')
         return {'branch': (wave or {}).get('branch'), 'target': target, 'delete_after': True,
                 'targets': [{'name': name, 'short': tip[:7], 'blocked': self.blocked_target(name, protected, head)} for name, tip in rows]}
+
+
+def _listed_worktrees(porcelain):
+    """The worktrees `git worktree list --porcelain` lists: path, branch (or detached), head, locked, prunable."""
+    rows, row = [], {}
+    for line in porcelain.splitlines() + ['']:
+        if not line:
+            if row: rows.append(row)
+            row = {}
+            continue
+        key, _, value = line.partition(' ')
+        if key == 'worktree': row = {'path': value, 'branch': None, 'head': None, 'detached': False, 'locked': False, 'prunable': False}
+        elif key == 'HEAD': row['head'] = value
+        elif key == 'branch': row['branch'] = value[len('refs/heads/'):] if value.startswith('refs/heads/') else value
+        elif key == 'detached': row['detached'] = True
+        elif key in ('locked', 'prunable'): row[key] = True
+    return rows
+
+
+def _made_by_a_batch(wave, entry):
+    """The owner of a branch an EAOS batch or build made, from the state (and its provenance record, when any)."""
+    kind = 'build' if wave.get('via') == 'build' else 'wave'
+    return {'owner': 'eaos', 'kind': kind, 'wave': wave.get('number'),
+            'status': wave.get('status'), 'evidence': f"EAOS state: {kind} {wave.get('number')} ({wave.get('status')})",
+            'base': wave.get('target'), 'base_commit': wave.get('base'), 'recorded_tip': wave.get('tip') or (entry or {}).get('tip'),
+            'run': (entry or {}).get('run')}
+
+
+def _made_as_recorded(entry):
+    """The owner of a branch EAOS made, from its provenance record."""
+    return {'owner': 'eaos', 'kind': entry.get('kind') or 'task', 'evidence': f"EAOS provenance record ({entry.get('kind') or 'task'})", 'recorded_at': entry.get('at'),
+            'base': entry.get('base'), 'base_commit': entry.get('base_commit'), 'recorded_tip': entry.get('tip'), 'run': entry.get('run')}
+
+
+def _branches_of(row):
+    """(branch, role) of each branch a run is linked to: its work branch, the base it was made on (a branch operation's
+    aside), the branches a branch operation acted on."""
+    context = row.get('context') or {}
+    work = work_of(row)
+    if work: yield work, 'work'
+    if context.get('analysis_branch') and context.get('analysis_branch') != work and not row.get('branch_op'):
+        yield context['analysis_branch'], 'base'
+    for name in (row.get('branch_op') or {}).get('branches') or []:
+        if name not in (work, context.get('analysis_branch')): yield name, 'operation'
+
+
+def _continuable(names, locals_):
+    """The EAOS work branches a new batch may continue on, each with its short commit."""
+    tips = {name: tip for name, tip, _ in locals_}
+    return [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in names]
+
+
+def _undeliverable(out, problem, asked, base, merge):
+    """The fix preview when the delivery asked for is refused: why, and what was asked."""
+    return out | {'problem': say(str(problem), str(problem), 'delivery'), 'deliver_as': asked or None, 'merge_into': merge,
+                  'mode': 'direct' if asked == base else 'new'}

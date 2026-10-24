@@ -119,19 +119,25 @@ def safety(state, args):
                               ('أقيس السرعة تحت ضغط مستخدمين كثيرين…' if lang == 'ar' else 'Measuring speed under many users…')))
     outcome = safety_run(state, step)
     passed, total, speed, ar = outcome['passed'], outcome['screens'], outcome['p95_ms'], lang == 'ar'
+    happened = (f"صوّرت {passed} من {total} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
+                if ar else f"Recorded {passed} of {total} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
+    box(lang, happened, where=runtime / 'behavior-lock/results.json', commands=['eaos next'],
+        status='ok' if passed else 'warn', note=_safety_notes(outcome, lang) or None)
+    return 0
+
+
+def _safety_notes(outcome, lang):
+    """What the safety net could not do: the speed not measured and why, the screens not recorded."""
+    ar = lang == 'ar'
     unmeasured = {'no_production_run': ('لم تعمل نسخة الإنتاج من برنامجك هنا، فلم أقس السرعة؛ السبب في run.json', 'The production build of your app did not run here, so speed was not measured; the reason is in run.json'),
                   'no_build': ('لا يوجد أمر بناء للإنتاج، فلم أقس السرعة', 'No production build, so speed was not measured')}.get(outcome['speed'])
     notes = [unmeasured[0 if ar else 1]] if unmeasured else []
     if outcome['speed'] == 'failed':
         notes.append(('لم أستطع قياس السرعة: ' if ar else 'Could not measure speed: ')
                      + explain(RuntimeError(outcome['speed_error']))[lang]['message'] + f" ({outcome['speed_log']})")
-    happened = (f"صوّرت {passed} من {total} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
-                if ar else f"Recorded {passed} of {total} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
     if outcome['skipped']: notes.append((f"{len(outcome['skipped'])} شاشة لم تُصوَّر، وأسبابها في السجل" if ar
                                          else f"{len(outcome['skipped'])} screens were not recorded; the reasons are in the record"))
-    box(lang, happened, where=runtime / 'behavior-lock/results.json', commands=['eaos next'],
-        status='ok' if passed else 'warn', note=notes or None)
-    return 0
+    return notes
 
 
 def _waves(state):

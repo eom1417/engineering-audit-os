@@ -51,11 +51,7 @@ def choose_branch(branch, project=None, person_said=''):
     state = state_of(project)
     before = state.get('branch')
     asked = (state.get('asked') or {}).get('branch')
-    waited = asked and (datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds() >= ANSWER_SECONDS
-    if branches.choice(state['project']) is not None and not (str(person_said or '').strip() and waited):
-        since = int((datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds()) if asked else None
-        why = ('no reply from the person was given' if not str(person_said or '').strip() else
-               f'the question was put {since} seconds ago: nobody answers that fast, so the person has not answered yet')
+    if branches.choice(state['project']) is not None and (why := _unanswered(asked, person_said)):
         return {'status': 'needs_the_person', 'why': why, **{k: v for k, v in (_branch({**state, 'branch': None}) or {}).items() if k != 'status'},
                 'what_now': 'The person chooses the branch, not you: ask them (the branches, when each changed, how far ahead, '
                             'your recommendation and why) and end your turn. When they reply, in any words (a name, or "the one '
@@ -68,12 +64,20 @@ def choose_branch(branch, project=None, person_said=''):
             'what_now': ('This branch was checked before: call status.' if checked else
                          'Call audit: the check runs on this branch (its own copy; the person\'s checkout is not switched).')}
 
+
+def _unanswered(asked, person_said):
+    """Why `person_said` is not yet the person's answer to the branch question asked at `asked`; None when it is."""
+    if not str(person_said or '').strip(): return 'no reply from the person was given'
+    since = (datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds() if asked else None
+    if since is not None and since >= ANSWER_SECONDS: return None
+    return (f'the question was put {None if since is None else int(since)} seconds ago: nobody answers that fast, so the '
+            'person has not answered yet')
+
 def _batches(wave, retired):     # status' open and retired batches
     return {'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None, 'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None}
 
 
 def status(project=None):
-    from ...core import ledger
     try: state = state_of(project)
     except SeveralProjects as several:
         return {'status': 'needs_project', 'projects': [str(p) for p in several.projects],
@@ -86,38 +90,59 @@ def status(project=None):
                 'handover': handover.brief(state)}
     guided.reconcile(state)
     retired, head, checked = guided.retire_stale_batch(state), _head(state), guided.scan_done(state)
-    setup, safety, wave = state.get('setup') or {}, state.get('safety') or {}, state.get('open_wave')
     waiting = waiting_batch(state)
     busy = jobs.running(state['project'])
-    answer = {'project': state['project'], 'branch': state.get('branch'), 'commit': head,
-              'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
-              'checked': checked, 'checked_commit': state.get('scanned_commit'),
-              'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(branches.home(state) / 'REPORT.html') if checked else None,
-              'app_runs': setup.get('ok') if guided.set_up(state, head) else None,
-              'safety_net': safety if guided.safety_holds(state, head) else None,
-              'progress': ((ledger.load(state) or {}).get('totals') if checked else None),
-              **_batches(wave, retired),
+    answer = {**_facts(state, head, checked), **_batches(state.get('open_wave'), retired),
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
-    if busy: step = signing.step(state, ('wait', f"a {busy['kind']} is running"))
-    elif not checked: step = ('audit', 'the project has not been checked')
-    elif (pending := remedies.pending(guided.report_of(state))): step = ('audit', f'again_from={pending}: a remedy EAOS knows was not tried on it yet')
-    elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
-    elif wave and (_no_safety_net(state) or {}).get('recorded') == 0:
-        step = ('fix_abandon', f"batch {wave['number']} cannot be closed: the safety net recorded nothing")
-    elif wave and wave.get('last_error'):
-        step = ('fix_abandon', f"batch {wave['number']} could not be finished ({wave['last_error'][:200]}): close it, its cards can be tried again")
-    elif wave: step = batch_finish.open_step(wave)
-    elif not guided.set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
-    elif not setup.get('ok'): step = ('run_try', 'the app does not run yet: read the last failure and propose a fix')
-    elif not guided.safety_holds(state, head): step = ('safety_net', 'record the screens before any fix')
-    elif not safety.get('passed'): step = ('none', 'the safety net recorded nothing: EAOS cannot protect this project yet, so no fix starts')
-    else: step = ('fix_start', 'open the next batch of fixes')
+    step = _next_step(state, head, checked, busy, waiting)
     answer['next'] = {'tool': step[0], 'why': step[1]}
     if checked: answer.update(_older_check(state))
     answer['report'] = _fresh_report(state) if checked else None
     answer['handover'] = handover.brief(state)
     return answer
+
+
+def _facts(state, head, checked):
+    """status' facts about the project: its commit, whether it is saved in git, checked, run and protected."""
+    from ...core import ledger
+    setup, safety = state.get('setup') or {}, state.get('safety') or {}
+    return {'project': state['project'], 'branch': state.get('branch'), 'commit': head,
+            'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
+            'checked': checked, 'checked_commit': state.get('scanned_commit'),
+            'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(branches.home(state) / 'REPORT.html') if checked else None,
+            'app_runs': setup.get('ok') if guided.set_up(state, head) else None,
+            'safety_net': safety if guided.safety_holds(state, head) else None,
+            'progress': ((ledger.load(state) or {}).get('totals') if checked else None)}
+
+
+def _next_step(state, head, checked, busy, waiting):
+    """(tool, why): the next tool status points to."""
+    if busy: return signing.step(state, ('wait', f"a {busy['kind']} is running"))
+    if not checked: return ('audit', 'the project has not been checked')
+    if (pending := remedies.pending(guided.report_of(state))): return ('audit', f'again_from={pending}: a remedy EAOS knows was not tried on it yet')
+    if waiting: return ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
+    return _batch_step(state, state.get('open_wave')) or _setup_step(state, head)
+
+
+def _batch_step(state, wave):
+    """The step an open batch asks for: closing it when it cannot be finished, else finishing it; None without one."""
+    if not wave: return None
+    if (_no_safety_net(state) or {}).get('recorded') == 0:
+        return ('fix_abandon', f"batch {wave['number']} cannot be closed: the safety net recorded nothing")
+    if wave.get('last_error'):
+        return ('fix_abandon', f"batch {wave['number']} could not be finished ({wave['last_error'][:200]}): close it, its cards can be tried again")
+    return batch_finish.open_step(wave)
+
+
+def _setup_step(state, head):
+    """The step before any fix: run the app, record its safety net, then open a batch."""
+    setup, safety = state.get('setup') or {}, state.get('safety') or {}
+    if not guided.set_up(state, head): return ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
+    if not setup.get('ok'): return ('run_try', 'the app does not run yet: read the last failure and propose a fix')
+    if not guided.safety_holds(state, head): return ('safety_net', 'record the screens before any fix')
+    if not safety.get('passed'): return ('none', 'the safety net recorded nothing: EAOS cannot protect this project yet, so no fix starts')
+    return ('fix_start', 'open the next batch of fixes')
 
 
 def _fresh_report(state):

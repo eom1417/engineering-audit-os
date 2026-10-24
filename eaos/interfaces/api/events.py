@@ -110,10 +110,14 @@ def _card_events(before, current):
     """batch.delivered for cards that moved onto a branch, branch.merged for cards that moved to done."""
     cards_then, cards_now = before['states']['cards'], current['states']['cards']
     moved = {cid: (cards_then.get(cid), state) for cid, state in cards_now.items() if cards_then.get(cid) != state}
-    batch = sorted(c for c, (was, state) in moved.items() if state in BATCH and was not in BATCH)
-    merged = sorted(c for c, (was, state) in moved.items() if state in MERGED and was not in MERGED)
+    batch, merged = _arrived(moved, BATCH), _arrived(moved, MERGED)
     return ([('batch.delivered', {'cards': batch[:500], 'count': len(batch)})] if batch else []) + \
         ([('branch.merged', {'cards': merged[:500], 'count': len(merged)})] if merged else [])
+
+
+def _arrived(moved, states):
+    """The cards of `moved` ({id: (state then, state now)}) that came into one of `states`, sorted."""
+    return sorted(c for c, (was, state) in moved.items() if state in states and was not in states)
 
 
 def _waiting(states):

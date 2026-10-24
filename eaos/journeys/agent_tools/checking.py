@@ -24,17 +24,22 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     state = state_of(project)
     asking = _branch(state)
     if asking: return asking
-    if use_assistant is not None or assistant:          # the person's choice for the check's AI, kept when made now
-        state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
+    state = _keep_ai_choice(state, use_assistant, assistant)
     if check_choices.keep(state, mode, sign_in, run_app): guided.save(state)
     # A check on record stands until asked for anew (fresh): one started because the code moved on stopped fixes (2026-10-10).
-    if guided.scan_done(state) and not fresh and not again_from and not go_on:
+    if guided.scan_done(state) and not any((fresh, again_from, go_on)):
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     without_ai = check_choices.without_ai_kept(guided.report_of(state), without_ai, again_from, use_assistant is not None or assistant)
     blocked = None if without_ai else _assistant_not_ready(state, fixed)
     if blocked: return blocked
     arguments = {k: v for k, v in dict(without_tools=without_tools, without_ai=without_ai, again_from=again_from, engines=engines, paths=paths, published=signing.published(published), go_on=go_on).items() if v}
     return _start('audit', state, arguments, watch=True)
+
+
+def _keep_ai_choice(state, use_assistant, assistant):
+    """The person's choice for the check's AI, kept when made now (`use_assistant` or `assistant` given)."""
+    if use_assistant is None and not assistant: return state
+    return guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
 
 
 def _assistant_not_ready(state, fixed=False):
@@ -95,6 +100,18 @@ def overview(project=None):
     plan = _read(report / 'plan.json')
     tasks = plan.get('tasks') or []
     manifest = _read(report / 'run-manifest.json') if (report / 'run-manifest.json').is_file() else {}
+    claims = _read(report / 'dossier.json').get('claim_counts') if (report / 'dossier.json').is_file() else None
+    return {'project': state['project'], 'checked_commit': state.get('scanned_commit'), 'status': manifest.get('status'),
+            'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items() if row.get('status') in ('failed', 'not_reached')],
+            'counts': summary_counts(report), 'claims_by_confidence': claims, 'problem_kinds': _problem_kinds(tasks),
+            'milestones': _milestones(plan, tasks),
+            'report_for_people': str(branches.home(state) / 'REPORT.html') if (branches.home(state) / 'REPORT.html').is_file() else None,
+            'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
+            'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
+
+
+def _problem_kinds(tasks):
+    """overview's kinds of problem, the most frequent first: each with its plain title, count and three examples."""
     groups = {}
     for task in tasks: groups.setdefault(task.get('pattern') or 'generic', []).append(task)
     kinds = []
@@ -103,13 +120,11 @@ def overview(project=None):
         kinds.append({'kind': pattern, 'title': title, 'why': why, 'count': len(rows),
                       'fixable_automatically': sum(_ready(t) for t in rows),
                       'examples': [t['id'] for t in sorted(rows, key=lambda t: -(t.get('priority') or 0))[:3]]})
-    claims = _read(report / 'dossier.json').get('claim_counts') if (report / 'dossier.json').is_file() else None
-    return {'project': state['project'], 'checked_commit': state.get('scanned_commit'), 'status': manifest.get('status'),
-            'incomplete_stages': [name for name, row in (manifest.get('stages') or {}).items() if row.get('status') in ('failed', 'not_reached')],
-            'counts': summary_counts(report), 'claims_by_confidence': claims, 'problem_kinds': kinds,
-            'milestones': [{'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'cards': len(m['tasks']),
-                            'fixable_automatically': sum(_ready(t) for t in tasks if t['id'] in set(m['tasks']))}
-                           for m in plan.get('milestones') or []],
-            'report_for_people': str(branches.home(state) / 'REPORT.html') if (branches.home(state) / 'REPORT.html').is_file() else None,
-            'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
-            'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
+    return kinds
+
+
+def _milestones(plan, tasks):
+    """overview's milestones of the plan, each with how many of its cards EAOS can fix by itself."""
+    return [{'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'cards': len(m['tasks']),
+             'fixable_automatically': sum(_ready(t) for t in tasks if t['id'] in set(m['tasks']))}
+            for m in plan.get('milestones') or []]

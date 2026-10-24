@@ -131,11 +131,8 @@ def draw_build(state):
     runtime = project_state.runtime_of(state)
     progress.path_for(runtime, BUILD).unlink(missing_ok=True)     # a drawing, not a run: none of them goes to the history
     log = progress.ProgressLog(runtime, BUILD, pulse=False, sampler=None, alive_every=None)
-    stages = [Stage(m['id'], requires=(previous['id'],) if previous else (),
-                    title={'ar': m.get('name_ar') or m['name'], 'en': m['name']})
-              for previous, m in zip([None] + plan['milestones'], plan['milestones'])]
-    records = {r['milestone']: r for r in state.get('built') or []}
-    if state.get('open_build'): records.setdefault(state['open_build']['milestone'], state['open_build'])
+    stages = _stages(plan)
+    records = _records(state)
     began = min((r['began'] for r in records.values() if r.get('began')), default=None)
     log.started(stages, [s.name for s in stages], {}, steps={}, process=False, at=began)
     for milestone in plan['milestones']:
@@ -143,6 +140,20 @@ def draw_build(state):
     if _built(state): log.finish('COMPLETE')
     else: log.close()
     return progress.path_for(runtime, BUILD)
+
+
+def _stages(plan):
+    """A stage per milestone of the build plan, each after the one before."""
+    return [Stage(m['id'], requires=(previous['id'],) if previous else (),
+                  title={'ar': m.get('name_ar') or m['name'], 'en': m['name']})
+            for previous, m in zip([None] + plan['milestones'], plan['milestones'])]
+
+
+def _records(state):
+    """{milestone id: its record}: the milestones built, and the open one."""
+    records = {r['milestone']: r for r in state.get('built') or []}
+    if state.get('open_build'): records.setdefault(state['open_build']['milestone'], state['open_build'])
+    return records
 
 
 def _draw_milestone(log, milestone, record):

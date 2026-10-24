@@ -40,16 +40,20 @@ def say(text, stream=None):
 def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=None, log=None):
     """The fixed ending of every user command: what happened, where, and what to copy next."""
     icon = {'ok': '✅', 'warn': '⚠️', 'fail': '❌', 'ask': '❓'}[status]
-    ar = lang == 'ar'
-    lines = [LINE, f"{icon} {'ما حدث' if ar else 'What happened'}: {happened}"]
+    words = BOX_WORDS['ar' if lang == 'ar' else 'en']
+    lines = [LINE, f"{icon} {words['happened']}: {happened}"]
     for line in ([note] if isinstance(note, str) else note or []): lines.append(f'   {line}')
-    if where: lines.append(f"📁 {'النتائج' if ar else 'Results'}: {where}")
-    if log: lines.append(f"🧾 {'السجل التقني' if ar else 'Technical log'}: {log}")
+    if where: lines.append(f"📁 {words['where']}: {where}")
+    if log: lines.append(f"🧾 {words['log']}: {log}")
     if commands:
-        lines.append(f"⏭️  {'الخطوة التالية، انسخ والصق' if ar else 'Next step, copy and paste'}:")
+        lines.append(f"⏭️  {words['next']}:")
         lines += [f'   {command}' for command in commands]
     lines.append(LINE)
     say('\n'.join(lines), stream)
+
+
+BOX_WORDS = {'ar': {'happened': 'ما حدث', 'where': 'النتائج', 'log': 'السجل التقني', 'next': 'الخطوة التالية، انسخ والصق'},
+             'en': {'happened': 'What happened', 'where': 'Results', 'log': 'Technical log', 'next': 'Next step, copy and paste'}}
 
 
 # Whether the check may use the person's assistant (docs/AI-IN-THE-PIPELINE.md), asked once.
