@@ -51,23 +51,29 @@ def configuration(names, exclude=()):
 def normalise(report, found):
     findings, counted = [], {}
     for issue in report.get('issues') or []:
-        path = tool.relative(issue['file'])
-        for item in issue.get('files') or []:
-            name = tool.relative(item.get('name') or path)
-            findings.append(finding(NAME, found, 'files', 'dead_code', subject('file', name, name),
-                                    f'unused file `{name}`: no entry file reaches it', raw_ref=f'{NAME}/knip.json'))
-        for field, label in EXPORTS.items():
-            for item in issue.get(field) or []:
-                findings.append(finding(NAME, found, field, 'dead_code', subject('symbol', f"{path}:{item['name']}", path, item.get('line')),
-                                        f"unused {label} `{item['name']}` in {path}", raw_ref=f'{NAME}/knip.json'))
-        for item in issue.get('dependencies') or []:
-            findings.append(finding(NAME, found, 'dependencies', 'unused_dependency',
-                                    subject('dependency', item['name'], path, item.get('line')),
-                                    f"dependency `{item['name']}` is declared in {path} but no file imports it",
-                                    raw_ref=f'{NAME}/knip.json'))
+        findings += _issue_findings(issue, found)
         for field in COUNTED:
             if issue.get(field): counted[field] = counted.get(field, 0) + len(issue[field])
     return findings, dict(sorted(counted.items()))
+
+
+def _issue_findings(issue, found):
+    """What knip reports of one file: the file itself unused, its unused exports, its unused dependencies."""
+    findings, path = [], tool.relative(issue['file'])
+    for item in issue.get('files') or []:
+        name = tool.relative(item.get('name') or path)
+        findings.append(finding(NAME, found, 'files', 'dead_code', subject('file', name, name),
+                                f'unused file `{name}`: no entry file reaches it', raw_ref=f'{NAME}/knip.json'))
+    for field, label in EXPORTS.items():
+        for item in issue.get(field) or []:
+            findings.append(finding(NAME, found, field, 'dead_code', subject('symbol', f"{path}:{item['name']}", path, item.get('line')),
+                                    f"unused {label} `{item['name']}` in {path}", raw_ref=f'{NAME}/knip.json'))
+    for item in issue.get('dependencies') or []:
+        findings.append(finding(NAME, found, 'dependencies', 'unused_dependency',
+                                subject('dependency', item['name'], path, item.get('line')),
+                                f"dependency `{item['name']}` is declared in {path} but no file imports it",
+                                raw_ref=f'{NAME}/knip.json'))
+    return findings
 
 
 def analyze(target, workdir, exclude=(), formats=None):

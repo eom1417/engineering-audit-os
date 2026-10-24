@@ -56,9 +56,7 @@ def configuration(target):
 
 def _policy_rules(policy):
     """A forbidden rule per `deny` of eaos.policy.json whose two layers are declared."""
-    if not policy.is_file(): return []
-    try: data = json.loads(policy.read_text(encoding='utf-8'))
-    except ValueError: data = {}
+    data = _policy(policy)
     layers, rules = data.get('layers') or {}, []
     for index, rule in enumerate(data.get('rules') or []):
         deny = rule.get('deny') or {}
@@ -69,6 +67,13 @@ def _policy_rules(policy):
                       'from': {'path': '|'.join(glob_regex(p) for p in source)},
                       'to': {'path': '|'.join(glob_regex(p) for p in sink)}})
     return rules
+
+
+def _policy(policy):
+    """What eaos.policy.json declares; {} when there is none or it is not JSON."""
+    if not policy.is_file(): return {}
+    try: return json.loads(policy.read_text(encoding='utf-8'))
+    except ValueError: return {}
 
 
 def cycles(summary):
@@ -143,7 +148,7 @@ def analyze(target, workdir, exclude=(), formats=None):
         seconds += spent
         if failure: return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=failure)
     summary = runs['runtime']
-    issues = [issue['name'] for issue in (summary.get('environment') or {}).get('issues') or []]
+    issues = _issues(summary)
     if not summary.get('totalCruised'):
         return Report(NAME, found, PINNED, ERROR, seconds=seconds,
                       reason='no module was examined' + (f" ({', '.join(issues)})" if issues else ''))
@@ -157,3 +162,8 @@ def analyze(target, workdir, exclude=(), formats=None):
                             'type_only_cycles': type_only_cycles(runs['source'], seen)},
                   evaluated={'cycle': {'status': 'observed', 'granularity': FILE},
                              'boundary': {'status': 'observed' if declared else 'not_declared', 'granularity': FILE}})
+
+
+def _issues(summary):
+    """The names of the problems dependency-cruiser met in the project's environment."""
+    return [issue['name'] for issue in (summary.get('environment') or {}).get('issues') or []]
