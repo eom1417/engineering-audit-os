@@ -1,4 +1,19 @@
-"""Labels for rendered artifacts. Content is language-neutral; only wording changes."""
+"""Labels for rendered artifacts. Content is language-neutral; only wording changes.
+
+`catalog()` is the one words catalog (eaos/data/words.json, M3.5): every word that names a concept (a stage, a path of
+the check, a kind of problem), in Arabic then English, for the engine and the Studio alike.
+"""
+import functools
+import json
+from pathlib import Path
+
+CATALOG = Path(__file__).resolve().parents[1] / 'data/words.json'
+
+
+@functools.lru_cache(maxsize=1)
+def catalog():
+    return json.loads(CATALOG.read_text(encoding='utf-8'))
+
 
 LABELS = {
     'ar': {

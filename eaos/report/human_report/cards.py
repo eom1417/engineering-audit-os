@@ -164,7 +164,7 @@ def card_item(c, words=CARD_STATE, extra=''):
     where = ' '.join(lit(p) for p in c['paths'][:6])
     if len(c['paths']) > 6: where += ' ' + T(f'و{num(M.remaining(c["paths"], 6), "more files")} ملفات أخرى', f'and {num(M.remaining(c["paths"], 6), "more files")} more files')
     lines = []
-    if c.get('pattern') in plain.TEXT:
+    if c.get('pattern') in plain.ORDER:
         (tar, why_ar), (ten, why_en) = plain.problem(c['pattern'], 'ar'), plain.problem(c['pattern'], 'en')
         lines.append(f'<p><b>{T(esc(tar), esc(ten))}</b>: {T(esc(why_ar), esc(why_en))}</p>')
     if where: lines.append(f'<div class="where">{T("أين:", "Where:", cls="lbl")} {where}</div>')

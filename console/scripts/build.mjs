@@ -19,7 +19,7 @@ const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(HERE, 'src');
 const OUT = path.resolve(HERE, '../eaos/data/studio');
 // Keep in step with SOURCES in tests/test_studio_assets.py
-export const SOURCES = ['package.json', 'package-lock.json', 'scripts/build.mjs', 'src', '../docs/studio-actions.json'];
+export const SOURCES = ['package.json', 'package-lock.json', 'scripts/build.mjs', 'src', '../docs/studio-actions.json', '../eaos/data/words.json'];
 const KB = 1024;
 const BUDGETS = [
   { name: 'first page script (gzip)', files: ['boot.js', 'assets/studio.js', 'assets/words-ar.js', 'assets/status.js'], gzip: true, max: 240 * KB, target: 200 * KB },
@@ -30,12 +30,27 @@ const BUDGETS = [
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
 const fail = message => { console.error(message); process.exit(1); };
 
-/** Every src/words/*.js as one dictionary per language; a key twice, a missing language or a plural without its
- *  forms stops the build. */
+/** The keys the Studio takes from the one words catalog (eaos/data/words.json, M3.5), the engine's too: each check stage's
+ *  title and what it does, each path's name, each kind of problem's name for one card. */
+const CATALOG = path.resolve(HERE, '../eaos/data/words.json');
+function catalogWords() {
+  const catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8'));
+  const table = {};
+  for (const [id, stage] of Object.entries(catalog.stages)) { table[`ac.stage.${id}`] = stage.title; table[`ac.stage.${id}.does`] = stage.does; }
+  for (const [id, p] of Object.entries(catalog.paths)) table[`ac.path.${id}`] = p.name;
+  for (const [id, kind] of Object.entries(catalog.kinds)) table[`kind.${id}`] = kind.one;
+  return table;
+}
+
+/** Every src/words/*.js and the catalog's keys as one dictionary per language; a key twice, a missing language or a
+ *  plural without its forms stops the build. */
 async function words() {
   const out = { ar: {}, en: {} }, seen = {};
+  const tables = [['eaos/data/words.json', catalogWords()]];
   for (const file of fs.readdirSync(path.join(SRC, 'words')).filter(f => f.endsWith('.js')).sort()) {
-    const table = (await import(pathToFileURL(path.join(SRC, 'words', file)).href)).default;
+    tables.push([file, (await import(pathToFileURL(path.join(SRC, 'words', file)).href)).default]);
+  }
+  for (const [file, table] of tables) {
     for (const [key, pair] of Object.entries(table)) {
       if (seen[key]) fail(`words: ${key} is in ${seen[key]} and ${file}`);
       seen[key] = file;

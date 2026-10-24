@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CONSOLE = ROOT / 'console'
 SHIPPED = ROOT / 'eaos/data/studio'
 # Keep in step with SOURCES in console/scripts/build.mjs
-SOURCES = ['package.json', 'package-lock.json', 'scripts/build.mjs', 'src', '../docs/studio-actions.json']
+SOURCES = ['package.json', 'package-lock.json', 'scripts/build.mjs', 'src', '../docs/studio-actions.json', '../eaos/data/words.json']
 NAMESPACES = {'http://www.w3.org/2000/svg'}
 
 

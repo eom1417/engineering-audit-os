@@ -98,7 +98,8 @@ red at the top of the report.
 | a stage or loop declaration | `pipeline/stages.py` (M4: plus `pipeline/loops.py`) |
 | a journey's steps (check, fix batches, build, extend) | `journeys/` |
 | a CLI command, MCP tool, API route or Studio action | `interfaces/`: thin, calling a journey |
-| words shown to people | the one words catalog (`core/words.py` and `eaos/data/`; M3.5 makes it one) |
+| a word naming a concept (a stage, a path, a kind of problem) | `eaos/data/words.json`, every form beside the others; the engine reads it through `core/words.py`, the Studio's build makes its keys from it |
+| a sentence composed with values | beside the code that composes it, Arabic and English together |
 | a Studio screen | `console/src/places/<place>/` (only core places; see `ROADMAP.md` M7) |
 | a test | `tests/test_<module>.py`, one test per real behaviour |
 | a developer tool | `tools/` |

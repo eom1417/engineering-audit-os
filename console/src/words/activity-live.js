@@ -34,11 +34,6 @@ export default {
   'ac.f.used.none': ['لم يُسجَّل استعمال', 'no use recorded'],
   'ac.f.wb.merged_and_deleted': ['دُمج ثم حُذف', 'merged, then deleted'],
   'ac.f.wb.missing': ['ليس في المستودع الآن', 'not in the repository now'],
-  'ac.path.complete': ['شامل', 'Complete'],
-  'ac.path.security': ['الأمان', 'Security'],
-  'ac.path.look': ['الشكل والشاشات', 'Look and screens'],
-  'ac.path.code': ['الكود', 'Code'],
-  'ac.path.speed': ['السرعة والتحمل', 'Speed and scale'],
   /* Stages */
   'ac.sum.unavailable': ['غير متاحة هنا {n}', '{n} unavailable here'],
   'ac.stg.of': ['{done} من {total}', '{done} of {total}'],
