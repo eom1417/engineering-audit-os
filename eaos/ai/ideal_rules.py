@@ -1,6 +1,7 @@
-"""The rules' target of each view of the ideal, read from the records the rules wrote; eaos/ai/ideal.py
-_rules_views puts the views together. The assistant plans on top of it; without one it is the ideal shown."""
+"""The rules' target of each view of the ideal, read from the records the rules wrote; `views(report)` puts the views
+together. The assistant plans on top of it (eaos/ai/ideal.py); without one it is the ideal shown."""
 import re
+from pathlib import Path
 
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, _facts, _load, _slug
 from .nodes.core import short
@@ -17,6 +18,33 @@ def _element(id_, kind, title, operation, subject=None, detail='', cites=(), rul
             'cites': [c for c in dict.fromkeys(cites) if isinstance(c, str) and EVIDENCE.match(c)][:8], 'rules': list(rule_ids)}
 
 
+def proposal(report):
+    """The rules' target as the rules proposed it (target-proposal.json), before the reconcile decided it; a report from
+    before that stage has only target-architecture.json."""
+    report = Path(report)
+    return _load(report / 'target-proposal.json', None) or _load(report / 'target-architecture.json', {}) or {}
+
+
+def views(report):
+    """{view: (summary, [elements])}: the rules' target of every view, from the records the rules wrote."""
+    report = Path(report)
+    studio, target = report / 'studio', proposal(report)
+    found = system(target, studio)
+    return {'system': found, 'change': change(found), 'journeys': journeys(report, studio), 'paths': paths(studio),
+            'data_paths': data_paths(report, studio), 'infra': infra(target), 'pipeline': pipeline(studio),
+            'plan_order': plan_order(report)}
+
+
+def _dicts(rows):
+    """The rows that are objects (none when there are no rows)."""
+    return [row for row in rows or [] if isinstance(row, dict)]
+
+
+def _by(rows, key):
+    """{row[key]: row} of the rows that are objects."""
+    return {row.get(key): row for row in _dicts(rows)}
+
+
 # ---------------------------------------------------------------- system and change
 
 def system(target, studio):
@@ -31,10 +59,9 @@ def change(system_view):
 
 
 def _current_components(target, found):
-    gap = {row.get('component'): row for row in target.get('gap_matrix') or [] if isinstance(row, dict)}
-    current = {n.get('id'): n for n in (found.get('current') or {}).get('nodes') or [] if isinstance(n, dict)}
-    return [_component(comp, current.get(comp.get('name')) or {}, gap) for comp in target.get('current_components') or []
-            if isinstance(comp, dict)]
+    gap = _by(target.get('gap_matrix'), 'component')
+    current = _by((found.get('current') or {}).get('nodes'), 'id')
+    return [_component(comp, current.get(comp.get('name')) or {}, gap) for comp in _dicts(target.get('current_components'))]
 
 
 def _component(comp, node, gap):
@@ -65,7 +92,7 @@ def _layer_rule(row):
 # ---------------------------------------------------------------- journeys and paths
 
 def journeys(report, studio):
-    screens = [s for s in (_load(studio / 'journeys.json', {}) or {}).get('screens') or [] if isinstance(s, dict)]
+    screens = _dicts((_load(studio / 'journeys.json', {}) or {}).get('screens'))
     if screens:
         return ("Every screen with its folder's operation toward the target (studio/journeys.json).", [_screen(s) for s in screens])
     pages = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'entry_point'
@@ -86,9 +113,9 @@ def _page(f):
 def paths(studio):
     found = _load(studio / 'paths.json', {}) or {}
     ops = {name: row.get('op') for name, row in (found.get('components') or {}).items() if isinstance(row, dict)}
-    nodes = {n.get('id'): n for n in found.get('nodes') or [] if isinstance(n, dict)}
+    nodes = _by(found.get('nodes'), 'id')
     return ('Every code path with the hardest operation the rules give the parts it crosses (studio/paths.json).',
-            [_path(path, ops, nodes) for path in found.get('paths') or [] if isinstance(path, dict)])
+            [_path(path, ops, nodes) for path in _dicts(found.get('paths'))])
 
 
 def _path(path, ops, nodes):
@@ -104,14 +131,13 @@ def _path(path, ops, nodes):
 
 def data_paths(report, studio):
     data = _load(studio / 'data_paths.json', {}) or {}
-    stores = [s for s in data.get('stores') or [] if isinstance(s, dict)]
+    stores = _dicts(data.get('stores'))
     if not stores: return _stores_from_facts(report)
     # A store's evidence is on its endpoints' call sites (studio/data_paths.json endpoints[].sites[].fact); `sites` on
     # the store itself is their count.
     sites = {}
-    for endpoint in data.get('endpoints') or []:
-        if not isinstance(endpoint, dict): continue
-        sites.setdefault(endpoint.get('store'), []).extend(x.get('fact') for x in endpoint.get('sites') or [] if isinstance(x, dict))
+    for endpoint in _dicts(data.get('endpoints')):
+        sites.setdefault(endpoint.get('store'), []).extend(x.get('fact') for x in _dicts(endpoint.get('sites')))
     return ('Every store with its writers and its change toward one owner (studio/data_paths.json).', [_store(s, sites) for s in stores])
 
 
@@ -150,7 +176,7 @@ def _calls(rows):
 
 
 def infra(target):
-    areas = [i for i in target.get('infrastructure') or [] if isinstance(i, dict) and i.get('area')]
+    areas = [i for i in _dicts(target.get('infrastructure')) if i.get('area')]
     return ("The reference's infrastructure baseline: each area kept or introduced, with the tool that fits.",
             [_element(f"INFRA-{_slug(i['area'])}", 'infra', f"{i['area']}: {i.get('tool') or i.get('tool_reason') or ''}",
                       'retain' if i.get('present') else 'new', i['area'], f"{i.get('decision') or ''} ({i.get('evidence') or ''})",
@@ -162,7 +188,7 @@ def infra(target):
 def pipeline(studio):
     found = _load(studio / 'pipeline.json', {}) or {}
     gaps = _pipeline_gaps(found)
-    stages = [s for s in found.get('stages') or [] if isinstance(s, dict) and s.get('kind') not in ('router', 'fork', 'join')]
+    stages = [s for s in _dicts(found.get('stages')) if s.get('kind') not in ('router', 'fork', 'join')]
     if gaps: return ("The pipeline rules' gap: one entry per broken rule (studio/pipeline.json#views.gap).", [_gap(g) for g in gaps])
     if found.get('detected') and stages:
         return ("A pipeline that breaks none of the pipeline rules: every stage is kept (studio/pipeline.json).",
@@ -185,7 +211,11 @@ def _gap(g):
                     g.get('operation') or g.get('op') or 'refactor', g.get('stage') or g.get('subject'),
                     g.get('detail') or g.get('why') or '',
                     [g.get('fact'), _evidence_fact(g), g.get('card')] + list(g.get('facts') or []) + list(g.get('cards') or []),
-                    [f"RULE-pipeline-{_slug(g['rule'])}"] if g.get('rule') else [])
+                    _pipeline_rule(g))
+
+
+def _pipeline_rule(gap):
+    return [f"RULE-pipeline-{_slug(gap['rule'])}"] if gap.get('rule') else []
 
 
 def _kept_stage(s):

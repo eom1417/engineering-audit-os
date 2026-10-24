@@ -12,13 +12,13 @@ command centre's launcher (eaos/ai/headless.py `ask`), then plans the ideal on t
                       citation is dropped and listed, never shown
     <report>/ideal/plan.json   the checked ideal with its inputs, both answers and the dropped elements
 
-`section(report)` is the body of studio/ideal.json: every view with its provenance (rules or planned, the assistant
-and model, when, the confidence, the departures from the rules and why, the open questions). Without an assistant,
-on a failure, a stuck assistant or a stop, or when the plan was made for an earlier check, the rules' target stays and
-the section says so plainly. `provenance_of(body)` stamps every section that draws a target; `decisions(report)` brings the open
-questions to the Decisions inbox.
+What the Studio reads of it (eaos/ai/ideal_studio.py, its names re-exported here): `section(report)` is the body of
+studio/ideal.json: every view with its provenance (rules or planned, the assistant and model, when, the confidence, the
+departures from the rules and why, the open questions). Without an assistant, on a failure, a stuck assistant or a
+stop, or when the plan was made for an earlier check, the rules' target stays and the section says so plainly.
+`provenance_of(body)` stamps every section that draws a target; `decisions(report)` brings the open questions to the
+Decisions inbox.
 """
-import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,46 +28,14 @@ from ..live.roles import unseen
 from ..core.process import Stuck
 from ..analysis.card_review import triage_verdicts
 from . import ideal_bundle as read
-from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug, guard_words
+from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug
+from .ideal_rules import proposal as _proposal, views as _rules_views
+from .ideal_studio import SECTION_VIEWS, _words, current, decisions, disagreements, provenance_of, scan_key, section  # noqa: F401  (the names others read here)
 from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short
-
-# The studio sections that draw a target, and the view whose provenance each carries (tools/make_contracts.py).
-SECTION_VIEWS = {'system': 'system', 'story': 'system', 'gaps': 'change', 'operations': 'plan_order', 'plans': 'plan_order',
-                 'paths': 'paths', 'journeys': 'journeys', 'data_paths': 'data_paths', 'infra': 'infra', 'pipeline': 'pipeline'}
-WORDS = {
-    'not_planned': ("The ideal shown is the rules' target. It is not planned yet: re-plan it from the command centre "
-                    "with your assistant (Claude Code or Codex).",
-                    'المثالي المعروض هو هدف القواعد، وما خُطِّط بعد: أعد تخطيطه من مركز التحكم بمساعدك (Claude Code أو Codex).'),
-    'no_assistant': ("No assistant is installed and logged in here, so the ideal stays the rules' target: not planned yet.",
-                     'ما فيه مساعد مثبّت ومسجّل دخوله هنا، فيبقى المثالي هو هدف القواعد: ما خُطِّط بعد.'),
-    'planned': ('Planned by {assistant} ({model}) on top of the rules, reviewed by a second pass; every element cites '
-                'its evidence.', 'خطّطه {assistant} ({model}) فوق القواعد، وراجعه تمرير ثانٍ؛ كل عنصر يستشهد بدليله.'),
-    'stale': ("The planned ideal was made for an earlier check; the rules' target of this check is shown until it is "
-              "re-planned.", 'المثالي المخطَّط كان لفحص سابق؛ يظهر هدف القواعد لهذا الفحص حتى يُعاد التخطيط.'),
-    'failed': ("The last planning run did not finish ({why}); the rules' target stays in place.",
-               'آخر تخطيط ما اكتمل ({why})؛ ويبقى هدف القواعد مكانه.'),
-    'stuck': ('the assistant gave no output at all for 20 minutes, so it was stuck and was ended',
-              'ما أعطى المساعد أي ناتج طوال 20 دقيقة، فكان عالقًا وأُنهي'),
-    'stopped': ('it was stopped', 'أُوقف'),
-}
 
 
 def _now():
     return datetime.now(timezone.utc).isoformat(timespec='seconds')
-
-
-def _words(key, lang=None, **values):
-    en, ar = WORDS[key]
-    pick = lambda index: {k: WORDS[v][index] if isinstance(v, str) and v in WORDS else v for k, v in values.items()}
-    words = {'en': en.format(**pick(0)), 'ar': ar.format(**pick(1))}
-    return words if lang is None else words['ar' if lang == 'ar' else 'en']
-
-
-def _proposal(report):
-    """The rules' target as the rules proposed it (target-proposal.json), before the reconcile decided it; a report from
-    before that stage has only target-architecture.json."""
-    report = Path(report)
-    return _load(report / 'target-proposal.json', None) or _load(report / 'target-architecture.json', {}) or {}
 
 
 def _verdicts(report):
@@ -77,8 +45,13 @@ def _verdicts(report):
 
 def _cards(report):
     cards = (_load(Path(report) / 'studio/cards.json', {}) or {}).get('cards')
-    if isinstance(cards, list): return [c for c in cards if isinstance(c, dict) and c.get('id')]
-    return [t for t in (_load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [] if isinstance(t, dict) and t.get('id')]
+    if isinstance(cards, list): return _with_id(cards)
+    return _with_id((_load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [])
+
+
+def _with_id(rows):
+    """The rows that are objects with an id."""
+    return [row for row in rows if isinstance(row, dict) and row.get('id')]
 
 
 # ---------------------------------------------------------------- the rules: their ids and their target per view
@@ -86,42 +59,43 @@ def _cards(report):
 def rules(report):
     """{RULE id: what it says}: the disposition rules, the reference's layers, the infrastructure baseline, the plan's
     ordering rule and the pipeline rules, as the baseline applied them to this report."""
-    from ..analysis.target_projection import RULES as DISPOSITION
-    out = {}
-    disposition = _load(DISPOSITION, {}) or {}
-    for name in disposition.get('order') or []:
-        out[f'RULE-disposition-{name}'] = _short((disposition.get(name) or {}).get('why'), 300)
     target = _proposal(report)
+    return {**_disposition_rules(), **_layer_rules(target), **_infra_rules(target),
+            'RULE-plan-order': ('The fix plan runs in milestones; a task waits for the tasks it names as prerequisites and '
+                                'for the last earlier task touching the same file (eaos/analysis/plan.py waves).'),
+            **_pipeline_rules()}
+
+
+def _disposition_rules():
+    """The disposition rules (eaos/analysis/target_projection.py RULES), in their order."""
+    from ..analysis.target_projection import RULES as DISPOSITION
+    disposition = _load(DISPOSITION, {}) or {}
+    return {f'RULE-disposition-{name}': _short((disposition.get(name) or {}).get('why'), 300) for name in disposition.get('order') or []}
+
+
+def _layer_rules(target):
+    """The layers of the target's reference architecture: each one's responsibility and what it may depend on."""
     try:
         from ..analysis.reference_architecture import by_id
         reference = by_id(target.get('reference')) if target.get('reference') else None
     except Exception:
         reference = None
-    for layer in (reference or {}).get('layers') or []:
-        out[f"RULE-layer-{_slug(layer['name'])}"] = _short(f"{layer.get('responsibility', '')}; may depend on: "
-                                                           f"{', '.join(layer.get('allowed_dependencies') or []) or 'nothing'}", 300)
-    for item in target.get('infrastructure') or []:
-        if isinstance(item, dict) and item.get('area'):
-            out[f"RULE-infra-{_slug(item['area'])}"] = _short(item.get('decision'), 300)
-    out['RULE-plan-order'] = ('The fix plan runs in milestones; a task waits for the tasks it names as prerequisites and '
-                              'for the last earlier task touching the same file (eaos/analysis/plan.py waves).')
+    return {f"RULE-layer-{_slug(layer['name'])}": _short(f"{layer.get('responsibility', '')}; may depend on: "
+                                                         f"{', '.join(layer.get('allowed_dependencies') or []) or 'nothing'}", 300)
+            for layer in (reference or {}).get('layers') or []}
+
+
+def _infra_rules(target):
+    """The infrastructure baseline: the decision of each area."""
+    return {f"RULE-infra-{_slug(item['area'])}": _short(item.get('decision'), 300)
+            for item in target.get('infrastructure') or [] if isinstance(item, dict) and item.get('area')}
+
+
+def _pipeline_rules():
+    """The pipeline rules (eaos/data/pipeline-rules.json): each one's title."""
     pipeline = _load(Path(__file__).resolve().parents[1] / 'data/pipeline-rules.json', []) or []
-    for rule in pipeline.get('rules') or [] if isinstance(pipeline, dict) else pipeline:
-        if isinstance(rule, dict) and rule.get('id'):
-            out[f"RULE-pipeline-{_slug(rule['id'])}"] = _short(rule.get('title') or rule.get('text') or rule.get('rule'), 300)
-    return out
-
-
-def _rules_views(report):
-    """{view: (summary, [elements])}: the rules' target of every view, from the records the rules wrote; each view's
-    reader is in eaos/ai/ideal_rules.py."""
-    from . import ideal_rules as read
-    report = Path(report)
-    studio, target = report / 'studio', _proposal(report)
-    system = read.system(target, studio)
-    return {'system': system, 'change': read.change(system), 'journeys': read.journeys(report, studio), 'paths': read.paths(studio),
-            'data_paths': read.data_paths(report, studio), 'infra': read.infra(target), 'pipeline': read.pipeline(studio),
-            'plan_order': read.plan_order(report)}
+    return {f"RULE-pipeline-{_slug(rule['id'])}": _short(rule.get('title') or rule.get('text') or rule.get('rule'), 300)
+            for rule in (pipeline.get('rules') or [] if isinstance(pipeline, dict) else pipeline) if isinstance(rule, dict) and rule.get('id')}
 
 
 # ---------------------------------------------------------------- the bundle the assistant reads
@@ -130,14 +104,20 @@ def known_ids(report, project=None):
     """Every id a citation may resolve to: the report's facts (FACT-), claims (CLM-) and cards (TASK-), and the rules
     the baseline applied (RULE-)."""
     report = Path(report)
-    known = set(rules(report))
+    known = set(rules(report)) | _fact_ids(report)
+    known.update(c['id'] for c in (_load(report / 'dossier.json', {}) or {}).get('claims') or [] if isinstance(c, dict) and c.get('id'))
+    known.update(c['id'] for c in _cards(report))
+    return {i for i in known if EVIDENCE.match(i)}
+
+
+def _fact_ids(report):
+    """The ids of the report's facts (facts/*.json, its caches and index aside)."""
+    known = set()
     for path in sorted((report / 'facts').glob('*.json')):
         if path.name in ('syntax-cache.json', 'index.json', 'run.json'): continue
         data = _load(path, {}) or {}
         known.update(f['id'] for f in data.get('facts') or [] if isinstance(f, dict) and isinstance(f.get('id'), str))
-    known.update(c['id'] for c in (_load(report / 'dossier.json', {}) or {}).get('claims') or [] if isinstance(c, dict) and c.get('id'))
-    known.update(c['id'] for c in _cards(report))
-    return {i for i in known if EVIDENCE.match(i)}
+    return known
 
 
 def _open_cards(report, triage):
@@ -153,17 +133,11 @@ def bundle(report, project=None, lang='en'):
     target = _proposal(report)
     triage = _verdicts(report)
     cards = _open_cards(report, triage)
-    views = _rules_views(report)
-    decisions = [{'id': d.get('id'), 'problem': _short(d.get('problem'), 200), 'chosen': _short(d.get('chosen'), 200), 'evidence': read.cited(d, 4)}
-                 for d in target.get('decisions') or [] if isinstance(d, dict)]
     return {
         'project': {'name': (project and Path(project).name) or report.name, 'reference': target.get('reference'),
                     'language': 'Arabic' if lang == 'ar' else 'English'},
         'rules': rules(report),
-        'baseline': {name: {'summary': summary, 'elements': [{k: v for k, v in e.items() if v not in (None, '', [])}
-                                                             for e in elements[:LIMIT['elements']]],
-                            'omitted': max(0, len(elements) - LIMIT['elements'])}
-                     for name, (summary, elements) in views.items()},
+        'baseline': _baseline(_rules_views(report)),
         'target_edges': (target.get('target_edges') or [])[:80],
         'forbidden_edges': target.get('forbidden_edges'),
         'cards': [{'id': c['id'], 'title': _short(c.get('title'), 140), 'severity': c.get('severity'), 'kind': c.get('kind'),
@@ -171,15 +145,35 @@ def bundle(report, project=None, lang='en'):
                   for c in cards[:LIMIT['cards']]],
         'cards_omitted': max(0, len(cards) - LIMIT['cards']),
         'semantic': read.semantic(report),
-        'visual': [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
-                   for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30],
+        'visual': _visual(report),
         'not_seen': unseen(_load(report / 'live/screens.json', {}))[:40],
         'facts': read.facts_digest(report),
         'features': read.features(report),
-        'decisions': {'structure': decisions[:40], 'waiting_for_the_person': read.waiting(report, project), 'intake': read.intake(report)},
+        'decisions': {'structure': _structure_decisions(target)[:40], 'waiting_for_the_person': read.waiting(report, project),
+                      'intake': read.intake(report)},
         'documents': read.docs(project),
         'aspects': _aspects(report),
     }
+
+
+def _baseline(views):
+    """The rules' target of every view, its elements bounded and their empty fields left out."""
+    return {name: {'summary': summary, 'elements': [{k: v for k, v in e.items() if v not in (None, '', [])}
+                                                    for e in elements[:LIMIT['elements']]],
+                   'omitted': max(0, len(elements) - LIMIT['elements'])}
+            for name, (summary, elements) in views.items()}
+
+
+def _visual(report):
+    """The visual reviewer's findings, the first 30, in short."""
+    return [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
+            for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30]
+
+
+def _structure_decisions(target):
+    """The target's structural decisions: the problem, the choice and their evidence."""
+    return [{'id': d.get('id'), 'problem': _short(d.get('problem'), 200), 'chosen': _short(d.get('chosen'), 200), 'evidence': read.cited(d, 4)}
+            for d in target.get('decisions') or [] if isinstance(d, dict)]
 
 
 def _aspects(report):
@@ -187,18 +181,6 @@ def _aspects(report):
     from ..analysis.aspects import digest
     return {name: {**{k: v for k, v in row.items() if k != 'rules'}, 'rules_verdict': row['rules']['verdict'],
                    'rules_why': row['rules']['why']} for name, row in digest(report).items()}
-
-
-def scan_key(report):
-    """What a plan was made for: the rules' proposal and the confirmed cards it was planned from (the target and the plan
-    of a report from before the reconcile stage). A check that changes them changes it; the final target and the
-    plan's order are left out, since the check decides them from this plan."""
-    h = hashlib.sha256()
-    names = ('target-proposal.json', 'cards.json') if (Path(report) / 'target-proposal.json').is_file() else ('target-architecture.json', 'plan.json')
-    for name in names:
-        try: h.update(name.encode() + (Path(report) / name).read_bytes())
-        except OSError: h.update(name.encode() + b'-')
-    return h.hexdigest()[:16]
 
 
 # ---------------------------------------------------------------- what the assistant is asked: eaos/ai/ideal_prompts.py
@@ -214,15 +196,20 @@ def check(ideal, known, context=()):
     dropped, alive = [], set()
     views = {name: _check_view(name, (ideal.get('views') or {}).get(name) or {}, known, context, dropped, alive) for name in VIEWS}
     kept = {'views': views, 'aspects': _check_aspects(ideal, known, context)}
-    kept['departures'] = [{'view': d.get('view'), 'element': d.get('element'), 'rule_says': _short(d.get('rule_says'), 400),
-                           'plan_chose': _short(d.get('plan_chose'), 400), 'because': _short(d.get('because'), 600),
-                           'cites': [c for c in d.get('cites') or [] if c in known or c in context]}
-                          for d in ideal.get('departures') or []
-                          if isinstance(d, dict) and (d.get('view'), str(d.get('element'))) in alive and d.get('because')]
+    kept['departures'] = _departures(ideal, known, context, alive)
     kept['open_questions'] = [_question(i, q) for i, q in enumerate(ideal.get('open_questions') or [])
                               if isinstance(q, dict) and q.get('question')]
     kept['confidence'] = _confidence(ideal.get('confidence'))
     return kept, dropped
+
+
+def _departures(ideal, known, context, alive):
+    """The departures from the rules that say why, on a kept element (`alive`), with their resolving citations."""
+    return [{'view': d.get('view'), 'element': d.get('element'), 'rule_says': _short(d.get('rule_says'), 400),
+             'plan_chose': _short(d.get('plan_chose'), 400), 'because': _short(d.get('because'), 600),
+             'cites': [c for c in d.get('cites') or [] if c in known or c in context]}
+            for d in ideal.get('departures') or []
+            if isinstance(d, dict) and (d.get('view'), str(d.get('element'))) in alive and d.get('because')]
 
 
 def _confidence(value):
@@ -236,8 +223,7 @@ def _check_view(name, view, known, context, dropped, alive):
     for element in view.get('elements') or []:
         if not isinstance(element, dict): continue
         eid = str(element.get('id') or '')
-        cites = [c for c in element.get('cites') or [] if isinstance(c, str)]
-        evidence = [c for c in cites if c in known]
+        cites, evidence = _citations(element, known)
         why = _drop_reason(eid, seen, element, evidence)
         if why:
             dropped.append({'view': name, 'id': eid or '?', 'title': _short(element.get('title'), 160), 'why': why, 'cites': cites[:8]})
@@ -246,6 +232,12 @@ def _check_view(name, view, known, context, dropped, alive):
         alive.add((name, eid))
         elements.append(_element_row(eid, element, cites, evidence, known, context))
     return {'summary': _short(view.get('summary'), 600), 'confidence': _confidence(view.get('confidence')), 'elements': elements}
+
+
+def _citations(element, known):
+    """(cites, evidence): an element's citations, and those of them that resolve."""
+    cites = [c for c in element.get('cites') or [] if isinstance(c, str)]
+    return cites, [c for c in cites if c in known]
 
 
 def _drop_reason(eid, seen, element, evidence):
@@ -271,11 +263,16 @@ def _check_aspects(ideal, known, context):
     cards = {i for i in known if i.startswith('TASK-')}
     out, judged = [], set()
     for row in ideal.get('aspects') or []:
-        if not isinstance(row, dict) or row.get('aspect') not in ASPECTS or row.get('verdict') not in VERDICTS: continue
-        if row['aspect'] in judged or not str(row.get('why') or '').strip(): continue
+        if not _judges(row, judged): continue
         judged.add(row['aspect'])
         out.append(_aspect_row(row, cards, known, context))
     return out
+
+
+def _judges(row, judged):
+    """Whether a row gives a known verdict on a known aspect not judged yet, and says why."""
+    return (isinstance(row, dict) and row.get('aspect') in ASPECTS and row.get('verdict') in VERDICTS
+            and row['aspect'] not in judged and str(row.get('why') or '').strip())
 
 
 def _aspect_row(row, cards, known, context):
@@ -293,9 +290,14 @@ def _question(index, q):
 
 def share(ideal, known):
     """Elements with at least one citation in `known` ÷ elements (None when there is no element)."""
-    rows = [e for v in ((ideal or {}).get('views') or {}).values() if isinstance(v, dict) for e in v.get('elements') or [] if isinstance(e, dict)]
+    rows = _elements(ideal)
     if not rows: return None
     return round(sum(any(c in known for c in e.get('cites') or [] if isinstance(c, str)) for e in rows) / len(rows), 4)
+
+
+def _elements(ideal):
+    """Every element of every view of an ideal."""
+    return [e for v in ((ideal or {}).get('views') or {}).values() if isinstance(v, dict) for e in v.get('elements') or [] if isinstance(e, dict)]
 
 
 # ---------------------------------------------------------------- the run
@@ -306,14 +308,40 @@ def _record(folder, row):
     path.write_text(json.dumps(rows, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 
+def _passes(launcher, data, passes, tell):
+    """(draft, reviewed): the planning pass and the critique pass, each answer held to its schema; each pass done is
+    added to `passes`."""
+    from .ideal_prompts import CRITIQUE_SCHEMA, IDEAL_SCHEMA, prompt_critique, prompt_plan
+    tell(f'{getattr(launcher, "assistant", "The assistant")} plans the ideal of every view', f'{getattr(launcher, "assistant", "المساعد")} يخطّط المثالي لكل عرض')
+    draft = launcher('plan', prompt_plan(data), IDEAL_SCHEMA)
+    passes.append('plan')
+    _held(draft, IDEAL_SCHEMA, 'the plan')
+    tell('A second pass reviews the plan: what was missed, the risks, the order', 'تمرير ثانٍ يراجع الخطة: ما فات، والمخاطر، والترتيب')
+    reviewed = launcher('critique', prompt_critique(data, draft), CRITIQUE_SCHEMA)
+    passes.append('critique')
+    _held(reviewed, CRITIQUE_SCHEMA, 'the review')
+    return draft, reviewed
+
+
+def _held(answer, schema, what):
+    """Raise ValueError when an answer is not in its schema's shape."""
+    from ..core import artifact_contracts
+    problems = artifact_contracts.validate(answer, _lenient(schema))
+    if problems: raise ValueError(f'{what} is not in the asked shape: ' + '; '.join(problems[:3]))
+
+
+def _why(problem, cancel):
+    """Why a planning run did not finish: it was stopped, the assistant was stuck, or the error's own words."""
+    if getattr(cancel, 'is_set', lambda: False)(): return 'stopped'
+    return 'stuck' if isinstance(problem, Stuck) else _short(f'{type(problem).__name__}: {problem}', 300)
+
+
 def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=None, started=None, say=None):
     """Plan the ideal of every view on top of the rules: the planning pass, the critique pass and the evidence check.
 
     Returns {state, message{en, ar}, ...}. 'planned' writes <report>/ideal/plan.json; 'not_planned' (no assistant here)
     and 'failed' (an error, a stuck assistant, a stop, an answer outside the schema) leave the last plan and the rules'
     target as they are. `say(en, ar)` hears each step, for the command centre's run page."""
-    from ..core import artifact_contracts
-    from .ideal_prompts import CRITIQUE_SCHEMA, IDEAL_SCHEMA, prompt_critique, prompt_plan
     report = Path(report)
     folder = report / 'ideal'
     folder.mkdir(parents=True, exist_ok=True)
@@ -327,20 +355,9 @@ def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=N
     tell('Reading the check and the rules\' target', 'يقرأ الفحص وهدف القواعد')
     data = bundle(report, project, lang)
     passes, began = [], datetime.now(timezone.utc)
-    try:
-        tell(f'{getattr(launcher, "assistant", "The assistant")} plans the ideal of every view', f'{getattr(launcher, "assistant", "المساعد")} يخطّط المثالي لكل عرض')
-        draft = launcher('plan', prompt_plan(data), IDEAL_SCHEMA)
-        passes.append('plan')
-        problems = artifact_contracts.validate(draft, _lenient(IDEAL_SCHEMA))
-        if problems: raise ValueError('the plan is not in the asked shape: ' + '; '.join(problems[:3]))
-        tell('A second pass reviews the plan: what was missed, the risks, the order', 'تمرير ثانٍ يراجع الخطة: ما فات، والمخاطر، والترتيب')
-        reviewed = launcher('critique', prompt_critique(data, draft), CRITIQUE_SCHEMA)
-        passes.append('critique')
-        problems = artifact_contracts.validate(reviewed, _lenient(CRITIQUE_SCHEMA))
-        if problems: raise ValueError('the review is not in the asked shape: ' + '; '.join(problems[:3]))
+    try: draft, reviewed = _passes(launcher, data, passes, tell)
     except Exception as problem:
-        stopped = getattr(cancel, 'is_set', lambda: False)()
-        why = 'stopped' if stopped else 'stuck' if isinstance(problem, Stuck) else _short(f'{type(problem).__name__}: {problem}', 300)
+        why = _why(problem, cancel)
         message = _words('failed', why=why)
         _record(folder, {'at': at, 'state': 'failed', 'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
                          'seconds': round((datetime.now(timezone.utc) - began).total_seconds(), 1), 'passes': passes, 'message': message['en'],
@@ -367,169 +384,3 @@ def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=N
             'elements': elements, 'dropped': dropped, 'share': record['share'], 'raw_share': record['raw_share'],
             'departures': kept['departures'], 'open_questions': kept['open_questions'], 'assistant': record['assistant'],
             'model': record['model'], 'at': at, 'passes': passes, 'seconds': record['seconds']}
-
-
-# ---------------------------------------------------------------- what the Studio reads
-
-def current(report):
-    """(plan record or None, state): the plan when it was made for this check, and the section's state."""
-    report = Path(report)
-    record = _load(report / 'ideal/plan.json')
-    runs = _load(report / 'ideal/runs.json', []) or []
-    last = runs[-1] if runs else None
-    if isinstance(record, dict) and record.get('scan') == scan_key(report):
-        return record, 'planned'
-    if isinstance(record, dict): return None, 'stale'
-    return None, 'failed' if last and last.get('state') == 'failed' else 'not_planned'
-
-
-def _rules_provenance(state, message, lang):
-    return {'method': 'rules', 'state': state, 'assistant': None, 'model': None, 'at': None, 'confidence': None,
-            'message': message, 'departures': [], 'open_questions': []}
-
-
-_LEFT_TO_RULES = {
-    'en': "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
-    'ar': 'ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط.'}
-
-
-def _message(state, record, runs):
-    if state == 'planned':
-        return _words('planned', assistant=record.get('assistant') or '?', model=record.get('model') or '?')
-    if state == 'failed':
-        return _words('failed', why=(runs[-1].get('why') if runs else None) or '?')
-    return _words(state)
-
-
-def _planned_provenance(record, ideal, message, view=None):
-    """The provenance of what the assistant planned: of one view, or of the whole plan when view is None."""
-    confidence = (((ideal.get('views') or {}).get(view) or {}) if view else {}).get('confidence')
-    return {'method': 'planned', 'state': 'planned', 'assistant': record.get('assistant'), 'model': record.get('model'),
-            'at': record.get('at'), 'confidence': confidence if confidence is not None else ideal.get('confidence'),
-            'message': message, 'inputs': record.get('inputs'),
-            'departures': [{k: d[k] for k in ('rule_says', 'plan_chose', 'because', 'element', 'cites')}
-                           for d in ideal.get('departures') or [] if view is None or d.get('view') == view],
-            'open_questions': [{'id': q['id'], 'question': q['question'], 'recommendation': q.get('recommendation')}
-                               for q in ideal.get('open_questions') or [] if view is None or q.get('view') == view]}
-
-
-def _differences(planned, rules_elements):
-    rules_ids = {e['id']: e for e in rules_elements}
-    rows = []
-    for element in (planned or {}).get('elements') or []:
-        base = rules_ids.get(element.get('subject'))
-        kind = 'added' if base is None else 'same' if base['operation'] == element['operation'] else 'changed'
-        rows.append({'element': element['id'], 'kind': kind, 'subject': element.get('subject'),
-                     'rules': base['operation'] if base else None, 'planned': element['operation']})
-    return rows
-
-
-def _view(name, rules_view, record, ideal, state, message, lang):
-    summary, rules_elements = rules_view
-    planned = (ideal.get('views') or {}).get(name) if record else None
-    planned = planned if planned and planned.get('elements') else None
-    if planned:
-        provenance = _planned_provenance(record, ideal, message, name)
-    elif state == 'planned':
-        provenance = _rules_provenance('not_planned', _LEFT_TO_RULES, lang)
-    else:
-        provenance = _rules_provenance(state, message, lang)
-    return {'provenance': provenance,
-            'rules': {'summary': summary, 'elements': rules_elements[:400],
-                      'count': {'value': len(rules_elements), 'src': f'ideal: the rules\' {name} view', 'unit': 'count'}},
-            'planned': None if not planned else {
-                'summary': planned.get('summary') or '', 'confidence': planned.get('confidence'), 'elements': planned['elements'],
-                'count': {'value': len(planned['elements']), 'src': 'ideal/plan.json#ideal.views.' + name, 'unit': 'count'}},
-            'differences': _differences(planned, rules_elements)}
-
-
-def _evidence(record, views):
-    elements = sum(len(v['planned']['elements']) for v in views.values() if v['planned'])
-    kept = record or {}
-    return {'share': {'value': kept.get('share'),
-                      'src': 'ideal/plan.json#share: planned elements with a resolving citation / planned elements'},
-            'raw_share': {'value': kept.get('raw_share'), 'src': 'ideal/plan.json#raw_share: the same before the evidence check'},
-            'elements': {'value': elements if record else None, 'src': 'ideal/plan.json#elements', 'unit': 'count'},
-            'dropped': [{k: row[k] for k in ('view', 'id', 'title', 'why')} for row in kept.get('dropped') or []]}
-
-
-def _critique(record):
-    critique = (record or {}).get('critique')
-    return {k: list(critique.get(k) or [])[:30] for k in ('missed', 'risks', 'order')} if isinstance(critique, dict) else None
-
-
-def _questions(ideal):
-    return [{'id': q['id'], 'view': q['view'], 'question': q['question'], 'options': q.get('options') or [],
-             'recommendation': q.get('recommendation'), 'why': q.get('why') or ''} for q in ideal.get('open_questions') or []]
-
-
-def _run(r):
-    return {'at': r.get('at') or '', 'state': r.get('state') if r.get('state') in ('planned', 'not_planned', 'failed', 'stale') else 'failed',
-            'assistant': r.get('assistant'), 'model': r.get('model'), 'seconds': r.get('seconds'),
-            'passes': list(r.get('passes') or []), 'message': r.get('message') or ''}
-
-
-def section(report, lang='ar'):
-    """The body of studio/ideal.json (contract studio-ideal)."""
-    report = Path(report)
-    record, state = current(report)
-    runs = _load(report / 'ideal/runs.json', []) or []
-    message = _message(state, record, runs)
-    ideal = (record or {}).get('ideal') or {}
-    rules_views = _rules_views(report)
-    views = {name: _view(name, rules_views[name], record, ideal, state, message, lang) for name in VIEWS}
-    return {'state': state, 'message': message,
-            'provenance': _planned_provenance(record, ideal, message) if record else _rules_provenance(state, message, lang),
-            'views': views, 'evidence': _evidence(record, views), 'critique': _critique(record),
-            'questions': _questions(ideal) if record else [], 'runs': [_run(r) for r in runs[-10:]]}
-
-
-def provenance_of(body):
-    """{studio section: provenance}: the provenance every section that draws a target carries."""
-    views = (body or {}).get('views') or {}
-    return {name: views[view]['provenance'] for name, view in SECTION_VIEWS.items() if view in views}
-
-
-def decisions(report, lang='ar'):
-    """The open questions of the current plan, as rows of studio/decisions.json (the Decisions inbox)."""
-    record, state = current(report)
-    if state != 'planned': return []
-    rows = []
-    for q in ((record.get('ideal') or {}).get('open_questions') or []):
-        options = q.get('options') or []
-        rows.append({'id': f"ideal-{_slug(q['id'])}", 'question': q['question'],
-                     'recommendation': q.get('recommendation') or ('' if lang != 'ar' else ''),
-                     'options': [{'id': f'o{i + 1}', 'label': str(o)} for i, o in enumerate(options)],
-                     'blocks': [], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': record.get('at') or '',
-                     'tool': 'replan_ideal'})
-    return rows
-
-
-def disagreements(report, lang='ar'):
-    """Rows of studio/decisions.json for every place the assistant and the rules differ (eaos/report/target_architecture.py
-    reconcile, eaos/analysis/plan.py confirm): both views, and the one the check kept as the answer: the assistant's where it
-    cited evidence and passed the guards, the rule's where a guard kept it."""
-    ar = lang == 'ar'
-    target = _load(Path(report) / 'target-architecture.json', {}) or {}
-    rows = []
-    for row in target.get('disagreements') or []:
-        kept = 'assistant' if row['label'] == 'ai_modified' else 'rule'
-        question = (f"{row['element']}: القواعد تقول «{row['rule']}» ومساعدك قال «{row['assistant']}». {guard_words(row['why'], ar)}" if ar else
-                    f"{row['element']}: the rules say \"{row['rule']}\" and your assistant said \"{row['assistant']}\". {row['why']}")
-        rows.append({'id': f"disagree-{_slug(row['element'])}", 'question': _short(question, 600),
-                     'recommendation': ('رأي مساعدك، لأن له دليلًا ومرّ الضوابط' if kept == 'assistant' else 'رأي القواعد، لأن ضابطًا منع رأي مساعدك')
-                     if ar else ("your assistant's view: it cites evidence and passed the guards" if kept == 'assistant'
-                                 else "the rules' view: a guard kept it"),
-                     'options': [{'id': 'assistant', 'label': f"{'مساعدك' if ar else 'your assistant'}: {row['assistant']}"},
-                                 {'id': 'rule', 'label': f"{'القواعد' if ar else 'the rules'}: {row['rule']}"}],
-                     'blocks': [], 'state': 'answered', 'answer': kept, 'plan': None, 'asked': '', 'tool': None})
-    cards = _load(Path(report) / 'cards.json', {}) or {}
-    for row in cards.get('set_aside') or []:
-        question = (f"{row['card']}: القواعد كتبت البطاقة «{_short(row.get('title'), 160)}» ومساعدك رفضها. {row.get('why') or ''}" if ar else
-                    f"{row['card']}: the rules wrote the card \"{_short(row.get('title'), 160)}\" and your assistant rejected it. {row.get('why') or ''}")
-        rows.append({'id': f"disagree-{_slug(row['card'])}", 'question': _short(question, 600),
-                     'recommendation': 'رأي مساعدك: البطاقة خارج الخطة' if ar else "your assistant's view: the card is out of the plan",
-                     'options': [{'id': 'assistant', 'label': 'خارج الخطة' if ar else 'out of the plan'},
-                                 {'id': 'rule', 'label': 'في الخطة' if ar else 'in the plan'}],
-                     'blocks': [], 'state': 'answered', 'answer': 'assistant', 'plan': None, 'asked': '', 'tool': None})
-    return rows
