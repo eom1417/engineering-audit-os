@@ -248,7 +248,7 @@ def build(report):
     handlers = _handlers(apis, r)
     modules, tables, services = _server_side(handlers, r, table_files)
     for a in apis.values(): _api_reach(a, handlers, pages, feature_of_api, r['components'])
-    return assemble(pages, shared, apis, handlers, modules, tables, services, links, uses, r)
+    return assemble((pages, shared, apis), (handlers, modules, tables, services), (links, uses), r)
 
 
 def _apis(r):

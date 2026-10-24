@@ -8,8 +8,10 @@ from .system_paths import METHODS
 MAX_PAGES, MAX_CALLERS, MAX_APIS, MAX_HANDLERS, MAX_MODULES, MAX_DATA = 80, 24, 160, 120, 30, 60
 
 
-def assemble(pages, shared, apis, handlers, modules, tables, services, links, uses, r):
-    """Cap every column, then the links drawn and, for each node, every node it reaches or is reached from."""
+def assemble(client, server, wiring, r):
+    """Cap every column, then the links drawn and, for each node, every node it reaches or is reached from. `client`:
+    (pages, shared callers, APIs); `server`: (handlers, modules, tables, services); `wiring`: (links, uses)."""
+    (pages, shared, apis), (handlers, modules, tables, services), (links, uses) = client, server, wiring
     if not pages and not apis: return None
     cols, capped = _columns(pages, shared, apis, handlers, modules, tables, services, links, uses)
     view = {'cols': cols, 'links': links, 'uses': uses, 'capped': capped, 'root': r['root'],
