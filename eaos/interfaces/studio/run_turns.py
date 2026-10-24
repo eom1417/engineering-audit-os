@@ -24,6 +24,24 @@ def _read_from(path, offset):
         return None
 
 
+def _tried_card(kind, data):
+    """The card an event says was tried (its gates ran, or it was skipped); None."""
+    data = data or {}
+    done = (kind == 'check' and data.get('name') == 'card gates') or (kind == 'step' and data.get('tool') == 'fix_skip')
+    return data.get('card') if done else None
+
+
+def _tried_in(wave, cards):
+    """The cards of `cards` the open batch `wave` already kept or left out."""
+    return {card for card in cards if card in (wave.get('kept') or {}) or card in (wave.get('failed') or {})}
+
+
+def _last_answer(state, status, needed=None):
+    """The last EAOS answer of the turn with `status` (and, when `needed` is named, that field filled); None."""
+    return next((payload for tool, payload in reversed(state['eaos_results'])
+                 if isinstance(payload, dict) and payload.get('status') == status and (needed is None or payload.get(needed))), None)
+
+
 class Turns:
     """The run manager's assistant turns."""
     def _launch(self, run, adapter, prompt, session=None):
@@ -49,8 +67,12 @@ class Turns:
         self.watched.add(run)
         threading.Thread(target=self._read_stream, args=(run, adapter), daemon=True).start()
 
-    def _read_stream(self, run, adapter):
+    def _ended(self, run, pid):
+        """Whether the assistant's process of `run` has ended (a child of this process, or one a restart found alive)."""
         from .runs import alive
+        return not (self.children[run].poll() is None if run in self.children else alive(pid))
+
+    def _read_stream(self, run, adapter):
         folder = self.store.path(run)
         record = self.store.load(run)
         offset, pid = record.get('offset') or 0, record.get('pid')
@@ -61,7 +83,7 @@ class Turns:
         buffer = b''
         try:
             while True:
-                finished = not (self.children[run].poll() is None if run in self.children else alive(pid))
+                finished = self._ended(run, pid)
                 chunk = _read_from(folder / 'stream.jsonl', offset)
                 if chunk is None: return
                 offset += len(chunk)
@@ -96,9 +118,8 @@ class Turns:
         for kind, words, data, detail in parsed:
             if fixing and kind == 'progress': continue
             self.store.append(run, kind, words, data, detail)
-            card = (data or {}).get('card')
-            done = (kind == 'check' and (data or {}).get('name') == 'card gates') or (kind == 'step' and (data or {}).get('tool') == 'fix_skip')
-            if fixing and done and card in record['cards'] and card not in state['cards_tried']:
+            card = _tried_card(kind, data)
+            if fixing and card in record['cards'] and card not in state['cards_tried']:
                 state['cards_tried'].add(card)
                 self._cards_progress(run, state['cards_tried'], record['cards'])
 
@@ -107,7 +128,7 @@ class Turns:
         a retry, or another assistant, counts on from there."""
         wave = (project_state.load(self.project) or {}).get('open_wave') or {}
         cards = record.get('cards') or [] if record.get('verb') == 'fix' else []
-        tried = {card for card in cards if card in (wave.get('kept') or {}) or card in (wave.get('failed') or {})}
+        tried = _tried_in(wave, cards)
         if tried: self._cards_progress(run, tried, cards)
         return tried
 
@@ -124,13 +145,17 @@ class Turns:
             return self._restore_question(run)
         question = self._question_for(record, state, words)
         if question: return self._ask(run, question)
-        if state.get('failed') or (code not in (0, None) and not words):
-            reason = state.get('failed') or f'the assistant stopped with code {code}'
-            try: tail = (self.store.path(run) / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-600:]
-            except OSError: tail = ''
-            why = self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
-            return self._fail(run, why, resumable=True)
+        if (why := self._why_stopped(run, state, code, words)): return self._fail(run, why, resumable=True)
         return self._finish_turn(run, record, words)
+
+    def _why_stopped(self, run, state, code, words):
+        """Why the turn failed (the assistant said it, or stopped with an error and no words, then its last stderr);
+        None when it did not."""
+        if not (state.get('failed') or (code not in (0, None) and not words)): return None
+        reason = state.get('failed') or f'the assistant stopped with code {code}'
+        try: tail = (self.store.path(run) / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-600:]
+        except OSError: tail = ''
+        return self.store.scrub(str(reason))[:500] + (f' ({self.store.scrub(tail.strip())[-300:]})' if tail.strip() and not state.get('failed') else '')
 
     def _finish_turn(self, run, record, words):
         payload = self._outcome(run, answer=self._readable(run, words))
@@ -151,11 +176,9 @@ class Turns:
         """The question a turn ends on: the assistant's own; else the branch, the person's to choose (choose_branch is
         person-only), asked by the Studio so the answer is recorded first; else the agreement to run the app."""
         question = prompts.question_in(words)
-        branch = question is None and next((payload for tool, payload in reversed(state['eaos_results'])
-                                            if isinstance(payload, dict) and payload.get('status') == 'needs_branch' and payload.get('branches')), None)
+        branch = question is None and _last_answer(state, 'needs_branch', 'branches')
         if question is not None or branch: return question if question is not None else prompts.branch_question(branch)
-        asked = next((payload for tool, payload in reversed(state['eaos_results'])
-                      if isinstance(payload, dict) and payload.get('status') == 'needs_agreement'), None)
+        asked = _last_answer(state, 'needs_agreement')
         if asked and not self._waiting_branches() - set(record.get('branches_before') or []): return prompts.consent_question(asked)
 
     def _readable(self, run, words):
