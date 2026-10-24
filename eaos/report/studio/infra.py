@@ -159,11 +159,16 @@ def _environments(report, lanes, live):
     if names:
         lanes.add('environments', ('env:variables', 'Environment variables', 'variables'), None,
                   detail={'variables': len(names), 'secret_shaped': len(secret),
-                          'without_default': sum(1 for n in names if not any((f.get('value') or {}).get('has_default') for f in names[n]))})
+                          'without_default': _without_default(names)})
         for name in sorted(names):
             lanes.add('environments', ('env:variables', '', 'variables'), names[name][0], item=name)
     for fact in arch_map.facts(report, 'config', 'config_file_unread'):
         lanes.add('environments', (f'env:file:{arch_map.path_of(fact)}', arch_map.path_of(fact), 'sensitive_file'), fact)
+
+
+def _without_default(names):
+    """How many of the variables (`names`: {name: the facts reading it}) no read gives a default."""
+    return sum(1 for n in names if not any((f.get('value') or {}).get('has_default') for f in names[n]))
 
 
 def _resilience(report):
@@ -221,11 +226,16 @@ def _tables(report, lanes, live):
     tables = live(arch_map.facts(report, 'domain', 'data_table'))
     if not tables: return
     keys = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if not (f.get('value') or {}).get('dropped')}
-    rls = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if (f.get('value') or {}).get('rls_enabled')}
     node = lanes.add('databases', ('db:schema', 'Tables declared in code', 'schema'), None,
-                     detail={'tables': len(keys), 'row_level_security': len(rls & keys) if any('rls_enabled' in (f.get('value') or {}) for f in tables) else None})
+                     detail={'tables': len(keys), 'row_level_security': _row_level_security(tables, keys)})
     for fact in tables[:SHOWN]: node['sites'].append(_site(fact))
     node['evidence'] = len(tables)
+
+
+def _row_level_security(tables, keys):
+    """How many of the tables `keys` have row-level security; None when no table record says."""
+    rls = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if (f.get('value') or {}).get('rls_enabled')}
+    return len(rls & keys) if any('rls_enabled' in (f.get('value') or {}) for f in tables) else None
 
 
 def _databases(report, lanes, live):
@@ -259,14 +269,29 @@ def _target(record):
     """The target's infrastructure, per lane: each area present (keep) or not (introduce), with its decision."""
     items = [i for i in record.get('infrastructure') or [] if isinstance(i, dict) and i.get('area')]
     by_lane = defaultdict(list)
-    for item in items:
-        by_lane[AREA_LANE.get(item['area'], 'observability')].append({
-            'area': item['area'], 'present': bool(item.get('present')), 'op': 'keep' if item.get('present') else 'introduce',
-            'decision': str(item.get('decision') or '')[:400], 'tool': item.get('tool'), 'evidence': str(item.get('evidence') or '')[:300]})
+    for item in items: by_lane[AREA_LANE.get(item['area'], 'observability')].append(_target_item(item))
     return {'reference': record.get('reference'), 'status': record.get('status'),
             'lanes': [{'id': lane, 'state': 'measured' if by_lane.get(lane) else 'not_measured',
                        'reason': 'decided' if by_lane.get(lane) else 'target_silent', 'items': by_lane.get(lane, [])}
                       for lane in LANES]}
+
+
+def _target_item(item):
+    """One area of the target's infrastructure: present (keep) or not (introduce), its decision, tool and evidence."""
+    return {'area': item['area'], 'present': bool(item.get('present')), 'op': 'keep' if item.get('present') else 'introduce',
+            'decision': str(item.get('decision') or '')[:400], 'tool': item.get('tool'), 'evidence': str(item.get('evidence') or '')[:300]}
+
+
+def _target_counts(target):
+    """How many areas the target introduces and keeps, and the lanes it is silent on; not measured without a target."""
+    return {
+        'introduce': _measure(sum(i['op'] == 'introduce' for l in target['lanes'] for i in l['items']) if target else None,
+                              SRC['target'] + '[present=false] (count)'),
+        'keep': _measure(sum(i['op'] == 'keep' for l in target['lanes'] for i in l['items']) if target else None,
+                         SRC['target'] + '[present=true] (count)'),
+        'target_silent': _measure(sum(l['state'] == 'not_measured' for l in target['lanes']) if target else None,
+                                  'target.lanes[state=not_measured] (count)'),
+    }
 
 
 def infra(report, lang='ar'):
@@ -287,12 +312,7 @@ def infra(report, lang='ar'):
         'counts': {
             'nodes': _measure(total, 'lanes[].nodes + folded (count)'),
             'lanes_found': _measure(sum(1 for lane in LANES if lanes.nodes[lane]), 'lanes[state=measured] (count)'),
-            'introduce': _measure(sum(i['op'] == 'introduce' for l in (target or {}).get('lanes', []) for i in l['items']) if target else None,
-                                  SRC['target'] + '[present=false] (count)'),
-            'keep': _measure(sum(i['op'] == 'keep' for l in (target or {}).get('lanes', []) for i in l['items']) if target else None,
-                             SRC['target'] + '[present=true] (count)'),
-            'target_silent': _measure(sum(l['state'] == 'not_measured' for l in target['lanes']) if target else None,
-                                      'target.lanes[state=not_measured] (count)'),
+            **_target_counts(target),
         },
         'target': target,
         'src': SRC,

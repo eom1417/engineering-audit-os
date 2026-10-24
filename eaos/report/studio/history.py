@@ -66,11 +66,19 @@ def _recorded_scan(i, point, checks, now):
             'commit': commit, 'branch': now['scan'].get('branch') if last else None, 'at': point['at'],
             'event': point.get('event'), 'score': now['score'] if last else recorded_score,
             'open': now['open'] if last else recorded_open or {s: None for s in SEVERITIES},
-            'open_total': total - closed if isinstance(total, int) and isinstance(closed, int) else None,
-            'closed': _whole(closed), 'total': _whole(total),
-            # the ledger marks a card a later check found as new, not which check found it: known for a second check only
-            'added': sum(1 for c in now['cards'] if c.get('new')) if i == 1 and last else None,
+            'open_total': _open_total(total, closed), 'closed': _whole(closed), 'total': _whole(total), 'added': _added(i, last, now),
             'resolved': _resolved_between(now['cards'], checks[i - 1]['at'] if i else None, point['at']), 'open_keys': []}
+
+
+def _open_total(total, closed):
+    """The cards a recorded check left open; None when it did not record both counts."""
+    return total - closed if isinstance(total, int) and isinstance(closed, int) else None
+
+
+def _added(i, last, now):
+    """The cards a check found new; None where that is not known."""
+    # the ledger marks a card a later check found as new, not which check found it: known for a second check only
+    return sum(1 for c in now['cards'] if c.get('new')) if i == 1 and last else None
 
 
 def _this_scan(scan, card_rows, now_score, now_open):
@@ -112,13 +120,18 @@ def _changed(cards):
             for c in cards if c.get('state') in M.CLOSED or c.get('new')]
 
 
+def _ledger_records(ledger):
+    """(the ledger's dated history points, its cards); none of either without a ledger."""
+    points = [p for p in (ledger or {}).get('history') or [] if isinstance(p, dict) and p.get('at')]
+    return points, [c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict)]
+
+
 def history(scan, score, card_rows, ledger=None, waves=()):
     """The history section's body. scan: {commit, branch, at} of this check; score: its score 0..100 or None;
     card_rows: this check's cards; ledger: eaos.core.ledger.for_report's record, or None."""
     now_open = _open_by_severity(card_rows)
     now_score = None if score is None else round(score / 100, 4)
-    points = [p for p in (ledger or {}).get('history') or [] if isinstance(p, dict) and p.get('at')]
-    cards = [c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict)]
+    points, cards = _ledger_records(ledger)
     checks = [p for p in points if p.get('event') in SCAN_EVENTS]
     now = {'scan': scan, 'cards': cards, 'score': now_score, 'open': now_open, 'seen': set()}
     scans = [_recorded_scan(i, point, checks, now) for i, point in enumerate(checks)]

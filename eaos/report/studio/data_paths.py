@@ -17,7 +17,7 @@ counted, never a guessed link.
     target       each writer's component goes where target-architecture.json sends it (current_components
                  target_component); a store whose writers all land in one target component has a single source there
 
-The overview is laid out here (callers and stores in two lanes, ordered by barycentre sweeps with
+The overview is laid out in data_paths_layout.py (callers and stores in two lanes, ordered by barycentre sweeps with
 eaos/analysis/arch_map.order_columns; the target's components ordered against the same, pinned, stores), so every view and
 every reader draws the same places. Above MAX_LANE nodes a lane is clustered and each cluster expands on request.
 """
@@ -26,9 +26,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from ...analysis import arch_map
+from .data_paths_layout import FAMILIES, MAX_LANE, view  # noqa: F401  (MAX_LANE: a lane's limit, read here by the tests)
 from .system import owner_of
 
-MAX_LANE = 40
 WRITES = {'post', 'put', 'patch', 'delete', 'insert', 'update', 'upsert', 'rpc', 'storage'}
 READS = {'get', 'select'}
 AUTH = 'auth'
@@ -42,8 +42,6 @@ GAPS = {
     'behind_handler': 'NS40.T2',           # column: the handler's writes are not traced to columns
     'handler_writes_unseen': 'NS40.T2',    # column: the handler is known but its flow reaches no write
 }
-LANE_X = {'caller': 0, 'store': 1}
-BOX_W, BOX_H, ROW_GAP, LANE_GAP, PAD = 220, 34, 10, 300, 24
 SRC = {
     'stores': 'facts/entrypoints.json#data_access (targets) + facts/domain.json#data_table',
     'endpoints': 'facts/entrypoints.json#data_access (method and path, or operation and table)',
@@ -77,18 +75,26 @@ def table_name(name):
 def _store_of(value):
     """(store id, kind, display name) of one data_access fact's target, or None for a call with no target."""
     client, target, op = value.get('client'), str(value.get('target') or ''), value.get('operation')
-    if client == 'supabase':
-        if target == AUTH or op in ('getSession', 'getUser', 'signOut', 'signUp', 'signIn', 'signInWithPassword',
-                                    'signInWithOAuth', 'resetPasswordForEmail', 'updateUser', 'onAuthStateChange'):
-            return 'auth:supabase', 'auth', 'Supabase Auth'
-        if op == 'storage': return f'bucket:{target}', 'bucket', target
-        if op == 'rpc': return f'rpc:{target}', 'rpc', target
-        return f'table:{table_name(target)}', 'table', table_name(target)
-    if client == 'http':
-        if target in ('', '{dynamic}', '/{}'): return 'api:{dynamic}', 'resource', '{dynamic}'
-        head = route_key(target).split('/')[1] if route_key(target) != '/' else ''
-        return f'api:/{head}', 'resource', '/' + next((p for p in target.split('/') if p), head)
+    if client == 'supabase': return _supabase_store(target, op)
+    if client == 'http': return _api_store(target)
     return None
+
+
+def _supabase_store(target, op):
+    """A Supabase call's store: its auth service, a storage bucket, a database function (rpc) or a table."""
+    if target == AUTH or op in ('getSession', 'getUser', 'signOut', 'signUp', 'signIn', 'signInWithPassword',
+                                'signInWithOAuth', 'resetPasswordForEmail', 'updateUser', 'onAuthStateChange'):
+        return 'auth:supabase', 'auth', 'Supabase Auth'
+    if op == 'storage': return f'bucket:{target}', 'bucket', target
+    if op == 'rpc': return f'rpc:{target}', 'rpc', target
+    return f'table:{table_name(target)}', 'table', table_name(target)
+
+
+def _api_store(target):
+    """An HTTP call's store: the back end's resource named by the path's first segment."""
+    if target in ('', '{dynamic}', '/{}'): return 'api:{dynamic}', 'resource', '{dynamic}'
+    head = route_key(target).split('/')[1] if route_key(target) != '/' else ''
+    return f'api:/{head}', 'resource', '/' + next((p for p in target.split('/') if p), head)
 
 
 def _endpoint_of(value):
@@ -150,108 +156,30 @@ def _servers(report):
     return out
 
 
-def _cluster(ids, family, limit=MAX_LANE):
-    """{id: cluster id} when a lane holds more than `limit` nodes: by family, then families folded alphabetically into
-    at most `limit` buckets. {} when the lane fits."""
-    if len(ids) <= limit: return {}
-    families = defaultdict(list)
-    for node in sorted(ids): families[family(node)].append(node)
-    names = sorted(families)
-    if len(names) > limit:
-        size = -(-len(names) // limit)
-        groups = {name: f'{names[i - i % size]}…{names[min(i - i % size + size, len(names)) - 1]}' for i, name in enumerate(names)}
-    else:
-        groups = {name: name for name in names}
-    return {node: f'cluster:{groups[family(node)]}' for node in ids}
-
-
-def _lane_positions(columns):
-    """{id: (x, y)}: each lane a column of boxes, top-aligned, in its order."""
-    out = {}
-    for lane, column in columns.items():
-        for p, node in enumerate(column):
-            out[node] = (PAD + LANE_X[lane] * (BOX_W + LANE_GAP), PAD + p * (BOX_H + ROW_GAP))
-    return out
-
-
-def _layout(callers, stores, edges, pinned=None):
-    """Lane orders and positions. Stores keep `pinned` order when given (the target view), callers follow them."""
-    if pinned is None:
-        layer = {**{c: 0 for c in callers}, **{s: 1 for s in stores}}
-        columns = arch_map.order_columns(layer, sorted(edges)) if layer else [[], []]
-        columns = (columns + [[], []])[:2]
-        order = {'caller': columns[0], 'store': columns[1]}
-    else:
-        place = {s: i for i, s in enumerate(pinned)}
-        near = defaultdict(list)
-        for a, b in edges: near[a].append(place.get(b, len(place)))
-        order = {'caller': sorted(callers, key=lambda c: (sum(near[c]) / len(near[c]) if near[c] else len(place), c)),
-                 'store': list(pinned)}
-    xy = _lane_positions(order)
-    tallest = max((len(v) for v in order.values()), default=0)
-    size = [PAD * 2 + 2 * BOX_W + LANE_GAP, PAD * 2 + max(tallest, 1) * (BOX_H + ROW_GAP) - ROW_GAP]
-    return order, xy, size
-
-
-def _weights(stores, edges_of, group_of, clusters):
-    """Counter {(caller lane node, store lane node, write or read): modules}; a module that writes a store is not
-    counted again as reading it."""
-    writers_of, readers_of = edges_of
-    caller_cluster, store_cluster = clusters
-    weight = Counter()
-    for s in stores:
-        for kind, modules in (('write', writers_of.get(s, set())), ('read', readers_of.get(s, set()) - writers_of.get(s, set()))):
-            for group in (group for group in map(group_of, modules) if group is not None):
-                weight[(caller_cluster.get(group, group), store_cluster.get(s, s), kind)] += 1
-    return weight
-
-
-def _cluster_rows(caller_cluster, store_cluster):
-    clusters = []
-    for lane, mapping in (('caller', caller_cluster), ('store', store_cluster)):
-        members = defaultdict(list)
-        for node, cluster in mapping.items(): members[cluster].append(node)
-        clusters += [{'id': cid, 'lane': lane, 'members': sorted(m)} for cid, m in sorted(members.items())]
-    return clusters
-
-
-def _view(edges_of, stores, group_of, families, pinned=None):
-    """One overview: lanes of callers (grouped as `group_of` says) and stores, clustered above MAX_LANE, with their
-    weighted write and read edges, laid out. `edges_of`: (writers of each store, readers of each store); `families`:
-    (a store's family, a caller's family), what a lane too long is clustered by."""
-    writers_of, readers_of = edges_of
-    store_family, caller_family = families
-    callers = sorted({group_of(m) for s in stores for m in writers_of.get(s, set()) | readers_of.get(s, set())} - {None})
-    caller_cluster = _cluster(callers, caller_family)
-    store_cluster = _cluster(list(stores), store_family) if pinned is None else pinned['clusters']
-    weight = _weights(stores, edges_of, group_of, (caller_cluster, store_cluster))
-    caller_nodes = sorted({caller_cluster.get(c, c) for c in callers})
-    store_nodes = sorted({store_cluster.get(s, s) for s in stores})
-    pairs = {(a, b) for a, b, _ in weight}
-    order, xy, size = _layout(caller_nodes, store_nodes, pairs, pinned and pinned['order'])
-    edges = [{'from': a, 'to': b, 'kind': kind, 'modules': n} for (a, b, kind), n in sorted(weight.items())]
-    return {'lanes': {'caller': order['caller'], 'store': order['store']},
-            'place': {node: [round(x), round(y)] for node, (x, y) in sorted(xy.items())},
-            'size': size, 'box': [BOX_W, BOX_H], 'edges': edges,
-            'clusters': _cluster_rows(caller_cluster, store_cluster if pinned is None else {})}, store_cluster
-
-
 def _handler_steps(value, kind, keys, server, has_server):
     """The handler and column tiers of a write path: direct to the database, through a known server route, or a gap."""
-    if value.get('client') != 'http':
-        return {'handler': {'state': 'direct', 'reason': 'direct_database_client'},
-                'column': ({'state': 'known', 'columns': keys} if kind == 'table' and keys is not None else
-                           {'state': 'known', 'columns': None} if kind != 'table' else
-                           {'state': 'gap', 'reason': 'payload_not_literal'})}
-    if server:
-        reached = [w for w in server['writes'] if w['store']]
-        return {'handler': {'state': 'known', 'handler': server['handler'], 'path': server['path'],
-                            'line': server['line'], 'fact': server['fact'], 'flow': server['flow']},
-                'column': ({'state': 'known', 'stores': sorted({w['store'] for w in reached}),
-                            'columns': sorted({c for w in reached for c in w['columns'] or []}) or None}
-                           if reached else {'state': 'gap', 'reason': 'handler_writes_unseen'})}
+    if value.get('client') != 'http': return _direct_steps(kind, keys)
+    if server: return _server_steps(server)
     return {'handler': {'state': 'gap', 'reason': 'no_matching_route' if has_server else 'backend_outside_snapshot'},
             'column': {'state': 'gap', 'reason': 'behind_handler'}}
+
+
+def _direct_steps(kind, keys):
+    """The handler and column tiers of a call straight to the database: its columns are the keys it sends to a table."""
+    return {'handler': {'state': 'direct', 'reason': 'direct_database_client'},
+            'column': ({'state': 'known', 'columns': keys} if kind == 'table' and keys is not None else
+                       {'state': 'known', 'columns': None} if kind != 'table' else
+                       {'state': 'gap', 'reason': 'payload_not_literal'})}
+
+
+def _server_steps(server):
+    """The handler and column tiers of a call a known server route answers: the stores and columns its flow writes."""
+    reached = [w for w in server['writes'] if w['store']]
+    return {'handler': {'state': 'known', 'handler': server['handler'], 'path': server['path'],
+                        'line': server['line'], 'fact': server['fact'], 'flow': server['flow']},
+            'column': ({'state': 'known', 'stores': sorted({w['store'] for w in reached}),
+                        'columns': sorted({c for w in reached for c in w['columns'] or []}) or None}
+                       if reached else {'state': 'gap', 'reason': 'handler_writes_unseen'})}
 
 
 def _steps(value, kind, module, context):
@@ -353,15 +281,6 @@ def _violations(inventory, grouping):
     return violations
 
 
-def _family_store(sid):
-    kind, _, name = sid.partition(':')
-    return f"{kind}:{re.split(r'[_/.]', name.lstrip('/'))[0][:12] or name}"
-
-
-def _family_caller(name):
-    return '/'.join(str(name).split('/')[:2])
-
-
 def _tiers(paths, gap_count):
     tiers = []
     for tier in TIERS:
@@ -376,11 +295,7 @@ def _tiers(paths, gap_count):
 
 def _counts(inventory, violations, gap_count, has_target):
     stores, paths = inventory.stores, inventory.paths
-    attributes = Counter()
-    for p in paths:
-        for key in p['steps']['key'].get('keys') or []: attributes[(p['store'], key)] += 1
-    writers_total = {m for s in inventory.writers_of.values() for m in s}
-    readers_total = {m for s in inventory.readers_of.values() for m in s}
+    writers_total, readers_total = _modules(inventory.writers_of), _modules(inventory.readers_of)
     return {
         'stores': _measure(len(stores), SRC['stores']),
         'tables': _measure(sum(s['kind'] == 'table' for s in stores.values()), SRC['stores'] + ' (kind table)'),
@@ -388,7 +303,7 @@ def _counts(inventory, violations, gap_count, has_target):
         'writers': _measure(len(writers_total), SRC['writers']),
         'readers': _measure(len(readers_total), SRC['readers']),
         'write_paths': _measure(len(paths), SRC['writers'] + ' (call sites)'),
-        'attributes': _measure(len(attributes), SRC['keys'] + ' (distinct store and key)'),
+        'attributes': _measure(len(_attributes(paths)), SRC['keys'] + ' (distinct store and key)'),
         'multi_writer_endpoints': _measure(sum(v['kind'] == 'endpoint' for v in violations), 'violations[kind=endpoint]'),
         'multi_writer_tables': _measure(sum(v['kind'] == 'table' for v in violations), 'violations[kind=table]'),
         'gaps': _measure(sum(gap_count.values()), 'paths[].steps[state=gap] (count)'),
@@ -397,11 +312,33 @@ def _counts(inventory, violations, gap_count, has_target):
     }
 
 
+def _modules(of):
+    """The distinct modules of {store: the modules that write (or read) it}."""
+    return {m for s in of.values() for m in s}
+
+
+def _attributes(paths):
+    """Counter {(store, key): write paths sending that key to that store}."""
+    attributes = Counter()
+    for p in paths:
+        for key in p['steps']['key'].get('keys') or []: attributes[(p['store'], key)] += 1
+    return attributes
+
+
+def _app_access(report):
+    """The data_access facts outside the tests."""
+    return [f for f in arch_map.facts(report, 'entrypoints', 'data_access') if (f.get('value') or {}).get('category') != 'test']
+
+
+def _gap_count(paths):
+    """Counter {(tier, reason): the write paths that stop at that tier for that reason}."""
+    return Counter((tier, step['reason']) for p in paths for tier, step in p['steps'].items() if step['state'] == 'gap')
+
+
 def data_paths(report, lang='ar'):
     """The section's body: {counts, tiers, stores, endpoints, paths, violations, current, target, change, src}."""
     report = Path(report)
-    access = [f for f in arch_map.facts(report, 'entrypoints', 'data_access')
-              if (f.get('value') or {}).get('category') != 'test']
+    access = _app_access(report)
     declared = _declared(report)
     owner, goes, has_target = _component_of(report)
     servers = _servers(report)
@@ -418,14 +355,14 @@ def data_paths(report, lang='ar'):
     violations = _violations(inventory, ((group_today, group_target), has_target))
 
     store_ids = sorted(stores)
-    edges_of, families = (inventory.writers_of, inventory.readers_of), (_family_store, _family_caller)
-    current, clusters = _view(edges_of, store_ids, group_today, families)
+    edges_of, families = (inventory.writers_of, inventory.readers_of), FAMILIES
+    current, clusters = view(edges_of, store_ids, group_today, families)
     target = None
     if has_target:
-        target, _ = _view(edges_of, store_ids, group_target, families,
+        target, _ = view(edges_of, store_ids, group_target, families,
                           pinned={'order': current['lanes']['store'], 'clusters': clusters})
 
-    gap_count = Counter((tier, step['reason']) for p in paths for tier, step in p['steps'].items() if step['state'] == 'gap')
+    gap_count = _gap_count(paths)
     tiers = _tiers(paths, gap_count)
     for item in endpoints.values():
         item.update(writers=sorted(item['writers']), readers=sorted(item['readers']), keys=sorted(item['keys']) or None,

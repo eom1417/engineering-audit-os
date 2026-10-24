@@ -35,14 +35,23 @@ def _state(states):
     return 'blocked' if all(s == 'blocked' for s in states) else 'todo'
 
 
+def _objects(items, needs=None):
+    """The objects of a record's list (`items` may be missing); only those with `needs` set when it is named."""
+    return [x for x in items or [] if isinstance(x, dict) and (needs is None or x.get(needs))]
+
+
 def _waits(plan):
     """{task: {earlier tasks it waits for}}: its prerequisites and, per file, the last task of an earlier wave on it."""
-    waves = sorted((w for w in plan.get('waves') or [] if isinstance(w, dict) and isinstance(w.get('wave'), int)),
-                   key=lambda w: w['wave'])
-    tasks = {t['id']: t for t in plan.get('tasks') or [] if isinstance(t, dict) and t.get('id')}
+    waves = sorted((w for w in _objects(plan.get('waves')) if isinstance(w.get('wave'), int)), key=lambda w: w['wave'])
+    tasks = {t['id']: t for t in _objects(plan.get('tasks'), 'id')}
     out, seen, last = defaultdict(set), set(), {}
-    for wave in waves: _wave_waits([tid for tid in wave.get('tasks') or [] if tid in tasks], tasks, seen, last, out)
-    return out, {tid: w['wave'] for w in waves for tid in w.get('tasks') or []}
+    for wave in waves: _wave_waits([tid for tid in _members(wave) if tid in tasks], tasks, seen, last, out)
+    return out, {tid: w['wave'] for w in waves for tid in _members(w)}
+
+
+def _members(wave):
+    """The ids of a wave's tasks."""
+    return wave.get('tasks') or []
 
 
 def _wave_waits(members, tasks, seen, last, out):
@@ -51,10 +60,15 @@ def _wave_waits(members, tasks, seen, last, out):
     for tid in members:
         for ref in tasks[tid].get('prerequisites') or []:
             if isinstance(ref, dict) and ref.get('task_id') in seen: out[tid].add(ref['task_id'])
-        out[tid] |= {last[p] for p in tasks[tid].get('paths') or [] if isinstance(p, str) and p in last}
+        out[tid] |= {last[p] for p in _paths(tasks[tid]) if p in last}
     for tid in members:
         seen.add(tid)
-        last.update({p: tid for p in tasks[tid].get('paths') or [] if isinstance(p, str)})
+        last.update({p: tid for p in _paths(tasks[tid])})
+
+
+def _paths(task):
+    """The files a task changes."""
+    return [p for p in task.get('paths') or [] if isinstance(p, str)]
 
 
 def _decisions(target):
@@ -65,6 +79,25 @@ def _decisions(target):
     return decision
 
 
+def _steps(plan):
+    """The plan's steps: in order, the step of each task, each step's rank, and the step that builds each target
+    ("build:<target>")."""
+    stones = _objects(plan.get('milestones'), 'id')
+    step_of = {t: s['id'] for s in stones for t in s.get('tasks') or []}
+    build = {str(s.get('name') or '')[len('build:'):]: s['id'] for s in stones if str(s.get('name') or '').startswith('build:')}
+    return stones, step_of, {s['id']: i for i, s in enumerate(stones)}, build
+
+
+def _job(t):
+    """A target component's responsibility, cut to 400 characters; None without one."""
+    return str((t or {}).get('responsibility') or '')[:400] or None
+
+
+def _files(c):
+    """How many files a component holds (0 when not known)."""
+    return int(c.get('files') or 0)
+
+
 class _Change:
     """The records the gaps and operations are read from: the target, the gap matrix, the plan's steps and waves, and
     the cards' states."""
@@ -72,14 +105,11 @@ class _Change:
     def __init__(self, m, card_rows, lang):
         target, plan = m['target'] or {}, m['plan'] or {}
         self.lang = lang
-        self.targets = {t['name']: t for t in target.get('target_components') or [] if isinstance(t, dict) and t.get('name')}
-        self.rows = {r.get('current_id'): r for r in m['gap_matrix'].get('rows') or target.get('gap_matrix') or [] if isinstance(r, dict)}
+        self.targets = {t['name']: t for t in _objects(target.get('target_components'), 'name')}
+        self.rows = {r.get('current_id'): r for r in _objects(m['gap_matrix'].get('rows') or target.get('gap_matrix'))}
         self.decision = _decisions(target)
         self.state = {c['id']: CARD_STATE.get(c['state'], 'todo') for c in card_rows}
-        self.stones = [s for s in plan.get('milestones') or [] if isinstance(s, dict) and s.get('id')]
-        self.step_of = {t: s['id'] for s in self.stones for t in s.get('tasks') or []}
-        self.rank = {s['id']: i for i, s in enumerate(self.stones)}
-        self.build = {str(s.get('name') or '')[len('build:'):]: s['id'] for s in self.stones if str(s.get('name') or '').startswith('build:')}
+        self.stones, self.step_of, self.rank, self.build = _steps(plan)
         self.waits, self.wave_of = _waits(plan)
 
     def cards_of(self, row):
@@ -95,50 +125,53 @@ class _Change:
             steps.insert(0 if builds else len(steps), self.build[goes_to])
         return steps
 
+    def closure(self, cards, sources):
+        """(cards done, the share of `cards` done); `sources`: where the share comes from (with cards, without any)."""
+        closed = sum(self.state[t] == 'done' for t in cards)
+        return closed, _ratio(closed, len(cards), sources[0] if cards else sources[1])
+
+    def operation(self, gap, reason, sources):
+        """The operation that closes `gap`, in the first of its steps; its state is its cards'."""
+        steps = gap['steps']
+        return {'id': gap['operations'][0], 'op': gap['operation'], 'subject': gap['component'], 'subject_kind': 'component',
+                'target': gap['to'], 'reason': reason, 'plan': 'fix', 'step': steps[0] if steps else None, 'gap': gap['id'],
+                'cards': gap['cards'], 'files': gap['files'], 'sources': sources, 'branch': None,
+                'state': _state([self.state[t] for t in gap['cards']])}
+
     def current(self, c):
         """(gap, operation or None) of one component of today: no operation when it is kept as it is."""
-        lang, state = self.lang, self.state
+        gap = self.current_gap(c)
+        if not gap['operations']: return gap, None
+        return gap, self.operation(gap, gap['reason'] or _text(self.lang, 'العلاقة بالهدف من target-architecture.json',
+                                                                'The relation to the target in target-architecture.json'), [])
+
+    def current_gap(self, c):
+        """The gap of one component of today: the operation its relation to the target asks, its cards and their cover."""
         row, op = self.rows.get(c.get('id')) or {}, OPERATION.get(c.get('relation'), 'refactor')
         cards = self.cards_of(row)
-        closed = sum(state[t] == 'done' for t in cards)
+        closed, share = self.closure(cards, ('gap-matrix.json#rows[].blocking_tasks: cards done / cards',
+                                             'gap-matrix.json#rows[].blocking_tasks is empty: no card closes this gap yet'))
         to = c.get('target_component') or row.get('target_component')
-        steps = self.steps_of(cards, to if op in ('refactor', 'rebuild') else None)
         why = str(c.get('reason') or '')[:600]
-        oid = f'{op}:{c["name"]}' if op != 'retain' else None
-        gap = {'id': c['name'], 'component': c['name'], 'operation': op, 'to': to,
-               'responsibility': (str((self.targets.get(to) or {}).get('responsibility') or '')[:400] or None),
-               'reason': why or None, 'files': int(c.get('files') or 0), 'cards': cards, 'cards_closed': closed,
-               'cover': row.get('gap') if row.get('gap') in COVER else None,
-               'steps': steps, 'operations': [oid] if oid else [], 'decision': self.decision.get(c.get('id')),
-               'closed': _ratio(closed, len(cards), 'gap-matrix.json#rows[].blocking_tasks: cards done / cards'
-                                if cards else 'gap-matrix.json#rows[].blocking_tasks is empty: no card closes this gap yet')}
-        if not oid: return gap, None
-        return gap, {'id': oid, 'op': op, 'subject': c['name'], 'subject_kind': 'component', 'target': to,
-                        'reason': why or _text(lang, 'العلاقة بالهدف من target-architecture.json', 'The relation to the target in target-architecture.json'),
-                        'plan': 'fix', 'step': steps[0] if steps else None, 'gap': c['name'], 'cards': cards, 'files': int(c.get('files') or 0),
-                        'sources': [], 'branch': None, 'state': _state([state[t] for t in cards])}
+        return {'id': c['name'], 'component': c['name'], 'operation': op, 'to': to, 'responsibility': _job(self.targets.get(to)),
+                'reason': why or None, 'files': _files(c), 'cards': cards, 'cards_closed': closed,
+                'cover': row.get('gap') if row.get('gap') in COVER else None,
+                'steps': self.steps_of(cards, to if op in ('refactor', 'rebuild') else None),
+                'operations': [f'{op}:{c["name"]}'] if op != 'retain' else [], 'decision': self.decision.get(c.get('id')), 'closed': share}
 
     def target(self, name, t, sources):
         """(gap, operation) of a target component that several of today merge into, or that nothing of today feeds."""
-        lang, state = self.lang, self.state
         op = 'merge' if sources else 'new'
         cards = sorted({card for c in sources for card in self.cards_of(self.rows.get(c.get('id')))})
-        closed = sum(state[card] == 'done' for card in cards)
-        files = sum(int(c.get('files') or 0) for c in sources)
+        closed, share = self.closure(cards, ('the cards of the components it merges: done / cards', 'no card closes this gap yet'))
         names = [c['name'] for c in sources]
-        oid, gid = f'{op}:{name}', f'target:{name}'
-        reason = (_text(lang, f'{len(names)} مكوّنات من اليوم تصبح مكوّنًا واحدًا: {"، ".join(names[:6])}' + ('…' if len(names) > 6 else ''),
+        reason = (_text(self.lang, f'{len(names)} مكوّنات من اليوم تصبح مكوّنًا واحدًا: {"، ".join(names[:6])}' + ('…' if len(names) > 6 else ''),
                         f'{len(names)} components of today become one: {", ".join(names[:6])}' + ('…' if len(names) > 6 else ''))
-                  if sources else _text(lang, 'الهدف يضيفه ولا يقابله شيء في الكود اليوم.', 'The target adds it; nothing in the code today matches it.'))
-        steps = self.steps_of(cards, name, builds=True)
-        gap = {'id': gid, 'component': name, 'operation': op, 'to': name,
-               'responsibility': str(t.get('responsibility') or '')[:400] or None, 'reason': reason, 'files': files,
-               'cards': cards, 'cards_closed': closed, 'cover': None, 'steps': steps, 'operations': [oid], 'decision': None,
-               'closed': _ratio(closed, len(cards), 'the cards of the components it merges: done / cards' if cards else
-                                'no card closes this gap yet')}
-        return gap, {'id': oid, 'op': op, 'subject': name, 'subject_kind': 'component', 'target': name, 'reason': reason,
-                     'plan': 'fix', 'step': steps[0] if steps else None, 'gap': gid, 'cards': cards, 'files': files,
-                     'sources': names, 'branch': None, 'state': _state([state[card] for card in cards])}
+                  if sources else _text(self.lang, 'الهدف يضيفه ولا يقابله شيء في الكود اليوم.', 'The target adds it; nothing in the code today matches it.'))
+        gap = {'id': f'target:{name}', 'component': name, 'operation': op, 'to': name, 'responsibility': _job(t), 'reason': reason,
+               'files': sum(_files(c) for c in sources), 'cards': cards, 'cards_closed': closed, 'cover': None,
+               'steps': self.steps_of(cards, name, builds=True), 'operations': [f'{op}:{name}'], 'decision': None, 'closed': share}
+        return gap, self.operation(gap, reason, names)
 
 
 def _link_waits(ops, waits):
@@ -155,7 +188,7 @@ def _link_waits(ops, waits):
 def change(m, card_rows, lang='ar'):
     """(gaps body, operations body), or (None, None) when the check computed no target to measure a gap against."""
     target = m['target'] or {}
-    current = [c for c in target.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
+    current = _objects(target.get('current_components'), 'name')
     if not current: return None, None
     view = _Change(m, card_rows, lang)
     feeds = defaultdict(list)

@@ -30,10 +30,16 @@ def _bar_row(area, data, y, plot, top, rtl):
         parts.append(_bar_segment(x, y, length, last, rtl, severity, f'{count} {severity} problems in {area}',
                                   f'{name} — {W[severity][side]}: {count}'))
         start += length + 2
-    words = (f'المشاكل: {data["total"]}' if rtl else f'{data["total"]} problems') if data['total'] else ('لا مشاكل' if rtl else 'none')
+    words = _problem_count(data['total'], rtl, ('لا مشاكل', 'none'))
     parts.append(svg_text((BAR_WIDTH - start - 6) if rtl else start + 6, y + BAR_HEIGHT / 2 + 5, words, 'value-label', align, rtl,
                           f' data-meaning="{esc(str(data["total"]) + " problems in " + area)}"'))
     return ''.join(parts)
+
+
+def _problem_count(count, rtl, none):
+    """A count of problems in words; `none` (Arabic, English) when there are none."""
+    if not count: return none[0] if rtl else none[1]
+    return f'المشاكل: {count}' if rtl else f'{count} problems'
 
 
 def _bar_segment(x, y, length, last, rtl, severity, meaning, words):
@@ -62,17 +68,7 @@ def squarify(items, x, y, width, height):
     scale = width * height / total
     boxes, rest = [], sorted(items, key=lambda i: -i['size'])
     while rest:
-        short = min(width, height)
-        row, best = [], float('inf')
-        for item in rest:
-            trial = row + [item]
-            area = sum(i['size'] * scale for i in trial)
-            side = area / short
-            worst = max(max(side / (i['size'] * scale / side), (i['size'] * scale / side) / side) for i in trial)
-            if worst > best: break
-            row, best = trial, worst
-        area = sum(i['size'] * scale for i in row)
-        side = area / short
+        row, side = _next_row(rest, min(width, height), scale)
         offset = 0
         for item in row:
             length = item['size'] * scale / side
@@ -85,35 +81,58 @@ def squarify(items, x, y, width, height):
     return boxes
 
 
+def _next_row(rest, short, scale):
+    """The treemap's next row along its `short` side: the largest items left while its boxes come closer to squares,
+    and the row's thickness."""
+    row, best, area = [], float('inf'), 0
+    for item in rest:
+        trial, grown = row + [item], area + item['size'] * scale
+        side = grown / short
+        worst = max(max(side / (i['size'] * scale / side), (i['size'] * scale / side) / side) for i in trial)
+        if worst > best: break
+        row, best, area = trial, worst, grown
+    return row, area / short
+
+
 def treemap(components, rtl):
     width, height = 720, 420
     parts = [f'<svg viewBox="0 0 {width} {height}" direction="ltr" role="img" class="chart map {"l-ar" if rtl else "l-en"}" '
              f'aria-label="{esc("أجزاء المشروع اليوم ملونة بكثافة المشاكل" if rtl else "Parts of the project today, coloured by problem density")}">']
-    for item, x, y, w_, h in squarify(components, 0, 0, width, height):
-        step = heat_step(item['density']) if item['problems'] else None
-        fill = HEAT[step] if step is not None else 'var(--tile-empty)'
-        ink = 'light' if step is not None and step >= 3 else 'dark'
-        name = item['short']
-        words = (f'{item["name"]} — {item["files"]} {"ملف" if rtl else "files"}، {item["problems"]} {"مشكلة" if rtl else "problems"}'
-                 if rtl else f'{item["name"]} — {item["files"]} files, {item["problems"]} problems')
-        meaning = f'{item["files"]} files and {item["problems"]} problems in {item["name"]}'
-        parts.append(f'<g class="tile" data-meaning="{esc(meaning)}"><title>{esc(words)}</title>'
-                     f'<rect x="{x + 1:.1f}" y="{y + 1:.1f}" width="{max(w_ - 2, 0):.1f}" height="{max(h - 2, 0):.1f}" rx="4" fill="{fill}"/>')
-        if w_ > 70 and h > 36:
-            limit = int((w_ - 16) / 7.4)
-            label = name if len(name) <= limit else '…' + name[-(limit - 1):]
-            edge, side = (x + w_ - 8, 'right') if rtl else (x + 8, 'left')
-            parts.append(svg_text(edge, y + 19, label, f'tile-name {ink}', side))
-            if h > 50 and w_ > 90:
-                count = (f'المشاكل: {item["problems"]}' if rtl else f'{item["problems"]} problems') if item['problems'] else ('بلا مشاكل' if rtl else 'no problems')
-                parts.append(svg_text(edge, y + 37, count, f'tile-sub {ink}', side, rtl))
-        parts.append('</g>')
+    parts += [_tile(item, (x, y, w_, h), rtl) for item, x, y, w_, h in squarify(components, 0, 0, width, height)]
     parts.append('</svg>')
     return ''.join(parts)
 
 
+def _tile(item, box, rtl):
+    """One part's tile at `box` (x, y, width, height), coloured by its problems per file."""
+    x, y, w_, h = box
+    step = heat_step(item['density']) if item['problems'] else None
+    fill = HEAT[step] if step is not None else 'var(--tile-empty)'
+    ink = 'light' if step is not None and step >= 3 else 'dark'
+    words = (f'{item["name"]} — {item["files"]} {"ملف" if rtl else "files"}، {item["problems"]} {"مشكلة" if rtl else "problems"}'
+             if rtl else f'{item["name"]} — {item["files"]} files, {item["problems"]} problems')
+    meaning = f'{item["files"]} files and {item["problems"]} problems in {item["name"]}'
+    return (f'<g class="tile" data-meaning="{esc(meaning)}"><title>{esc(words)}</title>'
+            f'<rect x="{x + 1:.1f}" y="{y + 1:.1f}" width="{max(w_ - 2, 0):.1f}" height="{max(h - 2, 0):.1f}" rx="4" fill="{fill}"/>'
+            + _tile_labels(item, box, ink, rtl) + '</g>')
+
+
+def _tile_labels(item, box, ink, rtl):
+    """A tile's name (its end, when too long) and its problems, as far as the tile has room for them."""
+    x, y, w_, h = box
+    if not (w_ > 70 and h > 36): return ''
+    name, limit = item['short'], int((w_ - 16) / 7.4)
+    label = name if len(name) <= limit else '…' + name[-(limit - 1):]
+    edge, side = (x + w_ - 8, 'right') if rtl else (x + 8, 'left')
+    out = svg_text(edge, y + 19, label, f'tile-name {ink}', side)
+    if h > 50 and w_ > 90:
+        out += svg_text(edge, y + 37, _problem_count(item['problems'], rtl, ('بلا مشاكل', 'no problems')), f'tile-sub {ink}', side, rtl)
+    return out
+
+
 LAYER_ORDER = ('pages', 'routes', 'server-entry', 'features', 'services', 'engine', 'server-domain', 'security',
                'data-access', 'infrastructure', 'config', 'lib', 'platform')
+LAYER_W, LAYER_ROW = 360, 30
 
 
 def layer_diagram(target_components, rtl):
@@ -121,18 +140,20 @@ def layer_diagram(target_components, rtl):
     for component in target_components:
         layers.setdefault(component.get('layer') or component.get('name') or '?', []).append(component)
     order = sorted(layers, key=lambda name: (LAYER_ORDER.index(name) if name in LAYER_ORDER else len(LAYER_ORDER), name))
-    width, row = 360, 30
-    parts = [f'<svg viewBox="0 0 {width} {row * len(order) + 4}" direction="ltr" role="img" class="chart layers {"l-ar" if rtl else "l-en"}" '
+    parts = [f'<svg viewBox="0 0 {LAYER_W} {LAYER_ROW * len(order) + 4}" direction="ltr" role="img" class="chart layers {"l-ar" if rtl else "l-en"}" '
              f'aria-label="{esc("طبقات البنية المستهدفة" if rtl else "Layers of the target structure")}">']
-    for index, name in enumerate(order):
-        members = layers[name]
-        counts = M.layer_counts(members)
-        files = counts['files']
-        y = index * row + 2
-        words = (f'الأجزاء: {counts["parts"]} · الملفات: {files}' if rtl else f'{counts["parts"]} parts · {files} files')
-        meaning = f'{counts["parts"]} target parts and {files} files in the {name} layer'
-        parts.append(f'<g data-meaning="{esc(meaning)}"><rect x="2" y="{y}" width="{width - 4}" height="{row - 4}" rx="4" class="layer"/>'
-                     + svg_text(width - 12 if rtl else 12, y + 18, words, 'layer-count', 'right' if rtl else 'left', rtl)
-                     + svg_text(12 if rtl else width - 12, y + 18, name, 'layer-name', 'left' if rtl else 'right') + '</g>')
+    parts += [_layer_row(name, layers[name], index * LAYER_ROW + 2, rtl) for index, name in enumerate(order)]
     parts.append('</svg>')
     return ''.join(parts)
+
+
+def _layer_row(name, members, y, rtl):
+    """One layer of the target as a band at `y`: its name, and how many parts and files it holds."""
+    width, row = LAYER_W, LAYER_ROW
+    counts = M.layer_counts(members)
+    files = counts['files']
+    words = (f'الأجزاء: {counts["parts"]} · الملفات: {files}' if rtl else f'{counts["parts"]} parts · {files} files')
+    meaning = f'{counts["parts"]} target parts and {files} files in the {name} layer'
+    return (f'<g data-meaning="{esc(meaning)}"><rect x="2" y="{y}" width="{width - 4}" height="{row - 4}" rx="4" class="layer"/>'
+            + svg_text(width - 12 if rtl else 12, y + 18, words, 'layer-count', 'right' if rtl else 'left', rtl)
+            + svg_text(12 if rtl else width - 12, y + 18, name, 'layer-name', 'left' if rtl else 'right') + '</g>')

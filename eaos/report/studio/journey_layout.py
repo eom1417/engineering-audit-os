@@ -1,5 +1,5 @@
 """The journeys' grid, pinned: screens sit on columns (clicks from the start) and rows; a screen that was on the previous
-journeys.json of this report keeps its cell, so a node keeps its place across scans and views (eaos/report/studio/journeys.py).
+journeys.json of this report keeps its cell, so a node keeps its place across scans and views (eaos/report/studio/journeys/).
 """
 from ...analysis import arch_map
 

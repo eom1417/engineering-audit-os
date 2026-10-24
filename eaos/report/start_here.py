@@ -96,12 +96,17 @@ def _path_lines(report, lang, ar):
     if 'complete' in paths: return []
     name = lambda p: PATHS[p]['names'][1 if ar else 0]
     others = [p for p in PATHS if p not in paths and p != 'complete']
-    kept = sorted(row['checked_at'] for row in (manifest.get('stages') or {}).values() if row.get('checked_at'))
-    rest = (_say(ar, f'نتائجها هنا من فحص {kept[0][:10]}.', f'their results here are those of the check of {kept[0][:10]}.') if kept else
-            _say(ar, 'لم تُفحص هذه المرة: افحص مسارها، أو الفحص الشامل، لتراها.', 'they were not checked this time: check their path, or the complete check, to see them.'))
     return ['## ' + _say(ar, 'مسار هذا الفحص', "This check's path"), '',
             _say(ar, 'تبع هذا الفحص: ', 'This check followed: ') + _say(ar, '، ', ', ').join(name(p) for p in paths) + '. '
-            + _say(ar, 'ولم ينظر في: ', 'It did not look at: ') + _say(ar, '، ', ', ').join(name(p) for p in others) + _say(ar, '؛ ', '; ') + rest, '']
+            + _say(ar, 'ولم ينظر في: ', 'It did not look at: ') + _say(ar, '، ', ', ').join(name(p) for p in others) + _say(ar, '؛ ', '; ')
+            + _not_looked_at(manifest, ar), '']
+
+
+def _not_looked_at(manifest, ar):
+    """What became of the paths a check did not look at: their results kept from an earlier check (its date), or none."""
+    kept = sorted(row['checked_at'] for row in (manifest.get('stages') or {}).values() if row.get('checked_at'))
+    return (_say(ar, f'نتائجها هنا من فحص {kept[0][:10]}.', f'their results here are those of the check of {kept[0][:10]}.') if kept else
+            _say(ar, 'لم تُفحص هذه المرة: افحص مسارها، أو الفحص الشامل، لتراها.', 'they were not checked this time: check their path, or the complete check, to see them.'))
 
 
 def _one_page_lines(report, ar):

@@ -60,17 +60,33 @@ def gallery(report):
     report = Path(report)
     body = _load(report / 'live/screens.json') or {}
     review = _load(report / 'nodes/visual_reviewer/findings.json') or {}
-    reviewed = review.get('method') == 'model'
-    clean = {_address(page) for page in review.get('clean') or []} if reviewed else set()
-    on = _findings_on(review.get('findings') or [] if reviewed else [])
-    known = {row.get('path'): row for row in body.get('pages') or [] if isinstance(row, dict)}
+    clean, on = _review(review)
+    known = _known_pages(body)
     pages = {}
     for row in body.get('rows') or []:
-        if not isinstance(row, dict) or not row.get('screenshot') or not (report / row['screenshot']).is_file(): continue
+        if not _pictured(report, row): continue
         address, kind = _address(row.get('url')), row.get('kind')      # a page as each kind of user saw it (eaos/live/roles.py)
         page = pages.get((kind, address)) or pages.setdefault((kind, address), {**_page(address, known.get(address) or {}), 'kind': kind})
         _picture(page, row, on.get(row['screenshot'], []), address in clean)
     return list(pages.values())
+
+
+def _known_pages(body):
+    """{address: what live/screens.json says of that page}."""
+    return {row.get('path'): row for row in body.get('pages') or [] if isinstance(row, dict)}
+
+
+def _review(review):
+    """(the pages the visual reviewer found clean, {picture file: its findings}); none of either unless a model
+    reviewed them."""
+    reviewed = review.get('method') == 'model'
+    clean = {_address(page) for page in review.get('clean') or []} if reviewed else set()
+    return clean, _findings_on(review.get('findings') or [] if reviewed else [])
+
+
+def _pictured(report, row):
+    """Whether a row of live/screens.json holds a picture that is in the report."""
+    return isinstance(row, dict) and bool(row.get('screenshot')) and (report / row['screenshot']).is_file()
 
 
 def _covered(report):
@@ -109,13 +125,22 @@ def screens(journeys, media=None, read=True, report=None):
     if not isinstance(journeys, dict) or not read:
         if not pages: return None
         journeys = {}
-    images = [i for i in media or [] if isinstance(i, dict) and i.get('kind') == 'screen' and i.get('route')]
+    images = _screen_images(media)
     out = [_screen(s, images, pages) for s in journeys.get('screens') or [] if s.get('kind') == 'page']
     shot = sum(1 for s in out if s['shots'])
     return {'screens': out, 'missing': _missing(out, shot), 'pages': pages,
-            'coverage': _covered(report),
-            'counts': {'screens': _count(len(out), 'screens'), 'shot': _count(shot, 'shots'),
-                       'issues': _count(sum(len(s['issues']) for s in out) if shot else None, 'issues')}}
+            'coverage': _covered(report), 'counts': _screen_counts(out, shot)}
+
+
+def _screen_images(media):
+    """The pictures of the media record that show a screen, each with its route."""
+    return [i for i in media or [] if isinstance(i, dict) and i.get('kind') == 'screen' and i.get('route')]
+
+
+def _screen_counts(out, shot):
+    """The screens, those pictured, and their issues (not measured while none is pictured)."""
+    return {'screens': _count(len(out), 'screens'), 'shot': _count(shot, 'shots'),
+            'issues': _count(sum(len(s['issues']) for s in out) if shot else None, 'issues')}
 
 
 def _shot(image):
@@ -135,15 +160,18 @@ def _issues(pages):
     automatic checks of the picture failed (overflow, clipped text, small targets, page errors, accessibility)."""
     out = {}
     for picture in (picture for page in pages for picture in page['pictures']):
-        for finding in picture['findings']:
-            out.setdefault(finding.get('id') or finding.get('title'), {
-                'id': str(finding.get('id') or finding.get('title')), 'rule': finding.get('kind') or 'design',
-                'severity': finding.get('severity') if finding.get('severity') in SEVERITIES else 'medium',
-                'summary': finding.get('title') or '', 'width': picture.get('width'), 'box': None, 'state': 'open'})
+        for finding in picture['findings']: out.setdefault(finding.get('id') or finding.get('title'), _finding_issue(finding, picture))
         for check in picture['checks']:
             out.setdefault(check, {'id': check[:80], 'rule': check.split(':', 1)[0], 'severity': 'medium', 'summary': check,
                                    'width': picture.get('width'), 'box': None, 'state': 'open'})
     return list(out.values())
+
+
+def _finding_issue(finding, picture):
+    """An issue of a screen from what the visual reviewer found on one of its pictures."""
+    return {'id': str(finding.get('id') or finding.get('title')), 'rule': finding.get('kind') or 'design',
+            'severity': finding.get('severity') if finding.get('severity') in SEVERITIES else 'medium',
+            'summary': finding.get('title') or '', 'width': picture.get('width'), 'box': None, 'state': 'open'}
 
 
 def _missing(out, shot):
