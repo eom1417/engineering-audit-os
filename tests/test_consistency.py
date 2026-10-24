@@ -22,8 +22,9 @@ class Consistency(unittest.TestCase):
         for command, flags in set(re.findall(r'eaos (check|start|fix)((?: --[a-z-]+(?: \$\{[^}]+\}| [a-z]+)?)+)', console)):
             known = subprocess.run([sys.executable, '-m', 'eaos', command, '--help'], capture_output=True, text=True).stdout
             for flag in re.findall(r'--[a-z-]+', flags): self.assertIn(flag, known, f'the Studio copies eaos {command} {flag}')
-        words = ''.join(p.read_text() for p in (ROOT / 'console/src/words').glob('*.js'))
-        self.assertEqual([s for s in ORDER if f"'ac.stage.{s}'" not in words], [], 'a stage with no title')
+        stages = json.loads((ROOT / 'eaos/data/words.json').read_text())['stages']
+        self.assertEqual([s for s in ORDER if s not in stages], [], 'a stage with no words')
+        self.assertEqual([s for s in stages if s not in ORDER], [], 'words of a stage that is gone')
         contract = json.loads((ROOT / 'docs/studio-actions.json').read_text())
         enum = next(a for a in contract['actions'] if a['id'] == 'run_nodes')['inputs']['properties']['nodes']['items']['enum']
         self.assertEqual(set(enum), {n.name for n in NODES}, 'a node the AI cannot run')

@@ -1,0 +1,913 @@
+{
+ "about": "The one words catalog (M3.5): every word that names a concept of EAOS, in Arabic then English, read by the engine (eaos/core/words.py) and built into the Studio (console/scripts/build.mjs). A concept keeps each form its readers need beside the others: a stage's title (the Studio's list), what it does, and what EAOS says while doing it (the terminal's progress); a kind of problem's name for one card, for a group of them, and why it matters. A sentence that composes values stays beside the code that composes it.",
+ "stages": {
+  "facts": {
+   "title": [
+    "يقرأ الكود",
+    "Read the code"
+   ],
+   "does": [
+    "يعدّ كل ملف ولغته وحجمه. كل مرحلة بعده تقرأ هذه الحقائق.",
+    "Lists every file, its language and size. Every later stage reads these facts."
+   ],
+   "doing": [
+    "أقرأ كل ملفات المشروع",
+    "Reading every file of the project"
+   ]
+  },
+  "features": {
+   "title": [
+    "يجد الميزات",
+    "Find the features"
+   ],
+   "does": [
+    "يجد ما يعلنه الكود: الصفحات ومسارات الخادم وصفحة الدخول.",
+    "Finds what the code declares: pages, server routes and the sign-in."
+   ],
+   "doing": [
+    "أتعرف على وظائف البرنامج",
+    "Finding the app's features"
+   ]
+  },
+  "roles": {
+   "title": [
+    "يجد أنواع المستخدمين",
+    "Find the kinds of users"
+   ],
+   "does": [
+    "يقرأ مساعدك من الكود أنواع المستخدمين (الإدارة، الدعم، العميل...) وصفحات كل نوع، فيُفتح برنامجك بكل نوع منها.",
+    "Your assistant reads the kinds of users from the code (admin, support, a customer...) and each one's pages, so your app is opened as each."
+   ],
+   "doing": [
+    "أتعرف على أنواع مستخدمي برنامجك وصفحات كل نوع",
+    "Finding the kinds of your app's users and each one's pages"
+   ]
+  },
+  "intake": {
+   "title": [
+    "يقرأ وثائقك وخططك",
+    "Read your documents and plans"
+   ],
+   "does": [
+    "يقرأ وثائق المشروع وخطط المالك ليعرف ما يُراد منه.",
+    "Reads the project's documents and the owner's plans to learn what it is meant to do."
+   ],
+   "doing": [
+    "أتعرف على نوع المشروع",
+    "Working out what kind of project this is"
+   ]
+  },
+  "engines": {
+   "title": [
+    "يشغّل أدوات التحليل",
+    "Run the analysis tools"
+   ],
+   "does": [
+    "يشغّل الأدوات الخارجية على الكود: الأسرار والثغرات والتراخيص والتعقيد والتكرار.",
+    "Runs the outside tools on the code: secrets, vulnerabilities, licences, complexity and duplication."
+   ],
+   "doing": [
+    "أشغّل أدوات الفحص",
+    "Running the checking tools"
+   ]
+  },
+  "setup": {
+   "title": [
+    "يجهّز تشغيل برنامجك",
+    "Prepare your app to run"
+   ],
+   "does": [
+    "يجهّز نسخة معزولة: قاعدة بيانات مؤقتة، بلا أسرار، ولا يصل شيء إلى الإنترنت.",
+    "Prepares an isolated copy: a temporary database, no secrets, nothing reaches the internet."
+   ],
+   "doing": [
+    "أشغّل برنامجك في نسخة منفصلة",
+    "Starting your app in a separate copy"
+   ]
+  },
+  "verify": {
+   "title": [
+    "يشغّل اختبارات مشروعك",
+    "Run your project's tests"
+   ],
+   "does": [
+    "يشغّل اختبارات مشروعك نفسه في نسخته المعزولة: هل تنجح، وما الذي تصل إليه من الكود وما الذي تفوته.",
+    "Runs your project's own tests in its isolated copy: whether they pass, and what code they reach and miss."
+   ],
+   "doing": [
+    "أشغّل اختبارات المشروع إن طُلب",
+    "Running the project's tests, if asked"
+   ]
+  },
+  "session": {
+   "title": [
+    "يجهّز دخولًا تجريبيًا",
+    "Prepares a test sign-in"
+   ],
+   "does": [
+    "ينشئ مساعدك مستخدمًا تجريبيًا لكل نوع من مستخدمي برنامجك داخل النسخة المعزولة ويدخل به. إن لم ينجح خلال 5 دقائق، يطلب منك أن تدخل بيدك.",
+    "Your assistant makes a test user of each kind of user of your app inside the isolated copy and signs in with it. If it has not worked within 5 minutes, it asks you to sign in by hand."
+   ],
+   "doing": [
+    "أجهّز دخولًا تجريبيًا إلى برنامجك",
+    "Preparing a test sign-in to your app"
+   ]
+  },
+  "crawl": {
+   "title": [
+    "يزور كل صفحة",
+    "Visit every page"
+   ],
+   "does": [
+    "يتبع كل رابط داخل برنامجك.",
+    "Follows every link inside your app."
+   ],
+   "doing": [
+    "أكتشف كل صفحات برنامجك وأقيس كل وحدة",
+    "Finding every page of your app and measuring each"
+   ]
+  },
+  "lock": {
+   "title": [
+    "يكتب ما يفعله برنامجك اليوم",
+    "Write what your app does today"
+   ],
+   "does": [
+    "يكتب لكل ميزة اختبارًا يصف ما تفعله اليوم، فيُحكم به على كل إصلاح.",
+    "Writes for each feature a test of what it does today, which every fix is judged by."
+   ],
+   "doing": [
+    "أجهّز اختبارات الشاشات",
+    "Preparing screen checks"
+   ]
+  },
+  "record": {
+   "title": [
+    "يسجّل برنامجك",
+    "Record your app"
+   ],
+   "does": [
+    "يسجّل كل شاشة قبل أي تغيير.",
+    "Records every screen before any change."
+   ],
+   "doing": [
+    "أسجّل سلوك برنامجك الحالي",
+    "Recording your app's behaviour today"
+   ]
+  },
+  "journeys": {
+   "title": [
+    "يتبع رحلات المستخدم",
+    "Follow the users' journeys"
+   ],
+   "does": [
+    "يتبع المهام الرئيسية من أول شاشة.",
+    "Follows the main tasks from the first screen."
+   ],
+   "doing": [
+    "أسجّل رحلات المستخدم في برنامجك لتُعاد في التقرير",
+    "Recording your app's user journeys, to replay in the report"
+   ]
+  },
+  "screens": {
+   "title": [
+    "يصوّر الشاشات",
+    "Picture the screens"
+   ],
+   "does": [
+    "يصوّر كل شاشة بعرض الهاتف وعرض الحاسوب.",
+    "Pictures each screen at phone and desktop width."
+   ],
+   "doing": [
+    "أصوّر صفحات برنامجك وأفحص وضوحها وسرعتها",
+    "Picturing your app's pages and checking their accessibility and speed"
+   ]
+  },
+  "baseline": {
+   "title": [
+    "يقيس تحت الضغط",
+    "Measure under load"
+   ],
+   "does": [
+    "يشغّل برنامجك تحت ضغط ويقيس سرعته. جزء من مسار «السرعة والتحمل».",
+    "Runs your app under load and measures its speed. Part of the \"Speed and scale\" path."
+   ],
+   "doing": [
+    "أقيس سرعة برنامجك تحت ضغط مستخدمين كثيرين",
+    "Measuring your app's speed under many users"
+   ]
+  },
+  "readiness": {
+   "title": [
+    "جاهزية التشغيل الفعلي",
+    "Production readiness"
+   ],
+   "does": [
+    "ينظر في فحوص الصحة والإعدادات والسجلات.",
+    "Looks at health checks, configuration and logs."
+   ],
+   "doing": [
+    "أقيس جاهزيته تحت الضغط",
+    "Measuring its readiness under pressure"
+   ]
+  },
+  "measure": {
+   "title": [
+    "يقيس الكود",
+    "Measure the code"
+   ],
+   "does": [
+    "يقيس حجم كل ملف وتعقيده وتكراره.",
+    "Measures each file's size, complexity and duplication."
+   ],
+   "doing": [
+    "أقيس حجم وتعقيد الكود",
+    "Measuring size and complexity"
+   ]
+  },
+  "architecture": {
+   "title": [
+    "يرسم البنية",
+    "Map the structure"
+   ],
+   "does": [
+    "يجد المكوّنات والطبقات ومن يستورد من.",
+    "Finds the components, the layers and who imports whom."
+   ],
+   "doing": [
+    "أرسم خريطة البنية: المدينة ومجموعات الكود",
+    "Drawing the architecture map: the city and the code clusters"
+   ]
+  },
+  "policy": {
+   "title": [
+    "يطابق قواعد المشروع",
+    "Match the project's rules"
+   ],
+   "does": [
+    "يقارن الكود بقواعد المشروع نفسه: الطبقات والاستيرادات الممنوعة.",
+    "Compares the code with the project's own rules: layers and forbidden imports."
+   ],
+   "doing": [
+    "أراجع ترتيب الطبقات",
+    "Checking the layering"
+   ]
+  },
+  "load": {
+   "title": [
+    "الكلفة لو زاد الاستخدام",
+    "Cost at 1000 times the use"
+   ],
+   "does": [
+    "يقدّر كلفة كل نقطة دخول لو زاد الاستخدام 1000 مرة.",
+    "Estimates the cost of each entry point at 1000 times the use."
+   ],
+   "doing": [
+    "أقدّر السلوك مع كثرة المستخدمين",
+    "Estimating behaviour under many users"
+   ]
+  },
+  "claims": {
+   "title": [
+    "يجمع الملاحظات",
+    "Collect the findings"
+   ],
+   "does": [
+    "يحوّل ما قالته الأدوات إلى ملاحظات مؤكدة، لكل واحدة دليلها.",
+    "Turns what the tools said into checked findings, each with its evidence."
+   ],
+   "doing": [
+    "أجمع المشاكل بأدلتها",
+    "Collecting problems with their evidence"
+   ]
+  },
+  "probe": {
+   "title": [
+    "يفحص الأماكن الخطرة",
+    "Probe the risky places"
+   ],
+   "does": [
+    "فحوص موجهة لما أشارت إليه الأدوات.",
+    "Runs targeted checks on what the tools flagged."
+   ],
+   "doing": [
+    "أتحقق من كل مشكلة",
+    "Double-checking every problem"
+   ]
+  },
+  "sustainability": {
+   "title": [
+    "سهولة التوسع",
+    "How easily it grows"
+   ],
+   "does": [
+    "ينظر في الاختبارات والتشابك وتاريخ التغييرات.",
+    "Looks at the tests, the coupling and the history of changes."
+   ],
+   "doing": [
+    "أقيس صحة البنية",
+    "Measuring structural health"
+   ]
+  },
+  "transform": {
+   "title": [
+    "يجهّز القراءة",
+    "Prepare the reading"
+   ],
+   "does": [
+    "يجمع الحقائق في نموذج واحد تقرؤه المراحل التالية.",
+    "Joins the facts into one model the next stages read."
+   ],
+   "doing": [
+    "أخطط للتحسينات",
+    "Planning the improvements"
+   ]
+  },
+  "semantic": {
+   "title": [
+    "يقرأ معنى الكود",
+    "Read what the code means"
+   ],
+   "does": [
+    "يقرأ مساعدك ما يفعله كل جزء، بكلام بسيط.",
+    "Your assistant reads what each part does, in plain words."
+   ],
+   "doing": [
+    "مساعدك الذكي يقرأ الحقائق ويفسّرها",
+    "Your AI assistant reads the facts and interprets them"
+   ]
+  },
+  "plan": {
+   "title": [
+    "يكتب مسودة الخطة",
+    "Draft the fix plan"
+   ],
+   "does": [
+    "يضع المشاكل في خطوات تُصلح بالترتيب.",
+    "Puts the problems into steps fixed in order."
+   ],
+   "doing": [
+    "أكتب مهام الإصلاح",
+    "Writing the fix tasks"
+   ]
+  },
+  "target": {
+   "title": [
+    "يرسم الهدف",
+    "Draw the target"
+   ],
+   "does": [
+    "يرسم ما يجب أن يصيره المشروع، من القواعد.",
+    "Draws what the project should become, from the rules."
+   ],
+   "doing": [
+    "أرسم البنية المثالية",
+    "Drawing the ideal structure"
+   ]
+  },
+  "proposals": {
+   "title": [
+    "يقترح التغييرات",
+    "Propose the changes"
+   ],
+   "does": [
+    "لكل فجوة: التغيير الذي يغلقها.",
+    "For each gap: the change that closes it."
+   ],
+   "doing": [
+    "أجهّز اقتراحات الأدوات لمساعدك",
+    "Preparing the tools' proposals for your assistant"
+   ]
+  },
+  "triage": {
+   "title": [
+    "يفرز المشاكل",
+    "Sort the problems"
+   ],
+   "does": [
+    "يقرّر مساعدك ما يصلحه بنفسه وما يحتاجك.",
+    "Your assistant decides what it fixes itself and what needs you."
+   ],
+   "doing": [
+    "مساعدك الذكي يراجع كل بطاقة بدليلها",
+    "Your AI assistant reviews every card against its evidence"
+   ]
+  },
+  "visual": {
+   "title": [
+    "يراجع الشاشات",
+    "Review the screens"
+   ],
+   "does": [
+    "يراجع مساعدك كل صفحة: الزحام والوضوح وسهولة الاستخدام.",
+    "Your assistant reviews each page: crowding, clarity and accessibility."
+   ],
+   "doing": [
+    "مساعدك الذكي يشوف صور شاشات برنامجك ويحكم على تصميمها",
+    "Your AI assistant looks at your app's screens and judges their design"
+   ]
+  },
+  "cards": {
+   "title": [
+    "يكتب المشاكل",
+    "Write the problems"
+   ],
+   "does": [
+    "يكتب كل مشكلة بلغتك مع دليلها ومكانها.",
+    "Writes each problem in your language, with its evidence and place."
+   ],
+   "doing": [
+    "أبقي البطاقات المؤكدة في الخطة",
+    "Keeping the confirmed cards in the plan"
+   ]
+  },
+  "ideal": {
+   "title": [
+    "يخطّط الهدف المثالي",
+    "Plan the ideal target"
+   ],
+   "does": [
+    "يخطّط مساعدك الهدف المثالي فوق هدف القواعد، وكل عنصر بدليله.",
+    "Your assistant plans the ideal on top of the rules' target, each element with its evidence."
+   ],
+   "doing": [
+    "مساعدك الذكي يحكم على البنية المقترحة",
+    "Your AI assistant judges the proposed structure"
+   ]
+  },
+  "pipeline_gaps": {
+   "title": [
+    "يجد فجوات خطوط المعالجة",
+    "Find the pipeline gaps"
+   ],
+   "does": [
+    "يقارن خطوط المعالجة بصورتها المثالية.",
+    "Compares the pipelines with their ideal form."
+   ],
+   "doing": [
+    "مساعدك الذكي يخطّط سد فجوات المسارات",
+    "Your AI assistant plans how to close the pipeline gaps"
+   ]
+  },
+  "reconcile": {
+   "title": [
+    "يوفّق بين القواعد ومساعدك",
+    "Reconcile the rules and your assistant"
+   ],
+   "does": [
+    "حين يختلفان يسجّل الرأيين، ويسألك إن لزم.",
+    "When they disagree it records both views, and asks you if needed."
+   ],
+   "doing": [
+    "أثبّت البنية المستهدفة النهائية ومن قرّر كل جزء",
+    "Settling the final target and who decided each part"
+   ]
+  },
+  "order": {
+   "title": [
+    "يرتّب الإصلاحات",
+    "Order the fixes"
+   ],
+   "does": [
+    "يرتّب مساعدك الخطوات: ما ينتظر ماذا.",
+    "Your assistant orders the steps: what waits for what."
+   ],
+   "doing": [
+    "مساعدك الذكي يرتّب خطة العمل",
+    "Your AI assistant orders the plan"
+   ]
+  },
+  "steps": {
+   "title": [
+    "يجمعها في خطوات",
+    "Group into steps"
+   ],
+   "does": [
+    "يجمع المشاكل في خطوات ودفعات.",
+    "Groups the problems into steps and batches."
+   ],
+   "doing": [
+    "أثبّت ترتيب الخطة",
+    "Settling the plan's order"
+   ]
+  },
+  "reports": {
+   "title": [
+    "يكتب التقرير",
+    "Write the report"
+   ],
+   "does": [
+    "يكتب التقرير ووثائقه.",
+    "Writes the report and its documents."
+   ],
+   "doing": [
+    "أكتب التقارير",
+    "Writing the reports"
+   ]
+  },
+  "translate": {
+   "title": [
+    "يترجم",
+    "Translate"
+   ],
+   "does": [
+    "يترجم التقرير ووثائقه إلى لغتك.",
+    "Translates the report and its documents into your language."
+   ],
+   "doing": [
+    "أكتب كل وثيقة بالعربي والإنجليزي",
+    "Writing every document in Arabic and in English"
+   ]
+  }
+ },
+ "paths": {
+  "complete": {
+   "name": [
+    "شامل",
+    "Complete"
+   ],
+   "looks_at": [
+    "كل المسارات معًا: الفحص كامل",
+    "Every path, together: the whole check"
+   ]
+  },
+  "security": {
+   "name": [
+    "الأمان",
+    "Security"
+   ],
+   "looks_at": [
+    "الأسرار المكشوفة، والثغرات، والمكتبات وتراخيصها، والإعدادات الخطرة، وثغرات الصلاحيات",
+    "Exposed secrets, vulnerabilities, dependencies and their licences, dangerous settings, access gaps"
+   ]
+  },
+  "look": {
+   "name": [
+    "الشكل والشاشات",
+    "Look and screens"
+   ],
+   "looks_at": [
+    "الشاشات، وسهولة الاستخدام، وسرعة الصفحات، ومراجعة التصميم، ورحلات المستخدم",
+    "The app's screens, their accessibility and speed, the design review, users' journeys"
+   ]
+  },
+  "code": {
+   "name": [
+    "الكود",
+    "Code"
+   ],
+   "looks_at": [
+    "البنية والطبقات، والتشابك، والتعقيد، والتكرار، والكود الميت، والاختبارات، وسهولة التوسع",
+    "Structure and layers, cycles and coupling, complexity, duplication, dead code, the tests, how easily it grows"
+   ]
+  },
+  "speed": {
+   "name": [
+    "السرعة والتحمل",
+    "Speed and scale"
+   ],
+   "looks_at": [
+    "البرنامج تحت الضغط، وكلفة كل نقطة دخول لو زاد الاستخدام 1000 مرة، والمسارات الساخنة، وجاهزية التشغيل الفعلي",
+    "The app under load, the cost of each entry at 1000 times the use, the hot paths, production readiness"
+   ]
+  }
+ },
+ "kinds": {
+  "broken_code": {
+   "one": [
+    "كود معطّل",
+    "Broken code"
+   ],
+   "group": [
+    "كود مكسور",
+    "Broken code"
+   ],
+   "why": [
+    "أجزاء ستفشل أول مرة تُستخدم: استيراد لملف غير موجود، أو أمر في التوثيق لم يعد موجودًا.",
+    "Parts that will fail the first time they run: an import of a missing file, or a documented command that no longer exists."
+   ]
+  },
+  "access_gap": {
+   "one": [
+    "بيانات مكشوفة",
+    "Exposed data"
+   ],
+   "group": [
+    "بيانات مكشوفة",
+    "Exposed data"
+   ],
+   "why": [
+    "بيانات المستخدمين يمكن قراءتها أو تعديلها من غير أصحابها.",
+    "Users' data can be read or changed by people who do not own it."
+   ]
+  },
+  "security_weakness": {
+   "one": [
+    "ضعف أمني",
+    "Security weakness"
+   ],
+   "group": [
+    "ثغرات أمان في الكود",
+    "Security weaknesses in the code"
+   ],
+   "why": [
+    "مواضع في كود مشروعك قد يستغلها أحد: أمر أو استعلام يُبنى من مدخل، أو سر مكتوب في الكود.",
+    "Places in your code someone may exploit: a command or query built from input, or a secret written in the code."
+   ]
+  },
+  "upgrade_dependency": {
+   "one": [
+    "اعتمادية قديمة",
+    "An outdated dependency"
+   ],
+   "group": [
+    "مكتبات فيها ثغرات معروفة",
+    "Libraries with known security holes"
+   ],
+   "why": [
+    "مكتبات يستخدمها مشروعك فيها ثغرات أمنية منشورة، ولها إصدار مُصلَح.",
+    "Libraries your project uses have published security holes, and a fixed version exists."
+   ]
+  },
+  "load_blocker": {
+   "one": [
+    "بطء مع كثرة المستخدمين",
+    "A slowdown as users grow"
+   ],
+   "group": [
+    "بطء متوقع مع كثرة المستخدمين",
+    "Slowdowns as users grow"
+   ],
+   "why": [
+    "أماكن تزيد كلفتها كلما زاد المستخدمون أو البيانات.",
+    "Places whose cost grows with more users or more data."
+   ]
+  },
+  "redundant_work": {
+   "one": [
+    "عمل مكرر بلا داعٍ",
+    "Needless repeated work"
+   ],
+   "group": [
+    "عمل مكرر بلا داعٍ",
+    "Needless repeated work"
+   ],
+   "why": [
+    "البرنامج يطلب الشيء نفسه أكثر من مرة، فيبطئ ويكلّف.",
+    "The app asks for the same thing more than once, which is slower and costs more."
+   ]
+  },
+  "import_cycle": {
+   "one": [
+    "ملفات متشابكة",
+    "Tangled files"
+   ],
+   "group": [
+    "ملفات متشابكة",
+    "Tangled files"
+   ],
+   "why": [
+    "ملفات يعتمد كل منها على الآخر، فلا يمكن تعديل واحد دون الآخر.",
+    "Files that depend on each other in a loop, so none can change alone."
+   ]
+  },
+  "duplicated_rule": {
+   "one": [
+    "قاعدة مكتوبة مرتين",
+    "A rule written twice"
+   ],
+   "group": [
+    "قاعدة مكتوبة في أكثر من مكان",
+    "One rule written in several places"
+   ],
+   "why": [
+    "القاعدة نفسها مكتوبة مرتين، وأول تعديل يجعل النسختين تختلفان.",
+    "The same rule is written twice, and the first change makes the copies disagree."
+   ]
+  },
+  "mutable_state": {
+   "one": [
+    "حالة مشتركة تتغيّر",
+    "Shared state that changes"
+   ],
+   "group": [
+    "بيانات مشتركة يعدلها أكثر من طرف",
+    "Shared values changed from many places"
+   ],
+   "why": [
+    "قيم يغيّرها أكثر من جزء، فتختلف النتيجة حسب الترتيب.",
+    "Values changed by several parts, so results depend on the order things run."
+   ]
+  },
+  "mutable_state_private": {
+   "one": [
+    "حالة تتغيّر أثناء التشغيل",
+    "State that changes while running"
+   ],
+   "group": [
+    "قيم داخلية تتغير أثناء التشغيل",
+    "Private values changed while running"
+   ],
+   "why": [
+    "قيم يملكها ملف واحد ويغيّرها من دواله فقط: آمنة ما دامت نسخة واحدة من البرنامج تعمل، وتحتاج قرارًا إن شُغّلت نسختان.",
+    "Values one file owns and changes only through its own functions: safe while one copy of the program runs, a decision once two copies do."
+   ]
+  },
+  "hidden_coupling": {
+   "one": [
+    "ارتباط خفي",
+    "A hidden link"
+   ],
+   "group": [
+    "ارتباطات خفية",
+    "Hidden links"
+   ],
+   "why": [
+    "ملفات تتغير معًا دائمًا دون أن يظهر في الكود ما يربطها.",
+    "Files that always change together, with nothing in the code that shows why."
+   ]
+  },
+  "hotspot": {
+   "one": [
+    "دالة معقدة",
+    "Complex function"
+   ],
+   "group": [
+    "أجزاء معقدة جدًا",
+    "Very complex parts"
+   ],
+   "why": [
+    "دوال كبيرة يمر بها كل تعديل، فيصعب فهمها ويسهل كسرها.",
+    "Large functions every change goes through: hard to understand, easy to break."
+   ]
+  },
+  "split_module": {
+   "one": [
+    "ملف كبير",
+    "Oversized file"
+   ],
+   "group": [
+    "ملفات ضخمة",
+    "Oversized files"
+   ],
+   "why": [
+    "ملفات تحمل أكثر من مسؤولية: يصعب فهمها، وتكبر مع كل ميزة.",
+    "Files that hold several responsibilities: hard to read, and they grow with every feature."
+   ]
+  },
+  "canonicalize": {
+   "one": [
+    "تعريف مكرّر",
+    "A definition written twice"
+   ],
+   "group": [
+    "كود منسوخ",
+    "Copied code"
+   ],
+   "why": [
+    "المنطق نفسه منسوخ في أكثر من ملف.",
+    "The same logic is copied into several files."
+   ]
+  },
+  "remove_dead": {
+   "one": [
+    "كود ميت",
+    "Dead code"
+   ],
+   "group": [
+    "كود ميت",
+    "Dead code"
+   ],
+   "why": [
+    "كود لا يستخدمه أحد: يثقل القراءة والصيانة.",
+    "Code nothing uses: it makes reading and changing the project harder."
+   ]
+  },
+  "dead_code": {
+   "one": [
+    "كود ميت",
+    "Dead code"
+   ],
+   "group": [
+    "كود ميت",
+    "Dead code"
+   ],
+   "why": [
+    "كود لا يستخدمه أحد: يثقل القراءة والصيانة.",
+    "Code nothing uses: it makes reading and changing the project harder."
+   ]
+  },
+  "trace_gap": {
+   "one": [
+    "مسار غير مفهوم",
+    "An unclear path"
+   ],
+   "group": [
+    "مسارات غير مفهومة",
+    "Unclear paths"
+   ],
+   "why": [
+    "نقاط دخول لا يتضح من الكود ماذا تفعل.",
+    "Entry points whose behaviour is not clear from the code."
+   ]
+  },
+  "untested_path": {
+   "one": [
+    "مسار بلا اختبار",
+    "Untested path"
+   ],
+   "group": [
+    "أجزاء بلا اختبار",
+    "Untested parts"
+   ],
+   "why": [
+    "أجزاء يمكن أن تتغير دون أن يلاحظ أي اختبار.",
+    "Parts that can change without any test noticing."
+   ]
+  },
+  "external_write": {
+   "one": [
+    "تعديل من خارج المالك",
+    "A change from outside the owner"
+   ],
+   "group": [
+    "تعديل من خارج المالك",
+    "Changes from outside the owner"
+   ],
+   "why": [
+    "جزء يعدّل بيانات يملكها جزء آخر.",
+    "One part changes data another part owns."
+   ]
+  },
+  "policy_violation": {
+   "one": [
+    "مخالفة للبنية المعلنة",
+    "Breaks the declared structure"
+   ],
+   "group": [
+    "مخالفة للبنية المعلنة",
+    "Breaks the declared structure"
+   ],
+   "why": [
+    "استيراد يخالف ترتيب الطبقات الذي أعلنه المشروع.",
+    "An import that breaks the layering the project declared."
+   ]
+  },
+  "design_review": {
+   "one": [
+    "مراجعة تصميم",
+    "Design review"
+   ],
+   "group": [
+    "ملاحظات على شكل الشاشات",
+    "Notes on how the screens look"
+   ],
+   "why": [
+    "أشياء رآها مساعدك في صور شاشات برنامجك: زحمة، أو نص غير واضح، أو عنصر خارج مكانه. تحتاج نظرة قبل أي تعديل.",
+    "Things your assistant saw in pictures of your screens: crowding, hard-to-read text, something out of place. Look before changing anything."
+   ]
+  },
+  "investigation": {
+   "one": [
+    "تحتاج تحقيقًا",
+    "Needs investigation"
+   ],
+   "group": [
+    "أسئلة تحتاج تحققًا",
+    "Questions to check"
+   ],
+   "why": [
+    "احتمالات لاحظها مساعدك ولم يثبتها القياس بعد: تُفحص ويُسجَّل قرار، وقد لا تحتاج تعديلًا.",
+    "Possibilities your assistant noticed that no measurement has proven yet: checked, then decided, and maybe no change."
+   ]
+  },
+  "generic": {
+   "one": [
+    "مشكلة عامة",
+    "A general problem"
+   ],
+   "group": [
+    "ملاحظات أخرى",
+    "Other notes"
+   ],
+   "why": [
+    "ملاحظات تحتاج نظرة شخص قبل أي تغيير.",
+    "Notes a person should look at before any change."
+   ]
+  },
+  "extend_feature": {
+   "one": [
+    "ميزة تحتاج إكمالًا",
+    "A feature to complete"
+   ],
+   "group": [
+    "ميزات تحتاج إكمالًا",
+    "Features to complete"
+   ],
+   "why": [
+    "ميزة طلبتها ولم تُبنَ بعد كاملة: بطاقاتها في الخطة.",
+    "A feature you asked for that is not built in full yet: its cards are in the plan."
+   ]
+  }
+ }
+}
