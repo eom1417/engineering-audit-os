@@ -1,4 +1,4 @@
-"""The look, drawn and reviewed at almost no tokens: free pinned design libraries (upstreams/toolchain.json, stage S06)
+"""The look, drawn and reviewed at almost no tokens: free pinned design libraries (eaos/data/toolchain.json, stage S06)
 held to one EAOS standard (eaos/data/design.json). The assistant spends its judgement on taste only: it reads the
 sources, picks or blends a direction, and writes the result as one DESIGN.md (Google Stitch's format). A build turns it
 into design tokens and shadcn/ui components; a check's screen review judges every page against it (the redesign of an

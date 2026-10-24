@@ -1,7 +1,7 @@
 """What every adapter of an installed command-line tool shares: its pin, its version, and the two ways it
 can decline to run (not installed; nothing in this project for it to read).
 
-The pin lives in upstreams/toolchain.json and nowhere else; `eaos tools install` puts the binary where
+The pin lives in eaos/data/toolchain.json and nowhere else; `eaos tools install` puts the binary where
 eaos.engines.process.which looks first.
 """
 import re

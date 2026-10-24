@@ -214,7 +214,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 ## الأدوات
 
 ينسّق EAOS ولا يعيد البناء: 36 أداة مفتوحة المصدر ومكتبات تصميم مجانية، لكل منها إصدار مثبّت ببصمته ورخصته
-([`upstreams/toolchain.json`](upstreams/toolchain.json)، [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
+([`eaos/data/toolchain.json`](eaos/data/toolchain.json)، [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | المجال | الأدوات |
 |---|---|

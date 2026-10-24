@@ -202,7 +202,7 @@ EAOS treats your project as untrusted input, and your decisions as final.
 ## The toolchain
 
 EAOS orchestrates rather than rebuilds: 36 open-source tools and free design libraries, each at a pinned version with its checksum and licence
-([`upstreams/toolchain.json`](upstreams/toolchain.json), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
+([`eaos/data/toolchain.json`](eaos/data/toolchain.json), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | Area | Tools |
 |---|---|

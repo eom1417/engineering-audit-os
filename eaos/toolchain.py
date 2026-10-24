@@ -1,6 +1,6 @@
 """Every external tool at its pinned version, installed without root, and checked by one command.
 
-upstreams/toolchain.json is the only list. `install` puts each tool under $EAOS_ENGINE_TOOLS (default
+eaos/data/toolchain.json is the only list (install, the engines stage and the pages read it). `install` puts each tool under $EAOS_ENGINE_TOOLS (default
 ~/.eaos/tools): a release is downloaded and accepted only if its sha256 matches the pinned one,
 a Python tool goes into that directory's own virtualenv, a Node tool into its own prefix; every executable
 is linked into bin/. `doctor` reports, per tool, whether the binary is there and at the pinned version.
@@ -33,9 +33,7 @@ from pathlib import Path
 
 from . import progress
 
-# upstreams/toolchain.json, else its packaged mirror (tools/validate.py keeps them identical; an installed EAOS has no upstreams/)
-_SOURCE = Path(__file__).resolve().parent.parent / 'upstreams/toolchain.json'
-REGISTRY = _SOURCE if _SOURCE.is_file() else Path(__file__).resolve().parent / 'data/toolchain.json'
+REGISTRY = Path(__file__).resolve().parent / 'data/toolchain.json'
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
 FLOW = 'tools'
 # Tools installed at once: the downloads overlap, and a 4 GB computer copes with three npm installs side by side
@@ -76,7 +74,7 @@ RULES = {
 
 
 def rule_applies(rule, files):
-    """Whether a tool's `applies` rule (upstreams/toolchain.json) holds for a project's files."""
+    """Whether a tool's `applies` rule (eaos/data/toolchain.json) holds for a project's files."""
     test = RULES.get(rule)
     return bool(test(files)) if test else False
 

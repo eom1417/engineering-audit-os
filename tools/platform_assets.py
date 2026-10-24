@@ -1,6 +1,6 @@
 """Pin every released tool for each computer EAOS supports, from the tool's own GitHub release.
 
-    python tools/platform_assets.py            # fill upstreams/toolchain.json -> install.platforms
+    python tools/platform_assets.py            # fill eaos/data/toolchain.json -> install.platforms
 
 For each `release` tool, the release named by its pinned version is read from the GitHub API; the asset for
 each platform (linux-x86_64, darwin-arm64, darwin-x86_64) is chosen by name, downloaded, its sha256 computed,
@@ -18,7 +18,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REGISTRY = ROOT / 'upstreams/toolchain.json'
+REGISTRY = ROOT / 'eaos/data/toolchain.json'
 WORDS = {'darwin-arm64': (r'(darwin|macos|mac|apple)', r'(arm64|aarch64|universal|_all)'),
          'darwin-x86_64': (r'(darwin|macos|mac|apple)', r'(x86_64|amd64|x64|64bit|64-bit|universal|_all)(?!.*arm)')}
 NEUTRAL = re.compile(r'(linux|x86|amd64|x64|64bit)', re.I)

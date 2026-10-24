@@ -7,8 +7,9 @@ None of them is ever committed: the corpus and the engines are fetched at their 
 reports are rebuilt by the measurements and trials.
 
     python tools/dev_paths.py            # print where each part is
-    python tools/dev_paths.py upstreams  # clone every engine source in upstreams/registry.yaml at its commit
+    python tools/dev_paths.py upstreams  # clone every engine source eaos/data/toolchain.json pins (source_commit)
 """
+import json
 import os
 import subprocess
 import sys
@@ -32,20 +33,10 @@ TRUTH = place('EAOS_TRUTH', 'truth')
 PIPELINES = place('EAOS_PIPELINES', 'pipelines')
 
 
-def pinned_upstreams(registry=ROOT / 'upstreams/registry.yaml'):
-    """(checkout name, repository, commit) for every upstream the registry pins to a commit."""
-    rows, current = [], {}
-    for line in registry.read_text(encoding='utf-8').splitlines():
-        if line.startswith('  - name:'):
-            current = {}
-        for key in ('repository', 'commit'):
-            if line.startswith(f'    {key}:'):
-                current[key] = line.split(':', 1)[1].split('#')[0].strip()
-        if 'repository' in current and 'commit' in current:
-            rows.append((current['repository'].rstrip('/').rsplit('/', 1)[1].removesuffix('.git'),
-                         current['repository'], current['commit']))
-            current = {}
-    return rows
+def pinned_upstreams(registry=ROOT / 'eaos/data/toolchain.json'):
+    """(checkout name, repository, commit) for every tool the registry pins to a source commit (`source_commit`)."""
+    return [(tool['repository'].rstrip('/').rsplit('/', 1)[1].removesuffix('.git'), tool['repository'], tool['source_commit'])
+            for tool in json.loads(registry.read_text(encoding='utf-8'))['tools'] if tool.get('source_commit')]
 
 
 def fetch_upstreams():
