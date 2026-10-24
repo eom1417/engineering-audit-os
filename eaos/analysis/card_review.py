@@ -1,10 +1,12 @@
 """How a card is judged and settled (eaos/analysis/plan.py builds and orders the cards): its acceptance and verify command, what
 to do about its claim and what must still hold after, the assistant's triage verdicts applied to the ledger, the screen
-reviewer's findings as design cards, and the resolution that settles each card.
+reviewer's findings as design cards, the resolution that settles each card, and cards.json, the record of who decided
+each card.
 """
 from pathlib import Path
 from ..core.words import falsifier_of
 from .remediation_patterns import pattern_for
+from ..core.decisions import ready
 from ..core.workspace import read, write
 
 # A design finding's share of the top code card's priority, by its severity, times the weight of an unconfirmed
@@ -315,3 +317,49 @@ def resolve(task, resolution, claim, target, out, revision):
         task['rollback'] = 'One commit on the fix branch; reverting it restores the screen.'
         task['kind'] = 'remediate'
     return task
+
+
+def cards_record(cards, verdicts, resolved, outcome):
+    """cards.json: who decided each card. `cards`: (the plan's, the design cards, those kept); `outcome`: (rejected,
+    closed, turned to fix)."""
+    tasks, design, kept = cards
+    rejected, closed, turned = outcome
+    owner = [t for t in kept if _resolution(t) == 'owner']
+    return {'schema_version': 1, 'decided_by': 'assistant' if verdicts or design else 'rules', 'kept': [t['id'] for t in kept],
+            'design': [t['id'] for t in design if t['id'] not in closed],
+            'set_aside': _set_aside(tasks, rejected, verdicts),
+            'closed': _closed(tasks + design, closed, resolved),
+            'doubted': _doubted(verdicts, rejected),
+            'resolved': {'fix': _count(kept, 'fix'), 'keep': len(closed), 'owner': len(owner), 'turned_to_fix': len(turned)},
+            'owner': [t['id'] for t in owner],
+            'ready': sum(map(ready, kept)),
+            'why': ('The assistant triaged every card on its own evidence: the rejected ones left the plan, the ones it '
+                    'resolved are fixed, closed or asked of you.' if verdicts else
+                    'No triage by an assistant in this check: every card stands as the rules wrote it.')}
+
+
+def _resolution(task):
+    return (task.get('resolution') or {}).get('resolution')
+
+
+def _count(cards, resolution):
+    return sum(_resolution(t) == resolution for t in cards)
+
+
+def _closed(cards, closed, resolved):
+    """The cards the assistant closed, each with why."""
+    return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'), 'why': resolved[t['id']].get('why')}
+            for t in cards if t['id'] in closed]
+
+
+def _set_aside(tasks, rejected, verdicts):
+    """The cards the triage rejected, each with its why and evidence."""
+    return [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'),
+             'why': verdicts[t['id']].get('why'), 'evidence': verdicts[t['id']].get('evidence') or []}
+            for t in tasks if t['id'] in rejected]
+
+
+def _doubted(verdicts, rejected):
+    """The cards the triage doubted, each with why."""
+    return [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
+            if v.get('decision') == 'doubt' and card not in rejected]
