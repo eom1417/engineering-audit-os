@@ -19,12 +19,14 @@ let replay = { id: null, at: null, timer: 0 };
 /** The run's events, read once and then live while it runs. */
 function eventsOf(r) {
   if (!client || r.trimmed) return [];
-  let f = followed[r.id];
-  if (!f) {
-    f = followed[r.id] = { events: [], stop: null, over: false };
+  const f = followed[r.id] = followed[r.id] || { events: [], stop: null, open: false, over: false };
+  const from = derive.followFrom(f, ac.ended(ac.runOf(r.id) || r));
+  if (from != null) {
+    f.open = true; f.over = false;
     // an ended run's stream ends once it has replayed: the reconnection that follows is not needed
-    f.stop = client.follow(r.id, 0, event => { f.events.push(event); refreshSoon(); }, status => {
-      if (status === 'reconnecting' && ac.ended(ac.runOf(r.id) || r)) { f.stop(); f.over = true; refreshSoon(); }
+    f.stop = client.follow(r.id, from, event => { f.events.push(event); refreshSoon(); }, status => {
+      if (status === 'closed') f.open = false;
+      if (status === 'reconnecting' && ac.ended(ac.runOf(r.id) || r)) { f.stop(); f.open = false; f.over = true; refreshSoon(); }
     });
   }
   return f.events;
