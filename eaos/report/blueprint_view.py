@@ -14,14 +14,19 @@ def document(spec, stack, built):
     lines += ['', '## The rules the structure keeps', '']
     lines += [f"- {rule['reason']}" for rule in built['policy']['rules']]
     lines += [f"- Only {' and '.join(f'`{home}`' for home in v['only_in'])} use {', '.join(v['packages'])}." for v in built['policy']['vendors'].values()]
-    lines += ['', '## The build, in order', '']
+    return '\n'.join(lines + ['', '## The build, in order', ''] + _build_lines(plan))
+
+
+def _build_lines(plan):
+    """The build in BLUEPRINT.md's words: each milestone, then its cards."""
+    lines = []
     for milestone in plan['milestones']:
         lines.append(f"### {milestone['id']} · {milestone['name']}")
         for card_id in milestone['tasks']:
             card = next(c for c in plan['tasks'] if c['id'] == card_id)
             lines.append(f"- {card_id}: {card['title']}")
         lines.append('')
-    return '\n'.join(lines)
+    return lines
 
 
 BUILD_STATE = {'done': ('بُنيت ✓', 'Built ✓', 'good'), 'open': ('لم تُبنَ بعد', 'Not built yet', 'plain'),
@@ -30,9 +35,14 @@ BUILD_STATE = {'done': ('بُنيت ✓', 'Built ✓', 'good'), 'open': ('لم �
 
 def build_cards(built, progress):
     """Every build card with its state: built when a delivered milestone kept it, set aside when it skipped it."""
-    done = {card for record in progress or [] for card in record.get('kept') or []}
+    done = _kept(progress)
     skipped, batch = _card_batches(progress)
     return [_card_row(c, done, skipped, batch) for c in built['plan']['tasks']]
+
+
+def _kept(progress):
+    """The build cards a delivered milestone kept."""
+    return {card for record in progress or [] for card in record.get('kept') or []}
 
 
 def _card_batches(progress):
@@ -63,13 +73,17 @@ def layer_map(built, cards):
     from .human_report.target import target_rows
     policy, rules = built['policy'], {r['allow_only']['from']: r['reason'] for r in built['policy']['rules']}
     names = [name for name in policy['layers'] if not name.startswith('_')]
-    edges = [e for e in built['architecture'].get('target_edges') or [] if e.get('from') in names and e.get('to') in names]
+    edges = _target_edges(built, names)
     weights = {(e['from'], e['to']): 1 for e in edges}
     tier = layer_of(names, [e for e in weights if e not in feedback_edges(names, weights)])
     progress = {name: _layer_progress(policy['layers'][name], cards) for name in names}
     comps = [_layer_box(name, tier[name], rules.get(name), progress[name][1]) for name in names]
-    rows = [(label, members) for label, members in target_rows(comps, sorted({c['layer'] for c in comps}, key=int))]
-    return rows, edges, progress
+    return target_rows(comps, sorted({c['layer'] for c in comps}, key=int)), edges, progress
+
+
+def _target_edges(built, names):
+    """The target's edges between two of the drawn layers `names`."""
+    return [e for e in built['architecture'].get('target_edges') or [] if e.get('from') in names and e.get('to') in names]
 
 
 def _layer_progress(globs, cards):
@@ -128,6 +142,11 @@ def _module_bar(cards, module):
             f'<span data-meaning="build cards built of this part">{count}</span> {T("بطاقات بُنيت", "cards built")}</p>')
 
 
+def _groups(built, cards):
+    """((Arabic name, English name), milestone id, its build cards) of every milestone, as the card block takes them."""
+    return [((m.get('name_ar') or m['name'], m['name']), m['id'], [c for c in cards if c['milestone'] == m['id']]) for m in built['plan']['milestones']]
+
+
 def page(spec, stack, built, progress=None):
     """BLUEPRINT.html: the blueprint for a person, in the look of the report for people (eaos/report/human_report.py),
     with every milestone's progress when `progress` (the state's `built` list) is given: the target's layers, the parts,
@@ -135,12 +154,12 @@ def page(spec, stack, built, progress=None):
     from html import escape
     from .human_report.assets import CSS, MAP_JS
     from .human_report.cards import cards_block
-    done = {card for record in progress or [] for card in record.get('kept') or []}
+    done = _kept(progress)
     delivered = {record['milestone']: record.get('branch') for record in progress or []}
     rtl = any('؀' <= ch <= 'ۿ' for ch in spec.get('name', '') + spec.get('summary', ''))
     cards = build_cards(built, progress)
     parts, layers = _parts(spec, cards), _layers(built, cards)
-    groups = [((m.get('name_ar') or m['name'], m['name']), m['id'], [c for c in cards if c['milestone'] == m['id']]) for m in built['plan']['milestones']]
+    groups = _groups(built, cards)
     rows = ''.join(f'<tr><td><b>{escape(row["title"])}</b></td><td>{escape(row["name"])}</td><td>{escape(row["why"])}</td>'
                    f'<td class="small">{escape(row["switch"])}</td></tr>' for row in stack.values())
     rules = ''.join(f'<li>{escape(rule["reason"])}</li>' for rule in built['policy']['rules'])
