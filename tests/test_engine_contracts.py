@@ -118,7 +118,8 @@ class CodegraphAdapterTests(unittest.TestCase):
         self.assertFalse(hasattr(external, '_from_external_symbol_metrics'))
 
     def test_engine_paths_are_relative_nameless_edges_are_dropped_and_flow_files_are_asked_about(self):
-        from eaos.engines.codegraph import _relative, _module_edges_from_dep_graph, files_of_interest
+        from eaos.engines.codegraph import files_of_interest
+        from eaos.engines.codegraph_payloads import _module_edges_from_dep_graph, _relative
         self.assertEqual(_relative('/repo/pkg/a.go', '/repo'), 'pkg/a.go')
         # A path outside the tree is kept as given rather than mangled into a wrong relative one.
         self.assertEqual(_relative('/elsewhere/b.go', '/repo'), '/elsewhere/b.go')
