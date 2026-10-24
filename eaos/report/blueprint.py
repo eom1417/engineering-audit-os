@@ -6,9 +6,9 @@ is the whole build. EAOS lays it out so that what its audits look for never gets
 
   read_plan       any plan the person has (Markdown, text, PDF, Word, HTML, pasted words, a folder of them, and pictures
                   of its screens), eaos/analysis/plan_source.py.
-  validate_spec   the product spec the assistant writes from it (SPEC below): every feature has a module, its data and
-                  a way to check it; every piece of data has one owner. What is missing or undecided comes back as
-                  questions with choices, for the assistant to research, recommend, and ask.
+  validate_spec   the product spec the assistant writes from it (SPEC, eaos/report/blueprint_spec.py): every feature has
+                  a module, its data and a way to check it; every piece of data has one owner. What is missing or
+                  undecided comes back as questions with choices, for the assistant to research, recommend, and ask.
   choose_stack    one option per concern from eaos/data/stacks.json: the person's preference, else the recommendation.
   design          the target architecture (layers, one home per concept, each vendor behind one adapter folder), the
                   project's own eaos.policy.json, and plan.json: milestones of build cards, each with its files,
@@ -17,149 +17,15 @@ The gates after every card are the ones every change passes (eaos/analysis/gates
 
 Nothing here calls a model: the assistant reads, researches and writes; EAOS gives the shape and the gates.
 """
-import json
 import re
-from pathlib import Path
 
-DATA = Path(__file__).resolve().parents[1] / 'data'
+from .blueprint_spec import SPEC, _applicable, _nonfunctional, answer, stacks, validate_spec  # noqa: F401  (SPEC, answer, validate_spec: read here by others)
+
 ISOLATED = ('database', 'auth')          # concerns whose packages only their adapter folder may import
 LINE_BUDGET = {'skeleton': 250, 'foundation': 200, 'module': 250, 'feature': 200, 'flow': 150, 'release': 200}
 
 
-def stacks():
-    return json.loads((DATA / 'stacks.json').read_text(encoding='utf-8'))
-
-
-# ---------------------------------------------------------------- 2. the product spec
-
-SPEC = {
-    'name': 'the product name',
-    'summary': 'what it is and for whom, in two or three sentences',
-    'users': [{'id': 'owner', 'name': 'who they are', 'needs': ['what they come to do']}],
-    'modules': [{'id': 'orders', 'name': 'Orders', 'responsibility': 'one sentence: what this part alone is responsible for'}],
-    'entities': [{'id': 'order', 'name': 'Order', 'module': 'orders',
-                  'fields': [{'name': 'total', 'type': 'money | text | number | date | boolean | id | enum | json', 'required': True}]}],
-    'features': [{'id': 'F1', 'name': 'Place an order', 'module': 'orders', 'priority': 'must | should | could',
-                  'entities': ['order'], 'roles': ['customer'], 'description': 'what the user can do',
-                  'acceptance': ['Given ..., when ..., then ... (each becomes a test)']}],
-    'flows': [{'id': 'FL1', 'name': 'First order', 'actor': 'customer', 'features': ['F1'], 'steps': ['...']}],
-    'roles': [{'id': 'customer', 'name': 'Customer', 'can': ['F1']}],
-    'integrations': [{'id': 'payments', 'name': 'Stripe', 'purpose': 'take payments'}],
-    'nonfunctional': {'expected_users': 1000, 'languages': ['ar', 'en'], 'data_sensitivity': 'personal | health | payment | none',
-                      'platforms': ['web', 'mobile web']},
-    'look': {'theme': 'the one theme: light or dark', 'colors': {'primary': '#0F766E', 'background': '#FFFFFF', 'text': '#111827'},
-             'fonts': ['IBM Plex Sans Arabic'], 'components': ['button', 'input', 'table', 'card', 'message'],
-             'design_md': 'the whole DESIGN.md (Google Stitch format), from the design brief\'s sources and standard',
-             'screens': [{'id': 'S1', 'name': 'Orders', 'features': ['F1'], 'picture': 'the path of its picture in the plan, or empty'}]},
-    'requirements': [{'id': 'the plan\'s own id (FR-12), else R1, R2...', 'text': 'one requirement of the plan, in its words',
-                      'covered_by': ['what builds it: a feature id, a flow id, or a standard card (languages, privacy, offline, '
-                                     'integration:<id>, security, errors, accessibility, speed, load, release)']}],
-    'stack_preferences': {'database': 'an option id from the catalogue, or empty to take the recommendation'},
-    'decisions': [{'id': 'D1', 'question': 'an open product question', 'options': ['A', 'B'], 'recommendation': 'A',
-                   'why': 'the research behind it', 'chosen': 'A, once the person chose (empty until then)'}],
-}
-
-
-REQUIRED = {'requirements': 'list every requirement of the plan, with its own id and what builds it (covered_by)',
-            'nonfunctional': 'say the languages, the data sensitivity, the platforms and the expected users'}
-
-
-def validate_spec(spec, look=True):
-    """(problems, questions): what makes the spec unbuildable, and what the person should decide. `look` false: the
-    project's own look holds (a feature added to it, eaos/journeys/extend.py), so the spec draws none."""
-    if not isinstance(spec, dict): return ['the spec must be one JSON object shaped like the example'], []
-    problems = [f'`{key}` is empty' for key in ('name', 'summary') if not str(spec.get(key) or '').strip()]
-    if look:            # a new product: nothing of its plan may be left out, and its facts choose the standard cards
-        problems += [f'`{key}` is empty: {why}' for key, why in REQUIRED.items() if not spec.get(key)]
-    modules, entities, features, roles = set(_by_id(spec, 'modules')), _by_id(spec, 'entities'), _by_id(spec, 'features'), set(_by_id(spec, 'roles'))
-    if not modules: problems.append('no module: group the features into parts, each with one responsibility')
-    if not features: problems.append('no feature: list what a user can do')
-    problems += (_module_problems(spec.get('modules') or [], features) + _entity_problems(entities, modules, features)
-                 + _feature_problems(features, entities, modules, roles) + _flow_problems(spec.get('flows') or [], features)
-                 + _look_problems(spec.get('look'), features, look) + _requirement_problems(spec, features))
-    return problems, _spec_questions(spec)
-
-
-def _by_id(spec, key):
-    """The spec's `key` list as {id: item}, what is not an object dropped."""
-    return {item.get('id'): item for item in spec.get(key) or [] if isinstance(item, dict)}
-
-
-def _module_problems(modules, features):
-    problems = []
-    for module in modules:
-        if not str(module.get('responsibility') or '').strip(): problems.append(f"module {module.get('id')}: its responsibility is empty")
-        if not any(f.get('module') == module.get('id') for f in features.values()):
-            problems.append(f"module {module.get('id')}: no feature belongs to it (merge it, or give it one)")
-    return problems
-
-
-def _entity_problems(entities, modules, features):
-    problems = []
-    for entity_id, entity in entities.items():
-        if entity.get('module') not in modules:
-            problems.append(f'entity {entity_id}: its owning module is not one of the modules (every piece of data has one owner)')
-        if not entity.get('fields'): problems.append(f'entity {entity_id}: it has no fields')
-        if not any(entity_id in (f.get('entities') or []) for f in features.values()):
-            problems.append(f'entity {entity_id}: no feature uses it (remove it, or say which feature needs it)')
-    return problems
-
-
-def _feature_problems(features, entities, modules, roles):
-    problems = []
-    for feature_id, feature in features.items():
-        if feature.get('module') not in modules: problems.append(f'feature {feature_id}: its module is not one of the modules')
-        for entity_id in feature.get('entities') or []:
-            if entity_id not in entities: problems.append(f'feature {feature_id}: uses {entity_id}, which is not an entity')
-        for role in feature.get('roles') or []:
-            if roles and role not in roles: problems.append(f'feature {feature_id}: role {role} is not one of the roles')
-        if not [a for a in feature.get('acceptance') or [] if str(a).strip()]:
-            problems.append(f'feature {feature_id}: no acceptance criterion (how do we know it works? each becomes a test)')
-    return problems
-
-
-def _flow_problems(flows, features):
-    return [f"flow {flow.get('id')}: uses {feature_id}, which is not a feature"
-            for flow in flows for feature_id in flow.get('features') or [] if feature_id not in features]
-
-
-def _requirement_problems(spec, features):
-    """Every requirement of the plan is built by something of the product: a feature, a flow or a standard card."""
-    known = set(features) | set(_by_id(spec, 'flows')) | {key for _, _, key in _applicable(spec)}
-    problems = []
-    for row in spec.get('requirements') or []:
-        if not isinstance(row, dict): continue
-        by = [str(x) for x in row.get('covered_by') or []]
-        if not by: problems.append(f"requirement {row.get('id')}: nothing builds it; name the feature, flow or standard card that does")
-        problems += [f"requirement {row.get('id')}: {x} is not a feature, a flow or a standard card of this product" for x in by if x not in known]
-    return problems
-
-
 # ---------------------------------------------------------------- 3b. the cards every product needs (data/product-standard.json)
-
-def _nonfunctional(spec):
-    return spec.get('nonfunctional') if isinstance(spec.get('nonfunctional'), dict) else {}
-
-
-STANDARD_WHEN = {
-    'always': lambda nf: True,
-    'languages': lambda nf: len(nf.get('languages') or []) > 1,
-    'personal_data': lambda nf: str(nf.get('data_sensitivity') or '') in ('personal', 'health', 'payment'),
-    'mobile': lambda nf: any('mobile' in str(p).lower() or 'phone' in str(p).lower() for p in nf.get('platforms') or []),
-    'users': lambda nf: bool(nf.get('expected_users')),
-}
-
-
-def _applicable(spec):
-    """(row, its spec entry or {}, its key) for each standard card this product needs, in the file's order."""
-    nf = _nonfunctional(spec)
-    for row in json.loads((DATA / 'product-standard.json').read_text(encoding='utf-8'))['rows']:
-        if 'each' in row:
-            for entry in [e for e in spec.get(row['each']) or [] if isinstance(e, dict) and e.get('id')]:
-                yield row, entry, f"{row['id']}:{entry['id']}"
-        elif STANDARD_WHEN[row['when']](nf):
-            yield row, {}, row['id']
-
 
 def standard_cards(spec, stack, stage):
     """The standard cards of one stage (foundation | release), their words filled from the spec and the stack."""
@@ -176,68 +42,6 @@ def standard_cards(spec, stack, stage):
     return out
 
 
-def _spec_questions(spec):
-    """What the person should decide: a stack choice EAOS does not lay out, an open product decision, the journeys."""
-    questions = []
-    catalogue = stacks()['concerns']
-    for concern, choice in (spec.get('stack_preferences') or {}).items():
-        if concern in catalogue and choice and choice not in catalogue[concern]['options']:
-            questions.append({'id': f'stack-{concern}', 'kind': 'choice', 'text': f"{catalogue[concern]['title']}: which one?",
-                              'options': list(catalogue[concern]['options']), 'recommendation': catalogue[concern]['recommended'],
-                              'why': f'{choice!r} is not one EAOS lays out yet'})
-    for decision in spec.get('decisions') or []:
-        if not str(decision.get('chosen') or '').strip():
-            questions.append({'id': decision.get('id'), 'kind': 'choice', 'text': decision.get('question'),
-                              'options': decision.get('options') or [], 'recommendation': decision.get('recommendation'),
-                              'why': decision.get('why')})
-    if not spec.get('flows') and not spec.get('no_flows'):
-        questions.append({'id': 'flows', 'kind': 'yes_no', 'text': 'The plan names no user journey from start to finish. '
-                          'May the assistant write the main ones from the features?', 'recommendation': 'yes'})
-    return questions
-
-
-def answer(spec, question, choice):
-    """The spec with the person's choice for one of its questions (_spec_questions): a technology, a product decision's
-    option, or whether the journeys are written (yes: one per role, through the features it can use)."""
-    if question.startswith('stack-'):
-        spec.setdefault('stack_preferences', {})[question[len('stack-'):]] = choice
-    elif question == 'flows':
-        if choice == 'yes': spec['flows'] = _role_flows(spec)
-        spec['no_flows'] = not spec.get('flows')
-    else:
-        decision = next((d for d in spec.get('decisions') or [] if isinstance(d, dict) and d.get('id') == question), None)
-        if decision is None: raise KeyError(question)
-        decision['chosen'] = choice
-    return spec
-
-
-def _role_flows(spec):
-    """A journey per role through the features it can use, in the plan's order; one over every feature when no role."""
-    features = _by_id(spec, 'features')
-    roles = [r for r in spec.get('roles') or [] if isinstance(r, dict)] or [{'id': 'user', 'name': 'User', 'can': list(features)}]
-    flows = []
-    for role in roles:
-        can = [f for f in role.get('can') or [] if f in features]
-        if can: flows.append({'id': f'FL{len(flows) + 1}', 'name': f"{role.get('name') or role['id']}: main journey", 'actor': role['id'],
-                              'features': can, 'steps': [features[f].get('name') or f for f in can]})
-    return flows
-
-
-def _look_problems(look, features, drawn=True):
-    """What keeps the look from being built once: one theme, its colours and fonts, and every screen tied to features;
-    nothing when the spec draws no look (`drawn` false)."""
-    if not drawn: return []
-    if not isinstance(look, dict) or not look.get('screens'):
-        return ['`look` is empty: write the one theme, its colours, fonts and shared components, and the screens with their '
-                'features (from the pictures when the plan has them)']
-    problems = [f'`look.{key}` is empty' for key in ('theme', 'colors', 'fonts', 'design_md') if not look.get(key)]
-    for screen in look['screens']:
-        unknown = [f for f in screen.get('features') or [] if f not in features]
-        if not screen.get('features') or unknown:
-            problems.append(f"screen {screen.get('id')}: name the features it shows" + (f" ({', '.join(unknown)} are not features)" if unknown else ''))
-    return problems
-
-
 # ---------------------------------------------------------------- 3. the stack
 
 def choose_stack(spec, chosen=None):
@@ -245,21 +49,29 @@ def choose_stack(spec, chosen=None):
     preference, else the recommendation; a database or sign-in the plan does not need is 'none'."""
     catalogue = stacks()['concerns']
     wanted = {**(spec.get('stack_preferences') or {}), **(chosen or {})}
-    needs_data = bool(spec.get('entities'))
-    needs_auth = bool(spec.get('roles')) or any(f.get('roles') for f in spec.get('features') or [])
-    stack = {}
-    for concern, entry in catalogue.items():
-        pick = wanted.get(concern) if wanted.get(concern) in entry['options'] else entry['recommended']
-        if concern == 'database' and not needs_data and not wanted.get(concern): pick = 'none'
-        if concern == 'auth' and not needs_auth and not wanted.get(concern): pick = 'none'
-        option = entry['options'][pick]
-        stack[concern] = {'id': pick, 'name': option['name'], 'why': option['why'], 'switch': option['switch'],
-                          'packages': option['packages'], 'title': entry['title'],
-                          'alternatives': [{'id': key, 'name': other['name'], 'why': other['why']}
-                                           for key, other in entry['options'].items() if key != pick]}
+    needs = {'database': bool(spec.get('entities')),
+             'auth': bool(spec.get('roles')) or any(f.get('roles') for f in spec.get('features') or [])}
+    stack = {concern: _option(entry, _pick(concern, entry, wanted, needs)) for concern, entry in catalogue.items()}
     if stack['database']['id'] == 'supabase' and not wanted.get('api'):
         stack['api'] = {**stack['api']}                  # a server still holds the rules; Supabase is its database
     return stack
+
+
+def _pick(concern, entry, wanted, needs):
+    """One concern's option: the one wanted, else the recommendation; none for a database or sign-in not needed
+    (`needs`) and not wanted."""
+    pick = wanted.get(concern) if wanted.get(concern) in entry['options'] else entry['recommended']
+    if concern in needs and not needs[concern] and not wanted.get(concern): return 'none'
+    return pick
+
+
+def _option(entry, pick):
+    """The stack's row for one concern: the option picked, why, how to switch later, its packages and the others."""
+    option = entry['options'][pick]
+    return {'id': pick, 'name': option['name'], 'why': option['why'], 'switch': option['switch'],
+            'packages': option['packages'], 'title': entry['title'],
+            'alternatives': [{'id': key, 'name': other['name'], 'why': other['why']}
+                             for key, other in entry['options'].items() if key != pick]}
 
 
 # ---------------------------------------------------------------- 4. the target, and the build as cards
@@ -325,13 +137,8 @@ def design(spec, stack):
     for index, module in enumerate(ordered, start=3):
         base = [foundations[-1]] + [last_of[other] for other in sorted(uses[module['id']]) if other in last_of]
         last_of[module['id']] = _module_cards(cards, f'M{index:02d}', module, base, spec['features'], entities, stack, look)
-    # The last milestone: every journey end to end in a real browser.
     flows = spec.get('flows') or []
-    for flow in flows:
-        cards.add(f'M{len(ordered) + 3:02d}', 'flow', f"Journey: {flow['name']}", None, ['e2e/'],
-                  [f"a {flow.get('actor') or 'user'} completes it in the browser: " + ' → '.join(map(str, flow.get('steps') or []))[:400]],
-                  [f"e2e/{slug(flow['name'])[:40]}.spec.ts"], [last_of[m['id']] for m in ordered if m['id'] in last_of][-1:],
-                  source=flow.get('id'))
+    _journey_cards(cards, flows, ordered, last_of)
     # The last milestone, once the product exists: what makes it ready to release (accessibility, speed, load, CI).
     release = f'M{len(ordered) + 3 + bool(flows):02d}'
     for row in standard_cards(spec, stack, 'release'):
@@ -340,6 +147,15 @@ def design(spec, stack):
     return {'architecture': target(spec, stack, ordered), 'policy': policy(stack),
             'plan': {'contract_version': 1, 'kind': 'blueprint', 'tasks': cards, 'milestones': _milestones(cards, ordered, flows, release), 'waves': [],
                      'sections': [], 'decisions': []}}
+
+
+def _journey_cards(cards, flows, ordered, last_of):
+    """The journeys' milestone: every journey end to end in a real browser, after the last module."""
+    for flow in flows:
+        cards.add(f'M{len(ordered) + 3:02d}', 'flow', f"Journey: {flow['name']}", None, ['e2e/'],
+                  [f"a {flow.get('actor') or 'user'} completes it in the browser: " + ' → '.join(map(str, flow.get('steps') or []))[:400]],
+                  [f"e2e/{slug(flow['name'])[:40]}.spec.ts"], [last_of[m['id']] for m in ordered if m['id'] in last_of][-1:],
+                  source=flow.get('id'))
 
 
 class _Cards(list):
@@ -425,17 +241,23 @@ def _shell(cards, look, foundations):
 def _module_order(modules, features, entities):
     """M03…: one milestone per module, in the order its data allows: owners of data another module uses come first.
     (the modules in that order, {module: the modules whose data it uses})."""
-    uses = {m['id']: set() for m in modules}
-    owner = {e['id']: e['module'] for e in entities}
-    for feature in features:
-        for entity_id in feature.get('entities') or []:
-            if owner.get(entity_id) not in (None, '', feature['module']): uses[feature['module']].add(owner[entity_id])
+    uses = _uses(modules, features, entities)
     ordered, placed = [], set()
     while len(ordered) < len(modules):
         ready = [m for m in modules if m['id'] not in placed and uses[m['id']] <= placed] or \
                 [m for m in modules if m['id'] not in placed][:1]           # a cycle between modules: the plan breaks it in order
         for m in ready: ordered.append(m); placed.add(m['id'])
     return ordered, uses
+
+
+def _uses(modules, features, entities):
+    """{module: the other modules whose data its features use}."""
+    uses = {m['id']: set() for m in modules}
+    owner = {e['id']: e['module'] for e in entities}
+    for feature in features:
+        for entity_id in feature.get('entities') or []:
+            if owner.get(entity_id) not in (None, '', feature['module']): uses[feature['module']].add(owner[entity_id])
+    return uses
 
 
 def _module_cards(cards, mid, module, base, features, entities, stack, look):
@@ -445,9 +267,18 @@ def _module_cards(cards, mid, module, base, features, entities, stack, look):
     data_card = _data_card(cards, mid, module, owned, base, stack) if owned else None
     previous = data_card or base[-1]
     for feature in [f for f in features if f['module'] == module['id']]:
-        screens = [x for x in look.get('screens') or [] if feature['id'] in (x.get('features') or [])]
-        previous = _feature_card(cards, mid, module, feature, [previous] + ([data_card] if data_card and data_card != previous else []), stack, screens)
+        previous = _feature_card(cards, mid, module, feature, _after(previous, data_card), stack, _screens_of(look, feature))
     return previous
+
+
+def _after(previous, data_card):
+    """What a feature card waits for: the card before it, and its module's data card."""
+    return [previous] + ([data_card] if data_card and data_card != previous else [])
+
+
+def _screens_of(look, feature):
+    """The screens of the look that show a feature."""
+    return [x for x in look.get('screens') or [] if feature['id'] in (x.get('features') or [])]
 
 
 def _data_card(cards, mid, module, owned, base, stack):
@@ -497,14 +328,7 @@ def target(spec, stack, modules):
     reasons = {rule['allow_only']['from']: rule['reason'] for rule in drawn['rules']}
     layers = [{'id': f'TL-{name}', 'name': name, 'layer': name, 'kind': 'layer', 'relation': 'build', 'files': 0, 'paths': globs,
                'responsibility': reasons.get(name, '')} for name, globs in drawn['layers'].items() if not name.startswith('_')]
-    parts = []
-    for module in modules:
-        folder = slug(module['id'])
-        paths = [f'shared/src/{folder}/', f'web/src/features/{folder}/'] + ([f'server/src/domain/{folder}/', f'server/src/application/{folder}/',
-                                                                            f'server/src/interface/http/{folder}/'] if server else [])
-        parts.append({'id': f'T-{folder}', 'name': module['name'], 'kind': 'module', 'relation': 'build',
-                      'responsibility': module.get('responsibility') or '', 'paths': paths, 'files': 0,
-                      'reason': 'A part of the product with one responsibility (from the plan).'})
+    parts = [_module_part(module, server) for module in modules]
     parts += [{'id': f'T-{concern}', 'name': stack[concern]['name'], 'kind': 'adapter', 'relation': 'build',
                'responsibility': f'the only place that uses {stack[concern]["name"]}', 'paths': [adapter_folder(stack, concern)],
                'files': 0, 'reason': stack[concern]['switch']} for concern in ISOLATED if stack[concern]['id'] != 'none']
@@ -513,3 +337,13 @@ def target(spec, stack, modules):
     edges = [{'from': rule['allow_only']['from'], 'to': to} for rule in drawn['rules'] for to in rule['allow_only']['to']]
     return document([], layers, decided, [], limits='A target drawn from a plan: nothing exists yet, so every part is to be built.',
                     status='blueprint', parts=parts, target_edges=edges, forbidden_edges=0)
+
+
+def _module_part(module, server):
+    """One module of the plan as a part of the target: its folders on each side, to be built."""
+    folder = slug(module['id'])
+    paths = [f'shared/src/{folder}/', f'web/src/features/{folder}/'] + ([f'server/src/domain/{folder}/', f'server/src/application/{folder}/',
+                                                                        f'server/src/interface/http/{folder}/'] if server else [])
+    return {'id': f'T-{folder}', 'name': module['name'], 'kind': 'module', 'relation': 'build',
+            'responsibility': module.get('responsibility') or '', 'paths': paths, 'files': 0,
+            'reason': 'A part of the product with one responsibility (from the plan).'}
