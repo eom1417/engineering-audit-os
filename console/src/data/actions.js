@@ -29,6 +29,9 @@ const query = values => Object.entries(values).filter(([, v]) => v != null && v 
 function liveClient() {
   let csrf = null, session = null;
   const readSession = () => (session = session || request('GET', '/api/session'));
+  // each read's last answer and its ETag: the runs are polled every few seconds, and an unchanged answer comes back as a
+  // 304 with no body instead of the whole list again (on a phone the list starved the run's own event stream)
+  const seen = new Map();
 
   async function request(method, path, body, retried) {
     const headers = { 'X-EAOS-Token': token, Accept: 'application/json' };
@@ -36,7 +39,10 @@ function liveClient() {
       headers['Content-Type'] = 'application/json';
       headers['X-EAOS-CSRF'] = await (csrf = csrf || readSession().then(s => String(s.csrf)));
     }
+    const known = method === 'GET' ? seen.get(path) : null;
+    if (known) headers['If-None-Match'] = known.etag;
     const answer = await fetch(path, { method, headers, body: method === 'POST' ? JSON.stringify(body || {}) : undefined, cache: 'no-store', credentials: 'same-origin' });
+    if (answer.status === 304 && known) return known.payload;
     let payload = {};
     try { payload = await answer.json(); } catch (e) { payload = {}; }
     if (answer.status === 403 && /csrf/i.test(String(payload.error)) && !retried) {
@@ -44,6 +50,8 @@ function liveClient() {
       return request(method, path, body, true);
     }
     if (!answer.ok) throw refused(answer, payload);
+    const etag = method === 'GET' && answer.headers.get('ETag');
+    if (etag) seen.set(path, { etag, payload });
     return payload;
   }
   const get = path => request('GET', path);

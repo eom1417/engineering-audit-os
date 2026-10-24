@@ -848,13 +848,14 @@ def asgi(app, method, path, headers, body=b''):
         sent[0] = True
         return {'type': 'http.request', 'body': body, 'more_body': False}
     async def send(message):
-        if message['type'] == 'http.response.start': out['status'] = message['status']
+        if message['type'] == 'http.response.start': out['status'], out['headers'] = message['status'], dict(message.get('headers') or [])
         elif message['type'] == 'http.response.body': out['body'] += message.get('body', b'')
     target, _, query = path.partition('?')
     scope = {'type': 'http', 'asgi': {'version': '3.0'}, 'http_version': '1.1', 'method': method, 'scheme': 'http', 'path': target,
              'raw_path': target.encode(), 'query_string': query.encode(), 'root_path': '', 'server': ('127.0.0.1', 8765),
              'client': ('127.0.0.1', 50000), 'headers': [(k.lower().encode(), v.encode()) for k, v in headers.items()]}
     asyncio.run(app(scope, receive, send))
+    asgi.headers = out.get('headers') or {}
     return out['status'], out['body']
 
 
@@ -876,6 +877,22 @@ class Mounting(Base):
         posting = {**host, 'X-EAOS-Token': self.app.token, 'X-EAOS-CSRF': self.app.csrf, 'Origin': 'http://127.0.0.1:8765', 'content-type': 'application/json'}
         status, body = asgi(app, 'POST', '/api/runs/reorder', posting, b'{"order": []}')
         self.assertEqual((status, json.loads(body)), (200, {'queue': []}))
+
+    def test_the_polled_list_of_runs_is_light_and_an_unchanged_one_costs_a_304(self):
+        """On a phone over 4G the Studio's list of runs (1.1 MB, every 3 s) starved a run's own event stream (2026-10-24)."""
+        from starlette.applications import Starlette
+        app = Starlette()
+        actions.mount(app.router, self.app)
+        self.app.store.save({'id': 'r-heavy', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
+                             'created': '0', 'cards': ['TASK-001'], 'cards_detail': [{'id': 'TASK-001', 'x': 'y' * 5000}]}, new=True)
+        read = {'host': '127.0.0.1:8765', 'X-EAOS-Token': self.app.token}
+        status, body = asgi(app, 'GET', '/api/runs?all=1', read)
+        row = next(r for r in json.loads(body)['runs'] if r['id'] == 'r-heavy')
+        self.assertEqual((status, row['cards'], 'cards_detail' in row), (200, ['TASK-001'], False), 'what only its assistant reads stays out')
+        etag = asgi.headers[b'etag'].decode()
+        self.assertEqual(asgi(app, 'GET', '/api/runs?all=1', {**read, 'If-None-Match': etag}), (304, b''))
+        self.assertEqual(asgi(app, 'GET', '/api/runs/r-heavy', read)[0], 200)
+        self.assertIn(b'cards_detail', asgi(app, 'GET', '/api/runs/r-heavy', read)[1], 'the run itself is whole')
 
 
 class ReportDecisions(Base):

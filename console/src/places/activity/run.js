@@ -59,7 +59,7 @@ function lede(r, rs, view, list) {
   if (rs === 'queued') return t('ac.run.queued.lede', { n: num(r.position || 1) });
   if (rs === 'you') return t('ac.run.you.lede');
   if (rs === 'paused') return t('ac.run.paused.lede', { label: ac.runLabel(r) });
-  if (rs === 'running') return r.verb === 'fix' ? t('ac.run.fix.lede', { done: num(Object.keys(view.cards).length), total: num((r.cards || []).length) }) : t('ac.run.running.lede', { label: ac.runLabel(r) });
+  if (rs === 'running') return r.verb === 'fix' ? t('ac.run.fix.lede', { done: num(derive.fixCount(view, r)), total: num((r.cards || []).length) }) : t('ac.run.running.lede', { label: ac.runLabel(r) });
   if (rs === 'stopped') return t(r.verb === 'fix' ? 'ac.run.fix.stopped.lede' : 'ac.run.stopped.lede');
   if (rs === 'failed') return t('ac.run.failed.lede', { label: ac.runLabel(r) });
   if (rs === 'unchanged') return t('ac.run.unchanged.lede');
@@ -178,7 +178,7 @@ function resultHTML(r, rs, view) {
 function fixProgress(r, rs, view) {
   const cards = r.cards || [];
   if (!cards.length) return '';
-  const byCard = view.cards, tried = Object.keys(byCard).length;
+  const byCard = view.cards, tried = derive.fixCount(view, r);
   const row = id => {
     const p = model.problem(id);
     const k = byCard[id];

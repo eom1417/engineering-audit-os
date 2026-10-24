@@ -24,6 +24,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ZERO = '0' * 64
+# A run's fields only its assistant's brief reads (eaos/interfaces/studio/runs.py prompt_of), never a page: the list of
+# runs leaves them out, half its size (1.1 MB on EAOS's Studio, polled every 3 s over 4G).
+BRIEF_ONLY = ('cards_detail', 'owner_decision', 'owner_answers', 'selection')
 CONTRACT = Path(__file__).resolve().parents[1] / 'data/studio-actions.json'
 
 

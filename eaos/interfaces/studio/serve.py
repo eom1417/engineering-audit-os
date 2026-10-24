@@ -9,6 +9,7 @@ NS37.T2 (the read server) mounts the actions next to its read API with two lines
 `/api/questions…`); the events of a run are a streaming response. `serve` is the same API on Python's own HTTP
 server, for the trial and for a computer without Starlette: it binds 127.0.0.1 and nothing else.
 """
+import hashlib
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
@@ -16,6 +17,15 @@ from . import plan
 
 LOOPBACK = '127.0.0.1'
 HEADERS = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer'}
+# A stream goes out as it is written: no proxy in front (Caddy, nginx) holds it back to fill a buffer.
+STREAM = {**HEADERS, 'X-Accel-Buffering': 'no'}
+
+
+def tagged(payload):
+    """(the body of a read, its ETag): the Studio polls the runs every few seconds, and an unchanged list costs a 304
+    instead of the whole list again (1 MB on a phone over 4G starved the run's own event stream, 2026-10-24)."""
+    body = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    return body, '"' + hashlib.sha256(body).hexdigest()[:32] + '"'
 
 
 def _events_of(path):
@@ -27,7 +37,7 @@ def _events_of(path):
 
 
 def starlette_routes(actions, prefix=''):
-    from starlette.responses import JSONResponse, StreamingResponse
+    from starlette.responses import JSONResponse, Response, StreamingResponse
     from starlette.routing import Route
 
     async def endpoint(request):
@@ -44,7 +54,11 @@ def starlette_routes(actions, prefix=''):
             run, after = stream
             last = headers.get('last-event-id') or after
             from starlette.concurrency import iterate_in_threadpool
-            return StreamingResponse(iterate_in_threadpool(actions.sse(run, last, follow=True)), media_type='text/event-stream', headers=HEADERS)
+            return StreamingResponse(iterate_in_threadpool(actions.sse(run, last, follow=True)), media_type='text/event-stream', headers=STREAM)
+        if request.method == 'GET' and status == 200:
+            body, etag = tagged(payload)
+            if headers.get('if-none-match') == etag: return Response(status_code=304, headers={**HEADERS, 'ETag': etag})
+            return Response(body, 200, media_type='application/json', headers={**HEADERS, 'ETag': etag})
         return JSONResponse(payload, status, headers=HEADERS)
 
     return [Route(prefix + '/api/{rest:path}', endpoint, methods=['GET', 'POST'])]
@@ -72,7 +86,7 @@ class _Handler(BaseHTTPRequestHandler):
         if not stream or status != 200: return self._send(status, payload)
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream')
-        for key, value in HEADERS.items(): self.send_header(key, value)
+        for key, value in STREAM.items(): self.send_header(key, value)
         self.end_headers()
         try:
             for frame in self.actions.sse(stream[0], self.headers.get('Last-Event-ID') or stream[1], follow=True):
