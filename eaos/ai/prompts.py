@@ -118,10 +118,15 @@ def done(result):
 
 def acts(question, option):
     """The EAOS action the person's chosen option means (an option with `action`, or the id `abandon`), or None."""
-    chosen = next((o for o in question.get('options') or [] if o.get('id') == option), None)
+    chosen = _chosen(question, option)
     if chosen is None: return None
     action = chosen.get('action') or ('fix_abandon' if chosen['id'] in ('abandon', 'fix_abandon') else None)
     return action if action in ACTS else None
+
+
+def _chosen(question, option):
+    """The option of `question` whose id is `option`, or None."""
+    return next((o for o in question.get('options') or [] if o.get('id') == option), None)
 
 
 def binding(record, question):
@@ -139,15 +144,19 @@ def picked(record, question, option, text):
     if option is not None or record.get('mode') != 'direct' or question.get('why') == 'run consent': return option   # an explicit yes only
     said = (text or '').casefold()
     for option in question.get('options') or []:
-        if option['id'].casefold() in said or any(label and label.casefold() in said for label in (option.get('label') or {}).values()):
-            return option['id']
+        if _named(option, said): return option['id']
     return question.get('recommendation')
+
+
+def _named(option, said):
+    """Whether the person's words (casefolded) name an option: its id or one of its labels."""
+    return option['id'].casefold() in said or any(label and label.casefold() in said for label in (option.get('label') or {}).values())
 
 
 def answer(question, option, text, lang='ar', done=None, via='studio'):
     """The words that resume a session with the person's answer, said where they gave it (`via`: WHERE), and what EAOS
     already did for it."""
-    chosen = next((o for o in question.get('options') or [] if o.get('id') == option), None)
+    chosen = _chosen(question, option)
     said = (chosen or {}).get('label', {}).get(lang) or (chosen or {}).get('label', {}).get('en') or option or ''
     if option is None:      # their own words are their answer, whatever options were offered
         parts = [f"The person answered {WHERE[via]['en']} in their own words, choosing none of your options: {text}. "
@@ -174,6 +183,11 @@ def _option(index, option):
             **({'action': option['action']} if option.get('action') in ACTS else {})}
 
 
+def _options(rows):
+    """The readable options of a question, normalised (_option)."""
+    return [row for index, option in enumerate(rows or []) if (row := _option(index, option))]
+
+
 def question_in(text):
     """The question block at the end of the assistant's words, normalised; None when there is none."""
     found = QUESTION.findall(text or '')
@@ -183,7 +197,7 @@ def question_in(text):
     if not isinstance(data, dict): return None
     words = _both(data.get('text'))
     if not words or not words['en']: return None
-    options = [row for index, option in enumerate(data.get('options') or []) if (row := _option(index, option))]
+    options = _options(data.get('options'))
     recommendation = data.get('recommendation')
     if recommendation not in {o['id'] for o in options}: recommendation = None
     return {'text': words, 'options': options, 'recommendation': recommendation}
@@ -219,19 +233,21 @@ def assistant_question(payload):
 def branch_question(payload):
     """The check's own question when the project has several live branches (agent_tools._branch): which one EAOS
     checks and fixes. The options are the branches; the recommendation is the one EAOS would pick."""
-    rows = [row for row in payload.get('branches') or [] if row.get('name')]
-    options = []
-    for row in rows:
-        ahead = row.get('ahead_of_main')
-        extra_en = ' (main)' if row.get('main') else f' ({ahead} ahead of main)' if ahead else ''
-        extra_ar = ' (الرئيسي)' if row.get('main') else f' (متقدم {ahead} عن الرئيسي)' if ahead else ''
-        options.append({'id': row['name'], 'label': {'en': row['name'] + extra_en, 'ar': row['name'] + extra_ar}})
+    options = [_branch_option(row) for row in payload.get('branches') or [] if row.get('name')]
     recommended = payload.get('recommended')
     recommended = recommended.get('name') if isinstance(recommended, dict) else recommended
     return {'text': {'en': 'Which branch should EAOS check and fix? The check, the fixes, the progress and every merge will follow '
                            'that branch. Your checkout is not switched.',
                      'ar': 'أي فرع يفحصه EAOS ويصلحه؟ الفحص والإصلاحات والتقدم وكل دمج تتبع هذا الفرع. نسختك الحالية لا تتغير.'},
             'options': options, 'recommendation': recommended if recommended in {o['id'] for o in options} else None, 'why': 'branch'}
+
+
+def _branch_option(row):
+    """A branch as an option: its name, and whether it is main or how far ahead of main it is."""
+    ahead = row.get('ahead_of_main')
+    extra_en = ' (main)' if row.get('main') else f' ({ahead} ahead of main)' if ahead else ''
+    extra_ar = ' (الرئيسي)' if row.get('main') else f' (متقدم {ahead} عن الرئيسي)' if ahead else ''
+    return {'id': row['name'], 'label': {'en': row['name'] + extra_en, 'ar': row['name'] + extra_ar}}
 
 
 # the Arabic of the reasons a run changes state for (a failure's own reason stays in its English line and its data)

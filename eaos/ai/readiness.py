@@ -127,10 +127,14 @@ def _claude_call(path, timeout):
     if code is None: return False, 'no_answer' if err == 'timeout' else 'failed', ''
     try: envelope = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
     except ValueError: envelope = {}
-    if code == 0 and isinstance(envelope, dict) and not envelope.get('is_error') and str(envelope.get('result') or '').strip():
-        return True, None, ''
+    if code == 0 and _answered(envelope): return True, None, ''
     said = (str(envelope.get('result') or '') if isinstance(envelope, dict) else '') + '\n' + out + '\n' + err
     return False, classify(said), said
+
+
+def _answered(envelope):
+    """Whether Claude Code's JSON answer is a result that is not an error."""
+    return isinstance(envelope, dict) and not envelope.get('is_error') and str(envelope.get('result') or '').strip()
 
 
 def _codex_call(path, timeout):
