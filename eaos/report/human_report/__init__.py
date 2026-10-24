@@ -64,13 +64,17 @@ def branch_line(branch):
 def stamp(eaos, cls='stamp'):
     """Which EAOS built the page, from progress['eaos'] = {'version', 'commit', 'built' (ISO time)}; '' without it."""
     if not isinstance(eaos, dict) or not (eaos.get('version') or eaos.get('commit')): return ''
+    part = ' data-part="stamp"' if cls == 'stamp' else ''
+    return f'<div class="{cls} muted small"{part}>{T("بنته نسخة EAOS", "Built by EAOS")} {_stamp_line(eaos)}</div>'
+
+
+def _stamp_line(eaos):
+    """The stamp's known parts, joined: the version, the commit, the digest (in full on hover), when it was built."""
     built = str(eaos.get('built') or '').replace('T', ' ')[:16]
     bits = [lit(eaos['version']) if eaos.get('version') else '', lit(str(eaos['commit'])[:12]) if eaos.get('commit') else '',
             f'<span title="{esc(eaos["digest"])}">{lit(str(eaos["digest"])[:12])}</span>' if eaos.get('digest') else '',
             num(built, 'when this page was built (UTC)') if built else '']
-    line = ' · '.join(b for b in bits if b)
-    part = ' data-part="stamp"' if cls == 'stamp' else ''
-    return f'<div class="{cls} muted small"{part}>{T("بنته نسخة EAOS", "Built by EAOS")} {line}</div>'
+    return ' · '.join(b for b in bits if b)
 
 
 def error_banner(errors):
@@ -128,13 +132,11 @@ def render_parts(m, name, lang='ar'):
     m = _with_cards(m, errors)
     parts = _parts(m, name, errors)
     progress = m.get('progress') or {}
-    told = [e for e in progress.get('report_errors') or [] if isinstance(e, str) and e.strip()]
+    told = _told(progress)
     nav = ''.join(f'<a href="#{s}" data-tab="{s}">{w(s)}</a>' for s in SECTIONS)
     body = ''.join(f'<section id="{s}" class="report" data-report="{s}"><header class="sec-head"><h2>{w(s)}</h2>'
                    f'<p class="muted">{T(*map(esc, INTRO[s]))}</p></header>{parts[s]}</section>' for s in SECTIONS)
-    generated = ((m['dossier'].get('provenance') or {}).get('generated_at') or '')[:10]
-    date = (f'<span class="muted">{T("تاريخ الفحص:", "Audit date:")} {num(generated, "the date of the audit")}</span>' if generated else '')
-    date += branch_line(progress.get('branch')) + stamp(progress.get('eaos'))
+    date = _audit_date(m) + branch_line(progress.get('branch')) + stamp(progress.get('eaos'))
     direction = 'rtl' if lang == 'ar' else 'ltr'
     text = (f'<!doctype html><html lang="{lang}" dir="{direction}" data-lang="{lang}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(W["title"][0 if lang == "ar" else 1])}: {esc(name)}</title>'
@@ -147,6 +149,17 @@ def render_parts(m, name, lang='ar'):
             f'{T("هذه الصفحة للقراءة. الملفات التقنية في المجلد نفسه مكتوبة للمساعد الذكي ولم تتغير.", "This page is for reading. The technical files in the same folder are written for the AI assistant and are unchanged.")}'
             f'{stamp(progress.get("eaos"), "stamp-foot")}</footer><script>{JS}{MAP_JS}{SYSTEM_JS}</script></body></html>')
     return text, errors
+
+
+def _told(progress):
+    """The failures the caller noted in progress['report_errors'], each a sentence."""
+    return [e for e in progress.get('report_errors') or [] if isinstance(e, str) and e.strip()]
+
+
+def _audit_date(m):
+    """The audit's date under the page's title, from the dossier; '' without one."""
+    generated = ((m['dossier'].get('provenance') or {}).get('generated_at') or '')[:10]
+    return (f'<span class="muted">{T("تاريخ الفحص:", "Audit date:")} {num(generated, "the date of the audit")}</span>' if generated else '')
 
 
 def render(m, name, lang='ar'):

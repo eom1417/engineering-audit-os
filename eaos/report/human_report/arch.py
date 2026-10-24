@@ -27,7 +27,7 @@ def arrow_defs(suffix):
 
 def graph_svg(cmap, rtl):
     """Today's parts as boxes, left to right from what uses to what is used (mirrored in Arabic), and their imports."""
-    from ...analysis.arch_map import NODE_W as BW, NODE_H as BH
+    from ...analysis.arch_map import NODE_W as BW
     width, height = cmap['width'], cmap['height'] + 60
     X = (lambda x: width - x - BW) if rtl else (lambda x: x)
     boxes = {n['id']: (X(n['x']), n['y']) for n in cmap['nodes']}
@@ -36,33 +36,42 @@ def graph_svg(cmap, rtl):
     label = 'أجزاء المشروع اليوم وما يستورده كل جزء من غيره' if rtl else 'The parts of the project today and what each imports from the others'
     parts = [f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" style="width:{width}px" direction="ltr" role="img" '
              f'class="chart cgraph hl-graph {"l-ar" if rtl else "l-en"}" aria-label="{esc(label)}"><defs>{arrow_defs(suffix)}</defs><g class="edges">']
-    for e in sorted(cmap['edges'], key=lambda e: e['cycle']):
-        (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
-        if not e['back']:
-            sx, ex = (ax, bx + BW) if rtl else (ax + BW, bx)
-            bend = max(30, abs(ex - sx) / 2) * (-1 if rtl else 1)
-            d = f'M{sx:.1f},{ay + BH / 2:.1f} C{sx + bend:.1f},{ay + BH / 2:.1f} {ex - bend:.1f},{by + BH / 2:.1f} {ex:.1f},{by + BH / 2:.1f}'
-        else:           # set aside to break a loop, or inside one layer: it goes back under the boxes
-            low = max(ay, by) + BH + 24 + min(abs(ax - bx) / 12, 30)
-            d = f'M{ax + BW / 2:.1f},{ay + BH:.1f} C{ax + BW / 2:.1f},{low:.1f} {bx + BW / 2:.1f},{low:.1f} {bx + BW / 2:.1f},{by + BH + 2:.1f}'
-        cls = 'edge' + (' cyc' if e['cycle'] else '') + (' wrong' if e['wrong'] else '')
-        count = e['n']
-        words = f'{names[e["from"]]} → {names[e["to"]]}: ' + (f'الاستيرادات {count}' if rtl else f'{count} imports')
-        parts.append(f'<path d="{d}" class="{cls}" style="stroke-width:{1 + 1.3 * math.log2(count):.1f}" '
-                     f'marker-end="url(#{"arrc" if e["cycle"] else "arr"}-{suffix})" data-from="{esc(e["from"])}" data-to="{esc(e["to"])}" '
-                     f'data-meaning="{count} imports from one part to the other"><title>{esc(words)}</title></path>')
+    parts += [_import_edge(e, boxes, names, rtl, suffix) for e in sorted(cmap['edges'], key=lambda e: e['cycle'])]
     parts.append('</g>')
-    for n in cmap['nodes']:
-        x, y = boxes[n['id']]
-        side, edge = ('right', x + BW - 10) if rtl else ('left', x + 10)
-        files, uses, used = n['files'], n['uses'], n['used_by']
-        line = f'ملفات {files} · يستخدم {uses} · يستخدمه {used}' if rtl else f'{files} {files_word(files)} · uses {uses} · used by {used}'
-        meaning = f'{files} files; it uses {uses} other parts; {used} parts use it'
-        parts.append(f'<g class="cg-node{" cyc" if n["cycle"] else ""}" data-node="{esc(n["id"])}" tabindex="0" data-meaning="{esc(meaning)}">'
-                     f'<title>{esc(n["name"])}</title><rect x="{x:.1f}" y="{y:.1f}" width="{BW}" height="{BH}" rx="8"/>'
-                     + svg_text(edge, y + 20, fit(n['short'], 24), 'cg-name', side, attrs=' data-literal="1"')
-                     + svg_text(edge, y + 38, line, 'cg-sub', side, rtl) + '</g>')
+    parts += [_part_box(n, *boxes[n['id']], rtl) for n in cmap['nodes']]
     return ''.join(parts) + '</svg>'
+
+
+def _import_edge(e, boxes, names, rtl, suffix):
+    """One import link: a curve forward to what is used, or a bow back under the boxes, thicker with more imports."""
+    from ...analysis.arch_map import NODE_W as BW, NODE_H as BH
+    (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
+    if not e['back']:
+        sx, ex = (ax, bx + BW) if rtl else (ax + BW, bx)
+        bend = max(30, abs(ex - sx) / 2) * (-1 if rtl else 1)
+        d = f'M{sx:.1f},{ay + BH / 2:.1f} C{sx + bend:.1f},{ay + BH / 2:.1f} {ex - bend:.1f},{by + BH / 2:.1f} {ex:.1f},{by + BH / 2:.1f}'
+    else:           # set aside to break a loop, or inside one layer: it goes back under the boxes
+        low = max(ay, by) + BH + 24 + min(abs(ax - bx) / 12, 30)
+        d = f'M{ax + BW / 2:.1f},{ay + BH:.1f} C{ax + BW / 2:.1f},{low:.1f} {bx + BW / 2:.1f},{low:.1f} {bx + BW / 2:.1f},{by + BH + 2:.1f}'
+    cls = 'edge' + (' cyc' if e['cycle'] else '') + (' wrong' if e['wrong'] else '')
+    count = e['n']
+    words = f'{names[e["from"]]} → {names[e["to"]]}: ' + (f'الاستيرادات {count}' if rtl else f'{count} imports')
+    return (f'<path d="{d}" class="{cls}" style="stroke-width:{1 + 1.3 * math.log2(count):.1f}" '
+            f'marker-end="url(#{"arrc" if e["cycle"] else "arr"}-{suffix})" data-from="{esc(e["from"])}" data-to="{esc(e["to"])}" '
+            f'data-meaning="{count} imports from one part to the other"><title>{esc(words)}</title></path>')
+
+
+def _part_box(n, x, y, rtl):
+    """One part as a box at (x, y): its short name, and its files and links in words."""
+    from ...analysis.arch_map import NODE_W as BW, NODE_H as BH
+    side, edge = ('right', x + BW - 10) if rtl else ('left', x + 10)
+    files, uses, used = n['files'], n['uses'], n['used_by']
+    line = f'ملفات {files} · يستخدم {uses} · يستخدمه {used}' if rtl else f'{files} {files_word(files)} · uses {uses} · used by {used}'
+    meaning = f'{files} files; it uses {uses} other parts; {used} parts use it'
+    return (f'<g class="cg-node{" cyc" if n["cycle"] else ""}" data-node="{esc(n["id"])}" tabindex="0" data-meaning="{esc(meaning)}">'
+            f'<title>{esc(n["name"])}</title><rect x="{x:.1f}" y="{y:.1f}" width="{BW}" height="{BH}" rx="8"/>'
+            + svg_text(edge, y + 20, fit(n['short'], 24), 'cg-name', side, attrs=' data-literal="1"')
+            + svg_text(edge, y + 38, line, 'cg-sub', side, rtl) + '</g>')
 
 
 def cohesion_words(n):
@@ -122,7 +131,6 @@ def metrics_table(cmap):
 
 def architecture_map(m):
     """The parts of today as a flowchart of their imports, with a drill-down to files and functions."""
-    from ...analysis import arch_map
     cmap = m.get('cmap')
     head = f'<h3 id="arch-map">{T("كيف تعتمد الأجزاء بعضها على بعض", "How the parts depend on each other")}</h3>'
     if not cmap:
@@ -142,28 +150,35 @@ def architecture_map(m):
     out = [head, f'<div class="card graph-wrap" data-part="arch-map"><p class="muted small">{T("كل مربع جزء من المشروع اليوم (مجلد). السهم من الجزء الذي يستورد إلى الجزء الذي يُستورد منه، وسمكه بعدد الاستيرادات. الأجزاء التي تستخدم غيرها على اليمين، والأساس الذي يستخدمه الجميع على اليسار. مرّر المؤشر على جزء لترى روابطه، أو اضغط عليه لتثبيتها وترى مقاييسه.", "Each box is a part of the project today (a folder). An arrow goes from the part that imports to the part it imports from; its thickness is the number of imports. Parts that use others are on the left, the foundation everything uses on the right. Hover a part to see its links, or click it to keep them and see its measures.")}</p>'
            f'<p class="small">{summary}</p>{capped}{graph_legend()}{controls}<div class="graph-scroll">{graph_svg(cmap, True)}{graph_svg(cmap, False)}</div>'
            f'{details}{metrics_table(cmap)}</div>']
-    drill = m.get('drill')
-    if drill:
-        cap = drill['capped']
-        notes = []
-        if cap['files']: notes.append(T(f'في الأجزاء الكبيرة عُرض أول {num(arch_map.MAX_FILES, "files shown per part at most")} ملف فقط.', f'In large parts only the first {num(arch_map.MAX_FILES, "files shown per part at most")} files are listed.'))
-        if cap['calls']: notes.append(T(f'عُرضت أكثر الاستدعاءات تكرارًا فقط، وتُرك {num(cap["calls"], "calls between functions left out")} استدعاءً.', f'Only the most frequent calls are shown; {num(cap["calls"], "calls between functions left out")} are left out.'))
-        first = max(range(len(cmap['nodes'])), key=lambda i: cmap['nodes'][i]['ca'], default=0)
-        options = ''.join(f'<option value="{i}" data-literal="1"{" selected" if i == first else ""}>{esc(c["name"])}</option>' for i, c in enumerate(drill['comps']))
-        out.append(f'<div class="card drill" data-part="arch-drill"><h4>{T("داخل جزء: ملفاته ودواله", "Inside a part: its files and functions")}</h4>'
-                   f'<p class="muted small">{T("اختر جزءًا: في الوسط ملفاته والخطوط الملونة بينها استيراداتها الداخلية؛ على جانب الأجزاء التي تستخدمه، وعلى الجانب الآخر الأجزاء التي يستخدمها. اضغط على ملف لترى دواله ومن يستدعي من.", "Choose a part: in the middle its files, the coloured arcs between them the imports inside it; on one side the parts that use it, on the other the parts it uses. Click a file to see its functions and who calls whom.")}</p>'
-                   f'<p class="muted small">{" ".join(notes)}</p>'
-                   f'<label class="pick">{T("الجزء:", "Part:")} <select id="dcomp" data-literal="1">{options}</select></label>'
-                   f'<div id="dview" class="ego"></div><div id="dfile" class="ego"></div></div>'
-                   + arch_map.json_script('eaos-drill', drill))
-    flows = m.get('flows')
-    head = f'<h3 id="flows">{T("الصفحات وما تستدعيه", "Pages and what they call")}</h3>'
-    if not flows:
-        out.append(head + unavailable('flows'))
-    else:
-        options = ''.join(f'<option value="{i}" data-literal="1">{esc(" ".join(x for x in (f["method"], f["route"] or "?") if x))} — {esc(f["handler"])}</option>'
-                          for i, f in enumerate(flows))
-        out.append(head + f'<div class="card" data-part="flows"><p class="muted small">{T("اختر صفحة أو نقطة دخول: يُرسم مسارها من الرابط إلى الدالة التي تستقبله، ثم كل دالة تستدعيها بالترتيب، مجمّعة حسب الملف. حيث لا يستطيع التتبع أن يكمل، يقول المربع المنقّط إن التتبع يتوقف هنا.", "Choose a page or an entry point: its path is drawn from the route to the function that receives it, then every function it calls in order, grouped by file. Where the trace cannot go on, a dotted box says it stops there.")}</p>'
-                   f'<label class="pick">{T("الصفحة:", "Page:")} <select id="dflow" data-literal="1">{options}</select></label><div id="fview" class="flowchart"></div></div>'
-                   + arch_map.json_script('eaos-flows', {'box': [arch_map.FLOW_W, arch_map.FLOW_H], 'flows': flows}))
+    if m.get('drill'): out.append(_drill(m['drill'], cmap))
+    out.append(_flows(m.get('flows')))
     return ''.join(out)
+
+
+def _drill(drill, cmap):
+    """Inside a part: the picker of parts (the most used first) over its files and functions, and what was left out."""
+    from ...analysis import arch_map
+    cap = drill['capped']
+    notes = []
+    if cap['files']: notes.append(T(f'في الأجزاء الكبيرة عُرض أول {num(arch_map.MAX_FILES, "files shown per part at most")} ملف فقط.', f'In large parts only the first {num(arch_map.MAX_FILES, "files shown per part at most")} files are listed.'))
+    if cap['calls']: notes.append(T(f'عُرضت أكثر الاستدعاءات تكرارًا فقط، وتُرك {num(cap["calls"], "calls between functions left out")} استدعاءً.', f'Only the most frequent calls are shown; {num(cap["calls"], "calls between functions left out")} are left out.'))
+    first = max(range(len(cmap['nodes'])), key=lambda i: cmap['nodes'][i]['ca'], default=0)
+    options = ''.join(f'<option value="{i}" data-literal="1"{" selected" if i == first else ""}>{esc(c["name"])}</option>' for i, c in enumerate(drill['comps']))
+    return (f'<div class="card drill" data-part="arch-drill"><h4>{T("داخل جزء: ملفاته ودواله", "Inside a part: its files and functions")}</h4>'
+            f'<p class="muted small">{T("اختر جزءًا: في الوسط ملفاته والخطوط الملونة بينها استيراداتها الداخلية؛ على جانب الأجزاء التي تستخدمه، وعلى الجانب الآخر الأجزاء التي يستخدمها. اضغط على ملف لترى دواله ومن يستدعي من.", "Choose a part: in the middle its files, the coloured arcs between them the imports inside it; on one side the parts that use it, on the other the parts it uses. Click a file to see its functions and who calls whom.")}</p>'
+            f'<p class="muted small">{" ".join(notes)}</p>'
+            f'<label class="pick">{T("الجزء:", "Part:")} <select id="dcomp" data-literal="1">{options}</select></label>'
+            f'<div id="dview" class="ego"></div><div id="dfile" class="ego"></div></div>'
+            + arch_map.json_script('eaos-drill', drill))
+
+
+def _flows(flows):
+    """Pages and what they call: the picker of pages and entry points over the path drawn for each; "not available" without."""
+    from ...analysis import arch_map
+    head = f'<h3 id="flows">{T("الصفحات وما تستدعيه", "Pages and what they call")}</h3>'
+    if not flows: return head + unavailable('flows')
+    options = ''.join(f'<option value="{i}" data-literal="1">{esc(" ".join(x for x in (f["method"], f["route"] or "?") if x))} — {esc(f["handler"])}</option>'
+                      for i, f in enumerate(flows))
+    return (head + f'<div class="card" data-part="flows"><p class="muted small">{T("اختر صفحة أو نقطة دخول: يُرسم مسارها من الرابط إلى الدالة التي تستقبله، ثم كل دالة تستدعيها بالترتيب، مجمّعة حسب الملف. حيث لا يستطيع التتبع أن يكمل، يقول المربع المنقّط إن التتبع يتوقف هنا.", "Choose a page or an entry point: its path is drawn from the route to the function that receives it, then every function it calls in order, grouped by file. Where the trace cannot go on, a dotted box says it stops there.")}</p>'
+            f'<label class="pick">{T("الصفحة:", "Page:")} <select id="dflow" data-literal="1">{options}</select></label><div id="fview" class="flowchart"></div></div>'
+            + arch_map.json_script('eaos-flows', {'box': [arch_map.FLOW_W, arch_map.FLOW_H], 'flows': flows}))

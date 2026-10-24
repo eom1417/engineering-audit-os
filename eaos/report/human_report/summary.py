@@ -112,25 +112,33 @@ def not_checked(m):
         if row['status'] in ('unavailable', 'skipped') and row['stage'] not in covered:
             items.append(T(f'لم يُشغَّل: {esc(plain.stage(row["stage"], "ar"))}. {esc(row["reason"]["ar"])}',
                            f'Not run: {esc(plain.stage(row["stage"], "en"))}. {esc(row["reason"]["en"])}', 'li'))
-    if coverage:
-        if not coverage.get('executed_verification'):
-            items.append(T('لم تُشغَّل اختبارات المشروع، فلا نعرف أي أجزاء تغطيها الاختبارات فعلًا.',
-                           "The project's tests were not run, so we do not know which parts they actually cover.", 'li'))
-        if not coverage.get('runtime_confirmation'):
-            items.append(T('لم نراقب البرنامج وهو يعمل: كل ما هنا من قراءة الكود، لا من تشغيله.',
-                           'We did not watch the program running: everything here comes from reading the code, not running it.', 'li'))
-        unparsed = M.unparsed_count(coverage)
-        if unparsed > 0:
-            items.append(T(f'ملفات لم نستطع قراءتها: {num(unparsed, "source files that could not be read")}.',
-                           f'{num(unparsed, "source files that could not be read")} source files could not be read.', 'li'))
-        if not coverage.get('semantic_review'):
-            items.append(T('لم يراجع مساعد ذكي معنى الكود؛ الأحكام هنا من قواعد آلية.',
-                           'No AI assistant reviewed what the code means; the findings come from mechanical rules.', 'li'))
+    items += _coverage_limits(coverage)
     items.append(T('الأداء الحقيقي تحت الضغط لم يُقَس بتشغيل؛ هو تقدير من شكل الكود.',
                    'Real performance under load was not measured by running it; it is an estimate from the shape of the code.', 'li'))
     return (f'<h3>{T("ما لم نفحصه", "What we did not check")}</h3><div class="card honest">'
             f'<p>{T("الأمانة مهمة: هذه حدود هذا الفحص. قد توجد مشاكل هنا لم نرها.", "Honesty matters: these are the limits of this check. There may be problems here we did not see.")}</p>'
             f'<ul>{"".join(items)}</ul></div>')
+
+
+def _coverage_limits(coverage):
+    """What the coverage record says was not done: the tests, watching the program run, files not read, a semantic
+    review; nothing without a coverage record."""
+    if not coverage: return []
+    items = []
+    if not coverage.get('executed_verification'):
+        items.append(T('لم تُشغَّل اختبارات المشروع، فلا نعرف أي أجزاء تغطيها الاختبارات فعلًا.',
+                       "The project's tests were not run, so we do not know which parts they actually cover.", 'li'))
+    if not coverage.get('runtime_confirmation'):
+        items.append(T('لم نراقب البرنامج وهو يعمل: كل ما هنا من قراءة الكود، لا من تشغيله.',
+                       'We did not watch the program running: everything here comes from reading the code, not running it.', 'li'))
+    unparsed = M.unparsed_count(coverage)
+    if unparsed > 0:
+        items.append(T(f'ملفات لم نستطع قراءتها: {num(unparsed, "source files that could not be read")}.',
+                       f'{num(unparsed, "source files that could not be read")} source files could not be read.', 'li'))
+    if not coverage.get('semantic_review'):
+        items.append(T('لم يراجع مساعد ذكي معنى الكود؛ الأحكام هنا من قواعد آلية.',
+                       'No AI assistant reviewed what the code means; the findings come from mechanical rules.', 'li'))
+    return items
 
 
 def how_computed(m):
@@ -181,44 +189,59 @@ def legend():
 
 def section_gaps(m):
     rows, s = m['rows'], m['score']
-    out = [legend()]
-    counts_table = ''.join(f'<tr><td>{w("structure_area" if a == "structure" else a)}</td>'
-                           + ''.join(f'<td>{num(s["areas"][a]["counts"][sv], f"{sv} problems in this area")}</td>' for sv in SEVERITIES)
-                           + f'<td>{num(s["areas"][a]["total"], "all problems in this area")}</td></tr>' for a in AREAS)
-    chips = ''.join(f'<span class="key">{sev_chip(sv)}</span>' for sv in SEVERITIES)
-    out.append(f'<div class="card"><h4>{T("عدد المشاكل في كل مجال، حسب الخطورة", "Problems in each area, by severity")}</h4>'
-               f'<div class="keys">{chips}</div>{severity_bars(s["areas"], True)}{severity_bars(s["areas"], False)}'
-               f'<details><summary>{T("عرض كجدول", "Show as a table")}</summary><table class="tbl"><thead><tr><th>{T("المجال", "Area")}</th>'
-               + ''.join(f'<th>{w(sv)}</th>' for sv in SEVERITIES) + f'<th>{T("المجموع", "Total")}</th></tr></thead><tbody>{counts_table}</tbody></table></details></div>')
-    out.append(
-        f'<div class="card filters" role="search"><input type="search" id="q" data-ph-ar="ابحث باسم ملف أو كلمة…" data-ph-en="Search a file name or a word…" placeholder="ابحث باسم ملف أو كلمة…">'
-        f'<select id="fsev"><option value="">{esc("كل درجات الخطورة")}</option>' + ''.join(f'<option value="{sv}">{esc(W[sv][0])}</option>' for sv in SEVERITIES) + '</select>'
-        f'<select id="farea"><option value="">{esc("كل المجالات")}</option>' + ''.join(f'<option value="{a}">{esc(W["structure_area" if a == "structure" else a][0])}</option>' for a in AREAS) + '</select>'
-        f'<label class="check"><input type="checkbox" id="fauto"> {T("ما يُصلح آليًا فقط", "Automatic fixes only")}</label>'
-        f'<span class="muted" id="shown" aria-live="polite"></span></div>')
+    out = [legend(), _severity_card(s), _filters()]
     if not rows:
         out.append(f'<div class="card">{T("لم نجد مشاكل تحتاج إصلاحًا.", "No problems that need fixing were found.", "p")}</div>')
     for area in AREAS:
         mine = [r for r in rows if r['area'] == area]
-        if not mine: continue
-        groups = {}
-        for r in mine: groups.setdefault(r['pattern'], []).append(r)
-        blocks = []
-        for pattern in sorted(groups, key=lambda p: (min(SEVERITIES.index(r['severity']) for r in groups[p]), -len(groups[p]))):
-            group = sorted(groups[pattern], key=lambda r: (SEVERITIES.index(r['severity']), r['top'], r['id']))
-            (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
-            ready = M.group_counts(group)['automatic']
-            count, fixed = num(M.collection_count(group), 'problems of this kind'), num(ready, 'cases fixed automatically')
-            meta = T(f'الحالات: {count} · آليًا: {fixed}', f'Cases: {count} · automatic: {fixed}')
-            head = (f'<summary><span class="g-title">{T(esc(tar), esc(ten))}</span>'
-                    f'<span class="g-meta">{meta}</span></summary>')
-            items = ''.join(gap_row(r) for r in group)
-            blocks.append(f'<details class="group" open>{head}<p class="why">{T(esc(why_ar), esc(why_en))}</p><div class="rows">{items}</div></details>')
-        count = num(M.collection_count(mine), 'problems in this area')
-        out.append(f'<h3 class="area-title" data-area-block="{area}">{w("structure_area" if area == "structure" else area)} '
-                   f'<span class="muted">{T(f"— عدد المشاكل: {count}", f"— problems: {count}")}</span></h3>' + ''.join(blocks))
+        if mine: out.append(_area_gaps(area, mine))
     out.append(component_gaps(m))
     return ''.join(out)
+
+
+def _severity_card(s):
+    """The problems of each area by severity: as bars in both reading directions, and as a table."""
+    counts_table = ''.join(f'<tr><td>{w("structure_area" if a == "structure" else a)}</td>'
+                           + ''.join(f'<td>{num(s["areas"][a]["counts"][sv], f"{sv} problems in this area")}</td>' for sv in SEVERITIES)
+                           + f'<td>{num(s["areas"][a]["total"], "all problems in this area")}</td></tr>' for a in AREAS)
+    chips = ''.join(f'<span class="key">{sev_chip(sv)}</span>' for sv in SEVERITIES)
+    return (f'<div class="card"><h4>{T("عدد المشاكل في كل مجال، حسب الخطورة", "Problems in each area, by severity")}</h4>'
+            f'<div class="keys">{chips}</div>{severity_bars(s["areas"], True)}{severity_bars(s["areas"], False)}'
+            f'<details><summary>{T("عرض كجدول", "Show as a table")}</summary><table class="tbl"><thead><tr><th>{T("المجال", "Area")}</th>'
+            + ''.join(f'<th>{w(sv)}</th>' for sv in SEVERITIES) + f'<th>{T("المجموع", "Total")}</th></tr></thead><tbody>{counts_table}</tbody></table></details></div>')
+
+
+def _filters():
+    """The gaps' search and filters: by severity, by area, the automatic fixes only."""
+    return (f'<div class="card filters" role="search"><input type="search" id="q" data-ph-ar="ابحث باسم ملف أو كلمة…" data-ph-en="Search a file name or a word…" placeholder="ابحث باسم ملف أو كلمة…">'
+            f'<select id="fsev"><option value="">{esc("كل درجات الخطورة")}</option>' + ''.join(f'<option value="{sv}">{esc(W[sv][0])}</option>' for sv in SEVERITIES) + '</select>'
+            f'<select id="farea"><option value="">{esc("كل المجالات")}</option>' + ''.join(f'<option value="{a}">{esc(W["structure_area" if a == "structure" else a][0])}</option>' for a in AREAS) + '</select>'
+            f'<label class="check"><input type="checkbox" id="fauto"> {T("ما يُصلح آليًا فقط", "Automatic fixes only")}</label>'
+            f'<span class="muted" id="shown" aria-live="polite"></span></div>')
+
+
+def _area_gaps(area, mine):
+    """One area's problems `mine`, a group per kind of problem, the most serious kind first."""
+    groups = {}
+    for r in mine: groups.setdefault(r['pattern'], []).append(r)
+    blocks = [_gap_group(pattern, groups[pattern])
+              for pattern in sorted(groups, key=lambda p: (min(SEVERITIES.index(r['severity']) for r in groups[p]), -len(groups[p])))]
+    count = num(M.collection_count(mine), 'problems in this area')
+    return (f'<h3 class="area-title" data-area-block="{area}">{w("structure_area" if area == "structure" else area)} '
+            f'<span class="muted">{T(f"— عدد المشاكل: {count}", f"— problems: {count}")}</span></h3>' + ''.join(blocks))
+
+
+def _gap_group(pattern, group):
+    """One kind of problem: what it is, why it matters, how many cases EAOS fixes alone, and each case."""
+    group = sorted(group, key=lambda r: (SEVERITIES.index(r['severity']), r['top'], r['id']))
+    (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
+    ready = M.group_counts(group)['automatic']
+    count, fixed = num(M.collection_count(group), 'problems of this kind'), num(ready, 'cases fixed automatically')
+    meta = T(f'الحالات: {count} · آليًا: {fixed}', f'Cases: {count} · automatic: {fixed}')
+    head = (f'<summary><span class="g-title">{T(esc(tar), esc(ten))}</span>'
+            f'<span class="g-meta">{meta}</span></summary>')
+    items = ''.join(gap_row(r) for r in group)
+    return f'<details class="group" open>{head}<p class="why">{T(esc(why_ar), esc(why_en))}</p><div class="rows">{items}</div></details>'
 
 
 def gap_row(r):
@@ -246,19 +269,23 @@ def component_gaps(m):
     if not matrix:
         return f'<h3>{T("الفجوات حسب أجزاء البرنامج", "Gaps by part of the program")}</h3>{unavailable("components")}'
     counts = M.component_problems(m)
-    rows = []
-    for g in sorted(matrix, key=lambda g: -counts.get(g.get('component'), (0, 0))[1]):
-        relation = RELATION.get((g.get('current') or {}).get('relation'), (esc((g.get('current') or {}).get('relation', '')),) * 2)
-        status = GAP_STATUS.get(g.get('gap'), (g.get('gap') or '', g.get('gap') or ''))
-        problems_here = counts.get(g.get('component'), (0, 0))[1]
-        rows.append(f'<tr><td>{lit(g.get("current_origin") or g.get("component") or "")}</td><td>{T(*map(esc, relation))}</td>'
-                    f'<td>{lit(g.get("target_component") or "—")}</td><td>{T(*map(esc, status))}</td>'
-                    f'<td>{num(problems_here, "problems found in this part")}</td>'
-                    f'<td>{num(g.get("files_to_move") or 0, "files that move to another place")}</td>'
-                    f'<td>{num(g.get("forbidden_imports") or 0, "imports that break the target layering")}</td></tr>')
+    rows = [_component_row(g, counts) for g in sorted(matrix, key=lambda g: -counts.get(g.get('component'), (0, 0))[1])]
     return (f'<h3>{T("الفجوات حسب أجزاء البرنامج", "Gaps by part of the program")}</h3><div class="card scroll">'
             f'<p class="muted">{T("لكل جزء من البرنامج: ماذا سيحدث له، وأين يذهب في البنية المستهدفة، وهل تغطيه الخطة.", "For each part of the program: what happens to it, where it goes in the target structure, and whether the plan covers it.")}</p>'
             f'<table class="tbl"><thead><tr><th>{T("الجزء اليوم", "Part today")}</th><th>{T("ماذا يحدث له", "What happens")}</th>'
             f'<th>{T("مكانه المستهدف", "Target place")}</th><th>{T("الخطة", "Plan")}</th><th>{T("المشاكل فيه", "Problems in it")}</th>'
             f'<th>{T("ملفات تنتقل", "Files to move")}</th><th>{T("استيرادات مخالفة", "Wrong-way imports")}</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _component_row(g, counts):
+    """One part's row of the gap matrix: what happens to it, its target place, the plan, its problems and moves."""
+    current = g.get('current') or {}
+    relation = RELATION.get(current.get('relation'), (esc(current.get('relation', '')),) * 2)
+    status = GAP_STATUS.get(g.get('gap'), (g.get('gap') or '', g.get('gap') or ''))
+    problems_here = counts.get(g.get('component'), (0, 0))[1]
+    return (f'<tr><td>{lit(g.get("current_origin") or g.get("component") or "")}</td><td>{T(*map(esc, relation))}</td>'
+            f'<td>{lit(g.get("target_component") or "—")}</td><td>{T(*map(esc, status))}</td>'
+            f'<td>{num(problems_here, "problems found in this part")}</td>'
+            f'<td>{num(g.get("files_to_move") or 0, "files that move to another place")}</td>'
+            f'<td>{num(g.get("forbidden_imports") or 0, "imports that break the target layering")}</td></tr>')

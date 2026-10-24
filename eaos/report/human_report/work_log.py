@@ -35,20 +35,30 @@ def work_log(progress):
     """Where the work stopped, what is open and left, the next step, then the last steps and the notes, newest first."""
     h = (progress or {}).get('handover')
     head = f'<h3 id="work-log">{T("سجل العمل وأين وقفنا", "Work log and where we stopped")}</h3>'
-    if not isinstance(h, dict) or not (h.get('last_steps') or h.get('open_work') or h.get('last_assistant') or h.get('notes') or h.get('in_progress')):
+    if not _started(h):
         return head + (f'<div class="card" data-part="work-log">{T("لم يبدأ أي عمل بعد: حين يبدأ مساعد ذكي (Claude Code أو Codex) الفحص أو الإصلاح، تظهر هنا كل خطوة، ومن قام بها، ومتى، وأين وقف.", "No work has started yet: when an AI assistant (Claude Code or Codex) starts the check or the fixes, every step shows here, who took it, when, and where it stopped.", "p")}</div>')
+    status = _wl_status(h)
+    timeline = _wl_timeline([s for s in h.get('last_steps') or [] if isinstance(s, dict)])
+    notes_html = _wl_notes([x for x in h.get('notes') or [] if isinstance(x, dict) and x.get('note')])
+    return head + f'<div class="card wl" data-part="work-log">{status}<div class="wl-body">{timeline}{notes_html}</div></div>'
+
+
+def _started(h):
+    """Whether the handover holds any work: a step, open work, an assistant, a note or a card in progress."""
+    return isinstance(h, dict) and bool(h.get('last_steps') or h.get('open_work') or h.get('last_assistant') or h.get('notes') or h.get('in_progress'))
+
+
+def _wl_status(h):
+    """Where we stopped: the last to work, what is open now, the next step, the progress and how to continue."""
     work, job, waiting, busy = (_dict_of(h, k) for k in ('open_work', 'running_job', 'waiting_for_the_person', 'in_progress'))
     now = _wl_now(job, work, waiting, busy)
     step = _wl_next_step(job, busy, work, waiting)
     p = h.get('progress') if isinstance(h.get('progress'), dict) else {}
     tally = (f'<p class="small">{T(f"التقدم في فرعك: أُغلق {num(p.get("closed", 0), "cards closed")} من {num(p.get("total", 0), "cards in the plan")}", f"Progress in your branch: {num(p.get("closed", 0), "cards closed")} of {num(p.get("total", 0), "cards in the plan")} closed")}</p>' if p else '')
-    status = (f'<div class="card wl-status"><h4>{T("أين وقفنا", "Where we stopped")}</h4>{_wl_last(h)}<ul class="small wl-now">{"".join(now)}</ul>'
-              f'<p class="small"><b>{T("الخطوة التالية:", "The next step:")}</b> {step}</p>{tally}'
-              + (f'<details><summary>{T("للمساعد الذكي الذي يكمل", "For the AI assistant that continues")}</summary>{tech(h["how_to_continue"])}</details>' if h.get('how_to_continue') else '')
-              + '</div>')
-    timeline = _wl_timeline([s for s in h.get('last_steps') or [] if isinstance(s, dict)])
-    notes_html = _wl_notes([x for x in h.get('notes') or [] if isinstance(x, dict) and x.get('note')])
-    return head + f'<div class="card wl" data-part="work-log">{status}<div class="wl-body">{timeline}{notes_html}</div></div>'
+    return (f'<div class="card wl-status"><h4>{T("أين وقفنا", "Where we stopped")}</h4>{_wl_last(h)}<ul class="small wl-now">{"".join(now)}</ul>'
+            f'<p class="small"><b>{T("الخطوة التالية:", "The next step:")}</b> {step}</p>{tally}'
+            + (f'<details><summary>{T("للمساعد الذكي الذي يكمل", "For the AI assistant that continues")}</summary>{tech(h["how_to_continue"])}</details>' if h.get('how_to_continue') else '')
+            + '</div>')
 
 
 def _dict_of(h, key):
@@ -57,9 +67,7 @@ def _dict_of(h, key):
 
 def _wl_open_work(work):
     """The open batch or milestone: what was kept, not kept and left, and why each was not kept."""
-    kind = JOB_WORDS.get(work.get('kind'), (work.get('kind') or '', work.get('kind') or ''))
-    number = work.get('number') if work.get('number') is not None else work.get('milestone')
-    label = (T(f'{esc(kind[0])} مفتوحة', f'Open {esc(kind[1])}') + (' ' + (num(number, 'the number of the open batch') if isinstance(number, int) else lit(number)) if number is not None else ''))
+    label = _wl_work_label(work)
     kept, not_kept, left = work.get('kept') or [], work.get('not_kept') or {}, work.get('left') or []
     rows = [f'<li>{label}: ' + T(f'نجح {num(M.collection_count(kept), "cards kept in the open batch")}، ولم ينجح {num(M.collection_count(not_kept), "cards not kept in the open batch")}، وبقي {num(M.collection_count(left), "cards left in the open batch")}',
                                      f'{num(M.collection_count(kept), "cards kept in the open batch")} kept, {num(M.collection_count(not_kept), "cards not kept in the open batch")} not kept, {num(M.collection_count(left), "cards left in the open batch")} left') + '</li>']
@@ -67,6 +75,13 @@ def _wl_open_work(work):
     rows += [f'<li>{T("لم ينجح:", "Not kept:", cls="lbl")} {lit(card)} {tech(str(why)[:200])}</li>'
              for card, why in (list(not_kept.items())[:8] if isinstance(not_kept, dict) else [])]
     return rows
+
+
+def _wl_work_label(work):
+    """The open work's name: a fix batch or a build milestone, and its number."""
+    kind = JOB_WORDS.get(work.get('kind'), (work.get('kind') or '', work.get('kind') or ''))
+    number = work.get('number') if work.get('number') is not None else work.get('milestone')
+    return (T(f'{esc(kind[0])} مفتوحة', f'Open {esc(kind[1])}') + (' ' + (num(number, 'the number of the open batch') if isinstance(number, int) else lit(number)) if number is not None else ''))
 
 
 def _wl_files_read(read):
@@ -91,10 +106,12 @@ def _wl_now(job, work, waiting, busy):
     """What is open now: a running job, the open batch, a branch waiting for the person, the card in progress."""
     now = []
     if job:
-        now.append(T(f'عمل جارٍ الآن: {lit(job.get("kind") or job.get("id") or "")}', f'A job is running now: {lit(job.get("kind") or job.get("id") or "")}', 'li'))
+        name = lit(job.get('kind') or job.get('id') or '')
+        now.append(T(f'عمل جارٍ الآن: {name}', f'A job is running now: {name}', 'li'))
     if work: now += _wl_open_work(work)
     if waiting:
-        now.append(T(f'ينتظر قرارك: أدخل الفرع {lit(waiting.get("branch") or "")} في فرعك أو ألغِه.', f'Waiting for you: take branch {lit(waiting.get("branch") or "")} into yours, or throw it away.', 'li'))
+        branch = lit(waiting.get('branch') or '')
+        now.append(T(f'ينتظر قرارك: أدخل الفرع {branch} في فرعك أو ألغِه.', f'Waiting for you: take branch {branch} into yours, or throw it away.', 'li'))
     if busy and busy.get('card'): now.append(_wl_busy(busy))
     return now or [T('لا شيء مفتوح الآن.', 'Nothing is open now.', 'li')]
 

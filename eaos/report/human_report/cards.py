@@ -45,20 +45,11 @@ def gap_block(m, cards, chart=True):
         return head + f'<div class="card">{T("لا مشاكل مفتوحة في الخطة: لا فجوة لإغلاقها.", "The plan has no problem to close: there is no gap.", "p")}</div>'
     share = num(pct(t['percent']), 'share of the problems found that are closed: fixed and merged')
     closed, total = num(t['closed'], 'problems closed'), num(t['total'], 'problems in the plan, fixed ones included')
-    parts = [(k, v) for k, v in (('done', t['done']), ('on_branch', t['on_branch']),
-                                 ('in_batch', t['in_batch']), ('skipped', t['skipped']), ('open', t['open'])) if v]
-    meanings = {'done': 'problems fixed by EAOS and merged into your main branch',
-                'on_branch': 'problems fixed on a branch that waits for your decision; not counted until merged',
-                'in_batch': 'problems in the batch being fixed now', 'skipped': 'problems set aside that need your decision',
-                'open': 'problems not started yet'}
-    tally = ''.join(f'<li>{state_chip(k)} {num(v, meanings[k])}</li>' for k, v in parts)
-    if t.get('new'):
-        tally += f'<li><span class="chip st st-accent">{T("جديدة", "New")}</span> {num(t["new"], "problems a later check found for the first time")}</li>'
-    branch = num(t['on_branch'], meanings['on_branch'])
+    tally = _gap_tally(t)
+    branch = num(t['on_branch'], GAP_MEANING['on_branch'])
     waiting = (f'<p class="small">{T(f"على فرع ينتظر قرارك: {branch}. لا تُحسب مغلقة حتى تدمجها.", f"Waiting on a branch for your decision: {branch}. They count as closed only once you merge them.")}</p>'
                if t['on_branch'] else '')
-    updated = str((ledger or {}).get('updated') or '')[:10]
-    when = (f'<p class="muted small">{T("آخر تحديث:", "Last updated:")} {num(updated, "the date the progress was last updated")}</p>' if updated else '')
+    when = _last_updated(ledger)
     marker = ' data-part="progress-history"' if chart else ''
     body = (f'<div class="card gap-card"{marker}><div class="gap-head"><div class="gap-n">{share}</div><div>'
             f'<p class="lead">{T(f"من الفجوة أُغلق: {closed} من {total} مشكلة أُصلحت ودُمجت في فرعك الرئيسي.", f"of the gap is closed: {closed} of {total} problems are fixed and merged into your main branch.")}</p>'
@@ -66,6 +57,28 @@ def gap_block(m, cards, chart=True):
     if chart:
         body += history_block((ledger or {}).get('history') or [])
     return head + body + '</div>'
+
+
+GAP_MEANING = {'done': 'problems fixed by EAOS and merged into your main branch',
+               'on_branch': 'problems fixed on a branch that waits for your decision; not counted until merged',
+               'in_batch': 'problems in the batch being fixed now', 'skipped': 'problems set aside that need your decision',
+               'open': 'problems not started yet'}
+
+
+def _gap_tally(t):
+    """The plan's problems counted by state (the states with none left out), and the new ones a later check found."""
+    parts = [(k, v) for k, v in (('done', t['done']), ('on_branch', t['on_branch']),
+                                 ('in_batch', t['in_batch']), ('skipped', t['skipped']), ('open', t['open'])) if v]
+    tally = ''.join(f'<li>{state_chip(k)} {num(v, GAP_MEANING[k])}</li>' for k, v in parts)
+    if t.get('new'):
+        tally += f'<li><span class="chip st st-accent">{T("جديدة", "New")}</span> {num(t["new"], "problems a later check found for the first time")}</li>'
+    return tally
+
+
+def _last_updated(ledger):
+    """When the progress was last updated, from the ledger; '' without a date."""
+    updated = str((ledger or {}).get('updated') or '')[:10]
+    return (f'<p class="muted small">{T("آخر تحديث:", "Last updated:")} {num(updated, "the date the progress was last updated")}</p>' if updated else '')
 
 
 def history_block(history):
@@ -161,27 +174,42 @@ def history_chart(points):
 def card_item(c, words=CARD_STATE, extra=''):
     """One task card, collapsed: its state and title; open, what it is, where, now and should-be, and when."""
     new = f' <span class="chip st st-accent">{T("جديدة", "New")}</span>' if c.get('new') else ''
-    where = ' '.join(lit(p) for p in c['paths'][:6])
-    if len(c['paths']) > 6: where += ' ' + T(f'و{num(M.remaining(c["paths"], 6), "more files")} ملفات أخرى', f'and {num(M.remaining(c["paths"], 6), "more files")} more files')
+    search = ' '.join([c.get('id') or '', c.get('title') or '', c.get('pattern') or '', *c['paths']]).lower()
+    return (f'<details class="tcard" data-state="{c["state"]}" data-new="{int(bool(c.get("new")))}" data-search="{esc(search)}">'
+            f'<summary>{state_chip(c["state"], words)}{new} {said(c["title"]) or lit(c.get("id") or c.get("key") or "")}'
+            f'{(" " + lit(c["id"])) if c.get("id") else ""}</summary><div class="tbody">{_card_body(c, extra)}</div></details>')
+
+
+def _card_body(c, extra):
+    """An open card: what the problem is, where, now and should-be, `extra`, when its state changed, and why."""
     lines = []
     if c.get('pattern') in plain.ORDER:
         (tar, why_ar), (ten, why_en) = plain.problem(c['pattern'], 'ar'), plain.problem(c['pattern'], 'en')
         lines.append(f'<p><b>{T(esc(tar), esc(ten))}</b>: {T(esc(why_ar), esc(why_en))}</p>')
-    if where: lines.append(f'<div class="where">{T("أين:", "Where:", cls="lbl")} {where}</div>')
+    if where := _card_where(c['paths']): lines.append(f'<div class="where">{T("أين:", "Where:", cls="lbl")} {where}</div>')
     if c.get('before') or c.get('after'):
         lines.append(f'<div class="nowto"><div><b>{T("الآن", "Now")}</b> {said(c["before"] or c["title"])}</div>'
                      f'<div><b>{T("المطلوب", "Should be")}</b> {said(c["after"]) or T("لم يُحدَّد بعد؛ يقرره شخص.", "Not stated yet; a person decides.")}</div></div>')
     lines.append(extra + (c.get('extra') or ''))
+    lines.append(_card_when(c))
+    if c.get('why'): lines.append(f'<p class="small">{T("السبب:", "Why:", cls="lbl")} {said(c["why"])}</p>')
+    return ''.join(lines)
+
+
+def _card_where(paths):
+    """A card's first six files, and how many more."""
+    where = ' '.join(lit(p) for p in paths[:6])
+    if len(paths) > 6: where += ' ' + T(f'و{num(M.remaining(paths, 6), "more files")} ملفات أخرى', f'and {num(M.remaining(paths, 6), "more files")} more files')
+    return where
+
+
+def _card_when(c):
+    """When a card's state changed: its batch, its date and its commit; '' when none is known."""
     when = []
     if c.get('batch') is not None: when.append(T(f'الدفعة {num(c["batch"], "batch number")}', f'batch {num(c["batch"], "batch number")}'))
     if c.get('at'): when.append(T(f'بتاريخ {num(str(c["at"])[:10], "the date its state last changed")}', f'on {num(str(c["at"])[:10], "the date its state last changed")}'))
     if c.get('commit'): when.append(T('في الإيداع', 'in commit') + ' ' + lit(str(c['commit'])[:12]))
-    if when: lines.append(f'<p class="muted small">{" · ".join(when)}</p>')
-    if c.get('why'): lines.append(f'<p class="small">{T("السبب:", "Why:", cls="lbl")} {said(c["why"])}</p>')
-    search = ' '.join([c.get('id') or '', c.get('title') or '', c.get('pattern') or '', *c['paths']]).lower()
-    return (f'<details class="tcard" data-state="{c["state"]}" data-new="{int(bool(c.get("new")))}" data-search="{esc(search)}">'
-            f'<summary>{state_chip(c["state"], words)}{new} {said(c["title"]) or lit(c.get("id") or c.get("key") or "")}'
-            f'{(" " + lit(c["id"])) if c.get("id") else ""}</summary><div class="tbody">{"".join(lines)}</div></details>')
+    return f'<p class="muted small">{" · ".join(when)}</p>' if when else ''
 
 
 def cards_block(groups, words=CARD_STATE, total=None):
@@ -190,22 +218,24 @@ def cards_block(groups, words=CARD_STATE, total=None):
     options = ''.join(f'<option value="{s}" data-ar="{esc(words[s][0])}" data-en="{esc(words[s][1])}">{esc(words[s][0])}</option>'
                       for s in STATE_ORDER if s in words)
     if words is CARD_STATE: options += '<option value="new" data-ar="جديدة" data-en="New">جديدة</option>'
-    blocks = []
-    for label, stone, cards in groups:
-        if not cards: continue
-        counts = M.card_counts(cards)
-        closed = counts['closed']
-        tally = T(f'المغلق: {num(closed, "cards closed in this milestone")} من {num(M.collection_count(cards), "cards in this milestone")}',
-                  f'{num(closed, "cards closed in this milestone")} of {num(M.collection_count(cards), "cards in this milestone")} closed')
-        blocks.append(f'<details class="mgroup"><summary><span>{T(esc(label[0]), esc(label[1]))} {lit(stone) if stone else ""}</span>'
-                      f'<span class="g-meta">{tally}</span></summary>{bar(counts["percent"], "thin")}'
-                      f'<div class="tcards">{"".join(card_item(c, words) for c in cards)}</div></details>')
+    blocks = [_milestone_group(label, stone, cards, words) for label, stone, cards in groups if cards]
     return (f'<details class="card allcards" id="allcards" data-part="cards"><summary>{T("كل بطاقات المهام", "All task cards")} '
             f'<span class="g-meta">{T(f"البطاقات: {count}", f"{count} cards")}</span></summary>'
             f'<p class="muted small">{T("كل بطاقة مشكلة واحدة وحالتها. افتح المرحلة ثم البطاقة لترى التفاصيل.", "Each card is one problem and its state. Open a milestone, then a card, to see the details.")}</p>'
             f'<div class="filters cfilters" role="search"><select id="cstate"><option value="" data-ar="كل الحالات" data-en="All states">كل الحالات</option>{options}</select>'
             f'<input type="search" id="cq" data-ph-ar="ابحث بعنوان أو ملف أو رقم بطاقة…" data-ph-en="Search a title, a file or a card id…" placeholder="ابحث بعنوان أو ملف أو رقم بطاقة…">'
             f'<span class="muted" id="cshown" aria-live="polite"></span></div>{"".join(blocks) or unavailable("cards")}</details>')
+
+
+def _milestone_group(label, stone, cards, words):
+    """One milestone's cards, collapsed under its name, how many are closed and a bar."""
+    counts = M.card_counts(cards)
+    closed = counts['closed']
+    tally = T(f'المغلق: {num(closed, "cards closed in this milestone")} من {num(M.collection_count(cards), "cards in this milestone")}',
+              f'{num(closed, "cards closed in this milestone")} of {num(M.collection_count(cards), "cards in this milestone")} closed')
+    return (f'<details class="mgroup"><summary><span>{T(esc(label[0]), esc(label[1]))} {lit(stone) if stone else ""}</span>'
+            f'<span class="g-meta">{tally}</span></summary>{bar(counts["percent"], "thin")}'
+            f'<div class="tcards">{"".join(card_item(c, words) for c in cards)}</div></details>')
 
 
 def milestone_label(stone):
@@ -219,7 +249,11 @@ def milestone_label(stone):
 def card_groups(m, cards):
     stones = [s for s in m['plan'].get('milestones') or [] if isinstance(s, dict)]
     groups = [(milestone_label(s), s.get('id') or '', [c for c in cards if c['milestone'] == s.get('id')]) for s in stones]
+    return groups + _no_milestone(stones, cards)
+
+
+def _no_milestone(stones, cards):
+    """The cards of no known milestone as one more group; none when every card has one."""
     known = {s.get('id') for s in stones}
     rest = [c for c in cards if c['milestone'] not in known]
-    if rest: groups.append((('بلا مرحلة', 'No milestone'), '', rest))
-    return groups
+    return [(('بلا مرحلة', 'No milestone'), '', rest)] if rest else []
