@@ -116,8 +116,7 @@ def start(args):
                               'started': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'questions': []}
     state['lang'] = language(args.lang, state if not args.lang else None)
     save(state)
-    if getattr(args, 'assistant', None):
-        choose_assistant(state, args.assistant != 'none', None if args.assistant == 'none' else args.assistant, via='command')
+    _keep_assistant(state, getattr(args, 'assistant', None))
     lang = state['lang']
     say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك." if lang == 'ar' else
          f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))
@@ -125,6 +124,11 @@ def start(args):
     watch(state, args)
     if not (getattr(args, 'path', None) or getattr(args, 'mode', None)): return advance(state, args)
     return TERMINAL['check'](args)              # asked: a check now, the one `eaos check` starts, followed here
+
+
+def _keep_assistant(state, named):
+    """The assistant `eaos start --assistant` named kept for the check's AI ('none': the check goes without one)."""
+    if named: choose_assistant(state, named != 'none', None if named == 'none' else named, via='command')
 
 
 def _missing_first(project, lang):
@@ -188,22 +192,35 @@ def clean(args):
     takes them again."""
     lang = language(args.lang)
     freed = 0
-    if (pictures := getattr(args, 'pictures', False)):
-        from ...pipeline.run import PICTURES, clear
-        for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
-            freed += clear(report, PICTURES)
+    if (pictures := getattr(args, 'pictures', False)): freed += _pictures_cleared()
     from ...live.sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
     from ...live.sign_in import forget                    # the sessions of the apps: a check asks to sign in again
     freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
     for folder in (home() / 'projects').glob('*'): forget(folder)
-    for folder in (home() / 'projects').glob('*/runtime/candidates'):
-        for copy in [p for p in folder.iterdir() if p.is_dir()]:
-            freed += sum(f.stat().st_size for f in copy.rglob('*') if f.is_file() and not f.is_symlink())
-            shutil.rmtree(copy, ignore_errors=True)
+    freed += _copies_removed()
     box(lang, (f"حذفت النسخ المؤقتة{' وصور الشاشات القديمة' if pictures else ''} ووفّرت {freed / 2 ** 30:.1f} GB. التقارير باقية" if lang == 'ar'
                else f"Removed the temporary copies{' and the old screen pictures' if pictures else ''} and freed {freed / 2 ** 30:.1f} GB. Reports are kept"),
         where=home(), commands=['eaos next'])
     return 0
+
+
+def _pictures_cleared():
+    """The screen pictures, crawl and raw assistant runs of every report removed (PICTURES); the bytes freed."""
+    from ...pipeline.run import PICTURES, clear
+    freed = 0
+    for report in (*outputs_root().glob('*/technical'), *outputs_root().glob('*/branches/*/technical')):
+        freed += clear(report, PICTURES)
+    return freed
+
+
+def _copies_removed():
+    """The isolated copies of every project's batches removed; the bytes freed."""
+    freed = 0
+    for folder in (home() / 'projects').glob('*/runtime/candidates'):
+        for copy in [p for p in folder.iterdir() if p.is_dir()]:
+            freed += sum(f.stat().st_size for f in copy.rglob('*') if f.is_file() and not f.is_symlink())
+            shutil.rmtree(copy, ignore_errors=True)
+    return freed
 
 
 def resume(args):
@@ -242,10 +259,7 @@ def main(args):
     try:
         return COMMANDS[args.command](args) or 0
     except NeedsAnswer as waiting:
-        box(lang, waiting.question['text'], status='ask',
-            note=('للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق' if lang == 'ar'
-                  else 'To agree, type the command below; nothing happens until you do'),
-            commands=[f"eaos {args.command} --yes" + (f" {args.project}" if args.command == 'start' and args.project not in (None, '.') else '')])
+        _ask_to_agree(lang, waiting.question, args)
         return 4
     except Declined:
         show_error(lang, 'declined')
@@ -255,9 +269,22 @@ def main(args):
         show_error(lang, 'not_started')
         return 6
     except (Exception, KeyboardInterrupt) as problem:
-        if explain(problem)['id'] in ('not_a_folder', 'not_a_project'):   # the person's slip, nothing to log
-            show_error(lang, problem=problem)
-            return 1
-        where = outputs(state) if state else home()
-        show_error(lang, problem=problem, log=log_failure(where, problem))
+        _failed(lang, problem, state)
         return 1
+
+
+def _ask_to_agree(lang, question, args):
+    """The question a command stopped on, with the command that answers yes."""
+    box(lang, question['text'], status='ask',
+        note=('للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق' if lang == 'ar'
+              else 'To agree, type the command below; nothing happens until you do'),
+        commands=[f"eaos {args.command} --yes" + (f" {args.project}" if args.command == 'start' and args.project not in (None, '.') else '')])
+
+
+def _failed(lang, problem, state):
+    """A failure in plain words with its fix; logged, unless it is the person's slip."""
+    if explain(problem)['id'] in ('not_a_folder', 'not_a_project'):   # the person's slip, nothing to log
+        show_error(lang, problem=problem)
+        return
+    where = outputs(state) if state else home()
+    show_error(lang, problem=problem, log=log_failure(where, problem))

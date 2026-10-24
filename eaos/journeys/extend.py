@@ -81,11 +81,7 @@ def extend_plan(state, report, spec):
     if not problems: problems = fit(spec, load_policy(state['project'])[0], _functions(report), _known(report))
     folder(report).mkdir(parents=True, exist_ok=True)
     write(folder(report) / 'spec.json', spec)
-    if problems or questions:
-        return {'status': 'spec_incomplete' if problems else 'questions', 'problems': problems, 'questions': questions,
-                'what_now': 'Fix these in the spec and call extend_plan again.' if problems else
-                            'Ask the person these questions (your recommendation first), put the answers in the spec, and call '
-                            'extend_plan again.'}
+    if problems or questions: return _unsettled(problems, questions)
     cards = add(report, spec, design.target(report) is not None)
     state['extend'] = {'name': spec['name'], 'cards': [c['id'] for c in cards], 'keys': [key(c) for c in cards]}     # the caller saves it
     return {'status': 'planned', 'milestone': cards[0]['milestone'], 'cards': [{k: c[k] for k in ('id', 'title', 'paths')} for c in cards],
@@ -93,6 +89,14 @@ def extend_plan(state, report, spec):
                         'any fix, through every gate: run_setup and safety_net when status asks, fix_start with cards='
                         + json.dumps([c['id'] for c in cards]) + ', fix_edit per card (its acceptance and tests in `finding`), '
                         'fix_finish; the person accepts. Then audit again (the check keeps the cards not built yet).'}
+
+
+def _unsettled(problems, questions):
+    """extend_plan's answer while the spec has problems to fix or questions for the person."""
+    return {'status': 'spec_incomplete' if problems else 'questions', 'problems': problems, 'questions': questions,
+            'what_now': 'Fix these in the spec and call extend_plan again.' if problems else
+                        'Ask the person these questions (your recommendation first), put the answers in the spec, and call '
+                        'extend_plan again.'}
 
 
 def fit(spec, policy, functions, known):
@@ -108,13 +112,23 @@ def _feature_fit(feature, policy, functions, project):
     where = f"feature {feature.get('id')}"
     paths = [_path(p) for p in feature.get('paths') or []]
     problems = [] if paths else [f'{where}: name the files it adds or changes (`paths`)']
-    layers = {p: _layer(p, policy, feature.get('layers') or {}) for p in paths} if policy else {}
+    layers = _path_layers(paths, policy, feature)
     problems += [_misplaced(where, path, policy) for path in paths
                  if (layers[path] is None if policy else str(Path(path).parent) not in known)]
     for ref in feature.get('reuses') or []:
         problems += _reuse_problems(where, ref, functions, policy, set(layers.values()) - {None})
-    return problems + [f"{where}: {name} already exists ({', '.join(homes[name])}): reuse it (`reuses`) instead of writing it again"
-                       for name in feature.get('functions') or [] if name in homes]
+    return problems + _written_again(where, feature, homes)
+
+
+def _path_layers(paths, policy, feature):
+    """{path: its policy layer, or None}; {} without a policy."""
+    return {p: _layer(p, policy, feature.get('layers') or {}) for p in paths} if policy else {}
+
+
+def _written_again(where, feature, homes):
+    """The feature's new functions the project already has."""
+    return [f"{where}: {name} already exists ({', '.join(homes[name])}): reuse it (`reuses`) instead of writing it again"
+            for name in feature.get('functions') or [] if name in homes]
 
 
 def _layer(path, policy, joins):
@@ -148,9 +162,7 @@ def add(report, spec, looked):
         card['prerequisites'] = [{'task_id': previous, 'why': 'built in the order of the plan'}] if previous else []
         cards.append(card)
         previous = card['id']
-    milestone = {'id': mid, 'name': f"Extension: {spec['name']}", 'name_ar': f"توسعة: {spec['name']}", 'tasks': [c['id'] for c in cards],
-                 'goal': spec.get('summary') or '', 'goal_ar': spec.get('summary') or '',
-                 'exit': 'every card here passes the gates of a fix and its own tests'}
+    milestone = _milestone(mid, spec, cards)
     plan['tasks'] += cards
     plan['milestones'] = (plan.get('milestones') or []) + [milestone]
     write(report / 'plan.json', plan)
@@ -159,9 +171,21 @@ def add(report, spec, looked):
     return cards
 
 
-def _card(card_id, mid, name, feature, looked):
+def _milestone(mid, spec, cards):
+    """The extension's milestone of the plan, of its cards."""
+    return {'id': mid, 'name': f"Extension: {spec['name']}", 'name_ar': f"توسعة: {spec['name']}", 'tasks': [c['id'] for c in cards],
+            'goal': spec.get('summary') or '', 'goal_ar': spec.get('summary') or '',
+            'exit': 'every card here passes the gates of a fix and its own tests'}
+
+
+def _acceptance(feature, looked):
+    """A feature's acceptance criteria, with the project's look when it has one and each layer its files join."""
     acceptance = list(feature.get('acceptance') or []) + (["every new screen follows the project's DESIGN.md"] if looked else [])
-    acceptance += [f'{_path(path)} is declared in the layer {layer} of eaos.policy.json' for path, layer in (feature.get('layers') or {}).items()]
+    return acceptance + [f'{_path(path)} is declared in the layer {layer} of eaos.policy.json' for path, layer in (feature.get('layers') or {}).items()]
+
+
+def _card(card_id, mid, name, feature, looked):
+    acceptance = _acceptance(feature, looked)
     reuses, tests = feature.get('reuses') or [], feature.get('tests') or []
     after = ('Accepted when: ' + '; '.join(acceptance) + (f". Tests: {', '.join(tests)}" if tests else '')
              + (f". Reuse, never write again: {', '.join(reuses)}" if reuses else ''))
