@@ -124,11 +124,8 @@ class Py:
                 classes[node.name] = node
                 for item in node.body:
                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)): defs.setdefault(f'{node.name}.{item.name}', item)
-            elif isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name): assigns[target.id] = node
-            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value is not None:
-                assigns[node.target.id] = node
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                for name in _assigned(node): assigns[name] = node
         return defs, classes, assigns
 
     def _imports(self, tree, module, rel):
@@ -191,6 +188,12 @@ class Py:
             for name, node in defs.items(): yield rel, name, node
 
 
+def _assigned(node):
+    """The plain names a module-level assignment gives a value (an annotation without a value gives none)."""
+    if isinstance(node, ast.Assign): return [target.id for target in node.targets if isinstance(target, ast.Name)]
+    return [node.target.id] if isinstance(node.target, ast.Name) and node.value is not None else []
+
+
 def _str(node):
     return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
 
@@ -244,14 +247,24 @@ def describe(py, rel, node, found_stage):
     for sub in ast.walk(node):
         if isinstance(sub, ast.Call):
             root = _root(sub.func)
-            if root and root in imports: _outside_tool(py, imports, root, sub, tools, effects, marks)
+            if root in imports: _outside_tool(py, imports, root, sub, tools, effects, marks)
             effects += _call_effects(sub, root, marks)
-            if any(keyword.arg in TIMEOUT_WORDS for keyword in sub.keywords): found_stage['timeout'] = True
+            if _has_timeout(sub): found_stage['timeout'] = True
         elif isinstance(sub, ast.Global):
             effects += [('global', name, sub.lineno) for name in sub.names]
-        elif isinstance(sub, (ast.Name, ast.Attribute)) and MODEL_WORDS.search(sub.id if isinstance(sub, ast.Name) else sub.attr):
+        elif _names_model(sub):
             marks.add('ai')
     _fill(found_stage, rel, tools, effects, marks)
+
+
+def _has_timeout(call):
+    """Whether a call passes a time or cost budget (timeout=, deadline=, ...)."""
+    return any(keyword.arg in TIMEOUT_WORDS for keyword in call.keywords)
+
+
+def _names_model(node):
+    """Whether a name or attribute names a model provider (MODEL_WORDS)."""
+    return isinstance(node, (ast.Name, ast.Attribute)) and MODEL_WORDS.search(node.id if isinstance(node, ast.Name) else node.attr)
 
 
 def _signature(node, found_stage):
@@ -265,7 +278,7 @@ def _outside_tool(py, imports, root, sub, tools, effects, marks):
     """A call into a library from outside the project: a tool of the stage, slow or risky by what it is."""
     module = imports[root][0] or ''
     top = (module or root).split('.')[0]
-    if not top or py.module_rel(module) or any(m.startswith(top + '.') or m == top for m in py.modules): return
+    if not top or _in_project(py, module, top): return
     if top not in tools: tools.append(top)
     if top in NETWORK or root in NETWORK: marks.update(('external', 'slow'))
     if top in ('subprocess',):
@@ -273,13 +286,16 @@ def _outside_tool(py, imports, root, sub, tools, effects, marks):
         effects.append(('process', top, sub.lineno))
 
 
+def _in_project(py, module, top):
+    """Whether an imported module is one of the project's own (itself, or a package the project holds)."""
+    return bool(py.module_rel(module)) or any(m.startswith(top + '.') or m == top for m in py.modules)
+
+
 def _call_effects(sub, root, marks):
     """The side effects one call has: a file written, a database reached, the environment set, the network called."""
     callee, out = call_name(sub.func) or '', []
-    if callee in ('write_text', 'write_bytes', 'dump', 'to_csv', 'to_parquet', 'savefig'):
-        out.append(('file', _unparse(sub.func, 60), sub.lineno))
-    if callee == 'open' and len(sub.args) > 1 and (_str(sub.args[1]) or '').startswith(('w', 'a')):
-        out.append(('file', _unparse(sub.args[0], 60), sub.lineno))
+    written = _written_file(sub, callee)
+    if written is not None: out.append(('file', written, sub.lineno))
     if callee in DB_CALLS and root not in ('self',) and isinstance(sub.func, ast.Attribute):
         out.append(('db', _unparse(sub.func, 60), sub.lineno))
         marks.add('risky')
@@ -288,6 +304,13 @@ def _call_effects(sub, root, marks):
     if callee in ('post', 'put', 'get', 'request', 'urlopen') and root in NETWORK:
         out.append(('network', _unparse(sub.func, 60), sub.lineno))
     return out
+
+
+def _written_file(sub, callee):
+    """What a call writes to a file: the object written, or the path opened for writing; None otherwise."""
+    if callee in ('write_text', 'write_bytes', 'dump', 'to_csv', 'to_parquet', 'savefig'): return _unparse(sub.func, 60)
+    if callee == 'open' and len(sub.args) > 1 and (_str(sub.args[1]) or '').startswith(('w', 'a')): return _unparse(sub.args[0], 60)
+    return None
 
 
 def _fill(found_stage, rel, tools, effects, marks):

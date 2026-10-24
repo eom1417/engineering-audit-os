@@ -22,8 +22,9 @@ from . import digest, make
 from .pipeline_code import declared_lists
 from .pipeline_orchestrators import phases, orchestrators
 from .pipeline_registry import registry_loops
-from .pipeline_frameworks import (airflow, celery, langgraph, luigi, github_actions, make_targets, npm_scripts,
-                                  json_exports)
+from .pipeline_frameworks import airflow, celery, luigi
+from .pipeline_files import github_actions, make_targets, npm_scripts, json_exports
+from .pipeline_langgraph import langgraph
 from .pipeline_queues import queues
 from .pipeline_read import slug, site, Py, _str, _unparse, KINDS, HOW, DETECTED_AT
 
@@ -76,18 +77,22 @@ def scan(project, source=None):
     queues(py, found)
     covered = {pair for f in found for pair in f.functions}
     orchestrators(py, found, tasks, flows, covered)
-    for rel, text in others:
-        name = Path(rel).name
-        if '.github/workflows/' in rel: github_actions(rel, text, found)
-        elif name.lower() in ('makefile', 'gnumakefile'): make_targets(rel, text, found, 'makefile')
-        elif name.lower() == 'justfile': make_targets(rel, text, found, 'justfile')
-        elif name == 'package.json': npm_scripts(rel, text, found)
-        elif rel.endswith('.json'): json_exports(rel, text, found)
+    for rel, text in others: _file_pipelines(rel, text, found)
     _link_sub_pipelines(found)
     for f in found:
         if not f.fans: _fans_from_edges(f)
         _globals_and_env(py, f)
     return _record(found, py)
+
+
+def _file_pipelines(rel, text, found):
+    """The pipelines a build, CI or workflow file declares, read by the kind of file it is."""
+    name = Path(rel).name
+    if '.github/workflows/' in rel: github_actions(rel, text, found)
+    elif name.lower() in ('makefile', 'gnumakefile'): make_targets(rel, text, found, 'makefile')
+    elif name.lower() == 'justfile': make_targets(rel, text, found, 'justfile')
+    elif name == 'package.json': npm_scripts(rel, text, found)
+    elif rel.endswith('.json'): json_exports(rel, text, found)
 
 
 def _link_sub_pipelines(found):
@@ -118,6 +123,7 @@ def _open_sub_pipeline(f, stage, by_function):
             return
 
 
+KIND_ORDER = [kind for kind, _ in KINDS]
 FAN_KINDS = ('declared_dag', 'registry_loop', 'orchestrator', 'airflow', 'langgraph', 'prefect', 'dagster')
 
 
@@ -207,14 +213,18 @@ def _record(found, py):
     product = [p for p in pipelines if p['role'] == 'product']
     confidence = max((p['confidence'] for p in product), default=None)
     detected = bool(product) and confidence >= DETECTED_AT
-    kinds = sorted({p['kind'] for p in pipelines}, key=[k for k, _ in KINDS].index)
+    kinds = sorted({p['kind'] for p in pipelines}, key=KIND_ORDER.index)
+    evidence = [p['evidence'][0] if p['evidence'] else p['entry'] for p in product][:8]
+    return {'detected': detected, 'confidence': confidence, 'kinds': kinds, 'evidence': evidence,
+            'looked_for': _looked_for(pipelines), 'pipelines': pipelines, 'read': {'python_files': len(py.trees)}}
+
+
+def _looked_for(pipelines):
+    """Each kind of pipeline looked for, how it is read, and how many were found."""
     counts = defaultdict(int)
     for p in pipelines: counts[p['kind']] += 1
-    looked = [{'kind': kind, 'label': label, 'found': counts.get(kind, 0),
-               'how': HOW.get(kind, 'read from the code without running it')} for kind, label in KINDS]
-    evidence = [p['evidence'][0] if p['evidence'] else p['entry'] for p in product][:8]
-    return {'detected': detected, 'confidence': confidence, 'kinds': kinds, 'evidence': evidence, 'looked_for': looked,
-            'pipelines': pipelines, 'read': {'python_files': len(py.trees)}}
+    return [{'kind': kind, 'label': label, 'found': counts.get(kind, 0),
+             'how': HOW.get(kind, 'read from the code without running it')} for kind, label in KINDS]
 
 
 def run(target, source, **_):
