@@ -19,7 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import sign_in
-from .pipeline.paths import PATHS, resolve
+from .check_paths import PATHS
+from .pipeline.paths import resolve
 from .pipeline.schedule import MODES, forecast
 from .pipeline.stages import BY_NAME, ORDER, dependents
 from .progress import previous_seconds

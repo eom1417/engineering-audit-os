@@ -10,7 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.engines import ADAPTERS
-from eaos.pipeline.paths import PATHS, SPINE, resolve
+from eaos.check_paths import PATHS, SPINE
+from eaos.pipeline.paths import resolve
 from eaos.pipeline.run import check
 from eaos.pipeline.stages import OPTIONAL, STAGES
 from eaos.remediation_patterns import PATTERNS

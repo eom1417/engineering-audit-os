@@ -237,7 +237,7 @@ def _lost(context, problem, code):
 def roles(context):
     """The kinds of users the app has, read from its code by the assistant (eaos/roles.py): the app is opened as each."""
     if not context.provider: raise _absent(context.provider)
-    from ..assistants.command import Stuck
+    from ..process import Stuck
     from ..roles import find
     try: kinds = find(context.target, context.out, context.provider)
     except Stuck as problem: raise _lost(context, str(problem), 'ai_stuck') from None
@@ -249,7 +249,7 @@ def roles(context):
 def semantic(context):
     if not context.provider:
         raise _absent(context.provider)
-    from ..assistants.command import Stuck
+    from ..process import Stuck
     from ..semantic import run
     from ..views import refresh
     try: result = run(context.target, context.out, context.provider, language=context.language)
@@ -426,8 +426,7 @@ def proposals(context):
 
 
 def cards(context):
-    from ..plan import confirm
-    from ..extend import carry
+    from ..plan import carry, confirm
     record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
     return {'extension': carry(context.target, context.out), 'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
             'design': len(record['design']), 'decided_by': record['decided_by']}

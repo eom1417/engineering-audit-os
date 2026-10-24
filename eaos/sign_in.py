@@ -128,9 +128,9 @@ def answer(workspace, outcome):
 
 def wait(workspace, seconds=None):
     """SIGNED_IN, SIGNED_OUT (the person said so) or 'timeout'; the question is removed either way. A stopped check
-    stops waiting (assistants.command.check_cancelled)."""
+    stops waiting (process.check_cancelled)."""
     from . import progress
-    from .assistants.command import check_cancelled
+    from .process import check_cancelled
     path, end = Path(workspace) / ASKED, time.monotonic() + (WAIT if seconds is None else seconds)
     progress.step('your sign-in', 0, 1, 'waiting', reason='waiting for you to sign in to the app: the Studio\'s Waiting for you, '
                   'or eaos sign-in', reason_code='sign_in_waiting')

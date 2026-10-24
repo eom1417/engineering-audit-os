@@ -17,7 +17,7 @@ from eaos.studio.actions import adapters
 from eaos.studio.nodes import core
 
 ROOT = Path(__file__).resolve().parent.parent
-from eaos.assistants import command as provider
+from eaos import process as provider
 FAKE_CLAUDE = r'''import json, os, sys, time
 prompt = sys.stdin.read()
 mode = os.environ.get('FAKE_MODE', 'ok')

@@ -478,7 +478,7 @@ class TimeLeft(unittest.TestCase):
     def test_a_stage_whose_work_changed_does_not_scale_the_others(self):
         # EAOS on itself (2026-10-13): the live stages had stopped in seconds the check before and ran this time, and
         # the time left read 104 to 141 minutes for about 45.
-        from eaos.progress.estimate import pace
+        from eaos.pipeline.estimate import pace
         same = {'facts': 100, 'engines': 200, 'claims': 50}
         stages = [{'name': name, 'state': 'ok', 'seconds': seconds} for name, seconds in same.items()]
         live = [{'name': 'crawl', 'state': 'ok', 'seconds': 350}, {'name': 'setup', 'state': 'ok', 'seconds': 80}]

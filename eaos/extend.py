@@ -9,13 +9,13 @@ fix_finish in eaos/agent_tools.py: the tests, the app's own checks, the layers, 
   extend_plan   the spec checked, then every file it names held to the project: in a layer of its policy (else in a
                 folder the project has), reusing only functions it has and its rules let that layer use, and writing
                 no function the project already has; then its cards in the plan, ready for a batch
-  carry         a later check keeps the cards not built yet (the pipeline's cards stage)
+  (a later check keeps the cards not built yet: eaos/plan.py carry, in the pipeline's cards stage)
 """
 import json
 from pathlib import Path
 
 from . import blueprint, design
-from .ledger import key, walk
+from .ledger import key
 from .plan_source import read_plan
 from .policy import allowed, layer_of, load_policy
 from .workspace import read, write
@@ -169,23 +169,6 @@ def _card(card_id, mid, name, feature, looked):
             'acceptance': acceptance, 'tests': tests, 'reuses': reuses, 'priority': 0, 'before': 'Not in the project yet.',
             'after': after, 'impact': feature.get('description') or '', 'decision': {'kind': 'build', 'readiness': 'ready'},
             'status': 'planned'}
-
-
-def carry(target, out):
-    """The extension cards a new check's plan lost and the project does not hold yet (no commit carries their key):
-    back in plan.json, each in its milestone. The number of cards carried."""
-    kept = _json(folder(out) / 'cards.json')
-    if not kept: return 0
-    plan = read(Path(out) / 'plan.json')
-    built, have = walk(target, 'HEAD')[0], {t['id'] for t in plan['tasks']}
-    cards = [c for c in kept['tasks'] if c['id'] not in have and key(c) not in built]
-    if not cards: return 0
-    ids = {c['id'] for c in cards}
-    plan['tasks'] += cards
-    plan['milestones'] = (plan.get('milestones') or []) + [{**m, 'tasks': [t for t in m['tasks'] if t in ids]}
-                                                           for m in kept['milestones'] if ids & set(m['tasks'])]
-    write(Path(out) / 'plan.json', plan)
-    return len(cards)
 
 
 def _path(path):

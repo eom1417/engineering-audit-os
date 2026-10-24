@@ -51,7 +51,7 @@ def _run(tool, args, workspace, timeout=600, index_home=None):
         import os
         environment = dict(os.environ, HOME=str(index_home))
     try:
-        from ..assistants.command import run_command
+        from ..process import run_command
         return _outcome(run_command(cmd, timeout=timeout, env=environment))
     except subprocess.TimeoutExpired:
         return None, f'timeout after {timeout}s'

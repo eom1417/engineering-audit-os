@@ -25,7 +25,7 @@ from pathlib import Path
 
 from ..aspects import ASPECTS, VERDICTS
 from ..roles import unseen
-from ..assistants.command import Stuck
+from ..process import Stuck
 from ..card_review import triage_verdicts
 from . import ideal_bundle as read
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug, guard_words

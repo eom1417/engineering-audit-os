@@ -10,6 +10,7 @@ from .compose import Document
 from .compose.labels import falsifier_of, impact_of, statement_of
 from .decisions import decide, ready
 from .impact import assess, load
+from .ledger import key, walk
 from .ranking import claim_paths
 from .remediation_patterns import pattern_for
 from .workspace import read, write
@@ -439,6 +440,24 @@ def build(target, out, language='ar', patterns=None):
 def _load(path, default):
     try: return read(path)
     except (OSError, ValueError): return default
+
+
+def carry(target, out):
+    """The extension cards a new check's plan lost and the project does not hold yet (no commit carries their key):
+    back in plan.json, each in its milestone. The number of cards carried."""
+    try: kept = read(Path(out).parent / 'extend' / 'cards.json')   # beside the report: eaos/extend.py folder
+    except (OSError, ValueError): return 0
+    if not kept: return 0
+    plan = read(Path(out) / 'plan.json')
+    built, have = walk(target, 'HEAD')[0], {t['id'] for t in plan['tasks']}
+    cards = [c for c in kept['tasks'] if c['id'] not in have and key(c) not in built]
+    if not cards: return 0
+    ids = {c['id'] for c in cards}
+    plan['tasks'] += cards
+    plan['milestones'] = (plan.get('milestones') or []) + [{**m, 'tasks': [t for t in m['tasks'] if t in ids]}
+                                                           for m in kept['milestones'] if ids & set(m['tasks'])]
+    write(Path(out) / 'plan.json', plan)
+    return len(cards)
 
 
 def confirm(target, out, language='ar', triaged=False, reviewed=False):

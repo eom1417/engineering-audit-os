@@ -90,7 +90,7 @@ def _incomplete_lines(report, lang, ar):
 
 def _path_lines(report, lang, ar):
     """What a check of some paths looked at, and what it did not: kept from an earlier check (its date), or not seen."""
-    from .pipeline.paths import PATHS
+    from .check_paths import PATHS
     manifest = _this_run(report)
     paths = manifest.get('paths') or ['complete']
     if 'complete' in paths: return []

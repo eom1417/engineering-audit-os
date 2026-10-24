@@ -327,7 +327,7 @@ class LookTests(unittest.TestCase):
 class ExtendTests(unittest.TestCase):
     def test_a_feature_is_planned_into_the_checked_project_reusing_it_and_built_as_a_batch(self):
         import json
-        from eaos import agent_tools, decisions, extend
+        from eaos import agent_tools, decisions, extend, plan
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):
             project = Path(tmp) / 'shop'
             (project / 'src/domain').mkdir(parents=True)
@@ -357,4 +357,4 @@ class ExtendTests(unittest.TestCase):
             cards = json.loads((report / 'plan.json').read_text())['tasks']
             self.assertEqual([(c['id'], c['milestone'], decisions.ready(c)) for c in cards], [('EXT-001', 'X01', True)])
             (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))     # a new check
-            self.assertEqual(extend.carry(project, report), 1, 'a card not built yet is kept by the next check')
+            self.assertEqual(plan.carry(project, report), 1, 'a card not built yet is kept by the next check')

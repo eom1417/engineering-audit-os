@@ -49,7 +49,7 @@ def collect_external(target, out, source, only=None, keep=False):
     stay as written, and value.adjudication says whether EAOS asserts it.
     """
     result = external.run(target, source, out=out, only=only, keep=keep)
-    from ..correlate import filter_dead_code_references as _filter_dead_code_references
+    from .registry import filter_dead_code_references as _filter_dead_code_references
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
     # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
     # textual reference test decide what the report asserts (see facts/deadcode.adjudicate).

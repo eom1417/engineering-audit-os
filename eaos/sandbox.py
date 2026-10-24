@@ -315,7 +315,7 @@ class Sandbox:
         started = time.monotonic()
         process = subprocess.Popen(full, cwd=where, env=environment, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True, start_new_session=True)
-        from .assistants.command import communicate
+        from .process import communicate
         try:
             out, err = communicate(process, timeout)
         except subprocess.TimeoutExpired:
@@ -340,7 +340,7 @@ class Sandbox:
         full, where = self._command(argv, environment, self._inside(cwd), True)
         process = subprocess.Popen(full, cwd=where, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         self.started.append((process, argv, time.monotonic(), log))
-        from .assistants.command import check_cancelled
+        from .process import check_cancelled
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             check_cancelled()

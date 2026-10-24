@@ -194,7 +194,7 @@ class ReadyStagesTests(unittest.TestCase):
         self.assertEqual(most(True, answers)[0], 3)
 
     def test_stopping_one_stage_interrupts_the_commands_running_beside_it_and_their_children(self):
-        from eaos.assistants.command import run_command
+        from eaos.process import run_command
         from eaos.live_setup import free_port
         import urllib.request
         port = free_port()

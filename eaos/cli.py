@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 from . import __version__
-from .pipeline.paths import PATHS
+from .check_paths import PATHS
 from .workspace import bounded_int, read
 
 

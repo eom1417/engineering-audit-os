@@ -34,7 +34,7 @@ from ...code_laws import LAWS
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...assistants.command import Stuck, check_cancelled
+from ...process import Stuck, check_cancelled
 from ...language import foreign_texts, restate
 
 RULES_ONLY = 'rules only'

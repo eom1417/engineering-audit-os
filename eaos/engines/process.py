@@ -12,7 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from .. import toolchain
-from ..assistants.command import run_command
+from ..process import run_command
 
 DEFAULT_TIMEOUT = 600
 SKIP_DIRECTORIES = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'dist', 'build', '.mypy_cache'}

@@ -66,7 +66,7 @@ def _longest(costs, state):
     """The seconds the stages left take: a check's run side by side (eaos/pipeline/schedule.py forecast, the longest
     chain), any other flow's one after the other (their sum)."""
     if state.get('flow') != 'check' or state.get('mode') in (None, 'one'): return sum(costs.values())
-    from ..pipeline.schedule import WAITS, forecast
+    from .schedule import WAITS, forecast
     return forecast(costs, state['mode']) if set(costs) <= set(WAITS) else sum(costs.values())
 
 

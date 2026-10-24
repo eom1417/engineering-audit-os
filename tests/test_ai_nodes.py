@@ -17,7 +17,7 @@ from eaos.studio import ideal, ideal_base, nodes
 from eaos.studio.actions import adapters
 from eaos.studio.nodes import core, triage, view
 ROOT = Path(__file__).resolve().parent.parent
-from eaos.assistants import command as provider
+from eaos import process as provider
 
 
 def _ideal_report(base):
