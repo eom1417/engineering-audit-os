@@ -141,6 +141,6 @@ def _ended(stage, context, outcome, seconds):
                     seconds, present, outcome, code='artifacts_missing')
     failed = outcome.get('tools_failed')
     if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present, outcome, code='tools_failed')
-    if outcome.get('assistant_lost'):   # its assistant answered part of it (runners._partly): the check is PARTIAL
+    if outcome.get('assistant_lost'):   # its assistant answered part of it (ai_runners._partly): the check is PARTIAL
         return _row(stage, OK, outcome['assistant_lost']['why'], seconds, present, outcome, code='ai_partial')
     return _row(stage, OK, '', seconds, present, outcome)

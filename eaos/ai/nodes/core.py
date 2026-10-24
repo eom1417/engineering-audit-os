@@ -469,7 +469,7 @@ class _Run:
         failed = [problem for problem in outcomes if isinstance(problem, Exception)]
         stuck = next((p for p in failed if isinstance(p, Stuck)), None)
         if failed and (len(failed) == len(outcomes) or stuck or self._stopped()): raise stuck or failed[0]
-        if failed:      # the record says so, and the check is partial (eaos/pipeline/runners.py _partly)
+        if failed:      # the record says so, and the check is partial (eaos/pipeline/ai_runners.py _partly)
             self.unanswered = {'asked': len(outcomes), 'failed': len(failed), 'why': short(f'{type(failed[0]).__name__}: {failed[0]}', 300)}
         answer = _joined([one for one in outcomes if not isinstance(one, Exception)])
         if 'critique' not in self.node.passes: return answer, None
