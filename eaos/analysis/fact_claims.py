@@ -1,32 +1,16 @@
-"""The claims deterministic facts earn (eaos/analysis/claims.py from_facts), one builder per kind of fact, in ledger order.
+"""The claims deterministic facts earn (eaos/analysis/claims.py from_facts), one builder per kind of fact; the ledger
+numbers them in the order of claims.BUILDERS, which also takes the builders of code written twice
+(eaos/analysis/duplicate_claims.py) and of security weaknesses (eaos/analysis/weaknesses.py).
 
 Each builder is `build(fact_sets, add, target)`: `add(statement, claim_type, confidence, method, falsifier, **extra)`
 appends one claim to the ledger and returns it, so a builder can bind an acceptance check to it. `target` is the audited
-root, or None in a fixture. Also here: how a corroborated engine finding names the measurement it was earned by.
+root, or None in a fixture.
 """
-import re
-
-from .weaknesses import claims as weaknesses
-
 # A claim statement is one decidable sentence, and the schema caps it at 600 characters. An
 # eighty-module cycle listed every member and the whole dossier failed to assemble; the members
 # live in the fact, so the sentence names enough of them to recognise and says how many more.
 NAMED_IN_A_STATEMENT = 6
 
-# Sustainability observations reach the same ledger as everything else: one record, one decision.
-DUPLICATE_MIN, REDUNDANCY_MAX = 6, 10  # structural duplicates below 6 are common noise in shared-method code
-# UI components share boilerplate by construction: an arrow function that calls setState
-# and renders a button is not a duplicated business rule, it is a duplicated idiom.
-# The detector runs on every duplicate cluster; only large clusters of code that is not
-# pure JSX reach the ledger as a business-rule claim. JSX files whose shared shape is
-# small stay as facts but do not produce a CONFIRMED rule-duplication claim.
-UI_LANGUAGES = {'typescript', 'tsx', 'javascript', 'jsx'}
-UI_PATH_PARTS = {'components', 'pages', 'views', 'screens'}
-SHARED_SIZE_FOR_UI = 30  # tokens of shared shape, not occurrence count
-UI_MIN_OCCURRENCES = 4
-# A shared shape this large is a function copied whole, not an idiom: precise enough to be its own detector
-# (structural_duplicate, all sizes together, falls under the precision bar; eaos/data/detector-verdicts.json).
-COPIED_SIZE = 50
 
 DEAD_REASONS = {'unreachable-module': ('لا تصله أي نقطة دخول إنتاجية', 'no production entry point reaches it'),
                 'unused-symbol': ('لا يُذكر اسمه خارج تعريفه', 'its name appears nowhere outside its definition'),
@@ -46,20 +30,22 @@ def naming(members, limit=NAMED_IN_A_STATEMENT):
     return ', '.join(members[:limit]) + f' and {len(members) - limit} more'
 
 
-def _facts(fact_sets, name, kind):
+def facts_of(fact_sets, name, kind):
+    """The facts of one kind in one fact set."""
     return [f for f in fact_sets.get(name, {}).get('facts', []) if f['kind'] == kind]
 
 
-def _graph_query(query, **specification):
+def graph_query(query, **specification):
+    """A claim's probe: a question the resolved graph and the facts answer again on a changed copy."""
     return {'probe_type': 'graph_query', 'specification': {'query': query, **specification}}
 
 
 def cycles(fact_sets, add, target):
-    for fact in _facts(fact_sets, 'graph', 'graph_cycle'):
+    for fact in facts_of(fact_sets, 'graph', 'graph_cycle'):
         add('Import cycle between: ' + naming(fact['value']['members']), 'structure',
             'CONFIRMED', ['static_fact'], 'A resolved import graph in which these files no longer form a cycle.',
             fact_ids=[fact['id']],
-            probe_spec=_graph_query('cycle_present', members=fact['value']['members'],
+            probe_spec=graph_query('cycle_present', members=fact['value']['members'],
                                     expected='The same files still form a cycle in the resolved import graph.'),
             impact={'scenario': 'Changing any member can require changing the others together; the group cannot be tested or replaced independently.'})
 
@@ -77,7 +63,7 @@ def cochanges(fact_sets, add, target):
     from ..facts.source import language_of
     history = fact_sets.get('history', {})
     if (history.get('summary', {}).get('commits_analysed') or 0) < 10: return
-    linked = {fact['location']['path']: set(fact['value']['depends_on']) for fact in _facts(fact_sets, 'graph', 'graph_node')}
+    linked = {fact['location']['path']: set(fact['value']['depends_on']) for fact in facts_of(fact_sets, 'graph', 'graph_node')}
     pairs = sorted([f for f in history.get('facts', []) if f['kind'] == 'history_cochange'],
                    key=lambda f: (-f['value']['support'] * f['value']['confidence'], f['location']['path']))
     for fact in (f for f in pairs[:15] if _hidden_pair(f, linked, language_of)):
@@ -87,29 +73,9 @@ def cochanges(fact_sets, add, target):
             'A longer history window, or a rename, showing the pairing is coincidental rather than a shared reason to change.',
             fact_ids=[fact['id']],
             render={'key': 'cochange', 'params': {'left': left, 'right': right, 'support': fact['value']['support']}},
-            probe_spec=_graph_query('no_code_dependency', left=left, right=right,
+            probe_spec=graph_query('no_code_dependency', left=left, right=right,
                                     expected='Neither file imports the other in the resolved graph.'),
             impact={'scenario': 'A change to one is likely to need a matching change to the other, with nothing in the code to signal it.'})
-
-
-def duplicated_rules(fact_sets, add, target):
-    for fact in [f for f in _facts(fact_sets, 'domain', 'domain_constant') if f['value']['duplicated']]:
-        places = naming(f"{d['path']}:{d['line']}" for d in fact['value']['definitions'])
-        differs = fact['value']['distinct_values'] > 1
-        add(f"{fact['value']['name']} is defined in {len(fact['value']['definitions'])} places ({places})"
-            + (' with different values' if differs else ' with the same value'),
-            'business_rule', 'CONFIRMED', ['static_fact'],
-            'A single definition with the other sites importing it, or evidence that the repeated name encodes unrelated rules.',
-            fact_ids=[fact['id']],
-            render={'key': 'duplicated_rule', 'params': {'name': fact['value']['name'],
-                                                         'count': len(fact['value']['definitions']),
-                                                         'places': places,
-                                                         'differs': 'yes' if differs else 'no'}},
-            probe_spec={'probe_type': 'absence_search', 'specification': {'patterns': [fact['value']['name']],
-                                                                          'search_scope': ['source', 'test'],
-                                                                          'expected': 'The name is defined in more than one file with no import linking them.'}},
-            impact={'scenario': 'Changing the rule in one place and not the others makes two paths disagree'
-                                + (' — and they already hold different values.' if differs else '.')})
 
 
 def hotspots(fact_sets, add, target):
@@ -118,8 +84,8 @@ def hotspots(fact_sets, add, target):
     so a project's check named 3 of its 105 functions past the limit and scored its structure as sound."""
     from ..core.code_laws import MAX_COMPLEXITY
     from .system_map import is_test
-    nodes = {fact['location']['path']: fact['value'] for fact in _facts(fact_sets, 'graph', 'graph_node')}
-    for fact in sorted(_facts(fact_sets, 'metrics', 'metric'), key=lambda fact: -(fact['value'].get('branches') or 0)):
+    nodes = {fact['location']['path']: fact['value'] for fact in facts_of(fact_sets, 'graph', 'graph_node')}
+    for fact in sorted(facts_of(fact_sets, 'metrics', 'metric'), key=lambda fact: -(fact['value'].get('branches') or 0)):
         value, path = fact['value'], fact['location']['path']
         if value.get('scope') in ('function', 'method') and (value.get('branches') or 0) > MAX_COMPLEXITY and not is_test(path):
             _hotspot(fact, (nodes.get(path) or {}).get('attention_rank'), MAX_COMPLEXITY, add)
@@ -137,7 +103,7 @@ def _hotspot(fact, rank, limit, add):
                                              'branches': fact['value']['branches'],
                                              'lines': fact['value']['lines'],
                                              'rank': rank or '-'}},
-        probe_spec=_graph_query('metric_threshold', path=path, symbol=symbol, max_branches=limit,
+        probe_spec=graph_query('metric_threshold', path=path, symbol=symbol, max_branches=limit,
                                 expected='The symbol is still past the complexity limit.'),
         impact={'scenario': f'Every change to this path passes through one function of more than {limit} decisions: '
                             'hard to read, to test and to change without breaking it.'})
@@ -148,27 +114,31 @@ def large_modules(fact_sets, add, target):
     one of them reads and risks the others. The card splits it along its responsibilities, its outside kept."""
     from ..core.code_laws import MAX_LINES
     from .system_map import is_test
-    nodes = {fact['location']['path']: fact['value'] for fact in _facts(fact_sets, 'graph', 'graph_node')}
-    for fact in sorted(_facts(fact_sets, 'metrics', 'metric'), key=lambda f: -(f['value'].get('lines') or 0)):
+    nodes = {fact['location']['path']: fact['value'] for fact in facts_of(fact_sets, 'graph', 'graph_node')}
+    for fact in sorted(facts_of(fact_sets, 'metrics', 'metric'), key=lambda f: -(f['value'].get('lines') or 0)):
         value, path = fact['value'], fact['location']['path']
         if value.get('scope') != 'file' or (value.get('lines') or 0) <= MAX_LINES or is_test(path): continue
-        node = nodes.get(path) or {}
-        params = {'path': path, 'lines': value['lines'], 'symbols': value.get('symbols') or 0, 'limit': MAX_LINES,
-                  'fan_in': node.get('fan_in') or 0, 'fan_out': node.get('fan_out') or 0}
+        params = _module_params(path, value, nodes.get(path) or {}, MAX_LINES)
         add(f"{path} has {params['lines']} lines and {params['symbols']} definitions, past the limit of {MAX_LINES} lines "
             f"for one module; {params['fan_in']} modules import it and it imports {params['fan_out']}",
             'structure', 'CONFIRMED', ['static_fact'],
             'A measurement showing the module is within the line limit, or that its definitions serve one responsibility '
             'no split would make clearer.',
             fact_ids=[fact['id']], render={'key': 'large_module', 'params': params},
-            probe_spec=_graph_query('module_size', path=path, max_lines=MAX_LINES,
+            probe_spec=graph_query('module_size', path=path, max_lines=MAX_LINES,
                                     expected='The module is still past the line limit.'),
             impact={'scenario': 'Every change to one of its responsibilities reads and risks the others; '
                                 'it grows wherever a new feature lands.'})
 
 
+def _module_params(path, value, node, limit):
+    """A large module's numbers: its lines and definitions, the limit, and the imports in and out."""
+    return {'path': path, 'lines': value['lines'], 'symbols': value.get('symbols') or 0, 'limit': limit,
+            'fan_in': node.get('fan_in') or 0, 'fan_out': node.get('fan_out') or 0}
+
+
 def mutable_globals(fact_sets, add, target):
-    for fact in [f for f in _facts(fact_sets, 'domain', 'mutable_global') if f['value'].get('mutation_scope') == 'function']:
+    for fact in [f for f in facts_of(fact_sets, 'domain', 'mutable_global') if f['value'].get('mutation_scope') == 'function']:
         # State private to its module has an owner: its own functions. Whether it may stay per-process (a
         # shutdown flag) or must move out (an in-memory rate limit behind two instances) is a decision, not a
         # mechanical repair; exposed state other modules change directly is the defect.
@@ -184,7 +154,7 @@ def mutable_globals(fact_sets, add, target):
                                                         'how': fact['value']['mutated_by'],
                                                         'line': fact['value']['mutated_at_line'],
                                                         'encapsulated': private}},
-            probe_spec=_graph_query('mutable_global_present', path=fact['location']['path'], name=fact['value']['name'],
+            probe_spec=graph_query('mutable_global_present', path=fact['location']['path'], name=fact['value']['name'],
                                     expected='The module-level value is still mutated at runtime.'),
             impact={'scenario': 'Two callers can observe different values depending on order, and tests '
                                 'can pass in isolation while failing together.'})
@@ -194,11 +164,19 @@ def access_gaps(fact_sets, add, target):
     # A Supabase table is served to the browser through its API; without row-level security, or with a
     # write policy that checks nothing, whoever holds the public key reads or writes every row.
     domain_facts = fact_sets.get('domain', {}).get('facts', [])
-    exposed = [f for f in domain_facts if f['kind'] == 'data_table' and '/supabase/' in '/' + f['location']['path']
-               and f['value'].get('rls_enabled') is False and not f['value'].get('dropped')]
-    open_writes = [f for f in domain_facts if f['kind'] == 'db_policy' and f['value'].get('open')
-                   and f['value'].get('command') in {'ALL', 'INSERT', 'UPDATE', 'DELETE'}]
-    for fact, gap in [(f, 'no_rls') for f in exposed] + [(f, 'open_write') for f in open_writes]: _access_gap(fact, gap, add)
+    gaps = [(f, 'no_rls') for f in filter(_exposed, domain_facts)] + [(f, 'open_write') for f in filter(_open_write, domain_facts)]
+    for fact, gap in gaps: _access_gap(fact, gap, add)
+
+
+def _exposed(fact):
+    """A Supabase table, still there, with row-level security disabled."""
+    return (fact['kind'] == 'data_table' and '/supabase/' in '/' + fact['location']['path']
+            and fact['value'].get('rls_enabled') is False and not fact['value'].get('dropped'))
+
+
+def _open_write(fact):
+    """A policy that lets anyone write: its condition checks nothing."""
+    return fact['kind'] == 'db_policy' and fact['value'].get('open') and fact['value'].get('command') in {'ALL', 'INSERT', 'UPDATE', 'DELETE'}
 
 
 def _access_gap(fact, gap, add):
@@ -214,14 +192,14 @@ def _access_gap(fact, gap, add):
         render={'key': 'access_gap_' + gap, 'params': {'table': table, 'path': fact['location']['path'],
                                                         'line': fact['location']['start_line'],
                                                         'gap': gap, 'policy': policy or '—'}},
-        probe_spec=_graph_query('access_gap_present', table=table, gap=gap, policy=policy,
+        probe_spec=graph_query('access_gap_present', table=table, gap=gap, policy=policy,
                                 expected='The table is still exposed in the net migration state.'),
         impact={'scenario': 'Anyone holding the public API key can read or change rows of this '
                             'table that belong to other users.'})
 
 
 def external_writes(fact_sets, add, target):
-    for fact in _facts(fact_sets, 'domain', 'external_state_write'):
+    for fact in facts_of(fact_sets, 'domain', 'external_state_write'):
         add(f"{fact['location']['path']} writes into {fact['value']['module']}."
             f"{fact['value']['attribute']}, state it does not own",
             'structure', 'CONFIRMED', ['static_fact'],
@@ -230,73 +208,11 @@ def external_writes(fact_sets, add, target):
             render={'key': 'external_write', 'params': {'path': fact['location']['path'],
                                                         'module': fact['value']['module'],
                                                         'attribute': fact['value']['attribute']}},
-            probe_spec=_graph_query('external_write_present', path=fact['location']['path'],
+            probe_spec=graph_query('external_write_present', path=fact['location']['path'],
                                     module=fact['value']['module'], attribute=fact['value']['attribute'],
                                     expected='The cross-module assignment is still present.'),
             impact={'scenario': 'The owning module cannot guarantee its own invariant, because another '
                                 'module assigns into it directly.'})
-
-
-def worth_a_claim(places, shared_size):
-    """A duplicate cluster large enough to be a rule; UI noise stays a fact: the cluster is recorded, the claim is not."""
-    if len(places) < DUPLICATE_MIN: return False
-    languages = {(p.get('path') or '').rsplit('.', 1)[-1] for p in places}
-    in_ui = all(any(part in UI_PATH_PARTS for part in (p.get('path') or '').split('/')) for p in places)
-    ui_noise = in_ui and languages <= UI_LANGUAGES
-    return not (ui_noise and (shared_size < SHARED_SIZE_FOR_UI or len(places) < UI_MIN_OCCURRENCES))
-
-
-def structural_duplicates(fact_sets, add, target):
-    from .system_map import is_test
-    for fact in _facts(fact_sets, 'fingerprint', 'duplicate_cluster'):
-        places, size = fact['value']['occurrences'], fact['value'].get('shared_size', 0)
-        copied = size >= COPIED_SIZE and not all(is_test(row['path']) for row in places)
-        if not (copied or worth_a_claim(places, size)): continue
-        where = ', '.join(f"{row['path']}:{row['start_line']} {row['symbol']}" for row in places[:4])
-        add(f"{len(places)} functions are one function copied whole, up to identifier names ({where})" if copied else
-            f"{len(places)} symbols share the same structure up to identifier names ({where})",
-            'business_rule', 'CONFIRMED', ['static_fact'],
-            'Evidence that the occurrences encode different rules that evolve for different reasons, '
-            'which would make a single definition wrong rather than missing.',
-            fact_ids=[fact['id']],
-            render={'key': 'copied_function' if copied else 'structural_duplicate', 'params': {'count': len(places), 'where': where}},
-            probe_spec=_graph_query('duplicate_cluster_present', shape_sha=fact['value']['shape_sha'],
-                                    expected='The same structural cluster is still present.'),
-            impact={'scenario': 'Changing the rule in one occurrence and not the others makes the paths '
-                                'disagree, and nothing in the code links them.'})
-
-
-def sequences(fact_sets, add, target):
-    for fact in [f for f in fact_sets.get('sequences', {}).get('facts', [])[:5] if f['kind'] == 'sequence_cluster']:
-        members = fact['value'].get('occurrences') or []
-        where = ', '.join(f"{row['path']}:{row.get('start_line')}" for row in members[:4])
-        add(f"{len(members)} functions perform the same ordered sequence of calls ({where})",
-            'structure', 'CONFIRMED', ['static_fact'],
-            'Evidence that the shared order is coincidental rather than one orchestration copied.',
-            fact_ids=[fact['id']],
-            render={'key': 'sequence_duplicate', 'params': {'count': len(members), 'where': where}},
-            probe_spec=_graph_query('sequence_cluster_present', sequence_sha=fact['value'].get('sequence_sha'),
-                                    expected='The same call sequence is still repeated.'),
-            impact={'scenario': 'The orchestration is maintained in several places at once.'})
-
-
-def redundant_work(fact_sets, add, target):
-    for fact in _facts(fact_sets, 'redundancy', 'redundancy')[:REDUNDANCY_MAX]:
-        kind = fact['value']['kind']
-        location = f"{fact['location']['path']}:{fact['location']['start_line']}"
-        add(f"{kind} at {location} in {fact['location'].get('symbol')}: {fact['value']['callee']}",
-            'risk' if kind == 'n_plus_one' else 'structure', 'CONFIRMED', ['static_fact'],
-            'Evidence that the repetition is required — a different result per call, or a dependency on '
-            'state that changes between the two.',
-            fact_ids=[fact['id']],
-            render={'key': 'redundant_work',
-                    'params': {'kind': kind, 'location': location,
-                               'symbol': fact['location'].get('symbol'),
-                               'callee': fact['value']['callee']}},
-            probe_spec=_graph_query('redundancy_present', path=fact['location']['path'],
-                                    line=fact['location']['start_line'], kind=kind, callee=fact['value']['callee'],
-                                    expected='The redundant work is still present at that location.'),
-            impact={'scenario': 'The path does more work than its result requires, on every execution.'})
 
 
 def _assess(claim, built):
@@ -306,7 +222,7 @@ def _assess(claim, built):
 
 def policy_violations(fact_sets, add, target):
     from .policy_assessment import build_assessment
-    for fact in _facts(fact_sets, 'policy', 'policy_violation'):
+    for fact in facts_of(fact_sets, 'policy', 'policy_violation'):
         claim = add(f"{fact['location']['path']} imports {fact['value']['to_path']}, which the declared "
                     f"policy forbids ({fact['value']['from_layer']} → {fact['value']['to_layer']})",
                     'structure', 'CONFIRMED', ['static_fact'],
@@ -316,7 +232,7 @@ def policy_violations(fact_sets, add, target):
                                                         'to': fact['value']['to_path'],
                                                         'from_layer': fact['value']['from_layer'],
                                                         'to_layer': fact['value']['to_layer']}},
-                    probe_spec=_graph_query('policy_violation_present', path=fact['location']['path'],
+                    probe_spec=graph_query('policy_violation_present', path=fact['location']['path'],
                                             to_path=fact['value']['to_path'],
                                             expected='The forbidden edge is still present in the resolved graph.'),
                     impact={'scenario': fact['value']['reason']})
@@ -334,7 +250,7 @@ def trace_gaps(fact_sets, add, target):
             render={'key': 'trace_gap', 'params': {'flow': fact['value']['flow_id'],
                                                    'surface': entry['surface'], 'route': str(entry['route']),
                                                    'count': fact['value']['unresolved_steps']}},
-            probe_spec=_graph_query('flow_has_unresolved_steps', flow_id=fact['value']['flow_id'],
+            probe_spec=graph_query('flow_has_unresolved_steps', flow_id=fact['value']['flow_id'],
                                     expected='The traced flow still stops at calls the resolver cannot follow.'),
             impact={'scenario': 'The end-to-end behaviour of this entry point is not fully visible from source alone.'})
 
@@ -357,7 +273,7 @@ def _dead(fact, verdict, add, context):
                  'A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.'),
                 fact_ids=[fact['id']],
                 render={'key': 'dead_code', 'params': {'subject': subject, 'reason_ar': ar, 'reason_en': en}},
-                probe_spec=_graph_query('dead_code_present', path=location['path'], symbol=location.get('symbol'), rule=value['rule'],
+                probe_spec=graph_query('dead_code_present', path=location['path'], symbol=location.get('symbol'), rule=value['rule'],
                                         expected='The candidate is still unreached and unreferenced in the current snapshot.'),
                 impact={'scenario': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.'})
     fact_sets, target = context
@@ -376,7 +292,7 @@ def broken_code(fact_sets, add, target):
             fact_ids=[fact['id']],
             render={'key': 'broken_code', 'params': {'path': location['path'], 'line': location.get('start_line'),
                                                      'subject': str(location.get('symbol')), 'reason_ar': ar, 'reason_en': en}},
-            probe_spec=_graph_query('broken_code_present', path=location['path'], symbol=location.get('symbol'), rule=value['rule'],
+            probe_spec=graph_query('broken_code_present', path=location['path'], symbol=location.get('symbol'), rule=value['rule'],
                                     expected='The same broken reference is still in the current snapshot.'),
             impact={'scenario': en[0].upper() + en[1:] + '.'})
 
@@ -409,91 +325,6 @@ def _vulnerable(fact, add):
                        'params': {'package': package, 'installed': installed, 'count': len(ids),
                                   'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
                                   'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—'}},
-               probe_spec=_graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'), engines=[value['engine']],
+               probe_spec=graph_query('vulnerable_dependency_present', package=fact['location'].get('symbol'), engines=[value['engine']],
                                        expected='The same package version is still reported vulnerable.'),
                impact={'scenario': 'Every user runs a version with a published vulnerability; the fix is published too.'})
-
-
-# The builders in ledger order: the claims are numbered in this order.
-BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, access_gaps, external_writes,
-            structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies, weaknesses)
-
-
-# ---------------------------------------------------------------- what a corroborated engine finding measured
-
-def _extract_measurement(fact, name):
-    for m in fact.get('value', {}).get('measurements', []) or []:
-        if m.get('name') == name:
-            return m
-    return None
-
-
-def _number(value):
-    return int(value) if isinstance(value, float) and value.is_integer() else value
-
-
-def _complexity(facts):
-    # reforge names it function.complexity and declares a threshold; codegraph names it complexity
-    # without one. A measurement that carries its threshold is preferred over one that does not.
-    found = [m for fact in facts for name in ('function.complexity', 'cyclomatic_complexity', 'cognitive_complexity', 'complexity')
-             for m in [_extract_measurement(fact, name)] if m is not None and m.get('value') is not None]
-    found.sort(key=lambda m: m.get('threshold') is None)
-    if not found: return None
-    if found[0].get('threshold') is not None:
-        return 'engine_cluster_complexity', {'value': _number(found[0]['value']), 'threshold': _number(found[0]['threshold'])}
-    return 'engine_cluster_complexity_value', {'value': _number(found[0]['value'])}
-
-
-def _literal_duplication(facts):
-    # reforge reports the occurrence count as group.size; its sites list also carries file-level
-    # entries, so counting sites overstates it. jscpd reports one site per copy.
-    sizes = [m['value'] for fact in facts for m in [_extract_measurement(fact, 'group.size')]
-             if m is not None and m.get('value') is not None]
-    counts = sizes or [len((fact.get('value') or {}).get('sites') or []) for fact in facts]
-    return ('engine_cluster_literal_duplication', {'sites': _number(max(counts))}) if any(counts) else None
-
-
-def _coupling_parts(message):
-    return [label + ' ' + found.group(1) for label in ('fan-in', 'fan-out')
-            for found in [re.search(label + r'\s+(\d+)', message)] if found]
-
-
-def _coupling(facts):
-    for parts in (_coupling_parts((fact.get('value') or {}).get('message') or '') for fact in facts):
-        if parts: return 'engine_cluster_coupling', {'measure': ', '.join(parts)}
-    return None
-
-
-def _dead_symbol(fact):
-    """The dead symbol a finding names: its location's symbol, the one its message names, else its first site's path."""
-    location = fact.get('location') or {}
-    symbol = location.get('symbol')
-    if symbol and symbol != location.get('path'): return symbol
-    found = re.search(r'(?:function|method|class)\s+([\w./]+)', (fact.get('value') or {}).get('message') or '')
-    if found: return found.group(1)
-    sites = (fact.get('value') or {}).get('sites') or []
-    return sites[0]['path'] if sites and sites[0].get('path') else None
-
-
-def _dead_code_measure(facts):
-    for symbol in map(_dead_symbol, facts):
-        if symbol: return 'engine_cluster_dead_code', {'symbol': symbol}
-    return None
-
-
-MEASURES = {'complexity': _complexity, 'literal_duplication': _literal_duplication, 'coupling': _coupling,
-            'dead_code': _dead_code_measure}
-
-
-def engine_measurement(kind, cluster, fact_sets):
-    """Return ``(impact_key, params)`` naming the measurement a corroborated finding was earned by.
-
-    The key selects a template in ``compose.labels.IMPACTS`` for every language, so the report reads
-    the same measurement the claim carries. With no measurement the key says so rather than guessing.
-    """
-    by_id = {fact['id']: fact for fact in (fact_sets.get('external') or {}).get('facts', [])}
-    facts = [by_id.get(fid) for fid in cluster.get('fact_ids', [])]
-    facts = [fact for fact in facts if fact and (fact.get('value') or {}).get('kind') == kind]
-    measure = MEASURES.get(kind)
-    return (measure(facts) if measure else None) or ('engine_cluster_unmeasured', {})

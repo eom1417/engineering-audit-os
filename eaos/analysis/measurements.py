@@ -59,22 +59,34 @@ class _Indexes:
     def __init__(self, out, by_kind):
         metric_external = by_kind.get('symbol_metric_external', [])
         self.scc = {_path_of(f): f['value'] for f in metric_external if f['value'].get('engine') == 'scc'}
-        self.codegraph = {}
-        for fact in metric_external:
-            if fact['value'].get('engine') == 'codegraph' and isinstance(fact['value'].get('complexity'), (int, float)):
-                self.codegraph[_path_of(fact)] = max(self.codegraph.get(_path_of(fact), 0), fact['value']['complexity'])
-        self.own_file, self.own_symbols = {}, {}
-        for fact in by_kind.get('metric', []):
-            value = fact['value']
-            if value.get('scope') == 'file': self.own_file[_path_of(fact)] = value
-            elif value.get('scope') in FUNCTION_SCOPES:
-                self.own_symbols[_path_of(fact)] = max(self.own_symbols.get(_path_of(fact), 0), (value.get('branches') or 0) + 1)
+        self.codegraph = self._codegraph(metric_external)
+        self.own_file, self.own_symbols = self._own(by_kind.get('metric', []))
         self.jscpd_seen = 'jscpd' in _engines_observed(out)
         self.duplicated = self._duplicated(by_kind.get('engine_finding', []))
         self.churn = {_path_of(f): f['value'] for f in by_kind.get('history_churn', [])}
         self.ownership = {_path_of(f): f['value'] for f in by_kind.get('history_ownership', [])}
         self.graph = {_path_of(f): f['value'] for f in by_kind.get('graph_node', [])}
         self.coverage = _coverage(out)
+
+    @staticmethod
+    def _codegraph(metric_external):
+        """CodeGraph's complexity of each file's most complex symbol."""
+        codegraph = {}
+        for fact in metric_external:
+            if fact['value'].get('engine') == 'codegraph' and isinstance(fact['value'].get('complexity'), (int, float)):
+                codegraph[_path_of(fact)] = max(codegraph.get(_path_of(fact), 0), fact['value']['complexity'])
+        return codegraph
+
+    @staticmethod
+    def _own(metrics):
+        """EAOS's own metrics: each file's, and per file the largest branches + 1 of its functions and methods."""
+        own_file, own_symbols = {}, {}
+        for fact in metrics:
+            value = fact['value']
+            if value.get('scope') == 'file': own_file[_path_of(fact)] = value
+            elif value.get('scope') in FUNCTION_SCOPES:
+                own_symbols[_path_of(fact)] = max(own_symbols.get(_path_of(fact), 0), (value.get('branches') or 0) + 1)
+        return own_file, own_symbols
 
     @staticmethod
     def _duplicated(findings):
@@ -139,14 +151,17 @@ class _Indexes:
         return row
 
 
+def _parse_status(fact):
+    return (fact.get('value') or {}).get('parse_status')
+
+
 def build(out):
     out = Path(out)
     by_kind = {}
     for fact in _facts(out): by_kind.setdefault(fact['kind'], []).append(fact)
     files = by_kind.get('source_file', [])
-    sources = [f for f in files if (f.get('value') or {}).get('parse_status') == 'OBSERVED']
-    skipped = [{'path': _path_of(f), 'reason': f"not parsed: {(f.get('value') or {}).get('parse_status')}"}
-               for f in files if (f.get('value') or {}).get('parse_status') != 'OBSERVED']
+    sources = [f for f in files if _parse_status(f) == 'OBSERVED']
+    skipped = [{'path': _path_of(f), 'reason': f"not parsed: {_parse_status(f)}"} for f in files if _parse_status(f) != 'OBSERVED']
     indexes = _Indexes(out, by_kind)
     rows = [indexes.row(fact) for fact in sorted(sources, key=_path_of)]
     return {'schema_version': 1, 'files': rows, 'not_measured': skipped,

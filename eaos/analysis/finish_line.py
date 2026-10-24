@@ -43,13 +43,23 @@ def targets(facts, sets):
         key = (where.get('path'), name(where.get('symbol')))
         if value.get('kind') != 'complexity' or value.get('rule') in SIZE or not key[1]: continue
         branches = counted.get(key)
-        rule = _rule(value) if value.get('rule') in EXACT or branches is None else 'branches'
-        if rule != 'branches' or branches > MAX_COMPLEXITY:
-            target = {'rule': rule, 'path': key[0], 'name': key[1]}
-            if nameless(key[1]): target['line'] = where.get('line') or where.get('start_line')
-            elif also := sorted(_files(rule, key[1], counted, places) - {key[0]}): target['also_in'] = also
-            out[(rule, *key)] = target
+        rule = _ruler(value, branches)
+        if rule != 'branches' or branches > MAX_COMPLEXITY: out[(rule, *key)] = _target(rule, key, where, counted, places)
     return [out[k] for k in sorted(out)]
+
+
+def _ruler(value, branches):
+    """The rule a finding is judged by: its engine's for an exact count or a function EAOS does not count, else EAOS's
+    branch count."""
+    return _rule(value) if value.get('rule') in EXACT or branches is None else 'branches'
+
+
+def _target(rule, key, where, counted, places):
+    """One target: a nameless function with its line, a named one with the other files it was reported in then."""
+    target = {'rule': rule, 'path': key[0], 'name': key[1]}
+    if nameless(key[1]): target['line'] = where.get('line') or where.get('start_line')
+    elif also := sorted(_files(rule, key[1], counted, places) - {key[0]}): target['also_in'] = also
+    return target
 
 
 def judges(wanted, facts):

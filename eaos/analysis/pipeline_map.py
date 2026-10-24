@@ -1,7 +1,7 @@
 """studio/pipeline.json: the pipeline map, current, ideal and gap (contract v2, docs/STUDIO.md D9).
 
 Built from facts/pipeline.json (eaos/facts/pipeline.py), the cards and the fix plan; the Studio computes no position and
-no number. Each stage gets its layer and its order inside the layer from EAOS's own layered layout (eaos/analysis/arch_map.py),
+no number. Each stage gets its layer and its order inside the layer from EAOS's own layered layout (eaos/analysis/graph_layout.py),
 so a stage keeps its place between the Current, Ideal and Gap views and between runs on the same code.
 
 The ideal is derived by the rules of eaos/data/pipeline-rules.json, each with its source: one gap entry per broken
@@ -12,7 +12,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from . import arch_map
+from .graph_layout import feedback_edges, layer_of, order_columns
 from ..facts import pipeline as facts_pipeline
 
 RULES = Path(__file__).resolve().parent.parent / 'data' / 'pipeline-rules.json'
@@ -37,14 +37,19 @@ def rules():
     return json.loads(RULES.read_text(encoding='utf-8'))
 
 
+def _pairs(stage_ids, edges):
+    """The distinct links between two different stages, sorted."""
+    return sorted({(a, b) for a, b in edges if a in stage_ids and b in stage_ids and a != b})
+
+
 def layout(stage_ids, edges):
     """{stage: (layer, order)}: layers by the longest path after setting cycle edges aside, then barycentre sweeps."""
-    pairs = sorted({(a, b) for a, b in edges if a in stage_ids and b in stage_ids and a != b})
+    pairs = _pairs(stage_ids, edges)
     weights = {pair: 1 for pair in pairs}
-    loops = arch_map.feedback_edges(stage_ids, weights) if pairs else set()
+    loops = feedback_edges(stage_ids, weights) if pairs else set()
     acyclic = [pair for pair in pairs if pair not in loops]
-    layer = arch_map.layer_of(stage_ids, acyclic)
-    columns = arch_map.order_columns(layer, acyclic) if layer else []
+    layer = layer_of(stage_ids, acyclic)
+    columns = order_columns(layer, acyclic) if layer else []
     return {stage: (index, position) for index, column in enumerate(columns) for position, stage in enumerate(column)}
 
 
@@ -63,22 +68,36 @@ def section(record, cards=(), plan=None, lang='en'):
     pipelines, stages, edges = out['pipelines'], out['stages'], out['edges']
     by_stage = {s['id']: s for s in stages}
     gap, ideal = _gap(record, by_stage, edges, out['routers'], out['fans'], out['errors'], out['hidden'], on_file)
-    rule_rows = [{**rule, 'broken': sum(g['rule'] == rule['id'] for g in gap)} for rule in rules()]
     product = [p for p in pipelines if p['role'] == 'product']
     real = [s for s in stages if s['kind'] not in STRUCTURAL]
-    confidence = record.get('confidence')
-    return {'detected': bool(record['detected']),
-            'confidence': {'value': round(confidence, 4) if isinstance(confidence, (int, float)) else None,
-                           'src': 'facts/pipeline.json#pipeline[role=product].confidence (highest)'},
+    return {'detected': bool(record['detected']), 'confidence': _confidence(record),
             'verdict': verdict(record, product, real, lang), 'kinds': list(record['kinds']),
-            'evidence': [_site(e) for e in record.get('evidence') or []],
-            'looked_for': [{k: row[k] for k in ('kind', 'label', 'found', 'how')} for row in record['looked_for']],
+            'evidence': [_site(e) for e in record.get('evidence') or []], 'looked_for': _looked_for(record),
             'pipelines': pipelines, 'stages': stages, 'edges': edges, 'routers': out['routers'], 'fans': out['fans'],
             'control': out['control'], 'error_lanes': out['errors'], 'hidden': out['hidden'], 'unresolved': out['unresolved'],
-            'rules': rule_rows,
-            'views': {'current': {'stages': [s['id'] for s in stages], 'edges': [e['id'] for e in edges]}, 'ideal': ideal, 'gap': gap},
+            'rules': _rule_rows(gap), 'views': {'current': _current_view(stages, edges), 'ideal': ideal, 'gap': gap},
             'counts': _counts(out, product, real, gap), 'src': {'record': 'facts/pipeline.json', 'rules': 'eaos/data/pipeline-rules.json',
-                                                                'layout': 'eaos/analysis/arch_map.py feedback_edges, layer_of, order_columns'}}
+                                                                'layout': 'eaos/analysis/graph_layout.py feedback_edges, layer_of, order_columns'}}
+
+
+def _rule_rows(gap):
+    """Every rule of eaos/data/pipeline-rules.json with how many times the code breaks it."""
+    return [{**rule, 'broken': sum(g['rule'] == rule['id'] for g in gap)} for rule in rules()]
+
+
+def _current_view(stages, edges):
+    return {'stages': [s['id'] for s in stages], 'edges': [e['id'] for e in edges]}
+
+
+def _confidence(record):
+    confidence = record.get('confidence')
+    return {'value': round(confidence, 4) if isinstance(confidence, (int, float)) else None,
+            'src': 'facts/pipeline.json#pipeline[role=product].confidence (highest)'}
+
+
+def _looked_for(record):
+    """What the scan looked for: each kind, its label, whether it was found and how."""
+    return [{k: row[k] for k in ('kind', 'label', 'found', 'how')} for row in record['looked_for']]
 
 
 def _counts(out, product, real, gap):
@@ -127,14 +146,24 @@ def _stage_row(s, p, place, on_file):
     stage_cards = list(on_file.get(s['entry'].get('path'), []))
     return {'id': s['id'], 'pipeline': p['id'], 'label': s['label'], 'kind': s['kind'],
             'entry': _site(s['entry'], s.get('fact')), 'symbol': s.get('symbol'), 'tools': s.get('tools') or [],
-            'inputs': [_port(i) for i in s.get('inputs') or []][:12],
-            'outputs': [_port(o) for o in s.get('outputs') or []][:12],
-            'side_effects': [{**_site(e), 'kind': e['kind'], 'name': str(e['name'])[:120]} for e in s.get('side_effects') or []][:12],
+            **_stage_contract(s),
             'optional': bool(s.get('optional')), 'marks': [m for m in s.get('marks') or [] if m in MARKED],
             'sub_pipeline': s.get('sub_pipeline'),
             'coverage': 'partial' if any(u['stage'] == s['id'] for u in p['unresolved']) else 'measured',
             'layer': place[0], 'order': place[1],
-            'cards': [c['id'] for c in stage_cards][:20],
+            **_stage_cards(stage_cards)}
+
+
+def _stage_contract(s):
+    """A stage's inputs, outputs and side effects, twelve of each at most."""
+    return {'inputs': [_port(i) for i in s.get('inputs') or []][:12],
+            'outputs': [_port(o) for o in s.get('outputs') or []][:12],
+            'side_effects': [{**_site(e), 'kind': e['kind'], 'name': str(e['name'])[:120]} for e in s.get('side_effects') or []][:12]}
+
+
+def _stage_cards(stage_cards):
+    """The cards on a stage's file and the plan steps they are in."""
+    return {'cards': [c['id'] for c in stage_cards][:20],
             'steps': sorted({c['milestone'] for c in stage_cards if c.get('milestone')})[:10]}
 
 
@@ -191,7 +220,7 @@ def verdict(record, product, stages, lang):
     ar = lang == 'ar'
     tooling = [p for p in record['pipelines'] if p['role'] == 'tooling']
     if product:
-        names = '، '.join(p['title'] for p in product[:3]) if ar else ', '.join(p['title'] for p in product[:3])
+        names = ('، ' if ar else ', ').join(p['title'] for p in product[:3])
         return (f'هذا المشروع خط معالجة: وجد EAOS خطوط معالجة عددها {len(product)}، فيها {len(stages)} مرحلة ({names}).' if ar else
                 f'This project is a pipeline: EAOS found {len(product)} pipelines with {len(stages)} stages ({names}).')
     looked = len(record['looked_for'])
@@ -279,17 +308,21 @@ def _failure_lane(pid, p, gap):
             _site(p['entry']))
 
 
+def _shared_context(pid, p, real, by_stage, gap):
+    """P6: stages of a product pipeline that take one shared, mutable context."""
+    shared = [s for s in real if s.get('shared_context')]
+    if shared and p['role'] == 'product':
+        gap.add('P6', pid, pid, 'pipeline', 'refactor', f'{len(shared)} stages take one shared, mutable context, so none can run '
+                f'alone without rebuilding it', by_stage[shared[0]['id']]['entry'], [s['id'] for s in shared])
+
+
 def _contract_rules(pid, p, by_stage, gap):
     """P2, P6 and P7 for one pipeline."""
     real = [s for s in p['stages'] if s['kind'] not in STRUCTURAL]
     if not real: return
     _undeclared_contracts(pid, p, real, by_stage, gap)
-    product = p['role'] == 'product'
-    shared = [s for s in real if s.get('shared_context')]
-    if shared and product:
-        gap.add('P6', pid, pid, 'pipeline', 'refactor', f'{len(shared)} stages take one shared, mutable context, so none can run '
-                f'alone without rebuilding it', by_stage[shared[0]['id']]['entry'], [s['id'] for s in shared])
-    if not p['error_lanes'] and product: _failure_lane(pid, p, gap)
+    _shared_context(pid, p, real, by_stage, gap)
+    if not p['error_lanes'] and p['role'] == 'product': _failure_lane(pid, p, gap)
 
 
 def _hidden_rule(h, gap):

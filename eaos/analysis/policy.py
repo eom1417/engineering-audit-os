@@ -22,10 +22,8 @@ LIMITATIONS = [
 
 
 
-def load_policy(target, path=None):
-    candidate = Path(path) if path else Path(target) / FILENAME
-    if not candidate.is_file(): return None, str(candidate)
-    policy = read(candidate)
+def _validate(policy):
+    """Raise ValueError at the first part of the policy its schema refuses."""
     if policy.get('schema_version') != 1: raise ValueError('Unsupported policy schema_version')
     if not isinstance(policy.get('layers'), dict) or not policy['layers']:
         raise ValueError('A policy needs at least one layer')
@@ -34,6 +32,13 @@ def load_policy(target, path=None):
     for rule in policy.get('rules', []):
         if not ({'deny', 'allow_only'} & set(rule)): raise ValueError('Each rule needs deny or allow_only')
         if not rule.get('reason'): raise ValueError('Each rule needs a reason; an unexplained rule cannot be argued with')
+
+
+def load_policy(target, path=None):
+    candidate = Path(path) if path else Path(target) / FILENAME
+    if not candidate.is_file(): return None, str(candidate)
+    policy = read(candidate)
+    _validate(policy)
     return policy, str(candidate)
 
 

@@ -10,7 +10,7 @@ import sys
 
 from .acceptance import fingerprint
 from .engagement import rules_for
-from .remediation_patterns import PATTERNS
+from .remediation_patterns import PATTERNS, cited
 
 
 def _check_argv(path, symbol, rule):
@@ -33,8 +33,7 @@ def build_assessment(claim, fact_sets, target):
     rules, source = rules_for(target)
     rule = rules['remove_dead_code']
     if not rule['value']: return None
-    own = set(claim.get('fact_ids') or [])
-    facts = [fact for fact in (fact_sets.get('deadcode') or {}).get('facts', []) if fact.get('id') in own]
+    facts = cited(claim, fact_sets, 'deadcode')
     if not facts: return None
     fact = facts[0]
     path, symbol, kind = fact['location']['path'], fact['location']['symbol'], fact['value']['rule']

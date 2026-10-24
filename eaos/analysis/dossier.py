@@ -1,21 +1,21 @@
 """Assemble the canonical dossier and the artifacts derived from it.
 
 Everything a reader sees is derived from `dossier.json`. Nothing is written into a human artifact
-that does not exist in the ledger, and no claim reaches a reader without its confidence and source.
+that does not exist in the ledger, and no claim reaches a reader without its confidence and source. The claims
+themselves are built in eaos/analysis/dossier_claims.py.
 """
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from .. import __version__
 from . import claims as ledger
+from .dossier_claims import REGISTER, build_claims, fact_index_of, needs_a_disposition, origin_of, runtime_claims
 from ..core import progress
 from ..core.document import Document, say
 from ..core.document_rules import validate
 from ..facts.store import read_set
 from ..core.workspace import read, write
 
-# Every live claim is an item of the debt register, the one record that shows it in full (rule R4).
-REGISTER = 'debt-register.json'
 
 
 def legacy_records(run):
@@ -79,124 +79,6 @@ def tasks_of(records):
                      'compatibility': {'source': 'legacy', 'missing': ['typed decision', 'revision-bound checks']}, 'finding_ids': task.get('finding_ids', []),
                      'verify_command': task.get('verify_command'), 'files': task.get('files', [])})
     return rows
-
-
-def runtime_claims(verification, offset, coverage_facts=None, excluded=None):
-    """Execution evidence produces claims that are CONFIRMED because something actually ran."""
-    if not verification or not verification.get('executed'): return []
-    rows = []
-    by_path = {fact['location']['path']: fact['id'] for fact in coverage_facts or []}
-    uncovered = [path for path in verification.get('uncovered_entry_reachable_files', [])
-                 if not (excluded and excluded(path))]
-    if uncovered:
-        rows.append(ledger.make(offset + 1,
-                                f"{len(uncovered)} files reachable from an entry point were never executed by the test command "
-                                f"({', '.join(uncovered[:3])}{'…' if len(uncovered) > 3 else ''})",
-                                'risk', 'CONFIRMED', ['test_evidence'], [],
-                                'A test run that executes those files, or evidence that they are not reachable in production either.',
-                                fact_ids=sorted({by_path[path] for path in uncovered if path in by_path}),
-                                render={'key': 'untested', 'params': {'count': len(uncovered)}},
-                                impact={'scenario': 'A change in these files can ship without any test exercising it.'},
-                                disposition={'kind': 'investigate', 'reason': 'Decide whether each path needs a test or is genuinely dead.'}))
-    return rows
-
-
-PROBLEM_TYPES = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
-
-
-def needs_a_disposition(claim):
-    """Anything that states a consequence, and anything not yet established, has to end somewhere:
-    a task, a documented acceptance, or an open investigation."""
-    return (claim['claim_type'] in PROBLEM_TYPES
-            or bool((claim.get('impact') or {}).get('scenario'))
-            or claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'})
-
-
-def asserts_a_problem(claim):
-    return needs_a_disposition(claim)
-
-
-ARCHIVE_PARTS = {'archive', 'archived', 'attic', '_archive'}
-
-
-def archived(path):
-    """Code the project set aside in an archive folder: kept for reference, not part of the running product."""
-    return bool({part.lower() for part in Path(path).parts[:-1]} & ARCHIVE_PARTS)
-
-
-def origin_of(claim, fact_index):
-    """Whether a claim is about product code, test and fixture code, or archived code; a reader must not confuse them."""
-    from ..core.vocabulary import classify
-    paths = [fact_index[fact_id] for fact_id in claim.get('fact_ids', []) if fact_id in fact_index]
-    extra = []
-    for fact_id in claim.get('fact_ids', []):
-        extra += fact_index.get(fact_id + ':paths', [])
-    located = [path for path in paths + extra if path]
-    if located and all(archived(path) for path in located): return 'archive'
-    categories = {classify(path) for path in located if not archived(path)}
-    if not categories: return 'unknown'
-    if categories == {'test'}: return 'test'
-    return 'test_and_source' if 'test' in categories else 'source'
-
-
-def fact_index_of(sets):
-    """Where each fact lives, including the several paths a single fact can cover."""
-    index = {}
-    for data in sets.values():
-        for fact in data['facts']:
-            index[fact['id']] = fact['location'].get('path')
-            value = fact.get('value') if isinstance(fact.get('value'), dict) else {}
-            definitions = value.get('definitions')
-            if definitions: index[fact['id'] + ':paths'] = [row['path'] for row in definitions]
-            members = value.get('members')
-            if members: index[fact['id'] + ':paths'] = list(members)
-            # A cluster spans several files; without them the claim looks like it names none.
-            occurrences = value.get('occurrences')
-            if isinstance(occurrences, list) and occurrences and isinstance(occurrences[0], dict):
-                paths = sorted({row['path'] for row in occurrences if row.get('path')})
-                if paths: index[fact['id'] + ':paths'] = paths
-    return index
-
-
-def _gathered_claims(sets, records, load_record, target):
-    """Every claim before merging: from the facts, the load model and the legacy records."""
-    rows = ledger.from_facts(sets, target=target)
-    if load_record:
-        rows += ledger.from_load_model({'load_model': load_record}, len(rows))
-    if records['findings'] or records['architecture']:
-        rows += ledger.from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
-                                   records['coverage'], (records['state'] or {}).get('revision'))
-    return rows
-
-
-def _settle_claim(row, fact_index):
-    """A numbered claim's origin, the artifact that shows it, and a disposition when it asserts a problem."""
-    row['origin'] = origin_of(row, fact_index)
-    row.setdefault('artifacts', [REGISTER])
-    if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
-        row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
-
-
-def _assess_mechanically(rows, sets, target):
-    from .mechanical_assessment import build_assessment as mechanical
-    for row in rows:
-        built = mechanical(row, sets, target)
-        if built: row['assessment'], row['checks'] = built['assessment'], built['checks']
-
-
-def build_claims(sets, records, load_record=None, target=None):
-    rows = _gathered_claims(sets, records, load_record, target)
-    fact_index = fact_index_of(sets)
-    # A claim from a detector under its measured precision bar is set aside before numbering: it is never
-    # shown, planned or counted, and the precision set (tools/precision.py) still reads it.
-    rows, withheld = ledger.withhold(ledger.merge(rows))
-    rows = ledger.renumber(rows)
-    for number, row in enumerate(withheld, start=1): row['id'] = 'WHD-%03d' % number
-    for row in rows: _settle_claim(row, fact_index)
-    # After numbering and origin are settled: a confirmed product observation whose evidence is mechanical
-    # carries a ready repair under its family's engagement rule (eaos/analysis/mechanical_assessment.py).
-    if target is not None: _assess_mechanically(rows, sets, target)
-    return rows, fact_index, withheld
 
 
 def semantic_claims(dossier):
@@ -298,14 +180,24 @@ def refresh_views(out, language='ar'):
         dossier['coverage']['runtime_confirmation'] = sum(
             1 for claim in dossier['claims'] if {'test_evidence', 'runtime_probe'} & set(claim.get('method', [])))
     _note_semantic(dossier)
+    _decide(dossier)
+    write(dossier_path, dossier)
+    _write_views(out, target, dossier, language)
+    return {'out': str(out), 'claims': len(dossier['claims']), 'tasks': len(dossier.get('tasks', [])),
+            'refreshed': [REGISTER, 'README.md']}
+
+
+def _decide(dossier):
+    """Each claim's stable identity, and the decision on every claim."""
     from ..core.decisions import decide, identity
     for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
-    write(dossier_path, dossier)
+
+
+def _write_views(out, target, dossier, language):
+    """The views the ledger owns: the debt register and the index."""
     write_register(out, dossier)
     (out / 'README.md').write_text(index_document(target, dossier, language).render(), encoding='utf-8')
-    return {'out': str(out), 'claims': len(dossier['claims']), 'tasks': len(dossier.get('tasks', [])),
-            'refreshed': [REGISTER, 'README.md']}
 
 
 def _settle_disposition(claim):
@@ -363,17 +255,32 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
                              {f['id'] for data in sets.values() for f in data['facts']})
     if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
     dossier = _dossier(target, out, run, language, version, exclude, map_result, sets, records, verification, rows, withheld)
-    from ..core.decisions import decide, identity
-    for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
-    dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
+    _decide(dossier)
     write(out / 'dossier.json', dossier)
     progress.count('claim steps', 4, CLAIM_STEPS)
-    write_register(out, dossier)
-    (out / 'README.md').write_text(index_document(str(target), dossier, language).render(), encoding='utf-8')
+    _write_views(out, str(target), dossier, language)
     violations = validate(out, dossier)
     result = write_verdict(out, dossier, violations, target=str(target), facts=map_result['facts'])
     progress.count('claim steps', CLAIM_STEPS, CLAIM_STEPS)
     return result
+
+
+def _excluded(exclude):
+    """excluded(path): whether a path is under one of the excluded patterns."""
+    from fnmatch import fnmatch
+    patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
+    def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
+    return source_filter
+
+
+def _more_sets(out, sets):
+    """The fact sets the runtime claims and the ranking read beside the collected ones, into `sets`; the coverage set,
+    or None when the tests were not run."""
+    for extra in ['fingerprint', 'sequences', 'redundancy', 'structure']:
+        if (out / 'facts' / (extra + '.json')).is_file(): sets[extra] = read_set(out, extra)
+    coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
+    if coverage_set: sets['verification'] = coverage_set
+    return coverage_set
 
 
 def _claims(target, out, sets, records, verification, exclude):
@@ -383,14 +290,8 @@ def _claims(target, out, sets, records, verification, exclude):
     load_record = read(out / 'load-model.json') if (out / 'load-model.json').is_file() else None
     rows, fact_index, withheld = build_claims(sets, records, load_record=load_record, target=target)
     progress.count('claim steps', 2, CLAIM_STEPS)
-    from fnmatch import fnmatch
-    patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
-    def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
-    for extra in ['fingerprint', 'sequences', 'redundancy', 'structure']:
-        if (out / 'facts' / (extra + '.json')).is_file(): sets[extra] = read_set(out, extra)
-    coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
-    if coverage_set: sets['verification'] = coverage_set
-    runtime = runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=source_filter)
+    coverage_set = _more_sets(out, sets)
+    runtime = runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(exclude))
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)
@@ -410,10 +311,7 @@ def _dossier(target, out, run, language, version, exclude, map_result, sets, rec
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
                        'excluded_patterns': map_result.get('exclude_patterns', list(exclude or []))},
-        'coverage': {**coverage_of(sets, records, verification),
-                     'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
-                     'executed_verification': bool(verification and verification.get('executed')),
-                     'executed_coverage_percent': (verification or {}).get('overall_percent')},
+        'coverage': _dossier_coverage(sets, records, verification, rows),
         'description': describe(sets, records),
         'claim_counts': _counts(rows),
         'claims': rows,
@@ -431,6 +329,14 @@ def _dossier(target, out, run, language, version, exclude, map_result, sets, rec
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
         'artifacts': ['README.md'],
     }
+
+
+def _dossier_coverage(sets, records, verification, rows):
+    """What was examined, with how many claims execution confirmed and how much of the code the tests ran."""
+    return {**coverage_of(sets, records, verification),
+            'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
+            'executed_verification': bool(verification and verification.get('executed')),
+            'executed_coverage_percent': (verification or {}).get('overall_percent')}
 
 
 VERDICT = 'report-result.json'
