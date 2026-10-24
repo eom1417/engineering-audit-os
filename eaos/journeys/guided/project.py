@@ -197,7 +197,7 @@ def scan_done(state):
         and (report_of(state) / 'START-HERE.md').is_file()
 
 
-# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_tools.publish}, registered
+# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_blueprint.publish}, registered
 # by that module itself, so that this one does not import it.
 PUBLISHERS = {}
 
