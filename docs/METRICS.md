@@ -86,6 +86,33 @@ The host was loaded (load 25-40 on 10 cores): the time is not comparable, and Ch
   unconfirmed without its plugins but its unused dependencies its own; security semgrep 93, bandit 9, CodeQL 2,
   gitleaks 1, checkov 5, Trivy 0 vulnerable packages beyond OSV-Scanner.
 
+## After M3: 0.0.75 (2026-10-24), the rules' part of a check of `develop`
+
+Measured as after M2 (`eaos audit --engines` by the beta-trial EAOS on `develop` at `484debd1`, no assistant, no app
+run), against the M2 numbers. The host was quiet (load 3-6), so the time is comparable to M1's, not M2's.
+
+| Measure | After M2 (0.0.74) | After M3 (0.0.75) |
+|---|---|---|
+| Engine findings | 2,054 (`semgrep` 116) | 1,488 (`reforge` 1,095, `enola` 179, `semgrep` 97, `lizard` 36, `jscpd` 28, `gitnexus` 26, `bandit` 19, `codeql` 4) |
+| Output | 88 MB, 494 files (379 `PLAN/` files) | 88 MB, 350 files (243 `PLAN/` files) |
+| Rules' cards / debt items | 377 / 396 | 241 / 254: maintainability 137, reliability 88, security 19, architecture 10 |
+| Rules' part time | 868 s, loaded host | 334 s |
+| Python lines (`eaos/`) | 60,678 in 290 files | 65,202 in 399 files, the largest 400 lines, every function ≤ 10 by the code laws' count |
+| Detection baseline | 6 of 8 | 6 of 8 |
+| Compatibility corpus | 2 of 12 | 2 of 12 (not run again: M3 changed no app run or screen) |
+
+- **What the laws do not reach yet** (inputs for M4): the Studio's JavaScript (`console/src`) is under no complexity law,
+  and 32 hotspots remain, most of them there (17-20 branches: `stages.js` `render`, `actions.js` `liveClient`,
+  `kit.js` `zoomable`); EAOS's own hotspot count (the facts' metrics) adds nested functions into the one that holds them,
+  the code laws count each alone, so `mcp_fix.py` `_fix_tools` (19 tools registered inside it) is a hotspot of 20 that
+  the laws pass. `reforge` counts complexity per file (its 1,095 findings), not the laws' per-function measure.
+- **Security, untriaged**: 19 items without the assistant's triage: 5 are test fixtures' sample tokens, the rest
+  single-engine audit rules (semgrep's subprocess call in 30 files, CWE-78; CodeQL 4) that a full check's triage settles.
+- **Architecture**: GitNexus reports 10 import cycles (`eaos/ai/nodes`, `core/markup.py`, `report/human_report/html.py`)
+  that import-linter's layers and the dependency-cruiser pass: lazy imports inside functions; a card for M4 to settle.
+- The cards' titles of agreeing engines were stored in Arabic and printed so in an English check: stored in English
+  since this measure (`eaos/analysis/claims.py`), the reports render them from the template in the reader's language.
+
 ## Findings of the M-1 measurement (inputs for M1-M7)
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio

@@ -13,7 +13,7 @@ from .fact_claims import (access_gaps, broken_code, cochanges, cycles, dead_code
                           mutable_globals, policy_violations, trace_gaps, vulnerable_dependencies)
 from .weaknesses import SECURITY, claims as weaknesses
 from ..core.vocabulary import schema_errors
-from ..core.words import ENGINE_KIND_WORDS, IMPACTS
+from ..core.words import IMPACTS
 from ..core.workspace import DATA, read, write
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
@@ -181,43 +181,43 @@ def one_card_per_hotspot(claims):
 
 
 def _corroborated(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
     impact_key, measured = engine_measurement(kind, cluster, fact_sets)
-    return {'statement': f"{len(detail['asserted_by'])} محركات مستقلة ({engines}) تبلّغ عن {word} في {cluster['place']}",
+    return {'statement': f"{len(detail['asserted_by'])} independent engines ({engines}) report {word} in {cluster['place']}",
             'confidence': 'LIKELY',
             'falsifier': ('Show the measurement each engine reports is below the threshold it declares, '
                           'or that the engines share one implementation and are therefore one witness.'),
-            'impact': {'scenario': IMPACTS['ar'][impact_key].format(**measured)}, 'impact_key': impact_key, 'measured': measured}
+            'impact': {'scenario': IMPACTS['en'][impact_key].format(**measured)}, 'impact_key': impact_key, 'measured': measured}
 
 
 def _counted(kind, detail, cluster, fact_sets):
     """One engine counting exactly: too many parameters, nesting too deep, a function too long (finish_line.EXACT)."""
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
-    return {**_corroborated(kind, detail, cluster, fact_sets), 'statement': f"{engines} يعدّ {word} في {cluster['place']}",
+    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
+    return {**_corroborated(kind, detail, cluster, fact_sets), 'statement': f"{engines} counts {word} in {cluster['place']}",
             'falsifier': 'Show that the count the engine states (parameters, nesting depth, lines) is within its threshold.'}
 
 
 def _granularity_gap(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
     elsewhere = ', '.join(detail['silent_at_another_resolution'])
     level = ', '.join(detail['asserted_at']) or 'unknown'
-    return {'statement': (f"{engines} يبلّغ عن {word} في {cluster['place']} على مستوى {level}، "
-                          f"و{elsewhere} فحص على مستوى آخر ولم يجدها"),
+    return {'statement': (f"{engines} reports {word} in {cluster['place']} at the {level} level, "
+                          f"and {elsewhere} checked at another level and did not find it"),
             'confidence': 'LIKELY',
             'falsifier': ('Show that no import inside this package reaches back into it, so the loop '
                           'does not close at that resolution either.'),
-            'impact': {'scenario': 'الخاصية قائمة عند دقة قياس ومنتفية عند أخرى؛ القرار يتبع الدقة التي تهمّ المشروع.'},
+            'impact': {'scenario': 'The property holds at one resolution and not at another; the decision follows the resolution the project cares about.'},
             'impact_key': None, 'measured': {}}
 
 
 def _contested(kind, detail, cluster, fact_sets):
-    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    engines, word = ', '.join(detail['asserted_by']), kind.replace('_', ' ')
     denied = ', '.join(detail['denied_by'])
-    return {'statement': (f"{engines} يبلّغ عن {word} في {cluster['place']}، و{denied} فحص الخاصية نفسها ولم يجدها"),
+    return {'statement': (f"{engines} reports {word} in {cluster['place']}, and {denied} checked the same property and did not find it"),
             'confidence': 'HYPOTHESIS',
             'falsifier': ('Resolve the contradiction: exhibit the edges that close the cycle in the source, '
                           'or show the asserting engine inferred an edge no import supports.'),
-            'impact': {'scenario': 'محركان يتناقضان في خاصية بنيوية؛ أحدهما مخطئ ولا يصح البناء على أي منهما قبل الحسم.'},
+            'impact': {'scenario': 'Two engines contradict each other on a structural property; one is wrong, and neither can be built on until it is settled.'},
             'impact_key': None, 'measured': {}}
 
 

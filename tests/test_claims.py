@@ -179,6 +179,8 @@ class HotspotTests(unittest.TestCase):
         self.assertEqual(sorted(hotspots[0]['fact_ids']), ['F-1', 'F-2', 'FACT-m-run'])
         engine = {c['render']['params']['place']: c for c in rows if c['render']['key'] == 'engine_cluster'}
         self.assertEqual(sorted(engine), ['c.py', 'd.py'])
+        # The ledger is English (a check in English printed these in Arabic, 2026-10-24); reports render the template.
+        self.assertEqual(engine['c.py']['statement'], '2 independent engines (lizard, reforge) report complexity in c.py')
         ranked = rank(list(engine.values()), sets, {})
         self.assertEqual([c['render']['params']['place'] for c in ranked], ['d.py', 'c.py'])
         self.assertEqual(ranked[0]['priority_factors']['severity']['factor'], 3.0)

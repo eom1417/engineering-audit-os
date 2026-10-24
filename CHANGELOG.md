@@ -24,6 +24,9 @@ itself made 231 cards, 15 of them security, while 96 of the Studio's modules wer
   found 0 times says to read the lines again (TASK-146); the run page counts the server's progress across retries,
   clears a stopped attempt's words, follows a retried run again, and polls a light list of runs with ETag/304;
   `eaos problems` says each card in the person's language.
+- **Measured** (`docs/METRICS.md` "After M3"): engine findings 2,054 to 1,488, cards 377 to 241. The measure found the
+  agreeing engines' card titles stored in Arabic and printed so in an English check; the ledger now stores them in
+  English and the reports render them in the reader's language. What the laws do not reach yet is card M4.6.
 
 ## 0.0.74 (2026-10-24)
 
