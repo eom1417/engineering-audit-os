@@ -11,7 +11,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import core
+from . import core, runner
 from .. import ideal
 
 VERSION = '1'
@@ -147,13 +147,18 @@ def _bundled(report, rows, project, rejudge):
     """Each card as the assistant reads it: its title, kind, severity, confidence, places and evidence, and its first
     doubt when it is judged again."""
     facts = _facts(report)
-    cited = {card['id']: [f for f in card.get('evidence') or [] if isinstance(f, str)] for card in rows}
+    cited = {card['id']: _cites(card) for card in rows}
     measured = _measurements(report, {f for ids in cited.values() for f in ids})
     most = LIMIT['rejudge_facts' if rejudge else 'facts']
     return [{'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'), 'severity': card.get('severity'),
              'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3],
              'evidence': _card_evidence(cited[card['id']], measured, facts, project, most),
              **({'first_doubt': core.short(rejudge[card['id']], 400)} if rejudge else {})} for card in rows]
+
+
+def _cites(card):
+    """The fact ids a card cites."""
+    return [f for f in card.get('evidence') or [] if isinstance(f, str)]
 
 
 def _open_cards(report, cards, rejudge):
@@ -281,10 +286,9 @@ def by_kind(verdicts):
     return out
 
 
-
 def _merge_second(node, first, second):
     """The first run with each card judged again by the assistant taking its second verdict (the doubt kept in its detail)."""
-    again = {d['subject']: d for d in second.get('decisions') or [] if second.get('method') == 'model' and d['source'] == 'model'}
+    again = _rejudged(second)
     decisions = [{**again[d['subject']], 'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
                  if d['subject'] in again else d for d in first['decisions']]
     return {**first, 'decisions': decisions, 'routes': core.routes(node, decisions),
@@ -292,22 +296,31 @@ def _merge_second(node, first, second):
             'calls': (first.get('calls') or 0) + (second.get('calls') or 0)}
 
 
+def _rejudged(second):
+    """{card: decision} of the second run's verdicts the assistant gave."""
+    return {d['subject']: d for d in second.get('decisions') or [] if second.get('method') == 'model' and d['source'] == 'model'}
+
+
+def _both(first, second):
+    """{seconds, cost_usd} of both passes together (None where the first pass did not say)."""
+    return {k: round((first.get(k) or 0) + (second.get(k) or 0), 4) if first.get(k) is not None else None for k in ('seconds', 'cost_usd')}
+
+
 def run(node, report, **options):
     """The triage, then a second look at the cards it doubted, each with every fact it stands on: the second verdict
     replaces the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
     the first verdicts stand."""
     spec = sys.modules[__name__]
-    first = core.run_node(node, spec, report, **options, logged=False)
+    first = runner.run_node(node, spec, report, **options, logged=False)
     if not first: return first
     doubted = {d['subject']: d['why'] for d in first['decisions'] if d['source'] == 'model' and d['decision'] == 'doubt'}
     if first['method'] != 'model' or not doubted:
         core.log_run(report, node, first)
         return first
-    second = core.run_node(node, spec, report, **{**options, 'rejudge': doubted, 'logged': False}) or {}
+    second = runner.run_node(node, spec, report, **{**options, 'rejudge': doubted, 'logged': False}) or {}
     row = core.keep(report, node, _merge_second(node, first, second), logged=False)
     # one line for the run, both passes' time and cost: the first pass's alone counted it twice beside the merged one
-    core.log_run(report, node, {**row, **{k: round((first.get(k) or 0) + (second.get(k) or 0), 4) if first.get(k) is not None else None
-                                         for k in ('seconds', 'cost_usd')}})
+    core.log_run(report, node, {**row, **_both(first, second)})
     finish(report, row, inputs(report, project=options.get('project'), lang=options.get('lang', 'en'), cards=options.get('cards'),
                                limit=options.get('limit')))
     return row

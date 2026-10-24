@@ -70,12 +70,9 @@ def relevant_source(project, folder, failure, limit=3, context=60):
     """The code that raised the failure: each distinctive phrase of the error, looked up in the project's own
     source (never its build output or libraries), with the lines around it. The assistant fixes what it can see."""
     root = Path(project) / folder
-    # Error lines, and the page's own words ("Where are you working?"): both are written somewhere in the code.
-    phrases = sorted({p.strip(' .:-') for p in re.split(r'[\n|]| - |: |\s{2,}', failure or '') if len(p.strip()) >= 16},
-                     key=len, reverse=True)[:16]                    # the most distinctive first
+    phrases = _phrases(failure)
     found, seen = [], set()
-    files = [f for f in root.rglob('*') if f.suffix in SOURCE_SUFFIXES and f.is_file()
-             and not any(part in ('node_modules', 'dist', 'dist-server', 'build', '.next', 'coverage', '.venv', '__pycache__') for part in f.parts)][:6000]
+    files = _source_files(root)
     for phrase in phrases:
         needle = phrase[:60]
         for path in files:
@@ -83,13 +80,31 @@ def relevant_source(project, folder, failure, limit=3, context=60):
             at = text.find(needle)
             if at < 0 or path in seen: continue
             seen.add(path)
-            lines = text.splitlines()
-            line = text.count('\n', 0, at)
-            start, end = max(0, line - context), min(len(lines), line + context)
-            found.append(f'=== {path.relative_to(Path(project))} (lines {start + 1}-{end})\n' + '\n'.join(lines[start:end]))
+            found.append(_around(text, at, path.relative_to(Path(project)), context))
             break
         if len(found) >= limit: break
     return '\n\n'.join(found)
+
+
+def _phrases(failure):
+    """The failure's distinctive phrases, the longest first."""
+    # Error lines, and the page's own words ("Where are you working?"): both are written somewhere in the code.
+    return sorted({p.strip(' .:-') for p in re.split(r'[\n|]| - |: |\s{2,}', failure or '') if len(p.strip()) >= 16},
+                  key=len, reverse=True)[:16]                    # the most distinctive first
+
+
+def _source_files(root):
+    """The project's own source files under `root`: no build output, no libraries."""
+    return [f for f in root.rglob('*') if f.suffix in SOURCE_SUFFIXES and f.is_file()
+            and not any(part in ('node_modules', 'dist', 'dist-server', 'build', '.next', 'coverage', '.venv', '__pycache__') for part in f.parts)][:6000]
+
+
+def _around(text, at, name, context):
+    """The lines around offset `at` of a file's text, headed by its name and their numbers."""
+    lines = text.splitlines()
+    line = text.count('\n', 0, at)
+    start, end = max(0, line - context), min(len(lines), line + context)
+    return f'=== {name} (lines {start + 1}-{end})\n' + '\n'.join(lines[start:end])
 
 
 def assist_messages(project, runtime, detected, failure, needs, mode='lock'):

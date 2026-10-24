@@ -105,10 +105,15 @@ def _speaking(target, out):
     from .lock_specs import surfaces
     served = {file for _, _, file in surfaces(out).values() if file} if out else set()
     for path in Path(target).rglob('*'):
-        if path.suffix in SOURCE and path.is_file() and not any(part in SKIP for part in path.relative_to(target).parts):
+        if _source(path, target):
             lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
             hits = [i for i, line in enumerate(lines) if SIGNS.search(line)]
             if hits: yield path.relative_to(target).as_posix() not in served, -len(hits), path, lines, hits
+
+
+def _source(path, target):
+    """Whether a file of `target` is its own source code, outside the folders of builds, libraries and tests (SKIP)."""
+    return path.suffix in SOURCE and path.is_file() and not any(part in SKIP for part in path.relative_to(target).parts)
 
 
 def errors(answer, target, pages):
@@ -129,7 +134,12 @@ def _wrong(kind, target, pages):
     wrong = [] if _line(target, kind.get('evidence')) else [f"{kind['id']}: evidence {kind.get('evidence')!r} is no line of the code"]
     if kind.get('enter') not in ('account', 'switch'): wrong.append(f'{kind["id"]}: "enter" is "account" or "switch"')
     if switch and not _line(target, kind.get('switch')): wrong.append(f"{kind['id']}: switch {kind.get('switch')!r} is no line of the code")
-    return wrong + [f"{kind['id']}: {page!r} is not in the list of pages" for page in kind.get('pages') or [] if page not in pages]
+    return wrong + _unlisted(kind, pages)
+
+
+def _unlisted(kind, pages):
+    """What is wrong with the pages a kind names: each one not in the list."""
+    return [f"{kind['id']}: {page!r} is not in the list of pages" for page in kind.get('pages') or [] if page not in pages]
 
 
 def _line(target, cited):
@@ -166,12 +176,17 @@ def add(out, target, found):
     kinds, refused, pages = read(out), [], pages_of(out)
     for view in found if isinstance(found, list) else []:
         wrong = _wrong(view, target, pages) if isinstance(view, dict) else [f'{view}: a view is an object']
-        if wrong or len(kinds) >= MOST and all(k['id'] != view['id'] for k in kinds):
+        if wrong or _full(kinds, view):
             refused += wrong[:2] or [f'at most {MOST} views']
             continue
         kinds = [kind for kind in kinds if kind['id'] != view['id']] + [_kept(view) | {'found': 'app'}]   # by the running app
     if found: _write(out, kinds)
     return refused
+
+
+def _full(kinds, view):
+    """Whether a new view finds no place: MOST views already, none of them of its id."""
+    return len(kinds) >= MOST and all(k['id'] != view['id'] for k in kinds)
 
 
 def prove(out, target, verdicts):
@@ -180,11 +195,16 @@ def prove(out, target, verdicts):
     pages, kept, refused = pages_of(out), [], []
     for row in verdicts if isinstance(verdicts, list) else []:
         row = row if isinstance(row, dict) else {}
-        if row.get('page') in pages and str(row.get('why') or '').strip() and _line(target, row.get('evidence')):
+        if _proved(row, pages, target):
             kept.append({k: row[k] for k in ('page', 'why', 'evidence')})
         else: refused.append(f"unreachable {row.get('page')!r}: a page of the list, a why and its evidence, a line of the code")
     if kept: _write(out, read(out), {r['page']: r for r in _record(out).get('unreachable') or []} | {r['page']: r for r in kept})
     return refused
+
+
+def _proved(row, pages, target):
+    """Whether a verdict stands: a page of the list, a why, and its evidence a line of the code."""
+    return row.get('page') in pages and str(row.get('why') or '').strip() and _line(target, row.get('evidence'))
 
 
 def claim(out, owned):
@@ -259,10 +279,14 @@ def coverage(kinds, sessions, seen):
         row = {'id': kind['id'], 'name': name if isinstance(name, dict) else {'en': name, 'ar': name}, 'pages': len(own),
                'seen': sum(page in seen for page in own)}
         row['reached'] = row['seen'] > 0 or (not own and sessions is not None and kind['id'] in sessions)
-        if not row['reached']:
-            row['why'] = 'no_access' if sessions is None else 'no_test_user' if kind['id'] not in sessions else 'not_opened'
+        if not row['reached']: row['why'] = _why_unseen(kind, sessions)
         rows.append(row)
     return rows
+
+
+def _why_unseen(kind, sessions):
+    """Why no session saw a kind of user: no session at all (signed in by hand), no test user of its own, or not opened."""
+    return 'no_access' if sessions is None else 'no_test_user' if kind['id'] not in sessions else 'not_opened'
 
 
 def unseen(screens):
@@ -279,9 +303,14 @@ def share(kinds, groups, kind, first, held=()):
     session the shared pages too, and the run's one session (kind None) every page but those of the views `held` by a
     session of their own, which only theirs opens."""
     own = {k['id']: set(k['pages']) for k in kinds}
-    if kind is None: return {t: p for t, p in groups.items() if not any(p[0] in own.get(view, ()) for view in held)}
+    if kind is None: return _not_held(groups, own, held)
     anyone = set().union(*own.values())
     return {t: p for t, p in groups.items() if p[0] in own[kind] or p[0] == '/' or (first and p[0] not in anyone)}
+
+
+def _not_held(groups, own, held):
+    """The page groups of the run's one session: every one but those of a view `held` by a session of its own."""
+    return {t: p for t, p in groups.items() if not any(p[0] in own.get(view, ()) for view in held)}
 
 
 def breaches(kinds, made, look):
@@ -293,7 +322,12 @@ def breaches(kinds, made, look):
     found = []
     for kind, state in [(kind, state) for kind, state in made if kind not in switched]:
         page = look(state, sorted(page for page, of in owner.items() if of != kind)[:8] + [NOWHERE])
-        nowhere = nowhere_of(page)
-        found += [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for row in (page.get('others') or [])[:-1]
-                  if opened(row['path'], row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere)]
+        found += _opened_others(kind, page, owner)
     return found
+
+
+def _opened_others(kind, page, owner):
+    """[{kind, page, of}] of the other views' pages a session's probe (`page`, NOWHERE last) opened as themselves."""
+    nowhere = nowhere_of(page)
+    return [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for row in (page.get('others') or [])[:-1]
+            if opened(row['path'], row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere)]

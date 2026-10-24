@@ -24,168 +24,22 @@ follows that file and reports one step per spec file, with its shot once written
 passes with EAOS's pinned pytest (_approvals), each spec file a step too; their approved files are the recording of
 the code's interfaces, as the snapshots are of the screens.
 """
-import contextvars
 import json
-import os
-import re
 import shutil
-import threading
 from pathlib import Path
 
 from ..core import progress
 from ..core.progress.flow import OPTIONAL, Stage
+from .lock_folder import LOCK_CONFIG, _keep, _prepare  # noqa: F401  (LOCK_CONFIG: read here by the tests)
+from .lock_results import Screens, _declared, approval_statuses, failing_tests, spec_statuses  # noqa: F401  (the names others read here)
 
-# The specs this runs are written by eaos/live/lock_specs.py.
+# The specs this runs are written by eaos/live/lock_specs.py, its folder made by lock_folder.py, its passes read by
+# lock_results.py.
 
-# ── NS26: the lock, run on the original code ────────────────────────────────────────────────────────────
-# The browser reaches loopback only: Chromium sends every other host to a proxy nobody answers on, so a
-# page's call to production or a third party fails inside the run instead of leaving the machine.
-LOCK_CONFIG = """import base from './playwright.config';
-
-// Written by EAOS for a run in the sandbox: the generated config, with every non-loopback host refused.
-// Loopback is named in the bypass list: every other host goes to a proxy nobody answers on.
-const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] } };
-export default {
-  ...base,
-  reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }], ['./stream-reporter.mjs', { outputFile: process.env.EAOS_LOCK_STREAM }]],
-  use: { ...base.use, ...offline },
-  projects: (base.projects ?? []).map((project) => ({ ...project, use: { ...project.use, ...offline } })),
-};
-"""
-
-
-# The approval tests run from the copy's root with this file as their settings: the project's pytest settings and
-# conftest files stay out. ApprovalTests reads its reporter from APPROVAL_TESTS_USE_REPORTER: the first pass approves
-# what it receives (the recording), every later one prints the difference.
-APPROVALS_INI = "[pytest]\n# Written by EAOS: the lock's approval tests, run without the project's pytest settings.\n"
+# ApprovalTests reads its reporter from APPROVAL_TESTS_USE_REPORTER: the first pass approves what it receives (the
+# recording), every later one prints the difference.
 APPROVE = 'approvaltests.reporters.ReporterThatAutomaticallyApproves'
 COMPARE = 'approvaltests.reporters.PythonNativeReporter'
-
-
-SCREENSHOT = re.compile(r'toHaveScreenshot.*?Snapshot: ([\w.-]+)\.png', re.S)
-ANSI = re.compile(r'\x1b\[[0-9;]*m')
-
-
-def failing_tests(runtime, name):
-    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json)."""
-    try: report = json.loads((Path(runtime) / 'behavior-lock' / f'playwright-{name}.json').read_text(encoding='utf-8'))
-    except (OSError, ValueError): return set()
-    found = set()
-
-    def walk(suite):
-        for spec in suite.get('specs') or []:
-            if any(status in ('failed', 'timedOut') for status, _ in _outcomes(spec, ())): found.add(spec.get('title'))
-        for child in suite.get('suites') or []: walk(child)
-    for suite in report.get('suites') or []: walk(suite)
-    return found
-
-
-def _declared(status, message, declared):
-    """A test failed only because its screen looks different, on a screen the batch's design cards say they change
-    (`declared` snapshot names, eaos/journeys/waves.py declared_screens): their change, not a breakage."""
-    found = SCREENSHOT.search(ANSI.sub('', message or '')) if status == 'failed' else None
-    return 'passed' if found and ('*' in declared or found.group(1) in declared) else status
-
-
-def spec_statuses(report, declared=(), known=()):
-    """{spec path: (status, reason)} from a Playwright JSON report: a spec passes when none of its tests failed
-    and at least one ran; one whose every test was skipped is quarantined with the skip's reason."""
-    found = {}
-
-    def walk(suite, file=None):
-        file = suite.get('file') or file
-        for spec in suite.get('specs') or []:
-            found.setdefault(file, []).extend(_outcomes(spec, declared, spec.get('title') in known))
-        for child in suite.get('suites') or []: walk(child, file)
-    for suite in report.get('suites') or []: walk(suite)
-    return _verdicts(found)
-
-
-def _outcomes(spec, declared, known=False):
-    """[(status, message)] of one spec's tests; a test that never ran, skipped with its reason. `known`: it fails on the
-    code before the batch too (eaos/journeys/waves.py _against_control), so it says nothing of the batch."""
-    tests = spec.get('tests') or []
-    ran = [(result.get('status'), ANSI.sub('', (result.get('error') or {}).get('message', ''))) for test in tests for result in test.get('results') or []]
-    return ([('passed' if known else _declared(status, message, declared), message) for status, message in ran] or
-            [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in tests])
-
-
-def _verdicts(found):
-    """{spec file: (status, reason)} from {spec file: [(test status, message)]}, by the rule of spec_statuses()."""
-    return {file: _spec_status(outcomes) for file, outcomes in found.items()}
-
-
-def _spec_status(outcomes):
-    failed = [message for status, message in outcomes if status in ('failed', 'timedOut', 'interrupted')]
-    if failed: return 'failed', failed[0][:300]
-    if any(status == 'passed' for status, _ in outcomes): return 'passed', ''
-    return 'quarantined', 'every test was skipped: ' + (next((m for s, m in outcomes if m), '') or 'needs a fixture')
-
-
-def approval_statuses(junit):
-    """{spec path: (status, reason)} from pytest's JUnit XML report of the approval tests, by the rule of
-    spec_statuses(); a test file that could not even be imported fails with its error."""
-    from xml.etree import ElementTree
-    try: cases = list(ElementTree.parse(junit).getroot().iter('testcase'))
-    except (OSError, ElementTree.ParseError): return {}
-    found = {}
-    for case in cases:
-        module = case.get('classname') or case.get('name') or ''      # a file that did not import is named in `name`
-        found.setdefault(module.replace('.', '/') + '.py', []).append(_outcome(case))
-    return _verdicts(found)
-
-
-def _outcome(case):
-    """(status, message) of one JUnit test case, in the words of a Playwright report."""
-    for tag, status in (('failure', 'failed'), ('error', 'failed'), ('skipped', 'skipped')):
-        found = case.find(tag)
-        if found is not None: return status, found.get('message') or found.text or ''
-    return 'passed', ''
-
-
-def _prepare(live, report, recorded=None):
-    """The lock folder in the sandbox copy: the report's specs, the offline config, and what the original recorded
-    in `recorded` (behavior-lock/ of the runtime folder) if given."""
-    lock = live.sandbox.copy / '.eaos-lock'
-    shutil.rmtree(lock, ignore_errors=True)
-    shutil.copytree(Path(report) / 'behavior-lock', lock)
-    (lock / 'lock.config.ts').write_text(LOCK_CONFIG, encoding='utf-8')
-    shutil.copyfile(REPORTER, lock / REPORTER.name)
-    # The specs import @playwright/test, which most projects do not install; ES modules ignore NODE_PATH. The
-    # lock always runs EAOS's pinned Playwright, the version its installed browsers belong to.
-    from ..core.toolchain import home
-    # its real path: in the run's own view the tools are shown at their name and at their real path, two mounts, and the
-    # runner (found on PATH through the same links) loads Playwright from the real one: one copy, never two
-    modules = Path(os.path.realpath(home() / 'node/node_modules'))
-    if modules.is_dir() and not (lock / 'node_modules').exists(): (lock / 'node_modules').symlink_to(modules, target_is_directory=True)
-    # Its own package.json: a project declaring "type": "module" must not change how the lock's files load.
-    (lock / 'package.json').write_text('{"private": true, "type": "commonjs"}\n', encoding='utf-8')
-    (lock / '.auth').mkdir(exist_ok=True)
-    (lock / '.auth/user.json').write_text(json.dumps({'cookies': [], 'origins': []}), encoding='utf-8')
-    if (lock / 'approvals').is_dir(): (lock / 'pytest.ini').write_text(APPROVALS_INI, encoding='utf-8')
-    if recorded is not None: _restore(Path(recorded), lock)
-    return lock
-
-
-def _keep(lock, recorded):
-    """What the first pass recorded, kept in `recorded` for every later run: the screens' snapshots (snapshots/) and
-    the approved interfaces (approved/). A folder exists only when something was recorded in it."""
-    shutil.rmtree(recorded / 'snapshots', ignore_errors=True)
-    if (lock / '__screenshots__').is_dir(): shutil.copytree(lock / '__screenshots__', recorded / 'snapshots')
-    shutil.rmtree(recorded / 'approved', ignore_errors=True)
-    for path in sorted((lock / 'approvals').glob('*.approved.txt')):
-        (recorded / 'approved').mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(path, recorded / 'approved' / path.name)
-
-
-def _restore(recorded, lock):
-    """The recording kept by _keep(), put back where the tools look for it."""
-    if (recorded / 'snapshots').is_dir():
-        shutil.rmtree(lock / '__screenshots__', ignore_errors=True)
-        shutil.copytree(recorded / 'snapshots', lock / '__screenshots__')
-    if not (lock / 'approvals').is_dir(): return
-    for path in sorted((recorded / 'approved').glob('*.approved.txt')):
-        shutil.copyfile(path, lock / 'approvals' / path.name)
 
 
 def _pages_from_app(report, target, base, runtime):
@@ -307,7 +161,6 @@ def _write(runtime, name, live, results):
 
 
 # ── the live map: the safety flow, and each screen as it is recorded ───────────────────────────────────────
-REPORTER = Path(__file__).resolve().parents[1] / 'templates/screens/stream-reporter.mjs'
 STREAM = 'stream.jsonl'
 FLOW = (
     Stage('prepare', description='Copy the report\'s specs (its screens and the interfaces of its code) into the separate '
@@ -322,100 +175,6 @@ FLOW = (
           absent_when='the app has no production build, or its production run did not work during the setup',
           description='Measure how fast the production build answers under many users (k6)'),
 )
-FAILED_STATUSES = ('failed', 'timedOut', 'interrupted')
-
-
-class Screens:
-    """Follows the stream reporter's lines while one pass runs, and reports one step per spec file of the running
-    stage (eaos/core/progress): running at its first test, then ok, failed or skipped once all its tests ended, with the
-    seconds they took and the spec's first shot. With `keep`, the shot is copied at once to where the recording is
-    kept (`snapshots`), the same file run_lock copies there after the pass. Never raises; a no-op outside a flow."""
-
-    def __init__(self, stream, shots, snapshots, keep=False, every=0.5):
-        self.stream, self.shots, self.snapshots, self.keep, self.every = Path(stream), Path(shots), Path(snapshots), keep, every
-        self.offset, self.buffer = 0, b''
-        self.planned, self.outcomes, self.seconds, self.finished = {}, {}, {}, []
-        self.halt = threading.Event()
-        self.thread = None
-
-    def start(self):
-        if progress.current() is None: return self
-        self.thread = threading.Thread(target=contextvars.copy_context().run, args=(self._follow,), daemon=True,
-                                       name='eaos-screens')
-        self.thread.start()
-        return self
-
-    def stop(self):
-        self.halt.set()
-        if self.thread is not None:
-            self.thread.join(timeout=5)
-            self.thread = None
-            try: self.read()
-            except Exception: pass
-        return self
-
-    def _follow(self):
-        while not self.halt.wait(self.every):
-            try: self.read()
-            except Exception: pass
-
-    def read(self):
-        """The lines written since the last read, each reported; a line still being written waits for its end."""
-        try:
-            with self.stream.open('rb') as handle:
-                handle.seek(self.offset)
-                chunk = handle.read()
-        except OSError:
-            return
-        self.offset += len(chunk)
-        self.buffer += chunk
-        *lines, self.buffer = self.buffer.split(b'\n')
-        for line in lines:
-            try: row = json.loads(line)
-            except ValueError: continue
-            if isinstance(row, dict): self.handle(row)
-
-    def handle(self, row):
-        event, name = row.get('event'), row.get('file')
-        total = len(self.planned)
-        if event == 'plan':
-            self.planned = {str(f): int(n) for f, n in (row.get('files') or {}).items()}
-            total = len(self.planned)
-            for name in self.planned: progress.step(name, 0, total, 'waiting')
-        elif event == 'test.begin' and name in self.planned and name not in self.outcomes:
-            self.outcomes[name] = []
-            progress.step(name, len(self.finished), total, 'running')
-        elif event == 'test.end' and name in self.planned and name not in self.finished:
-            self.outcomes.setdefault(name, []).append((row.get('status'), row.get('error') or ''))
-            self.seconds[name] = self.seconds.get(name, 0.0) + (row.get('duration') or 0) / 1000
-            if len(self.outcomes[name]) < self.planned[name]: return
-            self.finished.append(name)
-            status, reason, code = self.verdict(self.outcomes[name])
-            progress.step(name, len(self.finished), total, status, round(self.seconds[name], 2), reason, code,
-                          artifact=self.shot(row.get('shots') or []))
-
-    @staticmethod
-    def verdict(outcomes):
-        """(status, reason, reason_code) of one spec file, by the rule of spec_statuses()."""
-        failed = [error for status, error in outcomes if status in FAILED_STATUSES]
-        if failed: return 'failed', failed[0][:200], 'screen_failed'
-        if any(status == 'passed' for status, _ in outcomes): return 'ok', '', ''
-        return 'skipped', 'every test was skipped: it needs a fixture', 'screen_needs_fixture'
-
-    def shot(self, shots):
-        """The spec's first shot, as a path relative to the run's folder (behavior-lock/snapshots/...), or ''."""
-        for name in shots:
-            source = self.shots / name
-            if '..' in Path(name).parts or not source.is_file(): continue
-            kept = self.snapshots / name
-            if self.keep:
-                try:
-                    kept.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(source, kept)
-                except OSError:
-                    continue
-            return f'{self.snapshots.parent.name}/{self.snapshots.name}/{name}'
-        return ''
 
 
 def run_lock(report, target, runtime, app=None):
@@ -436,9 +195,7 @@ def run_lock(report, target, runtime, app=None):
     if not app: live.freeze()
     try:
         progress.begin('start')
-        lock = _prepare(live, report) if (report / 'behavior-lock').is_dir() else None
-        base = _shared(app, lock) if app else _start(live, lock or live.sandbox.copy / '.eaos-lock')
-        if _pages_from_app(report, target, base, runtime): lock = _prepare(live, report)
+        lock, base = _ready(live, report, target, runtime, app)
         if lock is None:         # the code names no feature and the running app no page: nothing is recorded, said so
             return {'results': [], 'limitations': ['the program has no feature to lock']}
         progress.begin('record')
@@ -457,6 +214,15 @@ def run_lock(report, target, runtime, app=None):
 # only for a failing journey, at most TRACES of them and only when it is under TRACE_BYTES; the rest are deleted and
 # counted, so a large app never fills the disk with replays nobody asked for.
 JOURNEYS, RECORDING_BYTES, TRACES, TRACE_BYTES = 20, 1_500_000, 3, 2_000_000
+
+
+def _ready(live, report, target, runtime, app):
+    """(the lock folder, None when there is nothing to lock; the running app's address): the lock built again with the
+    app's crawled pages when the code names none (_pages_from_app)."""
+    lock = _prepare(live, report) if (report / 'behavior-lock').is_dir() else None
+    base = _shared(app, lock) if app else _start(live, lock or live.sandbox.copy / '.eaos-lock')
+    if _pages_from_app(report, target, base, runtime): lock = _prepare(live, report)
+    return lock, base
 
 
 def cap_journeys(folder):
@@ -526,12 +292,16 @@ def run_journeys(report, target, runtime, folder, app=None):
 def _journey_results(folder, report):
     """The walked specs and bounded recordings, whether the app belonged to the journeys or the check."""
     statuses = spec_statuses(json.loads((folder / 'report.json').read_text(encoding='utf-8'))) if (folder / 'report.json').is_file() else {}
-    plan = json.loads((Path(report) / 'behavior-lock/plan.json').read_text(encoding='utf-8'))
-    pages = {Path(s['path']).name: [x for x in s.get('surfaces') or [] if not str(x).startswith(('GET ', 'POST ', 'PUT ', 'PATCH ', 'DELETE '))]
-             for s in plan.get('specs') or [] if s.get('tool') == 'playwright' and s.get('path')}
+    pages = _pages_of(json.loads((Path(report) / 'behavior-lock/plan.json').read_text(encoding='utf-8')))
     walked = [{'spec': name, 'pages': pages.get(Path(name).name, [])[:20], 'status': status, 'reason': reason[:300]}
               for name, (status, reason) in sorted(statuses.items())]
     return {'specs': len(statuses), 'walked': walked, 'failed': sum(w['status'] == 'failed' for w in walked), **cap_journeys(folder)}
+
+
+def _pages_of(plan):
+    """{spec file name: the pages it walks} of the plan's Playwright specs (their HTTP routes aside)."""
+    return {Path(s['path']).name: [x for x in s.get('surfaces') or [] if not str(x).startswith(('GET ', 'POST ', 'PUT ', 'PATCH ', 'DELETE '))]
+            for s in plan.get('specs') or [] if s.get('tool') == 'playwright' and s.get('path')}
 
 
 def verify_lock(report, target, runtime, name='results-after', declared=(), known=()):
