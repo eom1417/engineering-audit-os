@@ -61,7 +61,9 @@ before the turn ends.
    tools/quality.sh && .venv/bin/python -m unittest discover -s tests -q && .venv/bin/python tools/validate.py
    (cd console && npm run build)     # only when console/ or docs/studio-actions.json changed
    ```
-   The full suite (~7 min) runs as a background job; one heavy job at a time.
+   The full suite (~7 min) runs as a background job; one heavy job at a time. In this container
+   `/workspace/eaos-dev/workers/verify.sh <commit>` runs all three in a throwaway worktree and stamps the commit in
+   git when they pass; the beta update then skips its own suite and code laws for it (the golden trial still runs).
 2. **Merge into `develop`** (`--no-ff`), push `origin/develop`, delete the branch.
 3. **`develop` into `beta-trial`** with `bash /workspace/eaos-beta-trial/update.sh --approved` (as a systemd unit:
    `/workspace/HANDOFF.md`): at each milestone end, approved in advance; otherwise only when the owner approves.

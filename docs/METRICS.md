@@ -42,6 +42,23 @@ counted them through the links).
 | Compatibility corpus | 2 of 12 apps pass (12 pinned) |
 | Detection baseline | 5 of 8 planted problems found |
 
+## After M1: 0.0.73 (2026-10-24), the rules' part of a check of `develop`
+
+Measured on `eaos audit --engines` with no assistant and no app run (306 s), against the same parts of the 0.0.71
+check: the stages that need the assistant or the running app did not run, so the cards are the rules' (no triage
+merges them) and the runtime was not measured. The full check's figures come at its next run.
+
+| Measure | 0.0.71 (same parts) | 0.0.73 |
+|---|---|---|
+| Output | 390 MB in the full report; `facts` 281 MB, `engines` 29 MB | 95 MB, 468 files; `facts` 74 MB, `engines` 6 MB |
+| Documents (`.md` at the top) | 27 | 8 |
+| Engine findings | 3,853 | 3,785 (reforge −50, lizard −12, complexipy −10, jscpd −4, codeql −1, semgrep +9: the code M1 removed) |
+| Debt items | 341 (after the assistant) | 378 (rules only) |
+| Rules' part time | engines 291 s alone | 306 s for all 20 stages |
+
+- **Target met:** output ≤ 150 MB (95). **Not yet:** ≤ 400 files: 353 of the 468 are `PLAN/TASK-*.md`, one per card
+  (351 rules' cards without the assistant's triage, about 100 with it); the runtime ≤ 100 MB awaits the full check.
+
 ## Findings of the M-1 measurement (inputs for M1-M7)
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio
