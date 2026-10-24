@@ -36,7 +36,6 @@ def contract():
     return json.loads(CONTRACT.read_text(encoding='utf-8'))
 
 
-STATES = ('queued', 'running', 'paused', 'waiting_for_person', 'done', 'failed', 'stopped', 'unchanged')
 TERMINAL = ('done', 'failed', 'stopped', 'unchanged')
 # A run that may be tried again: one that did not finish, was stopped, or kept no change.
 RETRYABLE = ('failed', 'stopped', 'unchanged')
