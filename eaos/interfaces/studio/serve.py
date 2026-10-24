@@ -13,8 +13,8 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 from . import plan
+from ...core.security import LOOPBACK
 
-LOOPBACK = '127.0.0.1'
 HEADERS = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer'}
 
 

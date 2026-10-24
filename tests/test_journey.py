@@ -18,6 +18,7 @@ from eaos.core import ledger
 from eaos.live import setup as live_setup
 from eaos.pipeline import runners
 from eaos.pipeline.stages import SkipStage
+from eaos.core import project_state
 
 FILES = {
     'pyproject.toml': '[project]\nname = "shop"\nversion = "0.1.0"\n[project.scripts]\nshop = "app.main:run"\n',
@@ -65,27 +66,27 @@ class Journey(unittest.TestCase):
         git(self.project, 'add', '-A')
         git(self.project, 'commit', '-qm', 'first')
         self.where = str(self.project)
-        agent_tools.project_state(self.where)
+        agent_tools.state_of(self.where)
 
     def check(self):
         return agent_tools._audit_job(self.where, {}, None)
 
     def ready_cards(self):
         from eaos.journeys.waves import ready_cards
-        return ready_cards(guided.report_of(guided.load(self.project)))
+        return ready_cards(guided.report_of(project_state.load(self.project)))
 
     def ready(self):
         return {card['paths'][0]: card['id'] for card in self.ready_cards()}
 
     def agree_and_record(self):
         """What run_setup and safety_net leave when the app runs and its screens are recorded."""
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         head = agent_tools._head(state)
         state['consent'] = {'run_and_fix': True}
         state['setup'] = {'commit': head, 'ok': True}
         state['safety'] = {'commit': head, 'screens': 1, 'passed': 1}
         guided.save(state)
-        live_setup.authorize(guided.source(state), guided.runtime_of(state), 'tester')
+        live_setup.authorize(guided.source(state), project_state.runtime_of(state), 'tester')
 
     def journey(self):
         """The whole journey, asserting each step; the ledger's totals at the end."""
@@ -117,7 +118,7 @@ class Journey(unittest.TestCase):
         self.assertIn('test_monthly_report', finished['failed'][cards['app/old_report.py']])
         self.assertEqual(finished['branch'], 'eaos/main/wave-1', 'named after the branch: unique across branches')
         self.assertTrue((self.project / 'app/old_export.py').is_file(), "the person's branch is untouched until accept")
-        self.assertEqual(sorted(guided.load(self.project)['tried']), sorted(c['key'] for c in self.ready_cards() if c['id'] in batch),
+        self.assertEqual(sorted(project_state.load(self.project)['tried']), sorted(c['key'] for c in self.ready_cards() if c['id'] in batch),
                          'tried holds keys: a new check numbers the cards again')
 
         # Accept: the branch is merged and deleted, the two files are gone, and the progress counts the two fixes.
@@ -126,7 +127,7 @@ class Journey(unittest.TestCase):
         self.assertFalse((self.project / 'app/old_export.py').exists())
         self.assertFalse((self.project / 'app/old_invoice.py').exists())
         self.assertTrue((self.project / 'app/old_report.py').is_file())
-        return ledger.load(guided.load(self.project))['totals']
+        return ledger.load(project_state.load(self.project))['totals']
 
     def test_check_change_check_fix_accept(self):
         totals = self.journey()

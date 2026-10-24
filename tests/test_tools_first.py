@@ -38,7 +38,7 @@ class Project(unittest.TestCase):
         (self.project / 'src/a.js').write_text('export const a = 1;\n')
         for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
             subprocess.run(['git', '-C', str(self.project), *argv], check=True, capture_output=True)
-        self.state = agent_tools.project_state(str(self.project))
+        self.state = agent_tools.state_of(str(self.project))
         self.report = guided.report_of(self.state).parent
         self.report.mkdir(parents=True, exist_ok=True)
 

@@ -22,6 +22,7 @@ from eaos.ai import headless as adapters, prompts
 from eaos.interfaces.studio import handoff, resume, runs
 from eaos.core import security, store
 from eaos.journeys import selection  # noqa: E402
+from eaos.core import project_state
 
 
 def card(id, **extra):
@@ -157,7 +158,7 @@ class Locks(Base):
         self.assertEqual(self.app.handle('POST', '/api/runs/reorder', good, {'order': []})[0], 200)
         for change, status in (({'X-EAOS-Token': None}, 401), ({'X-EAOS-Token': 'x'}, 401), ({'X-EAOS-CSRF': None}, 403),
                                ({'X-EAOS-CSRF': self.app.token}, 403), ({'Origin': 'http://127.0.0.1:9999'}, 403),
-                               ({'Origin': 'null'}, 403), ({'Host': 'attacker.test:8765'}, 403), ({'Host': '0.0.0.0:8765'}, 403)):
+                               ({'Origin': 'null'}, 403), ({'Host': 'attacker.test:8765'}, 421), ({'Host': '0.0.0.0:8765'}, 421)):
             headers = {k: v for k, v in {**good, **change}.items() if v is not None}
             self.assertEqual(self.app.handle('POST', '/api/runs/reorder', headers, {'order': []})[0], status, change)
         referer = {k: v for k, v in good.items() if k != 'Origin'}
@@ -213,7 +214,7 @@ class Locks(Base):
     def test_speed_mode_is_offered_in_a_fixs_preview_kept_for_the_project_and_given_to_its_assistant(self):
         from eaos.journeys import agent_tools, check_choices, guided
         from eaos.pipeline import schedule
-        guided.save(agent_tools.project_state(str(self.project)))              # a project checked once: its fixes come after
+        guided.save(agent_tools.state_of(str(self.project)))              # a project checked once: its fixes come after
         subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '-q', '--allow-empty', '-m', 'm'], check=True)
         selection = {'kind': 'cards', 'cards': ['TASK-001', 'TASK-002']}
         with mock.patch.object(schedule, 'capacity', return_value=(8, 2 ** 34, 2 ** 34)):           # room for five assistants
@@ -223,7 +224,7 @@ class Locks(Base):
                                                       'inputs': {'speed': True}, 'where': {'base_commit': preview['where']['base']['commit']}})
         self.assertEqual((status, payload['run']['where']['assistants']), (200, 5), payload)
         self.assertIn(', assistants=5. ', self.app.manager.prompt_of(self.app.store.load(payload['run']['id'])))
-        self.assertEqual(check_choices.kept(guided.load(self.project))['mode'], 'speed', "kept, as the check's speed mode")
+        self.assertEqual(check_choices.kept(project_state.load(self.project))['mode'], 'speed', "kept, as the check's speed mode")
 
 class EventLog(unittest.TestCase):
     def test_events_are_gapless_hash_chained_scrubbed_and_cut(self):
@@ -486,7 +487,7 @@ class Runs(Base):
         Retry its bar read "2 of 55" though 12 cards were done."""
         os.environ['FAKE_MODE'] = 'crash_once'
         wave = {'open_wave': {'number': 1, 'cards': ['TASK-001', 'TASK-002'], 'kept': {'TASK-001': 'abc'}, 'failed': {}}}
-        with mock.patch('eaos.journeys.guided.load', return_value=wave):
+        with mock.patch('eaos.core.project_state.load', return_value=wave):
             run = self.start('fix', cards=('TASK-001', 'TASK-002'))
             self.app.wait(run, ('done', 'failed'), 30)
         events = self.app.store.events(run)
@@ -500,7 +501,7 @@ class Runs(Base):
     def test_a_fix_in_speed_mode_starts_an_assistant_per_lane_beside_its_own_and_gets_back_what_one_left(self):
         from eaos.journeys import agent_tools, guided
         from eaos.interfaces.studio import helpers
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         state['open_wave'] = {'number': 1, 'cards': ['TASK-001', 'TASK-002', 'TASK-004'], 'kept': {}, 'failed': {},
                               'lanes': [['TASK-001'], ['TASK-002'], ['TASK-004']], 'claims': {}, 'helpers': {}, 'later': [], 'released': []}
         guided.save(state)
@@ -518,9 +519,9 @@ class Runs(Base):
         prompt = manager.prompt_of(second)
         self.assertIn('one of several assistants', prompt)
         self.assertNotIn('fix_start with', prompt, 'it never opens a batch of its own')
-        self.assertEqual(guided.load(self.project)['open_wave']['helpers'], {'rfirst-1': 1, 'rfirst-2': 2})
+        self.assertEqual(project_state.load(self.project)['open_wave']['helpers'], {'rfirst-1': 1, 'rfirst-2': 2})
         manager.set_state('rfirst-1', 'failed', 'its assistant stopped for good')
-        self.assertEqual(guided.load(self.project)['open_wave']['later'], ['TASK-002'], 'its card goes to the first assistant')
+        self.assertEqual(project_state.load(self.project)['open_wave']['later'], ['TASK-002'], 'its card goes to the first assistant')
         manager.set_state('rfirst', 'stopped', 'you stopped it')
         self.assertEqual(manager.store.load('rfirst-2')['state'], 'stopped', 'stopping the first one stops the others')
 
@@ -639,7 +640,7 @@ class Direct(Base):
         from eaos.core import jobs
         self.app.manager.tools, calls = self.fake_tools({'status': {'next': 'audit'}, 'audit': {'job': 'audit-1', 'status': 'running'}})
         applied = {'branch': 'main', 'waves': [{'status': 'applied', 'branch': 'eaos/main/wave-1', 'kept': ['TASK-1']}]}
-        with mock.patch('eaos.journeys.guided.load', return_value=applied):     # a batch handed over earlier is not this read's
+        with mock.patch('eaos.core.project_state.load', return_value=applied):     # a batch handed over earlier is not this read's
             status, payload = self.post('/api/runs', {'action': 'status'})
         self.assertEqual((status, payload['run']['state'], payload['run']['result']['answer']), (200, 'done', {'next': 'audit'}))
         self.assertEqual((payload['run']['result']['branch'], payload['run']['result']['cards_closed']), (None, []))
@@ -652,7 +653,7 @@ class Direct(Base):
             state['n'] += 1
             if state['n'] < 3: return {'id': job, 'kind': 'audit', 'status': 'running', 'progress': {'done': state['n'], 'total': 3, 'stage': 'engines'}}
             return {'id': job, 'kind': 'audit', 'status': 'done', 'result': {'overview': 'fine'}}
-        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.journeys.guided.load', return_value=applied):
+        with mock.patch.object(jobs, 'read', side_effect=read), mock.patch('eaos.core.project_state.load', return_value=applied):
             run = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
             done = self.app.wait(run, ('done', 'failed'), 20)
         self.assertEqual(done['state'], 'done')
@@ -749,7 +750,7 @@ class Direct(Base):
         accept answering "not waiting any more". Whether a branch waits is read from EAOS's state, the one truth."""
         self.app.store.save({'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
                              'created': '0', 'result': {'branch': 'eaos/develop/wave-10'}}, new=True)
-        listed = lambda waves: mock.patch('eaos.journeys.guided.load', return_value={'waves': waves})
+        listed = lambda waves: mock.patch('eaos.core.project_state.load', return_value={'waves': waves})
         with listed([{'number': 10, 'status': 'applied', 'branch': 'eaos/develop/wave-10'}]):
             self.assertIsNone(self.get('/api/runs')[1]['runs'][0].get('outcome'), 'handed over, it waits')
         with listed([{'number': 10, 'status': 'accepted', 'branch': 'eaos/develop/wave-10'},
@@ -796,8 +797,7 @@ class Plan(Base):
         self.assertEqual(record['action'], 'blueprint_start')
         self.assertEqual(record['inputs']['project'], str(self.project.parent / 'my-clinic'))
         self.assertEqual(sorted(p.name for p in Path(record['inputs']['source']).iterdir()), ['plan.md', 'visits.png'])
-        from eaos.journeys import guided
-        self.assertEqual(guided.load((self.project.parent / 'my-clinic').resolve())['lang'], self.app.lang, "it speaks the Studio's language")
+        self.assertEqual(project_state.load((self.project.parent / 'my-clinic').resolve())['lang'], self.app.lang, "it speaks the Studio's language")
         status, payload = self.post('/api/plan', {'name': 'project', 'text': 'a plan'})
         self.assertEqual(status, 400, 'never into a folder that already holds a project')
         self.assertIn('not empty', payload['error'])

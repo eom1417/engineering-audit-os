@@ -24,6 +24,7 @@ from ..journeys import guided
 from .mcp_server import refuse_in_studio_run
 from .govern import WORDS, text_of, words
 from ..core.store import ACTIVE, TERMINAL, contract
+from ..core import project_state
 
 
 def say(line=''):
@@ -59,7 +60,7 @@ def command(function):
 
 
 def _state(args):
-    try: return guided.load(Path(getattr(args, 'project', None) or '.').resolve())
+    try: return project_state.load(Path(getattr(args, 'project', None) or '.').resolve())
     except OSError: return None
 
 
@@ -70,7 +71,7 @@ def _project(args):
 def agreed(project, name, text, yes):
     """The person's yes to `text`, asked now (each time, never kept from before); refused inside a Studio run."""
     refuse_in_studio_run(name)
-    state = guided.load(project)
+    state = project_state.load(project)
     state['questions'] = [q for q in state.get('questions') or [] if q['id'] != f'agree_{name}']
     return guided.ask(state, f'agree_{name}', text, yes)
 
@@ -312,7 +313,7 @@ def decide(args, lang, operation):
     from ..journeys.batch_branch import waiting_batch
     refuse_in_studio_run(operation)
     actions = govern.core(args.project)
-    state = guided.current(args.project)
+    state = project_state.current(args.project)
     guided.reconcile(state)
     wave = waiting_batch(state)
     if wave is None: return guided.box(lang, words('nothing', lang), commands=['eaos next'], status='warn')

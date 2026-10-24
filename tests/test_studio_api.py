@@ -26,6 +26,7 @@ from eaos.core import artifact_contracts  # noqa: E402
 from eaos.interfaces.api import events as feed_module, guard, read, server  # noqa: E402
 from eaos.report.studio import export  # noqa: E402
 import studio_synthetic  # noqa: E402
+from eaos.core import project_state, security
 
 PORT = 48123
 KINDS = ('scan', 'batch', 'merge', 'decision')
@@ -106,7 +107,7 @@ class Guard(unittest.TestCase):
             answer = self.http.get('/api/session', headers=self.token)
         self.assertTrue(compare.called)
         self.assertEqual((answer.status_code, answer.json()['mode']), (200, 'live'))
-        self.assertFalse(guard.same(None, 'x') or guard.same('', ''))
+        self.assertFalse(security.same(None, 'x') or security.same('', ''))
         self.assertEqual(self.http.get('/api/session', headers={**self.token, 'Host': f'evil.example:{PORT}'}).status_code, 421,
                          'DNS rebinding: a page that renames itself 127.0.0.1 is refused')
         self.assertEqual(self.http.get('/', headers={'Host': 'evil.example'}).status_code, 421)
@@ -548,7 +549,7 @@ class Switcher(unittest.TestCase):
                 (Path(folder) / name).mkdir()
                 state = {'project': f'{folder}/{name}', 'workspace': str(guided.workspace(Path(folder) / name)), 'scanned': scanned}
                 guided.save(state)
-                states.append(guided.load(Path(folder) / name))
+                states.append(project_state.load(Path(folder) / name))
             health = guided.report_of(states[1]) / 'studio/health.json'
             health.parent.mkdir(parents=True)
             health.write_text(json.dumps({'score': {'value': 0.83}}))

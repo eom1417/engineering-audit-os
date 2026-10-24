@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ..core import progress
 from ..core.progress.flow import Stage
+from ..core import project_state
 
 DATA = Path(__file__).resolve().parents[1] / 'data' / 'journeys.json'
 BUILD = 'build'                 # the flow a build draws (draw_build)
@@ -39,7 +40,7 @@ def flows(state):
 def folder(state, flow):
     """The folder a flow writes its progress under: the report for the check, the runtime for the others."""
     from . import guided
-    return guided.report_of(state) if flow == 'check' else guided.runtime_of(state)
+    return guided.report_of(state) if flow == 'check' else project_state.runtime_of(state)
 
 
 def journey(state, now=None):
@@ -125,10 +126,9 @@ def draw_build(state):
     """The build's progress as the flow `build`, drawn again from the state after each of its steps: a stage per
     milestone, a step per card (kept, or set aside with why). A build lives across many calls of the assistant, so no
     process holds it: it reads as running until its last milestone is delivered, then it ends."""
-    from . import guided
     plan = _read(_blueprint(state) / 'plan.json')
     if not plan: return None
-    runtime = guided.runtime_of(state)
+    runtime = project_state.runtime_of(state)
     progress.path_for(runtime, BUILD).unlink(missing_ok=True)     # a drawing, not a run: none of them goes to the history
     log = progress.ProgressLog(runtime, BUILD, pulse=False, sampler=None, alive_every=None)
     stages = [Stage(m['id'], requires=(previous['id'],) if previous else (),

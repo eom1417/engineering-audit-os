@@ -8,6 +8,7 @@ the fourth place of a page is "more", which shows the next page. The first optio
 """
 from pathlib import Path
 import os
+from ..core import project_state
 
 PAGE = 4
 MORE = 'more'
@@ -155,7 +156,7 @@ def menu(project=None, lang=None):
     from ..journeys import guided
     folder = Path(project or os.getcwd()).expanduser().resolve()
     answer = _answer_of(folder)
-    lang = guided.language(lang, guided.load(folder) if folder.is_dir() else None)
+    lang = guided.language(lang, project_state.load(folder) if folder.is_dir() else None)
     ar = lang == 'ar'
     ids = _available(answer, folder)
     said = _numbers(answer or {}, lang)
@@ -171,10 +172,9 @@ def menu(project=None, lang=None):
 
 def _answer_of(folder):
     """The project's status, or None when the folder is no project."""
-    from ..journeys import guided
-    state = guided.load(folder) if folder.is_dir() else None
+    state = project_state.load(folder) if folder.is_dir() else None
     try:
-        return _status(str(folder)) if state or guided.looks_like_project(folder) else None
+        return _status(str(folder)) if state or project_state.looks_like_project(folder) else None
     except ValueError:                                      # not a project folder after all
         return None
 

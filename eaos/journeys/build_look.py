@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from . import guided
+from ..core import project_state
 
 
 def read(path, default=None):
@@ -56,7 +57,7 @@ def look(state, root, progress, final=False):
     shutil.rmtree(out, ignore_errors=True)
     progress(4, 5, 'picturing the screens and reviewing them against DESIGN.md')
     try:
-        stages = execute(str(root), out, only=LOOK + (FINAL if final else ()), language=state.get('lang') or 'en', runtime=guided.runtime_of(state) / 'look',
+        stages = execute(str(root), out, only=LOOK + (FINAL if final else ()), language=state.get('lang') or 'en', runtime=project_state.runtime_of(state) / 'look',
                          provider=guided.check_provider(state))['stages']
     except Exception as problem:              # the review is a help to the build, never a reason it fails
         return {'not_done': f'{type(problem).__name__}: {problem}'[:300]}

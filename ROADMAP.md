@@ -161,7 +161,7 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M2.3 | done: vulture removed (21 of 21 findings names called by dispatch, once its names were read right: they had all been dropped); Trivy without its vulnerability scan (OSV-Scanner found every package it did; its per-advisory cards, 119 on one app, and its 1.6 GB daily database gone); one card for dead code EAOS's detector also reports; the code laws count dead code with EAOS's own detector; every other engine finds something no other does | 0.0.74 | 2026-10-24 |
 | M2.4 | done: `eaos/data/toolchain.json` the only registry; the engines stage takes its adapters from it; `upstreams/toolchain.json` (a copy) and `upstreams/registry.yaml` (stale) removed | 0.0.74 | 2026-10-24 |
 | M3.1 | done: the 290 modules in ten layers (`eaos/core` … `eaos/interfaces`, only `__init__` and `__main__` at the root); one order, `interfaces → journeys → pipeline → report → ai → analysis → live → facts → engines → core`, held by import-linter's layers contract with no exception (the plan's groups of peers would have needed a rewrite: one order needed five moves of code); `eaos.policy.json` declares the same layers | 0.0.75 | 2026-10-24 |
-| M3.2 | not started | | |
+| M3.2 | done: `eaos/core/project_state.py` the one record of a project (load, write, every, current, the run's folder): the CLI, MCP, the Studio, the API and the sandbox read it there (they read `state.json` four ways); the journeys save through `guided.save`, which tidies the batches first; a test refuses `state.json` named anywhere else; MCP's `agent_tools.project_state` is `state_of` | 0.0.75 | 2026-10-24 |
 | M3.3 | not started | | |
 | M3.4 | not started | | |
 | M3.5 | not started | | |

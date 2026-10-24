@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import guided
+from ..core import project_state
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
@@ -91,7 +92,7 @@ def _arguments(arguments):
 
 def _state(project):
     folder = Path(project or os.getcwd()).expanduser().resolve()
-    return guided.load(folder) if folder.is_dir() else None
+    return project_state.load(folder) if folder.is_dir() else None
 
 
 def record(tool, arguments, result, status=None):
@@ -201,7 +202,7 @@ def refresh(state, status=None):
     step (the MCP server passes the status tool of the project's way)."""
     try: now = status(state['project']) if status else {}
     except Exception: now = {}
-    state = guided.load(state['project']) or state
+    state = project_state.load(state['project']) or state
     b = brief(state, steps=25, notes=15)
     ar = state.get('lang') == 'ar'
     step = now.get('next') or {}
@@ -248,7 +249,7 @@ def _project_of(folder):
     """The EAOS state of `folder` or of the git repository it is inside; None when EAOS has none."""
     folder = Path(folder or os.getcwd()).expanduser().resolve()
     for candidate in (folder, *folder.parents):
-        state = guided.load(candidate)
+        state = project_state.load(candidate)
         if state: return state
         if (candidate / '.git').exists(): return None
     return None

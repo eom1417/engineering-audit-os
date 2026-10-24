@@ -13,6 +13,7 @@ from eaos.journeys import agent_tools, batch_finish, guided, handover
 from eaos.core import ledger
 from eaos.journeys.waves import commit as eaos_commit, plan as read_plan
 from tests.test_mcp import git_project
+from eaos.core import project_state
 
 
 def git(project, *argv):
@@ -39,7 +40,7 @@ class Base(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
         self.project = git_project(Path(self.tmp.name) / 'shop')
-        self.state = agent_tools.project_state(str(self.project))
+        self.state = agent_tools.state_of(str(self.project))
         self.check(FIRST)
 
     def check(self, cards):
@@ -50,7 +51,7 @@ class Base(unittest.TestCase):
         (report / 'plan.json').write_text(json.dumps({'tasks': cards, 'milestones': [{'id': 'M01', 'name': 'stabilize', 'tasks': [c['id'] for c in cards]}]}))
         (report / 'run-manifest.json').write_text('{"status": "COMPLETE"}')
         (report / 'START-HERE.md').write_text('# Start here\n')
-        self.state = guided.load(self.project)
+        self.state = project_state.load(self.project)
         self.state.update(scanned=f'2026-09-29T{len(self.state.get("waves") or []):02d}:{len(cards):02d}:00+00:00',
                           scanned_commit=git(self.project, 'rev-parse', 'HEAD'), scanned_with=agent_tools.tool_digest())
         guided.save(self.state)
@@ -67,7 +68,7 @@ class Base(unittest.TestCase):
             eaos_commit(self.project, cards[card_id], 'assistant')
         tip = git(self.project, 'rev-parse', 'HEAD')
         git(self.project, 'checkout', '-q', here)
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state.setdefault('waves', []).append({'number': number, 'base': state['scanned_commit'], 'cards': fixed + list(failed or {}),
                                               'kept': fixed, 'failed': failed or {}, 'branch': f'eaos/wave-{number}', 'status': 'applied',
                                               'tip': tip, 'keys': {c: cards[c]['key'] for c in fixed + list(failed or {})}})
@@ -82,11 +83,11 @@ class Continuity(Base):
     def test_a_batch_is_drawn_on_the_live_map_from_its_state_card_by_card_to_its_handover(self):
         # owner, 2026-10-15: no batch ever showed on the live map, nothing wrote the flow `fix`, it read "waiting" throughout
         from eaos.core import progress
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['open_wave'] = {'number': 9, 'cards': ['TASK-001', 'TASK-002', 'TASK-003'], 'kept': {'TASK-001': 'a1'},
                               'failed': {'TASK-002': 'skipped: too large'}, 'opened': '2026-10-15T09:00:00+00:00'}
         guided.save(state)
-        read = lambda: {s['name']: s for s in progress.fold(progress.read(guided.runtime_of(state), 'fix'))['stages']}
+        read = lambda: {s['name']: s for s in progress.fold(progress.read(project_state.runtime_of(state), 'fix'))['stages']}
         drawn = read()
         self.assertEqual((drawn['open']['state'], drawn['change']['state']), ('ok', 'running'))
         self.assertEqual([(c['name'], c['status']) for c in drawn['change']['steps']], [('TASK-001', 'ok'), ('TASK-002', 'skipped')])
@@ -95,7 +96,7 @@ class Continuity(Base):
         self.assertEqual((read()['change']['state'], read()['acceptance']['state']), ('ok', 'running'))
         state['waves'] = (state.get('waves') or []) + [{**state.pop('open_wave'), 'status': 'applied', 'branch': 'eaos/wave-9'}]
         guided.save(state)
-        self.assertEqual(progress.fold(progress.read(guided.runtime_of(state), 'fix'))['status'], 'COMPLETE')
+        self.assertEqual(progress.fold(progress.read(project_state.runtime_of(state), 'fix'))['status'], 'COMPLETE')
 
     def test_a_card_keeps_its_key_across_checks_and_one_no_longer_found_leaves_the_ledger(self):
         again = [dict(c, id=f'TASK-{100 - i:03d}', title=c['title'].replace('line 3', 'line 7')) for i, c in enumerate(reversed(FIRST))]
@@ -111,10 +112,10 @@ class Continuity(Base):
     def test_a_batch_left_on_code_that_moved_on_is_retired_and_a_failed_finish_leaves_it_as_it_was(self):
         """The owner's trial (2026-10-10): batch 1 outlived four checks; every fix_finish failed after rewriting its copy,
         status kept sending the assistant back to it, and each run_setup added one more consent question."""
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
                      safety={'commit': state['scanned_commit'], 'screens': 1, 'passed': 1})
-        copy = guided.runtime_of(state) / 'candidates/WAVE-1'
+        copy = project_state.runtime_of(state) / 'candidates/WAVE-1'
         subprocess.run(['git', 'clone', '-q', str(self.project), str(copy)], check=True)
         base = git(copy, 'rev-parse', 'HEAD')
         (copy / 'src/a.js').write_text('// fixed\n')
@@ -132,11 +133,11 @@ class Continuity(Base):
             raise KeyboardInterrupt
         with mock.patch('eaos.journeys.waves.finish_batch', side_effect=stopped), self.assertRaises(KeyboardInterrupt):
             batch_finish.finish_job(str(self.project), {}, lambda *_: None)
-        wave = guided.load(self.project)['open_wave']
+        wave = project_state.load(self.project)['open_wave']
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), wave.get('last_error')), (kept, None), 'stopped: whole, and nothing failed')
         with mock.patch('eaos.journeys.waves.finish_batch', side_effect=refused), self.assertRaises(PermissionError):
             batch_finish.finish_job(str(self.project), {}, lambda *_: None)
-        wave = guided.load(self.project)['open_wave']
+        wave = project_state.load(self.project)['open_wave']
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), list(wave['kept'])), (kept, ['TASK-001']), 'the batch as it was')
         self.assertIn('S09', wave['last_error'])
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'fix_abandon')
@@ -149,7 +150,7 @@ class Continuity(Base):
         self.assertIsNotNone(answer['open_batch'])
         self.assertIsNone(answer.get('retired_batch'))
         agent_tools.fix_abandon(str(self.project))
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('abandoned', False))
         from eaos.core import ledger
         self.assertEqual({c['state'] for c in ledger.load(state)['cards'].values() if c['id'] == 'TASK-001'}, {'open'},
@@ -158,11 +159,11 @@ class Continuity(Base):
         with mock.patch('eaos.live.setup.authorize'), mock.patch('eaos.live.setup.detect', return_value=live_setup._unknown_app()), \
                 mock.patch('eaos.journeys.agent_tools._start'):
             for _ in range(2): agent_tools.run_setup(str(self.project), person_agreed=True)
-        self.assertEqual(sum(q['id'] == 'run_and_fix' for q in guided.load(self.project)['questions']), 1, 'asked once')
+        self.assertEqual(sum(q['id'] == 'run_and_fix' for q in project_state.load(self.project)['questions']), 1, 'asked once')
 
     def test_a_batch_from_before_keys_follows_its_card_when_a_new_check_numbers_it_again(self):
         self.batch(1, ['TASK-001'])
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         del state['waves'][0]['keys']
         guided.save(state)
         again = [dict(c, id=f'TASK-{6 - i:03d}') for i, c in enumerate(FIRST, 1)]    # the same problems, numbered backwards
@@ -179,7 +180,7 @@ class Continuity(Base):
         self.assertTrue(answer['branch_deleted'])
         self.assertEqual(self.branches(), [], 'the branch is deleted with the merge, without being asked')
         self.assertEqual((answer['progress']['closed'], answer['progress']['total'], answer['progress']['percent']), (2, 5, 40.0))
-        page = guided.outputs(guided.load(self.project)) / 'REPORT.html'
+        page = guided.outputs(project_state.load(self.project)) / 'REPORT.html'
         self.assertTrue(page.is_file(), 'the report is rebuilt in the same call')
         self.assertEqual(agent_tools.status(str(self.project))['next']['tool'], 'run_setup',
                          'no new check is needed after EAOS merged its own fixes')
@@ -189,20 +190,20 @@ class Continuity(Base):
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-1')          # what the other assistant did
         status = agent_tools.status(str(self.project))
         self.assertEqual(self.branches(), [])
-        self.assertEqual(guided.load(self.project)['waves'][0]['status'], 'accepted')
+        self.assertEqual(project_state.load(self.project)['waves'][0]['status'], 'accepted')
         self.assertEqual((status['progress']['done'], status['progress']['total']), (2, 5))
-        history = ledger.load(guided.load(self.project))['history']
+        history = ledger.load(project_state.load(self.project))['history']
         self.assertEqual((history[0]['event'], history[-1]['event'], history[-1]['closed']), ('baseline', 'merged', 2))
         # A branch an older EAOS left after its merge is deleted; a fix whose revert was reverted is done again.
         self.batch(2, ['TASK-005'])
         git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-2')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['waves'][-1]['status'] = 'accepted'
         guided.save(state)
         agent_tools.status(str(self.project))
         self.assertEqual(self.branches(), [])
         for _ in range(2): git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'revert', '--no-edit', 'HEAD')
-        self.assertEqual(ledger.sync(guided.load(self.project))['totals']['done'], 3)
+        self.assertEqual(ledger.sync(project_state.load(self.project))['totals']['done'], 3)
 
     def test_a_new_check_after_the_merge_keeps_the_count_right(self):
         """The trial's numbers: 339 before, then '3 done, 339 left'. Here: 5 before; 2 merged; the new check finds 3 of
@@ -214,9 +215,9 @@ class Continuity(Base):
                  dict(old['TASK-004'], id='TASK-003'), card(4, 'access_gap', 'src/e.js', 'an endpoint with no sign-in check')]
         totals = self.check(again)['totals']
         self.assertEqual((totals['closed'], totals['done'], totals['total'], totals['open'], totals['new']), (2, 2, 6, 4, 1))
-        cards = ledger.load(guided.load(self.project))['cards'].values()
+        cards = ledger.load(project_state.load(self.project))['cards'].values()
         self.assertEqual({c['id'] for c in cards if c['state'] == 'done'}, {None}, 'the fixed cards are no longer in the plan')
-        self.assertEqual(ledger.load(guided.load(self.project))['history'][-1]['event'], 'recheck')
+        self.assertEqual(ledger.load(project_state.load(self.project))['history'][-1]['event'], 'recheck')
 
     def test_a_merge_that_is_not_a_fast_forward_still_merges_and_a_conflict_changes_nothing(self):
         self.batch(1, ['TASK-001'])
@@ -241,7 +242,7 @@ class Continuity(Base):
         self.assertEqual(self.branches(), ['eaos/wave-2'], 'a branch that is not merged stays')
 
     def test_a_batch_opens_for_a_ready_card_closes_cleanly_and_the_next_waits_for_a_decision(self):
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['consent'] = {'run_and_fix': True}
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
@@ -252,15 +253,15 @@ class Continuity(Base):
                                                          'assistants': 1})
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
         # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
-        state = guided.load(self.project)
-        root = guided.runtime_of(state) / 'candidates/WAVE-1'
+        state = project_state.load(self.project)
+        root = project_state.runtime_of(state) / 'candidates/WAVE-1'
         root.mkdir(parents=True)
         state['open_wave'] = {'number': 1, 'root': str(root), 'base': state['scanned_commit'], 'cards': ['TASK-001'],
                               'kept': {'TASK-001': 'abc'}, 'failed': {}, 'tools': {}}
         guided.save(state)
         head = git(self.project, 'rev-parse', 'HEAD')
         self.assertEqual(agent_tools.fix_abandon(str(self.project))['status'], 'abandoned')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertNotIn('open_wave', state)
         self.assertEqual((state['waves'][-1]['status'], root.exists()), ('abandoned', False))
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'status', '--porcelain')), (head, ''))
@@ -271,7 +272,7 @@ class Continuity(Base):
         ledger._apply_wave({'number': 2, 'status': 'abandoned', 'failed': {}}, cards, {})
         self.assertEqual((cards['k']['state'], cards['j']['state']), ('open', 'skipped'), 'and the cards it had skipped open again')
         self.batch(1, ['TASK-001'])
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['consent'] = {'run_and_fix': True}
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
@@ -283,7 +284,7 @@ class Continuity(Base):
         self.assertEqual(agent_tools.locate(inner), self.project)
         plain = Path(self.tmp.name) / 'plain'
         plain.mkdir()
-        self.assertEqual(agent_tools.locate(plain), plain, 'nothing under it: the folder stays, and project_state says why')
+        self.assertEqual(agent_tools.locate(plain), plain, 'nothing under it: the folder stays, and state_of says why')
         above = Path(self.tmp.name)
         self.assertEqual(agent_tools.locate(above), self.project)
         git_project(above / 'other')
@@ -296,7 +297,7 @@ class Continuity(Base):
 class Handover(Base):
     def test_the_next_assistant_and_a_new_session_know_where_the_work_stopped(self):
         from eaos.interfaces.mcp_server import _answer
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': state['scanned_commit'], 'cards': ['TASK-002', 'TASK-004', 'TASK-005'],
                               'kept': {'TASK-002': 'abc'}, 'failed': {'TASK-004': 'skipped: needs a product decision'}, 'tools': {}}
         state['consent'] = {'run_and_fix': True}
@@ -311,7 +312,7 @@ class Handover(Base):
         self.assertIn({'question': 'run the app and prepare fixes', 'answer': True}, brief['person_already_answered'])
         self.assertEqual(brief['notes'][-1]['card'], 'TASK-005')
         self.assertEqual([s['tool'] for s in brief['last_steps']], ['fix_skip', 'note'])
-        page = (guided.outputs(guided.load(self.project)) / 'HANDOVER.md').read_text()
+        page = (guided.outputs(project_state.load(self.project)) / 'HANDOVER.md').read_text()
         for words in ('Continue from here', 'TASK-005', 'do not ask again', 'deleting it next', 'Codex'):
             self.assertIn(words, page)
         with mock.patch('eaos.journeys.handover.refresh', side_effect=OSError('disk full')):

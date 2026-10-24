@@ -2903,7 +2903,7 @@
   "listen": "127.0.0.1 only; the server refuses to bind any other address.",
   "launch_token": "A random token per server launch (secrets.token_urlsafe(32)), in the URL the server opens (#token=) and sent by the Studio as the header X-EAOS-Token on every API call; compared in constant time (hmac.compare_digest).",
   "csrf": "Every POST carries X-EAOS-CSRF equal to the token GET /api/session returned for this launch; constant-time compare.",
-  "origin": "Every POST must carry an Origin (or, if absent, a Referer) of http://127.0.0.1:<port> or http://localhost:<port>; Host must be one of the two as well (DNS rebinding).",
+  "origin": "Every POST must carry an Origin (or, if absent, a Referer) of http://127.0.0.1:<port> or http://localhost:<port>; Host must be one of the two as well (DNS rebinding; refused with 421, by the same check as the server, eaos/core/security.py).",
   "confirm": "Irreversible actions and code-changing runs need a single-use confirm token from their preview, valid 10 minutes, bound to the action, the selection and the project (HMAC with the launch token).",
   "log": "Every accepted action is an action event before it runs; every refusal is logged to the server log with its reason (never the token).",
   "network": "Nothing is fetched from or sent to the network by the action API; the assistants are the person's own, started on this computer.",

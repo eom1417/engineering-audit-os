@@ -23,7 +23,8 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..core import branches, jobs, plain
+from ..core import branches, jobs, plain, project_state
+from ..core.project_state import current, load, looks_like_project, runtime_of
 from . import check_choices, waves
 from ..report.start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/report/start_here.py)
 from ..core.places import home, outputs_root, second_name, workspace  # noqa: F401  (one home: eaos/core/places.py; guided's names stay its API)
@@ -100,33 +101,16 @@ def outputs(state):
     return folder
 
 
-def load(project):
-    path = workspace(project) / 'state.json'
-    return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
-
-
 def save(state):
-    (where := Path(state['workspace'])).mkdir(parents=True, exist_ok=True)
-    state['updated'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    waves.saved(state, runtime_of(state))       # the open batch drawn, the closed ones' copies removed
-    (new := where / f'.state-{os.urandom(4).hex()}.json').write_text(json.dumps(state, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    new.replace(where / 'state.json')                   # whole: an assistant beside it never reads half of it
+    """The state written (eaos/core/project_state.py), the open batch drawn and the closed ones' copies removed first."""
+    waves.saved(state, runtime_of(state))
+    project_state.write(state)
 
 
 def language(requested=None, state=None):
     if requested: return requested
     if state and state.get('lang'): return state['lang']
     return 'ar' if (os.environ.get('LANG') or os.environ.get('LC_ALL') or '').lower().startswith('ar') else 'en'
-
-
-def current(project='.'):
-    """The state of the project in this folder, or of the nearest folder above it that was started."""
-    here = Path(project).resolve()
-    for folder in (here, *here.parents):
-        state = load(folder)
-        # A record left by an older EAOS that scanned the home folder is never a project to go on with.
-        if state and looks_like_project(folder): return state
-    raise LookupError('no EAOS project here: run eaos start first')
 
 
 # ---------------------------------------------------------------- what the person sees
@@ -750,10 +734,6 @@ def _merge_elsewhere(state, wave, into):
     return 'merged'
 
 
-def runtime_of(state):
-    return Path(state['workspace']) / ('runtime' + branches.suffix(state))
-
-
 def tip(state):
     """The commit of the branch EAOS works on (the one checked out, when none was chosen); '' without it."""
     done = _git(state['project'], 'rev-parse', '--verify', '--quiet', branches.ref(state) + '^{commit}')
@@ -1054,16 +1034,6 @@ def next_step(state):
 # ---------------------------------------------------------------- the user commands
 
 # What a project folder holds at its top; the home folder, the disk's root, or Downloads never is one.
-PROJECT_MARKERS = ('.git', 'package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'Cargo.toml', 'composer.json',
-                   'Gemfile', 'pom.xml', 'build.gradle', 'deno.json', 'index.html')
-
-
-def looks_like_project(folder):
-    folder = Path(folder).resolve()
-    if folder in (Path.home().resolve(), Path(folder.anchor)): return False
-    return any((folder / marker).exists() for marker in PROJECT_MARKERS)
-
-
 def start(args):
     project = Path(args.project).resolve()
     if not project.is_dir(): raise ValueError(f'project folder not found: {project}')

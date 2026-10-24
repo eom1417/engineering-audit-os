@@ -36,7 +36,7 @@ def start(actions, body):
 def _speak(project, lang):
     """The new project starts in the Studio's language: its blueprint, questions and Status speak it."""
     from ...journeys import agent_tools, guided
-    state = agent_tools.project_state(str(project), new=True)
+    state = agent_tools.state_of(str(project), new=True)
     state['lang'] = lang
     guided.save(state)
 

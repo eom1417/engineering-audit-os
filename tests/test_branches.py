@@ -13,6 +13,7 @@ from eaos.journeys import agent_tools, batch_finish, guided
 from eaos.core import branches, ledger
 from eaos.live import setup as live_setup
 from eaos.journeys.waves import commit as eaos_commit, plan as read_plan
+from eaos.core import project_state
 
 
 def card(number, pattern, path, title):
@@ -63,14 +64,14 @@ class Branches(unittest.TestCase):
         return agent_tools.choose_branch(branch, str(where), person_said=said)
 
     def check(self, cards=FIRST):
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         report = guided.report_of(state)
         guided.save(state)
         report.mkdir(parents=True, exist_ok=True)
         (report / 'plan.json').write_text(json.dumps({'tasks': cards, 'milestones': [{'id': 'M01', 'name': 'stabilize', 'tasks': [c['id'] for c in cards]}]}))
         (report / 'run-manifest.json').write_text('{"status": "COMPLETE"}')
         (report / 'START-HERE.md').write_text('# Start here\n')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state.update(scanned='2026-09-29T10:00:00+00:00', scanned_commit=guided.tip(state), scanned_with=agent_tools.tool_digest())
         guided.save(state)
         guided.publish(state)
@@ -97,18 +98,18 @@ class Branches(unittest.TestCase):
         with mock.patch.object(agent_tools, 'ANSWER_SECONDS', 30):
             self.assertEqual(agent_tools.choose_branch('develop', str(self.project), person_said='develop')['status'], 'needs_the_person',
                              'an "answer" seconds after the question is nobody\'s')
-        self.assertIsNone(guided.load(self.project).get('branch'))
+        self.assertIsNone(project_state.load(self.project).get('branch'))
         self.choose('develop', self.project, 'develop please')
         self.assertEqual(agent_tools.status(str(self.project))['branch'], 'develop')
 
     def test_the_chosen_branch_is_read_from_its_own_copy_and_the_checkout_is_not_switched(self):
         self.choose('develop', self.project, 'develop please')
-        source = guided.source(guided.load(self.project))
+        source = guided.source(project_state.load(self.project))
         self.assertNotEqual(source, self.project)
         self.assertEqual((source / 'app.js').read_text(), 'export const version = 4;\n')
         self.assertEqual((branches.checked_out(self.project), (self.project / 'app.js').read_text()), ('main', 'export const version = 1;\n'))
         git(self.project, 'checkout', '-q', 'develop')
-        self.assertEqual(guided.source(guided.load(self.project)), self.project, 'checked out: the project itself')
+        self.assertEqual(guided.source(project_state.load(self.project)), self.project, 'checked out: the project itself')
         clone = Path(self.tmp.name) / 'clone'
         subprocess.run(['git', 'clone', '-q', '-b', 'main', str(self.project), str(clone)], check=True)
         self.assertEqual(git(clone, 'branch', '--list', 'develop'), '')
@@ -126,7 +127,7 @@ class Branches(unittest.TestCase):
         (copy / 'fix.js').write_text('// a fix\n')
         eaos_commit(copy, cards['TASK-001'], 'assistant')
         git(self.project, 'fetch', '-q', str(copy), 'eaos/wave-1:eaos/wave-1')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['waves'] = [{'number': 1, 'base': state['scanned_commit'], 'cards': ['TASK-001'], 'kept': ['TASK-001'], 'failed': {},
                            'branch': 'eaos/wave-1', 'status': 'applied', 'keys': {'TASK-001': cards['TASK-001']['key']}}]
         guided.save(state)
@@ -138,7 +139,7 @@ class Branches(unittest.TestCase):
         self.assertEqual((branches.checked_out(self.project), git(self.project, 'status', '--porcelain')), ('main', ''))
         self.assertNotIn('eaos/wave-1', git(self.project, 'branch', '--list', 'eaos/*'))
         self.assertEqual((answer['progress']['done'], answer['progress']['total']), (1, 5))
-        page = (guided.outputs(guided.load(self.project)) / 'REPORT.html').read_text()
+        page = (guided.outputs(project_state.load(self.project)) / 'REPORT.html').read_text()
         self.assertIn('data-part="branch"', page)
         self.assertIn('develop', page)
 
@@ -157,7 +158,7 @@ class Branches(unittest.TestCase):
             agent_tools.fix_start(str(self.project), base='develop', base_commit=develop[:7], merge_into='develop')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001', 'TASK-002', 'TASK-003', 'TASK-004', 'TASK-005'],
                                                    'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'develop', 'assistants': 1})
-        self.assertEqual(agent_tools.delivery(guided.load(self.project)), ('eaos/develop/wave-1', 'main'),
+        self.assertEqual(agent_tools.delivery(project_state.load(self.project)), ('eaos/develop/wave-1', 'main'),
                          'by default it merges into the branch open in the project folder')
         # Accept merges into the branch the preview named, here release, a branch neither checked out nor worked on.
         git(self.project, 'branch', 'release', 'develop')
@@ -167,7 +168,7 @@ class Branches(unittest.TestCase):
         cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
         eaos_commit(copy, cards['TASK-001'], 'assistant')
         git(self.project, 'fetch', '-q', str(copy), '+HEAD:refs/heads/eaos/develop/wave-1')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['waves'] = [{'number': 1, 'base': develop, 'cards': ['TASK-001'], 'kept': ['TASK-001'], 'failed': {}, 'merge_into': 'release',
                            'branch': 'eaos/develop/wave-1', 'status': 'applied', 'keys': {'TASK-001': cards['TASK-001']['key']}}]
         guided.save(state)
@@ -181,12 +182,12 @@ class Branches(unittest.TestCase):
         state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
                      safety={'commit': state['scanned_commit'], 'screens': 1, 'passed': 1})
         guided.save(state)
-        live_setup.authorize(guided.source(state), guided.runtime_of(state), 'tester')
+        live_setup.authorize(guided.source(state), project_state.runtime_of(state), 'tester')
 
     def batch(self, card, **where):
         """One batch of `card` through the real jobs: its change made in the copy as an assistant would, every gate passing."""
         agent_tools._fix_start_job(str(self.project), {'cards': [card], **where}, lambda *_: None)
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         wave = state['open_wave']
         root = Path(wave['root'])
         (root / f'{card}.js').write_text(f'// {card} fixed\n')
@@ -212,25 +213,25 @@ class Branches(unittest.TestCase):
                          'a waiting work branch is no refusal when the batch goes on it')
         second = self.batch('TASK-002', deliver_as='eaos/develop/wave-1', merge_into='develop')
         self.assertEqual((second['branch'], second['continued_on']), ('eaos/develop/wave-1', 'eaos/develop/wave-1'))
-        self.assertEqual(git(self.project, 'rev-parse', 'eaos/develop/wave-1~1'), guided.load(self.project)['waves'][0]['tip'],
+        self.assertEqual(git(self.project, 'rev-parse', 'eaos/develop/wave-1~1'), project_state.load(self.project)['waves'][0]['tip'],
                          'the second batch is on top of the first')
         self.assertEqual(self.work_branches(), ['eaos/develop/wave-1'])
         self.assertEqual(agent_tools.accept(str(self.project), person_agreed=True)['status'], 'accepted')
         self.assertEqual((git(self.project, 'show', 'develop:TASK-001.js'), git(self.project, 'show', 'develop:TASK-002.js')),
                          ('// TASK-001 fixed', '// TASK-002 fixed'))
-        self.assertEqual([w['status'] for w in guided.load(self.project)['waves']], ['accepted', 'accepted'])
+        self.assertEqual([w['status'] for w in project_state.load(self.project)['waves']], ['accepted', 'accepted'])
         self.assertEqual(self.work_branches(), [])
 
     def test_a_direct_group_lands_on_the_base_branch_and_leaves_no_branch(self):
         self.ready_to_fix()
-        with self.assertRaises(ValueError): agent_tools.delivery({**guided.load(self.project), 'branch': 'main'}, 'main')
+        with self.assertRaises(ValueError): agent_tools.delivery({**project_state.load(self.project), 'branch': 'main'}, 'main')
         main = git(self.project, 'rev-parse', 'main')
         done = self.batch('TASK-001', deliver_as='develop', merge_into='develop')
         self.assertEqual((done['branch'], done['landed_on'], done['kept']), (None, 'develop', ['TASK-001']), done)
         self.assertEqual(git(self.project, 'show', 'develop:TASK-001.js'), '// TASK-001 fixed')
         self.assertEqual((self.work_branches(), git(self.project, 'rev-parse', 'main')), ([], main), 'no branch left, main untouched')
-        self.assertEqual(guided.load(self.project)['waves'][-1]['status'], 'accepted')
-        self.assertEqual(ledger.load(guided.load(self.project))['totals']['done'], 1)
+        self.assertEqual(project_state.load(self.project)['waves'][-1]['status'], 'accepted')
+        self.assertEqual(ledger.load(project_state.load(self.project))['totals']['done'], 1)
 
     def test_accept_merges_into_the_chosen_branch_and_keeps_the_branch_when_asked(self):
         self.ready_to_fix()
@@ -246,7 +247,7 @@ class Branches(unittest.TestCase):
         self.choose('develop', self.project, 'develop please')
         self.check()
         self.choose('main', self.project, 'main')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertFalse(guided.scan_done(state), 'main has not been checked')
         self.assertEqual(guided.report_of(state), guided.outputs(state) / 'branches' / 'main' / 'technical')
         self.assertNotEqual(ledger.path(state).name, 'ledger.json')
@@ -255,14 +256,14 @@ class Branches(unittest.TestCase):
         self.assertIn('href="../../REPORT.html"', main_page.read_text(), 'a link to the develop report')
         back = self.choose('develop', self.project, 'develop please')
         self.assertTrue(back['checked_before'])
-        self.assertEqual(ledger.load(guided.load(self.project))['totals']['total'], 5, "develop's own ledger")
+        self.assertEqual(ledger.load(project_state.load(self.project))['totals']['total'], 5, "develop's own ledger")
 
     def test_work_from_before_branches_stays_with_its_branch_and_the_branch_cannot_change_mid_batch(self):
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         state.update(scanned='before', scanned_commit=git(self.project, 'rev-parse', 'main'), setup={'commit': 'x', 'ok': True})
         guided.save(state)
         self.choose('develop', self.project, 'develop please')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertEqual((state['home_branch'], state['by_branch']['main']['scanned']), ('main', 'before'))
         self.assertNotIn('setup', state)
         state['open_wave'] = {'number': 1, 'root': '', 'base': git(self.project, 'rev-parse', 'develop'), 'cards': [], 'kept': {}, 'failed': {}}

@@ -23,6 +23,7 @@ from ...core.language import foreign, restate
 from ...ai import headless as adapters, prompts
 from . import handoff, helpers, planners, resume
 from ...core.store import ACTIVE, RETRYABLE, TERMINAL, contract, now
+from ...core import project_state
 
 STUDIO = 'EAOS Studio'                      # eaos/interfaces/mcp_server.py STUDIO
 
@@ -256,7 +257,7 @@ class Manager:
         record = self.store.load(run)
         if not record.get('branches_before'): record = self.store.update(run, branches_before=sorted(self._waiting_branches()))
         if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
-            state = guided.load(self.project) or {}
+            state = project_state.load(self.project) or {}
             record = self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])})
         return record
 
@@ -387,7 +388,7 @@ class Manager:
     def _count_on(self, run, record):
         """A Fix run's cards its open batch already tried (kept or left out), whichever turn or assistant tried them:
         a retry, or another assistant, counts on from there."""
-        wave = (guided.load(self.project) or {}).get('open_wave') or {}
+        wave = (project_state.load(self.project) or {}).get('open_wave') or {}
         cards = record.get('cards') or [] if record.get('verb') == 'fix' else []
         tried = {card for card in cards if card in (wave.get('kept') or {}) or card in (wave.get('failed') or {})}
         if tried: self._cards_progress(run, tried, cards)
@@ -456,7 +457,7 @@ class Manager:
         branch = payload.get('branch')
         if not (record.get('verb') == 'fix' and record.get('auto_accept') is True and branch and payload.get('cards_closed')): return None
         if record.get('outcome') or self.newest_waiting() != branch: return None
-        wave = next((w for w in reversed((guided.load(self.project) or {}).get('waves') or []) if w.get('branch') == branch), {})
+        wave = next((w for w in reversed((project_state.load(self.project) or {}).get('waves') or []) if w.get('branch') == branch), {})
         target = wave.get('merge_into') or (record.get('where') or {}).get('merge_into') or payload.get('target')
         if not target or not self.branch_control: return None
         reason = self.branch_control.policy()['protected'].get(target)
@@ -582,7 +583,7 @@ class Manager:
 
     def _choose_branch(self, branch, said):
         from ...journeys import agent_tools
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': branch, 'said': str(said)[:300], 'via': 'studio'})
         guided.choose(state, branch)
 
@@ -615,7 +616,7 @@ class Manager:
                     self.set_state(run, 'running', 'taken')
                     seen = row['taken_at']
                 if seen:
-                    state = guided.load(self.project)
+                    state = project_state.load(self.project)
                     for entry in entries(state) if state else []:
                         if (entry.get('at') or '') > seen:
                             seen = entry['at']
@@ -637,18 +638,18 @@ class Manager:
 
     # the outcome
     def _waiting_branches(self):
-        state = guided.load(self.project) or {}
+        state = project_state.load(self.project) or {}
         return {wave['branch'] for wave in state.get('waves') or [] if wave.get('status') == 'applied' and wave.get('branch')}
 
     def newest_waiting(self):
         """The branch accept and undo act on: the newest wave still waiting for the person, or None."""
         from ...journeys import batch_branch
-        return (batch_branch.waiting_batch(guided.load(self.project) or {}) or {}).get('branch')
+        return (batch_branch.waiting_batch(project_state.load(self.project) or {}) or {}).get('branch')
 
     def _outcome(self, run, answer=None):
         """The result event's data: the new branch, its diff and its checks, the cards it closes, and the assistant's words."""
         record = self.store.load(run)
-        state = guided.load(self.project) or {}
+        state = project_state.load(self.project) or {}
         fresh = [] if record.get('read') else _fresh_waves(record, state)   # a reading run hands no batch over
         wave = next((w for w in reversed(fresh) if w.get('status') == 'applied'), None)
         # a direct batch: it landed on the base branch itself and left no branch

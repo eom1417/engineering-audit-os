@@ -5,6 +5,7 @@ those groups): the same data the page showed, so the preview names what the pers
 """
 import json
 from pathlib import Path
+from ..core import project_state
 
 BATCH = 10                                  # fix_start's default batch size
 OPEN = ('open',)
@@ -31,7 +32,7 @@ def _load(folder, name):
 def studio_folder(project):
     """The Studio data of the project's latest check, or None before the first check."""
     from . import guided
-    state = guided.load(Path(project).resolve())
+    state = project_state.load(Path(project).resolve())
     if not state: return None
     try: folder = guided.report_of(state) / 'studio'
     except Exception: return None

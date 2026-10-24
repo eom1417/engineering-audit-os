@@ -24,6 +24,7 @@ from pathlib import PurePosixPath
 
 from . import guided
 from ..core.places import workspace
+from ..core import project_state
 
 WAIT = 50                     # seconds fix_finish waits for the other lanes before it answers that they still work
 
@@ -102,7 +103,7 @@ def held(wave, card, files):
 def take(project, card, edits):
     """None when the change `edits` to `card` may be tried, its files held by its lane from now on; else the answer that
     the card waits for the end, another lane holding one of its files."""
-    if not ((guided.load(project) or {}).get('open_wave') or {}).get('lanes'): return None
+    if not ((project_state.load(project) or {}).get('open_wave') or {}).get('lanes'): return None
     with changing(project) as state:
         taken = held(state['open_wave'], card, [PurePosixPath(str(edit.get('path'))).as_posix() for edit in edits if isinstance(edit, dict)])
     return {'card': card, 'kept': False, 'later': True, 'why': f"another assistant of this batch is changing {', '.join(taken)}",
@@ -148,10 +149,10 @@ def finish_wait(project):
     """None when no other lane has a card left; else, once they are done or after WAIT seconds (an assistant's call of
     a tool has a time limit), what the first assistant does now."""
     until = time.monotonic() + WAIT
-    if not (left := waiting((guided.load(project) or {}).get('open_wave') or {})): return None
+    if not (left := waiting((project_state.load(project) or {}).get('open_wave') or {})): return None
     while left and time.monotonic() < until:
         time.sleep(2)
-        left = waiting((guided.load(project) or {}).get('open_wave') or {})
+        left = waiting((project_state.load(project) or {}).get('open_wave') or {})
     if not left: return {'status': 'others_done', 'what_now': 'The other assistants of this batch are done: call fix_finish again now.'}
     return {'status': 'others_fixing', 'cards': left,
             'what_now': 'The other assistants of this batch are still fixing these cards: call fix_finish again, it waits for them.'}
@@ -163,6 +164,6 @@ def changing(project):
     loses what another wrote."""
     with open(workspace(project) / 'state.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        state = guided.load(project)
+        state = project_state.load(project)
         yield state
         guided.save(state)

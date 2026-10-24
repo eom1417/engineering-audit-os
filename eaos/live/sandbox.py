@@ -142,10 +142,8 @@ def hidden():
     own included (it sees its copy, never the working folder and its .env). The outermost ones only."""
     from ..core.places import home, outputs_root
     folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(), Path('/tmp'), Path(tempfile.gettempdir())]
-    for record in (home() / 'projects').glob('*/state.json'):
-        try: state = json.loads(record.read_text(encoding='utf-8'))
-        except (OSError, ValueError): continue
-        folders += [Path(state[key]) for key in ('project', 'outputs') if state.get(key)]
+    from ..core.project_state import every
+    folders += [Path(state[key]) for state in every() for key in ('project', 'outputs') if state.get(key)]
     real = {Path(os.path.realpath(folder)) for folder in folders if folder.is_dir()} - {Path('/')}
     return sorted(folder for folder in real if not any(other in folder.parents for other in real))
 
@@ -157,8 +155,9 @@ def _own(target, runtime):
     project's, whatever it is given."""
     from ..core.places import workspace
     # a candidate copy (a batch, a milestone) has no workspace of its own: the project's is the one above its runtime
-    folder = next((p for p in (workspace(target), *Path(runtime).resolve().parents) if (p / 'state.json').is_file()), workspace(target))
-    try: report = json.loads((folder / 'state.json').read_text(encoding='utf-8')).get('outputs')
+    from ..core.project_state import FILE, of_workspace
+    folder = next((p for p in (workspace(target), *Path(runtime).resolve().parents) if (p / FILE).is_file()), workspace(target))
+    try: report = (of_workspace(folder) or {}).get('outputs')
     except (OSError, ValueError): report = None
     return [Path(os.path.realpath(path)) for path in (folder, report, runtime) if path]
 

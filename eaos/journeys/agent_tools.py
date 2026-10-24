@@ -23,6 +23,7 @@ from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
 from ..analysis.finish_line import proof
 from ..ai import readiness
 from ..live import assist as live_assist, run_profile, setup as live_setup
+from ..core import project_state
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
 ANSWER_SECONDS, WAIT = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30), 50   # WAIT: seconds a tool call waits for its job
@@ -45,10 +46,10 @@ def repositories_under(folder):
 
 
 def locate(folder):
-    """The project a folder means: itself when it is one (eaos/journeys/guided.looks_like_project); a folder with no project file
+    """The project a folder means: itself when it is one (eaos/journeys/project_state.looks_like_project); a folder with no project file
     and exactly one git repository directly under it (the assistant opened in the folder above) means that repository; with several, SeveralProjects: the
     person chooses, EAOS never guesses."""
-    if not folder.is_dir() or guided.looks_like_project(folder): return folder
+    if not folder.is_dir() or project_state.looks_like_project(folder): return folder
     found = repositories_under(folder)
     if len(found) > 1: raise SeveralProjects(folder, found)
     return found[0] if found else folder
@@ -57,25 +58,25 @@ def locate(folder):
 def _project_folder(project, new):
     """The project's folder, checked: made when it is to be built, else it must exist and look like a project."""
     folder = Path(project or os.getcwd()).expanduser().resolve()
-    if not new and not (guided.load(folder) if folder.is_dir() else None): folder = locate(folder)
-    state = guided.load(folder) if folder.is_dir() else None
+    if not new and not (project_state.load(folder) if folder.is_dir() else None): folder = locate(folder)
+    state = project_state.load(folder) if folder.is_dir() else None
     if new or (state or {}).get('mode') == 'build':
         if folder in (Path.home().resolve(), Path(folder.anchor)):
             raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the assistant there)')
         folder.mkdir(parents=True, exist_ok=True)
         return folder
     if not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
-    if not guided.looks_like_project(folder):
+    if not project_state.looks_like_project(folder):
         raise ValueError(f'not a project folder: {folder} (no .git, package.json or other project file at its top; '
                          'pass the project folder as `project`)')
     return folder
 
 
-def project_state(project=None, new=False):
+def state_of(project=None, new=False):
     """The project's state, made on first use. `new`: a project still to be built from its plan, whose folder may be
     empty or not there yet (it is made); never the home folder or the disk's root."""
     folder = _project_folder(project, new)
-    state = guided.load(folder)
+    state = project_state.load(folder)
     if not state:
         state = {'schema_version': 1, 'project': str(folder), 'workspace': str(guided.workspace(folder)),
                  'started': _now(), 'questions': [], 'lang': guided.language()}
@@ -172,7 +173,7 @@ def open_studio(project=None, show=True, route='', address=None):
     no data: a server it starts does (run_foreground), and a running one's is kept by every step that changes it, so a
     check asked for starts at once. `address`: this computer is a remote server reached at that routed address
     (launch.serve_remotely); a running Studio that answers elsewhere starts again there."""
-    state = project_state(project)
+    state = state_of(project)
     if address:
         try: pattern = launch.serve_remotely(address)
         except ValueError as problem: return {'error': str(problem), 'what_now': 'Pass the exact https address your environment routes to a port.'}
@@ -196,7 +197,7 @@ def open_studio(project=None, show=True, route='', address=None):
 
 
 def wait(job, seconds=WAIT, project=None):          # a job of this project only: another project's is not found
-    return _job_answer(job, min(max(int(seconds), 0), 300), project_state(project)['project'])
+    return _job_answer(job, min(max(int(seconds), 0), 300), state_of(project)['project'])
 
 
 # ---------------------------------------------------------------- where things are
@@ -225,7 +226,7 @@ def _branch(state):
 
 
 def branches_of(project=None):
-    state = project_state(project)
+    state = state_of(project)
     options = branches.choice(state['project'])
     return {'working_branch': state.get('branch'), 'checked_out': branches.checked_out(state['project']),
             'main_branch': branches.default_branch(state['project']),
@@ -237,7 +238,7 @@ def branches_of(project=None):
 
 def choose_branch(branch, project=None, person_said=''):
     """`person_said`: the person's own words in answer to which branch (their reply, as they wrote it)."""
-    state = project_state(project)
+    state = state_of(project)
     before = state.get('branch')
     asked = (state.get('asked') or {}).get('branch')
     waited = asked and (datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds() >= ANSWER_SECONDS
@@ -265,7 +266,7 @@ def _batches(wave, retired):     # status' open and retired batches
 
 def status(project=None):
     from ..core import ledger
-    try: state = project_state(project)
+    try: state = state_of(project)
     except SeveralProjects as several:
         return {'status': 'needs_project', 'projects': [str(p) for p in several.projects],
                 'what_now': 'This folder holds several projects. Ask the person which one to work on (list them by name), '
@@ -332,7 +333,7 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False, as
     `paths`, `mode`, `sign_in`, `published`, `run_app` (kept: eaos/journeys/check_choices.py); `go_on`: Retry; `fixed`: the assistant
     is fixed; `person_agreed`: their yes to a remedy's question (eaos/pipeline/remedies.py): the app runs, from setup."""
     run_app, again_from = remedies.agreed(run_app, again_from, person_agreed)
-    state = project_state(project)
+    state = state_of(project)
     asking = _branch(state)
     if asking: return asking
     if use_assistant is not None or assistant:          # the person's choice for the check's AI, kept when made now
@@ -367,7 +368,7 @@ def assistant_check(project=None, fresh=False, assistant=None):
     one-word question, else the exact reason and its fix), the person's choice for this project, and what the
     assistant may do in the check. `fresh` asks again instead of the answer of the last few minutes; `assistant`
     asks only that one."""
-    state = project_state(project)
+    state = state_of(project)
     rows = readiness.probe_all(fresh=fresh, names=[assistant] if assistant else None)
     said = guided.answered(state, 'use_assistant')
     chosen = guided.chosen_assistant(state)
@@ -397,7 +398,7 @@ def _audit_job(project, arguments, progress):
     """The check, once none of the tools it needs here is still being installed; without those that failed only when
     the person chose to start without them (`without_tools`)."""
     from ..report.start_here import start_here
-    state = guided.load(project)
+    state = project_state.load(project)
     out = guided.report_of(state)
     without = arguments.get('without_tools')
     failed = guided.tools_for_check(state, lambda done, total: progress and progress(done, total, 'tools'), install=not without)
@@ -411,7 +412,7 @@ def _audit_job(project, arguments, progress):
     done = check(str(source), out, arguments.get('again_from'), state.get('scanned_dirty') is False, go_on=bool(arguments.get('go_on')), **options)
     done = remedies.apply(done, lambda stages: check(str(source), out, stages, True, **options), out, progress, guided.chosen_assistant(state), options['provider'])
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
-    state = guided.load(project)
+    state = project_state.load(project)
     state.update(scanned=_now(), scanned_with=tool_digest(), **read)
     guided.retire_stale_batch(state)
     guided.publish(state)
@@ -421,7 +422,7 @@ def _audit_job(project, arguments, progress):
 
 def overview(project=None):
     from ..report.start_here import summary_counts
-    state = project_state(project)
+    state = state_of(project)
     report = _report(state)
     plan = _read(report / 'plan.json')
     tasks = plan.get('tasks') or []
@@ -457,7 +458,7 @@ def _claims(report):
 
 
 def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None, severity=None):
-    report = _report(project_state(project))
+    report = _report(state_of(project))
     claims, rows = _claims(report), []
     from .selection import cards_in      # area and severity as the Studio's filter reads them
     only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
@@ -530,7 +531,7 @@ def _card_work(card):
 
 def finding(id, project=None):
     """One card (TASK-…) or claim (CLM-…), whole: what, why, the evidence with its code, the change, the check."""
-    state = project_state(project)
+    state = state_of(project)
     report = _report(state)
     task, claim = _card_and_claim(report, id)
     card = task or {}
@@ -538,7 +539,7 @@ def finding(id, project=None):
 
 
 def structure(project=None):
-    state = project_state(project)
+    state = state_of(project)
     report = _report(state)
     target = _read(report / 'target-architecture.json') if (report / 'target-architecture.json').is_file() else {}
     trim = lambda rows, n=40: (rows or [])[:n] if isinstance(rows, list) else rows
@@ -562,7 +563,7 @@ def _milestone_row(m, cards, whole, tried_card, where):
 
 def plan(project=None, milestone=None):
     from ..core.ledger import keys, sync
-    state = project_state(project)
+    state = state_of(project)
     guided.reconcile(state)
     report = _report(state)
     data = _read(report / 'plan.json')
@@ -582,14 +583,14 @@ def impact(target, project=None, depth=3):
     """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points through
     it, the tests that cover it, and the files that change with it in the history."""
     from ..analysis.impact import LIMITS, assess
-    result = assess(_report(project_state(project)), target, depth)
+    result = assess(_report(state_of(project)), target, depth)
     return {**result, 'limits': LIMITS}
 
 
 def ask(question, project=None):
     """The check's records that answer a question, each with its place; NOT_IN_RECORDS when none does."""
     from ..ai.ask import answer
-    return answer(_report(project_state(project)), question)
+    return answer(_report(state_of(project)), question)
 
 
 def tools_check(project=None, retry=False):
@@ -599,7 +600,7 @@ def tools_check(project=None, retry=False):
     failed are tried again; an install already running goes on)."""
     from ..core import build_info
     folder = Path(project or os.getcwd()).expanduser().resolve()
-    files = toolchain.project_files(folder) if guided.looks_like_project(folder) else None
+    files = toolchain.project_files(folder) if project_state.looks_like_project(folder) else None
     if retry: toolchain.prepare(folder if files is not None else None)
     rows = toolchain.doctor()['tools']
     rules = {t['name']: t for t in toolchain.registry()['tools']}
@@ -617,7 +618,7 @@ def tools_check(project=None, retry=False):
 
 
 def report_file(name='', project=None, offset=0, limit=20000):
-    state = project_state(project)
+    state = state_of(project)
     report = _report(state).resolve()
     if not name:
         return {'files': sorted(str(p.relative_to(report)) for p in report.rglob('*') if p.is_file() and p.suffix in ('.md', '.json', '.txt'))[:400]}
@@ -630,7 +631,7 @@ def report_file(name='', project=None, offset=0, limit=20000):
 
 def open_report(project=None, show=True):
     """REPORT.html, the four reports for people, rebuilt with the fixes so far and opened in the person's browser."""
-    state = project_state(project)
+    state = state_of(project)
     _report(state)
     guided.reconcile(state)
     page = guided.publish(state)
@@ -670,7 +671,7 @@ def _consented(state):
 
 
 def run_setup(project=None, person_agreed=False):
-    state = project_state(project)
+    state = state_of(project)
     if not person_agreed and not _consented(state):
         return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                 'what_now': 'Ask the person this, in their language. Only if they say yes, call run_setup again with person_agreed=true.'}
@@ -678,7 +679,7 @@ def run_setup(project=None, person_agreed=False):
     if not head: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
     check_choices.agree_to_run(state, 'assistant')
     guided.save(state)
-    runtime = guided.runtime_of(state)
+    runtime = project_state.runtime_of(state)
     who = guided._git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
     source = guided.source(state)
     live_setup.authorize(source, runtime, who)
@@ -691,8 +692,8 @@ def run_setup(project=None, person_agreed=False):
 
 def run_try(proposal=None, mode='lock', project=None):
     """Try the assistant's proposal (see live_assist.ASSIST_SYSTEM for its fields), refused when unsafe."""
-    state = project_state(project)
-    runtime = guided.runtime_of(state)
+    state = state_of(project)
+    runtime = project_state.runtime_of(state)
     if not (runtime / 'run.json').is_file(): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     if mode not in ('lock', 'baseline'): raise ValueError("mode is 'lock' (the app as developers run it) or 'baseline' (the production build)")
     refused = run_profile.safe(proposal or {})
@@ -724,7 +725,7 @@ def _lock_run(project, runtime, report, record, profile, attempt):
         profile.setdefault('env', {}).update({k: str(v) for k, v in record['fixtures'].items()})
     profile['limitations'] = _limitations(profile, record, runtime, missing)
     run_profile.write_profile(runtime, profile)
-    state = guided.load(project)
+    state = project_state.load(project)
     state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': attempt, 'limitations': profile['limitations']}
     state.pop('safety', None)
     guided.save(state)
@@ -760,7 +761,7 @@ def _run_what_now(ok, mode):
 
 
 def _run_job(project, arguments, progress):
-    runtime, report = guided.runtime_of(state := guided.load(project)), guided.report_of(state)
+    runtime, report = project_state.runtime_of(state := project_state.load(project)), guided.report_of(state)
     mode, proposal = arguments.get('mode') or 'lock', arguments.get('proposal')
     if proposal: run_profile.apply(runtime, proposal, mode=mode)
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
@@ -788,15 +789,15 @@ def _run_job(project, arguments, progress):
 
 
 def safety_net(project=None):
-    state = project_state(project)
+    state = state_of(project)
     if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     return _start('safety_net', state, {}, watch=True)
 
 
 def _safety_job(project, arguments, progress):
-    state = guided.load(project)
+    state = project_state.load(project)
     outcome = guided.safety_run(state, lambda n: progress(n - 1, 2, 'recording every screen' if n == 1 else 'measuring speed under load'))
-    outcome['record'] = str(guided.runtime_of(state) / 'behavior-lock/results.json')
+    outcome['record'] = str(project_state.runtime_of(state) / 'behavior-lock/results.json')
     outcome['what_now'] = 'Call fix_start to open a batch of fixes.'
     return outcome
 
@@ -854,7 +855,7 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left); `merge_into`, the branch accept merges them into (default the branch
     open in the project folder); `base_commit`, the commit the preview showed for `base`: when the branch moved since,
     nothing opens (status base_moved) and the preview is made again. `assistants`: how many fix it at once (eaos/journeys/lanes.py)."""
-    state = project_state(project)
+    state = state_of(project)
     guided.reconcile(state)
     guided.retire_stale_batch(state)
     if state.get('open_wave'): return _still_open(state['open_wave'])
@@ -937,7 +938,7 @@ def _no_safety_net(state):
 
 def fix_abandon(project=None):
     """Close the open batch without handing anything over: its copy is removed and its cards can be picked again."""
-    state = project_state(project)
+    state = state_of(project)
     if stop := lanes.not_yours(state): return stop
     wave = _open(state)
     guided.close_batch(state, 'abandoned', wave.get('last_error') or '')
@@ -949,8 +950,8 @@ def _fix_start_job(project, arguments, progress):
     from .waves import change, commit, drop_last, open_batch, plan as read_plan
     from .execute import new_breakage
     from ..live.sandbox import head
-    state = guided.load(project)
-    report, runtime = guided.report_of(state), guided.runtime_of(state)
+    state = project_state.load(project)
+    report, runtime = guided.report_of(state), project_state.runtime_of(state)
     number = len(state.get('waves') or []) + 1
     grant = runtime / 'authorization.json'
     granted = _read(grant).get('commit') if grant.is_file() else None
@@ -993,7 +994,7 @@ def _fix_start_job(project, arguments, progress):
             guided._git(root, 'clean', '-fdq')
             wave['failed'][card_id] = f'{type(problem).__name__}: {problem}'[:300]
     helpers = lanes.open_lanes(wave, cards, arguments.get('assistants'))
-    state = guided.load(project)
+    state = project_state.load(project)
     state['open_wave'] = wave
     guided.save(state)
     guided.publish(state)
@@ -1012,7 +1013,7 @@ def _inside(root, relative):
 
 
 def fix_read(path, project=None, start=1, end=None):
-    state = project_state(project)
+    state = state_of(project)
     root = _open(state)['root']
     file = _inside(root, path)
     if file.is_dir():
@@ -1054,7 +1055,7 @@ def _apply(root, edits):
 
 
 def fix_edit(card, edits, summary='', project=None):
-    state = project_state(project)
+    state = state_of(project)
     wave = _open(state)
     if card == batch_finish.REPAIR and not wave.get('gates_failed'): raise ValueError('no repair is asked: fix_finish asks for one when needed')
     if card != batch_finish.REPAIR and card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}: {', '.join(wave['cards'])}")
@@ -1065,7 +1066,7 @@ def fix_edit(card, edits, summary='', project=None):
 
 def _fix_edit_job(project, arguments, progress):
     from .waves import commit, drop_last, edit_gates, plan as read_plan
-    state = guided.load(project)
+    state = project_state.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
     repair = card_id == batch_finish.REPAIR
@@ -1079,7 +1080,7 @@ def _fix_edit_job(project, arguments, progress):
         return {'card': card_id, 'kept': False, 'why': f'the edit could not be applied: {problem}',
                 'what_now': 'Nothing changed. Read the file again with fix_read and send a corrected edit.'}
     progress(0, 1, 'checking the change: the problem is gone, nothing broke, no endpoint disappeared')
-    broke, exit_code, still = edit_gates((report, guided.source(state), guided.runtime_of(state)), root, card, changed, repair)
+    broke, exit_code, still = edit_gates((report, guided.source(state), project_state.runtime_of(state)), root, card, changed, repair)
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     if broke or exit_code not in (0, None):
         drop_last(root)
@@ -1087,7 +1088,7 @@ def _fix_edit_job(project, arguments, progress):
                "the problem is still there: the card's own check still finds it" + (f': {still}' if still else f' (exit {exit_code})'))
         return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
-    if repair: return batch_finish.repaired(guided.load(project), root, changed, diff)
+    if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
     with lanes.changing(project) as state:
         wave = state['open_wave']
         wave['kept'][card_id] = guided._git(root, 'rev-parse', 'HEAD').stdout.strip()
@@ -1099,7 +1100,7 @@ def _fix_edit_job(project, arguments, progress):
 
 
 def fix_skip(card, reason, project=None):
-    project = project_state(project)['project']
+    project = state_of(project)['project']
     with jobs.alone(project, WAIT), lanes.changing(project) as state:      # no change is checked while its copy is rebuilt
         wave = _open(state)
         if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
@@ -1114,9 +1115,9 @@ def fix_finish(project=None, leave_out=False):
     """Hand the batch over. When its changes pass one by one but fail the project's checks together, the answer asks
     for a repair on top of them (fix_edit with card REPAIR) instead of leaving sound cards out; `leave_out`, or after
     REPAIRS repairs, the cards responsible are found and left out."""
-    state = project_state(project)
+    state = state_of(project)
     if stop := lanes.not_yours(state) or lanes.finish_wait(state['project']): return stop
-    wave = _open(project_state(project))
+    wave = _open(state_of(project))
     left = [c for c in wave['cards'] if c not in wave['kept'] and c not in wave['failed']]
     if left: return {'status': 'cards_left', 'left': left, 'what_now': 'Fix them with fix_edit or skip them with fix_skip first.'}
     return _start('fix_finish', state, {'leave_out': bool(leave_out)})
@@ -1127,7 +1128,7 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
     the person's current branch); then its branch is deleted (unless `delete_after` is false: it stays, merged) and the
     report brought up to date, in the same call (eaos/journeys/guided.merge)."""
     from ..core.ledger import load
-    state = project_state(project)
+    state = state_of(project)
     guided.reconcile(state)
     wave = waiting_batch(state)
     if wave is None: return {'status': 'nothing_waiting', 'progress': (load(state) or {}).get('totals')}
@@ -1143,7 +1144,7 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
         return {'status': 'conflict', 'branch': wave['branch'],
                 'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
                             f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and deletes the branch."}
-    state = guided.load(state['project'])
+    state = project_state.load(state['project'])
     page = branches.home(state) / 'REPORT.html'
     deleted = not guided._branch_exists(state, wave['branch'])
     return {'status': 'accepted', 'branch': wave['branch'], 'merged_into': into or wave.get('merge_into') or state.get('branch'),
@@ -1155,7 +1156,7 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
 
 def undo(project=None, person_agreed=False):
     from .waves import undo as drop
-    state = project_state(project)
+    state = state_of(project)
     guided.reconcile(state)
     wave = waiting_batch(state)
     if wave is None: return {'status': 'nothing_to_undo'}

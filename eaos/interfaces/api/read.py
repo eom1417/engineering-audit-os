@@ -31,8 +31,9 @@ from starlette.routing import Route
 
 from ... import __version__
 from ...core import artifact_contracts
-from ...journeys import guided, catalog as journeys
+from ...journeys import catalog as journeys
 from ...analysis.pipeline_map import SAFE
+from ...core import project_state
 
 PREFIX = 'studio-'
 NO_STORE = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
@@ -196,7 +197,7 @@ def progress_routes(ctx):
 
     async def screen(request):
         state = ctx.state()
-        return await run_in_threadpool(image_file, guided.runtime_of(state) if state else None, SHOTS, request.query_params.get('path') or '')
+        return await run_in_threadpool(image_file, project_state.runtime_of(state) if state else None, SHOTS, request.query_params.get('path') or '')
 
     async def picture(request):
         return await run_in_threadpool(image_file, ctx.report, PICTURES, request.query_params.get('path') or '')

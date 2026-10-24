@@ -15,6 +15,7 @@ from .. import __version__
 from . import node_jobs
 from ..core import tools_catalog
 from ..core.code_laws import LAWS
+from ..core import project_state
 
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
 performance problems with evidence, and fixes them safely: each fix is made in an isolated copy, checked (the
@@ -301,13 +302,13 @@ def _fix_tools(server, reading, working):
                  'look today. For a redesign, or the look of a build.')
     @_answer
     def design_brief(product: str = '', project: str | None = None) -> str:
-        return design.for_report(guided.report_of(tools.project_state(project)), product)
+        return design.for_report(guided.report_of(tools.state_of(project)), product)
 
     @server.tool(annotations=working, description='Save the look the person chose, one DESIGN.md (Google Stitch\'s format), beside the '
                  'report: the screen review then judges every page against it (audit again_from="visual").')
     @_answer
     def design_choose(content: str, project: str | None = None) -> str:
-        return design.choose(guided.report_of(tools.project_state(project)), content)
+        return design.choose(guided.report_of(tools.state_of(project)), content)
 
     @server.tool(annotations=reading, description='A file of the report (for example START-HERE.md, TARGET-ARCHITECTURE.md, '
                  'CURRENT-STATE.md, load-model.json); with no name, the list of files.')
@@ -323,7 +324,7 @@ def _fix_tools(server, reading, working):
         from ..journeys import build_tools, guided
         from pathlib import Path
         import os
-        state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+        state = project_state.load(Path(project or os.getcwd()).expanduser().resolve())
         if (state or {}).get('mode') == 'build' and not guided.scan_done(state): return build_tools.open_blueprint(project, show)
         return tools.open_report(project, show)
 
@@ -489,7 +490,7 @@ def _build_tools(server, reading, working):
     @_answer
     def extend_start(source: str | None = None, text: str | None = None, project: str | None = None) -> str:
         from ..journeys import agent_tools, extend, guided
-        state = agent_tools.project_state(project)
+        state = agent_tools.state_of(project)
         return extend.extend_start(state, guided.report_of(state), source, text)
 
     @server.tool(annotations=working, description='Check the feature\'s spec against itself and against the project (every file in '
@@ -498,7 +499,7 @@ def _build_tools(server, reading, working):
     @_answer
     def extend_plan(spec: dict, project: str | None = None) -> str:
         from ..journeys import agent_tools, extend, guided
-        state = agent_tools.project_state(project)
+        state = agent_tools.state_of(project)
         answer = extend.extend_plan(state, guided.report_of(state), spec)
         if answer['status'] == 'planned':
             guided.save(state)

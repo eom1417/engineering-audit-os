@@ -45,9 +45,10 @@ from starlette.routing import Route
 
 from ... import __version__
 from ...journeys import guided
-from ...journeys.agent_tools import project_state
+from ...journeys.agent_tools import state_of
 from . import guard, projects, read, sign_in
-from ...core import launch
+from ...core import launch, project_state, security
+from ...core.security import Locks
 from .events import Feed
 
 ASSETS = Path(__file__).resolve().parents[2] / 'data' / 'studio'
@@ -61,14 +62,13 @@ log = logging.getLogger('eaos.studio.server')
 
 @dataclass
 class Keys:
-    token: str = field(default_factory=guard.new_token)
-    csrf: str = field(default_factory=guard.new_token)
+    token: str = field(default_factory=security.new_token)
+    csrf: str = field(default_factory=security.new_token)
     port: int = 0
     remote_origin: str | None = None
 
     def __post_init__(self):
         if self.remote_origin:
-            from ...core.security import Locks
             Locks(self.port, remote_origin=self.remote_origin)
 
 
@@ -100,7 +100,7 @@ class Context:
 
     def state(self):
         """The project's guided state as it is now (eaos/journeys/guided.py), or None when no project is known."""
-        return guided.load(self.project) if self.project else None
+        return project_state.load(self.project) if self.project else None
 
 
 def plain(method, path, handler):
@@ -109,13 +109,13 @@ def plain(method, path, handler):
     streamed as server-sent events (each dict may carry id, event and data)."""
     async def endpoint(request):
         body = None
-        if request.method not in guard.READS:
+        if request.method not in security.READS:
             raw = await request.body()
             try: body = json.loads(raw) if raw else None
             except ValueError: return JSONResponse({'error': 'body', 'message': 'the body is not JSON'}, status_code=400)
         call = {'method': request.method, 'path': request.url.path, 'params': dict(request.path_params),
                 'query': dict(request.query_params), 'body': body, 'headers': {k.lower(): v for k, v in request.headers.items()
-                                                                               if k.lower() not in (guard.TOKEN_HEADER, guard.CSRF_HEADER)},
+                                                                               if k.lower() not in (security.TOKEN_HEADER, security.CSRF_HEADER)},
                 'last_event_id': request.headers.get('last-event-id')}
         result = await handler(call) if inspect.iscoroutinefunction(handler) else await run_in_threadpool(handler, call)
         status, payload = result if isinstance(result, tuple) and len(result) == 2 and isinstance(result[0], int) else (200, result)
@@ -279,18 +279,17 @@ def _exit_when_idle(ctx, every=30):
 
 def _runtime(project):
     """The project's runtime folder, where the flows after the check write their progress; None without a project."""
-    known = guided.load(Path(project)) if project else None
-    return guided.runtime_of(known) if known else None
+    known = project_state.load(Path(project)) if project else None
+    return project_state.runtime_of(known) if known else None
 
 
-def bind(port=0, host=guard.LOOPBACK, remote_origin=None, routed=False):
+def bind(port=0, host=security.LOOPBACK, remote_origin=None, routed=False):
     """A loopback socket, or 0.0.0.0 with an exact authenticated Remote origin (or `routed`: one made from the port once
     bound, launch.remote_template), on `port` or a free one."""
     if remote_origin:
-        from ...core.security import Locks
         Locks(port, remote_origin=remote_origin)
-    if host != guard.LOOPBACK and not (host == '0.0.0.0' and (remote_origin or routed)):
-        raise ValueError(f'the Studio server listens on {guard.LOOPBACK} only, not {host}')
+    if host != security.LOOPBACK and not (host == '0.0.0.0' and (remote_origin or routed)):
+        raise ValueError(f'the Studio server listens on {security.LOOPBACK} only, not {host}')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
@@ -315,7 +314,7 @@ def serve(app, sock=None, ready=None):
 
 def prepare(project=None):
     """The project's state and its report folder, with the Studio data rebuilt from the ledger when it was checked."""
-    state = project_state(project)
+    state = state_of(project)
     report = guided.report_of(state)
     if guided.scan_done(state):
         guided.reconcile(state)
@@ -381,7 +380,7 @@ def _bind_kept(state, port, remote_origin, remote=False):
     """The socket of `port`, or the port the project's Studio used last when it is free, so its address stays the same;
     else a free one. `remote`: a server whose Remote address is made from its port (launch.remote_template), so it
     listens beyond loopback like one given --remote-origin."""
-    host = '0.0.0.0' if remote_origin or remote else guard.LOOPBACK
+    host = '0.0.0.0' if remote_origin or remote else security.LOOPBACK
     if not port and not remote_origin and launch.kept_port(state):
         try: return bind(launch.kept_port(state), host=host, routed=remote)
         except OSError: pass
@@ -419,7 +418,7 @@ def _kept_token(path):
         if re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token) and (file.stat().st_mode & 0o077) == 0: return token
     except OSError:
         pass
-    token = guard.new_token()
+    token = security.new_token()
     fd = os.open(file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, 'w', encoding='utf-8') as out: out.write(token + '\n')
     os.chmod(file, 0o600)
@@ -434,9 +433,9 @@ def serve_sign_in(project, say):
     """The sign-in page alone, on a port of its own, for a terminal on a computer without a display: the Studio's own
     page and guard (its launch token, and on a Remote server its routed address behind the Remote sign-in), with no other
     action; it ends once the check no longer waits (the session saved, the person went on signed out, or the wait ended)."""
-    state = guided.load(project)
+    state = project_state.load(project)
     template = launch.remote_template()
-    sock = bind(0, host='0.0.0.0' if template else guard.LOOPBACK, routed=bool(template))
+    sock = bind(0, host='0.0.0.0' if template else security.LOOPBACK, routed=bool(template))
     port = sock.getsockname()[1]
     keys = Keys(port=port, remote_origin=template.format(port=port) if template else None)
     app = create_app(guided.report_of(state), project=state['project'], keys=keys, mounts=[])

@@ -28,6 +28,7 @@ from ..analysis import design
 from .build_look import read as _read
 from ..analysis.plan_source import read_plan
 from ..core.progress.log import now
+from ..core import project_state
 
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
            'step, and hand each milestone to your project as a new branch (nothing else in your project changes)?')
@@ -48,7 +49,7 @@ def _git(where, *args):
 
 
 def _state(project):
-    state = agent_tools.project_state(project, new=True)
+    state = agent_tools.state_of(project, new=True)
     if state.get('mode') != 'build':
         state['mode'] = 'build'
         guided.save(state)
@@ -271,7 +272,7 @@ def build_start(project=None, person_agreed=False):
         return {'status': 'built', 'what_now': 'Every milestone is built. Ask the person whether to take the last branch in '
                                                '(accept with person_agreed=true), then offer the audit of the built project.'}
     from ..live.setup import authorize
-    runtime = guided.runtime_of(state)
+    runtime = project_state.runtime_of(state)
     who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
     authorize(state['project'], runtime, who)
     number = len(state.get('built') or []) + 1
@@ -405,7 +406,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
     from ..facts.run import collect
     from ..analysis.gates import found
     rules = _read(Path(root) / 'eaos.policy.json') or _read(folder(state) / 'eaos.policy.json')
-    problems, build = _checks(root, state['open_build'], progress, guided.runtime_of(state) / 'browsers' if closing else None)
+    problems, build = _checks(root, state['open_build'], progress, project_state.runtime_of(state) / 'browsers' if closing else None)
     state['open_build'] = build
     changed = _git(root, 'ls-files').stdout.split() if closing else _git(root, 'diff', '--name-only', 'HEAD~1', 'HEAD').stdout.split()
     with tempfile.TemporaryDirectory(prefix='eaos-build-facts-') as out:
@@ -421,7 +422,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
 
 
 def _build_edit_job(project, arguments, progress):
-    state = guided.load(project)
+    state = project_state.load(project)
     build = state['open_build']
     root, card = Path(build['root']), arguments['card']
     try:
@@ -467,7 +468,7 @@ def build_finish(project=None):
 
 
 def _build_finish_job(project, arguments, progress):
-    state = guided.load(project)
+    state = project_state.load(project)
     build = state['open_build']
     root = Path(build['root'])
     # Dead code is judged when the whole build is there: a shared part made early is used by a later milestone.
@@ -493,7 +494,7 @@ def _build_finish_job(project, arguments, progress):
     state.pop('open_build', None)
     guided.save(state)
     publish(state)
-    if last: shutil.rmtree(guided.runtime_of(state) / 'browsers', ignore_errors=True)    # fetched for the journeys alone
+    if last: shutil.rmtree(project_state.runtime_of(state) / 'browsers', ignore_errors=True)    # fetched for the journeys alone
     remaining = [m['id'] for m in _plan(state)['milestones'] if m['id'] not in {r['milestone'] for r in state['built']}]
     screens = any(p.startswith('web/') for c in build['kept'] for p in _cards(state)[c]['paths'])
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
@@ -563,7 +564,7 @@ def status_of(project=None):
     where = Path(project or os.getcwd()).expanduser().resolve()
     if not where.exists():
         return {'project': str(where), 'mode': 'build from a plan', 'next': {'tool': 'blueprint_start', 'why': 'a new project: reading its plan makes its folder'}}
-    state = guided.load(where)
+    state = project_state.load(where)
     if (state or {}).get('mode') == 'build' and journeys.which(state) != 'build':
         state['mode'] = 'check'
         guided.save(state)

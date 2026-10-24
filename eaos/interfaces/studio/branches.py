@@ -32,6 +32,7 @@ from pathlib import Path
 
 from ...core import branches as reading
 from ...core.store import ACTIVE, TERMINAL, _read_json, _write_json, now
+from ...core import project_state
 
 RECOVERY = 'refs/eaos-recovery/'
 EAOS_NAME, EAOS_EMAIL = 'EAOS', 'eaos@localhost'
@@ -115,8 +116,7 @@ class BranchControl:
         return git(self.project, 'rev-parse', '--git-dir').returncode == 0
 
     def state(self):
-        from ...journeys import guided
-        return guided.load(self.project) or {}
+        return project_state.load(self.project) or {}
 
     def head(self):
         """{branch, detached, commit, unborn}: the checkout of the project's own folder."""
@@ -676,7 +676,7 @@ class BranchControl:
             state = self.state()
             if not state:
                 from ...journeys import agent_tools
-                state = agent_tools.project_state(str(self.project))
+                state = agent_tools.state_of(str(self.project))
             try: guided.choose(state, name)
             except ValueError as problem:
                 return self._finish(run, False, {'en': f'Not changed: {problem}', 'ar': f'ما تغيّر: {problem}'}, {'reason': str(problem)})

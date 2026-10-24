@@ -10,6 +10,7 @@ from eaos.core import branches as reading
 from eaos.journeys import guided
 from eaos.interfaces import studio as actions
 from tests.shared_fixture import Workspace
+from eaos.core import project_state
 
 
 def git(folder, *args, env=None):
@@ -128,7 +129,7 @@ class Selecting(Repo):
         self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'symbolic-ref', '--short', 'HEAD')), before)
         self.assertEqual((out['context']['analysis']['branch'], out['context']['checkout']['branch']), ('main', 'develop'))
         self.assertEqual(out['run']['state'], 'done')
-        self.assertEqual(guided.load(self.project)['branch'], 'main')
+        self.assertEqual(project_state.load(self.project)['branch'], 'main')
         made = []
         create, public = self.app.create, self.app.public
         self.app.create = lambda body: made.append(body) or {'id': 'r9', 'action': 'audit', 'state': 'queued'}
@@ -233,7 +234,7 @@ class Guarding(Repo):
                         {**self.headers(), 'X-EAOS-Token': 'no'}):
             self.assertIn(self.post('/api/branches/analysis', {'branch': 'main'}, headers)[0], (401, 403))
         self.assertEqual(git(self.project, 'for-each-ref'), before)
-        self.assertIsNone((guided.load(self.project) or {}).get('branch'))
+        self.assertIsNone((project_state.load(self.project) or {}).get('branch'))
         marker = self.base / 'pwned'
         for name in (f'x;touch {marker}', '--output=/tmp/x', '../../etc', 'a..b', '$(touch x)', 'refs/heads/../x', ''):
             self.assertIn(self.post('/api/branches/merge/preview', {'source': name, 'target': 'develop'})[0], (400, 404, 409), name)
@@ -244,7 +245,7 @@ class Guarding(Repo):
         commit(other, 'a', 'a', 'a')
         status, out = self.post('/api/branches/analysis', {'branch': 'main', 'project': str(other)})
         self.assertEqual(status, 200, out)
-        self.assertIsNone(guided.load(other))
+        self.assertIsNone(project_state.load(other))
 
 
 class Deleting(Repo):
@@ -403,17 +404,17 @@ class Freshness(Repo):
         self.assertEqual(self.fresh()['state'], 'fresh')
         git(self.project, 'switch', '-q', 'develop')
         self.scanned()
-        guided.save({**guided.load(self.project), 'branch': 'main'})
+        guided.save({**project_state.load(self.project), 'branch': 'main'})
         self.assertEqual(self.fresh()['state'], 'other_branch')
         self.app.studio = self.base / 'studio'
         self.app.studio.mkdir(exist_ok=True)
         (self.app.studio / 'manifest.json').write_text(json.dumps({'scanned': {'branch': 'develop', 'commit': git(self.project, 'rev-parse', 'develop'),
                                                                               'at': '2026-10-09T08:00:00+00:00', 'recorded': True, 'detached': False}}))
-        guided.choose(guided.load(self.project), 'eaos/task-1')
+        guided.choose(project_state.load(self.project), 'eaos/task-1')
         found = self.fresh()
         self.assertEqual((found['state'], found['scanned_branch'], found['branch']), ('other_branch', 'develop', 'eaos/task-1'))
-        guided.choose(guided.load(self.project), 'main')
-        legacy = {k: v for k, v in guided.load(self.project).items() if k not in ('scanned_commit', 'scanned_branch', 'scanned_detached', 'scanned_dirty')}
+        guided.choose(project_state.load(self.project), 'main')
+        legacy = {k: v for k, v in project_state.load(self.project).items() if k not in ('scanned_commit', 'scanned_branch', 'scanned_detached', 'scanned_dirty')}
         guided.save(legacy)
         found = self.fresh()
         self.assertEqual((found['state'], found['reason']), ('unknown', 'legacy_report'))

@@ -20,6 +20,7 @@ from eaos.ai import ideal
 from eaos.ai.nodes import core
 from test_ai_nodes import Answer, _nodes_report, decision
 from test_ideal_planner import Launcher, make_report
+from eaos.core import project_state
 
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -198,7 +199,7 @@ class Consent(unittest.TestCase):
         self.assertTrue(check.call_args.kwargs['provider'])
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}):
             agent_tools.audit(str(self.project), use_assistant=False)
-        self.assertEqual(guided.check_provider(guided.load(self.project)).code, 'ai_declined')
+        self.assertEqual(guided.check_provider(project_state.load(self.project)).code, 'ai_declined')
 
     def test_the_views_and_the_sign_in_read_the_code_themselves_and_every_other_call_is_as_it_was(self):
         # chief-ops, 2026-10-21: the assistant of the views and the sign-in saw excerpts only, with every tool off
@@ -222,12 +223,12 @@ class Consent(unittest.TestCase):
     def test_the_choice_is_kept_per_project_and_one_not_ready_is_never_used_silently(self):
         state = {'lang': 'en', 'project': str(self.project), 'workspace': str(guided.workspace(self.project)), 'questions': []}
         guided.choose_assistant(state, True, 'codex', via='studio')
-        kept = guided.load(self.project)
+        kept = project_state.load(self.project)
         self.assertEqual((kept['assistant'], guided.answered(kept, 'use_assistant')), ('codex', True))
         with mock.patch('eaos.ai.shutil.which', return_value='/bin/x'):
             self.assertEqual(guided.chosen_assistant(kept), 'codex', 'the project\'s choice wins over $EAOS_ASSISTANT')
         guided.choose_assistant(kept, False)
-        kept = guided.load(self.project)
+        kept = project_state.load(self.project)
         self.assertEqual((kept['assistant'], guided.answered(kept, 'use_assistant')), ('codex', False))
         self.assertEqual([q['id'] for q in kept['questions']].count('use_assistant'), 1)
         with self.assertRaises(ValueError): guided.choose_assistant(kept, True, 'gemini')
@@ -251,7 +252,7 @@ class Consent(unittest.TestCase):
             start.assert_not_called()
             self.assertEqual(agent_tools.audit(str(self.project), without_ai=True)['status'], 'started')
         self.assertEqual(start.call_args.args[2], {'without_ai': True})
-        self.assertIsNone(guided.answered(guided.load(self.project), 'use_assistant'), 'one check without AI changes no choice')
+        self.assertIsNone(guided.answered(project_state.load(self.project), 'use_assistant'), 'one check without AI changes no choice')
         with mock.patch('eaos.pipeline.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
                 mock.patch.object(guided, 'tools_for_check', return_value={}):
             agent_tools._audit_job(str(self.project), {'without_ai': True}, None)

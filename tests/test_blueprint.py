@@ -12,6 +12,7 @@ from unittest import mock
 from eaos.report import blueprint
 from eaos.journeys import build_tools, guided
 from eaos.analysis import plan_source
+from eaos.core import project_state
 
 
 def spec(**changes):
@@ -179,11 +180,11 @@ class BuildTests(unittest.TestCase):
                                  'recommendation': 'E-mail', 'why': 'e-mail costs nothing'}], flows=[])
         build_tools.blueprint_spec(asked, self.project)
         build_tools.blueprint_design(project=self.project)
-        studio = guided.report_of(guided.load(Path(self.project).resolve())) / 'studio'
+        studio = guided.report_of(project_state.load(Path(self.project).resolve())) / 'studio'
         read = lambda name: json.loads((studio / f'{name}.json').read_text())
         built = next(p for p in read('plans')['plans'] if p['kind'] == 'build')
         cards = [t for s in built['steps'] for t in s['tasks']]
-        self.assertEqual(len(cards), len(build_tools._plan(guided.load(Path(self.project).resolve()))['tasks']))
+        self.assertEqual(len(cards), len(build_tools._plan(project_state.load(Path(self.project).resolve()))['tasks']))
         self.assertIn('a booked visit shows on its day', '\n'.join(t['acceptance'] for t in cards))
         question = next(d for d in read('decisions')['decisions'] if d['id'] == 'blueprint:D1')
         self.assertEqual(([o['label'] for o in question['options']], question['recommended_option']), (['SMS', 'E-mail'], 'o2'))
@@ -194,7 +195,7 @@ class BuildTests(unittest.TestCase):
         self.addCleanup(app.close)
         row = next(r for r in app.report_decisions() if r['id'] == 'blueprint:D1')
         self.assertEqual(app.answer_decision('blueprint:D1', {'scope': row['scope'], 'option': 'o1'})['response']['status'], 'applied')
-        kept = json.loads((build_tools.folder(guided.load(Path(self.project).resolve())) / 'product-spec.json').read_text())
+        kept = json.loads((build_tools.folder(project_state.load(Path(self.project).resolve())) / 'product-spec.json').read_text())
         self.assertEqual(kept['decisions'][0]['chosen'], 'SMS', 'the answer is in the spec, with no assistant run to review it')
         self.assertFalse(app.store.all())
         self.assertEqual([d['id'] for d in read('decisions')['decisions']], ['blueprint:flows'])
@@ -205,7 +206,7 @@ class BuildTests(unittest.TestCase):
         build_tools.blueprint_start(text='plan', project=self.project)
         build_tools.blueprint_spec(spec(requirements=[{'id': 'FR-1', 'text': 'book a visit', 'covered_by': ['F2']}]), self.project)
         build_tools.blueprint_design(project=self.project)
-        state = guided.load(Path(self.project).resolve())
+        state = project_state.load(Path(self.project).resolve())
         card = next(c['id'] for c in build_tools._plan(state)['tasks'] if c['covers'] == ['FR-1'])
         self.assertEqual([p['where'] for p in build_tools._unbuilt(state, {'kept': {}})], ['FR-1'], 'skipped or never built')
         self.assertEqual(build_tools._unbuilt(state, {'kept': {card: 'abc'}}), [])
@@ -282,14 +283,14 @@ class BuildTests(unittest.TestCase):
             finished = build_tools._build_finish_job(self.project, {}, lambda *_: None)
         self.assertEqual((finished['delivered'], finished['branch']), (True, 'eaos/build-1'))
         self.assertEqual((looked.call_count, finished['look']['screens']), (1, 2), "a milestone with screens has them pictured and reviewed")
-        self.assertTrue((guided.report_of(guided.load(Path(self.project).resolve())).parent / 'DESIGN.md').is_file(), "the spec's look is kept where the review reads it")
+        self.assertTrue((guided.report_of(project_state.load(Path(self.project).resolve())).parent / 'DESIGN.md').is_file(), "the spec's look is kept where the review reads it")
         branches = subprocess.run(['git', '-C', self.project, 'branch', '--list', 'eaos/*'], capture_output=True, text=True).stdout
         self.assertIn('eaos/build-1', branches)
         self.assertEqual(finished['milestones_left'][0], 'M02')
         nxt = build_tools.build_start(self.project)
         self.assertEqual(nxt['milestone']['id'], 'M02', 'the next milestone needs no second agreement')
         self.assertTrue((Path(nxt['copy']) / 'package.json').is_file(), 'it starts where the last milestone ended')
-        state = guided.load(Path(self.project).resolve())
+        state = project_state.load(Path(self.project).resolve())
         self.assertEqual([w['status'] for w in state['waves']], ['applied'])
         from eaos.journeys import catalog as journeys
         from eaos.core import progress
@@ -297,11 +298,11 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(list(steps), ['plan', 'spec', 'blueprint', 'build', 'accept'], 'the build journey, as declared')
         self.assertTrue(steps['blueprint']['done'] and not steps['build']['done'])
         self.assertEqual(steps['build']['state'], 'running', 'a build no process holds is not judged gone')
-        drawn = {s['name']: s for s in progress.fold(progress.read(guided.runtime_of(state), 'build'))['stages']}
+        drawn = {s['name']: s for s in progress.fold(progress.read(project_state.runtime_of(state), 'build'))['stages']}
         self.assertEqual((drawn['M01']['state'], drawn['M02']['state']), ('ok', 'running'))
         self.assertEqual([(c['name'], c['status']) for c in drawn['M01']['steps']], [('BLD-001', 'ok')])
         journeys.draw_build(state)
-        again = progress.fold(progress.read(guided.runtime_of(state), 'build'))
+        again = progress.fold(progress.read(project_state.runtime_of(state), 'build'))
         self.assertEqual((again['started_at'], {s['name']: s['started_at'] for s in again['stages']}['M02']),
                          (state['built'][0]['began'], state['open_build']['began']), 'drawn again, the build keeps its own times')
 
@@ -341,7 +342,7 @@ class ExtendTests(unittest.TestCase):
                 'domain': ['src/domain/**'], 'ui': ['src/ui/**']}, 'rules': [
                 {'allow_only': {'from': 'domain', 'to': []}, 'reason': 'rules are pure'}]}))
             subprocess.run(['git', 'init', '-q', str(project)], check=True)
-            state = agent_tools.project_state(str(project))
+            state = agent_tools.state_of(str(project))
             report = guided.report_of(state)
             (report / 'studio').mkdir(parents=True)
             (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))
