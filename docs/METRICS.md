@@ -59,6 +59,33 @@ merges them) and the runtime was not measured. The full check's figures come at 
 - **Target met:** output ≤ 150 MB (95). **Not yet:** ≤ 400 files: 353 of the 468 are `PLAN/TASK-*.md`, one per card
   (351 rules' cards without the assistant's triage, about 100 with it); the runtime ≤ 100 MB awaits the full check.
 
+## After M2: 0.0.74 (2026-10-24), the rules' part of a check of `develop`
+
+Measured as after M1 (`eaos audit --engines` by the beta-trial EAOS, no assistant, no app run), against the M1 numbers.
+The host was loaded (load 25-40 on 10 cores): the time is not comparable, and Checkov's version probe took 111 s of its
+120 s limit, so this run counted it as not installed (it is: an open item in `/workspace/HANDOFF.md`).
+
+| Measure | After M1 (0.0.73) | After M2 (0.0.74) |
+|---|---|---|
+| Engines / tools in the registry | 24 / 41 | 22 / 39 (complexipy, vulture removed) |
+| Engine findings | 3,785 (`semgrep` 1,682) | 2,054 (`semgrep` 116; `trivy` 0: secrets and misconfigurations only) |
+| Output | 95 MB, 468 files | 88 MB, 494 files (`engines` 4 MB; 379 `PLAN/` files) |
+| Rules' cards / debt items | 351 / 378 | 377 / 396: 110 hotspots, as a count one engine states (parameters, nesting) is now a claim; 98 dead code, 96 of them the Studio's modules EAOS's detector cannot reach (open item) |
+| Trivy's database on the computer | 1.6 GB, downloaded daily | none (3 MB of misconfiguration checks) |
+| Rules' part time | 306 s | 868 s, loaded host (semgrep 524 s with no per-rule limit, CodeQL 295 s, GitNexus 252 s) |
+| Python lines (`eaos/`) | 61,014 in 293 files | 60,678 in 290 files |
+| Detection baseline | 5 of 8 | 6 of 8 (the command injection a card) |
+| Compatibility corpus | 2 of 12 | 2 of 12 (not run again: M2 changed no app run or screen) |
+
+- **The engines measured on the claims they lead to** (the 12 corpus apps, the baseline app and EAOS, the same facts read
+  by the code before and after): 1,012 claims became 871. Lost: 141 duplicates (136 Trivy cards of one advisory each,
+  beside OSV-Scanner's per package; 2 dead-code cards beside EAOS's own; 3 complexity targets in test functions EAOS
+  never counts). Gained: 94 work targets (55 on EAOS, 37 on CoreUI), counts one engine states exactly.
+- **Per engine on that corpus**, places only it reached: complexity reforge 157, lizard 4, enola 4, complexipy 8 (EAOS
+  only, judged by EAOS's count); dead code EAOS's own detector 125, enola 6, vulture 0 of 21 standing, knip's files
+  unconfirmed without its plugins but its unused dependencies its own; security semgrep 93, bandit 9, CodeQL 2,
+  gitleaks 1, checkov 5, Trivy 0 vulnerable packages beyond OSV-Scanner.
+
 ## Findings of the M-1 measurement (inputs for M1-M7)
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio
