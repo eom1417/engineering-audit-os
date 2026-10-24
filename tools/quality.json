@@ -1,5 +1,7 @@
 {
  "code:function_lines": 5,
+ "code:functions": 48,
+ "code:modules": 4,
  "code:parameters": 129,
  "jscpd:exact_clone": 6,
  "knip:exports": 46,
