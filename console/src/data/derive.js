@@ -80,6 +80,15 @@ export function fixCount(view, run) {
   return p && p.total === total ? p.done : Object.keys(view.cards).length;
 }
 
+/** Where a run's page follows its events from now, or null: its first look from the start; a stream that ended with
+ *  an attempt, after the last event seen once the run runs again (a retry is the same run, and its page stood still
+ *  until opened again); never while one is open or the run has ended. */
+export function followFrom(follow, ended) {
+  if (!follow.stop) return 0;
+  if (follow.open || ended) return null;
+  return follow.events.length ? follow.events[follow.events.length - 1].seq : 0;
+}
+
 /** A run's label in the language: an Arabic list takes the Arabic comma, so its ids read in order. */
 export function labelOf(label, lang) {
   if (!label) return '';
