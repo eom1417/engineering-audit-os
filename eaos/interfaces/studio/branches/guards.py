@@ -44,16 +44,21 @@ class Guards:
         if inventory['protected'].get(name): reasons.append(say('This branch is protected.', 'هذا الفرع محمي.', 'protected'))
         if 'default' in row['roles']: reasons.append(say('This is the default branch.', 'هذا الفرع الافتراضي.', 'default'))
         if 'analysis' in row['roles']: reasons.append(say('This is the analysis branch: choose another one first.', 'هذا فرع التحليل: اختر غيره أولًا.', 'analysis'))
-        held = row['worktree']
-        if held and held['current']:
-            reasons.append(say('It is checked out in your project folder.', 'مفتوح في مجلد مشروعك.', 'checked_out'))
-        elif held and (held['dirty'] is None or held['dirty']['tracked'] or held['dirty']['untracked']):
-            reasons.append(say(f"It is checked out in another worktree with unsaved changes: {held['path']}. Save or remove them first.",
-                               f"مفتوح في نسخة عمل أخرى فيها تعديلات غير محفوظة: {held['path']}. احفظها أو احذفها أولًا.", 'worktree_dirty'))
+        if (held := self._held_block(row['worktree'])): reasons.append(held)
         if any(r['state'] in ACTIVE + ('queued',) for r in row['runs']):
             reasons.append(say('A run that is not over uses this branch.', 'فيه تشغيل لم ينته يستخدم هذا الفرع.', 'run_uses_it'))
         reasons += self._busy([name])
         return reasons
+
+    @staticmethod
+    def _held_block(held):
+        """Why the worktree holding a branch keeps it from deletion: it is the project folder, or has unsaved changes; None."""
+        if held and held['current']:
+            return say('It is checked out in your project folder.', 'مفتوح في مجلد مشروعك.', 'checked_out')
+        if held and (held['dirty'] is None or held['dirty']['tracked'] or held['dirty']['untracked']):
+            return say(f"It is checked out in another worktree with unsaved changes: {held['path']}. Save or remove them first.",
+                       f"مفتوح في نسخة عمل أخرى فيها تعديلات غير محفوظة: {held['path']}. احفظها أو احذفها أولًا.", 'worktree_dirty')
+        return None
 
     def _remote_blocks(self, row, inventory):
         reasons = []
