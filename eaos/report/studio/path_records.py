@@ -1,4 +1,4 @@
-"""The records the code paths read (eaos/report/studio/paths.py): the symbols and imports of every file, the entry points and
+"""The records the code paths read (eaos/report/studio/paths/): the symbols and imports of every file, the entry points and
 the calls they make, the traced flows and the tables. Each reader fills its pieces of one record dict; a record that is
 missing or broken leaves its pieces empty.
 """
