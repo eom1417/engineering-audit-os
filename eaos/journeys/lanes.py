@@ -32,6 +32,15 @@ WAIT = 50                     # seconds fix_finish waits for the other lanes bef
 def deal(cards, most):
     """The ids of `cards` (plan tasks, in the batch's order) in at most `most` lanes, the largest first: the cards that
     name a file in common, or that one waits for, together; each lane in the batch's order."""
+    together = _together(cards)
+    lanes = [[] for _ in range(max(1, min(int(most), len(together))))]
+    for members in sorted(together.values(), key=len, reverse=True): min(lanes, key=len).extend(members)
+    order = [card['id'] for card in cards]
+    return [sorted(lane, key=order.index) for lane in lanes if lane]
+
+
+def _together(cards):
+    """{a group's first card: its card ids}: the cards that name a file in common, or that one waits for, in one group."""
     group = {card['id']: card['id'] for card in cards}
 
     def root(card):
@@ -44,10 +53,7 @@ def deal(cards, most):
         for other in linked: group[root(other)] = root(card['id'])
     together = {}
     for card in cards: together.setdefault(root(card['id']), []).append(card['id'])
-    lanes = [[] for _ in range(max(1, min(int(most), len(together))))]
-    for members in sorted(together.values(), key=len, reverse=True): min(lanes, key=len).extend(members)
-    order = [card['id'] for card in cards]
-    return [sorted(lane, key=order.index) for lane in lanes if lane]
+    return together
 
 
 def open_lanes(wave, cards, assistants):

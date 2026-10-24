@@ -85,6 +85,11 @@ def _grouped(group, cards, folder):
     if by in GROUPS:
         return {card['id'] for card in cards if str(card.get(GROUPS[by]) or '') == value}
     if by not in LISTED: raise SelectionError('a group is by area, severity, component, gap or operation', 'المجموعة تكون حسب المجال أو الخطورة أو المكوّن أو الفجوة أو العملية')
+    return _listed(by, value, folder)
+
+
+def _listed(by, value, folder):
+    """The ids of the cards of a gap, component or operation (LISTED) of the Studio data."""
     name, field, words = LISTED[by]
     rows = (_load(folder, name) or {}).get(name)
     if rows is None: raise SelectionError(f'this check did not write {words} ({name}.json) yet', f'هذا الفحص ما كتب {name}.json بعد')
@@ -137,7 +142,7 @@ def estimate(verb, count, past):
 def risk(verb, cards, files):
     if verb != 'fix':
         return {'level': 'low', 'why': {'en': 'It only reads: nothing in the project changes.', 'ar': 'قراءة فقط: لا يتغير شيء في المشروع.'}}
-    hard = [card for card in cards if not card.get('fixable', True) or card.get('needs_decision')]
+    hard = _hard(cards)
     severe = [card for card in cards if card.get('severity') in ('critical', 'high')]
     if hard or len(files) > 20:
         return {'level': 'high', 'why': {'en': f'{len(hard)} card(s) need judgement or a decision, and {len(files)} file(s) are touched; '
@@ -147,6 +152,11 @@ def risk(verb, cards, files):
         return {'level': 'medium', 'why': {'en': f'{len(severe)} important card(s), {len(files)} file(s); every change is checked in a copy first.',
                                            'ar': f'{len(severe)} بطاقة مهمة و{len(files)} ملفًا؛ كل تغيير يُفحص في نسخة أولًا.'}}
     return {'level': 'low', 'why': {'en': 'Few files, and every change is checked in a copy first.', 'ar': 'ملفات قليلة، وكل تغيير يُفحص في نسخة أولًا.'}}
+
+
+def _hard(cards):
+    """The cards that need judgement (not fixable by rule) or the person's decision."""
+    return [card for card in cards if not card.get('fixable', True) or card.get('needs_decision')]
 
 
 ON_FAILURE = {

@@ -1,6 +1,6 @@
 """Handing a batch of fixes over (the job behind the MCP fix_finish), and the repair on top of it.
 
-Every kept change goes together through the project's checks (eaos/journeys/waves.py finish_batch). When the changes pass one
+Every kept change goes together through the project's checks (eaos/journeys/waves finish_batch). When the changes pass one
 by one but fail together, no sound card is left out at first: the answer asks the assistant for a repair on top of
 them, a fix_edit on the card REPAIR, and fix_finish runs again; only after REPAIRS repairs, or when asked to leave
 them out, halving finds the cards responsible. A batch that passes becomes a branch waiting for the person, or lands
