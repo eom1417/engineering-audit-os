@@ -132,7 +132,7 @@ def _second_witnesses(facts, all_facts, category):
             if fact.get('kind') == 'engine_finding' and fact not in facts and _witnesses_same(fact, category, paths, packages)]
 
 
-def _severity(claim, key, default):
+def _severity(claim, key, default, facts):
     # Archived code does not run: whatever it breaks is a leftover to remove, not a product defect.
     if claim.get('origin') == 'archive' and key != 'vulnerable_dependency': return 'low'
     if key in ('vulnerable_dependency', 'security_weakness'): return _stated_severity(claim)
@@ -189,7 +189,7 @@ def _item(claim, facts, all_facts, probes):
     key = render.get('key') or ('cycle' if specification.get('query') == 'cycle_present' else None)
     kind = specification.get('kind')
     category, facts = _category(key, kind, facts)
-    severity = _severity(claim, key, KEYS.get(key, (None, None))[1])
+    severity = _severity(claim, key, KEYS.get(key, (None, None))[1], facts)
     evidence = facts + _second_witnesses(facts, all_facts, category)
     if key == 'engine_cluster' and kind == 'secret': evidence, severity = _with_credentials(evidence, all_facts, severity)
     witnesses = _witness_rows(evidence) + _probe_witnesses(probes.get(claim['id'], []))

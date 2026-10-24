@@ -126,7 +126,7 @@ def new(before, after, paths):
 
 
 def claims(fact_sets, add, target):
-    """One claim per group (eaos/analysis/fact_claims.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the triage decides.
+    """One claim per group (eaos/analysis/claims.py BUILDERS): LIKELY when engines agree, else a HYPOTHESIS the triage decides.
     Its probe asking the engines again never raises it: one engine repeating itself is not corroboration."""
     for group in groups(fact_sets):
         confidence = 'LIKELY' if group['agreed'] else 'HYPOTHESIS'

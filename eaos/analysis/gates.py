@@ -123,7 +123,7 @@ def _broken(folder):
 
 def _clusters(folder):
     """(key, occurrences) of every clone cluster and of every duplicate cluster big enough to hold a rule."""
-    from .fact_claims import SHARED_SIZE_FOR_UI, worth_a_claim
+    from .duplicate_claims import SHARED_SIZE_FOR_UI, worth_a_claim
     clusters = [(f['input_sha'], f['value']['occurrences']) for f in _facts(folder, 'metrics') if f['kind'] == 'clone_cluster']
     # a shape too small to hold a rule (`() => x.y()` in four files, a real build) is how code reads, not a copy
     return clusters + [(f['value']['shape_sha'], f['value']['occurrences']) for f in _facts(folder, 'fingerprint')
