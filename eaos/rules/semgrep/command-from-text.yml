@@ -1,0 +1,27 @@
+rules:
+  - id: eaos.security.command-from-text-js
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      A shell command is built by pasting a value into its text. A value holding `;` or `&&` runs a command of its
+      own on the server. Run the program with its arguments apart: execFile('ping', ['-c', '1', host]).
+    metadata:
+      kind: vulnerability
+      category: security
+      cwe: 'CWE-78'
+    patterns:
+      - pattern-either:
+          - pattern: exec($CMD, ...)
+          - pattern: execSync($CMD, ...)
+          - patterns:
+              - pattern-either:
+                  - pattern: $CP.exec($CMD, ...)
+                  - pattern: $CP.execSync($CMD, ...)
+              - metavariable-regex:
+                  metavariable: $CP
+                  regex: (?i)^(child_?process|cp|childprocess|proc|shell|shelljs)$
+      - metavariable-pattern:
+          metavariable: $CMD
+          pattern-either:
+            - pattern: $A + $B
+            - pattern: '`...${$X}...`'
