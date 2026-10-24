@@ -29,14 +29,19 @@ TASK = ('You are the fix reviewer of EAOS, an engineering audit. Below is one ba
 def _cards(report, ids):
     tasks = {t['id']: t for t in (core.load(Path(report) / 'plan.json', {}) or {}).get('tasks') or [] if isinstance(t, dict) and t.get('id')}
     cards = {c['id']: c for c in ideal._cards(report)}
-    out = []
-    for card in ids:
-        task, row = tasks.get(card) or {}, cards.get(card) or {}
-        facts = [f for f in ((task.get('evidence') or {}).get('fact_ids') if isinstance(task.get('evidence'), dict) else None)
-                 or row.get('evidence') or [] if isinstance(f, str)][:6]
-        out.append({'id': card, 'title': core.short(task.get('title') or row.get('title'), 200), 'kind': task.get('kind') or row.get('kind'),
-                    'paths': (task.get('paths') or row.get('paths') or [])[:4], 'facts': facts})
-    return out
+    return [_card(card, tasks.get(card) or {}, cards.get(card) or {}) for card in ids]
+
+
+def _card(card, task, row):
+    """One card as the reviewer reads it, from its plan task, else from its card row."""
+    return {'id': card, 'title': core.short(task.get('title') or row.get('title'), 200), 'kind': task.get('kind') or row.get('kind'),
+            'paths': (task.get('paths') or row.get('paths') or [])[:4], 'facts': _facts(task, row)}
+
+
+def _facts(task, row):
+    """The first facts a card stands on: its task's fact ids, else its card row's evidence."""
+    return [f for f in ((task.get('evidence') or {}).get('fact_ids') if isinstance(task.get('evidence'), dict) else None)
+            or row.get('evidence') or [] if isinstance(f, str)][:6]
 
 
 def inputs(report, project=None, lang='en', wave=None, **_):
@@ -49,11 +54,14 @@ def inputs(report, project=None, lang='en', wave=None, **_):
     ids = (kept + [c for c in failed if c not in kept])[:LIMIT['cards']]
     if not ids: return None
     diff = ''.join(path.read_text(encoding='utf-8', errors='replace') for path in sorted(wave.glob('*.patch')))
-    cards = _cards(report, ids)
-    for card in cards:
-        card['gates'] = 'kept' if card['id'] in kept else f"failed: {core.short(failed.get(card['id']), 300)}"
+    cards = [{**card, 'gates': _gates(card['id'], kept, failed)} for card in _cards(report, ids)]
     return {'lang': lang, 'wave': summary.get('wave'), 'branch': summary.get('branch'), 'stat': summary.get('stat'), 'cards': cards,
             'diff': {'trust': core.UNTRUSTED, 'text': diff[:LIMIT['diff']], 'cut': max(0, len(diff) - LIMIT['diff'])}}
+
+
+def _gates(card, kept, failed):
+    """What the gates said of a card: kept, or failed and why."""
+    return 'kept' if card in kept else f"failed: {core.short(failed.get(card), 300)}"
 
 
 def subjects(data):

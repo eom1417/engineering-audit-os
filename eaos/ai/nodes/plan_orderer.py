@@ -63,11 +63,17 @@ def _open_tasks(report, plan):
 
 def _task_rows(plan, tasks, triage):
     """Each task as the node reads it: what it is, what it waits for, where the rules placed it, the triage's verdict."""
-    wave = {task: i + 1 for i, row in enumerate(plan.get('waves') or []) for task in (row if isinstance(row, list) else [])}
-    milestone = {task: m.get('id') for m in plan.get('milestones') or [] if isinstance(m, dict) for task in m.get('tasks') or []}
+    wave, milestone = _places(plan)
     return [{'id': t['id'], 'title': core.short(t.get('title'), 160), 'kind': t.get('kind'), 'paths': (t.get('paths') or [])[:2],
              'prerequisites': [p for p in t.get('prerequisites') or [] if isinstance(p, str)], 'milestone': milestone.get(t['id']),
              'wave': wave.get(t['id']), 'triage': triage.get(t['id'])} for t in tasks]
+
+
+def _places(plan):
+    """({task: wave}, {task: milestone}): where the rules placed each task."""
+    wave = {task: i + 1 for i, row in enumerate(plan.get('waves') or []) for task in (row if isinstance(row, list) else [])}
+    milestone = {task: m.get('id') for m in plan.get('milestones') or [] if isinstance(m, dict) for task in m.get('tasks') or []}
+    return wave, milestone
 
 
 def _ideal_order(report):
@@ -119,17 +125,28 @@ def check(data, decision):
     """An order keeps every prerequisite, names each card once and only cards of the plan."""
     if decision['decision'] != 'reorder': return None
     tasks = {t['id']: t for t in data['tasks']}
-    place = {}
-    for index, step in enumerate((decision.get('detail') or {}).get('steps') or []):
-        for task in step.get('tasks') or []:
-            if task not in tasks: return f'the order names {task}, which the plan does not hold'
-            if task in place: return f'the order names {task} twice'
-            place[task] = index
+    place, why = _placed((decision.get('detail') or {}).get('steps') or [], tasks)
+    if why: return why
     if not place: return 'the order names no card'
-    for task, index in place.items():
-        for need in tasks[task]['prerequisites']:
-            if need in place and place[need] > index: return f'the order puts {task} before its prerequisite {need}'
-    return None
+    return _before_prerequisite(place, tasks)
+
+
+def _placed(steps, tasks):
+    """({card: its step's index}, None), or (place so far, why) at the first card the order names twice or the plan does
+    not hold."""
+    place = {}
+    for index, step in enumerate(steps):
+        for task in step.get('tasks') or []:
+            if task not in tasks: return place, f'the order names {task}, which the plan does not hold'
+            if task in place: return place, f'the order names {task} twice'
+            place[task] = index
+    return place, None
+
+
+def _before_prerequisite(place, tasks):
+    """Why the order is refused when it puts a card before one of its prerequisites, else None."""
+    return next((f'the order puts {task} before its prerequisite {need}' for task, index in place.items()
+                 for need in tasks[task]['prerequisites'] if need in place and place[need] > index), None)
 
 
 def prompt(data):
@@ -140,11 +157,16 @@ def _steps(decision, data):
     """The assistant's order when it reordered, else the rules'; the cards it left out follow in the rules' order."""
     chosen = (decision.get('detail') or {}).get('steps') if decision['decision'] == 'reorder' else None
     steps = [dict(s) for s in chosen or rules_steps(data)]
-    placed = {t for s in steps for t in s.get('tasks') or []}
-    left = [t for s in rules_steps(data) for t in s['tasks'] if t not in placed]
+    left = _left_out(steps, data)
     if left: steps.append({'id': 'not-placed', 'title': 'Not placed by the order', 'tasks': left,
                            'why': "The order left these cards out; they follow in the rules' order."})
     return steps
+
+
+def _left_out(steps, data):
+    """The cards of the rules' order that `steps` does not place, in that order."""
+    placed = {t for s in steps for t in s.get('tasks') or []}
+    return [t for s in rules_steps(data) for t in s['tasks'] if t not in placed]
 
 
 def finish(report, record, data):

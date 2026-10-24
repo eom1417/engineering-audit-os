@@ -31,7 +31,7 @@ from . import ideal_bundle as read
 from .ideal_base import EVIDENCE, LIMIT, OPERATIONS, VIEWS, _load, _slug
 from .ideal_rules import proposal as _proposal, views as _rules_views
 from .ideal_studio import SECTION_VIEWS, _words, current, decisions, disagreements, provenance_of, scan_key, section  # noqa: F401  (the names others read here)
-from .nodes.core import digest, launcher_of, lenient as _lenient, short as _short
+from .nodes.core import check_shape, digest, launcher_of, short as _short
 
 
 def _now():
@@ -315,19 +315,12 @@ def _passes(launcher, data, passes, tell):
     tell(f'{getattr(launcher, "assistant", "The assistant")} plans the ideal of every view', f'{getattr(launcher, "assistant", "المساعد")} يخطّط المثالي لكل عرض')
     draft = launcher('plan', prompt_plan(data), IDEAL_SCHEMA)
     passes.append('plan')
-    _held(draft, IDEAL_SCHEMA, 'the plan')
+    check_shape(draft, IDEAL_SCHEMA, 'plan')
     tell('A second pass reviews the plan: what was missed, the risks, the order', 'تمرير ثانٍ يراجع الخطة: ما فات، والمخاطر، والترتيب')
     reviewed = launcher('critique', prompt_critique(data, draft), CRITIQUE_SCHEMA)
     passes.append('critique')
-    _held(reviewed, CRITIQUE_SCHEMA, 'the review')
+    check_shape(reviewed, CRITIQUE_SCHEMA, 'review')
     return draft, reviewed
-
-
-def _held(answer, schema, what):
-    """Raise ValueError when an answer is not in its schema's shape."""
-    from ..core import artifact_contracts
-    problems = artifact_contracts.validate(answer, _lenient(schema))
-    if problems: raise ValueError(f'{what} is not in the asked shape: ' + '; '.join(problems[:3]))
 
 
 def _why(problem, cancel):
