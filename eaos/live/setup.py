@@ -3,9 +3,9 @@
 What a person once had to write for chief-ops (a run profile, a database, a seed script, an authorization),
 this module finds or makes, in three passes:
 
-  1. detect(): the app's folder, its package manager, how it installs, starts, builds and is checked, the
-     environment names it reads (from .env.example files and the code; never from a real .env), and the
-     database it needs. Deterministic, from the files alone.
+  1. detect() (eaos/live/setup_detect.py): the app's folder, its package manager, how it installs, starts, builds
+     and is checked, the environment names it reads (from .env.example files and the code; never from a real .env),
+     and the database it needs. Deterministic, from the files alone.
   2. verify(): the draft is run for real in the sandbox (the project started, its first page opened in a
      browser that reaches 127.0.0.1 only). The page answers, or it does not; it asks for a sign-in, or not.
   3. assist(): when the page does not answer, or asks for a sign-in, the person's own AI assistant reads the
@@ -23,289 +23,18 @@ setup() is the flow `setup` of the live map (eaos/core/progress/flow.py): its st
 import json
 import os
 import re
-import secrets
-import socket
 import subprocess
 from datetime import date, timedelta
 from pathlib import Path
 
 from ..core import progress
-from .assist import ENV_EXAMPLES, assist_messages, read_json
+from .assist import assist_messages, read_json
 from .lock_specs import LEAVES
 from ..core.progress.flow import OPTIONAL, Stage
-from .run_profile import DANGER, apply, safe, write_profile
+from .run_profile import apply, safe, write_profile
+from .setup_detect import SECRETISH, _unknown_app, detect, free_port, production_commands, script_is_safe  # noqa: F401  (detect's names others read here)
 
 ATTEMPTS = 5
-APP_FOLDERS = ('.', 'app', 'web', 'client', 'frontend', 'apps/web', 'apps/app', 'apps/frontend', 'packages/web')
-LOCKFILES = (('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'), ('bun.lockb', 'bun'), ('bun.lock', 'bun'), ('package-lock.json', 'npm'))
-DATABASES = {
-    'postgres': ('pg', 'postgres', 'pg-promise', '@neondatabase/serverless', '@vercel/postgres', 'postgresql'),
-    'sqlite': ('better-sqlite3', 'sqlite3', 'sqlite', '@libsql/client'),
-    'mysql': ('mysql', 'mysql2'),
-    'mongodb': ('mongodb', 'mongoose'),
-    'supabase': ('@supabase/supabase-js', '@supabase/ssr', '@supabase/auth-helpers-nextjs'),
-}
-ENV_IN_CODE = re.compile(r'(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]{2,})|process\.env\[[\'"]([A-Z][A-Z0-9_]{2,})[\'"]\]')
-SECRETISH = re.compile(r'(SECRET|TOKEN|KEY|PASSWORD|PASS|SALT|PRIVATE|CREDENTIAL)', re.I)
-URLISH = re.compile(r'(URL|URI|HOST|ENDPOINT|DSN|ORIGIN|DOMAIN)$', re.I)
-MAIL_NAMES = re.compile(r'^(SMTP|MAIL|EMAIL)_?(HOST|SERVER|URL|PORT)$')     # where the app sends its mail: the run's Mailpit
-DB_NAMES = re.compile(r'^(DATABASE_URL|POSTGRES_URL|POSTGRES_PRISMA_URL|POSTGRES_URL_NON_POOLING|DIRECT_URL|PG_?URL|DB_URL|NEON_DATABASE_URL)$')
-
-
-def free_port():
-    with socket.socket() as probe:
-        probe.bind(('127.0.0.1', 0))
-        return probe.getsockname()[1]
-
-
-# ---------------------------------------------------------------- 1. detect
-
-def app_folder(project):
-    """The folder holding the app's package.json: the first conventional one with a dev or start script."""
-    project = Path(project)
-    for folder in APP_FOLDERS:
-        scripts = read_json(project / folder / 'package.json').get('scripts') or {}
-        if 'dev' in scripts or 'start' in scripts: return folder
-    for path in sorted(project.glob('*/package.json')) + sorted(project.glob('*/*/package.json')):
-        if 'node_modules' in path.parts: continue
-        scripts = read_json(path).get('scripts') or {}
-        if 'dev' in scripts or 'start' in scripts: return path.parent.relative_to(project).as_posix()
-    return None
-
-
-def package_manager(project, folder):
-    for base in (Path(project) / folder, Path(project)):
-        for name, manager in LOCKFILES:
-            if (base / name).is_file(): return manager, name
-    return 'npm', None
-
-
-def runner(manager):
-    """How to call a package manager here: itself, or through corepack (shipped with Node) when pnpm or yarn is
-    not installed, so a project on pnpm runs on a computer that never installed pnpm."""
-    import shutil
-    if manager in ('pnpm', 'yarn') and not shutil.which(manager) and shutil.which('corepack'): return ['corepack', manager]
-    return [manager]
-
-
-def install_argv(manager, lockfile):
-    if manager == 'npm': return ['npm', 'ci', '--no-audit', '--no-fund'] if lockfile else ['npm', 'install', '--no-audit', '--no-fund']
-    return runner(manager) + ['install', '--frozen-lockfile']
-
-
-def run_script(manager, name, *extra):
-    base = ['npm', 'run', name] if manager == 'npm' else runner(manager) + ['run', name]
-    return base + (['--', *extra] if extra else [])
-
-
-def script_is_safe(scripts, name, seen=None):
-    """A package.json script runs only when neither it nor any script it calls deploys or reaches production."""
-    seen = seen or set()
-    if name in seen: return True
-    seen.add(name)
-    body = scripts.get(name)
-    if body is None or DANGER.search(name) or DANGER.search(body): return False
-    for called in re.findall(r'(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:.-]+)', body):
-        if called in scripts and not script_is_safe(scripts, called, seen): return False
-    return True
-
-
-def dependencies(package):
-    return {**(package.get('dependencies') or {}), **(package.get('devDependencies') or {})}
-
-
-def framework(package):
-    deps = dependencies(package)
-    for name in ('next', 'nuxt', 'astro', '@remix-run/dev', '@sveltejs/kit', 'vite', 'react-scripts'):
-        if name in deps: return name
-    return None
-
-
-def dev_command(manager, package, port):
-    """How the app starts for the lock: its framework's dev server on 127.0.0.1:<port>, without file watchers."""
-    scripts, kind = package.get('scripts') or {}, framework(package)
-    port = str(port)
-    if kind == 'next': return ['npx', 'next', 'dev', '-p', port, '-H', '127.0.0.1'], {}
-    if kind in ('vite', '@sveltejs/kit', '@remix-run/dev'):
-        return ['npx', 'vite', '--port', port, '--host', '127.0.0.1', '--strictPort'], {}
-    if kind == 'astro': return ['npx', 'astro', 'dev', '--port', port, '--host', '127.0.0.1'], {}
-    if kind == 'nuxt': return ['npx', 'nuxt', 'dev', '--port', port, '--host', '127.0.0.1'], {}
-    if kind == 'react-scripts': return run_script(manager, 'start'), {'BROWSER': 'none', 'HOST': '127.0.0.1', 'PORT': port}
-    for name in ('dev', 'start'):      # PORT: what a plain server reads, named in no .env (the golden trial's app never answered)
-        if name in scripts and script_is_safe(scripts, name): return run_script(manager, name), {'PORT': port}
-    return None, {}
-
-
-def production_commands(manager, package, port):
-    """(build, start) for the load baseline: the built app, never the dev server; an app with no build step (a plain Node
-    server) is its own production, started as it starts ([] to build); (None, None) if unclear."""
-    scripts, kind = package.get('scripts') or {}, framework(package)
-    build = [run_script(manager, 'build')] if 'build' in scripts and script_is_safe(scripts, 'build') else []
-    port = str(port)
-    if kind == 'next': return (build, ['npx', 'next', 'start', '-p', port, '-H', '127.0.0.1']) if build else (None, None)
-    if 'start' in scripts and script_is_safe(scripts, 'start') and not re.search(r'\b(vite|next dev|nodemon|--watch)\b', scripts['start']):
-        return build, run_script(manager, 'start')
-    if kind in ('vite', '@sveltejs/kit') and build: return build, ['npx', 'vite', 'preview', '--port', port, '--host', '127.0.0.1', '--strictPort']
-    return None, None
-
-
-def checks(manager, package):
-    """The project's own checks: its typecheck, lint and test scripts (npm's placeholder test is not a test)."""
-    scripts, found = package.get('scripts') or {}, []
-    for names in (('typecheck', 'type-check', 'tsc', 'check-types', 'types'), ('lint',), ('test', 'test:unit')):
-        name = next((n for n in names if n in scripts and script_is_safe(scripts, n)), None)
-        if name and 'no test specified' not in scripts[name] and not re.search(r'\b(playwright|cypress)\b', scripts[name]):
-            found.append(run_script(manager, name))
-    return found
-
-
-def environment_names(project, folder):
-    """{name: example value or ''} from the example env files and the code. A real .env is never read."""
-    names = {}
-    for base in dict.fromkeys((Path(project) / folder, Path(project))):
-        for example in ENV_EXAMPLES:
-            path = base / example
-            if not path.is_file(): continue
-            for line in path.read_text(encoding='utf-8', errors='replace').splitlines():
-                match = re.match(r'\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*(.*)$', line)
-                if match: names.setdefault(match[1], match[2].strip().strip('"\''))
-    code = Path(project) / folder
-    for path in [p for pattern in ('src/**/*', 'server/**/*', 'app/**/*', 'lib/**/*', 'pages/**/*', '*.config.*')
-                 for p in code.glob(pattern)][:4000]:
-        if path.suffix not in ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte') or 'node_modules' in path.parts: continue
-        for match in ENV_IN_CODE.finditer(path.read_text(encoding='utf-8', errors='replace')):
-            names.setdefault(match[1] or match[2], '')
-    return names
-
-
-def _declarations(project, folder):
-    """The text of the example env files, the code and the config files environment_names reads."""
-    for base in dict.fromkeys((Path(project) / folder, Path(project))):
-        for example in ENV_EXAMPLES:
-            if (base / example).is_file(): yield base / example
-    code = Path(project) / folder
-    for path in [p for pattern in ('src/**/*', 'server/**/*', 'app/**/*', 'lib/**/*', 'pages/**/*', 'public/*', '*.config.*')
-                 for p in code.glob(pattern)][:4000]:
-        if path.suffix in ('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte') and 'node_modules' not in path.parts \
-                and path.is_file():
-            yield path
-
-
-def report_values(project, folder, names, report):
-    """{name: folder in the report} for each name the project documents as a report's folder: a line
-    `STUDIO_DATA=/path/to/report/studio` (an app whose dev server reads its data from a folder). The run points it
-    at the report of this check, when that folder exists, so the app's screens show real data, not an empty state."""
-    if not report or not names: return {}
-    found = {}
-    for path in _declarations(project, folder):
-        text = path.read_text(encoding='utf-8', errors='replace')
-        for name in names:
-            match = re.search(rf'\b{re.escape(name)}\s*=\s*["\']?(?:\S*/)?report/([\w./-]*)', text)
-            if name not in found and match:
-                target = Path(report) / match[1].strip('/.')
-                if target.is_dir(): found[name] = str(target)
-    return found
-
-
-def database_kind(project, folder, package):
-    deps = dependencies(package)
-    for base in (Path(project) / folder, Path(project)):
-        schema = base / 'prisma/schema.prisma'
-        if schema.is_file():
-            provider = re.search(r'provider\s*=\s*"(\w+)"', schema.read_text(encoding='utf-8', errors='replace').split('datasource', 1)[-1])
-            if provider: return {'postgresql': 'postgres', 'sqlite': 'sqlite', 'mysql': 'mysql', 'mongodb': 'mongodb'}.get(provider[1], provider[1])
-    for kind in ('postgres', 'sqlite', 'mysql', 'mongodb', 'supabase'):
-        if any(name in deps for name in DATABASES[kind]): return kind
-    return None
-
-
-def environment_values(names, port, database):
-    """A value the run chooses for each name: the local database, the run's mail catcher, an address nobody answers, or
-    a fresh random secret. Example values that are plainly not secrets (true, 3000, info) are kept; nothing is the owner's."""
-    values, unset = {}, []
-    for name, example in sorted(names.items()):
-        if name in ('NODE_ENV',): continue
-        if name == 'PORT': values[name] = str(port)
-        elif name in ('HOST', 'HOSTNAME'): values[name] = '127.0.0.1'
-        elif DB_NAMES.match(name) and database == 'postgres': values[name] = '{database_url}'
-        elif MAIL_NAMES.match(name): values[name] = {'HOST': '127.0.0.1', 'PORT': '{mail_port}'}.get(name[-4:], 'smtp://127.0.0.1:{mail_port}')
-        elif SECRETISH.search(name): values[name] = secrets.token_urlsafe(32)
-        elif URLISH.search(name): values[name] = 'http://127.0.0.1:9'
-        elif example and re.fullmatch(r'(true|false|\d{1,6}|[a-z]{2,12}|[a-z-]{2,20})', example): values[name] = example
-        else: unset.append(name)
-    return values, unset
-
-
-def prepare_commands(manager, package, project, folder, database):
-    """Migrations for the run's empty database, when the project declares how it migrates."""
-    scripts, commands = package.get('scripts') or {}, []
-    if database == 'postgres' or database == 'sqlite':
-        if (Path(project) / folder / 'prisma/schema.prisma').is_file():
-            migrations = (Path(project) / folder / 'prisma/migrations').is_dir()
-            commands.append(['npx', 'prisma', 'migrate', 'deploy'] if migrations else ['npx', 'prisma', 'db', 'push', '--skip-generate'])
-        else:
-            name = next((n for n in ('db:migrate', 'migrate:latest', 'migrate', 'db:push') if n in scripts and script_is_safe(scripts, n)), None)
-            if name: commands.append(run_script(manager, name))
-    name = next((n for n in ('db:seed', 'seed') if n in scripts and script_is_safe(scripts, n)), None)
-    if name and database: commands.append(run_script(manager, name))
-    return commands
-
-
-def detect(project, report=None):
-    """{'profile': the draft run.json, 'facts': what was found, 'limitations': [...]} from the files alone. A value the
-    project documents as a folder of a report points at `report` (report_values)."""
-    project = Path(project)
-    folder = app_folder(project)
-    if folder is None: return _unknown_app()
-    package = read_json(project / folder / 'package.json')
-    manager, lockfile = package_manager(project, folder)
-    port = free_port()
-    start, start_env = dev_command(manager, package, port)
-    build, production = production_commands(manager, package, free_port())
-    database = database_kind(project, folder, package)
-    names = environment_names(project, folder)
-    env, unset = environment_values(names, port, database)
-    data = report_values(project, folder, unset, report)
-    env, unset = {**env, **data}, [name for name in unset if name not in data]
-    profile = {'schema_version': 1, 'app': folder, 'install': [install_argv(manager, lockfile)],
-               'start': start or ['true'], 'port': port, 'health': '/', 'start_timeout': 180,
-               'env': {'NODE_ENV': 'development', **start_env, **env},
-               'checks': checks(manager, package)}
-    prepare = prepare_commands(manager, package, project, folder, database)
-    if prepare: profile['prepare'] = prepare
-    if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
-    if production: profile['baseline'] = _production_profile(manager, lockfile, build, production, profile['env'], port)
-    return {'profile': profile, 'facts': {'folder': folder, 'manager': manager, 'framework': framework(package), 'database': database,
-                                          'env_names': sorted(names)}, 'limitations': _draft_limitations(start, database, unset)}
-
-
-def _draft_limitations(start, database, unset):
-    """What the draft run cannot do, from what detect() found."""
-    limitations = []
-    if start is None: limitations.append('no safe command starts the app (its dev and start scripts deploy, or there are none)')
-    if database in ('mysql', 'mongodb'): limitations.append(f'the app uses {database}; EAOS starts PostgreSQL and SQLite only, so pages that need data may be empty')
-    if database == 'supabase': limitations.append('the app talks to Supabase in the cloud; the run never reaches it, so pages that need data show their empty or error state')
-    if unset: limitations.append('no value was chosen for: ' + ', '.join(unset[:12]))
-    return limitations
-
-
-def _production_profile(manager, lockfile, build, production, env, port):
-    """run.json -> baseline: the built app, installed with its dev dependencies, on the port its start command names."""
-    install = install_argv(manager, lockfile)
-    return {'install': [install[:2] + ['--include=dev'] if manager == 'npm' else install], 'build': build, 'start': production,
-            'port': next((int(production[production.index(flag) + 1]) for flag in ('--port', '-p') if flag in production), port),
-            'env': {**{k: v for k, v in env.items() if k != 'NODE_ENV'}, 'NODE_ENV': 'production', 'PORT': str(port)}}
-
-
-def _unknown_app():
-    """An app EAOS does not know how to start by itself (no JavaScript web app: a Python one, say): a draft that starts
-    nothing, so the run's records never keep an earlier app's profile, and the assistant works out how to start it from
-    the project's own documentation (_attempts), with safe() as the judge of every command it proposes."""
-    profile = {'schema_version': 1, 'app': '.', 'install': [['true']], 'start': ['true'], 'port': free_port(), 'health': '/',
-               'start_timeout': 180, 'env': {}, 'checks': []}
-    return {'profile': profile, 'facts': {'folder': '.', 'manager': None, 'framework': None, 'database': None, 'env_names': [],
-                                          'reason': 'no package.json with a dev or start script: the assistant works out how to start it'},
-            'limitations': []}
 
 
 # ---------------------------------------------------------------- 2. verify
@@ -322,9 +51,13 @@ def routes(report, limit=4):
     checks. A server app's pages left out, the probe saw only its public first page and took an empty session for one."""
     plan = read_json(Path(report) / 'behavior-lock/plan.json') if report else {}
     paths = [s.split(' (')[0].removeprefix('GET ') for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []]
-    found = [s for s in paths if s.startswith('/') and s != '/' and not re.search(r'[:*$\[{]', s)
-             and not re.search(LEAVES, s, re.I) and not re.search(SIGN_IN_PAGE, s)]
-    return list(dict.fromkeys(found))[:limit]
+    return list(dict.fromkeys(s for s in paths if _openable(s)))[:limit]
+
+
+def _openable(path):
+    """Whether the probe may open a lock surface: a path of its own without parameters, that neither signs out nor in."""
+    return (path.startswith('/') and path != '/' and not re.search(r'[:*$\[{]', path)
+            and not re.search(LEAVES, path, re.I) and not re.search(SIGN_IN_PAGE, path))
 
 
 def stuck(page):
@@ -372,13 +105,18 @@ def probe(live, base, state, report, paths=None):
 def _failure(page, empty):
     """Why the page is no working app, '' when it is one. A page asking for a sign-in is the app working: the stage
     `session` signs in to it (eaos/live/test_users.py)."""
-    # a page asking for a sign-in or a token (401), or refusing this user (403), is the app answering
-    bad = [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') not in (401, 403)]
+    bad = _bad_answers(page)
     if stuck(page) and not signed_out(page):         # every screen sent to the sign-in is the app, signed out
         return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app: the seed '
                 'picks one and saves the browser state to EAOS_STORAGE_STATE. The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
     if bad: return f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}"
     return empty
+
+
+def _bad_answers(page):
+    """The first page and screens that did not answer: neither a page nor a sign-in asked."""
+    # a page asking for a sign-in or a token (401), or refusing this user (403), is the app answering
+    return [o for o in [page, *(page.get('others') or [])] if not 200 <= o.get('status', 0) < 400 and o.get('status') not in (401, 403)]
 
 
 def verify(project, runtime, attempt, report=None, mode='lock'):
@@ -399,8 +137,7 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         record['fixtures'] = dict(live.seed(base, state))
         record['seed_output'] = getattr(live, 'seed_output', '')
         page = record['page'] = probe(live, base, state, report)
-        names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
-        empty = '' if mode == 'baseline' else empty_state(page, [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV'])
+        empty = '' if mode == 'baseline' else empty_state(page, _unset(runtime, live))
         failure = _failure(page, empty)
         record['ok'] = not failure
         if failure: record['failure'] = failure
@@ -408,11 +145,22 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         record['ok'] = False
         record['failure'] = f'{type(problem).__name__}: {problem}'[-2500:]
     finally:
-        if not record.get('ok') and record.get('seed_output') and record.get('failure'):
-            record['failure'] += '\nThe seed script said:\n' + record['seed_output'][-1500:]
+        _with_seed(record)
         live.stop()
         live.record(f"setup/{'baseline-' if mode == 'baseline' else ''}attempt-{attempt}.json")
     return record
+
+
+def _unset(runtime, live):
+    """The environment names the app reads that the run gives no value."""
+    names = (read_json(runtime / 'setup/detected.json').get('facts') or {}).get('env_names') or []
+    return [n for n in names if n not in live.profile.get('env', {}) and n != 'NODE_ENV']
+
+
+def _with_seed(record):
+    """A failed attempt's failure followed by what the seed script said."""
+    if not record.get('ok') and record.get('seed_output') and record.get('failure'):
+        record['failure'] += '\nThe seed script said:\n' + record['seed_output'][-1500:]
 
 
 # ---------------------------------------------------------------- 3. assist (what the assistant is told: eaos/live/assist.py)
