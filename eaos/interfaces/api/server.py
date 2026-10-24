@@ -357,7 +357,7 @@ def serve_sign_in(project, say):
     action; it ends once the check no longer waits (the session saved, the person went on signed out, or the wait ended)."""
     state = project_state.load(project)
     template = launch.remote_template()
-    sock = bind(0, host='0.0.0.0' if template else security.LOOPBACK, routed=bool(template))
+    sock = bind(0, host=security.EVERY_NETWORK if template else security.LOOPBACK, routed=bool(template))
     port = sock.getsockname()[1]
     keys = Keys(port=port, remote_origin=template.format(port=port) if template else None)
     app = create_app(guided.report_of(state), project=state['project'], keys=keys, mounts=[])

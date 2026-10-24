@@ -24,7 +24,7 @@ def bind(port=0, host=security.LOOPBACK, remote_origin=None, routed=False):
     bound, launch.remote_template), on `port` or a free one."""
     if remote_origin:
         Locks(port, remote_origin=remote_origin)
-    if host != security.LOOPBACK and not (host == '0.0.0.0' and (remote_origin or routed)):
+    if host != security.LOOPBACK and not (host == security.EVERY_NETWORK and (remote_origin or routed)):
         raise ValueError(f'the Studio server listens on {security.LOOPBACK} only, not {host}')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -60,7 +60,7 @@ def _bind_kept(state, port, remote_origin, remote=False):
     """The socket of `port`, or the port the project's Studio used last when it is free, so its address stays the same;
     else a free one. `remote`: a server whose Remote address is made from its port (launch.remote_template), so it
     listens beyond loopback like one given --remote-origin."""
-    host = '0.0.0.0' if remote_origin or remote else security.LOOPBACK
+    host = security.EVERY_NETWORK if remote_origin or remote else security.LOOPBACK
     if not port and not remote_origin and launch.kept_port(state):
         try: return bind(launch.kept_port(state), host=host, routed=remote)
         except OSError: pass

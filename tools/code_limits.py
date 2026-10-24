@@ -25,8 +25,10 @@ BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.ExceptHandl
             ast.comprehension)
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 # Each kind of limit and its number; every kind but 'modules' is keyed by function.
-LIMITS = {'functions': MAX_COMPLEXITY, 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
-          'modules': MAX_LINES}
+# EAOS holds itself to the target laws since M3 (2026-10-24): complexity 10, modules of 400 lines. The laws it holds every
+# project to stay eaos/core/code_laws.py's.
+LIMITS = {'functions': min(MAX_COMPLEXITY, 10), 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
+          'modules': min(MAX_LINES, 400)}
 
 
 def complexity(function):
@@ -68,7 +70,7 @@ def measure():
     over = {kind: {} for kind in LIMITS}
     for path in modules():
         text, rel = path.read_text(encoding='utf-8'), path.relative_to(ROOT).as_posix()
-        if (lines := len(text.splitlines())) > MAX_LINES: over['modules'][rel] = lines
+        if (lines := len(text.splitlines())) > LIMITS['modules']: over['modules'][rel] = lines
         for name, node in functions(ast.parse(text, rel)):
             sizes = {'functions': complexity(node), 'function_lines': node.end_lineno - node.lineno + 1,
                      'parameters': parameters(node)}
@@ -148,8 +150,8 @@ if __name__ == '__main__':
     if '--tighten' in sys.argv:
         if found := breaches(current, load()): sys.exit('cannot tighten, over the limits:\n' + '\n'.join(found))
         write(current)
-    print(f"{len(current['functions'])} functions over complexity {MAX_COMPLEXITY}, "
+    print(f"{len(current['functions'])} functions over complexity {LIMITS['functions']}, "
           f"{len(current['function_lines'])} over {MAX_FUNCTION_LINES} lines, "
           f"{len(current['parameters'])} over {MAX_PARAMETERS} parameters, "
-          f"{len(current['modules'])} modules over {MAX_LINES} lines, {len(duplicates())} duplicated functions, "
+          f"{len(current['modules'])} modules over {LIMITS['modules']} lines, {len(duplicates())} duplicated functions, "
           f"{len(leftovers())} leftovers")

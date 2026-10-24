@@ -19,8 +19,11 @@ import time
 from urllib.parse import parse_qs, urlsplit
 
 LOOPBACK = '127.0.0.1'
+# Every network of this computer: the Studio binds it only for an exact, authenticated Remote origin (api/listening.py
+# bind refuses it otherwise).
+EVERY_NETWORK = '0.0.0.0'  # nosec B104
 # The names of this computer an address may give: compared, never bound.
-THIS_COMPUTER = ('localhost', LOOPBACK, '::1', '0.0.0.0')  # nosec B104
+THIS_COMPUTER = ('localhost', LOOPBACK, '::1', EVERY_NETWORK)
 HOSTS = ('127.0.0.1', 'localhost')
 TOKEN_HEADER, CSRF_HEADER = 'x-eaos-token', 'x-eaos-csrf'
 READS = frozenset({'GET', 'HEAD', 'OPTIONS'})

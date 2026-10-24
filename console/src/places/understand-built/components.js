@@ -19,6 +19,13 @@ const compLink = (id, q, extra) => href('/understand/components/' + enc(id), Obj
 /** Unseen work a component holds (hidden.json components: the items of each group under it). */
 const unseen = id => { const h = data.section('hidden'); const c = h && h.components && h.components[id]; return c ? Object.values(c).reduce((s, n) => s + n, 0) : 0; };
 
+/** The components linked to the focused one, either way. */
+function neighbours(edges, focusId) {
+  const nb = new Set();
+  if (focusId) edges.forEach(l => { if (l.from === focusId) nb.add(l.to); if (l.to === focusId) nb.add(l.from); });
+  return nb;
+}
+
 function viewBox(view) {
   const [x, y, w, h] = view.bounds || [0, 0, 1000, 900];
   return `${x - 20} ${y - 20} ${w + 40} ${h + 40}`;
@@ -34,8 +41,7 @@ function mapSVG(q, focusId, still) {
   const s = sys(), mode = modeOf(q);
   if (mode === 'target') return targetSVG(q, focusId, still);
   const view = s.current, comps = view.nodes;
-  const nb = new Set();
-  if (focusId) view.edges.forEach(l => { if (l.from === focusId) nb.add(l.to); if (l.to === focusId) nb.add(l.from); });
+  const nb = neighbours(view.edges, focusId);
   const found = q.q ? new Set(comps.filter(c => matches(c.id, q.q)).map(c => c.id)) : null;
   const faded = c => (focusId && c.id !== focusId && !nb.has(c.id)) || (found && !found.has(c.id)) || (mode === 'change' && q.only && opOf(c.op) !== q.only);
   const heavy = new Set(view.edges.slice().sort((a, b) => b.imports - a.imports).slice(0, REST));
@@ -60,8 +66,7 @@ function mapSVG(q, focusId, still) {
 }
 function targetSVG(q, focusId, still) {
   const view = sys().target;
-  const nb = new Set();
-  if (focusId) view.edges.forEach(l => { if (l.from === focusId) nb.add(l.to); if (l.to === focusId) nb.add(l.from); });
+  const nb = neighbours(view.edges, focusId);
   const links = view.edges.map(l => {
     const on = focusId && (l.from === focusId || l.to === focusId);
     return `<path class="un-map__link ${on ? 'is-on' : ''} ${focusId && !on ? 'is-off' : ''}" d="${l.d}" stroke-width="${(l.width || 1).toFixed(1)}"/>${on && l.mid ? `<text class="un-map__lcount" x="${l.mid[0]}" y="${l.mid[1] - 4}">${num(l.imports)}</text>` : ''}`;

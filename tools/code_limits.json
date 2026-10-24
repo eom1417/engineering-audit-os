@@ -2,35 +2,12 @@
  "function_lines": {
   "eaos/interfaces/cli.py::governance_commands": 55,
   "eaos/interfaces/cli.py::main": 68,
-  "eaos/interfaces/mcp_server.py::_build_tools": 78,
-  "eaos/interfaces/mcp_server.py::_check_tools": 108,
-  "eaos/interfaces/mcp_server.py::_fix_tools": 190,
-  "eaos/journeys/agent_tools/fixing.py::_fix_start_job": 57
+  "eaos/interfaces/mcp_build.py::_build_tools": 78,
+  "eaos/interfaces/mcp_fix.py::_fix_tools": 190,
+  "eaos/interfaces/mcp_server.py::_check_tools": 108
  },
- "functions": {
-  "eaos/interfaces/menu.py::_check_order": 17,
-  "eaos/interfaces/studio/__init__.py::Actions.decide": 18,
-  "eaos/interfaces/studio/branches/deleting.py::Deleting._cleanup_plan": 24,
-  "eaos/interfaces/studio/branches/deleting.py::Deleting.preview_delete": 16,
-  "eaos/interfaces/studio/branches/inventory.py::Inventory.detail": 18,
-  "eaos/interfaces/studio/branches/merging.py::Merging.preview_merge": 20,
-  "eaos/interfaces/studio/branches/merging.py::Merging.select": 18,
-  "eaos/interfaces/studio/branches/state_view.py::StateView.ownership": 22,
-  "eaos/interfaces/studio/branches/state_view.py::StateView.work_branch": 22,
-  "eaos/interfaces/studio/runs.py::Manager._auto_accept": 24,
-  "eaos/interfaces/studio/runs.py::Manager._watch_handoff": 20,
-  "eaos/journeys/agent_tools/checking.py::overview": 17,
-  "eaos/journeys/agent_tools/evidence.py::tools_check": 18,
-  "eaos/journeys/agent_tools/fixing.py::_apply": 16,
-  "eaos/journeys/agent_tools/fixing.py::_fix_start_job": 23,
-  "eaos/journeys/agent_tools/running.py::_run_job": 17,
-  "eaos/journeys/agent_tools/where.py::status": 29,
-  "eaos/journeys/guided/batches.py::merge": 16,
-  "eaos/journeys/handover.py::refresh": 16
- },
- "modules": {
-  "eaos/interfaces/studio/runs.py": 720
- },
+ "functions": {},
+ "modules": {},
  "parameters": {
   "eaos/ai/headless.py::ask": 7,
   "eaos/ai/ideal.py::_check_view": 6,
@@ -93,6 +70,8 @@
   "eaos/facts/source.py::Source.__init__": 6,
   "eaos/facts/store.py::write_set": 10,
   "eaos/interfaces/govern.py::check_inputs": 7,
+  "eaos/interfaces/mcp_fix.py::_fix_tools.findings": 7,
+  "eaos/interfaces/mcp_fix.py::_fix_tools.fix_start": 8,
   "eaos/interfaces/mcp_govern.py::act_op": 9,
   "eaos/interfaces/mcp_govern.py::branch_op": 7,
   "eaos/interfaces/mcp_govern.py::register.act": 9,
@@ -102,8 +81,6 @@
   "eaos/interfaces/mcp_govern.py::runs_op": 8,
   "eaos/interfaces/mcp_govern.py::waiting_op": 6,
   "eaos/interfaces/mcp_server.py::_check_tools.audit": 16,
-  "eaos/interfaces/mcp_server.py::_fix_tools.findings": 7,
-  "eaos/interfaces/mcp_server.py::_fix_tools.fix_start": 8,
   "eaos/interfaces/studio/branches/state_view.py::StateView._fix_delivery": 7,
   "eaos/interfaces/studio/chat.py::_turn": 7,
   "eaos/interfaces/studio/runs.py::Manager.__init__": 7,

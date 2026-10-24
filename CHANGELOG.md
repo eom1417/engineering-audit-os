@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.0.75 (2026-10-24)
+
+M3, the target code layout. EAOS's code had grown where a change was hard to make safely: 593 functions above
+complexity 10, 43 modules above 400 lines, state read four ways, two copies of the request guard, and its check of
+itself made 231 cards, 15 of them security, while 96 of the Studio's modules were called dead. Now:
+- **Layers and one source of truth** (M3.1-M3.3, M3.5): ten layers held by one import contract; one project state
+  (`core/project_state.py`); one request guard, one check, one branch policy; one catalog of the words that name
+  EAOS's concepts (`eaos/data/words.json`).
+- **The target laws, no exception** (M3.4 and the target): every module of EAOS under 400 lines, every function under
+  complexity 10; the outputs compared byte for byte before and after on real reports. `tools/code_limits.py` holds
+  EAOS to 400 / 10; the laws EAOS holds every project to stay 600 / 15.
+- **Security** (the self-check's 15 cards): every web read over http(s) only (`core/web.py`: urllib also opens
+  `file://`); test reports read with `defusedxml` (a new dependency); no SQL built from a name (psql quotes it);
+  the database binaries' copy closed to other accounts; sha256 ids; every bind to all networks through one constant
+  that the Remote guard allows.
+- **Dead code and duplication**: a build script's bundler entries and loads are reached (`facts/bundled.py`: 96 Studio
+  modules were said dead); the truly dead removed (two files, five names, `tools/contracts.py` broken since 0.0.7);
+  the engines' shared start (the tool's version read once: it took 111 s on a loaded host), the Studio's selection
+  bar, answers, estimate and neighbours written once.
+- **Cards and the Fix-run page** (from the owner's reports): a nameless target (`<anonymous>`) is judged in its own
+  file and a moved function only where it was not (TASK-131); an edit keeps a Windows file's line ends and a text
+  found 0 times says to read the lines again (TASK-146); the run page counts the server's progress across retries,
+  clears a stopped attempt's words, follows a retried run again, and polls a light list of runs with ETag/304;
+  `eaos problems` says each card in the person's language.
+
 ## 0.0.74 (2026-10-24)
 
 M2, fewer and sharper engines: on EAOS's own check one semgrep rule wrote 1,554 of its 1,673 findings and none was a
