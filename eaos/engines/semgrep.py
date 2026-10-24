@@ -41,8 +41,7 @@ def capabilities():
             Capability('secret', 'generic.secrets.*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def official_checkout():
@@ -91,8 +90,8 @@ def normalise(path, target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     workdir = tool.folder(workdir, NAME)
     used, commit = assemble(workdir)
     output = workdir / 'semgrep.sarif'

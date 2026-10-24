@@ -41,8 +41,7 @@ def capabilities():
     return [Capability('vulnerability', '*/security/*'), Capability('secret', '*/credentials*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def license_of(target):
@@ -84,8 +83,8 @@ def allowed(target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     permitted, why = allowed(target)
     if not permitted: return Report(NAME, found, PINNED, NOT_APPLICABLE, reason=why)
     workdir = tool.folder(workdir, NAME, fresh=True)

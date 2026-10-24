@@ -25,8 +25,7 @@ def capabilities():
     return [Capability('sql_quality', 'AM*,ST*,CV*,RF01,RF02,RF04,PRS')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def style(code):
@@ -40,8 +39,8 @@ def sql_files(target, exclude=()):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     target = Path(target).resolve()
     files = sql_files(target, exclude)
     output = Path(workdir) / NAME / 'sqlfluff.json'

@@ -25,8 +25,7 @@ def capabilities():
     return []
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 REQUIREMENT = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*([^;#]*)')
@@ -71,8 +70,8 @@ def complete(sbom, target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     workdir = tool.folder(workdir, NAME)
     sbom = workdir / 'sbom.cdx.json'
     command = [which(BINARY), 'scan', f'dir:{target}', '-o', f'cyclonedx-json={sbom}', '-q']

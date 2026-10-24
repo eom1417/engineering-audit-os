@@ -20,8 +20,7 @@ def capabilities():
     return [Capability('misconfiguration', 'CKV*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def _command(target, workdir, exclude):
@@ -40,8 +39,8 @@ def _frameworks(summary):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     workdir = tool.folder(workdir, NAME, fresh=True)
     # Checkov exits 1 when a check fails; that is a result, not an error.
     code, _, error, seconds = run(_command(target, workdir, exclude), cwd=workdir)

@@ -50,8 +50,7 @@ def capabilities():
             + [Capability('dataflow', f'reforge.dataflow.{rule}') for rule in FLOW_RULES])
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def _configuration(exclude):

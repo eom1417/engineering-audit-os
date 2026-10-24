@@ -23,13 +23,12 @@ def capabilities():
     return [Capability('vulnerability', 'B*'), Capability('secret', 'B10[5-7]')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     workdir = tool.folder(workdir, NAME, fresh=True)
     output = workdir / 'bandit.sarif'
     skipped = ','.join(f"/{name.strip('/')}/" for name in EXCLUDED + tuple(exclude) if name.strip('/'))

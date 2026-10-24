@@ -40,8 +40,7 @@ def capabilities():
     return [Capability(kind, rule, granularity=SYMBOL) for rule, kind in rules() if kind in KINDS]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def records(lines):
@@ -70,8 +69,8 @@ def normalise(rows, found):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     target = Path(target).resolve()
     output = Path(workdir) / NAME / 'ast-grep.jsonl'
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -27,8 +27,7 @@ def capabilities():
     return [Capability('vulnerability', 'osv.vulnerable_dependency', method=DETERMINISTIC)]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def _key(text):
@@ -138,8 +137,8 @@ def _scan(target, workdir):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     target = Path(target)
     code, error, seconds, output, sbom = _scan(target, Path(workdir))
     # 0: nothing vulnerable; 1: vulnerabilities found; 128: no package source at all. Anything else failed.

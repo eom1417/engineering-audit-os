@@ -24,8 +24,7 @@ def capabilities():
     return [Capability('complexity', 'lizard.ccn', granularity=SYMBOL)]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def rows(text):
@@ -55,8 +54,8 @@ def normalise(parsed, found):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     target = Path(target).resolve()
     output = Path(workdir) / NAME / 'lizard.csv'
     output.parent.mkdir(parents=True, exist_ok=True)

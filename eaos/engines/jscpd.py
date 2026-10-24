@@ -19,8 +19,7 @@ def capabilities():
     return [Capability('literal_duplication', 'jscpd.exact_clone', granularity=FILE)]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def analyze(target, workdir, exclude=(), formats=None):

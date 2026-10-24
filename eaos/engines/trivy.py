@@ -28,8 +28,7 @@ def capabilities():
     return [Capability('secret', '<secret rule>'), Capability('misconfiguration', 'AVD-*')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def redact(path):
@@ -68,8 +67,8 @@ def _command(output, exclude):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
     code, _, error, seconds = run(_command(output, exclude) + [str(target)])

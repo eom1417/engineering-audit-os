@@ -21,13 +21,12 @@ def capabilities():
     return [Capability('api_contract', 'oasdiff.breaking')]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     target = Path(target).resolve()
     workdir = tool.folder(workdir, NAME)
     findings, compared, seconds = [], {}, 0.0

@@ -56,19 +56,25 @@ def excluded(path, patterns):
 
 
 def declined(name, binary, target, probe=None):
-    """A Report when the tool cannot or need not run here, else None. Checked in that order: a tool that is
-    not installed is reported as absent even where it would not apply, so an install gap is never hidden.
-    `probe` is the adapter's own version reader, for a tool whose version `version(binary)` cannot read."""
+    """A Report when the tool cannot or need not run here, else None (`started`)."""
+    return started(name, binary, target, probe)[0]
+
+
+def started(name, binary, target, probe=None):
+    """(a Report when the tool cannot or need not run here, else None; the version found), the version read once.
+    Checked in that order: a tool that is not installed is reported as absent even where it would not apply, so an
+    install gap is never hidden. `probe` is the adapter's own version reader, for a tool whose version
+    `version(binary)` cannot read."""
     found = probe() if probe else version(binary)
     if found is None:
         return Report(name, None, pinned(name), UNAVAILABLE,
-                      reason=f'{binary} is not installed: python -m eaos tools install --only {name}')
+                      reason=f'{binary} is not installed: python -m eaos tools install --only {name}'), None
     from ..core.toolchain import applies
     applicable, rule = applies(name, target)
     if not applicable:
         return Report(name, found, pinned(name), NOT_APPLICABLE,
-                      reason=f'nothing here for {name} to read (it applies to: {rule})')
-    return None
+                      reason=f'nothing here for {name} to read (it applies to: {rule})'), found
+    return None, found
 
 
 def folder(workdir, name, fresh=False):

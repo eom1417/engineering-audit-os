@@ -33,8 +33,7 @@ def capabilities():
             Capability('unused_dependency', 'knip.dependencies', granularity=FILE)]
 
 
-def version():
-    return tool.version(BINARY)
+def version(): return tool.version(BINARY)
 
 
 def plugins(binary):
@@ -77,8 +76,8 @@ def _issue_findings(issue, found):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    if declined := tool.declined(NAME, BINARY, target): return declined
-    found = version()
+    declined, found = tool.started(NAME, BINARY, target)
+    if declined: return declined
     target = Path(target).resolve()
     folder = Path(workdir) / NAME
     folder.mkdir(parents=True, exist_ok=True)
