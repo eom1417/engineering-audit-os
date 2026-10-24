@@ -102,8 +102,8 @@ class ToolTests(Home):
         self.assertNotIn('notes_language', json.loads(mcp_server._answer(status)(str(self.project))), 'outside a Studio run, nothing')
 
     def test_the_assistant_way_never_calls_a_model_itself(self):
-        source = (ROOT / 'eaos/journeys/agent_tools.py').read_text()
-        for call in ('from .assistants import provider', 'provider()', '.complete('):
+        source = ''.join(path.read_text() for path in sorted((ROOT / 'eaos/journeys/agent_tools').glob('*.py')))
+        for call in ('import provider', 'provider()', '.complete('):
             self.assertNotIn(call, source)
 
     def test_nothing_runs_or_is_taken_in_before_the_person_agrees_and_an_unsafe_proposal_is_refused(self):
@@ -240,7 +240,7 @@ class ToolTests(Home):
             older = agent_tools.status(project)
             self.assertEqual((older['next']['tool'], older['older_check']), ('run_setup', True),
                              'a report by an older EAOS stands: a new check runs only when the person asks')
-            with mock.patch.object(agent_tools, 'overview', return_value={}), mock.patch.object(jobs, 'start') as started:
+            with mock.patch.object(agent_tools.checking, 'overview', return_value={}), mock.patch.object(jobs, 'start') as started:
                 self.assertTrue(agent_tools.audit(project)['already_checked'])
             started.assert_not_called()
             state['scanned_with'] = agent_tools.tool_digest(); guided.save(state)

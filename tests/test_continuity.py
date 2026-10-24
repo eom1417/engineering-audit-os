@@ -247,7 +247,7 @@ class Continuity(Base):
         state['consent'] = {'run_and_fix': True}
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+        with mock.patch.object(agent_tools.fixing, '_start', return_value={'status': 'started'}) as started:
             self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001'], 'deliver_as': 'eaos/master/wave-1', 'merge_into': 'master',
                                                          'assistants': 1})

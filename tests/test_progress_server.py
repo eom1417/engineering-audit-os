@@ -219,13 +219,13 @@ class Watch(Checked):
             patcher = mock.patch.object(target, value, side_effect=self.fake(value))
             patcher.start()
             self.addCleanup(patcher.stop)
-        self.studio = mock.patch.object(agent_tools, 'open_studio', return_value=self.opened)
+        self.studio = mock.patch.object(agent_tools.project, 'open_studio', return_value=self.opened)
         self.open = self.studio.start()
         self.addCleanup(self.studio.stop)
         ready = mock.patch.object(toolchain, 'ready', return_value=True)
         ready.start()
         self.addCleanup(ready.stop)
-        answering = mock.patch.object(agent_tools, '_assistant_not_ready', return_value=None)   # the assistant answers
+        answering = mock.patch.object(agent_tools.checking, '_assistant_not_ready', return_value=None)   # the assistant answers
         answering.start()
         self.addCleanup(answering.stop)
 

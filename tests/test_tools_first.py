@@ -66,7 +66,7 @@ class Entry(Project):
     def test_the_assistant_opens_preparing_the_tools_and_a_failed_tool_stops_the_check_unless_chosen(self):
         opened = {'studio': 'http://127.0.0.1:9/#/tools', 'opened_in_browser': True}
         with mock.patch.object(toolchain, 'ready', return_value=False), \
-                mock.patch.object(agent_tools, 'open_studio', return_value=opened) as open_studio, \
+                mock.patch.object(agent_tools.project, 'open_studio', return_value=opened) as open_studio, \
                 mock.patch.object(jobs, 'start', return_value='audit-1') as start, \
                 mock.patch.object(jobs, 'wait', return_value={'status': 'running', 'progress': {}, 'started': 'now'}):
             answer = agent_tools.audit(str(self.project), fresh=True, without_tools=True)

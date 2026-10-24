@@ -192,13 +192,13 @@ class Consent(unittest.TestCase):
         self.assertEqual(provider.config['assistant'], 'claude')
         state['questions'][-1]['answer'] = False
         self.assertEqual(guided.check_provider(state).code, 'ai_declined')
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}), self.probe(True):
+        with mock.patch.object(agent_tools.checking, '_start', return_value={'status': 'started'}), self.probe(True):
             agent_tools.audit(str(self.project), use_assistant=True)
         with mock.patch('eaos.journeys.check.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
                 mock.patch.object(guided, 'tools_for_check', return_value={}), self.probe(True):
             agent_tools._audit_job(str(self.project), {}, None)
         self.assertTrue(check.call_args.kwargs['provider'])
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}):
+        with mock.patch.object(agent_tools.checking, '_start', return_value={'status': 'started'}):
             agent_tools.audit(str(self.project), use_assistant=False)
         self.assertEqual(guided.check_provider(project_state.load(self.project)).code, 'ai_declined')
 
@@ -248,7 +248,7 @@ class Consent(unittest.TestCase):
                 self.assertTrue(guided.agree_to_assistant(state, yes=True), '--yes: the check starts without AI, and says why')
 
     def test_the_mcp_audit_never_starts_with_an_assistant_that_is_not_ready_but_may_go_without_ai(self):
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_sign_in_expired'):
+        with mock.patch.object(agent_tools.checking, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_sign_in_expired'):
             self.assertEqual(agent_tools.audit(str(self.project))['status'], 'assistant_not_ready', 'on by default, so never silently off')
             start.assert_not_called()
             self.assertEqual(agent_tools.audit(str(self.project), without_ai=True)['status'], 'started')
@@ -260,13 +260,13 @@ class Consent(unittest.TestCase):
         self.assertEqual(check.call_args.kwargs['provider'].code, 'ai_skipped')
         from eaos.ai.readiness import words
         self.assertTrue(words('ai_skipped'))
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
+        with mock.patch.object(agent_tools.checking, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
             answer = agent_tools.audit(str(self.project), use_assistant=True, assistant='claude')
         start.assert_not_called()
         self.assertEqual((answer['status'], answer['assistant']['code']), ('assistant_not_ready', 'claude_not_signed_in'))
         self.assertIn('Run `claude` once', answer['what_now'])
         self.assertIn('use_assistant=false', answer['what_now'])
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
+        with mock.patch.object(agent_tools.checking, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
             self.assertEqual(agent_tools.audit(str(self.project), use_assistant=False)['status'], 'started')
 
     def test_the_studio_the_assistant_check_and_the_doctor_show_each_assistant_and_ask_instead_of_saying_done(self):

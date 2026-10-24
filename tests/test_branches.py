@@ -40,7 +40,7 @@ class Branches(unittest.TestCase):
         env = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'Codex'})
         env.start()
         self.addCleanup(env.stop)
-        quick = mock.patch.object(agent_tools, 'ANSWER_SECONDS', 0)
+        quick = mock.patch.object(agent_tools.where, 'ANSWER_SECONDS', 0)
         quick.start()
         self.addCleanup(quick.stop)
         self.project = p = Path(self.tmp.name) / 'shop'
@@ -95,7 +95,7 @@ class Branches(unittest.TestCase):
         self.assertEqual((status['status'], status['next']['tool'], status['recommended']), ('needs_branch', 'choose_branch', 'develop'))
         self.assertEqual(agent_tools.audit(str(self.project))['status'], 'needs_branch')
         self.assertEqual(agent_tools.choose_branch('develop', str(self.project))['status'], 'needs_the_person', 'never chosen for them')
-        with mock.patch.object(agent_tools, 'ANSWER_SECONDS', 30):
+        with mock.patch.object(agent_tools.where, 'ANSWER_SECONDS', 30):
             self.assertEqual(agent_tools.choose_branch('develop', str(self.project), person_said='develop')['status'], 'needs_the_person',
                              'an "answer" seconds after the question is nobody\'s')
         self.assertIsNone(project_state.load(self.project).get('branch'))
@@ -154,7 +154,7 @@ class Branches(unittest.TestCase):
         develop = git(self.project, 'rev-parse', 'develop')
         moved = agent_tools.fix_start(str(self.project), base='develop', base_commit=git(self.project, 'rev-parse', 'develop~1'))
         self.assertEqual((moved['status'], moved['now']), ('base_moved', develop))
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+        with mock.patch.object(agent_tools.fixing, '_start', return_value={'status': 'started'}) as started:
             agent_tools.fix_start(str(self.project), base='develop', base_commit=develop[:7], merge_into='develop')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001', 'TASK-002', 'TASK-003', 'TASK-004', 'TASK-005'],
                                                    'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'develop', 'assistants': 1})
@@ -207,7 +207,7 @@ class Branches(unittest.TestCase):
         self.ready_to_fix()
         first = self.batch('TASK-001')
         self.assertEqual(first['branch'], 'eaos/develop/wave-1')
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+        with mock.patch.object(agent_tools.fixing, '_start', return_value={'status': 'started'}) as started:
             agent_tools.fix_start(str(self.project), cards=['TASK-002'], deliver_as='eaos/develop/wave-1')
         self.assertEqual(started.call_args[0][2], {'cards': ['TASK-002'], 'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'main', 'assistants': 1},
                          'a waiting work branch is no refusal when the batch goes on it')
