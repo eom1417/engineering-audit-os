@@ -10,12 +10,19 @@ const HIDDEN = new Set(['progress', 'screenshot']);
 function onState(f, event) {
   const to = event.data.to;
   f.view.state = to;
-  if (to === 'running' || to === 'queued') f.view.error = null;
+  // a retry starts again: the last attempt's error and what was happening then are not what happens now
+  if (to === 'running' || to === 'queued') { f.view.error = null; f.view.now = null; }
   if (to !== 'waiting_for_person') f.view.question = null;
-  if (to === 'queued') { f.view.result = null; f.view.cards = {}; f.view.screens = []; }
+  // the cards tried stay: the server counts on from them after a retry (its progress events)
+  if (to === 'queued') { f.view.result = null; f.view.screens = []; }
 }
-// the batch now running: its before/after screens pair under it
-function onProgress(f, event) { f.batch = typeof event.data.batch === 'number' ? event.data.batch || null : null; }
+// the batch now running: its before/after screens pair under it; the server's own count (done of total), the one
+// count of the run, which survives a retry (a Fix run counts the cards its batch tried, whichever attempt tried them)
+function onProgress(f, event) {
+  const data = event.data;
+  f.batch = typeof data.batch === 'number' ? data.batch || null : null;
+  if (typeof data.done === 'number' && typeof data.total === 'number') f.view.progress = { done: data.done, total: data.total, stage: data.stage || null };
+}
 function onError(f, event) {
   const data = event.data;
   const what = data.what_now;
@@ -53,7 +60,7 @@ function addItem(items, event) {
 
 export function deriveRun(events, run) {
   const view = { state: run ? run.state : null, now: null, question: run ? run.question || null : null, result: run ? run.result || null : null,
-    error: null, screens: [], items: [], cards: {}, checks: { passed: 0, failed: 0 }, last: 0 };
+    error: null, screens: [], items: [], cards: {}, checks: { passed: 0, failed: 0 }, progress: null, last: 0 };
   const fold = { view, batch: null };
   for (const event of events) {
     view.last = Math.max(view.last, event.seq);
@@ -63,6 +70,14 @@ export function deriveRun(events, run) {
     addItem(view.items, event);
   }
   return view;
+}
+
+/** A Fix run's count of cards tried: the server's last progress of its cards (whichever attempt tried them), else the
+ *  cards this page saw edited. A retry starts a new attempt, never a new count. */
+export function fixCount(view, run) {
+  const total = ((run && run.cards) || []).length;
+  const p = view.progress;
+  return p && p.total === total ? p.done : Object.keys(view.cards).length;
 }
 
 /** A run's label in the language: an Arabic list takes the Arabic comma, so its ids read in order. */

@@ -26,7 +26,7 @@ from . import chat, handoff, helpers, plan
 from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from ...core.security import Locks
-from ...core.store import TERMINAL, Scrubber, Store, contract, now, _read_json, _write_json
+from ...core.store import BRIEF_ONLY, TERMINAL, Scrubber, Store, contract, now, _read_json, _write_json
 
 VERBS = ('fix', 'verify', 'explain', 'plan')
 HEARTBEAT = 15
@@ -293,7 +293,7 @@ class Actions:
             rows = [row for row in rows if needle in json.dumps([row.get('label'), row.get('cards'), row.get('result'), row.get('action'), row.get('verb')],
                                                                 ensure_ascii=False).lower()]
         queue = self.store.queue()  # read once: the queue reads every run, and a list of runs is not n^2 reads
-        return {'runs': [self.public(row, queue) for row in rows], 'queue': queue}
+        return {'runs': [{k: v for k, v in self.public(row, queue).items() if k not in BRIEF_ONLY} for row in rows], 'queue': queue}
 
     def questions(self):
         """The questions waiting, each `binding` when only an option answers it (prompts.binding)."""
