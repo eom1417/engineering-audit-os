@@ -1,5 +1,9 @@
 """What the ideal's planning assistant is asked (eaos/ai/ideal.py plan): the plan pass and the critique pass, the
-rules every answer keeps, and the JSON schema each answer must fit."""
+rules every answer keeps, and the JSON schema each answer must fit.
+
+The plan pass is asked in parts (PARTS), side by side, each the views of its part; the critique answers only its
+changes, which eaos/ai/ideal_passes.py applies to the draft. An answer of 35,000 tokens took 7 minutes, and the critique
+that wrote the whole ideal again 18, two of its three tries broken JSON (the check of EAOS, 2026-10-22)."""
 import json
 
 from ..analysis.aspects import ASPECTS, VERDICTS
@@ -20,10 +24,34 @@ IDEAL_SCHEMA = _strict({
     'open_questions': {'type': 'array', 'items': _strict({'id': _STR, 'view': _STR, 'question': _STR, 'options': _STRS,
                                                           'recommendation': {'type': ['string', 'null']}, 'why': _STR})},
     'confidence': {'type': 'number'}})
+# The plan pass's parts, asked side by side: about the same size of answer each (system is a third of a plan alone);
+# the last also judges the aspects.
+PARTS = (('system',), ('change', 'journeys', 'paths', 'data_paths'), ('infra', 'pipeline', 'plan_order'))
+
+
+def part_schema(views):
+    """The schema of one part of the plan pass: its views, and the aspects when it is the last part."""
+    schema = json.loads(json.dumps(IDEAL_SCHEMA))
+    schema['properties']['views'] = _strict({name: _VIEW for name in views})
+    if tuple(views) != PARTS[-1]:
+        del schema['properties']['aspects']
+        schema['required'].remove('aspects')
+    return schema
+
+
 _NOTE = lambda *names: {'type': 'array', 'items': _strict({name: (_STRS if name == 'cites' else _STR) for name in names})}
+_VIEW_NAME = {'type': 'string', 'enum': list(VIEWS)}
 CRITIQUE_SCHEMA = _strict({'critique': _strict({'missed': _NOTE('view', 'what', 'cites'), 'risks': _NOTE('view', 'element', 'risk', 'cites'),
                                                 'order': _NOTE('issue', 'suggestion', 'cites')}),
-                           'ideal': IDEAL_SCHEMA})
+                           'changes': _strict({
+                               'put': {'type': 'array', 'items': _strict({'view': _VIEW_NAME, 'element': _ELEMENT})},
+                               'remove': {'type': 'array', 'items': _strict({'view': _VIEW_NAME, 'id': _STR})},
+                               'summaries': {'type': 'array', 'items': _strict({'view': _VIEW_NAME, 'summary': _STR})},
+                               'aspects': IDEAL_SCHEMA['properties']['aspects'],
+                               'departures': IDEAL_SCHEMA['properties']['departures'],
+                               'open_questions': IDEAL_SCHEMA['properties']['open_questions'],
+                               'drop_questions': _STRS,
+                               'confidence': {'type': ['number', 'null']}})})
 
 RULES_OF_THE_ANSWER = '''Rules that are not negotiable (the same as EAOS's semantic layer):
 1. Every element cites, in `cites`, ids that appear in the bundle: facts (FACT-...), claims (CLM-...), cards (TASK-...)
@@ -62,7 +90,9 @@ RULES_OF_THE_ANSWER = '''Rules that are not negotiable (the same as EAOS's seman
    with which tests to merge, speed up or delete.'''
 
 
-def prompt_plan(data):
+def prompt_plan(data, views=None):
+    """The plan pass; `views`, the part of it this answer plans (PARTS), said after the bundle so every part's prompt
+    begins the same."""
     return ('GOAL\nYou are the planning pass of EAOS, an engineering audit. Plan the ideal picture of this project on top of '
             'the baseline target EAOS\'s rules gave for every view, thinking the whole project through: its structure, its '
             'users\' journeys, its code and data paths, its infrastructure, its pipeline and the order of the work.\n\n'
@@ -84,20 +114,32 @@ def prompt_plan(data):
             'the steps before it are done; it keeps the code laws below: less code, one home per rule, nothing dead.\n\n'
             'DO NOT\nWrite an element without this project\'s evidence; repeat the baseline unchanged as if it were a plan; decide for the person what the evidence leaves open.\n\n'
             + LAWS + '\n\n' + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
-            + '\n\nAnswer with the JSON object of the schema only.\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))
+            + '\n\nAnswer with the JSON object of the schema only.\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False)
+            + (_part(views) if views else ''))
+
+
+def _part(views):
+    """What one part of the plan pass plans: its views only, the others planned beside it by other passes."""
+    aspects = 'Judge the aspects too.' if tuple(views) == PARTS[-1] else 'Leave the aspects to another pass: the schema has none.'
+    return (f"\n\nTHIS PASS\nOther passes plan the other views at the same time. Plan only these views: {', '.join(views)}; "
+            f"the departures and open questions of these views only. {aspects}")
 
 
 def prompt_critique(data, draft):
-    return ('GOAL\nYou are the critique pass of EAOS\'s planning. Review the draft ideal another pass wrote, then return the '
-            'corrected ideal.\n\n'
-            'WHAT YOU ARE GIVEN\nThe draft and the bundle it was planned from (the same bundle as the planning pass).\n\n'
+    return ('GOAL\nYou are the critique pass of EAOS\'s planning. Review the draft ideal other passes wrote, then return '
+            'only the changes that correct it.\n\n'
+            'WHAT YOU ARE GIVEN\nThe draft (planned in parts side by side, so check that its views agree with each other) and '
+            'the bundle it was planned from (the same bundle as the planning pass).\n\n'
             'WHAT TO RETURN\n{"critique": {...}, "ideal": {...}}: in `critique`, what the draft missed (views, cards, facts '
             'it ignored), its risks (an element that breaks something, a departure that is not justified, an element without '
-            'real evidence) and its order issues (what must come first, what waits for what); in `ideal`, the revised ideal, '
-            'complete, in the same schema, with every fix applied.\n\n'
+            'real evidence) and its order issues (what must come first, what waits for what); in `changes`, only what changes: '
+            '`put` an element (a new id adds it, an existing id replaces it whole), `remove` an element by its id, '
+            '`summaries` a view\'s new summary, `aspects` an aspect judged again (it replaces that aspect\'s verdict), '
+            '`departures` and `open_questions` to add, `drop_questions` the ids of questions to remove, `confidence` the '
+            'new overall confidence or null. What you do not change stays as the draft has it.\n\n'
             'A GOOD REVIEW\nChecks every element against its cites; keeps what was right as it was; each change it makes '
             'is named in `critique`.\n\n'
-            'DO NOT\nReturn only the changes; drop a sound element to be safe; add an element the bundle does not support.\n\n'
+            'DO NOT\nWrite the draft again; drop a sound element to be safe; add an element the bundle does not support.\n\n'
             + LAWS + '\n\n' + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
             + '\n\nAnswer with the JSON object of the schema only.\n\nThe draft:\n'
             + json.dumps(draft, ensure_ascii=False) + '\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))

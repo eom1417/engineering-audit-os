@@ -6,6 +6,8 @@ what it needs, what it produces, and whether the run may continue without it.
 """
 from dataclasses import dataclass
 
+from .loops import LOOPS, errors as loop_errors
+
 REQUIRED, OPTIONAL = 'required', 'optional'
 # The app running in its isolated copy (one copy, one port, one database), most of the memory (the heavy analyzers),
 # and the whole machine (a measure that nothing else may disturb).
@@ -54,7 +56,7 @@ class Stage:
     ai: bool = False
 
 
-STAGES = (
+_DECLARED = (
     Stage('facts', produces=('facts/index.json',), description='Deterministic extraction over one snapshot'),
     Stage('features', produces=('features.json',), requires=('facts',),
           description='Group entry points and data accesses into what the program does for a user'),
@@ -185,15 +187,19 @@ STAGES = (
                       'language, as templates without their numbers and paths, by the smallest model without thinking, '
                       'once: EAOS ships its own sentences translated, and the rest is kept for the next check', ai=True),
 )
+# The declared order is the loops' (eaos/pipeline/loops.py): reordering the check is a change of that table.
+_POSITION = {name: index for index, name in enumerate(name for loop in LOOPS for name in loop.stages)}
+STAGES = tuple(sorted(_DECLARED, key=lambda stage: _POSITION.get(stage.name, len(_POSITION))))
 
 BY_NAME = {stage.name: stage for stage in STAGES}
 ORDER = tuple(stage.name for stage in STAGES)
 # The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
-PHASES = {'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
+PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
+          'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
           'tools': ('engines', 'claims', 'probe', 'sustainability', 'transform'),
           'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
-          'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}
+          'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}.items()}
 PHASE = {name: phase for phase, names in PHASES.items() for name in names}
 
 
@@ -213,7 +219,7 @@ def errors():
         found += [f'{stage.name}: amends {artifact}, which no earlier stage produces' for artifact in stage.amends if artifact not in produced]
         produced.update(dict.fromkeys(stage.produces, stage.name))
         found += _stage_errors(stage)
-    return sorted(found)
+    return sorted(found + loop_errors(seen))
 
 
 def _stage_errors(stage):

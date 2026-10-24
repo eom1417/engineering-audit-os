@@ -405,10 +405,13 @@ class IdealNode(Base):
     def plan_answer(self, name, schema):
         element = {'id': 's1', 'kind': 'component', 'title': 'One client', 'operation': 'refactor', 'subject': 'T-src', 'detail': '',
                    'cites': ['TASK-001']}
-        views = {v: {'summary': '', 'confidence': 0.7, 'elements': [element] if v == 'system' else []} for v in ideal_base.VIEWS}
-        planned = {'views': views, 'departures': [], 'confidence': 0.7,
-                   'open_questions': [{'id': 'q1', 'view': 'system', 'question': 'Keep it?', 'options': ['yes', 'no'], 'recommendation': 'yes', 'why': ''}]}
-        return planned if name == 'plan' else {'critique': {'missed': [], 'risks': [], 'order': []}, 'ideal': planned}
+        if name == 'critique':
+            return {'critique': {'missed': [], 'risks': [], 'order': []},
+                    'changes': {'put': [], 'remove': [], 'summaries': [], 'aspects': [], 'departures': [], 'open_questions': [],
+                                'drop_questions': [], 'confidence': None}}
+        views = {v: {'summary': '', 'confidence': 0.7, 'elements': [element] if v == 'system' else []} for v in schema['properties']['views']['properties']}
+        questions = [{'id': 'q1', 'view': 'system', 'question': 'Keep it?', 'options': ['yes', 'no'], 'recommendation': 'yes', 'why': ''}]
+        return {'views': views, 'departures': [], 'confidence': 0.7, 'open_questions': questions if 'system' in views else []}
 
     def test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands_and_with_one_it_asks_once(self):
         record = nodes.run(self.report, names=['ideal_planner'], adapters={})['ideal_planner']
@@ -421,15 +424,15 @@ class IdealNode(Base):
         self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))
         launcher = Answer(self.plan_answer)
         record = nodes.run(self.report, names=['ideal_planner'], launcher=launcher, fresh=True)['ideal_planner']
-        self.assertEqual([c[0] for c in launcher.calls], ['plan', 'critique'])
+        self.assertEqual(sorted(c[0] for c in launcher.calls), ['critique', 'plan-change', 'plan-infra', 'plan-system'])
         only = record['decisions'][0]
         self.assertEqual((only['subject'], only['decision'], only['evidence']), ('ideal', 'ask', ['TASK-001']))
         self.assertEqual(only['open_questions'][0]['question'], 'Keep it?')
         self.assertEqual(ideal.section(self.report, 'en')['state'], 'planned')
         self.assertTrue(nodes.run(self.report, names=['ideal_planner'], launcher=launcher)['ideal_planner']['cached'])
-        self.assertEqual(len(launcher.calls), 2)
-        nodes.run(self.report, names=['ideal_planner'], launcher=launcher, fresh=True)
         self.assertEqual(len(launcher.calls), 4)
+        nodes.run(self.report, names=['ideal_planner'], launcher=launcher, fresh=True)
+        self.assertEqual(len(launcher.calls), 8)
 
 
 class Detector(unittest.TestCase):

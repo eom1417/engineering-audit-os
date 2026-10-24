@@ -7,8 +7,8 @@ ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, 
 
 | Law | Today (enforced) | Target | Enforced by |
 |---|---|---|---|
-| Module size | ≤ 400 lines, no exception (M3, 0.0.75) | same | `tools/code_limits.py` (`tests/test_code_limits.py`) |
-| Function complexity | ≤ 10 decisions, no exception (M3, 0.0.75) | same | same |
+| Module size | ≤ 400 lines, no exception in Python (M3, 0.0.75); the Studio's JavaScript under it since M4.6 (0.0.76), its 4 longer modules listed | same, no exception | `tools/code_limits.py` (`tests/test_code_limits.py`) |
+| Function complexity | ≤ 10, no exception in Python (M3, 0.0.75), one count for the laws and the hotspots (`core/code_laws.py` `complexity`, a nested function counted alone); the Studio's JavaScript since M4.6, its 48 complex functions listed | same, no exception | same |
 | Function length | ≤ 50 lines, today's 5 longer ones listed | same | same |
 | Function parameters | ≤ 5 (self, cls aside), today's 129 listed | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |

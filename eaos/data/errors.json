@@ -414,6 +414,10 @@
    "ar": "خارج مسار هذا الفحص، فلم تعمل فيه.",
    "en": "Outside this check's paths, so it did not run in it."
   },
+  "loop_off": {
+   "ar": "لم تعمل لأنها جزء من فحص اختياري لم يُطلب في هذا الفحص.",
+   "en": "It did not run because it belongs to an optional part of the check that was not chosen for this check."
+  },
   "prerequisites_missing": {
    "ar": "لم تعمل لأن مرحلة تحتاجها قبلها لم تكتمل.",
    "en": "It did not run because a stage it needs did not finish."
@@ -421,6 +425,10 @@
   "prerequisite_failed": {
    "ar": "لم تعمل لأن مرحلة تحتاجها لم تُخرج نتائجها.",
    "en": "It did not run because a stage it needs did not produce its results."
+  },
+  "loop_stopped": {
+   "ar": "لم تعمل لأن الفحص توقف: الخطوة الأولى (قراءة الكود) لم تكتمل، فلا شيء بعدها يقوم على أساس.",
+   "en": "It did not run because the check stopped: its first loop (reading the code) did not complete, so nothing after it would stand on anything."
   },
   "no_runner": {
    "ar": "لا يوجد في EAOS ما ينفّذ هذه المرحلة.",

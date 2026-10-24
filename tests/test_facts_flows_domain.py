@@ -182,7 +182,7 @@ class DossierClaimTests(unittest.TestCase):
             out = Path(tmp) / 'out'
             assemble(repo, out)
             claims = json.loads((out / 'dossier.json').read_text())['claims']
-        hotspots = [claim for claim in claims if 'branches over' in claim['statement']]
+        hotspots = [claim for claim in claims if 'has complexity' in claim['statement']]
         self.assertEqual(len(hotspots), 1, 'only the dense function is a hotspot, whatever its file rank')
         self.assertIn('decide', hotspots[0]['statement'])
         self.assertEqual(hotspots[0]['confidence'], 'CONFIRMED')

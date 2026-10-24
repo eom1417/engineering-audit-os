@@ -10,6 +10,7 @@ it is about. `complete` is all of them.
 How scalability splits: how easily the code grows is in `code`, how the app holds under load is in `speed`.
 """
 from ..core.check_paths import COMPLETE, PATHS, SPINE
+from .loops import switches
 from .stages import BY_NAME, ORDER, REQUIRED, STAGES
 
 
@@ -30,7 +31,8 @@ def resolve(paths):
     paths = sorted(set(paths or [COMPLETE]))
     unknown = [p for p in paths if p not in PATHS]
     if unknown: raise ValueError(f"unknown check path: {', '.join(unknown)} (one of {', '.join(PATHS)})")
-    if COMPLETE in paths: return {'paths': [COMPLETE], 'stages': None, 'engines': None, 'patterns': None}
+    # beside `complete`, a path that switches an optional loop on (eaos/pipeline/loops.py) is an option of the full check
+    if COMPLETE in paths: return {'paths': [COMPLETE, *_switching(paths)], 'stages': None, 'engines': None, 'patterns': None}
     chosen = [PATHS[p] for p in paths]
     joined = lambda key: sorted({value for path in chosen for value in path.get(key, ())})
     spine = [stage.name for stage in STAGES if stage.necessity == REQUIRED] + list(SPINE)
@@ -42,3 +44,8 @@ def _engines(kinds, named):
     """The engines that find any of `kinds`, and those `named`."""
     from ..engines import ADAPTERS
     return sorted({name for name, adapter in ADAPTERS.items() if set(kinds) & {c.kind for c in adapter.capabilities()}} | set(named))
+
+
+def _switching(paths):
+    """The paths of `paths` that switch an optional loop on (eaos/pipeline/loops.py)."""
+    return [path for path in paths if path in switches()]

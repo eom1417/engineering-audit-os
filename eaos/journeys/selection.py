@@ -6,6 +6,7 @@ those groups): the same data the page showed, so the preview names what the pers
 import json
 from pathlib import Path
 from ..core import project_state
+from ..analysis.repair_or_rebuild import fix_minutes
 
 BATCH = 10                                  # fix_start's default batch size
 OPEN = ('open',)
@@ -131,7 +132,7 @@ def estimate(verb, count, past):
         low, high = max(1, round(middle * count * 0.7)), max(2, round(middle * count * 1.5 + 1))
         return low, high, {'en': f'from your last {len(rates)} runs of this kind', 'ar': f'من آخر {len(rates)} تشغيلات من هذا النوع'}
     if verb == 'fix':
-        low, high = 5 + 3 * count, 15 + 8 * count
+        low, high = fix_minutes(count)
         return low, high, {'en': 'a rough rule: about 3 to 8 minutes a card, plus preparing the safe copy; it improves with your runs',
                            'ar': 'تقدير تقريبي: من 3 إلى 8 دقائق للبطاقة، مع تجهيز النسخة الآمنة؛ يتحسن مع تشغيلاتك'}
     low, high = 1, max(2, 1 + count)

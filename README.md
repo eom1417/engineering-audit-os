@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version 0.0.75" src="https://img.shields.io/badge/version-0.0.75-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="Version 0.0.76" src="https://img.shields.io/badge/version-0.0.76-3987e5"></a>
   <img alt="Status: pilot" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>

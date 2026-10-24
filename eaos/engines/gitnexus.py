@@ -9,11 +9,16 @@ It is a third witness beside EAOS's own graph, CodeGraph and dependency-cruiser.
 source graph's (type imports included); a file at least FAN_IN files import is a coupling finding; its
 communities (Leiden clusters) are candidate boundaries of today's components for S02 and NS7, written to
 facts/external.json -> summary.communities. Agreement between witnesses raises a claim; disagreement is
-recorded and decided by none of them. The licence is non-commercial (eaos/data/toolchain.json license_note).
+recorded and decided by none of them. Two of its cycles are its own misreading of Python, never a finding
+(`misread`): a module of a package reading a sibling (`from . import core`) read as importing the package's
+`__init__.py`, and a standard library module (`import html`) read as a project file of that name; on EAOS they were
+all six of its cycles (M4.6, 2026-10-24). The licence is non-commercial (eaos/data/toolchain.json license_note).
 """
 import json
 import os
+import re
 import shutil
+import sys
 from pathlib import Path
 
 from . import tool
@@ -98,13 +103,33 @@ def _graph(index):
     return imports, members, relations
 
 
-def _cycle_findings(cycles, exclude, found):
-    """One finding per distinct cycle with a file outside the excluded folders."""
+def misread(cycle, copy):
+    """Whether a cycle of Python files has a hop GitNexus misread: into the `__init__.py` of the importing module's own
+    package (`from . import sibling` loads the sibling, not the package's code), or into a file named like a standard
+    library module the importer imports by that bare name (`import html`)."""
+    hops = list(zip(cycle, cycle[1:] + cycle[:1]))
+    return any(a.endswith('.py') and b.endswith('.py') and (_own_package(a, b) or _standard(a, b, copy)) for a, b in hops)
+
+
+def _own_package(a, b):
+    return Path(b).name == '__init__.py' and Path(a).parent == Path(b).parent and Path(a).name != '__init__.py'
+
+
+def _standard(a, b, copy):
+    stem = Path(b).stem
+    if stem not in sys.stdlib_module_names: return False
+    try: text = (Path(copy) / a).read_text(encoding='utf-8', errors='replace')
+    except OSError: return False
+    return bool(re.search(rf'^\s*import {stem}\b', text, re.M)) and not re.search(rf'^\s*from \.+\S* import .*\b{stem}\b', text, re.M)
+
+
+def _cycle_findings(cycles, exclude, found, copy):
+    """One finding per distinct cycle with a file outside the excluded folders, its misreadings left out (misread)."""
     findings, seen = [], set()
     for cycle in cycles:
         members_ = cycle.get('files') or []
         key = tuple(sorted(set(members_)))
-        if not key or key in seen or all(excluded(path, exclude) for path in key): continue
+        if not key or key in seen or all(excluded(path, exclude) for path in key) or misread(members_, copy): continue
         seen.add(key)
         findings.append(finding(NAME, found, 'gitnexus.check.cycles', 'cycle', subject('module', ' -> '.join(key), key[0]),
                                 'import cycle (type imports included): ' + ' -> '.join(members_),
@@ -149,7 +174,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     cycles, error = index.check_cycles()
     if cycles is None: return Report(NAME, found, PINNED, ERROR, seconds=index.seconds, reason=f'check --cycles: {error.strip()[-200:]}')
     fan_in, fan_out = _fans(imports)
-    findings = _cycle_findings(cycles, exclude, found) + _fan_findings(fan_in, exclude, found)
+    findings = _cycle_findings(cycles, exclude, found, index.copy) + _fan_findings(fan_in, exclude, found)
     metrics = [{'path': path, 'granularity': 'file', 'measurements': {'fan_in': fan_in.get(path, 0), 'fan_out': fan_out.get(path, 0)}}
                for path in sorted(set(fan_in) | set(fan_out)) if not excluded(path, exclude)]
     return Report(NAME, found, PINNED, OBSERVED, seconds=index.seconds, findings=findings, metrics=metrics,

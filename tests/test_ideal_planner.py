@@ -97,10 +97,16 @@ class Launcher:
 
     def __call__(self, name, prompt, schema):
         self.calls.append((name, len(prompt), schema))
-        if name == self.fail_on: raise self.error
-        if name == 'plan': return an_ideal()
+        if name.split('-')[0] == self.fail_on: raise self.error
+        if name.startswith('plan-'):         # one part of the plan pass: its views, the departures and questions of system
+            whole, views = an_ideal(), set(schema['properties']['views']['properties'])
+            mine = lambda rows: [row for row in rows if row['view'] in views]
+            return {**whole, 'views': {k: v for k, v in whole['views'].items() if k in views},
+                    'departures': mine(whole['departures']), 'open_questions': mine(whole['open_questions'])}
+        changes = {'put': [{'view': 'system', 'element': element('s9', ['FACT-invented'], 'new', None)}], 'remove': [], 'summaries': [],
+                   'aspects': [], 'departures': [], 'open_questions': [], 'drop_questions': [], 'confidence': None}
         return {'critique': {'missed': [{'view': 'infra', 'what': 'no CI', 'cites': ['RULE-infra-ci']}], 'risks': [], 'order': []},
-                'ideal': an_ideal(element('s9', ['FACT-invented'], 'new', None))}
+                'changes': changes}
 
 
 class EvidenceCheck(unittest.TestCase):
@@ -125,6 +131,20 @@ class EvidenceCheck(unittest.TestCase):
         self.assertEqual(set(kept['views']), set(ideal_base.VIEWS))
         self.assertEqual(ideal.share(an_ideal(element('s9', ['FACT-x'])), {'FACT-graph1', 'TASK-001'}), 0.75)
         self.assertIsNone(ideal.share({'views': {}}, set()))
+
+class CritiqueChanges(unittest.TestCase):
+    def test_the_critique_answers_only_its_changes_and_the_draft_keeps_the_rest(self):
+        from eaos.ai import ideal_passes
+        draft = {**an_ideal(), 'aspects': [{'aspect': 'tests', 'verdict': 'keep'}]}
+        changes = {'put': [{'view': 'system', 'element': element('s1', ['TASK-001'], 'rebuild')}], 'remove': [{'view': 'system', 'id': 's2'}],
+                   'summaries': [{'view': 'plan_order', 'summary': 'Tests first.'}], 'aspects': [{'aspect': 'tests', 'verdict': 'improve'}],
+                   'departures': [], 'open_questions': [], 'drop_questions': ['q1'], 'confidence': None}
+        revised = ideal_passes.apply(draft, changes)
+        self.assertEqual([(e['id'], e['operation']) for e in revised['views']['system']['elements']], [('s1', 'rebuild')])
+        self.assertEqual(revised['views']['plan_order']['summary'], 'Tests first.')
+        self.assertEqual((revised['aspects'], revised['open_questions'], revised['confidence']), ([{'aspect': 'tests', 'verdict': 'improve'}], [], 0.7))
+        self.assertEqual(len(draft['views']['system']['elements']), 2)          # the draft itself is kept as it was
+
 
 class Planning(unittest.TestCase):
     def setUp(self):
@@ -181,9 +201,10 @@ class Planning(unittest.TestCase):
         said = []
         result = ideal.plan(self.report, launcher=launcher, lang='en', say=lambda en, ar: said.append((en, ar)))
         self.assertEqual(result['state'], 'planned')
-        self.assertEqual([c[0] for c in launcher.calls], ['plan', 'critique'])
-        self.assertIs(launcher.calls[0][2], ideal_prompts.IDEAL_SCHEMA)
-        self.assertIs(launcher.calls[1][2], ideal_prompts.CRITIQUE_SCHEMA)
+        # the plan pass in its parts side by side, then the critique of the joined draft
+        self.assertEqual(sorted(c[0] for c in launcher.calls[:3]), ['plan-change', 'plan-infra', 'plan-system'])
+        self.assertEqual([c[0] for c in launcher.calls[3:]], ['critique'])
+        self.assertIs(launcher.calls[3][2], ideal_prompts.CRITIQUE_SCHEMA)
         record = json.loads((self.report / 'ideal/plan.json').read_text(encoding='utf-8'))
         self.assertEqual((record['share'], record['raw_share'], record['elements']), (1.0, 0.75, 3))
         self.assertEqual([d['id'] for d in record['dropped']], ['s9'])

@@ -7,6 +7,8 @@ from contextvars import ContextVar
 
 from ..core.progress import using
 from .live_app import PAGE_STAGES, close_app
+from .coverage import ledger
+from .loops import switched_off
 from .stages import BY_NAME, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
@@ -31,14 +33,22 @@ class Context(dict):
 def _settled(stage, run):
     """(row, resumed) of a stage that does not run here: resumed, not requested, or blocked; None when it runs."""
     if stage.name in run['completed']: return run['completed'][stage.name], True
-    if stage.name not in run['requested']:
-        if run['head']['paths'] != ['complete']: return _row(stage, SKIPPED, "outside this check's paths", code='outside_paths'), False
-        return _row(stage, SKIPPED, 'not requested in this run', code='not_requested'), False
+    if stage.name not in run['requested']: return _unrequested(stage, run['head']['paths']), False
     unmet = [name for name in stage.requires if not _satisfied(name, run['results'], run['out'])]
-    if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing'))
+    if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing', None))
+    if run.get('stopped_by'):          # a loop that stops the check did not reach its exit (eaos/pipeline/loops.py)
+        run['blocked'].setdefault(stage.name, (f"the check stopped: its {run['stopped_by']} loop did not reach its exit", 'loop_stopped', None))
     if stage.name not in run['blocked']: return None
-    reason, code = run['blocked'][stage.name]
+    reason, code, _ = run['blocked'][stage.name]
     return _row(stage, NOT_REACHED, reason, code=code), False
+
+
+def _unrequested(stage, paths):
+    """The row of a stage this run was not asked for: in an optional loop not switched on, outside the check's paths,
+    or left out."""
+    if stage.name in switched_off(paths): return _row(stage, SKIPPED, 'its optional loop was not switched on for this check', code='loop_off')
+    if 'complete' not in paths: return _row(stage, SKIPPED, "outside this check's paths", code='outside_paths')
+    return _row(stage, SKIPPED, 'not requested in this run', code='not_requested')
 
 
 def _stage(stage, run):
@@ -67,7 +77,7 @@ def _run_stage(stage, run):
     with run['lock']:
         results[stage.name] = row
         log.ended(row)
-        _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results})
+        _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results, 'coverage': ledger(results)})
         _block_dependents(stage, results, run['blocked'])
         if PAGE_STAGES <= results.keys(): close_app(context)
 
@@ -77,7 +87,7 @@ def _block_dependents(stage, results, blocked):
     if status not in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED) or _absent(stage.name, results): return
     reason = f"{stage.name} did not produce its artifacts ({status})"
     for name in dependents(stage.name):
-        blocked.setdefault(name, (reason, 'prerequisite_failed'))
+        blocked.setdefault(name, (reason, 'prerequisite_failed', stage.name))
 
 
 def _write(path, record):

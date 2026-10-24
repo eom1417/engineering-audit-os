@@ -3,6 +3,11 @@
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
 ## 2026-10-24
+- **M4 (assistant's decisions, the owner may change them)**: a gap the person chose (no consent to run the app, a path
+  not followed, sign-in declined) is said but never a big red gap; repair or rebuild is decided by the target (rebuild
+  when it rebuilds or deletes half of today's files), the hours shown beside it by a rough rule said as such; the
+  Studio's 48 complex functions are listed under the laws (may only shrink) rather than split blind, since no test
+  checks the screens.
 - **Efficiency**: the owner's time and tokens are spent only on what proves the change: the affected tests while
   working, the full verify once per batch of changes, real (not padded) estimates (`/workspace/AGENTS.md` §4).
 - **EAOS holds itself to 400 lines / complexity 10** with no exception from M3 on (`tools/code_limits.py`); the laws it

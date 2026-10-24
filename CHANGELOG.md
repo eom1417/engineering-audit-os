@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.76 (2026-10-24)
+
+M4, the check as loops. The ideal picture took 24 minutes on EAOS's own check (its critique wrote the whole ideal again,
+35,000 tokens, and two of its three tries were broken JSON); a stage that broke on a loaded computer was simply lost; a
+person read the findings without being told, first and in red, what the check could not see. Now:
+- **Loops as data** (M4.1, M4.2): `pipeline/loops.py` puts the 37 stages in six loops; reordering is a change of that
+  table. A loop not met runs its broken stages again (the app's loop twice), the first loop not met stops the check, an
+  optional loop runs only when its path switches it on.
+- **The coverage ledger** (M4.3): what each loop covered and could not, and why, in the manifest; the big gaps in red at
+  the top of START-HERE.md and RUN.md.
+- **The ideal in 7.9 minutes** (M4.4): the plan pass in three parts side by side, the critique answers only its changes.
+- **Repair or rebuild** (M4.5): the recommendation from the target, with each option's cards, files and hours.
+- **The laws reach further** (M4.6): one complexity count for the code laws and the hotspots (a nested function counted
+  alone; the metrics facts carry `complexity`, version 2); the Studio's JavaScript under the laws, its 48 complex
+  functions listed to shrink; GitNexus's misread Python cycles left out (all six on EAOS).
+
 ## 0.0.75 (2026-10-24)
 
 M3, the target code layout. EAOS's code had grown where a change was hard to make safely: 593 functions above

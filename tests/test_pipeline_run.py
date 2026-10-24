@@ -7,7 +7,7 @@ from pathlib import Path
 from eaos import pipeline
 from eaos.pipeline import STAGES, SkipStage, again, check, execute, resume
 from eaos.pipeline.run import MANIFEST
-from eaos.pipeline import stages as module
+from eaos.pipeline import loops, stages as module
 from eaos.pipeline.stages import OPTIONAL, REQUIRED, Stage
 from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
 from shared_fixture import scratch
@@ -52,10 +52,11 @@ class DeclarationTests(unittest.TestCase):
     def test_the_checker_rejects_a_bad_declaration(self):
         def errors(stages):
             original, module.STAGES = module.STAGES, stages
+            declared, loops.LOOPS = loops.LOOPS, (loops.Loop('all', tuple(stage.name for stage in stages)),)
             try:
                 return module.errors()
             finally:
-                module.STAGES = original
+                module.STAGES, loops.LOOPS = original, declared
         cases = [((Stage('a', produces=('x',), requires=('b',)), Stage('b', produces=('y',))),
                   'a: requires b, which no earlier stage provides'),
                  ((Stage('a', produces=('x',)), Stage('b', produces=('x',))), 'b: x is already produced by a'),
@@ -202,3 +203,47 @@ class ResumeTests(unittest.TestCase):
             manifest = execute('.', directory, only=['plan'], runners=fake_runners())
         self.assertEqual(manifest['stages']['plan']['status'], NOT_REACHED)
         self.assertIn('Prerequisites not completed', manifest['stages']['plan']['reason'])
+
+
+class LoopTests(unittest.TestCase):
+    """The check runs as loops (eaos/pipeline/loops.py): a loop judges its exit when its stages ended, runs what it broke
+    again while its rounds last, and an optional loop runs only when the check switches it on."""
+
+    def test_a_broken_app_stage_runs_again_and_no_other_loop_builds_on_the_broken_round(self):
+        tries, runners = [], fake_runners()
+        def screens(context, first=runners['screens']):
+            tries.append('screens')
+            if len(tries) == 1: raise RuntimeError('the browser timed out')
+            return first(context)
+        runners['screens'] = screens
+        manifest = execute('.', scratch(), runners=runners, mode='normal')
+        self.assertEqual(len(tries), 2)
+        self.assertEqual(manifest['stages']['screens']['status'], OK)
+        self.assertEqual(manifest['stages']['visual']['status'], OK)      # it requires screens: it waited for the round
+        self.assertEqual(manifest['loops']['run_and_see'], {'state': 'met', 'stages': [], 'rounds': 2})
+        self.assertEqual(manifest['status'], 'COMPLETE')
+
+    def test_a_loop_says_what_its_goal_lacked_and_one_not_met_stops_the_check_when_declared(self):
+        directory = scratch()
+        manifest = execute('.', directory, runners=fake_runners(setup=SkipStage('the app did not start', code='app_not_running')))
+        self.assertEqual(manifest['loops']['run_and_see']['state'], 'explained')
+        self.assertEqual(manifest['loops']['run_and_see']['stages'], ['setup'])
+        # the coverage ledger: a gap the person did not choose is big, and RUN.md says it in red at its top
+        self.assertEqual([entry['loop'] for entry in manifest['coverage'] if entry['big']], ['run_and_see'])
+        self.assertIn('🔴', (Path(directory) / 'RUN.md').read_text(encoding='utf-8').split('##')[0])
+        manifest = execute('.', scratch(), runners=fake_runners(setup=SkipStage('no consent', code='no_run_consent')))
+        self.assertEqual([entry['loop'] for entry in manifest['coverage'] if entry['big']], [])     # the person's choice
+        manifest = execute('.', scratch(), runners=fake_runners(facts=RuntimeError('boom')))
+        self.assertEqual(manifest['loops']['understand'], {'state': 'not_met', 'stages': ['facts'], 'rounds': 1, 'on_fail': 'stop'})
+
+    def test_an_optional_loop_runs_only_when_the_check_switches_it_on(self):
+        from eaos.pipeline.paths import resolve
+        declared, loops.LOOPS = loops.LOOPS, (*loops.LOOPS, loops.Loop('try', ('visual',), switch='look'))
+        try:
+            self.assertEqual(resolve(['complete', 'look'])['paths'], ['complete', 'look'])
+            manifest = execute('.', scratch(), runners=fake_runners())
+            self.assertEqual(manifest['stages']['visual']['reason_code'], 'loop_off')
+            manifest = execute('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
+            self.assertEqual(manifest['stages']['visual']['status'], OK)
+        finally:
+            loops.LOOPS = declared

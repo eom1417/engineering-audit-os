@@ -16,31 +16,16 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from eaos.core.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS  # noqa: E402
+from eaos.core.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools' / 'code_limits.json'
 FOLDERS = ('eaos', 'tools')
-BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.ExceptHandler, ast.match_case,
-            ast.comprehension)
-FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 # Each kind of limit and its number; every kind but 'modules' is keyed by function.
 # EAOS holds itself to the target laws since M3 (2026-10-24): complexity 10, modules of 400 lines. The laws it holds every
 # project to stay eaos/core/code_laws.py's.
 LIMITS = {'functions': min(MAX_COMPLEXITY, 10), 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
           'modules': min(MAX_LINES, 400)}
-
-
-def complexity(function):
-    """McCabe complexity of one function: 1 + its decisions, not counting the functions nested in it."""
-    score, pending = 1, list(ast.iter_child_nodes(function))
-    while pending:
-        node = pending.pop()
-        if isinstance(node, FUNCTIONS + (ast.ClassDef,)): continue
-        if isinstance(node, BRANCHES): score += 1 + (len(node.ifs) if isinstance(node, ast.comprehension) else 0)
-        elif isinstance(node, ast.BoolOp): score += len(node.values) - 1
-        pending.extend(ast.iter_child_nodes(node))
-    return score
 
 
 def functions(tree, prefix=''):
@@ -65,9 +50,26 @@ def parameters(function):
     return sum(arg.arg not in ('self', 'cls') for arg in named)
 
 
+def studio(over):
+    """The Studio's JavaScript (console/src) held to the same complexity and module length (M4.6), counted by EAOS's own
+    facts (eaos/facts/metrics.py: 1 + the lexical branches, each nested function alone), added to `over`."""
+    import tempfile
+    from eaos.facts.run import collect
+    with tempfile.TemporaryDirectory() as out:
+        collect(ROOT / 'console', Path(out), ['syntax', 'metrics'], exclude=('node_modules', 'dist', 'tools', 'scripts'))
+        facts = json.loads((Path(out) / 'facts' / 'metrics.json').read_text(encoding='utf-8'))['facts']
+    for fact in (f for f in facts if f['kind'] == 'metric'):
+        value, rel = fact['value'], 'console/' + fact['location']['path']
+        if value['scope'] == 'file' and value['lines'] > LIMITS['modules']: over['modules'][rel] = value['lines']
+        key = f"{rel}::{fact['location'].get('symbol')}"
+        if value['scope'] in ('function', 'method') and value['complexity'] > LIMITS['functions']:
+            over['functions'][key] = max(value['complexity'], over['functions'].get(key, 0))
+    return over
+
+
 def measure():
     """Everything over a limit today: {kind: {path::name or path: size}}, a kind per LIMITS."""
-    over = {kind: {} for kind in LIMITS}
+    over = studio({kind: {} for kind in LIMITS})
     for path in modules():
         text, rel = path.read_text(encoding='utf-8'), path.relative_to(ROOT).as_posix()
         if (lines := len(text.splitlines())) > LIMITS['modules']: over['modules'][rel] = lines

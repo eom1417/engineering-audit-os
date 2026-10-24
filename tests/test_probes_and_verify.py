@@ -92,7 +92,7 @@ class ProbeTests(unittest.TestCase):
             out = Path(tmp) / 'out'
             assemble(repo, out)
             dossier = json.loads((out / 'dossier.json').read_text())
-            hotspot = next(claim for claim in dossier['claims'] if 'branches over' in claim['statement'])
+            hotspot = next(claim for claim in dossier['claims'] if 'has complexity' in claim['statement'])
             causal = ledger.make(900, 'The branching comes from inlined validation rather than the problem itself',
                                  'cause', 'HYPOTHESIS', ['model_inference'], [], 'Extracting the validation and measuring no change',
                                  fact_ids=hotspot['fact_ids'], probe_spec=hotspot['probe_spec'])
