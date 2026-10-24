@@ -61,9 +61,12 @@ def _validated_inputs(claim):
 
 
 def _resolution(triage, checks):
+    """The triage's resolution when it confirmed the card, and the checks a fix is judged by: the claim's, else the
+    triage's (a fix with neither is no resolution)."""
     resolution = triage.get('resolution') if triage.get('decision') == 'confirm' else None
-    if resolution == 'fix' and not (checks or triage.get('checks')): return None
-    return resolution
+    if resolution != 'fix': return resolution, checks
+    if not (checks or triage.get('checks')): return None, checks
+    return resolution, checks or triage['checks']
 
 
 def _retain_reason(claim, assessment, disposition):
@@ -123,8 +126,7 @@ def decide(claim):
     disposition = claim.get('disposition') or {}
     assessment, checks = _validated_inputs(claim)
     triage = claim.get('triage') or {}
-    resolution = _resolution(triage, checks)
-    if resolution == 'fix': checks = checks or triage['checks']
+    resolution, checks = _resolution(triage, checks)
     kind, reason = _kind_and_reason(claim, assessment, disposition, triage, resolution)
     doubted = kind != 'retain' and triage.get('decision') == 'doubt'
     reasons = [DOUBTED] if doubted else []

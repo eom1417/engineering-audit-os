@@ -81,10 +81,14 @@ def _segments(text):
         if FENCE.match(line): fenced = not fenced; out.append(['kept', line])
         elif fenced or not line.strip() or RULE.match(line): out.append(['kept', line])
         elif line.lstrip().startswith('|'): out.append(['row', line])
-        elif out and out[-1][0] == 'prose' and not LEAD.match(line).group().strip() and not out[-1][1].lstrip().startswith('#'):
-            out[-1].append(line)
+        elif _continues(out, line): out[-1].append(line)
         else: out.append(['prose', line])
     return out
+
+
+def _continues(out, line):
+    """Whether a line carries on the paragraph or list item before it: no lead of its own, after prose, not a heading."""
+    return out and out[-1][0] == 'prose' and not LEAD.match(line).group().strip() and not out[-1][1].lstrip().startswith('#')
 
 
 def rewrite(text, change):
@@ -145,15 +149,25 @@ def translate(report, provider, say=lambda done, total: None):
     wanted = sorted({(lang, template(piece)[0]) for _, text in texts for lang in LANGS for piece in pieces_to_send(text, lang)})
     missing = [pair for pair in wanted if pair[1] not in memory[pair[0]]]
     counts = {'pieces': len(wanted), 'remembered': len(wanted) - len(missing), **_ask_all(provider, missing, memory, say)}
+    _save_memory(memory_file, memory, wanted)
+    _write_translations(report, texts, memory)
+    return counts
+
+
+def _save_memory(memory_file, memory, wanted):
+    """Keep in the report's translation memory the templates its documents use, and only those."""
     used = {lang: {source: memory[lang][source] for one, source in wanted if one == lang and source in memory[lang]} for lang in LANGS}
     memory_file.write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding='utf-8')
+
+
+def _write_translations(report, texts, memory):
+    """Write report/i18n/<lang>/<name> for every document, afresh."""
     shutil.rmtree(report / 'i18n', ignore_errors=True)     # the translations of documents gone (1,070 of 1,214 files)
     for name, text in texts:
         for lang in LANGS:
             target = report / 'i18n' / lang / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(rewrite(text, lambda piece: _translated(piece, memory[lang], lang)), encoding='utf-8')
-    return counts
 
 
 def _ask_all(provider, missing, memory, say):
