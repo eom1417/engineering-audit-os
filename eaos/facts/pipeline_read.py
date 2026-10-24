@@ -1,5 +1,5 @@
 """The pipeline map's reading model: one pipeline as it is found, the Python index of a project, and what a stage
-function touches. Shared by the readers of eaos/facts/pipeline_code.py and eaos/facts/pipeline_frameworks.py."""
+function touches. Shared by the readers of eaos/facts/pipeline_*.py."""
 import ast
 import re
 
@@ -205,6 +205,12 @@ def _root(node):
     while isinstance(node, (ast.Attribute, ast.Call, ast.Subscript)):
         node = node.func if isinstance(node, ast.Call) else node.value
     return node.id if isinstance(node, ast.Name) else None
+
+
+def _method_call(node, owner, method):
+    """Whether `node` calls `owner.method(...)` on a plain name."""
+    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == method
+            and isinstance(node.func.value, ast.Name) and node.func.value.id == owner)
 
 
 def _decorators(node):
