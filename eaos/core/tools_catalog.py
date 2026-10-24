@@ -39,10 +39,16 @@ def problems(entry):
     install = entry.get('install') or {}
     found = [f'{key} is missing' for key in ('name', 'version', 'license', 'repository', 'binary') if not entry.get(key)]
     if install.get('method') not in METHODS: found.append(f"install.method must be one of {', '.join(METHODS)}")
-    if install.get('method') == 'release' and not SHA256.match(str(install.get('sha256') or '')): found.append('a release needs its sha256')
-    if install.get('method') == 'git' and not COMMIT.match(str(entry.get('version') or '')): found.append('a git tool is pinned to a commit')
+    found += _unpinned(entry, install)
     if any(t['name'] == entry.get('name') for t in toolchain.registry()['tools']): found.append(f"{entry.get('name')} is already a tool")
     return found
+
+
+def _unpinned(entry, install):
+    """What a release (its sha256) or a git tool (a commit as its version) lacks to be pinned."""
+    if install.get('method') == 'release' and not SHA256.match(str(install.get('sha256') or '')): return ['a release needs its sha256']
+    if install.get('method') == 'git' and not COMMIT.match(str(entry.get('version') or '')): return ['a git tool is pinned to a commit']
+    return []
 
 
 def add(entry, person_agreed=False):
