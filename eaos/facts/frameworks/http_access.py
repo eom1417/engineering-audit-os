@@ -139,12 +139,18 @@ class _ObjectKeys:
             if ch in '{([})]':
                 closed = self.bracket(ch)
                 if closed: return closed
-            elif self.depth == 1 and ch == ',': self.expect = True
-            elif self.depth == 1 and self.expect and not ch.isspace():
-                i = self.bare(i)
+            elif self.depth == 1:
+                i = self.top_level(i, ch)
                 continue
             i += 1
         return None
+
+    def top_level(self, i, ch):
+        """A character at the literal's own level: a comma starts a property, a property's first character is read as
+        one; the index to go on from."""
+        if ch == ',': self.expect = True
+        elif self.expect and not ch.isspace(): return self.bare(i)
+        return i + 1
 
 
 def payload(text, after):
@@ -170,6 +176,13 @@ def _value_of(name, text, before):
 def extract_calls(text, names=()):
     """Yield (offset, line, call_record) for every call to the app's own HTTP back end."""
     names = set(names) | clients(text)
+    yield from _method_calls(text, names)
+    yield from _calls_by_name(text, names)
+    yield from _fetch_calls(text)
+
+
+def _method_calls(text, names):
+    """`api.get('/vehicles')`: a client's method called with a literal URL."""
     for match in METHOD_CALL.finditer(text):
         receiver, method, _, url = match.groups()
         # A literal absolute URL is a third-party host (an integration target), not the app's own back end.
@@ -177,6 +190,10 @@ def extract_calls(text, names=()):
         yield match.start(), text.count('\n', 0, match.start()) + 1, _with_keys(
             {'client': 'http', 'target': endpoint(url), 'operation': method.lower(), 'symbol': receiver,
              'bounded': bounded(method.lower(), url)}, payload(text, match.end()) if method.lower() in WRITES else None)
+
+
+def _calls_by_name(text, names):
+    """`api.get(DRIVERS_ENDPOINT)`: a client's method called with a name, its URL the string last assigned to it."""
     for match in METHOD_CALL_BY_NAME.finditer(text):
         receiver, method, variable = match.groups()
         if receiver not in names: continue
@@ -186,6 +203,10 @@ def extract_calls(text, names=()):
             {'client': 'http', 'target': endpoint(value) if value is not None else '{dynamic}', 'operation': method.lower(),
              'symbol': receiver, 'bounded': bounded(method.lower(), value or '')},
             payload(text, match.end() - 1) if method.lower() in WRITES else None)
+
+
+def _fetch_calls(text):
+    """`fetch('/ai/ask', {method: 'POST', body: JSON.stringify({...})})` to a path or an interpolated base."""
     for match in FETCH_CALL.finditer(text):
         window = text[match.end():match.end() + 300]
         method = FETCH_METHOD.search(window.split(');', 1)[0])

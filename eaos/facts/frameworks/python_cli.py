@@ -33,6 +33,11 @@ def loop_commands(text):
 
 
 def detect(context):
+    return _argparse(context) + _main_scripts(context) + _click(context)
+
+
+def _argparse(context):
+    """The argparse program, its subcommands (literal, from a list of pairs, or built at run time)."""
     found = []
     root = PARSER.search(context.text)
     if root:
@@ -52,6 +57,12 @@ def detect(context):
         # A command name computed at runtime is a visible gap, not a silent omission.
         found.append({'surface': 'cli', 'route': None, 'http_method': None, 'handler': context.symbol_at(line),
                       'framework': 'argparse_dynamic', 'line': line, 'note': 'Command name is built at runtime from ' + match.group('expr')})
+    return found
+
+
+def _main_scripts(context):
+    """A script guarded by __main__, its handler the first function the guard calls."""
+    found = []
     for match in MAIN_GUARD.finditer(context.text):
         line = context.line_of(match.start())
         called = CALLED.findall(match.group('body') or '')
@@ -59,6 +70,12 @@ def detect(context):
         found.append({'surface': 'cli', 'route': context.rel.rsplit('/', 1)[-1].removesuffix('.py'),
                       'http_method': None, 'handler': handler or context.symbol_at(line),
                       'framework': 'python_script', 'line': line})
+    return found
+
+
+def _click(context):
+    """click, typer and app commands and groups, each handled by the function under its decorator."""
+    found = []
     for match in CLICK.finditer(context.text):
         line = context.line_of(match.start())
         handler = context.symbol_after(line)
