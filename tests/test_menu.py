@@ -13,7 +13,7 @@ CHECKED = {'project': '/p', 'branch': 'main', 'checked': True, 'progress': {'clo
 
 
 def offer(answer, lang='ar'):
-    with mock.patch.object(m, '_status', return_value=answer), mock.patch('eaos.journeys.guided.looks_like_project', return_value=True):
+    with mock.patch.object(m, '_status', return_value=answer), mock.patch('eaos.core.project_state.looks_like_project', return_value=True):
         return m.menu(tempfile.gettempdir(), lang)
 
 

@@ -9,6 +9,7 @@ on its base branch when the person chose so.
 from datetime import datetime, timezone
 
 from . import guided
+from ..core import project_state
 
 REPAIR = 'REPAIR'        # the card of a repair on top of the batch
 REPAIRS = 3             # repairs tried before the cards responsible are left out
@@ -44,20 +45,20 @@ def repaired(state, root, changed, diff):
 def finish_job(project, arguments, progress):
     from .regenerate import regenerate
     from .waves import GatesFailed, finish_batch
-    state = guided.load(project)
+    state = project_state.load(project)
     wave = state['open_wave']
     was = guided._git(wave['root'], 'rev-parse', 'HEAD').stdout.strip()
     repairs = wave.get('repairs') or []
     try:
-        summary = finish_batch(guided.report_of(state), guided.source(state), guided.runtime_of(state), wave, lock=True,
+        summary = finish_batch(guided.report_of(state), guided.source(state), project_state.runtime_of(state), wave, lock=True,
                                say=lambda kind, *_: _phase(project, kind, progress), repairs=repairs,
                                bisect=bool(arguments.get('leave_out')) or len(repairs) >= REPAIRS,
-                               regenerate=lambda root: regenerate(root, guided.runtime_of(state), wave['base'], wave['number']))
+                               regenerate=lambda root: regenerate(root, project_state.runtime_of(state), wave['base'], wave['number']))
     except BaseException as problem:   # the batch stays as it was, even stopped mid-way: its copy back to its kept changes
         guided._git(wave['root'], 'cherry-pick', '--abort')
         guided._git(wave['root'], 'reset', '--hard', '--quiet', was or wave['base'])
         guided._git(wave['root'], 'clean', '-fdq')
-        state = guided.load(project)
+        state = project_state.load(project)
         if isinstance(problem, GatesFailed): return _repair_asked(state, problem, len(repairs))
         if not isinstance(problem, Exception): raise          # stopped by the person: nothing failed, the batch goes on
         state['open_wave']['last_error'] = f'{type(problem).__name__}: {problem}'[:500]
@@ -70,7 +71,7 @@ def _phase(project, kind, progress):
     """A phase of the batch's end reached: told to the job, and kept on the open batch so the live map shows it."""
     if kind not in STEPS: return
     progress(STEPS[kind][0], 3, STEPS[kind][1])
-    state = guided.load(project)
+    state = project_state.load(project)
     state['open_wave'].setdefault('phases', {}).setdefault(kind, datetime.now(timezone.utc).isoformat(timespec='milliseconds'))
     guided.save(state)
 
@@ -100,7 +101,7 @@ def _score(state, wave, summary):
 def _handed_over(project, wave, summary):
     """The batch closed: its record among the waves, its branch in the project when it kept something."""
     from .waves import apply as hand_over
-    state = guided.load(project)
+    state = project_state.load(project)
     score = _score(state, wave, summary)
     record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
               'opened': wave.get('opened'), 'phases': (state.get('open_wave') or {}).get('phases') or {},
@@ -133,10 +134,10 @@ def _land(project, record, files):
     """A direct batch, its gates passed: its branch merged into the base branch at once (guided.merge: a fast-forward,
     or a merge commit when git merges cleanly) and deleted, so no branch is left. When it cannot land (unsaved changes
     in the checked-out base, or a conflict), the branch stays and waits for the person like any batch."""
-    state = guided.load(project)
+    state = project_state.load(project)
     wave = next(w for w in reversed(state['waves']) if w['number'] == record['number'] and w.get('branch') == record['branch'])
     outcome = guided.merge(state, wave)
-    state = guided.load(project)
+    state = project_state.load(project)
     wave = next(w for w in reversed(state['waves']) if w['number'] == record['number'] and w.get('branch') == record['branch'])
     base = wave['merge_into']
     if outcome == 'merged':

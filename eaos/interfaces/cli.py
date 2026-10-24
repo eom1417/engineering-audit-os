@@ -72,8 +72,8 @@ def studio_in_background(args):
     """`eaos studio --background`: the project's Studio started (or found running), opened on "Preparing the tools"
     while the tools the check needs are installing, its address printed, and back at once; the tools' install starts."""
     from ..core import toolchain
-    from ..journeys.agent_tools import open_studio, project_state
-    project = project_state(args.project)['project']
+    from ..journeys.agent_tools import open_studio, state_of
+    project = state_of(args.project)['project']
     toolchain.prepare(project)
     opened = open_studio(project, show=not args.no_open, route='' if toolchain.ready(project) else '/tools')
     if 'studio' not in opened:

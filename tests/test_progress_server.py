@@ -24,6 +24,7 @@ from eaos.pipeline.stages import ORDER  # noqa: E402
 from test_continuity import Base as Checked  # noqa: E402
 from test_mcp import git_project  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
+from eaos.core import project_state
 
 PORT = 48123
 
@@ -51,9 +52,9 @@ class Project(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
         self.project = git_project(Path(self.tmp.name) / 'shop')
-        self.state = agent_tools.project_state(str(self.project))
+        self.state = agent_tools.state_of(str(self.project))
         self.report = report_with_data(guided.report_of(self.state).parent)
-        self.runtime = guided.runtime_of(self.state)
+        self.runtime = project_state.runtime_of(self.state)
 
     def client(self):
         keys = server.Keys(port=PORT)
@@ -218,13 +219,13 @@ class Watch(Checked):
             patcher = mock.patch.object(target, value, side_effect=self.fake(value))
             patcher.start()
             self.addCleanup(patcher.stop)
-        self.studio = mock.patch.object(agent_tools, 'open_studio', return_value=self.opened)
+        self.studio = mock.patch.object(agent_tools.project, 'open_studio', return_value=self.opened)
         self.open = self.studio.start()
         self.addCleanup(self.studio.stop)
         ready = mock.patch.object(toolchain, 'ready', return_value=True)
         ready.start()
         self.addCleanup(ready.stop)
-        answering = mock.patch.object(agent_tools, '_assistant_not_ready', return_value=None)   # the assistant answers
+        answering = mock.patch.object(agent_tools.checking, '_assistant_not_ready', return_value=None)   # the assistant answers
         answering.start()
         self.addCleanup(answering.stop)
 
@@ -234,7 +235,7 @@ class Watch(Checked):
         return lambda job, seconds, project: {'status': 'running', 'progress': {'done': 0, 'total': 26}, 'started': 'now'}
 
     def ready(self):
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['consent'] = {'run_and_fix': True}
         state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
@@ -268,7 +269,7 @@ class Watch(Checked):
             self.assertEqual(answer['status'], 'running')
             self.assertNotIn('watch', answer)
         open_studio = self.studio.temp_original
-        self.assertTrue(guided.scan_done(guided.load(self.project)))
+        self.assertTrue(guided.scan_done(project_state.load(self.project)))
         with mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32, 'version': launch.__version__}), \
                 mock.patch.object(guided, 'publish') as publish:
             opened = open_studio(str(self.project), show=False, route='/scan')
@@ -318,7 +319,7 @@ class StudioProcess(unittest.TestCase):
             (project / 'eaos' / '__init__.py').write_text(f'open({str(marker)!r}, "w").write("the checked code")\nraise SystemExit(3)\n')
             (project / 'eaos' / '__main__.py').write_text(f'open({str(marker)!r}, "w").write("the checked code")\n')
             opened = agent_tools.open_studio(str(project), show=False, route='/scan')
-            record = launch.running(agent_tools.project_state(str(project)))
+            record = launch.running(agent_tools.state_of(str(project)))
             try:
                 self.assertEqual((opened.get('started'), opened.get('error')), (True, None), opened)
                 self.assertIn('/#/scan?token=', opened['studio'])

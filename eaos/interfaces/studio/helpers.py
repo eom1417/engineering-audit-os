@@ -13,12 +13,13 @@ from ...journeys import check_choices, guided, lanes
 from ...pipeline.schedule import assistants
 from ...journeys.waves import plan
 from ...core.store import TERMINAL, now
+from ...core import project_state
 
 
 def speed(project, cards):
     """A Fix preview's speed mode: {on: kept for this project, as the check's; assistants: as many as this computer holds
     now; lanes: how many the selected cards split into, the cards that share a file together}."""
-    state = guided.load(project) or {}
+    state = project_state.load(project) or {}
     most = assistants('speed').count
     try: tasks = {task['id']: task for task in plan(guided.report_of(state))['tasks']}
     except (KeyError, OSError, ValueError): tasks = {}
@@ -29,7 +30,7 @@ def speed(project, cards):
 def speed_of(project, body):
     """{assistants} a new Fix run fixes its batch with, in speed mode as its preview set it (`body` inputs.speed), as
     many as this computer holds now; {} for one. The person's choice is kept for the project, as the check's speed mode."""
-    chosen, state = (body.get('inputs') or {}).get('speed'), guided.load(project)
+    chosen, state = (body.get('inputs') or {}).get('speed'), project_state.load(project)
     if isinstance(chosen, bool) and state and check_choices.keep(state, mode='speed' if chosen else 'normal'): guided.save(state)
     most = assistants('speed').count if chosen else 1
     return {'assistants': most} if most > 1 else {}

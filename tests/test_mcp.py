@@ -11,6 +11,7 @@ from unittest import mock
 
 from eaos.journeys import agent_tools, batch_finish, guided, lanes
 from eaos.core import jobs
+from eaos.core import project_state
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -101,23 +102,23 @@ class ToolTests(Home):
         self.assertNotIn('notes_language', json.loads(mcp_server._answer(status)(str(self.project))), 'outside a Studio run, nothing')
 
     def test_the_assistant_way_never_calls_a_model_itself(self):
-        source = (ROOT / 'eaos/journeys/agent_tools.py').read_text()
-        for call in ('from .assistants import provider', 'provider()', '.complete('):
+        source = ''.join(path.read_text() for path in sorted((ROOT / 'eaos/journeys/agent_tools').glob('*.py')))
+        for call in ('import provider', 'provider()', '.complete('):
             self.assertNotIn(call, source)
 
     def test_nothing_runs_or_is_taken_in_before_the_person_agrees_and_an_unsafe_proposal_is_refused(self):
         answer = agent_tools.run_setup(str(self.project))
         self.assertEqual(answer['status'], 'needs_agreement')
         self.assertIn('separate copy', answer['ask_the_person'])
-        self.assertFalse((guided.runtime_of(guided.load(self.project)) / 'authorization.json').exists())
+        self.assertFalse((project_state.runtime_of(project_state.load(self.project)) / 'authorization.json').exists())
         self.assertEqual(agent_tools.fix_start(str(self.project))['status'], 'needs_agreement')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         wave_branch(self.project)
         state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]
         guided.save(state)
         self.assertEqual(agent_tools.accept(str(self.project))['status'], 'needs_agreement')
-        state = agent_tools.project_state(str(self.project))
-        runtime = guided.runtime_of(state)
+        state = agent_tools.state_of(str(self.project))
+        runtime = project_state.runtime_of(state)
         runtime.mkdir(parents=True)
         (runtime / 'run.json').write_text('{}')
         answer = agent_tools.run_try({'env': {'DATABASE_URL': 'postgres://u@db.prod.example.com/x'}, 'start': ['bash', '-c', 'x']},
@@ -143,7 +144,7 @@ class ToolTests(Home):
         self.assertEqual((root / 'src/a.js').read_text(), before, 'a refused set of edits changes nothing')
 
     def test_a_kept_edit_stays_a_failing_one_is_taken_back_and_the_batch_is_handed_over_or_abandoned(self):
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         report = guided.report_of(state)
         report.mkdir(parents=True)
         card = {'id': 'TASK-001', 'title': 'x', 'paths': ['src/a.js'], 'kind': 'remediate'}
@@ -168,11 +169,11 @@ class ToolTests(Home):
         self.assertIn('import of a file that is gone', broke['why'])
         text = (copy / 'src/a.js').read_text()
         self.assertEqual(('a = 3' in text, 'b = 2' in text), (True, True), 'the failing change is gone, the kept one stays')
-        wave = guided.load(self.project)['open_wave']
+        wave = project_state.load(self.project)['open_wave']
         self.assertEqual(list(wave['kept']), ['TASK-001'])
         self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
         agent_tools.fix_skip('TASK-002', 'needs a product decision', str(self.project))
-        self.assertEqual(guided.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
+        self.assertEqual(project_state.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
         with mock.patch('eaos.journeys.waves.batch_acceptance', return_value={'TASK-001': 0}), \
                 mock.patch('eaos.journeys.waves.original_checks', return_value=[]), mock.patch('eaos.journeys.waves.gates', return_value=''):
             done = batch_finish.finish_job(str(self.project), {}, lambda *_: None)
@@ -180,17 +181,17 @@ class ToolTests(Home):
         self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout, 'the fix arrives as a branch')
         self.assertEqual((self.project / 'src/a.js').read_text(), 'export const a = 1;\nexport const b = 2;\n',
                          "the person's own files are not touched")
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('applied', None))
         state['open_wave'] = {'number': 2, 'root': str(copy), 'base': base, 'cards': ['TASK-002'], 'kept': {}, 'failed': {}, 'tools': {}}
         guided.save(state)
         self.assertEqual(agent_tools.fix_abandon(str(self.project))['status'], 'abandoned')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertEqual((state['waves'][-1]['status'], state.get('open_wave')), ('abandoned', None))
 
     def test_assistants_fixing_one_batch_at_once_keep_to_their_own_files_and_it_is_handed_over_once_all_are_done(self):
         # speed mode: one batch, one copy and branch, two assistants; a change to a file the other one holds is never tried
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         report = guided.report_of(state)
         report.mkdir(parents=True)
         tasks = {'TASK-001': ['src/a.js'], 'TASK-002': ['src/b.js'], 'TASK-003': ['src/a.js']}
@@ -215,14 +216,14 @@ class ToolTests(Home):
             self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'not_yours', 'only the first one hands it over')
         self.assertIn('a = 1', (copy / 'src/a.js').read_text(), 'the refused change was never tried')
         with as_first, mock.patch.object(lanes, 'WAIT', 0):
-            self.assertEqual(lanes.mine(guided.load(self.project)['open_wave'], list(tasks)), ['TASK-001', 'TASK-002', 'TASK-003'])
+            self.assertEqual(lanes.mine(project_state.load(self.project)['open_wave'], list(tasks)), ['TASK-001', 'TASK-002', 'TASK-003'])
             with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.journeys.execute.new_breakage', return_value=[]), \
                     mock.patch('eaos.journeys.waves.batch_acceptance', return_value={'TASK-001': 0}):
                 kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                     {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             self.assertEqual(kept['left'], ['TASK-003'], 'its own: the card left for the end comes with fix_finish')
             self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         state['open_wave']['later'] = []                           # the second assistant's card back in its lane
         guided.save(state)
         with as_first, mock.patch.object(lanes, 'WAIT', 0):
@@ -233,13 +234,13 @@ class ToolTests(Home):
     def test_status_names_the_next_tool_at_each_point(self):
         project = str(self.project)
         self.assertEqual(agent_tools.status(project)['next']['tool'], 'audit')
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         with mock.patch.object(guided, 'scan_done', return_value=True):
             state['scanned_commit'], state['scanned_with'] = agent_tools._head(state), 'an-older-eaos'; guided.save(state)
             older = agent_tools.status(project)
             self.assertEqual((older['next']['tool'], older['older_check']), ('run_setup', True),
                              'a report by an older EAOS stands: a new check runs only when the person asks')
-            with mock.patch.object(agent_tools, 'overview', return_value={}), mock.patch.object(jobs, 'start') as started:
+            with mock.patch.object(agent_tools.checking, 'overview', return_value={}), mock.patch.object(jobs, 'start') as started:
                 self.assertTrue(agent_tools.audit(project)['already_checked'])
             started.assert_not_called()
             state['scanned_with'] = agent_tools.tool_digest(); guided.save(state)
@@ -249,7 +250,7 @@ class ToolTests(Home):
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'safety_net')
             state['safety'] = {'commit': state['scanned_commit'], 'screens': 54, 'passed': 0}; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'none', 'a safety net that recorded nothing opens no batch')
-            self.assertEqual(agent_tools._no_safety_net(guided.load(self.project))['recorded'], 0)
+            self.assertEqual(agent_tools._no_safety_net(project_state.load(self.project))['recorded'], 0)
             state['safety'] = {'commit': state['scanned_commit'], 'screens': 54, 'passed': 54}; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'fix_start')
             wave_branch(self.project)
@@ -259,13 +260,13 @@ class ToolTests(Home):
 
 class OutputsTests(Home):
     def test_every_output_and_each_batch_summary_is_in_one_folder_named_after_the_project(self):
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         folder = guided.outputs(state)
         self.assertEqual(folder, guided.outputs_root() / 'shop')
         self.assertEqual(guided.report_of(state), folder / 'technical')
         self.assertIn('REPORT.html', (folder / 'README.md').read_text())
         other = git_project(Path(self.tmp.name) / 'elsewhere' / 'shop')
-        self.assertEqual(guided.outputs(agent_tools.project_state(str(other))), guided.outputs_root() / 'shop-2',
+        self.assertEqual(guided.outputs(agent_tools.state_of(str(other))), guided.outputs_root() / 'shop-2',
                          'another project with the same name gets its own folder')
         self.assertNotIn(str(self.project), str(folder), 'nothing is written into the project')
         self.assertFalse(str(folder).startswith(str(Path.home() / 'EAOS')), 'a test never writes into the real home')
@@ -285,7 +286,7 @@ class OutputsTests(Home):
         self.assertEqual(answer['outputs_folder'], str(guided.outputs(state)))
 
     def test_a_page_that_cannot_be_built_never_stops_the_step_and_every_page_names_the_eaos_that_made_it(self):
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         guided.report_of(state).mkdir(parents=True)
         with mock.patch('eaos.report.human_report.write', side_effect=RuntimeError('broken record')):
             page = guided.publish(state)                           # the step goes on
@@ -390,7 +391,7 @@ class QuestionTests(Home):
         shutil.copytree(ROOT / 'tests/fixtures/polyglot', project)
         git_project(project)
         self.project = project
-        report = guided.report_of(agent_tools.project_state(str(project)))
+        report = guided.report_of(agent_tools.state_of(str(project)))
         assemble(project, report)
         (report / 'plan.json').write_text('{}')
         touched = self.call('impact', {'target': 'core/pricing.py'})
@@ -426,7 +427,7 @@ class PersonOnly(Home):
         govern._core.cache_clear()
         self.addCleanup(govern._core.cache_clear)
         wave_branch(self.project)
-        state = agent_tools.project_state(str(self.project))
+        state = agent_tools.state_of(str(self.project))
         state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]
         guided.save(state)
 

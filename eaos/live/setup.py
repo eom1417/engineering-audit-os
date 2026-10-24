@@ -21,9 +21,11 @@ setup() is the flow `setup` of the live map (eaos/core/progress/flow.py): its st
 <runtime>/progress/setup.jsonl, each attempt a step with its outcome.
 """
 import json
+import os
 import re
 import secrets
 import socket
+import subprocess
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -459,6 +461,12 @@ def setup_baseline(project, runtime, detected, provider, say, report=None, attem
     profile['baseline']['verified'] = record['ok']
     write_profile(runtime, profile)
     return record
+
+
+def owner(project):
+    """Who gives the consent to run the app: the project's git user, else this computer's, else 'the owner'."""
+    done = subprocess.run(['git', '-C', str(project), 'config', 'user.name'], capture_output=True, text=True)
+    return done.stdout.strip() or os.environ.get('USER') or 'the owner'
 
 
 def authorize(project, runtime, granted_by, days=30):

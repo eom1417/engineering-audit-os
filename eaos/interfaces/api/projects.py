@@ -11,13 +11,7 @@ import json
 from pathlib import Path
 
 from ...journeys import guided
-from ...core.places import home
-from ...core import launch
-
-
-def _state(record):
-    try: return json.loads(record.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
+from ...core import launch, project_state
 
 
 def _score(state):
@@ -32,8 +26,8 @@ def _studio_runs(state):
 
 def known():
     """Every project with a state on this computer, the most recently checked first."""
-    states = [state for state in map(_state, sorted((home() / 'projects').glob('*/state.json'))) if state and state.get('project')]
-    return sorted(states, key=lambda state: state.get('scanned') or '', reverse=True)
+    return sorted((state for state in project_state.every() if state.get('project')), key=lambda state: state.get('scanned') or '',
+                  reverse=True)
 
 
 def listing(current):

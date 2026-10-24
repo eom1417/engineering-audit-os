@@ -3,15 +3,16 @@ same nodes the Studio's action runs, with the person's chosen assistant, the Stu
 from ..journeys import agent_tools, guided
 from ..pipeline.stages import STAGES
 from ..ai import nodes
+from ..core import project_state
 
 
 def start(project=None, names=None, fresh=False):
-    return agent_tools._start('run_nodes', agent_tools.project_state(project), {'nodes': names, 'fresh': fresh}, runner='eaos.interfaces.node_jobs')
+    return agent_tools._start('run_nodes', agent_tools.state_of(project), {'nodes': names, 'fresh': fresh}, runner='eaos.interfaces.node_jobs')
 
 
 def _job(project, arguments, progress):
     from ..ai.headless import installed
-    state = guided.load(project)
+    state = project_state.load(project)
     chosen, adapters = guided.chosen_assistant(state), installed()
     records = nodes.run(guided.report_of(state), names=arguments.get('nodes'), adapters={chosen: adapters[chosen]} if chosen in adapters else adapters,
                         project=project, lang=state.get('lang') or 'en', fresh=bool(arguments.get('fresh')))

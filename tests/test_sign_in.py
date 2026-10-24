@@ -19,6 +19,7 @@ from eaos.pipeline import sign_in_stage
 from eaos.pipeline.run import execute
 from eaos.live.screens.audit import missing
 from test_pipeline_run import fake_runners
+from eaos.core import project_state
 
 OTP_APP = Path(__file__).parent / 'fixtures/otp_app'
 SIGNED_OUT_PAGE = {'path': '/', 'status': 200, 'url': 'http://127.0.0.1:1/login', 'password': 0, 'others': [
@@ -237,7 +238,7 @@ class SignInTests(unittest.TestCase):
                 mock.patch.object(adapters, 'installed', return_value={}), \
                 mock.patch.object(server, 'create_app', side_effect=lambda *a, made=server.create_app, **k: apps.append(made(*a, **k)) or apps[-1]):
             guided.save({'project': str(project), 'workspace': str(guided.workspace(project))})
-            workspace = guided.load(project)['workspace']
+            workspace = project_state.load(project)['workspace']
             sign_in.ask(workspace, 'http://127.0.0.1:1', Path(workspace) / 'runtime/session.json', 'needed')
             self.assertEqual([row['kind'] for row in govern.waiting(str(project))], ['sign_in'])
             said = []

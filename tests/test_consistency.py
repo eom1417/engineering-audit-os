@@ -30,5 +30,12 @@ class Consistency(unittest.TestCase):
         self.assertNotRegex((ROOT / 'eaos/journeys/build_look.py').read_text(), r'scores\[name\] < 0\.\d', 'Lighthouse scores are out of 100')
 
 
+    def test_a_projects_state_is_read_and_written_only_through_its_one_module(self):
+        """M3.2: the CLI, MCP, the Studio and the sandbox each read state.json their own way; one module holds it now."""
+        readers = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'eaos').rglob('*.py')
+                         if re.search(r"""['"]state\.json['"]""", p.read_text()) and p.name != 'project_state.py')
+        self.assertEqual(readers, [], 'state.json named outside eaos/core/project_state.py')
+
+
 if __name__ == '__main__':
     unittest.main()

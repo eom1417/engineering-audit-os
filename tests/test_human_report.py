@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from eaos.report import human_report
-from eaos.report.human_report import priority_words
+from eaos.report.human_report.html import priority_words
 from eaos.analysis import model
 
 

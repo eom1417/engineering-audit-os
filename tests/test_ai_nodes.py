@@ -513,7 +513,7 @@ class RunFromTheStudio(Base):
         contract = json.loads((ROOT / 'docs/studio-actions.json').read_text(encoding='utf-8'))
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
         self.assertTrue(action['needs_assistant'] and not action['changes_code'] and action['tool'] == 'run_nodes')
-        with mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.journeys.guided.load', return_value={}):
+        with mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.core.project_state.load', return_value={}):
             status, body = app.handle('POST', '/api/runs', headers, {'action': 'run_nodes', 'inputs': {'nodes': ['card_triage', 'plan_orderer']}})
             self.assertEqual(status, 200, body)
             run = app.wait(body['run']['id'], ('done', 'failed'), timeout=30)
@@ -539,7 +539,7 @@ class AnyNodeAnyTime(unittest.TestCase):
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
         self.assertEqual(set(action['inputs']['properties']['nodes']['items']['enum']), {n.name for n in nodes.NODES})
         with mock.patch('eaos.journeys.agent_tools._start', return_value={'job': 'j1', 'status': 'started'}) as started, \
-                mock.patch('eaos.journeys.agent_tools.project_state', return_value={'project': '/p'}):
+                mock.patch('eaos.journeys.agent_tools.state_of', return_value={'project': '/p'}):
             self.assertEqual(node_jobs.start('/p', ['visual_reviewer'])['job'], 'j1')
         self.assertEqual(started.call_args.kwargs['runner'], 'eaos.interfaces.node_jobs')
         self.assertIn('run_nodes', node_jobs.JOBS)

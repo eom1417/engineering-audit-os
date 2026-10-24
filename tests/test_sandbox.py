@@ -227,10 +227,10 @@ class TwoProjectsTests(Workspace):
 
     def test_a_new_projects_run_reads_its_own_report_whose_folder_was_never_saved(self):
         # a new project's state never kept `outputs`, so its report was hidden and k6 never found its load script
-        from eaos.journeys.agent_tools import project_state
+        from eaos.journeys.agent_tools import state_of
         a = self.a
         (a['workspace'] / 'state.json').write_text(json.dumps({'project': str(a['source']), 'workspace': str(a['workspace'])}))
-        project_state(str(a['source']))
+        state_of(str(a['source']))
         script = a['outputs'] / 'technical/nfr/k6/qs-001.js'
         script.parent.mkdir(parents=True)
         script.write_text('// load')

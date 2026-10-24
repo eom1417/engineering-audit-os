@@ -28,6 +28,7 @@ from ..journeys import guided
 from ..live import sign_in
 from ..core.launch import HEADLESS
 from ..core.store import ACTIVE, RETRYABLE
+from ..core import project_state
 
 SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/live/sign_in.py)
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
@@ -125,14 +126,14 @@ def text_of(value, lang):
 @functools.lru_cache(maxsize=8)
 def _core(project):
     from .studio import Actions
-    return Actions(project, dispatch=False, lang=(guided.load(project) or {}).get('lang') or 'ar')
+    return Actions(project, dispatch=False, lang=(project_state.load(project) or {}).get('lang') or 'ar')
 
 
 def core(project=None):
     """The project's `Actions` without its dispatcher, one per project and process: a preview's confirm token is spent
     by the same locks that made it."""
-    from ..journeys.agent_tools import project_state
-    return _core(project_state(project)['project'])
+    from ..journeys.agent_tools import state_of
+    return _core(state_of(project)['project'])
 
 
 def _held(path):
@@ -147,7 +148,7 @@ def wake(project, answer=None):
     """The host that starts the project's queued runs, unless the project's Studio or a host already runs; with `answer`
     (question, option, text), a host that gives it first, whatever runs. True when one was started."""
     from ..core import launch
-    actions, state = core(project), guided.load(core(project).project)
+    actions, state = core(project), project_state.load(core(project).project)
     if not answer and (_held(actions.store.folder / 'host.lock') or launch.running(state)): return False
     question, option, text = answer or (None, None, None)
     argv = [sys.executable, '-m', 'eaos', 'govern', str(actions.project), *(['--answer', question] if question else []),
@@ -162,7 +163,7 @@ def host(project, answer=None, idle=HOST_IDLE):
     for `idle` seconds. `answer` (question, option, text) is given first; a second host with no answer leaves at once."""
     from .studio import Actions
     os.environ[HEADLESS] = '1'
-    actions = Actions(project, lang=(guided.load(Path(project).resolve()) or {}).get('lang') or 'ar')
+    actions = Actions(project, lang=(project_state.load(Path(project).resolve()) or {}).get('lang') or 'ar')
     try:
         if answer: actions.manager.answer(*answer, via='terminal')
         with open(actions.store.folder / 'host.lock', 'a+') as lock:
@@ -278,7 +279,7 @@ def _used(actions, record):
     found = of_run(actions.store.path(record['id']))
     if found or record.get('action') != 'audit' or not record.get('started'): return found
     if (record.get('inputs') or {}).get('use_assistant') is False: return None     # never the cost of a check before it
-    return of_check(guided.report_of(guided.load(actions.project))).get('total')
+    return of_check(guided.report_of(project_state.load(actions.project))).get('total')
 
 
 def show_run(project, run=None):
@@ -293,14 +294,14 @@ def show_run(project, run=None):
 def waiting(project):
     """Everything waiting for the person: the runs' questions, the report's questions not answered yet, the branch
     handed over for accept or undo, and the sign-in a check waits for."""
-    from ..journeys.batch_branch import waiting_batch
+    from ..core.project_state import waiting_batch
     actions = core(project)
     rows = [{'id': q['id'], 'kind': 'question', 'run': q.get('run'), 'text': q.get('text'), 'options': q.get('options') or [],
              'recommendation': q.get('recommendation')} for q in actions.questions()]
     rows += [{'id': d['id'], 'kind': 'decision', 'scope': d['scope'], 'text': d['question'].get('question'),
               'options': d['question'].get('options') or [], 'recommendation': d['question'].get('recommended_option')}
              for d in actions.report_decisions() if not d['response'] and d['question'].get('state', 'waiting') == 'waiting']
-    state = guided.load(actions.project) or {}
+    state = project_state.load(actions.project) or {}
     wave = waiting_batch(state)
     if wave: rows.append({'id': wave['branch'], 'kind': 'branch', 'text': WORDS['branch_waits'], 'branch': wave['branch'],
                           'options': [{'id': 'accept', 'label': 'eaos accept'}, {'id': 'undo', 'label': 'eaos undo'}]})
@@ -312,7 +313,7 @@ def waiting(project):
 
 def signing_in(project):
     """What the check asks while it waits for the person to sign in to their app (eaos/live/sign_in.py asked), or None."""
-    return sign_in.asked(guided.load(core(project).project)['workspace'])
+    return sign_in.asked(project_state.load(core(project).project)['workspace'])
 
 
 def answer(project, ident, option=None, text=None, assistant=None):
@@ -324,7 +325,7 @@ def answer(project, ident, option=None, text=None, assistant=None):
     if row['kind'] == 'branch': raise LookupError('a branch is taken in with eaos accept, or thrown away with eaos undo')
     if row['kind'] == 'sign_in':
         if option != sign_in.SIGNED_OUT: raise LookupError('the person signs in with eaos sign-in, or in the Studio\'s Waiting for you')
-        sign_in.answer(guided.load(actions.project)['workspace'], sign_in.SIGNED_OUT)
+        sign_in.answer(project_state.load(actions.project)['workspace'], sign_in.SIGNED_OUT)
         return {'status': 'answered'}
     if row['kind'] == 'decision':
         decided = actions.answer_decision(ident, {'scope': row['scope'], 'option': option, 'text': text, 'assistant': assistant})

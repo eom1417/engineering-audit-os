@@ -27,6 +27,7 @@ from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from ...core.security import Locks
 from ...core.store import BRIEF_ONLY, TERMINAL, Scrubber, Store, contract, now, _read_json, _write_json
+from ...core import project_state
 
 VERBS = ('fix', 'verify', 'explain', 'plan')
 HEARTBEAT = 15
@@ -152,7 +153,6 @@ class Actions:
     def __init__(self, project, **options):
         """`options`, by name: home, port (8765), adapters (this computer's), studio, lang ('ar'), token, remote_origin,
         dispatch (True: this object's thread starts the queued runs; eaos/interfaces/govern.py builds it without)."""
-        from ...journeys import guided
         home, adapters, studio = options.get('home'), options.get('adapters'), options.get('studio')
         if home: os.environ['EAOS_HOME'] = str(home)
         self.project = Path(project).expanduser().resolve()
@@ -282,7 +282,7 @@ class Actions:
         except Exception: out['work_branch'] = None
         if record['id'] in (queue := self.store.queue() if queue is None else queue): out['position'] = queue.index(record['id']) + 1
         if (branch := (record.get('result') or {}).get('branch')) and not record.get('outcome'):
-            out['outcome'] = batch_branch.decided(guided.load(self.project) or {}, branch)   # decided anywhere, it waits no more
+            out['outcome'] = batch_branch.decided(project_state.load(self.project) or {}, branch)   # decided anywhere, it waits no more
         return out
 
     def runs(self, query):
@@ -437,8 +437,7 @@ class Actions:
         low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
         measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'), inputs.get('again_from'))
         if action == 'audit':
-            from ...journeys import guided
-            out['check'] = check_choices.offered(guided.load(str(self.project)), self._studio() and self._studio().parent)
+            out['check'] = check_choices.offered(project_state.load(str(self.project)), self._studio() and self._studio().parent)
         out.update(estimate=measured or {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
                    risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                          'why': spec['description'] if spec['description']['en'] else spec['label']},
@@ -456,8 +455,7 @@ class Actions:
 
     def _speak(self, lang):
         """The language the person reads the Studio in becomes the project's: the check and the fixes it starts write in it."""
-        from ...journeys import guided
-        state = guided.load(self.project) if lang in ('ar', 'en') else None
+        state = project_state.load(self.project) if lang in ('ar', 'en') else None
         if state and state.get('lang') != lang:
             state['lang'] = lang
             guided.save(state)

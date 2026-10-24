@@ -68,18 +68,12 @@ def _index_engines(context, entries, add_to_index):
 
 
 
-def _owner(target):
-    import subprocess
-    done = subprocess.run(['git', '-C', str(target), 'config', 'user.name'], capture_output=True, text=True)
-    return done.stdout.strip() or 'the owner'
-
-
 def setup(context):
     """The app installed and started in an isolated copy (eaos/live/setup.py), once the person agreed to it."""
     if not context.get('runtime'):
         raise SkipStage(NO_RUN, code='no_run_consent')
-    from ..live.setup import authorize, setup as start
-    authorize(context.target, context.runtime, _owner(context.target))
+    from ..live.setup import authorize, owner, setup as start
+    authorize(context.target, context.runtime, owner(context.target))
     result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None, say=lambda n: None)
     _keep(context, 'setup.json', result)
     if not result['ok']:

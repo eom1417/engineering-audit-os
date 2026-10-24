@@ -4,6 +4,7 @@ person starts without it, and the report records that it did."""
 import os
 import subprocess
 import tempfile
+import sys
 import unittest
 from argparse import Namespace
 from pathlib import Path
@@ -38,7 +39,7 @@ class Project(unittest.TestCase):
         (self.project / 'src/a.js').write_text('export const a = 1;\n')
         for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'first']):
             subprocess.run(['git', '-C', str(self.project), *argv], check=True, capture_output=True)
-        self.state = agent_tools.project_state(str(self.project))
+        self.state = agent_tools.state_of(str(self.project))
         self.report = guided.report_of(self.state).parent
         self.report.mkdir(parents=True, exist_ok=True)
 
@@ -65,7 +66,7 @@ class Entry(Project):
     def test_the_assistant_opens_preparing_the_tools_and_a_failed_tool_stops_the_check_unless_chosen(self):
         opened = {'studio': 'http://127.0.0.1:9/#/tools', 'opened_in_browser': True}
         with mock.patch.object(toolchain, 'ready', return_value=False), \
-                mock.patch.object(agent_tools, 'open_studio', return_value=opened) as open_studio, \
+                mock.patch.object(agent_tools.project, 'open_studio', return_value=opened) as open_studio, \
                 mock.patch.object(jobs, 'start', return_value='audit-1') as start, \
                 mock.patch.object(jobs, 'wait', return_value={'status': 'running', 'progress': {}, 'started': 'now'}):
             answer = agent_tools.audit(str(self.project), fresh=True, without_tools=True)
@@ -74,7 +75,7 @@ class Entry(Project):
         self.assertEqual(start.call_args.args[2], {'without_tools': True})
         # The check job waits, and a failed tool stops it unless the person starts without it.
         with mock.patch.object(toolchain, 'wait_for_check', return_value=FAILED) as waited, \
-                mock.patch('eaos.pipeline.check', side_effect=RuntimeError('the check ran')) as check:
+                mock.patch('eaos.journeys.check.check', side_effect=RuntimeError('the check ran')) as check:
             with self.assertRaises(guided.ToolsMissing) as stopped:
                 agent_tools._audit_job(str(self.project), {}, None)
             self.assertIn('semgrep: no network', str(stopped.exception))
@@ -92,11 +93,11 @@ class Terminal(unittest.TestCase):
 
     def scan(self, gate, yes):
         args = Namespace(yes=yes)
-        with mock.patch.object(toolchain, 'wait_for_check', return_value=gate), mock.patch.object(guided, 'save'), \
-                mock.patch.object(guided, 'source', return_value=Path('/p')), mock.patch.object(guided, 'tip', return_value=None), \
-                mock.patch.object(guided.branches, 'scan_provenance', return_value={}), mock.patch.object(guided, 'say'), \
-                mock.patch.object(guided, 'box') as box, mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
-                mock.patch.object(guided, 'agree_to_assistant', side_effect=RuntimeError('the check goes on')):
+        checking = guided.checking         # the check's step (eaos/journeys/guided/checking.py)
+        with mock.patch.object(toolchain, 'wait_for_check', return_value=gate), mock.patch.object(checking, 'save'), \
+                mock.patch.object(checking, 'say'), mock.patch.object(checking, 'box') as box, \
+                mock.patch.object(sys.stdin, 'isatty', return_value=False), \
+                mock.patch.object(checking, 'agree_to_assistant', side_effect=RuntimeError('the check goes on')):
             try: return guided.scan(self.state, args), box
             except RuntimeError: return 'started', box
 
@@ -107,7 +108,7 @@ class Terminal(unittest.TestCase):
         self.assertEqual(self.scan(FAILED, yes=True)[0], 'started', 'asked again each time')
         self.assertEqual(self.scan(READY, yes=False)[0], 'started')
         # A no stops it and says how to go on.
-        with mock.patch.object(guided, 'ask', side_effect=guided.Declined('start_without_tools')):
+        with mock.patch.object(guided.checking, 'ask', side_effect=guided.Declined('start_without_tools')):
             code, box = self.scan(FAILED, yes=False)
         self.assertEqual(code, 1)
         self.assertEqual(box.call_args.kwargs['commands'], ['eaos tools install', 'eaos start .'])

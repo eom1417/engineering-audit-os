@@ -419,7 +419,7 @@ class ReplanFromTheStudio(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIsNone(preview['confirm'])
         self.assertFalse(preview['handoff']['available'])
-        with mock.patch.object(ideal, 'plan', side_effect=fake_plan), mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.journeys.guided.load', return_value={}):
+        with mock.patch.object(ideal, 'plan', side_effect=fake_plan), mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.core.project_state.load', return_value={}):
             status, body = app.handle('POST', '/api/runs', self.headers(app), {'action': 'replan_ideal'})
             self.assertEqual(status, 200, body)
             run = app.wait(body['run']['id'], ('done', 'failed'), timeout=30)

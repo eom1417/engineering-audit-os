@@ -26,6 +26,7 @@ from pathlib import Path
 from ...journeys import guided
 from ...live import sign_in
 from ...core import toolchain
+from ...core import project_state
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'templates/screens/sign-in.mjs'
 _OPEN = {}                  # workspace -> the Browser open in this process
@@ -68,7 +69,7 @@ class Browser:
 
 
 def _state(project):
-    return guided.load(project)
+    return project_state.load(project)
 
 
 def _asked(workspace):
@@ -81,7 +82,7 @@ def status(project):
     state = _state(project)
     record = sign_in.asked(state['workspace'])
     return {'asked': {k: record[k] for k in ('asked', 'until', 'base', 'why', 'published')} if record else None,
-            'open': state['workspace'] in _OPEN, 'kept': sign_in.by_hand(sign_in.session(guided.runtime_of(state))),
+            'open': state['workspace'] in _OPEN, 'kept': sign_in.by_hand(sign_in.session(project_state.runtime_of(state))),
             'codes': sign_in.codes(record) if record else None}
 
 

@@ -4,6 +4,7 @@ the run's events, stop cancels them, and the Studio's data is published again wh
 import threading
 
 from ...core.store import TERMINAL
+from ...core import project_state
 
 
 def plan_ideal(manager, run):
@@ -34,7 +35,7 @@ def plan_ideal(manager, run):
         return manager._fail(run, words['ar' if manager.lang == 'ar' else 'en'],
                              {'en': 'The rules\' target stays in place. Press Retry, or log in to Claude Code or Codex first.',
                               'ar': 'يبقى هدف القواعد مكانه. اضغط «أعد»، أو سجّل الدخول في Claude Code أو Codex أولًا.'})
-    try: guided.publish(guided.load(manager.project), manager.lang)
+    try: guided.publish(project_state.load(manager.project), manager.lang)
     except Exception as problem:
         say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
     payload = {**manager._outcome(run, answer=words['ar' if manager.lang == 'ar' else 'en']),
@@ -72,7 +73,7 @@ def run_nodes(manager, run):
         manager.cancels.pop(run, None)
         manager.store.update(run, pid=None)
     if manager.store.load(run).get('state') in TERMINAL: return
-    try: guided.publish(guided.load(manager.project), manager.lang)
+    try: guided.publish(project_state.load(manager.project), manager.lang)
     except Exception as problem:
         say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
     summary = nodes.summary(records)
@@ -85,9 +86,8 @@ def run_nodes(manager, run):
 
 def _last_wave(project):
     """The folder of the last batch of fixes, the fix reviewer's input; None when there is none."""
-    from ...journeys import guided
     try:
-        state = guided.load(project)
-        return guided.runtime_of(state) / 'waves' / f"wave-{len(state['waves'])}" if state.get('waves') else None
+        state = project_state.load(project)
+        return project_state.runtime_of(state) / 'waves' / f"wave-{len(state['waves'])}" if state.get('waves') else None
     except Exception:
         return None

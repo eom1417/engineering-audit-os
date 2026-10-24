@@ -1,9 +1,13 @@
-"""The command centre's locks (docs/studio-actions.json `security`).
-
-The server listens on 127.0.0.1 only. Every call carries the launch token; every POST also carries the CSRF token and
-comes from the Studio's own origin; the Host is the loopback one, which defeats DNS rebinding. Irreversible actions and
-runs that change code need a confirm token from their preview: single-use, ten minutes, bound to the action, the
-selection and the project. Every compare is constant-time.
+"""Who may talk to a Studio, checked in one place (M3.3) for its server (eaos/interfaces/api/guard.py) and its actions
+(docs/studio-actions.json `security`):
+- the server listens on 127.0.0.1 only (`LOOPBACK`), or 0.0.0.0 behind one exact Remote origin;
+- every request names the server by its Host (127.0.0.1:<port>, localhost:<port>, the Remote one), which defeats DNS
+  rebinding; a page outside /api/ is read only;
+- every /api/ call carries the launch token in X-EAOS-Token (a run's event stream on the actions' own server, which an
+  EventSource opens, may carry it as `token=`); every write also carries X-EAOS-CSRF and comes from the Studio's origin;
+- irreversible actions and runs that change code need a confirm token from their preview: single-use, ten minutes,
+  bound to the action, the selection and the project.
+Every compare is constant-time; a refusal says why, never with the token.
 """
 import hashlib
 import hmac
@@ -14,12 +18,20 @@ import threading
 import time
 from urllib.parse import parse_qs, urlsplit
 
-LOOPBACK = ('127.0.0.1', 'localhost')
+LOOPBACK = '127.0.0.1'
+HOSTS = ('127.0.0.1', 'localhost')
+TOKEN_HEADER, CSRF_HEADER = 'x-eaos-token', 'x-eaos-csrf'
+READS = frozenset({'GET', 'HEAD', 'OPTIONS'})
 CONFIRM_SECONDS = 600
 
 
+def new_token():
+    return secrets.token_urlsafe(32)
+
+
 def same(a, b):
-    return isinstance(a, str) and isinstance(b, str) and hmac.compare_digest(a.encode('utf-8'), b.encode('utf-8'))
+    """Constant-time comparison of two tokens; a missing one never matches."""
+    return isinstance(a, str) and isinstance(b, str) and bool(a) and hmac.compare_digest(a.encode('utf-8'), b.encode('utf-8'))
 
 
 def header(headers, name):
@@ -30,12 +42,39 @@ def header(headers, name):
     return None
 
 
-def _token_of(method, path, headers):
-    """The launch token a call carries: its header, or for a GET (an EventSource cannot set headers) `token=` in the query."""
-    token = header(headers, 'X-EAOS-Token')
-    if token is None and method == 'GET':
+def _token_of(method, path, headers, query):
+    """The launch token a call carries: its header, or with `query` for a GET (an EventSource cannot set headers) `token=`."""
+    token = header(headers, TOKEN_HEADER)
+    if token is None and query and method == 'GET':
         token = (parse_qs(urlsplit(path).query).get('token') or [None])[0]
     return token
+
+
+def origins(keys, port):
+    return {f'http://{host}:{port}' for host in HOSTS} | ({keys.remote_origin} if getattr(keys, 'remote_origin', None) else set())
+
+
+def hosts(keys, port):
+    """The Host values a Studio answers: this computer on its port, and the Remote address it was given."""
+    return {f'{name}:{port}' for name in HOSTS} | ({urlsplit(keys.remote_origin).netloc} if getattr(keys, 'remote_origin', None) else set())
+
+
+def refusal(keys, method, path, headers, port=None):
+    """None when the call may go on, else (status, reason, what to do). `keys` holds the token, the CSRF token, the port
+    and the Remote origin (a Locks, or the server's Keys); `port` the one the server listens on when the keys name none."""
+    port = getattr(keys, 'port', 0) or port
+    if (header(headers, 'Host') or '').strip().lower() not in hosts(keys, port):
+        return 421, 'host', 'this server answers only to 127.0.0.1 and localhost'
+    if not urlsplit(path).path.startswith('/api/'):
+        return None if method in READS else (405, 'method', 'the Studio pages are read only')
+    if not same(_token_of(method, path, headers, getattr(keys, 'query_token', False)), keys.token):
+        return 401, 'token', 'the launch token is missing or wrong: open the address `eaos studio` printed'
+    if method in READS: return None
+    if not same(header(headers, CSRF_HEADER), keys.csrf):
+        return 403, 'csrf', 'the CSRF token is missing or wrong: reload the Studio'
+    if _origin_of(headers) not in origins(keys, port):
+        return 403, 'origin', 'the request does not come from this Studio'
+    return None
 
 
 def _origin_of(headers):
@@ -47,6 +86,10 @@ def _origin_of(headers):
 
 
 class Locks:
+    """The keys of a Studio's actions, and their confirm tokens. `query_token`: the actions' own server, whose event
+    streams an EventSource opens with `token=`."""
+    query_token = True
+
     def __init__(self, port, token=None, remote_origin=None):
         self.port = int(port)
         self.remote_origin = remote_origin
@@ -54,29 +97,16 @@ class Locks:
             raise ValueError('remote_origin must be one exact Remote HTTPS project hostname')
         if remote_origin and int(urlsplit(remote_origin).hostname.split('--')[-1].split('.')[0]) != self.port:
             raise ValueError('Remote hostname port must match the listening port')
-        self.token = token or secrets.token_urlsafe(32)
-        self.csrf = secrets.token_urlsafe(32)
+        self.token = token or new_token()
+        self.csrf = new_token()
         self._key = hashlib.sha256(('confirm:' + self.token).encode('utf-8')).digest()
         self._spent = set()
         self._lock = threading.Lock()
 
-    def origins(self):
-        return {f'http://{host}:{self.port}' for host in LOOPBACK} | ({self.remote_origin} if self.remote_origin else set())
-
     def check(self, method, path, headers):
-        """None when the call may go on, else (status, reason). GET needs the token (in the header, or `token=` in the
-        query for an EventSource, which cannot set headers); POST also the CSRF token and the Studio's origin."""
-        if (header(headers, 'Host') or '').strip().lower() not in self._hosts(): return 403, 'the Host is not this computer\'s Studio'
-        if not same(_token_of(method, path, headers), self.token): return 401, 'the launch token is missing or wrong'
-        if method == 'GET': return None
-        if method != 'POST': return 405, 'only GET and POST'
-        if not same(header(headers, 'X-EAOS-CSRF'), self.csrf): return 403, 'the CSRF token is missing or wrong'
-        if _origin_of(headers) not in self.origins(): return 403, 'the request does not come from the Studio\'s own page'
-        return None
-
-    def _hosts(self):
-        """The Host values the Studio answers: this computer on its port, and the remote address it was given."""
-        return {f'{name}:{self.port}' for name in LOOPBACK} | ({urlsplit(self.remote_origin).netloc} if self.remote_origin else set())
+        """None when the call may go on, else (status, why): the one refusal (`refusal`)."""
+        refused = refusal(self, method, path, headers)
+        return refused and (refused[0], refused[2])
 
     # confirm tokens
     def _bound(self, action, selection, project):

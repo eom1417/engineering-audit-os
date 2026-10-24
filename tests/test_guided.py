@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import tempfile
+import sys
 import unittest
 from argparse import Namespace
 from contextlib import redirect_stdout
@@ -13,6 +14,8 @@ from unittest import mock
 
 from eaos.journeys import guided
 from eaos.interfaces import terminal  # noqa: F401  (the terminal's accept, undo and check, registered in guided)
+from eaos.core import project_state
+from eaos.report.start_here import start_here
 
 BOX_END = guided.LINE
 
@@ -43,7 +46,7 @@ def _fake_scan(state, args):
     out.mkdir(parents=True, exist_ok=True)
     (out / 'plan.json').write_text(json.dumps(PLAN))
     (out / 'run-manifest.json').write_text(json.dumps({'status': 'COMPLETE', 'stages': {}}))
-    page = guided.start_here(out, state['lang'], 'shop')
+    page = start_here(out, state['lang'], 'shop')
     guided.box(state['lang'], 'scanned', where=page, commands=['eaos next'])
     return 0
 
@@ -58,8 +61,8 @@ def run(command, project=None, **options):
     # Never the person's real assistants (`eaos assistant install` writes into ~/.claude and ~/.codex), never the Studio,
     # and no version check of every installed tool: the doctor's rows are tested on their own.
     with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), mock.patch.object(guided, 'watch'), \
-            mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(guided.current(args.project), args)), \
-            mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
+            mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(project_state.current(args.project), args)), \
+            mock.patch.object(sys.stdin, 'isatty', return_value=False), \
             mock.patch('eaos.core.toolchain.doctor', return_value={'tools': []}), \
             mock.patch('eaos.ai.readiness.probe_all', return_value=NO_ASSISTANT), \
             mock.patch('eaos.ai.setup.install', return_value=['Claude Code', 'Codex']):
@@ -77,7 +80,7 @@ class Journey(unittest.TestCase):
 
     def saved(self):
         guided.save({'project': str(self.project), 'workspace': str(guided.workspace(self.project)), 'lang': 'en'})
-        return guided.current(self.project)
+        return project_state.current(self.project)
 
     def test_every_user_command_ends_with_what_to_copy_next(self):
         ended = set()
@@ -99,7 +102,7 @@ class Journey(unittest.TestCase):
         after = subprocess.run(['git', 'status', '--porcelain', '--ignored'], cwd=self.project, capture_output=True, text=True).stdout
         self.assertEqual(before, after)
         self.assertNotIn(str(self.project), str(guided.workspace(self.project).parent))
-        state = guided.load(self.project)
+        state = project_state.load(self.project)
         self.assertIsNone(guided._saved_note(state))
         (self.project / 'src/a.ts').write_text('export const a = 2;\n')
         self.assertIn('last saved version', guided._saved_note(state), 'unsaved edits are said, never a stop')
@@ -112,9 +115,9 @@ class Journey(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertIn('not a project', printed)
             self.assertIn('eaos start .', printed)
-            self.assertIsNone(guided.load(folder))
+            self.assertIsNone(project_state.load(folder))
             self.assertNotIn('log', printed.lower())
-        self.assertTrue(guided.looks_like_project(self.project))
+        self.assertTrue(project_state.looks_like_project(self.project))
         code, printed = run('next', self.project)                    # before start
         self.assertEqual(code, 6)
         self.assertIn('eaos start .', printed)
@@ -128,16 +131,16 @@ class Journey(unittest.TestCase):
 
     def test_a_question_waits_for_yes_is_kept_and_prints_the_command_that_answers_it(self):
         state = self.saved()
-        with mock.patch.object(guided.sys.stdin, 'isatty', return_value=False):
+        with mock.patch.object(sys.stdin, 'isatty', return_value=False):
             with self.assertRaises(guided.NeedsAnswer):
                 guided.ask(state, 'install_tools', 'Install?')
             self.assertTrue(guided.ask(state, 'install_tools', 'Install?', yes=True))
-        kept = guided.current(self.project)['questions']
+        kept = project_state.current(self.project)['questions']
         self.assertEqual([(q['id'], q['kind'], q['answer']) for q in kept], [('install_tools', 'yes_no', True)])
         def asks(state, args): guided.ask(state, 'run_app', 'May I run your app?', args.yes); return 0
         printed = io.StringIO()
         with mock.patch.object(guided, 'STEPS', [('x', 'x', 'x', lambda s: False, asks)]), redirect_stdout(printed), \
-                mock.patch.object(guided.sys.stdin, 'isatty', return_value=False):
+                mock.patch.object(sys.stdin, 'isatty', return_value=False):
             code = guided.main(Namespace(command='next', project=str(self.project), lang='en', yes=False))
         self.assertEqual(code, 4)
         self.assertIn('eaos next --yes', printed.getvalue())
@@ -151,7 +154,7 @@ class Journey(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('port it needs is used by another program', printed.getvalue())
         self.assertNotIn('Traceback', printed.getvalue())
-        log = next((guided.outputs(guided.load(self.project)) / 'logs').glob('*.log'))
+        log = next((guided.outputs(project_state.load(self.project)) / 'logs').glob('*.log'))
         self.assertIn('Traceback', log.read_text())
         for text, expected in (('fatal: not a git repository (or any parent)', 'not_git'),
                                ('Error: listen EADDRINUSE: address already in use :::5173', 'port_busy'),
@@ -172,7 +175,7 @@ class Journey(unittest.TestCase):
         self.assertIn('1 fixes are ready', printed.getvalue())
         self.assertIn('/eaos', printed.getvalue())
         self.assertIn('eaos studio', printed.getvalue())
-        self.assertFalse(guided.load(self.project).get('open_wave'))
+        self.assertFalse(project_state.load(self.project).get('open_wave'))
 
 
 class Bulk(unittest.TestCase):
@@ -213,14 +216,14 @@ class Pages(unittest.TestCase):
                 *[{'pattern': 'remove_dead', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['a.ts']}] * 5,
                 {'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['b.ts']},
                 {'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}, 'paths': ['c.ts']}]}))
-            text = guided.start_here(tmp, 'en', 'shop').read_text()
+            text = start_here(tmp, 'en', 'shop').read_text()
             self.assertIn('I found **7** problems', text)
             self.assertIn('**6** of them EAOS can fix automatically', text)
             self.assertLess(text.index('Broken code'), text.index('Dead code'))
             self.assertIn('eaos next', text)
             (Path(tmp) / 'plan.json').write_text(json.dumps({'tasks': [
                 {'pattern': 'canonicalize', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['a.ts']}]}))
-            text = guided.start_here(tmp, 'ar', 'shop').read_text()
+            text = start_here(tmp, 'ar', 'shop').read_text()
         self.assertIn('كود منسوخ', text)
         self.assertNotIn('Copied code', text)
         from eaos.pipeline import execute
@@ -238,7 +241,7 @@ class RunConsent(unittest.TestCase):
     def test_a_yes_given_in_the_studio_or_to_the_assistant_lets_the_check_run_the_app(self):
         """The self-check of 2026-10-12: the owner agreed in the Studio (run_setup, consent run_and_fix), yet the check
         read only the terminal's question run_app and said the person had not agreed, so nothing ran."""
-        with mock.patch.object(guided, 'runtime_of', return_value='runtime'):
+        with mock.patch.object(guided.checking, 'runtime_of', return_value='runtime'):
             self.assertIsNone(guided.check_runtime({'questions': []}))
             self.assertEqual(guided.check_runtime({'questions': [], 'consent': {'run_and_fix': True}}), 'runtime')
             self.assertEqual(guided.check_runtime({'questions': [{'id': 'run_app', 'answer': True}]}), 'runtime')
