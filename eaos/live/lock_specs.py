@@ -116,9 +116,17 @@ def path_of(route):
     if route == '__root__': return None
     parts = [part for part in route.split('/') if part]
     if parts and parts[-1].startswith('_') and not parts[-1].startswith('__'): return None
-    kept = [part.rstrip('_') if part.endswith('_') and not part.startswith('$') else part
-            for part in parts if not (part.startswith('_') or (part.startswith('(') and part.endswith(')')))]
-    return '/' + '/'.join(kept)
+    return '/' + '/'.join(_unnested(part) for part in parts if _in_url(part))
+
+
+def _in_url(part):
+    """Whether a segment of a route id is in its URL: neither a pathless layout (`_x`) nor a group (`(x)`)."""
+    return not (part.startswith('_') or (part.startswith('(') and part.endswith(')')))
+
+
+def _unnested(part):
+    """A segment without the trailing `_` that only un-nests it (a `$param_` keeps it)."""
+    return part.rstrip('_') if part.endswith('_') and not part.startswith('$') else part
 
 
 def url(route):
@@ -170,6 +178,19 @@ def playwright_spec(feature, rows):
 def _route_test(route, kind, method):
     """(the plan's entry of one route, its test lines): a layout gets none, a route that writes or signs out is skipped
     (a GET /logout run with the session ended it for every page stage after the lock: they saw the sign-in page)."""
+    skipped = _not_called(route, kind, method)
+    if skipped: return skipped
+    target, params = url(route)
+    # Named by the URL, not the route id: moving a file between layouts must not orphan its recording.
+    name = slug(path_of(route) or route) if route != '*' else 'unknown-route'
+    guard = [f"    test.skip(!process.env.E2E_{p.upper()}, 'needs_fixture: set E2E_{p.upper()}');" for p in params]
+    entry = ('GET ' if kind == HTTP else '') + route + (' (needs_fixture)' if params else '')
+    return entry, _request_test(route, target, name, guard) if kind == HTTP else _page_test(route, target, name, guard)
+
+
+def _not_called(route, kind, method):
+    """(entry, test lines) of a route the lock never calls: a layout, one that signs out or changes data, one that
+    writes; None for a route it calls."""
     if route != '*' and path_of(route) is None: return f'{route} (layout: no URL of its own)', []
     if re.search(LEAVES, route, re.I):
         return f'{route} (ends the session or changes data: not called)', [
@@ -178,12 +199,7 @@ def _route_test(route, kind, method):
         return f'{method} {route} (needs_fixture: writes)', [
             f"  test({json.dumps(f'{method} {route} is not called blindly')}, async () => {{",
             f"    test.skip(true, 'needs_fixture: {method} writes; lock it against a fixture');", '  });']
-    target, params = url(route)
-    # Named by the URL, not the route id: moving a file between layouts must not orphan its recording.
-    name = slug(path_of(route) or route) if route != '*' else 'unknown-route'
-    guard = [f"    test.skip(!process.env.E2E_{p.upper()}, 'needs_fixture: set E2E_{p.upper()}');" for p in params]
-    entry = ('GET ' if kind == HTTP else '') + route + (' (needs_fixture)' if params else '')
-    return entry, _request_test(route, target, name, guard) if kind == HTTP else _page_test(route, target, name, guard)
+    return None
 
 
 def _request_test(route, target, name, guard):
@@ -211,13 +227,16 @@ def import_safe(path):
     """Whether importing the file only defines things: no top-level statement that runs code."""
     try: tree = ast.parse(Path(path).read_text(encoding='utf-8', errors='replace'))
     except (OSError, SyntaxError): return False
-    for node in tree.body:
-        if isinstance(node, SAFE): continue
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant): continue   # a docstring
-        if isinstance(node, ast.If) and 'name' in ast.dump(node.test) and '__main__' in ast.dump(node.test): continue
-        if isinstance(node, ast.Try) and all(isinstance(n, (ast.Import, ast.ImportFrom)) for n in node.body): continue
-        return False
-    return True
+    return all(_defines_only(node) for node in tree.body)
+
+
+def _defines_only(node):
+    """Whether a top-level statement runs no code: a definition or an import, a docstring, the __main__ guard, or a
+    try around imports."""
+    if isinstance(node, SAFE): return True
+    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant): return True   # a docstring
+    if isinstance(node, ast.If) and 'name' in ast.dump(node.test) and '__main__' in ast.dump(node.test): return True
+    return isinstance(node, ast.Try) and all(isinstance(n, (ast.Import, ast.ImportFrom)) for n in node.body)
 
 
 def approval_test(feature, target):

@@ -78,18 +78,23 @@ def unreached(live, base, state, report):
     """The pages of the code (PAGES at most, every view's own first) that open as themselves with none of the sessions
     made: {page: its file}. The running app says which views the reading of the code missed; each page a view's session
     opened, and no session before it, becomes that view's own (eaos/live/roles.py claim)."""
-    from .setup import probe
     from .lock_specs import surfaces
     left, owned = _tried(report), {}
     for session in [state, *sorted(kinds_folder(state).glob('*.json'))]:
-        page = probe(live, base, session, None, left + [NOWHERE]) if left and (session.is_file() or session == state) else {}
-        nowhere = nowhere_of(page)
-        shown = {row.get('path') for row in (page.get('others') or [])[:-1] if _reached(row, nowhere)}
+        shown = _reached_with(live, base, session, left, state)
         if session != state: owned[session.stem] = [path for path in left if path in shown]
         left = [path for path in left if path not in shown]
     claim(report, owned)
     known = surfaces(report)
     return {path: (known.get(path) or (None, None, None))[2] for path in left}
+
+
+def _reached_with(live, base, session, pages, state):
+    """The pages of `pages` a session reaches (_reached), probed with NOWHERE last; none without pages or a session."""
+    from .setup import probe
+    page = probe(live, base, session, None, pages + [NOWHERE]) if pages and (session.is_file() or session == state) else {}
+    nowhere = nowhere_of(page)
+    return {row.get('path') for row in (page.get('others') or [])[:-1] if _reached(row, nowhere)}
 
 
 def _tried(report):
@@ -154,12 +159,7 @@ def make(project, live, base, state, report, provider, hand=False):
 def _round(project, live, base, state, report, provider, hand, wrong):
     """One round of make: the assistant told what lacks until nothing does, SECONDS pass or the same lack comes twice."""
     end = time.monotonic() + SECONDS
-    messages = [{'role': 'system', 'content': SYSTEM + ('\n' + BY_HAND if hand else '')},
-                {'role': 'user', 'content': 'The way in: ' + json.dumps(way_in(report), ensure_ascii=False)
-                 + '\n\nThe views:\n' + json.dumps(views(report, hand), ensure_ascii=False)
-                 + '\n\nThe documentation:\n' + _excerpt(project, live.profile.get('app') or '.', 12000)
-                 + '\n\nThe code about its users and sessions:\n' + about_users(project, 30000, report)
-                 + '\n\nThe seed script today (keep what it makes that still applies):\n' + (_today(live) or '(none)')}]
+    messages = _told(project, live, report, hand)
     tried = []
     while wrong and time.monotonic() < end and tried[-2:] != [wrong, wrong]:    # twice the same lack: nothing more comes
         tried.append(wrong)
@@ -171,6 +171,17 @@ def _round(project, live, base, state, report, provider, hand, wrong):
         messages.append({'role': 'assistant', 'content': json.dumps({k: answer.get(k) for k in ('seed_script', 'views', 'unreachable')})})
         wrong = ('these were not kept: ' + '; '.join(refused) + '. ' if refused else '') + _try(live, base, state, report, script, hand)
     return wrong
+
+
+def _told(project, live, report, hand):
+    """What a round tells the assistant first: the way in, the views, the documentation, the code about users and the
+    seed script today."""
+    return [{'role': 'system', 'content': SYSTEM + ('\n' + BY_HAND if hand else '')},
+            {'role': 'user', 'content': 'The way in: ' + json.dumps(way_in(report), ensure_ascii=False)
+             + '\n\nThe views:\n' + json.dumps(views(report, hand), ensure_ascii=False)
+             + '\n\nThe documentation:\n' + _excerpt(project, live.profile.get('app') or '.', 12000)
+             + '\n\nThe code about its users and sessions:\n' + about_users(project, 30000, report)
+             + '\n\nThe seed script today (keep what it makes that still applies):\n' + (_today(live) or '(none)')}]
 
 
 def _today(live):
