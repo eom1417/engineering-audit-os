@@ -184,41 +184,32 @@ def _from_external_call_edges(target, codegraph_facts):
     Each input fact carries the caller's path and the callee's path (from the engine).
     The resolution is RESOLVED_BY_ENGINE: our resolver could not produce this edge on its own.
     """
-    from . import digest, make
-    out = []
-    inventory_sha = digest(target.read_bytes() if target.is_file() else b'')
-    for fact in codegraph_facts:
-        value = fact.get('value', {})
-        location = {'path': fact['location']['path']}
-        caller_path = value.get('caller_path') or location['path']
-        callee_path = value.get('callee_path') or ''
-        new = make('call_edge', 'external', VERSION, inventory_sha, location,
-                   {'caller': value.get('caller', ''),
-                    'callee': value.get('callee', ''),
-                    'caller_path': caller_path,
-                    'callee_path': callee_path,
-                    'line': value.get('line', 0),
-                    'source': 'codegraph'},
-                   resolution='RESOLVED_BY_ENGINE', limitations=LIMITATIONS[:1])
-        new['value']['engine'] = value.get('tool', 'codegraph')
-        out.append(new)
-    return out
+    def edge(fact, value):
+        caller_path = value.get('caller_path') or fact['location']['path']
+        return {'path': fact['location']['path']}, {
+            'caller': value.get('caller', ''), 'callee': value.get('callee', ''), 'caller_path': caller_path,
+            'callee_path': value.get('callee_path') or '', 'line': value.get('line', 0), 'source': 'codegraph'}
+    return _engine_edges(target, codegraph_facts, 'call_edge', edge)
 
 
 def _from_external_module_edges(target, codegraph_facts):
     """Convert codegraph's module_edge_external facts into our import_edge facts."""
+    def edge(fact, value):
+        return {'path': value.get('from', fact['location']['path'])}, {
+            'module': value.get('to', ''), 'from_path': value.get('from', ''), 'to_path': value.get('to', ''),
+            'names': [], 'level': 0, 'style': 'codegraph', 'source': 'codegraph'}
+    return _engine_edges(target, codegraph_facts, 'import_edge', edge)
+
+
+def _engine_edges(target, codegraph_facts, kind, edge):
+    """One `kind` fact per codegraph edge, located and valued by `edge(fact, value)`, resolved by the engine."""
     from . import digest, make
     out = []
     inventory_sha = digest(target.read_bytes() if target.is_file() else b'')
     for fact in codegraph_facts:
         value = fact.get('value', {})
-        location = {'path': value.get('from', fact['location']['path'])}
-        new = make('import_edge', 'external', VERSION, inventory_sha, location,
-                   {'module': value.get('to', ''),
-                    'from_path': value.get('from', ''),
-                    'to_path': value.get('to', ''),
-                    'names': [], 'level': 0, 'style': 'codegraph',
-                    'source': 'codegraph'},
+        location, fields = edge(fact, value)
+        new = make(kind, 'external', VERSION, inventory_sha, location, fields,
                    resolution='RESOLVED_BY_ENGINE', limitations=LIMITATIONS[:1])
         new['value']['engine'] = value.get('tool', 'codegraph')
         out.append(new)

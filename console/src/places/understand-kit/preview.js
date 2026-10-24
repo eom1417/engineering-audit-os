@@ -5,7 +5,7 @@
 // copy the sheet explains how to open the console live.
 import {
   t, L, num, esc, icon, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, offline,
-  client, ActionError, contract, store, assistantPicker,
+  client, ActionError, contract, store, assistantPicker, estimate,
 } from 'eaos';
 import { facts } from './kit.js';
 
@@ -33,11 +33,6 @@ function assistants(p, own) {
   return `<div>${assistantPicker(all, picked, 'un-')}</div>`;
 }
 
-function estimate(p) {
-  const lo = p.estimate && p.estimate.minutes_low, hi = p.estimate && p.estimate.minutes_high;
-  if (lo == null || hi == null) return t('pv.estimate.none');
-  return hi > 180 ? t('pv.estimate.h', { lo: num(Math.round(lo / 60)), hi: num(Math.ceil(hi / 60)) }) : t('pv.estimate.v', { lo: num(lo), hi: num(hi) });
-}
 
 /** Registers the preview sheet `name` of `action`: {action, title(own), inputs(own) -> the action's inputs, extra(own)
  *  -> markup of the choices it offers, command(own) -> the terminal line, ready(own) -> false while a choice is

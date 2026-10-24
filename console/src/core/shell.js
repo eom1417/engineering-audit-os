@@ -164,12 +164,17 @@ export function renderBanner(ctx) {
   } else el.innerHTML = '';
 }
 
-/** The selection bar is drawn by the screen that selects (Problems, the plan) through this hook. */
-let selbarRenderer = null;
-export function setSelbar(fn) { selbarRenderer = fn; }
+/** The selection bar of the screen that selects (Problems, the plan), which names the action that clears its picks:
+ *  the count, the group picked whole, and the four verbs (offline, the verb's sheet gives the command instead). */
+let selbarClear = null;
+export function setSelbar(clearAct) { selbarClear = clearAct; }
+const selbarHTML = () => `<div class="selbar__top"><span class="selbar__count">${esc(tn('pl.selected', picked.ids.size))}</span>
+    ${picked.group ? `<span class="tag tag--state">${esc(t('sel.group', { name: picked.group.label }))}</span>` : ''}
+    <button class="btn btn--plain btn--sm" data-act="${selbarClear}">${icon('x', 'icon--sm')}${t('sel.clear')}</button></div>
+  <div class="selbar__verbs">${['fix', 'verify', 'explain', 'plan'].map((v, i) => `<button class="btn ${i ? 'btn--secondary' : 'btn--primary'}" data-act="sheet" data-sheet="verb:${v}">${t('verb.' + v)}</button>`).join('')}</div>`;
 export function renderSelbar() {
   const el = document.getElementById('selbar');
-  if (picked.ids.size && selbarRenderer) { el.innerHTML = selbarRenderer(); el.setAttribute('aria-label', tn('pl.selected', picked.ids.size)); }
+  if (picked.ids.size && selbarClear) { el.innerHTML = selbarHTML(); el.setAttribute('aria-label', tn('pl.selected', picked.ids.size)); }
   else el.innerHTML = '';
   document.body.classList.toggle('has-selection', picked.ids.size > 0);
 }

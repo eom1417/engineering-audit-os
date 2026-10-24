@@ -22,8 +22,8 @@ BASELINE = ROOT / 'tools' / 'quality.json'
 # enola is not one of them: its dead-code count moves with the words of the documents (CHANGELOG, METRICS), not the code.
 ENGINES = ('jscpd', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
 # Not what EAOS ships: the tests and their fixtures, the developer tools (tools/, console/tools: the code limits still
-# hold them), the built Studio, the examples beside EAOS's semgrep rules, and what is vendored or generated.
-EXCLUDE = ('tests', 'tools', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
+# hold them), an assistant's worktrees (.claude), the built Studio, the examples beside EAOS's semgrep rules, and what is vendored or generated.
+EXCLUDE = ('tests', 'tools', '.claude', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
 CODE = ('python', 'javascript', 'css')  # what jscpd compares: the code, not data or prose
 
 

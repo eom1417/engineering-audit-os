@@ -1,7 +1,7 @@
 // Markup and time helpers every screen draws with. Times are shown in the person's time zone (prefs.tz), relative to
 // now; paths, symbols and settings inside report texts are isolated left to right (SET-04).
 import { prefs } from './prefs.js';
-import { t } from './i18n.js';
+import { t, num } from './i18n.js';
 
 export function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -35,6 +35,12 @@ export function assistantPicker(all, picked, prefix) {
     return `<label class="opt ${ready ? '' : 'opt--off'}"><input type="radio" name="${prefix}asst" value="${esc(a.id)}" data-change="${prefix}pv-asst" data-fk="${prefix}asst-${esc(a.id)}" ${a.id === picked ? 'checked' : ''} ${ready ? '' : 'disabled'}>
       <span class="opt__dot"></span><span class="opt__text">${esc(a.name)}<span class="opt__note">${t(!a.installed ? 'pv.notinstalled' : !a.logged_in ? 'pv.notsigned' : 'pv.ready')}${a.version ? ' · ' + esc(a.version) : ''}</span></span></label>`;
   }).join('')}</div>`;
+}
+/** An action preview's estimate in words: minutes, hours past three, or that none could be made. */
+export function estimate(p) {
+  const lo = p.estimate && p.estimate.minutes_low, hi = p.estimate && p.estimate.minutes_high;
+  if (lo == null || hi == null) return t('pv.estimate.none');
+  return hi > 180 ? t('pv.estimate.h', { lo: num(Math.round(lo / 60)), hi: num(Math.ceil(hi / 60)) }) : t('pv.estimate.v', { lo: num(lo), hi: num(hi) });
 }
 export function band(score) {
   if (score == null) return null;
