@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core.progress import ProgressLog, previous_seconds, using
+from ..core.progress.flow import incomplete, partial
 from ..core.usage import FILE as USAGE
 from .live_app import PAGE_STAGES, close_app
 from .paths import resolve
@@ -248,12 +249,8 @@ def _satisfied(name, results, out):
 
 
 def completion_status(results):
-    if any(row['status'] in {FAILED, NOT_REACHED} or
-           (row['necessity'] == 'required' and row['status'] == UNAVAILABLE) for row in results.values()):
-        return 'INCOMPLETE'
-    if any((row['necessity'] == 'required' and row['status'] == SKIPPED) or row.get('reason_code') == 'tools_failed'
-           or (row.get('detail') or {}).get('assistant_lost') for row in results.values()):
-        return 'PARTIAL'
+    if any(incomplete(row) for row in results.values()): return 'INCOMPLETE'
+    if any(partial(row) or row.get('reason_code') == 'tools_failed' for row in results.values()): return 'PARTIAL'
     return 'COMPLETE'
 
 
