@@ -40,7 +40,7 @@ class Answers:
     def _answer(self, question_id, option=None, text=None, via='studio'):
         run, record, question = self._checked(question_id, option, text)
         option = prompts.picked(record, question, option, text)          # words act on a direct step's question too
-        label = (next((o for o in question.get('options') or [] if o['id'] == option), None) or {}).get('label') or {'en': text or '', 'ar': text or ''}
+        label = self._label_of(question, option, text)
         self.store.append(run, 'answer', {'en': f"You answered {prompts.WHERE[via]['en']}: {label['en']}", 'ar': f"جاوبت {prompts.WHERE[via]['ar']}: {label['ar']}"},
                           {'question': question_id, 'option': option, 'text': text, 'by': 'person', 'via': via})
         self.store.update(run, question=None, answered=(record.get('answered') or []) + [{'id': question_id, 'option': option, 'text': text, 'at': now()}])
@@ -57,6 +57,11 @@ class Answers:
         if adapter is None: self._fail(run, 'the assistant of this run is not available any more')
         else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang, done, via), record.get('session')), daemon=True).start()
         return self.store.load(run)
+
+    @staticmethod
+    def _label_of(question, option, text):
+        """{en, ar} of the answer: the option's label, else the person's own words."""
+        return (next((o for o in question.get('options') or [] if o['id'] == option), None) or {}).get('label') or {'en': text or '', 'ar': text or ''}
 
     @staticmethod
     def _well_formed(option, text):

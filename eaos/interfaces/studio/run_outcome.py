@@ -28,6 +28,18 @@ def _diff_stat(project, branch):
     return stat
 
 
+def _landed(fresh):
+    """A direct batch of `fresh`: it landed on the base branch itself and left no branch; None."""
+    return next((w for w in reversed(fresh) if w.get('direct') and w.get('status') == 'accepted'), None)
+
+
+def _landed_outcome(landed):
+    """The outcome of a direct batch: where it landed, and the cards it closed with their checks."""
+    kept = list(landed.get('kept') or [])
+    return {'landed_on': landed.get('merge_into'), 'target': landed.get('merge_into'), 'cards_closed': kept,
+            'tests': prompts.batch_tests(kept, landed.get('failed') or {})}
+
+
 class Outcomes:
     """The run manager's outcomes."""
     def _auto_accept(self, run, payload):
@@ -36,10 +48,8 @@ class Outcomes:
         only. Never into a protected branch, never another run's branch; otherwise the branch waits for the person."""
         record = self.store.load(run)
         branch = payload.get('branch')
-        if not (record.get('verb') == 'fix' and record.get('auto_accept') is True and branch and payload.get('cards_closed')): return None
-        if record.get('outcome') or self.newest_waiting() != branch: return None
-        wave = next((w for w in reversed((project_state.load(self.project) or {}).get('waves') or []) if w.get('branch') == branch), {})
-        target = wave.get('merge_into') or (record.get('where') or {}).get('merge_into') or payload.get('target')
+        if not self._may_accept_itself(record, payload): return None
+        target = self._merge_target(record, payload)
         if not target or not self.branch_control: return None
         reason = self.branch_control.policy()['protected'].get(target)
         if reason:
@@ -51,6 +61,24 @@ class Outcomes:
                           {'action': 'accept', 'by': 'person', 'arguments': {'branch': branch, 'auto_accept': True}})
         try: result = self.call('accept', {'person_agreed': True})
         except Exception as problem: result = {'error': f'{type(problem).__name__}: {problem}'}
+        self._accepted_by_itself(run, branch, result)
+        return result
+
+    def _may_accept_itself(self, record, payload):
+        """Whether this Fix run's own batch may be accepted by itself: the person chose it, a change was kept, nothing
+        decided it yet, and its branch is the newest waiting."""
+        branch = payload.get('branch')
+        if not (record.get('verb') == 'fix' and record.get('auto_accept') is True and branch and payload.get('cards_closed')): return False
+        return not record.get('outcome') and self.newest_waiting() == branch
+
+    def _merge_target(self, record, payload):
+        """Where the batch merges: as its wave says, else as the run's preview chose, else the run's target."""
+        branch = payload.get('branch')
+        wave = next((w for w in reversed((project_state.load(self.project) or {}).get('waves') or []) if w.get('branch') == branch), {})
+        return wave.get('merge_into') or (record.get('where') or {}).get('merge_into') or payload.get('target')
+
+    def _accepted_by_itself(self, run, branch, result):
+        """What the accept by itself came to, in the run: taken in, or why the branch still waits for the person."""
         ok = isinstance(result, dict) and not result.get('error') and result.get('status') == 'accepted'
         if ok:
             self.store.append(run, 'result', {'en': f'Taken in automatically: {branch}', 'ar': f'اعتُمد تلقائيًا: {branch}'},
@@ -60,7 +88,6 @@ class Outcomes:
             why = str((result or {}).get('status') or (result or {}).get('error'))
             self.store.append(run, 'say', {'en': f'Not accepted automatically ({why}): the branch {branch} waits for you',
                                            'ar': f'ما اعتُمد تلقائيًا ({why}): الفرع {branch} ينتظرك'}, {'branch': branch, 'reason': why})
-        return result
 
     def _waiting_branches(self):
         state = project_state.load(self.project) or {}
@@ -76,13 +103,9 @@ class Outcomes:
         state = project_state.load(self.project) or {}
         fresh = [] if record.get('read') else _fresh_waves(record, state)   # a reading run hands no batch over
         wave = next((w for w in reversed(fresh) if w.get('status') == 'applied'), None)
-        # a direct batch: it landed on the base branch itself and left no branch
-        landed = None if wave else next((w for w in reversed(fresh) if w.get('direct') and w.get('status') == 'accepted'), None)
+        landed = None if wave else _landed(fresh)
         out = {'branch': None, 'diff_stat': None, 'tests': None, 'cards_closed': [], 'indicators': [], 'answer': answer}
-        if landed:
-            kept = list(landed.get('kept') or [])
-            out.update(landed_on=landed.get('merge_into'), target=landed.get('merge_into'), cards_closed=kept,
-                       tests=prompts.batch_tests(kept, landed.get('failed') or {}))
+        if landed: out.update(_landed_outcome(landed))
         if wave: self._wave_outcome(run, wave, state, out)
         return out
 
