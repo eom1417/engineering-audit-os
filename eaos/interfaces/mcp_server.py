@@ -13,9 +13,8 @@ from pathlib import Path
 
 from .. import __version__
 from . import node_jobs
-from ..core import tools_catalog
+from ..core import project_state, tools_catalog
 from ..core.code_laws import LAWS
-from ..core import project_state
 
 INSTRUCTIONS = """EAOS (Engineering Audit OS) checks a whole software project, finds its structural, security and
 performance problems with evidence, and fixes them safely: each fix is made in an isolated copy, checked (the

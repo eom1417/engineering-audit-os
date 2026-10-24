@@ -14,6 +14,7 @@ from unittest import mock
 from eaos.journeys import guided
 from eaos.interfaces import terminal  # noqa: F401  (the terminal's accept, undo and check, registered in guided)
 from eaos.core import project_state
+from eaos.report.start_here import start_here
 
 BOX_END = guided.LINE
 
@@ -44,7 +45,7 @@ def _fake_scan(state, args):
     out.mkdir(parents=True, exist_ok=True)
     (out / 'plan.json').write_text(json.dumps(PLAN))
     (out / 'run-manifest.json').write_text(json.dumps({'status': 'COMPLETE', 'stages': {}}))
-    page = guided.start_here(out, state['lang'], 'shop')
+    page = start_here(out, state['lang'], 'shop')
     guided.box(state['lang'], 'scanned', where=page, commands=['eaos next'])
     return 0
 
@@ -214,14 +215,14 @@ class Pages(unittest.TestCase):
                 *[{'pattern': 'remove_dead', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['a.ts']}] * 5,
                 {'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['b.ts']},
                 {'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}, 'paths': ['c.ts']}]}))
-            text = guided.start_here(tmp, 'en', 'shop').read_text()
+            text = start_here(tmp, 'en', 'shop').read_text()
             self.assertIn('I found **7** problems', text)
             self.assertIn('**6** of them EAOS can fix automatically', text)
             self.assertLess(text.index('Broken code'), text.index('Dead code'))
             self.assertIn('eaos next', text)
             (Path(tmp) / 'plan.json').write_text(json.dumps({'tasks': [
                 {'pattern': 'canonicalize', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['a.ts']}]}))
-            text = guided.start_here(tmp, 'ar', 'shop').read_text()
+            text = start_here(tmp, 'ar', 'shop').read_text()
         self.assertIn('كود منسوخ', text)
         self.assertNotIn('Copied code', text)
         from eaos.pipeline import execute

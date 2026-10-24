@@ -19,6 +19,7 @@ from pathlib import Path
 
 from . import guided
 from ..core import project_state
+from ..core.project_state import waiting_batch
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
@@ -173,7 +174,7 @@ def brief(state, steps=12, notes=8):
 
 def _waiting(state):
     """The batch branch handed over and waiting for the person's accept or undo, None when none is."""
-    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    waiting = waiting_batch(state)
     return {'branch': waiting['branch'], 'decision': 'accept or undo'} if waiting else None
 
 

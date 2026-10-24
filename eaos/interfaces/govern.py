@@ -294,7 +294,7 @@ def show_run(project, run=None):
 def waiting(project):
     """Everything waiting for the person: the runs' questions, the report's questions not answered yet, the branch
     handed over for accept or undo, and the sign-in a check waits for."""
-    from ..journeys.batch_branch import waiting_batch
+    from ..core.project_state import waiting_batch
     actions = core(project)
     rows = [{'id': q['id'], 'kind': 'question', 'run': q.get('run'), 'text': q.get('text'), 'options': q.get('options') or [],
              'recommendation': q.get('recommendation')} for q in actions.questions()]

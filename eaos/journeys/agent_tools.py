@@ -19,7 +19,8 @@ from ..core import branches, jobs, launch, plain, toolchain
 from ..live import sign_in as signing
 from ..ai.readiness import NoAssistant
 from ..pipeline import remedies
-from .batch_branch import commit_of, direct_target, merge_target, waiting_batch
+from .batch_branch import commit_of, direct_target, merge_target
+from ..core.project_state import waiting_batch
 from ..analysis.finish_line import proof
 from ..ai import readiness
 from ..live import assist as live_assist, run_profile, setup as live_setup
@@ -103,10 +104,6 @@ def tool_digest():
 def _current(state, head):
     """The check on record is for this code (this commit, or it plus EAOS's own merged fixes), by this EAOS."""
     return guided.same_code(state, state.get('scanned_commit'), head) and state.get('scanned_with') == tool_digest()
-
-
-def _set_up(state, head):
-    return guided.same_code(state, (state.get('setup') or {}).get('commit'), head)
 
 
 def _report(state):
@@ -207,7 +204,7 @@ def _branch(state):
     out, without a question); else the choice to put to the person (eaos/core/branches.py)."""
     if state.get('branch'): return None
     current = branches.checked_out(state['project'])
-    unfinished = state.get('open_wave') or any(w.get('status') == 'applied' for w in state.get('waves') or [])
+    unfinished = state.get('open_wave') or waiting_batch(state) is not None
     options = None if unfinished else branches.choice(state['project'])     # work begun before: it is the checked out branch's
     if options is None:
         if current: guided.choose(state, current)
@@ -251,9 +248,7 @@ def choose_branch(branch, project=None, person_said=''):
                             'your recommendation and why) and end your turn. When they reply, in any words (a name, or "the one '
                             'you recommend"), call choose_branch again with the branch they meant and person_said = their reply: '
                             'it is accepted then. Nothing else is wrong with the call.'}
-    state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': branch, 'said': str(person_said)[:300] or None,
-                                              'via': 'assistant'})
-    state = guided.choose(state, branch)
+    state = guided.choose(state, branch, person_said, via='assistant')
     checked = guided.scan_done(state)
     return {'status': 'chosen', 'branch': branch, 'before': before, 'checked_before': checked,
             'commit': _head(state), 'report_for_people': str(branches.home(state) / 'REPORT.html'),
@@ -279,14 +274,14 @@ def status(project=None):
     guided.reconcile(state)
     retired, head, checked = guided.retire_stale_batch(state), _head(state), guided.scan_done(state)
     setup, safety, wave = state.get('setup') or {}, state.get('safety') or {}, state.get('open_wave')
-    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    waiting = waiting_batch(state)
     busy = jobs.running(state['project'])
     answer = {'project': state['project'], 'branch': state.get('branch'), 'commit': head,
               'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
               'checked': checked, 'checked_commit': state.get('scanned_commit'),
               'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(branches.home(state) / 'REPORT.html') if checked else None,
-              'app_runs': setup.get('ok') if _set_up(state, head) else None,
-              'safety_net': safety if guided.same_code(state, safety.get('commit'), head) else None,
+              'app_runs': setup.get('ok') if guided.set_up(state, head) else None,
+              'safety_net': safety if guided.safety_holds(state, head) else None,
               'progress': ((ledger.load(state) or {}).get('totals') if checked else None),
               **_batches(wave, retired),
               'waiting_branch': waiting['branch'] if waiting else None,
@@ -300,9 +295,9 @@ def status(project=None):
     elif wave and wave.get('last_error'):
         step = ('fix_abandon', f"batch {wave['number']} could not be finished ({wave['last_error'][:200]}): close it, its cards can be tried again")
     elif wave: step = batch_finish.open_step(wave)
-    elif not _set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
+    elif not guided.set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
     elif not setup.get('ok'): step = ('run_try', 'the app does not run yet: read the last failure and propose a fix')
-    elif not guided.same_code(state, safety.get('commit'), head): step = ('safety_net', 'record the screens before any fix')
+    elif not guided.safety_holds(state, head): step = ('safety_net', 'record the screens before any fix')
     elif not safety.get('passed'): step = ('none', 'the safety net recorded nothing: EAOS cannot protect this project yet, so no fix starts')
     else: step = ('fix_start', 'open the next batch of fixes')
     answer['next'] = {'tool': step[0], 'why': step[1]}
@@ -397,26 +392,15 @@ def _older_check(state):
 def _audit_job(project, arguments, progress):
     """The check, once none of the tools it needs here is still being installed; without those that failed only when
     the person chose to start without them (`without_tools`)."""
-    from ..report.start_here import start_here
     state = project_state.load(project)
-    out = guided.report_of(state)
     without = arguments.get('without_tools')
     failed = guided.tools_for_check(state, lambda done, total: progress and progress(done, total, 'tools'), install=not without)
     if failed and not without: raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = check_choices.options(state, progress, failed, guided.check_provider(state), guided.check_runtime(state),
                                     arguments.get('paths'), arguments.get('engines'), arguments.get('published'))
     if arguments.get('without_ai'): options['provider'] = NoAssistant('ai_skipped', 'the person started this check without AI, because their assistant was not ready')
-    source = guided.source(state, state.get('scanned_commit') if arguments.get('again_from') else None)   # going on: the checked code
-    read = {} if arguments.get('again_from') else {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}   # taken before the scan reads: a commit made meanwhile is not in it
-    from ..pipeline import check
-    done = check(str(source), out, arguments.get('again_from'), state.get('scanned_dirty') is False, go_on=bool(arguments.get('go_on')), **options)
-    done = remedies.apply(done, lambda stages: check(str(source), out, stages, True, **options), out, progress, guided.chosen_assistant(state), options['provider'])
-    if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
-    state = project_state.load(project)
-    state.update(scanned=_now(), scanned_with=tool_digest(), **read)
-    guided.retire_stale_batch(state)
-    guided.publish(state)
-    guided.save(state)
+    from .check import run
+    done = run(state, options, arguments.get('again_from'), bool(arguments.get('go_on')))[0]
     return {**overview(project), **remedies.consent(done, CONSENT)}
 
 
@@ -680,9 +664,8 @@ def run_setup(project=None, person_agreed=False):
     check_choices.agree_to_run(state, 'assistant')
     guided.save(state)
     runtime = project_state.runtime_of(state)
-    who = guided._git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
     source = guided.source(state)
-    live_setup.authorize(source, runtime, who)
+    live_setup.authorize(source, runtime, live_setup.owner(state['project']))
     detected = live_setup.detect(source, guided.report_of(state))
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
@@ -790,7 +773,7 @@ def _run_job(project, arguments, progress):
 
 def safety_net(project=None):
     state = state_of(project)
-    if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
+    if not guided.set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     return _start('safety_net', state, {}, watch=True)
 
 
@@ -895,7 +878,7 @@ def _not_ready(state, deliver_as):
     """Why no batch may open yet: no agreement, no run, no safety net, or fixes waiting for a decision elsewhere."""
     if not _consented(state): return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                                       'what_now': 'Ask the person; if they agree, call run_setup with person_agreed=true.'}
-    if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
+    if not guided.set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     if unsafe := _no_safety_net(state): return unsafe
     waiting = waiting_batch(state)
     if waiting and waiting['branch'] != deliver_as:
@@ -927,7 +910,7 @@ def _chosen(state, cards, size):
 def _no_safety_net(state):
     """Why no batch may open (the safety net is missing or recorded nothing: fix_finish would refuse every change); None."""
     safety = state.get('safety') or {}
-    if not guided.same_code(state, safety.get('commit'), _head(state)):
+    if not guided.safety_holds(state, _head(state)):
         return {'status': 'no_safety_net', 'what_now': 'Call safety_net first: it records what the program does today.'}
     if safety.get('passed'): return None
     why = '; '.join(f"{row.get('path') or 'the app'}: {row.get('reason') or row.get('status')}" for row in (safety.get('skipped') or [])[:3]) or 'the lock has no page: the code names none and the running app could not be crawled (did it start and answer?)'

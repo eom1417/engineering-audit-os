@@ -12,11 +12,6 @@ def commit_of(project, branch):
     return ''
 
 
-def waiting_batch(state):
-    """The last batch handed over and waiting for the person's decision (accept or undo), or None."""
-    return next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
-
-
 def direct_target(project, name):
     """(deliver_as, merge_into) of a batch that lands on the branch EAOS works on itself, unless that branch is protected."""
     why = branches.protected(project, name)

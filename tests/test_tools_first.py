@@ -74,7 +74,7 @@ class Entry(Project):
         self.assertEqual(start.call_args.args[2], {'without_tools': True})
         # The check job waits, and a failed tool stops it unless the person starts without it.
         with mock.patch.object(toolchain, 'wait_for_check', return_value=FAILED) as waited, \
-                mock.patch('eaos.pipeline.check', side_effect=RuntimeError('the check ran')) as check:
+                mock.patch('eaos.journeys.check.check', side_effect=RuntimeError('the check ran')) as check:
             with self.assertRaises(guided.ToolsMissing) as stopped:
                 agent_tools._audit_job(str(self.project), {}, None)
             self.assertIn('semgrep: no network', str(stopped.exception))

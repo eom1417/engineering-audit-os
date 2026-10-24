@@ -30,9 +30,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...core import branches as reading
+from ...core import branches as reading, project_state
 from ...core.store import ACTIVE, TERMINAL, _read_json, _write_json, now
-from ...core import project_state
 
 RECOVERY = 'refs/eaos-recovery/'
 EAOS_NAME, EAOS_EMAIL = 'EAOS', 'eaos@localhost'
@@ -424,7 +423,7 @@ class BranchControl:
         reason, not choosable) and the choice to delete the branch after merging (on by default)."""
         state = self.state()
         head = self.head()
-        wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+        wave = project_state.waiting_batch(state)
         protected = self.policy()['protected']
         rows = [(name, tip) for kind, _, name, _, tip, *_ in self.refs() if kind == 'local' and reading._persons(name)
                 and not name.startswith(reading.ARCHIVED)]
@@ -738,7 +737,7 @@ class BranchControl:
     def _wave_path(self, source, target, inventory, reasons):
         """True for the newest applied EAOS batch into its own branch (it goes through accept); refuses any other one."""
         if (self.waves().get(source) or {}).get('status') != 'applied': return False
-        latest = next((w for w in reversed(self.state().get('waves') or []) if w.get('status') == 'applied'), None)
+        latest = project_state.waiting_batch(self.state())
         if latest is not None and latest.get('branch') == source and target == inventory['context']['analysis']['branch']: return True
         reasons.append(say('This EAOS batch is accepted only into the branch it was made for, newest batch first.',
                            'تُعتمد دفعة EAOS فقط في الفرع الذي صُنعت له، والأحدث أولًا.', 'wave_order'))

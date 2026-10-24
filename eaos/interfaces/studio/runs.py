@@ -583,9 +583,7 @@ class Manager:
 
     def _choose_branch(self, branch, said):
         from ...journeys import agent_tools
-        state = agent_tools.state_of(str(self.project))
-        state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': branch, 'said': str(said)[:300], 'via': 'studio'})
-        guided.choose(state, branch)
+        guided.choose(agent_tools.state_of(str(self.project)), branch, said, via='studio')
 
     # the handoff
     def _handoff(self, run):
@@ -643,8 +641,7 @@ class Manager:
 
     def newest_waiting(self):
         """The branch accept and undo act on: the newest wave still waiting for the person, or None."""
-        from ...journeys import batch_branch
-        return (batch_branch.waiting_batch(project_state.load(self.project) or {}) or {}).get('branch')
+        return (project_state.waiting_batch(project_state.load(self.project) or {}) or {}).get('branch')
 
     def _outcome(self, run, answer=None):
         """The result event's data: the new branch, its diff and its checks, the cards it closes, and the assistant's words."""

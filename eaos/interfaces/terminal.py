@@ -310,7 +310,7 @@ def decide(args, lang, operation):
     """Accept or undo the batch waiting: what will happen said first, the person's yes (or --yes), then the Studio's own
     way when a run handed it over (the run records it), else the assistant's tool."""
     from ..journeys import agent_tools
-    from ..journeys.batch_branch import waiting_batch
+    from ..core.project_state import waiting_batch
     refuse_in_studio_run(operation)
     actions = govern.core(args.project)
     state = project_state.current(args.project)

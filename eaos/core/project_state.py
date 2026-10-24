@@ -65,3 +65,8 @@ def current(project='.'):
 def runtime_of(state):
     """The run's working folder of the branch EAOS works on, beside its state."""
     return Path(state['workspace']) / ('runtime' + suffix(state))
+
+
+def waiting_batch(state):
+    """The last batch handed over and waiting for the person's decision (accept or undo), or None."""
+    return next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)

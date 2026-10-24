@@ -24,9 +24,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core import branches, jobs, plain, project_state
-from ..core.project_state import current, load, looks_like_project, runtime_of
+from ..core.project_state import current, load, looks_like_project, runtime_of, waiting_batch
 from . import check_choices, waves
-from ..report.start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/report/start_here.py)
+from ..report.start_here import summary_counts
 from ..core.places import home, outputs_root, second_name, workspace  # noqa: F401  (one home: eaos/core/places.py; guided's names stay its API)
 
 ERRORS = Path(__file__).resolve().parents[1] / 'data/errors.json'
@@ -555,24 +555,17 @@ def scan(state, args):
     """Step 1: the whole audit, with progress, then START-HERE.md in plain words. It starts once the tools it needs
     here are installed, or without those that failed when the person says so."""
     lang = state['lang']
-    from ..pipeline import check
-    out = report_of(state)
-    read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
+    from .check import run
     failed = check_tools(state, args)
     if failed is None: return 1
     if not agree_to_assistant(state, args.yes): return 1
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
-    check_choices.keep(state, getattr(args, 'mode', None))     # kept with the check's state, saved below
-    manifest = check(str(source(state)), out, **check_choices.options(state, progress_printer(lang), failed, check_provider(state),
-                                                                      check_runtime(state), getattr(args, 'path', None)))
-    if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
-    state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    state.update(read)
-    retire_stale_batch(state)
-    page = publish(state)
-    save(state)
-    counts = summary_counts(out)
+    check_choices.keep(state, getattr(args, 'mode', None))
+    save(state)                                                 # the check reads the state as it stands
+    manifest, state, page = run(state, check_choices.options(state, progress_printer(lang), failed, check_provider(state),
+                                                             check_runtime(state), getattr(args, 'path', None)))
+    counts = summary_counts(report_of(state))
     happened = (f"فحصت مشروعك: {counts['problems']} مشكلة، منها {counts['ready']} يمكن إصلاحها آليًا" if lang == 'ar' else
                 f"Checked your project: {counts['problems']} problems, {counts['ready']} of them can be fixed automatically")
     note = None
@@ -585,7 +578,7 @@ def scan(state, args):
 
 def later_steps(state, args):
     lang = state['lang']
-    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    waiting = waiting_batch(state)
     if waiting:
         box(lang, (f"الدفعة {waiting['number']} تنتظر قرارك في الفرع {waiting['branch']}" if lang == 'ar'
                    else f"Batch {waiting['number']} is waiting for you on the branch {waiting['branch']}"),
@@ -761,13 +754,17 @@ def source(state, commit=None):
     return copy
 
 
-def choose(state, name):
+def choose(state, name, said=None, via=None):
     """Work on the branch `name` from now on: what this branch had (its check, run, batches) is kept aside, and what
-    `name` had before comes back. A branch only on origin gets its local branch, at the same commit. The new state."""
+    `name` had before comes back. A branch only on origin gets its local branch, at the same commit. The new state.
+    `via` (the assistant, the Studio): the person answered the branch question there, in the words `said`; the answer is
+    kept with the state's questions, whoever asked."""
+    if via: state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': name, 'said': str(said or '')[:300] or None,
+                                                       'via': via})
     if state.get('branch') == name: return state
     project = state['project']
     working_on = state.get('branch') or branches.checked_out(project)
-    if working_on != name and (state.get('open_wave') or any(w.get('status') == 'applied' for w in state.get('waves') or [])):
+    if working_on != name and (state.get('open_wave') or waiting_batch(state) is not None):
         raise ValueError(f"the work on {working_on} is not finished: close the open batch, and accept or undo the "
                          'waiting branch, before moving to another branch')
     _local_branch(project, name)
@@ -815,10 +812,19 @@ def _saved_note(state):
             else 'You have edits not saved in git: I work on the last saved version only')
 
 
+def set_up(state, head=None):
+    """The app's run is set up for the code at `head` (the branch's last commit): that commit, or it plus EAOS's own merged
+    fixes. One judgement for the CLI's steps and MCP's status (M3.3)."""
+    return same_code(state, (state.get('setup') or {}).get('commit'), _commit(state) if head is None else head)
+
+
+def safety_holds(state, head=None):
+    """The safety net was recorded on the code at `head`, so a batch may change it: one judgement for both (M3.3)."""
+    return same_code(state, (state.get('safety') or {}).get('commit'), _commit(state) if head is None else head)
+
+
 def ready_done(state):
-    """The run is set up, for the commit the project is at now."""
-    setup = state.get('setup') or {}
-    return bool(setup.get('commit')) and setup['commit'] == _commit(state) and (runtime_of(state) / 'run.json').is_file()
+    return set_up(state)
 
 
 def ready(state, args):
@@ -828,8 +834,7 @@ def ready(state, args):
     lang, commit = state['lang'], _commit(state)
     ask(state, 'run_app', _run_question(lang, (available() or [None])[0]), args.yes)
     runtime = runtime_of(state)
-    who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
-    live_setup.authorize(source(state), runtime, who)
+    live_setup.authorize(source(state), runtime, live_setup.owner(state['project']))
     say(('أجهّز تشغيل برنامجك. قد يأخذ هذا من 5 إلى 20 دقيقة.' if lang == 'ar'
          else 'Setting up your app to run. This can take 5 to 20 minutes.'))
     _, model = provider()
@@ -873,8 +878,7 @@ def _setup_box(state, lang, result, runtime):
 
 
 def safety_done(state):
-    safety = state.get('safety') or {}
-    return bool(safety.get('commit')) and safety['commit'] == (state.get('setup') or {}).get('commit')
+    return safety_holds(state)
 
 
 def safety_run(state, step=lambda n: None):

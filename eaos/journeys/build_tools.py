@@ -29,6 +29,7 @@ from .build_look import read as _read
 from ..analysis.plan_source import read_plan
 from ..core.progress.log import now
 from ..core import project_state
+from ..core.project_state import waiting_batch
 
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
            'step, and hand each milestone to your project as a new branch (nothing else in your project changes)?')
@@ -271,10 +272,9 @@ def build_start(project=None, person_agreed=False):
         guided.save(state)
         return {'status': 'built', 'what_now': 'Every milestone is built. Ask the person whether to take the last branch in '
                                                '(accept with person_agreed=true), then offer the audit of the built project.'}
-    from ..live.setup import authorize
+    from ..live.setup import authorize, owner
     runtime = project_state.runtime_of(state)
-    who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
-    authorize(state['project'], runtime, who)
+    authorize(state['project'], runtime, owner(state['project']))
     number = len(state.get('built') or []) + 1
     root = _milestone_copy(state, runtime, number)
     build = {'number': number, 'milestone': milestone['id'], 'root': str(root), 'base': _git(root, 'rev-parse', 'HEAD').stdout.strip(),
@@ -552,7 +552,7 @@ def _next_step(state, plan, bp, build, done):
     if not bp.get('designed'): return 'blueprint_design', 'the target and the build plan are not drawn yet'
     if build: return 'build_edit, then build_finish', f"milestone {build['milestone']} is open"
     if plan and len(done) < len(plan['milestones']): return 'build_start', 'the next milestone is waiting'
-    if any(w.get('status') == 'applied' for w in state.get('waves') or []):
+    if waiting_batch(state) is not None:
         return 'accept', 'everything is built: the person decides whether to take the last branch in'
     return 'audit', 'everything is built and taken in: offer the check of the finished project'
 
