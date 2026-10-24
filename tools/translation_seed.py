@@ -15,7 +15,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from eaos import bilingual  # noqa: E402
+from eaos.core import bilingual  # noqa: E402
 
 
 def _shipped():

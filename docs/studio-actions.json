@@ -2,7 +2,7 @@
  "schema_version": 1,
  "contract": "studio-actions",
  "revision": 1,
- "about": "The command centre (docs/STUDIO.md D8): every EAOS action the Studio can run, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints and their security, and the snapshot behaviour. Built by NS46.T9 (eaos/studio/actions/); read by the Studio pages of NS46.T10 and mounted by the NS37.T2 server. A packaged byte-identical copy is eaos/data/studio-actions.json.",
+ "about": "The command centre (docs/STUDIO.md D8): every EAOS action the Studio can run, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints and their security, and the snapshot behaviour. Built by NS46.T9 (eaos/interfaces/studio/); read by the Studio pages of NS46.T10 and mounted by the NS37.T2 server. A packaged byte-identical copy is eaos/data/studio-actions.json.",
  "actions": [
   {
    "id": "status",
@@ -1083,7 +1083,7 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 5,
-      "description": "How many assistants fix the batch at once, in the Studio's speed mode: the Studio starts the others, each with its own cards and files (eaos/lanes.py); one anywhere else."
+      "description": "How many assistants fix the batch at once, in the Studio's speed mode: the Studio starts the others, each with its own cards and files (eaos/journeys/lanes.py); one anywhere else."
      },
      "project": {
       "type": [
@@ -2054,7 +2054,7 @@
      },
      "speed": {
       "type": "boolean",
-      "description": "Speed mode: several assistants fix the batch at once, as many as this computer holds (eaos/lanes.py), each its own files; they spend the assistant's usage limit faster. The person's choice, kept for the project with the check's speed mode."
+      "description": "Speed mode: several assistants fix the batch at once, as many as this computer holds (eaos/journeys/lanes.py), each its own files; they spend the assistant's usage limit faster. The person's choice, kept for the project with the check's speed mode."
      }
     },
     "required": []
@@ -2698,12 +2698,12 @@
   {
    "method": "GET",
    "path": "/api/usage",
-   "does": "What the assistant used (eaos/usage.py): the last check stage by stage, and every run and the conversations with the assistant (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
+   "does": "What the assistant used (eaos/core/usage.py): the last check stage by stage, and every run and the conversations with the assistant (tokens, the cost at API prices when the assistant gives it, time, turns, models, cards kept)."
   },
   {
    "method": "POST",
    "path": "/api/chat",
-   "does": "Begin one turn of the conversation with the person's assistant (eaos/studio/actions/chat.py): {message, session?, context?, model?: quick|balanced|deep} -> {turn}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control, which the person confirms, or which direct control runs at once."
+   "does": "Begin one turn of the conversation with the person's assistant (eaos/interfaces/studio/chat.py): {message, session?, context?, model?: quick|balanced|deep} -> {turn}. It reads with EAOS's reading tools only; each proposal is a Studio action or a run control, which the person confirms, or which direct control runs at once."
   },
   {
    "method": "POST",

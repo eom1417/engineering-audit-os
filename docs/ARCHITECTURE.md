@@ -1,24 +1,31 @@
 # EAOS architecture
 
 Where everything lives, what may depend on what, and how a check flows. **Before adding a file, find its place in
-section 4.** Section 1 is today; sections 2-3 are the target that milestones M3 and M4 (`ROADMAP.md`) build; this page
+section 4.** Sections 1-2 are the layout and its rule (M3.1); section 3 is the target of M4 (`ROADMAP.md`); this page
 is updated in the same change that moves anything.
 
-## 1. Today (0.0.72)
+## 1. The layout (M3.1)
 
 ```
 engineering-audit-os/
-  eaos/            the Python package (62k lines, 297 files): 119 modules flat at its root (29k of those lines) plus
-    api/           the local HTTP server, its guard, events, sign-in
-    assistants/    Claude Code and Codex adapters, readiness probes
-    compose/       the written reports (four reports, labels, markup)
-    engines/       one adapter per external analyzer (semgrep, codeql, reforge, ...)
-    facts/         deterministic extractors (syntax, structure, graph, flows, secrets, ...)
-    pipeline/      stages declared as data (stages.py), runners, scheduler, run/resume
-    progress/      the live progress log and its estimates
-    screens/       the crawl and the screen audit
-    studio/        the Studio's data layer (sections) and its actions (runs, chat, branches)
-    data/          contracts, words, catalogs, the built Studio (data/studio)
+  eaos/            the Python package: ten layers, each a folder; only __init__.py and __main__.py at its root
+    core/          what every layer reads: the run store (store.py), contracts, workspace and places, jobs, the ledger,
+                   decisions, words (words.py), documents, processes (process.py), the tools registry (toolchain.py),
+                   the Studio's launch and guard, progress/
+    engines/       one adapter per external analyzer; the registry is eaos/data/toolchain.json
+    facts/         deterministic extractors over one snapshot (syntax, structure, graph, flows, dead code, registries ...)
+    live/          the app run in its sandbox, sign-in, test users, roles, the behaviour lock, load plans, the tests' run
+                   (verify.py), screens/ (the crawl and the screen audit)
+    analysis/      claims, correlation, weaknesses, the debt register, cards and plan, probes, the model of a report
+                   (model.py), the pipeline map (pipeline_map.py), the target projection
+    ai/            the assistants (Claude Code, Codex), their readiness and headless runs, prompts, the ideal picture,
+                   nodes/ (triage, plan orderer, reviewers ...)
+    report/        REPORT.html (human_report.py), START-HERE, the four reports, TARGET-ARCHITECTURE, RUN.md (run.py),
+                   studio/ (the data the Studio reads)
+    pipeline/      stages declared as data (stages.py), runners, schedule and estimate, check paths, run/resume
+    journeys/      check and fix (agent_tools.py, guided.py, waves.py, execute.py, batches, hand-over), build, extend
+    interfaces/    the CLI, MCP (mcp_server.py), api/ (the local server), studio/ (the Studio's actions)
+    data/ rules/ templates/   contracts, words, catalogs, the built Studio; engine rules; scripts the app runs
   console/         the Studio UI (JS, esbuild; built into eaos/data/studio)
   tests/           unittest suite
   tools/           developer tools: quality (every code law), golden_trial with detection_baseline, corpus,
@@ -27,37 +34,26 @@ engineering-audit-os/
   docs/            this page and the other references
 ```
 
-Known debts this layout carries (removed by M3): flat root without layers; the CLI (`guided.py`), MCP
-(`agent_tools.py`, `mcp_server.py`) and Studio (`studio/actions`) each hold their own command layer; two request
-guards (`api/guard.py`, `studio/actions/security.py`); the largest modules `human_report.py` (2,097 lines),
-`guided.py` (1,223), `agent_tools.py` (1,187), `studio/actions/branches.py` (1,140).
+Known debts M3.2-M3.5 remove: the CLI (`interfaces/cli.py`, `journeys/guided.py`), MCP (`journeys/agent_tools.py`,
+`interfaces/mcp_server.py`) and Studio (`interfaces/studio`) each hold their own command layer; two request guards
+(`interfaces/api/guard.py`, `core/security.py`); the largest modules `report/human_report.py` (2,097 lines),
+`journeys/guided.py`, `journeys/agent_tools.py`, `interfaces/studio/branches.py`; words in more than one catalog.
 
-## 2. Target layers (M3)
+## 2. The layers and the dependency rule
 
-```
-eaos/
-  core/        state store (the one truth), contracts, paths, jobs, ledger, words (i18n), errors
-  engines/     one adapter per tool + one registry (toolchain.json): run, parse, normalise
-  facts/       deterministic extractors over one snapshot
-  live/        run the app in its sandbox, sign-in, screen discovery (rules -> AI explorer -> replay), behaviour lock,
-               the one browser-agent layer (drive towards a goal, record each step, replay without AI)
-  analysis/    claims, correlation, weaknesses, debt, cards, plan, estimates (repair or rebuild)
-  ai/          assistant adapters, model tiers and escalation, prompts, AI nodes (triage, semantic, ideal),
-               the simulation's scenario planner, data generator and actors (M9)
-  journeys/    repair (check -> envision -> plan -> fix batches -> hand over), build (from an idea), extend
-  pipeline/    loops and stages declared as data, one runner
-  report/      REPORT.html and the few documents people read
-  interfaces/  cli, mcp, api, studio data layer: thin, all calling the same journeys
-console/       the Studio UI: optional and light
-```
+**A layer imports only the layers under it**, directly or not, in one order (enforced by `import-linter`'s layers
+contract in `pyproject.toml`, run by `tools/quality.sh`; since M3.1 with no exception):
 
-**Dependency rule** (enforced by `import-linter`: today's direct imports since M0.1, these layers from M3.1): a layer imports only the layers to its right.
+`interfaces → journeys → pipeline → report → ai → analysis → live → (facts → engines) → core`
 
-`interfaces → journeys → pipeline → (analysis | ai | live | report) → (facts | engines) → core`
-
-Layers in one group (`analysis | ai | live | report`, `facts | engines`) do not import each other: `pipeline` and
-`journeys` combine them. No layer imports `interfaces`; `core` imports nothing of EAOS; the interfaces (CLI, MCP, API,
-Studio) never hold logic of their own.
+- `core` imports nothing of EAOS; `engines` only `core`; `facts` reads the engines' findings.
+- `analysis` judges by rules what the facts and the app's run gave; `ai` sits above it because the assistant judges
+  the rules' findings (triage, the strict judge of M6.4) and their verdicts come back as data.
+- `report` renders the analysis and the assistant's verdicts; it computes nothing of its own.
+- `pipeline` runs the stages, `journeys` combine the pipeline with the person's steps, `interfaces` stay thin.
+- The order was one line, not groups of peers (the plan of M-1): on today's code reports read the analysis and the
+  assistant reads both, so groups that never import each other would have needed a rewrite, where one order needed
+  five moves of code (M3.1).
 
 ## 3. The pipeline as loops (M4)
 
@@ -89,19 +85,20 @@ red at the top of the report.
 
 | It is… | It goes in |
 |---|---|
-| a rule that reads source and produces facts | `facts/` (target: `facts/`) |
+| something every layer reads (a contract, a path, a word, the store) | `core/`: it imports nothing of EAOS |
+| a rule that reads source and produces facts | `facts/` |
 | an adapter for an external tool | `engines/<name>.py` + its entry in `eaos/data/toolchain.json` (`check: engines`) |
-| running the app, signing in, finding screens | today `live_*.py`, `screens/`, `pipeline/pages.py` → target `live/` |
-| judging findings by rules, cards, plan, estimates | today flat modules (`claims.py`, `plan.py`, …) → target `analysis/` |
-| judging findings with an assistant (triage, the strict judge of M6.4) | today `studio/nodes/` → target `ai/`; `analysis/` takes its verdicts as data |
-| driving the browser for a goal, recording, replaying | target `live/` (the one browser-agent layer, M5.2) |
-| a simulated user: scenario, personas, data, actors, tickets | target `ai/` (M9); its replays run from `live/` |
-| anything that calls an assistant | today `assistants/`, `studio/nodes/`, `studio/ideal*.py` → target `ai/` |
-| a journey's steps (check, fix batches, build, extend) | today `guided.py`, `waves.py`, `blueprint.py`, `extend.py` → target `journeys/` |
-| a stage or loop declaration | `pipeline/stages.py` (target: plus `pipeline/loops.py`) |
-| what people read (REPORT.html, the few documents) | today `human_report.py`, `compose/` → target `report/` |
-| a CLI command, MCP tool, API route or Studio section | target `interfaces/`: thin, calling a journey |
-| words shown to people | the one words catalog (`eaos/data/`; target `core/words`) |
+| running the app, signing in, finding screens | `live/` (`live/screens/` for the crawl and the audit) |
+| driving the browser for a goal, recording, replaying | `live/` (the one browser-agent layer, M5.2) |
+| judging findings by rules, cards, plan, estimates | `analysis/` |
+| judging findings with an assistant (triage, the strict judge of M6.4) | `ai/` (`ai/nodes/`); `analysis/` takes its verdicts as data |
+| anything that calls an assistant | `ai/` |
+| a simulated user: scenario, personas, data, actors, tickets | `ai/` (M9); its replays run from `live/` |
+| what people read (REPORT.html, the few documents, the Studio's data) | `report/` (`report/studio/`) |
+| a stage or loop declaration | `pipeline/stages.py` (M4: plus `pipeline/loops.py`) |
+| a journey's steps (check, fix batches, build, extend) | `journeys/` |
+| a CLI command, MCP tool, API route or Studio action | `interfaces/`: thin, calling a journey |
+| words shown to people | the one words catalog (`core/words.py` and `eaos/data/`; M3.5 makes it one) |
 | a Studio screen | `console/src/places/<place>/` (only core places; see `ROADMAP.md` M7) |
 | a test | `tests/test_<module>.py`, one test per real behaviour |
 | a developer tool | `tools/` |

@@ -7,12 +7,12 @@ import unittest
 import urllib.request
 from pathlib import Path
 
-from eaos.live_run import LiveRun
-from eaos.live_setup import authorize, free_port
+from eaos.live.run import LiveRun
+from eaos.live.setup import authorize, free_port
 from eaos.pipeline.live_app import shared_app
 from eaos.pipeline.run import execute
-from eaos.run_profile import write_profile
-from eaos.screens.audit import missing
+from eaos.live.run_profile import write_profile
+from eaos.live.screens.audit import missing
 from test_pipeline_run import fake_runners
 
 SERVER = '''import os, sys
@@ -41,7 +41,7 @@ class SetupTests(unittest.TestCase):
     def test_the_apps_own_test_browsers_are_never_installed_to_run_it(self):
         # A real build: the setup ran `npx playwright install chromium`, whose shared folder is read only in the isolated
         # run, so the finished product's screens were never pictured.
-        from eaos.live_run import _test_browsers
+        from eaos.live.run import _test_browsers
         self.assertTrue(_test_browsers(['npx', 'playwright', 'install', 'chromium']))
         self.assertTrue(_test_browsers(['pnpm', 'exec', 'playwright', 'install', '--with-deps']))
         self.assertFalse(_test_browsers(['npm', 'install']))
@@ -49,9 +49,9 @@ class SetupTests(unittest.TestCase):
     def test_eaos_scripts_in_the_app_load_eaos_playwright_never_the_apps_own(self):
         # A real build: the probe, written into the app's copy, loaded the app's own Playwright (another version, no
         # browsers), so every page stage stopped. One variable names EAOS's own, for the probe and the seed alike.
-        from eaos import live_assist
-        from eaos.live_setup import PROBE
-        from eaos.toolchain import home
+        from eaos.live import assist as live_assist
+        from eaos.live.setup import PROBE
+        from eaos.core.toolchain import home
         with tempfile.TemporaryDirectory() as tmp:
             app, eaos = Path(tmp) / 'app', Path(tmp) / 'eaos-playwright'
             (app / 'node_modules/playwright').mkdir(parents=True)
@@ -79,7 +79,7 @@ class SharedAppTests(unittest.TestCase):
         self.target.mkdir()
         import os
         from unittest import mock
-        from eaos.places import workspace
+        from eaos.core.places import workspace
         home = mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'eaos-home')})    # this machine's projects aside
         home.start()
         self.addCleanup(home.stop)
@@ -135,7 +135,7 @@ class SharedAppTests(unittest.TestCase):
 
     @unittest.skipIf(missing('playwright'), 'the pinned Playwright is not installed')
     def test_a_session_signed_in_by_hand_outlives_the_seed_and_is_asked_again_only_once_it_expired(self):
-        from eaos import sign_in
+        from eaos.live import sign_in
         from eaos.pipeline.live_app import close_app
         from eaos.pipeline.run import Context
         from test_sign_in import _as_the_person

@@ -4,8 +4,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.artifact_contracts import contracts, validate
-from eaos.measurements import build
+from eaos.core.artifact_contracts import contracts, validate
+from eaos.analysis.measurements import build
 
 
 def fact(kind, path, value, **location):

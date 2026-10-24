@@ -13,7 +13,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, batch_finish, guided, ledger, live_setup
+from eaos.journeys import agent_tools, batch_finish, guided
+from eaos.core import ledger
+from eaos.live import setup as live_setup
 from eaos.pipeline import runners
 from eaos.pipeline.stages import SkipStage
 
@@ -49,9 +51,9 @@ class Journey(unittest.TestCase):
         for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
                       mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
-                      mock.patch('eaos.waves.original_checks', return_value={}),
-                      mock.patch('eaos.waves.gates', side_effect=project_checks),
-                      mock.patch('eaos.waves._against_control', return_value=False)):   # the base passes: nothing set aside
+                      mock.patch('eaos.journeys.waves.original_checks', return_value={}),
+                      mock.patch('eaos.journeys.waves.gates', side_effect=project_checks),
+                      mock.patch('eaos.journeys.waves._against_control', return_value=False)):   # the base passes: nothing set aside
             patch.start()
             self.addCleanup(patch.stop)
         os.environ.pop('EAOS_DETECTOR_VERDICTS', None)      # the product's own detector verdicts, as a person gets them
@@ -69,7 +71,7 @@ class Journey(unittest.TestCase):
         return agent_tools._audit_job(self.where, {}, None)
 
     def ready_cards(self):
-        from eaos.waves import ready_cards
+        from eaos.journeys.waves import ready_cards
         return ready_cards(guided.report_of(guided.load(self.project)))
 
     def ready(self):

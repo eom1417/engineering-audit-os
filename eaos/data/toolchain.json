@@ -904,7 +904,7 @@
         "method": "npm",
         "package": "lighthouse"
       },
-      "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer."
+      "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/live/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer."
     },
     {
       "name": "css-analyzer",
@@ -941,7 +941,7 @@
           "rrweb-player@2.1.7"
         ]
       },
-      "install_note": "Libraries, no executable: the journeys stage (eaos/behavior_lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
+      "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior_lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
     },
     {
       "name": "codecharta",

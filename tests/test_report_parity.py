@@ -6,8 +6,8 @@ import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
-from eaos.compose.artifacts import DOCUMENTS
-from eaos.compose.labels import FALSIFIERS, IMPACTS, TEMPLATES, falsifier_of, statement_of
+from eaos.core.artifacts import DOCUMENTS
+from eaos.core.words import FALSIFIERS, IMPACTS, TEMPLATES, falsifier_of, statement_of
 from eaos.pipeline import execute
 from shared_fixture import scratch
 

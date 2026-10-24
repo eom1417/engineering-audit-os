@@ -1,7 +1,7 @@
 """Bandit: security weaknesses in Python, found by walking each file's syntax tree.
 
 A second reader of Python security beside Semgrep, working another way: Semgrep matches patterns of text, Bandit
-visits the parsed tree, so where both report a weakness at the same line (eaos/weaknesses.py) it is corroborated.
+visits the parsed tree, so where both report a weakness at the same line (eaos/analysis/weaknesses.py) it is corroborated.
 Only medium and high severity are reported: Bandit's low ones (importing subprocess, an `except: pass`) name a
 module or an idiom, not a weakness, and put hundreds of lines on a project that runs commands at all.
 

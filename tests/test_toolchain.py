@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from shared_fixture import Workspace
-from eaos import progress, toolchain
+from eaos.core import progress, toolchain
 from eaos.engines import ADAPTERS
 from eaos.pipeline.stages import ORDER, STAGES, _built_on
 
@@ -248,7 +248,7 @@ class AddedTools(ToolchainBase):
     def test_a_tool_the_person_adds_is_pinned_agreed_installed_and_runs_as_an_engine_with_no_python(self):
         # The owner (2026-10-22): the assistant must find a tool it lacks (GitHub) and add it, safely.
         from unittest import mock
-        from eaos import tools_catalog
+        from eaos.core import tools_catalog
         from eaos.engines import sarif
         self.write()
         entry = {**tool('fake', '1.2.3', self.archive.as_uri(), self.sha), 'license': 'MIT', 'repository': 'https://github.com/o/fake',

@@ -1,7 +1,7 @@
 """Every card sized, owned by one section, and in exactly one milestone, in the blueprint's order."""
 import unittest
 
-from eaos.roadmap import effort, milestones, section, sections
+from eaos.analysis.roadmap import effort, milestones, section, sections
 
 
 def task(tid, pattern, paths=('src/a.ts',), priority=1.0, **extra):
@@ -13,7 +13,7 @@ class RoadmapTests(unittest.TestCase):
         self.assertEqual(effort(['a', 'b'], 5), ('S', {'files': 2, 'dependents': 5}))
         # Size needs both measures small: one file with 129 dependents (the self-audit's workspace.py) is large.
         self.assertEqual(effort(['a', 'b', 'c'], 20)[0], 'M')
-        self.assertEqual(effort(['eaos/workspace.py'], 129)[0], 'L')
+        self.assertEqual(effort(['eaos/core/workspace.py'], 129)[0], 'L')
         self.assertEqual(effort([str(i) for i in range(9)], 21)[0], 'L')
         cases = [(task('1', 'upgrade_dependency', ['package-lock.json']), 'security'),
                  (task('2', 'generic', ['.github/workflows/ci.yml']), 'infrastructure'),

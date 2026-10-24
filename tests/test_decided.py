@@ -6,7 +6,7 @@ import sys
 
 from shared_fixture import Workspace
 
-from eaos.decided import status
+from eaos.core.decided import status
 
 CLAIM = {'id': 'CLM-001', 'uid': 'OBS-1', 'statement': 'a coupling', 'claim_type': 'structure', 'confidence': 'LIKELY',
          'falsifier': 'f', 'origin': 'source'}

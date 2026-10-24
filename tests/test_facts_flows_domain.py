@@ -150,8 +150,8 @@ class DomainTests(unittest.TestCase):
 
 class DossierClaimTests(unittest.TestCase):
     def test_runtime_state_and_cross_module_writes_become_claims_with_probes(self):
-        from eaos.dossier import assemble
-        from eaos import probes
+        from eaos.analysis.dossier import assemble
+        from eaos.analysis import probes
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             (repo / 'settings.py').write_text('LIMIT = 10\n')
@@ -167,7 +167,7 @@ class DossierClaimTests(unittest.TestCase):
         self.assertTrue(all(claim['confidence'] == 'CONFIRMED' for claim in claims))
 
     def test_the_most_complex_function_is_a_hotspot_even_when_its_file_is_not_top_ranked(self):
-        from eaos.dossier import assemble
+        from eaos.analysis.dossier import assemble
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(80))

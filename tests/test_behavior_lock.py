@@ -6,9 +6,9 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.artifact_contracts import contracts, validate
-from eaos.behavior_lock import LOCK_CONFIG, spec_statuses
-from eaos.lock_specs import build, import_safe, path_of, url
+from eaos.core.artifact_contracts import contracts, validate
+from eaos.live.behavior_lock import LOCK_CONFIG, spec_statuses
+from eaos.live.lock_specs import build, import_safe, path_of, url
 
 
 def playwright_report(*files):
@@ -32,7 +32,7 @@ class RouteTests(Workspace):
         self.assertEqual(params, ['accountId'])
         self.assertIn("process.env.E2E_ACCOUNTID", literal)
         # a GET /logout run with the session ended it, and every page stage after the lock saw the sign-in page
-        from eaos.lock_specs import playwright_spec
+        from eaos.live.lock_specs import playwright_spec
         spec, listed = playwright_spec({'name': 'auth'}, [('/logout', ('http', 'GET', None)), ('/login', ('http', 'GET', None))])
         self.assertNotIn("request.get(`/logout`)", spec)
         self.assertIn("request.get(`/login`)", spec)
@@ -106,7 +106,7 @@ class BuildTests(Workspace):
         import os
         from types import SimpleNamespace
         from unittest import mock
-        from eaos.behavior_lock import _prepare
+        from eaos.live.behavior_lock import _prepare
         real = Path(self.tmp) / 'disk/tools'
         (real / 'node/node_modules/@playwright/test').mkdir(parents=True)
         (Path(self.tmp) / 'home').mkdir()
@@ -121,7 +121,7 @@ class BuildTests(Workspace):
                          'the runner and the specs load one Playwright: the sandbox shows the link and the real path apart')
 
     def test_a_program_with_no_feature_to_lock_records_nothing_and_says_so_instead_of_failing(self):
-        from eaos.behavior_lock import run_lock
+        from eaos.live.behavior_lock import run_lock
         report = Path(self.tmp) / 'report'
         report.mkdir()
         self.assertEqual(build(report, Path(self.tmp))['specs'], [])
@@ -130,11 +130,11 @@ class BuildTests(Workspace):
     def test_the_safety_net_crawls_the_running_app_for_its_pages_when_the_code_names_none(self):
         # A real incident (HungerLab, 0.0.59): the safety net recorded 0 screens (the code names no page: an SPA of
         # /#/now routes), so no fix batch could open. The lock now crawls the app it started and locks those pages.
-        from eaos import behavior_lock
+        from eaos.live import behavior_lock
         report, runtime = Path(self.tmp) / 'report', Path(self.tmp) / 'runtime'
         report.mkdir(); runtime.mkdir()
         found = {'status': 'observed', 'routes': [{'path': '/'}, {'path': '/#/now'}, {'path': '/#/now?x=1'}]}
-        with mock.patch('eaos.screens.crawl.crawl', return_value=found) as crawled:
+        with mock.patch('eaos.live.screens.crawl.crawl', return_value=found) as crawled:
             self.assertTrue(behavior_lock._pages_from_app(report, Path(self.tmp), 'http://127.0.0.1:1', runtime))
             self.assertFalse(behavior_lock._pages_from_app(report, Path(self.tmp), 'http://127.0.0.1:1', runtime), 'crawled once')
         self.assertEqual(crawled.call_count, 1)
@@ -152,7 +152,7 @@ JUNIT = """<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="py
 
 class ApprovalResultTests(Workspace):
     def test_every_spec_gets_a_status_one_with_nothing_to_run_is_quarantined_and_approvals_alone_never_run_playwright(self):
-        from eaos.behavior_lock import approval_statuses
+        from eaos.live.behavior_lock import approval_statuses
         junit = Path(self.tmp) / 'approvals.xml'
         junit.write_text(JUNIT)
         self.assertEqual(approval_statuses(junit), {
@@ -177,7 +177,7 @@ class ApprovalResultTests(Workspace):
         report['suites'][0]['specs'][0]['title'] = '/#/problems renders as it does today'
         self.assertEqual(spec_statuses(report, (), {'/#/problems renders as it does today'})['root.spec.ts'][0], 'passed',
                          'a test failing on the code before the batch too says nothing of the batch')
-        from eaos.behavior_lock import _results
+        from eaos.live.behavior_lock import _results
         (Path(self.tmp) / 'behavior-lock').mkdir()
         (Path(self.tmp) / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [
             {'feature': 'home', 'tool': 'playwright', 'path': '', 'surfaces': ['__root__ (layout: no URL of its own)']},
@@ -186,7 +186,7 @@ class ApprovalResultTests(Workspace):
             {'path': '', 'status': 'quarantined', 'reason': 'nothing to run: __root__ (layout: no URL of its own)'},
             {'path': 'approvals/test_cli.py', 'status': 'passed'}])
         from unittest import mock
-        from eaos import behavior_lock
+        from eaos.live import behavior_lock
         lock = Path(self.tmp) / '.eaos-lock'
         (lock / 'approvals').mkdir(parents=True)
         found = {'approvals/test_cli.py': ('passed', '')}
@@ -199,7 +199,7 @@ class ApprovalResultTests(Workspace):
 
     def test_the_lock_runs_eaos_playwright_offline_whatever_the_project_installs_or_declares(self):
         from unittest import mock
-        from eaos import behavior_lock
+        from eaos.live import behavior_lock
         self.assertIn("--proxy-server=http://127.0.0.1:9", LOCK_CONFIG)
         self.assertIn("--proxy-bypass-list=127.0.0.1;localhost;[::1]", LOCK_CONFIG)
         self.assertNotIn("<-loopback>", LOCK_CONFIG)   # that token REMOVES loopback from the bypass: nothing loads
@@ -211,7 +211,7 @@ class ApprovalResultTests(Workspace):
         (copy / 'package.json').write_text('{"type": "module"}')
         live = mock.Mock()
         live.sandbox.copy = copy
-        with mock.patch('eaos.toolchain.home', return_value=tools):
+        with mock.patch('eaos.core.toolchain.home', return_value=tools):
             lock = behavior_lock._prepare(live, report)
         self.assertTrue((lock / 'node_modules/@playwright/test').is_dir(), 'the specs import @playwright/test')
         self.assertEqual(json.loads((lock / 'package.json').read_text())['type'], 'commonjs',
@@ -230,7 +230,7 @@ class ApprovalRunTests(Workspace):
 
     def setUp(self):
         super().setUp()
-        from eaos import toolchain
+        from eaos.core import toolchain
         if not (toolchain.home() / 'bin/pytest').exists() or toolchain.pip_version('approvaltests') is None:
             self.skipTest('pytest is not installed: python -m eaos tools install --only pytest')
         import os
@@ -246,7 +246,7 @@ class ApprovalRunTests(Workspace):
         grant = Path(self.tmp) / 'authorization.json'
         grant.write_text(json.dumps({'schema_version': 1, 'project': 'p', 'commit': git(project, 'rev-parse', 'HEAD'),
                                      'granted_by': 'owner', 'stages': ['S05'], 'env_allow': [], 'expires': date.today().isoformat()}))
-        from eaos.places import workspace
+        from eaos.core.places import workspace
         workspace(project).mkdir(parents=True)                # this fixture's folder is the run's own report
         (workspace(project) / 'state.json').write_text(json.dumps({'outputs': self.tmp}))
         return self.another_copy(project)
@@ -255,8 +255,8 @@ class ApprovalRunTests(Workspace):
         """A run in a new sandbox copy of the committed project, as verify_lock makes for each candidate."""
         import os
         from unittest import mock
-        from eaos import toolchain
-        from eaos.sandbox import Sandbox
+        from eaos.core import toolchain
+        from eaos.live.sandbox import Sandbox
         live = mock.Mock(log=[], sandbox=Sandbox(project, Path(self.tmp) / 'authorization.json', Path(self.tmp) / 'sandbox', 'S05'))
         live.extra.return_value = {'PATH': f"{toolchain.home() / 'bin'}{os.pathsep}{os.environ['PATH']}"}
         return live
@@ -264,7 +264,7 @@ class ApprovalRunTests(Workspace):
     def test_the_same_code_in_another_copy_matches_its_recording(self):
         # On EAOS itself a default naming a file of the copy, and a default function with its address, failed an
         # unchanged candidate: each run has its own copy and its own memory.
-        from eaos import behavior_lock
+        from eaos.live import behavior_lock
         files = {'pkg/__init__.py': '', 'pkg/paths.py': 'from pathlib import Path\n\n\n'
                  'def where(root=Path(__file__).parent, pick=lambda x: x):\n    return root\n'}
         features = [{'name': 'cli:pkg/paths.py', 'surfaces': ['pkg/paths.py'], 'files': ['pkg/paths.py']}]
@@ -288,7 +288,7 @@ class ApprovalRunTests(Workspace):
     def test_the_first_pass_records_the_interfaces_the_second_matches_and_a_change_fails(self):
         import os
         from unittest import mock
-        from eaos import behavior_lock
+        from eaos.live import behavior_lock
         # The project's own pytest settings and conftest must not take part: either one would break the run.
         files = {'pkg/__init__.py': '', 'pkg/prices.py': 'def total(a, b=1):\n    return a + b\n',
                  'pkg/broken.py': 'import not_installed_anywhere\n',

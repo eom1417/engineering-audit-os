@@ -1,4 +1,4 @@
-"""The Studio's local server (eaos/api/): the guard, the read API generated from the schemas, the live feed, the
+"""The Studio's local server (eaos/interfaces/api/): the guard, the read API generated from the schemas, the live feed, the
 stream with its replay, the mount point of the action API, and `eaos studio` / `open_studio` on a real project."""
 import hashlib
 import json
@@ -22,9 +22,9 @@ from starlette.routing import Route  # noqa: E402
 from starlette.responses import JSONResponse  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
-from eaos import artifact_contracts  # noqa: E402
-from eaos.api import events as feed_module, guard, read, server  # noqa: E402
-from eaos.studio import export  # noqa: E402
+from eaos.core import artifact_contracts  # noqa: E402
+from eaos.interfaces.api import events as feed_module, guard, read, server  # noqa: E402
+from eaos.report.studio import export  # noqa: E402
 import studio_synthetic  # noqa: E402
 
 PORT = 48123
@@ -222,7 +222,7 @@ class ReadApi(unittest.TestCase):
         self.assertIn("connect-src 'none'", snapshot, 'opened from a file, the Studio stays offline')
         self.assertEqual(self.http.get('/boot.js').status_code, 200)
         self.assertEqual(self.http.get('/assets/studio.js').status_code, 200)
-        for path in ('/../eaos/api/guard.py', '/%2e%2e/%2e%2e/pyproject.toml', '/SOURCE.json/../../cli.py', '/nope.js'):
+        for path in ('/../eaos/interfaces/api/guard.py', '/%2e%2e/%2e%2e/pyproject.toml', '/SOURCE.json/../../cli.py', '/nope.js'):
             self.assertEqual(self.http.get(path).status_code, 404, path)
 
 
@@ -380,7 +380,7 @@ class LiveServer(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.report = report_with_data(self.tmp.name)
-        # The feed also tails the tools' install (eaos/api/events.py): this test's own folder, not the computer's.
+        # The feed also tails the tools' install (eaos/interfaces/api/events.py): this test's own folder, not the computer's.
         patcher = mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': str(Path(self.tmp.name) / 'tools')})
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -509,8 +509,8 @@ class Commands(unittest.TestCase):
                              f'nor ({address}) when it names another computer in a forwarding header')
 
     def test_open_studio_starts_it_in_the_background_and_reuses_it(self):
-        from eaos import agent_tools
-        from eaos.api import launch
+        from eaos.journeys import agent_tools
+        from eaos.core import launch
         first = agent_tools.open_studio(str(self.project), show=False)
         [record] = self.records()
         pid = json.loads(record.read_text(encoding='utf-8'))['pid']
@@ -538,9 +538,9 @@ class Commands(unittest.TestCase):
 
 class Switcher(unittest.TestCase):
     def test_the_switcher_lists_each_project_and_opens_its_own_studio_which_goes_when_idle_but_not_while_a_run_waits(self):
-        from eaos import guided
-        from eaos.api import launch
-        from eaos.studio.actions import adapters
+        from eaos.journeys import guided
+        from eaos.core import launch
+        from eaos.ai import headless as adapters
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': f'{folder}/home'}), \
                 mock.patch.object(adapters, 'installed', return_value={}):
             states = []
@@ -580,7 +580,7 @@ class Remote(unittest.TestCase):
     def test_on_a_remote_server_the_studio_is_a_service_of_the_computer_at_its_routed_address(self):
         # Chef Operations (2026-10-13): the Studio ran in the assistant's session, which the server ended overnight, and
         # its address carried the token.
-        from eaos.api import launch
+        from eaos.core import launch
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder, 'SECRET_TOKEN': 'x'}):
             self.assertFalse(launch.durable(), 'a person\'s own computer: a process of its own')
             for wrong in ('https://evil.example:8096', 'https://shop.dev.remote.e-m.sa'):
@@ -601,8 +601,9 @@ class Remote(unittest.TestCase):
             self.assertNotIn('--setenv=PWD', argv)
 
     def test_the_exact_routed_origin_keeps_every_lock(self):
-        from eaos.api import launch
-        from eaos.studio.actions import adapters, security
+        from eaos.core import launch
+        from eaos.ai import headless as adapters
+        from eaos.core import security
         origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
             report = report_with_data(folder)
@@ -644,7 +645,7 @@ class Remote(unittest.TestCase):
             self.assertFalse(server._remote_login_trusted(ctx(True)))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': 'https://p--{port}.dev.remote.e-m.sa'}):
             self.assertTrue(server._remote_login_trusted(ctx(True)), 'a computer set up for Remote opts in')
-        from eaos.studio.actions import adapters
+        from eaos.ai import headless as adapters
         origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
             keys = server.Keys(port=8096, remote_origin=origin)

@@ -11,9 +11,9 @@ from unittest import mock
 from shared_fixture import TemporaryWorkspace
 
 from eaos.pipeline.run import execute
-from eaos.screens import crawl
-from eaos.studio.actions import adapters
-from eaos.studio.nodes import core
+from eaos.live.screens import crawl
+from eaos.ai import headless as adapters
+from eaos.ai.nodes import core
 
 ROOT = Path(__file__).resolve().parents[1]
 PNG = bytes.fromhex('89504e470d0a1a0a0000000d4948445200000001000000010806000000'
@@ -94,7 +94,7 @@ class VisualReviewer(TemporaryWorkspace):
         self.assertEqual((card['origin'], card['evidence']['images'][0], card['evidence']['region']),
                          ('visual_review', 'live/screens/screenshots/00-phone.png', region(0, 0, 1, 0.2)))
         self.assertEqual(json.loads((self.out / 'cards.json').read_text(encoding='utf-8'))['design'], ['TASK-V001'])
-        from eaos.studio.screens import gallery
+        from eaos.report.studio.screens import gallery
         pages = {p['path']: p for p in gallery(self.out)}
         self.assertEqual({path: p['state'] for path, p in pages.items()},
                          {'/': 'findings', '/#/tasks/TASK-001': 'not_reviewed', '/#/problems': 'clean'})
@@ -102,7 +102,7 @@ class VisualReviewer(TemporaryWorkspace):
                          [('phone', [region(0, 0, 1, 0.2)]), ('desktop', [region(0, 0, 1, 0.1)])])
         self.assertEqual((pages['/#/tasks/TASK-001']['template'], pages['/#/tasks/TASK-001']['same_as']), ('/#/tasks/:id', ['/#/tasks/TASK-004']))
         # The self-check's screens were "not captured" though 54 pictures were taken: they now belong to their screen.
-        from eaos.studio import library, screens
+        from eaos.report.studio import library, screens
         media = library.media(self.out)
         self.assertEqual({i['path']: i['route'] for i in media if i['kind'] == 'screen'}['live/screens/screenshots/00-phone.png'], '/')
         home = screens.screens({'screens': [{'id': 'S-home', 'route': '/', 'kind': 'page'}]}, media, report=self.out)['screens'][0]

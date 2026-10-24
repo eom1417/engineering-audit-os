@@ -1,9 +1,9 @@
-"""studio/gaps.json and studio/operations.json (eaos/studio/change.py): every gap and operation read from the
+"""studio/gaps.json and studio/operations.json (eaos/report/studio/change.py): every gap and operation read from the
 check's records, closure only where cards measure it, and an order that never puts an operation before what it waits for."""
 import unittest
 
-from eaos import artifact_contracts
-from eaos.studio import change
+from eaos.core import artifact_contracts
+from eaos.report.studio import change
 
 CURRENT = [
     {'id': 'T-a', 'name': 'src/a', 'relation': 'rebuild', 'files': 4, 'target_component': 'features', 'reason': 'Most of it must move.'},

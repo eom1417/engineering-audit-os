@@ -11,9 +11,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import artifact_contracts
-from eaos.studio import coverage, evidence, export, inbox, model
-from eaos.studio.localization import publish
+from eaos.core import artifact_contracts
+from eaos.report.studio import coverage, evidence, export, inbox
+from eaos.analysis import model
+from eaos.report.studio.localization import publish
 from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
@@ -108,10 +109,10 @@ class Export(Workspace):
         ask = lambda id, question: {'id': id, 'question': question, 'options': [], 'state': 'waiting'}
         rows = inbox.tidy([ask('ideal-Q-search', 'هل خانتا البحث (في الشريط العلوي وفي القائمة الجانبية) تؤديان العمل نفسه؟'),
                                       ask('node-visual_reviewer:IMG-014:Q-014-1', 'هل خانتين البحث (فوق وفي القائمة الجانبية) لهم نفس الوظيفة؟'),
-                                      ask('node-plan_orderer:plan:Q-cli-split', 'Split eaos/cli.py after the stage contracts?'),
-                                      ask('ideal-Q-cli-split', 'هل نقسّم eaos/cli.py إلى وحدات حسب مجموعات الأوامر؟'),
-                                      ask('node-card_triage:TASK-164:Q-164', 'هل في eaos/api/events.py دالة واحدة على الأقل تعقيدها فوق 15؟'),
-                                      ask('ideal-Q-types', 'هل تُولَّد studio/src/data/types.ts من eaos/artifact_contracts.py؟'),
+                                      ask('node-plan_orderer:plan:Q-cli-split', 'Split eaos/interfaces/cli.py after the stage contracts?'),
+                                      ask('ideal-Q-cli-split', 'هل نقسّم eaos/interfaces/cli.py إلى وحدات حسب مجموعات الأوامر؟'),
+                                      ask('node-card_triage:TASK-164:Q-164', 'هل في eaos/interfaces/api/events.py دالة واحدة على الأقل تعقيدها فوق 15؟'),
+                                      ask('ideal-Q-types', 'هل تُولَّد studio/src/data/types.ts من eaos/core/artifact_contracts.py؟'),
                                       # 2026-10-14: two of the planner's questions ending in one sentence were read as one
                                       ask('ideal-Q-reach', 'هل يُفتح الاستوديو لشخص واحد؟ جواب الاستلام كان القيمة الافتراضية.'),
                                       ask('ideal-Q-personal-data', 'هل يخزن EAOS بيانات شخصية؟ جواب الاستلام كان القيمة الافتراضية.'),

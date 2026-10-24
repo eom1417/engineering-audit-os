@@ -1,6 +1,6 @@
 """Check a report's artifacts against the contracts in schemas/artifacts/.
 
-The validator lives in eaos/artifact_contracts.py, shared with the stage gates; this is its command line.
+The validator lives in eaos/core/artifact_contracts.py, shared with the stage gates; this is its command line.
 An executor runs this on its own output before claiming a task.
 
 Usage:  python tools/contracts.py <report-dir> [--runtime <runtime-dir>]   # exit 1 if any present artifact is invalid
@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from eaos.artifact_contracts import RUNTIME, check, contracts  # noqa: E402
+from eaos.core.artifact_contracts import RUNTIME, check, contracts  # noqa: E402
 
 
 def main(argv):

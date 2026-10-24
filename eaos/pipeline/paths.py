@@ -9,7 +9,7 @@ it is about. `complete` is all of them.
 
 How scalability splits: how easily the code grows is in `code`, how the app holds under load is in `speed`.
 """
-from ..check_paths import COMPLETE, PATHS, SPINE
+from ..core.check_paths import COMPLETE, PATHS, SPINE
 from .stages import BY_NAME, ORDER, REQUIRED, STAGES
 
 

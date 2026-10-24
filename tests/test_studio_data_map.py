@@ -5,10 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import artifact_contracts
-from eaos.studio import coverage
-from eaos.studio.data_paths import MAX_LANE, data_paths, route_key
-from eaos.studio.infra import MAX_LANE_NODES, infra, package_of
+from eaos.core import artifact_contracts
+from eaos.report.studio import coverage
+from eaos.report.studio.data_paths import MAX_LANE, data_paths, route_key
+from eaos.report.studio.infra import MAX_LANE_NODES, infra, package_of
 from tests.shared_fixture import Workspace
 
 ROOT = Path(__file__).resolve().parent.parent

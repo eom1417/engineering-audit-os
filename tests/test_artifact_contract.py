@@ -10,8 +10,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.compose import artifacts as contract
-from eaos.compose.rules import BUDGETS, validate
+from eaos.core import artifacts as contract
+from eaos.core.document_rules import BUDGETS, validate
 from eaos.pipeline.stages import BY_NAME as STAGE_BY_NAME, STAGES
 
 
@@ -166,11 +166,11 @@ class RecordTwinTests(unittest.TestCase):
     """R14: a document a model cannot act on is a dead end, and silence is not an answer."""
 
     def test_every_declared_document_has_a_record_twin_or_says_why_not(self):
-        from eaos.compose.rules import documents_without_a_record_twin
+        from eaos.core.document_rules import documents_without_a_record_twin
         self.assertEqual(documents_without_a_record_twin(), [])
         # The mutation the rule exists to catch: a new document added with neither field set.
-        from eaos.compose import rules
-        from eaos.compose.artifacts import Artifact, DOCUMENT
+        from eaos.core import document_rules as rules
+        from eaos.core.artifacts import Artifact, DOCUMENT
         silent = Artifact('NEW-THING.md', 'compose', DOCUMENT, 'a document nobody can act on', 99, 120)
         original = dict(rules.BY_NAME)
         try:
@@ -192,7 +192,7 @@ class RecordTwinTests(unittest.TestCase):
 
     def test_a_named_record_twin_is_itself_a_declared_artifact(self):
         # Pointing at a file nobody writes would satisfy the letter of R14 and none of its point.
-        from eaos.compose.artifacts import ARTIFACTS, BY_NAME, DOCUMENT
+        from eaos.core.artifacts import ARTIFACTS, BY_NAME, DOCUMENT
         for artifact in ARTIFACTS:
             if artifact.kind != DOCUMENT or not artifact.record:
                 continue

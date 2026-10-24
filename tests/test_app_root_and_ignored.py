@@ -6,7 +6,7 @@ from pathlib import Path
 from shared_fixture import Workspace
 
 from eaos.facts.scope import declared_exclusions, exclusion_reasons, git_ignored
-from eaos.reference_architecture import layer_of, locate, rooted, by_id
+from eaos.analysis.reference_architecture import layer_of, locate, rooted, by_id
 
 
 def write(path, text=''):

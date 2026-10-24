@@ -5,7 +5,7 @@
 For each `release` tool, the release named by its pinned version is read from the GitHub API; the asset for
 each platform (linux-x86_64, darwin-arm64, darwin-x86_64) is chosen by name, downloaded, its sha256 computed,
 and, for an archive, the member that is the tool found inside it. A platform with no asset is left out and
-eaos/toolchain.py says so instead of installing a binary that cannot run. The Linux pin already in the file
+eaos/core/toolchain.py says so instead of installing a binary that cannot run. The Linux pin already in the file
 stays as it is.
 """
 import hashlib

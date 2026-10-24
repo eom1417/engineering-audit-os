@@ -11,13 +11,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import artifact_contracts
-from eaos.studio import ideal, ideal_base, ideal_prompts
-from eaos.studio.actions import adapters
-from eaos.studio.nodes import core
+from eaos.core import artifact_contracts
+from eaos.ai import ideal, ideal_base, ideal_prompts
+from eaos.ai import headless as adapters
+from eaos.ai.nodes import core
 
 ROOT = Path(__file__).resolve().parent.parent
-from eaos import process as provider
+from eaos.core import process as provider
 FAKE_CLAUDE = r'''import json, os, sys, time
 prompt = sys.stdin.read()
 mode = os.environ.get('FAKE_MODE', 'ok')
@@ -329,8 +329,8 @@ class Exported(unittest.TestCase):
     brings the questions to the inbox; coverage says partial until the ideal is planned and the nodes ran."""
 
     def test_the_studio_shows_the_rules_then_the_planned_ideal_and_whether_the_nodes_ran(self):
-        from eaos.studio import nodes
-        from eaos.studio import export
+        from eaos.ai import nodes
+        from eaos.report.studio import export
         from tests.shared_fixture import Workspace
         from tests.test_human_report import report
         case = Workspace('run')
@@ -382,8 +382,8 @@ class ReplanFromTheStudio(unittest.TestCase):
         self.report = make_report(base)
 
     def app(self, adapter_map):
-        from eaos.studio import actions
-        from eaos.studio.actions import selection
+        from eaos.interfaces import studio as actions
+        from eaos.journeys import selection
         patch = mock.patch.object(selection, 'studio_folder', return_value=self.report / 'studio')
         patch.start()
         self.addCleanup(patch.stop)
@@ -419,7 +419,7 @@ class ReplanFromTheStudio(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIsNone(preview['confirm'])
         self.assertFalse(preview['handoff']['available'])
-        with mock.patch.object(ideal, 'plan', side_effect=fake_plan), mock.patch('eaos.guided.publish'), mock.patch('eaos.guided.load', return_value={}):
+        with mock.patch.object(ideal, 'plan', side_effect=fake_plan), mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.journeys.guided.load', return_value={}):
             status, body = app.handle('POST', '/api/runs', self.headers(app), {'action': 'replan_ideal'})
             self.assertEqual(status, 200, body)
             run = app.wait(body['run']['id'], ('done', 'failed'), timeout=30)

@@ -4,8 +4,8 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.artifact_contracts import contracts, validate
-from eaos.debt_register import build, hotspots
+from eaos.core.artifact_contracts import contracts, validate
+from eaos.analysis.debt_register import build, hotspots
 
 
 def finding(fid, engine, kind, path, method='heuristic', **value):

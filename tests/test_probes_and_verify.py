@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
-from eaos import probes
-from eaos.dossier import assemble
+from eaos.analysis import probes
+from eaos.analysis.dossier import assemble
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -60,7 +60,7 @@ class ProbeTests(unittest.TestCase):
             self.assertTrue(all(claim['confidence'] != 'REFUTED' for claim in claims))
 
     def test_a_probe_never_settles_more_than_it_can_see(self):
-        from eaos.probes import linking_import, run_graph_query
+        from eaos.analysis.probes import linking_import, run_graph_query
         # An import whose names were not captured is inconclusive, not a refutation.
         sets = {'syntax': {'facts': [{'id': 'F1', 'kind': 'import_edge', 'value': {'names': []}}]},
                 'resolve': {'facts': [{'resolution': 'RESOLVED', 'location': {'path': 'a.ts'},
@@ -82,7 +82,7 @@ class ProbeTests(unittest.TestCase):
 
     def test_a_static_probe_cannot_confirm_a_causal_claim(self):
         """Regression: a branch-count probe raised a claim about *why* the branches exist to CONFIRMED."""
-        from eaos import claims as ledger
+        from eaos.analysis import claims as ledger
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / 'repo'; repo.mkdir()
             branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(70))
@@ -111,7 +111,7 @@ class ProbeTests(unittest.TestCase):
     def test_a_complexity_card_clears_exactly_its_finish_line_each_judged_by_one_ruler(self):
         # EAOS, 2026-10-15: one card mixed seven kinds of finding, judged the whole file by any engine; six cards of a
         # batch could not pass whatever the assistant changed
-        from eaos import finish_line
+        from eaos.analysis import finish_line
         def engine(rule, symbol, value=20):
             return {'id': rule + symbol, 'value': {'kind': 'complexity', 'engine': rule.split('.')[0], 'rule': rule,
                     'measurements': [{'value': value, 'threshold': 15}]}, 'location': {'path': 'a.py', 'symbol': symbol}}
@@ -135,7 +135,7 @@ class ProbeTests(unittest.TestCase):
 
 
 class VerificationTests(unittest.TestCase):
-    """The project's own tests, run in an isolated copy with coverage (eaos/verify.py), restored in 0.0.9."""
+    """The project's own tests, run in an isolated copy with coverage (eaos/live/verify.py), restored in 0.0.9."""
 
     def project(self, tmp):
         repo = Path(tmp) / 'repo'
@@ -148,7 +148,7 @@ class VerificationTests(unittest.TestCase):
 
     def test_a_real_suite_gives_coverage_facts_and_leaves_the_target_untouched(self):
         from eaos.facts.store import read_set
-        from eaos.verify import run as verify_run
+        from eaos.live.verify import run as verify_run
         with tempfile.TemporaryDirectory() as tmp:
             repo = self.project(tmp)
             before = {p.relative_to(repo).as_posix(): p.read_bytes() for p in repo.rglob('*') if p.is_file()}
@@ -164,7 +164,7 @@ class VerificationTests(unittest.TestCase):
         import subprocess
         import sys
         from unittest import mock
-        from eaos import verify
+        from eaos.live import verify
 
         ran = []
 
@@ -186,8 +186,8 @@ class VerificationTests(unittest.TestCase):
                 done = subprocess.run(argv, cwd=self.sandbox.copy, capture_output=True, text=True)
                 return done.returncode, done.stdout, done.stderr
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.live_run.LiveRun', FakeRun), \
-                mock.patch('eaos.live_run.load_profile', lambda runtime: FakeRun.PROFILE):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.live.run.LiveRun', FakeRun), \
+                mock.patch('eaos.live.run.load_profile', lambda runtime: FakeRun.PROFILE):
             repo, runtime = self.project(tmp), Path(tmp) / 'runtime'
             result = verify.run_profile(repo, Path(tmp) / 'out', runtime)
         self.assertNotIn(['npm', 'run', 'lint'], ran)

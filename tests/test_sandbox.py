@@ -13,7 +13,7 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos import sandbox
+from eaos.live import sandbox
 
 
 def git(project, *args):
@@ -128,7 +128,7 @@ class SandboxTests(Workspace):
     def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
         import http.server
         import threading
-        from eaos.live_run import LiveRun
+        from eaos.live.run import LiveRun
         other = http.server.ThreadingHTTPServer(('127.0.0.1', 0), http.server.SimpleHTTPRequestHandler)
         threading.Thread(target=other.serve_forever, daemon=True).start()
         self.addCleanup(other.server_close)
@@ -199,7 +199,7 @@ class TwoProjectsTests(Workspace):
         self.a, self.b = self.project('a'), self.project('b')
 
     def project(self, name):
-        from eaos import places
+        from eaos.core import places
         source = self.real / 'src' / name
         source.mkdir(parents=True)
         (source / 'app.py').write_text(f'print("{name}")\n')
@@ -227,7 +227,7 @@ class TwoProjectsTests(Workspace):
 
     def test_a_new_projects_run_reads_its_own_report_whose_folder_was_never_saved(self):
         # a new project's state never kept `outputs`, so its report was hidden and k6 never found its load script
-        from eaos.agent_tools import project_state
+        from eaos.journeys.agent_tools import project_state
         a = self.a
         (a['workspace'] / 'state.json').write_text(json.dumps({'project': str(a['source']), 'workspace': str(a['workspace'])}))
         project_state(str(a['source']))
@@ -261,7 +261,7 @@ class TwoProjectsTests(Workspace):
         code, out, err = box.run([sys.executable, '-c', named, str(b['workspace'] / 'state.json')],
                                  env={'B_STATE': str(real(b['source'])) + '/.env'})
         self.assertEqual((code, out), (0, ''), "a path of B's named to A's command is not shown for being named")
-        from eaos.local_db import LocalPostgres, binaries
+        from eaos.core.local_db import LocalPostgres, binaries
         if binaries() is None: return
         database = LocalPostgres(b['runtime'])
         url = database.create('app')
@@ -287,7 +287,7 @@ class TwoProjectsTests(Workspace):
         box.dispose()
 
     def test_eaos_clean_leaves_the_run_another_project_holds_and_removes_what_no_run_holds(self):
-        from eaos import guided
+        from eaos.journeys import guided
         held, left = self.box(self.b), self.b['runtime'] / 'sandbox/run-left-by-a-killed-run'
         left.mkdir()
         with mock.patch.object(guided, 'box'):

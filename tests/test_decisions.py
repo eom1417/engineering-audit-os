@@ -4,11 +4,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from eaos.claims import from_facts
-from eaos.decisions import check_errors, decide
+from eaos.analysis.claims import from_facts
+from eaos.core.decisions import check_errors, decide
 from eaos.facts.run import collect
-from eaos.policy_assessment import build_assessment
-from eaos.policy import FILENAME as POLICY_FILENAME, check as check_policy
+from eaos.analysis.policy_assessment import build_assessment
+from eaos.analysis.policy import FILENAME as POLICY_FILENAME, check as check_policy
 
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
 

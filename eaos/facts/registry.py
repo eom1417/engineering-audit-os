@@ -5,7 +5,7 @@ patterns the spec calls out: module lists ``MODULES = [a, b, c]``, dict lookups
 and JSON ``name``/``id`` fields in any directory under the snapshot.
 
 A registry-referenced candidate is kept on disk but tagged
-``value.referenced_by_registry = True``; the cluster pass (eaos/correlate.py) skips it so no dead_code claim
+``value.referenced_by_registry = True``; the cluster pass (eaos/analysis/correlate.py) skips it so no dead_code claim
 is raised for it, which is the contract the spec phrases as 'a candidate referenced by one of
 these sources stays as engine_finding and does not become a dead_code claim'.
 """

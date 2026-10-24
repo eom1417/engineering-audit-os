@@ -4,7 +4,7 @@ import os
 import unittest
 from pathlib import Path
 
-from eaos import usage
+from eaos.core import usage
 from shared_fixture import scratch
 
 CLAUDE_RESULT = {'type': 'result', 'total_cost_usd': 0.34, 'duration_ms': 60000, 'num_turns': 3, 'modelUsage': {'claude-opus-5-5': {}},

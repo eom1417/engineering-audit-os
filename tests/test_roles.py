@@ -1,11 +1,11 @@
-"""The kinds of users of an app (eaos/roles.py): read from its code with real evidence, each opened as itself, and the
+"""The kinds of users of an app (eaos/live/roles.py): read from its code with real evidence, each opened as itself, and the
 coverage saying which kinds a check saw and who opened another kind's page."""
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import roles
+from eaos.live import roles
 
 KINDS = [{'id': 'admin', 'name': 'Administrator', 'pages': ['/admin', '/admin/users']},
          {'id': 'support', 'name': 'Support', 'pages': ['/support']},
@@ -82,7 +82,7 @@ class Roles(unittest.TestCase):
         self.assertEqual(roles.breaches(views, [('programs', 'p')], opens), [], 'a switch is the same account: its pages are its own')
         rows = [{'url': base + '/programs/plans', 'kind': None, 'unseen': True}, {'url': base + '/admin', 'kind': None}]
         self.assertEqual(roles.unseen({'rows': rows}), [{'page': base + '/programs/plans', 'view': None}])
-        from eaos.studio.nodes import visual_reviewer
+        from eaos.ai.nodes import visual_reviewer
         with tempfile.TemporaryDirectory() as report:
             (Path(report) / 'live').mkdir()
             for name in ('a.png', 'b.png'): (Path(report) / name).write_bytes(b'png')
@@ -95,7 +95,7 @@ class Roles(unittest.TestCase):
     def test_a_view_the_running_app_shows_missing_is_added_as_checked_and_a_redirect_to_its_own_page_is_reached(self):
         # chief-ops (2026-10-20): only the support pages were pictured; the reading of the code had missed the programs
         from unittest import mock
-        from eaos import test_users
+        from eaos.live import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
             (Path(target) / 'workplace.js').write_text('one\ntwo\nthree\n')
             roles._write(out, [{'id': 'support', 'enter': 'account', 'evidence': 'workplace.js:1', 'pages': ['/tickets']}])
@@ -114,7 +114,7 @@ class Roles(unittest.TestCase):
     def test_every_page_no_session_opens_is_either_owned_by_the_view_that_opens_it_or_proved_unreachable(self):
         # chief-ops (2026-10-21): pages of the program skipped silently; a page a session found went to the wrong one
         from unittest import mock
-        from eaos import test_users
+        from eaos.live import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
             (Path(target) / 'routes.js').write_text('one\ntwo\n')
             roles._write(out, [{'id': 'program', 'enter': 'switch', 'evidence': 'routes.js:1', 'pages': ['/rota']}])
@@ -133,7 +133,7 @@ class Roles(unittest.TestCase):
     def test_a_lack_on_the_running_app_goes_back_to_the_reading_which_adds_views_and_never_drops_one(self):
         # the owner, 2026-10-21: a loop back to the node that owns the views until every page opens
         from unittest import mock
-        from eaos import test_users
+        from eaos.live import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
             (Path(target) / 'routes.js').write_text('one\ntwo\nthree\n')
             roles._write(out, [{'id': 'support', 'enter': 'account', 'evidence': 'routes.js:1', 'pages': ['/cases']}],
@@ -151,7 +151,7 @@ class Roles(unittest.TestCase):
         rounds = []
         with mock.patch.object(test_users, 'lacking', return_value='/rota'), \
                 mock.patch.object(test_users, '_round', side_effect=lambda *a: rounds.append('round') or ('/rota' if rounds.count('round') < 3 else '')), \
-                mock.patch('eaos.roles.find', side_effect=lambda *a: rounds.append(('find', a[3]))):
+                mock.patch('eaos.live.roles.find', side_effect=lambda *a: rounds.append(('find', a[3]))):
             self.assertEqual(test_users.make('p', None, 'b', 's', 'r', 'provider'), '')
         self.assertEqual(rounds, ['round', ('find', '/rota'), 'round', ('find', '/rota'), 'round'])
         nowhere = roles.nowhere_of({'text': 'Home', 'others': [{'text': '404'}]})

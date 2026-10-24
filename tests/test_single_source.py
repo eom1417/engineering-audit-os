@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import human_report
-from eaos.studio import model as M
+from eaos.report import human_report
+from eaos.analysis import model as M
 from tests.test_human_report import report
 
 

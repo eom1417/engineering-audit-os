@@ -1,5 +1,5 @@
 """The interface first, the tools in the order they are needed: the Studio opens on "Preparing the tools", the check
-waits for the tools it needs on the project (eaos/toolchain.py readiness), a tool that failed stops it unless the
+waits for the tools it needs on the project (eaos/core/toolchain.py readiness), a tool that failed stops it unless the
 person starts without it, and the report records that it did."""
 import os
 import subprocess
@@ -9,9 +9,11 @@ from argparse import Namespace
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, guided, jobs, progress, toolchain
-from eaos.api import launch, server
-from eaos.pipeline import report as run_report
+from eaos.journeys import agent_tools, guided
+from eaos.core import jobs, progress, toolchain
+from eaos.core import launch
+from eaos.interfaces.api import server
+from eaos.report import run as run_report
 from starlette.testclient import TestClient
 
 PORT = 8765

@@ -45,7 +45,7 @@ class DeadCodeTests(unittest.TestCase):
         from eaos.facts.deadcode import _candidate_name, _verdict
         named = lambda path, symbol, message='': _candidate_name({'message': message}, {'path': path, 'symbol': symbol})
         # As vulture, knip and enola write them (every vulture finding on EAOS was read as `py:act`, 2026-10-24).
-        self.assertEqual(named('eaos/terminal.py', 'eaos/terminal.py:act'), 'act')
+        self.assertEqual(named('eaos/interfaces/terminal.py', 'eaos/interfaces/terminal.py:act'), 'act')
         self.assertEqual(named('src/routes.js', 'src/routes.js:routes'), 'routes')
         self.assertEqual(named('src/app/[slug]/page.tsx', 'src/app/[slug].generateMetadata'), 'generateMetadata')
         self.assertEqual(named('src/hero-post.tsx', 'src/hero-post.tsx', 'unused file `src/hero-post.tsx`'), 'src/hero-post.tsx')
@@ -130,7 +130,7 @@ class DeadCodeTests(unittest.TestCase):
                            'README.md': 'Run `node --import tsx scripts/documented.mjs --write` after a change.\n'})
         verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict'] for f in data['facts'] if f['value']['rule'] == 'unreachable-module'}
         self.assertEqual(verdicts, {'src/lost.js': 'confirmed', 'scripts/by-hand.mjs': 'review'})
-        from eaos import claims
+        from eaos.analysis import claims
         rendered = {row['render']['params']['subject']: (row['render']['key'], row['confidence']) for row in claims.from_facts({'deadcode': data})}
         self.assertEqual(rendered['scripts/by-hand.mjs'], ('dead_code_review', 'LIKELY'))
         self.assertEqual(rendered['src/lost.js'], ('dead_code', 'CONFIRMED'))

@@ -10,11 +10,11 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.engines import ADAPTERS
-from eaos.check_paths import PATHS, SPINE
+from eaos.core.check_paths import PATHS, SPINE
 from eaos.pipeline.paths import resolve
 from eaos.pipeline.run import check
 from eaos.pipeline.stages import OPTIONAL, STAGES
-from eaos.remediation_patterns import PATTERNS
+from eaos.analysis.remediation_patterns import PATTERNS
 
 FIXTURE = Path(__file__).parent / 'fixtures/polyglot'
 LIVE = {stage.name for stage in STAGES if 'app' in stage.uses}
@@ -51,7 +51,7 @@ class PathsTests(unittest.TestCase):
 
 
     def test_a_redo_from_a_stage_is_timed_as_that_stage_and_its_readers_only(self):
-        from eaos import check_choices
+        from eaos.journeys import check_choices
         from eaos.pipeline.stages import ORDER, dependents
         with mock.patch.object(check_choices, 'previous_seconds', return_value={name: 60.0 for name in ORDER}):
             whole, redo = check_choices.estimate('report'), check_choices.estimate('report', again_from='reports')
@@ -60,7 +60,7 @@ class PathsTests(unittest.TestCase):
 
 
     def test_a_redo_from_a_check_made_without_the_assistant_runs_without_it_unless_one_is_chosen_now(self):
-        from eaos import check_choices
+        from eaos.journeys import check_choices
         with tempfile.TemporaryDirectory() as report:
             Path(report, 'run-manifest.json').write_text(json.dumps({'stages': {'triage': {'reason_code': 'ai_skipped'}}}))
             self.assertTrue(check_choices.without_ai_kept(report, False, 'reports', False))

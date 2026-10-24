@@ -1,7 +1,7 @@
 """Module state private to its module has an owner: a decision for a person, not a ready repair."""
 import unittest
 
-from eaos.claims import from_facts
+from eaos.analysis.claims import from_facts
 from eaos.facts.domain import encapsulated
 
 

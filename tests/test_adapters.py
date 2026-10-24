@@ -16,7 +16,8 @@ def sample(name):
 
 class SampleTests(Workspace):
     def test_each_sample_is_pinned_and_maps_everything_and_no_secret_survives(self):
-        from eaos.engines import checkov, dependency_cruiser, gitnexus, oasdiff, sarif, semgrep, spectral, sqlfluff, trivy
+        from eaos.engines import (checkov, dependency_cruiser, gitnexus, oasdiff, sarif, semgrep, spectral, sqlfluff,
+                                  trivy)
         for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'secret'}),
                                           (checkov, 'checkov', 'results_sarif.sarif', {'misconfiguration'}),
                                           (spectral, 'spectral', 'spectral.sarif', {'api_contract'})):
@@ -190,7 +191,7 @@ class ReportedRunTests(Workspace):
         for row in report.metrics:
             self.assertFalse(row['path'].startswith('/'), row['path'])
             self.assertIn('code', row['measurements'])
-        from eaos.correlate import _findings
+        from eaos.analysis.correlate import _findings
         from eaos.facts import external
         manifest = {'engines': {'scc': {'version': '4.1.0', 'metrics': [
             {'path': 'a.py', 'granularity': 'file', 'measurements': {'code': 10}}]}}, 'findings': [],

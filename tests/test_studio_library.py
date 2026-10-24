@@ -1,9 +1,9 @@
-"""The Library and History sections of the Studio's data: eaos/studio/library.py and history.py."""
+"""The Library and History sections of the Studio's data: eaos/report/studio/library.py and history.py."""
 import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.studio import history, library
+from eaos.report.studio import history, library
 
 PNG = bytes.fromhex('89504e470d0a1a0a0000000d4948445200000001000000010806000000'
                     '1f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082')

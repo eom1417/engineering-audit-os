@@ -6,9 +6,9 @@ from pathlib import Path
 
 from shared_fixture import Workspace
 
-from eaos.decisions import decide
-from eaos.engagement import DEFAULT_RULES
-from eaos.mechanical_assessment import FAMILIES, build_assessment, family
+from eaos.core.decisions import decide
+from eaos.analysis.engagement import DEFAULT_RULES
+from eaos.analysis.mechanical_assessment import FAMILIES, build_assessment, family
 from eaos.pipeline import execute
 
 ROOT = Path(__file__).resolve().parents[1]

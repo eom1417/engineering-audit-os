@@ -117,7 +117,7 @@ class ExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:     # the lost stage keeps its earlier time for the estimate
             execute('.', directory, runners=fake_runners())
             execute('.', directory, runners=fake_runners(ideal=lost))
-            from eaos.progress.log import previous_seconds
+            from eaos.core.progress.log import previous_seconds
             self.assertIn('ideal', previous_seconds(directory))
         manifest, _ = self._run(only=['facts'], runners=fake_runners())
         self.assertEqual(manifest['stages']['facts']['status'], OK)

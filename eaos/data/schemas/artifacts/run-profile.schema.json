@@ -120,7 +120,7 @@
       }
     },
     "screens": {
-      "description": "How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/screens/audit.py variants).",
+      "description": "How the app keeps its language and theme (in localStorage, a key and, for a JSON object, its field; or a query parameter), so every screen is pictured in each language (eaos/live/screens/audit.py variants).",
       "type": "object",
       "properties": {
         "lang_key": {

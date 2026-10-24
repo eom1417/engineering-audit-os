@@ -6,7 +6,7 @@ keeps what was done (`remedies`), for the report and the Studio to say plainly."
 import json
 from pathlib import Path
 
-from ..progress.reasons import reasons
+from ..core.progress.reasons import reasons
 from .run import MANIFEST, _write
 
 ROUNDS = 3
@@ -88,9 +88,9 @@ def _try(remedy, manifest, assistant):
     if any(manifest['stages'].get(s, {}).get('status') != 'ok' for s in remedy.get('requires_ok') or []): return 'failed'
     tool = remedy.get('tool')
     if tool == 'tools_check':
-        from ..toolchain import install
+        from ..core.toolchain import install
         return 'failed' if install(names=remedy.get('only'), echo=lambda *_: None) else 'fixed'
     if tool == 'assistant_check':
-        from ..assistants.readiness import probe
+        from ..ai.readiness import probe
         return 'fixed' if assistant and probe(assistant, fresh=True).get('ready') else 'failed'
     return 'fixed'                       # the stage alone runs again (tools_failed: the engines stage, its tools again)

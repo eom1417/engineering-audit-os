@@ -1,7 +1,7 @@
-// The person's choices, kept on this computer (localStorage 'eaos.studio', the key boot.js reads before the first
+// The person's choices, kept on this computer (localStorage 'eaos.report.studio', the key boot.js reads before the first
 // paint): the language, the theme and the time zone every time is shown in. The theme follows the system until the
 // person chooses one; the time zone is the device's until the person chooses another (SET-03).
-const KEY = 'eaos.studio';
+const KEY = 'eaos.report.studio';
 
 function read() {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; }

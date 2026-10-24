@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "description": "What a person means, in their own words, and the EAOS command that does it. eaos/intents.py normalises the request (Arabic letter forms, diacritics, case) and picks the intent whose phrase it contains, the longest phrase winning. `eaos do \"<request>\"` runs the command; the assistant skills read this file to choose. `consent` marks the commands that change something the person owns: the assistant asks the person before adding --yes, never on their behalf. When no phrase matches whole, `keywords` score the words of the request (Arabic prefixes and suffixes removed); the highest score of at least 3 wins, and a tie is no answer.",
+ "description": "What a person means, in their own words, and the EAOS command that does it. eaos/core/intents.py normalises the request (Arabic letter forms, diacritics, case) and picks the intent whose phrase it contains, the longest phrase winning. `eaos do \"<request>\"` runs the command; the assistant skills read this file to choose. `consent` marks the commands that change something the person owns: the assistant asks the person before adding --yes, never on their behalf. When no phrase matches whole, `keywords` score the words of the request (Arabic prefixes and suffixes removed); the highest score of at least 3 wins, and a tie is no answer.",
  "intents": [
   {
    "id": "start",

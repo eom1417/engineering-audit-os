@@ -1,6 +1,6 @@
 // EAOS design-drift stats: @projectwallace/css-analyzer over a built site's CSS.
 //
-// Run by eaos/screens/audit.py as a separate process:  node css.mjs <config.json>
+// Run by eaos/live/screens/audit.py as a separate process:  node css.mjs <config.json>
 // The config names the analyzer's module folder and the CSS to read ({files: [...], inline: [...]}).
 // The result is one JSON object on stdout: the analyzer's own counts, unchanged, for the keys EAOS reads.
 import { createRequire } from 'node:module';

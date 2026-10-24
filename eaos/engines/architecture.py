@@ -31,7 +31,7 @@ def _files(target):
 
 def _java():
     """ccsh runs on the pinned JRE, which the tools' bin folder holds."""
-    from .. import toolchain
+    from ..core import toolchain
     return {'PATH': str(toolchain.home() / 'bin') + os.pathsep + os.environ.get('PATH', '')}
 
 

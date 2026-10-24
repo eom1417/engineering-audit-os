@@ -10,14 +10,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import artifact_contracts
-from eaos.language import foreign_texts
-from eaos.assistants.command import Provider
-from eaos.studio import ideal, ideal_base, nodes
-from eaos.studio.actions import adapters
-from eaos.studio.nodes import core, triage, view
+from eaos.core import artifact_contracts
+from eaos.core.language import foreign_texts
+from eaos.ai.command import Provider
+from eaos.ai import ideal, ideal_base, nodes
+from eaos.ai import headless as adapters
+from eaos.ai.nodes import core, triage, view
 ROOT = Path(__file__).resolve().parent.parent
-from eaos import process as provider
+from eaos.core import process as provider
 
 
 def _ideal_report(base):
@@ -387,7 +387,7 @@ class Planners(Base):
         self.assertEqual(record['dropped'][0]['why'], 'it cites neither its gap nor its rule')
         steps = json.loads((self.report / 'nodes/pipeline_gap_planner/plan.json').read_text(encoding='utf-8'))['steps']
         self.assertEqual([(s['gap'], s['decision']) for s in steps], [('gap:P2:x', 'plan'), ('gap:P7:x', 'rules only')])
-        from eaos.studio.nodes import plan_orderer
+        from eaos.ai.nodes import plan_orderer
         self.assertEqual([s['gap'] for s in plan_orderer.inputs(self.report)['pipeline_steps']], ['gap:P2:x', 'gap:P7:x'])
 
         launcher = Answer(lambda n, s: {'summary': '', 'decisions': [decision('TASK-001', 'accept', ['TASK-001']),
@@ -502,8 +502,8 @@ class RunFromTheStudio(Base):
         self.project.mkdir()
 
     def test_the_nodes_run_and_end_with_their_summary(self):
-        from eaos.studio import actions
-        from eaos.studio.actions import selection
+        from eaos.interfaces import studio as actions
+        from eaos.journeys import selection
         patch = mock.patch.object(selection, 'studio_folder', return_value=self.report / 'studio')
         patch.start()
         self.addCleanup(patch.stop)
@@ -513,7 +513,7 @@ class RunFromTheStudio(Base):
         contract = json.loads((ROOT / 'docs/studio-actions.json').read_text(encoding='utf-8'))
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
         self.assertTrue(action['needs_assistant'] and not action['changes_code'] and action['tool'] == 'run_nodes')
-        with mock.patch('eaos.guided.publish'), mock.patch('eaos.guided.load', return_value={}):
+        with mock.patch('eaos.journeys.guided.publish'), mock.patch('eaos.journeys.guided.load', return_value={}):
             status, body = app.handle('POST', '/api/runs', headers, {'action': 'run_nodes', 'inputs': {'nodes': ['card_triage', 'plan_orderer']}})
             self.assertEqual(status, 200, body)
             run = app.wait(body['run']['id'], ('done', 'failed'), timeout=30)
@@ -533,13 +533,13 @@ class AnyNodeAnyTime(unittest.TestCase):
         # assistant outside the Studio could run a node at all.
         import json
         from pathlib import Path
-        from eaos import node_jobs
-        from eaos.studio import nodes
+        from eaos.interfaces import node_jobs
+        from eaos.ai import nodes
         contract = json.loads((Path(__file__).resolve().parents[1] / 'docs/studio-actions.json').read_text())
         action = next(a for a in contract['actions'] if a['id'] == 'run_nodes')
         self.assertEqual(set(action['inputs']['properties']['nodes']['items']['enum']), {n.name for n in nodes.NODES})
-        with mock.patch('eaos.agent_tools._start', return_value={'job': 'j1', 'status': 'started'}) as started, \
-                mock.patch('eaos.agent_tools.project_state', return_value={'project': '/p'}):
+        with mock.patch('eaos.journeys.agent_tools._start', return_value={'job': 'j1', 'status': 'started'}) as started, \
+                mock.patch('eaos.journeys.agent_tools.project_state', return_value={'project': '/p'}):
             self.assertEqual(node_jobs.start('/p', ['visual_reviewer'])['job'], 'j1')
-        self.assertEqual(started.call_args.kwargs['runner'], 'eaos.node_jobs')
+        self.assertEqual(started.call_args.kwargs['runner'], 'eaos.interfaces.node_jobs')
         self.assertIn('run_nodes', node_jobs.JOBS)

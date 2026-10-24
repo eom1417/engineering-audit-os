@@ -1,6 +1,6 @@
-"""Every aspect of the program reaches the person's assistant and gets a verdict (eaos/aspects.py), with the evidence
-stages restored in 0.0.9: production readiness (eaos/production_readiness.py), the architecture map's digest
-(eaos/engines/architecture.py) and the capped journeys (eaos/behavior_lock.py)."""
+"""Every aspect of the program reaches the person's assistant and gets a verdict (eaos/analysis/aspects.py), with the evidence
+stages restored in 0.0.9: production readiness (eaos/analysis/production_readiness.py), the architecture map's digest
+(eaos/engines/architecture.py) and the capped journeys (eaos/live/behavior_lock.py)."""
 import json
 import os
 import subprocess
@@ -36,7 +36,7 @@ class Readiness(Workspace):
         return out
 
     def test_faults_scans_health_telemetry_and_the_load_baseline_become_findings_with_evidence(self):
-        from eaos.production_readiness import build
+        from eaos.analysis.production_readiness import build
         record = build(self.report())
         rows = {f['id']: f for f in record['findings']}
         self.assertEqual(rows['RDY-resilience-brapi.dev']['status'], 'gap')
@@ -72,7 +72,7 @@ class Readiness(Workspace):
         self.assertEqual(found['modularity'], 0.4)
 
     def test_journeys_stay_light_on_disk(self):
-        from eaos import behavior_lock
+        from eaos.live import behavior_lock
         folder = Path(self.tmp)
         (folder / 'rrweb').mkdir()
         (folder / 'traces').mkdir()
@@ -111,11 +111,11 @@ class Planner:
 
 class EveryAspectReachesTheAssistant(unittest.TestCase):
     def test_every_restored_aspect_is_in_the_planners_bundle_and_its_verdicts_reach_the_gap_report(self):
-        from eaos.compose.four_reports import write as reports
+        from eaos.report.four_reports import write as reports
         from eaos.pipeline.run import execute
-        from eaos.studio import ideal
-        from eaos.target_architecture import reconcile
-        from eaos.target_document import render
+        from eaos.ai import ideal
+        from eaos.report.target_architecture import reconcile
+        from eaos.report.target_document import render
         with tempfile.TemporaryDirectory() as tmp:
             project, out = Path(tmp) / 'shop', Path(tmp) / 'out'
             for name, text in FILES.items():
@@ -168,7 +168,7 @@ class SuiteHealth(unittest.TestCase):
     def test_the_suites_redundant_and_slowest_tests_are_measured_by_coverage_and_the_runners_report(self):
         """The owner's incident: EAOS's own suite grew to 2228 tests and an hour, and nothing in the check said so.
         Coverage.py's contexts name the test that runs no line of its own; the runner's report gives each test's time."""
-        from eaos.verify import COVERAGERC, suite_health
+        from eaos.live.verify import COVERAGERC, suite_health
         with tempfile.TemporaryDirectory() as folder:
             app = Path(folder)
             (app / 'price.py').write_text('def price(n):\n    if n > 10:\n        return n * 2\n    return n\n')

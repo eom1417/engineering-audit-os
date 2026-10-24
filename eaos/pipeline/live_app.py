@@ -13,14 +13,14 @@ PAGE_STAGES = frozenset(('session', 'record', 'journeys', 'crawl', 'screens'))
 
 def shared_app(context, published=False):
     """(live run, address, browser state), started and seeded once. The state is the run's one session
-    (eaos/sign_in.py): the seed's, written again at each start, or the person's, kept and checked before use (renewed
+    (eaos/live/sign_in.py): the seed's, written again at each start, or the person's, kept and checked before use (renewed
     once when it expired). `published`: a stage that only reads pages gets the published address the person named
     instead, (None, that address, its session), with nothing started. Page stages hold the declared app resource."""
-    from .. import sign_in
+    from ..live import sign_in
     chosen = context.setdefault('sign_in', {})
     if published and chosen.get('published'): return None, chosen['published'], Path(chosen['folder']) / sign_in.PUBLISHED
     if 'page_app' not in context:
-        from ..live_run import LiveRun
+        from ..live.run import LiveRun
         live = LiveRun(context.target, context.runtime, 'S05')
         live.freeze()                                    # the lock records on it: the folders it reads, kept as they are
         state = sign_in.session(context.runtime)
@@ -40,12 +40,12 @@ def shared_app(context, published=False):
 
 
 def sessions(context, published=False):
-    """(live run, address, [(kind, browser state)]): the app opened once as each kind of user of its code (eaos/roles.py)
+    """(live run, address, [(kind, browser state)]): the app opened once as each kind of user of its code (eaos/live/roles.py)
     the seed made a session for, and with the run's one session (kind None) when it made none or the person signed in
     by hand: theirs is opened too."""
-    from .. import sign_in
-    from ..live_run import kinds_folder
-    from ..roles import read
+    from ..live import sign_in
+    from ..live.run import kinds_folder
+    from ..live.roles import read
     live, base, state = shared_app(context, published)
     made = [(kind['id'], path) for kind in (read(context.out) if live else [])
             if (path := kinds_folder(state) / f"{kind['id']}.json").is_file()]
@@ -57,14 +57,14 @@ def close_app(context):
     session, which is for one check only, goes with it."""
     app = context.pop('page_app', None)
     if app: app[0].stop()
-    from ..sign_in import PUBLISHED
+    from ..live.sign_in import PUBLISHED
     chosen = context.get('sign_in') or {}
     if chosen.get('published'): (Path(chosen['folder']) / PUBLISHED).unlink(missing_ok=True)
 
 
 def _keep(context, name, record):
     """A live stage's record under <out>/live/."""
-    from ..workspace import write
+    from ..core.workspace import write
     (context.out / 'live').mkdir(exist_ok=True)
     write(context.out / 'live' / name, record)
 
@@ -86,7 +86,7 @@ def _ran(context, name):
 
 
 def studio(context):
-    """The Studio's data of this check so far (eaos/studio/export.py): after the screens are pictured, so the person sees
+    """The Studio's data of this check so far (eaos/report/studio/export.py): after the screens are pictured, so the person sees
     them while the check goes on (a real check showed 0 screens until the end); the proposals stage's record too."""
-    from ..studio.export import export
+    from ..report.studio.export import export
     return export(context.out, context.language, Path(context.target).name, context.target)

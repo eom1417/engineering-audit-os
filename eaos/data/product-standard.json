@@ -1,5 +1,5 @@
 {
- "about": "The cards every product needs beyond its own features (eaos/blueprint.py standard_cards). `when` is a fact of the spec (blueprint.STANDARD_WHEN); `stage` is where the card goes: `foundation` (before any module, every screen uses it) or `release` (the last milestone, once the product exists); `server_paths` are added when the stack has a server; `each` repeats the row per spec entry, {name}, {id} and {adapter} (its adapter folder) filled from it. The thresholds are the ones the check measures (axe, Lighthouse, k6, the security engines).",
+ "about": "The cards every product needs beyond its own features (eaos/report/blueprint.py standard_cards). `when` is a fact of the spec (blueprint.STANDARD_WHEN); `stage` is where the card goes: `foundation` (before any module, every screen uses it) or `release` (the last milestone, once the product exists); `server_paths` are added when the stack has a server; `each` repeats the row per spec entry, {name}, {id} and {adapter} (its adapter folder) filled from it. The thresholds are the ones the check measures (axe, Lighthouse, k6, the security engines).",
  "rows": [
   {
    "id": "languages",

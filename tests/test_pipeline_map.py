@@ -1,5 +1,5 @@
 """The pipeline map: eaos/facts/pipeline.py finds pipelines from what code declares or does, and
-eaos/studio/pipeline.py draws them as the Studio's pipeline section, current, ideal and gap."""
+eaos/analysis/pipeline_map.py draws them as the Studio's pipeline section, current, ideal and gap."""
 import json
 import tempfile
 import textwrap
@@ -7,10 +7,10 @@ import time
 import unittest
 from pathlib import Path
 
-from eaos import artifact_contracts
+from eaos.core import artifact_contracts
 from eaos.facts import pipeline
 from eaos.facts import run as facts_run
-from eaos.studio import pipeline as section
+from eaos.analysis import pipeline_map as section
 
 # Stages that only shape a pipeline (eaos/facts/pipeline.py); the tests compare the real ones.
 STRUCTURAL = ('router', 'fork', 'join', 'source', 'sink')

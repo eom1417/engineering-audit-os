@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import local_db
+from eaos.core import local_db
 
 
 @unittest.skipUnless(os.name == 'posix' and os.geteuid() == 0, 'the dedicated account exists under root only')

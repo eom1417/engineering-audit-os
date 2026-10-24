@@ -4,11 +4,11 @@ from pathlib import Path
 import tempfile
 import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
-from eaos import load_model
+from eaos.analysis import load_model
 from eaos.facts.domain import js_mutable_globals
 from eaos.facts.frameworks.http_access import bounded
 from eaos.facts.frameworks.supabase_access import extract_calls
-from eaos.load_model import BLOCKERS, QUESTIONS, blockers, compute, project, validate
+from eaos.analysis.load_model import BLOCKERS, QUESTIONS, blockers, compute, project, validate
 from eaos.pipeline import execute
 
 FIXTURES = Path(__file__).resolve().parent / 'fixtures'

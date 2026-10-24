@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import correlate
+from eaos.analysis import correlate
 from eaos.engines import ADAPTERS, analyze, health
 from eaos.engines.contract import Report, UNAVAILABLE, finding, subject
 
@@ -136,8 +136,8 @@ class CorrelationTests(unittest.TestCase):
 
 class EngineClaimTests(unittest.TestCase):
     def test_engine_evidence_becomes_a_claim_only_when_corroborated_and_never_above_its_ceiling(self):
-        from eaos.claims import from_engines
-        from eaos.probes import _apply_ceiling
+        from eaos.analysis.claims import from_engines
+        from eaos.analysis.probes import _apply_ceiling
         self.assertEqual(from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
                                                {'enola': evaluated_at(complexity=('observed', 'file'))})), [])
         [claim] = from_engines(fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
@@ -188,14 +188,14 @@ class InstalledEngineTests(unittest.TestCase):
         import os, shutil
         from eaos.facts.run import collect
         with tempfile.TemporaryDirectory() as workdir:
-            manifest = analyze('eaos/compose', workdir, only=['jscpd'], formats=['python'])
+            manifest = analyze('eaos/core/progress', workdir, only=['jscpd'], formats=['python'])
         self.assertTrue(manifest['target_unchanged'])
         self.assertEqual((manifest['requested'], sorted(manifest['coverage'])), (['jscpd'], ['jscpd']))
         # A fact id hashing modification times changed with every clone, and with it the measurement a claim shows.
         ids = []
         with tempfile.TemporaryDirectory() as tmp:
             for name, mtime in (('a', 1_000_000), ('b', 2_000_000)):
-                target = shutil.copytree('eaos/compose', Path(tmp, name, 'compose'))
+                target = shutil.copytree('eaos/core/progress', Path(tmp, name, 'progress'))
                 for path in target.rglob('*'): os.utime(path, (mtime, mtime))
                 collect(target, Path(tmp, name, 'out'), engines=['enola', 'jscpd'])
                 facts = json.loads(Path(tmp, name, 'out', 'facts/external.json').read_text())['facts']

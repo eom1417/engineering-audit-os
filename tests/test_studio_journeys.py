@@ -1,11 +1,11 @@
 """studio/journeys.json and studio/hidden.json: the user's journeys between screens, and what runs unseen behind them,
-read from the scan's facts with their evidence, never invented (eaos/studio/journeys.py, hidden.py)."""
+read from the scan's facts with their evidence, never invented (eaos/report/studio/journeys.py, hidden.py)."""
 import json
 import unittest
 from pathlib import Path
 
-from eaos import artifact_contracts
-from eaos.studio import coverage, hidden, journeys
+from eaos.core import artifact_contracts
+from eaos.report.studio import coverage, hidden, journeys
 from tests.shared_fixture import TemporaryWorkspace
 
 R = 'src/App.tsx'

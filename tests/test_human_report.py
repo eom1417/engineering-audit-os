@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos import human_report
-from eaos.human_report import priority_words
-from eaos.studio import model
+from eaos.report import human_report
+from eaos.report.human_report import priority_words
+from eaos.analysis import model
 
 
 def _task(number, pattern, claim, paths, ready=True):

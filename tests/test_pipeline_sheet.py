@@ -1,4 +1,4 @@
-"""The pipeline sheet of the report for people (eaos/compose/pipeline_sheet.py, NS46.T13): drawn from the Studio's
+"""The pipeline sheet of the report for people (eaos/report/pipeline_sheet.py, NS46.T13): drawn from the Studio's
 pipeline section, present only when the project holds a pipeline, and the Studio's gallery draws the same fixture."""
 import json
 import tempfile
@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import human_report
-from eaos.compose import pipeline_sheet
+from eaos.report import human_report
+from eaos.report import pipeline_sheet
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / 'tests/fixtures/studio/v2/pipeline.json'

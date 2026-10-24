@@ -18,7 +18,7 @@ class RemedyTests(unittest.TestCase):
         first = manifest(engines=('unavailable', 'no_engine_installed'), setup=('unavailable', 'no_run_consent'), measure=('ok', ''))
         fixed = manifest(engines=('ok', ''), setup=('unavailable', 'no_run_consent'), measure=('ok', ''))
         calls = []
-        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.toolchain.install', return_value=[]) as install:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('eaos.core.toolchain.install', return_value=[]) as install:
             done = remedies.apply(first, lambda stages: calls.append(stages) or fixed, tmp, assistant=None)
             self.assertTrue((Path(tmp) / 'run-manifest.json').is_file())
         self.assertEqual(calls, [['engines']], 'the stage runs again once, after the tool was installed')
@@ -31,7 +31,7 @@ class RemedyTests(unittest.TestCase):
 
     def test_a_remedy_whose_change_is_not_proven_does_not_run_the_stage_again(self):
         broken = manifest(engines=('unavailable', 'no_engine_installed'), lock=('unavailable', 'no_features'), crawl=('unavailable', 'app_not_running'))
-        with mock.patch('eaos.toolchain.install', return_value=['semgrep']), tempfile.TemporaryDirectory() as tmp:
+        with mock.patch('eaos.core.toolchain.install', return_value=['semgrep']), tempfile.TemporaryDirectory() as tmp:
             done = remedies.apply(broken, lambda stages: self.fail('no stage runs again'), tmp)
         self.assertEqual({r['stage']: r['outcome'] for r in done['remedies']},
                          {'engines': 'failed', 'lock': 'failed', 'crawl': 'needs_person'}, 'the crawl is not ok, so the lock is not retried')

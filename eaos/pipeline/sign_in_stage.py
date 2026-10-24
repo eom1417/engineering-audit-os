@@ -1,6 +1,6 @@
 """The stage `session`, right after the app is set up: whether its pages need a sign-in, and the sessions every page
-stage opens them with (eaos/sign_in.py). Unless the person chose to sign in themselves, the assistant makes the test
-users on the running app, one of each kind of user (eaos/test_users.py), for five minutes at most; a session still
+stage opens them with (eaos/live/sign_in.py). Unless the person chose to sign in themselves, the assistant makes the test
+users on the running app, one of each kind of user (eaos/live/test_users.py), for five minutes at most; a session still
 missing then, the person is asked (the Studio's Waiting for you, the assistant's status, `eaos watch` and `eaos
 sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends it with
 that reason, and the page stages see the app signed out, which the report says.
@@ -8,7 +8,7 @@ that reason, and the page stages see the app signed out, which the report says.
 import json
 from pathlib import Path
 
-from .. import sign_in
+from ..live import sign_in
 from .live_app import _keep, _live, shared_app
 from .stages import SkipStage
 
@@ -40,8 +40,8 @@ def _views_alone(context):
     """No sign-in asked for (an app that opens signed in by itself, a development sign-in): the views are still made
     when the code has some, or when pages of the code open as none of themselves (chief-ops opened as support alone,
     its program's pages a "not found", and no view was ever looked for). Never asks the person to sign in."""
-    from ..roles import read
-    from ..test_users import unreached
+    from ..live.roles import read
+    from ..live.test_users import unreached
     live, base, state = shared_app(context)              # the page stages start it anyway: no cost of its own
     alone = unreached(live, base, state, context.out)
     if not read(context.out) and not alone: return {'needed': False}
@@ -51,9 +51,9 @@ def _views_alone(context):
 
 
 def _test_users(context, live, base, state, hand=False):
-    """The assistant's test users on the running app (eaos/test_users.py), or with the person's own session (`hand`) its
+    """The assistant's test users on the running app (eaos/live/test_users.py), or with the person's own session (`hand`) its
     switches into each view a switch enters; what is still lacking, '' when nothing."""
-    from ..test_users import lacking, make, views
+    from ..live.test_users import lacking, make, views
     if hand and not views(context.out, True): return ''
     if not context.provider: return lacking(live, base, state, context.out, hand)
     try: return make(context.target, live, base, state, context.out, context.provider, hand)

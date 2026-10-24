@@ -9,15 +9,15 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, guided
-from eaos.dossier import assemble
+from eaos.journeys import agent_tools, guided
+from eaos.analysis.dossier import assemble
 from eaos.pipeline import runners
 from eaos.pipeline.run import Context, _one
 from eaos.pipeline.stages import BY_NAME, STAGES, SkipStage
-from eaos.progress import stage_rows
-from eaos.progress.log import _small
-from eaos.studio import ideal
-from eaos.studio.nodes import core
+from eaos.core.progress import stage_rows
+from eaos.core.progress.log import _small
+from eaos.ai import ideal
+from eaos.ai.nodes import core
 from test_ai_nodes import Answer, _nodes_report, decision
 from test_ideal_planner import Launcher, make_report
 
@@ -163,7 +163,7 @@ class Consent(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         home = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'claude'})
         home.start(); self.addCleanup(home.stop)
-        installed = mock.patch('eaos.assistants.shutil.which', return_value='/bin/claude')
+        installed = mock.patch('eaos.ai.shutil.which', return_value='/bin/claude')
         installed.start(); self.addCleanup(installed.stop)
         self.project = Path(self.tmp.name) / 'shop'
         self.project.mkdir()
@@ -175,7 +175,7 @@ class Consent(unittest.TestCase):
     def probe(self, ready, code=None):
         row = {'id': 'claude', 'name': 'Claude Code', 'ready': ready, 'installed': True, 'code': code or 'claude_ready',
                'reason': {'en': 'Claude Code is not signed in. Run `claude` once', 'ar': 'غير مسجّل'}}
-        return mock.patch('eaos.assistants.readiness.probe', return_value=row)
+        return mock.patch('eaos.ai.readiness.probe', return_value=row)
 
     def test_the_persons_yes_reaches_the_check_from_eaos_start_and_from_the_mcp_audit(self):
         state = {'lang': 'en', 'project': str(self.project), 'workspace': str(Path(self.tmp.name) / 'ws'), 'questions': []}
@@ -202,7 +202,7 @@ class Consent(unittest.TestCase):
 
     def test_the_views_and_the_sign_in_read_the_code_themselves_and_every_other_call_is_as_it_was(self):
         # chief-ops, 2026-10-21: the assistant of the views and the sign-in saw excerpts only, with every tool off
-        from eaos.assistants import claude_adapter, codex_adapter
+        from eaos.ai import claude_adapter, codex_adapter
         seen = []
         with mock.patch.object(claude_adapter, 'stream', side_effect=lambda argv, text, env: seen.append((argv, env)) or {'result': '{}'}):
             claude_adapter.call([{'role': 'user', 'content': 'hi'}])
@@ -224,7 +224,7 @@ class Consent(unittest.TestCase):
         guided.choose_assistant(state, True, 'codex', via='studio')
         kept = guided.load(self.project)
         self.assertEqual((kept['assistant'], guided.answered(kept, 'use_assistant')), ('codex', True))
-        with mock.patch('eaos.assistants.shutil.which', return_value='/bin/x'):
+        with mock.patch('eaos.ai.shutil.which', return_value='/bin/x'):
             self.assertEqual(guided.chosen_assistant(kept), 'codex', 'the project\'s choice wins over $EAOS_ASSISTANT')
         guided.choose_assistant(kept, False)
         kept = guided.load(self.project)
@@ -256,7 +256,7 @@ class Consent(unittest.TestCase):
                 mock.patch.object(guided, 'tools_for_check', return_value={}):
             agent_tools._audit_job(str(self.project), {'without_ai': True}, None)
         self.assertEqual(check.call_args.kwargs['provider'].code, 'ai_skipped')
-        from eaos.assistants.readiness import words
+        from eaos.ai.readiness import words
         self.assertTrue(words('ai_skipped'))
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
             answer = agent_tools.audit(str(self.project), use_assistant=True, assistant='claude')
@@ -268,14 +268,14 @@ class Consent(unittest.TestCase):
             self.assertEqual(agent_tools.audit(str(self.project), use_assistant=False)['status'], 'started')
 
     def test_the_studio_the_assistant_check_and_the_doctor_show_each_assistant_and_ask_instead_of_saying_done(self):
-        from eaos.studio.actions import prompts
+        from eaos.ai import prompts
         question = prompts.assistant_question({'status': 'assistant_not_ready', 'assistant': {
             'name': 'Claude Code', 'code': 'claude_sign_in_expired', 'reason': {'en': 'Sign in again.', 'ar': 'سجّل دخولك من جديد.'}}})
         self.assertEqual((question['why'], [o['id'] for o in question['options']], question['recommendation']),
                          ('assistant', ['retry', 'without_ai'], 'retry'))
         self.assertIn('سجّل دخولك من جديد', question['text']['ar'])
         rows = [{'id': 'claude', 'ready': True}, {'id': 'codex', 'ready': False, 'code': 'codex_sign_in_expired'}]
-        with mock.patch('eaos.assistants.readiness.probe_all', return_value=rows) as probed:
+        with mock.patch('eaos.ai.readiness.probe_all', return_value=rows) as probed:
             answer = agent_tools.assistant_check(str(self.project), fresh=True)
         probed.assert_called_once_with(fresh=True, names=None)
         self.assertEqual(answer['assistants'], rows)
@@ -284,12 +284,12 @@ class Consent(unittest.TestCase):
         self.assertTrue(answer['permission']['ar'])
         rows = [{'id': 'claude', 'name': 'Claude Code', 'ready': False, 'installed': False, 'code': 'claude_not_installed', 'reason': {'en': 'no claude'}},
                 {'id': 'codex', 'name': 'Codex', 'ready': False, 'installed': True, 'code': 'codex_sign_in_expired', 'reason': {'en': 'run codex login'}}]
-        with mock.patch('eaos.assistants.readiness.probe_all', return_value=rows):
+        with mock.patch('eaos.ai.readiness.probe_all', return_value=rows):
             row = guided.assistant_row(probe=True)
         self.assertFalse(row['ok'])
         self.assertIn('Codex: sign-in expired', row['en'])
         self.assertEqual(row['fix'], 'run codex login')
-        with mock.patch('eaos.assistants.readiness.probe_all', side_effect=AssertionError('no probe without asking')):
+        with mock.patch('eaos.ai.readiness.probe_all', side_effect=AssertionError('no probe without asking')):
             self.assertTrue(guided.assistant_row(probe=False)['ok'])
 
 if __name__ == '__main__':

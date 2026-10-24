@@ -1,6 +1,6 @@
 # AI in the pipeline
 
-Where the person's own assistant (Claude Code or Codex, `eaos/assistants/__init__.py`) makes EAOS's outcome better,
+Where the person's own assistant (Claude Code or Codex, `eaos/ai/__init__.py`) makes EAOS's outcome better,
 and how each use is bounded. The rules stay the baseline everywhere: the assistant adds to them and never replaces
 them.
 
@@ -14,14 +14,14 @@ them.
    fails because of AI.
 4. **Time to do it well, never a cut-off** (owner, 2026-10-10). An AI step takes the time and the money the work
    needs; both are recorded and shown as facts, never used to stop it. Only the person's stop ends it, or a hang:
-   an assistant that gives no output at all for 20 minutes is ended as stuck (`eaos/assistants/command.py` `STUCK`,
+   an assistant that gives no output at all for 20 minutes is ended as stuck (`eaos/ai/command.py` `STUCK`,
    reason `ai_stuck`). A check stopped during an AI step resumes at that step; the finished ones are not asked
    again. Speed comes from clear prompts (goal, the exact evidence packet, the output schema, the criteria of a good
    answer, what not to do), not from limits. The project's text is untrusted data, never instructions.
 5. **On by default, and never silently off** (owner, 2026-10-11). The check uses the person's assistant unless they
    said no (question `use_assistant`, kept in the project's state; `eaos start --yes` answers it, the MCP `audit`
    passes it as `use_assistant`). Before a check starts, the assistant is asked for one word
-   (`eaos/assistants/readiness.py`: installed, signed in, answering). When it does not answer, the check does not start:
+   (`eaos/ai/readiness.py`: installed, signed in, answering). When it does not answer, the check does not start:
    the reason and its fix are said (in the Studio as a question: "I fixed it: check again" or "Start this check
    without AI", `without_ai`, which changes no choice), and an assistant that stops answering during the check gives
    its own reason on the live map and in the report. `EAOS_ASSISTANT=none` turns every assistant off on a computer.
@@ -58,15 +58,15 @@ proposal (`rule_only`), and the findings, cards and plan are those of the rules 
 
 | Rank | Step | What AI adds | Bounds | Where |
 |---|---|---|---|---|
-| 1 | Target decision (check stage `ideal`) | Each of the tools' proposals for the target judged, and the other views planned, then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; the reconcile guards decide what reaches the target; cached on the same inputs. | `eaos/studio/ideal.py`, node `ideal_planner`, `eaos/target_architecture.py` `reconcile` |
-| 2 | Semantic reading (check stage `semantic`) | Responsibilities, boundaries, contracts and root causes, which no rule can read from facts. | At most 3 rounds, one call of up to 600 s each; invented fact ids are sent back and the answer is rejected if they stay; every claim is a HYPOTHESIS with a falsifier. | `eaos/semantic.py` |
-| 3 | Card triage (check stage `triage`) | Each candidate card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; every card is read, in batches of 40; cached. | `eaos/studio/nodes/triage.py`, node `card_triage`, `eaos/plan.py` `confirm` |
-| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage, the ideal and the pipeline steps. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; cached. | `eaos/studio/nodes/plan_orderer.py`, node `plan_orderer`, `eaos/plan.py` `sequence` |
-| 4b | Visual review (check stage `visual`) | What a person would notice on each screen: crowding, hierarchy, consistency, clarity, accessibility, behaviour. No rule sees a picture. | The assistant may open exactly the listed pictures (Claude Code: `--tools Read --allowedTools "Read(<file>)"`, every other read refused; Codex: `-i <file>`); a finding without a region inside its picture drops the decision; batches of 6 pictures. | `eaos/studio/nodes/visual_reviewer.py`, node `visual_reviewer`, `eaos/plan.py` `design_card` |
-| 5 | Pipeline gaps (check stage `pipeline_gaps`) | How each broken pipeline rule is closed, as a step the order places. | Plan + critique passes; a decision must cite its gap or its rule. | `eaos/studio/nodes/pipeline_gap_planner.py` |
-| 6 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live_setup.py` |
-| 7 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/agent_tools.py` `fix_*` |
-| 8 | AI nodes from the Studio (`run_nodes`) | Fix review, and the nodes above again on demand. | Same citation check and rules fallback per node; started by the person. | `eaos/studio/nodes/` |
+| 1 | Target decision (check stage `ideal`) | Each of the tools' proposals for the target judged, and the other views planned, then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; the reconcile guards decide what reaches the target; cached on the same inputs. | `eaos/ai/ideal.py`, node `ideal_planner`, `eaos/report/target_architecture.py` `reconcile` |
+| 2 | Semantic reading (check stage `semantic`) | Responsibilities, boundaries, contracts and root causes, which no rule can read from facts. | At most 3 rounds, one call of up to 600 s each; invented fact ids are sent back and the answer is rejected if they stay; every claim is a HYPOTHESIS with a falsifier. | `eaos/ai/semantic.py` |
+| 3 | Card triage (check stage `triage`) | Each candidate card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; every card is read, in batches of 40; cached. | `eaos/ai/nodes/triage.py`, node `card_triage`, `eaos/analysis/plan.py` `confirm` |
+| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage, the ideal and the pipeline steps. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; cached. | `eaos/ai/nodes/plan_orderer.py`, node `plan_orderer`, `eaos/analysis/plan.py` `sequence` |
+| 4b | Visual review (check stage `visual`) | What a person would notice on each screen: crowding, hierarchy, consistency, clarity, accessibility, behaviour. No rule sees a picture. | The assistant may open exactly the listed pictures (Claude Code: `--tools Read --allowedTools "Read(<file>)"`, every other read refused; Codex: `-i <file>`); a finding without a region inside its picture drops the decision; batches of 6 pictures. | `eaos/ai/nodes/visual_reviewer.py`, node `visual_reviewer`, `eaos/analysis/plan.py` `design_card` |
+| 5 | Pipeline gaps (check stage `pipeline_gaps`) | How each broken pipeline rule is closed, as a step the order places. | Plan + critique passes; a decision must cite its gap or its rule. | `eaos/ai/nodes/pipeline_gap_planner.py` |
+| 6 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live/setup.py` |
+| 7 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/journeys/agent_tools.py` `fix_*` |
+| 8 | AI nodes from the Studio (`run_nodes`) | Fix review, and the nodes above again on demand. | Same citation check and rules fallback per node; started by the person. | `eaos/ai/nodes/` |
 
 Ranks 1 to 5 run inside every check once the person said yes (the visual review once the app was run and pictured). Ranks 6 to 8 already used the assistant before. Each AI
 stage reports its calls, seconds, assistant and model to the live map; a node's record keeps its `calls`.

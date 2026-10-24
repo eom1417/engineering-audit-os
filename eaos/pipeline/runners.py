@@ -27,7 +27,7 @@ def facts(context):
                                    cache=Path(context.runtime) / 'syntax-cache.json' if context.get('runtime') else None)
     # A tree with no source file to read is not an audited project, whatever its history says:
     # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
-    from ..vocabulary import classify
+    from ..core.vocabulary import classify
     if not any(classify(item['path']) == 'source' for item in context['source'].readable()):
         raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
     return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
@@ -75,10 +75,10 @@ def _owner(target):
 
 
 def setup(context):
-    """The app installed and started in an isolated copy (eaos/live_setup.py), once the person agreed to it."""
+    """The app installed and started in an isolated copy (eaos/live/setup.py), once the person agreed to it."""
     if not context.get('runtime'):
         raise SkipStage(NO_RUN, code='no_run_consent')
-    from ..live_setup import authorize, setup as start
+    from ..live.setup import authorize, setup as start
     authorize(context.target, context.runtime, _owner(context.target))
     result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider or None, say=lambda n: None)
     _keep(context, 'setup.json', result)
@@ -88,9 +88,9 @@ def setup(context):
 
 
 def verify(context):
-    """The project's own tests from its run profile in the isolated copy, with coverage (eaos/verify.py run_profile),
+    """The project's own tests from its run profile in the isolated copy, with coverage (eaos/live/verify.py run_profile),
     once the person agreed to run the app; else which test imports which file, and why nothing ran."""
-    from ..verify import declared, run_profile
+    from ..live.verify import declared, run_profile
     if not context.get('runtime'):
         declared(context.target, context.out, NO_RUN, context.get('source'))
         raise SkipStage(NO_RUN, code='no_run_consent')
@@ -112,11 +112,11 @@ def verify(context):
 
 
 def record(context):
-    """The lock run twice on today's code (eaos/behavior_lock.py run_lock): the screens and interfaces it recorded."""
+    """The lock run twice on today's code (eaos/live/behavior_lock.py run_lock): the screens and interfaces it recorded."""
     runtime = _live(context)
     if not (context.out / 'behavior-lock/plan.json').is_file():
         raise SkipStage('the program has no feature to lock', code='no_features')
-    from ..behavior_lock import run_lock
+    from ..live.behavior_lock import run_lock
     from .live_app import shared_app
     result = run_lock(context.out, context.target, runtime, app=shared_app(context))     # on the app the person signed in to
     passed = sum(r['status'] == 'passed' for r in result['results'])
@@ -125,15 +125,15 @@ def record(context):
 
 
 def baseline(context):
-    """Today's speed under the intake's load scenarios (eaos/runtime_baseline.py), on a production build that started."""
+    """Today's speed under the intake's load scenarios (eaos/live/runtime_baseline.py), on a production build that started."""
     runtime = _live(context)
     import json as _json
     profile = _json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
     if not (profile.get('baseline') or {}).get('verified'):
         raise SkipStage('the production build of the app did not start in the isolated copy, so its speed was not measured',
                         code='no_production_run')
-    from ..nfr import write as scenarios
-    from ..runtime_baseline import PagesOnly, run_baseline
+    from ..live.nfr import write as scenarios
+    from ..live.runtime_baseline import PagesOnly, run_baseline
     scenarios(context.out)
     if not list((context.out / 'nfr/k6').glob('*.js')):
         raise SkipStage("the intake's load scenarios name no route of the app a load test can request", code='no_load_scenario')
@@ -145,9 +145,9 @@ def baseline(context):
 
 
 def readiness(context):
-    """Production readiness under pressure as findings with evidence (eaos/production_readiness.py); the k6 baseline is
+    """Production readiness under pressure as findings with evidence (eaos/analysis/production_readiness.py); the k6 baseline is
     read only when it ran in this check."""
-    from ..production_readiness import write
+    from ..analysis.production_readiness import write
     record = write(context.out, measured=_ran(context, 'baseline'))
     return {aspect: counts for aspect, counts in record['summary'].items()}
 
@@ -157,7 +157,7 @@ def architecture(context):
     if context.engines is None:
         raise SkipStage('external engines were not requested for this run', code='engines_not_requested')
     from ..engines.architecture import city, clusters, digest
-    from ..workspace import write
+    from ..core.workspace import write
     folder = context.out / 'architecture'
     drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}
     if all(row['status'] != 'observed' for row in drawn.values()):
@@ -169,15 +169,15 @@ def architecture(context):
 
 
 def sustainability(context):
-    """The six indicators against their targets (eaos/sustainability.py): sustainability.json."""
-    from ..sustainability import write
+    """The six indicators against their targets (eaos/analysis/sustainability.py): sustainability.json."""
+    from ..analysis.sustainability import write
     result = write(context.out)
     return {'measured': sum(1 for row in result['rows'] if row['measured']), 'moves': len(result['moves'])}
 
 
 def transform(context):
-    """A canonical home for each repeated definition and the move that gets there (eaos/transform_plan.py)."""
-    from ..transform_plan import build, write
+    """A canonical home for each repeated definition and the move that gets there (eaos/analysis/transform_plan.py)."""
+    from ..analysis.transform_plan import build, write
     policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
     plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
     write(context.out, plan)
@@ -187,14 +187,14 @@ def transform(context):
 def policy(context):
     if not context.policy_path and not (Path(context.target) / POLICY_FILE).is_file():
         raise SkipStage(f'the project declares no {POLICY_FILE}', code='no_policy')
-    from ..policy import check
+    from ..analysis.policy import check
     result = check(context.target, context.out, policy_path=context.policy_path)
     return {'violations': result.get('violations')}
 
 
 def claims(context):
-    from ..dossier import assemble
-    from ..workspace import read, write
+    from ..analysis.dossier import assemble
+    from ..core.workspace import read, write
     result = assemble(context.target, context.out, run=context.get('audit_run'), language=context.language,
                       exclude=context.exclude, collected=context.get('collected'))
     if context.get('goal'):
@@ -206,7 +206,7 @@ def claims(context):
 
 
 def probe(context):
-    from ..probes import run_all
+    from ..analysis.probes import run_all
     return run_all(context.target, context.out)
 
 
@@ -214,7 +214,7 @@ NO_ASSISTANT = 'no assistant was installed or allowed for this check, so the rul
 
 
 def _absent(provider):
-    """SkipStage for an AI stage without its assistant: the reason the provider carries (eaos/assistants/readiness.py
+    """SkipStage for an AI stage without its assistant: the reason the provider carries (eaos/ai/readiness.py
     NoAssistant: the person said no, the assistant is not signed in, ...), else nobody allowed one."""
     code = getattr(provider, 'code', None)
     return SkipStage(provider.reason, code=code) if code else SkipStage(NO_ASSISTANT, code='no_provider')
@@ -225,7 +225,7 @@ def _lost(context, problem, code):
     longer ready gives its own reason (signed out during the check, its limit reached); else `problem` and `code`."""
     name = (getattr(context.provider, 'config', None) or {}).get('assistant')
     if name:
-        from ..assistants import readiness
+        from ..ai import readiness
         try: found = readiness.probe(name, fresh=True)
         except Exception: found = {'ready': True}
         if not found['ready']:
@@ -235,10 +235,10 @@ def _lost(context, problem, code):
 
 
 def roles(context):
-    """The kinds of users the app has, read from its code by the assistant (eaos/roles.py): the app is opened as each."""
+    """The kinds of users the app has, read from its code by the assistant (eaos/live/roles.py): the app is opened as each."""
     if not context.provider: raise _absent(context.provider)
-    from ..process import Stuck
-    from ..roles import find
+    from ..core.process import Stuck
+    from ..live.roles import find
     try: kinds = find(context.target, context.out, context.provider)
     except Stuck as problem: raise _lost(context, str(problem), 'ai_stuck') from None
     except Exception as problem:                       # the assistant never decides the fate of the check
@@ -249,9 +249,9 @@ def roles(context):
 def semantic(context):
     if not context.provider:
         raise _absent(context.provider)
-    from ..process import Stuck
-    from ..semantic import run
-    from ..views import refresh
+    from ..core.process import Stuck
+    from ..ai.semantic import run
+    from ..report.views import refresh
     try: result = run(context.target, context.out, context.provider, language=context.language)
     except Stuck as problem:
         raise _lost(context, str(problem), 'ai_stuck') from None
@@ -263,12 +263,12 @@ def semantic(context):
 
 
 def _node(context, name):
-    """Run one AI node of eaos/studio/nodes inside the check, with its cache and evidence check, as long as the assistant
+    """Run one AI node of eaos/ai/nodes inside the check, with its cache and evidence check, as long as the assistant
     works; return its record and what the live map reports. Without an assistant, stuck or on a failure the rules'
     result stands."""
     if not context.provider:
         raise _absent(context.provider)
-    from ..studio.nodes import core, run
+    from ..ai.nodes import core, run
     record = run(context.out, names=[name], project=str(context.target), lang=context.language,
                  adapters=_adapters_of(context), assistants=context.get('assistants')).get(name)
     if record is None:
@@ -295,35 +295,35 @@ def _adapters_of(context):
     """Only the assistant the person chose for the check, when they chose one; else None (any installed)."""
     chosen = (getattr(context.provider, 'config', None) or {}).get('assistant')
     if not chosen: return None
-    from ..studio.actions.adapters import installed
+    from ..ai.headless import installed
     return {key: adapter for key, adapter in installed().items() if key == chosen}
 
 
 def ideal(context):
-    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) before the target is final: plan, critique and the
+    """The ideal planner node (eaos/ai/nodes/ideal_planner.py) before the target is final: plan, critique and the
     evidence check; the reconcile stage turns its decisions into the target, and the rules' target stands without it."""
     record, detail = _node(context, 'ideal_planner')
     return {'elements': record['decisions'][0]['detail']['elements'], **detail}
 
 
 def triage(context):
-    """The card triage node (eaos/studio/nodes/triage.py): each open card confirmed, doubted or rejected on its own
+    """The card triage node (eaos/ai/nodes/triage.py): each open card confirmed, doubted or rejected on its own
     evidence, a doubted one judged again on all its facts, with why in the person's words; the cards stage then applies
-    the verdicts once (eaos/card_review.py apply_verdicts) before anything ranks, plans or reports."""
+    the verdicts once (eaos/analysis/card_review.py apply_verdicts) before anything ranks, plans or reports."""
     record, detail = _node(context, 'card_triage')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 
 
 def order(context):
-    """The plan orderer node (eaos/studio/nodes/plan_orderer.py): the order and grouping of the plan's cards, every
+    """The plan orderer node (eaos/ai/nodes/plan_orderer.py): the order and grouping of the plan's cards, every
     prerequisite kept; the steps stage writes it into the plan."""
     record, detail = _node(context, 'plan_orderer')
     return {'decision': record['decisions'][0]['decision'], **detail}
 
 
 def load(context):
-    from ..load_model import compute, project
-    from ..workspace import write
+    from ..analysis.load_model import compute, project
+    from ..core.workspace import write
     record = compute(context.out)
     record = project(record)
     if _ran(context, 'baseline'):
@@ -337,13 +337,13 @@ def load(context):
 
 
 def plan(context):
-    from ..plan import build
+    from ..analysis.plan import build
     result = build(context.target, context.out, context.language, context.get('patterns'))
     return {'tasks': result['tasks'], 'waves': result['waves']}
 
 
 def lock(context):
-    from ..lock_specs import build
+    from ..live.lock_specs import build
     plan = build(context.out, context.target)
     if not plan['specs']:
         raise SkipStage('the program has no feature to lock', code='no_features')
@@ -352,21 +352,21 @@ def lock(context):
 
 def reports(context):
     # The C4 diagrams first: CURRENT-STATE and TARGET-STATE embed them; START-HERE.md counts this check's plan.
-    from ..c4 import write as diagrams
-    from ..compose.four_reports import write
-    from ..start_here import project_name, start_here
+    from ..analysis.c4 import write as diagrams
+    from ..report.four_reports import write
+    from ..report.start_here import project_name, start_here
     diagrams(context.out)
     start_here(context.out, context.language, project_name(context.target))
     return write(context.out, context.language)
 
 
 def measure(context):
-    from ..measurements import run
+    from ..analysis.measurements import run
     return run(context.out)
 
 
 def intake(context):
-    from ..intake import write
+    from ..analysis.intake import write
     record = write(context.target, context.out, context.get('intake'))
     return {'answered': sum(q['status'] == 'answered' for q in record['questions']), 'scenarios': len(record['scenarios'])}
 
@@ -379,8 +379,8 @@ def features(context):
     to disk. Doing it this way keeps the in-memory payload of the Context small while
     the disk keeps the source of truth.
     """
-    from ..features import build
-    from ..workspace import write
+    from ..analysis.features import build
+    from ..core.workspace import write
     from ..facts.store import read_set
     collected = context.get('collected') or {}
     set_names = collected.get('sets') or []
@@ -406,8 +406,8 @@ RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens,
 
 def target(context):
     """The rules' proposal, kept as it was (target-proposal.json) and as the target until the reconcile decides it."""
-    from ..target_architecture import build
-    from ..workspace import write
+    from ..report.target_architecture import build
+    from ..core.workspace import write
     result = build(context.out, target=context.target)
     write(context.out / 'target-proposal.json', result)
     write(context.out / 'target-architecture.json', result)
@@ -418,7 +418,7 @@ def proposals(context):
     """The Studio's records of this check so far: what the triage, the ideal and the pipeline-gap planner read."""
     if not context.provider:
         raise _absent(context.provider)
-    from ..workspace import write
+    from ..core.workspace import write
     from .live_app import studio
     result = studio(context)
     write(context.out / 'proposals.json', result)
@@ -426,29 +426,30 @@ def proposals(context):
 
 
 def cards(context):
-    from ..plan import carry, confirm
+    from ..analysis.extension import carry
+    from ..analysis.plan import confirm
     record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
     return {'extension': carry(context.target, context.out), 'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
             'design': len(record['design']), 'decided_by': record['decided_by']}
 
 
 def visual(context):
-    """The visual reviewer node (eaos/studio/nodes/visual_reviewer.py): the assistant opens each picture of the app's
+    """The visual reviewer node (eaos/ai/nodes/visual_reviewer.py): the assistant opens each picture of the app's
     screens, and only those, and names what a person would notice there; the cards stage makes each a design card."""
     record, detail = _node(context, 'visual_reviewer')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 
 
 def pipeline_gaps(context):
-    """The pipeline-gap planner node (eaos/studio/nodes/pipeline_gap_planner.py): how each broken pipeline rule is
+    """The pipeline-gap planner node (eaos/ai/nodes/pipeline_gap_planner.py): how each broken pipeline rule is
     closed; the plan orderer reads its steps."""
     record, detail = _node(context, 'pipeline_gap_planner')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 
 
 def reconcile(context):
-    from ..target_architecture import reconcile as decide
-    from ..target_document import render
+    from ..report.target_architecture import reconcile as decide
+    from ..report.target_document import render
     policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
     result = decide(context.out, planned=_ran(context, 'ideal'), policy_path=policy_path if policy_path.is_file() else None)
     render(context.out, result, language=context.language)
@@ -456,7 +457,7 @@ def reconcile(context):
 
 
 def steps(context):
-    from ..plan import sequence
+    from ..analysis.plan import sequence
     record = sequence(context.out, context.language, ordered=_ran(context, 'order'))
     return {'steps': len(record['steps']), 'decided_by': record['source']}
 
@@ -475,9 +476,9 @@ RUNNERS['session'] = session
 
 
 def translate(context):
-    """Every document in both languages (eaos/bilingual.py)."""
+    """Every document in both languages (eaos/core/bilingual.py)."""
     if not context.provider: raise _absent(context.provider)
-    from ..bilingual import translate as both
+    from ..core.bilingual import translate as both
     return both(context.out, context.provider)
 
 

@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from eaos.pipeline import execute
-from eaos.target_architecture import (assess, components, decisions, gap_matrix, package_of, render_decisions,
-                                      validate_decision)
+from eaos.report.target_architecture import (assess, components, decisions, gap_matrix, package_of, render_decisions,
+                                             validate_decision)
 
 
 def changed(relation='modify', **extra):

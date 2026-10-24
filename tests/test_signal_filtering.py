@@ -14,7 +14,7 @@ import unittest
 import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
-from eaos.dossier import assemble
+from eaos.analysis.dossier import assemble
 
 
 def _setup(tmp, file_count, body, fn_name='compute_total'):

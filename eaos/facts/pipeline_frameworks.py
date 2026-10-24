@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import call_name
 from .pipeline_langgraph import graphs_of
-from .pipeline_read import (slug, site, Found, _str, _strs, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES)
+from .pipeline_read import slug, site, Found, _str, _strs, _decorators, _unparse, describe, TIMEOUT_WORDS, SIGNATURES
 
 
 SHIFTS = (ast.RShift, ast.LShift)

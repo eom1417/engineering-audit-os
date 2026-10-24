@@ -1,6 +1,6 @@
 """The owner's trial (2026-09-29): a merged batch left its branch behind, the report did not move, and after a new check
-the progress said 3 done and the same 339 left. The ledger (eaos/ledger.py), reconcile and merge (eaos/guided.py), and
-the handover between assistants (eaos/handover.py)."""
+the progress said 3 done and the same 339 left. The ledger (eaos/core/ledger.py), reconcile and merge (eaos/journeys/guided.py), and
+the handover between assistants (eaos/journeys/handover.py)."""
 import json
 import os
 import subprocess
@@ -9,8 +9,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, batch_finish, guided, handover, ledger
-from eaos.waves import commit as eaos_commit, plan as read_plan
+from eaos.journeys import agent_tools, batch_finish, guided, handover
+from eaos.core import ledger
+from eaos.journeys.waves import commit as eaos_commit, plan as read_plan
 from tests.test_mcp import git_project
 
 
@@ -80,7 +81,7 @@ class Base(unittest.TestCase):
 class Continuity(Base):
     def test_a_batch_is_drawn_on_the_live_map_from_its_state_card_by_card_to_its_handover(self):
         # owner, 2026-10-15: no batch ever showed on the live map, nothing wrote the flow `fix`, it read "waiting" throughout
-        from eaos import progress
+        from eaos.core import progress
         state = guided.load(self.project)
         state['open_wave'] = {'number': 9, 'cards': ['TASK-001', 'TASK-002', 'TASK-003'], 'kept': {'TASK-001': 'a1'},
                               'failed': {'TASK-002': 'skipped: too large'}, 'opened': '2026-10-15T09:00:00+00:00'}
@@ -129,11 +130,11 @@ class Continuity(Base):
         def stopped(*_, **__):                                   # the person stops it while it halves the batch
             git(copy, 'reset', '-q', '--hard', base)
             raise KeyboardInterrupt
-        with mock.patch('eaos.waves.finish_batch', side_effect=stopped), self.assertRaises(KeyboardInterrupt):
+        with mock.patch('eaos.journeys.waves.finish_batch', side_effect=stopped), self.assertRaises(KeyboardInterrupt):
             batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         wave = guided.load(self.project)['open_wave']
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), wave.get('last_error')), (kept, None), 'stopped: whole, and nothing failed')
-        with mock.patch('eaos.waves.finish_batch', side_effect=refused), self.assertRaises(PermissionError):
+        with mock.patch('eaos.journeys.waves.finish_batch', side_effect=refused), self.assertRaises(PermissionError):
             batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         wave = guided.load(self.project)['open_wave']
         self.assertEqual((git(copy, 'rev-parse', 'HEAD'), list(wave['kept'])), (kept, ['TASK-001']), 'the batch as it was')
@@ -150,12 +151,12 @@ class Continuity(Base):
         agent_tools.fix_abandon(str(self.project))
         state = guided.load(self.project)
         self.assertEqual((state['waves'][-1]['status'], copy.exists()), ('abandoned', False))
-        from eaos import ledger
+        from eaos.core import ledger
         self.assertEqual({c['state'] for c in ledger.load(state)['cards'].values() if c['id'] == 'TASK-001'}, {'open'},
                          'its cards are free at once, not left "in the batch" for every next one to refuse')
-        from eaos import live_setup
-        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.detect', return_value=live_setup._unknown_app()), \
-                mock.patch('eaos.agent_tools._start'):
+        from eaos.live import setup as live_setup
+        with mock.patch('eaos.live.setup.authorize'), mock.patch('eaos.live.setup.detect', return_value=live_setup._unknown_app()), \
+                mock.patch('eaos.journeys.agent_tools._start'):
             for _ in range(2): agent_tools.run_setup(str(self.project), person_agreed=True)
         self.assertEqual(sum(q['id'] == 'run_and_fix' for q in guided.load(self.project)['questions']), 1, 'asked once')
 
@@ -294,7 +295,7 @@ class Continuity(Base):
 
 class Handover(Base):
     def test_the_next_assistant_and_a_new_session_know_where_the_work_stopped(self):
-        from eaos.mcp_server import _answer
+        from eaos.interfaces.mcp_server import _answer
         state = guided.load(self.project)
         state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': state['scanned_commit'], 'cards': ['TASK-002', 'TASK-004', 'TASK-005'],
                               'kept': {'TASK-002': 'abc'}, 'failed': {'TASK-004': 'skipped: needs a product decision'}, 'tools': {}}
@@ -313,7 +314,7 @@ class Handover(Base):
         page = (guided.outputs(guided.load(self.project)) / 'HANDOVER.md').read_text()
         for words in ('Continue from here', 'TASK-005', 'do not ask again', 'deleting it next', 'Codex'):
             self.assertIn(words, page)
-        with mock.patch('eaos.handover.refresh', side_effect=OSError('disk full')):
+        with mock.patch('eaos.journeys.handover.refresh', side_effect=OSError('disk full')):
             answer = json.loads(_answer(agent_tools.plan)(project=str(self.project)))
         self.assertIn('milestones', answer)
         self.assertEqual(answer['progress']['total'], 5)
@@ -326,14 +327,14 @@ class Handover(Base):
         self.assertEqual(agent_tools.status(str(self.project))['handover']['in_progress']['card'], 'TASK-005')
         self.assertIsNone(handover.hook_context(Path(self.tmp.name)), 'a folder EAOS knows nothing of adds nothing')
         import io, sys
-        from eaos import cli
+        from eaos.interfaces import cli
         with mock.patch.object(sys, 'stdin', io.StringIO(json.dumps({'cwd': str(self.project), 'hook_event_name': 'SessionStart'}))), \
                 mock.patch('sys.stdout', new_callable=io.StringIO) as out:
             cli.handover_hook(None)
         self.assertEqual(json.loads(out.getvalue())['hookSpecificOutput']['hookEventName'], 'SessionStart')
         for stdin, failing in (('{not json', False), (json.dumps({'cwd': str(self.project)}), True)):
             with mock.patch.object(sys, 'stdin', io.StringIO(stdin)), mock.patch('sys.stdout', new_callable=io.StringIO) as out, \
-                    mock.patch('eaos.handover.brief', side_effect=RuntimeError('broken state')) if failing else mock.patch('os.getcwd', return_value='/'):
+                    mock.patch('eaos.journeys.handover.brief', side_effect=RuntimeError('broken state')) if failing else mock.patch('os.getcwd', return_value='/'):
                 self.assertEqual(cli.handover_hook(None), 0)
             self.assertEqual(out.getvalue(), '', 'nothing printed: the session starts as if EAOS were not there')
 

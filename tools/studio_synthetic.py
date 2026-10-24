@@ -7,7 +7,7 @@ the section it points to: a card's evidence, a function's callers, a gap's opera
 
     python tools/studio_synthetic.py --out DIR [--cards 5000] [--components 1000] [--seed 7]
 
-DIR then holds <section>.json, its .js twin and manifest.json, exactly as eaos/studio/export.py lays them out; give it
+DIR then holds <section>.json, its .js twin and manifest.json, exactly as eaos/report/studio/export.py lays them out; give it
 to the screen gate with `python tools/studio_gates.py --studio --data DIR`.
 """
 import argparse
@@ -21,14 +21,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from eaos import artifact_contracts  # noqa: E402
-from eaos.studio import coverage as coverage_section  # noqa: E402
-from eaos.studio import data_paths as data_map  # noqa: E402
-from eaos.studio import infra as infra_map  # noqa: E402
-from eaos.studio import export  # noqa: E402
-from eaos.studio import paths as paths_section  # noqa: E402
-from eaos.studio import hidden as hidden_map  # noqa: E402
-from eaos.studio import journeys as journeys_map  # noqa: E402
+from eaos.core import artifact_contracts  # noqa: E402
+from eaos.report.studio import coverage as coverage_section  # noqa: E402
+from eaos.report.studio import data_paths as data_map  # noqa: E402
+from eaos.report.studio import infra as infra_map  # noqa: E402
+from eaos.report.studio import export  # noqa: E402
+from eaos.report.studio import paths as paths_section  # noqa: E402
+from eaos.report.studio import hidden as hidden_map  # noqa: E402
+from eaos.report.studio import journeys as journeys_map  # noqa: E402
 
 DOMAINS = ('work-orders', 'assets', 'vehicles', 'drivers', 'invoices', 'payments', 'inventory', 'reports', 'auth', 'users',
            'billing', 'routes', 'maintenance', 'fuel', 'alerts', 'audit', 'settings', 'notifications', 'contracts', 'suppliers')
@@ -259,8 +259,8 @@ def _synthetic_decisions(node, card_rows, model):
 
 
 def _synthetic_node(node, card_rows):
-    from eaos.studio import nodes
-    from eaos.studio.nodes import view
+    from eaos.ai import nodes
+    from eaos.ai.nodes import view
     model = node.name == 'card_triage'
     run, decisions, taken = NODE_RUNS[model], _synthetic_decisions(node, card_rows, model), {}
     for d in decisions: taken[d['decision']] = taken.get(d['decision'], 0) + 1
@@ -278,7 +278,7 @@ def _synthetic_node(node, card_rows):
 def synthetic_nodes(card_rows):
     """studio/nodes.json at scale: every declared AI node, the card triage decided by an assistant on 500 cards (each
     citing its own card), a few dropped, the others decided by the rules alone, each with its run log."""
-    from eaos.studio import nodes
+    from eaos.ai import nodes
     rows = [_synthetic_node(node, card_rows) for node in nodes.NODES]
     count = lambda value: measure(value, 'synthetic')
     return {**V2, 'nodes': rows, 'sinks': [{'id': k, 'title': {'en': en, 'ar': ar}} for k, (en, ar) in nodes.SINKS.items()], 'questions': [],
@@ -289,7 +289,7 @@ def synthetic_nodes(card_rows):
 def synthetic_ideal(comps, layer, card_rows):
     """studio/ideal.json at scale: every view's rules target, the system and the plan order planned, each planned element
     citing cards and facts that exist, and the rest of the views on the rules with their plain "not planned" state."""
-    from eaos.studio import ideal_base
+    from eaos.ai import ideal_base
     by_comp = {}
     for card in card_rows: by_comp.setdefault(card['paths'][0].split('/')[2], []).append(card)
     message = {'en': 'Planned by Claude Code (synthetic) on top of the rules.', 'ar': 'خطّطه Claude Code (اصطناعي) فوق القواعد.'}

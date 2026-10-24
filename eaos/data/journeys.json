@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "about": "The three journeys of one engine (eaos/journeys.py): each step, in order, with the flow whose progress draws it on the live map (eaos/progress), or the Studio page that shows it when it has no flow; `essential` false marks a step the journey can go without. The state's mode picks the journey: build from a plan, extend the project, else check and fix.",
+ "about": "The three journeys of one engine (eaos/journeys/catalog.py): each step, in order, with the flow whose progress draws it on the live map (eaos/core/progress), or the Studio page that shows it when it has no flow; `essential` false marks a step the journey can go without. The state's mode picks the journey: build from a plan, extend the project, else check and fix.",
  "journeys": {
   "check": {
    "title": {"ar": "افحص وأصلح", "en": "Check and fix"},
