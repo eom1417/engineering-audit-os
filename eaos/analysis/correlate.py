@@ -6,7 +6,7 @@ many looked and did not, and therefore what a claim built on it may honestly ass
 The candidates a distribution registry of the project holds by name are tagged by eaos/facts/registry.py (NS4.T2): they
 stay on disk, but clusters() skips them so no dead_code claim is raised for them.
 """
-from hashlib import sha1
+from hashlib import sha256
 
 from ..facts.registry import filter_in_sets
 
@@ -150,7 +150,7 @@ def _cluster(place, facts, evaluated):
         return None
     alive = [fact for fact in facts if _alive(fact)]
     return {
-        'id': 'CLU-' + sha1(place.encode('utf-8')).hexdigest()[:10],
+        'id': 'CLU-' + sha256(place.encode('utf-8')).hexdigest()[:10],
         'place': place,
         'engines': sorted({fact['value']['engine'] for fact in alive}),
         'kinds': sorted(kinds),

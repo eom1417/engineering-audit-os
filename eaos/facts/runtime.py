@@ -16,6 +16,8 @@ read by eaos/facts/runtime_capacity.py.
 import json
 import re
 from pathlib import Path
+
+from ..core.security import THIS_COMPUTER
 from . import digest, make
 from .runtime_capacity import detect_cache_policies, detect_connection_pools, detect_query_bounds, detect_rate_limits
 from .source import language_of
@@ -103,7 +105,7 @@ def _outbound_hosts(text):
     hosts = set()
     for match in re.finditer(r'https?://([A-Za-z0-9.\-]+)', text):
         host = match.group(1)
-        if host not in {'localhost', '127.0.0.1', '::1', '0.0.0.0'}: hosts.add(host)
+        if host not in THIS_COMPUTER: hosts.add(host)
     return sorted(hosts)
 
 

@@ -14,12 +14,12 @@ import json
 import re
 import shutil
 import subprocess
-import urllib.request
 from pathlib import Path
 
 from . import sarif, tool
 from .contract import ERROR, NOT_APPLICABLE, OBSERVED, Capability, Report
 from .process import run, which
+from ..core.web import opened
 
 NAME = BINARY = 'codeql'
 PINNED = tool.pinned(NAME)
@@ -63,7 +63,7 @@ def public_repository(target):
     found = GITHUB.search(url)
     if not found: return None
     try:
-        with urllib.request.urlopen(f"https://api.github.com/repos/{found.group('repo')}", timeout=20) as response:  # nosec B310: GitHub's https API
+        with opened(f"https://api.github.com/repos/{found.group('repo')}", timeout=20) as response:
             data = json.loads(response.read())
     except (OSError, ValueError):
         return None                     # a private repository answers 404 to a visitor; no answer is no permission

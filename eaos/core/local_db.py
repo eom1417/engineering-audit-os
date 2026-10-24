@@ -43,7 +43,8 @@ def binaries():
 
 def _sockets(root):
     ident = hashlib.sha256(root.as_posix().encode('utf-8')).hexdigest()[:10]
-    return Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'
+    # a socket's path must stay short (macOS's own temporary folder is too long); one folder per project
+    return Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'  # nosec B108
 
 
 def _private(path, text):
@@ -70,15 +71,21 @@ def _reachable(bin_dir, owner):
     copy = SHARED / f'pgserver-{ident}'
     if not (copy / 'pgserver' / 'pginstall' / 'bin' / 'pg_ctl').exists():
         copy.parent.mkdir(parents=True, exist_ok=True)
-        os.chmod(copy.parent, 0o755)
+        _open_to(copy.parent, owner)
         with tempfile.TemporaryDirectory(prefix='.partial-', dir=copy.parent) as partial:
             made = Path(partial) / 'pgserver-copy'
             shutil.copytree(install, made / 'pgserver' / 'pginstall', symlinks=True, ignore=shutil.ignore_patterns('include'))
             if (install.parent.parent / 'pgserver.libs').is_dir():
                 shutil.copytree(install.parent.parent / 'pgserver.libs', made / 'pgserver.libs', symlinks=True)
-            for folder, _, _ in os.walk(made): os.chmod(folder, 0o755)
+            for folder, _, _ in os.walk(made): _open_to(folder, owner)
             os.replace(made, copy)
     return copy / 'pgserver' / 'pginstall' / 'bin'
+
+
+def _open_to(folder, owner):
+    """A folder the dedicated account owns, closed to every other account (it was open to all of them)."""
+    shutil.chown(folder, user=owner, group=owner)
+    os.chmod(folder, 0o700)
 
 
 def _as_owner():
@@ -187,11 +194,13 @@ class LocalPostgres:
         with open(self.root / 'start.lock', 'a') as alone:
             fcntl.flock(alone, fcntl.LOCK_EX)
             state = self.running() or (self.start() and self.running())
-            psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tAc']
+            # the name is a psql variable, quoted by psql itself (:'name' a text, :"name" a name), never pasted into SQL
+            psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tA',
+                    '-v', 'ON_ERROR_STOP=1', '-v', f'name={name}']
             env = {**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()}
-            exists = subprocess.run(psql + [f"select 1 from pg_database where datname = '{name}'"], capture_output=True, text=True, env=env)
+            exists = subprocess.run(psql, input="select 1 from pg_database where datname = :'name'", capture_output=True, text=True, env=env)
             if exists.stdout.strip() != '1':
-                subprocess.run(psql + [f'create database "{name}"'], capture_output=True, text=True, check=True, env=env)
+                subprocess.run(psql, input='create database :"name"', capture_output=True, text=True, check=True, env=env)
         return self.url(state, name)
 
     def stop(self):

@@ -5,7 +5,7 @@ and cannot vouch for what they decide, so every external finding enters as heuri
 carries the confidence the engine claimed as data, not as authority.
 """
 from dataclasses import dataclass, field
-from hashlib import sha1
+from hashlib import sha256
 
 HEURISTIC = 'heuristic'
 OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH = 'observed', 'unavailable', 'error', 'schema_mismatch'
@@ -87,7 +87,7 @@ def finding(engine, version, rule, kind, subj, message, measurements=(), engine_
     if kind not in KINDS:
         raise ValueError(f'{engine}: unknown finding kind {kind!r}')
     identity = '|'.join([engine, rule, str(subj.get('key')), str(subj.get('path')), message])
-    return {'id': 'ENG-' + sha1(identity.encode('utf-8')).hexdigest()[:12],
+    return {'id': 'ENG-' + sha256(identity.encode('utf-8')).hexdigest()[:12],
             'engine': engine, 'engine_version': version, 'rule': rule, 'method': method, 'kind': kind,
             'subject': subj, 'message': message, 'measurements': list(measurements),
             'sites': sorted({(site.get('path'), site.get('line')) for site in sites} or

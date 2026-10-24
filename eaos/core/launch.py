@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .. import __version__
 from .places import home
+from .web import opened
 
 STARTUP = 15.0       # seconds `start` waits for the server it started to answer
 HEADLESS = 'EAOS_HEADLESS'   # set in the headless host (eaos/interfaces/govern.py) and the runs it starts: their steps open no Studio
@@ -44,7 +45,7 @@ def answers(record, timeout=2.0):
     """True when the server of `record` answers /api/session with its token."""
     try:
         request = urllib.request.Request(f"http://127.0.0.1:{record['port']}/api/session", headers={'X-EAOS-Token': record['token']})
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with opened(request, timeout=timeout) as response:
             return response.status == 200 and json.loads(response.read()).get('mode') == 'live'
     except (OSError, ValueError, KeyError):
         return False

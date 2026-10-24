@@ -10,14 +10,14 @@ import urllib.parse
 import urllib.request
 
 from . import toolchain
+from .web import opened
 
 METHODS = ('release', 'pip', 'npm', 'git')
 SHA256, COMMIT = re.compile(r'^[0-9a-f]{64}$'), re.compile(r'^[0-9a-f]{40}$')
 
 
 def _get(url):
-    request = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'eaos'})
-    with urllib.request.urlopen(request, timeout=20) as answer: return json.loads(answer.read().decode('utf-8'))
+    with opened(url, {'Accept': 'application/vnd.github+json', 'User-Agent': 'eaos'}, timeout=20) as answer: return json.loads(answer.read().decode('utf-8'))
 
 
 def find(need, limit=5):

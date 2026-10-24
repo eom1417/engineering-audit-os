@@ -79,9 +79,9 @@ def _spec_status(outcomes):
 def approval_statuses(junit):
     """{spec path: (status, reason)} from pytest's JUnit XML report of the approval tests, by the rule of
     spec_statuses(); a test file that could not even be imported fails with its error."""
-    from xml.etree import ElementTree
+    from defusedxml import DefusedXmlException, ElementTree      # a report the project's tests wrote: no entities
     try: cases = list(ElementTree.parse(junit).getroot().iter('testcase'))
-    except (OSError, ElementTree.ParseError): return {}
+    except (OSError, ElementTree.ParseError, DefusedXmlException): return {}
     found = {}
     for case in cases:
         module = case.get('classname') or case.get('name') or ''      # a file that did not import is named in `name`

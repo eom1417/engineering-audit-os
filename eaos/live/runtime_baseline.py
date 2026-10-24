@@ -20,6 +20,7 @@ import urllib.request
 from pathlib import Path
 
 from ..core.artifact_contracts import contracts, validate
+from ..core.web import opened
 from .run import LiveRun
 from .nfr import load_paths
 
@@ -57,7 +58,7 @@ NOT_FOUND = b'404'
 def _answer(url):
     """The body a GET answers; NOT_FOUND when the route is not served; None when it answers otherwise (a sign-in asked)."""
     try:
-        with urllib.request.urlopen(url, timeout=10) as response: return response.read()
+        with opened(url, timeout=10) as response: return response.read()
     except urllib.error.HTTPError as answer: return NOT_FOUND if answer.code == 404 else None
     except (OSError, ValueError): return None
 
@@ -80,7 +81,7 @@ def loadable(base, paths, sent):
     kept, left = [], {}
     for path in paths:
         try:
-            with urllib.request.urlopen(urllib.request.Request(f'{base}{path}', headers=sent), timeout=10) as response:
+            with opened(f'{base}{path}', sent, timeout=10) as response:
                 if response.headers.get_content_type() == 'text/event-stream': left[path] = 'a stream that never ends'
                 else: kept.append(path)
         except urllib.error.HTTPError as answer:

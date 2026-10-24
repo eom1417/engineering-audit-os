@@ -9,15 +9,17 @@ eaos/core/toolchain/pins.py says so instead of installing a binary that cannot r
 stays as it is.
 """
 import hashlib
+import sys
 import io
 import json
 import re
 import tarfile
-import urllib.request
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from eaos.core.web import opened  # noqa: E402
 REGISTRY = ROOT / 'eaos/data/toolchain.json'
 WORDS = {'darwin-arm64': (r'(darwin|macos|mac|apple)', r'(arm64|aarch64|universal|_all)'),
          'darwin-x86_64': (r'(darwin|macos|mac|apple)', r'(x86_64|amd64|x64|64bit|64-bit|universal|_all)(?!.*arm)')}
@@ -26,8 +28,7 @@ SKIP = re.compile(r'\.(sha256|sha512|sig|pem|asc|sbom|json|txt|deb|rpm|apk|msi|p
 
 
 def fetch(url):
-    request = urllib.request.Request(url, headers={'User-Agent': 'eaos-platform-assets'})
-    with urllib.request.urlopen(request, timeout=600) as response: return response.read()
+    with opened(url, {'User-Agent': 'eaos-platform-assets'}, timeout=600) as response: return response.read()
 
 
 def archive_of(name):

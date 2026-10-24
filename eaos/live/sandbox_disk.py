@@ -33,7 +33,7 @@ def hidden():
     the reports, the temporary folder (other runs' databases), and every project EAOS knows with its report, the run's
     own included (it sees its copy, never the working folder and its .env). The outermost ones only."""
     from ..core.places import home, outputs_root
-    folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(), Path('/tmp'), Path(tempfile.gettempdir())]
+    folders = [Path.home(), home(), home() / 'projects', home() / 'studio', outputs_root(), Path('/tmp'), Path(tempfile.gettempdir())]  # nosec B108: hidden, never written
     from ..core.project_state import every
     folders += [Path(state[key]) for state in every() for key in ('project', 'outputs') if state.get(key)]
     real = {Path(os.path.realpath(folder)) for folder in folders if folder.is_dir()} - {Path('/')}
