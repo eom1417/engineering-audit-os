@@ -28,17 +28,26 @@ def findings(project=None, kind=None, path=None, text=None, fixable_only=False, 
     only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
     for task in _read(report / 'plan.json').get('tasks') or []:
         if not _wanted(task, kind, path, text, fixable_only) or any(task['id'] not in ids for ids in only): continue
-        claim = claims.get(task.get('claim_id')) or {}
-        rows.append({'id': task['id'], 'title': task.get('title'), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
-                     'fixable_automatically': _ready(task), 'decision': (task.get('decision') or {}).get('kind'),
-                     'confidence': claim.get('confidence'), 'priority': task.get('priority')})
+        rows.append(_finding_row(task, claims.get(task.get('claim_id')) or {}))
     rows.sort(key=lambda r: -(r['priority'] or 0))
     offset, limit = max(int(offset), 0), min(max(int(limit), 1), 200)
     return {'total': len(rows), 'offset': offset, 'findings': rows[offset:offset + limit], 'more': offset + limit < len(rows)}
 
 
-def _wanted(task, kind, path, text, fixable_only):      # each filter only when given
-    return ((not kind or task.get('pattern') == kind) and (not path or any(path in p for p in task.get('paths') or [])) and (not text or text.lower() in (task.get('title') or '').lower()) and (not fixable_only or _ready(task)))
+def _finding_row(task, claim):
+    """One card as findings lists it."""
+    return {'id': task['id'], 'title': task.get('title'), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
+            'fixable_automatically': _ready(task), 'decision': (task.get('decision') or {}).get('kind'),
+            'confidence': claim.get('confidence'), 'priority': task.get('priority')}
+
+
+def _wanted(task, kind, path, text, fixable_only):
+    """Whether a card passes the filters, each only when given."""
+    filters = ((kind, lambda: task.get('pattern') == kind),
+               (path, lambda: any(path in p for p in task.get('paths') or [])),
+               (text, lambda: text.lower() in (task.get('title') or '').lower()),
+               (fixable_only, lambda: _ready(task)))
+    return all(passes() for given, passes in filters if given)
 
 
 def _excerpt(root, location, around=8, limit=60):
@@ -54,12 +63,17 @@ def _excerpt(root, location, around=8, limit=60):
 
 def _card_and_claim(report, id):
     """(card or None, claim or {}) of a TASK-… or CLM-… id; ValueError when it is neither."""
-    tasks = {t['id']: t for t in _read(report / 'plan.json').get('tasks') or []}
     claims = _claims(report)
-    task = tasks.get(id) or next((t for t in tasks.values() if t.get('claim_id') == id), None)
+    task = _card_of(report, id)
     claim = claims.get(id) or claims.get((task or {}).get('claim_id')) or {}
     if not task and not claim: raise ValueError(f'{id} is neither a card nor a claim of this report')
     return task, claim
+
+
+def _card_of(report, id):
+    """The card of a TASK-… id, else the card of a CLM-… claim; None when neither."""
+    tasks = {t['id']: t for t in _read(report / 'plan.json').get('tasks') or []}
+    return tasks.get(id) or next((t for t in tasks.values() if t.get('claim_id') == id), None)
 
 
 def _evidence(state, report, card, claim):
@@ -74,11 +88,15 @@ def _evidence(state, report, card, claim):
 
 def _what_and_why(card, claim):
     """What a finding is, why it matters, and how it is proven gone."""
-    assessment = claim.get('assessment') or {}
     return {'id': card.get('id') or claim.get('id'), 'claim': claim.get('id'), 'title': card.get('title') or claim.get('statement'),
             'kind': card.get('pattern'), 'confidence': claim.get('confidence'), 'paths': card.get('paths'),
-            'impact': card.get('impact') or (claim.get('impact') or {}).get('scenario'),
-            'rule_broken': assessment.get('violated_invariant'), 'before': card.get('before') or assessment.get('before'),
+            'impact': card.get('impact') or (claim.get('impact') or {}).get('scenario'), **_change(card, claim)}
+
+
+def _change(card, claim):
+    """The rule a finding breaks, the code before and after its change, and how it is proven gone."""
+    assessment = claim.get('assessment') or {}
+    return {'rule_broken': assessment.get('violated_invariant'), 'before': card.get('before') or assessment.get('before'),
             'after': card.get('after') or assessment.get('after'), 'suggested_change': assessment.get('proposed_change'),
             'how_it_is_proven_gone': proof(claim) or claim.get('falsifier') or ((card.get('evidence') or {}).get('falsifier'))}
 
@@ -116,8 +134,9 @@ def structure(project=None):
                           if (report / name).is_file()]}
 
 
-def _milestone_row(m, cards, whole, tried_card, where):
-    """One milestone with its cards: all of them when `whole`, else the first 25 and how many more."""
+def _milestone_row(m, tasks, whole, tried_card, where):
+    """One milestone with its cards (of `tasks`, by id): all of them when `whole`, else the first 25 and how many more."""
+    cards = [tasks[i] for i in m['tasks'] if i in tasks]
     shown = cards if whole else cards[:25]
     return {'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'exit': m.get('exit'),
             'cards': [{'id': c['id'], 'title': c.get('title'), 'kind': c.get('pattern'), 'fixable_automatically': _ready(c),
@@ -131,16 +150,21 @@ def plan(project=None, milestone=None):
     guided.reconcile(state)
     report = _report(state)
     data = _read(report / 'plan.json')
-    tasks = {t['id']: t for t in data.get('tasks') or []}
-    tried, ids = set(state.get('tried') or []), keys(data.get('tasks') or [])
+    rows = data.get('tasks') or []
+    tasks = {t['id']: t for t in rows}
+    tried, ids = set(state.get('tried') or []), keys(rows)
     record = sync(state, report=report) or {}
-    where = {c['id']: c['state'] for c in (record.get('cards') or {}).values() if c.get('id')}
-    out = [_milestone_row(m, [tasks[i] for i in m['tasks'] if i in tasks], bool(milestone),
-                          lambda c: ids.get(c['id']) in tried, where)
+    where = _card_states(record)
+    out = [_milestone_row(m, tasks, bool(milestone), lambda c: ids.get(c['id']) in tried, where)
            for m in data.get('milestones') or [] if not milestone or m['id'] == milestone]
     return {'milestones': out, 'progress': record.get('totals'),
             'order': 'Fix in this order: milestone by milestone, the fixable cards first. Only these cards count as progress: '
                      'work outside the plan is not recorded anywhere.'}
+
+
+def _card_states(record):
+    """{card id: its state} in the progress record."""
+    return {c['id']: c['state'] for c in (record.get('cards') or {}).values() if c.get('id')}
 
 
 def impact(target, project=None, depth=3):
@@ -166,19 +190,31 @@ def tools_check(project=None, retry=False):
     folder = Path(project or os.getcwd()).expanduser().resolve()
     files = toolchain.project_files(folder) if project_state.looks_like_project(folder) else None
     if retry: toolchain.prepare(folder if files is not None else None)
+    rows = _tool_rows(files)
+    wanted, later = _missing(rows)
+    gate = toolchain.readiness(files or ())
+    return {'eaos': {'version': build_info.__version__, 'commit': build_info.commit()}, 'tools_folder': str(toolchain.home()),
+            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows, 'installing': toolchain.installing(),
+            'for_the_check': gate, 'missing_for_later_steps': later,
+            'install': 'eaos tools install' if wanted or gate['failed'] else None}
+
+
+def _tool_rows(files):
+    """Every external tool as the doctor sees it, with whether the project's `files` need it and the check waits for it:
+    the needed and missing first."""
     rows = toolchain.doctor()['tools']
     rules = {t['name']: t for t in toolchain.registry()['tools']}
     for row in rows:
         row['needed_here'] = None if files is None else toolchain.rule_applies(rules[row['name']].get('applies', 'all'), files)
         row['for_the_check'] = bool(rules[row['name']].get('check'))
     rows.sort(key=lambda r: (r['needed_here'] is False, not r['for_the_check'], r['ok'], r['name']))
+    return rows
+
+
+def _missing(rows):
+    """(the tools not installed that could be and the project may need, the names of those the check does not wait for)."""
     wanted = [r for r in rows if not r['ok'] and not r['unavailable'] and r['needed_here'] is not False]
-    later = [r['name'] for r in wanted if not r['for_the_check']]
-    gate = toolchain.readiness(files or ())
-    return {'eaos': {'version': build_info.__version__, 'commit': build_info.commit()}, 'tools_folder': str(toolchain.home()),
-            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows, 'installing': toolchain.installing(),
-            'for_the_check': gate, 'missing_for_later_steps': later,
-            'install': 'eaos tools install' if wanted or gate['failed'] else None}
+    return wanted, [r['name'] for r in wanted if not r['for_the_check']]
 
 
 def report_file(name='', project=None, offset=0, limit=20000):

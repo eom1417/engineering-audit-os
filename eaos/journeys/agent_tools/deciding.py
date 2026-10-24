@@ -32,12 +32,23 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
         return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {into or wave.get('merge_into') or 'your current branch'}?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}
     outcome = guided.merge(state, wave, into=into, delete_after=delete_after is not False)
+    return _not_merged(outcome, wave) or _accepted(state['project'], wave, into)
+
+
+def _not_merged(outcome, wave):
+    """accept's answer when the merge did not happen (unsaved changes, a conflict); None when it did."""
     if outcome == 'unsaved_changes': return {'status': 'unsaved_changes', 'what_now': 'The project has unsaved changes; ask the person to save (commit) them first.'}
     if outcome == 'conflict':
         return {'status': 'conflict', 'branch': wave['branch'],
                 'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
                             f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and deletes the branch."}
-    state = project_state.load(state['project'])
+    return None
+
+
+def _accepted(project, wave, into):
+    """accept's answer once the batch is merged: where it went, whether its branch is gone, the progress now."""
+    from ...core.ledger import load
+    state = project_state.load(project)
     page = branches.home(state) / 'REPORT.html'
     deleted = not guided._branch_exists(state, wave['branch'])
     return {'status': 'accepted', 'branch': wave['branch'], 'merged_into': into or wave.get('merge_into') or state.get('branch'),

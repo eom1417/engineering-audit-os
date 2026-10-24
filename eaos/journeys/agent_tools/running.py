@@ -53,12 +53,17 @@ def run_try(proposal=None, mode='lock', project=None):
 
 def _limitations(profile, record, runtime, missing):
     """The profile's limitations, the ones a run decides again replaced by what this run found."""
-    unset = [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or []) if n not in profile['env'] and n != 'NODE_ENV']
+    unset = _unset(profile, runtime)
     limitations = [l for l in profile.get('limitations') or [] if not l.startswith(('run without a value', 'screens that need', 'the app could not'))]
     if unset and record['ok']: limitations.append('run without a value for: ' + ', '.join(unset[:12]))
     if missing: limitations.append('screens that need these values are not recorded: ' + ', '.join(missing))
     if not record['ok']: limitations.append('the app could not be made to answer: ' + (record.get('failure') or '')[:300])
     return sorted(set(limitations))
+
+
+def _unset(profile, runtime):
+    """The environment names the app reads that the profile gives no value (NODE_ENV aside)."""
+    return [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or []) if n not in profile['env'] and n != 'NODE_ENV']
 
 
 def _lock_run(project, runtime, report, record, profile, attempt):
@@ -123,6 +128,11 @@ def _run_job(project, arguments, progress):
         answer['fixtures_missing'] = _lock_run(project, runtime, report, record, profile, attempt)
         if record['ok'] and (profile.get('baseline') or {}).get('build') and 'verified' not in profile['baseline']:
             profile = _production_build(source, runtime, answer, progress)
+    return _run_answer(answer, record, profile, source, mode)
+
+
+def _run_answer(answer, record, profile, source, mode):
+    """The rest of a run's answer: its first page, its failure with the code that raised it, the profile, what now."""
     answer['first_page'] = _first_page(record.get('page') or {})
     if not record['ok']:
         answer['failure'] = (record.get('failure') or '')[-3000:]
