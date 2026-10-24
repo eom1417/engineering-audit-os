@@ -219,10 +219,15 @@ def _cards(card_rows, evidence, by_file):
     sites_of = {fact.get('id'): _places(fact) for fact in evidence or ()}
     cards = defaultdict(list)
     for card in card_rows or ():
-        for path, line in (site for fact in card.get('evidence') or () for site in sites_of.get(fact, ())):
+        for path, line in _cited_sites(card, sites_of):
             holder = _innermost(by_file.get(path, ()), line)
             if holder and card['id'] not in cards[holder['id']]: cards[holder['id']].append(card['id'])
     return cards
+
+
+def _cited_sites(card, sites_of):
+    """The (path, line) of every place a card's evidence names; `sites_of`: {fact id: its places}."""
+    return [site for fact in card.get('evidence') or () for site in sites_of.get(fact, ())]
 
 
 def _signature(short, value, component):
@@ -282,10 +287,7 @@ def _language_gap(name, state, n):
 def _languages(report, out):
     """Each language of the project: measured (the parser read it: its functions and calls), partial (only Lizard
     measured its functions: no calls), or not measured (its files were not read for functions); and what is missing."""
-    read, unread = set(), set()
-    for f in facts_of(report, 'source_file'):
-        name, status = _language(str((f.get('location') or {}).get('path') or '')), (f.get('value') or {}).get('parse_status')
-        if name: (read if status == 'OBSERVED' else unread).add(name)
+    read, unread = _parsed(report)
     with_functions = defaultdict(int)
     for fn in (fn for fn in out if fn['language']): with_functions[fn['language']] += 1
     languages, missing = [], []
@@ -299,14 +301,28 @@ def _languages(report, out):
     return languages, missing
 
 
+def _parsed(report):
+    """({languages whose files the parser read}, {languages with a file it did not read})."""
+    read, unread = set(), set()
+    for f in facts_of(report, 'source_file'):
+        name, status = _language(str((f.get('location') or {}).get('path') or '')), (f.get('value') or {}).get('parse_status')
+        if name: (read if status == 'OBSERVED' else unread).add(name)
+    return read, unread
+
+
+def _function_symbols(syntax):
+    """The symbols of the syntax facts that are functions or methods with a start line."""
+    return [f for f in syntax if (f.get('value') or {}).get('kind') in ('function', 'method')
+            and isinstance((f.get('location') or {}).get('start_line'), int)]
+
+
 def functions(report, card_rows=(), evidence=()):
     """The body of functions.json (without the contract fields), or None when the check read no source file and no
     engine measured a function: nothing was measured, which is not the same as "no functions"."""
     report = Path(report)
     if not facts_of(report, 'source_file') and not facts_of(report, 'symbol_metric_external'): return None
     syntax = facts_of(report, 'symbol')
-    symbols = [f for f in syntax if (f.get('value') or {}).get('kind') in ('function', 'method')
-               and isinstance((f.get('location') or {}).get('start_line'), int)]
+    symbols = _function_symbols(syntax)
     lizard, components = _external(report)
     rows = _rows(symbols, lizard)
     by_file = _by_file(rows)

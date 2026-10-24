@@ -76,13 +76,18 @@ def _entries(report, r):
     """The pages, the server routes and their handlers, and every call each file makes, in the order of its lines."""
     for fact in sm._facts(report, 'entrypoints', 'entry_point', 'data_access'):
         value, path, loc = fact.get('value') or {}, sm._path(fact), fact.get('location') or {}
-        if not isinstance(value, dict) or not path or sm.is_test(path) or value.get('category') == 'test': continue
+        if not _app_fact(value, path): continue
         line = line_number(loc.get('start_line'))
         if fact['kind'] == 'entry_point': _entry(r, fact, value, path, line)
         elif value.get('target'):
             r['calls'][path].append({**_call(value), 'fact': fact, 'path': path, 'line': line,
                                      'function': _enclosing(r['functions'], path, line)})
     for rows in r['calls'].values(): rows.sort(key=lambda c: (c['line'] or 0, c['id']))
+
+
+def _app_fact(value, path):
+    """Whether a fact is the app's own: it has a value and a file, and neither is a test's."""
+    return isinstance(value, dict) and bool(path) and not sm.is_test(path) and value.get('category') != 'test'
 
 
 def _flows(report, r):
@@ -92,9 +97,13 @@ def _flows(report, r):
         for route in [entry.get('route')] + [a.get('route') for a in value.get('also_reached_by') or [] if isinstance(a, dict)]:
             r['flows'].setdefault((entry.get('path'), entry.get('handler'), route), fact)
         r['flow_of'].setdefault((entry.get('path'), entry.get('handler')), fact)
-        first = next((s.get('from_path') for s in value.get('steps') or [] if isinstance(s, dict) and s.get('from') == entry.get('handler')), None)
         r['flow_list'].append({'surface': entry.get('surface'), 'route': entry.get('route'), 'handler': entry.get('handler'),
-                               'file': first})
+                               'file': _first_file(value, entry)})
+
+
+def _first_file(value, entry):
+    """The file a flow's handler starts from: its first step's, or None."""
+    return next((s.get('from_path') for s in value.get('steps') or [] if isinstance(s, dict) and s.get('from') == entry.get('handler')), None)
 
 
 def _tables(report, r):
