@@ -1118,6 +1118,8 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
     into = (merge_into or '').strip() or None
     if into and not commit_of(state['project'], into): return {'status': 'error', 'error': f'no branch named {into} to merge into'}
     if into == wave['branch']: return {'status': 'error', 'error': 'a branch cannot be merged into itself'}
+    if into and (why := branches.blocked_target(state['project'], into)):       # the Studio's rule (M3.3): MCP never passed it
+        return {'status': 'error', 'error': f"{into} is protected ({why['en']}): choose another branch to merge into"}
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {into or wave.get('merge_into') or 'your current branch'}?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}

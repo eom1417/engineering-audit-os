@@ -7,8 +7,11 @@ the person's own (bots' branches such as dependabot/ and EAOS's own eaos/ are no
 branch checked out is the one, without a question.
 
 Each branch keeps its own check, run, safety net, batches and ledger. The first branch worked on keeps the outputs
-folder's top (REPORT.html, technical/, fixes/); every other one has branches/<name>/ with the same parts. This module
-reads git and the state only; it writes neither.
+folder's top (REPORT.html, technical/, fixes/); every other one has branches/<name>/ with the same parts.
+
+Which branches are protected from a merge is decided here for the Studio, MCP and the CLI alike (`policy`,
+`blocked_target`, M3.3): the remote's default branch, main and master, and the project's own policy (the Studio's
+Branches page writes it). This module reads git, the state and that policy only; it writes none of them.
 """
 import re
 import subprocess
@@ -23,6 +26,8 @@ KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_
 # EAOS's own commits (eaos/journeys/waves.commit, guided.merge): code the person did not write, so a scan still holds after them.
 EAOS_EMAIL = 'eaos@localhost'
 FILES_SHOWN = 50
+MAIN_NAMES = ('main', 'master')
+POLICY = 'branch-policy.json'       # in the project's runs folder (eaos/core/store.py), as the Studio saves it
 
 
 def _git(project, *args):
@@ -252,3 +257,50 @@ def fresh_line(state, lang):
     key = found['state'] if found['state'] in ('fresh', 'behind') else 'not_scanned' if found.get('reason') == 'not_scanned' else 'other'
     words = FRESH[key][0 if lang == 'ar' else 1]
     return words.format(n=(found.get('behind') or {}).get('commits', '?') if key == 'behind' else found['state'] if found['state'] != 'unknown' else found.get('reason'))
+
+
+def _words(en, ar, code):
+    return {'code': code, 'en': en, 'ar': ar}
+
+
+def remote_default(project):
+    """{name, source}: a remote's HEAD when known; otherwise unknown (None), never guessed from a name."""
+    for remote in sorted(_git(project, 'remote').stdout.split()):
+        done = _git(project, 'symbolic-ref', '--quiet', '--short', f'refs/remotes/{remote}/HEAD')
+        if done.returncode == 0 and done.stdout.strip(): return {'name': done.stdout.strip().split('/', 1)[-1], 'source': f'{remote}/HEAD'}
+    return {'name': None, 'source': None}
+
+
+def is_eaos_itself(project):
+    try: return 'name = "engineering-audit-os"' in (Path(project) / 'pyproject.toml').read_text(encoding='utf-8')
+    except OSError: return False
+
+
+def policy(project, default=None):
+    """{protected: {name: reason}, saved: {...}}: the remote's default branch, main and master, every branch the project's
+    policy protects, minus the ones the owner explicitly unprotected; EAOS's own main always."""
+    from .places import workspace
+    from .store import _read_json
+    default = default or remote_default(project)
+    saved = _read_json(workspace(project) / 'runs' / POLICY, {}) or {}
+    protected = {}
+    if default['name']: protected[default['name']] = _words(f"the default branch ({default['source']})", f"الفرع الافتراضي ({default['source']})", 'default')
+    for name in MAIN_NAMES:
+        protected.setdefault(name, _words('named main or master: protected unless the project policy says otherwise',
+                                          'اسمه main أو master: محمي ما لم تقل سياسة المشروع غير ذلك', 'main_name'))
+    for name in saved.get('protected') or []:
+        protected[name] = _words('protected by this project\'s policy', 'محمي بسياسة هذا المشروع', 'policy')
+    for name in saved.get('unprotected') or []: protected.pop(name, None)
+    if is_eaos_itself(project): protected['main'] = _words("EAOS's own main is the owner's mother copy: never changed from here",
+                                                            'main في EAOS نفسه هي النسخة الأم للمالك: لا تُغيَّر من هنا', 'eaos_main')
+    return {'protected': protected, 'saved': saved}
+
+
+def blocked_target(project, name, protected=None, open_branch=None):
+    """Why nothing is merged into (or built on, or landed on) `name`, or None: a protected branch, except the branch open in
+    the project folder (`open_branch`) when only its name protects it (a project with main alone): accept merges there,
+    as it always did."""
+    protected = policy(project)['protected'] if protected is None else protected
+    reason = protected.get(name)
+    open_branch = checked_out(project) if open_branch is None else open_branch
+    return reason if reason and (reason['code'] in ('eaos_main', 'policy') or name != open_branch) else None

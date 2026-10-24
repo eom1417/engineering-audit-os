@@ -38,7 +38,6 @@ EAOS_NAME, EAOS_EMAIL = 'EAOS', 'eaos@localhost'
 COMMITS_SHOWN, FILES_SHOWN, REFS_SHOWN = 50, 200, 400
 DIFF_LIMIT = 64 * 1024
 NAME = re.compile(r'[^\x00-\x20\x7f~^:?*\[\\]{1,200}')
-MAIN_NAMES = ('main', 'master')
 
 
 class Blocked(LookupError):
@@ -127,11 +126,8 @@ class BranchControl:
         return sorted((_out(self.project, 'remote') or '').split())
 
     def default_branch(self):
-        """{name, source}: origin's HEAD when known; otherwise unknown (None), never guessed from a name."""
-        for remote in self.remotes():
-            name = _out(self.project, 'symbolic-ref', '--quiet', '--short', f'refs/remotes/{remote}/HEAD')
-            if name: return {'name': name.split('/', 1)[-1], 'source': f'{remote}/HEAD'}
-        return {'name': None, 'source': None}
+        """{name, source}: a remote's HEAD when known (eaos/core/branches.py remote_default)."""
+        return reading.remote_default(self.project)
 
     def worktrees(self):
         """Every worktree of the repository, as shown: the paths without the home folder or the project's own path."""
@@ -246,25 +242,8 @@ class BranchControl:
         return out
 
     def policy(self, default=None):
-        """{protected: {name: reason}, explicit: {...}}: the default branch on the remote, main and master, every branch
-        the project's policy protects; minus the ones the owner explicitly unprotected. Enforced here, on the server."""
-        default = default or self.default_branch()
-        saved = _read_json(self.store.folder / 'branch-policy.json', {}) or {}
-        protected = {}
-        if default['name']: protected[default['name']] = say(f"the default branch ({default['source']})", f"الفرع الافتراضي ({default['source']})", 'default')
-        for name in MAIN_NAMES:
-            protected.setdefault(name, say('named main or master: protected unless the project policy says otherwise',
-                                           'اسمه main أو master: محمي ما لم تقل سياسة المشروع غير ذلك', 'main_name'))
-        for name in saved.get('protected') or []:
-            protected[name] = say('protected by this project\'s policy', 'محمي بسياسة هذا المشروع', 'policy')
-        for name in saved.get('unprotected') or []: protected.pop(name, None)
-        if self._is_eaos_itself(): protected['main'] = say("EAOS's own main is the owner's mother copy: never changed from here",
-                                                            'main في EAOS نفسه هي النسخة الأم للمالك: لا تُغيَّر من هنا', 'eaos_main')
-        return {'protected': protected, 'saved': saved}
-
-    def _is_eaos_itself(self):
-        try: return 'name = "engineering-audit-os"' in (Path(self.project) / 'pyproject.toml').read_text(encoding='utf-8')
-        except OSError: return False
+        """The branches protected from a merge, enforced on the server: eaos/core/branches.py policy."""
+        return reading.policy(self.project, default or self.default_branch())
 
     def run_links(self):
         """{branch: [{id, role, state, label, created}]}: the runs whose recorded context or work branch is this branch."""
@@ -328,13 +307,8 @@ class BranchControl:
         return {'state': 'not_required' if not changes else 'none_created', 'base': (record.get('context') or {}).get('analysis_branch')}
 
     def blocked_target(self, name, protected=None, head=None):
-        """Why nothing is merged into (or built on, or landed on) `name` from here, or None: a protected branch, except
-        the branch open in the project folder when only its name protects it (a project with main alone): accept merges
-        there, as it always did."""
-        protected = self.policy()['protected'] if protected is None else protected
-        head = head or self.head()
-        reason = protected.get(name)
-        return reason if reason and (reason['code'] in ('eaos_main', 'policy') or name != head['branch']) else None
+        """Why nothing is merged into `name` from here, or None (eaos/core/branches.py blocked_target)."""
+        return reading.blocked_target(self.project, name, protected, (head or self.head())['branch'])
 
     def fix_where(self, wanted=None, hint=None):
         """Where a Fix run builds and delivers, as its preview shows and the person may change it:
@@ -1100,11 +1074,11 @@ class BranchControl:
         bound = {'branch': name, 'protected': bool(body.get('protected'))}
         if not bound['protected']:
             self._spend(body, 'branch_protect', bound)
-            if self._is_eaos_itself() and name == 'main':
+            if reading.is_eaos_itself(self.project) and name == 'main':
                 raise Blocked([say("EAOS's own main stays protected.", 'main في EAOS نفسه يبقى محميًا.', 'eaos_main')])
         handle = self._locked()
         try:
-            path = self.store.folder / 'branch-policy.json'
+            path = self.store.folder / reading.POLICY
             saved = _read_json(path, {}) or {}
             protected, unprotected = set(saved.get('protected') or []), set(saved.get('unprotected') or [])
             (protected.add if bound['protected'] else protected.discard)(name)

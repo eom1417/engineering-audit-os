@@ -13,7 +13,7 @@ from eaos.journeys import agent_tools, batch_finish, guided
 from eaos.core import branches, ledger
 from eaos.live import setup as live_setup
 from eaos.journeys.waves import commit as eaos_commit, plan as read_plan
-from eaos.core import project_state
+from eaos.core import places, project_state
 
 
 def card(number, pattern, path, title):
@@ -237,6 +237,14 @@ class Branches(unittest.TestCase):
         self.ready_to_fix()
         git(self.project, 'branch', 'release', 'develop')
         self.batch('TASK-001')
+        # MCP's accept keeps the Studio's rule (M3.3): never into a branch the project's policy protects
+        git(self.project, 'branch', 'stable', 'develop')
+        policy = places.workspace(self.project) / 'runs' / 'branch-policy.json'
+        policy.parent.mkdir(parents=True, exist_ok=True)
+        policy.write_text(json.dumps({'protected': ['stable']}))
+        refused = agent_tools.accept(str(self.project), person_agreed=True, merge_into='stable')
+        self.assertEqual(refused['status'], 'error', refused)
+        self.assertIn('stable is protected', refused['error'])
         answer = agent_tools.accept(str(self.project), person_agreed=True, merge_into='release', delete_after=False)
         self.assertEqual((answer['status'], answer['merged_into'], answer['branch_deleted']), ('accepted', 'release', False), answer)
         self.assertEqual(git(self.project, 'show', 'release:TASK-001.js'), '// TASK-001 fixed')
