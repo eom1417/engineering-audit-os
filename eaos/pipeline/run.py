@@ -2,42 +2,26 @@
 
 A stage that fails does not silently take the run with it: its dependents are recorded as skipped
 with the reason, the independent stages still run, and the manifest is the honest account of the
-whole attempt. A stage that never ran leaves a reason, never a gap.
+whole attempt. A stage that never ran leaves a reason, never a gap. One stage's run is stage_run.py's;
+here are the run of them all, its manifest, and the checks a person asks for (check, focused, again, resume).
 """
 import json
 import threading
 import time
-from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..core.progress import ProgressLog, previous_seconds, using
+from ..core.progress import ProgressLog, previous_seconds
 from ..core.progress.flow import incomplete, partial
 from ..core.usage import FILE as USAGE
-from .live_app import PAGE_STAGES, close_app
+from .live_app import close_app
 from .paths import resolve
 from ..report.run import document
 from .schedule import LimitedProvider, assistants, run_ready
-from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
+from .stage_run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE, Context, _stage, _write
+from .stages import BY_NAME, ORDER, STAGES, dependents
 
-OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
 MANIFEST = 'run-manifest.json'
-CHECKPOINT = 'run-checkpoint.json'
-
-
-_STEP = ContextVar('eaos_stage_step', default=None)
-
-
-class Context(dict):
-    """What stages hand each other. Plain data, so a resumed run can rebuild it. `step` is the running stage's own
-    stepper, whatever runs beside it."""
-
-    def __getattr__(self, name):
-        if name == 'step': return _STEP.get()
-        try:
-            return self[name]
-        except KeyError as missing:
-            raise AttributeError(name) from missing
 
 
 def _runners():
@@ -79,7 +63,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     context['again'] = bool(completed)          # within a check run before: a tool run again joins the others' results
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
-    todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
+    todo = _todo(requested, completed)
     head = _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake)
     head['options']['without_tools'] = sorted(without_tools)
     head.update(mode=mode, paths=paths or ['complete'])     # not options: a check goes on in another mode or path
@@ -91,10 +75,22 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     # What a stage reads of the run: the stages ended so far. It only asks of those it waits for, so it reads them
     # ended whatever else runs beside it (tests/test_pipeline_parallel.py).
     context['manifest_so_far'] = {'stages': run['results'], 'status': 'RUNNING'}
+    return _go(run, mode)
+
+
+def _todo(requested, completed):
+    """The stages this run runs, in their declared order: the ones requested and not completed before."""
+    return [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
+
+
+def _go(run, mode):
+    """Every stage run as soon as what it waits for has ended, then the manifest; a run stopped or broken midway says
+    so in its progress file, then the error goes on."""
+    log, began, context = run['log'], run['began'], run['context']
     try:
-        run_ready(ORDER, lambda name: _stage(BY_NAME[name], run), mode, quick=set(ORDER) - set(todo))
-        manifest = _manifest(head, began, run['results'])
-        (out / CHECKPOINT).unlink(missing_ok=True)
+        run_ready(ORDER, lambda name: _stage(BY_NAME[name], run), mode, quick=set(ORDER) - set(run['todo']))
+        manifest = _manifest(run['head'], began, run['results'])
+        (run['out'] / CHECKPOINT).unlink(missing_ok=True)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
         log.finish('STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
                    reason=f'{type(problem).__name__}: {problem}'[:300], seconds=round(time.monotonic() - began, 2))
@@ -129,58 +125,6 @@ def _requested(only, skip):
     return [name for name in ORDER if (not only or name in wanted) and name not in skipped]
 
 
-def _settled(stage, run):
-    """(row, resumed) of a stage that does not run here: resumed, not requested, or blocked; None when it runs."""
-    if stage.name in run['completed']: return run['completed'][stage.name], True
-    if stage.name not in run['requested']:
-        if run['head']['paths'] != ['complete']: return _row(stage, SKIPPED, "outside this check's paths", code='outside_paths'), False
-        return _row(stage, SKIPPED, 'not requested in this run', code='not_requested'), False
-    unmet = [name for name in stage.requires if not _satisfied(name, run['results'], run['out'])]
-    if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing'))
-    if stage.name not in run['blocked']: return None
-    reason, code = run['blocked'][stage.name]
-    return _row(stage, NOT_REACHED, reason, code=code), False
-
-
-def _stage(stage, run):
-    with run['lock']: settled = _settled(stage, run)
-    if settled is None:
-        _run_stage(stage, run)
-        return
-    row, resumed = settled
-    with run['lock']:
-        run['results'][stage.name] = row
-        run['log'].ended(row, **({'resumed': True} if resumed else {}))
-        if PAGE_STAGES <= run['results'].keys(): close_app(run['context'])
-
-
-def _run_stage(stage, run):
-    """One stage, run while others may run beside it; what it ends with is written under the run's lock."""
-    context, log, results = run['context'], run['log'], run['results']
-    with run['lock']:
-        if run['progress']: run['progress'](sum(name in results for name in run['todo']), len(run['todo']), stage.name)
-        log.stage_started(stage.name)
-    step = log.stepper(stage.name)
-    token = _STEP.set(step)
-    try:
-        with using(step if log.enabled else None): row = _one(stage, context, run['runners'], results)
-    finally: _STEP.reset(token)
-    with run['lock']:
-        results[stage.name] = row
-        log.ended(row)
-        _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results})
-        _block_dependents(stage, results, run['blocked'])
-        if PAGE_STAGES <= results.keys(): close_app(context)
-
-
-def _block_dependents(stage, results, blocked):
-    status = results[stage.name]['status']
-    if status not in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED) or _absent(stage.name, results): return
-    reason = f"{stage.name} did not produce its artifacts ({status})"
-    for name in dependents(stage.name):
-        blocked.setdefault(name, (reason, 'prerequisite_failed'))
-
-
 def _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake):
     """What the manifest says of the run whatever its stages do; with the stages so far it is also the checkpoint
     written after each stage, which a run stopped or killed midway is resumed from."""
@@ -198,8 +142,7 @@ def _manifest(head, began, results):
         **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at', 'mode', 'paths') if key in head},
         'seconds': round(time.monotonic() - began, 2), 'requested': head['requested'],
         'stages': results,
-        'counts': {state: sum(1 for row in results.values() if row['status'] == state)
-                   for state in (OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED)},
+        'counts': _counts(results),
         'status': completion_status(results),
         'limits': 'A stage that did not run proves nothing. Read the skipped and unavailable rows before '
                   'reading the findings: they are the shape of what this run could not see.',
@@ -212,83 +155,29 @@ def _manifest(head, began, results):
     return manifest
 
 
+def _counts(results):
+    """{status: how many stages ended with it}, for every status a stage can end with."""
+    return {state: sum(1 for row in results.values() if row['status'] == state) for state in (OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED)}
+
+
 def _measured(path, results):
     """{stage: seconds} each stage took the last time it ran ok, in this run or an earlier one: a stage this run could
     not run (its assistant lost midway) keeps its earlier time, so the estimate of running it again is not zero."""
     try: before = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError): before = {}
-    kept = {**(before.get('measured') or {}),
-            **{name: row['seconds'] for name, row in (before.get('stages') or {}).items()
-               if isinstance(row, dict) and row.get('status') == OK and isinstance(row.get('seconds'), (int, float))}}
-    return {**kept, **{name: row['seconds'] for name, row in results.items()
-                       if row['status'] == OK and isinstance(row.get('seconds'), (int, float))}}
+    kept = {**(before.get('measured') or {}), **{name: row['seconds'] for name, row in (before.get('stages') or {}).items() if _timed(row)}}
+    return {**kept, **{name: row['seconds'] for name, row in results.items() if _timed(row)}}
 
 
-def _write(path, record):
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding='utf-8')
-
-
-def _absent(name, results):
-    """An optional stage that did not apply here (no assistant, no engine) and said why: the stages after it run without
-    its output. Only a failure of it, or a stage it could not reach, holds them back."""
-    stage = BY_NAME.get(name)
-    return bool(stage) and stage.necessity == 'optional' and results.get(name, {}).get('status') in (UNAVAILABLE, SKIPPED)
-
-
-def _satisfied(name, results, out):
-    """A prerequisite is met when it ran here, when an earlier run already left its artifacts, or when it is optional
-    and absent here with its reason.
-
-    Requiring it to run in this run made --only unusable: re-rendering one stage over a finished
-    report reported "prerequisites not completed" while every input sat on disk beside it.
-    """
-    if results.get(name, {}).get('status') == OK or _absent(name, results):
-        return True
-    stage = BY_NAME.get(name)
-    return bool(stage) and bool(stage.produces) and all((out / artifact).exists() for artifact in stage.produces)
+def _timed(row):
+    """Whether a stage's row ended ok with its seconds."""
+    return isinstance(row, dict) and row.get('status') == OK and isinstance(row.get('seconds'), (int, float))
 
 
 def completion_status(results):
     if any(incomplete(row) for row in results.values()): return 'INCOMPLETE'
     if any(partial(row) or row.get('reason_code') == 'tools_failed' for row in results.values()): return 'PARTIAL'
     return 'COMPLETE'
-
-
-def _row(stage, status, reason, seconds=0.0, artifacts=(), detail=None, code=''):
-    """One stage's row of the manifest. `code` is the stable word for the reason (`reason_code`), present only when
-    the stage has a reason: the Studio shows its text from eaos/data/errors.json in the person's language."""
-    row = {'stage': stage.name, 'status': status, 'reason': reason, 'seconds': round(seconds, 2),
-           'necessity': stage.necessity, 'produces': list(stage.produces),
-           'artifacts': sorted(artifacts), 'detail': detail or {}}
-    if code: row['reason_code'] = code
-    return row
-
-
-def _one(stage, context, runners, results):
-    runner = runners.get(stage.name)
-    if runner is None:
-        return _row(stage, FAILED, 'no runner is registered for this stage', code='no_runner')
-    began = time.monotonic()
-    try:
-        outcome = runner(context) or {}
-    except SkipStage as reason:
-        # an assistant lost midway leaves the stage absent like any optional one (the stages after it still run), but
-        # says so: the check is then PARTIAL, never COMPLETE, and the Studio offers to run the lost stages again
-        lost = {'assistant_lost': reason.lost} if reason.lost else None
-        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began, detail=lost, code=reason.code or 'not_applicable')
-    except Exception as problem:                       # one stage must not decide the fate of the rest
-        return _row(stage, FAILED, f'{type(problem).__name__}: {problem}'[:300], time.monotonic() - began, code='stage_error')
-    seconds = time.monotonic() - began
-    present = [name for name in stage.produces if (context.out / name).exists()]
-    missing = [name for name in stage.produces if name not in present]
-    if missing:
-        return _row(stage, FAILED, 'declared artifacts were not written: ' + ', '.join(missing),
-                    seconds, present, outcome, code='artifacts_missing')
-    failed = outcome.get('tools_failed')
-    if failed: return _row(stage, OK, 'these tools failed: ' + ', '.join(sorted(failed)), seconds, present, outcome, code='tools_failed')
-    if outcome.get('assistant_lost'):   # its assistant answered part of it (runners._partly): the check is PARTIAL
-        return _row(stage, OK, outcome['assistant_lost']['why'], seconds, present, outcome, code='ai_partial')
-    return _row(stage, OK, '', seconds, present, outcome)
 
 
 def _previous(out):
@@ -396,8 +285,7 @@ def resume(target, out, redo=(), checked=False, **options):
             for name in done}
     merged = execute(target, out, only=remaining, _completed=kept, **options)
     merged['stages'].update(kept)
-    merged['counts'] = {state: sum(1 for row in merged['stages'].values() if row['status'] == state)
-                        for state in (OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED)}
+    merged['counts'] = _counts(merged['stages'])
     merged['resumed_from'] = previous['started_at']
     _write(Path(out) / MANIFEST, merged)
     return merged
