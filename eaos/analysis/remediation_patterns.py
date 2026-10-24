@@ -259,6 +259,12 @@ def pattern_for(claim):
     return pattern
 
 
+def cited(claim, fact_sets, name):
+    """The facts of one fact set a claim cites: the evidence an executable repair stands on."""
+    own = set(claim.get('fact_ids') or [])
+    return [fact for fact in (fact_sets.get(name) or {}).get('facts', []) if fact.get('id') in own]
+
+
 def _generic_fallback_reason(claim):
     specification = (claim.get('probe_spec') or {}).get('specification') or {}
     query = specification.get('query')

@@ -10,7 +10,7 @@ import sys
 
 from .acceptance import fingerprint
 from .engagement import rules_for
-from .remediation_patterns import PATTERNS
+from .remediation_patterns import PATTERNS, cited
 
 
 def _check_argv(ecosystem, name, advisories):
@@ -41,8 +41,7 @@ def build_assessment(claim, fact_sets, target):
     rules, _ = rules_for(target)
     rule = rules['upgrade_vulnerable_dependencies']
     if not rule['value']: return None
-    own = set(claim.get('fact_ids') or [])
-    fact = next((f for f in (fact_sets.get('external') or {}).get('facts', []) if f.get('id') in own), None)
+    fact = next(iter(cited(claim, fact_sets, 'external')), None)
     if fact is None or not measured(fact, 'fixed_in'): return None
     ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
     name, _, installed = rest.rpartition('@')

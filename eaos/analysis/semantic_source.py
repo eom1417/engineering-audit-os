@@ -5,23 +5,28 @@ from ..core.repo_context import Context
 from ..core.workspace import inventory, write
 
 
+def _documents(inv, exclude):
+    """A source_document fact for each hashed document of the inventory outside the excluded paths."""
+    from fnmatch import fnmatch
+    from ..facts import make
+    docs = []
+    for item in inv['files']:
+        path = item['path']
+        if item['capture'] != 'hashed' or Path(path).suffix.lower() not in {'.md', '.rst', '.txt'}: continue
+        if any(path == pattern or path.startswith(pattern.rstrip('/') + '/') or fnmatch(path, pattern) for pattern in exclude): continue
+        docs.append(make('source_document', 'semantic_documents', '1', item['sha256'], {'path': path},
+                         {'status': 'documented_not_verified'}))
+    return docs
+
+
 class SourceSession:
     def __init__(self, target, out, sets, budget=24000, exclude=()):
         self.remaining = budget
         self.omissions = []
         self.allowed = {f['location']['path']: f for f in sets['syntax']['facts'] if f['kind'] == 'source_file'}
         inv = inventory(target)
-        from fnmatch import fnmatch
-        from ..facts import make
-        docs = []
-        for item in inv['files']:
-            path = item['path']
-            if item['capture'] != 'hashed' or Path(path).suffix.lower() not in {'.md', '.rst', '.txt'}: continue
-            if any(path == pattern or path.startswith(pattern.rstrip('/') + '/') or fnmatch(path, pattern) for pattern in exclude): continue
-            fact = make('source_document', 'semantic_documents', '1', item['sha256'], {'path': path},
-                        {'status': 'documented_not_verified'})
-            self.allowed[path] = fact
-            docs.append(fact)
+        docs = _documents(inv, exclude)
+        self.allowed.update((fact['location']['path'], fact) for fact in docs)
         write(Path(out) / 'facts/semantic_documents.json', {'facts': docs, 'extractor_version': '1'})
         # Only files analyzed in this exact fact snapshot are eligible.
         inv['files'] = [f for f in inv['files'] if f['path'] in self.allowed
