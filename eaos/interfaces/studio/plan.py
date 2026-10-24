@@ -19,18 +19,24 @@ def start(actions, body):
     project, name = (actions.project, actions.project.name) if extend else _new(actions, body)
     files, text = body.get('files') or [], str(body.get('text') or '').strip()
     if not files and not text: raise ValueError('give the plan: its files, or paste its text')
-    folder = project.parent / f'.{name}-plan-{datetime.now(timezone.utc):%Y%m%d%H%M%S}'
-    folder.mkdir(parents=True)
-    for row in files:
-        kept = Path(str(row.get('name') or '')).name
-        if not kept.lower().endswith(SOURCE_SUFFIXES + IMAGE_SUFFIXES): raise ValueError(f'{kept}: not a plan document or a picture')
-        (folder / kept).write_bytes(base64.b64decode(str(row.get('data') or ''), validate=True))
+    folder = _kept_plan(project, name, files)
     if not extend: _speak(project, actions.lang)
     inputs = {'source': str(folder) if files else None, 'text': text or None}
     action = 'extend_start' if extend else 'blueprint_start'
     seen = actions.preview(action, {'inputs': inputs})      # the person's press is the confirmation
     return {'run': actions.public(actions.create({'action': action, 'inputs': inputs, 'confirm': seen.get('confirm')},
                                                  project=str(project)))}
+
+
+def _kept_plan(project, name, files):
+    """The plan's files written in a folder of their own beside the project; the folder."""
+    folder = project.parent / f'.{name}-plan-{datetime.now(timezone.utc):%Y%m%d%H%M%S}'
+    folder.mkdir(parents=True)
+    for row in files:
+        kept = Path(str(row.get('name') or '')).name
+        if not kept.lower().endswith(SOURCE_SUFFIXES + IMAGE_SUFFIXES): raise ValueError(f'{kept}: not a plan document or a picture')
+        (folder / kept).write_bytes(base64.b64decode(str(row.get('data') or ''), validate=True))
+    return folder
 
 
 def _speak(project, lang):

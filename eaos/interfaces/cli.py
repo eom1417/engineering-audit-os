@@ -28,15 +28,25 @@ def audit_command(args):
     result = read(out / 'report-result.json') if (out / 'report-result.json').is_file() else {}
     violations = result.get('output_spec_violations', ['the output contract was never checked'])
     status = 'OUTPUT_SPEC_VIOLATED' if violations else 'REVIEW_REQUIRED' if manifest['status'] == 'COMPLETE' else manifest['status']
+    _print_outcome(manifest, status, violations, out)
+    _done_box(args, out, status)
+    return 0 if status == 'REVIEW_REQUIRED' else 2
+
+
+def _print_outcome(manifest, status, violations, out):
+    """The check's outcome on stdout, as JSON: its status, each stage's, and what was not examined and why."""
     print(json.dumps({'status': status, 'stages': {name: row['status'] for name, row in manifest['stages'].items()},
                       'seconds': manifest['seconds'], 'output_spec_violations': violations,
                       'not_examined': {name: row['reason'] for name, row in manifest['stages'].items() if row['status'] != 'ok'},
                       'manifest': str(out / 'run-manifest.json')}, ensure_ascii=False, indent=2))
+
+
+def _done_box(args, out, status):
+    """The box that ends `eaos audit`, on stderr: where the report is, and the guided way on."""
     from ..journeys.guided import box
     box(args.lang, 'اكتمل الفحص' if args.lang == 'ar' else 'The check is done', where=out / 'START-HERE.md',
         commands=[f'eaos start {args.target}'], status='ok' if status == 'REVIEW_REQUIRED' else 'warn',
         note=('للمتابعة بخطوات موجِّهة' if args.lang == 'ar' else 'to go on with guided steps'), stream=sys.stderr)
-    return 0 if status == 'REVIEW_REQUIRED' else 2
 
 
 def handover_hook(args):

@@ -55,14 +55,18 @@ def act_op(verb, ids=None, group=None, op='preview', confirm=None, auto_accept=F
     if auto_accept: refuse_in_studio_run('auto_accept')
     if op == 'start' and auto_accept and not person_agreed: return _needs('accepting by itself is the person\'s decision', ASK)
     preview = govern.verb_preview(project, verb, govern.selection_of(ids, group), auto_accept, assistant)
-    if op == 'preview':
-        where = preview.get('where') or {}
-        return {**{k: preview.get(k) for k in PREVIEW_FIELDS}, 'confirm': (preview['confirm'] or {}).get('token'),
-                'where': {k: where.get(k) for k in ('base', 'deliver_as', 'merge_into', 'problem')} if where else None,
-                'assistant': preview.get('assistant'), 'handoff': preview['handoff']['available'],
-                'what_now': ASK if auto_accept else 'Tell the person what it will do, then call op=start (with confirm, for fix).'}
+    if op == 'preview': return _shown(preview, auto_accept)
     if op != 'start': raise ValueError('op is one of preview, start')
     return {'run': _run(govern.verb_start(project, preview, confirm, assistant)), 'what_now': 'Follow it with runs(op=show).'}
+
+
+def _shown(preview, auto_accept):
+    """act's answer to op=preview: what the run would do, where, and its confirmation token."""
+    where = preview.get('where') or {}
+    return {**{k: preview.get(k) for k in PREVIEW_FIELDS}, 'confirm': (preview['confirm'] or {}).get('token'),
+            'where': {k: where.get(k) for k in ('base', 'deliver_as', 'merge_into', 'problem')} if where else None,
+            'assistant': preview.get('assistant'), 'handoff': preview['handoff']['available'],
+            'what_now': ASK if auto_accept else 'Tell the person what it will do, then call op=start (with confirm, for fix).'}
 
 
 def history_op(op='list', a=None, b=None, project=None):

@@ -37,7 +37,7 @@ def _events_of(path):
 
 
 def starlette_routes(actions, prefix=''):
-    from starlette.responses import JSONResponse, Response, StreamingResponse
+    from starlette.responses import JSONResponse, StreamingResponse
     from starlette.routing import Route
 
     async def endpoint(request):
@@ -55,13 +55,18 @@ def starlette_routes(actions, prefix=''):
             last = headers.get('last-event-id') or after
             from starlette.concurrency import iterate_in_threadpool
             return StreamingResponse(iterate_in_threadpool(actions.sse(run, last, follow=True)), media_type='text/event-stream', headers=STREAM)
-        if request.method == 'GET' and status == 200:
-            body, etag = tagged(payload)
-            if headers.get('if-none-match') == etag: return Response(status_code=304, headers={**HEADERS, 'ETag': etag})
-            return Response(body, 200, media_type='application/json', headers={**HEADERS, 'ETag': etag})
+        if request.method == 'GET' and status == 200: return _read(payload, headers)
         return JSONResponse(payload, status, headers=HEADERS)
 
     return [Route(prefix + '/api/{rest:path}', endpoint, methods=['GET', 'POST'])]
+
+
+def _read(payload, headers):
+    """A read answered with its ETag: 304 when the browser holds that version already."""
+    from starlette.responses import Response
+    body, etag = tagged(payload)
+    if headers.get('if-none-match') == etag: return Response(status_code=304, headers={**HEADERS, 'ETag': etag})
+    return Response(body, 200, media_type='application/json', headers={**HEADERS, 'ETag': etag})
 
 
 class _Handler(BaseHTTPRequestHandler):

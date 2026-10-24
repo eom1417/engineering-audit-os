@@ -60,7 +60,7 @@ def run_nodes(manager, run):
                                                                                      'ar': 'شغّل الفحص أولًا، ثم عُقد الذكاء.'})
     record = manager.store.load(run)
     inputs = record.get('inputs') or {}
-    names = inputs.get('nodes') or [n.name for n in nodes.NODES if n.name != 'ideal_planner']
+    names = _node_names(inputs)
     wanted = record.get('assistant')
     adapters = {wanted: manager.adapters[wanted]} if wanted in manager.adapters else manager.adapters
     wave = _last_wave(manager.project)
@@ -82,6 +82,12 @@ def run_nodes(manager, run):
     manager.store.append(run, 'result', {'en': f'{len(records)} AI nodes decided ({by_model} by your assistant, the rest by the rules only)',
                                          'ar': f'قرّرت {len(records)} عُقد ذكاء ({by_model} بمساعدك، والباقي بالقواعد فقط)'}, payload)
     manager.set_state(run, 'done', result=payload)
+
+
+def _node_names(inputs):
+    """The AI nodes a run asks for, else every one but the ideal planner (a run of its own)."""
+    from ...ai import nodes
+    return inputs.get('nodes') or [n.name for n in nodes.NODES if n.name != 'ideal_planner']
 
 
 def _last_wave(project):
