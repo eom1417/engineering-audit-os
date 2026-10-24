@@ -20,13 +20,17 @@ def _card_states(build):
 
 
 def _step(milestone, by_id, states, branches, lang):
-    tasks = [{'id': c, 'title': by_id[c]['title'], 'state': states.get(c, 'todo'), 'acceptance': '\n'.join(map(str, by_id[c].get('acceptance') or [])),
-              'paths': by_id[c].get('paths') or [], 'tests': by_id[c].get('tests') or [], 'depends_on': by_id[c].get('depends_on') or []}
-             for c in milestone['tasks'] if c in by_id]
+    tasks = [_task(by_id[c], states.get(c, 'todo')) for c in milestone['tasks'] if c in by_id]
     seen = {t['state'] for t in tasks}
     state = 'done' if seen <= {'done', 'blocked'} else 'active' if seen & {'active', 'done', 'blocked'} else 'todo'
     return {'id': milestone['id'], 'title': milestone.get(_in(lang, 'name_ar', 'name')) or milestone['name'], 'state': state,
             'weight': len(tasks), 'gate': milestone.get('exit'), 'branch': branches.get(milestone['id']), 'tasks': tasks}
+
+
+def _task(card, state):
+    """One build card as a plan step's task: its title, state, acceptance (a line each), paths, tests and dependencies."""
+    return {'id': card['id'], 'title': card['title'], 'state': state, 'acceptance': '\n'.join(map(str, card.get('acceptance') or [])),
+            'paths': card.get('paths') or [], 'tests': card.get('tests') or [], 'depends_on': card.get('depends_on') or []}
 
 
 def plan(build, lang):
@@ -35,12 +39,18 @@ def plan(build, lang):
     by_id = {c['id']: c for c in build['plan']['tasks']}
     states, branches = _card_states(build), {r['milestone']: r.get('branch') for r in build['built']}
     steps = [_step(m, by_id, states, branches, lang) for m in build['plan']['milestones']]
-    done, waiting = sum(states.get(c) == 'done' for c in by_id), next((s['id'] for s in steps if s['state'] != 'done'), None)
-    state = 'closed' if waiting is None else 'active' if build['built'] or build['open'] else 'registered'
+    done = sum(states.get(c) == 'done' for c in by_id)
+    state, waiting = _plan_state(build, steps)
     return {'id': 'build', 'title': _in(lang, 'خطة البناء', 'Build plan'), 'kind': 'build', 'parent': None, 'state': state,
             'goal': build['spec'].get('summary') or '', 'indicators': [], 'steps': steps,
             'open': (build['open'] or {}).get('milestone'), 'next': waiting, 'requirements': len(build['spec'].get('requirements') or []),
             'progress': {'value': round(done / max(len(by_id), 1), 4), 'src': 'blueprint: cards kept / every build card'}}
+
+
+def _plan_state(build, steps):
+    """(the plan's state, the first milestone not done): closed when none is left, active once one is built or open."""
+    waiting = next((s['id'] for s in steps if s['state'] != 'done'), None)
+    return 'closed' if waiting is None else 'active' if build['built'] or build['open'] else 'registered', waiting
 
 
 def _options(question, lang):
