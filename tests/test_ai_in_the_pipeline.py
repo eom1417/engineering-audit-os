@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import tempfile
+import sys
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -180,7 +181,7 @@ class Consent(unittest.TestCase):
 
     def test_the_persons_yes_reaches_the_check_from_eaos_start_and_from_the_mcp_audit(self):
         state = {'lang': 'en', 'project': str(self.project), 'workspace': str(Path(self.tmp.name) / 'ws'), 'questions': []}
-        with mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), self.assertRaises(guided.NeedsAnswer):
+        with mock.patch.object(sys.stdin, 'isatty', return_value=False), self.assertRaises(guided.NeedsAnswer):
             guided.agree_to_assistant(state, yes=False)
         with self.probe(True):
             self.assertEqual(guided.check_provider(state).config['assistant'], 'claude', 'on unless the person says no')
@@ -193,7 +194,7 @@ class Consent(unittest.TestCase):
         self.assertEqual(guided.check_provider(state).code, 'ai_declined')
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}), self.probe(True):
             agent_tools.audit(str(self.project), use_assistant=True)
-        with mock.patch('eaos.pipeline.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
+        with mock.patch('eaos.journeys.check.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
                 mock.patch.object(guided, 'tools_for_check', return_value={}), self.probe(True):
             agent_tools._audit_job(str(self.project), {}, None)
         self.assertTrue(check.call_args.kwargs['provider'])
@@ -238,12 +239,12 @@ class Consent(unittest.TestCase):
             found = guided.check_provider(state)
             self.assertFalse(found)
             self.assertEqual(found.code, 'claude_not_signed_in')
-            with mock.patch.object(guided.sys.stdin, 'isatty', return_value=True), mock.patch('builtins.input', return_value='no'), \
-                    mock.patch.object(guided, 'say') as said, mock.patch.object(guided, 'box') as box:
+            with mock.patch.object(sys.stdin, 'isatty', return_value=True), mock.patch('builtins.input', return_value='no'), \
+                    mock.patch.object(guided.checking, 'say') as said, mock.patch.object(guided.checking, 'box') as box:
                 self.assertFalse(guided.agree_to_assistant(state, yes=False))
             self.assertIn('Run `claude` once', said.call_args_list[0].args[0])
             self.assertIn('did not start', box.call_args.args[1])
-            with mock.patch.object(guided, 'say'):
+            with mock.patch.object(guided.checking, 'say'):
                 self.assertTrue(guided.agree_to_assistant(state, yes=True), '--yes: the check starts without AI, and says why')
 
     def test_the_mcp_audit_never_starts_with_an_assistant_that_is_not_ready_but_may_go_without_ai(self):
@@ -253,7 +254,7 @@ class Consent(unittest.TestCase):
             self.assertEqual(agent_tools.audit(str(self.project), without_ai=True)['status'], 'started')
         self.assertEqual(start.call_args.args[2], {'without_ai': True})
         self.assertIsNone(guided.answered(project_state.load(self.project), 'use_assistant'), 'one check without AI changes no choice')
-        with mock.patch('eaos.pipeline.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
+        with mock.patch('eaos.journeys.check.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
                 mock.patch.object(guided, 'tools_for_check', return_value={}):
             agent_tools._audit_job(str(self.project), {'without_ai': True}, None)
         self.assertEqual(check.call_args.kwargs['provider'].code, 'ai_skipped')

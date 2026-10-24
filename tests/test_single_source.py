@@ -31,8 +31,8 @@ class SingleSource(unittest.TestCase):
             before = human_report.render(m, 'example')
             with mock.patch.object(Path, 'read_text', side_effect=AssertionError('view read a report file')):
                 self.assertEqual(human_report.render(m, 'example'), before)
-        tree = ast.parse(Path(human_report.__file__).read_text())
-        for node in ast.walk(tree):
+        trees = [ast.parse(path.read_text()) for path in Path(human_report.__file__).parent.glob('*.py')]
+        for node in (node for tree in trees for node in ast.walk(tree)):
             if not isinstance(node, ast.FunctionDef): continue
             for call in ast.walk(node):
                 if not isinstance(call, ast.Call): continue

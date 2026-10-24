@@ -6,8 +6,9 @@ published and the state saved (M3.3: the CLI had its own copy, without the remed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import guided
 from ..core import branches, project_state
+from .guided.batches import retire_stale_batch
+from .guided.project import chosen_assistant, publish, report_of, save, source, tip
 from ..core.build_info import digest
 from ..pipeline import check, remedies
 from ..report.start_here import start_here
@@ -16,17 +17,17 @@ from ..report.start_here import start_here
 def run(state, options, again_from=None, go_on=False):
     """(the check's manifest, the state saved after it, the page people read). `options`: eaos/journeys/check_choices.py options. `again_from`:
     the last check goes on from that stage, on the code it checked; `go_on`: a check that did not end goes on."""
-    out = guided.report_of(state)
-    source = guided.source(state, state.get('scanned_commit') if again_from else None)
+    out = report_of(state)
+    code = source(state, state.get('scanned_commit') if again_from else None)
     # taken before the check reads: a commit made meanwhile is not in it
-    read = {} if again_from else {'scanned_commit': guided.tip(state) or None, **branches.scan_provenance(state, source)}
-    done = check(str(source), out, again_from, state.get('scanned_dirty') is False, go_on=go_on, **options)
-    done = remedies.apply(done, lambda stages: check(str(source), out, stages, True, **options), out, options.get('progress'),
-                          guided.chosen_assistant(state), options['provider'])
+    read = {} if again_from else {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, code)}
+    done = check(str(code), out, again_from, state.get('scanned_dirty') is False, go_on=go_on, **options)
+    done = remedies.apply(done, lambda stages: check(str(code), out, stages, True, **options), out, options.get('progress'),
+                          chosen_assistant(state), options['provider'])
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = project_state.load(state['project'])            # as the check's stages left it
     state.update(scanned=datetime.now(timezone.utc).isoformat(timespec='seconds'), scanned_with=digest(), **read)
-    guided.retire_stale_batch(state)
-    page = guided.publish(state)
-    guided.save(state)
+    retire_stale_batch(state)
+    page = publish(state)
+    save(state)
     return done, state, page

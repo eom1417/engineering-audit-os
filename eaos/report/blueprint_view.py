@@ -48,7 +48,7 @@ def _card_batches(progress):
 def _card_row(c, done, skipped, batch):
     """One build card as the report's card block draws it: its state, its batch and its acceptance."""
     from html import escape
-    from .human_report import T
+    from ..core.markup import both as T
     state = 'done' if c['id'] in done else 'skipped' if c['id'] in skipped else 'open'
     checks = ''.join(f'<li>{escape(str(a))}</li>' for a in c.get('acceptance') or [])
     extra = f'<p class="small"><b>{T("يُقبل حين:", "Accepted when:")}</b></p><ul class="small">{checks}</ul>' if checks else ''
@@ -60,7 +60,7 @@ def _card_row(c, done, skipped, batch):
 def layer_map(built, cards):
     """The target's layers as rows of boxes, from what uses to what is used, each with the build cards in its folders."""
     from ..analysis.arch_map import feedback_edges, layer_of
-    from .human_report import target_rows
+    from .human_report.target import target_rows
     policy, rules = built['policy'], {r['allow_only']['from']: r['reason'] for r in built['policy']['rules']}
     names = [name for name in policy['layers'] if not name.startswith('_')]
     edges = [e for e in built['architecture'].get('target_edges') or [] if e.get('from') in names and e.get('to') in names]
@@ -99,7 +99,8 @@ def _milestone_card(milestone, done, delivered, cards, rtl):
 
 def _layers(built, cards):
     """The target's layers drawn in both reading directions, or nothing when they cannot be drawn."""
-    from .human_report import T, target_svg
+    from ..core.markup import both as T
+    from .human_report.target import target_svg
     try:
         rows, edges, layer_progress = layer_map(built, cards)
         return (f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة: الأعلى يستخدم ما تحته ولا يستخدم ما فوقه. الشريط: كم بُني من بطاقات مجلداتها. مرّر المؤشر على طبقة لترى ما يُسمح لها باستخدامه.", "Each row is a tier: a layer uses what is below it, never what is above. The bar: how many of the cards in its folders are built. Hover a layer to see what it may use.")}</p>'
@@ -118,7 +119,8 @@ def _parts(spec, cards):
 
 def _module_bar(cards, module):
     """How many of a part's build cards are built, as a bar and a count."""
-    from .human_report import T, bar
+    from ..core.markup import both as T
+    from .human_report.cards import bar
     mine = [c for c in cards if c.get('module') == module]
     finished = sum(c['state'] == 'done' for c in mine)
     count = f'{finished} / {len(mine)}'
@@ -131,7 +133,8 @@ def page(spec, stack, built, progress=None):
     with every milestone's progress when `progress` (the state's `built` list) is given: the target's layers, the parts,
     and every build card with its state, reusing that page's drawings."""
     from html import escape
-    from .human_report import CSS, MAP_JS, cards_block
+    from .human_report.assets import CSS, MAP_JS
+    from .human_report.cards import cards_block
     done = {card for record in progress or [] for card in record.get('kept') or []}
     delivered = {record['milestone']: record.get('branch') for record in progress or []}
     rtl = any('؀' <= ch <= 'ۿ' for ch in spec.get('name', '') + spec.get('summary', ''))

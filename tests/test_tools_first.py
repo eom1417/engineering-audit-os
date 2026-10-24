@@ -4,6 +4,7 @@ person starts without it, and the report records that it did."""
 import os
 import subprocess
 import tempfile
+import sys
 import unittest
 from argparse import Namespace
 from pathlib import Path
@@ -92,11 +93,11 @@ class Terminal(unittest.TestCase):
 
     def scan(self, gate, yes):
         args = Namespace(yes=yes)
-        with mock.patch.object(toolchain, 'wait_for_check', return_value=gate), mock.patch.object(guided, 'save'), \
-                mock.patch.object(guided, 'source', return_value=Path('/p')), mock.patch.object(guided, 'tip', return_value=None), \
-                mock.patch.object(guided.branches, 'scan_provenance', return_value={}), mock.patch.object(guided, 'say'), \
-                mock.patch.object(guided, 'box') as box, mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
-                mock.patch.object(guided, 'agree_to_assistant', side_effect=RuntimeError('the check goes on')):
+        checking = guided.checking         # the check's step (eaos/journeys/guided/checking.py)
+        with mock.patch.object(toolchain, 'wait_for_check', return_value=gate), mock.patch.object(checking, 'save'), \
+                mock.patch.object(checking, 'say'), mock.patch.object(checking, 'box') as box, \
+                mock.patch.object(sys.stdin, 'isatty', return_value=False), \
+                mock.patch.object(checking, 'agree_to_assistant', side_effect=RuntimeError('the check goes on')):
             try: return guided.scan(self.state, args), box
             except RuntimeError: return 'started', box
 
@@ -107,7 +108,7 @@ class Terminal(unittest.TestCase):
         self.assertEqual(self.scan(FAILED, yes=True)[0], 'started', 'asked again each time')
         self.assertEqual(self.scan(READY, yes=False)[0], 'started')
         # A no stops it and says how to go on.
-        with mock.patch.object(guided, 'ask', side_effect=guided.Declined('start_without_tools')):
+        with mock.patch.object(guided.checking, 'ask', side_effect=guided.Declined('start_without_tools')):
             code, box = self.scan(FAILED, yes=False)
         self.assertEqual(code, 1)
         self.assertEqual(box.call_args.kwargs['commands'], ['eaos tools install', 'eaos start .'])

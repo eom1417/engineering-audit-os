@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import tempfile
+import sys
 import unittest
 from argparse import Namespace
 from contextlib import redirect_stdout
@@ -61,7 +62,7 @@ def run(command, project=None, **options):
     # and no version check of every installed tool: the doctor's rows are tested on their own.
     with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), mock.patch.object(guided, 'watch'), \
             mock.patch.dict(guided.TERMINAL, check=lambda args: _fake_scan(project_state.current(args.project), args)), \
-            mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
+            mock.patch.object(sys.stdin, 'isatty', return_value=False), \
             mock.patch('eaos.core.toolchain.doctor', return_value={'tools': []}), \
             mock.patch('eaos.ai.readiness.probe_all', return_value=NO_ASSISTANT), \
             mock.patch('eaos.ai.setup.install', return_value=['Claude Code', 'Codex']):
@@ -130,7 +131,7 @@ class Journey(unittest.TestCase):
 
     def test_a_question_waits_for_yes_is_kept_and_prints_the_command_that_answers_it(self):
         state = self.saved()
-        with mock.patch.object(guided.sys.stdin, 'isatty', return_value=False):
+        with mock.patch.object(sys.stdin, 'isatty', return_value=False):
             with self.assertRaises(guided.NeedsAnswer):
                 guided.ask(state, 'install_tools', 'Install?')
             self.assertTrue(guided.ask(state, 'install_tools', 'Install?', yes=True))
@@ -139,7 +140,7 @@ class Journey(unittest.TestCase):
         def asks(state, args): guided.ask(state, 'run_app', 'May I run your app?', args.yes); return 0
         printed = io.StringIO()
         with mock.patch.object(guided, 'STEPS', [('x', 'x', 'x', lambda s: False, asks)]), redirect_stdout(printed), \
-                mock.patch.object(guided.sys.stdin, 'isatty', return_value=False):
+                mock.patch.object(sys.stdin, 'isatty', return_value=False):
             code = guided.main(Namespace(command='next', project=str(self.project), lang='en', yes=False))
         self.assertEqual(code, 4)
         self.assertIn('eaos next --yes', printed.getvalue())
@@ -240,7 +241,7 @@ class RunConsent(unittest.TestCase):
     def test_a_yes_given_in_the_studio_or_to_the_assistant_lets_the_check_run_the_app(self):
         """The self-check of 2026-10-12: the owner agreed in the Studio (run_setup, consent run_and_fix), yet the check
         read only the terminal's question run_app and said the person had not agreed, so nothing ran."""
-        with mock.patch.object(guided, 'runtime_of', return_value='runtime'):
+        with mock.patch.object(guided.checking, 'runtime_of', return_value='runtime'):
             self.assertIsNone(guided.check_runtime({'questions': []}))
             self.assertEqual(guided.check_runtime({'questions': [], 'consent': {'run_and_fix': True}}), 'runtime')
             self.assertEqual(guided.check_runtime({'questions': [{'id': 'run_app', 'answer': True}]}), 'runtime')

@@ -1106,6 +1106,16 @@ def fix_finish(project=None, leave_out=False):
     return _start('fix_finish', state, {'leave_out': bool(leave_out)})
 
 
+def _merge_problem(state, wave, into):
+    """Why the waiting batch cannot be merged into `into` (None: the branch the fix preview named), else None: the
+    Studio's rule too (M3.3), a protected branch never."""
+    if not into: return None
+    if not commit_of(state['project'], into): return f'no branch named {into} to merge into'
+    if into == wave['branch']: return 'a branch cannot be merged into itself'
+    why = branches.blocked_target(state['project'], into)
+    return f"{into} is protected ({why['en']}): choose another branch to merge into" if why else None
+
+
 def accept(project=None, person_agreed=False, merge_into=None, delete_after=True):
     """The waiting branch into the branch the person chose (`merge_into`; by default the one the fix preview named, else
     the person's current branch); then its branch is deleted (unless `delete_after` is false: it stays, merged) and the
@@ -1116,10 +1126,7 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
     wave = waiting_batch(state)
     if wave is None: return {'status': 'nothing_waiting', 'progress': (load(state) or {}).get('totals')}
     into = (merge_into or '').strip() or None
-    if into and not commit_of(state['project'], into): return {'status': 'error', 'error': f'no branch named {into} to merge into'}
-    if into == wave['branch']: return {'status': 'error', 'error': 'a branch cannot be merged into itself'}
-    if into and (why := branches.blocked_target(state['project'], into)):       # the Studio's rule (M3.3): MCP never passed it
-        return {'status': 'error', 'error': f"{into} is protected ({why['en']}): choose another branch to merge into"}
+    if (problem := _merge_problem(state, wave, into)): return {'status': 'error', 'error': problem}
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {into or wave.get('merge_into') or 'your current branch'}?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}
