@@ -48,18 +48,30 @@ def dependencies(report):
     """[(name, upstream variable, features)] for every external dependency the facts show."""
     features = (_load(Path(report) / 'features.json', {}) or {}).get('features') or []
     clients = {(f.get('value') or {}).get('client') for f in facts(report, 'data_access')}
-    # A host named only in a module nothing reaches (facts/deadcode) is not a dependency of the running program.
-    unreachable = {(f.get('location') or {}).get('path') for f in facts(report, 'engine_finding')
-                   if (f.get('value') or {}).get('rule') == 'unreachable-module'}
     found = []
-    if 'supabase' in clients:
-        found.append(('supabase', 'SUPABASE_UPSTREAM', [f['name'] for f in features if f.get('tables')]))
-    if 'http' in clients:
-        found.append(('api', 'API_UPSTREAM', [f['name'] for f in features if f.get('endpoints')]))
-    for host, paths in sorted(_hosts(report, unreachable).items()):
+    if 'supabase' in clients: found.append(('supabase', 'SUPABASE_UPSTREAM', _using(features, 'tables')))
+    if 'http' in clients: found.append(('api', 'API_UPSTREAM', _using(features, 'endpoints')))
+    for host, paths in sorted(_hosts(report, _unreachable(report)).items()):
         variable = re.sub(r'[^A-Z0-9]+', '_', host.upper()).strip('_') + '_UPSTREAM'
-        found.append((host, variable, [f['name'] for f in features if paths & set(f.get('files') or [])]))
+        found.append((host, variable, _in_files(features, paths)))
     return found
+
+
+def _using(features, key):
+    """The names of the features that use `key` (their tables, their endpoints)."""
+    return [f['name'] for f in features if f.get(key)]
+
+
+def _in_files(features, paths):
+    """The names of the features one of whose files is in `paths`."""
+    return [f['name'] for f in features if paths & set(f.get('files') or [])]
+
+
+def _unreachable(report):
+    """The modules nothing reaches (facts/deadcode)."""
+    # A host named only in a module nothing reaches is not a dependency of the running program.
+    return {(f.get('location') or {}).get('path') for f in facts(report, 'engine_finding')
+            if (f.get('value') or {}).get('rule') == 'unreachable-module'}
 
 
 def _counted_host(host, path, unreachable):

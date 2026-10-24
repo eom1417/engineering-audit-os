@@ -131,8 +131,7 @@ def run_baseline(report, target, runtime):
         if not paths: raise RuntimeError(f'no route answers a plain request: {left}')
         for script in scripts:
             threshold, vus, duration, warmup = shape(script)
-            conditions = conditions or {'build': ' && '.join(' '.join(argv) for argv in live.profile['build']),
-                                        'warmup_s': warmup, 'vus': vus, 'duration_s': duration, 'machine': machine()}
+            conditions = conditions or _conditions(live, warmup, vus, duration)
             export = out / f'k6-{script.stem}.json'
             _, _, err = live.sandbox.run(['k6', 'run', '--quiet', '--summary-export', str(export), str(script)], timeout=duration + 600,
                                          network=True, env={**live.extra(), 'BASE_URL': base, 'PATHS': json.dumps(paths), 'HEADERS': json.dumps(sent)})
@@ -143,13 +142,23 @@ def run_baseline(report, target, runtime):
         live.stop()
         live.record('runtime/baseline-log.json')
     record = {'schema_version': 1, 'conditions': conditions, 'scenarios': scenarios,
-              'limitations': [f"each scenario requests {len(paths)} paths the program serves" +
-                              (f", with the headers {', '.join(sorted(sent))}" if sent else "; an endpoint that needs a signed-in "
-                               "session answers what it answers without one, and is not loaded as a user would")] +
-                             [f'left out: {path}, {why}' for path, why in left.items()],
+              'limitations': _limitations(paths, sent, left),
               'run': {'start': ' '.join(live.profile['start']), 'env': sorted(live.profile.get('env') or {})}}
     problems = validate(record, contracts()['runtime-performance'])
     if problems: raise RuntimeError(f'runtime/performance.json would break its contract: {problems[0]}')
     (out / 'performance.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return record
 
+
+def _conditions(live, warmup, vus, duration):
+    """The load's conditions: the build it ran, its warm-up, users and duration, and the machine."""
+    return {'build': ' && '.join(' '.join(argv) for argv in live.profile['build']),
+            'warmup_s': warmup, 'vus': vus, 'duration_s': duration, 'machine': machine()}
+
+
+def _limitations(paths, sent, left):
+    """What the load does not measure: the paths it requests, with or without headers, and the ones left out."""
+    return ([f"each scenario requests {len(paths)} paths the program serves" +
+             (f", with the headers {', '.join(sorted(sent))}" if sent else "; an endpoint that needs a signed-in "
+              "session answers what it answers without one, and is not loaded as a user would")] +
+            [f'left out: {path}, {why}' for path, why in left.items()])
