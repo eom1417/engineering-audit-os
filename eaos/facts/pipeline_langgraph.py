@@ -1,10 +1,17 @@
-"""LangGraph graphs read without running them (eaos/facts/pipeline_frameworks.py `langgraph`): add_node, add_edge, the
+"""LangGraph graphs read without running them (eaos/facts/pipeline.py): add_node, add_edge, the
 entry and finish points and add_conditional_edges, a node name taken from a `for` loop over a literal list counting as
 each listed value."""
 import ast
 
 from . import call_name
 from .pipeline_read import slug, site, Found, _str, _strs, _unparse, describe
+
+
+def langgraph(py, out):
+    """The LangGraph graphs of every module that imports LangGraph."""
+    for rel, tree in py.trees.items():
+        if any((module or '').split('.')[0] == 'langgraph' for module, _ in py.imports.get(rel, {}).values()):
+            out.extend(graphs_of(py, rel, tree))
 
 
 def graphs_of(py, rel, tree):
@@ -55,13 +62,17 @@ def _graph_call(py, rel, g, call):
     """One call on a graph: a node, an edge, its entry or finish point, or conditional edges."""
     method, args, found, where = call.func.attr, call.args, g.found, g.where
     if method == 'add_node' and args: _add_node(py, rel, g, args)
-    elif method == 'add_edge' and len(args) >= 2:
-        for a in g.labels(args[0]):
-            for b in g.labels(args[1]): found.edge(g.key(a), g.key(b), 'declared', where, kind='data')
+    elif method == 'add_edge' and len(args) >= 2: _add_edge(g, args)
     elif method in ('set_entry_point', 'set_finish_point') and args:
         ends = (g.key('START'), g.key(g.first(args[0]))) if method == 'set_entry_point' else (g.key(g.first(args[0])), g.key('END'))
         found.edge(*ends, 'declared', where)
     elif method == 'add_conditional_edges' and len(args) >= 2: _conditional(py, rel, g, call)
+
+
+def _add_edge(g, args):
+    """An edge from each node the first argument names to each the second names."""
+    for a in g.labels(args[0]):
+        for b in g.labels(args[1]): g.found.edge(g.key(a), g.key(b), 'declared', g.where, kind='data')
 
 
 def _add_node(py, rel, g, args):

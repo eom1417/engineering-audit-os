@@ -60,8 +60,7 @@ def undefined_names(text, path):
         return []
     if _has_star_import(tree):
         return []
-    module = {symbol.get_name() for symbol in top.get_symbols() if symbol.is_assigned() or symbol.is_imported()}
-    missing = _missing(top, module)
+    missing = _missing(top, _module_names(top))
     # Report the read inside the scope that lacks the name, not the first mention anywhere in the file:
     # `values` is defined in one function and read by mistake in another.
     scopes = {node.lineno: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda))}
@@ -70,6 +69,11 @@ def undefined_names(text, path):
         lines = [line for owner in owners for line in _reads(scopes.get(owner, tree) if owner else tree, name)]
         if lines: found.append((name, min(lines)))
     return sorted(found, key=lambda item: item[1])
+
+
+def _module_names(top):
+    """The names the module itself assigns or imports."""
+    return {symbol.get_name() for symbol in top.get_symbols() if symbol.is_assigned() or symbol.is_imported()}
 
 
 def _has_star_import(tree):
@@ -226,6 +230,11 @@ def _missing_import_fact(fact, sha):
                  'the resolver found no file for a relative or aliased specifier', sha)
 
 
+def _missing_import_facts(resolved, sha):
+    """A fact per resolved import that names a module the snapshot does not have."""
+    return [found for found in (_missing_import_fact(fact, sha) for fact in resolved) if found]
+
+
 def run(target, source, resolved=None, **options):
     known = {item['path'] for item in source.readable()}
     everything = {item['path'] for item in source.inventory['files']}
@@ -233,7 +242,7 @@ def run(target, source, resolved=None, **options):
     facts = []
     for path in sorted(known):
         if language_of(path) == 'python': facts += _python_facts(path, source.text(path) or '', sha)
-    facts += [found for found in (_missing_import_fact(fact, sha) for fact in resolved or []) if found]
+    facts += _missing_import_facts(resolved or [], sha)
     for doc, line, command in stale_instructions(source, known, everything):
         facts.append(_fact('stale-instruction', doc, line, command,
                            f'{doc} instructs `{command}`, a command the project does not have: it no longer exists, or does not exist yet', 'low',

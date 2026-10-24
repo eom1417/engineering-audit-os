@@ -81,10 +81,18 @@ def resolve_callee(name, path, by_file, by_name, imports, external_names, attrib
     candidates = [row for row in by_name.get(name, []) if row['path'] in imports.get(path, set())]
     if len(candidates) == 1: return candidates[0], 'imported'
     if len(candidates) > 1: return None, 'ambiguous'
-    if name in external_names.get(path, set()): return None, 'external'
-    if name in BUILTINS or (name in JS_GLOBALS and path.endswith(JS_SUFFIXES)): return None, 'builtin'
+    outside = _outside(name, path, external_names)
+    if outside: return None, outside
     if attribute: return None, 'method_or_external'
     return None, 'unresolved'
+
+
+def _outside(name, path, external_names):
+    """How a call leaves the codebase: into a library the file imports ('external'), or to a builtin or a JavaScript
+    runtime global ('builtin'); None when it does not."""
+    if name in external_names.get(path, set()): return 'external'
+    if name in BUILTINS or (name in JS_GLOBALS and path.endswith(JS_SUFFIXES)): return 'builtin'
+    return None
 
 
 GAP_RESOLUTIONS = {'unresolved', 'ambiguous'}
@@ -186,7 +194,7 @@ def trace(entry, by_file, by_name, calls, imports, env_by_file, external_names):
         walk['seen'].add(key)
         _trace_calls(current, depth, context, walk)
     steps, unresolved = walk['steps'], walk['unresolved']
-    touched = sorted({step['from_path'] for step in steps} | {step['to_path'] for step in steps if step['to_path']} | ({path} if path else set()))
+    touched = _touched(steps, path)
     return {'entry': {'surface': entry['value']['surface'], 'route': entry['value']['route'],
                       'http_method': entry['value']['http_method'], 'framework': entry['value']['framework'],
                       'path': path, 'line': entry['location'].get('start_line'), 'handler': handler},
@@ -194,6 +202,11 @@ def trace(entry, by_file, by_name, calls, imports, env_by_file, external_names):
             'touched_files': touched,
             'environment_reads': sorted({name for file in touched for name in env_by_file.get(file, set())}),
             'truncated': len(steps) >= MAX_STEPS}
+
+
+def _touched(steps, path):
+    """The files a trace passes through, the entry point's own included, sorted."""
+    return sorted({step['from_path'] for step in steps} | {step['to_path'] for step in steps if step['to_path']} | ({path} if path else set()))
 
 
 def external_name_index(import_facts, edge_facts):
@@ -268,10 +281,23 @@ def _summary(facts, ranked, deduplicated, entry_points):
             'entry_points_without_traceable_handler': len(ranked) - len(facts),
             'total_steps': sum(len(f['value']['steps']) for f in facts),
             'unresolved_steps': sum(f['value']['unresolved_steps'] for f in facts),
-            'steps_by_resolution': {key: sum(1 for f in facts for step in f['value']['steps'] if step['resolution'] == key)
-                                    for key in ['local', 'imported', 'external', 'builtin', 'method_or_external', 'ambiguous', 'unresolved']},
+            'steps_by_resolution': _by_resolution(facts),
             'max_depth': MAX_DEPTH, 'max_steps_per_flow': MAX_STEPS,
             'interpretation': 'Statically traced paths. Unresolved steps mark where the trace stopped, not where execution stops.'}
+
+
+def _by_resolution(facts):
+    """How many steps of all the flows each resolution holds."""
+    return {key: sum(1 for f in facts for step in f['value']['steps'] if step['resolution'] == key)
+            for key in ['local', 'imported', 'external', 'builtin', 'method_or_external', 'ambiguous', 'unresolved']}
+
+
+def _env_by_file(env):
+    """{file: the environment variables it reads}."""
+    env_by_file = defaultdict(set)
+    for fact in (fact for fact in env or [] if fact['kind'] == 'env_read'):
+        env_by_file[fact['location']['path']].add(fact['value']['name'])
+    return env_by_file
 
 
 def run(target, source, symbols=None, calls=None, edges=None, entry_points=None, env=None, imports=None, **options):
@@ -279,9 +305,7 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
     by_file, by_name = index_symbols(symbols)
     call_index = index_calls(calls or [])
     imported_map = imported_files(edges or [], symbols)
-    env_by_file = defaultdict(set)
-    for fact in (fact for fact in env or [] if fact['kind'] == 'env_read'):
-        env_by_file[fact['location']['path']].add(fact['value']['name'])
+    env_by_file = _env_by_file(env)
     external_names = external_name_index(imports, edges)
     ranked = _ranked(entry_points)
     deduplicated = _one_per_handler(ranked)

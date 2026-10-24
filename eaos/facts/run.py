@@ -155,6 +155,21 @@ def _run_extractor(name, target, source, produced, context, step, done, total):
     return module, result
 
 
+def _extract(names, target, out, source, context):
+    """Each named extractor run in order over the one snapshot, its set written: (index entries, sets reused from the
+    cache)."""
+    entries, produced, reuse = [], {}, {}
+    step = progress.step
+    for name in names: step(name, 0, len(names), 'waiting')
+    for done, name in enumerate(names):
+        module, result = _run_extractor(name, target, source, produced, context, step, done, len(names))
+        produced[name] = result['facts']
+        if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
+        entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
+                                 module.LIMITATIONS, result['summary'], result['available'], result['reason']))
+    return entries, reuse
+
+
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
             exclude=(), engines=None, cache=None):
     """Each extractor's start and end is reported as a step of the running stage (eaos/core/progress/context.py): the live
@@ -170,15 +185,7 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     names = ordered(selected)
     source = source or Source(target, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
     context = {'cache': _load_cache(Path(cache)) if cache else {}, 'max_commits': max_commits}
-    entries, produced, reuse = [], {}, {}
-    step = progress.step
-    for name in names: step(name, 0, len(names), 'waiting')
-    for done, name in enumerate(names):
-        module, result = _run_extractor(name, target, source, produced, context, step, done, len(names))
-        produced[name] = result['facts']
-        if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
-        entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
-                                 module.LIMITATIONS, result['summary'], result['available'], result['reason']))
+    entries, reuse = _extract(names, target, out, source, context)
     if engines is not None:
         entries += collect_external(target, out, source, only=engines or None)
     if cache:

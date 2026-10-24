@@ -13,11 +13,14 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from eaos.core.artifact_contracts import RUNTIME, check, contracts  # noqa: E402
 
 
+def _list():
+    for name, schema in contracts().items():
+        print(f"{name:24} {'runtime' if name in RUNTIME else 'report ':7} {schema['x-artifact']:30} {schema['x-owner']}")
+    return 0
+
+
 def main(argv):
-    if argv == ['--list']:
-        for name, schema in contracts().items():
-            print(f"{name:24} {'runtime' if name in RUNTIME else 'report ':7} {schema['x-artifact']:30} {schema['x-owner']}")
-        return 0
+    if argv == ['--list']: return _list()
     if not argv or argv[0].startswith('--'):
         print(__doc__.strip().splitlines()[-2].strip(), file=sys.stderr)
         return 2

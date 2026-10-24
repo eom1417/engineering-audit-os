@@ -14,13 +14,21 @@ CONSUME_CALLS = ('subscribe', 'KafkaConsumer', 'basic_consume', 'xread', 'consum
 def _topic_use(sub):
     """('produced', [topic]) or ('consumed', [topics]) for a call that sends to or reads from a queue, else None."""
     callee = call_name(sub.func) or ''
-    first = _str(sub.args[0]) if sub.args else None
     keyword = {k.arg: _str(k.value) for k in sub.keywords}
-    topic = first or keyword.get('topic') or keyword.get('routing_key')
+    topic = _sent_topic(sub, keyword)
     if callee in PRODUCE_CALLS and topic: return 'produced', [topic]
-    if callee in CONSUME_CALLS and (sub.args or keyword.get('queue')):
-        return 'consumed', [t for t in (_strs(sub.args[0]) if sub.args else []) or [keyword.get('queue')] if t]
+    if callee in CONSUME_CALLS and (sub.args or keyword.get('queue')): return 'consumed', _read_topics(sub, keyword)
     return None
+
+
+def _sent_topic(sub, keyword):
+    """The topic a producing call sends to: its first argument, else its topic= or routing_key=."""
+    return (_str(sub.args[0]) if sub.args else None) or keyword.get('topic') or keyword.get('routing_key')
+
+
+def _read_topics(sub, keyword):
+    """The topics a consuming call reads: the strings of its first argument, else its queue=."""
+    return [t for t in (_strs(sub.args[0]) if sub.args else []) or [keyword.get('queue')] if t]
 
 
 def _queue_uses(py):

@@ -121,6 +121,21 @@ def _added(progress_vs_off, run_vs_run):
     return sorted((set(progress_vs_off['differ']) | named(progress_vs_off['only_left'] + progress_vs_off['only_right'])) - variance)
 
 
+def _record(project, engines, runs, progress_vs_off, run_vs_run):
+    """What the three runs show: their comparisons, what differs only with the progress switched, and whether the
+    outputs are identical."""
+    identical = not (progress_vs_off['only_left'] or progress_vs_off['only_right'] or progress_vs_off['differ'])
+    added = _added(progress_vs_off, run_vs_run)
+    return {'project': str(project), 'engines': engines, 'runs': runs,
+            'on_vs_off': progress_vs_off, 'on_vs_on': run_vs_run,
+            'differ_also_between_two_on_runs': sorted(set(progress_vs_off['differ']) & set(run_vs_run['differ'])),
+            'differ_only_with_progress_switched': added,
+            'progress_adds_no_difference': not added and all(r['exit'] == 0 for r in runs.values()),
+            'switched_and_left_out': list(SWITCHED), 'masks': [p.pattern.decode() for p, _ in TIME_PATTERNS],
+            'identical': identical and all(r['exit'] == 0 for r in runs.values())
+                         and runs['on1']['progress_file'] and not runs['off']['progress_file']}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('project')
@@ -133,16 +148,7 @@ def main(argv=None):
     runs = {name: _check(project, work / name, on, args.engines) for name, on in (('on1', True), ('off', False), ('on2', True))}
     progress_vs_off = compare(work / 'on1', work / 'off')
     run_vs_run = compare(work / 'on1', work / 'on2')
-    identical = not (progress_vs_off['only_left'] or progress_vs_off['only_right'] or progress_vs_off['differ'])
-    added = _added(progress_vs_off, run_vs_run)
-    record = {'project': str(project), 'engines': args.engines, 'runs': runs,
-              'on_vs_off': progress_vs_off, 'on_vs_on': run_vs_run,
-              'differ_also_between_two_on_runs': sorted(set(progress_vs_off['differ']) & set(run_vs_run['differ'])),
-              'differ_only_with_progress_switched': added,
-              'progress_adds_no_difference': not added and all(r['exit'] == 0 for r in runs.values()),
-              'switched_and_left_out': list(SWITCHED), 'masks': [p.pattern.decode() for p, _ in TIME_PATTERNS],
-              'identical': identical and all(r['exit'] == 0 for r in runs.values())
-                           and runs['on1']['progress_file'] and not runs['off']['progress_file']}
+    record = _record(project, args.engines, runs, progress_vs_off, run_vs_run)
     text = json.dumps(record, ensure_ascii=False, indent=1)
     if args.json: Path(args.json).write_text(text + '\n', encoding='utf-8')
     print(text)

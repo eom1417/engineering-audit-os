@@ -41,14 +41,20 @@ def packaged_errors(root,data=None):
     present={path.relative_to(data).as_posix() for path in data.rglob('*') if path.is_file()}
     errors=['Missing packaged file '+rel for rel in sorted(expected-present)]
     errors+=['Unexpected packaged file '+rel for rel in sorted(present-expected)]
-    errors+=['Stale packaged copy '+name+' of '+source for name,source in PACKAGED_COPIES
-             if (root/source).is_file() and (data/name).is_file() and (root/source).read_bytes()!=(data/name).read_bytes()]
+    errors+=_stale_copies(root,data)
     patterns=package_data_patterns(root)
-    if patterns is not None:
-        for rel in sorted(expected):
-            if not any(fnmatch(rel,pattern.split('data/',1)[-1] if pattern.startswith('data/') else pattern) for pattern in patterns):
-                errors.append('Packaging pattern does not include '+rel)
+    if patterns is not None:errors+=_unpackaged(expected,patterns)
     return errors
+
+
+def _stale_copies(root,data):
+    return ['Stale packaged copy '+name+' of '+source for name,source in PACKAGED_COPIES
+            if (root/source).is_file() and (data/name).is_file() and (root/source).read_bytes()!=(data/name).read_bytes()]
+
+
+def _unpackaged(expected,patterns):
+    return ['Packaging pattern does not include '+rel for rel in sorted(expected)
+            if not any(fnmatch(rel,pattern.split('data/',1)[-1] if pattern.startswith('data/') else pattern) for pattern in patterns)]
 
 
 def main():

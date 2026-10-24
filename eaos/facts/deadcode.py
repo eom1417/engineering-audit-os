@@ -19,12 +19,16 @@ the graph does not reach it, and no text names it.
 
 `adjudicate` applies the same test to the dead-code candidates an external engine reports, so EAOS asserts
 one verdict per candidate whoever raised it: confirmed, or refuted with the reason written down.
+
+What the product reaches (its entry points, roots and the loads an import graph cannot see) is walked by
+eaos/facts/deadcode_reach.py.
 """
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import PurePosixPath
 
-from . import bundled, make
+from . import make
+from .deadcode_reach import CONFIG, _is_test, _walk
 from .source import classify, language_of
 
 NAME = 'deadcode'
@@ -45,217 +49,19 @@ TOKEN = re.compile(r'[A-Za-z_$][\w$]*')
 PY_CONSTANT = re.compile(r'^(_?[A-Z][A-Z0-9_]*[A-Z0-9])\s*(?::[^=]+)?=(?!=)', re.M)
 JS_CONSTANT = re.compile(r'^(?:export\s+)?const\s+(_?[A-Z][A-Z0-9_]*[A-Z0-9])\s*[:=]', re.M)
 REFERENCE_SUFFIXES = ('.json', '.yaml', '.yml', '.toml', '.cfg', '.ini', '.html')
-ENTRY_FILES = ('__main__.py', 'manage.py', 'wsgi.py', 'asgi.py', 'main.py', 'app.py')
 # Files that are not product code even when parsed: build and tool configuration, package markers,
 # type declarations, migrations, examples. They are never candidates.
-NOT_CANDIDATES = (re.compile(r'(^|/)[^/]*\.config\.[cm]?[jt]s$'), re.compile(r'(^|/)(conftest|setup|noxfile|fabfile)\.py$'),
+NOT_CANDIDATES = (CONFIG, re.compile(r'(^|/)(conftest|setup|noxfile|fabfile)\.py$'),
                   re.compile(r'(^|/)__init__\.py$'), re.compile(r'\.d\.ts$'), re.compile(r'(^|/)migrations?/'),
                   re.compile(r'(^|/)(vite-env|next-env)\.d\.ts$'), re.compile(r'(^|/)examples?/'))
-
-
-def _is_test(path):
-    return classify(path) == 'test'
 
 
 def _tokens(text):
     return Counter(TOKEN.findall(text))
 
 
-BUILD_OUTPUT = re.compile(r'^(?:dist|build|out|lib|\.output)(?:[-_.](.+))?$')
-SOURCE_SUFFIXES = ('', '.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs', '.jsx')
-RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
-# A bare path literal with a folder and an extension: `Path(__file__).parent / 'templates/screens/reporter.mjs'`.
-PATH_LITERAL = re.compile(r'''['"`]([\w-][\w.-]*(?:/[\w.-]+)+\.\w+)['"`]''')
 # A semgrep rule test marks the lines its rule must flag; the file is a fixture for the rule, not product code.
 RULE_FIXTURE = re.compile(r'^[ \t]*(?:#|//)[ \t]*(?:ruleid|todoruleid|ok|todook):', re.M)
-# Folders a package ships as data, loaded by path at run time: templates and rules.
-DATA_FOLDERS = {'templates', 'rules'}
-
-
-def _source_of(base, file, known):
-    """The snapshot file a script runs: itself, or the source its build output is compiled from.
-
-    `node dist-server/main.mjs` runs what the build makes of `server/main.mjs`; `node dist/index.js` what it makes
-    of `src/index.ts` or `index.ts`. The output is not in the snapshot, so without this the production entry the
-    start script names is no seed, and everything only it imports looks dead."""
-    path = str(base / file).lstrip('./')
-    if path in known: return path
-    parts = PurePosixPath(file.lstrip('./')).parts
-    output = BUILD_OUTPUT.match(parts[0]) if len(parts) > 1 else None
-    if not output: return None
-    rest = PurePosixPath(*parts[1:])
-    for folder in ([output.group(1)] if output.group(1) else []) + ['src', '']:
-        stem = str((base / folder / rest).with_suffix('')).lstrip('./')
-        for suffix in SOURCE_SUFFIXES:
-            if stem + suffix in known: return stem + suffix
-    return None
-
-
-CODE_PATH = re.compile(r'(?<![\w/.-])((?:\.{1,2}/)?[\w][\w./-]*\.(?:[cm]?[jt]sx?|py))\b')
-RUN_COMMAND = re.compile(r'\b(?:node|python3?|tsx|ts-node|bun|deno\s+run|bash|sh)\s+(?:--?[\w-]+(?:[= ][\w./:=-]+)?\s+)*'
-                         r'((?:\.{1,2}/)?[\w][\w./-]*\.(?:[cm]?[jt]sx?|py))\b')
-# Files whose lines are commands a machine runs: CI workflows, container and make recipes, process files, shell scripts.
-AUTOMATION = re.compile(r'(^|/)(\.github/workflows/[^/]+\.ya?ml|\.gitlab-ci\.ya?ml|\.circleci/[^/]+\.ya?ml|azure-pipelines\.ya?ml|'
-                        r'bitbucket-pipelines\.ya?ml|Jenkinsfile|Dockerfile[^/]*|[^/]*\.dockerfile|docker-compose[^/]*\.ya?ml|'
-                        r'compose\.ya?ml|Makefile|justfile|Procfile|[^/]*\.sh)$')
-
-
-def _commanded(source, known, folders):
-    """Programs a machine or a person is told to run: every code file an automation file names (a CI step
-    `node scripts/audit-sbom.mjs`, a Dockerfile CMD), and every one a document gives as a command to run. A
-    program is run, not imported, so the import graph never reaches it; the command that runs it is its use."""
-    out = set()
-    for path in known:
-        if AUTOMATION.search(path): pattern = CODE_PATH
-        elif path.endswith('.md') and not _is_test(path): pattern = RUN_COMMAND
-        else: continue
-        bases = {PurePosixPath(path).parent, PurePosixPath('.'), *folders}
-        for file in set(pattern.findall(source.text(path) or '')):
-            if file.startswith('/'): continue
-            out |= {found for base in bases if (found := _source_of(base, file, known))}
-    return out
-
-
-def _seeds(source, known, entry_points):
-    """Production entry points, plus the files a runtime loads first: __main__.py, index.html scripts, manifests."""
-    seeds = _declared_entries(entry_points)
-    for path in known: seeds |= _file_seeds(source, path, known)
-    return {seed for seed in seeds if seed in known}
-
-
-def _declared_entries(entry_points):
-    return {(f.get('location') or {}).get('path') for f in entry_points
-            if f.get('kind') == 'entry_point' and (f.get('value') or {}).get('category') != 'test'
-            and (f.get('value') or {}).get('framework') not in ('npm_script',)}
-
-
-def _html_scripts(path, text):
-    return {str(PurePosixPath(path).parent / src).lstrip('./') if '/' in path else src
-            for src in re.findall(r'''<script[^>]*\bsrc=["']/?([^"']+)["']''', text)}
-
-
-def _manifest_seeds(path, text, known):
-    """What a package.json runs: its main, module and bin files, and the source of every file a script names."""
-    import json
-    try: manifest = json.loads(text or '{}')
-    except ValueError: manifest = {}
-    base = PurePosixPath(path).parent
-    bins = manifest.get('bin') if isinstance(manifest.get('bin'), dict) else {'': manifest.get('bin')}
-    seeds = {str(base / entry).lstrip('./') for entry in [manifest.get('main'), manifest.get('module'), *bins.values()]
-             if isinstance(entry, str)}
-    for script in (manifest.get('scripts') or {}).values():
-        seeds |= {_source_of(base, file, known) or str(base / file).lstrip('./')
-                  for file in re.findall(r'[\w./-]+\.(?:[cm]?[jt]sx?|py)\b', str(script))}
-    return seeds
-
-
-def _file_seeds(source, path, known):
-    name = PurePosixPath(path).name
-    if name in ENTRY_FILES: return set() if _is_test(path) else {path}
-    if name == 'index.html': return _html_scripts(path, source.text(path) or '')
-    if name == 'package.json': return _manifest_seeds(path, source.text(path), known)
-    return set()
-
-
-def _edges(resolved):
-    graph, test_importers = defaultdict(set), defaultdict(set)
-    for fact in resolved:
-        if fact.get('kind') != 'module_edge': continue
-        to_path = (fact.get('value') or {}).get('to_path')
-        path = (fact.get('location') or {}).get('path')
-        if not (path and to_path): continue
-        (test_importers[to_path].add(path) if _is_test(path) else graph[path].add(to_path))
-    return graph, test_importers
-
-
-def _named(path, blob):
-    """A module a computed import loads is named in text: eaos.facts.domain, or eaos/facts/domain."""
-    stem = str(PurePosixPath(path).with_suffix(''))
-    return stem.replace('/', '.') in blob or stem in blob
-
-
-def _relative(path, text, texts):
-    """Files a module names by a literal path relative to itself: `new URL("./server/index.mjs", import.meta.url)`,
-    `new Worker("./worker.js")`. The import graph does not see these loads; the literal says what they load."""
-    base = PurePosixPath(path).parent
-    named = (_normalised(base, literal) for literal in RELATIVE_LITERAL.findall(text))
-    return {found for found in named if found and found in texts}
-
-
-def _normalised(base, literal):
-    """The snapshot path `literal` names from `base`, or None when it climbs above the root."""
-    parts = []
-    for part in (base / literal).parts:
-        if part == '..':
-            if not parts: return None
-            parts.pop()
-        elif part != '.': parts.append(part)
-    return '/'.join(parts)
-
-
-def _loaded(path, text, texts):
-    """Files a module loads by a bare path literal, read from its own folder or a folder above it:
-    `Path(__file__).resolve().parent / 'templates/screens/stream-reporter.mjs'` names a file no import reaches."""
-    folders = list(PurePosixPath(path).parents)
-    out = set()
-    for literal in PATH_LITERAL.findall(text):
-        out |= {found for folder in folders if (found := str(folder / literal).lstrip('./')) in texts}
-    return out
-
-
-def _glob(glob):
-    """A setuptools glob as a pattern: `**/` any folders, `*` any name within one folder."""
-    parts = re.split(r'(\*\*/|\*\*|\*|\?)', glob)
-    return re.compile(''.join({'**/': '(?:.*/)?', '**': '.*', '*': '[^/]*', '?': '[^/]'}.get(part, re.escape(part)) for part in parts))
-
-
-def _package_data(source, known):
-    """Files a package ships as data: under a templates/ or rules/ folder, or matched by a declared
-    `[tool.setuptools.package-data]` glob. They are loaded by path at run time; no import names them."""
-    data = {path for path in known if DATA_FOLDERS & set(PurePosixPath(path).parts[:-1]) and not _is_test(path)}
-    for manifest in (path for path in known if PurePosixPath(path).name == 'pyproject.toml'):
-        data |= _declared_data(source, manifest, known)
-    return data
-
-
-def _package_bases(known, root, package):
-    if package == '*': return {PurePosixPath(p).parent for p in known if PurePosixPath(p).name == '__init__.py'}
-    return {root / package.replace('.', '/'), root / 'src' / package.replace('.', '/')}
-
-
-def _matching(known, bases, glob):
-    pattern = _glob(glob)
-    return {path for path in known for base in bases
-            if PurePosixPath(path).is_relative_to(base) and pattern.fullmatch(str(PurePosixPath(path).relative_to(base)))}
-
-
-def _declared_data(source, manifest, known):
-    """The files one pyproject.toml's `[tool.setuptools.package-data]` globs match."""
-    section = re.search(r'^\[tool\.setuptools\.package-data\]\s*$(.*?)(?=^\[|\Z)', source.text(manifest) or '', re.M | re.S)
-    root = PurePosixPath(manifest).parent
-    data = set()
-    for package, globs in re.findall(r'^\s*"?([\w.*-]+)"?\s*=\s*\[([^\]]*)\]', section.group(1) if section else '', re.M):
-        bases = _package_bases(known, root, package)
-        for glob in re.findall(r'["\']([^"\']+)["\']', globs): data |= _matching(known, bases, glob)
-    return data
-
-
-def _reachable(seeds, graph, texts):
-    reached, frontier = set(seeds), set(seeds)
-    while True:
-        while frontier:
-            frontier = {child for path in frontier for child in graph.get(path, ())} - reached
-            reached |= frontier
-        blob = '\n'.join(texts[path] for path in reached if path in texts)
-        named = {path for path in texts if path not in reached and _named(path, blob)}
-        named |= {found for path in reached if path in texts
-                  for found in _relative(path, texts[path], texts) | _loaded(path, texts[path], texts)} - reached
-        if not named: return reached
-        reached |= named
-        frontier = named
-
-
-BUILD_SCRIPTS = ('.js', '.mjs', '.cjs', '.ts', '.mts')
 PROGRAM_FOLDERS = {'scripts', 'script', 'bin', 'tools', 'tool'}
 REVIEW_REASONS = {'test_only': 'only tests name it: delete it with them, or keep it as the contract they pin',
                   'review': 'a program is run, not imported, and a person may run it by hand: nothing in CI, the '
@@ -307,22 +113,6 @@ class References:
 
 GLOBAL_OBJECTS = {'window', 'globalThis', 'self', 'global', 'document', 'navigator', 'console', 'process'}
 
-
-def _roots(source, known, seeds):
-    """Where the walk starts: the production entry points and, when there are any, the tool configurations and the
-    programs a CI step or a document says to run."""
-    # A tool configuration (vite.config.ts, next.config.mjs) is loaded by the tool itself whenever it runs; what it
-    # imports (a dev-server plugin, the API it mounts) is reached through it. It is a root to walk from, not an entry
-    # point: a library with only a test-runner config still has no production entry, and is judged as a library.
-    # A program a CI step or a document says to run is walked from the same way, and the files a build script hands
-    # its bundler (eaos/facts/bundled.py).
-    if not seeds: return seeds
-    configs = {path for path in known if NOT_CANDIDATES[0].search(path) and not _is_test(path)}
-    folders = {PurePosixPath(path).parent for path in known if PurePosixPath(path).name == 'package.json'}
-    commanded = {path for path in _commanded(source, known, folders) if not _is_test(path)}
-    bundles = {found for path in known if path.endswith(BUILD_SCRIPTS) and not _is_test(path)
-               for found in bundled.entries(path, source.text(path) or '', known)}
-    return seeds | configs | commanded | bundles
 
 
 def _candidate_file(path):
@@ -378,7 +168,7 @@ def _symbol_finding(fact, scope):
     if count: return None
     module = str(PurePosixPath(path).with_suffix(''))
     how = f'referenced only by tests ({", ".join(tests[:3])})' if tests else 'no reference outside its definition'
-    return _finding('unused-symbol', path, location.get('start_line') or 1, name,
+    return _finding('unused-symbol', path, start, name,
                     f'unused {_noun(text, start, value["kind"])} `{module}.{name}`: {how}', 'symbol',
                     f'the name occurs nowhere in product code or configuration outside lines '
                     f'{location.get("start_line")}-{location.get("end_line")}', scope['sha'], tests)
@@ -400,17 +190,6 @@ def _constant_findings(path, scope):
     return out
 
 
-def _walk(source, known, code, refs, resolved, entry_points):
-    """(seeds, reached, whole, texts, test_importers): what the product reaches from its roots, and the files read whole."""
-    graph, test_importers = _edges(resolved)
-    seeds = _seeds(source, known, entry_points)
-    texts = {p: refs.texts[p] for p in code if p in refs.texts}
-    reached = _reachable(_roots(source, known, seeds), graph, texts)
-    # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,
-    # a codemod engine): they are reached, and their names are not judged one by one.
-    whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path, texts[path], texts)}
-    return seeds, reached | whole, whole, texts, test_importers
-
 
 def _symbol_findings(symbols, scope):
     """Unused functions and classes, then unread constants, outside dead modules and the files read whole."""
@@ -425,21 +204,34 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     code = {path for path in known if language_of(path) in ('python', 'javascript', 'typescript', 'tsx')}
     refs = References(source)
     seeds, reached, whole, texts, test_importers = _walk(source, known, code, refs, resolved or [], entry_points or [])
-    # A semgrep rule test is a fixture for its rule: it is never a candidate.
-    fixtures = {path for path in code if RULE_FIXTURE.search(texts.get(path) or '')}
+    fixtures = _rule_fixtures(code, texts)
     sha = source.content_fingerprint
     # With no production entry point, nothing says who uses the code: a library's public names serve callers
     # outside the snapshot. Then only what is private by convention (`_name`) is judged, and no module is.
     judged = (lambda name: True) if seeds else (lambda name: name.startswith('_'))
-    unreachable = sorted(path for path in code if seeds and path not in reached and path not in fixtures and _candidate_file(path))
+    unreachable = _unreachable(code, seeds, reached, fixtures)
     scope = {'code': code, 'dead_modules': set(unreachable), 'skipped': whole | fixtures, 'judged': judged, 'refs': refs, 'sha': sha}
     facts = [_module_finding(path, test_importers, seeds, sha) for path in unreachable] + _symbol_findings(symbols or [], scope)
     summary = {'production_entry_points': len(seeds), 'modules_reached': len(reached & code), 'code_modules': len(code),
-               'unreachable_modules': len(unreachable),
-               'unused_symbols': sum(f['value']['rule'] == 'unused-symbol' for f in facts),
-               'unread_constants': sum(f['value']['rule'] == 'unread-constant' for f in facts),
+               'unreachable_modules': len(unreachable), **_symbol_counts(facts),
                'evaluated_kinds': {'eaos': {'dead_code': {'status': 'observed', 'granularity': 'symbol'}}}}
     return {'facts': facts, 'summary': summary, 'available': True, 'input_sha': sha, 'reason': None}
+
+
+def _rule_fixtures(code, texts):
+    """The semgrep rule tests: each a fixture for its rule, never a candidate."""
+    return {path for path in code if RULE_FIXTURE.search(texts.get(path) or '')}
+
+
+def _unreachable(code, seeds, reached, fixtures):
+    """The candidate modules no production entry point reaches; none when there is no entry point to judge from."""
+    return sorted(path for path in code if seeds and path not in reached and path not in fixtures and _candidate_file(path))
+
+
+def _symbol_counts(facts):
+    """How many unused symbols and unread constants the findings hold."""
+    return {'unused_symbols': sum(f['value']['rule'] == 'unused-symbol' for f in facts),
+            'unread_constants': sum(f['value']['rule'] == 'unread-constant' for f in facts)}
 
 
 def adjudicate(findings, source, own=()):
@@ -466,11 +258,21 @@ def _candidate_name(value, location):
     module's is its path. Engines write a symbol their own way (vulture `a/b.py:act`, knip `a/b.js:name`, enola
     `a/b.name`): read as one dotted name, `py:act` named nothing and every vulture finding was thrown away (M2.3)."""
     path, symbol = location.get('path'), location.get('symbol')
-    qualified = re.search(r'(?:function|method|class)\s+`?([\w./$-]+)`?|`([\w./$-]+)`', value.get('message') or '')
-    name = (symbol if symbol and symbol != path else None) or (next(g for g in qualified.groups() if g) if qualified else None)
+    name = (symbol if symbol and symbol != path else None) or _quoted_name(value.get('message') or '')
     if not name or name == path: return name
     if name.startswith(f'{path}:'): name = name[len(path):].lstrip(':')
     return name.rsplit('.', 1)[-1].rsplit('/', 1)[-1]
+
+
+def _quoted_name(message):
+    """The first name a message quotes: after function, method or class, or between backquotes; None otherwise."""
+    qualified = re.search(r'(?:function|method|class)\s+`?([\w./$-]+)`?|`([\w./$-]+)`', message)
+    return next(g for g in qualified.groups() if g) if qualified else None
+
+
+def _span(location):
+    """(first, last) line a finding's location covers; the last is the first when it gives none."""
+    return location.get('start_line') or 1, location.get('end_line') or location.get('start_line') or 0
 
 
 def _verdict(value, location, name, ours, refs):
@@ -485,6 +287,6 @@ def _verdict(value, location, name, ours, refs):
         return {'verdict': 'refuted', 'reason': 'held in a registry the import graph cannot see'}
     if (path, name) in ours:
         return {'verdict': 'confirmed', 'reason': 'EAOS finds no reference outside its definition either'}
-    count, _ = refs.outside(name, path, (location.get('start_line') or 1, location.get('end_line') or location.get('start_line') or 0))
+    count, _ = refs.outside(name, path, _span(location))
     if count: return {'verdict': 'refuted', 'reason': f'the name occurs {count} time(s) in product text outside its definition'}
     return {'verdict': 'unconfirmed', 'reason': 'the engine alone reports it'}

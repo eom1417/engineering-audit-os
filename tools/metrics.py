@@ -57,32 +57,48 @@ def check(output, home):
     technical = Path(output) / 'technical'
     manifest = read(technical / 'run-manifest.json', {})
     stages = manifest.get('stages') or {}
-    slowest = sorted(stages.items(), key=lambda item: -(item[1].get('seconds') or 0))[:4]
-    tasks = (read(technical / 'plan.json', {}) or {}).get('tasks') or []
-    patterns = Counter(task.get('pattern') for task in tasks).most_common(3)
     findings = engine_findings(technical)
     engines = Counter(row['engine'] for row in findings).most_common(2)
     tools = len((read(ROOT / 'eaos' / 'data' / 'toolchain.json', {}) or {}).get('tools') or [])
     out_mb, out_files = size(output)
     runtime_mb, _ = size(Path(home) / 'runtime')
-    return [('Check time', f"{manifest.get('seconds', 0):,.0f} s wall (" +
-             ' · '.join(f"{name} {row.get('seconds') or 0:,.0f}" for name, row in slowest) + ')'),
+    return [('Check time', _check_time(manifest, stages)),
             ('Stages / documents / engines', f"{len(stages)} / {len(list(technical.glob('*.md')))} `.md` / {tools} tools"),
             ('Output', f'{out_mb:,} MB, {out_files:,} files'),
             ('Runtime', f'{runtime_mb:,} MB'),
-            ('Cards on itself', f"{len(tasks)} plan tasks ({', '.join(f'{count} {name}' for name, count in patterns)}) "
-                                f"from {(read(technical / 'report-result.json', {}) or {}).get('claims', 0)} claims"),
+            ('Cards on itself', _cards_on_itself(technical)),
             ('Engine findings', f"{len(findings):,} ({', '.join(f'`{name}` {count:,}' for name, count in engines)})")]
 
 
+def _check_time(manifest, stages):
+    """The check's wall time and its four slowest stages."""
+    slowest = sorted(stages.items(), key=lambda item: -(item[1].get('seconds') or 0))[:4]
+    return f"{manifest.get('seconds', 0):,.0f} s wall (" + ' · '.join(f"{name} {row.get('seconds') or 0:,.0f}" for name, row in slowest) + ')'
+
+
+def _cards_on_itself(technical):
+    """The plan tasks the check made on EAOS, their three commonest patterns, and the claims they come from."""
+    tasks = (read(technical / 'plan.json', {}) or {}).get('tasks') or []
+    patterns = Counter(task.get('pattern') for task in tasks).most_common(3)
+    return (f"{len(tasks)} plan tasks ({', '.join(f'{count} {name}' for name, count in patterns)}) "
+            f"from {(read(technical / 'report-result.json', {}) or {}).get('claims', 0)} claims")
+
+
 def trials():
+    return [('Compatibility corpus', _corpus()), ('Detection baseline', _baseline())]
+
+
+def _corpus():
     apps = (read(CORPUS, {}) or {}).get('apps') or []
     run = [app for app in apps if app.get('result')]
     passed = sum(app['result'].get('passed', False) for app in run)
+    return f'{passed} of {len(run)} apps pass ({len(apps)} pinned)' if run else 'not run yet'
+
+
+def _baseline():
     problems = (read(PROBLEMS, {}) or {}).get('problems') or []
     found = sum(problem.get('found', 'missed') != 'missed' for problem in problems)
-    return [('Compatibility corpus', f'{passed} of {len(run)} apps pass ({len(apps)} pinned)' if run else 'not run yet'),
-            ('Detection baseline', f'{found} of {len(problems)} planted problems found' if problems else 'not built yet')]
+    return f'{found} of {len(problems)} planted problems found' if problems else 'not built yet'
 
 
 def table(output, home):

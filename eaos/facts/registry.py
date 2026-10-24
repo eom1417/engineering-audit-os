@@ -9,6 +9,7 @@ A registry-referenced candidate is kept on disk but tagged
 is raised for it, which is the contract the spec phrases as 'a candidate referenced by one of
 these sources stays as engine_finding and does not become a dead_code claim'.
 """
+import ast
 import json
 import re as _re
 
@@ -48,27 +49,24 @@ def _dynamic_import_names(text):
 
 def _recursive_callers(source):
     """Symbols whose body calls the symbol by name — ref itself is enough to keep it alive."""
-    try:
-        import ast as _ast
-    except ImportError:
-        return set()
     recursive = set()
     for item in source.readable():
         rel = item['path']
         text = source.text(rel)
         if text is None: continue
         try:
-            tree = _ast.parse(text)
+            tree = ast.parse(text)
         except (SyntaxError, ValueError):
             continue
-        for node in _ast.walk(tree):
-            if not isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
-                continue
-            body_calls = {c.func.id for c in _ast.walk(node)
-                          if isinstance(c, _ast.Call) and isinstance(c.func, _ast.Name)}
-            if node.name in body_calls:
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _calls_itself(node):
                 recursive.add(f"{rel.rsplit('.', 1)[0]}.{node.name}".replace('/', '.'))
     return recursive
+
+
+def _calls_itself(function):
+    """Whether a function's body calls it by its bare name."""
+    return function.name in {c.func.id for c in ast.walk(function) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
 
 
 def _pyproject_entry_points(text):

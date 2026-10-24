@@ -104,6 +104,13 @@ def _pin_tool(tool):
         spec['platforms'] = {p: platforms['linux-x86_64'] for p in ('linux-x86_64', *WORDS)}
         print(f"{tool['name']}: the same build on every platform")
         return
+    platforms.update(_platform_builds(tool, spec, assets, linux_name, tag))
+    spec['platforms'] = platforms
+
+
+def _platform_builds(tool, spec, assets, linux_name, tag):
+    """{platform: install entry} of each other platform whose build the release holds."""
+    builds = {}
     for platform, words in WORDS.items():
         asset = _asset_for(assets, words, spec, linux_name)
         if asset is None:
@@ -111,9 +118,9 @@ def _pin_tool(tool):
             continue
         entry = _platform_entry(tool, spec, asset)
         if entry is None: continue
-        platforms[platform] = entry
+        builds[platform] = entry
         print(f"{tool['name']}: {platform} <- {asset['name']}")
-    spec['platforms'] = platforms
+    return builds
 
 
 def main():

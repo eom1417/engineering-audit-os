@@ -31,9 +31,13 @@ class Source:
             exclude = [] if include_vendored else vendored_patterns()
         self.exclude = [prefix.strip('/') for prefix in [*exclude, *GENERATED] if prefix.strip('/')]
         self._text = {}
-        self.files = [item for item in self.inventory['files'] if not self.excluded(item['path']) and not self.generated(item)]
-        kept = {item['path'] for item in self.files}
-        self.excluded_files = [item['path'] for item in self.inventory['files'] if item['path'] not in kept]
+        self.files, self.excluded_files = self._split()
+
+    def _split(self):
+        """The files the extractors read (in scope and not generated), and the paths of those left out."""
+        files = [item for item in self.inventory['files'] if not self.excluded(item['path']) and not self.generated(item)]
+        kept = {item['path'] for item in files}
+        return files, [item['path'] for item in self.inventory['files'] if item['path'] not in kept]
 
     def excluded(self, rel):
         for prefix in self.exclude:
