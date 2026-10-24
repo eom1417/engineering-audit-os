@@ -52,7 +52,7 @@ def missing(*names):
     absent = []
     for name in names:
         tool = next((t for t in toolchain.registry()['tools'] if t['name'] == name), None)
-        found, reason = toolchain.found_version(tool) if tool else (None, 'not in upstreams/toolchain.json')
+        found, reason = toolchain.found_version(tool) if tool else (None, 'not in eaos/data/toolchain.json')
         if found != (tool or {}).get('version'): absent.append(f"{name} ({reason or f'found {found}'})")
         elif name == 'playwright' and toolchain.browser_missing(): absent.append(f'playwright ({toolchain.browser_missing()})')
     if absent: return f"not installed: {', '.join(absent)}; run: python -m eaos tools install --only {','.join(names)}"

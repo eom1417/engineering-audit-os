@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.0.74 (2026-10-24)
+
+M2, fewer and sharper engines: on EAOS's own check one semgrep rule wrote 1,554 of its 1,673 findings and none was a
+weakness; Trivy wrote every advisory of a lockfile as a card of its own beside OSV-Scanner's card per package (119 on one
+app of the corpus) and downloaded a 1.6 GB database every day for it; every vulture finding was thrown away unread; and
+a complexity card needed two engines to agree even on a count only one engine makes. Every engine was run on the twelve
+apps of the corpus, the baseline app and EAOS, and each choice below was measured on the claims they lead to: on the same
+facts, 1,012 claims became 871, no work target was lost but three test functions EAOS never counts, and 94 were gained.
+- **semgrep** (M2.1): `html-in-template-string` silenced (the DOM sinks stay: insecure-innerhtml, insecure-document-method,
+  raw-html-join). Reviewing the rest found why the baseline's command injection was missed: the official rule wants
+  `child_process` required whole, not `exec` taken from `node:child_process`. EAOS's own rule
+  `eaos.security.command-from-text-js` finds a shell command built from text: a card on the baseline app, which now
+  finds 6 of its 8 planted problems. Semgrep runs with no time limit per rule
+  and file: its own (5 s, a file skipped after three) dropped findings in silence on a loaded computer (37 of 40 of one
+  rule on EAOS); the whole scan keeps a limit of 30 minutes, and passing it is said as an error.
+- **Complexity** (M2.2): complexipy removed (Python only; on the corpus it found nothing the others did not, on EAOS
+  eight files, every one judged by EAOS's own branch count anyway). Reforge and Lizard stay, beside EAOS's own count. A
+  count one engine states exactly (too many parameters, nesting too deep, a function too long) is a claim on its own,
+  on those targets only; a card is rechecked by the engine that found it, and a branch count, EAOS's own, runs none.
+- **Dead code, duplication, security** (M2.3): vulture removed: read again with its names fixed, every finding was a
+  name called by dispatch (21 of 21). Trivy keeps secrets and misconfigurations, OSV-Scanner alone answers for packages:
+  Trivy found no vulnerable package OSV-Scanner did not, and its database (1.6 GB, refreshed daily) is removed with its
+  download, refresh and lock. A dead-code finding EAOS's own detector also reports is one card, not two. Every other
+  engine finds something no other does and stays. An engine's dead-code candidate is read as the engine names it
+  (`a/b.py:act`, a file's path): read as one dotted name, vulture's and knip's had all been dropped. The code laws count
+  EAOS's dead code with EAOS's own detector instead of vulture.
+- **One registry** (M2.4): `eaos/data/toolchain.json` is the only list; the engines stage takes its adapters from it.
+  Its copy `upstreams/toolchain.json` and the stale `upstreams/registry.yaml` (six tools, two long gone) are removed;
+  the four pinned source commits moved into it.
+- Engines: 24 to 22; the tools list: 41 to 39.
+
 ## 0.0.73 (2026-10-23)
 
 M1, the disk and outputs diet: EAOS's check of itself left 873 MB in its runtime that nothing ever removed and wrote a

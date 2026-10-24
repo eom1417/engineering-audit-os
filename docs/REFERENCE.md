@@ -11,7 +11,7 @@ the code layout.
 | `eaos next [project]` | The next step of the journey; fixing points to the assistant (`/eaos`) or the Studio |
 | `eaos status` · `eaos show` | Where the project stands · what the check found, in plain words |
 | `eaos doctor [--fix]` | Is this computer ready: every missing piece, with its fix |
-| `eaos tools install\|doctor\|refresh` | The external tools at their pinned versions, in `~/.eaos/tools` |
+| `eaos tools install\|doctor` | The external tools at their pinned versions, in `~/.eaos/tools` |
 | `eaos accept` · `eaos undo` | Take the waiting branch of fixes into your branch · throw it away |
 | `eaos clean` | Remove the temporary copies EAOS made; reports stay |
 | `eaos do "<request>"` | Ask in your own words |

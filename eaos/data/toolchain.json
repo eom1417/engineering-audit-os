@@ -4,7 +4,7 @@
     "env": "EAOS_ENGINE_TOOLS",
     "default": "~/.eaos/tools"
   },
-  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. upstreams/registry.yaml keeps the provenance narrative; this file is what eaos tools install and doctor read. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
+  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. The only list: eaos tools install and doctor, the engines stage (eaos/engines/__init__.py ADAPTERS) and the pages read it; `source_commit` pins the source tools/dev_paths.py upstreams clones for reading. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
   "tools": [
     {
       "name": "codegraph",
@@ -18,6 +18,7 @@
       "license": "Apache-2.0",
       "repository": "https://github.com/codegraph-ai/CodeGraph",
       "version": "0.20.1",
+      "source_commit": "64f4f306e2a88eaba43eaef05499779d7fe6f75b",
       "binary": "codegraph-server",
       "install": {
         "method": "release",
@@ -59,6 +60,7 @@
       "license": "Apache-2.0",
       "repository": "https://github.com/enola-labs/enola",
       "version": "0.4.21",
+      "source_commit": "d086926aca80975dde34094e99c84cce59fb1cd6",
       "binary": "enola",
       "install": {
         "method": "release",
@@ -100,6 +102,7 @@
       "license": "Apache-2.0",
       "repository": "https://github.com/LyleMi/Reforge",
       "version": "0.3.0",
+      "source_commit": "6c986d4739e13d198e71d0eed9490c69d16e707a",
       "binary": "reforge",
       "install": {
         "method": "release",
@@ -141,6 +144,7 @@
       "license": "MIT",
       "repository": "https://github.com/kucherenko/jscpd",
       "version": "5.3.0",
+      "source_commit": "91e4444de1de68ff3ef27c0b5084c53f0b3b11b5",
       "binary": "jscpd",
       "install": {
         "method": "pip",
@@ -640,43 +644,6 @@
       "install": {
         "method": "pip",
         "package": "lizard"
-      }
-    },
-    {
-      "name": "complexipy",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "applies": "python",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/rohaquinlop/complexipy",
-      "version": "8.0.1",
-      "binary": "complexipy",
-      "install": {
-        "method": "pip",
-        "package": "complexipy"
-      }
-    },
-    {
-      "name": "vulture",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "applies": "python",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/jendrikseipp/vulture",
-      "version": "2.16",
-      "binary": "vulture",
-      "version_pattern": "vulture (\\d+\\.\\d+(?:\\.\\d+)?)",
-      "install": {
-        "method": "pip",
-        "package": "vulture"
       }
     },
     {

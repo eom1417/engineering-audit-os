@@ -1,7 +1,7 @@
 """The finish line of a card on what engines report about code: the exact findings it must clear, fixed when the card is
 made, each judged by one ruler. On EAOS itself (2026-10-15) one "complexity" card mixed seven kinds of finding, judged
 the whole file by whichever engine spoke, and six cards of a batch could not pass whatever the assistant did:
-- a branching score (reforge complex_function, lizard ccn, complexipy cognitive, enola) is judged by EAOS's own count
+- a branching score (reforge complex_function, lizard ccn, enola) is judged by EAOS's own count
   (facts/metrics.py, the one the gates and the code laws use): engines disagree (one function scored 15, 40 and 49), so a
   function EAOS counts within MAX_COMPLEXITY is no target, whatever an engine said; one EAOS does not count (a language
   it does not read) is judged by the engine that reported it;
@@ -36,6 +36,12 @@ def targets(facts, sets):
         if rule != 'branches' or branches > MAX_COMPLEXITY:
             out[(rule, *key)] = {'rule': rule, 'path': key[0], 'name': key[1]}
     return [out[k] for k in sorted(out)]
+
+
+def judges(wanted, facts):
+    """The engines that state the targets: a card is rechecked by the engine that found it, and a branch count, EAOS's
+    own (facts/metrics.py), needs none."""
+    return sorted({f['value']['engine'] for f in facts for t in wanted if t['rule'] != 'branches' and _rule(f['value']) == t['rule']})
 
 
 def left(wanted, sets):

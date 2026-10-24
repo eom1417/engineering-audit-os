@@ -6,7 +6,7 @@ what. No engine's source is copied into this repository.
 
 The notices below are kept because we depend on these projects operationally and their authorship
 should be visible to anyone reading our results. Full licence texts are in `upstreams/licenses/`,
-and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
+and the pinned versions, commits and checksums are in `eaos/data/toolchain.json`.
 
 | Engine | Copyright | Licence | Used how |
 | --- | --- | --- | --- |
@@ -16,8 +16,6 @@ and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
 | [jscpd](https://github.com/kucherenko/jscpd) | Andrey Kucherenko | MIT | separate process; JSON report read |
 | [ast-grep](https://github.com/ast-grep/ast-grep) | Herrington Darkholme | MIT | separate process; EAOS's own rule pack, JSON stream read |
 | [Lizard](https://github.com/terryyin/lizard) | Terry Yin and other contributors | MIT | separate process; CSV read |
-| [complexipy](https://github.com/rohaquinlop/complexipy) | Robin Quintero | MIT | separate process; JSON report read |
-| [vulture](https://github.com/jendrikseipp/vulture) | Jendrik Seipp | MIT | separate process; text report read |
 | [knip](https://github.com/webpro-nl/knip) | Lars Kappert | ISC | separate process, every plugin off; JSON report read |
 | [react-docgen](https://github.com/reactjs/react-docgen) (`@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | separate process; JSON report read |
 | [Bandit](https://github.com/PyCQA/bandit) | PyCQA | Apache-2.0 | separate process; SARIF read |
@@ -29,7 +27,7 @@ and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
 The live journeys, the crawl and the architecture map run these as separate processes; none of their code is copied
 into this repository or into the EAOS Python process. rrweb's recorder is injected unmodified into the pages of the
 app under test, and its player is copied unmodified beside the report to replay them. Full licence texts are in
-`upstreams/licenses/`, pinned versions in `upstreams/toolchain.json`.
+`upstreams/licenses/`, pinned versions in `eaos/data/toolchain.json`.
 
 | Tool | Copyright | Licence | Used how |
 | --- | --- | --- | --- |
@@ -43,7 +41,7 @@ app under test, and its player is copied unmodified beside the report to replay 
 The screen audit (`eaos/screens/audit.py`, `tools/studio_gates.py`) runs these in a separate Node.js process
 (`eaos/templates/screens/*.mjs`); none of their code is copied into this repository or into the EAOS Python
 process. axe-core is injected unmodified into the page under test, which MPL-2.0 permits without further
-obligation. Pinned versions are in `upstreams/toolchain.json`.
+obligation. Pinned versions are in `eaos/data/toolchain.json`.
 
 | Tool | Copyright | Licence | Used how |
 | --- | --- | --- | --- |

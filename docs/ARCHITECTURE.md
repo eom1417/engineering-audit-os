@@ -23,7 +23,7 @@ engineering-audit-os/
   tests/           unittest suite
   tools/           developer tools: quality (every code law), golden_trial with detection_baseline, corpus,
                    metrics, validate, code_limits, dev_setup
-  upstreams/       the pinned external tools (registry, licenses)
+  upstreams/       the licences of the pinned external tools (the registry is eaos/data/toolchain.json)
   docs/            this page and the other references
 ```
 
@@ -90,7 +90,7 @@ red at the top of the report.
 | It is… | It goes in |
 |---|---|
 | a rule that reads source and produces facts | `facts/` (target: `facts/`) |
-| an adapter for an external tool | `engines/` + its entry in `upstreams/registry.yaml` and `eaos/data/toolchain.json` |
+| an adapter for an external tool | `engines/<name>.py` + its entry in `eaos/data/toolchain.json` (`check: engines`) |
 | running the app, signing in, finding screens | today `live_*.py`, `screens/`, `pipeline/pages.py` → target `live/` |
 | judging findings by rules, cards, plan, estimates | today flat modules (`claims.py`, `plan.py`, …) → target `analysis/` |
 | judging findings with an assistant (triage, the strict judge of M6.4) | today `studio/nodes/` → target `ai/`; `analysis/` takes its verdicts as data |

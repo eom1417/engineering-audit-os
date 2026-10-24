@@ -17,7 +17,8 @@ def recheck(root, spec):
     from .probes import decide_probe
     with tempfile.TemporaryDirectory(prefix='eaos-recheck-') as scratch:
         out = Path(scratch)
-        collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines'))
+        # No engine named (a branch count, EAOS's own) runs none: an empty list would ask for every engine.
+        collect(Path(root).resolve(), out, engines=(spec.get('specification') or {}).get('engines') or None)
         sets = read_available(out)
         if (spec.get('specification') or {}).get('query') == 'load_blocker_present':
             from .load_model import compute, project

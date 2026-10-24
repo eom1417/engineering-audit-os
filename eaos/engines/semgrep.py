@@ -7,7 +7,7 @@ code, SQL built by pasting values, the service-role key in browser code.
 The official library (semgrep-rules) may not be redistributed, so it is never in this repository:
 `eaos tools install` fetches it at a pinned commit to this machine, and only its security and secrets
 rules are read (its style and i18n rules put 1,000 findings on one project and say nothing about risk).
-The report records which rule sets ran.
+Of those, the rules in SILENCED are left out, each with its reason. The report records which rule sets ran.
 
 Semgrep prefixes a rule id with the path of its configuration, so the same rule would change its id
 with the install location. The rules are assembled under a fixed layout in the work directory and the
@@ -27,6 +27,11 @@ PINNED = tool.pinned(NAME)
 OWN = Path(__file__).resolve().parent.parent / 'rules/semgrep'
 OFFICIAL = ('javascript', 'typescript', 'python', 'generic/secrets')
 PREFIXES = ('rules.eaos.', 'rules.official.')
+# Official rules left out (M2.1, 2026-10-24). html-in-template-string flags every template literal that looks like HTML
+# and holds a value: 1,554 of semgrep's 1,673 findings on EAOS, none a weakness. Where such text becomes a page is what
+# insecure-innerhtml, insecure-document-method and raw-html-join report, and they stay.
+SILENCED = ('javascript/lang/security/html-in-template-string.yaml',)
+LIMIT = 1800         # seconds for the whole scan: 213 on EAOS's 62,000 lines
 EXCLUDED = ('node_modules', '.git', '.venv', 'venv', 'dist', 'build', '__pycache__', 'vendor', '.next')
 
 
@@ -60,7 +65,8 @@ def assemble(workdir):
     for pack in OFFICIAL:
         for path in sorted((checkout / pack).rglob('*.y*ml')):
             relative = path.relative_to(checkout)
-            if path.name.endswith(('.test.yaml', '.test.yml')) or not ('security' in relative.parts or pack == 'generic/secrets'):
+            if path.name.endswith(('.test.yaml', '.test.yml')) or relative.as_posix() in SILENCED \
+                    or not ('security' in relative.parts or pack == 'generic/secrets'):
                 continue
             destination = rules / 'official' / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -92,16 +98,18 @@ def analyze(target, workdir, exclude=(), formats=None):
     workdir.mkdir(parents=True, exist_ok=True)
     used, commit = assemble(workdir)
     output = workdir / 'semgrep.sarif'
+    # No time limit per rule and file: semgrep's own (5 s, a file skipped after three) dropped findings in silence on a
+    # loaded computer (37 of 40 on EAOS, 2026-10-24); the run's own limit (LIMIT) still ends it, as an error said.
     command = [which(BINARY), 'scan', '--config', 'rules', '--sarif', '--output', str(output), '--metrics', 'off',
-               '--disable-version-check', '--quiet']
+               '--disable-version-check', '--quiet', '--timeout', '0']
     for pattern in EXCLUDED + tuple(exclude): command += ['--exclude', pattern]
-    code, _, error, seconds = run(command + [str(Path(target).resolve())], cwd=workdir)
+    code, _, error, seconds = run(command + [str(Path(target).resolve())], cwd=workdir, timeout=LIMIT)
     if code not in (0, 1) or not output.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     normalise(output, target)
     findings, unmapped = sarif.read(output, NAME, found)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
-                  coverage={'status': 'observed', 'rule_sets': used, 'official_commit': commit,
+                  coverage={'status': 'observed', 'rule_sets': used, 'silenced': list(SILENCED), 'official_commit': commit,
                             'official_missing': None if commit else 'python -m eaos tools install --only semgrep-rules'},
                   evaluated={'dataflow': {'status': 'observed', 'granularity': 'file'},
                              'vulnerability': {'status': 'observed' if commit else 'partial', 'granularity': 'file'},

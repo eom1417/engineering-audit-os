@@ -41,6 +41,17 @@ APP['pkg/app.py'] += 'import importlib\nmod = importlib.import_module("pkg.loade
 
 
 class DeadCodeTests(unittest.TestCase):
+    def test_each_engine_way_of_naming_a_candidate_is_read_and_a_module_is_judged_by_eaos_reachability(self):
+        from eaos.facts.deadcode import _candidate_name, _verdict
+        named = lambda path, symbol, message='': _candidate_name({'message': message}, {'path': path, 'symbol': symbol})
+        # As vulture, knip and enola write them (every vulture finding on EAOS was read as `py:act`, 2026-10-24).
+        self.assertEqual(named('eaos/terminal.py', 'eaos/terminal.py:act'), 'act')
+        self.assertEqual(named('src/routes.js', 'src/routes.js:routes'), 'routes')
+        self.assertEqual(named('src/app/[slug]/page.tsx', 'src/app/[slug].generateMetadata'), 'generateMetadata')
+        self.assertEqual(named('src/hero-post.tsx', 'src/hero-post.tsx', 'unused file `src/hero-post.tsx`'), 'src/hero-post.tsx')
+        module = lambda ours: _verdict({}, {'path': 'src/hero-post.tsx'}, 'src/hero-post.tsx', ours, None)['verdict']
+        self.assertEqual((module({('src/hero-post.tsx', 'src/hero-post.tsx')}), module(set())), ('confirmed', 'unconfirmed'))
+
     def test_what_only_tests_or_itself_use_is_dead_and_what_text_names_is_reached(self):
         data = dead_facts(APP)
         found = {(f['value']['rule'], f['location']['symbol']): f['value']['message'] for f in data['facts']}

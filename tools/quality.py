@@ -20,7 +20,7 @@ from eaos.engines.process import which  # noqa: E402
 
 BASELINE = ROOT / 'tools' / 'quality.json'
 # enola is not one of them: its dead-code count moves with the words of the documents (CHANGELOG, METRICS), not the code.
-ENGINES = ('jscpd', 'vulture', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
+ENGINES = ('jscpd', 'bandit', 'semgrep', 'gitleaks', 'osv-scanner')
 # Not what EAOS ships: the tests and their fixtures, the developer tools (tools/, console/tools: the code limits still
 # hold them), the built Studio, the examples beside EAOS's semgrep rules, and what is vendored or generated.
 EXCLUDE = ('tests', 'tools', 'node_modules', 'eaos/data/studio', 'eaos/rules', 'upstreams', 'acceptance', 'build')
@@ -34,6 +34,16 @@ def engine_counts(workdir):
               for name, row in manifest['coverage'].items() if row['status'] != 'observed']
     counts = Counter(f"{row['engine']}:{row['rule']}" for row in manifest['findings'])
     return counts, failed
+
+
+def dead_counts(workdir):
+    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/deadcode.py) over the Python code, the one
+    every check runs (vulture's were all names called by dispatch, M2.3); the Studio's is knip's below."""
+    from eaos.facts.run import collect
+    collect(ROOT, workdir, ['syntax', 'resolve', 'entrypoints', 'deadcode'], exclude=(*EXCLUDE, 'console'))
+    facts = json.loads((Path(workdir) / 'facts' / 'deadcode.json').read_text(encoding='utf-8'))['facts']
+    return Counter(f"deadcode:{fact['value']['rule']}" for fact in facts if fact.get('kind') == 'engine_finding'
+                   and fact['value']['adjudication']['verdict'] == 'confirmed')
 
 
 def knip_counts():
@@ -66,7 +76,8 @@ def measure():
     counts = Counter({f'code:{kind}': len(over) for kind, over in code_limits.measure().items()})
     with tempfile.TemporaryDirectory() as workdir:
         found, failed = engine_counts(workdir)
-    return +(counts + found + knip_counts()), law_problems() + failed
+        dead = dead_counts(workdir)
+    return +(counts + found + dead + knip_counts()), law_problems() + failed
 
 
 def main(record=False):

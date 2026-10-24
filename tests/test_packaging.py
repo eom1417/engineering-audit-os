@@ -24,8 +24,8 @@ class PackagingTests(unittest.TestCase):
 
     def test_a_missing_stale_or_unexpected_file_is_detected(self):
         cases = [(lambda data: (data / 'errors.json').unlink(), 'Missing packaged file errors.json'),
-                 (lambda data: (data / 'toolchain.json').write_text((data / 'toolchain.json').read_text() + ' '),
-                  'Stale packaged copy toolchain.json'),
+                 (lambda data: (data / 'studio-actions.json').write_text((data / 'studio-actions.json').read_text() + ' '),
+                  'Stale packaged copy studio-actions.json'),
                  (lambda data: (data / 'leftover.json').write_text('{}'), 'Unexpected packaged file leftover.json')]
         for change, expected in cases:
             with self.subTest(expected):

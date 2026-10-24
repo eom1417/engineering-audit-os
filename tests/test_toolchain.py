@@ -234,31 +234,6 @@ class PreparingTests(ToolchainBase):
         self.assertEqual((attempts, (self.home / 'install.again').exists()), (['fake', 'fake'], False))
         self.assertEqual(progress.fold(progress.read(self.home, 'tools'))['status'], 'COMPLETE')
 
-    def test_the_vulnerability_database_is_refreshed_daily_beside_the_one_in_use(self):
-        old = self.home / 'cache/trivy/db'
-        old.mkdir(parents=True)
-        (old / 'metadata.json').write_text(json.dumps({'DownloadedAt': '2020-01-01T00:00:00.123456789Z'}))
-        self.write(self.needed('fake'))
-        toolchain.install(echo=lambda line: None)
-        def download(cache):
-            self.assertTrue((old / 'metadata.json').is_file(), 'the database in use stays while the new one comes')
-            (cache / 'db').mkdir(parents=True)
-            (cache / 'db/metadata.json').write_text(json.dumps({'DownloadedAt': '2099-01-01T00:00:00Z'}))
-        with mock.patch.object(toolchain, '_spawn') as spawn:
-            toolchain.prepare(self.tmp)
-        self.assertEqual(spawn.call_args.args, (['tools', 'refresh'], 'refresh.log'), 'a day old: refreshed in the background')
-        import threading
-        from eaos.locks import held
-        with mock.patch.object(toolchain, '_download_db', side_effect=download):
-            with held(self.home / 'cache/trivy'):              # another project's scan reads the database
-                swap = threading.Thread(target=toolchain.refresh_db)
-                swap.start()
-                swap.join(1)
-                self.assertIn('2020', toolchain.trivy_db().read_text(), 'the swap waits for the scan reading it')
-            swap.join(10)
-        self.assertIn('2099', toolchain.trivy_db().read_text())
-        self.assertFalse((self.home / 'cache/trivy-next').exists())
-
     def test_the_checks_tools_read_the_code_before_the_ai(self):
         toolchain.REGISTRY = self.saved[0]
         check = {t['name']: t['check'] for t in toolchain.registry()['tools'] if t.get('check')}

@@ -1,7 +1,7 @@
 """What every adapter of an installed command-line tool shares: its pin, its version, and the two ways it
 can decline to run (not installed; nothing in this project for it to read).
 
-The pin lives in upstreams/toolchain.json and nowhere else; `eaos tools install` puts the binary where
+The pin lives in eaos/data/toolchain.json and nowhere else; `eaos tools install` puts the binary where
 eaos.engines.process.which looks first.
 """
 import re
@@ -18,14 +18,12 @@ def pinned(name):
     return next(t['version'] for t in registry()['tools'] if t['name'] == name)
 
 
-def version(binary, args=('--version',), pattern=VERSION):
-    """The version the installed binary prints, or None when it is absent or prints none.
-
-    A tool numbered in two parts (vulture 2.16) passes its own pattern."""
+def version(binary, args=('--version',)):
+    """The version the installed binary prints, or None when it is absent or prints none."""
     path = which(binary)
     if not path: return None
     code, out, error, _ = run([path, *args], timeout=120)
-    found = re.search(pattern, out + error)
+    found = VERSION.search(out + error)
     return found.group(1) if found else None
 
 
@@ -54,11 +52,6 @@ def excluded(path, patterns):
     relative path (`components/ui`) and matches at any depth, as in eaos/facts/source.py: `src/components/ui/x.tsx`
     is under `components/ui`."""
     return any(f'/{pattern.strip("/")}/' in f'/{path}/' for pattern in patterns if pattern.strip('/'))
-
-
-def fnmatch_literal(text):
-    """`text` as an fnmatch pattern that matches only itself (a target path holding `[` or `*`)."""
-    return re.sub(r'([\[\]*?])', r'[\1]', text)
 
 
 def declined(name, binary, target, probe=None):

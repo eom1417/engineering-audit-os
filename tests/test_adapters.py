@@ -15,9 +15,9 @@ def sample(name):
 
 
 class SampleTests(Workspace):
-    def test_each_sample_is_pinned_and_maps_everything_no_secret_survives_and_a_second_scanner_is_only_a_witness(self):
+    def test_each_sample_is_pinned_and_maps_everything_and_no_secret_survives(self):
         from eaos.engines import checkov, dependency_cruiser, gitnexus, oasdiff, sarif, semgrep, spectral, sqlfluff, trivy
-        for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'vulnerability', 'secret'}),
+        for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'secret'}),
                                           (checkov, 'checkov', 'results_sarif.sarif', {'misconfiguration'}),
                                           (spectral, 'spectral', 'spectral.sarif', {'api_contract'})):
             with self.subTest(engine=name):
@@ -66,15 +66,7 @@ class SampleTests(Workspace):
         self.assertNotIn('eyJ', text)
         self.assertNotIn('KEY=', text)
         self.assertIn('Match: [not recorded]', text)
-        from eaos.claims import from_engines
-        facts = [{'id': f'F{i}', 'kind': 'engine_finding', 'location': {'path': 'package-lock.json', 'line': None},
-                  'value': {'engine': engine, 'kind': 'vulnerability', 'rule': 'r', 'message': 'm', 'measurements': [],
-                            'sites': [{'path': 'package-lock.json', 'line': None}]}}
-                 for i, engine in enumerate(('osv-scanner', 'trivy'))]
-        sets = {'external': {'facts': facts, 'summary': {'evaluated_kinds': {
-            'osv-scanner': {'vulnerability': {'status': 'observed', 'granularity': 'package'}},
-            'trivy': {'vulnerability': {'status': 'observed', 'granularity': 'package'}}}}}}
-        self.assertEqual(from_engines(sets), [])
+
 
 class SemgrepTests(Workspace):
     RULES = Path(__file__).resolve().parents[1] / 'eaos/rules/semgrep'
@@ -113,6 +105,17 @@ class SemgrepTests(Workspace):
         done = subprocess.run([semgrep.which('semgrep'), '--test', '--disable-version-check', str(self.RULES)],
                               capture_output=True, text=True, timeout=600)
         self.assertEqual(done.returncode, 0, done.stdout[-2000:] + done.stderr[-2000:])
+
+    def test_the_silenced_official_rules_are_left_out_and_the_other_security_rules_kept(self):
+        from eaos.engines import semgrep
+        checkout = Path(self.tmp) / 'official'
+        for name in (*semgrep.SILENCED, 'javascript/browser/security/insecure-innerhtml.yaml', 'javascript/lang/style/x.yaml'):
+            (checkout / name).parent.mkdir(parents=True, exist_ok=True)
+            (checkout / name).write_text('rules: []\n')
+        with mock.patch.object(semgrep, 'official_checkout', return_value=(checkout, 'c' * 40)):
+            semgrep.assemble(Path(self.tmp))
+        copied = {p.relative_to(Path(self.tmp) / 'rules/official').as_posix() for p in (Path(self.tmp) / 'rules/official').rglob('*.yaml')}
+        self.assertEqual(copied, {'javascript/browser/security/insecure-innerhtml.yaml'})
 
     def test_rule_ids_and_paths_do_not_depend_on_where_things_are_installed(self):
         from eaos.engines import semgrep

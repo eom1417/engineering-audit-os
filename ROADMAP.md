@@ -156,10 +156,10 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M1.3 | done: one reader (`eaos/facts/store.py`: `facts(kind)`, `by_id`, lazy `Sets`) reads only the sets that can hold what is asked; the 7 copies of "read every set" removed; a field every fact of a set repeats written once (EAOS's facts 281 → ~74 MB) | 0.0.73 | 2026-10-23 |
 | M1.4 | done: 8 documents (START-HERE, the four reports, TARGET-ARCHITECTURE, RUN, README) plus PLAN/ and adr/; the 19 others removed with their writers and tests, their JSON records kept, every claim shown in full in debt-register.json, a run removes the retired documents of a check before | 0.0.73 | 2026-10-23 |
 | M1.5 | done: `reports.json` removed (the four reports already name each number's source in their text); the other records the M-1 measurement listed have a reader and stay: `live/sign-in.json` (the detection baseline), `proposals.json` (the declared mark of the stage the triage, ideal and pipeline-gap planners require), and five read by `eaos/aspects.py` for the target and the four reports; a run removes a previous check's `reports.json` | 0.0.73 | 2026-10-23 |
-| M2.1 | not started | | |
-| M2.2 | not started | | |
-| M2.3 | not started | | |
-| M2.4 | not started | | |
+| M2.1 | done: `html-in-template-string` silenced (1,554 of semgrep's 1,673 findings on EAOS, none a weakness; the DOM sinks stay); the rest reviewed: EAOS's own `command-from-text-js` finds the baseline's command injection the official rule missed (`exec` from `node:child_process`): a card now, the detection baseline 6 of 8 | 0.0.74 | 2026-10-24 |
+| M2.2 | done: every engine run on the 12 corpus apps, the baseline app and EAOS; complexipy removed (nothing unique on the corpus, its EAOS files judged by EAOS's own count); Reforge and Lizard stay beside EAOS's count; a count one engine states exactly is a claim alone (+94 work targets, none lost but 3 test functions EAOS never counts); a card is rechecked only by the engine that states its target | 0.0.74 | 2026-10-24 |
+| M2.3 | done: vulture removed (21 of 21 findings names called by dispatch, once its names were read right: they had all been dropped); Trivy without its vulnerability scan (OSV-Scanner found every package it did; its per-advisory cards, 119 on one app, and its 1.6 GB daily database gone); one card for dead code EAOS's detector also reports; the code laws count dead code with EAOS's own detector; every other engine finds something no other does | 0.0.74 | 2026-10-24 |
+| M2.4 | done: `eaos/data/toolchain.json` the only registry; the engines stage takes its adapters from it; `upstreams/toolchain.json` (a copy) and `upstreams/registry.yaml` (stale) removed | 0.0.74 | 2026-10-24 |
 | M3.1 | not started | | |
 | M3.2 | not started | | |
 | M3.3 | not started | | |

@@ -1,6 +1,6 @@
 """Every external tool at its pinned version, installed without root, and checked by one command.
 
-upstreams/toolchain.json is the only list. `install` puts each tool under $EAOS_ENGINE_TOOLS (default
+eaos/data/toolchain.json is the only list (install, the engines stage and the pages read it). `install` puts each tool under $EAOS_ENGINE_TOOLS (default
 ~/.eaos/tools): a release is downloaded and accepted only if its sha256 matches the pinned one,
 a Python tool goes into that directory's own virtualenv, a Node tool into its own prefix; every executable
 is linked into bin/. `doctor` reports, per tool, whether the binary is there and at the pinned version.
@@ -28,19 +28,16 @@ import urllib.request
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from pathlib import Path
 
 from . import progress
 
-# upstreams/toolchain.json, else its packaged mirror (tools/validate.py keeps them identical; an installed EAOS has no upstreams/)
-_SOURCE = Path(__file__).resolve().parent.parent / 'upstreams/toolchain.json'
-REGISTRY = _SOURCE if _SOURCE.is_file() else Path(__file__).resolve().parent / 'data/toolchain.json'
+REGISTRY = Path(__file__).resolve().parent / 'data/toolchain.json'
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
 FLOW = 'tools'
 # Tools installed at once: the downloads overlap, and a 4 GB computer copes with three npm installs side by side
 WORKERS = 3
-CHUNK, TRIVY_CACHE, DAY = 2 ** 20, 'cache/trivy', 24 * 3600
+CHUNK, TRIVY_CACHE = 2 ** 20, 'cache/trivy'
 _PIP = threading.Lock()                 # one virtualenv for every Python tool: pip installs into it one at a time
 
 
@@ -76,7 +73,7 @@ RULES = {
 
 
 def rule_applies(rule, files):
-    """Whether a tool's `applies` rule (upstreams/toolchain.json) holds for a project's files."""
+    """Whether a tool's `applies` rule (eaos/data/toolchain.json) holds for a project's files."""
     test = RULES.get(rule)
     return bool(test(files)) if test else False
 
@@ -146,14 +143,6 @@ def _version_output(tool, path):
     return done.stdout + done.stderr, None
 
 
-def _patterned_version(tool, path, output):
-    # A tool numbered with two parts (vulture 2.16) names its own pattern; the rest read as x.y.z.
-    match = re.search(tool['version_pattern'], output)
-    if not match: return None, f'{path} --version printed no version'
-    missing = _companions_missing(tool)
-    return (None, missing) if missing else (match.group(1), '')
-
-
 def _version_match(tool, output):
     # A tool may print another program's version first (dependency-cruiser names the Node.js it refuses):
     # the pinned version anywhere in the output is the tool's own; a refusal of Node.js is said as such.
@@ -188,7 +177,6 @@ def _binary_version(tool, path):
         return (found, '') if found else (None, f"{tool['install']['package']} is not installed in {npm_prefix(tool)}")
     output, failure = _version_output(tool, path)
     if failure: return None, failure
-    if tool.get('version_pattern'): return _patterned_version(tool, path, output)
     return _reported_version(tool, path, output)
 
 
@@ -477,52 +465,8 @@ def _git(tool):
             raise RuntimeError(f"{tool['name']}: git {' '.join(argv)} failed: {done.stderr.strip()[-200:]}")
 
 
-def trivy_db():
-    """Trivy's vulnerability database in the tools' cache (its metadata.json), or None when there is none yet."""
-    found = home() / TRIVY_CACHE / 'db/metadata.json'
-    return found if found.is_file() else None
-
-
-def _download_db(cache):
-    trivy = home() / 'bin/trivy'
-    done = subprocess.run([str(trivy), 'fs', '--download-db-only', '--quiet', '--cache-dir', str(cache)], capture_output=True,
-                          text=True, timeout=1800)
-    if done.returncode: raise RuntimeError('the vulnerability database did not download: ' + (done.stdout + done.stderr)[-300:])
-
-
-def refresh_db():
-    """A new vulnerability database, downloaded beside the one in use and moved in whole, so a check reading the old
-    one (`--skip-db-update`) is never disturbed; nothing while an install runs. Returns 0, or 1 when it could not be
-    had."""
-    from .locks import held
-    cache, fresh, old = home() / TRIVY_CACHE, home() / 'cache/trivy-next', home() / TRIVY_CACHE / 'db-old'
-    with machine_lock(wait=False) as mine:
-        if not mine: return 0
-        shutil.rmtree(fresh, ignore_errors=True)
-        try: _download_db(fresh)
-        except (RuntimeError, OSError, subprocess.SubprocessError) as problem:
-            print(problem)
-            return 1
-        shutil.rmtree(old, ignore_errors=True)
-        with held(cache, shared=False):             # no scan of any project reads it while it is swapped
-            if (cache / 'db').exists(): (cache / 'db').rename(old)
-            (fresh / 'db').rename(cache / 'db')
-        for folder in (old, fresh): shutil.rmtree(folder, ignore_errors=True)
-    return 0
-
-
-def _db_old():
-    found = trivy_db()
-    if not found: return False
-    try: downloaded = json.loads(found.read_text(encoding='utf-8'))['DownloadedAt']
-    except (OSError, ValueError, KeyError): return True
-    at = datetime.fromisoformat(re.sub(r'(\.\d{6})\d*', r'\1', downloaded).replace('Z', '+00:00'))
-    return (datetime.now(timezone.utc) - at).total_seconds() > DAY
-
-
 def _ensure(tool, step, echo):
-    """The tool at its pinned version, installed when it is not; with Playwright its browser, with Trivy its
-    vulnerability database."""
+    """The tool at its pinned version, installed when it is not; with Playwright its browser."""
     found, _ = found_version(tool)
     if found == tool['version']:
         echo(f"ok      {tool['name']} {found}")
@@ -535,7 +479,11 @@ def _ensure(tool, step, echo):
         if found != tool['version']: raise RuntimeError(reason or f'installed {found}, pinned {tool["version"]}')
         echo(f"install {tool['name']} {found}")
     if tool['name'] == 'playwright': install_browsers(echo)
-    if tool['name'] == 'trivy' and not trivy_db(): _download_db(home() / TRIVY_CACHE)
+    # Trivy reads no vulnerability database since OSV-Scanner alone answers for packages (M2.3): the one it kept (1.6 GB,
+    # downloaded again every day) is removed.
+    if tool['name'] == 'trivy':
+        for folder in (home() / TRIVY_CACHE / 'db', home() / TRIVY_CACHE / 'db-old', home() / 'cache/trivy-next'):
+            shutil.rmtree(folder, ignore_errors=True)
 
 
 def _install_one(tool, log, echo):
@@ -636,14 +584,12 @@ def _spawn(argv, log):
 def prepare(project=None):
     """Interface first: called when EAOS opens on a project, it starts the full install in the background when one is
     needed (`stale`), in the project's order, and waits until it holds the lock; an install already running is asked to
-    retry what failed once it ends. A day-old vulnerability database is refreshed. True when it started the install."""
+    retry what failed once it ends. True when it started the install."""
     if home().exists() and not os.access(home(), os.W_OK): return False   # shown read-only (in a sandbox): used as is
     if installing():
         (home() / 'install.again').touch()
         return False
-    if not stale():
-        if _db_old(): _spawn(['tools', 'refresh'], 'refresh.log')
-        return False
+    if not stale(): return False
     child = _spawn(['tools', 'install', *(['--project', str(project)] if project else [])], 'install.log')
     deadline = time.monotonic() + 30
     while child.poll() is None and not installing() and time.monotonic() < deadline: time.sleep(0.1)
@@ -698,5 +644,4 @@ def main(args):
     names = args.only.split(',') if getattr(args, 'only', None) else None
     skip = args.skip.split(',') if getattr(args, 'skip', None) else ()
     if args.action == 'doctor': return _show(doctor(names, args.stage, skip), args.json)
-    if args.action == 'refresh': return refresh_db()
     return 1 if install(names, args.stage, skip, project=args.project) else 0

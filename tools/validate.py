@@ -8,7 +8,7 @@ R=Path(__file__).resolve().parents[1]
 PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json','product-standard.json','detector-verdicts.json','studio-actions.json','pipeline-rules.json','design.json','journeys.json','translation-memory.json']
 PACKAGED_ROOTS=['schemas','schemas/artifacts']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
-PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json'),('studio-actions.json','docs/studio-actions.json')]
+PACKAGED_COPIES=[('studio-actions.json','docs/studio-actions.json')]
 # The built Studio (console/, npm run build): its SOURCE.json names every file it ships.
 STUDIO_BUILT='studio/SOURCE.json'
 

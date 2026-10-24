@@ -122,12 +122,12 @@
   "tools/validate.py::packaged_errors": 16
  },
  "modules": {
-  "eaos/agent_tools.py": 1187,
+  "eaos/agent_tools.py": 1178,
   "eaos/guided.py": 1219,
   "eaos/human_report.py": 2097,
   "eaos/studio/actions/branches.py": 1140,
   "eaos/studio/actions/runs.py": 729,
-  "eaos/toolchain.py": 702,
+  "eaos/toolchain.py": 647,
   "tools/make_contracts.py": 708
  },
  "parameters": {

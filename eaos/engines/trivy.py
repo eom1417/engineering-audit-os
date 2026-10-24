@@ -1,9 +1,10 @@
-"""Trivy: vulnerable packages, committed secrets and misconfigured infrastructure files, in one pass.
+"""Trivy: committed secrets and misconfigured infrastructure files, in one pass.
 
-Its vulnerabilities are a second witness beside OSV-Scanner, and its secrets beside EAOS's own
-committed-credential detector: agreement raises confidence in the debt register (NS18), and neither
-becomes a second claim about the same place. Its misconfigurations cover Dockerfiles, Terraform and
-Kubernetes files.
+Its secrets are a second witness beside EAOS's own committed-credential detector and Gitleaks: agreement raises
+confidence in the debt register (NS18). Its misconfigurations cover Dockerfiles, Terraform and Kubernetes files.
+Vulnerable packages are OSV-Scanner's alone (M2.3): on the compatibility corpus Trivy found none OSV-Scanner did not, and
+wrote each advisory as a weakness of the lockfile, one card per advisory (119 on one app) beside OSV-Scanner's one per
+package.
 
 No secret value is ever recorded. Trivy masks the value it matched; the adapter removes the whole
 `Match:` line from every message before a finding is made, so only the rule, the file and the line remain.
@@ -24,8 +25,7 @@ MATCH = re.compile(r'Match:.*', re.S)
 
 def capabilities():
     from .contract import Capability
-    return [Capability('vulnerability', 'CVE-*'), Capability('secret', '<secret rule>'),
-            Capability('misconfiguration', 'AVD-*')]
+    return [Capability('secret', '<secret rule>'), Capability('misconfiguration', 'AVD-*')]
 
 
 def version():
@@ -58,13 +58,11 @@ def _redact_messages(results):
 
 
 def _command(output, exclude):
-    """The scan: the shared database read as it is, what it learns of the project kept in memory only (never in a cache
-    another project's scan reads)."""
-    from ..toolchain import TRIVY_CACHE, home, trivy_db
-    command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'vuln,secret,misconfig', '--quiet', '--cache-backend', 'memory',
+    """The scan: what it learns of the project kept in memory only (never in a cache another project's scan reads); the
+    tools' cache holds only its misconfiguration checks."""
+    from ..toolchain import TRIVY_CACHE, home
+    command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'secret,misconfig', '--quiet', '--cache-backend', 'memory',
                '--cache-dir', str(home() / TRIVY_CACHE), '--output', str(output)]
-    # A database already here is used as it is: the install refreshes it daily in the background, never in a check
-    if trivy_db(): command.append('--skip-db-update')
     for directory in EXCLUDED + tuple(exclude): command += ['--skip-dirs', directory]
     return command
 
@@ -75,18 +73,14 @@ def analyze(target, workdir, exclude=(), formats=None):
     found = version()
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
-    from ..locks import held
-    from ..toolchain import TRIVY_CACHE, home
-    with held(home() / TRIVY_CACHE):     # the database every project's scan shares: its daily swap waits for this read
-        code, _, error, seconds = run(_command(output, exclude) + [str(target)])
+    code, _, error, seconds = run(_command(output, exclude) + [str(target)])
     if code or not output.is_file():
         return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
     redact(output)
     sarif.relativise(output, target)
     findings, unmapped = sarif.read(output, NAME, found)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
-                  coverage={'status': 'observed', 'scanners': ['vuln', 'secret', 'misconfig'],
+                  coverage={'status': 'observed', 'scanners': ['secret', 'misconfig'],
                             'by_kind': {kind: sum(f['kind'] == kind for f in findings) for kind in sorted({f['kind'] for f in findings})}},
-                  evaluated={'vulnerability': {'status': 'observed', 'granularity': 'package'},
-                             'secret': {'status': 'observed', 'granularity': 'file'},
+                  evaluated={'secret': {'status': 'observed', 'granularity': 'file'},
                              'misconfiguration': {'status': 'observed', 'granularity': 'file'}})

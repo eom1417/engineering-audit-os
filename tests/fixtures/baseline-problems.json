@@ -8,10 +8,10 @@
    "line": 58,
    "kinds": [
     "injection",
-    "command"
+    "command",
+    "cwe-78"
    ],
-   "found": "missed",
-   "why": "missed 2026-10-23: CodeQL runs only on code public on GitHub, and semgrep's rules want a framework request as the source"
+   "found": "card"
   },
   {
    "id": "secret",

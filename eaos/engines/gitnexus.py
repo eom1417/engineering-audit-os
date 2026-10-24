@@ -9,7 +9,7 @@ It is a third witness beside EAOS's own graph, CodeGraph and dependency-cruiser.
 source graph's (type imports included); a file at least FAN_IN files import is a coupling finding; its
 communities (Leiden clusters) are candidate boundaries of today's components for S02 and NS7, written to
 facts/external.json -> summary.communities. Agreement between witnesses raises a claim; disagreement is
-recorded and decided by none of them. The licence is non-commercial (upstreams/toolchain.json license_note).
+recorded and decided by none of them. The licence is non-commercial (eaos/data/toolchain.json license_note).
 """
 import json
 import os
