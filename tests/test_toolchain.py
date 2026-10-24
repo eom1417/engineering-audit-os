@@ -50,12 +50,12 @@ class ToolchainBase(Workspace):
         self.archive.write_bytes(buffer.getvalue())
         self.sha = hashlib.sha256(buffer.getvalue()).hexdigest()
         self.registry_file = Path(self.tmp) / 'toolchain.json'
-        self.saved = toolchain.REGISTRY, os.environ.get('EAOS_ENGINE_TOOLS')
-        toolchain.REGISTRY = self.registry_file
+        self.saved = toolchain.pins.REGISTRY, os.environ.get('EAOS_ENGINE_TOOLS')
+        toolchain.pins.REGISTRY = self.registry_file
         os.environ['EAOS_ENGINE_TOOLS'] = str(self.home)
 
     def tearDown(self):
-        toolchain.REGISTRY = self.saved[0]
+        toolchain.pins.REGISTRY = self.saved[0]
         if self.saved[1] is None: os.environ.pop('EAOS_ENGINE_TOOLS', None)
         else: os.environ['EAOS_ENGINE_TOOLS'] = self.saved[1]
         super().tearDown()
@@ -134,10 +134,10 @@ class ToolEnvironment(unittest.TestCase):
         done = mock.Mock(returncode=0, stdout='1.0.0', stderr='')
         # PYTHONSAFEPATH, set where the Studio runs, kept CodeQL's Python extractor from importing its own modules.
         with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages', 'PYTHONSAFEPATH': '1'}), \
-                mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
-                mock.patch.object(toolchain, 'binary_path', return_value='/tools/bin/semgrep'), \
+                mock.patch.object(toolchain.installers, 'uv', return_value=None), mock.patch.object(toolchain.installers, '_link'), \
+                mock.patch.object(toolchain.versions, 'binary_path', return_value='/tools/bin/semgrep'), \
                 mock.patch('subprocess.run', return_value=done) as run, mock.patch.object(process, 'run_command', run):
-            toolchain._pip_one(tool)
+            toolchain.installers._pip_one(tool)
             toolchain.found_version(tool)
             process.run(['semgrep', '--version'])
         self.assertGreaterEqual(len(run.call_args_list), 3, 'pip, the version check and the engine run')
@@ -148,17 +148,17 @@ class ToolEnvironment(unittest.TestCase):
         tool = {'name': 'pytest', 'version': '9.1.1', 'binary': 'pytest',
                 'install': {'method': 'pip', 'package': 'pytest', 'with': ['approvaltests==19.1.1']}}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': tmp}), \
-                mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
+                mock.patch.object(toolchain.installers, 'uv', return_value=None), mock.patch.object(toolchain.installers, '_link'), \
                 mock.patch('subprocess.run') as run:
             (Path(tmp) / 'venv/bin').mkdir(parents=True)
             (Path(tmp) / 'venv/bin/python').touch()
-            toolchain._pip_one(tool)
+            toolchain.installers._pip_one(tool)
             self.assertEqual(run.call_args.args[0][-2:], ['pytest==9.1.1', 'approvaltests==19.1.1'])
             packages = Path(tmp) / 'venv/lib/python3.12/site-packages'
             (packages / 'approvaltests-19.0.0.dist-info').mkdir(parents=True)
-            self.assertEqual(toolchain._companions_missing(tool), 'approvaltests 19.1.1 is not installed beside it (found 19.0.0)')
+            self.assertEqual(toolchain.versions._companions_missing(tool), 'approvaltests 19.1.1 is not installed beside it (found 19.0.0)')
             (packages / 'approvaltests-19.0.0.dist-info').rename(packages / 'approvaltests-19.1.1.dist-info')
-            self.assertEqual(toolchain._companions_missing(tool), '')
+            self.assertEqual(toolchain.versions._companions_missing(tool), '')
 
 
 class PreparingTests(ToolchainBase):
@@ -198,7 +198,7 @@ class PreparingTests(ToolchainBase):
         self.assertTrue(toolchain.stale(), 'nothing installed yet')
         toolchain.install(echo=lambda line: None)
         self.assertFalse(toolchain.stale())
-        with mock.patch.object(toolchain, '_spawn') as spawn:
+        with mock.patch.object(toolchain.runs, '_spawn') as spawn:
             self.assertFalse(toolchain.prepare(self.tmp))
         spawn.assert_not_called()
         (self.home / 'bin/fake').unlink()
@@ -210,7 +210,7 @@ class PreparingTests(ToolchainBase):
         self.fresh_home('tools-2')
         self.write(self.needed('fake'))
         child = mock.Mock(**{'poll.return_value': 0})
-        with mock.patch.object(toolchain, '_spawn', return_value=child) as spawn:
+        with mock.patch.object(toolchain.runs, '_spawn', return_value=child) as spawn:
             with toolchain.machine_lock():
                 self.assertTrue(toolchain.installing())
                 self.assertFalse(toolchain.prepare(self.tmp))
@@ -222,20 +222,20 @@ class PreparingTests(ToolchainBase):
 
     def test_a_retry_asked_while_the_install_runs_tries_again_what_failed_once_it_ends(self):
         self.write(self.needed('fake'))
-        attempts, real = [], toolchain._release
+        attempts, real = [], toolchain.installers._release
         def flaky(tool, step):
             attempts.append(tool['name'])
             if len(attempts) == 1:
                 (self.home / 'install.again').touch()           # Retry pressed while this install runs
                 raise RuntimeError('no network')
             return real(tool, step)
-        with mock.patch.object(toolchain, '_release', side_effect=flaky):
+        with mock.patch.object(toolchain.installers, '_release', side_effect=flaky):
             self.assertEqual(toolchain.install(echo=lambda line: None), [])
         self.assertEqual((attempts, (self.home / 'install.again').exists()), (['fake', 'fake'], False))
         self.assertEqual(progress.fold(progress.read(self.home, 'tools'))['status'], 'COMPLETE')
 
     def test_the_checks_tools_read_the_code_before_the_ai(self):
-        toolchain.REGISTRY = self.saved[0]
+        toolchain.pins.REGISTRY = self.saved[0]
         check = {t['name']: t['check'] for t in toolchain.registry()['tools'] if t.get('check')}
         self.assertLessEqual(set(ADAPTERS), set(check), 'every engine adapter is a registered tool')
         self.assertLessEqual(set(check.values()), {'engines', 'architecture'})

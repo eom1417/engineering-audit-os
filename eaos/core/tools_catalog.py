@@ -1,6 +1,6 @@
 """Tools the assistant finds and the person adds (the owner, 2026-10-22: "it can search GitHub and add the tools it
 needs"). `find` reads GitHub's search and each candidate's latest release; `add` writes a pinned entry to
-<home>/toolchain-added.json, which eaos/core/toolchain.py reads beside its own list, and installs it. Nothing is installed
+<home>/toolchain-added.json, which eaos/core/toolchain/pins.py reads beside its own list, and installs it. Nothing is installed
 without the person's agreement, a pinned version and a sha256 (a commit for git), and a license; an entry with
 `engine` ({"args": [...], "output": "sarif"}) runs in the engines stage through eaos/engines/sarif.py, with no Python.
 """
