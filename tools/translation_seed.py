@@ -22,10 +22,15 @@ def _shipped():
     return json.loads(bilingual.SEED.read_text(encoding='utf-8')) if bilingual.SEED.is_file() else {}
 
 
-def todo(reports):
-    met = Counter(pair for report in reports for pair in {
+def _met(reports):
+    """How many of the reports each (language, template) is met in."""
+    return Counter(pair for report in reports for pair in {
         (lang, bilingual.template(piece)[0]) for path, _ in bilingual.documents(report)
         for lang in bilingual.LANGS for piece in bilingual.pieces_to_send(path.read_text(encoding='utf-8', errors='replace'), lang)})
+
+
+def todo(reports):
+    met = _met(reports)
     shipped = _shipped()
     return {lang: sorted(source for (one, source), count in met.items()
                          if one == lang and count > 1 and source not in shipped.get(lang, {})) for lang in bilingual.LANGS}

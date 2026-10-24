@@ -100,8 +100,8 @@ def _line(app, now):
     return f"{app['name']:24} ran={now['ran']!s:5} {shown} {'PASS' if now['passed'] else 'FAIL ' + now.get('why', '')[:150]}"
 
 
-def main(names, record=False):
-    catalog = json.loads(CATALOG.read_text(encoding='utf-8'))
+def _recheck(catalog, names, record):
+    """Check each named app (all by default), its result recorded when asked; the apps that passed before and fail now."""
     worse = []
     for app in catalog['apps']:
         if names and app['name'] not in names: continue
@@ -109,6 +109,12 @@ def main(names, record=False):
         print(_line(app, now), flush=True)
         if (app.get('result') or {}).get('passed') and not now['passed']: worse.append(app['name'])
         if record: app['result'] = now
+    return worse
+
+
+def main(names, record=False):
+    catalog = json.loads(CATALOG.read_text(encoding='utf-8'))
+    worse = _recheck(catalog, names, record)
     run = [app for app in catalog['apps'] if app.get('result')]
     print(f"corpus: {sum(app['result']['passed'] for app in run)} of {len(run)} apps pass")
     if record: CATALOG.write_text(json.dumps(catalog, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
