@@ -7,7 +7,11 @@ the whole file by whichever engine spoke, and six cards of a batch could not pas
   it does not read) is judged by the engine that reported it;
 - a count an engine states exactly (too many parameters, nesting too deep, a function too long) is judged by that engine;
 - the size of a file or a class is a split's work (eaos/analysis/plan.py _split_last), never a simplification's target.
-A target is followed by its function's name, so moving the function to another file does not clear it.
+A target is followed by its function's name, so moving the function to another file does not clear it: to a file where no
+function of that name was reported when the card was made (`also_in`), never to one that had one already. A function with
+no name (an arrow function, a lambda: engines call it <anonymous>) is judged in its own file only. A target was judged by
+its name across the whole project, and every anonymous function anywhere kept a card standing that no fix of its file
+could finish (TASK-131 of a React project, 2026-10-24).
 """
 import re
 
@@ -17,6 +21,7 @@ EXACT = {'reforge.codebase.many_parameters': 'too many parameters', 'reforge.cod
          'reforge.codebase.long_function': 'too long'}
 SIZE = {'reforge.codebase.large_type', 'reforge.codebase.large_file', 'reforge.codebase.function_proliferation'}
 SUFFIX = re.compile(r':(?:arity:\d+|declaration)$')
+NAMELESS = ('', 'anonymous', 'lambda', 'default')
 
 
 def name(symbol):
@@ -24,17 +29,26 @@ def name(symbol):
     return SUFFIX.sub('', symbol or '').split('::')[-1].split('.')[-1]
 
 
+def nameless(function):
+    """A function with no name of its own: an engine's <anonymous> or <lambda>, a default export."""
+    return function.strip('<>').lower() in NAMELESS
+
+
 def targets(facts, sets):
-    """What a card on these engine findings must clear: [{'rule', 'path', 'name'}], one ruler each (module docstring)."""
-    counted, out = _counted(sets), {}
+    """What a card on these engine findings must clear: [{'rule', 'path', 'name', 'also_in'|'line'}], one ruler each
+    (module docstring): a named function with the other files it was reported in then, a nameless one with its line."""
+    counted, places, out = _counted(sets), _reported(sets), {}
     for fact in facts:
         value, where = fact.get('value') or {}, fact.get('location') or {}
         key = (where.get('path'), name(where.get('symbol')))
         if value.get('kind') != 'complexity' or value.get('rule') in SIZE or not key[1]: continue
-        branches = _branches(counted, *key)
+        branches = counted.get(key)
         rule = _rule(value) if value.get('rule') in EXACT or branches is None else 'branches'
         if rule != 'branches' or branches > MAX_COMPLEXITY:
-            out[(rule, *key)] = {'rule': rule, 'path': key[0], 'name': key[1]}
+            target = {'rule': rule, 'path': key[0], 'name': key[1]}
+            if nameless(key[1]): target['line'] = where.get('line') or where.get('start_line')
+            elif also := sorted(_files(rule, key[1], counted, places) - {key[0]}): target['also_in'] = also
+            out[(rule, *key)] = target
     return [out[k] for k in sorted(out)]
 
 
@@ -46,18 +60,27 @@ def judges(wanted, facts):
 
 def left(wanted, sets):
     """The targets still standing on the code `sets` were collected from."""
-    counted = _counted(sets)
-    reported = {(_rule(f['value']), name((f.get('location') or {}).get('symbol')))
-                for f in (sets.get('external') or {}).get('facts') or [] if (f.get('value') or {}).get('kind') == 'complexity'}
-    return [t for t in wanted if ((_branches(counted, t['path'], t['name']) or 0) > MAX_COMPLEXITY if t['rule'] == 'branches'
-                                  else (t['rule'], t['name']) in reported)]
+    counted, places = _counted(sets), _reported(sets)
+    return [t for t in wanted if _standing(t, counted, places)]
+
+
+def _standing(target, counted, places):
+    """Whether the target is still there: in its own file; a named function moved, in a file it was not in when the card
+    was made (a card made before `also_in`: in any file)."""
+    rule, path, function = target['rule'], target['path'], target['name']
+    over = lambda file: (counted.get((file, function)) or 0) > MAX_COMPLEXITY if rule == 'branches' else (rule, file, function) in places
+    if over(path) or nameless(function): return over(path)
+    elsewhere = _files(rule, function, counted, places) - {path} - set(target.get('also_in') or ())
+    return any(over(file) for file in elsewhere)
 
 
 def said(target):
     """One target in words: `decide` in eaos/x.py: more than 15 branches."""
     why = (f'more than {MAX_COMPLEXITY} branches' if target['rule'] == 'branches' else
            EXACT.get(target['rule'], f"still reported by {target['rule']}"))
-    return f"`{target['name']}` in {target['path']}: {why}"
+    what = (f"the function with no name at line {target['line']}" if target.get('line') else
+            'a function with no name' if nameless(target['name']) else f"`{target['name']}`")
+    return f"{what} in {target['path']}: {why}"
 
 
 def proof(claim):
@@ -83,6 +106,13 @@ def _counted(sets):
     return out
 
 
-def _branches(counted, path, function):
-    """A function's count at its path, or, moved, wherever a function of that name is now; None when EAOS counts none."""
-    return counted.get((path, function), max((n for (_, f), n in counted.items() if f == function), default=None))
+def _reported(sets):
+    """(rule, path, function name) of every complexity finding an engine reported."""
+    return {(_rule(f['value']), (f.get('location') or {}).get('path'), name((f.get('location') or {}).get('symbol')))
+            for f in (sets.get('external') or {}).get('facts') or [] if (f.get('value') or {}).get('kind') == 'complexity'}
+
+
+def _files(rule, function, counted, places):
+    """The files where a function of that name is counted (a branch count) or reported by that rule."""
+    if rule == 'branches': return {path for path, f in counted if f == function}
+    return {path for r, path, f in places if r == rule and f == function}

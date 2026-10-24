@@ -142,6 +142,12 @@ class ToolTests(Home):
                     [{'path': 'src/a.js', 'find': 'b = 2', 'replace': 'b = 5'}, {'path': 'src/none.js', 'find': 'x', 'replace': 'y'}]):
             with self.assertRaises(ValueError): agent_tools._apply(root, bad)
         self.assertEqual((root / 'src/a.js').read_text(), before, 'a refused set of edits changes nothing')
+        # a Windows file: fix_read shows its lines without \r, and the text copied from them is found (GettingStarted.tsx)
+        (root / 'src/win.js').write_bytes(b'const a = 1;\r\nconst b = 2;\r\n')
+        agent_tools._apply(root, [{'path': 'src/win.js', 'find': 'const a = 1;\nconst b = 2;', 'replace': 'const a = 1;\nconst b = 3;'}])
+        self.assertEqual((root / 'src/win.js').read_bytes(), b'const a = 1;\r\nconst b = 3;\r\n')
+        with self.assertRaisesRegex(ValueError, 'read those lines again with fix_read'):
+            agent_tools._apply(root, [{'path': 'src/win.js', 'find': 'const c', 'replace': 'x'}])
 
     def test_a_kept_edit_stays_a_failing_one_is_taken_back_and_the_batch_is_handed_over_or_abandoned(self):
         state = agent_tools.state_of(str(self.project))
