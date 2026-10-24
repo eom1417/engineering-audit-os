@@ -6,7 +6,7 @@ report artifacts and reported 23.1% duplication where the source holds 1.85%; sc
 import json
 from pathlib import Path
 
-from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, FILE, finding, measurement, subject
+from .contract import Capability, Report, OBSERVED, UNAVAILABLE, FILE, finding, measurement, subject
 from . import tool
 from .process import run, which
 
@@ -39,7 +39,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     code, _, error, seconds = run(command)
     report_path = workdir / 'jscpd-report.json'
     if not report_path.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     report = json.loads(report_path.read_text(encoding='utf-8'))
     findings = []
     for clone in report.get('duplicates', []):

@@ -132,12 +132,10 @@ def _findings(found, summary):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
-    workdir = Path(workdir) / NAME
-    workdir.mkdir(parents=True, exist_ok=True)
+    workdir = tool.folder(workdir, NAME)
     rules, declared = configuration(target)
     if exclude: rules['options']['exclude']['path'] += '|' + '|'.join(glob_regex(p).lstrip('^') for p in exclude)
     runs, seconds = {}, 0.0

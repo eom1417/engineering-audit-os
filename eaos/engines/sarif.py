@@ -167,3 +167,8 @@ def declared():
     from ..core.toolchain import registry
     return {t['name']: Declared(t) for t in registry()['tools'] if t.get('engine')}
 
+
+def collected(path, target, engine, version):
+    """(findings, unmapped) of an engine's SARIF file, its paths made relative to the project first."""
+    relativise(path, target)
+    return read(path, engine, version)

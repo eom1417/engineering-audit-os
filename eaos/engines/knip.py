@@ -77,8 +77,7 @@ def _issue_findings(issue, found):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
     folder = Path(workdir) / NAME
@@ -94,7 +93,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     code, out, error, seconds = run(command, cwd=target)
     try: report = json.loads(out)
     except ValueError:
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     output = folder / 'knip.json'
     output.write_text(out, encoding='utf-8')
     findings, counted = normalise(report, found)

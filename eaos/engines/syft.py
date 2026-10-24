@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'syft'
@@ -71,17 +71,15 @@ def complete(sbom, target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
-    workdir = Path(workdir) / NAME
-    workdir.mkdir(parents=True, exist_ok=True)
+    workdir = tool.folder(workdir, NAME)
     sbom = workdir / 'sbom.cdx.json'
     command = [which(BINARY), 'scan', f'dir:{target}', '-o', f'cyclonedx-json={sbom}', '-q']
     for pattern in exclude: command += ['--exclude', f'./{pattern}/**']
     code, _, error, seconds = run(command)
     if code or not sbom.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     record = json.loads(sbom.read_text(encoding='utf-8'))
     unlocked = complete(record, target)
     merged = workdir / 'sbom.report.cdx.json'

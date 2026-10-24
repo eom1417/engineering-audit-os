@@ -6,11 +6,9 @@ checks passed per framework, so a clean result reads apart from a check that nev
 """
 import re
 import json
-import shutil
-from pathlib import Path
 
 from . import sarif, tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'checkov'
@@ -42,19 +40,15 @@ def _frameworks(summary):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
-    workdir = Path(workdir) / NAME
-    if workdir.exists(): shutil.rmtree(workdir)
-    workdir.mkdir(parents=True)
+    workdir = tool.folder(workdir, NAME, fresh=True)
     # Checkov exits 1 when a check fails; that is a result, not an error.
     code, _, error, seconds = run(_command(target, workdir, exclude), cwd=workdir)
     output, summary = workdir / 'results_sarif.sarif', workdir / 'results_json.json'
     if code not in (0, 1) or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
-    sarif.relativise(output, target)
-    findings, unmapped = sarif.read(output, NAME, found)
+        return tool.failed(NAME, found, seconds, code, error)
+    findings, unmapped = sarif.collected(output, target, NAME, found)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
                   coverage={'status': 'observed', 'frameworks': _frameworks(summary)},
                   evaluated={'misconfiguration': {'status': 'observed', 'granularity': 'file'}})

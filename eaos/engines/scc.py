@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, Report
+from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'scc'
@@ -24,8 +24,7 @@ def version():
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target)
     output = Path(workdir) / NAME / 'scc.json'
@@ -34,7 +33,7 @@ def analyze(target, workdir, exclude=(), formats=None):
                '--exclude-dir', ','.join(EXCLUDED + tuple(exclude)), str(target)]
     code, _, error, seconds = run(command)
     if code or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     languages = json.loads(output.read_text(encoding='utf-8')) or []
     metrics, totals = [], {}
     for language in languages:

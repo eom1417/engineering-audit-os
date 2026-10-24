@@ -139,8 +139,7 @@ def _communities(members, exclude):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     index, failure = _indexed(target, workdir)
     if failure:

@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, KINDS, OBSERVED, SYMBOL, Capability, Report, finding, subject
+from .contract import KINDS, OBSERVED, SYMBOL, Capability, Report, finding, subject
 from .process import run, which
 
 NAME = 'ast-grep'
@@ -70,8 +70,7 @@ def normalise(rows, found):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
     output = Path(workdir) / NAME / 'ast-grep.jsonl'
@@ -81,7 +80,7 @@ def analyze(target, workdir, exclude=(), formats=None):
                '--color', 'never', *globs, '.']
     code, out, error, seconds = run(command, cwd=target)
     if code and not out.strip():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     output.write_text(out, encoding='utf-8')
     metrics, findings, by_rule = normalise(records(out), found)
     by_record = {}

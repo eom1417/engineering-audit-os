@@ -84,14 +84,11 @@ def allowed(target):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     permitted, why = allowed(target)
     if not permitted: return Report(NAME, found, PINNED, NOT_APPLICABLE, reason=why)
-    workdir = Path(workdir) / NAME
-    if workdir.exists(): shutil.rmtree(workdir)
-    workdir.mkdir(parents=True)
+    workdir = tool.folder(workdir, NAME, fresh=True)
     config, ignored = _config(workdir, exclude)
     files = _files(target, ignored)
     findings, unmapped, seconds, outputs = [], {}, 0.0, {}
@@ -100,8 +97,7 @@ def analyze(target, workdir, exclude=(), formats=None):
         output, spent, problem = _language(target, workdir, config, language)
         seconds += spent
         if problem: return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=f'{language}: {problem}')
-        sarif.relativise(output, target)
-        more, missed = sarif.read(output, NAME, found)
+        more, missed = sarif.collected(output, target, NAME, found)
         findings += more
         for rule, count in missed.items(): unmapped[rule] = unmapped.get(rule, 0) + count
         outputs[language] = str(output)

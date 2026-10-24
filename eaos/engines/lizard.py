@@ -10,7 +10,7 @@ import io
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, SYMBOL, Capability, Report, finding, measurement, subject
+from .contract import OBSERVED, SYMBOL, Capability, Report, finding, measurement, subject
 from .process import run, which
 
 NAME = BINARY = 'lizard'
@@ -55,8 +55,7 @@ def normalise(parsed, found):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
     output = Path(workdir) / NAME / 'lizard.csv'
@@ -67,7 +66,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     # engines stage already runs engines side by side.
     code, out, error, seconds = run([which(BINARY), '--csv', '-i', '-1', *patterns, '.'], cwd=target)
     if code:
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     output.write_text(out, encoding='utf-8')
     parsed, skipped = rows(out)
     metrics, findings = normalise(parsed, found)

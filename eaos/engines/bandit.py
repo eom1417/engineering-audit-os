@@ -8,11 +8,10 @@ module or an idiom, not a weakness, and put hundreds of lines on a project that 
 Bandit matches an excluded entry anywhere in a path, so each one is passed as `/name/`: a bare `build` would also drop
 `build_tools.py`. Its SARIF goes through eaos.engines.sarif, which reads the CWE each rule names.
 """
-import shutil
 from pathlib import Path
 
 from . import sarif, tool
-from .contract import ERROR, OBSERVED, Capability, Report
+from .contract import OBSERVED, Capability, Report
 from .process import run, which
 
 NAME = BINARY = 'bandit'
@@ -29,21 +28,17 @@ def version():
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
-    workdir = Path(workdir) / NAME
-    if workdir.exists(): shutil.rmtree(workdir)
-    workdir.mkdir(parents=True)
+    workdir = tool.folder(workdir, NAME, fresh=True)
     output = workdir / 'bandit.sarif'
     skipped = ','.join(f"/{name.strip('/')}/" for name in EXCLUDED + tuple(exclude) if name.strip('/'))
     # Bandit exits 1 when it found something; that is a result, not an error.
     code, _, error, seconds = run([which(BINARY), '-r', '.', '-f', 'sarif', '-o', str(output), '-q',
                                    '--severity-level', 'medium', '-x', skipped], cwd=Path(target).resolve())
     if code not in (0, 1) or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
-    sarif.relativise(output, target)
-    findings, unmapped = sarif.read(output, NAME, found)
+        return tool.failed(NAME, found, seconds, code, error)
+    findings, unmapped = sarif.collected(output, target, NAME, found)
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped, raw=str(output),
                   coverage={'status': 'observed', 'severity_reported': 'medium and high'},
                   evaluated={'vulnerability': {'status': 'observed', 'granularity': 'file'}})

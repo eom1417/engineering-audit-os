@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 from . import tool
-from .contract import DETERMINISTIC, ERROR, OBSERVED, Report, finding, measurement, subject
+from .contract import DETERMINISTIC, OBSERVED, Report, finding, measurement, subject
 from .process import run, which
 
 NAME = BINARY = 'osv-scanner'
@@ -138,8 +138,7 @@ def _scan(target, workdir):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target)
     code, error, seconds, output, sbom = _scan(target, Path(workdir))
@@ -150,7 +149,7 @@ def analyze(target, workdir, exclude=(), formats=None):
                                 'note': 'no lockfile or SBOM component OSV-Scanner can read'},
                       evaluated={'vulnerability': {'status': 'observed', 'granularity': 'package'}})
     if code not in (0, 1) or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     payload = json.loads(output.read_text(encoding='utf-8'))
     findings = normalise(payload, target, found)
     sources = _sources(payload)

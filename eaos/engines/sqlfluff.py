@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from . import tool
-from .contract import ERROR, OBSERVED, Report, finding, measurement, subject
+from .contract import OBSERVED, Report, finding, measurement, subject
 from .process import run, which
 
 NAME = BINARY = 'sqlfluff'
@@ -40,8 +40,7 @@ def sql_files(target, exclude=()):
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
     files = sql_files(target, exclude)
@@ -51,7 +50,7 @@ def analyze(target, workdir, exclude=(), formats=None):
                '--write-output', str(output), *files]
     code, _, error, seconds = run(command, cwd=target)
     if code or not output.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     findings, by_code = _findings(json.loads(output.read_text(encoding='utf-8')), found)
     counted_style = {c: n for c, n in sorted(by_code.items()) if style(c)}
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, raw=str(output),

@@ -5,9 +5,10 @@ The pin lives in eaos/data/toolchain.json and nowhere else; `eaos tools install`
 eaos.engines.process.which looks first.
 """
 import re
+import shutil
 from pathlib import Path
 
-from .contract import NOT_APPLICABLE, UNAVAILABLE, Report
+from .contract import ERROR, NOT_APPLICABLE, UNAVAILABLE, Report
 from .process import run, which
 
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
@@ -68,3 +69,16 @@ def declined(name, binary, target, probe=None):
         return Report(name, found, pinned(name), NOT_APPLICABLE,
                       reason=f'nothing here for {name} to read (it applies to: {rule})')
     return None
+
+
+def folder(workdir, name, fresh=False):
+    """The engine's own folder in the run's work folder, emptied first when `fresh`."""
+    out = Path(workdir) / name
+    if fresh and out.exists(): shutil.rmtree(out)
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
+
+def failed(name, found, seconds, code, error):
+    """The Report of a run that ended in error: the tool's last words, or its exit code."""
+    return Report(name, found, pinned(name), ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')

@@ -22,12 +22,10 @@ def version():
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
-    workdir = Path(workdir) / NAME
-    workdir.mkdir(parents=True, exist_ok=True)
+    workdir = tool.folder(workdir, NAME)
     ruleset = workdir / 'ruleset.yaml'
     ruleset.write_text('extends: ["spectral:oas"]\n', encoding='utf-8')
     specs = openapi.specifications(target, exclude)
@@ -40,8 +38,7 @@ def analyze(target, workdir, exclude=(), formats=None):
         seconds += spent
         if code not in (0, 1) or not output.is_file():
             return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=f'{spec}: ' + (error.strip()[-300:] or f'exit {code}'))
-        sarif.relativise(output, target)
-        more, missed = sarif.read(output, NAME, found)
+        more, missed = sarif.collected(output, target, NAME, found)
         findings += more
         for rule, count in missed.items(): unmapped[rule] = unmapped.get(rule, 0) + count
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, unmapped=unmapped,

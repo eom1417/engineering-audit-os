@@ -26,12 +26,10 @@ def version():
 
 
 def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
+    if declined := tool.declined(NAME, BINARY, target): return declined
     found = version()
     target = Path(target).resolve()
-    workdir = Path(workdir) / NAME
-    workdir.mkdir(parents=True, exist_ok=True)
+    workdir = tool.folder(workdir, NAME)
     findings, compared, seconds = [], {}, 0.0
     for index, spec in enumerate(openapi.specifications(target, exclude)):
         commit, text = openapi.previous(target, spec)

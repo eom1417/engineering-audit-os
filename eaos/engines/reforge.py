@@ -6,7 +6,7 @@ states its schema version; an unknown one is refused rather than guessed at.
 import json
 from pathlib import Path
 
-from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH, FILE, finding, measurement,
+from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, SCHEMA_MISMATCH, FILE, finding, measurement, 
                        subject)
 from . import tool
 from .process import run, which
@@ -139,7 +139,7 @@ def analyze(target, workdir, exclude=(), formats=None):
         return Report(NAME, None, PINNED, UNAVAILABLE, reason='reforge is not installed')
     code, error, seconds, report_path = _run_report(target, workdir, exclude)
     if not report_path.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+        return tool.failed(NAME, found, seconds, code, error)
     report = json.loads(report_path.read_text(encoding='utf-8'))
     if report.get('schema_version') != SCHEMA:
         return Report(NAME, found, PINNED, SCHEMA_MISMATCH, seconds=seconds,
