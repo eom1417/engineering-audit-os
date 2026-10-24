@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ...journeys import build_tools, selection as selecting
 from ...core.store import now, _read_json, _write_json
+from .helpers import Refused
 
 
 def _chosen_answer(question, option, text):
@@ -127,7 +128,6 @@ class Decisions:
         chosen = {}
         target = str(body.get('merge_into') or '').strip()
         if target:
-            from . import Refused
             from .branches import valid_name
             valid_name(self.project, target)
             if not self.branches.tip(f'refs/heads/{target}'): raise LookupError(f'no branch named {target} to merge into')
@@ -139,7 +139,6 @@ class Decisions:
 
     def decide(self, run, operation, body):
         """Accept or undo the branch a run handed over: only with the confirm token of that preview."""
-        from . import Refused
         if not self.locks.spend(body.get('confirm'), operation, None, self.project):
             raise Refused(403, f'{operation} needs your explicit confirmation: open its preview and confirm', needs='confirm')
         record = self.store.load(run)

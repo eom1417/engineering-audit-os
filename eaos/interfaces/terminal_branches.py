@@ -107,3 +107,6 @@ def branches(args, lang):
     agreed(project, 'branches ' + ('protect' if args.op == 'unprotect' else args.op), question, args.yes)
     done = govern.branch_change(project, args.op, preview, preview['confirm']['token'], (preview.get('confirm_unmerged') or {}).get('token'))
     guided.box(lang, text_of(_said(actions, done['run']), lang), commands=['eaos branches', 'eaos status'])
+
+
+guided.COMMANDS.update(accept=accept, undo=undo)    # eaos start's steps name them (registered here: see guided)

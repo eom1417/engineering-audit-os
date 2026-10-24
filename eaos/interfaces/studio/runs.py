@@ -19,6 +19,7 @@ from pathlib import Path
 from ...core import jobs, plain
 from ...ai import prompts
 from . import handoff, helpers, planners, resume
+from .helpers import alive
 from .run_answers import Answers
 from .run_outcome import Outcomes
 from .run_turns import Turns
@@ -33,16 +34,6 @@ STOP_GRACE = 5
 PLANNERS = ('replan_ideal',)
 
 
-def alive(pid):
-    if not pid: return False
-    try: os.kill(int(pid), 0)
-    except ProcessLookupError: return False
-    except PermissionError: return True
-    try:
-        done, _ = os.waitpid(int(pid), os.WNOHANG)
-        return done == 0
-    except ChildProcessError:
-        return True
 
 
 def _signal(pid, number):

@@ -22,6 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 from ...ai import headless as adapters_module, prompts
 from ...journeys import batch_branch, guided, selection as selecting
 from . import chat, helpers, plan
+from .helpers import Refused
 from .branches import BranchControl, Blocked
 from .decisions import Decisions
 from .previews import Previews, _auto_accept, _bound, _group_name, _where_of
@@ -44,12 +45,6 @@ def reading_tools():
     """The tools the MCP server marks read-only: they answer at once and are not queued."""
     from .. import mcp_server
     return mcp_server.reading()
-
-
-class Refused(Exception):
-    def __init__(self, status, reason, **extra):
-        super().__init__(reason)
-        self.status, self.reason, self.extra = status, reason, extra
 
 
 def _refusal(problem):

@@ -136,7 +136,7 @@ def build(more=None):
     reading = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
     working = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
     _check_tools(server, reading, working)
-    mcp_fix._fix_tools(server, reading, working, _answer)
+    mcp_fix._fix_tools(server, reading, working, _answer, _status)
     mcp_build._build_tools(server, reading, working, _answer)
     if more: more(server, reading, working, _answer)
     _prompts(server)

@@ -358,7 +358,5 @@ def govern_host(args):
     return govern.host(args.project, (args.answer, args.option, args.text) if args.answer else None)
 
 
-from .terminal_branches import accept, branch, branches, undo  # noqa: E402,F401  (the commands cli.py names)
 
 guided.TERMINAL['check'] = check                # eaos start --path/--mode: the check, followed (registered here: see guided)
-guided.COMMANDS.update(accept=accept, undo=undo)

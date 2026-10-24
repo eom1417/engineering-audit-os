@@ -7,6 +7,7 @@ other: its live words, its stop, going on with another assistant when it stops m
 the way, its lane is released: the cards it did not try go to the first assistant, at the end. When the first run ends
 before them (stopped, failed), its helpers are stopped.
 """
+import os
 import threading
 
 from ...journeys import check_choices, guided, lanes
@@ -77,3 +78,23 @@ def ended(manager, record):
             if record['id'] in (wave.get('helpers') or {}): lanes.release(wave, record['lane'])
     for child in record.get('helpers') or []:
         if manager.store.load(child).get('state') not in TERMINAL: manager.stop(child)
+
+
+class Refused(Exception):
+    """An action the Studio refuses: its HTTP status, the reason, what it needs (a preview, a confirmation)."""
+    def __init__(self, status, reason, **extra):
+        super().__init__(reason)
+        self.status, self.reason, self.extra = status, reason, extra
+
+
+def alive(pid):
+    """Whether the process `pid` still runs (a child that ended is reaped, not counted)."""
+    if not pid: return False
+    try: os.kill(int(pid), 0)
+    except ProcessLookupError: return False
+    except PermissionError: return True
+    try:
+        done, _ = os.waitpid(int(pid), os.WNOHANG)
+        return done == 0
+    except ChildProcessError:
+        return True

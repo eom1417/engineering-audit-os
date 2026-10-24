@@ -5,10 +5,9 @@ from pathlib import Path
 
 from . import node_jobs
 from ..core import project_state, tools_catalog
-from .mcp_server import _status
 
 
-def _fix_tools(server, reading, working, _answer):
+def _fix_tools(server, reading, working, _answer, _status):
     """The tools of the findings, the plan, the run, the fixes and the person's decision on them."""
     from ..analysis import design
     from ..journeys import agent_tools as tools, guided

@@ -67,7 +67,7 @@ def handover_hook(args):
 
 def guided_command(args):
     from ..journeys import handover  # noqa: F401
-    from . import terminal  # noqa: F401  (register the work log on the report, and the terminal's accept, undo and check)
+    from . import terminal, terminal_branches  # noqa: F401  (register the work log, the terminal's check, accept and undo)
     from ..journeys.guided import main as guided_main
     return guided_main(args)
 
@@ -117,9 +117,13 @@ def policy_command(args):
     return 2 if result['status']=='VIOLATED' else 0
 
 
+BRANCH_COMMANDS = ('accept', 'branch', 'branches', 'undo')    # in terminal_branches.py
+
+
 def terminal(name):
-    """The governance command `name` of eaos/interfaces/terminal.py, imported when it runs."""
-    return lambda args: getattr(__import__('eaos.interfaces.terminal', fromlist=[name]), name)(args)
+    """The governance command `name` of eaos/interfaces/terminal.py (or terminal_branches.py), imported when it runs."""
+    module = 'eaos.interfaces.terminal_branches' if name in BRANCH_COMMANDS else 'eaos.interfaces.terminal'
+    return lambda args: getattr(__import__(module, fromlist=[name]), name)(args)
 
 
 def governance_commands(s):

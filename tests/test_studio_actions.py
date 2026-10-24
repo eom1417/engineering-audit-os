@@ -399,7 +399,7 @@ class Selection(Base):
 
 
 def alive(pid):
-    from eaos.interfaces.studio.runs import alive
+    from eaos.interfaces.studio.helpers import alive
     return alive(pid)
 
 

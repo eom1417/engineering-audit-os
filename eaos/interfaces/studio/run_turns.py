@@ -69,7 +69,7 @@ class Turns:
 
     def _ended(self, run, pid):
         """Whether the assistant's process of `run` has ended (a child of this process, or one a restart found alive)."""
-        from .runs import alive
+        alive = helpers.alive
         return not (self.children[run].poll() is None if run in self.children else alive(pid))
 
     def _read_stream(self, run, adapter):
