@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.73" src="https://img.shields.io/badge/version-0.0.73-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="الإصدار 0.0.74" src="https://img.shields.io/badge/version-0.0.74-3987e5"></a>
   <img alt="الحالة: تجريبي" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="الرخصة: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -111,7 +111,7 @@ curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/i
 
 ```mermaid
 flowchart RL
-  A["الدليل<br/><sub>حقائق الكود · 36 أداة<br/>تطبيقك، بموافقتك</sub>"] --> B["المقترحات<br/><sub>البطاقات · البنية المستهدفة</sub>"]
+  A["الدليل<br/><sub>حقائق الكود · 34 أداة<br/>تطبيقك، بموافقتك</sub>"] --> B["المقترحات<br/><sub>البطاقات · البنية المستهدفة</sub>"]
   B --> C["الحكم<br/><sub>مساعدك، بالدليل</sub>"]
   C --> D["القرار<br/><sub>الهدف النهائي · الخطة المرتبة</sub>"]
   D --> E["التقارير<br/><sub>أربعة تقارير · الاستوديو<br/>بالعربية والإنجليزية</sub>"]
@@ -213,13 +213,13 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 
 ## الأدوات
 
-ينسّق EAOS ولا يعيد البناء: 36 أداة مفتوحة المصدر ومكتبات تصميم مجانية، لكل منها إصدار مثبّت ببصمته ورخصته
+ينسّق EAOS ولا يعيد البناء: 34 أداة مفتوحة المصدر ومكتبات تصميم مجانية، لكل منها إصدار مثبّت ببصمته ورخصته
 ([`eaos/data/toolchain.json`](eaos/data/toolchain.json)، [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | المجال | الأدوات |
 |---|---|
 | البنية والفهم | CodeGraph · GitNexus · Enola · Reforge · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
-| التعقيد والتكرار والكود الميت | Lizard · complexipy · jscpd · scc · vulture · knip |
+| التعقيد والتكرار والكود الميت | Lizard · jscpd · scc · knip، مع عدّ EAOS الخاص |
 | الأمان والمكتبات | Semgrep · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
 | العقود والبيانات | Spectral · oasdiff · SQLFluff |
 | تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 |

@@ -253,6 +253,13 @@ def _corroborated(kind, detail, cluster, fact_sets):
             'impact': {'scenario': IMPACTS['ar'][impact_key].format(**measured)}, 'impact_key': impact_key, 'measured': measured}
 
 
+def _counted(kind, detail, cluster, fact_sets):
+    """One engine counting exactly: too many parameters, nesting too deep, a function too long (finish_line.EXACT)."""
+    engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
+    return {**_corroborated(kind, detail, cluster, fact_sets), 'statement': f"{engines} يعدّ {word} في {cluster['place']}",
+            'falsifier': 'Show that the count the engine states (parameters, nesting depth, lines) is within its threshold.'}
+
+
 def _granularity_gap(kind, detail, cluster, fact_sets):
     engines, word = ', '.join(detail['asserted_by']), ENGINE_KIND_WORDS.get(kind, kind)
     elsewhere = ', '.join(detail['silent_at_another_resolution'])
@@ -277,11 +284,12 @@ def _contested(kind, detail, cluster, fact_sets):
             'impact_key': None, 'measured': {}}
 
 
-def _engine_claim(index, kind, cluster, detail, said, finish=None):
-    """The claim of one kind at one place, from what its verdict says. With a finish line (`finish`, complexity) its
-    probe judges exactly those targets; with none left to clear (only sizes, or scores EAOS counts within the limit) it
-    is a hypothesis for the person, never work a batch cannot finish."""
-    engines, impact_key = ', '.join(detail['asserted_by']), said['impact_key']
+def _engine_claim(index, kind, cluster, detail, said, finish=(None, None)):
+    """The claim of one kind at one place, from what its verdict says. With a finish line (`finish`: the targets and the
+    engines that state them, complexity) its probe judges exactly those targets, and only those engines are run again: a
+    branch count is EAOS's own; with none left to clear (only sizes, or scores EAOS counts within the limit) it is a
+    hypothesis for the person, never work a batch cannot finish."""
+    (finish, judges), engines, impact_key = finish, ', '.join(detail['asserted_by']), said['impact_key']
     confidence = 'HYPOTHESIS' if finish == [] else said['confidence']
     return make(index, said['statement'][:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
                 confidence, ['external_engine'], [],
@@ -291,7 +299,8 @@ def _engine_claim(index, kind, cluster, detail, said, finish=None):
                                    'engines': engines, 'verdict': detail['verdict'],
                                    **said['measured'], **({'impact_key': impact_key} if impact_key else {})}},
                 probe_spec={'probe_type': 'graph_query',
-                            'specification': {'query': 'engine_cluster_present', 'engines': detail['asserted_by'],
+                            'specification': {'query': 'engine_cluster_present',
+                                              'engines': detail['asserted_by'] if judges is None else judges,
                                               'place': cluster['place'], 'kind': kind,
                                               **({'targets': finish} if finish else {}),
                                               'expected': 'The same engines still report this kind at this place.'}},
@@ -304,30 +313,39 @@ def from_engines(fact_sets, offset=0):
     Two independent engines agreeing is worth a LIKELY claim that a probe can raise. One engine
     contradicted by another that fully evaluated the same property is worth a HYPOTHESIS that a
     probe must settle. One engine speaking alone is left as a fact: promoting it would flood the
-    ledger with 586 findings and teach a reader to ignore it.
+    ledger with 586 findings and teach a reader to ignore it. Except a count it states exactly (M2.2): a function with
+    eight parameters has eight whoever counts them, so that count alone is a claim, on those targets only.
     """
-    from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP
+    from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP, SINGLE
     if not fact_sets.get('external'):
         return []
     says = {CORROBORATED: _corroborated, GRANULARITY_GAP: _granularity_gap, CONTESTED: _contested}
     made, index = [], offset
     for cluster in clusters(fact_sets):
         for kind, detail in sorted(cluster['corroboration'].items()):
-            # Security findings are cards of their own, alone or agreed (eaos/weaknesses.py), a vulnerable dependency too.
-            if kind in SECURITY or detail['verdict'] not in says:
+            # Security findings are cards of their own, alone or agreed (eaos/weaknesses.py), a vulnerable dependency too;
+            # dead code EAOS's own detector also reports is its card (fact_claims.dead_code), not a second one.
+            counted = detail['verdict'] == SINGLE and kind == 'complexity'
+            if kind in SECURITY or (kind == 'dead_code' and 'eaos' in detail['asserted_by']) \
+                    or not (detail['verdict'] in says or counted):
                 continue
+            finish = _finish(kind, cluster, fact_sets, exact=counted)
+            if counted and not finish[0]: continue
             index += 1
-            made.append(_engine_claim(index, kind, cluster, detail, says[detail['verdict']](kind, detail, cluster, fact_sets),
-                                      _finish(kind, cluster, fact_sets)))
+            said = (_counted if counted else says[detail['verdict']])(kind, detail, cluster, fact_sets)
+            made.append(_engine_claim(index, kind, cluster, detail, said, finish))
     return made
 
 
-def _finish(kind, cluster, fact_sets):
-    """A complexity claim's finish line (eaos/finish_line.py), None for another kind."""
-    if kind != 'complexity': return None
-    from .finish_line import targets
+def _finish(kind, cluster, fact_sets, exact=False):
+    """(finish line, the engines that judge it) of a complexity claim (eaos/finish_line.py), (None, None) for another kind.
+    `exact`: only the counts an engine states exactly."""
+    if kind != 'complexity': return None, None
+    from .finish_line import EXACT, judges, targets
     facts = {f['id']: f for f in (fact_sets.get('external') or {}).get('facts') or []}
-    return targets([facts[i] for i in cluster['fact_ids_by_kind'][kind] if i in facts], fact_sets)
+    rows = [facts[i] for i in cluster['fact_ids_by_kind'][kind] if i in facts]
+    found = targets([f for f in rows if f['value'].get('rule') in EXACT] if exact else rows, fact_sets)
+    return found, judges(found, rows) if found else None
 
 
 def merge(claims):

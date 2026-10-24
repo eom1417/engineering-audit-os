@@ -458,15 +458,23 @@ def adjudicate(findings, source, own=()):
 
 
 def _candidate_name(value, location):
-    """The bare name an engine's dead-code finding is about: its symbol, else the first name its message quotes."""
+    """The bare name an engine's dead-code finding is about: its symbol, else the first name its message quotes; a
+    module's is its path. Engines write a symbol their own way (vulture `a/b.py:act`, knip `a/b.js:name`, enola
+    `a/b.name`): read as one dotted name, `py:act` named nothing and every vulture finding was thrown away (M2.3)."""
     path, symbol = location.get('path'), location.get('symbol')
-    qualified = re.search(r'(?:function|method|class)\s+`?([\w./$]+)`?|`([\w./$]+)`', value.get('message') or '')
+    qualified = re.search(r'(?:function|method|class)\s+`?([\w./$-]+)`?|`([\w./$-]+)`', value.get('message') or '')
     name = (symbol if symbol and symbol != path else None) or (next(g for g in qualified.groups() if g) if qualified else None)
-    return name.rsplit('.', 1)[-1].rsplit('/', 1)[-1] if name else None
+    if not name or name == path: return name
+    if name.startswith(f'{path}:'): name = name[len(path):].lstrip(':')
+    return name.rsplit('.', 1)[-1].rsplit('/', 1)[-1]
 
 
 def _verdict(value, location, name, ours, refs):
     path = location.get('path')
+    if name and name == path:
+        # A module: EAOS's own reachability (unreachable-module) is the second witness, or there is none.
+        return ({'verdict': 'confirmed', 'reason': 'EAOS finds no production entry point that reaches it either'} if (path, path) in ours
+                else {'verdict': 'unconfirmed', 'reason': 'the engine alone reports it'})
     if not name or not TOKEN.fullmatch(name):
         return {'verdict': 'not_a_symbol', 'reason': 'the finding names no symbol or module'}
     if value.get('referenced_by_registry'):

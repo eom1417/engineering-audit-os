@@ -16,8 +16,6 @@ and the pinned versions, commits and checksums are in `eaos/data/toolchain.json`
 | [jscpd](https://github.com/kucherenko/jscpd) | Andrey Kucherenko | MIT | separate process; JSON report read |
 | [ast-grep](https://github.com/ast-grep/ast-grep) | Herrington Darkholme | MIT | separate process; EAOS's own rule pack, JSON stream read |
 | [Lizard](https://github.com/terryyin/lizard) | Terry Yin and other contributors | MIT | separate process; CSV read |
-| [complexipy](https://github.com/rohaquinlop/complexipy) | Robin Quintero | MIT | separate process; JSON report read |
-| [vulture](https://github.com/jendrikseipp/vulture) | Jendrik Seipp | MIT | separate process; text report read |
 | [knip](https://github.com/webpro-nl/knip) | Lars Kappert | ISC | separate process, every plugin off; JSON report read |
 | [react-docgen](https://github.com/reactjs/react-docgen) (`@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | separate process; JSON report read |
 | [Bandit](https://github.com/PyCQA/bandit) | PyCQA | Apache-2.0 | separate process; SARIF read |

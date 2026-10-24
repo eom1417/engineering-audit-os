@@ -1,4 +1,4 @@
-"""The code-understanding engines: ast-grep, Lizard, complexipy, vulture, knip and react-docgen.
+"""The code-understanding engines: ast-grep, Lizard, knip and react-docgen.
 
 tests/fixtures/code_engines plants one thing each engine must find: a tangled Python function (`tariff`),
 an unused helper and import, a React component reached only through an `@/` alias (`VehicleCard`), one no
@@ -7,20 +7,18 @@ copies state. Each engine's real output on that project is pinned in tests/contr
 through its adapter offline; where the pinned tool is installed, the adapter also runs it for real.
 """
 import json
-import re
 from pathlib import Path
 from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos.engines import ADAPTERS, ast_grep, complexipy, knip, lizard, react_docgen, tool, vulture
-from eaos.engines.contract import KINDS, NOT_APPLICABLE, OBSERVED, UNAVAILABLE
+from eaos.engines import ADAPTERS, ast_grep, knip, lizard, react_docgen, tool
+from eaos.engines.contract import KINDS, OBSERVED, UNAVAILABLE
 from eaos.engines.process import run, which
 
 CONTRACTS = Path(__file__).resolve().parent / 'contracts'
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/code_engines'
-ENGINES = {'ast-grep': ast_grep, 'lizard': lizard, 'complexipy': complexipy, 'vulture': vulture, 'knip': knip,
-           'react-docgen': react_docgen}
+ENGINES = {'ast-grep': ast_grep, 'lizard': lizard, 'knip': knip, 'react-docgen': react_docgen}
 
 
 def sample(name):
@@ -54,9 +52,6 @@ class EveryEngineTests(Workspace):
                 mock.patch('eaos.toolchain.applies', return_value=(True, 'react')):
             self.assertIsNone(tool.declined('react-docgen', 'react-docgen', self.tmp, probe=lambda: '3.0.7'))
             self.assertEqual(tool.declined('react-docgen', 'react-docgen', self.tmp, probe=lambda: None).status, UNAVAILABLE)
-        with mock.patch.object(tool, 'which', return_value='vulture'), \
-                mock.patch.object(tool, 'run', return_value=(0, 'vulture 2.16\n', '', 0.1)):
-            self.assertEqual(vulture.version(), '2.16', 'a two-part version is read')
 
     def test_an_exclusion_matches_whole_segments_below_the_target_never_the_folders_it_sits_in(self):
         self.assertTrue(tool.excluded('src/components/ui/button.tsx', ['components/ui']))
@@ -65,13 +60,6 @@ class EveryEngineTests(Workspace):
         self.assertFalse(tool.excluded('build_trial.py', ['build']))
         root = Path(self.tmp) / 'build' / 'proj[1]'
         root.mkdir(parents=True)
-        patterns = vulture.exclusions(root, ('components/ui',)).split(',')
-        anchor = str(root.resolve()).replace('[1]', '[[]1[]]')
-        self.assertTrue(all(p.startswith(anchor + '/') for p in patterns))
-        from fnmatch import fnmatch
-        self.assertFalse(any(fnmatch(str(root.resolve() / 'app.py'), p) for p in patterns))
-        self.assertTrue(any(fnmatch(str(root.resolve() / 'src/components/ui/a.py'), p) for p in patterns))
-        self.assertTrue(any(fnmatch(str(root.resolve() / 'build/a.py'), p) for p in patterns))
         for path in ('src/components/ui/Button.tsx', 'src/pages/Home.tsx'):
             (root / path).parent.mkdir(parents=True, exist_ok=True)
             (root / path).write_text('export const A = () => <div/>;\n')
@@ -110,72 +98,6 @@ class OfflineAdapterTests(Workspace):
             report = lizard.analyze(self.tmp, Path(self.tmp) / 'work')
         self.assertEqual((report.status, report.coverage['over_threshold']), (OBSERVED, 1))
         self.assertFalse([m for m in report.metrics if m['path'].startswith(('.', '/'))], 'paths are relative')
-
-    def test_complexipy_reads_its_output_file_names_unparsed_files_and_no_output_is_an_error(self):
-        def fake_run(command, cwd=None, **_):
-            Path(command[command.index('--output') + 1]).write_text(json.dumps(sample('complexipy')['complexipy.json']))
-            return 1, f'\x1b[31merror\x1b[0m: Failed to process \x1b[37m{cwd}/legacy/broken.py\x1b[0m - Please check file/folder exists or check syntax', '', 0.1
-        def analyze(run):
-            with mock.patch.object(complexipy.tool, 'declined', return_value=None), \
-                    mock.patch.object(complexipy, 'version', return_value=complexipy.PINNED), \
-                    mock.patch.object(complexipy, 'which', return_value='complexipy'), mock.patch.object(complexipy, 'run', run):
-                return complexipy.analyze(self.tmp, Path(self.tmp) / 'work')
-        report = analyze(fake_run)
-        self.assertEqual((report.status, report.coverage['unparsed_files']), (OBSERVED, ['legacy/broken.py']))
-        self.assertEqual({m['symbol']: m['measurements']['cognitive_complexity'] for m in report.metrics},
-                         {'tariff': 25, 'total': 1, 'unused_helper': 0})
-        self.assertEqual(rules_of(report), {('cognitive', 'billing.py', 'billing.py::tariff')})
-        self.assertEqual(analyze(mock.Mock(return_value=(2, '', 'boom', 0.1))).status, 'error')
-
-    def test_vulture_lines_become_dead_code_findings_and_variables_and_tests_are_only_counted(self):
-        rows = vulture.candidates(sample('vulture')['vulture.txt'] + 'not a vulture line\n')
-        self.assertEqual(len(rows), 3)
-        findings, by_type, in_tests, _ = vulture.normalise(rows, vulture.PINNED)
-        self.assertEqual((by_type, in_tests), ({'function': 2, 'import': 1}, 0))
-        messages = sorted(f['message'] for f in findings)
-        self.assertIn('unused import `os` (90% confidence)', messages)
-        self.assertTrue(all(re.search(r'`\w+`', m) for m in messages))
-        self.assertEqual({f['engine_confidence'] for f in findings}, {0.9, 0.6})
-        rows = vulture.candidates("app.py:3: unused variable 'x' (60% confidence)\n"
-                                  "tests/test_app.py:9: unused function 'test_it' (60% confidence)\n")
-        self.assertEqual(vulture.normalise(rows, vulture.PINNED)[:3], ([], {'function': 1, 'variable': 1}, 1))
-
-    FRAMEWORK = (
-        'import html.parser\n'
-        'from urllib.request import HTTPRedirectHandler\n\n\n'
-        'def build(server):\n'
-        '    @server.prompt(name="audit")\n'
-        '    def audit_prompt():\n'
-        '        return "audit"\n'
-        '    return server\n\n\n'
-        'class Reader(html.parser.HTMLParser):\n'
-        '    def handle_starttag(self, tag, attrs):\n'
-        '        pass\n\n'
-        '    def forgotten(self):\n'
-        '        pass\n\n\n'
-        'class NoRedirect(HTTPRedirectHandler):\n'
-        '    def redirect_request(self, *args):\n'
-        '        return None\n\n\n'
-        '@property\n'
-        'def lonely():\n'
-        '    return 1\n')
-
-    def test_what_a_framework_calls_is_not_reported_as_dead_and_an_unreadable_file_keeps_its_candidates(self):
-        root = Path(self.tmp)
-        (root / 'app.py').write_text(self.FRAMEWORK)
-        rows = vulture.candidates("app.py:6: unused function 'audit_prompt' (60% confidence)\n"
-                                  "app.py:13: unused method 'handle_starttag' (60% confidence)\n"
-                                  "app.py:16: unused method 'forgotten' (60% confidence)\n"
-                                  "app.py:21: unused method 'redirect_request' (60% confidence)\n"
-                                  "app.py:25: unused function 'lonely' (60% confidence)\n")
-        findings, _, _, framework = vulture.normalise(rows, vulture.PINNED, root)
-        self.assertEqual(framework, ['app.py:6:audit_prompt', 'app.py:13:handle_starttag', 'app.py:21:redirect_request'])
-        self.assertEqual(sorted(f['message'].split('`')[1] for f in findings), ['forgotten', 'lonely'])
-        (root / 'broken.py').write_text('@app.route("/")\ndef index(:\n')
-        rows = vulture.candidates("broken.py:1: unused function 'index' (60% confidence)\n"
-                                  "missing.py:1: unused function 'gone' (60% confidence)\n")
-        findings, _, _, framework = vulture.normalise(rows, vulture.PINNED, root)
-        self.assertEqual((len(findings), framework), (2, []))
 
     def test_knip_reports_unused_files_exports_and_dependencies_with_every_plugin_off(self):
         findings, counted = knip.normalise(sample('knip')['knip.json'], knip.PINNED)
@@ -236,28 +158,6 @@ class LiveRunTests(Workspace):
         with self.subTest(engine='lizard'):
             if not installed(lizard): self.skipTest('lizard is not installed at its pin')
             self.assertEqual(rules_of(lizard.analyze(FIXTURE / 'py', work('lizard'))), {('ccn', 'billing.py', 'billing.py::tariff')})
-        with self.subTest(engine='complexipy'):
-            if not installed(complexipy): self.skipTest('complexipy is not installed at its pin')
-            self.assertEqual(complexipy.analyze(FIXTURE / 'web', work('c1')).status, NOT_APPLICABLE)
-            self.assertEqual(rules_of(complexipy.analyze(FIXTURE / 'py', work('c2'))), {('cognitive', 'billing.py', 'billing.py::tariff')})
-            project = work('project'); project.mkdir()
-            (project / 'ok.py').write_text('def ok():\n    return 1\n')
-            (project / 'broken.py').write_text('def broken(:\n')
-            report = complexipy.analyze(project, work('c3'))
-            self.assertEqual((report.coverage['unparsed_files'], [m['symbol'] for m in report.metrics]), (['broken.py'], ['ok']))
-        with self.subTest(engine='vulture'):
-            if not installed(vulture): self.skipTest('vulture is not installed at its pin')
-            self.assertTrue({('unused_import', 'billing.py', 'billing.py:os'),
-                             ('unused_function', 'billing.py', 'billing.py:unused_helper')}
-                            <= rules_of(vulture.analyze(FIXTURE / 'py', work('v1'))))
-            # A project that lives under an excluded name is kept; its own excluded folder is not.
-            root = work('build') / 'proj'
-            (root / 'fixtures').mkdir(parents=True)
-            (root / 'billing.py').write_text((FIXTURE / 'py/billing.py').read_text(encoding='utf-8'))
-            (root / 'fixtures/sample.py').write_text('import os\n\n\ndef sample():\n    return 1\n')
-            report = vulture.analyze(root, work('v2'), exclude=('fixtures',))
-            self.assertIn(('unused_import', 'billing.py', 'billing.py:os'), rules_of(report))
-            self.assertFalse(any(f['subject']['path'].startswith('fixtures/') for f in report.findings))
         with self.subTest(engine='knip'):
             if not installed(knip): self.skipTest('knip is not installed at its pin')
             # VehicleCard is imported only as `@/components/VehicleCard`: were the alias not resolved it would be unused.

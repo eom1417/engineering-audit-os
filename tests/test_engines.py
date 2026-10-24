@@ -150,6 +150,20 @@ class EngineClaimTests(unittest.TestCase):
                                             {'enola': evaluated_at(cycle=('observed', 'file')),
                                              'codegraph': evaluated_at(cycle=('observed', 'file'))}))
         self.assertEqual((contested['confidence'], contested['confidence_ceiling']), ('HYPOTHESIS', 'HYPOTHESIS'))
+        # A count one engine states exactly is a claim on that count alone, rechecked by that engine (M2.2); a branch
+        # count is EAOS's own, so a card on it runs no engine again.
+        alone = engine_fact('F3', 'reforge', 'complexity', 'b.py', rule='reforge.codebase.many_parameters')
+        alone['location']['symbol'] = 'b.py::send'
+        reforge = {'reforge': evaluated_at(complexity=('observed', 'file'))}
+        [counted] = from_engines(fact_set([alone, dict(engine_fact('F4', 'reforge', 'complexity', 'b.py'), location={'path': 'b.py', 'symbol': 'b.py::other'})], reforge))
+        spec = counted['probe_spec']['specification']
+        self.assertEqual((spec['targets'], spec['engines']), ([{'rule': 'reforge.codebase.many_parameters', 'path': 'b.py', 'name': 'send'}], ['reforge']))
+        over = [{'name': 'cyclomatic_complexity', 'value': 40, 'threshold': 15}]
+        found = [dict(engine_fact(i, e, 'complexity', 'c.py', rule=r, measurements=over), location={'path': 'c.py', 'symbol': 'c.py::run'})
+                 for i, e, r in (('F5', 'enola', 'r'), ('F6', 'lizard', 'ccn'))]
+        branches = {**fact_set(found, {'enola': evaluated_at(complexity=('observed', 'file')), 'lizard': evaluated_at(complexity=('observed', 'file'))}),
+                    'metrics': {'facts': [{'location': {'path': 'c.py', 'symbol': 'c.py::run'}, 'value': {'scope': 'function', 'branches': 40}}]}}
+        self.assertEqual(from_engines(branches)[0]['probe_spec']['specification']['engines'], [])
         # A probe cannot raise an external claim to confirmed; a claim without a ceiling is left alone.
         claim = {'confidence': 'CONFIRMED', 'confidence_ceiling': 'LIKELY', 'method': ['external_engine']}
         row = {'status': 'CONFIRMED', 'result': 'still reported'}

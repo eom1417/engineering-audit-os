@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version 0.0.73" src="https://img.shields.io/badge/version-0.0.73-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="Version 0.0.74" src="https://img.shields.io/badge/version-0.0.74-3987e5"></a>
   <img alt="Status: pilot" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -104,7 +104,7 @@ for you. When the fixes are ready, they are a branch in your project: take it in
 
 ```mermaid
 flowchart LR
-  A["Evidence<br/><sub>code facts · 36 tools<br/>your app, with consent</sub>"] --> B["Proposals<br/><sub>cards · target structure</sub>"]
+  A["Evidence<br/><sub>code facts · 34 tools<br/>your app, with consent</sub>"] --> B["Proposals<br/><sub>cards · target structure</sub>"]
   B --> C["Judgement<br/><sub>your assistant, on evidence</sub>"]
   C --> D["Decision<br/><sub>final target · ordered plan</sub>"]
   D --> E["Reports<br/><sub>four reports · the Studio<br/>English and Arabic</sub>"]
@@ -201,13 +201,13 @@ EAOS treats your project as untrusted input, and your decisions as final.
 
 ## The toolchain
 
-EAOS orchestrates rather than rebuilds: 36 open-source tools and free design libraries, each at a pinned version with its checksum and licence
+EAOS orchestrates rather than rebuilds: 34 open-source tools and free design libraries, each at a pinned version with its checksum and licence
 ([`eaos/data/toolchain.json`](eaos/data/toolchain.json), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | Area | Tools |
 |---|---|
 | Structure and understanding | CodeGraph · GitNexus · Enola · Reforge · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
-| Complexity, duplication, dead code | Lizard · complexipy · jscpd · scc · vulture · knip |
+| Complexity, duplication, dead code | Lizard · jscpd · scc · knip, beside EAOS's own counts |
 | Security and dependencies | Semgrep · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
 | Contracts and data | Spectral · oasdiff · SQLFluff |
 | Your running app | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 |

@@ -254,7 +254,7 @@ def main(argv=None):
     q.add_argument('--policy',default=None)
     q.set_defaults(func=policy_command)
     q=s.add_parser('tools',help='Install every external tool at its pinned version, or check what is installed')
-    q.add_argument('action',choices=['install','doctor','refresh'],help='refresh: a new vulnerability database, moved in whole')
+    q.add_argument('action',choices=['install','doctor'])
     q.add_argument('--stage',choices=['assessment','execution'],default=None)
     q.add_argument('--project',default=None,help='install first what the check needs on this project')
     q.add_argument('--only',default=None,help='comma-separated tool names')

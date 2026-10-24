@@ -647,43 +647,6 @@
       }
     },
     {
-      "name": "complexipy",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "applies": "python",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/rohaquinlop/complexipy",
-      "version": "8.0.1",
-      "binary": "complexipy",
-      "install": {
-        "method": "pip",
-        "package": "complexipy"
-      }
-    },
-    {
-      "name": "vulture",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "applies": "python",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/jendrikseipp/vulture",
-      "version": "2.16",
-      "binary": "vulture",
-      "version_pattern": "vulture (\\d+\\.\\d+(?:\\.\\d+)?)",
-      "install": {
-        "method": "pip",
-        "package": "vulture"
-      }
-    },
-    {
       "name": "knip",
       "role": "read",
       "stages": [

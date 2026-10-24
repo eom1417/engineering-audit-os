@@ -15,9 +15,9 @@ def sample(name):
 
 
 class SampleTests(Workspace):
-    def test_each_sample_is_pinned_and_maps_everything_no_secret_survives_and_a_second_scanner_is_only_a_witness(self):
+    def test_each_sample_is_pinned_and_maps_everything_and_no_secret_survives(self):
         from eaos.engines import checkov, dependency_cruiser, gitnexus, oasdiff, sarif, semgrep, spectral, sqlfluff, trivy
-        for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'vulnerability', 'secret'}),
+        for module, name, file, kinds in ((semgrep, 'semgrep', 'semgrep.sarif', None), (trivy, 'trivy', 'trivy.sarif', {'secret'}),
                                           (checkov, 'checkov', 'results_sarif.sarif', {'misconfiguration'}),
                                           (spectral, 'spectral', 'spectral.sarif', {'api_contract'})):
             with self.subTest(engine=name):
@@ -66,15 +66,7 @@ class SampleTests(Workspace):
         self.assertNotIn('eyJ', text)
         self.assertNotIn('KEY=', text)
         self.assertIn('Match: [not recorded]', text)
-        from eaos.claims import from_engines
-        facts = [{'id': f'F{i}', 'kind': 'engine_finding', 'location': {'path': 'package-lock.json', 'line': None},
-                  'value': {'engine': engine, 'kind': 'vulnerability', 'rule': 'r', 'message': 'm', 'measurements': [],
-                            'sites': [{'path': 'package-lock.json', 'line': None}]}}
-                 for i, engine in enumerate(('osv-scanner', 'trivy'))]
-        sets = {'external': {'facts': facts, 'summary': {'evaluated_kinds': {
-            'osv-scanner': {'vulnerability': {'status': 'observed', 'granularity': 'package'}},
-            'trivy': {'vulnerability': {'status': 'observed', 'granularity': 'package'}}}}}}
-        self.assertEqual(from_engines(sets), [])
+
 
 class SemgrepTests(Workspace):
     RULES = Path(__file__).resolve().parents[1] / 'eaos/rules/semgrep'
