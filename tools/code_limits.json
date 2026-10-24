@@ -1,14 +1,12 @@
 {
  "function_lines": {
   "eaos/ai/ideal.py::plan": 61,
-  "eaos/engines/codegraph.py::analyze": 51,
   "eaos/interfaces/cli.py::governance_commands": 55,
   "eaos/interfaces/cli.py::main": 68,
   "eaos/interfaces/mcp_server.py::_build_tools": 78,
   "eaos/interfaces/mcp_server.py::_check_tools": 108,
   "eaos/interfaces/mcp_server.py::_fix_tools": 190,
   "eaos/journeys/agent_tools/fixing.py::_fix_start_job": 57,
-  "eaos/pipeline/run.py::execute": 57,
   "eaos/report/target_architecture.py::_adr": 68,
   "tools/studio_synthetic.py::build": 54,
   "tools/studio_synthetic.py::synthetic_pipeline": 53
@@ -44,7 +42,6 @@
   "eaos/analysis/system_map.py::_link_callers": 18,
   "eaos/analysis/system_map.py::component_file": 18,
   "eaos/analysis/target_projection.py::_observed_in_facts": 16,
-  "eaos/engines/codegraph.py::run": 16,
   "eaos/facts/deadcode.py::run": 19,
   "eaos/facts/frameworks/http_access.py::extract_calls": 17,
   "eaos/facts/graph.py::run": 16,
@@ -121,7 +118,6 @@
   "tools/validate.py::packaged_errors": 16
  },
  "modules": {
-  "eaos/core/toolchain.py": 647,
   "eaos/interfaces/studio/runs.py": 720,
   "tools/make_contracts.py": 708
  },
@@ -231,10 +227,10 @@
   "eaos/pipeline/pages.py::_audit_pages": 8,
   "eaos/pipeline/remedies.py::apply": 6,
   "eaos/pipeline/run.py::_head": 10,
-  "eaos/pipeline/run.py::_row": 7,
   "eaos/pipeline/run.py::check": 6,
   "eaos/pipeline/run.py::execute": 23,
   "eaos/pipeline/schedule.py::ready_stages": 6,
+  "eaos/pipeline/stage_run.py::_row": 7,
   "eaos/report/blueprint.py::_Cards.add": 11,
   "eaos/report/blueprint.py::_data_card": 6,
   "eaos/report/blueprint.py::_feature_card": 7,
