@@ -14,7 +14,7 @@ class ChatTests(unittest.TestCase):
     def test_it_reaches_only_reading_tools_and_proposes_only_what_the_studio_can_run(self):
         # The owner, 2026-10-14: an assistant that helps inside the work, governed: it may read and diagnose, and every
         # change waits for the person
-        source = (ROOT / 'eaos/interfaces/mcp_server.py').read_text(encoding='utf-8')
+        source = ''.join((ROOT / f'eaos/interfaces/{name}.py').read_text(encoding='utf-8') for name in ('mcp_server', 'mcp_fix', 'mcp_build'))
         reading = {name for kind, name in re.findall(r"@server\.tool\(annotations=(\w+)[\s\S]*?def (\w+)\(", source) if kind == 'reading'}
         self.assertLessEqual(set(chat.READ_TOOLS), reading, 'a tool that works is out of the conversation\'s reach')
         actions = SimpleNamespace(contract={'actions': [{'id': 'audit'}, {'id': 'run_try'}]},

@@ -11,7 +11,6 @@ local server (NS37.T2) mounts them with `mount(...)` (eaos/interfaces/studio/ser
 Every call passes the locks of eaos/core/security.py first; every accepted action becomes an `action` event
 before it runs; reading actions answer at once, the others queue as runs (eaos/interfaces/studio/runs.py).
 """
-import fcntl
 import functools
 import json
 import os
@@ -21,15 +20,16 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from ...ai import headless as adapters_module, prompts
-from ...journeys import batch_branch, build_tools, check_choices, guided, selection as selecting
-from . import chat, handoff, helpers, plan
+from ...journeys import batch_branch, guided, selection as selecting
+from . import chat, helpers, plan
 from .branches import BranchControl, Blocked
+from .decisions import Decisions
+from .previews import Previews, _auto_accept, _bound, _group_name, _where_of
 from .runs import PLANNERS, Manager
 from ...core.security import Locks
-from ...core.store import BRIEF_ONLY, TERMINAL, Scrubber, Store, contract, now, _read_json, _write_json
+from ...core.store import BRIEF_ONLY, TERMINAL, Scrubber, Store, contract, now
 from ...core import project_state
 
-VERBS = ('fix', 'verify', 'explain', 'plan')
 HEARTBEAT = 15
 
 
@@ -46,36 +46,28 @@ def reading_tools():
     return mcp_server.reading()
 
 
-def _where_of(where):
-    """The part of a Fix preview's place that is confirmed and handed to fix_start: {base, base_commit, deliver_as,
-    merge_into}; None without one."""
-    if not where or not where.get('base'): return None
-    return {'base': where['base']['branch'], 'base_commit': where['base']['commit'], 'deliver_as': where.get('deliver_as'),
-            'merge_into': where.get('merge_into')}
-
-
-def _group_name(selection):
-    """The name of the group a Fix was chosen as (an area, a component, ...): its new branch is named after it."""
-    group = (selection or {}).get('group') if isinstance(selection, dict) and selection.get('kind') == 'group' else None
-    return str((group or {}).get('value') or '') or None
-
-
-def _auto_accept(verb, inputs):
-    """Whether the person chose, in a Fix preview, to accept the batch automatically when its checks pass."""
-    return verb == 'fix' and (inputs or {}).get('auto_accept') is True
-
-
-def _bound(selection, where, auto):
-    """What a confirm token is bound to: the selection, a Fix's place, and the person's auto-accept choice, so a token
-    of a preview without it never starts a run that accepts by itself."""
-    bound = {'selection': selection, 'where': where} if where else selection
-    return {'bound': bound, 'auto_accept': True} if auto else bound
-
-
 class Refused(Exception):
     def __init__(self, status, reason, **extra):
         super().__init__(reason)
         self.status, self.reason, self.extra = status, reason, extra
+
+
+def _refusal(problem):
+    """(status, answer) of a refused call: a blocked change, a refusal, a selection that cannot run, a thing not found,
+    a conflict, a wrong input."""
+    if isinstance(problem, Blocked):
+        return (403 if problem.needs in ('confirm', 'confirm_unmerged') else 409), {'error': str(problem), 'reasons': problem.reasons, 'needs': problem.needs}
+    if isinstance(problem, Refused): return problem.status, {'error': problem.reason, **problem.extra}
+    if isinstance(problem, selecting.SelectionError): return 400, {'error': str(problem), 'reasons': [problem.reason]}
+    if isinstance(problem, KeyError): return 404, {'error': f'not found: {problem}'}
+    if isinstance(problem, LookupError): return 409, {'error': str(problem)}
+    return 400, {'error': str(problem)}
+
+
+def _cards_of_run(cards, left):
+    """A run record's cards: their ids, each with its title and paths, and those left out."""
+    return {'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
+            'left_out': left}
 
 
 def _run_id():
@@ -100,35 +92,6 @@ GET_ROUTES = {
 }
 
 
-def _chosen_answer(question, option, text):
-    """The option the owner chose, or None for a custom answer; refused when the answer is neither, or both."""
-    chosen = next((o for o in question.get('options', []) if o['id'] == option), None)
-    if option is not None and text is not None:
-        raise ValueError('send either an option or a custom answer, not both')
-    if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000):
-        raise ValueError('text must contain 1 to 4000 characters')
-    if not chosen and not (option is None and text):
-        raise ValueError('choose an authoritative option or a custom answer')
-    return chosen
-
-
-def _owner_response(saved, row, answer, path):
-    """The owner's saved answer to a report question, saved now when it is the first; `answer`: (decision, option,
-    text, the chosen option). A different answer to a question already answered is refused."""
-    decision, option, text, chosen = answer
-    response = saved.get(row['scope'])
-    if response and (response['option'] != option or response.get('text') != text):
-        raise LookupError('this question already has an owner answer')
-    if response: return response
-    response = {'decision': decision, 'scope': row['scope'], 'option': option, 'text': text,
-                'label': chosen['label'] if chosen else text, 'at': now(), 'provenance': 'owner:studio',
-                'status': 'saved', 'run': 'd' + row['scope'][:40],
-                'history': [{'at': now(), 'event': 'saved', 'by': 'owner:studio'}]}
-    saved[row['scope']] = response
-    _write_json(path, saved)
-    return response
-
-
 def _run_label(verb, label, cards):
     if not verb: return label
     return {lang: f"{label[lang]}: {', '.join(c['id'] for c in cards[:3])}{' …' if len(cards) > 3 else ''}" for lang in ('en', 'ar')}
@@ -140,16 +103,7 @@ def _mode(action, needed, assistant):
     return 'handoff' if assistant == 'handoff' else 'assistant'
 
 
-def _decision_words(operation, branch, ok, result):
-    """What happened to the waiting branch, in both languages."""
-    if ok:
-        return {'en': f"{'Taken in' if operation == 'accept' else 'Thrown away'}: {branch}",
-                'ar': f"{'اعتُمد' if operation == 'accept' else 'رُمي'}: {branch}"}
-    return {'en': f"{operation} did not happen: {result.get('status') or result.get('error')}",
-            'ar': f"ما تم: {result.get('status') or result.get('error')}"}
-
-
-class Actions:
+class Actions(Previews, Decisions):
     def __init__(self, project, **options):
         """`options`, by name: home, port (8765), adapters (this computer's), studio, lang ('ar'), token, remote_origin,
         dispatch (True: this object's thread starts the queued runs; eaos/interfaces/govern.py builds it without)."""
@@ -184,18 +138,8 @@ class Actions:
         body = body if isinstance(body, dict) else {}
         try:
             return 200, self._route(method, route, query, body)
-        except Blocked as problem:
-            return (403 if problem.needs in ('confirm', 'confirm_unmerged') else 409), {'error': str(problem), 'reasons': problem.reasons, 'needs': problem.needs}
-        except Refused as problem:
-            return problem.status, {'error': problem.reason, **problem.extra}
-        except selecting.SelectionError as problem:
-            return 400, {'error': str(problem), 'reasons': [problem.reason]}
-        except KeyError as problem:
-            return 404, {'error': f'not found: {problem}'}
-        except LookupError as problem:
-            return 409, {'error': str(problem)}
-        except ValueError as problem:
-            return 400, {'error': str(problem)}
+        except (Blocked, Refused, LookupError, ValueError) as problem:
+            return _refusal(problem)
 
     def _route(self, method, route, query, body):
         parts = route.strip('/').split('/')
@@ -262,18 +206,21 @@ class Actions:
     def usage(self):
         """What the assistant used (eaos/core/usage.py): the last check, stage by stage, and every run, newest first; a run that
         ended keeps its use in its record, counted once."""
-        from ...core.usage import of_check, of_run, total
+        from ...core.usage import of_check, total
         folder = self._studio()
-        runs = []
-        for record in self.store.all():
-            found = record.get('usage') or of_run(self.store.path(record['id']))
-            if found and record.get('state') in TERMINAL and not record.get('usage'): self.store.update(record['id'], usage=found)
-            runs.append({'id': record['id'], 'verb': record.get('verb'), 'action': record.get('action'), 'label': record.get('label'),
-                         'state': record.get('state'), 'assistant': record.get('assistant'), 'created': record.get('created'),
-                         'cards': len((record.get('result') or {}).get('cards_closed') or []), 'usage': found})
+        runs = [self._run_use(record) for record in self.store.all()]
         talked = [json.loads(line).get('usage') for path in (self.store.folder / 'chat').glob('*/turns.jsonl')
                   for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
         return {'check': of_check(folder.parent) if folder else None, 'runs': runs, 'chat': total(talked)}
+
+    def _run_use(self, record):
+        """One run's row of usage: what it is, and what its assistant used (kept in its record once it ended)."""
+        from ...core.usage import of_run
+        found = record.get('usage') or of_run(self.store.path(record['id']))
+        if found and record.get('state') in TERMINAL and not record.get('usage'): self.store.update(record['id'], usage=found)
+        return {'id': record['id'], 'verb': record.get('verb'), 'action': record.get('action'), 'label': record.get('label'),
+                'state': record.get('state'), 'assistant': record.get('assistant'), 'created': record.get('created'),
+                'cards': len((record.get('result') or {}).get('cards_closed') or []), 'usage': found}
 
     def public(self, record, queue=None):
         hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before', 'waves_before')
@@ -286,173 +233,25 @@ class Actions:
         return out
 
     def runs(self, query):
+        rows = self._runs_asked(query)
+        queue = self.store.queue()  # read once: the queue reads every run, and a list of runs is not n^2 reads
+        return {'runs': [{k: v for k, v in self.public(row, queue).items() if k not in BRIEF_ONLY} for row in rows], 'queue': queue}
+
+    def _runs_asked(self, query):
+        """The runs the query asks for: the unread ones (all with `all`), in a `state`, matching the words `q`."""
         rows = [row for row in self.store.all() if query.get('all') or not row.get('read')]
         if query.get('state'): rows = [row for row in rows if row.get('state') == query['state']]
         if query.get('q'):
             needle = query['q'].lower()
             rows = [row for row in rows if needle in json.dumps([row.get('label'), row.get('cards'), row.get('result'), row.get('action'), row.get('verb')],
                                                                 ensure_ascii=False).lower()]
-        queue = self.store.queue()  # read once: the queue reads every run, and a list of runs is not n^2 reads
-        return {'runs': [{k: v for k, v in self.public(row, queue).items() if k not in BRIEF_ONLY} for row in rows], 'queue': queue}
+        return rows
 
     def questions(self):
         """The questions waiting, each `binding` when only an option answers it (prompts.binding)."""
         return [{**row['question'], 'binding': prompts.binding(row, row['question'])} for row in self.store.all() if row.get('state') == 'waiting_for_person' and row.get('question')]
 
-    def report_decisions(self):
-        folder = self._studio()
-        rows = (selecting._load(folder, 'decisions') or {}).get('decisions', []) if folder else []
-        saved = _read_json(self.store.folder / 'decisions.json', {}) or {}
-        result = []
-        for question in rows:
-            scope = selecting.decision_scope(folder, question)
-            response = saved.get(scope)
-            run = None
-            if response and response.get('run'):
-                try: run = self.public(self.store.load(response['run']))
-                except KeyError: pass
-            result.append({'id': question['id'], 'scope': scope, 'question': question,
-                           'response': response, 'execution': run})
-        return result
-
-    def answer_decision(self, decision, body):
-        with (self.store.folder / 'decisions.lock').open('a+') as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            row = next((r for r in self.report_decisions() if r['id'] == decision), None)
-            if not row: raise KeyError(decision)
-            if body.get('scope') != row['scope']: raise LookupError('the report question changed; reload before answering')
-            question = row['question']
-            option, text = body.get('option'), body.get('text')
-            chosen = _chosen_answer(question, option, text)
-            path = self.store.folder / 'decisions.json'
-            saved = _read_json(path, {}) or {}
-            response = _owner_response(saved, row, (decision, option, text, chosen), path)
-            if question.get('tool') == 'blueprint': return build_tools.answered(self.project, row, response)
-            run = response['run']
-            try: self.store.load(run)
-            except KeyError: self._queue_review(run, question, response, body.get('assistant'))
-            response['status'] = 'queued'
-            if not any(e['event'] == 'queued' for e in response['history']):
-                response['history'].append({'at': now(), 'event': 'queued', 'run': run})
-            saved[row['scope']] = response
-            _write_json(path, saved)
-            self.store.set_queue(self.store.queue())
-            return next(r for r in self.report_decisions() if r['id'] == decision)
-
-    def _queue_review(self, run, question, response, wanted):
-        """A run for the assistant to review the owner's answer, with the cards it blocks and their evidence."""
-        assistant = self._assistant(wanted, True)
-        blocked = [c for c in (selecting._load(self._studio(), 'cards') or {}).get('cards', []) if c['id'] in question.get('blocks', [])]
-        evidence_ids = {e for c in blocked for e in c.get('evidence', []) if isinstance(e, str)}
-        facts = (selecting._load(self._studio(), 'evidence') or {}).get('facts', [])
-        context = {'question': question, 'answer': response,
-                   'evidence': [f for f in facts if f.get('id') in evidence_ids][:40],
-                   'project': self.project.name, 'report': Path(self._studio()).parent.name,
-                   'blocked_cards': [{'id': c['id'], 'title': c.get('title'), 'paths': c.get('paths'), 'evidence': c.get('evidence')} for c in blocked]}
-        record = {'id': run, 'action': 'report_decision', 'verb': None,
-                  'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'},
-                  'inputs': {}, 'owner_decision': context, 'cards': question.get('blocks', []),
-                  'assistant': None if assistant == 'handoff' else assistant,
-                  'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued',
-                  'attempt': 1, 'created': now(), 'queued_at': now(), 'read': False}
-        self.store.save(record, new=True)
-        self.store.append(run, 'action', record['label'], {'action': 'report_decision', 'by': 'person'})
-
     # what a run would be
-    def _kind(self, name, body):
-        """(verb or None, action id) of a preview or a run: a verb when the body selects cards."""
-        verb = body.get('verb') or (name if name in VERBS and name not in self.actions else None)
-        if verb is None and name in VERBS and body.get('selection'): verb = name
-        if verb:
-            if verb not in self.verbs: raise ValueError(f'no verb named {verb}')
-            return verb, verb
-        if name not in self.actions: raise KeyError(name)
-        return None, name
-
-    def _inputs(self, action, inputs, verb=None, project=None):
-        """The inputs of an action, or of a verb that declares any (a Fix's auto_accept), checked against the contract;
-        the project is the server's own (create), never the page's."""
-        from ...core.artifact_contracts import validate
-        inputs = {key: value for key, value in (inputs or {}).items() if key != 'project'}
-        schema = self.verbs[verb].get('inputs') if verb else self.actions[action]['inputs']
-        if verb and not schema: return {}
-        problems = validate(inputs, schema)
-        if problems: raise ValueError('; '.join(problems[:5]))
-        return {**inputs, 'project': project} if project else inputs
-
-    def _assistant(self, wanted, needed):
-        if not needed: return None
-        if wanted == 'handoff': return 'handoff'
-        if wanted:
-            if wanted not in self.adapters: raise ValueError(f'no assistant named {wanted}')
-            return wanted
-        return next((key for key, adapter in self.adapters.items() if adapter.available()), 'handoff')
-
-    def _needs_confirm(self, verb, action, inputs):
-        if verb: return self.verbs[verb]['changes_code']
-        spec = self.actions[action]
-        return spec['irreversible'] or spec['changes_code'] or (spec['needs_consent'] and bool(inputs.get('person_agreed')))
-
-    def _past(self, verb):
-        rows = []
-        for row in self.store.all():
-            if row.get('verb') == verb and row.get('state') == 'done' and row.get('started') and row.get('ended') and row.get('cards'):
-                minutes = (datetime.fromisoformat(row['ended']) - datetime.fromisoformat(row['started'])).total_seconds() / 60
-                rows.append((minutes, len(row['cards'])))
-        return rows
-
-    def preview(self, name, body):
-        verb, action = self._kind(name, body)
-        inputs = self._inputs(action, body.get('inputs'), verb)
-        needed = self.verbs[verb]['needs_assistant'] if verb else self.actions[action]['needs_assistant']
-        assistant = self._assistant(body.get('assistant'), needed)
-        chosen = self.adapters.get(assistant).detect() if assistant and assistant != 'handoff' else None
-        out = {'action': action, 'verb': verb, 'selection': body.get('selection') if verb else None,
-               'cards': [], 'left_out': [], 'files': [], 'batches': [],
-               'assistant': chosen, 'assistants': self.assistants() if needed else [],
-               'irreversible': bool(not verb and self.actions[action]['irreversible']),
-               'needs_consent': bool(not verb and self.actions[action]['needs_consent']) or verb == 'fix'}
-        if verb: self._verb_preview(out, verb, body)
-        else: self._action_preview(out, action, inputs)
-        self._handoff(out, (verb, action, needed), inputs)
-        # a Fix confirms where it builds too: the token pins the base commit the person saw, and nothing is confirmed
-        # while the preview says the place is wrong (a protected target, a branch name git refuses)
-        where = out.get('where')
-        out['auto_accept'] = _auto_accept(verb, inputs)
-        bound = _bound(out['selection'], _where_of(where), out['auto_accept'])
-        out['confirm'] = (self.locks.confirm(action, bound, self.project)
-                          if self._needs_confirm(verb, action, inputs) and not (where and where.get('problem')) else None)
-        return out
-
-    def _verb_preview(self, out, verb, body):
-        """The cards a verb would take and leave out, and where a Fix would build."""
-        cards, left = selecting.resolve(body.get('selection'), self._studio())
-        out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
-        if verb == 'fix' and self._has_commits(): out.update(where=self.branches.fix_where(body.get('where'), _group_name(body.get('selection'))), speed=helpers.speed(self.project, cards))
-
-    def _action_preview(self, out, action, inputs):
-        """An action's time (a check's from this project's last one, eaos/journeys/check_choices.py), risk and what happens when it
-        fails; where Accept would merge."""
-        spec = self.actions[action]
-        low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
-        measured = action == 'audit' and self._studio() and check_choices.estimate(self._studio().parent, inputs.get('paths'), inputs.get('mode'), inputs.get('again_from'))
-        if action == 'audit':
-            out['check'] = check_choices.offered(project_state.load(str(self.project)), self._studio() and self._studio().parent)
-        out.update(estimate=measured or {'minutes_low': low, 'minutes_high': high, 'basis': {'en': 'a rough rule for this step', 'ar': 'تقدير تقريبي لهذه الخطوة'}},
-                   risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
-                         'why': spec['description'] if spec['description']['en'] else spec['label']},
-                   on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
-        if action == 'accept' and self._has_commits(): out['merge'] = self.branches.accept_where()
-
-    def _handoff(self, out, kind, inputs):
-        """The request a chat assistant could take over; `kind`: (verb, action, needs an assistant)."""
-        verb, action, needed = kind
-        prompt = prompts.build(verb, out['cards'], self.project, self.lang, action=action, inputs={} if verb else inputs,
-                               labels={k: v['label'] for k, v in self.actions.items()}, where=_where_of(out.get('where')))
-        # The planner asks the assistant itself: there is no request a chat assistant could take over.
-        handed = bool(needed) and action not in PLANNERS
-        out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
-
     def _speak(self, lang):
         """The language the person reads the Studio in becomes the project's: the check and the fixes it starts write in it."""
         state = project_state.load(self.project) if lang in ('ar', 'en') else None
@@ -476,25 +275,35 @@ class Actions:
         auto = _auto_accept(verb, inputs)
         if verb: inputs = {}
         selection = body.get('selection') if verb else None
-        where = self._checked_where(body, selection) if verb == 'fix' and self._has_commits() else None
+        where = self._checked_where(body, selection) if verb == 'fix' else None
         bound = _bound(selection, where, auto)
         if self._needs_confirm(verb, action, inputs) and not self.locks.spend(body.get('confirm'), action, bound, self.project):
             raise Refused(403, 'this needs your explicit confirmation: open its preview and confirm', needs='confirm')
         record = self._run_record((verb, action), body, (inputs, selection, where, auto))
-        run, label, reading = record['id'], record['label'], record['read']
+        run = record['id']
         self.store.save(record, new=True)
-        shown = {k: v for k, v in inputs.items() if k not in ('edits', 'spec', 'proposal', 'text')}
-        self.store.append(run, 'action', {'en': f"You asked: {label['en']}", 'ar': f"طلبت: {label['ar']}"},
-                          {'action': action, 'by': 'person', 'arguments': {**shown, **({'cards': record['cards']} if verb else {})}})
-        if reading:
-            if 'seconds' in inputs: self.store.update(run, inputs={**inputs, 'seconds': 0})
-            self.manager._direct(run, follow=False)                 # never queued: it answers now, in this call
-            return self.store.load(run)
+        self._asked(record, inputs)
+        if record['read']: return self._answered_now(run, inputs)
         self.store.set_queue(self.store.queue())
         return self.store.load(run)
 
+    def _answered_now(self, run, inputs):
+        """A reading run, never queued: it answers now, in this call (without waiting, when it is a wait)."""
+        if 'seconds' in inputs: self.store.update(run, inputs={**inputs, 'seconds': 0})
+        self.manager._direct(run, follow=False)
+        return self.store.load(run)
+
+    def _asked(self, record, inputs):
+        """The person's ask, the run's first event: its label and its arguments (no edits, spec, proposal or text)."""
+        label = record['label']
+        shown = {k: v for k, v in inputs.items() if k not in ('edits', 'spec', 'proposal', 'text')}
+        self.store.append(record['id'], 'action', {'en': f"You asked: {label['en']}", 'ar': f"طلبت: {label['ar']}"},
+                          {'action': record['action'], 'by': 'person', 'arguments': {**shown, **({'cards': record['cards']} if record['verb'] else {})}})
+
     def _checked_where(self, body, selection):
-        """Where a Fix builds now: refused when its base moved since the preview, or the place is wrong."""
+        """Where a Fix builds now (None in a folder with no commit yet): refused when its base moved since the preview, or
+        the place is wrong."""
+        if not self._has_commits(): return None
         asked = body.get('where') if isinstance(body.get('where'), dict) else {}
         now_at = self.branches.fix_where(asked, _group_name(selection))
         where = _where_of(now_at)
@@ -514,55 +323,16 @@ class Actions:
         run = _run_id()
         reading = not verb and action in reading_tools()
         return {'id': run, 'action': action, 'verb': verb, 'label': label, 'selection': selection, 'inputs': inputs,
-                'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
-                'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
+                **_cards_of_run(cards, left), 'assistant': assistant if assistant != 'handoff' else None,
                 'mode': _mode(action, needed, assistant),
-                'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
+                'owner_answers': self._owner_answers(),
                 'context': self.branches.run_context(), **({'where': {**where, **helpers.speed_of(self.project, body)}} if where else {}), **({'auto_accept': True} if auto else {}),
                 'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                 **({'started': now()} if reading else {})}
 
-    def _merge_choice(self, body):
-        """Where Accept merges, as the person chose in its sheet (one of their branches, never a protected one), and
-        whether the branch is kept after merging."""
-        chosen = {}
-        target = str(body.get('merge_into') or '').strip()
-        if target:
-            from .branches import valid_name
-            valid_name(self.project, target)
-            if not self.branches.tip(f'refs/heads/{target}'): raise LookupError(f'no branch named {target} to merge into')
-            reason = self.branches.blocked_target(target)
-            if reason: raise Refused(409, f"{target} is protected ({reason['en']}): choose another branch to merge into", reasons=[reason])
-            chosen['merge_into'] = target
-        if body.get('delete_after') is False: chosen['delete_after'] = False
-        return chosen
-
-    def decide(self, run, operation, body):
-        """Accept or undo the branch a run handed over: only with the confirm token of that preview."""
-        if not self.locks.spend(body.get('confirm'), operation, None, self.project):
-            raise Refused(403, f'{operation} needs your explicit confirmation: open its preview and confirm', needs='confirm')
-        record = self.store.load(run)
-        branch = (record.get('result') or {}).get('branch')
-        if not branch: raise LookupError('this run handed no branch over')
-        if record.get('outcome'): raise LookupError(f"this run's branch was already {record['outcome']}")
-        # accept and undo act on the newest waiting branch: refuse when that is not this run's, so a decision on one
-        # run never takes in or throws away another run's work
-        newest = self.manager.newest_waiting()
-        if newest != branch:
-            raise LookupError(f'another branch ({newest}) waits after {branch}: decide that one first' if newest else f'{branch} is not waiting for a decision any more')
-        # Accept merges where the person chose in its sheet (one of their branches, never a protected one) and deletes the
-        # branch after merging unless they unticked it
-        chosen = self._merge_choice(body) if operation == 'accept' else {}
-        self.store.append(run, 'action', {'en': f'You chose to {operation} {branch}', 'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
-                          {'action': operation, 'by': 'person', 'arguments': {'branch': branch, **chosen}})
-        result = self.manager.call(operation, {'person_agreed': True, **chosen})
-        ok = isinstance(result, dict) and not result.get('error') and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation]
-        self.store.append(run, 'result' if ok else 'error', _decision_words(operation, branch, ok, result),
-                          {'branch': branch, 'outcome': operation if ok else None, 'answer': result} if ok else
-                          {'reason': str(result.get('status') or result.get('error')), 'recoverable': True,
-                           'what_now': {'en': str(result.get('what_now') or ''), 'ar': str(result.get('what_now') or '')}})
-        if ok: self.store.update(run, outcome={'accept': 'accepted', 'undo': 'undone'}[operation], decided=now())
-        return {'run': self.public(self.store.load(run)), 'result': result}
+    def _owner_answers(self):
+        """The owner's answers to the report's questions, which every run is given."""
+        return [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']]
 
     # following
     def sse(self, run, last_event_id=None, follow=False, heartbeat=HEARTBEAT):
