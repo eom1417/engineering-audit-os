@@ -5,7 +5,7 @@ decision in one shared shape (contract `ai-node`, read here as `DECISION`): the 
 ids it stands on, the confidence, why, and the open questions. A router of declared branches (the node's `routes`)
 then sends each subject on by its decision.
 
-`run_node(node, spec, report, ...)` runs one node with its guards (the run itself: eaos/ai/nodes/runner.py):
+`run_node(node, spec, report, ...)` (eaos/ai/nodes/runner.py, on the parts written here) runs one node with its guards:
     the evidence check    a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice
                           the node does not have or a repeated subject is dropped and listed, never routed
     the critique pass     planning nodes ('critique' in their passes) review their draft before it is checked
@@ -348,25 +348,3 @@ def cached(report, node, key):
 
 def last(report, node):
     return load(folder_of(report, node) / 'last.json')
-
-
-# ---------------------------------------------------------------- one node's run
-
-# A run's settings, with their defaults; every other option of run_node is the node's own input.
-RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en', 'fresh': False, 'say': None,
-               'cancel': None, 'started': None, 'assistants': None, 'logged': True}
-
-
-def run_node(node, spec, report, **options):
-    """Run one decision node with its guards and return its record (contract ai-node), or None when it has nothing
-    to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of
-    `adapters`; with none, the rules decide alone. The settings come by name (RUN_OPTIONS: launcher, adapters, project,
-    lang, fresh, say, cancel, started; `assistants`, the check's eaos/pipeline/schedule.py Assistants, how many batches are
-    asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one); the other
-    options are the node's inputs."""
-    settings = {name: options.pop(name, default) for name, default in RUN_OPTIONS.items()}
-    report = Path(report)
-    data = spec.inputs(report, project=settings['project'], lang=settings['lang'], **options)
-    if data is None: return None
-    from .runner import Run
-    return Run(node, spec, report, data, settings).go()

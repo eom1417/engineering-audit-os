@@ -11,7 +11,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import core
+from . import core, runner
 from .. import ideal
 
 VERSION = '1'
@@ -311,13 +311,13 @@ def run(node, report, **options):
     replaces the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
     the first verdicts stand."""
     spec = sys.modules[__name__]
-    first = core.run_node(node, spec, report, **options, logged=False)
+    first = runner.run_node(node, spec, report, **options, logged=False)
     if not first: return first
     doubted = {d['subject']: d['why'] for d in first['decisions'] if d['source'] == 'model' and d['decision'] == 'doubt'}
     if first['method'] != 'model' or not doubted:
         core.log_run(report, node, first)
         return first
-    second = core.run_node(node, spec, report, **{**options, 'rejudge': doubted, 'logged': False}) or {}
+    second = runner.run_node(node, spec, report, **{**options, 'rejudge': doubted, 'logged': False}) or {}
     row = core.keep(report, node, _merge_second(node, first, second), logged=False)
     # one line for the run, both passes' time and cost: the first pass's alone counted it twice beside the merged one
     core.log_run(report, node, {**row, **_both(first, second)})

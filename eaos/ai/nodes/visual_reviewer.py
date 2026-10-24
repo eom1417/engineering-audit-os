@@ -15,7 +15,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import core
+from . import core, runner
 
 VERSION = '3'
 BATCH = 4                       # pages per question: their phone and desktop pictures, 8 at most
@@ -219,4 +219,4 @@ def finish(report, record, data):
 
 
 def run(node, report, **options):
-    return core.run_node(node, sys.modules[__name__], report, **options)
+    return runner.run_node(node, sys.modules[__name__], report, **options)

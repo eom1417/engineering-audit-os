@@ -1,16 +1,36 @@
-"""One run of an AI node (eaos/ai/nodes/core.py run_node starts it): what it says as it goes, its batches asked at
-the permitted width, the critique pass, the answer in the person's language, the subjects judged before kept, the rules
-fallback and the record it ends with."""
+"""One run of an AI node, `run_node` (eaos/ai/nodes/core.py holds the guards it uses): what it says as it goes, its
+batches asked at the permitted width, the critique pass, the answer in the person's language, the subjects judged before
+kept, the rules fallback and the record it ends with."""
 import contextvars
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
+from pathlib import Path
 
 from ...core.language import foreign_texts, restate
 from ...core.process import Stuck, check_cancelled
 from .core import (WORDS, answer_schema, cached, check, check_shape, critique_prompt, critique_schema, digest, fallback, folder_of,
                    keep, launcher_of, now, record, rules_decisions, short, spent)
+
+
+# A run's settings, with their defaults; every other option of run_node is the node's own input.
+RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en', 'fresh': False, 'say': None,
+               'cancel': None, 'started': None, 'assistants': None, 'logged': True}
+
+
+def run_node(node, spec, report, **options):
+    """Run one decision node with its guards and return its record (contract ai-node), or None when it has nothing
+    to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of
+    `adapters`; with none, the rules decide alone. The settings come by name (RUN_OPTIONS: launcher, adapters, project,
+    lang, fresh, say, cancel, started; `assistants`, the check's eaos/pipeline/schedule.py Assistants, how many batches are
+    asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one); the other
+    options are the node's inputs."""
+    settings = {name: options.pop(name, default) for name, default in RUN_OPTIONS.items()}
+    report = Path(report)
+    data = spec.inputs(report, project=settings['project'], lang=settings['lang'], **options)
+    if data is None: return None
+    return Run(node, spec, report, data, settings).go()
 
 
 def _joined(answers):
