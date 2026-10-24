@@ -128,35 +128,41 @@ class Manager(Turns, Answers, Outcomes):
 
     def dispatch(self):
         with self._mutex:
-            active = [row for row in self.store.all() if row.get('state') in ACTIVE and not row.get('read')]
-            queue = self.store.queue()
-            if not queue: return
-            run = queue[0]
-            if active:
-                # a run that only waits for the person does not block a direct step (closing a stuck batch, accept, undo):
-                # the person may press it from the palette while the question is open
-                if any(row.get('state') != 'waiting_for_person' for row in active): return
-                run = next((r for r in queue if self.store.load(r).get('mode') == 'direct'), None)
-                if run is None: return
+            run = self._next_run()
+            if run is None: return
             self.set_state(run, 'running', attempt=self.store.load(run).get('attempt') or 1)
         threading.Thread(target=self._start, args=(run,), daemon=True).start()
+
+    def _next_run(self):
+        """The queued run to start now, or None: the first in line when nothing runs."""
+        queue = self.store.queue()
+        if not queue: return None
+        active = [row for row in self.store.all() if row.get('state') in ACTIVE and not row.get('read')]
+        if not active: return queue[0]
+        # a run that only waits for the person does not block a direct step (closing a stuck batch, accept, undo):
+        # the person may press it from the palette while the question is open
+        if any(row.get('state') != 'waiting_for_person' for row in active): return None
+        return next((r for r in queue if self.store.load(r).get('mode') == 'direct'), None)
 
     def recover(self):
         """At the start of the dispatcher: runs this server cannot follow any more are said to have stopped, the rest followed."""
         for record in self.store.all():
-            run, state = record['id'], record.get('state')
-            if state not in ('running', 'paused') or run in self.watched: continue
-            if record.get('mode') == 'assistant' and alive(record.get('pid')): self._follow_assistant(run, None)
-            elif record.get('mode') == 'direct' and record.get('job') and self._job_running(record['job']): threading.Thread(target=self._follow_job, args=(run, record['job']), daemon=True).start()
-            elif record.get('mode') == 'handoff': threading.Thread(target=self._watch_handoff, args=(run,), daemon=True).start()
-            else:
-                self.store.append(run, 'error', {'en': 'The Studio server stopped while this ran, and the work did not finish. Try it again.',
-                                                 'ar': 'خادم الاستوديو توقف أثناء التشغيل، وما اكتمل الشغل. أعد المحاولة.'},
-                                  {'reason': 'server restarted', 'recoverable': True,
-                                   'what_now': {'en': 'Press Retry.', 'ar': 'اضغط «أعد».'}})
-                self.set_state(run, 'failed', 'the server restarted')
+            if record.get('state') in ('running', 'paused') and record['id'] not in self.watched: self._recover(record)
         for record in (r for r in self.store.all() if r.get('state') == 'waiting_for_person' and r.get('mode') == 'handoff' and r['id'] not in self.watched):
             threading.Thread(target=self._watch_handoff, args=(record['id'],), daemon=True).start()
+
+    def _recover(self, record):
+        """A run that was going when this server started: followed again, or said to have stopped with the server."""
+        run, mode = record['id'], record.get('mode')
+        if mode == 'assistant' and alive(record.get('pid')): return self._follow_assistant(run, None)
+        if mode == 'direct' and record.get('job') and self._job_running(record['job']):
+            return threading.Thread(target=self._follow_job, args=(run, record['job']), daemon=True).start()
+        if mode == 'handoff': return threading.Thread(target=self._watch_handoff, args=(run,), daemon=True).start()
+        self.store.append(run, 'error', {'en': 'The Studio server stopped while this ran, and the work did not finish. Try it again.',
+                                         'ar': 'خادم الاستوديو توقف أثناء التشغيل، وما اكتمل الشغل. أعد المحاولة.'},
+                          {'reason': 'server restarted', 'recoverable': True,
+                           'what_now': {'en': 'Press Retry.', 'ar': 'اضغط «أعد».'}})
+        self.set_state(run, 'failed', 'the server restarted')
 
     # starting
     def _start(self, run):
@@ -240,23 +246,26 @@ class Manager(Turns, Answers, Outcomes):
         self._finish_direct(run, result)
 
     def _finish_direct(self, run, result):
-        if self.store.load(run).get('state') in TERMINAL: return
-        if isinstance(result, dict) and result.get('error'):
-            return self._fail(run, str(result['error'])[:500], {'en': str(result.get('what_now') or 'Look at the detail.'), 'ar': str(result.get('what_now') or 'شوف التفاصيل.')})
-        if isinstance(result, dict) and result.get('status') == 'needs_agreement':
-            question = prompts.consent_question(result)
-            return self._ask(run, question)
-        if isinstance(result, dict) and result.get('status') == 'needs_branch' and result.get('branches'):
-            return self._ask(run, prompts.branch_question(result))
-        if isinstance(result, dict) and result.get('status') == 'gates_failed':
-            return self._fail(run, f"the changes fail the project's checks together: {result['why']}"[:500],
-                              {'en': 'Ask your assistant to repair them on top (Fix), or hand the batch over leaving the changes responsible out.',
-                               'ar': 'اطلب من مساعدك يصلحها فوقها (أصلح)، أو سلّم الدفعة مع ترك التغييرات المسؤولة برا.'})
-        if isinstance(result, dict) and result.get('status') == 'assistant_not_ready':
-            return self._ask(run, prompts.assistant_question(result))
+        if self.store.load(run).get('state') in TERMINAL or self._held_up(run, result): return
         payload = self._outcome(run, answer=result)
         self.store.append(run, 'result', prompts.done(result), payload)
         self.set_state(run, 'done', result=payload)
+
+    def _held_up(self, run, result):
+        """Whether a direct step ended short of done: its error said, or the question or the repair it needs asked."""
+        if not isinstance(result, dict): return False
+        status = result.get('status')
+        if result.get('error'):
+            self._fail(run, str(result['error'])[:500], {'en': str(result.get('what_now') or 'Look at the detail.'), 'ar': str(result.get('what_now') or 'شوف التفاصيل.')})
+        elif status == 'needs_agreement': self._ask(run, prompts.consent_question(result))
+        elif status == 'needs_branch' and result.get('branches'): self._ask(run, prompts.branch_question(result))
+        elif status == 'gates_failed':
+            self._fail(run, f"the changes fail the project's checks together: {result['why']}"[:500],
+                       {'en': 'Ask your assistant to repair them on top (Fix), or hand the batch over leaving the changes responsible out.',
+                        'ar': 'اطلب من مساعدك يصلحها فوقها (أصلح)، أو سلّم الدفعة مع ترك التغييرات المسؤولة برا.'})
+        elif status == 'assistant_not_ready': self._ask(run, prompts.assistant_question(result))
+        else: return False
+        return True
 
     def _follow_job(self, run, job):
         self.watched.add(run)
@@ -266,16 +275,20 @@ class Manager(Turns, Answers, Outcomes):
                 if self.store.load(run).get('state') in TERMINAL: return
                 try: record = jobs.read(job, self.project)
                 except ValueError as problem: return self._fail(run, str(problem))
-                progress = record.get('progress') or {}
-                if progress and progress != seen:
-                    seen = progress
-                    name, done, total = progress.get('stage') or record['kind'], progress.get('done'), progress.get('total')
-                    self.store.append(run, 'progress', {'en': f"{plain.stage(name, 'en')} ({done} of {total} done)", 'ar': f"{plain.stage(name, 'ar')} (خلص {done} من {total})"}, {'batch': None, 'done': done, 'total': total, 'stage': progress.get('stage')})
+                seen = self._job_progress(run, record, seen)
                 if record['status'] == 'done': return self._finish_direct(run, record.get('result') or {})
                 if record['status'] == 'failed': return self._fail(run, str(record.get('error') or 'the job failed')[:500])
                 time.sleep(1)
         finally:
             self.watched.discard(run)
+
+    def _job_progress(self, run, record, seen):
+        """A job's progress said each time it moves; the progress now."""
+        progress = record.get('progress') or {}
+        if not progress or progress == seen: return seen
+        name, done, total = progress.get('stage') or record['kind'], progress.get('done'), progress.get('total')
+        self.store.append(run, 'progress', {'en': f"{plain.stage(name, 'en')} ({done} of {total} done)", 'ar': f"{plain.stage(name, 'ar')} (خلص {done} من {total})"}, {'batch': None, 'done': done, 'total': total, 'stage': progress.get('stage')})
+        return progress
 
     # the handoff
     def _handoff(self, run):
@@ -290,7 +303,6 @@ class Manager(Turns, Answers, Outcomes):
         self._watch_handoff(run)
 
     def _watch_handoff(self, run):
-        from ...journeys.handover import entries
         self.watched.add(run)
         seen = None
         try:
@@ -305,26 +317,38 @@ class Manager(Turns, Answers, Outcomes):
                     self.store.append(run, 'step', {'en': f"{row['taken_by']} took the request", 'ar': f"{row['taken_by']} استلم الطلب"}, {'tool': 'status', 'by': row['taken_by']})
                     self.set_state(run, 'running', 'taken')
                     seen = row['taken_at']
-                if seen:
-                    state = project_state.load(self.project)
-                    for entry in entries(state) if state else []:
-                        if (entry.get('at') or '') > seen:
-                            seen = entry['at']
-                            tool = entry.get('tool')
-                            label = self.labels.get(tool) or {'en': tool or 'note', 'ar': tool or 'ملاحظة'}
-                            self.store.append(run, 'step', {'en': f"{entry.get('by')}: {label['en']}" + (f" {entry.get('card')}" if entry.get('card') else ''),
-                                                            'ar': f"{entry.get('by')}: {label['ar']}" + (f" {entry.get('card')}" if entry.get('card') else '')},
-                                              {'tool': tool, 'card': entry.get('card')}, entry.get('outcome') or entry.get('text'))
-                if row['state'] == 'done':
-                    payload = self._outcome(run, answer=row.get('done'))
-                    self.store.append(run, 'result', {'en': 'Your assistant finished the request', 'ar': 'مساعدك خلّص الطلب'}, payload)
-                    if not self._restore_question(run):
-                        self.set_state(run, 'done', result=payload)
-                        self._auto_accept(run, payload)
-                    return handoff.drop(self.project, run)
+                if seen: seen = self._handoff_steps(run, seen)
+                if row['state'] == 'done': return self._handoff_done(run, row)
                 time.sleep(1)
         finally:
             self.watched.discard(run)
+
+    def _handoff_steps(self, run, seen):
+        """What the person's assistant did since `seen` (its journal), each a step of the run; the last time said."""
+        from ...journeys.handover import entries
+        state = project_state.load(self.project)
+        for entry in entries(state) if state else []:
+            if (entry.get('at') or '') <= seen: continue
+            seen = entry['at']
+            self._journal_step(run, entry)
+        return seen
+
+    def _journal_step(self, run, entry):
+        """One line of the assistant's journal as a step: who did what, on which card."""
+        tool, card = entry.get('tool'), entry.get('card')
+        label = self.labels.get(tool) or {'en': tool or 'note', 'ar': tool or 'ملاحظة'}
+        on = f" {card}" if card else ''
+        self.store.append(run, 'step', {'en': f"{entry.get('by')}: {label['en']}{on}", 'ar': f"{entry.get('by')}: {label['ar']}{on}"},
+                          {'tool': tool, 'card': card}, entry.get('outcome') or entry.get('text'))
+
+    def _handoff_done(self, run, row):
+        """The person's assistant finished the request: its outcome, then the run done (or its question back)."""
+        payload = self._outcome(run, answer=row.get('done'))
+        self.store.append(run, 'result', {'en': 'Your assistant finished the request', 'ar': 'مساعدك خلّص الطلب'}, payload)
+        if not self._restore_question(run):
+            self.set_state(run, 'done', result=payload)
+            self._auto_accept(run, payload)
+        return handoff.drop(self.project, run)
 
     # the person's controls
     def pause(self, run):

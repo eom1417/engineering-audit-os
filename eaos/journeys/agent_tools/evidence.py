@@ -7,6 +7,7 @@ from pathlib import Path
 from .. import guided
 from ...core import toolchain
 from ...analysis.finish_line import proof
+from ...analysis.plan import title_of
 from ...core import project_state
 from .project import EVIDENCE, PAGE, _head, _read, _report, state_of
 
@@ -22,21 +23,22 @@ def _claims(report):
 
 
 def findings(project=None, kind=None, path=None, text=None, fixable_only=False, limit=PAGE, offset=0, area=None, severity=None):
-    report = _report(state_of(project))
+    state = state_of(project)
+    report, lang = _report(state), state.get('lang') or 'en'
     claims, rows = _claims(report), []
     from ..selection import cards_in      # area and severity as the Studio's filter reads them
     only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
     for task in _read(report / 'plan.json').get('tasks') or []:
         if not _wanted(task, kind, path, text, fixable_only) or any(task['id'] not in ids for ids in only): continue
-        rows.append(_finding_row(task, claims.get(task.get('claim_id')) or {}))
+        rows.append(_finding_row(task, claims.get(task.get('claim_id')) or {}, lang))
     rows.sort(key=lambda r: -(r['priority'] or 0))
     offset, limit = max(int(offset), 0), min(max(int(limit), 1), 200)
     return {'total': len(rows), 'offset': offset, 'findings': rows[offset:offset + limit], 'more': offset + limit < len(rows)}
 
 
-def _finding_row(task, claim):
-    """One card as findings lists it."""
-    return {'id': task['id'], 'title': task.get('title'), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
+def _finding_row(task, claim, lang):
+    """One card as findings lists it, its title in the person's language (an engine's card was said in Arabic only)."""
+    return {'id': task['id'], 'title': title_of(task, lang), 'kind': task.get('pattern'), 'paths': (task.get('paths') or [])[:5],
             'fixable_automatically': _ready(task), 'decision': (task.get('decision') or {}).get('kind'),
             'confidence': claim.get('confidence'), 'priority': task.get('priority')}
 
