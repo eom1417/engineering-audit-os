@@ -1,5 +1,5 @@
-"""The person's inbox asks each thing once (eaos/report/studio/export.py writes it): two askers' questions on one topic are
-one row, and a fact the assistant checks itself is never asked of the person."""
+"""The person's inbox asks each thing once (eaos/report/studio/export_sections.py builds it): two askers' questions on
+one topic are one row, and a fact the assistant checks itself is never asked of the person."""
 import re
 
 STOP = frozenset('هل في وفي فيه اذا إذا اللي عليه كل شي من على إلى الى او أو أم و ما ماذا كيف وين أين لما لها له لهم هذا هذه نفس نفسه the a an of in on to is are do does or and what which how where should we it'.split())
