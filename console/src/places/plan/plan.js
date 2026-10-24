@@ -308,10 +308,4 @@ act('un-sel-step', el => {
   announce(tn('pl.selected', selection.picked.ids.size));
 });
 act('un-sel-clear', () => { selection.clearSelection(); refresh(); });
-setSelbar(() => {
-  const s = selection.picked;
-  return `<div class="selbar__top"><span class="selbar__count">${esc(tn('pl.selected', s.ids.size))}</span>
-    ${s.group ? `<span class="tag tag--state">${esc(t('sel.group', { name: s.group.label }))}</span>` : ''}
-    <button class="btn btn--plain btn--sm" data-act="un-sel-clear">${icon('x', 'icon--sm')}${t('sel.clear')}</button></div>
-  <div class="selbar__verbs">${['fix', 'verify', 'explain', 'plan'].map((v, i) => `<button class="btn ${i ? 'btn--secondary' : 'btn--primary'}" data-act="sheet" data-sheet="${offline() ? 'open-live' : 'verb:' + v}">${t('verb.' + v)}</button>`).join('')}</div>`;
-});
+setSelbar('un-sel-clear');

@@ -6,7 +6,7 @@
 // preview again, since the token is bound to it. Address: ?sheet=verb:<verb>[:fixable | :assistant | :<problem> |
 // :step:<id>]; without a target, the current selection.
 import {
-  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
+  t, tn, L, num, esc, rich, icon, code, sev, href, assistantPicker, estimate, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, refresh, offline,
   model, selection, store, client, ActionError, contract, prefs,
 } from 'eaos';
 
@@ -48,11 +48,6 @@ function again(change) {
   rerenderSheet();
 }
 
-function estimate(p) {
-  const lo = p.estimate.minutes_low, hi = p.estimate.minutes_high;
-  if (lo == null || hi == null) return t('pv.estimate.none');
-  return hi > 180 ? t('pv.estimate.h', { lo: num(Math.round(lo / 60)), hi: num(Math.ceil(hi / 60)) }) : t('pv.estimate.v', { lo: num(lo), hi: num(hi) });
-}
 
 function cardsHTML(p) {
   const shown = p.cards.slice(0, 6);

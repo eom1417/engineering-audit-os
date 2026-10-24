@@ -6,6 +6,7 @@ import {
   t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk,
 } from 'eaos';
+import { ownTyped, sendAnswer } from './answer.js';
 
 const NEEDS = ['decisions', 'cards'];
 const enc = encodeURIComponent;
@@ -202,28 +203,14 @@ screen({
 /* ---------- answering a report decision (DEC-06, DEC-09) ---------- */
 act('choose', el => { S.chosen[el.dataset.id] = el.value; refresh(); });
 act('own-open', el => { S.ownOpen[el.dataset.id] = true; refresh(); const ta = document.getElementById('own-' + el.dataset.id); if (ta) ta.focus(); });
-act('own', el => {
-  S.own[el.dataset.id] = el.value;
-  const c = document.getElementById('own-count-' + el.dataset.id);
-  if (c) c.textContent = t('wt.own.count', { n: num(el.value.length) });
-  const btn = document.querySelector(`[data-act="send"][data-id="${CSS.escape(el.dataset.id)}"]`);
-  if (btn) btn.disabled = !(S.chosen[el.dataset.id] || el.value.trim());
-});
+act('own', el => ownTyped(el, 'send'));
 act('send', async el => {
   const id = el.dataset.id;
   const option = S.chosen[id] || null, text = (S.own[id] || '').trim() || null;
   const scope = store.scopeOf(id);
   if ((!option && !text) || !client || S.sending[id]) return;
   if (!scope) { toast(t('wt.send.stale'), { refusal: true }); store.refresh(); return; }
-  S.sending[id] = true; refresh();
-  try {
-    store.rememberDecision(await client.answerDecision(id, scope, option, text));
-    delete S.chosen[id]; delete S.own[id]; delete S.ownOpen[id];
-    toast(t('toast.saved'));
-    store.refresh();
-  } catch (e) {
-    toast(e instanceof ActionError ? e.message : String(e), { refusal: true });
-  } finally { delete S.sending[id]; refresh(); }
+  await sendAnswer(id, async () => store.rememberDecision(await client.answerDecision(id, scope, option, text)));
 });
 
 /* ---------- the confirm sheets: owner-only, irreversible (FIX-11, FIX-12; G1, G2, G4, G8, G10) ----------

@@ -148,17 +148,7 @@ act('select-ids', el => {
   announce(tn('pl.selected', selection.picked.ids.size));
 });
 act('sel-clear', () => { selection.clearSelection(); refresh(); });
-setSelbar(() => {
-  const s = selection.picked;
-  return `<div class="selbar__top"><span class="selbar__count">${esc(tn('pl.selected', s.ids.size))}</span>
-    ${s.group ? `<span class="tag tag--state">${esc(t('sel.group', { name: s.group.label }))}</span>` : ''}
-    <button class="btn btn--plain btn--sm" data-act="sel-clear">${icon('x', 'icon--sm')}${t('sel.clear')}</button></div>
-  <div class="selbar__verbs">
-    <button class="btn btn--primary" data-act="sheet" data-sheet="verb:fix">${t('verb.fix')}</button>
-    <button class="btn btn--secondary" data-act="sheet" data-sheet="verb:verify">${t('verb.verify')}</button>
-    <button class="btn btn--secondary" data-act="sheet" data-sheet="verb:explain">${t('verb.explain')}</button>
-    <button class="btn btn--secondary" data-act="sheet" data-sheet="verb:plan">${t('verb.plan')}</button></div>`;
-});
+setSelbar('sel-clear');
 
 /* ---------- search inside the view (PRB-02) ---------- */
 act('pq', el => searchTyped(el, 180, { n: null }));

@@ -3,7 +3,8 @@
 // fail together, or the assistant's own question); the answer resumes the same run (POST /api/questions/<id>/answer),
 // an option or the owner's own words: their answer, never counted as consent, and a clarification only where EAOS
 // carries out the option itself (`binding`).
-import { t, num, esc, rich, icon, code, href, fmtWhen, L, screen, act, refresh, toast, offline, S, live, store, client, ActionError, ac } from 'eaos';
+import { t, num, esc, rich, icon, code, href, fmtWhen, L, screen, act, offline, S, live, store, client, ac } from 'eaos';
+import { ownTyped, sendAnswer } from './answer.js';
 
 const answered = {};   // question id -> what was sent in this visit
 const WHY = { branch: 'branch', 'run consent': 'consent', assistant: 'assistant', together: 'together' };
@@ -60,28 +61,16 @@ function questionsPage(ctx) {
 }
 screen({ id: 'S-05', path: '/waiting/questions', place: 'waiting', title: () => t('wt.g.questions'), render: questionsPage });
 
-act('ac-q-own', el => {
-  S.own[el.dataset.id] = el.value;
-  const c = document.getElementById('own-count-' + el.dataset.id);
-  if (c) c.textContent = t('wt.own.count', { n: num(el.value.length) });
-  const btn = document.querySelector(`[data-act="ac-q-send"][data-id="${CSS.escape(el.dataset.id)}"]`);
-  if (btn) btn.disabled = !(S.chosen[el.dataset.id] || el.value.trim());
-});
+act('ac-q-own', el => ownTyped(el, 'ac-q-send'));
 act('ac-q-send', async el => {
   const id = el.dataset.id;
   const q = live.questions.find(x => x.id === id);
   const option = S.chosen[id] || null, text = option ? null : (S.own[id] || '').trim() || null;
   if (!q || (!option && !text) || !client || S.sending[id]) return;
-  S.sending[id] = true; refresh();
-  try {
+  await sendAnswer(id, async () => {
     const run = await client.answer(id, option, text);
     const opt = (q.options || []).find(o => o.id === option);
     answered[id] = { question: q, option, label: opt ? L(opt.label) : null };
-    delete S.chosen[id]; delete S.own[id]; delete S.ownOpen[id];
     store.patchRun(run.id, run);
-    toast(t('toast.saved'));
-    store.refresh();
-  } catch (e) {
-    toast(e instanceof ActionError ? e.message : String(e), { refusal: true });
-  } finally { delete S.sending[id]; refresh(); }
+  });
 });
