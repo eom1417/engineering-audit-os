@@ -35,12 +35,16 @@ def pace(state):
     """The median of this run's seconds over the last run's, for the stages both finished ok (1.0 until there is
     enough of them)."""
     previous = state.get('previous') or {}
-    pairs = [(stage['seconds'], previous[stage['name']]) for stage in state.get('stages') or []
-             if stage.get('state') == 'ok' and isinstance(previous.get(stage['name']), (int, float))
-             and isinstance(stage.get('seconds'), (int, float)) and previous[stage['name']] > 0]
+    pairs = [(stage['seconds'], previous[stage['name']]) for stage in state.get('stages') or [] if _compared(stage, previous)]
     if sum(then for _, then in pairs) < PACE_AFTER: return 1.0
     low, high = PACE_LIMITS
     return min(max(median(now / then for now, then in pairs), low), high)
+
+
+def _compared(stage, previous):
+    """Whether a stage finished ok in both runs: seconds this time, and more than none the last time."""
+    return (stage.get('state') == 'ok' and isinstance(previous.get(stage['name']), (int, float))
+            and isinstance(stage.get('seconds'), (int, float)) and previous[stage['name']] > 0)
 
 
 def _counted(stage, elapsed):
@@ -77,13 +81,19 @@ def estimate(state, now):
     previous = state.get('previous') or {}
     if not previous: return {'basis': 'first_run'}
     scale = pace(state)
+    costs, unknown = _costs(state, previous, scale, now)
+    left = _longest(costs, state)
+    band = max(left * BAND, MIN_BAND)
+    return {'low': int(max(left - band, 0)), 'high': int(left + band + 0.5), 'basis': 'previous_run',
+            'pace': round(scale, 2), 'unknown': unknown}
+
+
+def _costs(state, previous, scale, now):
+    """({stage: seconds left} of the stages running or still to run, the ones of them the last run gives nothing for)."""
     costs, unknown = {}, []
     for stage in state.get('stages') or []:
         if stage.get('state') != 'running' and not (stage.get('state') == 'waiting' and stage.get('requested', True)): continue
         cost = _left(stage, previous.get(stage['name']), scale, now)
         if cost is None: unknown.append(stage['name'])
         else: costs[stage['name']] = cost
-    left = _longest(costs, state)
-    band = max(left * BAND, MIN_BAND)
-    return {'low': int(max(left - band, 0)), 'high': int(left + band + 0.5), 'basis': 'previous_run',
-            'pace': round(scale, 2), 'unknown': unknown}
+    return costs, unknown
