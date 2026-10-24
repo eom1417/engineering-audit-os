@@ -133,6 +133,24 @@ class ProbeTests(unittest.TestCase):
                  'external': {'facts': []}}
         self.assertIn('`decide` in a.py', probes._engine_cluster(spec, moved)[1], 'moving it to another file does not clear it')
 
+    def test_a_function_with_no_name_is_judged_in_its_file_and_a_name_follows_only_where_it_was_not(self):
+        # TASK-131 of a React project (2026-10-24): a target named <anonymous> was looked for in the whole project, and
+        # every arrow function anywhere kept the card standing whatever its own file became
+        from eaos.analysis import finish_line
+        def ccn(path, symbol, line=1):
+            return {'id': path + symbol, 'value': {'kind': 'complexity', 'engine': 'lizard', 'rule': 'ccn',
+                    'measurements': [{'value': 30, 'threshold': 15}]}, 'location': {'path': path, 'symbol': symbol, 'line': line}}
+        made = [ccn('shell.tsx', 'shell.tsx::<anonymous>', 12), ccn('shell.tsx', 'shell.tsx::pageDetails'), ccn('other.tsx', 'other.tsx::pageDetails')]
+        wanted = finish_line.targets(made[:2], {'external': {'facts': made}})
+        self.assertEqual([(t['name'], t.get('line'), t.get('also_in')) for t in wanted],
+                         [('<anonymous>', 12, None), ('pageDetails', None, ['other.tsx'])])
+        self.assertIn('the function with no name at line 12 in shell.tsx', finish_line.said(wanted[0]))
+        elsewhere = {'external': {'facts': [ccn('other.tsx', 'other.tsx::<anonymous>'), made[2]]}}
+        self.assertEqual(finish_line.left(wanted, elsewhere), [], 'what other files hold, and held then, is not this card')
+        moved = {'external': {'facts': [ccn('new.tsx', 'new.tsx::pageDetails')]}}
+        self.assertEqual([t['name'] for t in finish_line.left(wanted, moved)], ['pageDetails'], 'moved to a new file, it still stands')
+        self.assertEqual([t['name'] for t in finish_line.left(wanted, {'external': {'facts': made[:1]}})], ['<anonymous>'])
+
 
 class VerificationTests(unittest.TestCase):
     """The project's own tests, run in an isolated copy with coverage (eaos/live/verify.py), restored in 0.0.9."""

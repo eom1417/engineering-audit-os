@@ -239,6 +239,28 @@ def fix_read(path, project=None, start=1, end=None):
             'text': '\n'.join(f'{n:>5}  {lines[n - 1]}' for n in range(start, end + 1))}
 
 
+def _kept(path):
+    """A file's text with its own line ends: read as text, a Windows file came back with \\n, and the edit wrote every
+    line of it back changed."""
+    with path.open(encoding='utf-8', newline='') as file: return file.read()
+
+
+def _line_ends(text, find, replace):
+    """`find` and `replace` with the file's own line ends: fix_read shows a Windows file's lines without their \\r, and
+    the text an assistant copies from them has none."""
+    if '\r\n' in text and '\r\n' not in find and find.replace('\n', '\r\n') in text:
+        return find.replace('\n', '\r\n'), replace.replace('\r\n', '\n').replace('\n', '\r\n')
+    return find, replace
+
+
+def _not_once(relative, times):
+    """Why an edit was refused, and what to do: read the lines again, they are not what the edit remembers."""
+    if not times:
+        return (f'{relative}: the text to find is not in the file as it is now: read those lines again with fix_read (an '
+                'earlier edit, or a change taken back, may have changed them) and copy `find` from them, without the line numbers')
+    return f'{relative}: the text to find occurs {times} times, not once: take more lines around it so it is found once'
+
+
 def _apply(root, edits):
     """Each edit: {path, find, replace} (find occurs exactly once), {path, content} (the whole file, new or not),
     or {path, delete: true}. All or nothing."""
@@ -250,12 +272,13 @@ def _apply(root, edits):
         if 'content' in edit:
             if not isinstance(edit['content'], str): raise ValueError(f'{relative}: content must be text')
             staged[relative] = edit['content']; continue
-        text = staged.get(relative) if relative in staged else (path.read_text(encoding='utf-8') if path.is_file() else None)
+        text = staged.get(relative) if relative in staged else (_kept(path) if path.is_file() else None)
         if text is None: raise ValueError(f'{relative}: does not exist; send its whole content instead')
         find, replace = edit.get('find'), edit.get('replace')
         if not isinstance(find, str) or not isinstance(replace, str) or not find:
             raise ValueError(f'{relative}: an edit needs `find` and `replace`, or `content`, or `delete`')
-        if text.count(find) != 1: raise ValueError(f'{relative}: the text to find occurs {text.count(find)} times, not once')
+        find, replace = _line_ends(text, find, replace)
+        if text.count(find) != 1: raise ValueError(_not_once(relative, text.count(find)))
         staged[relative] = text.replace(find, replace, 1)
     for relative, text in staged.items():
         path = _inside(root, relative)
@@ -263,7 +286,7 @@ def _apply(root, edits):
             if path.is_file(): path.unlink()
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding='utf-8')
+            with path.open('w', encoding='utf-8', newline='') as out: out.write(text)
     return sorted(staged)
 
 
