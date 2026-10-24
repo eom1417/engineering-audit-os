@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 from .target_decisions import decisions
+from .target_gaps import current_gap
 
 # The ideal planner's operations as the target's relations; "new" names no component of today's code.
 RELATION_OF = {'retain': 'retain', 'refactor': 'modify', 'merge': 'modify', 'rebuild': 'rebuild', 'delete': 'delete'}
@@ -142,7 +143,6 @@ def _redraw_gaps(out, record, current):
     """The gap rows of today's components drawn again from their final relation, the confirmed cards and the claims
     the triage did not set aside; the rows of introduced components stay as proposed."""
     import json
-    from .target_architecture import current_gap
     out = Path(out)
     def load(name, default):
         try: return json.loads((out / name).read_text(encoding='utf-8'))
