@@ -80,8 +80,7 @@ def _config(target, export, languages):
 def clusters(target, folder):
     emerge = which('emerge')
     if not emerge: return {'status': 'unavailable', 'reason': 'emerge is not installed: python -m eaos tools install --only emerge'}
-    found = {ext for path in _files(target) for ext in [path.suffix]}
-    languages = [name for name, exts in LANGUAGES.items() if found & set(exts)]
+    languages = _languages(target)
     if not languages: return {'status': 'unavailable', 'reason': 'no file in a language emerge reads (' + ', '.join(LANGUAGES) + ')'}
     export = folder / 'emerge'
     for language in languages: (export / language).mkdir(parents=True, exist_ok=True)
@@ -94,6 +93,12 @@ def clusters(target, folder):
     if not written: return {'status': 'error', 'reason': f'emerge exited {code} and wrote no metrics: {err[-400:]}'}
     files = sum(len(json.loads(path.read_text(encoding='utf-8')).get('local-metrics') or {}) for path in written.values())
     return {'status': 'observed', 'languages': sorted(written), 'files': files}
+
+
+def _languages(target):
+    """The languages emerge reads that the project has a file in."""
+    found = {ext for path in _files(target) for ext in [path.suffix]}
+    return [name for name, exts in LANGUAGES.items() if found & set(exts)]
 
 
 STATISTICS = 'emerge-statistics-and-metrics.json'
@@ -114,11 +119,16 @@ def _attributes(city_record):
     """{path: metrics} from a cc.json: its lenses (API 2.x, keyed by node id) or the attributes on each file node."""
     nodes = city_record.get('files') or city_record.get('nodes') or []
     paths = _paths(nodes)
+    return _lens_attributes(city_record, paths) or {paths[leaf['id']]: leaf.get('attributes') or {} for leaf in _leaves(nodes) if paths.get(leaf.get('id'))}
+
+
+def _lens_attributes(city_record, paths):
+    """{path: metrics} from a cc.json's lenses (API 2.x), where they are keyed by node id."""
     merged = {}
     for lens in (city_record.get('lenses') or {}).values():
         for node, values in ((lens or {}).get('attributes') or {}).items():
             if node in paths: merged.setdefault(paths[node], {}).update(values)
-    return merged or {paths[leaf['id']]: leaf.get('attributes') or {} for leaf in _leaves(nodes) if paths.get(leaf.get('id'))}
+    return merged
 
 
 def digest(folder):
