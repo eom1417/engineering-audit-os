@@ -589,16 +589,6 @@
     "Structure and layers, cycles and coupling, complexity, duplication, dead code, the tests, how easily it grows"
    ]
   },
-  "layers": {
-   "name": [
-    "تجربة حدود الطبقات",
-    "Try the layers"
-   ],
-   "looks_at": [
-    "يجرّب على نسخة معزولة: البناء النهائي (أسرار في الملفات المنشورة)، قواعد البيانات كمستخدمين مختلفين، ونقاط الطلب بحسابين تجريبيين. يضيف حتى 15 دقيقة.",
-    "On an isolated copy: the production build (secrets in what ships), the data rules as different users, and the endpoints with two test accounts. Adds up to 15 minutes."
-   ]
-  },
   "speed": {
    "name": [
     "السرعة والتحمل",
@@ -607,6 +597,16 @@
    "looks_at": [
     "البرنامج تحت الضغط، وكلفة كل نقطة دخول لو زاد الاستخدام 1000 مرة، والمسارات الساخنة، وجاهزية التشغيل الفعلي",
     "The app under load, the cost of each entry at 1000 times the use, the hot paths, production readiness"
+   ]
+  },
+  "layers": {
+   "name": [
+    "تجربة حدود الطبقات",
+    "Try the layers"
+   ],
+   "looks_at": [
+    "يجرّب على نسخة معزولة: البناء النهائي (أسرار في الملفات المنشورة)، قواعد البيانات كمستخدمين مختلفين، ونقاط الطلب بحسابين تجريبيين. يضيف حتى 15 دقيقة.",
+    "On an isolated copy: the production build (secrets in what ships), the data rules as different users, and the endpoints with two test accounts. Adds up to 15 minutes."
    ]
   }
  },

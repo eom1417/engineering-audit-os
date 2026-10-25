@@ -22,7 +22,7 @@ def report(root):
     """A small report: six cards in four areas, one failed stage, a two-part target."""
     out = Path(root)
     tasks = [_task(1, 'upgrade_dependency', 'CLM-1', ['package-lock.json']),
-             _task(2, 'access_gap', 'CLM-2', ['src/api/users.ts'], ready=False),
+             _task(2, 'layer_boundary', 'CLM-2', ['src/api/users.ts'], ready=False),
              _task(3, 'remove_dead', 'CLM-3', ['src/old.ts']),
              _task(4, 'canonicalize', 'CLM-4', ['src/a.ts', 'src/b.ts']),
              _task(5, 'import_cycle', 'CLM-5', ['src/a.ts', 'src/api/users.ts']),
@@ -38,7 +38,8 @@ def report(root):
     dossier = {'claims': claims, 'coverage': {'source_files': 50, 'files_parsed': 50, 'executed_verification': False,
                                               'runtime_confirmation': 0, 'semantic_review': False},
                'provenance': {'generated_at': '2026-09-27T00:00:00'}}
-    register = {'items': [{'claim_id': 'CLM-1', 'severity': 'medium', 'category': 'supply_chain'}]}
+    register = {'items': [{'claim_id': 'CLM-1', 'severity': 'medium', 'category': 'supply_chain'},
+                          {'claim_id': 'CLM-2', 'severity': 'critical', 'category': 'security'}]}     # an open table (M6)
     manifest = {'target': '/x/shop', 'stages': {'facts': {'status': 'ok'}, 'load': {'status': 'failed'},
                                                  'measure': {'status': 'ok'}, 'verify': {'status': 'unavailable'}}}
     target = {'root': '', 'forbidden_edges': 2,

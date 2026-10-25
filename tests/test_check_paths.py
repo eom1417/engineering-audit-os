@@ -104,7 +104,7 @@ class FocusedCheckTests(unittest.TestCase):
         (self.project / 'core' / 'added.py').write_text('def added():\n    return 1\n', encoding='utf-8')
         _commit(self.project, 'more')
         manifest = check(self.project, self.out, language='en', paths=['look'])
-        ran = {name for name, row in manifest['stages'].items() if row.get('reason_code') != 'outside_paths'}
+        ran = {name for name, row in manifest['stages'].items() if row.get('reason_code') not in ('outside_paths', 'loop_off')}
         self.assertEqual(ran, set(resolve(['look'])['stages']))
         patterns = {t['pattern'] for t in json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))['tasks']}
         self.assertLessEqual(patterns, set(PATHS['look']['patterns']))
