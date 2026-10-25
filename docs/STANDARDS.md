@@ -38,7 +38,8 @@ the Studio's entries from `console/knip.json`.
 - Studio and API: launch token, CSRF and Origin checks on every write; bound to the hosts it was started for.
 - EAOS's own code carries **no medium or high finding** from `bandit`, `semgrep`, `gitleaks`, `osv-scanner`: today's
   findings are recorded in `tools/quality.json` and may only go down (M2.1 silences `semgrep`'s noisy rule; the rest
-  are reviewed in M3). `osv-scanner` reads the Studio's `package-lock.json`; the Python dependencies have no lock file.
+  are fixed or justified in M8.4, which also adds a lock file for the Python dependencies). `osv-scanner` reads the
+  Studio's `package-lock.json`.
 
 ## 3. Safety
 
@@ -46,7 +47,7 @@ the Studio's entries from `console/knip.json`.
   (directly on `develop` only when the owner says so).
 - A project's app runs only in its isolated copy (`eaos/live/sandbox.py`, `eaos/live/run.py`): its own database, port and
   scratch home; never the owner's real data.
-- A simulated user (M9) acts only in the isolated copy: external services stubbed, dummy data only, within step,
+- A simulated user (M10) acts only in the isolated copy: external services stubbed, dummy data only, within step,
   time and cost budgets; what needs a real service is reported as not covered.
 - The owner's own projects are never checked from the EAOS development container; fixes are proved on trial apps and
   on the compatibility corpus.
