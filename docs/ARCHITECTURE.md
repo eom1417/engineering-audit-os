@@ -34,10 +34,6 @@ engineering-audit-os/
   docs/            this page and the other references
 ```
 
-Known debts M3.2-M3.5 remove: the CLI (`interfaces/cli.py`, `journeys/guided.py`), MCP (`journeys/agent_tools.py`,
-`interfaces/mcp_server.py`) and Studio (`interfaces/studio`) each hold their own command layer; two request guards
-(`interfaces/api/guard.py`, `core/security.py`); the largest modules `report/human_report.py` (2,097 lines),
-`journeys/guided.py`, `journeys/agent_tools.py`, `interfaces/studio/branches.py`; words in more than one catalog.
 
 ## 2. The layers and the dependency rule
 
@@ -48,7 +44,7 @@ contract in `pyproject.toml`, run by `tools/quality.sh`; since M3.1 with no exce
 
 - `core` imports nothing of EAOS; `engines` only `core`; `facts` reads the engines' findings.
 - `analysis` judges by rules what the facts and the app's run gave; `ai` sits above it because the assistant judges
-  the rules' findings (triage, the strict judge of M6.4) and their verdicts come back as data.
+  the rules' findings (triage, the strict judge of M7.4) and their verdicts come back as data.
 - `report` renders the analysis and the assistant's verdicts; it computes nothing of its own.
 - `pipeline` runs the stages, `journeys` combine the pipeline with the person's steps, `interfaces` stay thin.
 - The order was one line, not groups of peers (the plan of M-1): on today's code reports read the analysis and the
@@ -87,7 +83,7 @@ The target loops of the North Star, which these grow into:
 |---|---|---|
 | L1 Understand | facts, features, intake, policy, engines | facts complete; coverage ledger written |
 | L2 Run and see | setup, session, crawl, screens, journeys, lock, record | expected screens pictured, or the AI explorer tried, or a failure explained |
-| L2b Try as a user (optional, M9) | replay of saved journeys (always); scenario, data, actors, tickets (short or full simulation) | replays green or their breaks shown; each persona reached its goals or its difficulties recorded with evidence |
+| L2b Try as a user (optional, M10) | replay of saved journeys (always); scenario, data, actors, tickets (short or full simulation) | replays green or their breaks shown; each persona reached its goals or its difficulties recorded with evidence |
 | L3 Judge | claims, probe, triage, weaknesses, visual, the simulation's difficulties | every finding confirmed / needs validation / rejected, with evidence |
 | L4 Envision | semantic, ideal, target, reconcile, estimate | ideal picture; repair-or-rebuild decision with its estimate |
 | L5 Plan | plan, order, cards, steps | every card has an acceptance check and a place in the order |
@@ -109,16 +105,16 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | running the app, signing in, finding screens | `live/` (`live/screens/` for the crawl and the audit) |
 | driving the browser for a goal, recording, replaying | `live/` (the one browser-agent layer, M5.2) |
 | judging findings by rules, cards, plan, estimates | `analysis/` |
-| judging findings with an assistant (triage, the strict judge of M6.4) | `ai/` (`ai/nodes/`); `analysis/` takes its verdicts as data |
+| judging findings with an assistant (triage, the strict judge of M7.4) | `ai/` (`ai/nodes/`); `analysis/` takes its verdicts as data |
 | anything that calls an assistant | `ai/` |
-| a simulated user: scenario, personas, data, actors, tickets | `ai/` (M9); its replays run from `live/` |
+| a simulated user: scenario, personas, data, actors, tickets | `ai/` (M10); its replays run from `live/` |
 | what people read (REPORT.html, the few documents, the Studio's data) | `report/` (`report/studio/`) |
 | a stage or loop declaration | `pipeline/stages.py` (M4: plus `pipeline/loops.py`) |
 | a journey's steps (check, fix batches, build, extend) | `journeys/` |
 | a CLI command, MCP tool, API route or Studio action | `interfaces/`: thin, calling a journey |
 | a word naming a concept (a stage, a path, a kind of problem) | `eaos/data/words.json`, every form beside the others; the engine reads it through `core/words.py`, the Studio's build makes its keys from it |
 | a sentence composed with values | beside the code that composes it, Arabic and English together |
-| a Studio screen | `console/src/places/<place>/` (only core places; see `ROADMAP.md` M7) |
+| a Studio screen | `console/src/places/<place>/` (only core places; see `ROADMAP.md` M8) |
 | a test | `tests/test_<module>.py`, one test per real behaviour |
 | a developer tool | `tools/` |
 | scratch of a task | `/workspace/eaos-work/<task>/`, removed when the task ends: never in the repository |
@@ -129,7 +125,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 |---|---|
 | Full check | every loop; L2b replays the saved journeys without AI; the short simulation only when chosen in the check's preview, which shows its time and cost |
 | A focused path (look, security, …) | only the loops it needs |
-| Try the experience (M9) | L1 and L2 as far as needed to run the app, then L2b's full simulation, L3 and the experience report |
+| Try the experience (M10) | L1 and L2 as far as needed to run the app, then L2b's full simulation, L3 and the experience report |
 
 ## 6. Outputs (what a check leaves)
 

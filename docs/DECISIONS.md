@@ -3,8 +3,19 @@
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
 ## 2026-10-25
-- **M10, the whole system in layers (owner)**: EAOS checks a project as layers (browser, endpoints, business rules,
-  data) and their boundaries by default, not only when the project declares a policy; planned as M10, run right
+- **One plan (owner)**: `ROADMAP.md` is the only place that holds a plan, a backlog or a status; it runs M-1 to M10,
+  numbered in the order the milestones run (M-1 to M4 done; M5 seeing any app, M6 the whole system in layers, M7
+  reliable fixes, M8 interfaces and EAOS clean, M9 intelligence and the final proof, M10 simulated users). It replaces
+  the numbering of 2026-10-23 (old M6-M9 are now M7-M10, the layers planned as M10 this morning are M6); the entries
+  below were renumbered with it. Merged into it and then deleted: the six plans left in assistants' accounts
+  (2026-09-29 to 2026-10-23), the open items of `/workspace/HANDOFF.md`, and `/workspace/eaos-hub` (the old tracking
+  page, frozen since 2026-10-08 at version 0.0.2, its own plan of 187 cards and steps NS1-NS35). Of the hub's ideas
+  never carried over: verification after a change became M7.5, production readiness M6.9, "who reads this data" M6.5,
+  independent proof M9.3, the project's laws as gates M6.2; dropped: chaos testing (the k6 baseline and M6.9 cover
+  what a person can act on), an archive before delete (the fix branch and git keep everything), protecting official
+  outputs as files (a feature of one project, not of EAOS), the "initiative engine" (no definition left to build).
+- **M6, the whole system in layers (owner)**: EAOS checks a project as layers (browser, endpoints, business rules,
+  data) and their boundaries by default, not only when the project declares a policy; planned as M6, run right
   after M5 (`ROADMAP.md`). From the review of the tools (2026-10-25, over 40 checked for licence, 2026 activity, use
   without changing the project, machine-readable and repeatable output):
   - adopted: `dependency-cruiser` used fully (reachability, type-only imports), `import-linter` and `go-arch-lint`
@@ -55,16 +66,16 @@ Newest first. Each decision binds every assistant, in any chat, until the owner 
 - **Tests**: only those truly needed.
 - **HungerLab** comes later as a private snapshot repository (`eom1417/hungerlab-snapshot`); its screens problem is
   solved at the root by the compatibility corpus (M0.3, M5), never project by project.
-- **Cloudflare's security-audit skill**: its ideas are used (strict judge M6.4, logic hunting M8.2); the existing
+- **Cloudflare's security-audit skill**: its ideas are used (strict judge M7.4, logic hunting M9.2); the existing
   engines are not replaced by it.
-- **Model tiers with escalation** come in M8.1.
+- **Model tiers with escalation** come in M9.1.
 - **Branches**: only `main`, `develop` and `beta-trial` stay; `update.sh` deletes merged `dev/` branches.
-- **The user's full experience is simulated** (M9): AI actors try the program as its users would (a user asks, an
+- **The user's full experience is simulated** (M10): AI actors try the program as its users would (a user asks, an
   admin approves, the user goes on; support tickets when stuck), with realistic dummy data, only in the isolated copy.
   Three levels: the saved journeys are **replayed without AI in every full check**; a **short simulation** is an option
   of the full check, shown with its time and cost; the **full simulation** is its own check path, runnable alone.
-  Whether the short simulation joins every full check is decided from the numbers of M9.10. It is built last, on M5's
-  browser-agent layer, M6.4's judge and M8.1's model tiers.
+  Whether the short simulation joins every full check is decided from the numbers of M10.10. It is built last, on M5's
+  browser-agent layer, M7.4's judge and M9.1's model tiers.
 
 ## 2026-10-17
 - Every development starts on a new `dev/<topic>` branch from `develop` without asking; directly on `develop` only
