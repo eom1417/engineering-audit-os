@@ -50,7 +50,8 @@ def surfaces(facts):
 
 def new_breakage(report, root, collected=None):
     """What the change broke (eaos/analysis/gates.py structure, against the report): a forbidden import, a file in no layer of the
-    project's policy, an import cycle, a broken reference of high severity; and any HTTP endpoint or mount that is gone.
+    project's policy, an import cycle, a broken reference of high severity, a boundary of the layers (M6); and any HTTP
+    endpoint or mount that is gone.
     A fix that makes a problem disappear by deleting what users reach is not a fix. `collected` is a collection of facts
     on `root` the caller already made."""
     import tempfile
@@ -63,12 +64,20 @@ def new_breakage(report, root, collected=None):
     except (ValueError, OSError): policy = None
     with tempfile.TemporaryDirectory(prefix='eaos-breakage-') as out:
         if collected: out = str(collected)
-        else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken'] + (['entrypoints'] if had is not None else []))
-        broke = words(structure(report, out, policy))
+        else: collect(root, out, ['syntax', 'resolve', 'graph', 'broken', 'domain', 'runtime', 'secrets', 'config']
+                      + (['entrypoints'] if had is not None else []))
+        broke = words(structure(report, out, policy)) + _layers_broken(report, root, out)
         has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
     if had is not None:
         broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
     return broke
+
+
+def _layers_broken(report, root, out):
+    """The boundaries of the layers (eaos/analysis/layers/) a change broke, when the check read them."""
+    from ..analysis import layers
+    before = layers._read(Path(report) / layers.RECORD)
+    return layers.introduced(before, layers.check(root, out)) if before else []
 
 
 # The security engines that answer in seconds: they run on every change a batch makes (eaos/journeys/waves edit_gates).

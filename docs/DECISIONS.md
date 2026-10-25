@@ -64,6 +64,11 @@ decision goes under its topic; once its milestone is done, the reasoning behind 
   - rejected: Dredd and Optic (archived), RESTler, madge and ts-arch (stale), Sheriff and jMolecules (they need the
     project changed), ZAP and Nuclei (noise for this purpose), splinter's SQL taken directly (no licence; its checks
     come through the MIT Supabase CLI), AI pentest agents such as Strix and Shannon (not repeatable).
+  - done in 0.0.78: every check reads the layers by default (`analysis/layers/`, cards of pattern `layer_boundary`, the
+    access gaps among the data layer's rules); the live part is the option `layers` of the check (up to 15 minutes,
+    said before it starts); a fix that breaks a boundary is refused. `import-linter` and `go-arch-lint` were not added:
+    EAOS's own graph checks the same generated rules for every language and dependency-cruiser adds the reach through
+    other files (the reasoning: `docs/archive/DECISIONS-DONE.md`, M6).
 - **The user's full experience is simulated** (2026-10-23, M10): AI actors try the program as its users would (a user asks, an
   admin approves, the user goes on; support tickets when stuck), with realistic dummy data, only in the isolated copy.
   Three levels: the saved journeys are **replayed without AI in every full check**; a **short simulation** is an option
@@ -72,6 +77,8 @@ decision goes under its topic; once its milestone is done, the reasoning behind 
   browser-agent layer, M7.4's judge and M9.1's model tiers.
 
 ## Open, the owner's to decide
+- `import-linter` (Python) and `go-arch-lint` (Go) of the M6 tool review were not added (M6.2): they would check again
+  the rules EAOS's own graph already checks; say so if they are wanted all the same.
 - The official Semgrep rules EAOS fetches are under the Semgrep Rules License
   (internal use; not offered to others as a service). Fine while each person runs EAOS on their own code; if EAOS is
   ever offered as a service, the rules it relies on are rewritten as EAOS's own first.

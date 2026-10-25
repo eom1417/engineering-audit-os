@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version 0.0.77" src="https://img.shields.io/badge/version-0.0.77-3987e5"></a>
+  <a href="CHANGELOG.md"><img alt="Version 0.0.78" src="https://img.shields.io/badge/version-0.0.78-3987e5"></a>
   <img alt="Status: pilot" src="https://img.shields.io/badge/status-pilot-f2a33a">
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
@@ -52,8 +52,10 @@ and a tech lead would, together, and every conclusion links back to the facts be
     <td width="50%" valign="top">
       <h3>🔍 Check</h3>
       Thirty-six pinned open-source analyzers and your app, run in an isolated copy, produce one set of facts:
-      structure, complexity, duplication, dead code, security, dependencies, screens and speed. Findings that two
-      engines agree on become cards; the rest are judged on their evidence.
+      structure, complexity, duplication, dead code, security, dependencies, screens and speed. The system is read as
+      layers, as a firm reads it: what ships to the browser, every endpoint's guard, the database's rules, where the
+      business rules live, operations and tests; on request each boundary is tried on the running app. Findings that
+      two engines agree on become cards; the rest are judged on their evidence.
     </td>
     <td width="50%" valign="top">
       <h3>🧭 Plan</h3>
@@ -201,7 +203,7 @@ EAOS treats your project as untrusted input, and your decisions as final.
 
 ## The toolchain
 
-EAOS orchestrates rather than rebuilds: 34 open-source tools and free design libraries, each at a pinned version with its checksum and licence
+EAOS orchestrates rather than rebuilds: 37 open-source tools and free design libraries, each at a pinned version with its checksum and licence
 ([`eaos/data/toolchain.json`](eaos/data/toolchain.json), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | Area | Tools |
@@ -209,7 +211,7 @@ EAOS orchestrates rather than rebuilds: 34 open-source tools and free design lib
 | Structure and understanding | CodeGraph · GitNexus · Enola · Reforge · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
 | Complexity, duplication, dead code | Lizard · jscpd · scc · knip, beside EAOS's own counts |
 | Security and dependencies | Semgrep · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
-| Contracts and data | Spectral · oasdiff · SQLFluff |
+| Contracts and data | Spectral · oasdiff · SQLFluff · Schemathesis · the Supabase CLI's advisors · pgTAP |
 | Your running app | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 |
 | Automatic changes | jscodeshift |
 | Design (the look of a build or a redesign) | UI UX Pro Max · awesome-design-md · tweakcn themes · Anthropic's frontend-design · shadcn/ui · Fontsource |

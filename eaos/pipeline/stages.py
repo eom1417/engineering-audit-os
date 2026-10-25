@@ -112,7 +112,19 @@ _DECLARED = (
     Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL, uses=('app', 'machine'),
           absent_when='the app is not running in an isolated copy, or it has no production build that starts',
           description="Today's speed under the intake's load scenarios (k6, p95) on the app's production build"),
-    Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline',),
+    Stage('layers', produces=('layers.json', 'facts/boundaries.json'), requires=('facts',), reads=('engines', 'verify'),
+          description="The system as layers: every file in a layer of its reference type, the boundaries between them, what "
+                      'ships to the browser, every endpoint and its guard, the data rules read from the migrations, where the '
+                      "business rules live, operations and tests; each broken boundary a finding, each doubt a question"),
+    Stage('layers_trial', produces=('live/api-trial',), requires=('layers', 'setup'), reads=('session',), apart=True,
+          amends=('layers.json', 'facts/boundaries.json'), necessity=OPTIONAL,
+          absent_when='the person did not choose to try the layers (the `layers` option, its time said before it starts), or '
+                      'the app is not running in an isolated copy',
+          description="The layers tried: the production build read for keys and source maps, the migrations applied to a "
+                      "database of the run's own and tried per table with pgTAP as no one, the owner and another user (and the "
+                      "Supabase advisors), the API tried by Schemathesis with two test accounts; each failure a finding with "
+                      'its evidence'),
+    Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline', 'layers'),
           description='How the program holds up in production and under pressure, as findings with evidence: the external '
                       'dependencies a fault would hit, the routes a security scan would request, a health route, telemetry '
                       "and SLO-able scenarios, and the load baseline against the intake's thresholds"),
@@ -127,7 +139,7 @@ _DECLARED = (
           description='Enforce the declared architecture policy'),
     Stage('load', produces=('load-model.json',), requires=('facts',), reads=('engines', 'baseline'),
           description='A cost record per entry point, with a stated projection at 1000x'),
-    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'),
+    Stage('claims', produces=('dossier.json', 'README.md'), requires=('facts', 'features', 'measure', 'load'), reads=('layers', 'layers_trial', 'policy'),
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',), amends=('dossier.json',),
           description='Settle every claim whose truth can be decided mechanically'),
@@ -197,7 +209,7 @@ ORDER = tuple(stage.name for stage in STAGES)
 # The five parts a person follows a check by (the Studio's board), each stage in one; within a part, the declared order.
 PHASES = {phase: tuple(sorted(names, key=ORDER.index)) for phase, names in {
           'read': ('facts', 'features', 'roles', 'intake', 'measure', 'architecture', 'policy', 'load'),
-          'tools': ('engines', 'claims', 'probe', 'sustainability', 'transform'),
+          'tools': ('engines', 'layers', 'layers_trial', 'claims', 'probe', 'sustainability', 'transform'),
           'app': ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'readiness'),
           'assistant': ('semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps'),
           'plan': ('plan', 'target', 'proposals', 'cards', 'reconcile', 'order', 'steps', 'reports', 'translate')}.items()}

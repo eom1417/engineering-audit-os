@@ -9,9 +9,9 @@ The owner says "execute Mx" (in any chat, with any assistant): every card of Mx 
 Done (`docs/STANDARDS.md` §7), without asking again except for a decision only the owner can take. **After each card,
 its row in the status table below is updated in the same change.** Milestones are numbered in the order they run.
 
-## Where we are (2026-10-25, version 0.0.77)
+## Where we are (2026-10-25, version 0.0.78)
 
-M-1 to M4 are done, and M5 but M5.4 (it waits for the owner's HungerLab snapshot); **next is M6**. Each done
+M-1 to M4 are done, M5 but M5.4 (it waits for the owner's HungerLab snapshot), and M6; **next is M7**. Each done
 milestone in one line (what each card did: `docs/archive/ROADMAP-DONE.md`; why and how: `CHANGELOG.md`):
 
 | Milestone | What it delivered | Version |
@@ -23,6 +23,7 @@ milestone in one line (what each card did: `docs/archive/ROADMAP-DONE.md`; why a
 | M3 The target code layout | ten layers enforced, one state record, one guard and one command layer, giant modules split, one words catalog | 0.0.75 |
 | M4 The pipeline as loops | loops as data, the coverage ledger with red gaps, the ideal in 8 minutes, repair or rebuild, the laws over all of EAOS (the Studio's JavaScript included) | 0.0.76 |
 | M5 Seeing any app (but M5.4) | the common stacks start from their files, screens found in layers and by the browser agent (explored once, replayed free), signed in by rules, the lock and walk-through per kind of user; the corpus 12 of 12 (2 before) | 0.0.77 |
+| M6 The whole system in layers | every check reads the system as layers (each file in its layer and side, the boundaries, what ships to the browser, every endpoint and its guard, the data rules, the rules split, operations, tests) and a fix that breaks a boundary is refused; the option "Try the layers" (the migrations tried with pgTAP and the Supabase advisors, the API with Schemathesis and two accounts, the production build read); the layers first in START-HERE, REPORT.html and the Studio; the detection baseline 15 of 16 (6 before) | 0.0.78 |
 
 ## The firm, department by department
 
@@ -31,13 +32,13 @@ completes it. A department with no card here is a gap in the plan.
 
 | Department | Delivered today | Completed by |
 |---|---|---|
-| Discovery: the questions only the owner can answer | the intake, the coverage ledger, the sign-in question that says what EAOS tried (M5.3) | M6 onwards (each layer's open questions) |
-| Architecture: the ideal shape and the decision | the ideal picture, repair or rebuild, target architecture | M6 (every project checked as layers) |
+| Discovery: the questions only the owner can answer | the intake, the coverage ledger, the sign-in question that says what EAOS tried (M5.3), each layer's questions (M6) | M7.4 (the judge asks what it cannot decide) |
+| Architecture: the ideal shape and the decision | the ideal picture, repair or rebuild, target architecture, every project read as layers with its boundaries (M6) | M7.4 (the judge reads the broken boundary) |
 | Code quality | dead code, duplication, complexity, the code laws | M8.4 (EAOS itself clean by its own laws) |
-| Security | Semgrep, Bandit, CodeQL, gitleaks, osv-scanner | M6.3-M6.7 (between the layers), M7.4 (the judge), M9.2 (logic flaws) |
-| Data | the data facts, rule duplication | M6.5, M6.6 (who may see what), M6.8 (one source of rules) |
-| Quality assurance | the behaviour lock, acceptance checks, Python suite health | M6.10 (the project's own tests), M10.4 (replays) |
-| Performance and production | the k6 baseline, production readiness findings | M6.9 (the operations layer) |
+| Security | Semgrep, Bandit, CodeQL, gitleaks, osv-scanner; what ships to the browser, every endpoint's guard, the API tried with two accounts (M6) | M7.4 (the judge), M7.5 (the security engines after each batch), M9.2 (logic flaws) |
+| Data | the data facts, rule duplication, the data layer's rules read and tried per table, one source of business rules (M6) | M9.2 (logic flaws) |
+| Quality assurance | the behaviour lock, acceptance checks, Python suite health, the tests layer: every write no test reaches (M6) | M10.4 (replays) |
+| Performance and production | the k6 baseline, production readiness findings, the operations layer (M6) | M9.4 (the final proof) |
 | Screens, experience, accessibility | screens of any common stack found in layers and by the browser agent, pictured per kind of user, axe, journeys (M5) | M5.4 (HungerLab), M10 (simulated users) |
 | Delivery | the plan, cards, fix batches behind the lock | M7 (reliable fixes, verified after each batch) |
 | Hand-over and documents | the four reports, START-HERE, the Studio | M7.1 (a hand-over that resumes) |
@@ -50,79 +51,10 @@ completes it. A department with no card here is a gap in the plan.
 
 ### M5 Seeing any app
 - **M5.4** HungerLab joins the corpus (from the owner's snapshot repository).
+- **M5.5** The two corpus apps of M6 that do not start without an assistant start by rules: task-api (an Express API
+  that needs Supabase keys and listens on the port its code writes, 3000) and next-dashboard (Next.js with Drizzle,
+  whose first page needs a Postgres with its tables: `drizzle-kit push` on the run's own database). Today 13 of 15.
 - Target: ≥ 90% of the corpus pictures its expected screens; every failure explained with its fix.
-
-### M6 The whole system in layers
-A professional firm checks a product as layers: the browser holds no secret and no privileged rule, every endpoint
-authenticates, authorises and validates, the business rules live in one place, the data layer enforces who sees what,
-the operations and the tests hold it up, and each layer speaks only to the layers it may. EAOS knows the right layers
-of ten project types (`eaos/rules/reference-architectures.json`) but enforces them only when a project declares its
-own `eaos.policy.json`, and checks no endpoint guard, no row-level security and nothing of what ships to the browser
-(owner's review, 2026-10-25, `docs/DECISIONS.md`). Every card adds evidence through the existing fact and engine
-layers; a new tool is pinned with its licence recorded; nothing is written into the project; a placement EAOS is unsure
-of becomes a question, never a finding.
-
-- **M6.0** The proof first. `tests/fixtures/baseline-app` gains one planted defect per boundary, each in
-  `baseline-problems.json`: a screen that queries the database directly, a business rule only in the browser for a
-  write, a secret-named variable exposed to the browser (`VITE_`/`NEXT_PUBLIC_`), a privileged key in the built
-  output, a write endpoint with no authentication, a read endpoint that returns another user's row (BOLA), a table
-  without row-level security, a policy open to everyone (`using (true)`), a critical endpoint no test covers. A clean
-  twin holds the same app done right. The corpus gains three apps of the stacks the layers matter for: React + Vite +
-  Supabase with its migrations, a Node REST API with an OpenAPI file, a Next.js app with API routes and server actions
-  (HungerLab of M5.4 when it arrives). Today's numbers recorded: planted defects found, findings on the clean twin.
-- **M6.1** The layer map by default: every file of the project placed in a layer of its reference type, with the
-  reason (its path, what it imports: React/JSX, a database client, an HTTP framework; its markers: `'use client'`,
-  `server-only`) and a confidence; a file in no layer is a listed gap; the project's own policy file overrides. One
-  fact set `layers`, extending `analysis/target_projection.py`'s placement rather than a second one.
-- **M6.2** The boundaries enforced by default: each layer's `allowed_dependencies` of the reference become rules,
-  written to the work folder: `dependency-cruiser` for JavaScript and TypeScript (reachability through other files,
-  type-only imports allowed), `import-linter` for Python, `go-arch-lint` for Go. Each breach is a finding with
-  file:line and the boundary it breaks; one of a low-confidence placement is a question. The project's own laws in its
-  policy file are gates of its fixes.
-- **M6.3** The browser holds no secret: `gitleaks` also over the built output and its source maps (the build run in
-  the isolated copy when the person consented, otherwise said as a gap); EAOS's own rules (Semgrep/ast-grep, beside
-  their examples): a secret-named variable exposed to the browser, a privileged key (`service_role`, `sb_secret_`) in
-  anything shipped, source maps shipped, a server-only module imported by browser code, a database or SQL call in a
-  UI file.
-- **M6.4** Every endpoint and its guard: one table, a row per endpoint (method, path, handler, authentication,
-  authorisation, input validation, the data it touches), from the entry-point facts and EAOS's own rules, for Next.js
-  (app and pages routes, server actions), Express, Fastify, Hono, FastAPI, Flask, Django/DRF and Supabase edge
-  functions. An endpoint that writes, or reads private data, with no guard is a finding; a guard EAOS cannot read is
-  a question. The table feeds M6.7, M6.10 and the report.
-- **M6.5** The data layer's rules, read from the migrations (no database needed): a table without row-level security,
-  security enabled with no policy, a write policy open to everyone, a security-definer view or function the public
-  role can run, a public storage bucket that can be listed; and for each table who reads it and who writes it (the
-  data-access facts), so a table written from the browser is seen.
-- **M6.6** The data layer's rules, tried: in the isolated copy with the migrations applied, the Supabase CLI's
-  security advisors (`supabase db advisors --type security`, MIT, pinned) and pgTAP tests EAOS writes per table, run
-  as no one, as the row's owner and as another user (M5.3's test accounts); a policy that lets another user read or
-  change a row is a finding with the failing test as its evidence.
-- **M6.7** The API tried against the running app: `Schemathesis` (MIT, pinned, fixed seed, a time budget) over the
-  project's OpenAPI, or one EAOS writes from M6.4's table and marks as derived: an endpoint that ignores
-  authentication, one user reaching another's object (two test accounts of M5.3), bad input accepted. Each failure is
-  a finding with its request and response.
-- **M6.8** One source of business rules: the validation and the rules of a write compared between browser and server
-  (zod/yup/pydantic fields and limits, prices, roles, extending `facts/domain.py`'s rule duplication); a rule kept only
-  in the browser for a write is a finding (the server trusts the client); a business calculation inside a UI component
-  is flagged by an ast-grep rule.
-- **M6.9** The operations layer, read from the facts (nothing deployed): the build and deploy pipeline and what it
-  checks, environments and configuration kept apart from the code, where secrets live, error tracking and logs, health
-  checks, migrations and backups, the infrastructure files (Checkov); each missing piece a finding that names the item
-  of the reference type's infrastructure baseline it fails (extending `analysis/production_readiness.py`).
-- **M6.10** The tests layer: the project's own tests found for every stack (Vitest, Jest, Playwright, pytest, Go),
-  run in the isolated copy, their pass rate, and which layers and critical paths (M6.4's endpoints that write, the
-  data rules) no test covers; an untested critical path is a finding.
-- **M6.11** The layers for people: in the report and the Studio, each layer with its files and its state in plain
-  words (breaches, unguarded endpoints, open tables, secrets, missing operations, untested paths); a broken critical
-  boundary in red at the top; each finding a card that names the broken boundary and the reference's fix (move into the
-  data layer, add the guard, enable row-level security), done behind the behaviour lock; M7.4's judge reads the broken
-  boundary from it.
-- **M6.12** The proof and the numbers: the golden trial finds every planted defect of M6.0 and nothing on the clean
-  twin; on the three corpus apps of M6.0 every layer finding is judged by hand, at most 10% false; the static part
-  (M6.1-M6.5, M6.8-M6.10 without running the tests) adds at most two minutes to a full check, the live part (M6.6,
-  M6.7, the tests run) is an option with its time shown before it starts; `docs/METRICS.md` updated.
-- Target: every planted boundary defect found with its evidence; none on the clean twin; at most 10% false on the
-  corpus; every file of every corpus app in a layer or listed as a gap.
 
 ### M7 Reliable fixes and hand-over
 - **M7.1** The hand-over runs as its own service and resumes where it stopped.
@@ -132,7 +64,9 @@ of becomes a question, never a finding.
   and the source evidence (Cloudflare security-audit style). The same judge rules on what a simulated user reports
   (M10.7).
 - **M7.5** Each batch checked beyond behaviour: after a batch, M6's layer and security checks run again over the
-  changed files, so a fix that opens a boundary is refused like one that breaks a screen.
+  changed files, so a fix that opens a boundary is refused like one that breaks a screen. (The layers' gate is in since
+  0.0.78: `journeys/execute.py` new_breakage refuses a change that breaks a boundary of the browser, the endpoints, the
+  data, the rules or the layers; what is left is the security engines' rerun and saying it in the batch's report.)
 - **M7.6** The build journey never stalls: after the third refused proof in a row its last milestone is handed over
   with the list of what stays unproven, shown in the Studio and the report (today `journeys/build_tools.py` holds it
   back on every refusal).
@@ -218,19 +152,7 @@ milestone's end.
 | Card | Status | Version | Date |
 |---|---|---|---|
 | M5.4 | not started (waits for the HungerLab snapshot) | | |
-| M6.0 | not started | | |
-| M6.1 | not started | | |
-| M6.2 | not started | | |
-| M6.3 | not started | | |
-| M6.4 | not started | | |
-| M6.5 | not started | | |
-| M6.6 | not started | | |
-| M6.7 | not started | | |
-| M6.8 | not started | | |
-| M6.9 | not started | | |
-| M6.10 | not started | | |
-| M6.11 | not started | | |
-| M6.12 | not started | | |
+| M5.5 | not started | | |
 | M7.1 | not started | | |
 | M7.2 | not started | | |
 | M7.3 | not started | | |

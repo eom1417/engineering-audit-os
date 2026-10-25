@@ -59,6 +59,17 @@ def kinds_folder(state):
     return Path(state).parent / 'sessions'
 
 
+def _unfrozen(argv):
+    """The same install without holding to the lockfile, when it held to it: `npm ci` and `--frozen-lockfile` refuse a
+    lockfile older than its package.json (the corpus' Supabase and Next.js apps), where `npm install` brings it up to
+    date in the run's own copy."""
+    argv = [str(part) for part in argv]
+    if argv[:2] == ['npm', 'ci']: return ['npm', 'install', *argv[2:]]
+    if '--frozen-lockfile' not in argv: return None
+    loose = [part for part in argv if part != '--frozen-lockfile']
+    return loose + (['--no-frozen-lockfile'] if 'pnpm' in argv else [])
+
+
 class LiveRun:
     """One authorised run: install, build, prepare and start the project in a sandbox copy, then stop it."""
 
@@ -201,6 +212,8 @@ class LiveRun:
             for argv in self.profile.get(phase) or []:
                 if _test_browsers(argv): continue
                 code, out, err = self.run(argv)
+                if code != 0 and phase == 'install' and _unfrozen(argv):
+                    code, out, err = self.run(_unfrozen(argv))        # a lockfile behind its package.json: install as a person would
                 if code != 0:
                     raise RuntimeError(f"{phase} failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
 

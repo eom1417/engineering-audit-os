@@ -27,6 +27,7 @@ from . import data_paths as data_map
 from . import functions as function_explorer
 from .evidence import evidence, sources
 from . import infra as infra_map
+from . import layers as layers_view
 from ...ai import ideal as planned_ideal
 from ...ai.nodes import view as ai_nodes
 from ...analysis import model as M
@@ -39,7 +40,7 @@ from .export_sections import TASK_STATE, cards, decision_rows, decisions, head, 
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('functions', 'screens', 'history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations', 'library')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('functions', 'screens', 'history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations', 'library', 'layers')   # contract v2 sections written here (coverage is written last, apart)
 
 
 def _git(project, *args):
@@ -117,6 +118,11 @@ def _attempt(built, errors, section, make):
     except Exception as error: errors.append({'section': section, 'error': f'{type(error).__name__}: {error}'[:300]})
 
 
+def _drop_unwritten(built):
+    """Leave out the sections whose records the check did not write (facts/pipeline.json, layers.json)."""
+    for section in [name for name in ('pipeline', 'layers') if name in built and built[name] is None]: built.pop(section)
+
+
 def _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors):
     """The contract v1 sections, into `built`; returns the cards every later section reads."""
     attempt = lambda section, make: _attempt(built, errors, section, make)
@@ -146,12 +152,13 @@ def _build_maps(report, m, lang, project, progress, scan, card_rows, built, erro
     if 'journeys' in built: attempt('hidden', lambda: hidden_map.hidden(report, built['journeys'], card_rows))
     attempt('data_paths', lambda: data_map.data_paths(report, lang))
     attempt('infra', lambda: infra_map.infra(report, lang))
+    attempt('layers', lambda: layers_view.layers(report, lang))
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
     attempt('history', lambda: history_section.history(scan, m['score']['score'], card_rows, (progress or {}).get('ledger'),
                                                        (progress or {}).get('waves') or ()))
     if 'docs' in built and 'media' in built:
         attempt('library', lambda: library_section.library(report, built['docs'], built['media'], project))
-    if built.get('pipeline', False) is None: built.pop('pipeline')   # the check wrote no facts/pipeline.json
+    _drop_unwritten(built)
     attempt('ideal', lambda: planned_ideal.section(report, lang))
     attempt('nodes', lambda: ai_nodes.section(report, lang))
     attempt('change', lambda: change_map.change(m, card_rows, lang))

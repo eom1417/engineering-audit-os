@@ -17,7 +17,7 @@ export const matches = normalize.matches;
 /** Understand's four groups and their views (IA section 3), as the quiet tabs of each view. */
 export const GROUPS = [
   { id: 'change', views: ['story', 'gaps', 'operations', 'ideal', 'ai-decisions'] },
-  { id: 'built', views: ['components', 'paths', 'functions', 'data', 'unseen', 'infra', 'pipelines', 'architecture'] },
+  { id: 'built', views: ['layers', 'components', 'paths', 'functions', 'data', 'unseen', 'infra', 'pipelines', 'architecture'] },
   { id: 'screens', views: ['screens', 'screens/all', 'journeys'] },
   { id: 'records', views: ['library', 'report-files', 'history'] },
 ];

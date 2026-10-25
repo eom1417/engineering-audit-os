@@ -7,6 +7,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from . import layers
 from ..core import plain
 from ..core.words import who_decided
 from ..core.decisions import ready as is_ready
@@ -163,10 +164,12 @@ def start_here(report, lang, name):
     lines = [f"# {_say(ar, 'ابدأ هنا', 'Start here')}: {name}", '']
     gaps = big_gaps(_this_run(report), lang)          # the coverage ledger's big gaps, in red before anything else
     if gaps: lines += [*gaps, '']
+    lines += layers.critical(report, lang)            # a broken critical boundary, in red at the top (M6.11)
     if not tasks:
         lines += [_say(ar, 'لم أجد مشاكل تحتاج إصلاحًا.', 'I found no problems that need fixing.'), '']
     else:
         lines += _problem_lines(report, tasks, summary_counts(report), lang, ar)
+    lines += layers.lines(report, lang)
     lines += _path_lines(report, lang, ar) + _incomplete_lines(report, lang, ar)
     lines += _one_page_lines(report, ar)
     lines += _closing_lines(ar)

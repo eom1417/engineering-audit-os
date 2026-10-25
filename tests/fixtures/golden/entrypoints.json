@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "entrypoints",
-  "extractor_version": "4",
+  "extractor_version": "5",
   "available": true,
   "input_sha": "7e38072d89a625b92f7f4d6f2487f59a250e2c83b4540e22aee50d09200ea453",
   "limitations": [
@@ -44,10 +44,8 @@
   },
   "facts": [
     {
-      "id": "FACT-7afe17acda366a40",
+      "id": "FACT-4b7623a703a85026",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -65,6 +63,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -73,10 +73,8 @@
       ]
     },
     {
-      "id": "FACT-60966b6533fe06b6",
+      "id": "FACT-515550144a5304b0",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -94,6 +92,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -102,10 +102,8 @@
       ]
     },
     {
-      "id": "FACT-80413f343b9f17b4",
+      "id": "FACT-cb4c65eb873cc43b",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json",
@@ -123,6 +121,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -131,10 +131,8 @@
       ]
     },
     {
-      "id": "FACT-2aaaf13237d5015a",
+      "id": "FACT-a2d1e13cdb63286b",
       "kind": "tool_command",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json",
@@ -153,6 +151,8 @@
         "category": "manifest"
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -161,10 +161,8 @@
       ]
     },
     {
-      "id": "FACT-3e9e7d5e63d011c9",
+      "id": "FACT-63ac1c93878d5989",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -182,6 +180,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -190,10 +190,8 @@
       ]
     },
     {
-      "id": "FACT-6710089bc32abe9d",
+      "id": "FACT-2a74e75d70092c5b",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -211,6 +209,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -219,10 +219,8 @@
       ]
     },
     {
-      "id": "FACT-b338719ce9fbd06e",
+      "id": "FACT-d7a71de4785402ee",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -240,6 +238,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -248,10 +248,8 @@
       ]
     },
     {
-      "id": "FACT-07df62622c34cc51",
+      "id": "FACT-e5c27b1d1b2023bb",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -269,6 +267,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -277,10 +277,8 @@
       ]
     },
     {
-      "id": "FACT-a9fcee1df839067a",
+      "id": "FACT-6d1a7015f5c3b7f1",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -298,6 +296,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -306,10 +306,8 @@
       ]
     },
     {
-      "id": "FACT-16193cc5346679a3",
+      "id": "FACT-7ca73da1e89515f2",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -327,6 +325,8 @@
         "note": null
       },
       "resolution": "UNRESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -335,10 +335,8 @@
       ]
     },
     {
-      "id": "FACT-0a51e07996da260d",
+      "id": "FACT-cad35e47b84a2d48",
       "kind": "entry_point",
-      "extractor": "entrypoints",
-      "extractor_version": "4",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -356,6 +354,8 @@
         "note": null
       },
       "resolution": "RESOLVED",
+      "extractor": "entrypoints",
+      "extractor_version": "5",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",

@@ -1,7 +1,7 @@
 """The graph queries a probe asks again (eaos/analysis/probes.py decide_probe): each over the current snapshot's fact
 sets, inconclusive when the facts it reads, or the engines it names, are not there.
 """
-from . import weaknesses
+from . import layer_claims, weaknesses
 
 
 # Which fact set each query reads. A probe that cannot see its data has no verdict to give:
@@ -11,9 +11,9 @@ QUERY_REQUIRES = {
     'metric_threshold': 'metrics', 'module_size': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
-    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model', 'access_gap_present': 'domain',
+    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model',
     'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
-    'weakness_present': 'external',
+    'weakness_present': 'external', 'boundary_finding_present': 'boundaries',
 }
 
 
@@ -135,21 +135,6 @@ def _mutable(specification, sets):
     return _verdict(rows, 'still mutated at runtime', 'no runtime mutation of this value remains')
 
 
-def _exposed(fact, specification):
-    """A table still without row-level security, or a policy still open, as the specification names it."""
-    value = fact['value']
-    if specification['gap'] == 'no_rls':
-        return fact['kind'] == 'data_table' and value.get('name') == specification['table'] and value.get('rls_enabled') is False \
-            and not value.get('dropped')
-    return fact['kind'] == 'db_policy' and value.get('table') == specification['table'] and value.get('name') == specification['policy'] \
-        and value.get('open')
-
-
-def _access_gap(specification, sets):
-    still = [f for f in sets.get('domain', {}).get('facts', []) if _exposed(f, specification)]
-    return _verdict(still, 'still exposed after every migration', 'no longer exposed')
-
-
 def _external_write(specification, sets):
     return _verdict(_matching(sets, 'domain', 'external_state_write', specification, 'module', 'attribute'),
                     'the cross-module assignment is still there', 'the assignment is gone')
@@ -194,9 +179,9 @@ QUERIES = {
     'cycle_present': _cycle_present, 'flow_has_unresolved_steps': _flow_unresolved, 'load_blocker_present': _load_blocker,
     'vulnerable_dependency_present': _vulnerable, 'broken_code_present': _broken, 'dead_code_present': _dead,
     'engine_cluster_present': _engine_cluster, 'weakness_present': weaknesses.present, 'metric_threshold': _metric, 'module_size': _module_size, 'mutable_global_present': _mutable,
-    'access_gap_present': _access_gap, 'external_write_present': _external_write, 'policy_violation_present': _policy,
+    'external_write_present': _external_write, 'policy_violation_present': _policy,
     'duplicate_cluster_present': _duplicate, 'sequence_cluster_present': _sequence, 'redundancy_present': _redundancy,
-    'no_code_dependency': _no_dependency,
+    'no_code_dependency': _no_dependency, 'boundary_finding_present': layer_claims.present,
 }
 
 

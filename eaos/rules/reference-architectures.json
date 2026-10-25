@@ -11,6 +11,7 @@
     {
      "name": "server-apps",
      "responsibility": "Deployable servers and workers: each owns its endpoints or jobs and reaches data only through the database package",
+     "role": "endpoint",
      "allowed_dependencies": [
       "database",
       "packages",
@@ -30,6 +31,7 @@
     {
      "name": "client-apps",
      "responsibility": "Deployable clients (web, admin, mobile): screens and their state, calling the servers' contracts",
+     "role": "screen",
      "allowed_dependencies": [
       "database",
       "packages",
@@ -42,6 +44,7 @@
     {
      "name": "database",
      "responsibility": "The one package that owns the schema, the migrations and the queries",
+     "role": "data",
      "allowed_dependencies": [
       "core-packages"
      ],
@@ -54,6 +57,7 @@
     {
      "name": "packages",
      "responsibility": "Shared libraries (UI kits, players, brand, observability, secrets): used by applications, never using them",
+     "role": "shared",
      "allowed_dependencies": [
       "core-packages"
      ],
@@ -65,6 +69,7 @@
     {
      "name": "core-packages",
      "responsibility": "The leaves every package may use: configuration and shared types, depending on nothing of the repository",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "packages/config/**",
@@ -136,6 +141,7 @@
     {
      "name": "routes",
      "responsibility": "File routes: read params, compose a feature, nothing else",
+     "role": "screen",
      "allowed_dependencies": [
       "features",
       "ui",
@@ -150,6 +156,7 @@
     {
      "name": "features",
      "responsibility": "One module per domain: its components, hooks and use cases",
+     "role": "screen",
      "allowed_dependencies": [
       "data-access",
       "ui",
@@ -166,6 +173,7 @@
     {
      "name": "data-access",
      "responsibility": "Typed queries and mutations against Supabase; the only code that knows table names",
+     "role": "data",
      "allowed_dependencies": [
       "config",
       "lib"
@@ -181,6 +189,7 @@
     {
      "name": "server",
      "responsibility": "Server functions and API routes that need a secret or run privileged work",
+     "role": "endpoint",
      "allowed_dependencies": [
       "data-access",
       "config",
@@ -197,6 +206,7 @@
     {
      "name": "ui",
      "responsibility": "Presentational components with no data access",
+     "role": "screen",
      "allowed_dependencies": [
       "lib"
      ],
@@ -207,6 +217,7 @@
     {
      "name": "lib",
      "responsibility": "Pure helpers: formatting, dates, money; no I/O",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/lib/**",
@@ -218,6 +229,7 @@
     {
      "name": "config",
      "responsibility": "Environment and constants read once, typed",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/config/**",
@@ -300,6 +312,7 @@
     {
      "name": "pages",
      "responsibility": "Route components: compose features",
+     "role": "screen",
      "allowed_dependencies": [
       "features",
       "ui",
@@ -314,6 +327,7 @@
     {
      "name": "features",
      "responsibility": "One module per domain: components, hooks, use cases",
+     "role": "screen",
      "allowed_dependencies": [
       "data-access",
       "ui",
@@ -329,6 +343,7 @@
     {
      "name": "data-access",
      "responsibility": "Typed Supabase queries; the only code that knows tables",
+     "role": "data",
      "allowed_dependencies": [
       "config",
       "lib"
@@ -343,6 +358,7 @@
     {
      "name": "ui",
      "responsibility": "Presentational components",
+     "role": "screen",
      "allowed_dependencies": [
       "lib"
      ],
@@ -353,6 +369,7 @@
     {
      "name": "lib",
      "responsibility": "Pure helpers",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/lib/**",
@@ -363,6 +380,7 @@
     {
      "name": "config",
      "responsibility": "Environment read once",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/config/**"
@@ -459,6 +477,7 @@
     {
      "name": "pages",
      "responsibility": "The shell and the route table: which screen answers which path; composes features, holds no logic",
+     "role": "screen",
      "allowed_dependencies": [
       "features",
       "ui",
@@ -479,6 +498,7 @@
     {
      "name": "features",
      "responsibility": "One module per screen family, and the shared shell, stores and hooks every screen uses",
+     "role": "screen",
      "allowed_dependencies": [
       "engine",
       "api-client",
@@ -499,6 +519,7 @@
     {
      "name": "engine",
      "responsibility": "The domain rules as pure, deterministic code: same inputs, same output, no I/O; shared by browser and server",
+     "role": "logic",
      "allowed_dependencies": [
       "lib"
      ],
@@ -514,6 +535,7 @@
     {
      "name": "api-client",
      "responsibility": "The only browser code that knows the server's endpoints: one typed call per endpoint",
+     "role": "client",
      "allowed_dependencies": [
       "lib",
       "config"
@@ -529,6 +551,7 @@
     {
      "name": "ui",
      "responsibility": "Presentational components with no data access and no domain rule",
+     "role": "screen",
      "allowed_dependencies": [
       "lib"
      ],
@@ -541,6 +564,7 @@
     {
      "name": "lib",
      "responsibility": "Pure helpers: formatting, dates, types; nothing that knows the domain or the network",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/lib/**",
@@ -554,6 +578,7 @@
     {
      "name": "config",
      "responsibility": "One typed module per side that reads the environment once and fails at start on a missing value",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/config/**",
@@ -566,6 +591,7 @@
     {
      "name": "server-entry",
      "responsibility": "Process start: HTTP server, static files, shutdown; wires routes and infrastructure, holds no rule",
+     "role": "endpoint",
      "allowed_dependencies": [
       "routes",
       "security",
@@ -583,6 +609,7 @@
     {
      "name": "routes",
      "responsibility": "HTTP endpoints: parse, authorise through security, call a service, shape the response; never SQL",
+     "role": "endpoint",
      "allowed_dependencies": [
       "services",
       "security",
@@ -603,6 +630,7 @@
     {
      "name": "services",
      "responsibility": "Application use cases: one operation per function, transactions and domain rules, no HTTP",
+     "role": "logic",
      "allowed_dependencies": [
       "server-domain",
       "engine",
@@ -621,6 +649,7 @@
     {
      "name": "security",
      "responsibility": "Authentication, sessions, authorisation policy, rate limits and headers",
+     "role": "endpoint",
      "allowed_dependencies": [
       "server-domain",
       "data-access",
@@ -637,6 +666,7 @@
     {
      "name": "server-domain",
      "responsibility": "Server-side domain types and rules (permissions, roles, tokens) with no I/O",
+     "role": "logic",
      "allowed_dependencies": [
       "engine",
       "lib"
@@ -649,6 +679,7 @@
     {
      "name": "data-access",
      "responsibility": "The only code that speaks SQL: connections, row-level security, queries and migrations",
+     "role": "data",
      "allowed_dependencies": [
       "server-domain",
       "infrastructure",
@@ -670,6 +701,7 @@
     {
      "name": "infrastructure",
      "responsibility": "Cross-cutting services: HTTP transport, logging, telemetry, health, e-mail and calendar delivery, idempotency",
+     "role": "shared",
      "allowed_dependencies": [
       "server-domain",
       "config",
@@ -770,6 +802,7 @@
     {
      "name": "pages",
      "responsibility": "Route components: read params, compose features",
+     "role": "screen",
      "allowed_dependencies": [
       "features",
       "ui",
@@ -784,6 +817,7 @@
     {
      "name": "features",
      "responsibility": "One module per domain: components, hooks, use cases",
+     "role": "screen",
      "allowed_dependencies": [
       "api-client",
       "ui",
@@ -801,6 +835,7 @@
     {
      "name": "api-client",
      "responsibility": "One typed HTTP client and one module per backend resource; the only code that knows endpoints",
+     "role": "client",
      "allowed_dependencies": [
       "config",
       "lib"
@@ -817,6 +852,7 @@
     {
      "name": "ui",
      "responsibility": "Presentational components",
+     "role": "screen",
      "allowed_dependencies": [
       "lib"
      ],
@@ -827,6 +863,7 @@
     {
      "name": "lib",
      "responsibility": "Pure helpers and shared types",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/lib/**",
@@ -837,6 +874,7 @@
     {
      "name": "config",
      "responsibility": "Environment read once (VITE_API_URL and the rest)",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "src/config/**"
@@ -907,6 +945,7 @@
     {
      "name": "app",
      "responsibility": "Routes, layouts and server components",
+     "role": "screen",
      "allowed_dependencies": [
       "features",
       "ui",
@@ -923,6 +962,7 @@
     {
      "name": "features",
      "responsibility": "One module per domain",
+     "role": "screen",
      "allowed_dependencies": [
       "data-access",
       "ui",
@@ -939,6 +979,7 @@
     {
      "name": "data-access",
      "responsibility": "Queries and external calls; server-only",
+     "role": "data",
      "allowed_dependencies": [
       "config",
       "lib"
@@ -953,6 +994,7 @@
     {
      "name": "ui",
      "responsibility": "Presentational components",
+     "role": "screen",
      "allowed_dependencies": [
       "lib"
      ],
@@ -964,6 +1006,7 @@
     {
      "name": "lib",
      "responsibility": "Pure helpers",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "lib/**",
@@ -974,6 +1017,7 @@
     {
      "name": "config",
      "responsibility": "Environment read once",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "config/**",
@@ -1046,6 +1090,7 @@
     {
      "name": "ui",
      "responsibility": "Screens and widgets (Streamlit views, Qt windows): read state, call services, render",
+     "role": "screen",
      "allowed_dependencies": [
       "services",
       "domain",
@@ -1061,6 +1106,7 @@
     {
      "name": "services",
      "responsibility": "Use cases the UI calls; orchestrate domain and infrastructure",
+     "role": "logic",
      "allowed_dependencies": [
       "domain",
       "infrastructure"
@@ -1073,6 +1119,7 @@
     {
      "name": "domain",
      "responsibility": "Rules and calculations with no I/O",
+     "role": "logic",
      "allowed_dependencies": [],
      "paths": [
       "core/**",
@@ -1083,6 +1130,7 @@
     {
      "name": "infrastructure",
      "responsibility": "Database, files, network, market data",
+     "role": "data",
      "allowed_dependencies": [
       "domain"
      ],
@@ -1097,6 +1145,7 @@
     {
      "name": "entry",
      "responsibility": "Launchers and packaging",
+     "role": "entry",
      "allowed_dependencies": [
       "ui",
       "services"
@@ -1169,6 +1218,7 @@
     {
      "name": "web",
      "responsibility": "Routes or pages: parse input, call services, render",
+     "role": "endpoint",
      "allowed_dependencies": [
       "services",
       "domain"
@@ -1185,6 +1235,7 @@
     {
      "name": "services",
      "responsibility": "Use cases",
+     "role": "logic",
      "allowed_dependencies": [
       "domain",
       "infrastructure"
@@ -1196,6 +1247,7 @@
     {
      "name": "domain",
      "responsibility": "Rules with no I/O",
+     "role": "logic",
      "allowed_dependencies": [],
      "paths": [
       "core/**",
@@ -1206,6 +1258,7 @@
     {
      "name": "infrastructure",
      "responsibility": "Database and external calls",
+     "role": "data",
      "allowed_dependencies": [
       "domain"
      ],
@@ -1266,6 +1319,7 @@
     {
      "name": "cli",
      "responsibility": "Argument parsing and output only",
+     "role": "entry",
      "allowed_dependencies": [
       "services"
      ],
@@ -1279,6 +1333,7 @@
     {
      "name": "services",
      "responsibility": "Use cases",
+     "role": "logic",
      "allowed_dependencies": [
       "domain",
       "infrastructure"
@@ -1290,6 +1345,7 @@
     {
      "name": "domain",
      "responsibility": "Rules with no I/O",
+     "role": "logic",
      "allowed_dependencies": [],
      "paths": [
       "core/**",
@@ -1301,6 +1357,7 @@
     {
      "name": "infrastructure",
      "responsibility": "Files, network, database",
+     "role": "data",
      "allowed_dependencies": [
       "domain"
      ],
@@ -1360,6 +1417,7 @@
     {
      "name": "features",
      "responsibility": "One module per feature: what a user does, and its screens or commands",
+     "role": "screen",
      "allowed_dependencies": [
       "services",
       "domain",
@@ -1388,6 +1446,7 @@
     {
      "name": "interface",
      "responsibility": "Entry points: HTTP routes, handlers, command lines; parse, authorise, delegate",
+     "role": "endpoint",
      "allowed_dependencies": [
       "services",
       "domain",
@@ -1413,6 +1472,7 @@
     {
      "name": "services",
      "responsibility": "Use cases: one operation per function, transactions and rules, no transport",
+     "role": "logic",
      "allowed_dependencies": [
       "domain",
       "data-access",
@@ -1432,6 +1492,7 @@
     {
      "name": "domain",
      "responsibility": "Domain types and rules with no I/O",
+     "role": "logic",
      "allowed_dependencies": [
       "lib"
      ],
@@ -1451,6 +1512,7 @@
     {
      "name": "data-access",
      "responsibility": "The only code that reads and writes storage",
+     "role": "data",
      "allowed_dependencies": [
       "domain",
       "infrastructure",
@@ -1479,6 +1541,7 @@
     {
      "name": "infrastructure",
      "responsibility": "Adapters to the outside: network clients, queues, e-mail, logging",
+     "role": "data",
      "allowed_dependencies": [
       "domain",
       "lib",
@@ -1504,6 +1567,7 @@
     {
      "name": "lib",
      "responsibility": "Pure helpers that know nothing of the domain",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "lib/**",
@@ -1523,6 +1587,7 @@
     {
      "name": "config",
      "responsibility": "Configuration read once, validated at start",
+     "role": "shared",
      "allowed_dependencies": [],
      "paths": [
       "config/**",
@@ -1565,5 +1630,6 @@
     }
    ]
   }
- ]
+ ],
+ "about_roles": "Each layer's role says what kind of code it holds, so a file its path does not place is placed by what it imports (eaos/analysis/layers/placement.py): screen (what people see), endpoint (what answers a request), logic (the rules), data (what reaches the database), client (the browser's calls to the server), shared (libraries and settings every layer may use), entry (a command or a program's start)."
 }

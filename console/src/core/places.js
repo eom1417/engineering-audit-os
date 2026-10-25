@@ -10,7 +10,7 @@ const SHEETS = __EAOS_SHEETS__;
 /** Understand's four groups and their views (IA section 3); the first view is the group's door in the sidebar. */
 export const UGROUPS = [
   { id: 'change', views: ['story', 'gaps', 'operations', 'ideal', 'ai-decisions'] },
-  { id: 'built', views: ['components', 'paths', 'functions', 'data', 'unseen', 'infra', 'pipelines', 'architecture'] },
+  { id: 'built', views: ['layers', 'components', 'paths', 'functions', 'data', 'unseen', 'infra', 'pipelines', 'architecture'] },
   { id: 'screens', views: ['screens', 'journeys'] },
   { id: 'records', views: ['library', 'report-files', 'history'] },
 ];

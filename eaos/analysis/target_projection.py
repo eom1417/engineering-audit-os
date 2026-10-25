@@ -63,7 +63,7 @@ def _load(path, default):
     except (OSError, ValueError): return default
 
 
-def _facts(out):
+def facts_by_kind(out):
     by_kind = defaultdict(list)
     for path in sorted((Path(out) / 'facts').glob('*.json')):
         for fact in (_load(path, {}) or {}).get('facts') or []:
@@ -87,15 +87,13 @@ def place(files, features, reference):
     for feature in features:
         for path in feature.get('files') or []: owners[path].append(feature['name'])
     feature_layer = _feature_layer(reference)
-    placed = {}
-    for path in files:
-        layer, _ = layer_of(path, reference)
-        if len(owners[path]) == 1 and layer in (feature_layer, None):
-            placed[path] = (f"feature:{slug(owners[path][0])}", feature_layer)
-        elif layer: placed[path] = (layer, layer)
-        elif len(owners[path]) == 1: placed[path] = (f"feature:{slug(owners[path][0])}", feature_layer)
-        else: placed[path] = (PLATFORM, PLATFORM)
-    return placed
+    return {path: _placed(owners[path], layer_of(path, reference)[0], feature_layer) for path in files}
+
+
+def _placed(owners, layer, feature_layer):
+    """(component, layer) of one file: its one feature's, else its layer's, else the platform's."""
+    if len(owners) == 1 and layer in (feature_layer, None): return f"feature:{slug(owners[0])}", feature_layer
+    return (layer, layer) if layer else (PLATFORM, PLATFORM)
 
 
 def moves(path, component, layer, reference):
@@ -168,7 +166,8 @@ def infrastructure(reference, facts, target, files, prefix=''):
     repository root or under the app root (chief-ops keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
     observed = {**_observed_in_facts(facts), **_observed_in_files(_existing(target, prefix), files)}
-    return [_infrastructure_row(item, observed, reference['id']) for item in _baseline_items(reference)]
+    if not observed['data'][0] and (client := _typed_client(facts)): observed['data'] = (True, f'typed data client: {client}')
+    return [_infrastructure_row(item, observed, reference['id']) for item in baseline_items(reference)]
 
 
 DEPENDENCY_BOTS = ('renovate.json', '.github/renovate.json', '.github/dependabot.yml')
@@ -179,6 +178,15 @@ def _existing(target, prefix):
     def exists(*names):
         return [n for n in names for base in dict.fromkeys(('', prefix)) if target and (target / base / n).exists()]
     return exists
+
+
+TYPED_CLIENTS = ('@prisma/client', 'drizzle-orm', 'kysely', 'sqlalchemy', 'sqlmodel')
+
+
+def _typed_client(facts):
+    """The typed data client the code imports (Drizzle's tables are its schema, in code), or None."""
+    modules = {(f.get('value') or {}).get('module') or '' for f in facts.get('import_edge') or []}
+    return next((client for client in TYPED_CLIENTS if any(m == client or m.startswith(client + '/') for m in modules)), None)
 
 
 def _observed_in_facts(facts):
@@ -227,7 +235,7 @@ def _observed_in_code(files):
             'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (backup or 'none'))}
 
 
-def _baseline_items(reference):
+def baseline_items(reference):
     items = list(reference['infrastructure_baseline'])
     # A desktop program or a command is not hosted; it is released as a build, which the ci item covers.
     if reference['id'].startswith(HOSTED) and not any(item['area'] == 'hosting' for item in items):
@@ -254,7 +262,7 @@ def project(out, target=None):
     target, reference_id, prefix = _reference_of(out, target)
     if reference_id is None: return None
     reference = rooted(by_id(reference_id), prefix)
-    facts = _facts(out)
+    facts = facts_by_kind(out)
     features = (_load(out / 'features.json', {}) or {}).get('features') or []
     nodes = {f['location']['path']: f['value'] for f in facts['graph_node']}
     files = sorted(nodes)

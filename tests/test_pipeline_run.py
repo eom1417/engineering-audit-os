@@ -12,6 +12,10 @@ from eaos.pipeline.stages import OPTIONAL, REQUIRED, Stage
 from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
 from shared_fixture import scratch
 
+# The stages of the optional loops a check runs only when the person switches them on (`try_layers`: the `layers` path).
+OFF = loops.switched_off(['complete'])
+RUN = len(STAGES) - len(OFF)
+
 
 def fake_runners(**behaviour):
     """Every declared stage gets a runner that writes its artifacts; named ones misbehave."""
@@ -77,7 +81,7 @@ class ExecutionTests(unittest.TestCase):
     def test_a_clean_run_marks_every_stage_ok_with_its_necessity(self):
         manifest, out = self._run(runners=fake_runners())
         self.assertEqual(manifest['status'], 'COMPLETE')
-        self.assertEqual(manifest['counts'][OK], len(STAGES))
+        self.assertEqual(manifest['counts'][OK], RUN)
         self.assertTrue((out / MANIFEST).is_file())
         for name, row in manifest['stages'].items():
             self.assertIn(row['necessity'], ('required', 'optional'), name)
@@ -144,11 +148,11 @@ class ResumeTests(unittest.TestCase):
             self.assertIn('codeql', first['stages']['engines']['reason'])
             ran = []
             second = again('.', directory, 'engines', runners=recording(ran))
-        self.assertEqual(set(ran), {'engines', *pipeline.dependents('engines', reading=True)})
+        self.assertEqual(set(ran), {'engines', *pipeline.dependents('engines', reading=True)} - OFF)
         self.assertIn('triage', ran)
         self.assertNotIn('screens', ran)
         self.assertEqual(second['status'], 'COMPLETE')
-        self.assertEqual(second['counts'][OK], len(STAGES))
+        self.assertEqual(second['counts'][OK], RUN)
 
     def test_a_failed_or_stopped_run_resumes_where_it_did_not_complete(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -157,10 +161,10 @@ class ResumeTests(unittest.TestCase):
             second = resume('.', directory, runners=recording(ran))
         self.assertNotIn('facts', ran)
         self.assertIn('probe', ran)
-        self.assertEqual(second['counts'][OK], len(STAGES))
+        self.assertEqual(second['counts'][OK], RUN)
         self.assertIn('resumed_from', second)
         with tempfile.TemporaryDirectory() as directory:
-            self.assertEqual(resume('.', directory, runners=fake_runners())['counts'][OK], len(STAGES))
+            self.assertEqual(resume('.', directory, runners=fake_runners())['counts'][OK], RUN)
         # A run stopped midway resumes from where it stopped.
         order = [stage.name for stage in STAGES]
         with tempfile.TemporaryDirectory() as directory:
@@ -171,9 +175,9 @@ class ResumeTests(unittest.TestCase):
             ran = []
             second = resume('.', directory, runners=recording(ran))
             # only what did not end ok runs again, once each, in the declared order of what waits for what
-            self.assertEqual(sorted(ran), sorted(n for n in order if stages.get(n, {}).get('status') != OK))
+            self.assertEqual(sorted(ran), sorted(n for n in order if stages.get(n, {}).get('status') != OK and n not in OFF))
             self.assertIn('probe', ran)
-            self.assertEqual(second['counts'][OK], len(STAGES))
+            self.assertEqual(second['counts'][OK], RUN)
             self.assertFalse((Path(directory) / CHECKPOINT).exists())
         # Stopped in an AI stage: going on (Retry) resumes at it and never asks a finished one again.
         with tempfile.TemporaryDirectory() as directory:
@@ -183,14 +187,14 @@ class ResumeTests(unittest.TestCase):
             second = check('.', directory, go_on=True, runners=recording(ran))
         self.assertEqual(ran[0], 'ideal')
         self.assertFalse({'semantic', 'triage'} & set(ran), 'a finished AI stage was asked again')
-        self.assertEqual(second['counts'][OK], len(STAGES))
+        self.assertEqual(second['counts'][OK], RUN)
         # A new check after one stopped starts from nothing (chief-ops, 2026-10-21: it went on at 31 of 37 stages).
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(KeyboardInterrupt):
                 execute('.', directory, runners=fake_runners(ideal=KeyboardInterrupt()))
             ran = []
             check('.', directory, runners=recording(ran))
-        self.assertEqual(sorted(ran), sorted(order), 'every stage ran again')
+        self.assertEqual(sorted(ran), sorted(set(order) - OFF), 'every stage ran again')
 
     def test_one_stage_reruns_alone_when_its_inputs_are_on_disk_and_not_otherwise(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -244,6 +248,10 @@ class LoopTests(unittest.TestCase):
             manifest = execute('.', scratch(), runners=fake_runners())
             self.assertEqual(manifest['stages']['visual']['reason_code'], 'loop_off')
             manifest = execute('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
+            self.assertEqual(manifest['stages']['visual']['status'], OK)
+            # asked for by the person (`eaos check --path complete layers`): the option reached the run (M6, 2026-10-25)
+            from eaos.pipeline.run import check
+            manifest = check('.', scratch(), runners=fake_runners(), paths=['complete', 'look'])
             self.assertEqual(manifest['stages']['visual']['status'], OK)
         finally:
             loops.LOOPS = declared

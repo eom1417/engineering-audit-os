@@ -73,13 +73,16 @@ the Studio's entries from `console/knip.json`.
   secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw), listed in
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed). The golden trial checks
   the app and `tools/detection_baseline.py` refuses a check that reaches any of them less; `--record` after reaching
-  more. Today 6 of 8 (the two missed say why; `docs/METRICS.md`).
-- **Compatibility corpus** (M0.3): 12 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without
+  more. M6 planted one defect per boundary of the layers (16 problems in all) and gave the app its clean twin
+  `tests/fixtures/baseline-clean` (the same app done right): the golden trial refuses any layer finding on the twin.
+  Today 15 of 16 (the sign-in is still missed; `docs/METRICS.md`).
+- **Compatibility corpus** (M0.3): 15 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without
   hash routes, Next.js, Vue, SvelteKit, Expo web, Flask, Django, Streamlit, one behind a sign-in, one with a welcome
-  flow, a static site). `tools/corpus.py` checks each as a person would (`--path look --run-app`, no assistant; about
+  flow, a static site; and, since M6, three of the stacks the layers matter for, whose layer findings are recorded and
+  judged by hand). `tools/corpus.py` checks each as a person would (`--path look --run-app`, no assistant; about
   50 minutes, a background job), records whether it ran and which expected screens were pictured, and refuses when an
   app that passed now fails; `--record` writes the results. A change to running apps or finding screens never lowers
-  its pass rate. Today 12 of 12 (after M5; `docs/METRICS.md`).
+  its pass rate. Today 13 of 15 (the 12 of M5 all pass; M5.5 holds the two that need an assistant; `docs/METRICS.md`).
 
 ## 6. Language
 

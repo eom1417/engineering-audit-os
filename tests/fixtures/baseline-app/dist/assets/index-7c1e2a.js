@@ -1,0 +1,1 @@
+const e="https://baselinedemo.supabase.co",t="sb_secret_N7fQ2xVb9KpL4mRz8TcW1yHs3dJe6uAg";function n(r){return fetch(e+"/rest/v1/"+r,{headers:{apikey:t,Authorization:"Bearer "+t}}).then(o=>o.json())}export{n as load};

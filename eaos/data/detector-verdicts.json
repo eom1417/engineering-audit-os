@@ -18,8 +18,6 @@
     "data_model": "precision 0.425 < 0.8 on 146 judged outputs",
     "data_model:runtime": "only 4 judged outputs (bar 5)",
     "redundant_work": "only 4 judged outputs (bar 5)",
-    "access_gap_no_rls": "only 1 judged outputs (bar 5)",
-    "access_gap_open_write": "only 1 judged outputs (bar 5)",
     "engine_cluster:secret": "only 2 judged outputs (bar 5)",
     "import_cycle": "precision 0.75 < 0.8 on 8 judged outputs",
     "engine_cluster:coupling": "no labelled class for this detector yet",

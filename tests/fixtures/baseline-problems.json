@@ -1,5 +1,5 @@
 {
- "about": "The detection baseline (docs/STANDARDS.md §5, M0.2): the problems planted in tests/fixtures/baseline-app and how far EAOS finds each, in the golden trial's check (the app run, no assistant). 'found' is what the last recorded check reached: card (a fix card names it), finding (an engine or a screen recorded it, no card), missed. tools/detection_baseline.py refuses a check that finds any of them less; --record writes what a check found after it found more.",
+ "about": "The detection baseline (docs/STANDARDS.md §5, M0.2): the problems planted in tests/fixtures/baseline-app and how far EAOS finds each, in the golden trial's check (the app run, no assistant). 'found' is what the last recorded check reached: card (a fix card names it), finding (an engine or a screen recorded it, no card), missed. tools/detection_baseline.py refuses a check that finds any of them less; --record writes what a check found after it found more. tests/fixtures/baseline-clean is its clean twin (M6.0): the same app done right, on which no layer finding may appear.",
  "problems": [
   {
    "id": "command-injection",
@@ -74,7 +74,7 @@
   },
   {
    "id": "logic-flaw",
-   "what": "any signed-in person reads any order: /api/orders/:id never checks the owner",
+   "what": "any signed-in person reads any order: /api/orders/:id never checks the owner (the read endpoint that returns another user's row, M6.0)",
    "path": "server.js",
    "line": 52,
    "kinds": [
@@ -83,8 +83,96 @@
     "idor",
     "access control"
    ],
-   "found": "missed",
-   "why": "missed 2026-10-23: no rule reads ownership; an assistant judge would (M6.4, M8.2)"
+   "found": "card",
+   "card": "M6.4"
+  },
+  {
+   "id": "ui-database",
+   "what": "a screen talks to the database itself (pg in web/Orders.jsx)",
+   "path": "web/Orders.jsx",
+   "line": 3,
+   "kinds": [
+    "talks to the database"
+   ],
+   "card": "M6.3",
+   "found": "card"
+  },
+  {
+   "id": "browser-only-rule",
+   "what": "the quantity limit of an order is checked only in the browser; the server stores any quantity",
+   "path": "server.js",
+   "line": 62,
+   "kinds": [
+    "only in the browser"
+   ],
+   "card": "M6.8",
+   "found": "card"
+  },
+  {
+   "id": "secret-in-browser",
+   "what": "a secret-named setting shipped to the browser (VITE_STRIPE_SECRET_KEY)",
+   "path": "web/payments.js",
+   "line": 4,
+   "kinds": [
+    "shipped to the browser"
+   ],
+   "card": "M6.3",
+   "found": "card"
+  },
+  {
+   "id": "key-in-built-output",
+   "what": "a Supabase secret key (sb_secret_) in the built output",
+   "path": "dist/assets/index-7c1e2a.js",
+   "line": 1,
+   "kinds": [
+    "built output"
+   ],
+   "card": "M6.3",
+   "found": "card"
+  },
+  {
+   "id": "unguarded-write",
+   "what": "POST /api/orders creates an order with no sign-in check",
+   "path": "server.js",
+   "line": 61,
+   "kinds": [
+    "no sign-in check"
+   ],
+   "card": "M6.4",
+   "found": "card"
+  },
+  {
+   "id": "table-without-rls",
+   "what": "the table public.notes has no row-level security",
+   "path": "supabase/migrations/20261025000000_orders.sql",
+   "line": 13,
+   "kinds": [
+    "no row-level security"
+   ],
+   "card": "M6.5",
+   "found": "card"
+  },
+  {
+   "id": "open-write-policy",
+   "what": "a policy lets anyone change any order (for update using (true))",
+   "path": "supabase/migrations/20261025000000_orders.sql",
+   "line": 11,
+   "kinds": [
+    "lets anyone"
+   ],
+   "card": "M6.5",
+   "found": "card"
+  },
+  {
+   "id": "untested-write",
+   "what": "DELETE /api/orders/:id writes and no test reaches it",
+   "path": "server.js",
+   "line": 68,
+   "kinds": [
+    "no test"
+   ],
+   "card": "M6.10",
+   "found": "card"
   }
  ]
 }

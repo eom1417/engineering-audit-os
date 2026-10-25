@@ -65,10 +65,19 @@ def questions_of(records, sets):
         questions.append({'id': 'Q-%03d' % offset,
                           'question': 'History is too shallow (%d commits in scope) for co-change coupling to mean anything; no coupling claim was made from it.'
                                       % sets['history']['summary'].get('commits_analysed', 0), 'source': 'facts'})
+    questions += _layer_questions(sets, offset)
+    offset = len(questions)
     if not records['findings']:
         offset += 1
         questions.append({'id': 'Q-%03d' % offset, 'question': 'No semantic review was run: responsibilities, contracts and root causes are unassessed.', 'source': 'facts'})
     return questions
+
+
+def _layer_questions(sets, offset):
+    """What the layers could not decide (eaos/analysis/layers/), numbered after `offset`."""
+    asked = ((sets.get('boundaries') or {}).get('summary') or {}).get('asked') or []
+    return [{'id': 'Q-%03d' % (offset + index), 'question': row['question'], 'question_ar': row['question_ar'], 'source': 'layers'}
+            for index, row in enumerate(asked, start=1)]
 
 
 def tasks_of(records):
@@ -246,6 +255,8 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     if (target / POLICY_FILE).is_file():
         check_policy(target, out)
         sets['policy'] = read_set(out, 'policy')
+    # The layers (eaos/analysis/layers/) write their findings beside the collected sets: their claims and questions.
+    if (out / 'facts' / 'boundaries.json').is_file(): sets['boundaries'] = read_set(out, 'boundaries')
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None

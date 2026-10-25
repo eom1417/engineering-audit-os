@@ -67,6 +67,7 @@ def check(output, home):
             ('Output', f'{out_mb:,} MB, {out_files:,} files'),
             ('Runtime', f'{runtime_mb:,} MB'),
             ('Cards on itself', _cards_on_itself(technical)),
+            ('The layers on itself', _layers(technical, stages)),
             ('Engine findings', f"{len(findings):,} ({', '.join(f'`{name}` {count:,}' for name, count in engines)})")]
 
 
@@ -84,8 +85,26 @@ def _cards_on_itself(technical):
             f"from {(read(technical / 'report-result.json', {}) or {}).get('claims', 0)} claims")
 
 
+def _layers(technical, stages):
+    """What the layers read of EAOS (M6): its files placed, its findings by boundary, the stage's time."""
+    record = read(technical / 'layers.json')
+    if not record: return 'not read in this check'
+    by = Counter(finding['boundary'] for finding in record['findings']).most_common()
+    seconds = (stages.get('layers') or {}).get('seconds') or 0
+    return (f"{len(record['map']) - len(record['gaps'])} of {len(record['map'])} files placed; {len(record['findings'])} findings ("
+            + ', '.join(f'{name} {count}' for name, count in by) + f'); {seconds:,.0f} s')
+
+
 def trials():
-    return [('Compatibility corpus', _corpus()), ('Detection baseline', _baseline())]
+    return [('Compatibility corpus', _corpus()), ('Detection baseline', _baseline()), ('Layer findings judged on the corpus', _judged())]
+
+
+def _judged():
+    """The layer findings judged by hand on the corpus apps the layers matter for (M6.12): how many were false."""
+    judged = [app['layers_judged'] for app in (read(CORPUS, {}) or {}).get('apps') or [] if app.get('layers_judged')]
+    if not judged: return 'not judged yet'
+    true, false = sum(j['true'] for j in judged), sum(j['false'] for j in judged)
+    return f'{true + false} findings on {len(judged)} apps, {false} false ({false / max(true + false, 1):.0%})'
 
 
 def _corpus():

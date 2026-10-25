@@ -1,1055 +1,1134 @@
 {
-  "schema_version": 1,
-  "home": {
-    "env": "EAOS_ENGINE_TOOLS",
-    "default": "~/.eaos/tools"
-  },
-  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. The only list: eaos tools install and doctor, the engines stage (eaos/engines/__init__.py ADAPTERS) and the pages read it; `source_commit` pins the source tools/dev_paths.py upstreams clones for reading. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
-  "tools": [
-    {
-      "name": "codegraph",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S03",
-        "S04"
-      ],
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/codegraph-ai/CodeGraph",
-      "version": "0.20.1",
-      "source_commit": "64f4f306e2a88eaba43eaef05499779d7fe6f75b",
-      "binary": "codegraph-server",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
-        "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
-        "archive": "binary",
-        "member": "codegraph-server",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
-            "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
-            "archive": "binary",
-            "member": "codegraph-server"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-arm64",
-            "sha256": "460d830e93467efb9270bfe6ac01f34e32d3369041e3a93699a9887053d18cc3",
-            "archive": "binary",
-            "member": "codegraph-server"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-x64",
-            "sha256": "5aa863ea529afcf6664cf40fcd7079d4121e8348acc1c9e0ebbc0c4675246ddd",
-            "archive": "binary",
-            "member": "codegraph-server"
-          }
-        }
-      }
-    },
-    {
-      "name": "enola",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S04"
-      ],
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/enola-labs/enola",
-      "version": "0.4.21",
-      "source_commit": "d086926aca80975dde34094e99c84cce59fb1cd6",
-      "binary": "enola",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
-        "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
-        "archive": "tar.gz",
-        "member": "enola-0.4.21-linux-amd64",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
-            "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
-            "archive": "tar.gz",
-            "member": "enola-0.4.21-linux-amd64"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-arm64.tar.gz",
-            "sha256": "8786ea0139d994e25299cdadc70c124054f0eea3babc42972861d9e6782c36ff",
-            "archive": "tar.gz",
-            "member": "enola-0.4.21-darwin-arm64"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-amd64.tar.gz",
-            "sha256": "12c5816b5d01d910b4a91b85eb0a42babfec601eb6120e7be6018732ca5549d1",
-            "archive": "tar.gz",
-            "member": "enola-0.4.21-darwin-amd64"
-          }
-        }
-      }
-    },
-    {
-      "name": "reforge",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/LyleMi/Reforge",
-      "version": "0.3.0",
-      "source_commit": "6c986d4739e13d198e71d0eed9490c69d16e707a",
-      "binary": "reforge",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
-        "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
-        "archive": "tar.gz",
-        "member": "reforge",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
-            "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
-            "archive": "tar.gz",
-            "member": "reforge"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-macos-aarch64.tar.gz",
-            "sha256": "1e5c912754e91ceac8d6bff0016de89c108d191311433b1adbaa903ea7fb7ecd",
-            "archive": "tar.gz",
-            "member": "./reforge"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-macos-x86_64.tar.gz",
-            "sha256": "bfd6d68f6854d6cecf76b5ae8d30ad2a7167221789e1b5aecb6a648ea5235fce",
-            "archive": "tar.gz",
-            "member": "./reforge"
-          }
-        }
-      }
-    },
-    {
-      "name": "jscpd",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/kucherenko/jscpd",
-      "version": "5.3.0",
-      "source_commit": "91e4444de1de68ff3ef27c0b5084c53f0b3b11b5",
-      "binary": "jscpd",
-      "install": {
-        "method": "pip",
-        "package": "jscpd"
-      }
-    },
-    {
-      "name": "syft",
-      "role": "read",
-      "stages": [
-        "S01"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/anchore/syft",
-      "version": "1.52.0",
-      "binary": "syft",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
-        "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
-        "archive": "tar.gz",
-        "member": "syft",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
-            "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
-            "archive": "tar.gz",
-            "member": "syft"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_arm64.tar.gz",
-            "sha256": "014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6",
-            "archive": "tar.gz",
-            "member": "syft"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_amd64.tar.gz",
-            "sha256": "56975f5d7ffa9846a1eaf64330647841b878097bc7e3730cb9325f93add96917",
-            "archive": "tar.gz",
-            "member": "syft"
-          }
-        }
-      }
-    },
-    {
-      "name": "osv-scanner",
-      "role": "read",
-      "stages": [
-        "S01",
-        "S04",
-        "S10"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/google/osv-scanner",
-      "version": "2.6.0",
-      "binary": "osv-scanner",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
-        "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
-        "archive": "binary",
-        "member": "osv-scanner",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
-            "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
-            "archive": "binary",
-            "member": "osv-scanner"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_arm64",
-            "sha256": "98c460dcd37de25819babd757d04542045b6243113e209edcd4d89fedb0256b4",
-            "archive": "binary",
-            "member": "osv-scanner"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_amd64",
-            "sha256": "60c5296637e977b28eeda5c7f13573e447659a632922737f94d11fa7e30ad6ca",
-            "archive": "binary",
-            "member": "osv-scanner"
-          }
-        }
-      }
-    },
-    {
-      "name": "scc",
-      "role": "read",
-      "stages": [
-        "S01",
-        "S03"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/boyter/scc",
-      "version": "4.1.0",
-      "binary": "scc",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
-        "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
-        "archive": "tar.gz",
-        "member": "scc",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
-            "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
-            "archive": "tar.gz",
-            "member": "scc"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_arm64.tar.gz",
-            "sha256": "7201c7aa4aace058d43308462cba72adb18f6094c08c0741727455976d0a0747",
-            "archive": "tar.gz",
-            "member": "scc"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_x86_64.tar.gz",
-            "sha256": "7f705031228add7e55edded409179a60de6b538d41f153ba2922dee95adda50d",
-            "archive": "tar.gz",
-            "member": "scc"
-          }
-        }
-      }
-    },
-    {
-      "name": "semgrep",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10",
-        "S15"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "LGPL-2.1",
-      "repository": "https://github.com/semgrep/semgrep",
-      "version": "1.178.0",
-      "binary": "semgrep",
-      "install": {
-        "method": "pip",
-        "package": "semgrep"
-      }
-    },
-    {
-      "name": "semgrep-rules",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10"
-      ],
-      "check": "engines",
-      "license": "Semgrep Rules License v1.0",
-      "repository": "https://github.com/semgrep/semgrep-rules",
-      "version": "a84ff9cc2453ca91d581380de4b8b3f272f6f4be",
-      "install": {
-        "method": "git",
-        "repository": "https://github.com/semgrep/semgrep-rules",
-        "dir": "semgrep-rules"
-      },
-      "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed."
-    },
-    {
-      "name": "trivy",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/aquasecurity/trivy",
-      "version": "0.74.0",
-      "binary": "trivy",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
-        "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-        "archive": "tar.gz",
-        "member": "trivy",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
-            "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-            "archive": "tar.gz",
-            "member": "trivy"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-ARM64.tar.gz",
-            "sha256": "1caada5e0e2091909357c7525d3aa76f4b660b13821bc143b190c7483e31cc11",
-            "archive": "tar.gz",
-            "member": "trivy"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-64bit.tar.gz",
-            "sha256": "472816f6888dda689d075c30254d4210b4d1035acf365aa72332f584c2f60485",
-            "archive": "tar.gz",
-            "member": "trivy"
-          }
-        }
-      }
-    },
-    {
-      "name": "checkov",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10"
-      ],
-      "applies": "ci_or_iac",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/bridgecrewio/checkov",
-      "version": "3.3.19",
-      "binary": "checkov",
-      "install": {
-        "method": "pip",
-        "package": "checkov"
-      }
-    },
-    {
-      "name": "bandit",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10"
-      ],
-      "applies": "python",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/PyCQA/bandit",
-      "version": "1.9.4",
-      "binary": "bandit",
-      "install": {
-        "method": "pip",
-        "package": "bandit[sarif]"
-      }
-    },
-    {
-      "name": "gitleaks",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/gitleaks/gitleaks",
-      "version": "8.30.1",
-      "binary": "gitleaks",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
-        "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
-        "archive": "tar.gz",
-        "member": "gitleaks",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
-            "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
-            "archive": "tar.gz",
-            "member": "gitleaks"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_arm64.tar.gz",
-            "sha256": "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5",
-            "archive": "tar.gz",
-            "member": "gitleaks"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_x64.tar.gz",
-            "sha256": "dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709",
-            "archive": "tar.gz",
-            "member": "gitleaks"
-          }
-        }
-      }
-    },
-    {
-      "name": "codeql",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S10"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "GitHub CodeQL Terms and Conditions (open-source codebases only)",
-      "repository": "https://github.com/github/codeql-action",
-      "version": "2.27.2",
-      "binary": "codeql",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
-        "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
-        "archive": "tar.gz",
-        "tree": true,
-        "entry": "codeql/codeql",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
-            "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "codeql/codeql"
-          },
-          "linux-arm64": {
-            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux-arm64.tar.gz",
-            "sha256": "c1779ce6335606ef86fce4aae0db2ac4d7da869527d6a67bf055d9135695473c",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "codeql/codeql"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
-            "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "codeql/codeql"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
-            "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "codeql/codeql"
-          }
-        }
-      }
-    },
-    {
-      "name": "dependency-cruiser",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S04",
-        "S15"
-      ],
-      "applies": "js",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/sverweij/dependency-cruiser",
-      "version": "18.4.0",
-      "binary": "depcruise",
-      "install": {
-        "method": "npm",
-        "package": "dependency-cruiser",
-        "with": [
-          "typescript@6.0.3"
-        ]
-      },
-      "install_note": "typescript 6 is installed beside it: without a compiler it reads no .ts file and reports an empty graph (TypeScript 7 is not yet supported by its API)."
-    },
-    {
-      "name": "sqlfluff",
-      "role": "read",
-      "stages": [
-        "S04"
-      ],
-      "applies": "sql",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/sqlfluff/sqlfluff",
-      "version": "4.3.0",
-      "binary": "sqlfluff",
-      "install": {
-        "method": "pip",
-        "package": "sqlfluff"
-      }
-    },
-    {
-      "name": "spectral",
-      "role": "read",
-      "stages": [
-        "S04"
-      ],
-      "applies": "openapi",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/stoplightio/spectral",
-      "version": "6.16.3",
-      "binary": "spectral",
-      "install": {
-        "method": "npm",
-        "package": "@stoplight/spectral-cli"
-      }
-    },
-    {
-      "name": "oasdiff",
-      "role": "read",
-      "stages": [
-        "S04",
-        "S09"
-      ],
-      "applies": "openapi",
-      "check": "engines",
-      "license": "Apache-2.0",
-      "repository": "https://github.com/oasdiff/oasdiff",
-      "version": "1.32.1",
-      "binary": "oasdiff",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
-        "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
-        "archive": "tar.gz",
-        "member": "oasdiff",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
-            "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
-            "archive": "tar.gz",
-            "member": "oasdiff"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_darwin_all.tar.gz",
-            "sha256": "e4d74b7e2dfb9d4819e7fc720c905ec86547e4637ac270a2b0187c0f1fb7187e",
-            "archive": "tar.gz",
-            "member": "oasdiff"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_darwin_all.tar.gz",
-            "sha256": "e4d74b7e2dfb9d4819e7fc720c905ec86547e4637ac270a2b0187c0f1fb7187e",
-            "archive": "tar.gz",
-            "member": "oasdiff"
-          }
-        }
-      }
-    },
-    {
-      "name": "gitnexus",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S04"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "PolyForm-Noncommercial-1.0.0",
-      "repository": "https://github.com/abhigyanpatwari/GitNexus",
-      "version": "1.6.12",
-      "binary": "gitnexus",
-      "install": {
-        "method": "npm",
-        "package": "gitnexus",
-        "env": {
-          "GITNEXUS_SKIP_OPTIONAL_GRAMMARS": "1"
-        }
-      },
-      "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): CodeGraph and dependency-cruiser cover its core capability."
-    },
-    {
-      "name": "ast-grep",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S03",
-        "S04"
-      ],
-      "applies": "js",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/ast-grep/ast-grep",
-      "version": "0.45.3",
-      "binary": "ast-grep",
-      "install": {
-        "method": "pip",
-        "package": "ast-grep-cli"
-      },
-      "install_note": "The PyPI wheel carries the same prebuilt binary as the GitHub release, per platform; pip checks it against the index hash. It reads EAOS's own rule pack in eaos/rules/ast-grep."
-    },
-    {
-      "name": "lizard",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "applies": "all",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/terryyin/lizard",
-      "version": "1.24.1",
-      "binary": "lizard",
-      "install": {
-        "method": "pip",
-        "package": "lizard"
-      }
-    },
-    {
-      "name": "knip",
-      "role": "read",
-      "stages": [
-        "S03",
-        "S04"
-      ],
-      "applies": "node_package",
-      "check": "engines",
-      "license": "ISC",
-      "repository": "https://github.com/webpro-nl/knip",
-      "version": "6.40.0",
-      "binary": "knip",
-      "install": {
-        "method": "npm",
-        "package": "knip"
-      }
-    },
-    {
-      "name": "react-docgen",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S03"
-      ],
-      "applies": "react",
-      "check": "engines",
-      "license": "MIT",
-      "repository": "https://github.com/reactjs/react-docgen",
-      "version": "3.0.7",
-      "binary": "react-docgen",
-      "install": {
-        "method": "npm",
-        "package": "@react-docgen/cli"
-      },
-      "version_from": "package",
-      "install_note": "The command-line package @react-docgen/cli 3.0.7 pins the react-docgen library at exactly 8.0.4. It has no --version: its version is read from its own package.json."
-    },
-    {
-      "name": "playwright",
-      "role": "validate",
-      "stages": [
-        "S05",
-        "S09"
-      ],
-      "license": "Apache-2.0",
-      "repository": "https://github.com/microsoft/playwright",
-      "version": "1.63.0",
-      "binary": "playwright",
-      "install": {
-        "method": "npm",
-        "package": "@playwright/test"
-      },
-      "install_note": "Validation needs no browser: `playwright test --list` loads every spec. Running the lock (NS26) installs browsers inside the sandbox."
-    },
-    {
-      "name": "pytest",
-      "role": "validate",
-      "stages": [
-        "S05",
-        "S09"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/pytest-dev/pytest",
-      "version": "9.1.1",
-      "binary": "pytest",
-      "install": {
-        "method": "pip",
-        "package": "pytest",
-        "with": [
-          "approvaltests==19.1.1"
-        ]
-      },
-      "install_note": "Runs the lock's approval tests (NS26) with ApprovalTests (Apache-2.0), installed beside it."
-    },
-    {
-      "name": "k6",
-      "role": "validate",
-      "stages": [
-        "S05",
-        "S11"
-      ],
-      "license": "AGPL-3.0",
-      "repository": "https://github.com/grafana/k6",
-      "version": "2.3.0",
-      "binary": "k6",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz",
-        "sha256": "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1",
-        "archive": "tar.gz",
-        "member": "k6",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz",
-            "sha256": "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1",
-            "archive": "tar.gz",
-            "member": "k6"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-macos-arm64.zip",
-            "sha256": "b2417a3038edc5fe81dc178a889237724b595c5c9cfed875822008e46e862c7d",
-            "archive": "zip",
-            "member": "k6-v2.3.0-macos-arm64/k6"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-macos-amd64.zip",
-            "sha256": "c83bb16f54f0676afa4ea235fd757f3892d307dbd1bd201450de83af31986654",
-            "archive": "zip",
-            "member": "k6-v2.3.0-macos-amd64/k6"
-          }
-        }
-      }
-    },
-    {
-      "name": "mailpit",
-      "role": "validate",
-      "stages": [
-        "S05"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/axllent/mailpit",
-      "version": "1.31.6",
-      "binary": "mailpit",
-      "version_args": [
-        "version"
-      ],
-      "install": {
-        "method": "release",
-        "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz",
-        "sha256": "10fa12ccc610f653d4ed4df848c1817f9935dcf4e9a6a458a19ab0fa02093f91",
-        "archive": "tar.gz",
-        "member": "mailpit",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz",
-            "sha256": "10fa12ccc610f653d4ed4df848c1817f9935dcf4e9a6a458a19ab0fa02093f91",
-            "archive": "tar.gz",
-            "member": "mailpit"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-darwin-arm64.tar.gz",
-            "sha256": "1411270aa8fd7f4fb0cc358318754d7bb7c2c30bfd70572dd12d05a53e956373",
-            "archive": "tar.gz",
-            "member": "mailpit"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-darwin-amd64.tar.gz",
-            "sha256": "2f89ed77d2e6623bf700de42236858d10dde1ba96a222c9dbdefd33fa094a6f3",
-            "archive": "tar.gz",
-            "member": "mailpit"
-          }
-        }
-      }
-    },
-    {
-      "name": "temurin-jre",
-      "role": "validate",
-      "stages": [
-        "S02",
-        "S06"
-      ],
-      "license": "GPL-2.0-with-classpath-exception",
-      "repository": "https://github.com/adoptium/temurin21-binaries",
-      "version": "21.0.12",
-      "version_args": [
-        "-version"
-      ],
-      "binary": "java",
-      "install": {
-        "method": "release",
-        "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
-        "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
-        "archive": "tar.gz",
-        "tree": true,
-        "entry": "jdk-21.0.12.1+1-jre/bin/java",
-        "platforms": {
-          "linux-x86_64": {
-            "method": "release",
-            "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
-            "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "jdk-21.0.12.1+1-jre/bin/java"
-          },
-          "darwin-arm64": {
-            "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_aarch64_mac_hotspot_21.0.12.1_1.tar.gz",
-            "sha256": "dec50fc6f9fcd4fe3ae8cabf5a5fa68f6afc48841f7698e468e9aa5d54beed84",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
-          },
-          "darwin-x86_64": {
-            "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_mac_hotspot_21.0.12.1_1.tar.gz",
-            "sha256": "6717ec641fd9ce0bb209ca083ee23b42202ac68cb6fcc5753496e0e4a0f41989",
-            "archive": "tar.gz",
-            "tree": true,
-            "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
-          }
-        }
-      },
-      "install_note": "Only the Structurizr CLI needs it; the checksum is the one Adoptium publishes."
-    },
-    {
-      "name": "jscodeshift",
-      "role": "run",
-      "stages": [
-        "S07",
-        "S08"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/facebook/jscodeshift",
-      "version": "17.4.0",
-      "binary": "jscodeshift",
-      "install": {
-        "method": "npm",
-        "package": "jscodeshift"
-      },
-      "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it."
-    },
-    {
-      "name": "axe-core",
-      "role": "run",
-      "stages": [
-        "S05",
-        "S09"
-      ],
-      "license": "MPL-2.0",
-      "repository": "https://github.com/dequelabs/axe-core-npm",
-      "version": "4.13.0",
-      "install": {
-        "method": "npm",
-        "package": "@axe-core/playwright",
-        "library": true,
-        "with": [
-          "axe-core@4.13.0",
-          "playwright-core@1.63.0"
-        ]
-      },
-      "install_note": "A library, no executable: eaos/templates/screens/audit.mjs imports @axe-core/playwright and runs WCAG 2.2 A/AA rules on each rendered page through the pinned Playwright. axe-core stays at 4.13.0, the line @axe-core/playwright 4.13.0 depends on (~4.13.0), so one copy of the rules is installed; playwright-core is the pinned Playwright's version, its peer."
-    },
-    {
-      "name": "lighthouse",
-      "role": "run",
-      "stages": [
-        "S05",
-        "S11"
-      ],
-      "license": "Apache-2.0",
-      "repository": "https://github.com/GoogleChrome/lighthouse",
-      "version": "13.5.0",
-      "binary": "lighthouse",
-      "install": {
-        "method": "npm",
-        "package": "lighthouse"
-      },
-      "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/live/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer."
-    },
-    {
-      "name": "css-analyzer",
-      "role": "run",
-      "stages": [
-        "S05",
-        "S09"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/projectwallace/css-analyzer",
-      "version": "9.9.3",
-      "install": {
-        "method": "npm",
-        "package": "@projectwallace/css-analyzer",
-        "library": true
-      },
-      "install_note": "A library, no executable: eaos/templates/screens/css.mjs imports it to measure design drift in a built site's CSS (distinct colors, font sizes, spacings, specificity)."
-    },
-    {
-      "name": "rrweb",
-      "role": "run",
-      "stages": [
-        "S05",
-        "S09"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/rrweb-io/rrweb",
-      "version": "2.1.7",
-      "install": {
-        "method": "npm",
-        "package": "rrweb",
-        "library": true,
-        "with": [
-          "rrweb-player@2.1.7"
-        ]
-      },
-      "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior_lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
-    },
-    {
-      "name": "codecharta",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S03"
-      ],
-      "check": "architecture",
-      "license": "BSD-3-Clause",
-      "repository": "https://github.com/MaibornWolff/codecharta",
-      "version": "2.1.0",
-      "binary": "ccsh",
-      "install": {
-        "method": "npm",
-        "package": "codecharta-analysis"
-      },
-      "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/architecture.py). Needs temurin-jre."
-    },
-    {
-      "name": "emerge",
-      "role": "read",
-      "stages": [
-        "S02",
-        "S03"
-      ],
-      "check": "architecture",
-      "license": "MIT",
-      "repository": "https://github.com/glato/emerge",
-      "version": "2.0.7",
-      "binary": "emerge",
-      "install": {
-        "method": "pip",
-        "package": "emerge-viz",
-        "with": [
-          "setuptools==80.10.2",
-          "pip==24.0"
-        ],
-        "own_venv": true
-      },
-      "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/architecture.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
-      "version_args": [
-        "--help"
-      ]
-    },
-    {
-      "name": "ui-ux-pro-max",
-      "role": "read",
-      "stages": [
-        "S06"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
-      "version": "7246805992a42b7bba37d4cac83b01416f0c6c44",
-      "install": {
-        "method": "git",
-        "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
-        "dir": "ui-ux-pro-max"
-      },
-      "license_note": "Styles, palettes, font pairings and UX rules by product type, searched offline by its own script; read when a look is drawn. Fetched to this machine, never copied into the EAOS repository."
-    },
-    {
-      "name": "awesome-design-md",
-      "role": "read",
-      "stages": [
-        "S06"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/voltagent/awesome-design-md",
-      "version": "3b605329240ce735b510037cca322f1831fdd7f8",
-      "install": {
-        "method": "git",
-        "repository": "https://github.com/voltagent/awesome-design-md",
-        "dir": "awesome-design-md"
-      },
-      "license_note": "Reference design systems as DESIGN.md files (Google Stitch format), each with a light and dark preview; read as directions, never copied as a brand. Fetched to this machine, never copied into the EAOS repository."
-    },
-    {
-      "name": "tweakcn-themes",
-      "role": "read",
-      "stages": [
-        "S06"
-      ],
-      "license": "MIT",
-      "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
-      "version": "7b261a42335d474a6be93ac77ec3f8186db70af7",
-      "install": {
-        "method": "git",
-        "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
-        "dir": "tweakcn-themes"
-      },
-      "license_note": "Light and dark themes in the shadcn/ui token format. Fetched to this machine, never copied into the EAOS repository."
-    },
-    {
-      "name": "anthropic-skills",
-      "role": "read",
-      "stages": [
-        "S06"
-      ],
-      "license": "Apache-2.0 (frontend-design)",
-      "repository": "https://github.com/anthropics/skills",
-      "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
-      "install": {
-        "method": "git",
-        "repository": "https://github.com/anthropics/skills",
-        "dir": "anthropic-skills"
-      },
-      "license_note": "Only its frontend-design skill (Apache-2.0) is read: craft guidance for the assistant that builds the screens; the other skills keep their own terms and are not used. Fetched to this machine, never copied into the EAOS repository."
+ "schema_version": 1,
+ "home": {
+  "env": "EAOS_ENGINE_TOOLS",
+  "default": "~/.eaos/tools"
+ },
+ "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. The only list: eaos tools install and doctor, the engines stage (eaos/engines/__init__.py ADAPTERS) and the pages read it; `source_commit` pins the source tools/dev_paths.py upstreams clones for reading. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
+ "tools": [
+  {
+   "name": "codegraph",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S03",
+    "S04"
+   ],
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/codegraph-ai/CodeGraph",
+   "version": "0.20.1",
+   "source_commit": "64f4f306e2a88eaba43eaef05499779d7fe6f75b",
+   "binary": "codegraph-server",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
+    "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
+    "archive": "binary",
+    "member": "codegraph-server",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
+      "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
+      "archive": "binary",
+      "member": "codegraph-server"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-arm64",
+      "sha256": "460d830e93467efb9270bfe6ac01f34e32d3369041e3a93699a9887053d18cc3",
+      "archive": "binary",
+      "member": "codegraph-server"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-darwin-x64",
+      "sha256": "5aa863ea529afcf6664cf40fcd7079d4121e8348acc1c9e0ebbc0c4675246ddd",
+      "archive": "binary",
+      "member": "codegraph-server"
+     }
     }
-  ]
+   }
+  },
+  {
+   "name": "enola",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S04"
+   ],
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/enola-labs/enola",
+   "version": "0.4.21",
+   "source_commit": "d086926aca80975dde34094e99c84cce59fb1cd6",
+   "binary": "enola",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
+    "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
+    "archive": "tar.gz",
+    "member": "enola-0.4.21-linux-amd64",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
+      "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
+      "archive": "tar.gz",
+      "member": "enola-0.4.21-linux-amd64"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-arm64.tar.gz",
+      "sha256": "8786ea0139d994e25299cdadc70c124054f0eea3babc42972861d9e6782c36ff",
+      "archive": "tar.gz",
+      "member": "enola-0.4.21-darwin-arm64"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-darwin-amd64.tar.gz",
+      "sha256": "12c5816b5d01d910b4a91b85eb0a42babfec601eb6120e7be6018732ca5549d1",
+      "archive": "tar.gz",
+      "member": "enola-0.4.21-darwin-amd64"
+     }
+    }
+   }
+  },
+  {
+   "name": "reforge",
+   "role": "read",
+   "stages": [
+    "S03",
+    "S04"
+   ],
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/LyleMi/Reforge",
+   "version": "0.3.0",
+   "source_commit": "6c986d4739e13d198e71d0eed9490c69d16e707a",
+   "binary": "reforge",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
+    "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
+    "archive": "tar.gz",
+    "member": "reforge",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
+      "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
+      "archive": "tar.gz",
+      "member": "reforge"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-macos-aarch64.tar.gz",
+      "sha256": "1e5c912754e91ceac8d6bff0016de89c108d191311433b1adbaa903ea7fb7ecd",
+      "archive": "tar.gz",
+      "member": "./reforge"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-macos-x86_64.tar.gz",
+      "sha256": "bfd6d68f6854d6cecf76b5ae8d30ad2a7167221789e1b5aecb6a648ea5235fce",
+      "archive": "tar.gz",
+      "member": "./reforge"
+     }
+    }
+   }
+  },
+  {
+   "name": "jscpd",
+   "role": "read",
+   "stages": [
+    "S03",
+    "S04"
+   ],
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/kucherenko/jscpd",
+   "version": "5.3.0",
+   "source_commit": "91e4444de1de68ff3ef27c0b5084c53f0b3b11b5",
+   "binary": "jscpd",
+   "install": {
+    "method": "pip",
+    "package": "jscpd"
+   }
+  },
+  {
+   "name": "syft",
+   "role": "read",
+   "stages": [
+    "S01"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/anchore/syft",
+   "version": "1.52.0",
+   "binary": "syft",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
+    "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
+    "archive": "tar.gz",
+    "member": "syft",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
+      "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
+      "archive": "tar.gz",
+      "member": "syft"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_arm64.tar.gz",
+      "sha256": "014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6",
+      "archive": "tar.gz",
+      "member": "syft"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_amd64.tar.gz",
+      "sha256": "56975f5d7ffa9846a1eaf64330647841b878097bc7e3730cb9325f93add96917",
+      "archive": "tar.gz",
+      "member": "syft"
+     }
+    }
+   }
+  },
+  {
+   "name": "osv-scanner",
+   "role": "read",
+   "stages": [
+    "S01",
+    "S04",
+    "S10"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/google/osv-scanner",
+   "version": "2.6.0",
+   "binary": "osv-scanner",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
+    "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
+    "archive": "binary",
+    "member": "osv-scanner",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
+      "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
+      "archive": "binary",
+      "member": "osv-scanner"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_arm64",
+      "sha256": "98c460dcd37de25819babd757d04542045b6243113e209edcd4d89fedb0256b4",
+      "archive": "binary",
+      "member": "osv-scanner"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_amd64",
+      "sha256": "60c5296637e977b28eeda5c7f13573e447659a632922737f94d11fa7e30ad6ca",
+      "archive": "binary",
+      "member": "osv-scanner"
+     }
+    }
+   }
+  },
+  {
+   "name": "scc",
+   "role": "read",
+   "stages": [
+    "S01",
+    "S03"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/boyter/scc",
+   "version": "4.1.0",
+   "binary": "scc",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
+    "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
+    "archive": "tar.gz",
+    "member": "scc",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
+      "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
+      "archive": "tar.gz",
+      "member": "scc"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_arm64.tar.gz",
+      "sha256": "7201c7aa4aace058d43308462cba72adb18f6094c08c0741727455976d0a0747",
+      "archive": "tar.gz",
+      "member": "scc"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Darwin_x86_64.tar.gz",
+      "sha256": "7f705031228add7e55edded409179a60de6b538d41f153ba2922dee95adda50d",
+      "archive": "tar.gz",
+      "member": "scc"
+     }
+    }
+   }
+  },
+  {
+   "name": "semgrep",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10",
+    "S15"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "LGPL-2.1",
+   "repository": "https://github.com/semgrep/semgrep",
+   "version": "1.178.0",
+   "binary": "semgrep",
+   "install": {
+    "method": "pip",
+    "package": "semgrep"
+   }
+  },
+  {
+   "name": "semgrep-rules",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "check": "engines",
+   "license": "Semgrep Rules License v1.0",
+   "repository": "https://github.com/semgrep/semgrep-rules",
+   "version": "a84ff9cc2453ca91d581380de4b8b3f272f6f4be",
+   "install": {
+    "method": "git",
+    "repository": "https://github.com/semgrep/semgrep-rules",
+    "dir": "semgrep-rules"
+   },
+   "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed."
+  },
+  {
+   "name": "trivy",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/aquasecurity/trivy",
+   "version": "0.74.0",
+   "binary": "trivy",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
+    "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+    "archive": "tar.gz",
+    "member": "trivy",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
+      "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+      "archive": "tar.gz",
+      "member": "trivy"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-ARM64.tar.gz",
+      "sha256": "1caada5e0e2091909357c7525d3aa76f4b660b13821bc143b190c7483e31cc11",
+      "archive": "tar.gz",
+      "member": "trivy"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_macOS-64bit.tar.gz",
+      "sha256": "472816f6888dda689d075c30254d4210b4d1035acf365aa72332f584c2f60485",
+      "archive": "tar.gz",
+      "member": "trivy"
+     }
+    }
+   }
+  },
+  {
+   "name": "checkov",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "applies": "ci_or_iac",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/bridgecrewio/checkov",
+   "version": "3.3.19",
+   "binary": "checkov",
+   "install": {
+    "method": "pip",
+    "package": "checkov"
+   }
+  },
+  {
+   "name": "bandit",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "applies": "python",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/PyCQA/bandit",
+   "version": "1.9.4",
+   "binary": "bandit",
+   "install": {
+    "method": "pip",
+    "package": "bandit[sarif]"
+   }
+  },
+  {
+   "name": "gitleaks",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/gitleaks/gitleaks",
+   "version": "8.30.1",
+   "binary": "gitleaks",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+    "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+    "archive": "tar.gz",
+    "member": "gitleaks",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+      "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+      "archive": "tar.gz",
+      "member": "gitleaks"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_arm64.tar.gz",
+      "sha256": "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5",
+      "archive": "tar.gz",
+      "member": "gitleaks"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_x64.tar.gz",
+      "sha256": "dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709",
+      "archive": "tar.gz",
+      "member": "gitleaks"
+     }
+    }
+   }
+  },
+  {
+   "name": "codeql",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S10"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "GitHub CodeQL Terms and Conditions (open-source codebases only)",
+   "repository": "https://github.com/github/codeql-action",
+   "version": "2.27.2",
+   "binary": "codeql",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
+    "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
+    "archive": "tar.gz",
+    "tree": true,
+    "entry": "codeql/codeql",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux64.tar.gz",
+      "sha256": "f002864be6dd8d5d7bdb123aaf7291ec8e291012bd9f70b6d2362f730db52aeb",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "codeql/codeql"
+     },
+     "linux-arm64": {
+      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-linux-arm64.tar.gz",
+      "sha256": "c1779ce6335606ef86fce4aae0db2ac4d7da869527d6a67bf055d9135695473c",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "codeql/codeql"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
+      "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "codeql/codeql"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.2/codeql-bundle-osx64.tar.gz",
+      "sha256": "bdd42bab471ed16277048b35b9be7264d07bd19b7391c37d30c74e9555e61e92",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "codeql/codeql"
+     }
+    }
+   }
+  },
+  {
+   "name": "dependency-cruiser",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S04",
+    "S15"
+   ],
+   "applies": "js",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/sverweij/dependency-cruiser",
+   "version": "18.4.0",
+   "binary": "depcruise",
+   "install": {
+    "method": "npm",
+    "package": "dependency-cruiser",
+    "with": [
+     "typescript@6.0.3"
+    ]
+   },
+   "install_note": "typescript 6 is installed beside it: without a compiler it reads no .ts file and reports an empty graph (TypeScript 7 is not yet supported by its API)."
+  },
+  {
+   "name": "schemathesis",
+   "role": "validate",
+   "stages": [
+    "S05"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/schemathesis/schemathesis",
+   "version": "4.32.4",
+   "binary": "schemathesis",
+   "install": {
+    "method": "pip",
+    "package": "schemathesis"
+   },
+   "install_note": "Tries the running API in the `layers` option (M6.7): a fixed seed, a time budget, the run's two test accounts as peers."
+  },
+  {
+   "name": "supabase",
+   "role": "validate",
+   "stages": [
+    "S05"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/supabase/cli",
+   "version": "2.122.0",
+   "binary": "supabase",
+   "version_args": [
+    "--version"
+   ],
+   "install": {
+    "method": "release",
+    "url": "https://github.com/supabase/cli/releases/download/v2.122.0/supabase_linux_amd64.tar.gz",
+    "sha256": "59ed066847b98d7461c60e9109d40cab6b9756177ce06ebb05b51338519f5136",
+    "archive": "tar.gz",
+    "tree": true,
+    "entry": "supabase",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/supabase/cli/releases/download/v2.122.0/supabase_linux_amd64.tar.gz",
+      "sha256": "59ed066847b98d7461c60e9109d40cab6b9756177ce06ebb05b51338519f5136",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "supabase"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/supabase/cli/releases/download/v2.122.0/supabase_darwin_arm64.tar.gz",
+      "sha256": "fe87a5f9781d5423dbd5ebba2d5a6e1a541d01754d14941c574952e5695eaab0",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "supabase"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/supabase/cli/releases/download/v2.122.0/supabase_darwin_amd64.tar.gz",
+      "sha256": "8be7d5bb00091e67618d12fb0a4a1bb10624c69435ecd5b9b95d91d571cc34d8",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "supabase"
+     }
+    }
+   },
+   "install_note": "Its security advisors (`supabase db advisors --db-url`) read the run's own database with the migrations applied (M6.6); no Docker, no Supabase project."
+  },
+  {
+   "name": "pgtap",
+   "role": "validate",
+   "stages": [
+    "S05"
+   ],
+   "license": "PostgreSQL",
+   "repository": "https://github.com/theory/pgtap",
+   "version": "968eb53a33114e83042b3bdb0c664b5b80cf8bdf",
+   "install": {
+    "method": "git",
+    "repository": "https://github.com/theory/pgtap",
+    "dir": "pgtap"
+   },
+   "install_note": "v1.3.4: the per-table tests of the data rules (M6.6) load it as SQL into the run's own database (eaos/live/data_trial.py makes pgtap.sql from its source once)."
+  },
+  {
+   "name": "sqlfluff",
+   "role": "read",
+   "stages": [
+    "S04"
+   ],
+   "applies": "sql",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/sqlfluff/sqlfluff",
+   "version": "4.3.0",
+   "binary": "sqlfluff",
+   "install": {
+    "method": "pip",
+    "package": "sqlfluff"
+   }
+  },
+  {
+   "name": "spectral",
+   "role": "read",
+   "stages": [
+    "S04"
+   ],
+   "applies": "openapi",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/stoplightio/spectral",
+   "version": "6.16.3",
+   "binary": "spectral",
+   "install": {
+    "method": "npm",
+    "package": "@stoplight/spectral-cli"
+   }
+  },
+  {
+   "name": "oasdiff",
+   "role": "read",
+   "stages": [
+    "S04",
+    "S09"
+   ],
+   "applies": "openapi",
+   "check": "engines",
+   "license": "Apache-2.0",
+   "repository": "https://github.com/oasdiff/oasdiff",
+   "version": "1.32.1",
+   "binary": "oasdiff",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
+    "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
+    "archive": "tar.gz",
+    "member": "oasdiff",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
+      "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
+      "archive": "tar.gz",
+      "member": "oasdiff"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_darwin_all.tar.gz",
+      "sha256": "e4d74b7e2dfb9d4819e7fc720c905ec86547e4637ac270a2b0187c0f1fb7187e",
+      "archive": "tar.gz",
+      "member": "oasdiff"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_darwin_all.tar.gz",
+      "sha256": "e4d74b7e2dfb9d4819e7fc720c905ec86547e4637ac270a2b0187c0f1fb7187e",
+      "archive": "tar.gz",
+      "member": "oasdiff"
+     }
+    }
+   }
+  },
+  {
+   "name": "gitnexus",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S04"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "PolyForm-Noncommercial-1.0.0",
+   "repository": "https://github.com/abhigyanpatwari/GitNexus",
+   "version": "1.6.12",
+   "binary": "gitnexus",
+   "install": {
+    "method": "npm",
+    "package": "gitnexus",
+    "env": {
+     "GITNEXUS_SKIP_OPTIONAL_GRAMMARS": "1"
+    }
+   },
+   "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): CodeGraph and dependency-cruiser cover its core capability."
+  },
+  {
+   "name": "ast-grep",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S03",
+    "S04"
+   ],
+   "applies": "js",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/ast-grep/ast-grep",
+   "version": "0.45.3",
+   "binary": "ast-grep",
+   "install": {
+    "method": "pip",
+    "package": "ast-grep-cli"
+   },
+   "install_note": "The PyPI wheel carries the same prebuilt binary as the GitHub release, per platform; pip checks it against the index hash. It reads EAOS's own rule pack in eaos/rules/ast-grep."
+  },
+  {
+   "name": "lizard",
+   "role": "read",
+   "stages": [
+    "S03",
+    "S04"
+   ],
+   "applies": "all",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/terryyin/lizard",
+   "version": "1.24.1",
+   "binary": "lizard",
+   "install": {
+    "method": "pip",
+    "package": "lizard"
+   }
+  },
+  {
+   "name": "knip",
+   "role": "read",
+   "stages": [
+    "S03",
+    "S04"
+   ],
+   "applies": "node_package",
+   "check": "engines",
+   "license": "ISC",
+   "repository": "https://github.com/webpro-nl/knip",
+   "version": "6.40.0",
+   "binary": "knip",
+   "install": {
+    "method": "npm",
+    "package": "knip"
+   }
+  },
+  {
+   "name": "react-docgen",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S03"
+   ],
+   "applies": "react",
+   "check": "engines",
+   "license": "MIT",
+   "repository": "https://github.com/reactjs/react-docgen",
+   "version": "3.0.7",
+   "binary": "react-docgen",
+   "install": {
+    "method": "npm",
+    "package": "@react-docgen/cli"
+   },
+   "version_from": "package",
+   "install_note": "The command-line package @react-docgen/cli 3.0.7 pins the react-docgen library at exactly 8.0.4. It has no --version: its version is read from its own package.json."
+  },
+  {
+   "name": "playwright",
+   "role": "validate",
+   "stages": [
+    "S05",
+    "S09"
+   ],
+   "license": "Apache-2.0",
+   "repository": "https://github.com/microsoft/playwright",
+   "version": "1.63.0",
+   "binary": "playwright",
+   "install": {
+    "method": "npm",
+    "package": "@playwright/test"
+   },
+   "install_note": "Validation needs no browser: `playwright test --list` loads every spec. Running the lock (NS26) installs browsers inside the sandbox."
+  },
+  {
+   "name": "pytest",
+   "role": "validate",
+   "stages": [
+    "S05",
+    "S09"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/pytest-dev/pytest",
+   "version": "9.1.1",
+   "binary": "pytest",
+   "install": {
+    "method": "pip",
+    "package": "pytest",
+    "with": [
+     "approvaltests==19.1.1"
+    ]
+   },
+   "install_note": "Runs the lock's approval tests (NS26) with ApprovalTests (Apache-2.0), installed beside it."
+  },
+  {
+   "name": "k6",
+   "role": "validate",
+   "stages": [
+    "S05",
+    "S11"
+   ],
+   "license": "AGPL-3.0",
+   "repository": "https://github.com/grafana/k6",
+   "version": "2.3.0",
+   "binary": "k6",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz",
+    "sha256": "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1",
+    "archive": "tar.gz",
+    "member": "k6",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz",
+      "sha256": "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1",
+      "archive": "tar.gz",
+      "member": "k6"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-macos-arm64.zip",
+      "sha256": "b2417a3038edc5fe81dc178a889237724b595c5c9cfed875822008e46e862c7d",
+      "archive": "zip",
+      "member": "k6-v2.3.0-macos-arm64/k6"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-macos-amd64.zip",
+      "sha256": "c83bb16f54f0676afa4ea235fd757f3892d307dbd1bd201450de83af31986654",
+      "archive": "zip",
+      "member": "k6-v2.3.0-macos-amd64/k6"
+     }
+    }
+   }
+  },
+  {
+   "name": "mailpit",
+   "role": "validate",
+   "stages": [
+    "S05"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/axllent/mailpit",
+   "version": "1.31.6",
+   "binary": "mailpit",
+   "version_args": [
+    "version"
+   ],
+   "install": {
+    "method": "release",
+    "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz",
+    "sha256": "10fa12ccc610f653d4ed4df848c1817f9935dcf4e9a6a458a19ab0fa02093f91",
+    "archive": "tar.gz",
+    "member": "mailpit",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-linux-amd64.tar.gz",
+      "sha256": "10fa12ccc610f653d4ed4df848c1817f9935dcf4e9a6a458a19ab0fa02093f91",
+      "archive": "tar.gz",
+      "member": "mailpit"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-darwin-arm64.tar.gz",
+      "sha256": "1411270aa8fd7f4fb0cc358318754d7bb7c2c30bfd70572dd12d05a53e956373",
+      "archive": "tar.gz",
+      "member": "mailpit"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/axllent/mailpit/releases/download/v1.31.6/mailpit-darwin-amd64.tar.gz",
+      "sha256": "2f89ed77d2e6623bf700de42236858d10dde1ba96a222c9dbdefd33fa094a6f3",
+      "archive": "tar.gz",
+      "member": "mailpit"
+     }
+    }
+   }
+  },
+  {
+   "name": "temurin-jre",
+   "role": "validate",
+   "stages": [
+    "S02",
+    "S06"
+   ],
+   "license": "GPL-2.0-with-classpath-exception",
+   "repository": "https://github.com/adoptium/temurin21-binaries",
+   "version": "21.0.12",
+   "version_args": [
+    "-version"
+   ],
+   "binary": "java",
+   "install": {
+    "method": "release",
+    "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
+    "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
+    "archive": "tar.gz",
+    "tree": true,
+    "entry": "jdk-21.0.12.1+1-jre/bin/java",
+    "platforms": {
+     "linux-x86_64": {
+      "method": "release",
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
+      "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "jdk-21.0.12.1+1-jre/bin/java"
+     },
+     "darwin-arm64": {
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_aarch64_mac_hotspot_21.0.12.1_1.tar.gz",
+      "sha256": "dec50fc6f9fcd4fe3ae8cabf5a5fa68f6afc48841f7698e468e9aa5d54beed84",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
+     },
+     "darwin-x86_64": {
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_mac_hotspot_21.0.12.1_1.tar.gz",
+      "sha256": "6717ec641fd9ce0bb209ca083ee23b42202ac68cb6fcc5753496e0e4a0f41989",
+      "archive": "tar.gz",
+      "tree": true,
+      "entry": "jdk-21.0.12.1+1-jre/Contents/Home/bin/java"
+     }
+    }
+   },
+   "install_note": "Only the Structurizr CLI needs it; the checksum is the one Adoptium publishes."
+  },
+  {
+   "name": "jscodeshift",
+   "role": "run",
+   "stages": [
+    "S07",
+    "S08"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/facebook/jscodeshift",
+   "version": "17.4.0",
+   "binary": "jscodeshift",
+   "install": {
+    "method": "npm",
+    "package": "jscodeshift"
+   },
+   "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it."
+  },
+  {
+   "name": "axe-core",
+   "role": "run",
+   "stages": [
+    "S05",
+    "S09"
+   ],
+   "license": "MPL-2.0",
+   "repository": "https://github.com/dequelabs/axe-core-npm",
+   "version": "4.13.0",
+   "install": {
+    "method": "npm",
+    "package": "@axe-core/playwright",
+    "library": true,
+    "with": [
+     "axe-core@4.13.0",
+     "playwright-core@1.63.0"
+    ]
+   },
+   "install_note": "A library, no executable: eaos/templates/screens/audit.mjs imports @axe-core/playwright and runs WCAG 2.2 A/AA rules on each rendered page through the pinned Playwright. axe-core stays at 4.13.0, the line @axe-core/playwright 4.13.0 depends on (~4.13.0), so one copy of the rules is installed; playwright-core is the pinned Playwright's version, its peer."
+  },
+  {
+   "name": "lighthouse",
+   "role": "run",
+   "stages": [
+    "S05",
+    "S11"
+   ],
+   "license": "Apache-2.0",
+   "repository": "https://github.com/GoogleChrome/lighthouse",
+   "version": "13.5.0",
+   "binary": "lighthouse",
+   "install": {
+    "method": "npm",
+    "package": "lighthouse"
+   },
+   "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/live/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer."
+  },
+  {
+   "name": "css-analyzer",
+   "role": "run",
+   "stages": [
+    "S05",
+    "S09"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/projectwallace/css-analyzer",
+   "version": "9.9.3",
+   "install": {
+    "method": "npm",
+    "package": "@projectwallace/css-analyzer",
+    "library": true
+   },
+   "install_note": "A library, no executable: eaos/templates/screens/css.mjs imports it to measure design drift in a built site's CSS (distinct colors, font sizes, spacings, specificity)."
+  },
+  {
+   "name": "rrweb",
+   "role": "run",
+   "stages": [
+    "S05",
+    "S09"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/rrweb-io/rrweb",
+   "version": "2.1.7",
+   "install": {
+    "method": "npm",
+    "package": "rrweb",
+    "library": true,
+    "with": [
+     "rrweb-player@2.1.7"
+    ]
+   },
+   "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior_lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
+  },
+  {
+   "name": "codecharta",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S03"
+   ],
+   "check": "architecture",
+   "license": "BSD-3-Clause",
+   "repository": "https://github.com/MaibornWolff/codecharta",
+   "version": "2.1.0",
+   "binary": "ccsh",
+   "install": {
+    "method": "npm",
+    "package": "codecharta-analysis"
+   },
+   "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/architecture.py). Needs temurin-jre."
+  },
+  {
+   "name": "emerge",
+   "role": "read",
+   "stages": [
+    "S02",
+    "S03"
+   ],
+   "check": "architecture",
+   "license": "MIT",
+   "repository": "https://github.com/glato/emerge",
+   "version": "2.0.7",
+   "binary": "emerge",
+   "install": {
+    "method": "pip",
+    "package": "emerge-viz",
+    "with": [
+     "setuptools==80.10.2",
+     "pip==24.0"
+    ],
+    "own_venv": true
+   },
+   "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/architecture.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
+   "version_args": [
+    "--help"
+   ]
+  },
+  {
+   "name": "ui-ux-pro-max",
+   "role": "read",
+   "stages": [
+    "S06"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+   "version": "7246805992a42b7bba37d4cac83b01416f0c6c44",
+   "install": {
+    "method": "git",
+    "repository": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    "dir": "ui-ux-pro-max"
+   },
+   "license_note": "Styles, palettes, font pairings and UX rules by product type, searched offline by its own script; read when a look is drawn. Fetched to this machine, never copied into the EAOS repository."
+  },
+  {
+   "name": "awesome-design-md",
+   "role": "read",
+   "stages": [
+    "S06"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/voltagent/awesome-design-md",
+   "version": "3b605329240ce735b510037cca322f1831fdd7f8",
+   "install": {
+    "method": "git",
+    "repository": "https://github.com/voltagent/awesome-design-md",
+    "dir": "awesome-design-md"
+   },
+   "license_note": "Reference design systems as DESIGN.md files (Google Stitch format), each with a light and dark preview; read as directions, never copied as a brand. Fetched to this machine, never copied into the EAOS repository."
+  },
+  {
+   "name": "tweakcn-themes",
+   "role": "read",
+   "stages": [
+    "S06"
+   ],
+   "license": "MIT",
+   "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
+   "version": "7b261a42335d474a6be93ac77ec3f8186db70af7",
+   "install": {
+    "method": "git",
+    "repository": "https://github.com/BankkRoll/tweakcn-theme-picker",
+    "dir": "tweakcn-themes"
+   },
+   "license_note": "Light and dark themes in the shadcn/ui token format. Fetched to this machine, never copied into the EAOS repository."
+  },
+  {
+   "name": "anthropic-skills",
+   "role": "read",
+   "stages": [
+    "S06"
+   ],
+   "license": "Apache-2.0 (frontend-design)",
+   "repository": "https://github.com/anthropics/skills",
+   "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+   "install": {
+    "method": "git",
+    "repository": "https://github.com/anthropics/skills",
+    "dir": "anthropic-skills"
+   },
+   "license_note": "Only its frontend-design skill (Apache-2.0) is read: craft guidance for the assistant that builds the screens; the other skills keep their own terms and are not used. Fetched to this machine, never copied into the EAOS repository."
+  }
+ ]
 }

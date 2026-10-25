@@ -58,13 +58,31 @@ function storeCheck(req, res, host) {
   exec('ping -c 1 ' + host, (error, out) => send(res, error ? 502 : 200, { host, out, store: config.STORE_URL }));
 }
 
+async function createOrder(req, res) {
+  const { item, quantity } = await body(req);
+  const id = Object.keys(orders).length + 1;
+  orders[id] = { id, owner: req.headers['x-user'], item, price: 10, quantity };
+  return send(res, 201, orders[id]);
+}
+
+function removeOrder(req, res, id) {
+  const user = signedIn(req);
+  if (!user) return send(res, 401, { error: 'sign in first' });
+  const found = orders[id];
+  if (!found || found.owner !== user) return send(res, 404, { error: 'no such order' });
+  delete orders[id];
+  return send(res, 204, {});
+}
+
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const user = signedIn(req);
   if (url.pathname === '/health') return res.end('ok');
   if (url.pathname === '/api/login' && req.method === 'POST') return login(req, res);
   if (url.pathname === '/api/me') return user ? send(res, 200, { user }) : send(res, 401, { error: 'sign in first' });
+  if (url.pathname === '/api/orders' && req.method === 'POST') return createOrder(req, res);
   if (url.pathname === '/api/orders') return send(res, 200, Object.values(orders).filter(o => o.owner === user));
+  if (url.pathname.startsWith('/api/orders/') && req.method === 'DELETE') return removeOrder(req, res, url.pathname.split('/').pop());
   if (url.pathname.startsWith('/api/orders/')) return order(req, res, url.pathname.split('/').pop());
   if (url.pathname === '/api/report') return send(res, 200, orderLines(Object.values(orders)));
   if (url.pathname === '/api/export') return res.end(exportLines(Object.values(orders)));

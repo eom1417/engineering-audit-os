@@ -24,6 +24,9 @@ def recheck(root, spec):
             from .load_model import compute
             from .load_projection import project
             sets['load_model'] = project(compute(out))
+        if (spec.get('specification') or {}).get('query') == 'boundary_finding_present':
+            from .layers import check, facts_of
+            sets['boundaries'] = {'facts': facts_of(check(Path(root).resolve(), out))}
         return decide_probe(spec, sets)
 
 

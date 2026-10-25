@@ -68,6 +68,21 @@ def _why(technical, setup, ran, missing):
     return '; '.join(map(str, setup.get('limitations') or [])) or stage.get('reason') or 'the app did not start'
 
 
+def layered(technical):
+    """What the layers read of one app (M6): its files placed, endpoints and tables, and every finding, for the hand
+    judgement of M6.12."""
+    record = _read(technical / 'layers.json')
+    if not record: return None
+    return {'files': len(record['map']), 'placed': len(record['map']) - len(record['gaps']), 'endpoints': len(record['endpoints']),
+            'tables': len(record['tables']), 'questions': len(record['questions']),
+            'findings': [{'rule': f['rule'], 'path': f.get('path'), 'line': f.get('line'), 'said': f['en']} for f in record['findings'][:60]]}
+
+
+def _said(why, layers):
+    """Why the app did not pass and what its layers showed, each only when there is something."""
+    return {**({'why': why[:400]} if why else {}), **({'layers': layers} if layers else {})}
+
+
 def result(output, expected, seconds, error=''):
     """What the check of one app showed: ran, the expected screens pictured and missing, passed, and why not."""
     technical = next(output.rglob('run-manifest.json'), output / 'none').parent
@@ -76,9 +91,9 @@ def result(output, expected, seconds, error=''):
     pictured = sorted({screen(row.get('landed') or row['url']) for row in rows})   # where it landed: a redirect is not the page
     missing = [route for route in expected if (route.rstrip('/') or '/') not in pictured]
     ran = bool(setup.get('ok'))
-    why = error or _why(technical, setup, ran, missing)
+    said = _said(error or _why(technical, setup, ran, missing), layered(technical))
     return {'date': date.today().isoformat(), 'ran': ran, 'pictured': pictured, 'missing': missing,
-            'passed': ran and not missing, 'seconds': round(seconds), **({'why': why[:400]} if why else {})}
+            'passed': ran and not missing, 'seconds': round(seconds), **said}
 
 
 def check(app):

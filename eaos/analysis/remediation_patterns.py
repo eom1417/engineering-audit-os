@@ -32,10 +32,10 @@ QUERY_PATTERNS = {
     'sequence_cluster_present': 'canonicalize',
     'redundancy_present': 'redundant_work',
     'load_blocker_present': 'load_blocker',
-    'access_gap_present': 'access_gap',
     'broken_code_present': 'broken_code',
     'vulnerable_dependency_present': 'upgrade_dependency',
     'weakness_present': 'security_weakness',
+    'boundary_finding_present': 'layer_boundary',
 }
 
 
@@ -231,13 +231,13 @@ PATTERNS = {
         ],
         'rollback': 'revert واحد يعيد الموضع كما كان.',
     },
-    'access_gap': {
-        'change': 'هجرة جديدة تفعّل أمان الصفوف على الجدول وتضيف سياسة لكل عملية تربط الصف بصاحبه (مثل auth.uid() = owner_id)، أو تستبدل شرط true في السياسة المفتوحة.',
+    'layer_boundary': {
+        'change': 'أصلح الحد المكسور كما تقول طبقات النوع المرجعي: انقل الكود إلى الطبقة التي تملكه، أو أضف الحماية الناقصة (تسجيل الدخول، الملكية، أمان الصفوف، فحص المدخل في الخادم)، خلف قفل السلوك؛ ثم أعد قراءة الطبقات.',
         'options': [
-            {'option': 'تفعيل RLS مع سياسة ملكية لكل عملية', 'cost': 'منخفضة', 'verdict': 'مختار افتراضيًا: يغلق الوصول ويبقي صاحب الصف قادرًا على العمل'},
-            {'option': 'نقل الكتابة إلى دالة خادم بمفتاح الخدمة وإغلاق الجدول أمام الواجهة', 'cost': 'متوسطة', 'verdict': 'أنسب حين تحتاج الكتابة تحققًا لا تعبّر عنه سياسة'},
+            {'option': 'إصلاح الحد في موضعه كما يصفه المرجع', 'cost': 'منخفضة إلى متوسطة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'إبقاؤه مع سبب مكتوب حين يكون مقصودًا (بيانات عامة، نقطة عامة)', 'cost': 'صفر', 'verdict': 'حين يثبت الكود أو المالك ذلك'},
         ],
-        'rollback': 'هجرة عكسية تعيد الحالة السابقة؛ لا بيانات تُحذف.',
+        'rollback': 'revert واحد يعيد الموضع كما كان.',
     },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
@@ -252,6 +252,9 @@ def pattern_for(claim):
     pattern = dict(PATTERNS[name])
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
+    render = claim.get('render') or {}
+    if render.get('key') == 'layer_finding':        # the reference's own fix for the boundary it breaks (M6.11)
+        pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)
         if reason:
@@ -294,6 +297,6 @@ def cost_of_inaction(name):
         'upgrade_dependency': 'تبقى ثغرة منشورة، بإصلاح منشور، في إصدار يشحنه المشروع لكل مستخدم',
         'remove_dead': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'security_weakness': 'يبقى باب مفتوح لمن يرسل مدخلًا مصممًا أو يجد السر، ولا يظهر أثره إلا بعد الاستغلال',
-        'access_gap': 'تبقى صفوف المستخدمين مقروءة أو قابلة للتعديل لكل من يملك المفتاح العام للتطبيق',
+        'layer_boundary': 'يبقى الحد مفتوحًا: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها',
         'generic': '⧗ غير محددة',
     }[name]

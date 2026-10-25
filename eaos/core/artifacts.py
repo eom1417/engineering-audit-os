@@ -105,6 +105,11 @@ ARTIFACTS = (
              'and failure traces under live/journeys/', required=False,
              absent_when='the app is not running in an isolated copy, or the lock has no page'),
     Artifact('readiness.json', 'readiness', RECORD, 'Resilience, security, observability and speed under load, as findings with evidence'),
+    Artifact('layers.json', 'layers', RECORD, 'The system as layers: every file in its layer and side, the endpoints and their guards, the '
+             'tables, operations and tests, and every broken boundary with its fix', mutated_by=('layers_trial',)),
+    Artifact('live/api-trial', 'layers_trial', RECORD, "The OpenAPI derived for the API trial when the project has none; "
+             "Schemathesis' report and the accounts' sessions are removed once read", required=False,
+             absent_when='the person did not choose to try the layers, or the app is not running in an isolated copy'),
     Artifact('architecture/map.json', 'architecture', RECORD, 'The code as a city (CodeCharta) and its dependency clusters (Emerge), '
              'with their hotspots and clusters', required=False,
              absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project'),

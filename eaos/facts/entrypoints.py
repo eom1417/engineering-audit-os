@@ -15,7 +15,7 @@ from .frameworks import MODULES, applicable, fact_kind
 from .source import language_of
 
 NAME = 'entrypoints'
-VERSION = '4'
+VERSION = '5'
 LIMITATIONS = [
     'Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.',
     'Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.',

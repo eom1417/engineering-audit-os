@@ -17,7 +17,9 @@ engineering-audit-os/
     live/          the app run in its sandbox, sign-in, test users, roles, the behaviour lock, load plans, the tests' run
                    (verify.py), screens/ (the crawl and the screen audit)
     analysis/      claims, correlation, weaknesses, the debt register, cards and plan, probes, the model of a report
-                   (model.py), the pipeline map (pipeline_map.py), the target projection
+                   (model.py), the pipeline map (pipeline_map.py), the target projection, layers/ (the system in layers, M6:
+                   the layer map, the boundaries, what ships to the browser, every endpoint and its guard, the data rules,
+                   where the business rules live, operations and tests; layer_claims.py makes them cards)
     ai/            the assistants (Claude Code, Codex), their readiness and headless runs, prompts, the ideal picture,
                    nodes/ (triage, plan orderer, reviewers ...)
     report/        REPORT.html (human_report.py), START-HERE, the four reports, TARGET-ARCHITECTURE, RUN.md (run.py),
@@ -71,7 +73,8 @@ stages' real dependencies:
 | Loop (`loops.py`) | Stages | needs, rounds, on_fail |
 |---|---|---|
 | understand | facts, features, roles, intake, engines, policy | facts; 1; stop |
-| run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline | setup, screens; 2; explain |
+| run_and_see | setup, verify, session, crawl, lock, record, journeys, screens, baseline, layers | setup, screens; 2; explain |
+| try_layers (switch `layers`) | layers_trial | layers_trial; 1; explain |
 | judge | measure, architecture, load, readiness, claims, probe, sustainability, transform, semantic, plan, target, proposals, triage, visual, cards | claims, triage; 1; explain |
 | envision | ideal, pipeline_gaps, reconcile (the repair-or-rebuild decision: `analysis/repair_or_rebuild.py`) | ideal, reconcile; 1; explain |
 | plan | order, steps | steps; 1; explain |
@@ -101,6 +104,8 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | something every layer reads (a contract, a path, a word, the store) | `core/`: it imports nothing of EAOS |
 | a read of an http(s) address | `core/web.py` `opened`: http and https only (urllib also opens `file://`) |
 | a rule that reads source and produces facts | `facts/` |
+| a rule of the system's layers (a boundary, an endpoint's guard, a data rule, what ships to the browser) | `analysis/layers/`: its sentence, boundary, severity and fix in `catalog.py`, its check in the module of its boundary; findings become cards through `analysis/layer_claims.py` |
+| trying a layer on the running app or a database of the run's own | `live/data_trial.py` (migrations, Supabase advisors, pgTAP), `live/api_trial.py` (Schemathesis); the stage that joins them is `pipeline/layers_live.py` |
 | an adapter for an external tool | `engines/<name>.py` + its entry in `eaos/data/toolchain.json` (`check: engines`) |
 | running the app, signing in, finding screens | `live/`: how a stack starts in `setup_detect.py` (JavaScript, static sites) or `setup_python.py`; the test account by rules in `test_account.py`; `live/screens/` for the crawl, the audit and the pages files name (`file_routes.py`) |
 | driving the browser for a goal, recording, replaying | `live/agent.py` with `templates/screens/agent.mjs` (the one browser-agent layer, M5.2): the assistant is passed in, never imported |
@@ -126,6 +131,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 |---|---|
 | Full check | every loop; L2b replays the saved journeys without AI; the short simulation only when chosen in the check's preview, which shows its time and cost |
 | A focused path (look, security, …) | only the loops it needs |
+| Try the layers (`layers`, beside `complete` an option of the full check) | L1-L2 as far as needed to run the app, then try_layers: the production build read, the migrations tried per table with pgTAP and the Supabase advisors, the API tried by Schemathesis with two test accounts (up to 15 minutes, said before it starts) |
 | Try the experience (M10) | L1 and L2 as far as needed to run the app, then L2b's full simulation, L3 and the experience report |
 
 ## 6. Outputs (what a check leaves)
@@ -134,6 +140,8 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
   (`CURRENT-STATE.md`, `TARGET-STATE.md`, `GAP-AND-STRATEGY.md`, `EXECUTION-PLAN.md`), `TARGET-ARCHITECTURE.md`, `RUN.md`
   and the index `README.md`; plus `PLAN/` (STEPS, WAVES, one TASK card each) and `adr/`, which assistants read when
   fixing cards (M1.4: the other 19 Markdown renderings removed; their records stay).
+- `technical/layers.json`: the system in layers (M6), what START-HERE's layers section, REPORT.html's and the Studio's
+  `studio/layers.json` read; its findings are also the `boundaries` fact set the claims make cards of.
 - `technical/`: records later stages and the Studio read. Caches never live here (M1.2). A run removes the documents
   a check no longer writes (`eaos/pipeline/run.py` RETIRED).
 - `runtime/` in EAOS's home: working copies, caches, batch copies, bounded by a retention rule (M1.1).

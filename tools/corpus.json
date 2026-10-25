@@ -1,5 +1,5 @@
 {
- "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25.",
+ "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25. The apps marked 'layers' (M6.0, 2026-10-25) are the stacks the layers matter for (React + Vite + Supabase with its migrations, a Node REST API with its OpenAPI file, Next.js with API routes and server actions): their layer findings are recorded beside their screens. 'layers_judged' is the hand judgement of every layer finding of an app (M6.12): how many were true and false.",
  "apps": [
   {
    "name": "rr-basic",
@@ -25,7 +25,52 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 90
+    "seconds": 142,
+    "layers": {
+     "files": 4,
+     "placed": 2,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "A typed API contract (OpenAPI) the client is generated or checked from: not found (typed schema source: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Token handling in one module, refreshed and cleared in one place: not found (0 of 0 tables with row-level security)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -111,7 +156,292 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 933
+    "seconds": 1078,
+    "layers": {
+     "files": 83,
+     "placed": 72,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 59,
+       "said": "src/routes.js uses src/views/charts/Charts.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 22,
+       "said": "src/routes.js uses src/views/components/accordion/Accordion.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 23,
+       "said": "src/routes.js uses src/views/components/alerts/Alerts.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 24,
+       "said": "src/routes.js uses src/views/components/badge/Badge.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 25,
+       "said": "src/routes.js uses src/views/components/breadcrumb/Breadcrumb.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 27,
+       "said": "src/routes.js uses src/views/components/button-group/ButtonGroup.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 26,
+       "said": "src/routes.js uses src/views/components/buttons/Buttons.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 28,
+       "said": "src/routes.js uses src/views/components/cards/Cards.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 29,
+       "said": "src/routes.js uses src/views/components/carousel/Carousel.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 31,
+       "said": "src/routes.js uses src/views/components/chip-set/ChipSet.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 30,
+       "said": "src/routes.js uses src/views/components/chip/Chip.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 32,
+       "said": "src/routes.js uses src/views/components/collapse/Collapse.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 33,
+       "said": "src/routes.js uses src/views/components/dropdowns/Dropdowns.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 34,
+       "said": "src/routes.js uses src/views/components/list-group/ListGroup.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 35,
+       "said": "src/routes.js uses src/views/components/modals/Modals.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 36,
+       "said": "src/routes.js uses src/views/components/navs-tabs/NavsTabs.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 37,
+       "said": "src/routes.js uses src/views/components/pagination/Pagination.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 38,
+       "said": "src/routes.js uses src/views/components/placeholders/Placeholders.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 39,
+       "said": "src/routes.js uses src/views/components/popovers/Popovers.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 40,
+       "said": "src/routes.js uses src/views/components/progress/Progress.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 41,
+       "said": "src/routes.js uses src/views/components/search-button/SearchButton.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 42,
+       "said": "src/routes.js uses src/views/components/spinners/Spinners.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 44,
+       "said": "src/routes.js uses src/views/components/tables/Tables.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 36,
+       "said": "src/routes.js uses src/views/components/tabs/Tabs.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 45,
+       "said": "src/routes.js uses src/views/components/toasts/Toasts.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 46,
+       "said": "src/routes.js uses src/views/components/tooltips/Tooltips.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 19,
+       "said": "src/routes.js uses src/views/dashboard/Dashboard.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 49,
+       "said": "src/routes.js uses src/views/forms/checks-radios/ChecksRadios.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 50,
+       "said": "src/routes.js uses src/views/forms/chip-input/ChipInput.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 51,
+       "said": "src/routes.js uses src/views/forms/floating-labels/FloatingLabels.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 52,
+       "said": "src/routes.js uses src/views/forms/form-control/FormControl.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 53,
+       "said": "src/routes.js uses src/views/forms/input-group/InputGroup.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 54,
+       "said": "src/routes.js uses src/views/forms/layout/Layout.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 55,
+       "said": "src/routes.js uses src/views/forms/range/Range.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 56,
+       "said": "src/routes.js uses src/views/forms/select/Select.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 57,
+       "said": "src/routes.js uses src/views/forms/validation/Validation.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 64,
+       "said": "src/routes.js uses src/views/icons/brands/Brands.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 62,
+       "said": "src/routes.js uses src/views/icons/coreui-icons/CoreUIIcons.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 63,
+       "said": "src/routes.js uses src/views/icons/flags/Flags.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "src/routes.js",
+       "line": 66,
+       "said": "src/routes.js uses src/views/widgets/Widgets.jsx (features → pages), which the layers of react-vite-spa-rest do not allow"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "A typed API contract (OpenAPI) the client is generated or checked from: not found (typed schema source: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Token handling in one module, refreshed and cleared in one place: not found (0 of 0 tables with row-level security)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -138,7 +468,46 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 173
+    "seconds": 225,
+    "layers": {
+     "files": 26,
+     "placed": 22,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "A typed data client (Prisma, Drizzle or a generated client) used only server-side: not found (typed schema source: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -162,7 +531,34 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 190
+    "seconds": 217,
+    "layers": {
+     "files": 26,
+     "placed": 12,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The database package owns every schema change as a versioned migration: not found (migrations folder: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -193,7 +589,34 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 297
+    "seconds": 320,
+    "layers": {
+     "files": 46,
+     "placed": 42,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -216,7 +639,34 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 198
+    "seconds": 238,
+    "layers": {
+     "files": 21,
+     "placed": 14,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -239,14 +689,38 @@
      "/",
      "/auth/login",
      "/auth/register",
-     "/hello",
-     "/login",
-     "/logout",
-     "/register"
+     "/hello"
     ],
     "missing": [],
     "passed": true,
-    "seconds": 133
+    "seconds": 110,
+    "layers": {
+     "files": 5,
+     "placed": 5,
+     "endpoints": 8,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Migrations with Alembic or the framework's own: not found (typed schema source: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Lint, types, tests and the EAOS gate on every push: not found (0 CI step(s) in the repository)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -277,7 +751,70 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 251
+    "seconds": 280,
+    "layers": {
+     "files": 41,
+     "placed": 37,
+     "endpoints": 32,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "unguarded-write",
+       "path": "catalog/views.py",
+       "line": 7,
+       "said": "ANY  writes with no sign-in check (catalog/views.py)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "catalog/views.py",
+       "line": 168,
+       "said": "ANY author/<int:pk>/delete/ writes with no sign-in check (catalog/views.py)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "catalog/views.py",
+       "line": 197,
+       "said": "ANY book/<int:pk>/delete/ writes with no sign-in check (catalog/views.py)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "catalog/views.py",
+       "line": 119,
+       "said": "ANY book/<uuid:pk>/renew/ writes with no sign-in check (catalog/views.py)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Migrations with Alembic or the framework's own: not found (typed schema source: none)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "catalog/views.py",
+       "line": 7,
+       "said": "ANY  writes and no test reaches it (catalog/views.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "catalog/views.py",
+       "line": 168,
+       "said": "ANY author/<int:pk>/delete/ writes and no test reaches it (catalog/views.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "catalog/views.py",
+       "line": 197,
+       "said": "ANY book/<int:pk>/delete/ writes and no test reaches it (catalog/views.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "catalog/views.py",
+       "line": 119,
+       "said": "ANY book/<uuid:pk>/renew/ writes and no test reaches it (catalog/views.py)"
+      }
+     ]
+    }
    }
   },
   {
@@ -306,7 +843,46 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 243
+    "seconds": 587,
+    "layers": {
+     "files": 9,
+     "placed": 4,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Migrations with Alembic or the framework's own: not found (typed schema source: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Lint, types, tests and the EAOS gate on every push: not found (0 CI step(s) in the repository)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour lock plus unit tests for services: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Structured logs and traces (OpenTelemetry) with request ids: not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -341,7 +917,166 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 634
+    "seconds": 289,
+    "layers": {
+     "files": 35,
+     "placed": 30,
+     "endpoints": 35,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "layer-breach",
+       "path": "app/api/auth.py",
+       "line": null,
+       "said": "app/api/auth.py uses app/__init__.py (infrastructure → web), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "app/api/auth.py",
+       "line": 4,
+       "said": "app/api/auth.py uses app/models.py (infrastructure → web), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "app/api/users.py",
+       "line": 6,
+       "said": "app/api/users.py uses app/api/auth.py (web → infrastructure), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "app/auth/forms.py",
+       "line": null,
+       "said": "app/auth/forms.py uses app/__init__.py (infrastructure → web), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "app/auth/forms.py",
+       "line": 7,
+       "said": "app/auth/forms.py uses app/models.py (infrastructure → web), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "app/auth/routes.py",
+       "line": 8,
+       "said": "app/auth/routes.py uses app/auth/forms.py (web → infrastructure), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "microblog.py",
+       "line": null,
+       "said": "microblog.py uses app/__init__.py (infrastructure → web), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "microblog.py",
+       "line": 4,
+       "said": "microblog.py uses app/models.py (infrastructure → web), which the layers of python-web do not allow"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Lint, types, tests and the EAOS gate on every push: not found (0 CI step(s) in the repository)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour lock plus unit tests for services: not found (0 test file(s))"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 25,
+       "said": "POST / writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 97,
+       "said": "POST /edit_profile writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 114,
+       "said": "POST /follow/<username> writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 26,
+       "said": "POST /index writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/auth/routes.py",
+       "line": 14,
+       "said": "POST /login writes and no test reaches it (app/auth/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/auth/routes.py",
+       "line": 39,
+       "said": "POST /register writes and no test reaches it (app/auth/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/auth/routes.py",
+       "line": 72,
+       "said": "POST /reset_password/<token> writes and no test reaches it (app/auth/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/auth/routes.py",
+       "line": 55,
+       "said": "POST /reset_password_request writes and no test reaches it (app/auth/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 181,
+       "said": "POST /send_message/<recipient> writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/api/tokens.py",
+       "line": 6,
+       "said": "POST /tokens writes and no test reaches it (app/api/tokens.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/api/tokens.py",
+       "line": 14,
+       "said": "DELETE /tokens writes and no test reaches it (app/api/tokens.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 156,
+       "said": "POST /translate writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/main/routes.py",
+       "line": 135,
+       "said": "POST /unfollow/<username> writes and no test reaches it (app/main/routes.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/api/users.py",
+       "line": 45,
+       "said": "POST /users writes and no test reaches it (app/api/users.py)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "app/api/users.py",
+       "line": 64,
+       "said": "PUT /users/<int:id> writes and no test reaches it (app/api/users.py)"
+      }
+     ]
+    }
    }
   },
   {
@@ -368,7 +1103,34 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 310
+    "seconds": 896,
+    "layers": {
+     "files": 16,
+     "placed": 13,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      }
+     ]
+    }
    }
   },
   {
@@ -394,7 +1156,368 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 142
+    "seconds": 308,
+    "layers": {
+     "files": 13,
+     "placed": 0,
+     "endpoints": 0,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "insights-lm",
+   "stack": "react-vite-supabase",
+   "repository": "https://github.com/theaiautomators/insights-lm-public",
+   "commit": "76cf9d808056c3b7afac3c1cb9bd180014ff6f64",
+   "licence": "MIT",
+   "layers": true,
+   "screens": [
+    "/"
+   ],
+   "result": {
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
+     "/",
+     "/auth",
+     "/notebook"
+    ],
+    "missing": [],
+    "passed": true,
+    "seconds": 2218,
+    "layers": {
+     "files": 69,
+     "placed": 54,
+     "endpoints": 9,
+     "tables": 6,
+     "questions": 1,
+     "findings": [
+      {
+       "rule": "layer-breach",
+       "path": "src/services/authService.ts",
+       "line": 3,
+       "said": "src/services/authService.ts uses src/hooks/use-toast.ts (data-access → features), which the layers of react-vite-supabase do not allow"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "supabase/functions/audio-generation-callback/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/audio-generation-callback writes with no sign-in check (supabase/functions/audio-generation-callback/index.ts)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "supabase/functions/process-document-callback/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/process-document-callback writes with no sign-in check (supabase/functions/process-document-callback/index.ts)"
+      },
+      {
+       "rule": "definer-function-public",
+       "path": "supabase/migrations/20250606152423_v0.1.sql",
+       "line": 155,
+       "said": "Function public.is_notebook_owner runs with its owner's rights and anyone may call it (supabase/migrations/20250606152423_v0.1.sql)"
+      },
+      {
+       "rule": "definer-function-public",
+       "path": "supabase/migrations/20250606152423_v0.1.sql",
+       "line": 169,
+       "said": "Function public.is_notebook_owner_for_document runs with its owner's rights and anyone may call it (supabase/migrations/20250606152423_v0.1.sql)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "supabase/functions/audio-generation-callback/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/audio-generation-callback writes and no test reaches it (supabase/functions/audio-generation-callback/index.ts)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "supabase/functions/generate-audio-overview/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/generate-audio-overview writes and no test reaches it (supabase/functions/generate-audio-overview/index.ts)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "supabase/functions/generate-notebook-content/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/generate-notebook-content writes and no test reaches it (supabase/functions/generate-notebook-content/index.ts)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "supabase/functions/process-document/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/process-document writes and no test reaches it (supabase/functions/process-document/index.ts)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "supabase/functions/process-document-callback/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/process-document-callback writes and no test reaches it (supabase/functions/process-document-callback/index.ts)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "supabase/functions/refresh-audio-url/index.ts",
+       "line": 1,
+       "said": "ANY /functions/v1/refresh-audio-url writes and no test reaches it (supabase/functions/refresh-audio-url/index.ts)"
+      }
+     ]
+    }
+   },
+   "layers_judged": {
+    "date": "2026-10-25",
+    "true": 15,
+    "false": 0,
+    "notes": "all true: two Supabase edge-function callbacks write with the service key and check no caller; two security-definer functions callable by anyone; a service importing a toast hook; no test at all"
+   }
+  },
+  {
+   "name": "task-api",
+   "stack": "node-rest-openapi",
+   "repository": "https://github.com/davidtiger3622/crud-api-sqlite",
+   "commit": "6f66cd82ac62018d5d257a15c802b32527ee81a6",
+   "licence": "MIT",
+   "layers": true,
+   "screens": [],
+   "result": {
+    "date": "2026-10-25",
+    "ran": false,
+    "pictured": [],
+    "missing": [],
+    "passed": false,
+    "seconds": 11,
+    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/task-api-sz4c8ep_/home/projects/app-97bd0993/runtime/sandbox/service-0.log; it said: ",
+    "layers": {
+     "files": 9,
+     "placed": 4,
+     "endpoints": 17,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "layer-breach",
+       "path": "index.js",
+       "line": 5,
+       "said": "index.js uses db.js (interface → data-access), which the layers of generic-layered do not allow"
+      },
+      {
+       "rule": "layer-breach",
+       "path": "index.js",
+       "line": 7,
+       "said": "index.js uses supabaseClient.js (interface → data-access), which the layers of generic-layered do not allow"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "index.js",
+       "line": 177,
+       "said": "POST /reset writes with no sign-in check (index.js)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "index.js",
+       "line": 185,
+       "said": "POST /tasks writes with no sign-in check (index.js)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "index.js",
+       "line": 202,
+       "said": "PUT /tasks/:id writes with no sign-in check (index.js)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "index.js",
+       "line": 235,
+       "said": "DELETE /tasks/:id writes with no sign-in check (index.js)"
+      },
+      {
+       "rule": "unguarded-write",
+       "path": "src/routes/triage.js",
+       "line": 20,
+       "said": "POST /triage writes with no sign-in check (src/routes/triage.js)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 56,
+       "said": "POST /auth/login writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 94,
+       "said": "POST /auth/logout writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 40,
+       "said": "POST /auth/signup writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 177,
+       "said": "POST /reset writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 185,
+       "said": "POST /tasks writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 202,
+       "said": "PUT /tasks/:id writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "index.js",
+       "line": 235,
+       "said": "DELETE /tasks/:id writes and no test reaches it (index.js)"
+      },
+      {
+       "rule": "untested-write",
+       "path": "src/routes/triage.js",
+       "line": 20,
+       "said": "POST /triage writes and no test reaches it (src/routes/triage.js)"
+      }
+     ]
+    }
+   },
+   "layers_judged": {
+    "date": "2026-10-25",
+    "true": 16,
+    "false": 2,
+    "false_items": [
+     "unguarded-write POST /triage",
+     "untested-write POST /triage"
+    ],
+    "notes": "the open task CRUD and /reset are real; /triage writes nothing (it calls a paid model with no sign-in: a real risk, said wrongly as a write)"
+   }
+  },
+  {
+   "name": "next-dashboard",
+   "stack": "nextjs-api-actions",
+   "repository": "https://github.com/vercel/nextjs-postgres-nextauth-tailwindcss-template",
+   "commit": "fe026711c19ac3ee4589c86a738f59b84e611559",
+   "licence": "MIT",
+   "layers": true,
+   "screens": [
+    "/login"
+   ],
+   "result": {
+    "date": "2026-10-25",
+    "ran": false,
+    "pictured": [],
+    "missing": [
+     "/login"
+    ],
+    "passed": false,
+    "seconds": 416,
+    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:54965/ within 180s; see /workspace/eaos-work/corpus/next-dashboard-9rnxxtf8/home/projects/app-41aed01e/runtime/sandbox/service-0.log; it said: /page.tsx:17:50)\n  57 |   }\n  58 |\n> 59 |   let totalProducts = await db.select({ count: count() }).from(products);\n     |                       ^\n  60 |   let moreProduct",
+    "layers": {
+     "files": 23,
+     "placed": 19,
+     "endpoints": 3,
+     "tables": 0,
+     "questions": 0,
+     "findings": [
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Behaviour-lock specs for every feature plus unit tests for domain logic: not found (0 test file(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker): not found (0 observability signal(s))"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "Automated, grouped dependency updates with the vulnerability scan in CI: not found (renovate or dependabot configuration: none)"
+      },
+      {
+       "rule": "operations-missing",
+       "path": "*",
+       "line": null,
+       "said": "The deployment target is declared in the repository: not found (hosting configuration: none)"
+      }
+     ]
+    }
+   },
+   "layers_judged": {
+    "date": "2026-10-25",
+    "true": 4,
+    "false": 0,
+    "notes": "operations items only; the empty server action and the seed route are rightly not findings"
    }
   }
  ]

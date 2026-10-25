@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .ai_runners import ideal, order, pipeline_gaps, proposals, roles, semantic, translate, triage, visual
 from .live_app import NO_RUN, _keep, _live, _ran
+from .layers_live import layers_trial
 from .pages import crawl, journeys, screens
 from .stages import SkipStage
 
@@ -45,6 +46,8 @@ def engines(context):
         from ..facts.source import Source
         context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
     # Run again within the same check (eaos/pipeline/run.py again), the engines named join the others' results.
+    from ..analysis.layers import depcruise_rules
+    depcruise_rules(context.target, context.out)          # the layer map's rules, for dependency-cruiser (M6.2)
     entries = collect_external(context.target, context.out, context['source'], only=context.engines or None,
                                keep=bool(context.get('again')))
     external_entry = _index_engines(context, entries if isinstance(entries, list) else [entries], add_to_index)
@@ -189,6 +192,17 @@ def policy(context):
     return {'violations': result.get('violations')}
 
 
+def layers(context):
+    """The system read as layers (eaos/analysis/layers/): the map, the boundaries and every layer's findings; the
+    project's tests as this check ran them, when it did."""
+    from ..analysis import layers as layered
+    from .live_app import _ran
+    verification = layered._read(context.out / 'verification.json') if _ran(context, 'verify') else None
+    summary = layered.run(context.target, context.out, verification)
+    return {'findings': summary['findings'], 'questions': summary['questions'], 'files': summary['files'],
+            'gaps': summary['gaps'], 'endpoints': summary['endpoints']}
+
+
 def claims(context):
     from ..analysis.dossier import assemble
     from ..core.workspace import read, write
@@ -286,7 +300,7 @@ def features(context):
 
 RUNNERS = {'setup': setup, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
            'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports,
-           'engines': engines, 'policy': policy, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic, 'roles': roles,
+           'engines': engines, 'policy': policy, 'layers': layers, 'layers_trial': layers_trial, 'claims': claims, 'probe': probe, 'load': load, 'semantic': semantic, 'roles': roles,
            'plan': plan}
 
 

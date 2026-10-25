@@ -20,7 +20,7 @@ PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'car
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
            'maps': None, 'paths': 'paths', 'journeys': 'screens', 'hidden': 'items',
-           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages', 'ideal': None, 'nodes': 'nodes'}
+           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages', 'ideal': None, 'nodes': 'nodes', 'layers': 'layers'}
 V1_STEP = 'NS36.T2'
 
 

@@ -24,7 +24,6 @@ DETERMINISTIC_FACTS = ('committed_credential', 'broken_code')
 # render key (or engine kind) -> (category, severity when the evidence says nothing more precise)
 KEYS = {
     'vulnerable_dependency': ('supply_chain', None), 'security_weakness': ('security', None), 'broken_code': ('reliability', None),
-    'access_gap_no_rls': ('security', 'high'), 'access_gap_open_write': ('security', 'critical'),
     'dead_code': ('dead_code', 'low'), 'dead_code_review': ('dead_code', 'low'), 'leftover': ('dead_code', 'low'),
     'load_blocker': ('reliability', 'medium'), 'trace_gap': ('reliability', 'low'), 'mutable_global': ('reliability', 'medium'),
     'cycle': ('architecture', 'medium'), 'cochange': ('architecture', 'low'), 'hotspot': ('maintainability', 'medium'),
@@ -33,6 +32,9 @@ KEYS = {
     'duplicated_rule': ('maintainability', 'medium'), 'redundant_work': ('reliability', 'medium'),
     'policy': ('architecture', 'medium'), 'untested': ('reliability', 'medium'),
 }
+# The debt category of each boundary of the layers (M6).
+LAYER_CATEGORY = {'browser': 'security', 'endpoints': 'security', 'data': 'security', 'rules': 'architecture',
+                  'layers': 'architecture', 'operations': 'reliability', 'tests': 'reliability'}
 ENGINE_KINDS = {
     'secret': ('security', 'high'), 'vulnerability': ('security', 'high'), 'misconfiguration': ('security', 'medium'),
     'dataflow': ('reliability', 'medium'), 'cycle': ('architecture', 'medium'), 'coupling': ('architecture', 'medium'),
@@ -179,6 +181,14 @@ def _with_credentials(evidence, all_facts, severity):
     return evidence + credentials, severity
 
 
+def _layered(render, category, severity):
+    """(category, severity): a layer finding's own, its boundary's category and its rule's severity
+    (eaos/analysis/layers/catalog.py); any other item's as they were."""
+    if render.get('key') != 'layer_finding': return category, severity
+    params = render.get('params') or {}
+    return LAYER_CATEGORY.get(params.get('boundary'), 'architecture'), params.get('severity') or 'medium'
+
+
 def _probe_witnesses(probes):
     return [{'tool': 'eaos.probe', 'finding_id': probe['id'], 'kind': 'probe'} for probe in probes if probe.get('status') == 'CONFIRMED']
 
@@ -190,6 +200,7 @@ def _item(claim, facts, all_facts, probes):
     kind = specification.get('kind')
     category, facts = _category(key, kind, facts)
     severity = _severity(claim, key, KEYS.get(key, (None, None))[1], facts)
+    category, severity = _layered(render, category, severity)
     evidence = facts + _second_witnesses(facts, all_facts, category)
     if key == 'engine_cluster' and kind == 'secret': evidence, severity = _with_credentials(evidence, all_facts, severity)
     witnesses = _witness_rows(evidence) + _probe_witnesses(probes.get(claim['id'], []))

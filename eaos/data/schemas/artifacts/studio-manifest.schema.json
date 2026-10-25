@@ -136,7 +136,8 @@
               "pipeline",
               "ideal",
               "nodes",
-              "library"
+              "library",
+              "layers"
             ]
           },
           "file": {
@@ -287,6 +288,7 @@
     "pipeline",
     "ideal",
     "nodes",
-    "library"
+    "library",
+    "layers"
   ]
 }

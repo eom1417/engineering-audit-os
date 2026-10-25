@@ -790,6 +790,10 @@
    "remedy": {
     "needs": "person"
    }
+  },
+  "no_layers": {
+   "ar": "لم تُقرأ طبقات النظام في هذا الفحص، فلا شيء تُجرّب حدوده.",
+   "en": "The layers were not read in this check, so there is nothing whose boundaries to try."
   }
  }
 }
