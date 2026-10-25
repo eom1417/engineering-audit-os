@@ -145,6 +145,28 @@ run), against the M2 numbers. The host was quiet (load 3-6), so the time is comp
 | Detection baseline | 6 of 8 planted problems found |
 
 
+## After M6: 0.0.78 (2026-10-25)
+
+The check's rows (time, output, cards, engine findings) are the last check of `develop` the working Studio holds, from
+before M6; the next check of `develop` from the Studio measures them on 0.0.78.
+
+| Measure | Value |
+|---|---|
+| Python lines (`eaos/`) | 68,923 in 427 files (2 flat at the package root) |
+| Studio UI (`console/src`) | 14,090 JS lines in 106 files (words 3,029) |
+| Tests | 20,637 lines in 131 files, 736 test functions |
+| Check time | 3,599 s wall (ideal 1,462 · verify 650 · triage 490 · engines 291) |
+| Stages / documents / engines | 37 / 27 `.md` / 42 tools |
+| Output | 401 MB, 2,482 files |
+| Runtime | 760 MB |
+| Cards on itself | 101 plan tasks (45 hotspot, 13 extend_feature, 12 canonicalize) from 418 claims |
+| The layers on itself | 572 files read in 6 s (python-cli; measured on today's code apart from a check, 2026-10-25): no boundary finding after the false ones it showed were fixed (console's Node tools, the API server's guard) |
+| Engine findings | 3,853 (`semgrep` 1,673, `reforge` 1,557) |
+| Compatibility corpus | 13 of 15 apps pass (15 pinned) |
+| Detection baseline | 15 of 16 planted problems found |
+| Layer findings judged on the corpus | 37 findings on 3 apps, 2 false (5%) |
+
+
 ## Findings of the M-1 measurement (inputs for M1-M4; what remained became cards of `ROADMAP.md`)
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio
