@@ -49,6 +49,16 @@ function trend(scored) {
   return b === a ? t('un.his.trend.same') : t(b > a ? 'un.his.trend.up' : 'un.his.trend.down', { n: num(Math.abs(b - a)) });
 }
 
+/** The four figures over the history: checks, the last score, open problems, fixes taken in. */
+const tiles = (scans, last) => `<div class="un-diffs section" role="list" style="margin-top:24px">
+      <div class="un-diff" role="listitem"><b class="num">${num(scans.length)}</b><span>${t('un.his.t.checks')}</span></div>
+      <div class="un-diff" role="listitem"><b class="num">${last.score != null ? num(score(last)) : '—'}</b><span>${t('un.his.t.score')}</span></div>
+      <div class="un-diff" role="listitem"><b class="num">${openTotal(last) != null ? num(openTotal(last)) : '—'}</b><span>${t('un.his.t.open')}</span></div>
+      <div class="un-diff" role="listitem"><b class="num">${num(last.closed)}</b><span>${esc(t('un.his.t.closed', { n: num(last.total) }))}</span></div>
+    </div>`;
+/** The fixes chart's points: the recorded progress, else one point per check. */
+const progressOf = (h, scans) => ((h.progress || []).length ? h.progress : scans.map(s => ({ at: s.at, closed: s.closed || 0, total: s.total || 0, event: s.event })));
+
 function historyPage(ctx) {
   if (ctx.state === 'empty') return emptyView('history');
   const h = H();
@@ -60,19 +70,14 @@ function historyPage(ctx) {
     <span class="row__main"><span class="row__title">${esc(fmtWhen(s.at))}${s === last ? ` <span class="tag tag--state">${t('un.his.latest')}</span>` : ''}</span>
       <span class="row__meta" style="display:block">${code(short(s.commit))}${t('list.sep')}${t('un.his.kind.' + (i ? 'new' : 'first'))}${t('list.sep')}${s.score != null ? esc(t('un.his.score', { s: num(score(s)) })) : t('un.his.noscore')}</span></span>
     <span class="row__end small num">${esc(t('un.his.closedof.s', { k: num(s.closed), n: num(s.total) }))}</span>${icon('chev', 'icon--sm icon--dir muted')}</a>`;
-  const points = (h.progress || []).length ? h.progress : scans.map(s => ({ at: s.at, closed: s.closed || 0, total: s.total || 0, event: s.event }));
+  const points = progressOf(h, scans);
   const share = last.total ? Math.round((last.closed / last.total) * 100) + '%' : '—';
   return `<div class="page page--wide">
     ${tabs('history')}
     <h1 class="lede">${esc(t('un.his.lede.v', { n: tn('un.pl.check', scans.length) }))}</h1>
     <p class="guide">${t(scans.length < 2 ? 'un.his.guide.one' : 'un.his.guide')}</p>
     ${scans.length > 1 ? `<div class="actions"><a class="btn btn--primary" href="${href('/understand/history/compare')}">${t('un.his.compare')}</a></div>` : ''}
-    <div class="un-diffs section" role="list" style="margin-top:24px">
-      <div class="un-diff" role="listitem"><b class="num">${num(scans.length)}</b><span>${t('un.his.t.checks')}</span></div>
-      <div class="un-diff" role="listitem"><b class="num">${last.score != null ? num(score(last)) : '—'}</b><span>${t('un.his.t.score')}</span></div>
-      <div class="un-diff" role="listitem"><b class="num">${openTotal(last) != null ? num(openTotal(last)) : '—'}</b><span>${t('un.his.t.open')}</span></div>
-      <div class="un-diff" role="listitem"><b class="num">${num(last.closed)}</b><span>${esc(t('un.his.t.closed', { n: num(last.total) }))}</span></div>
-    </div>
+    ${tiles(scans, last)}
     <section class="section" aria-labelledby="fx-h"><div class="section-head"><h2 id="fx-h">${t('un.his.fixes')}</h2></div>
       <p class="small ink-2" style="margin-bottom:12px">${esc(last.closed ? t('un.his.fixes.sum', { k: num(last.closed), n: num(last.total), p: share }) : t('un.his.fixes.none'))}</p>${fixesChart(points)}</section>
     <section class="section" aria-labelledby="sc-h"><div class="section-head"><h2 id="sc-h">${t('un.his.trend')}</h2></div><p class="ink-2">${esc(trend(scored))}</p></section>
@@ -88,6 +93,16 @@ screen({ id: 'S-43', path: '/understand/history', place: 'understand', needs: NE
   after: readout });
 
 /* ---------- S-44 one past check ---------- */
+/** The check's facts; `nr` where the ledger did not record a value. */
+const checkFacts = (c, nr) => facts([
+      [t('un.his.f.when'), esc(exactTime(c.at))], [t('un.his.f.commit'), code(c.commit || '—')], [t('un.his.f.branch'), c.branch ? code(c.branch) : nr],
+      [t('un.his.f.score'), c.score != null ? num(score(c)) : nr], [t('un.his.f.open'), openTotal(c) != null ? num(openTotal(c)) : nr],
+      [t('un.his.f.closed'), esc(t('un.his.closedof.s', { k: num(c.closed), n: num(c.total) }))],
+      [t('un.his.f.new'), c.added != null ? num(c.added) : nr], [t('un.his.f.gone'), c.resolved != null ? num(c.resolved) : nr],
+    ]);
+// the links to the check before and after (an empty cell holds the place of a missing previous one)
+const prevLink = prev => (prev ? `<a class="row panel" href="${checkLink(prev)}">${icon('back', 'icon--dir muted')}<span class="row__main"><span class="small muted">${t('un.his.prev')}</span><span class="row__title" style="display:block">${esc(fmtWhen(prev.at))}</span></span></a>` : '<span></span>');
+const nextLink = next => (next ? `<a class="row panel" href="${checkLink(next)}"><span class="row__main"><span class="small muted">${t('un.his.next')}</span><span class="row__title" style="display:block">${esc(fmtWhen(next.at))}</span></span>${icon('chev', 'icon--dir muted')}</a>` : '');
 function checkPage(ctx) {
   const h = H();
   if (!h) return notMeasured('history', 'history');
@@ -103,46 +118,50 @@ function checkPage(ctx) {
     <h1 class="lede un-lede-sm">${esc(t('un.his.check.lede', { when: fmtWhen(c.at) }))}</h1>
     <p class="guide">${esc(openTotal(c) == null ? t('un.his.check.guide.old', { k: num(c.closed), n: num(c.total) }) : t('un.his.check.guide', { o: num(openTotal(c)), k: num(c.closed), n: num(c.total) }))}</p>
     <div class="actions">${prev ? `<a class="btn btn--primary" href="${href('/understand/history/compare', { a: prev.id, b: c.id })}">${t('un.his.compareprev')}</a>` : ''}</div>
-    <section class="section"><div class="panel panel__pad">${facts([
-      [t('un.his.f.when'), esc(exactTime(c.at))], [t('un.his.f.commit'), code(c.commit || '—')], [t('un.his.f.branch'), c.branch ? code(c.branch) : nr],
-      [t('un.his.f.score'), c.score != null ? num(score(c)) : nr], [t('un.his.f.open'), openTotal(c) != null ? num(openTotal(c)) : nr],
-      [t('un.his.f.closed'), esc(t('un.his.closedof.s', { k: num(c.closed), n: num(c.total) }))],
-      [t('un.his.f.new'), c.added != null ? num(c.added) : nr], [t('un.his.f.gone'), c.resolved != null ? num(c.resolved) : nr],
-    ])}</div></section>
+    <section class="section"><div class="panel panel__pad">${checkFacts(c, nr)}</div></section>
     <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.his.bysev')}</h2><div class="panel panel__pad">${known(c) ? sevBar(c.open) : `<p class="small ink-2">${t('un.his.nosev')}</p>`}</div></section>
     <section class="section"><h2 class="h2" style="margin-bottom:8px">${t(next ? 'un.his.until' : 'un.his.since')}</h2>
       ${evs.length ? `<ul class="rows">${evs.map(eventRow).join('')}</ul>` : `<p class="small muted">${t('un.his.noevents')}</p>`}</section>
     <nav class="un-doc__pn section" aria-label="${esc(t('un.v.history'))}">
-      ${prev ? `<a class="row panel" href="${checkLink(prev)}">${icon('back', 'icon--dir muted')}<span class="row__main"><span class="small muted">${t('un.his.prev')}</span><span class="row__title" style="display:block">${esc(fmtWhen(prev.at))}</span></span></a>` : '<span></span>'}
-      ${next ? `<a class="row panel" href="${checkLink(next)}"><span class="row__main"><span class="small muted">${t('un.his.next')}</span><span class="row__title" style="display:block">${esc(fmtWhen(next.at))}</span></span>${icon('chev', 'icon--dir muted')}</a>` : ''}
+      ${prevLink(prev)}
+      ${nextLink(next)}
     </nav>
   </div>`;
 }
 
 /* ---------- S-45 compare two checks ---------- */
+/** How a value moved between two checks; `better` is the way that is good ('up', 'down', or null for neither). */
+function moved(va, vb, better) {
+  const up = vb > va, good = better === 'up' ? up : better === 'down' ? !up : null;
+  const diff = (up ? '+' : '−') + num(Math.abs(vb - va));
+  return good == null ? `<span class="state">${esc(diff)}</span>` : `<span class="state ${good ? 'ok-ic' : 'danger-ic'}">${icon(good ? 'check' : 'warn', 'icon--sm')}<bdi class="num">${esc(diff)}</bdi> ${t(good ? 'un.cmp.better' : 'un.cmp.worse')}</span>`;
+}
+/** The change cell: not comparable, the same, or how it moved. */
+function change(va, vb, better) {
+  if (va == null || vb == null) return `<span class="muted">${t('un.cmp.na')}</span>`;
+  if (va === vb) return `<span class="state">${icon('dash', 'icon--sm')}${t('un.cmp.same')}</span>`;
+  return moved(va, vb, better);
+}
+/** The two checks compared (indices, earlier first): those asked for, else the last two. */
+function pair(scans, q) {
+  let a = scans.findIndex(x => x.id === q.a), b = scans.findIndex(x => x.id === q.b);
+  if (a < 0) a = scans.length - 2;
+  if (b < 0) b = scans.length - 1;
+  if (a > b) [a, b] = [b, a];
+  return [a, b];
+}
+// the line under a card list cut at 50
+const andMore = list => (list.length > 50 ? `<p class="small muted">${esc(t('un.comp.andmore', { n: num(list.length - 50) }))}</p>` : '');
 function comparePage(ctx) {
   const h = H();
   if (!h) return notMeasured('history', 'history');
   const scans = h.scans, q = ctx.query;
   if (scans.length < 2) return `<div class="page">${back('/understand/history', t('un.v.history'))}<h1 class="lede un-lede-sm">${t('un.cmp.title')}</h1><p class="guide">${t('un.his.guide.one')}</p></div>`;
-  let a = scans.findIndex(x => x.id === q.a), b = scans.findIndex(x => x.id === q.b);
-  if (a < 0) a = scans.length - 2;
-  if (b < 0) b = scans.length - 1;
-  if (a > b) [a, b] = [b, a];
+  const [a, b] = pair(scans, q);
   const A = scans[a], B = scans[b], same = a === b;
   const opt = (sel, name) => `<label class="un-pick"><span class="block-title">${t('un.cmp.' + name)}</span><select class="un-select" data-change="un-cmp" data-side="${name === 'earlier' ? 'a' : 'b'}" data-fk="cmp-${name}">
     ${scans.map((c, i) => `<option value="${esc(c.id)}" ${i === sel ? 'selected' : ''}>${esc(`${i + 1}. ${fmtWhen(c.at)} (${short(c.commit)})`)}</option>`).join('')}</select></label>`;
-  const line = (key, va, vb, better) => {
-    let change;
-    if (va == null || vb == null) change = `<span class="muted">${t('un.cmp.na')}</span>`;
-    else if (va === vb) change = `<span class="state">${icon('dash', 'icon--sm')}${t('un.cmp.same')}</span>`;
-    else {
-      const up = vb > va, good = better === 'up' ? up : better === 'down' ? !up : null;
-      const diff = (up ? '+' : '−') + num(Math.abs(vb - va));
-      change = good == null ? `<span class="state">${esc(diff)}</span>` : `<span class="state ${good ? 'ok-ic' : 'danger-ic'}">${icon(good ? 'check' : 'warn', 'icon--sm')}<bdi class="num">${esc(diff)}</bdi> ${t(good ? 'un.cmp.better' : 'un.cmp.worse')}</span>`;
-    }
-    return `<tr><th scope="row">${t(key)}</th><td class="num">${va == null ? `<span class="muted">${t('un.his.notrec')}</span>` : num(va)}</td><td class="num">${vb == null ? `<span class="muted">${t('un.his.notrec')}</span>` : num(vb)}</td><td>${change}</td></tr>`;
-  };
+  const line = (key, va, vb, better) => `<tr><th scope="row">${t(key)}</th><td class="num">${va == null ? `<span class="muted">${t('un.his.notrec')}</span>` : num(va)}</td><td class="num">${vb == null ? `<span class="muted">${t('un.his.notrec')}</span>` : num(vb)}</td><td>${change(va, vb, better)}</td></tr>`;
   const cards = h.cards || [];
   const closed = cards.filter(c => (c.state === 'done' || c.state === 'resolved') && c.at && c.at > A.at && c.at <= B.at);
   const fresh = b === scans.length - 1 ? cards.filter(c => c.new && c.state === 'open') : null;
@@ -159,9 +178,9 @@ function comparePage(ctx) {
         ${line('un.cmp.closed', A.closed, B.closed, 'up')}${line('un.cmp.all', A.total, B.total, null)}</tbody></table></div>
       <p class="small muted" style="margin-top:8px">${t('un.cmp.note')}</p></section>
     <section class="section"><h2 class="h2">${esc(t('un.cmp.closedbetween', { n: num(closed.length) }))}</h2>
-      ${closed.length ? `<ul class="rows" style="margin-top:8px">${closed.slice(0, 50).map(cardRow).join('')}</ul>${closed.length > 50 ? `<p class="small muted">${esc(t('un.comp.andmore', { n: num(closed.length - 50) }))}</p>` : ''}` : `<p class="small muted" style="margin-top:8px">${t('un.cmp.noclosed')}</p>`}</section>
+      ${closed.length ? `<ul class="rows" style="margin-top:8px">${closed.slice(0, 50).map(cardRow).join('')}</ul>${andMore(closed)}` : `<p class="small muted" style="margin-top:8px">${t('un.cmp.noclosed')}</p>`}</section>
     <section class="section"><h2 class="h2">${t('un.cmp.fresh')}</h2>
-      ${fresh ? `<p class="small ink-2" style="margin:8px 0">${esc(t('un.cmp.fresh.v', { n: num(fresh.length) }))}</p>${fresh.length ? `<ul class="rows">${fresh.slice(0, 50).map(cardRow).join('')}</ul>${fresh.length > 50 ? `<p class="small muted">${esc(t('un.comp.andmore', { n: num(fresh.length - 50) }))}</p>` : ''}` : ''}` : `<p class="small muted" style="margin-top:8px">${t('un.cmp.fresh.onlylast')}</p>`}</section>`}
+      ${fresh ? `<p class="small ink-2" style="margin:8px 0">${esc(t('un.cmp.fresh.v', { n: num(fresh.length) }))}</p>${fresh.length ? `<ul class="rows">${fresh.slice(0, 50).map(cardRow).join('')}</ul>${andMore(fresh)}` : ''}` : `<p class="small muted" style="margin-top:8px">${t('un.cmp.fresh.onlylast')}</p>`}</section>`}
   </div>`;
 }
 screen({ id: 'S-45', path: '/understand/history/compare', place: 'understand', needs: NEEDS, title: () => t('un.cmp.title'), render: comparePage, loading: () => loading(t('un.his.loading')) });

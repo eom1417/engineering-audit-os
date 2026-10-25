@@ -34,21 +34,31 @@ function proposalHTML(p, i, k) {
     : `<button class="btn btn--secondary btn--sm" data-act="ac-ask-control" data-i="${i}" data-k="${k}">${t('ac.ask.send_control')}</button>`);
   return `<li class="ac-prop"><span class="row__main"><span class="row__title small">${esc(title)}</span><span class="row__meta" style="display:block">${rich(p.why || '')}</span></span>${btn}</li>`;
 }
-function turnHTML(x, i) {
-  if (x.who === 'you') {
-    return `<li class="ac-turn ac-turn--you"><div class="ac-bubble"><p>${rich(x.text)}</p></div>
+// the owner's own question
+function youTurn(x) {
+  return `<li class="ac-turn ac-turn--you"><div class="ac-bubble"><p>${rich(x.text)}</p></div>
       <span class="ac-turn__meta small muted">${esc(fmtTime(x.at))}${x.about ? `, ${esc(t('ac.ask.about', { id: x.about }))}` : ''}</span></li>`;
-  }
-  const who = x.assistant || (ready() ? ready().name : t('ai.label'));
-  if (x.pending) {
-    return `<li class="ac-turn ac-turn--ai" id="ac-pending-${i}" aria-busy="true"><div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${esc(who)}</span>
+}
+// an answer still coming: what the assistant reads, and what it wrote so far
+function pendingTurn(x, i, who) {
+  return `<li class="ac-turn ac-turn--ai" id="ac-pending-${i}" aria-busy="true"><div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${esc(who)}</span>
       <p class="small muted ac-reading"><span class="dot dot--live" aria-hidden="true"></span>${esc(x.reading && x.reading.length ? t('ac.ask.reading', { tools: x.reading.join(t('list.sep')) }) : t('ac.ask.thinking'))}</p>
       ${x.partial ? `${md(x.partial)}<span class="ac-caret" aria-hidden="true"></span>` : ''}</div></li>`;
-  }
-  if (x.error) {
-    return `<li class="ac-turn ac-turn--ai"><div class="ac-note ac-note--fail">${icon('fail', 'icon--sm ac-c-danger')}<span class="small">${esc(t('ac.ask.failed', { why: x.error }))}</span></div>
+}
+// an answer that failed, with a retry
+function failedTurn(x, i) {
+  return `<li class="ac-turn ac-turn--ai"><div class="ac-note ac-note--fail">${icon('fail', 'icon--sm ac-c-danger')}<span class="small">${esc(t('ac.ask.failed', { why: x.error }))}</span></div>
       <div class="actions" style="margin-top:8px"><button class="btn btn--secondary btn--sm" data-act="ac-ask-retry" data-i="${i}">${icon('retry')}${t('ac.ctl.retry')}</button></div></li>`;
-  }
+}
+function turnHTML(x, i) {
+  if (x.who === 'you') return youTurn(x);
+  const who = x.assistant || (ready() ? ready().name : t('ai.label'));
+  if (x.pending) return pendingTurn(x, i, who);
+  if (x.error) return failedTurn(x, i);
+  return answerTurn(x, i, who);
+}
+// a finished answer: what it read, the answer, what it started and what it proposes
+function answerTurn(x, i, who) {
   const props = (x.proposals || []).map((p, k) => proposalHTML(p, i, k)).join('');
   const done = (x.done || []).map(d => d.run ? `<a class="tag tag--state" href="${href('/activity/run/' + encodeURIComponent(d.run))}">${icon('play')}${esc(t('ac.ask.done.run', { run: d.run }))}</a>` : `<span class="tag tag--caution">${esc(t('ac.ask.done.not', { why: d.error || '' }))}</span>`).join(' ');
   const c = cost(x);

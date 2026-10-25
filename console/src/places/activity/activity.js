@@ -25,27 +25,36 @@ export function controls(r, small) {
 }
 
 /** The check now: the running stages, n of N, what is left, its controls. */
+/** Under a check's title: whom it waits on, else how far it is and how long is left. */
+function checkSub(flow, list, running, signin, you) {
+  const e = flow && flow.estimate;
+  const left = e && e.low != null ? t('live.left', { lo: num(Math.max(1, Math.round(e.low / 60))), hi: num(Math.max(1, Math.round(e.high / 60))) }) : '';
+  return signin ? t('ac.now.check.you.sub', { until: live.signIn.asked.until ? ac.when(live.signIn.asked.until) : '' })
+    : you ? t('ac.now.check.q.sub')
+    : list.length ? t('ac.now.check.sub', { done: num(finished(list)), total: num(list.length), stages: running.map(s => stageTitle(s.id)).join(t('list.sep')) || t('ac.now.starting') }) + left
+      : t('ac.now.starting');
+}
+/** The stages a check runs or waits on now, and how many are done. */
+function nowStages(r, rs, you, running, list) {
+  const c = counts(list);
+  return running.length ? `<div class="ac-now__stages"><span class="block-title">${you ? t('ac.now.waits') : rs === 'paused' ? t('ac.now.paused_at') : t('ac.now.running_stages')}</span>
+      <ul class="ac-layer__list ac-layer__list--row">${running.map(s => stageButton(s, false)).join('')}</ul>
+      <p class="small ink-2">${esc(t('ac.now.counts', { done: num(c.ok || 0), waiting: num(c.waiting || 0), total: num(list.length) }))} <a class="link" href="${runHref(r)}">${t('ac.now.all_stages')}</a></p></div>` : '';
+}
 function checkNow(r) {
   const flow = ac.flowOfRun(r);
   const list = stagesOf(flow, r);
   const rs = ac.runState(r), signin = !!(live.signIn && live.signIn.asked), you = rs === 'you' || signin;
   const running = list.filter(s => ['running', 'paused', 'you'].includes(s.state));
-  const done = finished(list), c = counts(list);
-  const e = flow && flow.estimate;
-  const left = e && e.low != null ? t('live.left', { lo: num(Math.max(1, Math.round(e.low / 60))), hi: num(Math.max(1, Math.round(e.high / 60))) }) : '';
+  const done = finished(list);
   const title = signin ? t('ac.now.check.you') : you ? t('ac.now.check.q') : rs === 'paused' ? t('ac.now.check.paused') : t('ac.now.check');
-  const sub = signin ? t('ac.now.check.you.sub', { until: live.signIn.asked.until ? ac.when(live.signIn.asked.until) : '' })
-    : you ? t('ac.now.check.q.sub')
-    : list.length ? t('ac.now.check.sub', { done: num(done), total: num(list.length), stages: running.map(s => stageTitle(s.id)).join(t('list.sep')) || t('ac.now.starting') }) + left
-      : t('ac.now.starting');
+  const sub = checkSub(flow, list, running, signin, you);
   return `<div class="panel ac-now ${you ? 'ac-now--you' : ''}">
     <a class="ac-now__head" href="${runHref(r)}">${ac.glyph(rs)}<span class="row__main"><span class="row__title">${esc(title)}</span>
       <span class="row__meta" style="display:block">${sub}</span></span>${icon('chev', 'icon--dir muted')}</a>
     ${clockHTML(r, flow, list)}
     ${ac.progressBar(list.length ? done / list.length : 0, title)}
-    ${running.length ? `<div class="ac-now__stages"><span class="block-title">${you ? t('ac.now.waits') : rs === 'paused' ? t('ac.now.paused_at') : t('ac.now.running_stages')}</span>
-      <ul class="ac-layer__list ac-layer__list--row">${running.map(s => stageButton(s, false)).join('')}</ul>
-      <p class="small ink-2">${esc(t('ac.now.counts', { done: num(c.ok || 0), waiting: num(c.waiting || 0), total: num(list.length) }))} <a class="link" href="${runHref(r)}">${t('ac.now.all_stages')}</a></p></div>` : ''}
+    ${nowStages(r, rs, you, running, list)}
     <div class="ac-now__foot">${you ? `<a class="btn btn--primary" href="${href('/waiting/sign-in')}">${t('wt.signin.act')}</a>` : `<span class="small muted">${t('ac.now.started', { when: ac.when(r.started || r.created) })}</span>`}
       <span class="ac-now__ctl">${controls(r, true)}</span></div></div>`;
 }

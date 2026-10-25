@@ -45,7 +45,7 @@ before the turn ends.
 
 - Least code, best result; one source of truth; clear and clean; nothing replaced is left behind.
 - EAOS itself: module ≤ 400 lines and function complexity ≤ 10 with no exception (M3) in Python; the Studio's
-  JavaScript under the same laws, today's 48 functions and 4 modules over them listed to shrink (M4.6); functions ≤ 50 lines and ≤ 5
+  JavaScript under the same laws, no exception (M4.6; `console/tools/same.cjs` proves a split left every screen as it was); functions ≤ 50 lines and ≤ 5
   parameters (today's exceptions listed). The laws EAOS holds every project to stay 600 / 15 (`eaos/core/code_laws.py`,
   the owner's to change). No dead code, no duplication, no medium or high security finding; layers per
   `docs/ARCHITECTURE.md`.

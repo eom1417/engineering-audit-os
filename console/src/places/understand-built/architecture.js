@@ -29,6 +29,7 @@ function summary() {
   ])}</div>`;
 }
 function sources(got) {
+  if (!got) return `<a class="btn btn--secondary btn--sm" href="${href('/understand/architecture', { sources: '1' })}">${t('un.arch.showsources')}</a>`;
   if (got.state !== 'ready') return waitHTML(got);
   const a = got.answer || {};
   const fonts = ((a.fonts || {}).arabic || []);
@@ -39,27 +40,32 @@ function sources(got) {
   </div>`;
 }
 
+// What the design brief suggests for the described product, and its line under the form
+function suggestionHTML(a, product, brief) {
+  const suggestion = a.suggestion || '';
+  if (suggestion) return `<div class="panel panel__pad" style="margin-top:12px"><div class="block-title">${esc(t('un.arch.suggested.for', { product }))}</div><pre class="code un-pre" tabindex="0">${esc(suggestion)}</pre></div>
+        <div class="actions">${start('adopt', esc(t('un.arch.adopt')), 'btn--primary', 'data-fk="adopt"')}<p class="actions__note">${t('un.arch.adopt.note.v')}</p></div>`;
+  return product && brief && brief.state === 'ready' ? `<p class="small muted">${t('un.arch.nosuggestion')}</p>` : '';
+}
+
 function archPage(ctx) {
   if (ctx.state === 'empty') return emptyView('architecture');
   const product = ctx.query.product || '';
   // the design sources are an action of their own: asked when the person opens them or describes the product
   const brief = product || ctx.query.sources ? read('design_brief', product ? { product } : {}) : null;
   const a = brief && brief.state === 'ready' ? brief.answer || {} : {};
-  const suggestion = a.suggestion || '';
   return `<div class="page">
     ${tabs('architecture')}
     <h1 class="lede">${t('un.arch.lede')}</h1>
     <p class="guide">${t('un.arch.guide')}</p>
     <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.arch.summary')}</h2>${summary()}</section>
-    <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.arch.sources')}</h2>${brief ? sources(brief) : `<a class="btn btn--secondary btn--sm" href="${href('/understand/architecture', { sources: '1' })}">${t('un.arch.showsources')}</a>`}</section>
+    <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.arch.sources')}</h2>${sources(brief)}</section>
     <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.arch.pick')}</h2>
       ${a.current ? `<p class="small"><span class="tag tag--ok">${icon('check')}${t('un.arch.current')}</span></p>` : `<p class="small muted">${t('un.arch.nocurrent')}</p>`}
       <form class="un-product" data-form="un-product"><label class="field"><span class="block-title">${t('un.arch.product')}</span>
         <input class="input" name="product" data-fk="un-product" value="${esc(product)}" placeholder="${esc(t('un.arch.product.ph'))}" autocomplete="off"></label>
         <button class="btn btn--secondary btn--sm" data-act="un-product" style="margin-top:8px">${t('un.arch.suggest')}</button></form>
-      ${suggestion ? `<div class="panel panel__pad" style="margin-top:12px"><div class="block-title">${esc(t('un.arch.suggested.for', { product }))}</div><pre class="code un-pre" tabindex="0">${esc(suggestion)}</pre></div>
-        <div class="actions">${start('adopt', esc(t('un.arch.adopt')), 'btn--primary', 'data-fk="adopt"')}<p class="actions__note">${t('un.arch.adopt.note.v')}</p></div>`
-        : product && brief && brief.state === 'ready' ? `<p class="small muted">${t('un.arch.nosuggestion')}</p>` : ''}
+      ${suggestionHTML(a, product, brief)}
     </section>
   </div>`;
 }

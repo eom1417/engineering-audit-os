@@ -129,13 +129,35 @@ function callList(title, first, side) {
 }
 const idList = ids => `<ul class="rows">${ids.slice(0, 200).map(id => `<li class="row" style="padding-inline:0;min-height:40px">${fnOf(id) ? `<a class="link" href="${fnLink(id)}">${code(id)}</a>` : code(id)}</li>`).join('')}</ul>${ids.length > 200 ? `<p class="small muted">${esc(t('un.comp.andmore', { n: num(ids.length - 200) }))}</p>` : ''}`;
 
+// the summary sentence's key, by how complex the function is
+const sumKeyOf = c => (c == null ? 'un.fn.sum.nm' : c > COMPLEX ? 'un.fn.sum.warn' : c >= WATCH ? 'un.fn.sum.watch' : 'un.fn.sum');
+const notMeasuredWord = () => `<span class="muted">${t('nm')}</span>`;
+/** The function's facts: where, signature, complexity, lines, exported. */
+function fnFacts(f, c) {
+  return facts([
+        [t('un.fn.where'), code(where(f.module, f.line) + (f.end_line ? '-' + f.end_line : ''))],
+        f.signature ? [t('un.fn.sig'), code(f.signature)] : null,
+        [t('un.fn.cx'), c == null ? notMeasuredWord() : `${num(c)} <span class="small muted">${esc(f.complexity.src)}</span>`],
+        [t('un.fn.lines'), lines(f) == null ? notMeasuredWord() : `${num(lines(f))} <span class="small muted">${esc(f.lines.src)}</span>`],
+        [t('un.fn.exported'), f.exported == null ? notMeasuredWord() : t(f.exported ? 'un.fn.public' : 'un.fn.internal')],
+      ]);
+}
+/** What data the function reads and writes. */
+function fnData(touches) {
+  return `<section class="section"><h2 class="h2">${t('un.fn.data')}</h2>${touches.length ? `<ul class="rows" style="margin-top:8px">${touches.map(([x, rw]) => `<li class="row" style="padding-inline:0;min-height:44px"><span class="tag tag--state">${t('un.data.' + x.kind)}</span><span class="row__main">${code(x.name)}</span><span class="small muted">${t('un.rw.' + rw)}</span></li>`).join('')}</ul>` : `<p class="small muted" style="margin-top:8px">${t('un.fn.nodata')}</p>`}</section>`;
+}
+/** Every caller and every callee, folded. */
+function fnAllCalls(f) {
+  return `${fold(t('un.fn.allcallers'), esc(tn('un.pl.fn', f.callers.length)), f.callers.length ? idList(f.callers) : `<p class="small muted">${t('un.fn.nocaller')}</p>`)}
+      ${fold(t('un.fn.allcallees'), esc(tn('un.pl.fn', f.callees.length)), f.callees.length ? idList(f.callees) : `<p class="small muted">${t('un.fn.nocalls')}</p>`)}`;
+}
 function fnPage(ctx) {
   if (!F()) return notMeasured('functions', 'functions');
   const f = fnOf(ctx.params.id);
   if (!f) return notFound(ctx.params.id.split('#').pop(), '/understand/functions', t('un.v.functions'));
   const cols = graphCols(f);
   const c = cx(f);
-  const sumKey = c == null ? 'un.fn.sum.nm' : c > COMPLEX ? 'un.fn.sum.warn' : c >= WATCH ? 'un.fn.sum.watch' : 'un.fn.sum';
+  const sumKey = sumKeyOf(c);
   const probs = (f.cards || []).map(id => model.problem(id)).filter(Boolean);
   const touches = [...(f.reads || []).map(x => [x, 'r']), ...(f.writes || []).map(x => [x, 'w'])];
   const comp = selection.componentOf({ paths: [f.module] });
@@ -154,18 +176,11 @@ function fnPage(ctx) {
       ${callGraphSVG(f, cols)}
       <div class="un-callcols">${callList(t('un.fn.whocalls'), cols[1], 'callers')}${callList(t('un.fn.whatcalls'), cols[3], 'callees')}</div></section>
     <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.fn.facts')}</h2>
-      <div class="panel panel__pad">${facts([
-        [t('un.fn.where'), code(where(f.module, f.line) + (f.end_line ? '-' + f.end_line : ''))],
-        f.signature ? [t('un.fn.sig'), code(f.signature)] : null,
-        [t('un.fn.cx'), c == null ? `<span class="muted">${t('nm')}</span>` : `${num(c)} <span class="small muted">${esc(f.complexity.src)}</span>`],
-        [t('un.fn.lines'), lines(f) == null ? `<span class="muted">${t('nm')}</span>` : `${num(lines(f))} <span class="small muted">${esc(f.lines.src)}</span>`],
-        [t('un.fn.exported'), f.exported == null ? `<span class="muted">${t('nm')}</span>` : t(f.exported ? 'un.fn.public' : 'un.fn.internal')],
-      ])}</div></section>
-    <section class="section"><h2 class="h2">${t('un.fn.data')}</h2>${touches.length ? `<ul class="rows" style="margin-top:8px">${touches.map(([x, rw]) => `<li class="row" style="padding-inline:0;min-height:44px"><span class="tag tag--state">${t('un.data.' + x.kind)}</span><span class="row__main">${code(x.name)}</span><span class="small muted">${t('un.rw.' + rw)}</span></li>`).join('')}</ul>` : `<p class="small muted" style="margin-top:8px">${t('un.fn.nodata')}</p>`}</section>
+      <div class="panel panel__pad">${fnFacts(f, c)}</div></section>
+    ${fnData(touches)}
     <section class="section"><h2 class="h2">${t('un.fn.problems')}</h2>${probs.length ? `<div class="panel rows" style="margin-top:8px">${probs.map(p => prow(p)).join('')}</div>` : `<p class="small muted" style="margin-top:8px">${t('un.fn.noproblems')}</p>`}</section>
     <div class="panel section">
-      ${fold(t('un.fn.allcallers'), esc(tn('un.pl.fn', f.callers.length)), f.callers.length ? idList(f.callers) : `<p class="small muted">${t('un.fn.nocaller')}</p>`)}
-      ${fold(t('un.fn.allcallees'), esc(tn('un.pl.fn', f.callees.length)), f.callees.length ? idList(f.callees) : `<p class="small muted">${t('un.fn.nocalls')}</p>`)}
+      ${fnAllCalls(f)}
     </div>
   </div>`;
 }

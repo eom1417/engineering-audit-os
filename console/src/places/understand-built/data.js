@@ -34,6 +34,16 @@ function tiers(d) {
       ${(r.gaps || []).map(g => ` <span class="small muted">${esc(t('un.tier.gap', { why: g.reason, n: tn('un.pl.path', g.paths) }))}</span>`).join('')}</span></li>`).join('')}</ol>`;
 }
 
+// The stores written from several files, first; '' when none
+const attention = many => (many.length ? `<section class="section" aria-labelledby="att-h" style="margin-top:24px"><div class="section-head"><h2 id="att-h">${t('un.data.attention')}</h2></div>
+      <div class="panel rows">${many.map(st => `<a class="row row--you" href="${href('/understand/data/' + enc(st.id))}"><span class="row__main"><span class="row__title">${esc(t('un.data.att.row', { store: st.name || st.id, n: tn('un.pl.file2', st.writers.length) }))}</span>
+        <span class="row__meta" style="display:block">${st.writers.map(code).join(' ')}</span></span>${icon('chev', 'icon--dir muted')}</a>`).join('')}</div></section>` : '');
+// The server routes: each with its store, operation and keys
+const endpointsTable = eps => (eps.length ? `<div class="un-table-wrap"><table class="un-table"><thead><tr><th scope="col">${t('un.data.ep')}</th><th scope="col">${t('un.data.ep.store')}</th><th scope="col">${t('un.data.ep.op')}</th><th scope="col">${t('un.data.ep.keys')}</th></tr></thead>
+        <tbody>${eps.map(e => `<tr><td>${code(e.label)}</td><td>${e.store ? code(e.store) : `<span class="muted">${t('un.data.ep.nostore')}</span>`}</td><td>${esc(e.operation)}</td><td>${(e.keys || []).length ? e.keys.map(code).join(' ') : '—'}</td></tr>`).join('')}</tbody></table></div>` : `<p class="small muted">${t('un.none')}</p>`);
+// The stores the rules say are written from too many files, '' when none
+const violations = list => ((list || []).length ? fold(t('un.data.violations'), esc(tn('un.pl.store', list.length)), `<ul class="rows">${list.map(x => `<li class="row small" style="padding-inline:0">${code(x.subject)}<span class="row__main muted">${esc(t('un.data.many', { n: tn('un.pl.file2', x.writers.length) }))}</span></li>`).join('')}</ul>`) : '');
+
 function dataPage(ctx) {
   if (ctx.state === 'empty') return emptyView('data');
   const d = D();
@@ -47,39 +57,69 @@ function dataPage(ctx) {
     ${tabs('data')}
     <h1 class="lede">${esc(t('un.data.lede', { n: tn('un.pl.store', d.stores.length), k: num(many.length) }))}</h1>
     <p class="guide">${t('un.data.guide')}</p>
-    ${many.length ? `<section class="section" aria-labelledby="att-h" style="margin-top:24px"><div class="section-head"><h2 id="att-h">${t('un.data.attention')}</h2></div>
-      <div class="panel rows">${many.map(st => `<a class="row row--you" href="${href('/understand/data/' + enc(st.id))}"><span class="row__main"><span class="row__title">${esc(t('un.data.att.row', { store: st.name || st.id, n: tn('un.pl.file2', st.writers.length) }))}</span>
-        <span class="row__meta" style="display:block">${st.writers.map(code).join(' ')}</span></span>${icon('chev', 'icon--dir muted')}</a>`).join('')}</div></section>` : ''}
+    ${attention(many)}
     ${mode !== 'today' ? prov(d.provenance) : ''}
     <div class="ptools">${seg('mode', [['today', t('un.story.today')], ['change', t('un.story.change')], ['target', t('un.story.target')]], mode, t('un.comp.mode'), { dflt: 'today' })}${search(q.q, t('un.data.search'))}</div>
     <div class="listhead">${count(stores.length, d.stores.length)}</div>
     ${stores.length ? `<div class="panel rows">${stores.map(st => storeRow(st, mode)).join('')}</div>` : `<div class="panel empty"><p class="empty__title">${t(d.stores.length ? 'un.data.none' : 'un.data.nostores')}</p></div>`}
     <div class="panel section">
       ${fold(t('un.data.chain'), t('un.data.chain.sum'), tiers(d))}
-      ${fold(t('un.data.endpoints'), esc(tn('un.pl.endpoint', d.endpoints.length)), d.endpoints.length ? `<div class="un-table-wrap"><table class="un-table"><thead><tr><th scope="col">${t('un.data.ep')}</th><th scope="col">${t('un.data.ep.store')}</th><th scope="col">${t('un.data.ep.op')}</th><th scope="col">${t('un.data.ep.keys')}</th></tr></thead>
-        <tbody>${d.endpoints.map(e => `<tr><td>${code(e.label)}</td><td>${e.store ? code(e.store) : `<span class="muted">${t('un.data.ep.nostore')}</span>`}</td><td>${esc(e.operation)}</td><td>${(e.keys || []).length ? e.keys.map(code).join(' ') : '—'}</td></tr>`).join('')}</tbody></table></div>` : `<p class="small muted">${t('un.none')}</p>`)}
-      ${(d.violations || []).length ? fold(t('un.data.violations'), esc(tn('un.pl.store', d.violations.length)), `<ul class="rows">${d.violations.map(x => `<li class="row small" style="padding-inline:0">${code(x.subject)}<span class="row__main muted">${esc(t('un.data.many', { n: tn('un.pl.file2', x.writers.length) }))}</span></li>`).join('')}</ul>`) : ''}
+      ${fold(t('un.data.endpoints'), esc(tn('un.pl.endpoint', d.endpoints.length)), endpointsTable(d.endpoints))}
+      ${violations(d.violations)}
     </div>
   </div>`;
 }
 screen({ id: 'S-30', path: '/understand/data', place: 'understand', needs: NEEDS, title: () => t('un.v.data'), render: dataPage, loading: () => loading(t('un.data.loading')) });
 
+// What one tier of a write chain holds: why it is a gap, direct, its keys or columns, its handler, component or place
+function stepValue(s) {
+  if (s.state === 'gap') return esc(s.reason || t('un.chain.gap'));
+  if (s.state === 'direct') return t('un.chain.direct');
+  if ((s.keys || s.columns || []).length) return (s.keys || s.columns).map(code).join(' ');
+  if (s.handler) return code(s.handler);
+  if (s.component) return code(s.component);
+  return s.path ? code(where(s.path, s.line)) : '—';
+}
 function chainHTML(p) {
   return `<ol class="un-chain un-chain--plain">${TIERS.map((tier, k) => {
     const s = p.steps[tier] || { state: 'gap' };
-    const value = s.state === 'gap' ? esc(s.reason || t('un.chain.gap')) : s.state === 'direct' ? t('un.chain.direct')
-      : (s.keys || s.columns || []).length ? (s.keys || s.columns).map(code).join(' ') : s.handler ? code(s.handler) : s.component ? code(s.component) : s.path ? code(where(s.path, s.line)) : '—';
+    const value = stepValue(s);
     return `<li class="un-chain__step ${s.state === 'gap' ? 'un-chain__step--gap' : ''}"><div class="un-chain__a">
       <span class="un-chain__n num">${k + 1}</span><span class="row__main"><span class="small muted">${t('un.tier.' + tier)}</span>
       <span class="un-chain__label">${value}</span>${s.path && s.state !== 'gap' ? `<span class="small muted" style="display:block">${code(where(s.path, s.line))}</span>` : ''}</span></div></li>`;
   }).join('')}</ol>`;
 }
+// Whether row-level security guards a table: not a table, not measured, on or off
+function rlsOf(st) {
+  if (st.kind !== 'table') return t('un.store.rls.na');
+  if (!st.declared || st.declared.rls == null) return `<span class="muted">${t('nm')}</span>`;
+  return t(st.declared.rls ? 'un.store.rls.on' : 'un.store.rls.off');
+}
+function storeFacts(st, tg) {
+  return facts([
+    [t('un.store.kind'), kindWord(st.kind)],
+    [t('un.store.client'), st.client ? code(st.client) : `<span class="muted">—</span>`],
+    [t('un.store.decl'), st.declared ? code(where(st.declared.path, st.declared.line)) : `<span class="muted">${t('un.store.nodecl')}</span>`],
+    [t('un.store.rls'), rlsOf(st)],
+    [t('un.store.change'), st.change ? t('un.data.change.' + CHANGE[st.change]) : t('un.data.change.none')],
+    [t('un.store.target'), tg ? t('un.data.target.' + tg) : t('un.data.target.none')],
+    st.target && (st.target.unmapped || []).length ? [t('un.store.unmapped'), st.target.unmapped.map(code).join(' ')] : null,
+  ]);
+}
+const fileRow = f => `<li><a class="row" href="${href('/understand/functions', { module: f })}">${icon('file', 'icon--sm muted')}<span class="row__main">${code(f)}</span>${icon('chev', 'icon--sm icon--dir muted')}</a></li>`;
+// The files that write (or read) the store, or the sentence saying there are none
+const filesSection = (title, files, none) => `<section class="section"><div class="section-head"><h2>${t(title)}</h2><span class="small muted">${esc(tn('un.pl.file2', files.length))}</span></div>
+      ${files.length ? `<ul class="panel rows">${files.map(fileRow).join('')}</ul>` : `<p class="small muted">${t(none)}</p>`}</section>`;
+// The server routes on the store, '' when none
+const endpointsSection = eps => (eps.length ? `<section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.data.endpoints')}</h2><div class="panel rows">${eps.map(e => `<div class="row"><span class="row__main">${code(e.label)}<span class="row__meta" style="display:block">${esc(e.operation)}${(e.keys || []).length ? `${t('list.sep')}${t('un.data.ep.keys')}: ${e.keys.map(code).join(' ')}` : ''}</span></span></div>`).join('')}</div></section>` : '');
+// The target in one sentence (which file will write the store), '' without a target
+const targetLong = (st, tg) => (tg ? `<p class="guide">${esc(t('un.data.target.' + tg + '.long', { file: (st.target && st.target.components[0]) || st.writers[0] || '' }))}</p>` : '');
+
 function storePage(ctx) {
   const d = D();
   if (!d) return notMeasured('data', 'data_paths');
   const st = d.stores.find(x => x.id === ctx.params.id);
   if (!st) return notFound(ctx.params.id, '/understand/data', t('un.v.data'));
-  const fileRow = f => `<li><a class="row" href="${href('/understand/functions', { module: f })}">${icon('file', 'icon--sm muted')}<span class="row__main">${code(f)}</span>${icon('chev', 'icon--sm icon--dir muted')}</a></li>`;
   const eps = d.endpoints.filter(e => e.store === st.id);
   const chains = (d.paths || []).filter(p => p.store === st.id);
   const tg = target(st);
@@ -87,21 +127,11 @@ function storePage(ctx) {
     ${back('/understand/data', t('un.v.data'))}
     <div class="un-itemtags"><span class="tag tag--state">${kindWord(st.kind)}</span>${ownTag(st)}</div>
     <h1 class="lede un-lede-sm">${t('un.store.lede', { store: code(st.name || st.id), kind: kindWord(st.kind), w: esc(tn('un.pl.file2', st.writers.length)), r: esc(tn('un.pl.file2', st.readers.length)) })}</h1>
-    ${tg ? `<p class="guide">${esc(t('un.data.target.' + tg + '.long', { file: (st.target && st.target.components[0]) || st.writers[0] || '' }))}</p>` : ''}
-    <section class="section"><div class="panel panel__pad">${facts([
-      [t('un.store.kind'), kindWord(st.kind)],
-      [t('un.store.client'), st.client ? code(st.client) : `<span class="muted">—</span>`],
-      [t('un.store.decl'), st.declared ? code(where(st.declared.path, st.declared.line)) : `<span class="muted">${t('un.store.nodecl')}</span>`],
-      [t('un.store.rls'), st.kind !== 'table' ? t('un.store.rls.na') : !st.declared || st.declared.rls == null ? `<span class="muted">${t('nm')}</span>` : t(st.declared.rls ? 'un.store.rls.on' : 'un.store.rls.off')],
-      [t('un.store.change'), st.change ? t('un.data.change.' + CHANGE[st.change]) : t('un.data.change.none')],
-      [t('un.store.target'), tg ? t('un.data.target.' + tg) : t('un.data.target.none')],
-      st.target && (st.target.unmapped || []).length ? [t('un.store.unmapped'), st.target.unmapped.map(code).join(' ')] : null,
-    ])}</div></section>
-    <section class="section"><div class="section-head"><h2>${t('un.store.writers')}</h2><span class="small muted">${esc(tn('un.pl.file2', st.writers.length))}</span></div>
-      ${st.writers.length ? `<ul class="panel rows">${st.writers.map(fileRow).join('')}</ul>` : `<p class="small muted">${t('un.store.nowriters')}</p>`}</section>
-    <section class="section"><div class="section-head"><h2>${t('un.store.readers')}</h2><span class="small muted">${esc(tn('un.pl.file2', st.readers.length))}</span></div>
-      ${st.readers.length ? `<ul class="panel rows">${st.readers.map(fileRow).join('')}</ul>` : `<p class="small muted">${t('un.store.noreaders')}</p>`}</section>
-    ${eps.length ? `<section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.data.endpoints')}</h2><div class="panel rows">${eps.map(e => `<div class="row"><span class="row__main">${code(e.label)}<span class="row__meta" style="display:block">${esc(e.operation)}${(e.keys || []).length ? `${t('list.sep')}${t('un.data.ep.keys')}: ${e.keys.map(code).join(' ')}` : ''}</span></span></div>`).join('')}</div></section>` : ''}
+    ${targetLong(st, tg)}
+    <section class="section"><div class="panel panel__pad">${storeFacts(st, tg)}</div></section>
+    ${filesSection('un.store.writers', st.writers, 'un.store.nowriters')}
+    ${filesSection('un.store.readers', st.readers, 'un.store.noreaders')}
+    ${endpointsSection(eps)}
     <section class="section"><h2 class="h2">${t('un.store.chains')}</h2>
       ${chains.length ? chains.map((ch, i) => `<div class="un-chainbox"><div class="block-title">${esc(t('un.store.chain', { n: num(i + 1) }))}</div>${chainHTML(ch)}</div>`).join('') : `<p class="small muted" style="margin-top:8px">${t('un.store.nochains')}</p>`}</section>
   </div>`;

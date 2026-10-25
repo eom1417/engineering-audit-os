@@ -30,16 +30,22 @@ function infraPage(ctx) {
         ${(n.sites || []).length ? `<span class="small muted" style="display:block">${code(where(n.sites[0].path, n.sites[0].line))}${n.sites.length > 1 ? ' ' + esc(t('un.comp.andmore', { n: num(n.sites.length - 1) })) : ''}</span>` : ''}</span></li>`).join('')}</ul>`
         : `<div class="nm" style="margin-top:8px"><div class="nm__title"><span class="tag tag--nm">${t('un.infra.empty')}</span></div><p class="small ink-2">${t('un.infra.why.' + lane.reason)}</p></div>`}</section>`;
   };
-  const silent = d.target ? d.target.lanes.filter(l => !l.items.length).map(l => t('un.infra.' + l.id)) : [];
   return `<div class="page page--wide">
     ${tabs('infra')}
     <h1 class="lede">${t('un.infra.lede')}</h1>
     <p class="guide">${t('un.infra.guide')}</p>
     ${mode === 'target' ? prov(d.provenance) : ''}
     <div class="ptools">${seg('mode', [['today', t('un.story.today')], ['target', t('un.story.target')]], mode, t('un.comp.mode'), { dflt: 'today', cls: 'un-seg2' })}</div>
-    ${mode === 'target' && d.target && d.target.reference ? `<p class="small ink-2">${esc(t('un.infra.reference', { ref: d.target.reference }))}</p>` : ''}
+    ${mode === 'target' ? referenceHTML(d.target) : ''}
     ${mode === 'target' && !d.target ? `<p class="small muted">${t('un.infra.notarget')}</p>` : `<div class="un-areas section" style="margin-top:20px">${d.lanes.map(area).join('')}</div>`}
-    ${mode === 'target' && silent.length ? `<p class="small muted" style="margin-top:12px">${esc(t('un.infra.silentlist', { list: silent.join(t('list.sep')) }))}</p>` : ''}
+    ${mode === 'target' ? silentHTML(d.target) : ''}
   </div>`;
+}
+// The target's reference, when it names one
+const referenceHTML = target => (target && target.reference ? `<p class="small ink-2">${esc(t('un.infra.reference', { ref: target.reference }))}</p>` : '');
+// The areas the target is silent on, '' when none
+function silentHTML(target) {
+  const silent = target ? target.lanes.filter(l => !l.items.length).map(l => t('un.infra.' + l.id)) : [];
+  return silent.length ? `<p class="small muted" style="margin-top:12px">${esc(t('un.infra.silentlist', { list: silent.join(t('list.sep')) }))}</p>` : '';
 }
 screen({ id: 'S-33', path: '/understand/infra', place: 'understand', needs: NEEDS, title: () => t('un.v.infra'), render: infraPage, loading: () => loading(t('un.infra.loading')) });

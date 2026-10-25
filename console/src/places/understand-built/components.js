@@ -36,6 +36,11 @@ function lands(view, still) {
 }
 const label = (n, still, cls) => (still || !n.label || !n.label.placed ? '' : `<text class="un-map__label ${cls || ''}" x="${n.label.x}" y="${n.label.y}" text-anchor="${n.label.anchor || 'middle'}" style="font-size:${((n.label.size || 12) * 1.05).toFixed(1)}px">${esc(n.short || n.id)}</text>`);
 
+/** A component's hover words: what the change does to it, or its size and problems today. */
+const nodeTip = (c, mode, f, op) => (mode === 'change' ? `${c.id}: ${t('un.op.' + op)}${c.target ? ' → ' + c.target : ''}, ${tn('pl.file', c.files)}`
+      : `${c.id}: ${tn('pl.file', c.files)}, ${tn('pl.problem', f)}, ${t('un.map.usedby', { n: num(c.fan_in || 0) })}`);
+// the count of unseen work beside a component (none when it holds none)
+const unseenBadge = (c, u) => (u ? `<g class="un-map__badge"><rect x="${c.x + c.r - 4}" y="${c.y - c.r - 14}" width="${String(u).length * 9 + 14}" height="20" rx="10"/><text x="${c.x + c.r + 3 + String(u).length * 4.5}" y="${c.y - c.r + 1}">${u}</text></g>` : '');
 /** The map of today or of the change. */
 function mapSVG(q, focusId, still) {
   const s = sys(), mode = modeOf(q);
@@ -52,12 +57,11 @@ function mapSVG(q, focusId, still) {
   const nodes = comps.map(c => {
     const f = findings(c.findings);
     const op = opOf(c.op);
-    const tip = mode === 'change' ? `${c.id}: ${t('un.op.' + op)}${c.target ? ' → ' + c.target : ''}, ${tn('pl.file', c.files)}`
-      : `${c.id}: ${tn('pl.file', c.files)}, ${tn('pl.problem', f)}, ${t('un.map.usedby', { n: num(c.fan_in || 0) })}`;
+    const tip = nodeTip(c, mode, f, op);
     const fill = mode === 'change' ? `un-map__node--${op}` : `un-map__node--fb${band(f)}`;
     const g = mode === 'change' ? `<g transform="translate(${c.x - 7} ${c.y - 7})" class="un-map__glyph">${glyph(op, 14)}</g>` : '';
     const u = q.lens === 'unseen' ? unseen(c.id) : 0;
-    const badge = u ? `<g class="un-map__badge"><rect x="${c.x + c.r - 4}" y="${c.y - c.r - 14}" width="${String(u).length * 9 + 14}" height="20" rx="10"/><text x="${c.x + c.r + 3 + String(u).length * 4.5}" y="${c.y - c.r + 1}">${u}</text></g>` : '';
+    const badge = unseenBadge(c, u);
     const body = `<circle class="un-map__node ${fill}" cx="${c.x}" cy="${c.y}" r="${Math.max(mode === 'change' ? 9 : 5, c.r).toFixed(1)}"/>${g}${label(c, still)}${badge}`;
     return still ? `<g class="${faded(c) ? 'is-off' : ''}">${body}</g>`
       : `<a href="${compLink(c.id, q)}" class="un-map__a ${faded(c) ? 'is-off' : ''} ${c.id === focusId ? 'is-focus' : ''}" data-tip="${esc(tip)}" aria-label="${esc(tip)}">${body}<title>${esc(tip)}</title></a>`;
@@ -123,6 +127,23 @@ function nbList(list, other, q, total) {
   return `${list.slice(0, 6).map(l => `<li><a class="row" href="${compLink(l[other], q)}">${code(l[other])}<span class="row__main"></span><span class="small muted num">${esc(tn('un.pl.import', l.imports))}</span></a></li>`).join('')}
     ${total > Math.min(6, list.length) ? `<li class="row small muted" style="min-height:40px">${esc(t('un.comp.andmore', { n: num(total - Math.min(6, list.length)) }))}</li>` : ''}`;
 }
+// the inspector's main action: select the open problems, or open the list; and the gap, if any
+function inspActs(c, open, gap) {
+  return `${open.length && !offline() ? `<button class="btn btn--primary" data-act="un-select" data-ids="${esc(open.join(','))}" data-name="${esc(c.id)}" data-comp="${esc(c.id)}">${esc(t('un.comp.select', { n: num(open.length) }))}</button>`
+        : `<a class="btn btn--secondary" href="${href('/problems', { comp: c.id })}">${t('un.comp.open')}</a>`}
+      ${gap ? `<a class="btn btn--quiet" href="${href('/understand/gaps/' + enc(gap.id))}">${t('un.comp.gap')}</a>` : ''}`;
+}
+// why the component changes: the decision and what was chosen, else the reason
+const decisionOf = c => (c.decision ? `${decisionLink(c.decision.id)}${c.decision.chosen ? `<span class="small ink-2" style="display:block">${rich(L(c.decision.chosen))}</span>` : ''}` : c.reason ? rich(L(c.reason)) : t('un.comp.nodecision'));
+/** What the change does to the component: what it becomes, merged with, why, unseen work. */
+function changeFacts(c, u) {
+  return facts([
+        [t('un.gap.becomes'), c.target ? code(c.target) : t('un.gap.removed')],
+        c.merged_with ? [t('un.gap.merged'), esc(tn('un.pl.comp', c.merged_with))] : null,
+        [t('un.comp.decision'), decisionOf(c)],
+        [t('un.comp.unseenk'), u ? esc(t('un.comp.unseen', { n: num(u) })) : t('un.none')],
+      ]);
+}
 function inspector(id, q) {
   const T = targetOf(id);
   if (T && (modeOf(q) === 'target' || !component(id))) return targetInspector(T, q);
@@ -141,20 +162,13 @@ function inspector(id, q) {
     <h2 class="title" id="ci-title">${code(c.id)}</h2>
     <p class="small ink-2">${esc(t('un.comp.sum', { region: region ? L(region.name) : '—', files: tn('pl.file', c.files), by: num(c.fan_in || 0), uses: num(c.fan_out || 0) }))}</p>
     <div class="un-insp__acts">
-      ${open.length && !offline() ? `<button class="btn btn--primary" data-act="un-select" data-ids="${esc(open.join(','))}" data-name="${esc(c.id)}" data-comp="${esc(c.id)}">${esc(t('un.comp.select', { n: num(open.length) }))}</button>`
-        : `<a class="btn btn--secondary" href="${href('/problems', { comp: c.id })}">${t('un.comp.open')}</a>`}
-      ${gap ? `<a class="btn btn--quiet" href="${href('/understand/gaps/' + enc(gap.id))}">${t('un.comp.gap')}</a>` : ''}
+      ${inspActs(c, open, gap)}
     </div>
     <section class="psec"><h3 class="h2">${t('un.comp.findings')}</h3>${sevMix(c.findings, true)}</section>
     <section class="psec"><h3 class="h2">${t('un.comp.usedby')}</h3><ul class="rows un-insp__list">${callers.length ? nbList(callers, 'from', q, callers.length) : `<li class="small muted">${t('un.comp.nousers')}</li>`}</ul></section>
     <section class="psec"><h3 class="h2">${t('un.comp.uses')}</h3><ul class="rows un-insp__list">${uses.length ? nbList(uses, 'to', q, uses.length) : `<li class="small muted">${t('un.comp.nouses')}</li>`}</ul></section>
     <section class="psec"><h3 class="h2">${t('un.comp.change')}</h3>
-      ${facts([
-        [t('un.gap.becomes'), c.target ? code(c.target) : t('un.gap.removed')],
-        c.merged_with ? [t('un.gap.merged'), esc(tn('un.pl.comp', c.merged_with))] : null,
-        [t('un.comp.decision'), c.decision ? `${decisionLink(c.decision.id)}${c.decision.chosen ? `<span class="small ink-2" style="display:block">${rich(L(c.decision.chosen))}</span>` : ''}` : c.reason ? rich(L(c.reason)) : t('un.comp.nodecision')],
-        [t('un.comp.unseenk'), u ? esc(t('un.comp.unseen', { n: num(u) })) : t('un.none')],
-      ])}</section>
+      ${changeFacts(c, u)}</section>
     <div class="un-insp__more">
       <a class="link" href="${href('/understand/paths', { through: c.id })}">${icon('code', 'icon--sm')}${t('un.comp.paths')}</a>
       ${c.target ? `<a class="link" href="${compLink(c.target, Object.assign({}, q, { mode: 'target' }), { mode: 'target' })}">${icon('map', 'icon--sm')}${t('un.comp.intarget')}</a>` : ''}
@@ -179,6 +193,16 @@ function targetInspector(x, q) {
 }
 
 /* ---------- the page ---------- */
+/** The page's opening sentence in each mode. */
+function ledeOf(s, mode, c, v) {
+  return mode === 'change' ? t('un.comp.lede.change', { n: num(c.change), all: num(s.current.nodes.length) })
+    : mode === 'target' ? t('un.comp.lede.target', { n: tn('un.pl.comp', s.target.nodes.length), k: num(s.target.nodes.filter(x => !(x.sources || []).length).length) })
+    : t('un.comp.lede.today', { n: tn('un.pl.comp', v('components') || s.current.nodes.length), r: tn('un.pl.region', v('regions') || s.current.regions.length), links: tn('un.pl.link', v('edges') || s.current.edges.length) });
+}
+// the "unseen work" lens toggle (not on the target)
+const lensToggle = (r, q, mode) => (mode !== 'target' ? `<a class="btn btn--secondary btn--sm ${q.lens === 'unseen' ? 'is-on' : ''}" ${q.lens === 'unseen' ? 'aria-current="true"' : ''} href="${href(r.path, Object.assign({}, q, { lens: q.lens === 'unseen' ? null : 'unseen' }))}">${icon('screen', 'icon--sm')}${t('un.comp.lens')}</a>` : '');
+// the chips that keep one kind of change (only on the change)
+const onlyChips = (r, q, mode) => (mode === 'change' ? `<nav class="un-chips un-chips--sm" aria-label="${esc(t('un.comp.only'))}"><a href="${href(r.path, Object.assign({}, q, { only: null }))}" ${!q.only ? 'aria-current="true"' : ''}>${t('un.all')}</a>${OPS.filter(o => components().some(x => opOf(x.op) === o)).map(o => `<a href="${href(r.path, Object.assign({}, q, { only: o }))}" ${q.only === o ? 'aria-current="true"' : ''}>${glyph(o, 12)}${t('un.op.' + o)}</a>`).join('')}</nav>` : '');
 function page(ctx) {
   if (ctx.state === 'empty') return emptyView('components');
   const s = sys();
@@ -192,13 +216,11 @@ function page(ctx) {
   const c = storyCounts();
   const counts = s.counts || {};
   const v = m => (counts[m] ? counts[m].value : null);
-  const lede = mode === 'change' ? t('un.comp.lede.change', { n: num(c.change), all: num(s.current.nodes.length) })
-    : mode === 'target' ? t('un.comp.lede.target', { n: tn('un.pl.comp', s.target.nodes.length), k: num(s.target.nodes.filter(x => !(x.sources || []).length).length) })
-    : t('un.comp.lede.today', { n: tn('un.pl.comp', v('components') || s.current.nodes.length), r: tn('un.pl.region', v('regions') || s.current.regions.length), links: tn('un.pl.link', v('edges') || s.current.edges.length) });
+  const lede = ledeOf(s, mode, c, v);
   const r = parseHash();
   const modeSeg = seg('mode', [['today', t('un.story.today')], ['change', t('un.story.change')], ['target', t('un.story.target')]], mode, t('un.comp.mode'), { dflt: 'today' });
-  const lens = mode !== 'target' ? `<a class="btn btn--secondary btn--sm ${q.lens === 'unseen' ? 'is-on' : ''}" ${q.lens === 'unseen' ? 'aria-current="true"' : ''} href="${href(r.path, Object.assign({}, q, { lens: q.lens === 'unseen' ? null : 'unseen' }))}">${icon('screen', 'icon--sm')}${t('un.comp.lens')}</a>` : '';
-  const only = mode === 'change' ? `<nav class="un-chips un-chips--sm" aria-label="${esc(t('un.comp.only'))}"><a href="${href(r.path, Object.assign({}, q, { only: null }))}" ${!q.only ? 'aria-current="true"' : ''}>${t('un.all')}</a>${OPS.filter(o => components().some(x => opOf(x.op) === o)).map(o => `<a href="${href(r.path, Object.assign({}, q, { only: o }))}" ${q.only === o ? 'aria-current="true"' : ''}>${glyph(o, 12)}${t('un.op.' + o)}</a>`).join('')}</nav>` : '';
+  const lens = lensToggle(r, q, mode);
+  const only = onlyChips(r, q, mode);
   const capped = mode === 'today' && s.current.edges.length > REST && !focusId ? t('un.comp.capped', { links: num(REST), all: num(s.current.edges.length) }) : t('un.map.hint');
   const mapPanel = `<div class="panel un-mapwrap" data-zoom-root data-readout-root>
       <div class="un-mapwrap__bar">${zoomBar()}<a class="btn btn--plain btn--sm" href="${href(r.path, Object.assign({}, q, { view: 'list' }))}">${icon('problems', 'icon--sm')}${t('un.comp.aslist')}</a></div>

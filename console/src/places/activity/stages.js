@@ -145,6 +145,41 @@ function programsLine(list, run) {
   return [...by].map(([name, p]) => `${code(name)}${p.n > 1 ? ` ×${num(p.n)}` : ''}${p.since ? ' ' + t('ac.stg.prog', { t: ac.runTicker(run, p.since) }) : ''}`).join(t('list.sep'));
 }
 
+/** What a stage did, step by step. */
+const stageSteps = (raw, st) => ((raw.steps || []).length ? `<ul class="panel rows">${raw.steps.map(stepRow).join('')}</ul>` : `<p class="small muted">${t(st === 'waiting' ? 'ac.stg.steps.none' : 'ac.stg.steps.one')}</p>`);
+/** The files a stage wrote, each opened on demand. */
+const stageFiles = (raw, st, own) => ((raw.artifacts || []).length ? `<ul class="ac-files">${raw.artifacts.map(p => fileRow(p, own)).join('')}</ul>`
+  : `<p class="small muted">${t(['ok', 'partial'].includes(st) ? 'ac.stg.files.none' : 'ac.stg.files.later')}</p>`);
+/** The programs a stage has running, else what it is busy with. */
+const stagePrograms = (raw, s) => ((raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${programsLine(raw.programs, s.run)}</span></div>`
+  : raw.activity_note ? `<p class="small ink-2">${rich(raw.activity_note)}</p>` : '');
+/** What a stage reads from, whether it is required, how long it took (and last time), whether it was kept. */
+function stageFacts(s, f, id) {
+  const raw = s.raw, st = s.state;
+  const needs = s.needs.length ? s.needs.map(n => `<button class="link ac-inline" data-act="sheet" data-sheet="stage:${esc(n)}">${esc(stageTitle(n))}</button>`).join(t('list.sep')) : t('ac.stg.needs.none');
+  const last = f.previous && f.previous[id];
+  return `<dt>${t('ac.stg.needs')}</dt><dd>${needs}</dd>
+          <dt>${t('ac.stg.required')}</dt><dd>${t(s.optional ? 'ac.stg.optional' : 'ac.stg.required.v')}</dd>
+          <dt>${t('ac.stg.time')}</dt><dd>${stageTime(s) ? t(['running', 'you', 'paused'].includes(st) ? 'ac.stg.time.running' : 'ac.stg.time.took', { t: stageTime(s, 'ac-tick--big') }) : '—'} <span class="muted">${esc(t('ac.stg.last', { t: last ? ac.secs(last) : t('ac.stg.last.none') }))}</span></dd>
+          <dt>${t('ac.stg.kept')}</dt><dd>${t(raw.resumed ? 'ac.stg.kept.yes' : 'ac.stg.kept.no')}</dd>`;
+}
+/** The values a stage reported, as numbers and words. */
+function stageReported(raw) {
+  const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
+  return reported.length ? `<div><div class="block-title">${t('ac.stg.reported')}</div><dl class="facts">${reported.map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="num">${esc(typeof v === 'number' ? num(v) : v)}</dd>`).join('')}</dl></div>` : '';
+}
+/** The redo button, or why a stage cannot be redone now. */
+function redoFoot(s, query, ended) {
+  const id = s.id, st = s.state;
+  const tools = failedTools(s);
+  if (offline()) return `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.stg.redo')}</button>`;
+  if (query.replay) return `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.replay')}</p>`;
+  if (!ended) return `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.running')}</p>`;
+  if (st === 'notin') return `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.didnt')}</p>`;
+  return `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}" data-autofocus>${t('ac.stg.redo')}</button>
+      ${tools.length ? `<button class="btn btn--secondary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}:failed">${t('ac.stg.redo.failed')}</button>` : ''}`;
+}
+
 sheet('stage', {
   kind: 'drawer',
   render(id, query, own) {
@@ -155,40 +190,21 @@ sheet('stage', {
     if (!s) return { title: esc(t('ac.stg.notfound', { id })), body: `<p class="small ink-2">${t('ac.stg.noflow')}</p>` };
     const raw = s.raw, st = s.state;
     const reason = why(s);
-    const needs = s.needs.length ? s.needs.map(n => `<button class="link ac-inline" data-act="sheet" data-sheet="stage:${esc(n)}">${esc(stageTitle(n))}</button>`).join(t('list.sep')) : t('ac.stg.needs.none');
-    const last = f.previous && f.previous[id];
-    const steps = (raw.steps || []).length ? `<ul class="panel rows">${raw.steps.map(stepRow).join('')}</ul>` : `<p class="small muted">${t(st === 'waiting' ? 'ac.stg.steps.none' : 'ac.stg.steps.one')}</p>`;
-    const files = (raw.artifacts || []).length ? `<ul class="ac-files">${raw.artifacts.map(p => fileRow(p, own)).join('')}</ul>`
-      : `<p class="small muted">${t(['ok', 'partial'].includes(st) ? 'ac.stg.files.none' : 'ac.stg.files.later')}</p>`;
-    const reported = Object.entries(raw.detail || {}).filter(([, v]) => shown(v));
-    const programs = (raw.programs || []).length ? `<div class="panel row" style="min-height:48px">${ac.glyph('running')}<span class="row__main small">${programsLine(raw.programs, s.run)}</span></div>`
-      : raw.activity_note ? `<p class="small ink-2">${rich(raw.activity_note)}</p>` : '';
     const ended = run && ac.ended(run) && f.state !== 'running';
-    const tools = failedTools(s);
-    let redo;
-    if (offline()) redo = `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="open-live">${t('ac.stg.redo')}</button>`;
-    else if (query.replay) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.replay')}</p>`;
-    else if (!ended) redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.running')}</p>`;
-    else if (st === 'notin') redo = `<button class="btn btn--primary btn--block" disabled aria-describedby="redo-why">${t('ac.stg.redo')}</button><p class="sheet__fine" id="redo-why">${t('ac.stg.redo.didnt')}</p>`;
-    else redo = `<button class="btn btn--primary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}" data-autofocus>${t('ac.stg.redo')}</button>
-      ${tools.length ? `<button class="btn btn--secondary btn--block" data-act="sheet" data-sheet="redo:${esc(id)}:failed">${t('ac.stg.redo.failed')}</button>` : ''}`;
     return {
       title: esc(stageTitle(id)),
       sub: `${ac.mark(st)} <bdi class="mono muted">${esc(id)}</bdi>${run ? ` <span class="muted">${esc(ac.runLabel(run))}</span>` : ''}`,
       body: `<p>${esc(stageDoes(Object.assign({ description: raw.description }, s)))}</p>
         ${reason ? `<div class="${st === 'failed' ? 'ac-note ac-note--caution' : 'ac-note'}">${ac.glyph(st)}<span class="small">${rich(reason)}</span></div>` : ''}
         ${s.ai ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ac.stg.ai')}</span><p class="small" style="margin-top:4px">${t('ac.stg.ai.note')}</p></div>` : ''}
-        ${programs}
+        ${stagePrograms(raw, s)}
         <dl class="facts">
-          <dt>${t('ac.stg.needs')}</dt><dd>${needs}</dd>
-          <dt>${t('ac.stg.required')}</dt><dd>${t(s.optional ? 'ac.stg.optional' : 'ac.stg.required.v')}</dd>
-          <dt>${t('ac.stg.time')}</dt><dd>${stageTime(s) ? t(['running', 'you', 'paused'].includes(st) ? 'ac.stg.time.running' : 'ac.stg.time.took', { t: stageTime(s, 'ac-tick--big') }) : '—'} <span class="muted">${esc(t('ac.stg.last', { t: last ? ac.secs(last) : t('ac.stg.last.none') }))}</span></dd>
-          <dt>${t('ac.stg.kept')}</dt><dd>${t(raw.resumed ? 'ac.stg.kept.yes' : 'ac.stg.kept.no')}</dd>
+          ${stageFacts(s, f, id)}
         </dl>
-        <div><div class="block-title">${t('ac.stg.steps')}</div>${steps}</div>
-        <div><div class="block-title">${t('ac.stg.files')}</div>${files}</div>
-        ${reported.length ? `<div><div class="block-title">${t('ac.stg.reported')}</div><dl class="facts">${reported.map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="num">${esc(typeof v === 'number' ? num(v) : v)}</dd>`).join('')}</dl></div>` : ''}`,
-      foot: redo,
+        <div><div class="block-title">${t('ac.stg.steps')}</div>${stageSteps(raw, st)}</div>
+        <div><div class="block-title">${t('ac.stg.files')}</div>${stageFiles(raw, st, own)}</div>
+        ${stageReported(raw)}`,
+      foot: redoFoot(s, query, ended),
     };
   },
   after(el, id, own) {
@@ -224,6 +240,27 @@ function redoInputs(id, variant) {
   return Object.assign({ again_from: id }, was.without_ai ? { without_ai: true } : {},
     variant === 'failed' && s ? { engines: failedTools(s) } : {});
 }
+/** Ask once what the redo would cost (the free audit preview), kept on the sheet. */
+function redoAsk(own, inputs) {
+  if (!own.preview && !own.asking && !own.problem && client) {
+    own.asking = true;
+    client.preview('audit', { inputs }).then(p => { own.preview = p; own.asking = false; rerenderSheet(); },
+      e => { own.asking = false; own.problem = e instanceof ActionError ? e.message : String(e); rerenderSheet(); });
+  }
+}
+/** How long the redo would take, while the preview is asked and once it answered. */
+function redoEstimate(p, own) {
+  const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
+  return `${p ? esc(est) : `<span class="muted" aria-busy="${own.problem ? 'false' : 'true'}">${t('pv.updating')}</span>`}${p && p.estimate ? `<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>` : ''}`;
+}
+/** The redo's refusal, the queue note, its start button and the command to copy. */
+function redoStartFoot(own, p, cmd) {
+  const busy = !!ac.liveRun();
+  return `${own.problem || own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem || own.refused)}</p>` : ''}
+        ${busy ? `<p class="small ink-2">${t('ac.redo.busy')}</p>` : ''}
+        <button class="btn btn--primary btn--block" data-act="ac-redo-start" data-fk="redo-start" ${p && !own.busy ? '' : 'disabled'}>${esc(own.busy ? t('pv.starting') : busy ? t('ac.chk.queue') : t('ac.redo.start'))}</button>
+        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(cmd)}">${icon('copy')}${t('pv.copy')}</button>`;
+}
 sheet('redo', {
   kind: 'drawer',
   render(arg, query, own) {
@@ -233,18 +270,12 @@ sheet('redo', {
     if (!s) return { title: esc(t('ac.stg.notfound', { id })), body: '' };
     const failed = variant === 'failed';
     const inputs = redoInputs(id, variant);
-    if (!own.preview && !own.asking && !own.problem && client) {
-      own.asking = true;
-      client.preview('audit', { inputs }).then(p => { own.preview = p; own.asking = false; rerenderSheet(); },
-        e => { own.asking = false; own.problem = e instanceof ActionError ? e.message : String(e); rerenderSheet(); });
-    }
+    redoAsk(own, inputs);
     const rerun = [id].concat(dependents(list, id)).filter(x => { const y = list.find(z => z.id === x); return y && y.requested; });
     const kept = list.length - rerun.length;
     const p = own.preview;
-    const est = p && p.estimate && p.estimate.minutes_low != null ? t('pv.estimate.v', { lo: num(p.estimate.minutes_low), hi: num(p.estimate.minutes_high) }) : t('ac.chk.est.none');
     const title = t(failed ? 'ac.redo.title.failed' : 'ac.redo.title', { stage: stageTitle(id) });
     const cmd = `eaos check --again-from ${id}`;
-    const busy = !!ac.liveRun();
     return {
       title: esc(title),
       sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
@@ -253,7 +284,7 @@ sheet('redo', {
           <dt>${t('ac.redo.code')}</dt><dd>${t('ac.redo.code.v', { branch: code(model.project().branch), commit: code((model.project().commit || '').slice(0, 7)) })}</dd>
           <dt>${t('ac.redo.runs')}</dt><dd>${esc(tn('pl.stage', rerun.length))}</dd>
           <dt>${t('ac.redo.kept')}</dt><dd>${esc(tn('pl.stage', kept))}</dd>
-          <dt>${t('pv.estimate')}</dt><dd>${p ? esc(est) : `<span class="muted" aria-busy="${own.problem ? 'false' : 'true'}">${t('pv.updating')}</span>`}${p && p.estimate ? `<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span>` : ''}</dd>
+          <dt>${t('pv.estimate')}</dt><dd>${redoEstimate(p, own)}</dd>
           <dt>${t('pv.risk')}</dt><dd><span class="tag tag--state">${t('pv.risk.low')}</span> <span class="small ink-2">${t('ac.redo.risk')}</span></dd>
           <dt>${t('pv.fail')}</dt><dd class="small">${t('ac.redo.fail')}</dd>
         </dl>
@@ -261,10 +292,7 @@ sheet('redo', {
         <p class="small ink-2">${t('ac.redo.never')}</p>
         <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
           <div class="code" style="padding:12px 16px;margin-top:8px">${esc(cmd)}</div></details>`,
-      foot: `${own.problem || own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem || own.refused)}</p>` : ''}
-        ${busy ? `<p class="small ink-2">${t('ac.redo.busy')}</p>` : ''}
-        <button class="btn btn--primary btn--block" data-act="ac-redo-start" data-fk="redo-start" ${p && !own.busy ? '' : 'disabled'}>${esc(own.busy ? t('pv.starting') : busy ? t('ac.chk.queue') : t('ac.redo.start'))}</button>
-        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(cmd)}">${icon('copy')}${t('pv.copy')}</button>`,
+      foot: redoStartFoot(own, p, cmd),
     };
   },
 });

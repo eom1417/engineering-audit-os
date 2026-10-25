@@ -2,6 +2,9 @@
 // and an answer sent.
 import { t, num, refresh, toast, S, store, ActionError } from 'eaos';
 
+/** Send stays off while offline, while sending, or with nothing chosen or typed. */
+export const sendBlocked = (id, lock, chosen, ownOpen) => lock || S.sending[id] || !(chosen || (ownOpen && (S.own[id] || '').trim()));
+
 /** The `own` words typed for one item: kept, counted, and its `sendAct` button live once there is something to send. */
 export function ownTyped(el, sendAct) {
   S.own[el.dataset.id] = el.value;

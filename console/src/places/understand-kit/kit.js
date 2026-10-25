@@ -126,11 +126,25 @@ export function notMeasured(view, name) {
 export const missingRow = m => nm(esc(L(m.detail)), esc(t('un.nm.step', { step: m.step || '—' })));
 
 /* ---------- how each target was made (PLN-13): one line, the detail one press away, the same on every target view ---------- */
+// the one line: the message when the plan is not current, else who planned it, when and how sure, else the rules
+function provLine(p, planned) {
+  if (p.state === 'stale' || p.state === 'failed' || p.state === 'not_planned') return L(p.message);
+  return planned ? t('un.prov.line', { who: p.assistant || '', when: p.at ? fmtWhen(p.at) : '', conf: pct(p.confidence) }) : t('un.prov.rules');
+}
+/** The facts only a planned target has: by whom, when, how sure, its departures and open questions. */
+function plannedFacts(p, departures, questions) {
+  return [
+        [t('un.prov.by'), `${esc(p.assistant || '')} ${p.model ? code(p.model) : ''}`],
+        p.at ? [t('un.prov.when'), esc(exactTime(p.at))] : null,
+        [t('un.prov.conf'), pct(p.confidence)],
+        [t('un.prov.dep'), `<a class="link" href="${href('/understand/ideal')}">${esc(tn('un.pl.departure', departures))}</a>`],
+        [t('un.prov.q'), questions ? `<a class="link" href="${href('/waiting')}">${esc(tn('un.pl.question', questions))}</a>` : esc(tn('un.pl.question', 0))],
+      ];
+}
 export function prov(p) {
   if (!p) return '';
   const planned = p.method === 'planned';
-  const line = p.state === 'stale' || p.state === 'failed' || p.state === 'not_planned' ? L(p.message)
-    : planned ? t('un.prov.line', { who: p.assistant || '', when: p.at ? fmtWhen(p.at) : '', conf: pct(p.confidence) }) : t('un.prov.rules');
+  const line = provLine(p, planned);
   const departures = (p.departures || []).length, questions = (p.open_questions || []).length;
   return `<details class="un-prov">
     <summary>${icon('ai', 'icon--sm')}<span>${esc(line || t('un.prov.rules'))}</span><span class="link">${t('un.prov.how')}</span></summary>
@@ -138,11 +152,7 @@ export function prov(p) {
       ${facts([
         [t('un.prov.made'), t(planned ? 'un.prov.made.planned' : 'un.prov.made.rules')],
         [t('un.prov.state'), t('un.prov.st.' + (p.state || (planned ? 'planned' : 'not_planned')))],
-        planned ? [t('un.prov.by'), `${esc(p.assistant || '')} ${p.model ? code(p.model) : ''}`] : null,
-        planned && p.at ? [t('un.prov.when'), esc(exactTime(p.at))] : null,
-        planned ? [t('un.prov.conf'), pct(p.confidence)] : null,
-        planned ? [t('un.prov.dep'), `<a class="link" href="${href('/understand/ideal')}">${esc(tn('un.pl.departure', departures))}</a>`] : null,
-        planned ? [t('un.prov.q'), questions ? `<a class="link" href="${href('/waiting')}">${esc(tn('un.pl.question', questions))}</a>` : esc(tn('un.pl.question', 0))] : null,
+        ...(planned ? plannedFacts(p, departures, questions) : []),
       ])}
       <div class="un-key">${keyItem('rules')}${planned ? keyItem('ai') : ''}${keyItem('nm')}</div>
       ${planned ? `<p class="small muted">${t('ai.hypothesis')}</p>` : ''}

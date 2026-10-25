@@ -124,6 +124,8 @@ node console/tools/sweep.cjs [--only=390-ar-light]    # every route x 8: console
 node console/tools/sheets-sweep.cjs                    # every sheet those screens offer
 node console/tools/targets.cjs [ar|en]                 # 44 px targets at 390, the assistant button never covers a primary
 node console/tools/axe.cjs                             # axe-core WCAG A and AA
+node console/tools/same.cjs --save=before.json         # a change of the code: every screen and sheet drawn before,
+node console/tools/same.cjs --against=before.json --assets=eaos/data/studio   # then the same, or each that differs
 ```
 
 How a builder ports a prototype screen, and who owns which files: `PORTING.md`.
