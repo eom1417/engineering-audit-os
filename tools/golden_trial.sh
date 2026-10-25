@@ -4,7 +4,7 @@
 # copied to a scratch folder. It fails when a stage that runs the app did not end ok, or the report page is missing.
 # Then the detection baseline (M0.2): the same check of tests/fixtures/baseline-app, refused when it finds any of its
 # planted problems less than tests/fixtures/baseline-problems.json records (tools/detection_baseline.py). Last its clean
-# twin (tests/fixtures/baseline-clean, M6.0), read without running it: refused when the layers find anything on it.
+# twin (tests/fixtures/baseline-clean, M6.0), checked the same way: refused when the layers find anything on it.
 # Usage: tools/golden_trial.sh <eaos executable>   (update.sh runs it with the beta-trial's own eaos)
 set -euo pipefail
 EAOS=${1:-eaos}
@@ -51,10 +51,10 @@ cp -r "$HERE/tests/fixtures/baseline-app" "$W/baseline"
 ( cd "$W/baseline" && EAOS_OUTPUT="$W/baseline-output" "$EAOS" check --run-app --assistant none --lang en --watch >"$W/baseline.log" 2>&1 ) \
   || { tail -40 "$W/baseline.log"; exit 1; }
 "$(dirname "$EAOS")/python" "$HERE/tools/detection_baseline.py" "$W/baseline-output"
-# The clean twin (M6.0, M6.12): the same app done right, read without running it; any layer finding on it is refused.
+# The clean twin (M6.0, M6.12): the same app done right, checked the same way; any layer finding on it is refused.
 cp -r "$HERE/tests/fixtures/baseline-clean" "$W/clean"
 ( cd "$W/clean" && git init -q && git add . && git -c user.name=t -c user.email=t@t commit -qm clean )
-( cd "$W/clean" && EAOS_OUTPUT="$W/clean-output" "$EAOS" check --assistant none --lang en --watch >"$W/clean.log" 2>&1 ) \
+( cd "$W/clean" && EAOS_OUTPUT="$W/clean-output" "$EAOS" check --run-app --assistant none --lang en --watch >"$W/clean.log" 2>&1 ) \
   || { tail -40 "$W/clean.log"; exit 1; }
 "$(dirname "$EAOS")/python" - "$W/clean-output" <<'PY'
 import json, sys
