@@ -164,7 +164,9 @@ of becomes a question, never a finding.
 ### M9 Intelligence, cost and the final proof
 - **M9.1** Model tiers (light / standard / deep) per stage with escalation; a cheaper model never drops or closes
   anything. Simulated users act on the light tier; the scenario planner and the judge use the deep one. The ideal's
-  critique answers in its schema the first time (today it retries, about 3 minutes lost).
+  critique answers in its schema the first time (today it retries, about 3 minutes lost). A small fast model for
+  triage and easy tasks (Jev, the owner's suggestion) is measured as the light tier, for the economy and balanced
+  modes, when the effort of each stage chooses its model.
 - **M9.2** Logic-vulnerability hunting (from Cloudflare's security-audit skill) as an optional deep check.
 - **M9.3** The three journeys proved end to end, from the CLI and from the Studio: repair a corpus app, build from a
   PRD, add a feature; the runtime target of M1 (≤ 100 MB) measured on a full check.
