@@ -104,11 +104,21 @@ def explore(browser, goal, provider, start='/'):
         except Exception as problem: return _record(goal, start, steps, screens, f'the assistant could not go on: {problem}'[:300])
         if step.get('action') not in ('click', 'fill', 'press', 'open', 'back'): break
         before, page = page.get('path'), browser.do(_command(step))
-        steps.append({**{k: step.get(k) for k in ('action', 'target', 'value', 'why')}, 'at': before, 'landed': page.get('path'),
-                      'picture': Path(page.get('picture') or '').name, **({'error': page['error']} if page.get('error') else {})})
+        steps.append(_taken(step, before, page))
         failed = failed + 1 if page.get('error') else 0
-        if page.get('path') and page['path'] not in screens: screens.append(page['path'])
+        _reached(screens, page)
     return _record(goal, start, steps, screens)
+
+
+def _taken(step, before, page):
+    """The record of a step taken: what was asked, where it began and landed, its picture, its error."""
+    return {**{k: step.get(k) for k in ('action', 'target', 'value', 'why')}, 'at': before, 'landed': page.get('path'),
+            'picture': Path(page.get('picture') or '').name, **({'error': page['error']} if page.get('error') else {})}
+
+
+def _reached(screens, page):
+    """The page's address added to the screens reached, once."""
+    if page.get('path') and page['path'] not in screens: screens.append(page['path'])
 
 
 def _next(browser, provider, page, steps, goal):
@@ -129,5 +139,5 @@ def replay(browser, record):
     for number, step in enumerate((s for s in record.get('steps') or [] if not s.get('error')), 1):
         page = browser.do(_command(step))
         if not page.get('ok'): return {'screens': screens, 'broken_at': number, 'error': page.get('error')}
-        if page.get('path') and page['path'] not in screens: screens.append(page['path'])
+        _reached(screens, page)
     return {'screens': screens}

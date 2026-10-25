@@ -58,9 +58,8 @@ def _asgi(modules):
 def _kind(app, needs, modules):
     """(framework, what it starts) of the app, or (None, None)."""
     if (app / 'manage.py').is_file(): return 'django', 'manage.py'
-    if 'streamlit' in needs:
-        entry = next((name for name, text in modules if '.' not in name and re.search(r'^\s*import streamlit', text, re.M)), None)
-        if entry: return 'streamlit', entry + '.py'
+    entry = _streamlit(needs, modules)
+    if entry: return 'streamlit', entry
     if 'flask' in needs:
         target = _flask_app(app, list(modules))
         if target: return 'flask', target
@@ -68,6 +67,13 @@ def _kind(app, needs, modules):
         target = _asgi(modules)
         if target: return 'fastapi', target
     return None, None
+
+
+def _streamlit(needs, modules):
+    """The file `streamlit run` starts: the first top-level module that imports Streamlit, or None."""
+    if 'streamlit' not in needs: return None
+    entry = next((name for name, text in modules if '.' not in name and re.search(r'^\s*import streamlit', text, re.M)), None)
+    return entry + '.py' if entry else None
 
 
 def start(kind, target, port):
@@ -90,12 +96,16 @@ def prepare(kind, target, app, needs, modules):
     """The commands that give the run's empty database the app's tables: Django's migrations, Flask-Migrate's, a Flask
     `init-db` command, or Alembic's."""
     if kind == 'django': return [['python', 'manage.py', 'migrate', '--noinput']]
-    if kind == 'flask' and (app / 'migrations/alembic.ini').is_file() and 'flask-migrate' in needs:
-        return [['python', '-m', 'flask', '--app', target, 'db', 'upgrade']]
-    command = next((found[1] for _, text in modules for found in [INIT_DB.search(text)] if found), None)
-    if kind == 'flask' and command: return [['python', '-m', 'flask', '--app', target, command]]
+    if kind == 'flask': return _flask_tables(target, app, needs, modules)
     if (app / 'alembic.ini').is_file() and 'alembic' in needs: return [['python', '-m', 'alembic', 'upgrade', 'head']]
     return []
+
+
+def _flask_tables(target, app, needs, modules):
+    """Flask-Migrate's migrations, else the app's own `init-db` command."""
+    if (app / 'migrations/alembic.ini').is_file() and 'flask-migrate' in needs: return [['python', '-m', 'flask', '--app', target, 'db', 'upgrade']]
+    command = next((found[1] for _, text in modules for found in [INIT_DB.search(text)] if found), None)
+    return [['python', '-m', 'flask', '--app', target, command]] if command else []
 
 
 def environment_names(app, modules):

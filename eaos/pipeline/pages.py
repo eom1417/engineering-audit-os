@@ -161,7 +161,7 @@ def crawl(context):
     seeds, founds, routes = _seeds(context) if live else [], [], {}
     for kind, state in made:
         found = find(base, context.out / 'live/crawl' / (kind or ''), measured=0 if founds else MEASURED,
-                     storage_state=state if state.is_file() else None, read_only=not live, seeds=seeds)
+                     storage_state=_file(state), read_only=not live, seeds=seeds)
         if found['status'] != 'observed': continue
         founds.append(found)
         _merge_routes(routes, found, kind)
@@ -180,6 +180,11 @@ def _seeds(context):
     from ..live.roles import pages_of
     from ..live.screens.crawl import code_routes
     return code_routes(context.target) + [route for route in pages_of(context.out) if not route.startswith('/api')]
+
+
+def _file(path):
+    """`path` when it is a file (a session saved), else None."""
+    return path if Path(path).is_file() else None
 
 
 def _merge_explored(routes, paths):
@@ -204,7 +209,7 @@ def _explored(context, base, state):
     try: record = json.loads(saved.read_text(encoding='utf-8'))
     except (OSError, ValueError): record = None
     if not record and not context.provider: return []
-    with Browser(base, folder, state if Path(state).is_file() else None) as browser:
+    with Browser(base, folder, _file(state)) as browser:
         done = replay(browser, record) if record else {'broken_at': 0, 'screens': []}
         if 'broken_at' not in done or not context.provider: return done['screens']
         record = explore(browser, SCREENS, context.provider)
