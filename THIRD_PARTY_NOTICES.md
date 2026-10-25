@@ -22,6 +22,18 @@ and the pinned versions, commits and checksums are in `eaos/data/toolchain.json`
 | [Gitleaks](https://github.com/gitleaks/gitleaks) | Zachary Rice | MIT | separate process, secrets redacted; SARIF read |
 | [CodeQL](https://github.com/github/codeql-action) (the CodeQL bundle) | GitHub, Inc. | GitHub CodeQL Terms and Conditions | separate process, run only on an open-source codebase public on GitHub.com, as its terms allow; SARIF read |
 
+### The layers tried (M6)
+
+The option "Try the layers" runs these as separate processes on an isolated copy and a database of the run's own; none
+of their code is copied into this repository. pgTAP's SQL is fetched at its pinned commit and loaded into that database
+only.
+
+| Tool | Copyright | Licence | Used how |
+| --- | --- | --- | --- |
+| [Schemathesis](https://github.com/schemathesis/schemathesis) | Kiwi.com and contributors | MIT | separate process against the app in its copy; its NDJSON report read, then removed |
+| [Supabase CLI](https://github.com/supabase/cli) (`supabase db advisors`) | Supabase, Inc. and contributors | MIT | separate process against the run's own PostgreSQL; JSON read |
+| [pgTAP](https://github.com/theory/pgtap) | David E. Wheeler | PostgreSQL | its SQL loaded into the run's own database; the TAP output read |
+
 ### Visual evidence tools (pipeline v2)
 
 The live journeys, the crawl and the architecture map run these as separate processes; none of their code is copied

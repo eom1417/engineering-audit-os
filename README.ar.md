@@ -54,8 +54,9 @@
     <td width="50%" valign="top">
       <h3>🔍 يفحص</h3>
       ستة وثلاثون أداة تحليل مفتوحة المصدر بإصدارات مثبّتة، ومعها تطبيقك يعمل في نسخة معزولة، تنتج مجموعة حقائق
-      واحدة: البنية، والتعقيد، والتكرار، والكود الميت، والأمان، والمكتبات، والشاشات، والسرعة. ما تتفق عليه أداتان
-      يصبح بطاقة، والباقي يُحكم عليه بدليله.
+      واحدة: البنية، والتعقيد، والتكرار، والكود الميت، والأمان، والمكتبات، والشاشات، والسرعة. ويُقرأ النظام طبقاتٍ كما
+      تقرؤه شركة برمجيات: ما يصل إلى المتصفح، وحماية كل نقطة طلب، وقواعد قاعدة البيانات، ومكان قواعد العمل، والتشغيل،
+      والاختبارات؛ وعند الطلب تُجرَّب كل حدود على التطبيق وهو يعمل. ما تتفق عليه أداتان يصبح بطاقة، والباقي يُحكم عليه بدليله.
     </td>
     <td width="50%" valign="top">
       <h3>🧭 يخطط</h3>
@@ -213,7 +214,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 
 ## الأدوات
 
-ينسّق EAOS ولا يعيد البناء: 34 أداة مفتوحة المصدر ومكتبات تصميم مجانية، لكل منها إصدار مثبّت ببصمته ورخصته
+ينسّق EAOS ولا يعيد البناء: 37 أداة مفتوحة المصدر ومكتبات تصميم مجانية، لكل منها إصدار مثبّت ببصمته ورخصته
 ([`eaos/data/toolchain.json`](eaos/data/toolchain.json)، [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 | المجال | الأدوات |
@@ -221,7 +222,7 @@ TASK-001  7 دوال منسوخة كاملة باختلاف الأسماء فق�
 | البنية والفهم | CodeGraph · GitNexus · Enola · Reforge · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
 | التعقيد والتكرار والكود الميت | Lizard · jscpd · scc · knip، مع عدّ EAOS الخاص |
 | الأمان والمكتبات | Semgrep · Bandit · Gitleaks · CodeQL¹ · OSV-Scanner · Syft · Trivy · Checkov |
-| العقود والبيانات | Spectral · oasdiff · SQLFluff |
+| العقود والبيانات | Spectral · oasdiff · SQLFluff · Schemathesis · مستشارو Supabase CLI · pgTAP |
 | تطبيقك وهو يعمل | Playwright · rrweb · Lighthouse · axe-core · css-analyzer · pytest · k6 |
 | التغييرات الآلية | jscodeshift |
 | التصميم (شكل البناء أو إعادة التصميم) | UI UX Pro Max · awesome-design-md · tweakcn themes · frontend-design من Anthropic · shadcn/ui · Fontsource |
