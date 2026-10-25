@@ -77,6 +77,16 @@ function nodesPage(ctx) {
 screen({ id: 'S-23', path: '/understand/ai-decisions', place: 'understand', needs: NEEDS, title: () => t('un.v.ai-decisions'), render: nodesPage, after: readout,
   loading: () => loading(t('un.nodes.loading')) });
 
+/** The node's last run as facts: who decided, when, how long, its cost, cache and dropped decisions. */
+const lastRun = n => facts([
+          [t('un.node.decidedby'), n.state === 'not_run' ? esc(t('un.node.notrun')) : ai(n) ? `${esc(n.assistant || '')} ${n.model ? code(n.model) : ''}` : esc(t('un.node.byrules', { why: n.why ? L(n.why) : t('un.node.why.none') }))],
+          n.at ? [t('un.prov.when'), esc(fmtWhen(n.at))] : null,
+          n.seconds != null ? [t('un.node.took'), esc(t('un.node.secs', { s: num(Math.round(n.seconds)) }))] : null,
+          [t('un.node.costk'), n.cost_usd ? esc(t('un.node.cost', { c: n.cost_usd.toFixed(2) })) : t('un.node.free')],
+          [t('un.node.cachedk'), t(n.cached ? 'un.yes' : 'un.no')],
+          [t('un.node.droppedk'), esc(tn('un.pl.decision0', (n.dropped || []).length))],
+        ]);
+
 sheet('node', {
   kind: 'drawer',
   needs: NEEDS,
@@ -90,14 +100,7 @@ sheet('node', {
       body: `${n.summary ? `<p>${rich(L(n.summary))}</p>` : ''}
         ${(n.requires || []).length ? `<p class="small ink-2">${esc(t('un.node.waits', { list: n.requires.map(name).join(t('list.sep')) }))}</p>` : ''}
         <div><div class="block-title">${t('un.node.routes')}</div><div class="panel rows">${(n.routes || []).map(r => `<div class="row" style="min-height:52px"><span class="row__main"><span class="row__title small">${esc(r.decision)} ${icon('chev', 'icon--sm icon--dir muted')} ${esc(name(r.to))}</span>${r.when ? `<span class="row__meta" style="display:block">${esc(L(r.when))}</span>` : ''}</span><b class="num">${num(r.subjects)}</b></div>`).join('')}</div></div>
-        <div><div class="block-title">${t('un.node.last')}</div>${facts([
-          [t('un.node.decidedby'), n.state === 'not_run' ? esc(t('un.node.notrun')) : ai(n) ? `${esc(n.assistant || '')} ${n.model ? code(n.model) : ''}` : esc(t('un.node.byrules', { why: n.why ? L(n.why) : t('un.node.why.none') }))],
-          n.at ? [t('un.prov.when'), esc(fmtWhen(n.at))] : null,
-          n.seconds != null ? [t('un.node.took'), esc(t('un.node.secs', { s: num(Math.round(n.seconds)) }))] : null,
-          [t('un.node.costk'), n.cost_usd ? esc(t('un.node.cost', { c: n.cost_usd.toFixed(2) })) : t('un.node.free')],
-          [t('un.node.cachedk'), t(n.cached ? 'un.yes' : 'un.no')],
-          [t('un.node.droppedk'), esc(tn('un.pl.decision0', (n.dropped || []).length))],
-        ])}</div>
+        <div><div class="block-title">${t('un.node.last')}</div>${lastRun(n)}</div>
         ${decisions.length ? `<div><div class="block-title">${t('un.node.decisions')} (${num(decisions.length)})</div><div style="display:grid;gap:8px">${decisions.slice(0, 20).map(d => `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${code(d.subject)}</span>
           <p class="small" style="margin-top:4px">${esc(d.decision)}${d.confidence != null ? `${t('list.sep')}${esc(t('un.node.conf', { c: pct(d.confidence) }))}` : ''}</p>${d.why ? `<p class="small ink-2">${rich(L(d.why))}</p>` : ''}</div>`).join('')}</div>
           ${decisions.length > 20 ? `<p class="small muted">${esc(t('un.comp.andmore', { n: num(decisions.length - 20) }))}</p>` : ''}<p class="small muted">${t('ai.hypothesis')}</p></div>` : ''}

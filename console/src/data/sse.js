@@ -45,29 +45,39 @@ const wait = ms => new Promise(done => setTimeout(done, ms));
  */
 export function follow(path, { last = null, onFrame, onStatus = () => {}, onBeat = () => {} }) {
   let stopped = false, ended = false, controller = null;
+  // opens one connection; null when the server refuses it or the stream is gone (no retry)
+  async function open() {
+    controller = new AbortController();
+    const headers = { 'X-EAOS-Token': token, Accept: 'text/event-stream' };
+    if (last) headers['Last-Event-ID'] = String(last);
+    const answer = await fetch(path, { headers, cache: 'no-store', credentials: 'same-origin', signal: controller.signal });
+    if (answer.status === 401 || answer.status === 404) { onStatus(answer.status === 401 ? 'refused' : 'closed'); return null; }
+    if (!answer.ok || !answer.body) throw new Error(`stream: ${answer.status}`);
+    onStatus('open');
+    return answer;
+  }
+  // reads frames until the stream ends or `onFrame` says 'end'
+  async function read(answer) {
+    const reader = answer.body.pipeThrough(new TextDecoderStream()).getReader();
+    const feed = frameSplitter(frame => {
+      if (frame.id) last = frame.id;
+      if (onFrame(frame) === 'end') ended = true;
+    });
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done || ended) break;
+      onBeat();
+      feed(value);
+    }
+  }
   async function run() {
     let delay = 500;
     while (!stopped && !ended) {
-      controller = new AbortController();
       try {
-        const headers = { 'X-EAOS-Token': token, Accept: 'text/event-stream' };
-        if (last) headers['Last-Event-ID'] = String(last);
-        const answer = await fetch(path, { headers, cache: 'no-store', credentials: 'same-origin', signal: controller.signal });
-        if (answer.status === 401 || answer.status === 404) { onStatus(answer.status === 401 ? 'refused' : 'closed'); return; }
-        if (!answer.ok || !answer.body) throw new Error(`stream: ${answer.status}`);
-        onStatus('open');
+        const answer = await open();
+        if (!answer) return;
         delay = 500;
-        const reader = answer.body.pipeThrough(new TextDecoderStream()).getReader();
-        const feed = frameSplitter(frame => {
-          if (frame.id) last = frame.id;
-          if (onFrame(frame) === 'end') ended = true;
-        });
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done || ended) break;
-          onBeat();
-          feed(value);
-        }
+        await read(answer);
       } catch (e) {
         if (stopped) return;
       }

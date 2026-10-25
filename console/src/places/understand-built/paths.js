@@ -162,6 +162,32 @@ function nodeDetail(p, n) {
     ${gap ? `<div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/understand/gaps/' + enc(gap.id))}">${t('un.comp.gap')}</a></div>` : ''}
   </section>`;
 }
+/** A node's name in the walk: the stop's words for a gap, the code label otherwise. */
+const chainLabel = id => { const n = nodeOf(id); return !n ? id : n.kind === 'gap' ? esc(t('un.stop.' + STOP[n.reason])) : code(n.label); };
+/** One step of the walk as a numbered link (empty when its node is unknown). */
+function chainStep(e, k, maybe, sel, r, q) {
+  const n = nodeOf(e.to);
+  if (!n) return '';
+  return `<li class="un-chain__step ${n.kind === 'gap' ? 'un-chain__step--gap' : ''} ${maybe.has(n.id) ? 'un-chain__step--maybe' : ''}">
+      <a class="un-chain__a ${sel === n.id ? 'is-open' : ''}" href="${href(r.path, Object.assign({}, q, { node: n.id }))}">
+        <span class="un-chain__n num">${k + 1}</span>
+        <span class="row__main"><span class="small muted">${t('un.layer.' + n.lane)}${e.how ? `${t('list.sep')}${howWord(e.how)}` : ''}</span>
+          <span class="un-chain__label">${chainLabel(n.id)}</span>
+          ${n.path ? `<span class="small muted" style="display:block">${code(where(n.path, n.line))}</span>` : ''}</span></a></li>`;
+}
+/** The walk as a table of links: from, to, how, where. */
+const stepsTable = walk => `<div class="panel un-table-wrap"><table class="un-table"><thead><tr><th scope="col">${t('un.path.from')}</th><th scope="col">${t('un.path.to')}</th><th scope="col">${t('un.path.how')}</th><th scope="col">${t('un.path.at')}</th></tr></thead>
+    <tbody>${walk.map(e => `<tr><td>${chainLabel(e.from)}</td><td>${chainLabel(e.to)}</td><td>${howWord(e.how)}</td><td>${e.path ? code(where(e.path, e.line)) : '—'}</td></tr>`).join('')}</tbody></table></div>`;
+/** The path's tags (surface, entry place, where it stops) and its title. */
+function pathHead(p, entry, stop) {
+  return `<div class="un-itemtags"><span class="tag tag--state">${esc(surface(p.surface))}</span>${entry && entry.path ? code(where(entry.path, entry.line)) : ''}${stop ? `<span class="tag tag--caution">${icon('warn')}${t('un.stop.' + STOP[stop])}</span>` : ''}</div>
+    <h1 class="lede un-lede-sm">${code(p.title)}${p.handler ? ` <span class="muted">${esc(p.handler)}</span>` : ''}</h1>`;
+}
+// the "only what the trace confirms" toggle
+const tracedToggle = (r, q, onlyTraced) => `<a class="btn btn--secondary btn--sm ${onlyTraced ? 'is-on' : ''}" ${onlyTraced ? 'aria-current="true"' : ''} href="${href(r.path, Object.assign({}, q, { confirmed: onlyTraced ? null : '1' }))}">${icon('check', 'icon--sm')}${t('un.path.confirmed')}</a>`;
+// the notes under the path: links not drawn, and the cap on what is drawn
+const pathNotes = p => `${p.unresolved ? `<p class="small muted" style="margin-top:12px">${esc(tn('un.pl.notdrawn', p.unresolved))}</p>` : ''}
+    ${p.capped ? `<p class="small muted">${esc(t('un.path.capped', { n: num(p.capped) }))}</p>` : ''}`;
 function pathPage(ctx) {
   const d = P();
   if (!d) return notMeasured('paths', 'paths');
@@ -172,29 +198,17 @@ function pathPage(ctx) {
   const walk = p.steps.map(i => d.edges[i]).filter(e => !(onlyTraced && e.how === 'imports'));
   const sel = q.node && nodeOf(q.node) ? q.node : null;
   const r = parseHash();
-  const label = id => { const n = nodeOf(id); return !n ? id : n.kind === 'gap' ? esc(t('un.stop.' + STOP[n.reason])) : code(n.label); };
   const entry = nodeOf(p.entry);
-  const seq = `<ol class="un-chain">${[{ to: p.entry, how: null }].concat(walk).map((e, k) => {
-    const n = nodeOf(e.to);
-    if (!n) return '';
-    return `<li class="un-chain__step ${n.kind === 'gap' ? 'un-chain__step--gap' : ''} ${maybe.has(n.id) ? 'un-chain__step--maybe' : ''}">
-      <a class="un-chain__a ${sel === n.id ? 'is-open' : ''}" href="${href(r.path, Object.assign({}, q, { node: n.id }))}">
-        <span class="un-chain__n num">${k + 1}</span>
-        <span class="row__main"><span class="small muted">${t('un.layer.' + n.lane)}${e.how ? `${t('list.sep')}${howWord(e.how)}` : ''}</span>
-          <span class="un-chain__label">${label(n.id)}</span>
-          ${n.path ? `<span class="small muted" style="display:block">${code(where(n.path, n.line))}</span>` : ''}</span></a></li>`;
-  }).join('')}</ol>`;
-  const steps = `<div class="panel un-table-wrap"><table class="un-table"><thead><tr><th scope="col">${t('un.path.from')}</th><th scope="col">${t('un.path.to')}</th><th scope="col">${t('un.path.how')}</th><th scope="col">${t('un.path.at')}</th></tr></thead>
-    <tbody>${walk.map(e => `<tr><td>${label(e.from)}</td><td>${label(e.to)}</td><td>${howWord(e.how)}</td><td>${e.path ? code(where(e.path, e.line)) : '—'}</td></tr>`).join('')}</tbody></table></div>`;
+  const seq = `<ol class="un-chain">${[{ to: p.entry, how: null }].concat(walk).map((e, k) => chainStep(e, k, maybe, sel, r, q)).join('')}</ol>`;
+  const steps = stepsTable(walk);
   const stop = stopOf(p);
   return `<div class="page page--wide">
     ${back('/understand/paths', t('un.v.paths'))}
-    <div class="un-itemtags"><span class="tag tag--state">${esc(surface(p.surface))}</span>${entry && entry.path ? code(where(entry.path, entry.line)) : ''}${stop ? `<span class="tag tag--caution">${icon('warn')}${t('un.stop.' + STOP[stop])}</span>` : ''}</div>
-    <h1 class="lede un-lede-sm">${code(p.title)}${p.handler ? ` <span class="muted">${esc(p.handler)}</span>` : ''}</h1>
+    ${pathHead(p, entry, stop)}
     <p class="guide">${esc(t('un.path.guide', { entry: p.title }))}</p>
     <div class="ptools">
       <div class="un-tools">${seg('view', [['layers', t('un.path.layers')], ['steps', t('un.path.steps')]], view, t('un.path.view'), { dflt: 'layers', cls: 'un-seg2' })}
-      <a class="btn btn--secondary btn--sm ${onlyTraced ? 'is-on' : ''}" ${onlyTraced ? 'aria-current="true"' : ''} href="${href(r.path, Object.assign({}, q, { confirmed: onlyTraced ? null : '1' }))}">${icon('check', 'icon--sm')}${t('un.path.confirmed')}</a></div>
+      ${tracedToggle(r, q, onlyTraced)}</div>
     </div>
     <div class="un-pathgrid">
       <div class="un-pathgrid__main">
@@ -203,8 +217,7 @@ function pathPage(ctx) {
       </div>
       <div class="un-pathgrid__side">${sel ? nodeDetail(p, nodeOf(sel)) : `<div class="panel panel__pad small muted">${t('un.path.pick')}</div>`}</div>
     </div>
-    ${p.unresolved ? `<p class="small muted" style="margin-top:12px">${esc(tn('un.pl.notdrawn', p.unresolved))}</p>` : ''}
-    ${p.capped ? `<p class="small muted">${esc(t('un.path.capped', { n: num(p.capped) }))}</p>` : ''}
+    ${pathNotes(p)}
   </div>`;
 }
 screen({ id: 'S-27', path: '/understand/paths/:id', place: 'understand', needs: NEEDS, title: ctx => ctx.params.id + ' - ' + t('un.v.paths'), render: pathPage, after: readout, loading: () => loading(t('un.paths.loading')) });

@@ -6,7 +6,7 @@ import {
   t, tn, L, num, esc, rich, md, icon, code, diffLines, href, fmtWhen, expiresAt, screen, sheet, act, refresh, toast, closeSheetThen, rerenderSheet, local, offline, parseHash,
   S, live, store, model, client, ActionError, derive, chk,
 } from 'eaos';
-import { ownTyped, sendAnswer } from './answer.js';
+import { ownTyped, sendAnswer, sendBlocked } from './answer.js';
 
 const NEEDS = ['decisions', 'cards'];
 const enc = encodeURIComponent;
@@ -28,39 +28,58 @@ function savedHTML(d) {
     ${queued ? `<span class="state">${icon('clock', 'icon--sm')}${t('wt.saved.review')}</span>` : ''}</div>`;
 }
 
-function decisionCard(d, full) {
-  const head = `<div class="wcard__meta">${sourceLine(d)}</div>
+// a decision's source line and question (a link to its own screen in the list)
+function cardHead(d, full) {
+  return `<div class="wcard__meta">${sourceLine(d)}</div>
     <h3 class="${full ? 'sr-only' : 'wcard__q'}" id="wq-${esc(d.id)}">${full ? '' : `<a href="${href('/waiting/' + enc(d.id))}" style="color:inherit;text-decoration:none">`}${rich(L(d.question))}${full ? '' : '</a>'}</h3>`;
+}
+// what EAOS recommends, as an AI block for the screens' and cards' decisions
+function recoHTML(d) {
+  if (!d.recommendation) return '';
+  return d.source === 'screens' || d.source === 'card'
+    ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span>${md(L(d.recommendation))}</div>`
+    : `<div class="small ink-2"><b class="ink-2">${t('wt.reco')}:</b> ${rich(L(d.recommendation))}</div>`;
+}
+// the owner's own words for a decision
+function ownHTML(d) {
+  return `<div class="own" style="display:grid;gap:8px">
+      <label class="sr-only" for="own-${esc(d.id)}">${t('wt.own')}</label>
+      <textarea class="input" id="own-${esc(d.id)}" data-fk="own-${esc(d.id)}" data-input="own" data-id="${esc(d.id)}" maxlength="4000" placeholder="${esc(t('wt.own.ph'))}">${esc(S.own[d.id] || '')}</textarea>
+      <div class="small muted" style="display:flex;justify-content:space-between;gap:12px"><span>${t('wt.own.note')}</span><span class="num" id="own-count-${esc(d.id)}">${esc(t('wt.own.count', { n: num((S.own[d.id] || '').length) }))}</span></div></div>`;
+}
+// Send, the own-words button, and offline the command that answers instead
+function cardActions(d, lock, chosen, ownOpen) {
+  const recommended = d.recommended;
+  const sending = S.sending[d.id];
+  const sendOff = sendBlocked(d.id, lock, chosen, ownOpen);
+  return `<div class="wcard__actions">
+      <button class="btn btn--primary" data-act="send" data-id="${esc(d.id)}" data-fk="send-${esc(d.id)}" ${sendOff ? 'disabled' : ''} aria-describedby="${sendOff ? 'pick-' + esc(d.id) : ''}">${sending ? t('wt.sending') : t('wt.send')}</button>
+      ${ownOpen || lock ? '' : `<button class="btn btn--plain" data-act="own-open" data-id="${esc(d.id)}">${t('wt.own')}</button>`}
+      ${lock ? `<button class="btn btn--plain" data-act="copy" data-text="${esc(`eaos answer ${d.id} ${recommended || ''}`.trim())}">${icon('copy')}${t('wt.decided.copy')}</button>` : ''}
+      <span class="sr-only" id="pick-${esc(d.id)}">${t('wt.pick')}</span>
+    </div>`;
+}
+
+function decisionCard(d, full) {
+  const head = cardHead(d, full);
   if (d.state === 'answered') return `<article class="panel wcard wcard--done" id="w-${esc(d.id)}" aria-labelledby="wq-${esc(d.id)}">${head}${savedHTML(d)}</article>`;
   const lock = offline();
   const recommended = d.recommended;
   const opts = d.options.slice().sort((a, b) => (a.id === recommended ? -1 : b.id === recommended ? 1 : 0));
   const chosen = S.chosen[d.id];
-  const reco = d.recommendation ? (d.source === 'screens' || d.source === 'card'
-    ? `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('wt.reco')}</span>${md(L(d.recommendation))}</div>`
-    : `<div class="small ink-2"><b class="ink-2">${t('wt.reco')}:</b> ${rich(L(d.recommendation))}</div>`) : '';
+  const reco = recoHTML(d);
   const radios = opts.map(o => `<label class="opt">
       <input type="radio" name="opt-${esc(d.id)}" value="${esc(o.id)}" data-change="choose" data-id="${esc(d.id)}" data-fk="opt-${esc(d.id)}-${esc(o.id)}" ${chosen === o.id ? 'checked' : ''} ${lock ? 'disabled' : ''}>
       <span class="opt__dot" aria-hidden="true"></span>
       <span class="opt__text">${rich(L(o.label))}${o.id === recommended ? `<span class="tag tag--you">${t('wt.recommended')}</span>` : ''}</span></label>`).join('');
   const ownOpen = S.ownOpen[d.id];
-  const own = ownOpen ? `<div class="own" style="display:grid;gap:8px">
-      <label class="sr-only" for="own-${esc(d.id)}">${t('wt.own')}</label>
-      <textarea class="input" id="own-${esc(d.id)}" data-fk="own-${esc(d.id)}" data-input="own" data-id="${esc(d.id)}" maxlength="4000" placeholder="${esc(t('wt.own.ph'))}">${esc(S.own[d.id] || '')}</textarea>
-      <div class="small muted" style="display:flex;justify-content:space-between;gap:12px"><span>${t('wt.own.note')}</span><span class="num" id="own-count-${esc(d.id)}">${esc(t('wt.own.count', { n: num((S.own[d.id] || '').length) }))}</span></div></div>` : '';
-  const sending = S.sending[d.id];
-  const sendOff = lock || sending || !(chosen || (ownOpen && (S.own[d.id] || '').trim()));
+  const own = ownOpen ? ownHTML(d) : '';
   return `<article class="panel wcard" id="w-${esc(d.id)}" aria-labelledby="wq-${esc(d.id)}">
     ${head}${reco}
     <fieldset class="opts" style="border:0;padding:0;margin:0"><legend class="sr-only">${rich(L(d.question))}</legend>${radios}</fieldset>
     ${own}
     ${lock ? `<p class="small muted">${icon('lock', 'icon--sm')} ${t('wt.offline')}</p>` : ''}
-    <div class="wcard__actions">
-      <button class="btn btn--primary" data-act="send" data-id="${esc(d.id)}" data-fk="send-${esc(d.id)}" ${sendOff ? 'disabled' : ''} aria-describedby="${sendOff ? 'pick-' + esc(d.id) : ''}">${sending ? t('wt.sending') : t('wt.send')}</button>
-      ${ownOpen || lock ? '' : `<button class="btn btn--plain" data-act="own-open" data-id="${esc(d.id)}">${t('wt.own')}</button>`}
-      ${lock ? `<button class="btn btn--plain" data-act="copy" data-text="${esc(`eaos answer ${d.id} ${recommended || ''}`.trim())}">${icon('copy')}${t('wt.decided.copy')}</button>` : ''}
-      <span class="sr-only" id="pick-${esc(d.id)}">${t('wt.pick')}</span>
-    </div>
+    ${cardActions(d, lock, chosen, ownOpen)}
     <details class="fold" style="margin:0 -16px -16px;border-top:1px solid var(--line);border-radius:0 0 12px 12px"><summary>${icon('info', 'muted')}<span class="row__main small">${t('wt.why')}</span>${icon('chev', 'chev icon--sm')}</summary>
       <div class="fold__body small ink-2">${t('wt.why.' + d.source)}${d.asked_at ? ' ' + esc(t('wt.asked', { when: fmtWhen(d.asked_at) })) + '.' : ''}</div></details>
   </article>`;

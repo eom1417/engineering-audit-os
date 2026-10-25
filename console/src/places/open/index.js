@@ -41,46 +41,56 @@ function partial() {
 }
 
 const STATES = ['reconnecting', 'quiet', 'refused', 'reset'];
+// the words for the live feed's state now
+const feedKey = now => (live.feed === 'open' || live.feed === 'connected' ? 'ac.op.c.now.ok' : now ? 'ac.op.c.short.' + now : client ? 'ac.op.c.now.ok' : 'live.copy');
 function connection(q) {
   const now = live.feed === 'refused' ? 'refused' : live.feed === 'reconnecting' ? 'reconnecting' : null;
   const state = STATES.includes(q.c) ? q.c : now || 'reconnecting';
   const at = fmtTime(new Date(live.heard || Date.now()).toISOString());
   return `<div class="banner ${state === 'refused' ? 'banner--caution' : ''} ac-banner-inline" role="status">${icon(state === 'refused' ? 'warn' : 'offline')}<span>${esc(t('ac.op.c.' + state, { time: at }))}</span></div>
     <h1 class="lede">${t('ac.op.c.lede.' + state)}</h1><p class="guide">${t('ac.op.c.guide.' + state)}</p>
-    <p class="small ink-2">${esc(t('ac.op.c.now', { state: t(live.feed === 'open' || live.feed === 'connected' ? 'ac.op.c.now.ok' : now ? 'ac.op.c.short.' + now : client ? 'ac.op.c.now.ok' : 'live.copy') }))}</p>
+    <p class="small ink-2">${esc(t('ac.op.c.now', { state: t(feedKey(now)) }))}</p>
     <div class="actions">${state === 'refused' ? `<button class="btn btn--primary" data-act="copy" data-text="eaos studio">${icon('copy')}${t('ac.op.c.reopen')}</button>` : state === 'reset' ? `<a class="btn btn--primary" href="${href('/status')}">${t('ac.op.c.reload')}</a>` : ''}</div>
     <nav class="seg section" aria-label="${esc(t('ac.op.c.which'))}">${STATES.map(s => `<a href="${href('/open', { kind: 'connection', c: s })}" aria-current="${s === state}">${t('ac.op.c.short.' + s)}</a>`).join('')}</nav>`;
 }
 
-function openPage(ctx) {
-  const q = ctx.query;
-  const kind = KINDS.includes(q.kind) ? q.kind : 'folder';
-  let body;
-  if (kind === 'folder') body = folder();
-  else if (kind === 'switch') body = switchTo(q);
-  else if (kind === 'export') {
-    body = `<h1 class="lede">${esc(t('ac.op.export.v', { when: fmtWhen(model.project().checked_at) }))}</h1><p class="guide">${t('ac.op.export.guide')}</p>
+// the read-only copy
+function exported() {
+  return `<h1 class="lede">${esc(t('ac.op.export.v', { when: fmtWhen(model.project().checked_at) }))}</h1><p class="guide">${t('ac.op.export.guide')}</p>
       <div class="actions"><a class="btn btn--primary" href="${href('/status', client ? { state: 'offline' } : {})}">${t('ac.op.readonly.see')}</a><button class="btn btn--quiet" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div>`;
-  } else if (kind === 'nokey') {
-    body = `<h1 class="lede">${t('ac.op.nokey')}</h1><p class="guide">${t('ac.op.nokey.guide')}</p>
+}
+// opened without its key
+function nokey() {
+  return `<h1 class="lede">${t('ac.op.nokey')}</h1><p class="guide">${t('ac.op.nokey.guide')}</p>
       <div class="panel panel__pad section ac-stack"><div class="code" style="padding:12px 16px">eaos studio</div>
         <div><button class="btn btn--primary" data-act="copy" data-text="eaos studio">${icon('copy')}${t('copy')}</button></div><p class="small muted">${t('ac.op.nokey.why')}</p></div>`;
-  } else if (kind === 'readonly') {
-    body = `<div class="banner ac-banner-inline" role="note">${icon('lock')}<span>${t('ac.op.readonly.banner')}</span></div>
+}
+// read-only
+function readonly() {
+  return `<div class="banner ac-banner-inline" role="note">${icon('lock')}<span>${t('ac.op.readonly.banner')}</span></div>
       <h1 class="lede">${t('ac.op.readonly')}</h1><p class="guide">${t('ac.op.readonly.guide')}</p>
       <div class="actions"><a class="btn btn--primary" href="${href('/status')}">${t('ac.op.readonly.see')}</a><button class="btn btn--quiet" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div>`;
-  } else if (kind === 'oldlink') {
-    const what = q.what || '';
-    body = `<h1 class="lede">${esc(t('ac.op.old', { what }))}</h1><p class="guide">${t('ac.op.old.guide')}</p>
+}
+// an old link to something no longer there
+function oldlink(q) {
+  const what = q.what || '';
+  return `<h1 class="lede">${esc(t('ac.op.old', { what }))}</h1><p class="guide">${t('ac.op.old.guide')}</p>
       <div class="panel panel__pad section"><dl class="facts"><dt>${t('ac.op.old.missing')}</dt><dd>${code(what)}</dd>
         <dt>${t('ac.op.old.why')}</dt><dd>${t('ac.op.old.why.v')}</dd></dl></div>
       <div class="actions"><a class="btn btn--primary" href="${href('/problems')}">${t('ac.op.old.back')}</a><a class="btn btn--quiet" href="${href('/understand/history')}">${t('ac.op.old.history')}</a></div>`;
-  } else if (kind === 'partial') body = partial();
-  else if (kind === 'contract') {
-    const seen = data.contractSeen();
-    body = `<h1 class="lede">${t(seen != null ? 'ac.op.contract' : 'ac.op.contract.same')}</h1><p class="guide">${esc(t('ac.op.contract.guide.v', { data: seen != null ? num(seen) : num(1), this: num(1) }))}</p>
+}
+// data of another contract
+function contract() {
+  const seen = data.contractSeen();
+  return `<h1 class="lede">${t(seen != null ? 'ac.op.contract' : 'ac.op.contract.same')}</h1><p class="guide">${esc(t('ac.op.contract.guide.v', { data: seen != null ? num(seen) : num(1), this: num(1) }))}</p>
       <div class="actions"><button class="btn btn--primary" data-act="copy" data-text="eaos report --rebuild">${icon('copy')}${t('ac.op.contract.rebuild')}</button></div>`;
-  } else body = connection(q);
+}
+const BODIES = new Map(Object.entries({ folder: () => folder(), switch: switchTo, export: exported, nokey, readonly, oldlink, partial: () => partial(), contract, connection }));
+
+function openPage(ctx) {
+  const q = ctx.query;
+  const kind = KINDS.includes(q.kind) ? q.kind : 'folder';
+  const body = BODIES.get(kind)(q);
   return `<div class="page">${body}
     <p class="list-foot">${t('ac.op.others')} ${KINDS.map(k => k === kind ? `<b>${t('ac.op.k.' + k)}</b>` : `<a href="${href('/open', { kind: k })}">${t('ac.op.k.' + k)}</a>`).join(t('list.sep'))}</p></div>`;
 }

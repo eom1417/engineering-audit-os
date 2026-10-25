@@ -95,7 +95,7 @@ M4 changed how the check runs, not what the engines find, so the engine measure 
 | The ideal picture (EAOS's own check, real trial with Claude) | 1,461 s: plan 7 min, critique 18 min (3 tries, the whole ideal written again) | 474 s: three plan parts side by side 149-181 s, critique 287 s (3 tries, changes only, 15 KB instead of 65 KB) |
 | Its output and cost | 119 elements, 4 dropped; $5.75 | 112 elements, 0 dropped; $6.00 |
 | GitNexus import cycles on EAOS | 10 (6 on today's code) | 0: all six its misreading of Python |
-| The Studio's JavaScript over the laws | not measured | 48 functions over complexity 10 (the largest 29: `signinPage`), 4 modules over 400 lines (two word tables) |
+| The Studio's JavaScript over the laws | not measured | 0 (48 functions over complexity 10 and 4 modules over 400 lines split; every screen and sheet drawn the same before and after) |
 | Repair or rebuild of EAOS | none | repair: 101 cards, 5-14 hours; rebuild 549 files, 55-147 hours (rough rule) |
 
 - The critique still broke its JSON twice in the trial (Arabic text in a long answer): without the retries the ideal

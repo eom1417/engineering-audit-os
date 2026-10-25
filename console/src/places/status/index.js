@@ -63,18 +63,21 @@ function nextStep(ctx) {
 const rowLink = (to, lead, title, meta) => `<a class="row" href="${href(to)}">${lead}
   <span class="row__main"><span class="row__title">${esc(title)}</span>${meta ? `<span class="row__meta" style="display:block">${esc(meta)}</span>` : ''}</span>${icon('chev', 'icon--dir muted')}</a>`;
 
+// the row of what waits for the owner, with what it is made of
+function waitingRow(wc) {
+  const parts = [];
+  const branches = model.waitingBranches().length, decisions = model.waitingDecisions().length, questions = live.questions.length;
+  if (branches) parts.push(tn('pl.fix_branch', branches));
+  if (decisions) parts.push(tn('pl.decision', decisions));
+  if (questions) parts.push(tn('pl.question', questions));
+  if (live.signIn && live.signIn.asked) parts.push(t('st.waiting.signin'));
+  return rowLink('/waiting', '<span class="dot dot--you" aria-hidden="true"></span>', tn('pl.thing_waits', wc), parts.join(t('list.sep'))).replace('class="row"', 'class="row row--you"');
+}
+
 function nowRows() {
   const rows = [];
   const wc = model.waitingCount();
-  if (wc) {
-    const parts = [];
-    const branches = model.waitingBranches().length, decisions = model.waitingDecisions().length, questions = live.questions.length;
-    if (branches) parts.push(tn('pl.fix_branch', branches));
-    if (decisions) parts.push(tn('pl.decision', decisions));
-    if (questions) parts.push(tn('pl.question', questions));
-    if (live.signIn && live.signIn.asked) parts.push(t('st.waiting.signin'));
-    rows.push(rowLink('/waiting', '<span class="dot dot--you" aria-hidden="true"></span>', tn('pl.thing_waits', wc), parts.join(t('list.sep'))).replace('class="row"', 'class="row row--you"'));
-  }
+  if (wc) rows.push(waitingRow(wc));
   const now = liveNow();
   if (now && now.kind !== 'signin') rows.push(rowLink(now.href, `<span class="dot ${now.you ? 'dot--you' : 'dot--live'}" aria-hidden="true"></span>`, now.text, now.run ? L(now.run.label) : ''));
   const queued = live.runs.filter(r => r.state === 'queued');
@@ -158,13 +161,9 @@ function journeySteps() {
   return [{ title: t('st.journey.1'), done: true, now: false }];
 }
 
-function folds(ctx) {
-  const p = model.project(), tot = model.totals(), sz = model.size();
-  const fixRuns = live.runs.filter(r => r.verb === 'fix' || r.action === 'fix_start');
-  const lastFix = fixRuns[0];
-  const waiting = model.waitingBranches();
-  const n = next(ctx.offline);
-  const stand = `<dl class="facts">
+// where the project stands: what is next, the last check and fix batch, the branches waiting
+function standHTML(ctx, { p, tot, n, lastFix, waiting }) {
+  return `<dl class="facts">
       ${n.short ? `<dt>${t('st.stand.next')}</dt><dd>${esc(n.short)}</dd>` : ''}
       <dt>${t('st.stand.checked')}</dt><dd>${t('st.stand.checked.v', { commit: code(p.commit.slice(0, 7)) })}</dd>
       ${tot.all_cards ? `<dt>${t('st.stand.progress')}</dt><dd>${esc(t('st.stand.progress.v', { closed: num(tot.closed), all: num(tot.all_cards) }))}</dd>` : ''}
@@ -173,17 +172,20 @@ function folds(ctx) {
       ${waiting.map(run => `<dt>${t('st.stand.branch')}</dt><dd><a class="link" href="${href('/waiting/' + encodeURIComponent(run.id))}">${code(run.result.branch)}</a></dd>`).join('')}
     </dl>
     ${ctx.offline ? '' : `<div class="actions" style="margin-top:12px"><a class="btn btn--secondary btn--sm" href="${href('/ask', { note: 'project' })}">${icon('note')}${t('st.stand.note')}</a></div>`}`;
-  const steps = journeySteps();
-  const journey = `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${s.done ? icon('check', '') : icon('circle', 'muted')}
+}
+// the journey's steps, each done, running now, or to come
+function journeyHTML(steps) {
+  return `<ol class="rows">${steps.map(s => `<li class="row" style="padding-inline:0;min-height:44px">${s.done ? icon('check', '') : icon('circle', 'muted')}
       <span class="row__main">${esc(s.title)}</span>${s.done || s.now ? `<span class="tag ${s.done ? 'tag--ok' : 'tag--state'}">${t(s.done ? 'st.journey.done' : 'st.journey.now')}</span>` : ''}</li>`).join('')}</ol>`;
-  const left = steps.filter(s => !s.done);
-  const journeySum = left.length ? t('st.fold.journey.sum', { done: num(steps.length - left.length), all: num(steps.length), next: left[0].title }) : t('st.fold.journey.all');
+}
+// about the project: its languages, size, the check's stages and the ones not done
+function aboutHTML(p, sz) {
   const st = sz.stages;
   const count = state => st.filter(s => s.state === state).length;
   const lastCheck = live.runs.find(r => r.action === 'audit');
   const langs = sz.languages.map(l => `${esc(l.name)} ${Math.round(l.share * 100)}%`).join(t('list.sep'));
   const notDone = st.filter(x => x.state !== 'done');
-  const about = `<dl class="facts">
+  return `<dl class="facts">
       <dt>${t('st.about.langs')}</dt><dd>${langs}</dd>
       <dt>${t('st.about.files')}</dt><dd class="num">${num(sz.files)}</dd>
       <dt>${t('st.about.lines')}</dt><dd class="num">${num(sz.lines)}</dd>
@@ -197,11 +199,30 @@ function folds(ctx) {
         <span class="row__main"><span class="row__title">${code(x.id)}</span><span class="row__meta" style="display:block">${t(STAGE_WORD[x.state] || 'st.about.partial')}</span></span>
         ${icon('chev', 'icon--sm icon--dir muted')}</button></li>`).join('')}</ul>
     <p class="small muted" style="margin-top:8px">${t('st.about.redo')}</p>` : ''}`;
-  const unmeasured = model.health().areas.filter(a => a.score == null);
-  const measured = `<p class="small ink-2">${unmeasured.length ? t('st.measured.v', { n: tn('pl.area', unmeasured.length) }) : t('st.measured.all')}</p>
+}
+// the areas the check did not measure, and how to measure them
+function measuredHTML(unmeasured) {
+  return `<p class="small ink-2">${unmeasured.length ? t('st.measured.v', { n: tn('pl.area', unmeasured.length) }) : t('st.measured.all')}</p>
     ${unmeasured.map(a => `<div class="nm" style="margin-top:12px"><div class="nm__title"><span class="tag tag--nm">${t('nm')}</span>${t('area.' + a.id)}</div>
       <p class="small ink-2">${a.id === 'performance' ? t('st.measured.why') : t('st.nm.other')}</p>
       ${a.id === 'performance' ? `<div><a class="btn btn--secondary btn--sm" href="${href('/activity', { sheet: 'check', path: 'speed' })}">${t('st.nm.act')}</a></div>` : ''}</div>`).join('')}`;
+}
+
+function folds(ctx) {
+  const p = model.project(), tot = model.totals(), sz = model.size();
+  const fixRuns = live.runs.filter(r => r.verb === 'fix' || r.action === 'fix_start');
+  const lastFix = fixRuns[0];
+  const waiting = model.waitingBranches();
+  const n = next(ctx.offline);
+  const stand = standHTML(ctx, { p, tot, n, lastFix, waiting });
+  const steps = journeySteps();
+  const journey = journeyHTML(steps);
+  const left = steps.filter(s => !s.done);
+  const journeySum = left.length ? t('st.fold.journey.sum', { done: num(steps.length - left.length), all: num(steps.length), next: left[0].title }) : t('st.fold.journey.all');
+  const st = sz.stages;
+  const about = aboutHTML(p, sz);
+  const unmeasured = model.health().areas.filter(a => a.score == null);
+  const measured = measuredHTML(unmeasured);
   const standSum = waiting.length ? tn('pl.fix_branch_waits', waiting.length) : n.short || '';
   return `<div class="section panel">
     ${fold('stand', t('st.fold.stand'), esc(standSum), stand)}

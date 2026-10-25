@@ -8,30 +8,40 @@ import { tabs, flow, page, loading, notMeasured, emptyView, readout, where, miss
 const NEEDS = ['hidden', 'coverage'];
 const H = () => data.section('hidden');
 
+// The flow picture: the screen areas (or the chosen one) to the groups of unseen work (or the open one)
+function picture(h, groups, q) {
+  const noscreen = q.noscreen === '1';
+  const focus = q.group || null, area = q.area || null;
+  const links = h.links || [];
+  const left = h.seen.filter(a => !area || a.id === area).map(a => ({ id: a.id, label: areaName(a), n: links.filter(l => l.from === a.id).reduce((s, l) => s + l.count, 0), tip: areaName(a) }));
+  const right = groups.filter(g => !focus || g.id === focus).map(g => ({ id: g.id, label: t('un.grp.' + g.id), n: noscreen ? g.no_screen : g.count.value, tip: t('un.grp.' + g.id) }));
+  const drawn = links.filter(l => left.some(x => x.id === l.from) && right.some(x => x.id === l.to)).map(l => [l.from, l.to, l.count, null, `${l.from} → ${t('un.grp.' + l.to)}: ${l.count}`]);
+  return drawn.length ? flow(left, right, drawn, { leftTitle: t('un.unseen.seen'), rightTitle: t('un.unseen.unseen'), label: t('un.unseen.svg') })
+    : `<p class="small muted">${t('un.unseen.nolinks')}</p>`;
+}
+
+// The chip of the chosen screen area, which drops it; '' when none is chosen
+function areaChip(h, q, r) {
+  const a = q.area && h.seen.find(x => x.id === q.area);
+  return a ? `<a class="fchip" href="${href(r.path, Object.assign({}, q, { area: null }))}">${esc(areaName(a))}${icon('x')}</a>` : '';
+}
+
 function unseenPage(ctx) {
   if (ctx.state === 'empty') return emptyView('unseen');
   const h = H();
   if (!h) return notMeasured('unseen', 'hidden');
   const q = ctx.query, r = parseHash();
   const noscreen = q.noscreen === '1';
-  const focus = q.group || null, area = q.area || null;
   const groups = h.groups.filter(g => !noscreen || g.no_screen);
   const counts = h.counts || {}, v = k => (counts[k] ? counts[k].value : null);
-  const links = h.links || [];
-  const left = h.seen.filter(a => !area || a.id === area).map(a => ({ id: a.id, label: areaName(a), n: links.filter(l => l.from === a.id).reduce((s, l) => s + l.count, 0), tip: areaName(a) }));
-  const right = groups.filter(g => !focus || g.id === focus).map(g => ({ id: g.id, label: t('un.grp.' + g.id), n: noscreen ? g.no_screen : g.count.value, tip: t('un.grp.' + g.id) }));
-  const drawn = links.filter(l => left.some(x => x.id === l.from) && right.some(x => x.id === l.to)).map(l => [l.from, l.to, l.count, null, `${l.from} → ${t('un.grp.' + l.to)}: ${l.count}`]);
-  const picture = drawn.length ? flow(left, right, drawn, { leftTitle: t('un.unseen.seen'), rightTitle: t('un.unseen.unseen'), label: t('un.unseen.svg') })
-    : `<p class="small muted">${t('un.unseen.nolinks')}</p>`;
-  const areaOf = id => h.seen.find(a => a.id === id);
   return `<div class="page page--wide">
     ${tabs('unseen')}
     <h1 class="lede">${esc(t('un.unseen.lede', { n: tn('un.pl.item', v('unseen') || h.items.length), k: num(v('no_screen')) }))}</h1>
     <p class="guide">${t('un.unseen.guide')}</p>
     <div class="ptools"><div class="un-tools">
       <a class="btn btn--secondary btn--sm ${noscreen ? 'is-on' : ''}" ${noscreen ? 'aria-current="true"' : ''} href="${href(r.path, Object.assign({}, q, { noscreen: noscreen ? null : '1' }))}">${icon('screen', 'icon--sm')}${t('un.unseen.only')}</a>
-      ${area && areaOf(area) ? `<a class="fchip" href="${href(r.path, Object.assign({}, q, { area: null }))}">${esc(areaName(areaOf(area)))}${icon('x')}</a>` : ''}</div></div>
-    ${picture}
+      ${areaChip(h, q, r)}</div></div>
+    ${picture(h, groups, q)}
     ${groupItems(h, q, r)}
     <div class="un-twocol section">
       <section aria-labelledby="ug-h"><div class="section-head"><h2 id="ug-h">${t('un.unseen.unseen')}</h2><span class="small muted">${esc(tn('un.pl.group', groups.length))}</span></div><div class="panel rows">${groups.map(g => groupRow(g, q, r)).join('')}</div></section>

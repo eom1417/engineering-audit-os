@@ -68,22 +68,47 @@ function radios(name, rows, picked, act) {
 function whereHTML(w, own) {
   const base = w.base ? w.base.branch : '';
   const mode = w.mode || 'new';
-  const modes = [['new', t('pv.deliver.new')]].concat(w.continuable && w.continuable.length ? [['continue', t('pv.deliver.continue')]] : [])
-    .concat(!w.direct_blocked && base ? [['direct', t('pv.deliver.direct', { branch: base })]] : []);
   return `<div><div class="block-title">${t('pv.where')}</div><div class="panel panel__pad"><dl class="facts">
-      <dt>${t('pv.base')}</dt><dd>${code(base)} ${w.base ? code(w.base.short) : ''}${w.base && !w.base.checked_out ? ` <span class="small muted">${t('pv.base.notopen')}</span>` : ''}</dd>
-      <dt>${t('pv.deliver')}</dt><dd>${mode === 'direct' ? esc(t('pv.deliver.direct', { branch: base })) : `${mode === 'new' ? t('pv.deliver.new') : t('pv.deliver.continue')} ${code(w.deliver_as || '')}`}</dd>
-      ${mode === 'direct' ? '' : `<dt>${t('pv.merge')}</dt><dd>${code(w.merge_into || '')} ${w.merge_into && w.base && w.merge_into === w.base.branch ? `<span class="small muted">${t('cf.open_folder')}</span>` : ''}</dd>`}</dl>
+      <dt>${t('pv.base')}</dt><dd>${baseFact(w, base)}</dd>
+      <dt>${t('pv.deliver')}</dt><dd>${deliverFact(w, mode, base)}</dd>
+      ${mode === 'direct' ? '' : mergeFact(w)}</dl>
     ${w.problem ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${esc(L(w.problem))}</p>` : ''}
     <details style="margin-top:8px" ${own.whereOpen ? 'open' : ''} data-where><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center">${t('pv.change')}</summary>
-      <div class="block-title" style="margin-top:8px">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
-      <div class="block-title" style="margin-top:12px">${t('pv.deliver')}</div>
-      <div class="opts">${modes.map(([id, label]) => `<label class="opt"><input type="radio" name="mode" value="${id}" data-change="pv-mode" data-fk="mode-${id}" ${id === mode ? 'checked' : ''}><span class="opt__dot"></span><span class="opt__text">${esc(label)}</span></label>`).join('')}</div>
-      ${mode === 'new' ? `<label class="field" style="margin-top:8px"><span class="sr-only">${t('pv.deliver.name')}</span><input class="input mono" dir="ltr" id="pv-name" data-fk="pv-name" value="${esc(own.name != null ? own.name : w.deliver_as || '')}" data-input="pv-name"></label>
-        ${own.name && own.name !== w.deliver_as ? `<button class="btn btn--secondary btn--sm" data-act="pv-name-go" style="margin-top:8px">${t('pv.update')}</button>` : ''}` : ''}
-      ${mode === 'continue' ? radios('cont', w.continuable, w.deliver_as, 'pv-continue') : ''}
-      ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title" style="margin-top:12px">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}
+      ${changeHTML(w, own, base, mode)}
     </details></div></div>`;
+}
+
+/** The delivery modes this place offers: a new branch, continuing one, or straight onto the base when allowed. */
+function modesOf(w, base) {
+  return [['new', t('pv.deliver.new')]].concat(w.continuable && w.continuable.length ? [['continue', t('pv.deliver.continue')]] : [])
+    .concat(!w.direct_blocked && base ? [['direct', t('pv.deliver.direct', { branch: base })]] : []);
+}
+
+function baseFact(w, base) {
+  return `${code(base)} ${w.base ? code(w.base.short) : ''}${w.base && !w.base.checked_out ? ` <span class="small muted">${t('pv.base.notopen')}</span>` : ''}`;
+}
+
+function deliverFact(w, mode, base) {
+  return mode === 'direct' ? esc(t('pv.deliver.direct', { branch: base })) : `${mode === 'new' ? t('pv.deliver.new') : t('pv.deliver.continue')} ${code(w.deliver_as || '')}`;
+}
+
+function mergeFact(w) {
+  return `<dt>${t('pv.merge')}</dt><dd>${code(w.merge_into || '')} ${w.merge_into && w.base && w.merge_into === w.base.branch ? `<span class="small muted">${t('cf.open_folder')}</span>` : ''}</dd>`;
+}
+
+/** The place's choices, folded: the base, the delivery mode (with the new branch's name) and the branch to merge into. */
+function changeHTML(w, own, base, mode) {
+  return `<div class="block-title" style="margin-top:8px">${t('pv.base')}</div>${radios('base', w.branches, base, 'pv-base')}
+      <div class="block-title" style="margin-top:12px">${t('pv.deliver')}</div>
+      <div class="opts">${modesOf(w, base).map(([id, label]) => `<label class="opt"><input type="radio" name="mode" value="${id}" data-change="pv-mode" data-fk="mode-${id}" ${id === mode ? 'checked' : ''}><span class="opt__dot"></span><span class="opt__text">${esc(label)}</span></label>`).join('')}</div>
+      ${mode === 'new' ? nameHTML(w, own) : ''}
+      ${mode === 'continue' ? radios('cont', w.continuable, w.deliver_as, 'pv-continue') : ''}
+      ${mode === 'direct' ? `<p class="small ink-2">${esc(t('pv.direct.note', { branch: base }))}</p>` : `<div class="block-title" style="margin-top:12px">${t('pv.merge')}</div>${radios('into', w.branches, w.merge_into, 'pv-into')}`}`;
+}
+
+function nameHTML(w, own) {
+  return `<label class="field" style="margin-top:8px"><span class="sr-only">${t('pv.deliver.name')}</span><input class="input mono" dir="ltr" id="pv-name" data-fk="pv-name" value="${esc(own.name != null ? own.name : w.deliver_as || '')}" data-input="pv-name"></label>
+        ${own.name && own.name !== w.deliver_as ? `<button class="btn btn--secondary btn--sm" data-act="pv-name-go" style="margin-top:8px">${t('pv.update')}</button>` : ''}`;
 }
 
 function assistantsHTML(p, own) {
@@ -117,6 +142,61 @@ function snapshotSheet(verb) {
   };
 }
 
+/** How many problems the title counts: the preview's, else the selection's while it is asked for. */
+function countOf(p, own) {
+  return p ? p.cards.length : own.selection && own.selection.cards ? own.selection.cards.length : 0;
+}
+
+/** The sheet while its preview is asked for, or after it was refused: Start stays off, the command can be copied. */
+function waitingSheet(verb, own, title, cmd) {
+  return {
+    title: esc(title), sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
+    body: `<p>${t('pv.does.' + verb)}</p>${own.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem)}</p>` : `<p class="small muted" role="status" aria-busy="true">${t('pv.updating')}</p>`}`,
+    foot: `<button class="btn btn--primary btn--block" disabled>${esc(t('pv.start', { title }))}</button>
+          <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(cmd)}">${icon('copy')}${t('pv.copy')}</button>`,
+  };
+}
+
+function factsHTML(p) {
+  return `<dl class="facts">
+          <dt>${t('pv.files')}</dt><dd>${esc(tn('pl.file', p.files.length))}</dd>
+          ${p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : ''}
+          <dt>${t('pv.estimate')}</dt><dd>${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>
+          <dt>${t('pv.risk')}</dt><dd><span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span></dd>
+          <dt>${t('pv.fail')}</dt><dd class="small">${esc(L(p.on_failure))}</dd>
+        </dl>`;
+}
+
+/** The choices and notes under the facts: a Fix's place, the assistant, a Fix's speed and accept-by-itself. */
+function choicesHTML(fix, p, own) {
+  return `${fix && p.where ? whereHTML(p.where, own) : ''}
+        ${assistantsHTML(p, own)}
+        ${fix && p.speed ? speedHTML(p.speed, own) : ''}
+        ${fix ? autoHTML(own) : ''}
+        ${p.needs_consent ? `<p class="small ink-2">${icon('app', 'icon--sm')} ${t('pv.consent')}</p>` : ''}
+        ${p.assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}
+        ${p.irreversible ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${t('pv.irreversible')}</p>` : ''}`;
+}
+
+function autoHTML(own) {
+  return `<div class="toggle-row panel panel__pad"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
+            <span class="switch"><input type="checkbox" data-change="pv-auto" data-fk="auto" ${own.auto ? 'checked' : ''} aria-label="${esc(t('pv.auto'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>`;
+}
+
+/** Start is off without a token or problems, while the place has a problem, while starting, or without an assistant
+ *  the verb needs. */
+function blockedOf(verb, p, own) {
+  return !p.confirm || !p.cards.length || (p.where && p.where.problem) || own.busy || (!p.assistant && contract.verbOf(verb).needs_assistant);
+}
+
+function footHTML(verb, p, own, title, cmd) {
+  const request = p.handoff && p.handoff.request ? L(p.handoff.request) : cmd;
+  return `${own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.refused)}</p>` : ''}
+        <button class="btn btn--primary btn--block" data-act="verb-start" data-fk="verb-start" ${blockedOf(verb, p, own) ? 'disabled' : ''}>${esc(own.busy ? t('pv.starting') : t('pv.start', { title }))}</button>
+        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(request)}">${icon('copy')}${t('pv.copy')}</button>
+        ${p.confirm ? `<p class="sheet__fine">${esc(t('pv.valid', { time: expiresAt(p.confirm.expires) }))}</p>` : ''}`;
+}
+
 sheet('verb', {
   needs: ['cards'],
   kind: 'drawer',
@@ -125,20 +205,10 @@ sheet('verb', {
     if (offline()) return snapshotSheet(verb);
     if (!own.selection) { own.selection = selectionOf(rest.join(':')); own.place = {}; }
     if (!own.preview && !own.asking && !own.problem) ask(verb, own);
-    const p = own.preview, fix = verb === 'fix';
-    const count = p ? p.cards.length : own.selection && own.selection.cards ? own.selection.cards.length : 0;
-    const title = t('pv.title.' + verb, { problems: tn('pl.problem', count) });
+    const p = own.preview;
+    const title = t('pv.title.' + verb, { problems: tn('pl.problem', countOf(p, own)) });
     const cmd = command(verb, own.selection);
-    const request = p && p.handoff && p.handoff.request ? L(p.handoff.request) : cmd;
-    if (!p) {
-      return {
-        title: esc(title), sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
-        body: `<p>${t('pv.does.' + verb)}</p>${own.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem)}</p>` : `<p class="small muted" role="status" aria-busy="true">${t('pv.updating')}</p>`}`,
-        foot: `<button class="btn btn--primary btn--block" disabled>${esc(t('pv.start', { title }))}</button>
-          <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(cmd)}">${icon('copy')}${t('pv.copy')}</button>`,
-      };
-    }
-    const blocked = !p.confirm || !p.cards.length || (p.where && p.where.problem) || own.busy || (!p.assistant && contract.verbOf(verb).needs_assistant);
+    if (!p) return waitingSheet(verb, own, title, cmd);
     return {
       title: esc(title),
       sub: `<span class="free-band">${icon('check', 'icon--sm')}${t('free')}</span>`,
@@ -146,27 +216,11 @@ sheet('verb', {
         <p>${t('pv.does.' + verb)}</p>
         ${own.moved ? `<p class="small" role="status">${icon('warn', 'icon--sm')} ${t('pv.moved')}</p>` : ''}
         ${cardsHTML(p)}
-        <dl class="facts">
-          <dt>${t('pv.files')}</dt><dd>${esc(tn('pl.file', p.files.length))}</dd>
-          ${p.batches.length ? `<dt>${t('pv.batches')}</dt><dd>${esc(t('pv.batches.v', { batches: tn('pl.batch', p.batches.length) }))}</dd>` : ''}
-          <dt>${t('pv.estimate')}</dt><dd>${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate.basis))}</span></dd>
-          <dt>${t('pv.risk')}</dt><dd><span class="tag ${p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + p.risk.level)}</span> <span class="small ink-2">${esc(L(p.risk.why))}</span></dd>
-          <dt>${t('pv.fail')}</dt><dd class="small">${esc(L(p.on_failure))}</dd>
-        </dl>
-        ${fix && p.where ? whereHTML(p.where, own) : ''}
-        ${assistantsHTML(p, own)}
-        ${fix && p.speed ? speedHTML(p.speed, own) : ''}
-        ${fix ? `<div class="toggle-row panel panel__pad"><span><span style="display:flex;gap:8px;align-items:center">${icon('seal', 'icon--sm')}${t('pv.auto')}</span><span class="small muted">${t('pv.auto.note')}</span></span>
-            <span class="switch"><input type="checkbox" data-change="pv-auto" data-fk="auto" ${own.auto ? 'checked' : ''} aria-label="${esc(t('pv.auto'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span></div>` : ''}
-        ${p.needs_consent ? `<p class="small ink-2">${icon('app', 'icon--sm')} ${t('pv.consent')}</p>` : ''}
-        ${p.assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}
-        ${p.irreversible ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${t('pv.irreversible')}</p>` : ''}
+        ${factsHTML(p)}
+        ${choicesHTML(verb === 'fix', p, own)}
         <details><summary class="link" style="cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px">${icon('terminal', 'icon--sm')}${t('pv.terminal')}</summary>
           <div class="code" style="padding:12px 16px;margin-top:8px">${esc(cmd)}</div></details>`,
-      foot: `${own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.refused)}</p>` : ''}
-        <button class="btn btn--primary btn--block" data-act="verb-start" data-fk="verb-start" ${blocked ? 'disabled' : ''}>${esc(own.busy ? t('pv.starting') : t('pv.start', { title }))}</button>
-        <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(request)}">${icon('copy')}${t('pv.copy')}</button>
-        ${p.confirm ? `<p class="sheet__fine">${esc(t('pv.valid', { time: expiresAt(p.confirm.expires) }))}</p>` : ''}`,
+      foot: footHTML(verb, p, own, title, cmd),
     };
   },
   after(el, arg, own) {
@@ -190,29 +244,45 @@ act('pv-mode', el => {
 act('pv-name', el => { local().name = el.value.trim(); rerenderSheet(); });
 act('pv-name-go', () => { const own = local(); again({ place: Object.assign({}, own.place, { deliver_as: own.name }) }); });
 
+/** What Start sends: the preview's choices with its confirm token. */
+function startOf(verb, own, p) {
+  const w = p.where;
+  return Object.assign(body(verb, own), {
+    action: verb, confirm: p.confirm.token, assistant: own.assistant || (p.assistant && p.assistant.id) || undefined,
+    where: w && w.base ? placeOf(w, own) : undefined,
+  });
+}
+
+/** The place the preview showed, its base commit pinned: a branch that moved since is refused, never built on. */
+function placeOf(w, own) {
+  return Object.assign({}, own.place, { base: w.base.branch, base_commit: w.base.commit, deliver_as: w.deliver_as || undefined, merge_into: w.merge_into || undefined });
+}
+
+function started(run, verb, p) {
+  const title = t('pv.title.' + verb, { problems: tn('pl.problem', p.cards.length) });
+  if (!parseHash().query.sheet.includes(':TASK-')) selection.clearSelection();
+  closeSheetThen(() => {
+    store.refresh();
+    refresh();
+    toast(t(run.state === 'queued' ? 'toast.queued' : 'toast.started', { title }), { link: { href: href('/activity/run/' + enc(run.id)), text: t('toast.follow') } });
+  });
+}
+
+function startRefused(e, own) {
+  if (e instanceof ActionError && e.needs === 'preview') { again({ moved: true }); return; }
+  Object.assign(own, { busy: false, refused: e instanceof ActionError ? e.message : String(e) });
+  rerenderSheet();
+}
+
 act('verb-start', async el => {
   const own = local(), [, verb] = (parseHash().query.sheet || '').split(':');
   const p = own.preview;
   if (el.disabled || !p || !p.confirm || own.busy || !verb) return;
   own.busy = true; rerenderSheet();
-  const w = p.where;
-  const start = Object.assign(body(verb, own), {
-    action: verb, confirm: p.confirm.token, assistant: own.assistant || (p.assistant && p.assistant.id) || undefined,
-    // the place the preview showed, its base commit pinned: a branch that moved since is refused, never built on
-    where: w && w.base ? Object.assign({}, own.place, { base: w.base.branch, base_commit: w.base.commit, deliver_as: w.deliver_as || undefined, merge_into: w.merge_into || undefined }) : undefined,
-  });
+  const start = startOf(verb, own, p);
   try {
-    const run = await client.start(start);
-    const title = t('pv.title.' + verb, { problems: tn('pl.problem', p.cards.length) });
-    if (!parseHash().query.sheet.includes(':TASK-')) selection.clearSelection();
-    closeSheetThen(() => {
-      store.refresh();
-      refresh();
-      toast(t(run.state === 'queued' ? 'toast.queued' : 'toast.started', { title }), { link: { href: href('/activity/run/' + enc(run.id)), text: t('toast.follow') } });
-    });
+    started(await client.start(start), verb, p);
   } catch (e) {
-    if (e instanceof ActionError && e.needs === 'preview') { again({ moved: true }); return; }
-    Object.assign(own, { busy: false, refused: e instanceof ActionError ? e.message : String(e) });
-    rerenderSheet();
+    startRefused(e, own);
   }
 });

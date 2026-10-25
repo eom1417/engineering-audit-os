@@ -79,6 +79,18 @@ function libraryPage(ctx) {
 screen({ id: 'S-40', path: '/understand/library', place: 'understand', needs: NEEDS, title: () => t('un.v.library'), render: libraryPage, loading: () => loading(t('un.lib.loading')) });
 
 /* ---------- S-41 one document ---------- */
+/** The document's body, contents and language note: while it is read, when it could not be, or drawn. */
+function docParts(d, it) {
+  if (it === null) return { body: `<div class="un-doc__body" aria-busy="true"><p class="small muted">${t('un.doc.reading')}</p></div>`, toc: '', lang: '' };
+  if (it === false) return { body: `<div class="un-doc__body">${nm(t('un.doc.unread'), t('un.doc.unread.why'))}</div>`, toc: '', lang: '' };
+  const ctx = { path: d.path, docs: new Set(docs().map(x => x.path)), cards: new Set(model.problems().map(p => p.id)), diagram: (src, n) => mermaidBlock(src, ctx, n) };
+  const drawn = markdown.render(textOf(it), ctx);
+  const body = `<div class="un-doc__body">${drawn.html}${it.truncated ? `<p class="small caution-ic">${t('un.doc.truncated')}</p>` : ''}</div>`;
+  const heads = drawn.headings.filter(h => h.depth <= 3);
+  const toc = heads.length ? `<aside class="un-doc__toc"><details class="un-tocfold" open><summary class="block-title">${t('un.doc.contents')}</summary><nav class="un-toc" aria-label="${esc(t('un.doc.contents'))}"><ol>${heads.map(h => `<li class="un-toc__h${Math.min(h.depth + 1, 3)}"><a href="#" data-act="un-toc" data-target="${h.id}">${esc(h.text)}</a></li>`).join('')}</ol></nav></details></aside>` : '';
+  const lang = it.texts && !it.texts[prefs.lang] ? `<p class="small ink-2">${t('un.doc.onlyone')}</p>` : '';
+  return { body, toc, lang };
+}
 function docPage(ctx) {
   if (!data.section('docs')) return notMeasured('library', 'docs');
   const d = docs().find(x => x.path === ctx.params.doc || x.id === ctx.params.doc);
@@ -87,17 +99,7 @@ function docPage(ctx) {
   const order = docs().filter(x => x.order != null).sort((a, b) => a.order - b.order);
   const k = order.findIndex(x => x.path === d.path);
   const prev = k > 0 ? order[k - 1] : null, next = k >= 0 && k < order.length - 1 ? order[k + 1] : null;
-  let body = '', toc = '', lang = '';
-  if (it === null) body = `<div class="un-doc__body" aria-busy="true"><p class="small muted">${t('un.doc.reading')}</p></div>`;
-  else if (it === false) body = `<div class="un-doc__body">${nm(t('un.doc.unread'), t('un.doc.unread.why'))}</div>`;
-  else {
-    const ctx = { path: d.path, docs: new Set(docs().map(x => x.path)), cards: new Set(model.problems().map(p => p.id)), diagram: (src, n) => mermaidBlock(src, ctx, n) };
-    const drawn = markdown.render(textOf(it), ctx);
-    body = `<div class="un-doc__body">${drawn.html}${it.truncated ? `<p class="small caution-ic">${t('un.doc.truncated')}</p>` : ''}</div>`;
-    const heads = drawn.headings.filter(h => h.depth <= 3);
-    toc = heads.length ? `<aside class="un-doc__toc"><details class="un-tocfold" open><summary class="block-title">${t('un.doc.contents')}</summary><nav class="un-toc" aria-label="${esc(t('un.doc.contents'))}"><ol>${heads.map(h => `<li class="un-toc__h${Math.min(h.depth + 1, 3)}"><a href="#" data-act="un-toc" data-target="${h.id}">${esc(h.text)}</a></li>`).join('')}</ol></nav></details></aside>` : '';
-    lang = it.texts && !it.texts[prefs.lang] ? `<p class="small ink-2">${t('un.doc.onlyone')}</p>` : '';
-  }
+  const { body, toc, lang } = docParts(d, it);
   return `<div class="page page--wide un-docpage">
     ${back('/understand/library', t('un.v.library'))}
     <article class="un-doc" aria-labelledby="doc-h">

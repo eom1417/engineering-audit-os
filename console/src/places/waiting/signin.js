@@ -49,31 +49,47 @@ function sentPanel(codes) {
     <p class="small muted">${t('ac.si.sms')}</p></div>`;
 }
 
-function signinPage(ctx) {
-  const q = ctx.query;
-  const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
-  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.si.offline')}</h1><p class="guide">${t('ac.si.offline.guide')}</p><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
-  const st = page.status || live.signIn;
-  const check = ac.lastCheck();
+// the owner's answer was taken: signed in, or going on without
+function donePage(back, check) {
   const follow = check ? `<a class="btn btn--primary" href="${href('/activity/run/' + encodeURIComponent(check.id))}">${t('ac.si.follow')}</a>` : '';
-  if (page.done) {
-    const done = page.done === 'done';
-    return `<div class="page">${back}<h1 class="lede">${t(done ? 'ac.si.done' : 'ac.si.skipped')}</h1><p class="guide">${t(done ? 'ac.si.done.guide' : 'ac.si.skipped.guide')}</p>
+  const done = page.done === 'done';
+  return `<div class="page">${back}<h1 class="lede">${t(done ? 'ac.si.done' : 'ac.si.skipped')}</h1><p class="guide">${t(done ? 'ac.si.done.guide' : 'ac.si.skipped.guide')}</p>
       <div class="actions">${follow}<a class="btn btn--quiet" href="${href('/project/app')}">${t(done ? 'ac.si.manage' : 'proj.app')}</a></div>
       ${done ? `<div class="ac-note section">${ac.glyph('ok')}<span class="small">${t('ac.si.private')}</span></div>` : ''}</div>`;
-  }
-  if (!st) return `<div class="page" aria-busy="true">${back}<h1 class="lede">${t('st.loading')}</h1></div>`;
-  const asked = st.asked;
-  if (!asked) {
-    return `<div class="page">${back}<h1 class="lede">${t('ac.si.none')}</h1><p class="guide">${t('ac.si.none.guide')}</p>
+}
+// no check waits for a sign-in now
+function noAskPage(back, st) {
+  return `<div class="page">${back}<h1 class="lede">${t('ac.si.none')}</h1><p class="guide">${t('ac.si.none.guide')}</p>
       ${st.kept ? `<div class="ac-note section">${ac.glyph('ok')}<span class="small">${t('ac.si.kept')}</span></div>` : ''}
       <div class="actions"><a class="btn btn--secondary" href="${href('/project/app')}">${t('proj.app')}</a>${st.kept ? `<button class="btn btn--quiet" data-act="sheet" data-sheet="forget">${t('ac.app.forget')}</button>` : ''}</div></div>`;
-  }
+}
+// why the check asks for a sign-in
+function whyAsked(asked) {
+  if (asked.published) return t('ac.si.why.published', { base: code(asked.base || '') });
+  if (asked.why === 'expired' || asked.why === 'not_signed_in') return t('ac.si.why.' + asked.why);
+  return t('ac.si.why.needed', { base: code(asked.base || '') });
+}
+const KEY_BUTTONS = [['enter', 'ac.si.k.enter'], ['tab', 'ac.si.k.tab'], ['erase', 'ac.si.k.erase'], ['up', 'ac.si.k.up'], ['down', 'ac.si.k.down']];
+// the browser picture (or the button that opens it), the typing field and the keys
+function picSection(st, tab) {
+  const view = page.view;
+  return `<section class="ac-si-pic ${tab === 'sent' ? 'ac-hide-phone' : ''}" aria-label="${esc(t('ac.si.tab.pic'))}">
+        ${view && view.picture ? picture() : `<div class="panel empty"><p class="small ink-2">${t(st.open ? 'st.loading' : 'ac.si.closed')}</p>
+          <button class="btn btn--primary" data-act="ac-si-open" data-fk="si-open" ${page.busy ? 'disabled' : ''}>${t('ac.si.open')}</button></div>`}
+        <div class="ac-si-type"><label class="field">${icon('note')}<span class="sr-only">${t('ac.si.type')}</span><input id="si-type" data-fk="si-type" type="text" autocomplete="off" placeholder="${esc(t('ac.si.type'))}" ${view ? '' : 'disabled'} aria-describedby="si-type-note"></label>
+          <button class="btn btn--secondary" data-act="ac-si-send" ${view ? '' : 'disabled'}>${t('ac.si.type.send')}</button></div>
+        <p class="small muted" id="si-type-note">${t(view ? 'ac.si.type.note' : 'ac.si.type.first')}</p>
+        <div class="ac-si-keys" role="group" aria-label="${esc(t('ac.si.keys'))}">
+          ${KEY_BUTTONS.map(([k, w]) => `<button class="btn btn--secondary btn--sm" data-act="ac-si-key" data-key="${k}" ${view ? '' : 'disabled'}>${t(w)}</button>`).join('')}</div>
+      </section>`;
+}
+// a check waits for the owner's sign-in
+function askedPage(q, st, back) {
+  const asked = st.asked;
   const tab = q.tab === 'sent' ? 'sent' : 'pic';
   const until = asked.until ? fmtTime(asked.until) : '';
-  const why = asked.published ? t('ac.si.why.published', { base: code(asked.base || '') }) : asked.why === 'expired' || asked.why === 'not_signed_in' ? t('ac.si.why.' + asked.why) : t('ac.si.why.needed', { base: code(asked.base || '') });
+  const why = whyAsked(asked);
   const view = page.view;
-  const keys = [['enter', 'ac.si.k.enter'], ['tab', 'ac.si.k.tab'], ['erase', 'ac.si.k.erase'], ['up', 'ac.si.k.up'], ['down', 'ac.si.k.down']];
   return `<div class="page ac-page--signin">
     ${back}
     <div class="context"><span class="tag tag--owner">${icon('seal')}${t('owner.only')}</span>${until ? `<span class="tag tag--caution">${icon('clock')}${esc(t('ac.si.until', { time: until }))}</span>` : ''}</div>
@@ -83,15 +99,7 @@ function signinPage(ctx) {
     ${page.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(page.problem)}</p>` : ''}
     <nav class="seg only-phone ac-si-tabs" aria-label="${esc(t('ac.si.tabs'))}"><a href="${href('/waiting/sign-in', Object.assign({}, q, { tab: null }))}" aria-current="${tab === 'pic'}">${t('ac.si.tab.pic')}</a><a href="${href('/waiting/sign-in', Object.assign({}, q, { tab: 'sent' }))}" aria-current="${tab === 'sent'}">${t('ac.si.tab.sent')}</a></nav>
     <div class="ac-si-grid">
-      <section class="ac-si-pic ${tab === 'sent' ? 'ac-hide-phone' : ''}" aria-label="${esc(t('ac.si.tab.pic'))}">
-        ${view && view.picture ? picture() : `<div class="panel empty"><p class="small ink-2">${t(st.open ? 'st.loading' : 'ac.si.closed')}</p>
-          <button class="btn btn--primary" data-act="ac-si-open" data-fk="si-open" ${page.busy ? 'disabled' : ''}>${t('ac.si.open')}</button></div>`}
-        <div class="ac-si-type"><label class="field">${icon('note')}<span class="sr-only">${t('ac.si.type')}</span><input id="si-type" data-fk="si-type" type="text" autocomplete="off" placeholder="${esc(t('ac.si.type'))}" ${view ? '' : 'disabled'} aria-describedby="si-type-note"></label>
-          <button class="btn btn--secondary" data-act="ac-si-send" ${view ? '' : 'disabled'}>${t('ac.si.type.send')}</button></div>
-        <p class="small muted" id="si-type-note">${t(view ? 'ac.si.type.note' : 'ac.si.type.first')}</p>
-        <div class="ac-si-keys" role="group" aria-label="${esc(t('ac.si.keys'))}">
-          ${keys.map(([k, w]) => `<button class="btn btn--secondary btn--sm" data-act="ac-si-key" data-key="${k}" ${view ? '' : 'disabled'}>${t(w)}</button>`).join('')}</div>
-      </section>
+      ${picSection(st, tab)}
       <section class="panel panel__pad ac-si-sent ${tab === 'pic' ? 'ac-hide-phone' : ''}" aria-labelledby="sent-h"><h2 class="h2" id="sent-h" style="margin-bottom:12px">${t('ac.si.tab.sent')}</h2>${sentPanel(st.codes)}</section>
     </div>
     <div class="actions ac-si-acts">
@@ -100,6 +108,17 @@ function signinPage(ctx) {
       <p class="actions__note">${t('ac.si.never_alone')}</p>
     </div>
   </div>`;
+}
+
+function signinPage(ctx) {
+  const back = `<a class="back" href="${href('/waiting')}">${icon('back', 'icon--dir')}${t('wt.item.back')}</a>`;
+  if (ctx.offline) return `<div class="page">${back}<h1 class="lede">${t('ac.si.offline')}</h1><p class="guide">${t('ac.si.offline.guide')}</p><div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div></div>`;
+  const st = page.status || live.signIn;
+  const check = ac.lastCheck();
+  if (page.done) return donePage(back, check);
+  if (!st) return `<div class="page" aria-busy="true">${back}<h1 class="lede">${t('st.loading')}</h1></div>`;
+  if (!st.asked) return noAskPage(back, st);
+  return askedPage(ctx.query, st, back);
 }
 
 screen({

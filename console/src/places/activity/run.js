@@ -9,6 +9,7 @@ import {
 import { controls, byOf } from './activity.js';
 import { stagesOf, board, counts, finished, summary, span, lostOf, stageTitle } from './stages.js';
 import { clockHTML } from './clock.js';
+import { resultHTML, fixProgress, handoffHTML } from './result.js';
 
 const enc = encodeURIComponent;
 const SHOWN = 60;                 // the newest timeline lines drawn; the rest one press away
@@ -39,36 +40,50 @@ afterRender(ctx => {
 });
 
 /* ---------- what the page says ---------- */
-const pathName = p => (has('ac.path.' + p) ? t('ac.path.' + p) : p);
+const runningCount = list => list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length;
+const failedLede = r => t('ac.run.failed.lede', { label: ac.runLabel(r) });
+const queuedLede = r => t('ac.run.queued.lede', { n: num(r.position || 1) });
+function checkDoneLede(r, list) {
+  const own = ac.flowOfRun(r), lost = list.filter(lostOf).length;
+  const took = ac.minutes(ac.took(r) || 1);
+  if (own && lost) return t('ac.run.check.lost.lede', { took, stages: tn('pl.stage', lost), problems: tn('pl.problem', model.totals().problems) });
+  if (!own) return t('ac.run.done.lede', { took });
+  return t('ac.run.check.done.lede', { took, problems: tn('pl.problem', model.totals().problems), health: model.health().score == null ? t('nm') : num(model.health().score) });
+}
+/** A check's lede by its state; `at` counts its stages. */
+const CHECK_LEDES = new Map(Object.entries({
+  done: (r, at, list) => checkDoneLede(r, list),
+  you: () => t(live.signIn && live.signIn.asked ? 'ac.run.check.you.lede' : 'ac.run.check.q.lede'),
+  paused: (r, at) => t('ac.run.check.paused.lede', at),
+  stopped: (r, at, list) => t(list.length ? 'ac.run.check.stopped.lede' : 'ac.run.check.stopped.early', at),
+  failed: failedLede,
+  queued: queuedLede,
+}));
 function checkLede(r, rs, list) {
-  const at = { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) };
-  if (rs === 'done') {
-    const own = ac.flowOfRun(r), lost = list.filter(lostOf).length;
-    if (own && lost) return t('ac.run.check.lost.lede', { took: ac.minutes(ac.took(r) || 1), stages: tn('pl.stage', lost), problems: tn('pl.problem', model.totals().problems) });
-    return own ? t('ac.run.check.done.lede', { took: ac.minutes(ac.took(r) || 1), problems: tn('pl.problem', model.totals().problems), health: model.health().score == null ? t('nm') : num(model.health().score) })
-      : t('ac.run.done.lede', { took: ac.minutes(ac.took(r) || 1) });
-  }
-  if (rs === 'you') return t(live.signIn && live.signIn.asked ? 'ac.run.check.you.lede' : 'ac.run.check.q.lede');
-  if (rs === 'paused') return t('ac.run.check.paused.lede', at);
-  if (rs === 'stopped') return t(list.length ? 'ac.run.check.stopped.lede' : 'ac.run.check.stopped.early', at);
-  if (rs === 'failed') return t('ac.run.failed.lede', { label: ac.runLabel(r) });
-  if (rs === 'queued') return t('ac.run.queued.lede', { n: num(r.position || 1) });
+  const at = { done: num(finished(list)), total: num(list.length), running: num(runningCount(list)) };
+  if (CHECK_LEDES.has(rs)) return CHECK_LEDES.get(rs)(r, at, list);
   return list.length ? t('ac.run.check.lede', at) : t('ac.now.check');
 }
-function lede(r, rs, view, list) {
-  if (r.action === 'audit') return checkLede(r, rs, list);
+/** Any other run's lede while it is not done. */
+const LEDES = new Map(Object.entries({
+  queued: queuedLede,
+  you: () => t('ac.run.you.lede'),
+  paused: r => t('ac.run.paused.lede', { label: ac.runLabel(r) }),
+  running: (r, view) => (r.verb === 'fix' ? t('ac.run.fix.lede', { done: num(derive.fixCount(view, r)), total: num((r.cards || []).length) }) : t('ac.run.running.lede', { label: ac.runLabel(r) })),
+  stopped: r => t(r.verb === 'fix' ? 'ac.run.fix.stopped.lede' : 'ac.run.stopped.lede'),
+  failed: failedLede,
+  unchanged: () => t('ac.run.unchanged.lede'),
+}));
+function doneLede(r) {
   const branch = r.result && r.result.branch;
-  if (rs === 'queued') return t('ac.run.queued.lede', { n: num(r.position || 1) });
-  if (rs === 'you') return t('ac.run.you.lede');
-  if (rs === 'paused') return t('ac.run.paused.lede', { label: ac.runLabel(r) });
-  if (rs === 'running') return r.verb === 'fix' ? t('ac.run.fix.lede', { done: num(derive.fixCount(view, r)), total: num((r.cards || []).length) }) : t('ac.run.running.lede', { label: ac.runLabel(r) });
-  if (rs === 'stopped') return t(r.verb === 'fix' ? 'ac.run.fix.stopped.lede' : 'ac.run.stopped.lede');
-  if (rs === 'failed') return t('ac.run.failed.lede', { label: ac.runLabel(r) });
-  if (rs === 'unchanged') return t('ac.run.unchanged.lede');
   if (branch && r.outcome === 'accepted') return t('ac.run.r12.accepted', { target: ac.mergedInto(r) });
   if (branch && r.outcome === 'undone') return t('ac.run.r12.rejected');
   if (branch) return t('ac.run.r12.lede');
   return t('ac.run.done.lede2', { label: ac.runLabel(r), took: ac.minutes(ac.took(r) || 1) });
+}
+function lede(r, rs, view, list) {
+  if (r.action === 'audit') return checkLede(r, rs, list);
+  return LEDES.has(rs) ? LEDES.get(rs)(r, view) : doneLede(r);
 }
 /** A check that ended with stages its assistant was lost in: which, why, when the assistant comes back, and the one
  *  press that runs them again (from the first of them). */
@@ -83,44 +98,49 @@ function lostHTML(r, rs, list) {
     <div class="actions" style="margin-top:8px"><button class="btn btn--primary" data-act="sheet" data-sheet="redo:${esc(lost[0].id)}" data-fk="lost-redo">${t('ac.run.lost.act')}</button></div>
     <p class="small ink-2">${t('ac.run.lost.how')}</p></div>`;
 }
+function doneGuide(list) {
+  const c = counts(list);
+  return t('ac.run.check.done.guide', { done: num(c.ok || 0), partial: num((c.failed || 0) + (c.partial || 0)), other: num(list.length - (c.ok || 0) - (c.failed || 0) - (c.partial || 0)) });
+}
+/** A check's own guide, or undefined when the common one says it. */
+function checkGuide(rs, list) {
+  if (rs === 'done' && list.length) return doneGuide(list);
+  if (rs === 'you') return t('ac.run.check.you.guide');
+  if (rs === 'stopped' || rs === 'failed') return t('ac.run.check.stopped.guide');
+  if (rs === 'running' || rs === 'paused') return t('ac.run.check.guide');
+  return undefined;
+}
+const GUIDES = { queued: 'ac.run.queued.guide', you: 'ac.run.you.guide', unchanged: 'ac.run.unchanged.guide' };
+const FIX_GUIDES = { running: 'ac.run.fix.guide', stopped: 'ac.run.fix.stopped.guide', failed: 'ac.run.fix.stopped.guide' };
 function guide(r, rs, list) {
-  if (r.action === 'audit') {
-    if (rs === 'done' && list.length) { const c = counts(list); return t('ac.run.check.done.guide', { done: num(c.ok || 0), partial: num((c.failed || 0) + (c.partial || 0)), other: num(list.length - (c.ok || 0) - (c.failed || 0) - (c.partial || 0)) }); }
-    if (rs === 'you') return t('ac.run.check.you.guide');
-    if (rs === 'stopped' || rs === 'failed') return t('ac.run.check.stopped.guide');
-    if (rs === 'running' || rs === 'paused') return t('ac.run.check.guide');
-  }
-  if (rs === 'queued') return t('ac.run.queued.guide');
-  if (rs === 'you') return t('ac.run.you.guide');
-  if (r.verb === 'fix' && rs === 'running') return t('ac.run.fix.guide');
-  if (r.verb === 'fix' && (rs === 'stopped' || rs === 'failed')) return t('ac.run.fix.stopped.guide');
-  if (rs === 'unchanged') return t('ac.run.unchanged.guide');
+  const own = r.action === 'audit' ? checkGuide(rs, list) : undefined;
+  if (own !== undefined) return own;
+  const key = GUIDES[rs] || (r.verb === 'fix' && FIX_GUIDES[rs]);
+  if (key) return t(key);
   if (r.result && r.result.branch) return t(r.outcome ? 'ac.run.r12.done.guide' : 'ac.run.r12.guide');
   return '';
 }
 
-function actionsHTML(r, rs) {
-  if (offline()) return `<div class="actions"><button class="btn btn--secondary" data-act="sheet" data-sheet="open-live">${icon('lock')}${t('ac.run.live_only')}</button></div>`;
-  const ask = `<a class="btn btn--quiet" href="${href('/ask', { run: r.id })}">${icon('ask')}${t(['failed', 'stopped', 'unchanged'].includes(rs) ? 'ac.run.ask_why' : 'ac.run.ask')}</a>`;
-  if (['running', 'paused', 'you'].includes(rs)) {
-    const answer = rs === 'you' ? (live.signIn && live.signIn.asked && r.action === 'audit' ? `<a class="btn btn--primary" href="${href('/waiting/sign-in')}">${t('wt.signin.act')}</a>`
-      : r.question ? `<a class="btn btn--primary" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a>` : '') : '';
-    return `<div class="actions">${answer}${controls(r)}${ask}</div>`;
-  }
-  if (rs === 'queued') {
-    const q = ac.queue().map(x => x.id), i = q.indexOf(r.id);
-    return `<div class="actions"><button class="btn btn--secondary" data-act="ac-move" data-id="${esc(r.id)}" data-dir="-1" ${i <= 0 ? 'disabled' : ''}>${icon('chev', 'ac-rot-up')}${t('ac.line.up')}</button>
+/** The answer a run waiting on the person asks for: the sign-in, or its question. */
+function answerButton(r, rs) {
+  if (rs !== 'you') return '';
+  if (live.signIn && live.signIn.asked && r.action === 'audit') return `<a class="btn btn--primary" href="${href('/waiting/sign-in')}">${t('wt.signin.act')}</a>`;
+  return r.question ? `<a class="btn btn--primary" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a>` : '';
+}
+function queuedActions(r) {
+  const q = ac.queue().map(x => x.id), i = q.indexOf(r.id);
+  return `<div class="actions"><button class="btn btn--secondary" data-act="ac-move" data-id="${esc(r.id)}" data-dir="-1" ${i <= 0 ? 'disabled' : ''}>${icon('chev', 'ac-rot-up')}${t('ac.line.up')}</button>
       <button class="btn btn--secondary" data-act="ac-move" data-id="${esc(r.id)}" data-dir="1" ${i < 0 || i === q.length - 1 ? 'disabled' : ''}>${icon('chev', 'ac-rot-down')}${t('ac.line.down')}</button>
       <button class="btn btn--plain" data-act="ac-remove" data-id="${esc(r.id)}">${t('ac.line.remove')}</button>
       <p class="actions__note">${t('ac.line.note')}</p></div>`;
-  }
-  if (['failed', 'stopped', 'unchanged'].includes(rs)) {
-    const extra = r.verb === 'fix' && rs === 'stopped' ? `<button class="btn btn--secondary" data-act="sheet" data-sheet="action:fix_abandon">${t('ac.run.close_batch')}</button>`
-      : r.action === 'run_setup' || r.action === 'safety_net' ? `<button class="btn btn--secondary" data-act="sheet" data-sheet="action:run_try">${t('ac.run.get_running')}</button>`
-        : rs === 'unchanged' ? `<a class="btn btn--secondary" href="${href('/problems', { who: 'eaos' })}">${t('ac.run.pick_other')}</a>` : '';
-    return `<div class="actions"><button class="btn btn--primary" data-act="ac-ctl" data-op="retry" data-id="${esc(r.id)}">${icon('retry')}${t('ac.ctl.retry')}</button>${extra}${ask}
-      <p class="actions__note">${t('ac.ctl.retry.note')}</p></div>`;
-  }
+}
+/** Beside Retry: close a stopped fix batch, get the app running, or pick another problem. */
+function retryExtra(r, rs) {
+  if (r.verb === 'fix' && rs === 'stopped') return `<button class="btn btn--secondary" data-act="sheet" data-sheet="action:fix_abandon">${t('ac.run.close_batch')}</button>`;
+  if (r.action === 'run_setup' || r.action === 'safety_net') return `<button class="btn btn--secondary" data-act="sheet" data-sheet="action:run_try">${t('ac.run.get_running')}</button>`;
+  return rs === 'unchanged' ? `<a class="btn btn--secondary" href="${href('/problems', { who: 'eaos' })}">${t('ac.run.pick_other')}</a>` : '';
+}
+function endedActions(r, ask) {
   if (store.awaitsApproval(r)) return `<div class="actions"><a class="btn btn--primary" href="${href('/waiting/' + enc(r.id))}">${icon('seal')}${t('ac.run.r12.decide')}</a>${ask}<p class="actions__note">${t('ac.run.r12.note')}</p></div>`;
   if (r.outcome) return `<div class="actions"><a class="btn btn--secondary" href="${href('/waiting/decided')}">${t('ac.run.r12.see_decided')}</a>${ask}</div>`;
   if (r.action === 'audit' && ac.flowOfRun(r)) {
@@ -131,78 +151,17 @@ function actionsHTML(r, rs) {
   }
   return `<div class="actions">${ask}</div>`;
 }
-
-/* ---------- its result ---------- */
-function errorHTML(e) {
-  return `<section class="panel ac-result ac-result--fail" aria-label="${esc(t('ac.run.error'))}">
-      <dl class="facts"><dt>${t('ac.run.what')}</dt><dd>${rich(L(e.text))}${e.reason ? ` <span class="small muted">${rich(e.reason)}</span>` : ''}</dd>
-        ${e.what_now ? `<dt>${t('ac.run.todo')}</dt><dd>${rich(L(e.what_now))}</dd>` : ''}
-        <dt>${t('ac.run.recoverable')}</dt><dd>${t(e.recoverable ? 'ac.run.recoverable.yes' : 'ac.run.recoverable.no')}</dd></dl>
-      ${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}</section>`;
-}
-/** The checks' verdict: changes kept and left out. */
-function testsHTML(tests) {
-  /* older records carry only the engine's English sentence: its two numbers are read back so the page speaks the person's language */
-  const said = tests.kept == null && /^(\d+) change\(s\) passed every check; (\d+) left out/.exec(tests.summary || '');
-  if (said) Object.assign(tests, { kept: +said[1], left: +said[2] });
-  return ac.mark(tests.passed ? 'ok' : tests.passed === false ? 'failed' : 'skipped', esc(tests.kept != null ? t('ac.run.tests.n', { kept: tn('ac.run.change', tests.kept), left: num(tests.left || 0) }) : t(tests.passed ? 'wt.fix.tests.ok' : 'wt.fix.tests.no')));
-}
-const indicatorsHTML = list => list.map(x => esc(t('ac.run.indicator', { id: x.id, before: x.before == null ? '—' : num(x.before), after: x.after == null ? '—' : num(x.after) }))).join('<br>');
-const decisionHTML = r => (r.outcome ? esc(t(r.outcome === 'accepted' ? 'wt.done.accepted' : 'wt.done.rejected', { when: fmtWhen(r.decided), target: ac.mergedInto(r) }))
-  : `<span class="ac-c-accent">${t('ac.out.waits')}</span>`);
-/** A check's own rows: the problems it found and the paths it checked. */
-const checkRows = r => [[t('ac.run.check.found'), `<a class="link" href="${href('/problems')}">${esc(tn('pl.problem', model.totals().problems))}</a>`],
-  [t('ac.run.check.paths'), esc(((r.inputs && r.inputs.paths) || ['complete']).map(pathName).join(t('list.sep')))]];
-/** The result's facts as [label, value] rows. */
-function resultRows(r, res) {
-  const rows = [], d = res.diff_stat;
-  if (res.branch) rows.push([t('ac.run.branch'), `<a class="link" href="${href('/project/branches/' + enc(res.branch))}">${code(res.branch)}</a>`]);
-  if (d) rows.push([t('ac.run.diffstat'), `${esc(tn('pl.file_changed', d.files))} <bdi dir="ltr" class="num">+${num(d.insertions)} −${num(d.deletions)}</bdi>`]);
-  if (res.tests) rows.push([t('ac.run.tests'), testsHTML(res.tests)]);
-  if ((r.left_out || []).length) rows.push([t('ac.run.leftout'), r.left_out.slice(0, 8).map(x => code(x.id)).join(' ')]);
-  if ((res.cards_closed || []).length) rows.push([t('ac.run.closes'), res.cards_closed.slice(0, 12).map(c => `<a class="link" href="${href('/problems/' + enc(c))}">${code(c)}</a>`).join(' ')]);
-  if ((res.indicators || []).length) rows.push([t('ac.run.indicators'), indicatorsHTML(res.indicators)]);
-  if (res.branch) rows.push([t('ac.run.decision'), decisionHTML(r)]);
-  return r.action === 'audit' && ac.flowOfRun(r) ? rows.concat(checkRows(r)) : rows;
-}
-function resultHTML(r, rs, view) {
-  if (view.error && ['failed', 'stopped'].includes(rs)) return errorHTML(view.error);
-  const res = view.result || r.result;
-  if (!res) return '';
-  const rows = resultRows(r, res);
-  const words = typeof res.answer === 'string' || r.action !== 'audit' ? ac.answerHTML(res.answer) : '';
-  if (!rows.length && !words) return '';
-  return `<section class="panel ac-result ${r.outcome === 'undone' ? '' : 'ac-result--ok'}" aria-label="${esc(t('ac.run.result'))}">
-    ${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}${words}</section>`;
-}
-
-/** FIX-07: the batches' progress and every problem of the batch, kept or taken back, from the edit events. */
-function fixProgress(r, rs, view) {
-  const cards = r.cards || [];
-  if (!cards.length) return '';
-  const byCard = view.cards, tried = derive.fixCount(view, r);
-  const row = id => {
-    const p = model.problem(id);
-    const k = byCard[id];
-    const st = k === true ? 'ok' : k === false ? 'unchanged' : rs === 'running' ? 'waiting' : ac.ended(r) ? 'notreached' : 'waiting';
-    const word = k === true ? t('ac.fix.p.kept') : k === false ? t('ac.ev.back') : ac.stateWord(st);
-    return `<li class="row">${ac.glyph(st)}<span class="row__main"><span class="row__title small"><a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a> ${p ? rich(L(p.title)) : ''}</span>
-      <span class="row__meta" style="display:block">${esc(word)}</span></span></li>`;
-  };
-  const shown = cards.slice(0, 12);
-  return `<section class="section" aria-labelledby="fp-h"><div class="section-head"><h2 id="fp-h">${t('ac.fix.progress')}</h2><span class="small muted num">${esc(t('ac.now.fix.sub', { done: num(tried), total: num(cards.length) }))}</span></div>
-    ${ac.progressBar(tried / cards.length, t('ac.fix.progress'))}
-    <ul class="panel rows" style="margin-top:12px">${shown.map(row).join('')}${cards.length > shown.length ? `<li class="row small muted" style="min-height:44px">+ ${esc(tn('pl.problem', cards.length - shown.length))}</li>` : ''}</ul></section>`;
-}
-
-/** RUN-09: the request that waits for the person's assistant elsewhere, to copy. */
-function handoffHTML(r) {
-  const req = r.handoff;
-  if (!req) return '';
-  return `<section class="section" aria-labelledby="ho-h"><div class="section-head"><h2 id="ho-h">${t('ac.ho.title')}</h2></div>
-    <div class="panel panel__pad ac-stack"><p class="small ink-2">${t('ac.ho.why')}</p>
-      ${['ar', 'en'].filter(l => req[l]).map(l => `<div class="ac-req"><span class="block-title">${t('lang.' + l)}</span><div class="code ac-req__text" dir="${l === 'ar' ? 'rtl' : 'ltr'}" style="white-space:pre-wrap">${esc(req[l])}</div>
-        <button class="btn btn--secondary btn--sm" data-act="copy" data-text="${esc(req[l])}">${icon('copy')}${t('copy')}</button></div>`).join('')}</div></section>`;
+const UNDONE = ['failed', 'stopped', 'unchanged'];
+function actionsHTML(r, rs) {
+  if (offline()) return `<div class="actions"><button class="btn btn--secondary" data-act="sheet" data-sheet="open-live">${icon('lock')}${t('ac.run.live_only')}</button></div>`;
+  const ask = `<a class="btn btn--quiet" href="${href('/ask', { run: r.id })}">${icon('ask')}${t(UNDONE.includes(rs) ? 'ac.run.ask_why' : 'ac.run.ask')}</a>`;
+  if (['running', 'paused', 'you'].includes(rs)) return `<div class="actions">${answerButton(r, rs)}${controls(r)}${ask}</div>`;
+  if (rs === 'queued') return queuedActions(r);
+  if (UNDONE.includes(rs)) {
+    return `<div class="actions"><button class="btn btn--primary" data-act="ac-ctl" data-op="retry" data-id="${esc(r.id)}">${icon('retry')}${t('ac.ctl.retry')}</button>${retryExtra(r, rs)}${ask}
+      <p class="actions__note">${t('ac.ctl.retry.note')}</p></div>`;
+  }
+  return endedActions(r, ask);
 }
 
 /* ---------- the timeline (RUN-05) ---------- */
@@ -215,25 +174,35 @@ function eventGlyph(e) {
 function diffHTML(diff) {
   return `<div class="code diff">${diffLines(String(diff).split('\n').slice(0, 300))}</div>`;
 }
+/** A run's technical words, folded. */
+const techFold = e => (e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : '');
+/** An edit: its problem, its files, whether it was kept, and its diff folded. */
+function editBody(d, tx) {
+  return `<div>${d.card ? `<a class="link" href="${href('/problems/' + enc(d.card))}">${code(d.card)}</a> ` : ''}${tx}</div>
+        <div class="small ink-2">${(d.paths || []).map(code).join(' ')} ${d.kept === true ? `<span class="tag tag--ok">${icon('check')}${t('ac.ev.kept')}</span>` : d.kept === false ? `<span class="tag tag--state">${t('ac.ev.back')}</span>` : ''}</div>
+        ${d.diff ? `<details class="ac-ev-fold"><summary>${t('ac.ev.diff')}${icon('chev-down', 'icon--sm muted')}</summary>${diffHTML(d.diff)}</details>` : ''}`;
+}
+/** A screenshot: its route, width, and whether before or after the change. */
+function shotBody(d, tx) {
+  return `<div>${tx}</div><div class="small ink-2">${code(d.route || '')} ${d.viewport ? esc(t('ac.ev.width', { w: d.viewport })) : ''} ${d.when ? esc(t('ac.ev.' + (d.when === 'before' ? 'before' : 'after'))) : ''}</div>`;
+}
 function eventBody(e) {
   const d = e.data || {}, tx = rich(L(e.text));
   switch (e.kind) {
     case 'edit':
-      return `<div>${d.card ? `<a class="link" href="${href('/problems/' + enc(d.card))}">${code(d.card)}</a> ` : ''}${tx}</div>
-        <div class="small ink-2">${(d.paths || []).map(code).join(' ')} ${d.kept === true ? `<span class="tag tag--ok">${icon('check')}${t('ac.ev.kept')}</span>` : d.kept === false ? `<span class="tag tag--state">${t('ac.ev.back')}</span>` : ''}</div>
-        ${d.diff ? `<details class="ac-ev-fold"><summary>${t('ac.ev.diff')}${icon('chev-down', 'icon--sm muted')}</summary>${diffHTML(d.diff)}</details>` : ''}`;
+      return editBody(d, tx);
     case 'screenshot':
-      return `<div>${tx}</div><div class="small ink-2">${code(d.route || '')} ${d.viewport ? esc(t('ac.ev.width', { w: d.viewport })) : ''} ${d.when ? esc(t('ac.ev.' + (d.when === 'before' ? 'before' : 'after'))) : ''}</div>`;
+      return shotBody(d, tx);
     case 'question':
       return `<div>${tx}</div><div class="small ink-2"><a class="link" href="${href('/waiting/questions')}">${t('ac.ev.asked')}</a></div>`;
     case 'say':
       return `<div class="ai-block"><span class="ai-block__label">${icon('ai', 'icon--sm')}${t('ai.label')}</span>${md(d.words || L(e.text))}</div>`;
     case 'error':
-      return `<div>${tx}</div>${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}`;
+      return `<div>${tx}</div>${techFold(e)}`;
     case 'progress':
       return `<div>${tx}</div>`;
     default:      // a result the assistant wrote may hold tables and lists: drawn as Markdown when it has lines
-      return `${/\n/.test(L(e.text) || '') ? md(L(e.text)) : `<div>${tx}</div>`}${e.detail ? `<details class="ac-ev-fold"><summary>${t('ac.run.tech')}${icon('chev-down', 'icon--sm muted')}</summary><div class="code" style="padding:8px 12px;white-space:pre-wrap">${esc(e.detail)}</div></details>` : ''}`;
+      return `${/\n/.test(L(e.text) || '') ? md(L(e.text)) : `<div>${tx}</div>`}${techFold(e)}`;
   }
 }
 function itemHTML(item) {
@@ -256,7 +225,8 @@ function timeline(r, view, events, all) {
 }
 
 /* ---------- its facts (RUN-04, RUN-11, AST-03) ---------- */
-function factsHTML(r, rs, events) {
+/** What the run is, its state, who started it, when, and how long it took. */
+function whatRows(r, rs) {
   const rows = [[t('ac.f.label'), esc(ac.runLabel(r))], [t('ac.f.kind'), esc(ac.kindWord(r))], [t('ac.f.state'), ac.mark(rs)]];
   if (rs === 'queued' && r.position) rows.push([t('ac.f.position'), esc(t('ac.line.nth', { n: num(r.position) }))]);
   rows.push([t('ac.f.who'), esc(ac.whoWord(r))], [t('ac.f.by'), esc(t('ac.line.by.' + byOf(r)))], [t('ac.f.created'), ac.when(r.created)]);
@@ -264,17 +234,31 @@ function factsHTML(r, rs, events) {
   if (ac.ended(r) && m) rows.push([t('ac.f.took'), esc(ac.minutes(m))]);
   else if (r.started && rs !== 'queued') rows.push([t('ac.f.elapsed'), ac.runTicker(r, r.started)]);
   rows.push([t('ac.f.attempt'), num(r.attempt || 1)]);
+  return rows;
+}
+const cardsValue = cards => `${esc(tn('pl.problem', cards.length))}: ${cards.slice(0, 4).map(id => `<a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a>`).join(' ')}${cards.length > 4 ? ' …' : ''}`;
+const branchValue = wb => (wb && wb.name ? `${wb.state === 'exists' ? `<a class="link" href="${href('/project/branches/' + enc(wb.name))}">${code(wb.name)}</a>` : code(wb.name)} ${esc(has('ac.f.wb.' + wb.state) ? t('ac.f.wb.' + wb.state) : wb.state)}` : esc(t('ac.f.wb.none')));
+/** What the run works on: its problems, the code it was made on, its folder and its work branch. */
+function workRows(r) {
+  const rows = [];
   const cards = r.cards || [];
-  if (cards.length) rows.push([t('ac.f.problems'), `${esc(tn('pl.problem', cards.length))}: ${cards.slice(0, 4).map(id => `<a class="link" href="${href('/problems/' + enc(id))}">${code(id)}</a>`).join(' ')}${cards.length > 4 ? ' …' : ''}`]);
+  if (cards.length) rows.push([t('ac.f.problems'), cardsValue(cards)]);
   if ((r.left_out || []).length) rows.push([t('ac.f.left'), esc(tn('pl.problem', r.left_out.length))]);
   const c = r.context || {};
   if (c.analysis_branch) rows.push([t('ac.f.made_on'), t('ac.f.made_on.v', { branch: code(c.analysis_branch), commit: code(String(c.analysis_commit || '').slice(0, 7)) })]);
   if (c.checkout) rows.push([t('ac.f.folder'), code(c.checkout)]);
-  const wb = r.work_branch;
-  rows.push([t('ac.f.work_branch'), wb && wb.name ? `${wb.state === 'exists' ? `<a class="link" href="${href('/project/branches/' + enc(wb.name))}">${code(wb.name)}</a>` : code(wb.name)} ${esc(has('ac.f.wb.' + wb.state) ? t('ac.f.wb.' + wb.state) : wb.state)}` : esc(t('ac.f.wb.none'))]);
+  rows.push([t('ac.f.work_branch'), branchValue(r.work_branch)]);
+  return rows;
+}
+/** What the run's assistant used: its tokens and cost, or why it is not measured. */
+function usedValue(r, u, tok) {
+  return r.mode === 'handoff' ? ac.nmTag(t('ac.f.used.handoff')) : r.mode === 'direct' || !r.assistant ? ac.nmTag(t('ac.f.used.direct'))
+    : tok ? `${esc(ac.tokens(tok))}${u.cost_usd != null ? `, ${ac.money(u.cost_usd)}` : ac.ended(r) ? '' : `, ${t('ac.f.used.cost_later')}`}` : ac.nmTag(t(ac.ended(r) ? 'ac.f.used.none' : 'ac.f.used.cost_later'));
+}
+function factsHTML(r, rs, events) {
+  const rows = whatRows(r, rs).concat(workRows(r));
   const u = r.usage, tok = ac.usedTokens(u);
-  rows.push([t('ac.f.used'), r.mode === 'handoff' ? ac.nmTag(t('ac.f.used.handoff')) : r.mode === 'direct' || !r.assistant ? ac.nmTag(t('ac.f.used.direct'))
-    : tok ? `${esc(ac.tokens(tok))}${u.cost_usd != null ? `, ${ac.money(u.cost_usd)}` : ac.ended(r) ? '' : `, ${t('ac.f.used.cost_later')}`}` : ac.nmTag(t(ac.ended(r) ? 'ac.f.used.none' : 'ac.f.used.cost_later'))]);
+  rows.push([t('ac.f.used'), usedValue(r, u, tok)]);
   if (events.length) rows.push([t('ac.f.record'), esc(t('ac.f.record.ok', { n: num(events.length) }))]);
   return `<dl class="facts ac-facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
     ${tok ? `<p class="small muted" style="margin-top:8px">${t('ac.f.used.note')} <a class="link" href="${href('/project/assistants')}">${t('proj.assistants')}</a></p>` : ''}`;
@@ -285,6 +269,29 @@ function notFound(id) {
     <p class="small ink-2">${t(offline() ? 'ac.act.guide.offline' : 'ac.run.notfound.guide')}</p><a class="btn btn--secondary" href="${href('/activity/runs')}">${t('ac.runs.title')}</a></div></div>`;
 }
 
+/** The run's state, kind and id, and whether it came from the terminal. */
+const topHTML = (r, rs) => `<div class="context">${ac.mark(rs)}<span class="tag tag--state">${esc(ac.kindWord(r))}</span>${byOf(r) === 'terminal' ? `<span class="tag tag--state">${icon('terminal')}${t('ac.line.by.terminal')}</span>` : ''}<bdi class="mono muted" style="align-self:center">${esc(r.id)}</bdi></div>`;
+/** The replay's stamp: how fast, how far, and the way back to the run. */
+const stampHTML = (r, replaying, list) => (replaying ? `<div class="ac-stamp" role="status">${icon('history')}<span><b>${esc(t('ac.replay.stamp', { x: num(replaying) }))}</b> <span class="ac-stamp__at">${esc(t('ac.replay.at', { n: num(finished(list)), total: num(list.length) }))}</span></span>
+    <a class="btn btn--secondary btn--sm" href="${href('/activity/run/' + enc(r.id))}">${t('ac.replay.back')}</a></div>` : '');
+/** A check's progress bar under its clock while it is not done. */
+const progressHTML = (r, rs, list) => (r.action === 'audit' && list.length && rs !== 'done' ? `${ac.progressBar(finished(list) / list.length, '')}<p class="small ink-2 ac-under">${esc(t(rs === 'stopped' ? 'ac.run.check.stopped.at' : 'ac.run.check.at', { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) }))}</p>` : '');
+/** A check's stages on their board, with the switch that follows the running one. */
+function stagesHTML(r, rs, list) {
+  return r.action === 'audit' ? `<section class="section" aria-labelledby="stg-h"><div class="section-head"><h2 id="stg-h">${t('ac.run.stages')}</h2>
+      ${rs === 'running' ? `<label class="ac-inline-switch small ink-2"><span class="switch"><input type="checkbox" data-change="ac-follow" data-fk="follow" ${follow ? 'checked' : ''} aria-label="${esc(t('ac.run.follow'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span>${t('ac.run.follow')}</label>` : ''}</div>
+      ${list.length ? `<p class="small ink-2" style="margin-bottom:12px"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
+      <div id="ac-board">${board(list, rs !== 'running' || follow)}</div>
+      <p class="small muted ac-iline" style="margin-top:8px">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}</section>` : '';
+}
+/** What the run does now, while it runs. */
+const nowHTML = (view, rs) => (view.now && ['running', 'paused'].includes(rs) ? `<p class="small ink-2" role="status">${rich(L(view.now))}</p>` : '');
+/** The question a waiting run asks, with the way to answer it. */
+const questionHTML = (view, rs) => (view.question && rs === 'you' ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('waiting')}<span class="row__main small">${rich(L(view.question.text))}</span><a class="btn btn--secondary btn--sm" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a></div>` : '');
+/** A check's stages as they stood at the replay's second, else as they are. */
+const listOf = (flow, r, replaying) => (flow ? stagesOf(flow, r, replaying ? replay.at || 0 : null) : []);
+const clockOf = (r, rs, flow, list, replaying) => (r.action === 'audit' && !replaying && rs !== 'queued' ? clockHTML(r, flow, list) : '');
+
 function runPage(ctx) {
   const id = ctx.params.id;
   const r = ac.runOf(id);
@@ -294,17 +301,12 @@ function runPage(ctx) {
   const rs = ac.runState(r);
   const flow = ac.flowOfRun(r);
   const replaying = flow && ctx.query.replay && rs === 'done' ? Number(ctx.query.replay) : null;
-  const list = flow ? stagesOf(flow, r, replaying ? replay.at || 0 : null) : [];
-  const top = `<div class="context">${ac.mark(rs)}<span class="tag tag--state">${esc(ac.kindWord(r))}</span>${byOf(r) === 'terminal' ? `<span class="tag tag--state">${icon('terminal')}${t('ac.line.by.terminal')}</span>` : ''}<bdi class="mono muted" style="align-self:center">${esc(r.id)}</bdi></div>`;
-  const stamp = replaying ? `<div class="ac-stamp" role="status">${icon('history')}<span><b>${esc(t('ac.replay.stamp', { x: num(replaying) }))}</b> <span class="ac-stamp__at">${esc(t('ac.replay.at', { n: num(finished(list)), total: num(list.length) }))}</span></span>
-    <a class="btn btn--secondary btn--sm" href="${href('/activity/run/' + enc(r.id))}">${t('ac.replay.back')}</a></div>` : '';
-  const clock = r.action === 'audit' && !replaying && rs !== 'queued' ? clockHTML(r, flow, list) : '';
-  const progress = r.action === 'audit' && list.length && rs !== 'done' ? `${ac.progressBar(finished(list) / list.length, '')}<p class="small ink-2 ac-under">${esc(t(rs === 'stopped' ? 'ac.run.check.stopped.at' : 'ac.run.check.at', { done: num(finished(list)), total: num(list.length), running: num(list.filter(s => ['running', 'you', 'paused'].includes(s.state)).length) }))}</p>` : '';
-  const stages = r.action === 'audit' ? `<section class="section" aria-labelledby="stg-h"><div class="section-head"><h2 id="stg-h">${t('ac.run.stages')}</h2>
-      ${rs === 'running' ? `<label class="ac-inline-switch small ink-2"><span class="switch"><input type="checkbox" data-change="ac-follow" data-fk="follow" ${follow ? 'checked' : ''} aria-label="${esc(t('ac.run.follow'))}"><span class="switch__track"></span><span class="switch__thumb"></span></span>${t('ac.run.follow')}</label>` : ''}</div>
-      ${list.length ? `<p class="small ink-2" style="margin-bottom:12px"><span id="ac-stage-sum">${esc(summary(counts(list)))}</span> ${t('ac.run.stages.help')}</p>
-      <div id="ac-board">${board(list, rs !== 'running' || follow)}</div>
-      <p class="small muted ac-iline" style="margin-top:8px">${icon('ai', 'icon--sm ac-c-ai')}<span>${t('ac.run.stages.ai')}</span></p>` : `<p class="small muted">${t(rs === 'queued' ? 'ac.run.stages.later' : 'ac.run.stages.older')}</p>`}</section>` : '';
+  const list = listOf(flow, r, replaying);
+  const top = topHTML(r, rs);
+  const stamp = stampHTML(r, replaying, list);
+  const clock = clockOf(r, rs, flow, list, replaying);
+  const progress = progressHTML(r, rs, list);
+  const stages = stagesHTML(r, rs, list);
   const facts = factsHTML(r, rs, events);
   const said = guide(r, rs, list);
   return `<div class="page ac-page--run">
@@ -313,14 +315,14 @@ function runPage(ctx) {
     <h1 class="lede">${esc(lede(r, rs, view, list))}</h1>
     ${said ? `<p class="guide">${said}</p>` : ''}
     ${lostHTML(r, rs, list)}
-    ${view.now && ['running', 'paused'].includes(rs) ? `<p class="small ink-2" role="status">${rich(L(view.now))}</p>` : ''}
+    ${nowHTML(view, rs)}
     ${actionsHTML(r, rs)}
     ${stamp}
     <div class="ac-run-cols">
       <div class="ac-run-main">
         ${clock}
         ${progress}
-        ${view.question && rs === 'you' ? `<div class="panel row row--you" role="status" style="margin-top:16px">${icon('waiting')}<span class="row__main small">${rich(L(view.question.text))}</span><a class="btn btn--secondary btn--sm" href="${href('/waiting/questions')}">${t('ac.now.answer')}</a></div>` : ''}
+        ${questionHTML(view, rs)}
         ${resultHTML(r, rs, view)}
         ${r.verb === 'fix' ? fixProgress(r, rs, view) : ''}
         ${r.mode === 'handoff' ? handoffHTML(r) : ''}

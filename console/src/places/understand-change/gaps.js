@@ -53,6 +53,26 @@ screen({ id: 'S-19', path: '/understand/gaps', place: 'understand', needs: NEEDS
 
 const opsSection = () => (data.section('operations') || {}).operations || [];
 
+/** What the component becomes: its target (marked when the target is new), or removed. */
+const becomes = (g, tg) => (g.to ? `${code(g.to)}${tg && !(tg.sources || []).length ? ` <span class="tag tag--state">${t('un.op.introduce')}</span>` : ''}` : t('un.gap.removed'));
+// the gap's steps as links into the plan, or a word that it has none
+const stepLinks = g => ((g.steps || []).length ? g.steps.map(s => `<a class="link" href="${href('/problems/plan/' + enc(s))}">${code(s)}</a>`).join(' ') : `<span class="muted">${t('un.gap.nostep')}</span>`);
+/** The gap's properties; a line without a value is left out. */
+const gapFacts = (g, tg, ops, merged) => facts([
+        [t('un.gap.becomes'), becomes(g, tg)],
+        g.responsibility || (tg && tg.responsibility) ? [t('un.gap.resp'), rich(L(g.responsibility || tg.responsibility))] : null,
+        [t('un.gap.files'), esc(tn('pl.file', g.files))],
+        [t('un.gap.cover'), coverTag(g.cover)],
+        merged.length ? [t('un.gap.merged'), merged.map(code).join(' ')] : null,
+        [t('un.gap.ops'), ops.length ? opLinks(ops) : `<span class="muted">${t('un.none')}</span>`],
+        [t('un.gap.steps'), stepLinks(g)],
+        [t('un.gap.decision'), decisionLink(g.decision)],
+        g.closed && g.closed.value != null ? [t('un.gap.share'), Math.round(g.closed.value * 100) + '%'] : null,
+      ]);
+/** The cards the gap carries (the first 50, then a link to all), or why it has none. */
+const carriedList = (g, carried, op) => (carried.length ? `<div class="panel rows">${carried.slice(0, 50).map(p => prow(p)).join('')}</div>${carried.length > 50 ? `<p class="small muted" style="margin-top:8px">${esc(t('un.comp.andmore', { n: num(carried.length - 50) }))} <a class="link" href="${href('/problems', { comp: g.component })}">${t('un.comp.open')}</a></p>` : ''}`
+        : `<p class="small muted">${t(op === 'retain' ? 'un.gap.stays.long' : 'un.gap.nocard.long')}</p>`);
+
 function gapPage(ctx) {
   const g = gapsOf().find(x => x.id === ctx.params.id);
   if (!g) return notFound(ctx.params.id, '/understand/gaps', t('un.v.gaps'));
@@ -74,20 +94,9 @@ function gapPage(ctx) {
       <p class="actions__note">${t(open.length ? 'un.gap.fix.note' : g.cards.length ? 'un.gap.fix.noopen' : 'un.gap.fix.nocard')}</p></div>
     ${g.reason ? `<section class="section"><h2 class="h2">${t('un.gap.why')}</h2><p style="margin-top:8px">${rich(L(g.reason))}</p></section>` : ''}
     <section class="section"><div class="section-head"><h2>${t('un.gap.cards')}</h2><span class="small muted">${g.cards.length ? esc(t('un.gap.closed', { k: num(g.cards_closed), n: num(g.cards.length) })) : ''}</span></div>
-      ${carried.length ? `<div class="panel rows">${carried.slice(0, 50).map(p => prow(p)).join('')}</div>${carried.length > 50 ? `<p class="small muted" style="margin-top:8px">${esc(t('un.comp.andmore', { n: num(carried.length - 50) }))} <a class="link" href="${href('/problems', { comp: g.component })}">${t('un.comp.open')}</a></p>` : ''}`
-        : `<p class="small muted">${t(op === 'retain' ? 'un.gap.stays.long' : 'un.gap.nocard.long')}</p>`}</section>
+      ${carriedList(g, carried, op)}</section>
     <section class="section"><h2 class="h2" style="margin-bottom:12px">${t('un.gap.props')}</h2>
-      <div class="panel panel__pad">${facts([
-        [t('un.gap.becomes'), g.to ? `${code(g.to)}${tg && !(tg.sources || []).length ? ` <span class="tag tag--state">${t('un.op.introduce')}</span>` : ''}` : t('un.gap.removed')],
-        g.responsibility || (tg && tg.responsibility) ? [t('un.gap.resp'), rich(L(g.responsibility || tg.responsibility))] : null,
-        [t('un.gap.files'), esc(tn('pl.file', g.files))],
-        [t('un.gap.cover'), coverTag(g.cover)],
-        merged.length ? [t('un.gap.merged'), merged.map(code).join(' ')] : null,
-        [t('un.gap.ops'), ops.length ? opLinks(ops) : `<span class="muted">${t('un.none')}</span>`],
-        [t('un.gap.steps'), (g.steps || []).length ? g.steps.map(s => `<a class="link" href="${href('/problems/plan/' + enc(s))}">${code(s)}</a>`).join(' ') : `<span class="muted">${t('un.gap.nostep')}</span>`],
-        [t('un.gap.decision'), decisionLink(g.decision)],
-        g.closed && g.closed.value != null ? [t('un.gap.share'), Math.round(g.closed.value * 100) + '%'] : null,
-      ])}</div></section>
+      <div class="panel panel__pad">${gapFacts(g, tg, ops, merged)}</div></section>
   </div>`;
 }
 screen({ id: 'S-20', path: '/understand/gaps/:id', place: 'understand', needs: NEEDS, title: ctx => ctx.params.id + ' - ' + t('un.v.gaps'), render: gapPage, loading: () => loading(t('un.gaps.loading')) });

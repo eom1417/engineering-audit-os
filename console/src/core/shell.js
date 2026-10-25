@@ -22,25 +22,32 @@ const PLACES = [
 
 /** What runs or waits now, for the live strip, the sidebar's card and Status: {kind: check | fix | run | signin,
  *  text, href, share (0..1 or null), you (it waits for the owner), run}; null when nothing does. */
+const DONE_STATES = ['ok', 'skipped', 'unavailable', 'failed'];
+const finishedOf = stages => stages.filter(s => DONE_STATES.includes(s.state)).length;
+// what the sidebar says about a run in progress
+function runText(run, isCheck, stages, check) {
+  const label = labelOf(run.label, prefs.lang);
+  if (run.state === 'waiting_for_person') return t('live.you', { label });
+  if (run.state === 'paused') return t('live.paused', { label });
+  if (isCheck && stages.length) return t('live.check', { done: num(finishedOf(stages)), total: num(stages.length) }) + left(check);
+  return t(run.verb === 'fix' || /^fix/.test(run.action) ? 'live.fixing' : 'live.run', { label });
+}
+// the live line for a run in progress
+function runNow(run, check) {
+  const isCheck = run.action === 'audit';
+  const stages = isCheck && check ? check.stages || [] : [];
+  const share = stages.length ? finishedOf(stages) / stages.length : null;
+  const text = runText(run, isCheck, stages, check);
+  return { kind: isCheck ? 'check' : run.verb === 'fix' ? 'fix' : 'run', you: run.state === 'waiting_for_person', href: `/activity/run/${encodeURIComponent(run.id)}`, share, text, run };
+}
 export function liveNow() {
   if (live.signIn && live.signIn.asked) return { kind: 'signin', you: true, href: '/waiting/sign-in', share: null, text: t('live.signin') };
   const run = active();
   const check = live.progress && live.progress.flows && live.progress.flows.check;
-  if (run) {
-    const isCheck = run.action === 'audit';
-    const you = run.state === 'waiting_for_person';
-    const stages = isCheck && check ? check.stages || [] : [];
-    const finished = stages.filter(s => ['ok', 'skipped', 'unavailable', 'failed'].includes(s.state)).length;
-    const share = stages.length ? finished / stages.length : null;
-    const label = labelOf(run.label, prefs.lang);
-    const text = you ? t('live.you', { label }) : run.state === 'paused' ? t('live.paused', { label })
-      : isCheck && stages.length ? t('live.check', { done: num(finished), total: num(stages.length) }) + left(check)
-        : t(run.verb === 'fix' || /^fix/.test(run.action) ? 'live.fixing' : 'live.run', { label });
-    return { kind: isCheck ? 'check' : run.verb === 'fix' ? 'fix' : 'run', you, href: `/activity/run/${encodeURIComponent(run.id)}`, share, text, run };
-  }
+  if (run) return runNow(run, check);
   if (check && check.state === 'running') {
     const stages = check.stages || [];
-    const finished = stages.filter(s => ['ok', 'skipped', 'unavailable', 'failed'].includes(s.state)).length;
+    const finished = finishedOf(stages);
     return { kind: 'check', you: false, href: '/activity', share: stages.length ? finished / stages.length : null,
       text: t('live.check', { done: num(finished), total: num(stages.length) }) + left(check) };
   }

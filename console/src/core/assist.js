@@ -22,23 +22,35 @@ const api = () => window.EAOS && window.EAOS.askAPI;
 const desk = () => matchMedia('(min-width: 1024px)').matches;
 const path = () => parseHash().path;
 
+// a decision or a delivered branch waiting for the owner
+function waitingCtx(id) {
+  const d = decisions().find(y => y.id === id);
+  const run = live.runs.find(y => y.id === id);
+  const label = d ? L(d.question) : run && run.result ? run.result.branch : id;
+  return { kind: run ? 'branch' : 'thing', id: d ? label.slice(0, 40) : label, label };
+}
+// the pages the panel knows: an address, and the context it gives (null: none, the next address is tried)
+const ROUTES = [
+  [/^\/problems\/([^/]+)$/, x => {
+    if (x[1] === 'plan') return null;
+    const pr = problem(decodeURIComponent(x[1])); return { kind: 'problem', id: x[1], label: x[1] + (pr ? ' ' + L(pr.title) : '') };
+  }],
+  [/^\/activity\/run\/([^/]+)$/, x => { const id = decodeURIComponent(x[1]); const r = live.runs.find(y => y.id === id); return { kind: 'run', id, label: id + (r ? ' ' + L(r.label) : '') }; }],
+  [/^\/project\/branches\/(.+)$/, x => { const n = decodeURIComponent(x[1]); return { kind: 'branch', id: n, label: n }; }],
+  [/^\/understand\/(components|functions|gaps|paths|data|screens|library|history)\/(.+)$/, x => {
+    if (x[2] === 'all' || x[2] === 'compare') return null;
+    const id = decodeURIComponent(x[2]); return { kind: 'thing', id: id.split('#').pop(), label: id };
+  }],
+  [/^\/problems\/plan\/([^/]+)$/, x => (x[1] === 'waves' ? null : { kind: 'thing', id: x[1], label: x[1] })],
+  [/^\/waiting\/(.+)$/, x => (['sign-in', 'questions', 'decided'].includes(x[1]) ? null : waitingCtx(decodeURIComponent(x[1])))],
+];
 /** The context of the page the panel was opened from. */
 function routeCtx() {
-  const p = path(), m = re => p.match(re);
-  let x;
-  if ((x = m(/^\/problems\/([^/]+)$/)) && x[1] !== 'plan') { const pr = problem(decodeURIComponent(x[1])); return { kind: 'problem', id: x[1], label: x[1] + (pr ? ' ' + L(pr.title) : '') }; }
-  if ((x = m(/^\/activity\/run\/([^/]+)$/))) { const id = decodeURIComponent(x[1]); const r = live.runs.find(y => y.id === id); return { kind: 'run', id, label: id + (r ? ' ' + L(r.label) : '') }; }
-  if ((x = m(/^\/project\/branches\/(.+)$/))) { const n = decodeURIComponent(x[1]); return { kind: 'branch', id: n, label: n }; }
-  if ((x = m(/^\/understand\/(components|functions|gaps|paths|data|screens|library|history)\/(.+)$/)) && x[2] !== 'all' && x[2] !== 'compare') {
-    const id = decodeURIComponent(x[2]); return { kind: 'thing', id: id.split('#').pop(), label: id };
-  }
-  if ((x = m(/^\/problems\/plan\/([^/]+)$/)) && x[1] !== 'waves') return { kind: 'thing', id: x[1], label: x[1] };
-  if ((x = m(/^\/waiting\/(.+)$/)) && !['sign-in', 'questions', 'decided'].includes(x[1])) {
-    const id = decodeURIComponent(x[1]);
-    const d = decisions().find(y => y.id === id);
-    const run = live.runs.find(y => y.id === id);
-    const label = d ? L(d.question) : run && run.result ? run.result.branch : id;
-    return { kind: run ? 'branch' : 'thing', id: d ? label.slice(0, 40) : label, label };
+  const p = path();
+  for (const [re, ctxOf] of ROUTES) {
+    const x = p.match(re);
+    const c = x && ctxOf(x);
+    if (c) return c;
   }
   const title = (document.title || '').split(' - ')[0];
   return { kind: 'place', id: title, label: title };

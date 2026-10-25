@@ -4,7 +4,7 @@
 // (`verb:fix:step:<id>`, the server resolves its open problems). States: loading, empty (no check), not measured
 // (no waves), offline (every action opens "Open it live").
 import {
-  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, toast, announce, setSelbar, offline,
+  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline,
   model, selection, data,
 } from 'eaos';
 import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page, opLinks } from '../understand-kit/kit.js';
@@ -144,6 +144,32 @@ function plansFold() {
 }
 const PLAN_STATES = ['draft', 'registered', 'approved', 'rejected', 'active', 'review', 'merged', 'closed', 'regressed', 'archived'];
 
+// how far the fix plan is: the closed cards of all, else the plan's own progress
+function progressHTML(tot, share) {
+  return share == null ? `<p class="small muted">${t('un.plan.progress.nm')}</p>` : `<div class="un-progress" role="img" aria-label="${esc(tot.all_cards ? t('un.plan.progress', { k: num(tot.closed), n: num(tot.all_cards) }) : Math.round(share * 100) + '%')}"><span style="transform:scaleX(${share.toFixed(3)})"></span></div>
+      ${tot.all_cards ? `<p class="small"><b class="num">${num(tot.closed)}</b> ${esc(t('un.plan.progress.v', { n: num(tot.all_cards), p: Math.round(share * 100) + '%' }))}</p>` : ''}`;
+}
+// the fix plan's card: its goal, progress and indicators
+function planCard(fix) {
+  const tot = model.totals();
+  const share = tot.all_cards ? tot.closed / tot.all_cards : fix.progress ? fix.progress.value : null;
+  const indicators = fix.indicators || [];
+  return `<section class="section panel panel__pad un-plancard" aria-labelledby="pc-h">
+      <div class="un-plancard__head"><h2 class="h2" id="pc-h">${rich(L(fix.title || ''))}</h2>${stateTag(fix.state)}<span class="small muted">${t('un.plan.kind.fix')}</span></div>
+      ${fix.goal ? `<p class="small ink-2">${rich(L(fix.goal))}</p>` : ''}
+      ${progressHTML(tot, share)}
+      ${indicators.length ? `<dl class="facts">${indicators.map(i => `<dt>${esc(L(i.name || i.id || ''))}</dt><dd class="un-arrowval"><span class="num">${esc(i.today == null ? '—' : String(i.today))}</span>${icon('chev', 'icon--sm icon--dir muted')}<span class="num">${esc(i.target == null ? '—' : String(i.target))}</span><span class="small muted">${t('un.plan.target')}</span></dd>`).join('')}</dl>` : `<p class="small muted">${t('un.plan.noind')}</p>`}
+      <p class="small muted">${t('un.plan.rule')}</p>
+    </section>`;
+}
+// the steps that wait for others: the drawing and its rows
+function depsHTML(all) {
+  const deps = all.filter(s => s.waits.length);
+  return deps.length ? `${depsSVG(all)}
+      <ul class="panel rows un-deplist">${deps.map(s => s.waits.map(w => `<li class="row"><span class="row__main small">${esc(t('un.plan.dep.row', { a: s.id, b: w[0], n: tn('pl.problem', w[1]) }))}</span></li>`).join('')).join('')}</ul>`
+        : `<p class="small muted">${t(timeline() ? 'un.plan.nodeps' : 'un.plan.deps.nm')}</p>`;
+}
+
 function planPage(ctx) {
   const build = model.buildPlan();
   if (build && !model.plan().steps.length) return buildPage(build);
@@ -152,10 +178,6 @@ function planPage(ctx) {
   }
   const all = steps(), next = nextStep(all);
   const fix = ((data.section('plans') || {}).plans || []).find(p => p.kind === 'fix') || {};
-  const tot = model.totals();
-  const share = tot.all_cards ? tot.closed / tot.all_cards : fix.progress ? fix.progress.value : null;
-  const deps = all.filter(s => s.waits.length);
-  const indicators = fix.indicators || [];
   return `<div class="page page--wide">
     ${planSeg()}
     <h1 class="lede">${esc(next ? t('un.plan.lede', { n: tn('un.pl.step', all.length), next: next.id }) : t('un.plan.lede.none', { n: tn('un.pl.step', all.length) }))}</h1>
@@ -163,20 +185,11 @@ function planPage(ctx) {
     <div class="actions">${next ? fixBtn(next, 'btn--primary', t('un.plan.fixnext', { id: next.id })) : ''}
       <a class="btn btn--quiet" href="${href('/problems/plan/waves')}">${icon('layers', 'icon--sm')}${t('un.plan.waves')}</a>
       <p class="actions__note">${t('st.next.note')}</p></div>
-    <section class="section panel panel__pad un-plancard" aria-labelledby="pc-h">
-      <div class="un-plancard__head"><h2 class="h2" id="pc-h">${rich(L(fix.title || ''))}</h2>${stateTag(fix.state)}<span class="small muted">${t('un.plan.kind.fix')}</span></div>
-      ${fix.goal ? `<p class="small ink-2">${rich(L(fix.goal))}</p>` : ''}
-      ${share == null ? `<p class="small muted">${t('un.plan.progress.nm')}</p>` : `<div class="un-progress" role="img" aria-label="${esc(tot.all_cards ? t('un.plan.progress', { k: num(tot.closed), n: num(tot.all_cards) }) : Math.round(share * 100) + '%')}"><span style="transform:scaleX(${share.toFixed(3)})"></span></div>
-      ${tot.all_cards ? `<p class="small"><b class="num">${num(tot.closed)}</b> ${esc(t('un.plan.progress.v', { n: num(tot.all_cards), p: Math.round(share * 100) + '%' }))}</p>` : ''}`}
-      ${indicators.length ? `<dl class="facts">${indicators.map(i => `<dt>${esc(L(i.name || i.id || ''))}</dt><dd class="un-arrowval"><span class="num">${esc(i.today == null ? '—' : String(i.today))}</span>${icon('chev', 'icon--sm icon--dir muted')}<span class="num">${esc(i.target == null ? '—' : String(i.target))}</span><span class="small muted">${t('un.plan.target')}</span></dd>`).join('')}</dl>` : `<p class="small muted">${t('un.plan.noind')}</p>`}
-      <p class="small muted">${t('un.plan.rule')}</p>
-    </section>
+    ${planCard(fix)}
     <section class="section" aria-labelledby="st-h"><div class="section-head"><h2 id="st-h">${t('un.plan.steps')}</h2><span class="small muted">${t('un.plan.order')}</span></div>
       <ol class="panel un-steps">${all.map(s => stepRow(s, next)).join('')}</ol></section>
     <section class="section" aria-labelledby="dp-h"><div class="section-head"><h2 id="dp-h">${t('un.plan.deps')}</h2></div>
-      ${deps.length ? `${depsSVG(all)}
-      <ul class="panel rows un-deplist">${deps.map(s => s.waits.map(w => `<li class="row"><span class="row__main small">${esc(t('un.plan.dep.row', { a: s.id, b: w[0], n: tn('pl.problem', w[1]) }))}</span></li>`).join('')).join('')}</ul>`
-        : `<p class="small muted">${t(timeline() ? 'un.plan.nodeps' : 'un.plan.deps.nm')}</p>`}</section>
+      ${depsHTML(all)}</section>
     <div class="panel section">${plansFold()}</div>
   </div>`;
 }

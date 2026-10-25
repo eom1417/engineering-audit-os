@@ -1,10 +1,8 @@
 {
  "code:function_lines": 5,
- "code:functions": 48,
- "code:modules": 4,
  "code:parameters": 129,
  "jscpd:exact_clone": 6,
- "knip:exports": 46,
+ "knip:exports": 45,
  "semgrep:javascript.browser.security.insecure-document-method": 17,
  "semgrep:javascript.browser.security.insecure-innerhtml": 17,
  "semgrep:javascript.browser.security.raw-html-join": 1,

@@ -4,7 +4,7 @@
 // preview's confirm token (POST /api/runs). A choice the person changes asks for the preview again. In the read-only
 // copy the sheet explains how to open the console live.
 import {
-  t, L, num, esc, icon, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, offline,
+  t, L, esc, icon, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, offline,
   client, ActionError, contract, store, assistantPicker, estimate,
 } from 'eaos';
 import { facts } from './kit.js';
@@ -33,6 +33,28 @@ function assistants(p, own) {
   return `<div>${assistantPicker(all, picked, 'un-')}</div>`;
 }
 
+// the read-only copy: what the action does and how to open the console live
+const offlineView = (a, title) => ({ title: esc(title), body: `<p>${esc(L(a.description))}</p><p>${esc(L(contract.SNAPSHOT.text))}</p><div class="code" style="padding:12px 16px">${esc(contract.SNAPSHOT.command)}</div>`,
+  foot: `<button class="btn btn--secondary btn--block" data-act="copy" data-text="${esc(contract.SNAPSHOT.command)}">${icon('copy')}${t('copy')}</button>` });
+// no preview yet: the problem asking it, or that it is on its way once every choice is made
+const waitNote = (own, ready) => (own.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem)}</p>` : ready ? `<p class="small muted" role="status" aria-busy="true">${t('pv.updating')}</p>` : '');
+/** The preview's estimate, risk and what happens on failure. */
+function previewFacts(p) {
+  return facts([
+            [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate && p.estimate.basis))}</span>`],
+            [t('pv.risk'), `<span class="tag ${p.risk && p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + ((p.risk && p.risk.level) || 'low'))}</span>`],
+            [t('pv.fail'), `<span class="small">${esc(L(p.on_failure))}</span>`],
+          ]);
+}
+/** The sheet's foot: a refusal, Start, copy the request, and how long the preview holds. */
+function previewFoot(own, p, blocked, title, cmd) {
+  return `${own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.refused)}</p>` : ''}
+          <button class="btn btn--primary btn--block" data-act="un-pv-start" data-fk="un-pv-start" ${blocked ? 'disabled' : ''}>${esc(own.busy ? t('pv.starting') : t('pv.start', { title }))}</button>
+          <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(p.handoff && p.handoff.request ? L(p.handoff.request) : cmd)}">${icon('copy')}${t('pv.copy')}</button>
+          ${p.confirm ? `<p class="sheet__fine">${esc(t('pv.valid', { time: expiresAt(p.confirm.expires) }))}</p>` : ''}`;
+}
+// when no assistant is chosen and the action needs one: where to set one up
+const noAssistantNote = () => `<p class="small" role="note">${icon('warn', 'icon--sm')} ${t('un.pv.noasst')} <a class="link" href="${href('/project/assistants')}" data-act="go" data-href="${href('/project/assistants')}">${t('un.pv.assistants')}</a></p>`;
 
 /** Registers the preview sheet `name` of `action`: {action, title(own), inputs(own) -> the action's inputs, extra(own)
  *  -> markup of the choices it offers, command(own) -> the terminal line, ready(own) -> false while a choice is
@@ -47,10 +69,7 @@ export function actionSheet(name, def) {
       own.arg = arg;
       const title = def.title(own);
       const cmd = def.command(own);
-      if (offline() || !client) {
-        return { title: esc(title), body: `<p>${esc(L(a.description))}</p><p>${esc(L(contract.SNAPSHOT.text))}</p><div class="code" style="padding:12px 16px">${esc(contract.SNAPSHOT.command)}</div>`,
-          foot: `<button class="btn btn--secondary btn--block" data-act="copy" data-text="${esc(contract.SNAPSHOT.command)}">${icon('copy')}${t('copy')}</button>` };
-      }
+      if (offline() || !client) return offlineView(a, title);
       const ready = !def.ready || def.ready(own);
       if (ready && !own.preview && !own.asking && !own.problem) ask(name, own);
       const p = own.preview;
@@ -60,7 +79,7 @@ export function actionSheet(name, def) {
         <div class="code" style="padding:12px 16px;margin-top:8px">${esc(cmd)}</div></details>`;
       if (!p) {
         return { title: esc(title), sub: free,
-          body: `<p>${esc(L(a.description))}</p>${extra}${own.problem ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.problem)}</p>` : ready ? `<p class="small muted" role="status" aria-busy="true">${t('pv.updating')}</p>` : ''}`,
+          body: `<p>${esc(L(a.description))}</p>${extra}${waitNote(own, ready)}`,
           foot: `<button class="btn btn--primary btn--block" disabled>${esc(t('pv.start', { title }))}</button>` };
       }
       const asst = own.assistant || (p.assistant && p.assistant.id);
@@ -70,19 +89,12 @@ export function actionSheet(name, def) {
         title: esc(title), sub: free,
         body: `<p>${esc(L(a.description))}</p>
           ${extra}
-          ${facts([
-            [t('pv.estimate'), `${esc(estimate(p))}<span class="small muted" style="display:block">${esc(L(p.estimate && p.estimate.basis))}</span>`],
-            [t('pv.risk'), `<span class="tag ${p.risk && p.risk.level === 'high' ? 'tag--caution' : 'tag--state'}">${t('pv.risk.' + ((p.risk && p.risk.level) || 'low'))}</span>`],
-            [t('pv.fail'), `<span class="small">${esc(L(p.on_failure))}</span>`],
-          ])}
+          ${previewFacts(p)}
           ${assistants(p, own)}
-          ${noAssistant ? `<p class="small" role="note">${icon('warn', 'icon--sm')} ${t('un.pv.noasst')} <a class="link" href="${href('/project/assistants')}" data-act="go" data-href="${href('/project/assistants')}">${t('un.pv.assistants')}</a></p>` : ''}
+          ${noAssistant ? noAssistantNote() : ''}
           ${a.needs_assistant ? `<p class="small ink-2">${t('pv.cost')}</p>` : ''}
           ${terminal}`,
-        foot: `${own.refused ? `<p class="small" role="alert">${icon('warn', 'icon--sm')} ${esc(own.refused)}</p>` : ''}
-          <button class="btn btn--primary btn--block" data-act="un-pv-start" data-fk="un-pv-start" ${blocked ? 'disabled' : ''}>${esc(own.busy ? t('pv.starting') : t('pv.start', { title }))}</button>
-          <button class="btn btn--quiet btn--block" data-act="copy" data-text="${esc(p.handoff && p.handoff.request ? L(p.handoff.request) : cmd)}">${icon('copy')}${t('pv.copy')}</button>
-          ${p.confirm ? `<p class="sheet__fine">${esc(t('pv.valid', { time: expiresAt(p.confirm.expires) }))}</p>` : ''}`,
+        foot: previewFoot(own, p, blocked, title, cmd),
       };
     },
   });

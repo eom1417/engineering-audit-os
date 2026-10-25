@@ -2,6 +2,12 @@
 
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
+## 2026-10-25
+- **M4.6 (assistant's decision)**: a split of the Studio's code is proved by drawing: `console/tools/same.cjs` crawls
+  every screen and sheet of the working Studio, draws each with the code before and after (the code swapped in the
+  browser, the server and its data the same) and refuses any difference; with it the 48 functions were split, not
+  listed.
+
 ## 2026-10-24
 - **M4 (assistant's decisions, the owner may change them)**: a gap the person chose (no consent to run the app, a path
   not followed, sign-in declined) is said but never a big red gap; repair or rebuild is decided by the target (rebuild
