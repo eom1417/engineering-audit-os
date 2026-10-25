@@ -15,7 +15,8 @@ person read the findings without being told, first and in red, what the check co
 - **The laws reach further** (M4.6): one complexity count for the code laws and the hotspots (a nested function counted
   alone; the metrics facts carry `complexity`, version 2); the Studio's JavaScript under the laws with no exception (its 48 complex
   functions and 4 long modules split; `console/tools/same.cjs` drew every screen and sheet the same before and after, and
-  found the earlier split had lost the one-branch page and two imports); GitNexus's misread Python cycles left out (all six on EAOS).
+  found the earlier split had lost the one-branch page, two imports, and
+  broken a branch's page with a name defined nowhere); GitNexus's misread Python cycles left out (all six on EAOS).
 
 ## 0.0.75 (2026-10-24)
 

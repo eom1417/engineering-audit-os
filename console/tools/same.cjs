@@ -42,6 +42,14 @@ const drawn = () => {
   return body.innerHTML;
 };
 
+/** What `route` draws; opened again once when the screen moved on while it was read (a run ended, an address redirected). */
+async function draw(page, route, c) {
+  for (let tries = 2; ; tries--) {
+    await L.open(page, route, c.lang, c.theme);
+    try { return await page.evaluate(drawn); } catch (e) { if (!tries || !/context was destroyed/.test(e.message)) throw e; }
+  }
+}
+
 async function serveFrom(ctx) {
   if (!ASSETS) return;
   const dir = path.resolve(ASSETS);
@@ -92,8 +100,7 @@ async function crawl(page) {
     if (!routes) routes = await crawl(page);
     for (const r of routes) {
       current = r;
-      await L.open(page, r, c.lang, c.theme);
-      shots[`${c.key} ${r}`] = await page.evaluate(drawn);
+      shots[`${c.key} ${r}`] = await draw(page, r, c);
       if (Object.keys(shots).length % 50 === 0) console.error(`${Object.keys(shots).length} drawn`);
     }
     await ctx.close();
