@@ -3,6 +3,9 @@
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
 ## 2026-10-25
+- **How to read the references (owner)**: when two references disagree, the newer one holds; when a step of the plan
+  looks wrong or weaker than another way, the assistant asks the owner before taking it, so the best and cleanest step
+  is always the one taken.
 - **One plan (owner)**: `ROADMAP.md` is the only place that holds a plan, a backlog or a status; it runs M-1 to M10,
   numbered in the order the milestones run (M-1 to M4 done; M5 seeing any app, M6 the whole system in layers, M7
   reliable fixes, M8 interfaces and EAOS clean, M9 intelligence and the final proof, M10 simulated users). It replaces
