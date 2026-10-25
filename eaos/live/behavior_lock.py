@@ -30,7 +30,7 @@ from pathlib import Path
 
 from ..core import progress
 from ..core.progress.flow import OPTIONAL, Stage
-from .lock_folder import LOCK_CONFIG, _keep, _prepare  # noqa: F401  (LOCK_CONFIG: read here by the tests)
+from .lock_folder import LOCK_CONFIG, _keep, _prepare, lend_kinds, passes  # noqa: F401  (LOCK_CONFIG: read here by the tests)
 from .lock_results import Screens, _declared, approval_statuses, failing_tests, spec_statuses  # noqa: F401  (the names others read here)
 
 # The specs this runs are written by eaos/live/lock_specs.py, its folder made by lock_folder.py, its passes read by
@@ -71,17 +71,19 @@ def _start(live, lock):
     return base
 
 
-def _pass(live, lock, base, output, update):
+def _pass(live, lock, base, output, how):
+    """One Playwright pass; `how` is (update: record the screens, the kind of user it runs as or None, its spec files)."""
+    update, kind, files = how
     output.parent.mkdir(parents=True, exist_ok=True)
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
-            *(['--update-snapshots=all'] if update else [])]
+            *(['--update-snapshots=all'] if update else []), *files]
     stream = output.parent / STREAM
     if stream.exists(): stream.unlink()
     screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=update).start()
     try:
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
                                           env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
-                                               'EAOS_LOCK_STREAM': str(stream)})
+                                               'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or ''})
     finally:
         screens.stop()
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})     # why a spec did not run
@@ -127,8 +129,10 @@ def _run_specs(live, lock, base, recorded, stem, update, declared=(), known=()):
     """{spec file: (status, reason)} of one pass of every spec the lock holds: the screens with Playwright, the
     interfaces of the code with pytest; their reports are playwright-<stem>.json and approvals-<stem>.xml in `recorded`."""
     statuses = {}
-    if (lock / 'playwright.config.ts').is_file():
-        statuses.update(spec_statuses(_pass(live, lock, base, recorded / f'playwright-{stem}.json', update=update), declared, known))
+    for kind, files in passes(lock) if (lock / 'playwright.config.ts').is_file() else []:
+        mark = f'@{kind}' if kind else ''         # a kind's pass: its specs' statuses beside the run's one session's
+        found = spec_statuses(_pass(live, lock, base, recorded / f'playwright-{stem}{mark}.json', (update, kind, files)), declared, known)
+        statuses.update({file + mark: status for file, status in found.items()})
     if (lock / 'approvals').is_dir():
         statuses.update(_approvals(live, lock, recorded / f'approvals-{stem}.xml', update))
     return statuses
@@ -142,7 +146,14 @@ def _results(report, statuses):
                               ('error', 'the spec did not run') if spec['path'] else
                               ('quarantined', ('nothing to run: ' + ', '.join(spec.get('surfaces') or ['no surface']))[:300]))
         results.append({'path': spec['path'], 'status': status, **({'reason': reason} if reason else {})})
+        results += [{'path': spec['path'], 'kind': file.rsplit('@', 1)[1], 'status': s, **({'reason': r} if r else {})}
+                    for file, (s, r) in statuses.items() if '@' in file and Path(file.rsplit('@', 1)[0]).name == name]
     return results
+
+
+def key(result):
+    """A lock result's name: its spec, and the kind of user it ran as."""
+    return result['path'] + (f"@{result['kind']}" if result.get('kind') else '')
 
 
 def refused(lock):
@@ -222,6 +233,7 @@ def _ready(live, report, target, runtime, app):
     lock = _prepare(live, report) if (report / 'behavior-lock').is_dir() else None
     base = _shared(app, lock) if app else _start(live, lock or live.sandbox.copy / '.eaos-lock')
     if _pages_from_app(report, target, base, runtime): lock = _prepare(live, report)
+    if lock: lend_kinds(report, lock, app[2] if app else lock / '.auth/user.json')
     return lock, base
 
 
@@ -254,7 +266,9 @@ def _journey_start(live, report, runtime, bundle, app):
     lock = _prepare(live, report, Path(runtime) / 'behavior-lock')
     recorder = lock / 'rrweb.js'
     shutil.copyfile(bundle, recorder)
-    return lock, recorder, _shared(app, lock) if app else _start(live, lock)
+    base = _shared(app, lock) if app else _start(live, lock)
+    lend_kinds(report, lock, app[2] if app else lock / '.auth/user.json')
+    return lock, recorder, base
 
 
 def run_journeys(report, target, runtime, folder, app=None):
@@ -272,29 +286,39 @@ def run_journeys(report, target, runtime, folder, app=None):
     live = app[0] if app else LiveRun(target, runtime, 'S05')
     try:
         lock, recorder, base = _journey_start(live, report, runtime, bundle, app)
-        argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
-                '--trace=retain-on-failure', '--output', str(folder / 'results')]
-        code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock', env={
-            **live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(folder / 'report.json'),
-            'EAOS_LOCK_STREAM': str(folder / STREAM), 'EAOS_RRWEB': str(recorder), 'EAOS_JOURNEYS': str(folder / 'rrweb')})
-        live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
+        for kind, files in passes(lock): _walk(live, base, folder, (kind, files), recorder)
     finally:
         if not app: live.stop()
         live.record('behavior-lock/journeys-log.json')
-    traces = sorted((folder / 'results').glob('**/trace.zip'))
+    traces = sorted(folder.glob('results*/**/trace.zip'))
     (folder / 'traces').mkdir(exist_ok=True)
     for number, trace in enumerate(traces, 1): shutil.move(str(trace), folder / 'traces' / f'{number:03d}-{trace.parent.name[:80]}.zip')
-    shutil.rmtree(folder / 'results', ignore_errors=True)
+    for results in folder.glob('results*'): shutil.rmtree(results, ignore_errors=True)
     (folder / STREAM).unlink(missing_ok=True)
     return _journey_results(folder, report)
 
 
+def _walk(live, base, folder, kind, recorder):
+    """One walk of the journeys: with the run's one session over every spec, rrweb recording each page, or as kind of user
+    `kind` ((id, spec files)) over its own pages' specs, its report report@<kind>.json."""
+    kind, files = kind
+    mark = f'@{kind}' if kind else ''
+    argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
+            '--trace=retain-on-failure', '--output', str(folder / f'results{mark}'), *files]
+    code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock', env={
+        **live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(folder / f'report{mark}.json'), 'EAOS_LOCK_KIND': kind or '',
+        'EAOS_LOCK_STREAM': str(folder / STREAM), **({} if kind else {'EAOS_RRWEB': str(recorder), 'EAOS_JOURNEYS': str(folder / 'rrweb')})})
+    live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
+
+
 def _journey_results(folder, report):
     """The walked specs and bounded recordings, whether the app belonged to the journeys or the check."""
-    statuses = spec_statuses(json.loads((folder / 'report.json').read_text(encoding='utf-8'))) if (folder / 'report.json').is_file() else {}
+    statuses = {(name, path.stem.partition('@')[2]): status for path in sorted(folder.glob('report*.json'))
+                for name, status in spec_statuses(json.loads(path.read_text(encoding='utf-8'))).items()}
     pages = _pages_of(json.loads((Path(report) / 'behavior-lock/plan.json').read_text(encoding='utf-8')))
-    walked = [{'spec': name, 'pages': pages.get(Path(name).name, [])[:20], 'status': status, 'reason': reason[:300]}
-              for name, (status, reason) in sorted(statuses.items())]
+    walked = [{'spec': name, **({'kind': kind} if kind else {}), 'pages': pages.get(Path(name).name, [])[:20], 'status': status,
+               'reason': reason[:300]} for (name, kind), (status, reason) in sorted(statuses.items())]
+    for path in folder.glob('report@*.json'): path.unlink()
     return {'specs': len(statuses), 'walked': walked, 'failed': sum(w['status'] == 'failed' for w in walked), **cap_journeys(folder)}
 
 
@@ -318,6 +342,7 @@ def verify_lock(report, target, runtime, name='results-after', declared=(), know
     lock = _prepare(live, report, recorded)
     try:
         base = _start(live, lock)
+        lend_kinds(report, lock, lock / '.auth/user.json')
         results = _results(report, _run_specs(live, lock, base, recorded, name, update=False, declared=declared, known=known))
     finally:
         live.stop()
@@ -329,8 +354,8 @@ def verify_lock(report, target, runtime, name='results-after', declared=(), know
 def _passed_before(runtime, results):
     """The specs that passed on the original (all of `results` when it has no record)."""
     original = runtime / 'behavior-lock/results.json'
-    if not original.is_file(): return {r['path'] for r in results}
-    return {r['path'] for r in json.loads(original.read_text(encoding='utf-8'))['results'] if r['status'] == 'passed'}
+    if not original.is_file(): return {key(r) for r in results}
+    return {key(r) for r in json.loads(original.read_text(encoding='utf-8'))['results'] if r['status'] == 'passed'}
 
 
 def _judged(passed_before, results):
@@ -338,5 +363,5 @@ def _judged(passed_before, results):
     never had one) cannot be broken by a change: only a spec that passed there and fails here counts against it."""
     failing = [r for r in results if r['status'] in ('failed', 'error')]
     return {'specs': len(results), 'passed': sum(r['status'] == 'passed' for r in results),
-            'failed': sum(r['path'] in passed_before for r in failing),
-            'already_failing': sorted(r['path'] for r in failing if r['path'] not in passed_before)}
+            'failed': sum(key(r) in passed_before for r in failing),
+            'already_failing': sorted(key(r) for r in failing if key(r) not in passed_before)}

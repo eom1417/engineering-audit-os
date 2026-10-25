@@ -9,6 +9,18 @@ PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})
 SKIP = {'.venv', 'venv', 'env', 'node_modules', '.git', 'tests', 'test', 'site-packages', '__pycache__', 'migrations'}
 MARKERS = ('manage.py', 'requirements.txt', 'pyproject.toml', 'setup.py')
 FIRST = ('streamlit_app.py', 'app.py', 'main.py', 'wsgi.py', 'run.py', 'server.py', 'Home.py')    # tried before the others
+# The run's test account in a Django app's own users (eaos/live/test_account.py signs in with it); an app whose user
+# model needs more is left to the sign-up page or the assistant, never a failed setup.
+DJANGO_ACCOUNT = '''import os
+from django.contrib.auth import get_user_model
+User, name = get_user_model(), os.environ['EAOS_TEST_USER']
+fields = {'email': name + '@example.com', 'password': os.environ['EAOS_TEST_PASSWORD']}
+fields.setdefault(User.USERNAME_FIELD, name)
+try:
+    User.objects.filter(**{User.USERNAME_FIELD: fields[User.USERNAME_FIELD]}).exists() or User.objects.create_superuser(**fields)
+except Exception as problem:
+    print('no test account:', problem)
+'''
 INIT_DB = re.compile(r'''command\(\s*['"]((?:init|create)[-_]?db)['"]''')
 
 
@@ -95,7 +107,10 @@ def install(app):
 def prepare(kind, target, app, needs, modules):
     """The commands that give the run's empty database the app's tables: Django's migrations, Flask-Migrate's, a Flask
     `init-db` command, or Alembic's."""
-    if kind == 'django': return [['python', 'manage.py', 'migrate', '--noinput']]
+    if kind == 'django':
+        account = re.search(r'django\.contrib\.auth', '
+'.join(text for _, text in modules))
+        return [['python', 'manage.py', 'migrate', '--noinput']] + ([['python', 'manage.py', 'shell', '-c', DJANGO_ACCOUNT]] if account else [])
     if kind == 'flask': return _flask_tables(target, app, needs, modules)
     if (app / 'alembic.ini').is_file() and 'alembic' in needs: return [['python', '-m', 'alembic', 'upgrade', 'head']]
     return []
@@ -134,6 +149,9 @@ def detect(project):
                'checks': [['python', '-m', 'pytest', '-q']] if re.search(r'^pytest\b', needs, re.M) else []}
     commands = prepare(kind, target, app, needs, modules)
     if commands: profile['prepare'] = commands
+    if kind == 'django':
+        from .test_account import account
+        account(profile)
     limitations = ['no value was chosen for: ' + ', '.join(unset[:12])] if unset else []
     return {'profile': profile, 'facts': {'folder': where, 'manager': 'pip', 'framework': kind, 'database': None,
                                           'env_names': sorted(names)}, 'limitations': limitations}

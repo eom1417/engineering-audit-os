@@ -1,5 +1,6 @@
 """The stage `session`, right after the app is set up: whether its pages need a sign-in, and the sessions every page
-stage opens them with (eaos/live/sign_in.py). Unless the person chose to sign in themselves, the assistant makes the test
+stage opens them with (eaos/live/sign_in.py). Unless the person chose to sign in themselves, a test account is made by
+rules on the app's own sign-up and sign-in pages (eaos/live/test_account.py), then the assistant makes the test
 users on the running app, one of each kind of user (eaos/live/test_users.py), for five minutes at most; a session still
 missing then, the person is asked (the Studio's Waiting for you, the assistant's status, `eaos watch` and `eaos
 sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends it with
@@ -29,7 +30,11 @@ def session(context):
     evidence = sign_in.from_code(context.out) + sign_in.from_pages(_setup_page(context))
     if not evidence: return _record(context, _views_alone(context))
     live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
-    lacking = '' if sign_in.by_hand(state) or chosen.get('how') == 'hand' else _test_users(context, live, base, state)
+    mine = sign_in.by_hand(state) or chosen.get('how') == 'hand'
+    if not mine and not sign_in.works(live, base, state, context.out):     # a test account by rules first: no assistant needed
+        from ..live.test_account import by_rules
+        chosen['tried'] = by_rules(live, base, state, sign_in.page_of(_setup_page(context), base))
+    lacking = '' if mine else _test_users(context, live, base, state)
     if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
     if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each view
     return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
@@ -69,6 +74,7 @@ def _ask(context, chosen, live, base, state):
     while not chosen.get('gave_up'):
         folder = chosen.get('folder') or live.runtime.parent
         sign_in.ask(folder, sign_in.page_of(_setup_page(context), base), state, why, log=sign_in.service_log(live), mail=live.mail())
+        sign_in.tell(folder, tried=chosen.get('tried') or [])     # what EAOS did before asking: the person sees why it asks
         outcome = sign_in.wait(folder)
         if outcome != sign_in.SIGNED_IN: break
         if sign_in.works(live, base, state, context.out): return
