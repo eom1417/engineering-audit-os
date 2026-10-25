@@ -97,6 +97,16 @@ def start(kind, target, port):
                           '--server.headless', 'true', '--browser.gatherUsageStats', 'false']}[kind]
 
 
+def served_pages(live):
+    """The GET routes without parameters a running Flask app serves, as Flask itself lists them (`flask routes`): the
+    blueprints' prefixes included, which the code read file by file misses (microblog's /login is /auth/login)."""
+    start = [str(word) for word in live.profile.get('start') or []]
+    if start[1:4] != ['-m', 'flask', '--app']: return []
+    code, out, _ = live.run(['python', '-m', 'flask', '--app', start[4], 'routes'], timeout=300)
+    rows = [re.split(r'\s{2,}', line.strip()) for line in out.splitlines()[2:]] if code == 0 else []
+    return [row[2] for row in rows if len(row) == 3 and 'GET' in row[1] and '<' not in row[2]]
+
+
 def install(app):
     if (app / 'requirements.txt').is_file(): return [['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check', '-r', 'requirements.txt']]
     if (app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file():

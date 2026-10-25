@@ -1,10 +1,13 @@
 """The page stages: the app opened in a browser, once as each kind of user of its code (eaos/live/roles.py, live_app
 sessions), its pages walked, crawled and pictured. The published address the person named is read only."""
 import json
+import re
 from pathlib import Path
 
 from .live_app import _keep, _live, _ran
 from .stages import SkipStage
+
+VISITOR = re.compile(r'/(login|log-in|signin|sign-in|sign_in|register|signup|sign-up|sign_up|join|auth)(\b|/|\?|$)', re.I)   # pages a visitor sees
 
 
 def _published(context):
@@ -67,7 +70,24 @@ def _pictured(context, app, groups, measured):
         speed = speed or measure
         nowhere = _nowhere(live, base, state)
         rows += [_seen(context, row, kind, nowhere) for row in audit.get('rows') or []]
-    return rows, speed, audit
+    return rows + _visitor(context, app, groups, measured), speed, audit
+
+
+def _visitor(context, app, groups, measured):
+    """The sign-in and sign-up pages as a visitor sees them, kind `visitor`: a signed-in session is sent away from them
+    (microblog's /auth/login opened its home page), so they are pictured with no session; [] when no session signed in."""
+    live, base, made = app
+    own = {template: paths for template, paths in groups.items() if VISITOR.search(paths[0])}
+    if not own or not any(Path(state).is_file() for _, state in made): return []
+    audit, _ = _audit_pages(context, own, measured, live, base, context.out / 'live/.no-session', 'visitor', False)
+    return [_as_visitor(_seen(context, row, 'visitor', None)) for row in audit.get('rows') or []]
+
+
+def _as_visitor(row):
+    """A visitor's picture of a sign-in page: its password field is the page itself, seen when it stayed where it was."""
+    from urllib.parse import urlsplit
+    if (urlsplit(row.get('landed') or row['url']).path.rstrip('/') or '/') == (urlsplit(row['url']).path.rstrip('/') or '/'): row.pop('unseen', None)
+    return row
 
 
 def _seen(context, row, kind, nowhere):
@@ -109,15 +129,22 @@ def _coverage(context, live, base, made, rows):
 def _screen_pages(context):
     """({template: its pages}, the crawl's measured entry or None): the app's static page routes, each kind of user's
     own pages (eaos/live/roles.py) and the crawled ones, never one the code proves no person reaches."""
-    from ..live.roles import proven
     from ..live.screens.crawl import distinct
     named = _named_pages(context)
-    pages = ['/'] + named
-    crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
-    pages += [row['path'] for row in crawled]
-    pages = [page for page in pages if page not in proven(context.out)]
+    record = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8')) if _ran(context, 'crawl') else {}
+    crawled = record.get('routes') or []
+    pages = ['/'] + named + [row['path'] for row in crawled]
+    pages = _kept(context, pages)
     measured = next((row for row in crawled if row.get('measured') and row.get('template') == '/'), None)
-    return distinct(pages, named + (_seeds(context) if context.get('runtime') else [])), measured
+    return distinct(pages, named + (record.get('seeds') or [])), measured
+
+
+def _kept(context, pages):
+    """The pages but those the code proves no person reaches, and those that sign out or delete: the session is shared."""
+    from ..live.lock_specs import LEAVES
+    from ..live.roles import proven
+    gone = proven(context.out)
+    return [page for page in pages if page not in gone and not re.search(LEAVES, page, re.I)]
 
 
 def _named_pages(context):
@@ -158,7 +185,7 @@ def crawl(context):
     from .live_app import sessions
     from ..live.screens.crawl import MEASURED, crawl as find
     live, base, made = sessions(context, published=True)
-    seeds, founds, routes = _seeds(context) if live else [], [], {}
+    seeds, founds, routes = _seeds(context, live) if live else [], [], {}
     for kind, state in made:
         found = find(base, context.out / 'live/crawl' / (kind or ''), measured=0 if founds else MEASURED,
                      storage_state=_file(state), read_only=not live, seeds=seeds)
@@ -170,16 +197,20 @@ def crawl(context):
     if live: _merge_explored(routes, _explored(context, base, made[0][1]))
     from ..live.screens.crawl import distinct
     _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
-                                  'pages': [paths[0] for paths in distinct(routes, seeds).values()]})     # one per template: the lock's stand-in
+                                  'pages': [paths[0] for paths in distinct(routes, seeds).values()], 'seeds': seeds})     # one per template: the lock's stand-in
     return {'pages': len(routes)}
 
 
-def _seeds(context):
-    """The screens the code and files name, and a server's GET routes: those that answer with a page are its pages
-    (Flask's /hello, linked from nowhere)."""
+def _seeds(context, live):
+    """The screens the code and files name, and a server's GET routes (Flask's own list of them when it is Flask):
+    those that answer with a page are its pages (Flask's /hello, linked from nowhere); never one that signs out or
+    deletes, which would end the session every page stage shares."""
+    from ..live.lock_specs import LEAVES
     from ..live.roles import pages_of
     from ..live.screens.crawl import code_routes
-    return code_routes(context.target) + [route for route in pages_of(context.out) if not route.startswith('/api')]
+    from ..live.setup_python import served_pages
+    found = code_routes(context.target) + served_pages(live) + pages_of(context.out)
+    return [route for route in dict.fromkeys(found) if not route.startswith('/api') and not re.search(LEAVES, route, re.I)]
 
 
 def _file(path):
@@ -213,5 +244,5 @@ def _explored(context, base, state):
         done = replay(browser, record) if record else {'broken_at': 0, 'screens': []}
         if 'broken_at' not in done or not context.provider: return done['screens']
         record = explore(browser, SCREENS, context.provider)
-    saved.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    return record['screens']
+    if not record.get('stopped'): saved.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return record['screens']       # an exploration the assistant could not finish is never replayed as the app's steps

@@ -34,7 +34,7 @@ class Scripted:
 
     def complete(self, messages, **options):
         self.seen.append(messages[-1]['content'])
-        return {'result': self.steps.pop(0) if self.steps else {'action': 'done'}}, {}
+        return (self.steps.pop(0) if self.steps else {'action': 'done'}), {}     # as Claude's adapter answers: the object itself
 
 
 @unittest.skipIf(missing('playwright'), 'EAOS Playwright is not installed')

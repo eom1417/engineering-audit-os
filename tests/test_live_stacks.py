@@ -56,6 +56,16 @@ class PythonStackTests(unittest.TestCase):
                                          'backend/app/main.py': 'from fastapi import FastAPI\napi = FastAPI()\n'}))['profile']
         self.assertEqual((api['app'], api['start'][:4]), ('backend', ['python', '-m', 'uvicorn', 'app.main:api']))
 
+    def test_flask_lists_its_own_pages_with_their_blueprint_prefixes(self):
+        from types import SimpleNamespace
+        from eaos.live.setup_python import served_pages
+        routes = ('Endpoint     Methods    Rule\n-----------  ---------  ----------------\n'
+                  'auth.login   GET, POST  /auth/login\napi.get_user  GET        /api/users/<int:id>\n'
+                  'main.edit    POST       /edit\nstatic       GET        /static/<path:filename>\n')
+        live = SimpleNamespace(profile={'start': ['python', '-m', 'flask', '--app', 'microblog', 'run']}, run=lambda argv, timeout: (0, routes, ''))
+        self.assertEqual(served_pages(live), ['/auth/login'])
+        self.assertEqual(served_pages(SimpleNamespace(profile={'start': ['npm', 'run', 'dev']})), [])
+
 
 class OtherStackTests(unittest.TestCase):
     def test_expo_serves_its_web_app_on_the_runs_port(self):

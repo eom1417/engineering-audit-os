@@ -29,8 +29,9 @@ def facts(context):
                                    cache=Path(context.runtime) / 'syntax-cache.json' if context.get('runtime') else None)
     # A tree with no source file to read is not an audited project, whatever its history says:
     # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
+    # A site of pages alone (its script inside its .html) is a project too: it was refused, its app never run.
     from ..core.vocabulary import classify
-    if not any(classify(item['path']) == 'source' for item in context['source'].readable()):
+    if not any(classify(item['path']) == 'source' or item['path'].endswith(('.html', '.htm')) for item in context['source'].readable()):
         raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
     return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
             'exclude': context['exclude']}

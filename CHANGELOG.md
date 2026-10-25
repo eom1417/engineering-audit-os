@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.0.77 (2026-10-25)
+
+M5, seeing any app. Without an assistant, EAOS started 4 of the 12 apps of its compatibility corpus and pictured the
+expected screens of 2: a Python app (Flask, Django, Streamlit) got the start command `true`, Expo ignored the port it
+was given, a static site's preview server ignored it too, SvelteKit's check broke on an empty code block in a blog post;
+and where the app ran, screens behind a button, a menu file or a framework's page folder were never pictured, and a
+sign-in page stopped everything. Now:
+- **Any common stack starts from its files** (M5.1): `live/setup_python.py` finds Django, Flask, FastAPI and Streamlit
+  (install, migrations or `init-db`, start, the environment names the code reads); Expo starts its web server on the
+  run's port; a static site is built and served by Python's own server. A Redis address is `redis://`, a mail server is
+  a host, a database name without the run's database is left unset so the app keeps its own. An engine's version check
+  on a loaded host is asked again, never taken for "not installed".
+- **Screens found in layers** (M5.2): the pages a framework's files make (Next.js, Nuxt, SvelteKit, Astro, Vue Router's
+  file routes, Expo Router, Streamlit's `pages/`), Django's URL configuration with its includes, a server's GET routes
+  (kept when they answer with a page), the menus of an app that routes by the hash at their `/#/` address; a page the
+  code names is never folded into a template with its siblings. Then **the browser agent** (`live/agent.py`): the
+  assistant drives the browser towards a goal a step at a time, each step recorded with its picture, and every later
+  check replays the steps with no assistant.
+- **Signed in on any computer** (M5.3): a test account by rules on the app's own sign-up and sign-in pages (Django's by
+  its own command) before any assistant; when the person is still needed, the question says what EAOS tried. The
+  behaviour lock and the walk-through run as each kind of user over that kind's own pages, so a change that breaks a
+  page only an administrator opens is caught.
+
 ## 0.0.76 (2026-10-24)
 
 M4, the check as loops. The ideal picture took 24 minutes on EAOS's own check (its critique wrote the whole ideal again,

@@ -102,7 +102,9 @@ def explore(browser, goal, provider, start='/'):
     while len(steps) < STEPS and time.monotonic() - began < SECONDS and failed < 3:
         try: step = _next(browser, provider, page, steps, goal.format(seen=screens))
         except Exception as problem: return _record(goal, start, steps, screens, f'the assistant could not go on: {problem}'[:300])
-        if step.get('action') not in ('click', 'fill', 'press', 'open', 'back'): break
+        if step.get('action') == 'done': break
+        if step.get('action') not in ('click', 'fill', 'press', 'open', 'back'):
+            return _record(goal, start, steps, screens, f'the assistant answered no step: {json.dumps(step)[:200]}')
         before, page = page.get('path'), browser.do(_command(step))
         steps.append(_taken(step, before, page))
         failed = failed + 1 if page.get('error') else 0
@@ -124,7 +126,8 @@ def _reached(screens, page):
 def _next(browser, provider, page, steps, goal):
     """The step the assistant chooses on `page` (its smallest model: a step is plain work)."""
     messages = [{'role': 'system', 'content': SYSTEM}, {'role': 'user', 'content': _brief(page, steps, goal)}]
-    return provider.complete(messages, small=True, stage='explore', reads=str(browser.out))[0].get('result') or {}
+    answer = provider.complete(messages, small=True, stage='explore', reads=str(browser.out))[0]
+    return answer.get('result') or answer       # the step itself, as the adapters return it, or wrapped
 
 
 def _record(goal, start, steps, screens, stopped=''):

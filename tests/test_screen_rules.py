@@ -55,3 +55,24 @@ class CodeRouteTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class VisitorTests(unittest.TestCase):
+    def test_a_signed_in_check_still_pictures_the_sign_in_and_sign_up_pages_as_a_visitor(self):
+        # flask-microblog: signed in by rules, its /auth/login and /auth/register opened its home page
+        from unittest import mock
+        from eaos.pipeline import pages
+        out = Path(scratch())
+        state = out / 'session.json'
+        state.write_text('{}')
+        groups = {'/index': ['/index'], '/auth/login': ['/auth/login'], '/auth/register': ['/auth/register']}
+        rows = [{'url': 'http://h/auth/login', 'landed': 'http://h/auth/login', 'password': 1, 'status': 'observed', 'http': 200},
+                {'url': 'http://h/auth/register', 'landed': 'http://h/auth/register', 'password': 2, 'status': 'observed', 'http': 200}]
+        context = mock.MagicMock(out=out)
+        with mock.patch.object(pages, '_audit_pages', return_value=({'rows': rows}, None)) as audit:
+            seen = pages._visitor(context, (None, 'http://h', [(None, state)]), groups, None)
+        self.assertEqual(list(audit.call_args.args[1]), ['/auth/login', '/auth/register'])
+        self.assertFalse(audit.call_args.args[5].is_file(), 'opened with no session')
+        self.assertEqual([(r['kind'], r.get('unseen')) for r in seen], [('visitor', None), ('visitor', None)])
+        self.assertEqual(pages._visitor(context, (None, 'http://h', [(None, out / 'none.json')]), groups, None), [],
+                         'a check that never signed in pictured them already')

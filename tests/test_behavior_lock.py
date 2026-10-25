@@ -227,7 +227,7 @@ class KindTests(Workspace):
         (lock / '.auth/sessions').mkdir(parents=True)
         (report / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [
             {'feature': 'home', 'tool': 'playwright', 'path': 'playwright/home.spec.ts', 'surfaces': ['/ (page)']},
-            {'feature': 'admin', 'tool': 'playwright', 'path': 'playwright/admin.spec.ts', 'surfaces': ['/admin (page)']}]}))
+            {'feature': 'admin', 'tool': 'playwright', 'path': 'playwright/admin.spec.ts', 'surfaces': ['GET /admin']}]}))     # Flask's
         (report / 'roles.json').write_text(json.dumps({'roles': [{'id': 'admin', 'pages': ['/admin']},
                                                                  {'id': 'guest', 'pages': ['/guest']}]}))
         (lock / '.auth/sessions/admin.json').write_text('{"cookies": [{"name": "admin"}]}')

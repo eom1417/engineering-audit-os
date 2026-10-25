@@ -78,7 +78,8 @@ def _page_specs(report):
     """[(spec file, {the pages it opens})] of the lock's Playwright specs."""
     plan = Path(report) / 'behavior-lock/plan.json'
     specs = json.loads(plan.read_text(encoding='utf-8')).get('specs') or [] if plan.is_file() else []
-    return [(s['path'], {str(x).split(' (')[0] for x in s.get('surfaces') or []}) for s in specs if s.get('tool') == 'playwright' and s.get('path')]
+    return [(s['path'], {str(x).split(' (')[0].removeprefix('GET ') for x in s.get('surfaces') or []})      # a server's page: GET /admin
+            for s in specs if s.get('tool') == 'playwright' and s.get('path')]
 
 
 def passes(lock):
