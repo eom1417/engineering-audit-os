@@ -63,18 +63,22 @@ def lend_kinds(report, lock, state):
     kind beside its pass with the run's one session (passes). A kind with no page of its own is seen in that pass."""
     from .roles import read
     from .run import kinds_folder
-    plan = Path(report) / 'behavior-lock/plan.json'
-    specs = [s for s in json.loads(plan.read_text(encoding='utf-8')).get('specs') or []
-             if s.get('tool') == 'playwright' and s.get('path')] if plan.is_file() else []
-    passes = []
+    specs, passes = _page_specs(report), []
     for kind in read(report):
         own, session = set(kind.get('pages') or []), kinds_folder(state) / f"{kind['id']}.json"
-        files = [s['path'] for s in specs if own & {str(x).split(' (')[0] for x in s.get('surfaces') or []}]
+        files = [path for path, pages in specs if own & pages]
         if not (files and session.is_file()): continue
         shutil.copyfile(session, lock / '.auth' / f"@{kind['id']}.json")
         passes.append((kind['id'], files))
     (lock / '.auth/kinds.json').write_text(json.dumps(passes), encoding='utf-8')
     return passes
+
+
+def _page_specs(report):
+    """[(spec file, {the pages it opens})] of the lock's Playwright specs."""
+    plan = Path(report) / 'behavior-lock/plan.json'
+    specs = json.loads(plan.read_text(encoding='utf-8')).get('specs') or [] if plan.is_file() else []
+    return [(s['path'], {str(x).split(' (')[0] for x in s.get('surfaces') or []}) for s in specs if s.get('tool') == 'playwright' and s.get('path')]
 
 
 def passes(lock):

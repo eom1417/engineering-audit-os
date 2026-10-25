@@ -146,9 +146,14 @@ def _results(report, statuses):
                               ('error', 'the spec did not run') if spec['path'] else
                               ('quarantined', ('nothing to run: ' + ', '.join(spec.get('surfaces') or ['no surface']))[:300]))
         results.append({'path': spec['path'], 'status': status, **({'reason': reason} if reason else {})})
-        results += [{'path': spec['path'], 'kind': file.rsplit('@', 1)[1], 'status': s, **({'reason': r} if r else {})}
-                    for file, (s, r) in statuses.items() if '@' in file and Path(file.rsplit('@', 1)[0]).name == name]
+        results += _kind_rows(spec['path'], statuses)
     return results
+
+
+def _kind_rows(path, statuses):
+    """The results of spec `path` in the passes as each kind of user (their statuses keyed <file>@<kind>)."""
+    return [{'path': path, 'kind': file.rsplit('@', 1)[1], 'status': s, **({'reason': r} if r else {})}
+            for file, (s, r) in statuses.items() if '@' in file and Path(file.rsplit('@', 1)[0]).name == Path(path).name]
 
 
 def key(result):

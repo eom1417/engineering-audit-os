@@ -31,14 +31,21 @@ def session(context):
     if not evidence: return _record(context, _views_alone(context))
     live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
     mine = sign_in.by_hand(state) or chosen.get('how') == 'hand'
-    if not mine and not sign_in.works(live, base, state, context.out):     # a test account by rules first: no assistant needed
-        from ..live.test_account import by_rules
-        chosen['tried'] = by_rules(live, base, state, sign_in.page_of(_setup_page(context), base))
+    if not mine: _by_rules(context, live, base, state)
     lacking = '' if mine else _test_users(context, live, base, state)
     if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
     if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each view
     return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
                              **({'test_users': lacking[:300]} if lacking else {})})
+
+
+def _by_rules(context, live, base, state):
+    """A test account by rules (eaos/live/test_account.py) when the run's session does not open the pages: no assistant
+    needed; what it tried is kept for the question the person may be asked."""
+    if sign_in.works(live, base, state, context.out): return
+    from ..live.test_account import by_rules
+    try: context['sign_in']['tried'] = by_rules(live, base, state, sign_in.page_of(_setup_page(context), base))
+    except Exception: context['sign_in']['tried'] = [{'did': 'no_form'}]      # rules never decide the check: the person is asked
 
 
 def _views_alone(context):
