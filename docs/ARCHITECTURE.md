@@ -118,6 +118,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a test | `tests/test_<module>.py`, one test per real behaviour |
 | a developer tool | `tools/` |
 | scratch of a task | `/workspace/eaos-work/<task>/`, removed when the task ends: never in the repository |
+| the done cards of the roadmap, the reasoning of done milestones | `docs/archive/`: not read at the start of a session |
 
 ## 5. Check paths
 

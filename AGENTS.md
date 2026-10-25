@@ -1,44 +1,51 @@
-> **أول قاعدة قبل أي شي: كل رد للمالك بالعربي فقط، بدون أي استثناء.** قبل ما ترسل أي رسالة (رد، تحديث، سؤال، ملخص، تقرير، ملخص إشعار) تأكد إنها مكتوبة بالعربي. حتى السطر القصير بين خطوة وخطوة بالعربي، وتقارير المساعدين الفرعيين تُترجم قبل ما تُنقل. الكود والتعليقات ورسائل commit والوثائق التقنية فقط بالإنجليزي.
-> **First rule: every word to the owner is Arabic, no exception** (replies, the one-line updates between steps, questions, tables and their headers, summaries, the notification summary; subagents' reports translated). Known slip points: after a session resumes, after long coding, when explaining a design, in table headers. Write the first word in Arabic and reread before sending. Code, comments, commits and technical docs are English.
+> **أول قاعدة قبل أي شي: كل كلام للمالك بالعربي فقط، بدون أي استثناء**: الردود، والسطر القصير بين خطوة وخطوة، والأسئلة، والجداول وعناوينها، والملخصات، وملخص الإشعار؛ وتقارير المساعدين الفرعيين تُترجم قبل ما تُنقل. بكلام بسيط بلا مصطلحات، واللهجة الخليجية مقبولة. الكود والتعليقات وأسماء الملفات ورسائل commit والوثائق التقنية فقط بالإنجليزي.
+> **مواضع الزلل المعروفة (تكررت):** بعد ما تنقطع الجلسة وترجع، وبعد شغل برمجي طويل، ولما تشرح تصميم أو تقترح حل، وفي عناوين الجداول. اكتب أول كلمة بالعربي، وراجع الرسالة كلها قبل الإرسال، ولا تكتب بالإنجليزي ثم تترجم.
+> **First rule: every word to the owner is Arabic, no exception; everything programmed is English.** Slip points: after a resume, after long coding, when explaining a design, in table headers.
 
 # Developing EAOS
 
-For the assistant developing EAOS itself (Codex reads this file; `CLAUDE.md` imports it for Claude Code). What EAOS
-tells the assistants of the projects it checks lives in `eaos/data/`, not here.
+The one manual for the assistant developing EAOS itself (Codex reads this file; `CLAUDE.md` imports it for Claude
+Code). What EAOS tells the assistants of the projects it checks lives in `eaos/data/`, not here.
 
 ## Start of every session (any assistant, any account, any model)
 
-1. Read `/workspace/AGENTS.md` and `/workspace/HANDOFF.md` (the container's rules and the state now); run
-   `bash /workspace/eaos-dev/workers/disk-budget.sh`.
-2. Read `ROADMAP.md`: where the work stands (status table) and the cards of the milestone the owner names.
+1. In the development container: read `/workspace/AGENTS.md` (the workspace map) and `/workspace/HANDOFF.md` (the state
+   now); run `bash /workspace/eaos-dev/workers/disk-budget.sh` and say any folder over its budget.
+2. Read `ROADMAP.md`: where the work stands and the cards of the milestone the owner names.
 3. Read only the reference the card needs:
 
 | Reference | What it holds |
 |---|---|
 | `docs/NORTH-STAR.md` | what EAOS is for, the three journeys, the principles |
-| `docs/STANDARDS.md` | the laws (code, security, safety, disk, tests, language) and the Definition of Done |
-| `docs/ARCHITECTURE.md` | the layout today and the target, the layers, the loops, where a new file goes |
-| `docs/DECISIONS.md` | the owner's decisions, newest first |
+| `docs/STANDARDS.md` | the laws (code, security, safety, disk, tests, language), what guards each, the Definition of Done |
+| `docs/ARCHITECTURE.md` | the layout, the layers, the loops, where a new file goes |
+| `docs/DECISIONS.md` | the owner's decisions that bind, by topic |
 | `docs/METRICS.md` | the numbers, baseline and after each milestone |
 | `CHANGELOG.md` | what each version changed and why |
+| `/workspace/RUNBOOK.md` | how to run a verify, the beta update, a trial, the corpus, the metrics in this container |
 
+   `docs/archive/` (the done cards, the reasoning of done milestones) is read only when a question needs that history.
 4. "Execute Mx" means every card of Mx, in order, to the Definition of Done, without asking again except for a
    decision only the owner can take.
 
-## Keep the context current (owner, 2026-10-23)
+## Keep the context current
 
-After every finished card or new decision, in the same change: update its row in `ROADMAP.md`, and whatever is no
-longer true in `docs/DECISIONS.md`, `docs/ARCHITECTURE.md`, `docs/STANDARDS.md`, this file, `/workspace/AGENTS.md`
-and `/workspace/HANDOFF.md`; `docs/METRICS.md` at each milestone end. Nothing about the work is kept in an account's
-or assistant's folders: a plan made in a provider's plan mode is copied into `ROADMAP.md` or `docs/DECISIONS.md`
-before the turn ends.
+After every finished card or new decision, in the same change, as `docs/STANDARDS.md` §8 lists. Nothing about the work
+is kept in an account's or assistant's folders: a plan made in a provider's plan mode is copied into `ROADMAP.md` or
+`docs/DECISIONS.md` before the turn ends.
 
 ## The owner
 
-- Writes Gulf Arabic and is not a developer: plain words, no jargon, the visible result first, honest about what is
-  not done or not proven. Short answers; no loops, no long waits.
-- Judges EAOS by what a non-developer feels using it. Fix the cause, not the symptom, with the least change; prove it
-  with a real trial, not only unit tests.
+- Writes Gulf Arabic and is not a developer: plain words, no jargon, the visible result first, short answers, honest
+  about what is not done or not proven; no loops, no long waits.
+- Judges EAOS by what a non-developer feels using it. **Least change, best result**: the smallest root fix, the cause
+  not the symptom; state the regression risks and how they are avoided; never break what exists; prove it with a real
+  trial, not only unit tests.
+- **Time and tokens are the owner's** (2026-10-24): plan the shortest path first; the affected tests while working, the
+  full verify **once** at the end of a batch of changes; no checks beyond what proves the change; finish what is in
+  hand before opening new work; real, not padded, estimates.
+- The owner's own projects (chief-ops, HungerLab, …) live in other containers and are never checked from here: fixes
+  are proved on trial apps in `/workspace/eaos-work/<task>/` and on the compatibility corpus.
 - **`main` is the owner's mother copy and is never touched** (git hooks refuse it).
 
 ## The laws (in full: `docs/STANDARDS.md`)
@@ -68,7 +75,7 @@ before the turn ends.
    git when they pass; the beta update then skips its own suite and code laws for it (the golden trial still runs).
 2. **Merge into `develop`** (`--no-ff`), push `origin/develop`, delete the branch.
 3. **`develop` into `beta-trial`** with `bash /workspace/eaos-beta-trial/update.sh --approved` (as a systemd unit:
-   `/workspace/HANDOFF.md`): at each milestone end, approved in advance; otherwise only when the owner approves.
+   `/workspace/RUNBOOK.md`): at each milestone end, approved in advance; otherwise only when the owner approves.
    It stops at the first failure, runs the suite, `tools/quality.py` and the golden trial, restarts the Studio, and deletes merged
    `dev/` branches.
 4. **Then the check**: of `develop`, from the Studio that runs `beta-trial`.
@@ -86,7 +93,7 @@ why, from the real incident, then what changed). `1.0.0` only when the owner dec
 stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`, `test_artifact_contract`,
 the golden trial (`tools/golden_trial.sh`, with the detection baseline of `tests/fixtures/baseline-app`).
 `tests/test_journey.py` is the fast end-to-end proof. A change to running apps or finding screens also runs the
-compatibility corpus (`tools/corpus.py`, a background job of about an hour: `/workspace/HANDOFF.md`); a milestone end
+compatibility corpus (`tools/corpus.py`, a background job of about an hour: `/workspace/RUNBOOK.md`); a milestone end
 measures `docs/METRICS.md` with `tools/metrics.py`.
 
 ## Setting up a computer

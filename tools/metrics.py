@@ -3,7 +3,7 @@
     python tools/metrics.py <check output> <project home> [--write "<title>"]
 
 <check output> is the check's output folder (the one holding technical/), <project home> the project's folder in
-EAOS's home (the one holding runtime/); the development container's HANDOFF.md names them for its develop check.
+EAOS's home (the one holding runtime/); the development container's RUNBOOK.md names them for its develop check.
 It prints the table; --write puts it in docs/METRICS.md as the section "<title>", replacing one of the same title.
 """
 import json
