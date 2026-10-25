@@ -3,6 +3,8 @@
    --save=FILE crawls the served console from every place (its links and its sheets, a few of each kind of address)
    and writes what each drew; --against=FILE draws the same addresses again and compares. --assets=DIR serves the
    console's code (boot.js and assets/) from a build folder instead of the server's, the server and its data the same.
+   Two drawings are compared without the strip of the run working now and with every number masked (steady()): a
+   live server moves both on its own; the markup and the words must be the same.
    Usage: node console/tools/same.cjs --save=before.json [--assets=DIR]
           node console/tools/same.cjs --against=before.json --assets=../eaos/data/studio */
 const fs = require('fs');
@@ -20,6 +22,10 @@ const SEEDS = ['/status', '/waiting', '/waiting/decided', '/waiting/questions', 
   '/understand/report-files', '/understand/history', '/understand/history/compare', '/project/app', '/project/assistants',
   '/project/tools', '/project/settings', '/project/branches', '/open', '/ask'];
 const PER_KIND = 3, MOST = 400;
+
+/** What a screen draws, without what moves on its own between two drawings: the strips of the run working now (side and phone), and
+ *  every number (times, durations, counts of a live server). Markup and words are compared as they are. */
+const steady = html => html.replace(/<a class="(side-live|live-strip)[^]*?<\/a>/g, '').replace(/\d+/g, '#');
 
 /** The kind of an address: its first two parts, how many parts follow, and which query names it has. */
 function kind(route) {
@@ -94,7 +100,7 @@ async function crawl(page) {
   }
   await browser.close();
   if (save) fs.writeFileSync(save, JSON.stringify({ routes, shots }));
-  const differ = before ? Object.keys(before.shots).filter(k => before.shots[k] !== shots[k]) : [];
+  const differ = before ? Object.keys(before.shots).filter(k => steady(before.shots[k]) !== steady(shots[k] || '')) : [];
   console.log(`${routes.length} addresses x ${COMBOS.length}: ${Object.keys(shots).length} drawn; ${differ.length} differ; ${errors.length} errors`);
   differ.forEach(k => console.log(`differs: ${k}`));
   [...new Set(errors)].forEach(e => console.log(e));
