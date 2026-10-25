@@ -28,8 +28,8 @@ Fewer than ten milestones: builds past the third share one milestone.
 """
 from collections import defaultdict
 
-SECURITY = {'access_gap', 'upgrade_dependency', 'secret'}
-STABILIZE = {'upgrade_dependency', 'broken_code', 'remove_dead', 'dead_code', 'leftover', 'access_gap', 'secret'}
+SECURITY = {'layer_boundary', 'upgrade_dependency', 'secret'}
+STABILIZE = {'upgrade_dependency', 'broken_code', 'remove_dead', 'dead_code', 'leftover', 'layer_boundary', 'secret'}
 SAFETY_NET = {'untested_path', 'trace_gap'}
 BOUNDARIES = {'import_cycle', 'hidden_coupling', 'policy_violation', 'canonicalize', 'duplicated_rule',
               'external_write', 'mutable_state'}

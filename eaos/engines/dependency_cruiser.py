@@ -1,7 +1,9 @@
 """dependency-cruiser: the JavaScript and TypeScript import graph, its cycles, and the owner's boundaries as rules.
 
-The rules are written into the work directory, never into the project: `no-circular` always, and one
-`forbidden` rule per `deny` in the project's own eaos.policy.json when it declares layers. Cycles and
+The rules are written into the work directory, never into the project: `no-circular` always, one `forbidden` rule per
+`deny` in the project's own eaos.policy.json when it declares layers, and the rules of the layer map EAOS drew (M6.2:
+each layer of the reference type barred from the layers it may not use, and browser code from reaching server code
+through any chain of files). Cycles and
 boundary breaches are findings, one per distinct cycle, on the runtime graph (a cycle through an
 `import type` is erased by the compiler, so it is not reported); they are a witness beside EAOS's own graph and
 enola, so agreement between them is what raises a claim.
@@ -21,6 +23,7 @@ NAME = 'dependency-cruiser'
 BINARY = 'depcruise'
 PINNED = tool.pinned(NAME)
 SKIPPED = 'node_modules|dist|build|coverage|\\.next|vendor'
+LAYERS = 'layers-depcruise.json'
 
 
 def capabilities():
@@ -42,9 +45,10 @@ def glob_regex(pattern):
     return '^' + out + ('$' if not pattern.endswith('**') else '')
 
 
-def configuration(target):
-    """The rule set: no-circular, plus one forbidden rule per deny in the project's eaos.policy.json."""
-    denied = _policy_rules(Path(target) / 'eaos.policy.json')
+def configuration(target, workdir=None):
+    """The rule set: no-circular, one forbidden rule per deny in the project's eaos.policy.json, and the layer map's rules
+    (LAYERS, written by the layers stage beside the engines' folder: eaos/analysis/layers/boundaries.py)."""
+    denied = _policy_rules(Path(target) / 'eaos.policy.json') + _layer_rules(workdir)
     rules = [{'name': 'no-circular', 'severity': 'error', 'from': {}, 'to': {'circular': True}}] + denied
     declared = len(denied)
     return {'forbidden': rules, 'options': {'doNotFollow': {'path': 'node_modules'}, 'exclude': {'path': SKIPPED},
@@ -66,6 +70,14 @@ def _policy_rules(policy):
                       'from': {'path': '|'.join(glob_regex(p) for p in source)},
                       'to': {'path': '|'.join(glob_regex(p) for p in sink)}})
     return rules
+
+
+def _layer_rules(workdir):
+    """The rules the layer map wrote for this check, or none."""
+    path = Path(workdir) / LAYERS if workdir else None
+    if not (path and path.is_file()): return []
+    try: return json.loads(path.read_text(encoding='utf-8'))
+    except ValueError: return []
 
 
 def _policy(policy):
@@ -134,8 +146,8 @@ def analyze(target, workdir, exclude=(), formats=None):
     declined, found = tool.started(NAME, BINARY, target)
     if declined: return declined
     target = Path(target).resolve()
+    rules, declared = configuration(target, workdir)
     workdir = tool.folder(workdir, NAME)
-    rules, declared = configuration(target)
     if exclude: rules['options']['exclude']['path'] += '|' + '|'.join(glob_regex(p).lstrip('^') for p in exclude)
     runs, seconds = {}, 0.0
     # Twice: the runtime graph gives the findings; the source graph (type imports kept) shows which cycles

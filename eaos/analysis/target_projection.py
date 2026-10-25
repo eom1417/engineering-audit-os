@@ -63,7 +63,7 @@ def _load(path, default):
     except (OSError, ValueError): return default
 
 
-def _facts(out):
+def facts_by_kind(out):
     by_kind = defaultdict(list)
     for path in sorted((Path(out) / 'facts').glob('*.json')):
         for fact in (_load(path, {}) or {}).get('facts') or []:
@@ -168,7 +168,7 @@ def infrastructure(reference, facts, target, files, prefix=''):
     repository root or under the app root (chief-ops keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
     observed = {**_observed_in_facts(facts), **_observed_in_files(_existing(target, prefix), files)}
-    return [_infrastructure_row(item, observed, reference['id']) for item in _baseline_items(reference)]
+    return [_infrastructure_row(item, observed, reference['id']) for item in baseline_items(reference)]
 
 
 DEPENDENCY_BOTS = ('renovate.json', '.github/renovate.json', '.github/dependabot.yml')
@@ -227,7 +227,7 @@ def _observed_in_code(files):
             'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (backup or 'none'))}
 
 
-def _baseline_items(reference):
+def baseline_items(reference):
     items = list(reference['infrastructure_baseline'])
     # A desktop program or a command is not hosted; it is released as a build, which the ci item covers.
     if reference['id'].startswith(HOSTED) and not any(item['area'] == 'hosting' for item in items):
@@ -254,7 +254,7 @@ def project(out, target=None):
     target, reference_id, prefix = _reference_of(out, target)
     if reference_id is None: return None
     reference = rooted(by_id(reference_id), prefix)
-    facts = _facts(out)
+    facts = facts_by_kind(out)
     features = (_load(out / 'features.json', {}) or {}).get('features') or []
     nodes = {f['location']['path']: f['value'] for f in facts['graph_node']}
     files = sorted(nodes)

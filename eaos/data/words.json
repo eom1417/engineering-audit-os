@@ -253,6 +253,34 @@
     "Checking the layering"
    ]
   },
+  "layers": {
+   "title": [
+    "يقرأ النظام طبقات",
+    "Read the system as layers"
+   ],
+   "does": [
+    "يضع كل ملف في طبقته، ويفحص الحدود بينها: ما يصل المتصفح، حماية كل نقطة طلب، قواعد البيانات، مكان قواعد العمل، التشغيل والاختبارات.",
+    "Places every file in its layer and checks the boundaries between them: what ships to the browser, each endpoint's guard, the data rules, where the business rules live, operations and tests."
+   ],
+   "doing": [
+    "أقرأ طبقات النظام",
+    "Reading the layers"
+   ]
+  },
+  "layers_live": {
+   "title": [
+    "يجرّب حدود الطبقات",
+    "Try the layers' boundaries"
+   ],
+   "does": [
+    "يجرّب قواعد البيانات على نسخة معزولة كمستخدمين مختلفين، ويجرّب نقاط الطلب على التطبيق وهو يعمل.",
+    "Tries the data rules on an isolated copy as different users, and the endpoints on the running app."
+   ],
+   "doing": [
+    "أجرّب حدود الطبقات",
+    "Trying the layers' boundaries"
+   ]
+  },
   "load": {
    "title": [
     "الكلفة لو زاد الاستخدام",
@@ -561,6 +589,16 @@
     "Structure and layers, cycles and coupling, complexity, duplication, dead code, the tests, how easily it grows"
    ]
   },
+  "layers": {
+   "name": [
+    "تجربة حدود الطبقات",
+    "Try the layers"
+   ],
+   "looks_at": [
+    "يجرّب على نسخة معزولة: البناء النهائي (أسرار في الملفات المنشورة)، قواعد البيانات كمستخدمين مختلفين، ونقاط الطلب بحسابين تجريبيين. يضيف حتى 15 دقيقة.",
+    "On an isolated copy: the production build (secrets in what ships), the data rules as different users, and the endpoints with two test accounts. Adds up to 15 minutes."
+   ]
+  },
   "speed": {
    "name": [
     "السرعة والتحمل",
@@ -585,20 +623,6 @@
    "why": [
     "أجزاء ستفشل أول مرة تُستخدم: استيراد لملف غير موجود، أو أمر في التوثيق لم يعد موجودًا.",
     "Parts that will fail the first time they run: an import of a missing file, or a documented command that no longer exists."
-   ]
-  },
-  "access_gap": {
-   "one": [
-    "بيانات مكشوفة",
-    "Exposed data"
-   ],
-   "group": [
-    "بيانات مكشوفة",
-    "Exposed data"
-   ],
-   "why": [
-    "بيانات المستخدمين يمكن قراءتها أو تعديلها من غير أصحابها.",
-    "Users' data can be read or changed by people who do not own it."
    ]
   },
   "security_weakness": {
@@ -851,6 +875,20 @@
    "why": [
     "استيراد يخالف ترتيب الطبقات الذي أعلنه المشروع.",
     "An import that breaks the layering the project declared."
+   ]
+  },
+  "layer_boundary": {
+   "one": [
+    "حد مكسور بين الطبقات",
+    "A broken boundary between layers"
+   ],
+   "group": [
+    "حدود مكسورة بين طبقات النظام",
+    "Broken boundaries between the layers"
+   ],
+   "why": [
+    "المتصفح يحمل سرًا، أو نقطة طلب بلا حماية، أو جدول مفتوح، أو قاعدة في المكان الخطأ: أي أحد يصل إلى ما لا يملكه.",
+    "The browser holds a secret, an endpoint has no guard, a table is open, or a rule lives in the wrong place: anyone reaches what is not theirs."
    ]
   },
   "design_review": {

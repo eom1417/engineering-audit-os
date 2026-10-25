@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 from .duplicate_claims import duplicated_rules, redundant_work, sequences, structural_duplicates
 from .engine_measures import engine_measurement
-from .fact_claims import (access_gaps, broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
+from .layer_claims import layer_findings
+from .fact_claims import (broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
                           mutable_globals, policy_violations, trace_gaps, vulnerable_dependencies)
 from .weaknesses import SECURITY, claims as weaknesses
 from ..core.vocabulary import schema_errors
@@ -19,9 +20,9 @@ from ..core.workspace import DATA, read, write
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fact'}
 # The builders of the claims facts earn (eaos/analysis/fact_claims.py), in ledger order: the claims are numbered in it.
-BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, access_gaps, external_writes,
+BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies, weaknesses)
+            vulnerable_dependencies, weaknesses, layer_findings)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
 
 
@@ -46,6 +47,7 @@ def detector_of(claim):
     render = claim.get('render') or {}
     key = render.get('key')
     if key == 'engine_cluster': return 'engine_cluster:' + str((render.get('params') or {}).get('kind'))
+    if key == 'layer_finding': return 'layer:' + str((render.get('params') or {}).get('rule'))
     if key: return key
     if str(claim.get('statement', '')).startswith('Import cycle between'): return 'import_cycle'
     return 'unattributed'

@@ -1,5 +1,5 @@
 {
- "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25.",
+ "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25. The apps marked 'layers' (M6.0, 2026-10-25) are the stacks the layers matter for (React + Vite + Supabase with its migrations, a Node REST API with its OpenAPI file, Next.js with API routes and server actions): their layer findings are recorded beside their screens.",
  "apps": [
   {
    "name": "rr-basic",
@@ -396,6 +396,37 @@
     "passed": true,
     "seconds": 142
    }
+  },
+  {
+   "name": "insights-lm",
+   "stack": "react-vite-supabase",
+   "repository": "https://github.com/theaiautomators/insights-lm-public",
+   "commit": "76cf9d808056c3b7afac3c1cb9bd180014ff6f64",
+   "licence": "MIT",
+   "layers": true,
+   "screens": [
+    "/"
+   ]
+  },
+  {
+   "name": "task-api",
+   "stack": "node-rest-openapi",
+   "repository": "https://github.com/davidtiger3622/crud-api-sqlite",
+   "commit": "6f66cd82ac62018d5d257a15c802b32527ee81a6",
+   "licence": "MIT",
+   "layers": true,
+   "screens": []
+  },
+  {
+   "name": "next-dashboard",
+   "stack": "nextjs-api-actions",
+   "repository": "https://github.com/vercel/nextjs-postgres-nextauth-tailwindcss-template",
+   "commit": "fe026711c19ac3ee4589c86a738f59b84e611559",
+   "licence": "MIT",
+   "layers": true,
+   "screens": [
+    "/login"
+   ]
   }
  ]
 }

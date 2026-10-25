@@ -27,6 +27,7 @@ from ...core.markup import both as T, esc
 from ...analysis.model import records, score, task_cards
 from .assets import CSS, JS, MAP_JS, SYSTEM_JS
 from .html import lit, num, tech, unavailable, w
+from .layers import section_layers
 from .plan import section_plan
 from .structure import section_structure
 from .summary import section_gaps, section_summary
@@ -91,6 +92,8 @@ INTRO = {'summary': ('صحة المشروع في صفحة واحدة: الدرج
                      'The health of the project on one page: the score, the five areas, the main problems, and what we did not check.'),
          'gaps': ('كل مشكلة: أين هي، وما حالها الآن وما المطلوب، وخطورتها، وهل يصلحها EAOS آليًا.',
                   'Every problem: where it is, what it is now and what it should be, how serious it is, and whether EAOS fixes it.'),
+         'layers': ('النظام كطبقات كما تقرؤه شركة برمجيات: ما يصل إلى المتصفح، وحماية كل نقطة طلب، وقواعد البيانات، ومكان قواعد العمل، والتشغيل، والاختبارات.',
+                    'The system as layers, as a software firm reads it: what ships to the browser, the guard of every endpoint, the data rules, where the business rules live, operations and tests.'),
          'structure': ('أجزاء المشروع اليوم وأين تتركز المشاكل، وكيف يعتمد كل جزء على غيره، حتى الملفات والدوال والصفحات.',
                        'The parts of the project today, where problems gather, and how each depends on the others, down to files, functions and pages.'),
          'system': ('النظام من أوله إلى آخره: كل صفحة، وكل نقطة API تستدعيها، والكود في الخادم الذي يجيبها، وما يستخدمه، والجداول والخدمات التي يصل إليها.',
@@ -116,7 +119,7 @@ def _with_cards(m, errors):
 def _parts(m, name, errors):
     """{section: its HTML}; a section that cannot be built says "not available" and its failure is noted."""
     parts = {}
-    for section, build in (('summary', lambda: section_summary(m, name)), ('gaps', lambda: section_gaps(m)),
+    for section, build in (('summary', lambda: section_summary(m, name)), ('gaps', lambda: section_gaps(m)), ('layers', lambda: section_layers(m)),
                            ('structure', lambda: section_structure(m)), ('system', lambda: section_system(m) + pipeline_part(m)),
                            ('target', lambda: section_target(m)), ('plan', lambda: section_plan(m))):
         try: parts[section] = build()

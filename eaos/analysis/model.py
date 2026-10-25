@@ -5,7 +5,6 @@ of their own (docs/STUDIO.md, D2).
 
 What a problem is: one task card of plan.json. Its area and severity come from one table, PATTERNS below:
     pattern             area             default severity
-    access_gap          security         critical
     upgrade_dependency  security         high
     security_weakness   security         high
     broken_code         quality          high
@@ -18,6 +17,7 @@ What a problem is: one task card of plan.json. Its area and severity come from o
     hidden_coupling     structure        low
     external_write      structure        medium
     policy_violation    structure        medium
+    layer_boundary      by its boundary (security for the browser, endpoints and data; structure; maintainability)
     load_blocker        performance      medium
     redundant_work      performance      medium
     hotspot             maintainability  medium
@@ -70,12 +70,12 @@ CRITICAL_CAP = 39
 # ux: how the screens look, from the visual reviewer's design cards; measured only in a check that pictured them.
 AREAS = ('security', 'structure', 'quality', 'performance', 'ux', 'maintainability')
 PATTERNS = {
-    'access_gap': ('security', 'critical'), 'upgrade_dependency': ('security', 'high'), 'security_weakness': ('security', 'high'),
+    'upgrade_dependency': ('security', 'high'), 'security_weakness': ('security', 'high'),
     'broken_code': ('quality', 'high'), 'remove_dead': ('quality', 'low'), 'dead_code': ('quality', 'low'),
     'canonicalize': ('quality', 'low'), 'duplicated_rule': ('quality', 'medium'),
     'import_cycle': ('structure', 'medium'), 'mutable_state': ('structure', 'medium'), 'mutable_state_private': ('structure', 'low'),
     'hidden_coupling': ('structure', 'low'), 'external_write': ('structure', 'medium'),
-    'policy_violation': ('structure', 'medium'),
+    'policy_violation': ('structure', 'medium'), 'layer_boundary': ('security', 'high'),
     'load_blocker': ('performance', 'medium'), 'redundant_work': ('performance', 'medium'),
     'hotspot': ('maintainability', 'medium'), 'split_module': ('structure', 'medium'), 'trace_gap': ('maintainability', 'low'),
     'untested_path': ('maintainability', 'medium'), 'generic': ('maintainability', 'medium'),
@@ -105,7 +105,7 @@ def classify(task, debt=None, category=None):
     pattern = plain_kind(task)
     area, severity = PATTERNS.get(pattern, PATTERNS['generic'])
     # An investigation (an unproven claim) stays in the area of what it is about.
-    if pattern not in PATTERNS or pattern in ('generic', 'investigation'):
+    if pattern not in PATTERNS or pattern in ('generic', 'investigation', 'layer_boundary'):
         area = CATEGORY_AREA.get(category, area)
     debt = debt or (task.get('design') or {}).get('severity')
     if debt in SEVERITY_WEIGHT: severity = debt
@@ -233,7 +233,7 @@ def records(report, progress=None):
     return {'rows': rows, 'statuses': statuses, 'coverage': coverage,
             'score': score(rows + accepted_risks(report), coverage.get('source_files'), statuses, known), 'plan': plan, 'target': target,
             'gap_matrix': {'rows': target.get('gap_matrix') or []}, 'manifest': _load(report / 'run-manifest.json', {}) or {},
-            'dossier': dossier, 'progress': progress or {}}
+            'dossier': dossier, 'progress': progress or {}, 'layers': _load(report / 'layers.json', None)}
 
 
 # ---------------------------------------------------------------- progress: the ledger and every task card

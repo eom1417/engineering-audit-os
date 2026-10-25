@@ -1,4 +1,5 @@
-"""A Supabase table without row-level security, or with a write policy that checks nothing, is a confirmed risk."""
+"""A Supabase table without row-level security, or with a write policy that checks nothing, is a confirmed finding of
+the data layer (eaos/analysis/layers/data.py), a card with the reference's fix."""
 import json
 from pathlib import Path
 
@@ -27,16 +28,21 @@ class AccessGapTests(TemporaryWorkspace):
         (target / 'src/client.ts').write_text('export const ready = true;\n')
         cls.out = root / 'report'
         execute(target, cls.out)
-        cls.claims = json.loads((cls.out / 'dossier.json').read_text())['claims']
-        cls.gaps = [c for c in cls.claims if (c.get('render') or {}).get('key', '').startswith('access_gap_')]
+        claims = json.loads((cls.out / 'dossier.json').read_text())['claims']
+        cls.gaps = [c for c in claims if (c.get('render') or {}).get('key') == 'layer_finding'
+                    and c['render']['params']['rule'] in ('table-without-rls', 'open-write-policy')]
 
-    def test_the_table_without_rls_and_the_open_write_policy_are_confirmed_gaps_with_a_remediation(self):
-        found = sorted((c['render']['key'], c['render']['params']['table']) for c in self.gaps)
-        self.assertEqual(found, [('access_gap_no_rls', 'public.notes'), ('access_gap_open_write', 'public.posts')])
+    def test_the_table_without_rls_and_the_open_write_policy_are_confirmed_cards_with_their_fix(self):
+        self.assertEqual(sorted(c['render']['params']['rule'] for c in self.gaps), ['open-write-policy', 'table-without-rls'])
+        self.assertIn('public.notes', next(c['statement'] for c in self.gaps if c['render']['params']['rule'] == 'table-without-rls'))
+        self.assertIn('public.posts', next(c['statement'] for c in self.gaps if c['render']['params']['rule'] == 'open-write-policy'))
         self.assertTrue(all(c['confidence'] == 'CONFIRMED' for c in self.gaps), [c['confidence'] for c in self.gaps])
         probes = json.loads((self.out / 'probes.json').read_text())
-        rows = [p for p in probes if p['specification'].get('query') == 'access_gap_present']
-        self.assertEqual(sorted(p['status'] for p in rows), ['CONFIRMED', 'CONFIRMED'])
+        rows = [p for p in probes if p['specification'].get('query') == 'boundary_finding_present']
+        self.assertTrue(rows and all(p['status'] == 'CONFIRMED' for p in rows), rows)
         tasks = json.loads((self.out / 'plan.json').read_text())['tasks']
         ids = {c['id'] for c in self.gaps}
-        self.assertEqual({t.get('pattern') for t in tasks if t.get('claim_id') in ids}, {'access_gap'})
+        mine = [t for t in tasks if t.get('claim_id') in ids]
+        self.assertEqual({t.get('pattern') for t in mine}, {'layer_boundary'})
+        # the card names the boundary it breaks and the reference's fix, for the person and for the judge (M6.11)
+        self.assertTrue(all(t['render']['params']['boundary'] == 'data' and 'owner' in t['render']['params']['fix_en'] for t in mine))

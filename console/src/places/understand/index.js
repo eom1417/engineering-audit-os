@@ -8,9 +8,9 @@ import { storyCounts, targetDecision, covered } from '../understand-kit/model.js
 const NEEDS = ['coverage', 'story', 'system'];
 const SECTION = { gaps: 'gaps', operations: 'operations', ideal: 'ideal', 'ai-decisions': 'nodes', components: 'system', paths: 'paths', functions: 'functions',
   data: 'data_paths', unseen: 'hidden', infra: 'infra', pipelines: 'pipeline', screens: 'screens', 'screens/all': 'journeys', journeys: 'journeys',
-  library: 'docs', 'report-files': null, history: 'history', story: 'story', architecture: null };
+  library: 'docs', 'report-files': null, history: 'history', story: 'story', architecture: null, layers: 'layers' };
 const VICON = { story: 'book', gaps: 'layers', operations: 'layers', ideal: 'ai', 'ai-decisions': 'ai', components: 'map', paths: 'code', functions: 'code', data: 'folder',
-  unseen: 'screen', infra: 'app', pipelines: 'activity', architecture: 'layers', screens: 'screen', 'screens/all': 'screen', journeys: 'map', library: 'book', 'report-files': 'file', history: 'history' };
+  unseen: 'screen', infra: 'app', pipelines: 'activity', architecture: 'layers', screens: 'screen', 'screens/all': 'screen', journeys: 'map', library: 'book', 'report-files': 'file', history: 'history', layers: 'layers' };
 function storyCard() {
   const c = storyCounts(), d = targetDecision();
   if (c.today == null) return '';

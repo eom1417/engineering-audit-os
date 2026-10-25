@@ -38,8 +38,10 @@ class Loop:
 LOOPS = (
     Loop('understand', ('facts', 'features', 'roles', 'intake', 'engines', 'policy'), needs=('facts',), on_fail='stop'),
     # the app's stages break on a loaded computer (a browser that timed out, an app slow to answer): one more round
-    Loop('run_and_see', ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline'),
+    Loop('run_and_see', ('setup', 'verify', 'session', 'crawl', 'lock', 'record', 'journeys', 'screens', 'baseline', 'layers'),
          needs=('setup', 'screens'), max_rounds=2),
+    # the layers tried on the running app: an option of the check (the `layers` path), its time said before it starts
+    Loop('try_layers', ('layers_trial',), needs=('layers_trial',), switch='layers'),
     Loop('judge', ('measure', 'architecture', 'load', 'readiness', 'claims', 'probe', 'sustainability', 'transform',
                    'semantic', 'plan', 'target', 'proposals', 'triage', 'visual', 'cards'), needs=('claims', 'triage')),
     Loop('envision', ('ideal', 'pipeline_gaps', 'reconcile'), needs=('ideal', 'reconcile')),
