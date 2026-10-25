@@ -1,5 +1,5 @@
 {
- "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23.",
+ "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25.",
  "apps": [
   {
    "name": "rr-basic",
@@ -39,8 +39,8 @@
     "/#/charts",
     "/#/components/accordion",
     "/#/forms/form-control",
-    "/#/login",
-    "/#/404"
+    "/#/authentication/login",
+    "/#/error-pages/404"
    ],
    "result": {
     "date": "2026-10-23",

@@ -22,8 +22,9 @@ function pathOf(href) {
   let url;
   try { url = new URL(href, base); } catch { return null; }
   if (url.origin !== base.origin || !['http:', 'https:'].includes(url.protocol)) return null;
-  const route = url.hash.startsWith('#/') ? url.hash : '';
-  return (url.pathname || '/') + url.search + route;
+  // a hash route is the screen wherever the page sits: CoreUI's links, read on /components, named /components#/x
+  if (url.hash.startsWith('#/')) return base.pathname + url.hash;
+  return (url.pathname || '/') + url.search;
 }
 
 // An app that moves by buttons (a tab bar, a menu of buttons) and opens on a welcome: its pages are found by pressing
@@ -74,7 +75,9 @@ try {
     const page = await context.newPage();
     let status = 'observed', links = [];
     try {
-      await page.goto(new URL(path, base).href, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
+      const answer = await page.goto(new URL(path, base).href, { waitUntil: 'load', timeout: config.timeout_ms || 30000 });
+      // a route that answers with data (JSON, a file) is no screen: a server's GET routes are tried as pages
+      if (answer && !/html/i.test(answer.headers()['content-type'] || 'text/html')) throw new Error('not a page');
       // A development server can take long to draw the first screen: wait until the page shows something
       try { await page.waitForFunction(() => document.body && document.body.innerText.trim().length > 0, null, { timeout: 60000 }); } catch {}
       try { await page.waitForLoadState('networkidle', { timeout: 5000 }); } catch {}

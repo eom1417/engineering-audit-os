@@ -88,8 +88,9 @@ _DECLARED = (
                       'while the stages that open no page go on', ai=True),
     Stage('crawl', produces=('live/crawl.json',), requires=('setup',), reads=('session',), necessity=OPTIONAL, uses=('app',),
           absent_when='the app is not running in an isolated copy, or it serves no page',
-          description="Every page of the app found by following its links; Lighthouse on the entry and the first page of "
-                      'each distinct template, ten at most'),
+          description="Every page of the app found by following its links, the pages its code and files name, and those "
+                      'behind its buttons (the browser agent: saved steps replayed, or explored with the assistant); '
+                      'Lighthouse on the entry and the first page of each distinct template, ten at most'),
     Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), reads=('crawl',), necessity=OPTIONAL,
           absent_when='the program has no feature to lock: neither its code nor the crawl of its running copy names a page, '
                       'http route or command',

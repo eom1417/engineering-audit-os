@@ -109,14 +109,24 @@ def _coverage(context, live, base, made, rows):
 def _screen_pages(context):
     """({template: its pages}, the crawl's measured entry or None): the app's static page routes, each kind of user's
     own pages (eaos/live/roles.py) and the crawled ones, never one the code proves no person reaches."""
-    from ..live.roles import pages_of, proven, read
+    from ..live.roles import proven
     from ..live.screens.crawl import distinct
-    pages = ['/'] + pages_of(context.out, served=False) + [page for kind in read(context.out) for page in kind['pages']]
+    named = _named_pages(context)
+    pages = ['/'] + named
     crawled = json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes'] if _ran(context, 'crawl') else []
     pages += [row['path'] for row in crawled]
     pages = [page for page in pages if page not in proven(context.out)]
     measured = next((row for row in crawled if row.get('measured') and row.get('template') == '/'), None)
-    return distinct(pages), measured
+    return distinct(pages, named + (_seeds(context) if context.get('runtime') else [])), measured
+
+
+def _named_pages(context):
+    """The page routes the code names and each kind of user's own pages, at the address that shows each: '/#/x' in an
+    app that routes by the hash (CoreUI's were opened at /x, its dashboard each time)."""
+    from ..live.roles import pages_of, read
+    from ..live.screens.crawl import as_screen, hash_routed
+    hashed = hash_routed(context.target)
+    return [as_screen(page, hashed) for page in pages_of(context.out, served=False) + [page for kind in read(context.out) for page in kind['pages']]]
 
 
 def _audit_pages(context, groups, measured, live, base, state, kind, speed):
@@ -139,14 +149,16 @@ def _entry_speed(measured, base, folder, state, live):
 
 
 def crawl(context):
-    """Every page of the running app found by following its links, Lighthouse on the entry and the first page of each
-    distinct template, ten at most (eaos/live/screens/crawl.py), once as each kind of user (eaos/live/roles.py): each route with
-    the kinds that reached it. The published address the person named, read only, a few."""
+    """Every page of the running app found in layers: the pages its code and files name and a server's GET routes
+    (eaos/live/screens/crawl.py code_routes), its links followed once as each kind of user (eaos/live/roles.py), then the
+    screens behind its buttons by the browser agent (_explored); Lighthouse on the entry and the first page of each
+    distinct template, ten at most. Each route with the kinds that reached it. The published address the person named,
+    read only, a few, by its links alone."""
     if not _published(context): _live(context)
     from .live_app import sessions
-    from ..live.screens.crawl import MEASURED, code_routes, crawl as find
+    from ..live.screens.crawl import MEASURED, crawl as find
     live, base, made = sessions(context, published=True)
-    founds, routes, seeds = [], {}, code_routes(context.target) if live else []
+    seeds, founds, routes = _seeds(context) if live else [], [], {}
     for kind, state in made:
         found = find(base, context.out / 'live/crawl' / (kind or ''), measured=0 if founds else MEASURED,
                      storage_state=state if state.is_file() else None, read_only=not live, seeds=seeds)
@@ -155,10 +167,24 @@ def crawl(context):
         _merge_routes(routes, found, kind)
     if not founds:
         raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
+    if live: _merge_explored(routes, _explored(context, base, made[0][1]))
     from ..live.screens.crawl import distinct
     _keep(context, 'crawl.json', {'schema_version': 1, **founds[0], 'routes': list(routes.values()),
-                                  'pages': [paths[0] for paths in distinct(routes).values()]})     # one per template: the lock's stand-in
+                                  'pages': [paths[0] for paths in distinct(routes, seeds).values()]})     # one per template: the lock's stand-in
     return {'pages': len(routes)}
+
+
+def _seeds(context):
+    """The screens the code and files name, and a server's GET routes: those that answer with a page are its pages
+    (Flask's /hello, linked from nowhere)."""
+    from ..live.roles import pages_of
+    from ..live.screens.crawl import code_routes
+    return code_routes(context.target) + [route for route in pages_of(context.out) if not route.startswith('/api')]
+
+
+def _merge_explored(routes, paths):
+    """The screens the browser agent reached, each a route once."""
+    for path in paths: routes.setdefault(path, {'path': path, 'depth': None, 'status': 'observed', 'explored': True, 'kinds': []})
 
 
 def _merge_routes(routes, found, kind):
@@ -166,3 +192,21 @@ def _merge_routes(routes, found, kind):
     for row in found['routes']:
         merged = routes.setdefault(row['path'], {**row, 'kinds': []})
         if kind: merged['kinds'].append(kind)
+
+
+def _explored(context, base, state):
+    """The screens behind buttons, tabs and welcomes no link reaches (eaos/live/agent.py): the steps saved in the runtime
+    replayed with no assistant; explored by the assistant and saved again when there are none or they broke. [] with
+    neither steps nor assistant. The steps and their pictures are one folder, replaced each time."""
+    from ..live.agent import SCREENS, Browser, explore, replay
+    folder = Path(context.runtime) / 'explore'
+    saved = folder / 'screens.json'
+    try: record = json.loads(saved.read_text(encoding='utf-8'))
+    except (OSError, ValueError): record = None
+    if not record and not context.provider: return []
+    with Browser(base, folder, state if Path(state).is_file() else None) as browser:
+        done = replay(browser, record) if record else {'broken_at': 0, 'screens': []}
+        if 'broken_at' not in done or not context.provider: return done['screens']
+        record = explore(browser, SCREENS, context.provider)
+    saved.write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return record['screens']
