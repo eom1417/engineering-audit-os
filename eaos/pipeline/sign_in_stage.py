@@ -30,9 +30,7 @@ def session(context):
     evidence = sign_in.from_code(context.out) + sign_in.from_pages(_setup_page(context))
     if not evidence: return _record(context, _views_alone(context))
     live, base, state = shared_app(context)              # seeded, or the person's session checked; kept for the page stages
-    mine = sign_in.by_hand(state) or chosen.get('how') == 'hand'
-    if not mine: _by_rules(context, live, base, state)
-    lacking = '' if mine else _test_users(context, live, base, state)
+    lacking = '' if sign_in.by_hand(state) or chosen.get('how') == 'hand' else _test_users(context, live, base, state)
     if not sign_in.works(live, base, state, context.out): _ask(context, chosen, live, base, state)
     if sign_in.by_hand(state): lacking = _test_users(context, live, base, state, hand=True)     # its switches into each view
     return _record(context, {'needed': True, 'evidence': evidence, 'how': 'hand' if sign_in.by_hand(state) else 'test_user',
@@ -67,6 +65,7 @@ def _test_users(context, live, base, state, hand=False):
     switches into each view a switch enters; what is still lacking, '' when nothing."""
     from ..live.test_users import lacking, make, views
     if hand and not views(context.out, True): return ''
+    if not hand: _by_rules(context, live, base, state)
     if not context.provider: return lacking(live, base, state, context.out, hand)
     try: return make(context.target, live, base, state, context.out, context.provider, hand)
     except Exception as problem:          # the assistant never decides the fate of the check: the person is asked

@@ -108,8 +108,7 @@ def prepare(kind, target, app, needs, modules):
     """The commands that give the run's empty database the app's tables: Django's migrations, Flask-Migrate's, a Flask
     `init-db` command, or Alembic's."""
     if kind == 'django':
-        account = re.search(r'django\.contrib\.auth', '
-'.join(text for _, text in modules))
+        account = re.search(r'django\.contrib\.auth\b', '\n'.join(text for _, text in modules))
         return [['python', 'manage.py', 'migrate', '--noinput']] + ([['python', 'manage.py', 'shell', '-c', DJANGO_ACCOUNT]] if account else [])
     if kind == 'flask': return _flask_tables(target, app, needs, modules)
     if (app / 'alembic.ini').is_file() and 'alembic' in needs: return [['python', '-m', 'alembic', 'upgrade', 'head']]
