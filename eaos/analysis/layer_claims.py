@@ -8,6 +8,9 @@ eaos/engines/dependency_cruiser.py) is a finding of its own.
 """
 from .layers.catalog import fix, sentence
 
+# A missing piece of operations is the target's to plan (its infrastructure rows, eaos/analysis/target_projection.py):
+# shown in the layers, never a second card.
+PLANNED_ELSEWHERE = {'operations-missing'}
 INTENT = {'unowned-row', 'unguarded-private-read', 'browser-only-rule', 'ui-calculation', 'untested-write'}
 REACH = 'eaos-browser-reaches-server'
 
@@ -37,7 +40,8 @@ def _claim(fact, add):
 
 def layer_findings(fact_sets, add, target):
     """One claim per layer finding (eaos/analysis/claims.py BUILDERS)."""
-    facts = [f for f in (fact_sets.get('boundaries') or {}).get('facts', []) if f.get('kind') == 'boundary_finding']
+    facts = [f for f in (fact_sets.get('boundaries') or {}).get('facts', []) if f.get('kind') == 'boundary_finding'
+             and f['value']['rule'] not in PLANNED_ELSEWHERE]
     for fact in facts: _claim(fact, add)
     known = {f['location']['path'] for f in facts if f['value']['rule'] == 'server-module-in-browser'}
     for path, message in _reached(fact_sets, known):

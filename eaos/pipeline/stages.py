@@ -124,11 +124,11 @@ _DECLARED = (
                       "database of the run's own and tried per table with pgTAP as no one, the owner and another user (and the "
                       "Supabase advisors), the API tried by Schemathesis with two test accounts; each failure a finding with "
                       'its evidence'),
-    Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline',),
+    Stage('readiness', produces=('readiness.json',), requires=('intake',), reads=('baseline', 'layers'),
           description='How the program holds up in production and under pressure, as findings with evidence: the external '
                       'dependencies a fault would hit, the routes a security scan would request, a health route, telemetry '
                       "and SLO-able scenarios, and the load baseline against the intake's thresholds"),
-    Stage('measure', produces=('measurements.json',), requires=('facts',), reads=('engines', 'verify'),
+    Stage('measure', produces=('measurements.json',), requires=('facts',), reads=('engines', 'verify', 'layers'),
           description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
     Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL, uses=('memory',),
           absent_when='external engines were not requested, or neither CodeCharta nor Emerge is installed or reads this project',

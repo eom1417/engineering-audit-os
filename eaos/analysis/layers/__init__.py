@@ -81,7 +81,9 @@ def summary(record):
           for name in BOUNDARIES}
     return {'boundaries': by, 'findings': len(record['findings']), 'questions': len(record['questions']),
             'critical': [f['en'] for f in record['findings'] if f['severity'] == 'high'][:10],
-            'files': len(record['map']), 'gaps': len(record['gaps']), 'endpoints': len(record['endpoints'])}
+            'files': len(record['map']), 'gaps': len(record['gaps']), 'endpoints': len(record['endpoints']),
+            'placed': len(record['map']) - len(record['gaps']), 'tables': len(record['tables']),
+            'by_boundary': {name: sum(by[name].values()) for name in BOUNDARIES}}
 
 
 def facts_of(record):

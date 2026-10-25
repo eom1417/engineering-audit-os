@@ -136,7 +136,8 @@ class JointDecision(TemporaryWorkspace):
         self.assertEqual((by_id['T-worker']['relation'], by_id['T-worker']['decided_by']['label']), ('retain', 'disagreement'))
         self.assertEqual(by_id['T-root']['decided_by']['label'], 'rule_only')
         gaps = {r['component']: r for r in target['gap_matrix']}
-        self.assertEqual((gaps['T-api']['gap'], gaps['T-api']['decided_by']), ('missing', 'ai_modified'))
+        # its routes write with no sign-in check (M6): cards now close part of its gap
+        self.assertEqual((gaps['T-api']['gap'], gaps['T-api']['decided_by']), ('partial', 'ai_modified'))
         names = {t['name']: t['decided_by']['label'] for t in target['target_components']}
         self.assertEqual((names['domain'], names['TC-events']), ('disagreement', 'ai_added'))
         # Self-audit: the ideal planner cited a claim the triage had rejected; standing only on it, the rule stays.
