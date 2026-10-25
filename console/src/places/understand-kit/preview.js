@@ -4,7 +4,7 @@
 // preview's confirm token (POST /api/runs). A choice the person changes asks for the preview again. In the read-only
 // copy the sheet explains how to open the console live.
 import {
-  t, L, num, esc, icon, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, offline,
+  t, L, esc, icon, href, expiresAt, sheet, act, rerenderSheet, local, parseHash, closeSheetThen, toast, offline,
   client, ActionError, contract, store, assistantPicker, estimate,
 } from 'eaos';
 import { facts } from './kit.js';

@@ -4,7 +4,7 @@
 // (`verb:fix:step:<id>`, the server resolves its open problems). States: loading, empty (no check), not measured
 // (no waves), offline (every action opens "Open it live").
 import {
-  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, toast, announce, setSelbar, offline,
+  t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline,
   model, selection, data,
 } from 'eaos';
 import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page, opLinks } from '../understand-kit/kit.js';

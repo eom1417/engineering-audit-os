@@ -3,7 +3,7 @@
 // on its own free preview whose confirm token the act spends: merge, delete here or on the remote, protect, unprotect,
 // propose a conflict's resolution. What it shares with S-46: git.js.
 import {
-  t, tn, L, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen,
+  t, tn, L, num, esc, icon, code, rich, diffLines, href, fmtWhen, screen, sheet, act, rerenderSheet, local, toast, closeSheetThen,
   live, store, client, ActionError, ac,
 } from 'eaos';
 import {
@@ -48,7 +48,7 @@ function cmdButton(b, cmd, det) {
 }
 const branchLede = (b, det, waits) => (waits ? t('ac.br1.lede.eaos', { b: code(b.name) }) : b.protected ? t('ac.br1.lede.protected', { b: code(liveName(b)) })
   : (b.roles || []).includes('analysis') ? t('ac.br1.lede.analysed', { b: code(b.name) }) : b.compare && b.compare.merged && !b.compare.ahead ? t('ac.br1.lede.merged', { b: code(liveName(b)), t: code(b.compare.base) })
-    : t('ac.br1.lede', { b: code(liveName(b)), a: num0(b.compare ? b.compare.ahead : 0), base: code(det.base || '') }));
+    : t('ac.br1.lede', { b: code(liveName(b)), a: num(b.compare ? b.compare.ahead : 0), base: code(det.base || '') }));
 const mainAction = (b, waits, primary, target) => (waits ? `<div class="actions"><a class="btn btn--primary" href="${href('/waiting/' + enc(waits.id))}">${icon('seal')}${t('ac.run.r12.decide')}</a><p class="actions__note">${t('ac.br1.eaos.note')}</p></div>`
   : primary ? `<div class="actions"><button class="btn btn--primary" data-act="sheet" data-sheet="merge:${esc(b.name)}">${icon('seal')}${esc(t('ac.cmd.merge', { t: target }))}</button><p class="actions__note">${t('ac.br1.merge.note')}</p></div>` : '');
 /** The conflicts a trial merge found, when the merge is the page's press (`tries`). */
