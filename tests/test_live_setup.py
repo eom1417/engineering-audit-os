@@ -79,7 +79,7 @@ class DetectTests(unittest.TestCase):
                         'pnpm-lock.yaml': 'lockfileVersion: 9\n'})
         with mock.patch('shutil.which', side_effect=lambda name: None if name == 'pnpm' else f'/usr/bin/{name}'):
             profile = live_setup.detect(pnpm)['profile']
-        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile']])
+        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile', '--config.strict-dep-builds=false']])
         self.assertEqual(profile['checks'], [['corepack', 'pnpm', 'run', 'lint']])
         # a Python app is no reason to give up (EAOS itself was skipped so, with an earlier app's profile kept): a draft
         # that starts nothing, which the assistant completes from the project's documentation

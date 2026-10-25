@@ -73,7 +73,9 @@ def runner(manager):
 
 def install_argv(manager, lockfile):
     if manager == 'npm': return ['npm', 'ci', '--no-audit', '--no-fund'] if lockfile else ['npm', 'install', '--no-audit', '--no-fund']
-    return runner(manager) + ['install', '--frozen-lockfile']
+    # pnpm 10 and later refuse an install whose packages have build scripts nobody approved (esbuild, sharp): the run's own
+    # copy installs them as a person's first `pnpm install` does, their scripts left unrun
+    return runner(manager) + ['install', '--frozen-lockfile'] + (['--config.strict-dep-builds=false'] if manager == 'pnpm' else [])
 
 
 def run_script(manager, name, *extra):

@@ -27,6 +27,7 @@ FUNCTION_SCOPES = ('function', 'method')
 def _facts(out):
     rows = []
     for path in sorted((Path(out) / 'facts').glob('*.json')):
+        if path.stem == 'boundaries': continue          # the layers' findings (M6), the claims'; they measure no file
         try: data = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError): continue
         rows += [row for row in data.get('facts') or [] if isinstance(row, dict)]
