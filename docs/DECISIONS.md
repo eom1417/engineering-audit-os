@@ -3,6 +3,23 @@
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
 ## 2026-10-25
+- **M10, the whole system in layers (owner)**: EAOS checks a project as layers (browser, endpoints, business rules,
+  data) and their boundaries by default, not only when the project declares a policy; planned as M10, run right
+  after M5 (`ROADMAP.md`). From the review of the tools (2026-10-25, over 40 checked for licence, 2026 activity, use
+  without changing the project, machine-readable and repeatable output):
+  - adopted: `dependency-cruiser` used fully (reachability, type-only imports), `import-linter` and `go-arch-lint`
+    with rules generated from the reference catalogue; `gitleaks` over the built output; `Schemathesis` (MIT) for
+    the running API (ignored authentication, one user reaching another's object, bad input); the Supabase CLI's
+    security advisors (MIT) and pgTAP for row-level security;
+  - built by EAOS (no tool does it): the layer map without a declared policy, the endpoint-and-guard table, the
+    browser-boundary rules, row-level security read from the migrations, browser-server rule consistency;
+  - rejected: Dredd and Optic (archived), RESTler, madge and ts-arch (stale), Sheriff and jMolecules (they need the
+    project changed), ZAP and Nuclei (noise for this purpose), splinter's SQL taken directly (no licence; its checks
+    come through the MIT Supabase CLI), AI pentest agents such as Strix and Shannon (not repeatable).
+- **Open, the owner's to decide**: the official Semgrep rules EAOS fetches are under the Semgrep Rules License
+  (internal use; not offered to others as a service). Fine while each person runs EAOS on their own code; if EAOS is
+  ever offered as a service, the rules it relies on are rewritten as EAOS's own first.
+
 - **M4.6 (assistant's decision)**: a split of the Studio's code is proved by drawing: `console/tools/same.cjs` crawls
   every screen and sheet of the working Studio, draws each with the code before and after (the code swapped in the
   browser, the server and its data the same) and refuses any difference; with it the 48 functions were split, not
