@@ -39,7 +39,8 @@ class BrokenProjectTests(unittest.TestCase):
             'package.json': '{"scripts": {"dev": "vite"}}',
             'src/pages/Old.tsx': 'import { api } from "@/lib/historyApi";\n',
             'src/lib/other.ts': 'export {};\n',
-            'README.md': 'Run `tool audit`, then `tool next`.\n\n```\nnpm run dev\nnpm run build\npython scripts/gone.py\n```\n'})
+            'README.md': 'Run `tool audit`, then `tool next`.\n\n```\nnpm run dev\nnpm run build\npython scripts/gone.py\n```\n',
+            'posts/empty.md': 'An empty block (SvelteKit blog starter):\n```\n```\n'})
         self.assertIn(('missing-import', '@/lib/historyApi'), found)
         for symbol in ('tool next', 'npm run build', 'python scripts/gone.py'):
             self.assertIn(('stale-instruction', symbol), found)

@@ -1,5 +1,6 @@
 """The stage `session`, right after the app is set up: whether its pages need a sign-in, and the sessions every page
-stage opens them with (eaos/live/sign_in.py). Unless the person chose to sign in themselves, the assistant makes the test
+stage opens them with (eaos/live/sign_in.py). Unless the person chose to sign in themselves, a test account is made by
+rules on the app's own sign-up and sign-in pages (eaos/live/test_account.py), then the assistant makes the test
 users on the running app, one of each kind of user (eaos/live/test_users.py), for five minutes at most; a session still
 missing then, the person is asked (the Studio's Waiting for you, the assistant's status, `eaos watch` and `eaos
 sign-in`) and waited for while every stage that opens no page goes on. Nobody signing in within the wait ends it with
@@ -36,6 +37,15 @@ def session(context):
                              **({'test_users': lacking[:300]} if lacking else {})})
 
 
+def _by_rules(context, live, base, state):
+    """A test account by rules (eaos/live/test_account.py) when the run's session does not open the pages: no assistant
+    needed; what it tried is kept for the question the person may be asked."""
+    if sign_in.works(live, base, state, context.out): return
+    from ..live.test_account import by_rules
+    try: context['sign_in']['tried'] = by_rules(live, base, state, sign_in.page_of(_setup_page(context), base))
+    except Exception: context['sign_in']['tried'] = [{'did': 'no_form'}]      # rules never decide the check: the person is asked
+
+
 def _views_alone(context):
     """No sign-in asked for (an app that opens signed in by itself, a development sign-in): the views are still made
     when the code has some, or when pages of the code open as none of themselves (chief-ops opened as support alone,
@@ -55,6 +65,7 @@ def _test_users(context, live, base, state, hand=False):
     switches into each view a switch enters; what is still lacking, '' when nothing."""
     from ..live.test_users import lacking, make, views
     if hand and not views(context.out, True): return ''
+    if not hand: _by_rules(context, live, base, state)
     if not context.provider: return lacking(live, base, state, context.out, hand)
     try: return make(context.target, live, base, state, context.out, context.provider, hand)
     except Exception as problem:          # the assistant never decides the fate of the check: the person is asked
@@ -69,6 +80,7 @@ def _ask(context, chosen, live, base, state):
     while not chosen.get('gave_up'):
         folder = chosen.get('folder') or live.runtime.parent
         sign_in.ask(folder, sign_in.page_of(_setup_page(context), base), state, why, log=sign_in.service_log(live), mail=live.mail())
+        sign_in.tell(folder, tried=chosen.get('tried') or [])     # what EAOS did before asking: the person sees why it asks
         outcome = sign_in.wait(folder)
         if outcome != sign_in.SIGNED_IN: break
         if sign_in.works(live, base, state, context.out): return

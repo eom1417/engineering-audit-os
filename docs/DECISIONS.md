@@ -3,6 +3,24 @@
 Newest first. Each decision binds every assistant, in any chat, until the owner changes it here.
 
 ## 2026-10-25
+- **M5 (assistant's decisions)**:
+  - The browser agent is EAOS's own (`live/agent.py`): `browser-use` and `Stagehand` need a model key of their own,
+    which EAOS never holds (it works through the person's assistant), so they cannot be measured here; the Playwright
+    MCP's steps are references that live one page only, not replayable without the assistant. A step names a control by
+    its role and name, so a replay finds it again; a step that deletes, pays, sends or signs out is refused in the
+    browser. Explored once with the assistant's smallest model (15 steps, 8 minutes at most), replayed free after.
+  - Screens are found in layers before any assistant: the pages a framework's files make, the code's hash routes and
+    menus, a server's GET routes (kept only when they answer with a page), Django's URL configuration with its
+    includes; a page the code names is a page of its own, never folded into a "template" with its siblings.
+  - Sign-in by rules first: the app's own sign-in page, after its own sign-up page, with the run's own account (`demo`,
+    a password the run chooses); Django's account by its own command. The assistant comes after, for a test user per
+    kind; the person last, told what EAOS tried.
+  - The lock and the walk-through run once with the run's one session over every page, then as each kind of user over
+    that kind's own pages (its recording beside the others', `__screenshots__/@<kind>`).
+  - The corpus' CoreUI expected `/#/login` and `/#/404`; its pinned commit names them `/#/authentication/login` and
+    `/#/error-pages/404`: the expectation was corrected, not the check.
+  - M5.1-M5.3 were built as one branch (`dev/m5-seeing`, a commit per card): the complexity law's split of M5.1's
+    functions came with M5.2's, and each card's proof is the same corpus run.
 - **How to read the references (owner)**: when two references disagree, the newer one holds; when a step of the plan
   looks wrong or weaker than another way, the assistant asks the owner before taking it, so the best and cleanest step
   is always the one taken.

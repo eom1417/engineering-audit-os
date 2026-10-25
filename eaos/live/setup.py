@@ -32,9 +32,17 @@ from .assist import assist_messages, read_json
 from .lock_specs import LEAVES
 from ..core.progress.flow import OPTIONAL, Stage
 from .run_profile import apply, safe, write_profile
-from .setup_detect import SECRETISH, _unknown_app, detect, free_port, production_commands, script_is_safe  # noqa: F401  (detect's names others read here)
+from . import setup_detect, setup_python
+from .setup_detect import SECRETISH, _unknown_app, free_port, production_commands, script_is_safe  # noqa: F401  (detect's names others read here)
 
 ATTEMPTS = 5
+
+
+def detect(project, report=None):
+    """The draft run from the files alone: a JavaScript app or a static site (setup_detect.detect), and a Python web app
+    (setup_python.detect) when the project has no JavaScript app; each module stays on its own."""
+    python = setup_python.detect(project) if setup_detect.app_folder(project) is None else None
+    return python or setup_detect.detect(project, report)
 
 
 # ---------------------------------------------------------------- 2. verify

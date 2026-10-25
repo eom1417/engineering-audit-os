@@ -14,11 +14,15 @@ LOCK_CONFIG = """import base from './playwright.config';
 // Written by EAOS for a run in the sandbox: the generated config, with every non-loopback host refused.
 // Loopback is named in the bypass list: every other host goes to a proxy nobody answers on.
 const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] } };
+// A pass as one kind of user (EAOS_LOCK_KIND): its own session, its own recorded screens beside the others'.
+const kind = process.env.EAOS_LOCK_KIND;
+const as = kind ? { ...offline, storageState: `${__dirname}/.auth/@${kind}.json` } : offline;
 export default {
   ...base,
+  ...(kind ? { snapshotPathTemplate: `{testDir}/../__screenshots__/@${kind}/{testFilePath}/{arg}{ext}` } : {}),
   reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }], ['./stream-reporter.mjs', { outputFile: process.env.EAOS_LOCK_STREAM }]],
-  use: { ...base.use, ...offline },
-  projects: (base.projects ?? []).map((project) => ({ ...project, use: { ...project.use, ...offline } })),
+  use: { ...base.use, ...as },
+  projects: (base.projects ?? []).map((project) => ({ ...project, use: { ...project.use, ...as } })),
 };
 """
 
@@ -51,6 +55,38 @@ def _prepare(live, report, recorded=None):
     if (lock / 'approvals').is_dir(): (lock / 'pytest.ini').write_text(APPROVALS_INI, encoding='utf-8')
     if recorded is not None: _restore(Path(recorded), lock)
     return lock
+
+
+def lend_kinds(report, lock, state):
+    """Each kind of user's session (eaos/live/roles.py, made by the seed beside session file `state`) lent to the lock as
+    .auth/@<kind>.json, and .auth/kinds.json: [[kind, [spec files of its own pages]]], the passes the lock runs as each
+    kind beside its pass with the run's one session (passes). A kind with no page of its own is seen in that pass."""
+    from .roles import read
+    from .run import kinds_folder
+    specs, passes = _page_specs(report), []
+    for kind in read(report):
+        own, session = set(kind.get('pages') or []), kinds_folder(state) / f"{kind['id']}.json"
+        files = [path for path, pages in specs if own & pages]
+        if not (files and session.is_file()): continue
+        shutil.copyfile(session, lock / '.auth' / f"@{kind['id']}.json")
+        passes.append((kind['id'], files))
+    (lock / '.auth/kinds.json').write_text(json.dumps(passes), encoding='utf-8')
+    return passes
+
+
+def _page_specs(report):
+    """[(spec file, {the pages it opens})] of the lock's Playwright specs."""
+    plan = Path(report) / 'behavior-lock/plan.json'
+    specs = json.loads(plan.read_text(encoding='utf-8')).get('specs') or [] if plan.is_file() else []
+    return [(s['path'], {str(x).split(' (')[0].removeprefix('GET ') for x in s.get('surfaces') or []})      # a server's page: GET /admin
+            for s in specs if s.get('tool') == 'playwright' and s.get('path')]
+
+
+def passes(lock):
+    """[(kind, spec files)] the lock runs: the run's one session over every spec (kind None), then each kind's own."""
+    try: kinds = json.loads((lock / '.auth/kinds.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError): kinds = []
+    return [(None, [])] + [(kind, files) for kind, files in kinds]
 
 
 def _keep(lock, recorded):

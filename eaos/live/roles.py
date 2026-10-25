@@ -79,7 +79,7 @@ def pages_of(out, served=True):
     from .lock_specs import surfaces
     return sorted(route for route, (kind, method, _) in surfaces(out).items()
                   if (kind == 'page' or (served and kind == 'http' and method == 'GET')) and route.startswith('/')
-                  and not any(mark in route for mark in (':', '*', '[')))
+                  and not any(mark in route for mark in (':', '*', '[', '<')))
 
 
 def about_users(target, limit=40000, out=None):

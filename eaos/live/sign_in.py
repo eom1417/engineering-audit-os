@@ -112,6 +112,12 @@ def ask(workspace, base, state, why, log=None, mail=None, published=False):
                                      'published': published, 'state': 'waiting'})
 
 
+def tell(workspace, **said):
+    """Add to the question asked now what the person reads with it (`tried`: what EAOS tried before asking)."""
+    record = _read(Path(workspace) / ASKED)
+    if record: _write(Path(workspace) / ASKED, {**record, **said})
+
+
 def asked(workspace):
     """What the check asks the person now, or None (nothing asked, answered, or no longer waited for)."""
     record = _read(Path(workspace) / ASKED)

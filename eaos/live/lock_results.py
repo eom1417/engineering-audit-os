@@ -16,8 +16,16 @@ FAILED_STATUSES = ('failed', 'timedOut', 'interrupted')
 
 
 def failing_tests(runtime, name):
-    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json)."""
-    try: report = json.loads((Path(runtime) / 'behavior-lock' / f'playwright-{name}.json').read_text(encoding='utf-8'))
+    """The titles of the screen tests that failed in the lock run `name` (behavior-lock/playwright-<name>.json), and in its
+    passes as each kind of user (playwright-<name>@<kind>.json)."""
+    found = set()
+    for path in sorted((Path(runtime) / 'behavior-lock').glob(f'playwright-{name}*.json')):
+        if path.stem == f'playwright-{name}' or path.stem.startswith(f'playwright-{name}@'): found |= _failed_titles(path)
+    return found
+
+
+def _failed_titles(path):
+    try: report = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError): return set()
     found = set()
 

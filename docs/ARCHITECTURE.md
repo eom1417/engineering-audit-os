@@ -102,8 +102,8 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a read of an http(s) address | `core/web.py` `opened`: http and https only (urllib also opens `file://`) |
 | a rule that reads source and produces facts | `facts/` |
 | an adapter for an external tool | `engines/<name>.py` + its entry in `eaos/data/toolchain.json` (`check: engines`) |
-| running the app, signing in, finding screens | `live/` (`live/screens/` for the crawl and the audit) |
-| driving the browser for a goal, recording, replaying | `live/` (the one browser-agent layer, M5.2) |
+| running the app, signing in, finding screens | `live/`: how a stack starts in `setup_detect.py` (JavaScript, static sites) or `setup_python.py`; the test account by rules in `test_account.py`; `live/screens/` for the crawl, the audit and the pages files name (`file_routes.py`) |
+| driving the browser for a goal, recording, replaying | `live/agent.py` with `templates/screens/agent.mjs` (the one browser-agent layer, M5.2): the assistant is passed in, never imported |
 | judging findings by rules, cards, plan, estimates | `analysis/` |
 | judging findings with an assistant (triage, the strict judge of M7.4) | `ai/` (`ai/nodes/`); `analysis/` takes its verdicts as data |
 | anything that calls an assistant | `ai/` |

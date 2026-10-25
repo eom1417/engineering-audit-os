@@ -81,7 +81,7 @@ def _asked(workspace):
 def status(project):
     state = _state(project)
     record = sign_in.asked(state['workspace'])
-    return {'asked': {k: record[k] for k in ('asked', 'until', 'base', 'why', 'published')} if record else None,
+    return {'asked': {k: record[k] for k in ('asked', 'until', 'base', 'why', 'published', 'tried') if k in record} if record else None,
             'open': state['workspace'] in _OPEN, 'kept': sign_in.by_hand(sign_in.session(project_state.runtime_of(state))),
             'codes': sign_in.codes(record) if record else None}
 

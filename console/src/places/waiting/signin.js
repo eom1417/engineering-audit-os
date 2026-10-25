@@ -67,7 +67,12 @@ function noAskPage(back, st) {
 function whyAsked(asked) {
   if (asked.published) return t('ac.si.why.published', { base: code(asked.base || '') });
   if (asked.why === 'expired' || asked.why === 'not_signed_in') return t('ac.si.why.' + asked.why);
-  return t('ac.si.why.needed', { base: code(asked.base || '') });
+  return t('ac.si.why.needed', { base: code(asked.base || '') }) + tried(asked.tried);
+}
+// what EAOS tried before asking: a test account of its own on the app's sign-up and sign-in pages
+function tried(steps) {
+  if (!steps || !steps.length) return '';
+  return ' ' + t('ac.si.tried', { steps: steps.map((s) => t('ac.si.did.' + s.did, { at: code(s.at || '') })).join('، ') });
 }
 const KEY_BUTTONS = [['enter', 'ac.si.k.enter'], ['tab', 'ac.si.k.tab'], ['erase', 'ac.si.k.erase'], ['up', 'ac.si.k.up'], ['down', 'ac.si.k.down']];
 // the browser picture (or the button that opens it), the typing field and the keys

@@ -9,10 +9,10 @@ The owner says "execute Mx" (in any chat, with any assistant): every card of Mx 
 Done (`docs/STANDARDS.md` §7), without asking again except for a decision only the owner can take. **After each card,
 its row in the status table below is updated in the same change.** Milestones are numbered in the order they run.
 
-## Where we are (2026-10-25, version 0.0.76)
+## Where we are (2026-10-25, version 0.0.77)
 
-M-1 to M4 are done; **next is M5**. Each done milestone in one line (what each card did: the status table; why and
-how: `CHANGELOG.md`):
+M-1 to M4 are done, and M5 but M5.4 (it waits for the owner's HungerLab snapshot); **next is M6**. Each done
+milestone in one line (what each card did: the status table; why and how: `CHANGELOG.md`):
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -22,6 +22,7 @@ how: `CHANGELOG.md`):
 | M2 Fewer, sharper engines | noisy rules silenced, engines that find nothing unique removed, one engine registry | 0.0.74 |
 | M3 The target code layout | ten layers enforced, one state record, one guard and one command layer, giant modules split, one words catalog | 0.0.75 |
 | M4 The pipeline as loops | loops as data, the coverage ledger with red gaps, the ideal in 8 minutes, repair or rebuild, the laws over all of EAOS (the Studio's JavaScript included) | 0.0.76 |
+| M5 Seeing any app (but M5.4) | the common stacks start from their files, screens found in layers and by the browser agent (explored once, replayed free), signed in by rules, the lock and walk-through per kind of user; the corpus 12 of 12 (2 before) | 0.0.77 |
 
 ## The firm, department by department
 
@@ -30,14 +31,14 @@ completes it. A department with no card here is a gap in the plan.
 
 | Department | Delivered today | Completed by |
 |---|---|---|
-| Discovery: the questions only the owner can answer | the intake, the coverage ledger | M5.3 (sign-in questions) |
+| Discovery: the questions only the owner can answer | the intake, the coverage ledger, the sign-in question that says what EAOS tried (M5.3) | M6 onwards (each layer's open questions) |
 | Architecture: the ideal shape and the decision | the ideal picture, repair or rebuild, target architecture | M6 (every project checked as layers) |
 | Code quality | dead code, duplication, complexity, the code laws | M8.4 (EAOS itself clean by its own laws) |
 | Security | Semgrep, Bandit, CodeQL, gitleaks, osv-scanner | M6.3-M6.7 (between the layers), M7.4 (the judge), M9.2 (logic flaws) |
 | Data | the data facts, rule duplication | M6.5, M6.6 (who may see what), M6.8 (one source of rules) |
 | Quality assurance | the behaviour lock, acceptance checks, Python suite health | M6.10 (the project's own tests), M10.4 (replays) |
 | Performance and production | the k6 baseline, production readiness findings | M6.9 (the operations layer) |
-| Screens, experience, accessibility | screens pictured, axe, journeys | M5 (any app), M10 (simulated users) |
+| Screens, experience, accessibility | screens of any common stack found in layers and by the browser agent, pictured per kind of user, axe, journeys (M5) | M5.4 (HungerLab), M10 (simulated users) |
 | Delivery | the plan, cards, fix batches behind the lock | M7 (reliable fixes, verified after each batch) |
 | Hand-over and documents | the four reports, START-HERE, the Studio | M7.1 (a hand-over that resumes) |
 | Build from an idea | the build journey and its proof gate | M7.6 (never stalls), M9.3 (proved) |
@@ -252,9 +253,9 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M4.4 | done: the ideal picture in 7.9 min instead of 24 on EAOS's own check (real trial, 112 elements, none dropped): the plan pass in three parts side by side (2.5-3 min each instead of 7), the critique answers only its changes (applied by `ai/ideal_passes.py`) instead of writing the ideal again (35,000 tokens, two of three tries broken JSON); reuse when the bundle did not change was already there. The critique still retried twice on broken JSON in the trial: the next gain | 0.0.76 | 2026-10-24 |
 | M4.5 | done: `analysis/repair_or_rebuild.py`: rebuild when the target rebuilds or deletes half of today's files, else repair; each option's cards and sizes or files, and its time by the fix preview's rough rule (now one rule, said as such); START-HERE.md shows it. On EAOS: repair, 101 cards, 5-14 hours, against 55-147 hours to rebuild | 0.0.76 | 2026-10-24 |
 | M4.6 | done: one complexity count (`core/code_laws.py` `complexity`, the code laws' and the hotspots', a nested function counted alone; other languages 1 + their lexical branches without nested functions); the Studio's JavaScript under the laws with no exception (`tools/code_limits.py` `studio`): its 48 functions over 10 split into helpers beside them, its 4 long modules split (the word tables by place, the branches into `branch.js` and `git.js`), proved by `console/tools/same.cjs` (every screen and sheet the Studio offers, 400 addresses x 2 languages and widths, drawn the same before and after, on the working Studio's data); GitNexus's cycles (6 now) all its misreading of Python (`from . import core`, `import html`), left out by the adapter | 0.0.76 | 2026-10-25 |
-| M5.1 | not started | | |
-| M5.2 | not started | | |
-| M5.3 | not started | | |
+| M5.1 | done: `live/setup_python.py` starts Django, Flask, FastAPI and Streamlit from their files (install, migrations or `init-db`, start, the names the code reads); Expo on the run's port; a static site built and served by Python's server; a site of pages alone is a project; Redis, mail and database values a client can parse; a version check on a loaded host never "not installed"; SvelteKit's empty code block no longer breaks the facts. The corpus' 12 apps all run (4 before) | 0.0.77 | 2026-10-25 |
+| M5.2 | done: screens in layers: the pages framework files make (`live/screens/file_routes.py`: Next, Nuxt, SvelteKit, Astro, Vue Router, Expo Router, Streamlit, Django's URL configuration), the code's hash routes and menus at their `/#/` address, a server's GET routes (Flask's own list), kept only when they answer with a page; a page the code names is its own template; never a page that signs out. Then the browser agent (`live/agent.py` + `templates/screens/agent.mjs`): the assistant's smallest model drives towards a goal, each step with its picture, saved in the runtime and replayed with no assistant (a trial: Claude reached 3 screens behind buttons, the replay reached them again alone). Open-source agents not adoptable (`docs/DECISIONS.md`). Corpus: 12 of 12 picture their expected screens (2 before) | 0.0.77 | 2026-10-25 |
+| M5.3 | done: a test account by rules (`live/test_account.py`, `templates/setup/sign-up.cjs`: the app's own sign-in, after its sign-up; Django's account by its own command) before any assistant (the corpus' sign-in app signed in alone); the question to the person says what EAOS tried; the sign-in and sign-up pages pictured as a visitor too; the behaviour lock and the walk-through run as each kind of user over its own pages (`lock_folder.lend_kinds`, results keyed by kind; a trial: the administrator's page recorded with the administrator's session) | 0.0.77 | 2026-10-25 |
 | M5.4 | not started (waits for the HungerLab snapshot) | | |
 | M6.0 | not started | | |
 | M6.1 | not started | | |

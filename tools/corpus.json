@@ -1,5 +1,5 @@
 {
- "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23.",
+ "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25.",
  "apps": [
   {
    "name": "rr-basic",
@@ -15,7 +15,7 @@
     "/nothing-here"
    ],
    "result": {
-    "date": "2026-10-23",
+    "date": "2026-10-25",
     "ran": true,
     "pictured": [
      "/",
@@ -25,7 +25,7 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 117
+    "seconds": 90
    }
   },
   {
@@ -39,64 +39,79 @@
     "/#/charts",
     "/#/components/accordion",
     "/#/forms/form-control",
-    "/#/login",
-    "/#/404"
+    "/#/authentication/login",
+    "/#/error-pages/404"
    ],
    "result": {
-    "date": "2026-10-23",
+    "date": "2026-10-25",
     "ran": true,
     "pictured": [
+     "/#/authentication/change-password",
+     "/#/authentication/check-email",
      "/#/authentication/login",
+     "/#/authentication/password-changed",
+     "/#/authentication/register",
+     "/#/authentication/reset-password",
      "/#/charts",
+     "/#/components",
      "/#/components/accordion",
+     "/#/components/alerts",
+     "/#/components/badge",
+     "/#/components/breadcrumb",
+     "/#/components/button-group",
+     "/#/components/buttons",
+     "/#/components/cards",
+     "/#/components/carousel",
+     "/#/components/chip",
+     "/#/components/chip-set",
+     "/#/components/collapse",
+     "/#/components/dropdowns",
+     "/#/components/list-group",
+     "/#/components/modals",
+     "/#/components/navs-tabs",
+     "/#/components/pagination",
+     "/#/components/placeholders",
+     "/#/components/popovers",
+     "/#/components/progress",
+     "/#/components/search-button",
+     "/#/components/spinners",
+     "/#/components/tables",
+     "/#/components/tabs",
+     "/#/components/toasts",
+     "/#/components/tooltips",
      "/#/dashboard",
      "/#/error-pages/404",
+     "/#/error-pages/500",
+     "/#/forms",
      "/#/forms/checks-radios",
+     "/#/forms/chip-input",
+     "/#/forms/floating-labels",
+     "/#/forms/form-control",
+     "/#/forms/input-group",
+     "/#/forms/layout",
+     "/#/forms/range",
+     "/#/forms/select",
+     "/#/forms/validation",
+     "/#/icons",
      "/#/icons/brands",
      "/#/icons/coreui-icons",
      "/#/icons/flags",
      "/#/widgets",
      "/authentication/change-password#/dashboard",
-     "/components#/authentication/login",
-     "/components#/charts",
-     "/components#/components/accordion",
+     "/authentication/check-email#/dashboard",
+     "/authentication/login#/dashboard",
+     "/authentication/password-changed#/dashboard",
+     "/authentication/register#/dashboard",
+     "/authentication/reset-password#/dashboard",
      "/components#/dashboard",
-     "/components#/error-pages/404",
-     "/components#/forms/checks-radios",
-     "/components#/icons/brands",
-     "/components#/icons/coreui-icons",
-     "/components#/icons/flags",
-     "/components#/widgets",
      "/error-pages/404#/dashboard",
-     "/forms#/authentication/login",
-     "/forms#/charts",
-     "/forms#/components/accordion",
+     "/error-pages/500#/dashboard",
      "/forms#/dashboard",
-     "/forms#/error-pages/404",
-     "/forms#/forms/checks-radios",
-     "/forms#/icons/brands",
-     "/forms#/icons/coreui-icons",
-     "/forms#/icons/flags",
-     "/forms#/widgets",
-     "/icons#/authentication/login",
-     "/icons#/charts",
-     "/icons#/components/accordion",
-     "/icons#/dashboard",
-     "/icons#/error-pages/404",
-     "/icons#/forms/checks-radios",
-     "/icons#/icons/brands",
-     "/icons#/icons/coreui-icons",
-     "/icons#/icons/flags",
-     "/icons#/widgets"
+     "/icons#/dashboard"
     ],
-    "missing": [
-     "/#/forms/form-control",
-     "/#/login",
-     "/#/404"
-    ],
-    "passed": false,
-    "seconds": 1778,
-    "why": "not pictured: /#/forms/form-control, /#/login, /#/404"
+    "missing": [],
+    "passed": true,
+    "seconds": 933
    }
   },
   {
@@ -113,7 +128,7 @@
     "/posts/preview"
    ],
    "result": {
-    "date": "2026-10-23",
+    "date": "2026-10-25",
     "ran": true,
     "pictured": [
      "/",
@@ -123,7 +138,7 @@
     ],
     "missing": [],
     "passed": true,
-    "seconds": 164
+    "seconds": 173
    }
   },
   {
@@ -138,18 +153,16 @@
     "/README"
    ],
    "result": {
-    "date": "2026-10-23",
+    "date": "2026-10-25",
     "ran": true,
     "pictured": [
      "/",
+     "/README",
      "/about"
     ],
-    "missing": [
-     "/README"
-    ],
-    "passed": false,
-    "seconds": 189,
-    "why": "not pictured: /README"
+    "missing": [],
+    "passed": true,
+    "seconds": 190
    }
   },
   {
@@ -165,18 +178,22 @@
     "/blog"
    ],
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
      "/",
      "/about",
-     "/contact",
-     "/blog"
+     "/blog",
+     "/blog/category",
+     "/blog/category/sveltekit",
+     "/blog/heading-links-example",
+     "/blog/mdsvex-component-example",
+     "/blog/syntax-highlighting-example",
+     "/contact"
     ],
-    "passed": false,
-    "seconds": 5,
-    "why": "facts did not produce its artifacts (failed)"
+    "missing": [],
+    "passed": true,
+    "seconds": 297
    }
   },
   {
@@ -191,16 +208,15 @@
     "/explore"
    ],
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
      "/",
      "/explore"
     ],
-    "passed": false,
-    "seconds": 272,
-    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:42085/ within 180s; see /workspace/eaos-work/corpus/expo-react-navigation-hgequ9l1/home/projects/app-7b25f785/runtime/sandbox/service-0.log; it said: > expo-template-tabs-react-navigation@1.0.0 start\n> expo start\n\nStarting project at /workspace/eaos-work/corpus/expo-react-navigation-hgequ9l1/home/projects/app-7b2"
+    "missing": [],
+    "passed": true,
+    "seconds": 198
    }
   },
   {
@@ -217,18 +233,20 @@
     "/hello"
    ],
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
      "/",
-     "/auth/register",
      "/auth/login",
-     "/hello"
+     "/auth/register",
+     "/hello",
+     "/login",
+     "/logout",
+     "/register"
     ],
-    "passed": false,
-    "seconds": 6,
-    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/flaskr-a36a2s_r/home/projects/app-e649619c/runtime/sandbox/service-0.log; it said: "
+    "missing": [],
+    "passed": true,
+    "seconds": 133
    }
   },
   {
@@ -244,18 +262,22 @@
     "/accounts/login"
    ],
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
+     "/accounts/login",
+     "/accounts/password_reset",
+     "/admin/login",
      "/catalog",
-     "/catalog/books",
      "/catalog/authors",
-     "/accounts/login"
+     "/catalog/bookinstances",
+     "/catalog/books",
+     "/catalog/genres",
+     "/catalog/languages"
     ],
-    "passed": false,
-    "seconds": 6,
-    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/django-locallibrary-27lcr5kk/home/projects/app-da647a8e/runtime/sandbox/service-0.log; it said: "
+    "missing": [],
+    "passed": true,
+    "seconds": 251
    }
   },
   {
@@ -272,19 +294,19 @@
     "/chat"
    ],
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
      "/",
-     "/basketball",
-     "/cricket",
      "/baseball",
-     "/chat"
+     "/basketball",
+     "/chat",
+     "/cricket",
+     "/streamlit_app"
     ],
-    "passed": false,
-    "seconds": 5,
-    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/streamlit-multipage-1ll5_urp/home/projects/app-c0b7fd82/runtime/sandbox/service-0.log; it said: "
+    "missing": [],
+    "passed": true,
+    "seconds": 243
    }
   },
   {
@@ -302,19 +324,24 @@
    ],
    "sign_in": true,
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
+     "/",
+     "/None",
      "/auth/login",
      "/auth/register",
-     "/index",
+     "/auth/reset_password_request",
+     "/edit_profile",
      "/explore",
+     "/index",
+     "/messages",
+     "/user/None",
      "/user/demo"
     ],
-    "passed": false,
-    "seconds": 6,
-    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see /workspace/eaos-work/corpus/flask-microblog-x3jco3ce/home/projects/app-7ee6f46e/runtime/sandbox/service-0.log; it said: "
+    "missing": [],
+    "passed": true,
+    "seconds": 634
    }
   },
   {
@@ -331,18 +358,17 @@
    ],
    "welcome": true,
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
      "/onboarding/step-1",
      "/onboarding/step-2",
      "/onboarding/step-3",
      "/onboarding/welcome"
     ],
-    "passed": false,
-    "seconds": 202,
-    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:44479/ within 180s; see /workspace/eaos-work/corpus/expo-onboarding-liupc9xc/home/projects/app-a350f17e/runtime/sandbox/service-0.log; it said: > react-native-onboarding@1.0.0 start\n> expo start\n\nStarting project at /workspace/eaos-work/corpus/expo-onboarding-liupc9xc/home/projects/app-a350f17e/runtime/sandbox/ru"
+    "missing": [],
+    "passed": true,
+    "seconds": 310
    }
   },
   {
@@ -358,18 +384,17 @@
     "/contact.html"
    ],
    "result": {
-    "date": "2026-10-23",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-25",
+    "ran": true,
+    "pictured": [
      "/",
      "/about.html",
-     "/post.html",
-     "/contact.html"
+     "/contact.html",
+     "/post.html"
     ],
-    "passed": false,
-    "seconds": 193,
-    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:32921/ within 180s; see /workspace/eaos-work/corpus/clean-blog-static-kmcgecd0/home/projects/app-1ce31642/runtime/sandbox/service-0.log; it said: Rendering /workspace/eaos-work/corpus/clean-blog-static-kmcgecd0/home/projects/app-1ce31642/runtime/sandbox/run-ihh9ll8a/project/src/pug/index.pug to /workspace/eaos-wo"
+    "missing": [],
+    "passed": true,
+    "seconds": 142
    }
   }
  ]

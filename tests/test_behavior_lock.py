@@ -218,6 +218,42 @@ class ApprovalResultTests(Workspace):
                          'a project of ES modules does not change how the lock config loads')
 
 
+class KindTests(Workspace):
+    def test_each_kind_of_user_walks_its_own_pages_with_its_own_session_and_a_change_breaking_one_is_caught(self):
+        from eaos.live import behavior_lock
+        from eaos.live.lock_folder import lend_kinds
+        report, lock = Path(self.tmp) / 'report', Path(self.tmp) / '.eaos-lock'
+        (report / 'behavior-lock').mkdir(parents=True)
+        (lock / '.auth/sessions').mkdir(parents=True)
+        (report / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [
+            {'feature': 'home', 'tool': 'playwright', 'path': 'playwright/home.spec.ts', 'surfaces': ['/ (page)']},
+            {'feature': 'admin', 'tool': 'playwright', 'path': 'playwright/admin.spec.ts', 'surfaces': ['GET /admin']}]}))     # Flask's
+        (report / 'roles.json').write_text(json.dumps({'roles': [{'id': 'admin', 'pages': ['/admin']},
+                                                                 {'id': 'guest', 'pages': ['/guest']}]}))
+        (lock / '.auth/sessions/admin.json').write_text('{"cookies": [{"name": "admin"}]}')
+        state = lock / '.auth/user.json'
+        self.assertEqual(lend_kinds(report, lock, state), [('admin', ['playwright/admin.spec.ts'])],
+                         'a kind with no session or no page of its own has no pass of its own')
+        self.assertIn('"admin"', (lock / '.auth/@admin.json').read_text())
+        (lock / 'playwright.config.ts').write_text('')
+        ran = []
+
+        def one_pass(live, lock, base, output, how):
+            ran.append((output.name, how))
+            failed = 'failed' if how[1] == 'admin' and 'verify' in output.name else 'passed'
+            return playwright_report(*[(Path(f).name, [(failed, '')]) for f in how[2] or ['playwright/home.spec.ts', 'playwright/admin.spec.ts']])
+        with mock.patch.object(behavior_lock, '_pass', side_effect=one_pass):
+            recorded = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), 'record', True))
+            after = behavior_lock._results(report, behavior_lock._run_specs(None, lock, None, Path(self.tmp), 'verify', False))
+        self.assertEqual(ran[:2], [('playwright-record.json', (True, None, [])),
+                                   ('playwright-record@admin.json', (True, 'admin', ['playwright/admin.spec.ts']))])
+        self.assertIn({'path': 'playwright/admin.spec.ts', 'kind': 'admin', 'status': 'passed'}, recorded)
+        (Path(self.tmp) / 'behavior-lock').mkdir(exist_ok=True)
+        (Path(self.tmp) / 'behavior-lock/results.json').write_text(json.dumps({'results': recorded}))
+        verdict = behavior_lock._judged(behavior_lock._passed_before(Path(self.tmp), after), after)
+        self.assertEqual((verdict['specs'], verdict['failed']), (3, 1), 'the admin page broken only for the admin is caught')
+
+
 def git(project, *args):
     import subprocess
     return subprocess.run(['git', '-C', str(project), *args], check=True, capture_output=True, text=True).stdout.strip()

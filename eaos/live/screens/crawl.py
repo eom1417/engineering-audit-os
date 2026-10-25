@@ -36,15 +36,22 @@ def _parts(path):
     return '', segments[:-1] if segments and segments[-1] in ('index.html', 'index.htm') else segments
 
 
-def templates(paths):
+def templates(paths, declared=()):
     """{path: template}. A segment after the first that carries data (a number, an encoded or punctuated name) is a
     parameter (:id); so is the last segment of pages that share a parent with SIBLINGS or more other last pages
-    (/#/flows/cli, /#/flows/main, ...). The query is dropped: a filtered list is the list."""
+    (/#/flows/cli, /#/flows/main, ...), unless the code `declared` the page as one of its own (LocalLibrary's
+    /catalog/books and /catalog/authors were pictured as one). The query is dropped: a filtered list is the list."""
     split = {path: _parts(path) for path in paths}
     marked = {path: (prefix, [':id' if i and DATA.search(s) else s for i, s in enumerate(segments)])
               for path, (prefix, segments) in split.items()}
-    leaves = _leaves(split, marked)
-    return {path: _template(prefix, segments, leaves) for path, (prefix, segments) in marked.items()}
+    leaves, named = _leaves(split, marked), {_plain(path) for path in declared}
+    return {path: _plain(path) if _plain(path) in named else _template(prefix, segments, leaves) for path, (prefix, segments) in marked.items()}
+
+
+def _plain(path):
+    """A page's address without its query and final slash: '/catalog/books/?page=2' is '/catalog/books'."""
+    address, mark, fragment = path.partition('#')
+    return (address.split('?', 1)[0].rstrip('/') or '/') + mark + fragment.rstrip('/')
 
 
 def _leaves(split, marked):
@@ -68,11 +75,12 @@ def _template(prefix, segments, leaves):
     return prefix + '/' + '/'.join(segments)
 
 
-def distinct(paths):
-    """{template: [paths]} in the order the paths come (the first is the template's picture), without repeats."""
+def distinct(paths, declared=()):
+    """{template: [paths]} in the order the paths come (the first is the template's picture), without repeats; a page
+    the code `declared` is a template of its own."""
     paths = list(dict.fromkeys(paths))
     found = {}
-    for path, template in templates(paths).items(): found.setdefault(template, []).append(path)
+    for path, template in templates(paths, declared).items(): found.setdefault(template, []).append(path)
     return found
 
 
@@ -86,16 +94,35 @@ HASH_ROUTER = re.compile(r'location\.hash|hashchange|HashRouter|createHashRouter
 PATH = re.compile(r'''["'`](/(?!api\b)[a-z][a-z0-9_-]*(?:/[a-z0-9_-]+)*)["'`]''')
 
 
-def code_routes(root, most=60):
-    """['/#/now', ...]: the hash routes the project's code names, in the order first met, `most` at most."""
-    from ...core.workspace import inventory
+def code_routes(root, most=100):
+    """['/#/now', '/about', ...]: the screens the project names, in the order first met, `most` at most: the hash routes
+    its code names (in an app that routes by the hash, every plain '/now' of its code is one: CoreUI's menu lives in a
+    file of its own, and its form pages were never opened), then the pages its files make (file_routes)."""
+    from .file_routes import file_routes
+    texts = list(_code_texts(root))
+    hashed = any(HASH_ROUTER.search(text) for text in texts)
     found = {}
+    for text in texts: found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text) + (PATH.findall(text) if hashed else [])))
+    found.update(dict.fromkeys(as_screen(route, hashed) for route in file_routes(root)))
+    return list(found)[:most]
+
+
+def _code_texts(root):
+    from ...core.workspace import inventory
     for row in inventory(root)['files']:
         if not row['path'].endswith(CODE): continue
-        try: text = (Path(root) / row['path']).read_text(encoding='utf-8', errors='replace')
+        try: yield (Path(root) / row['path']).read_text(encoding='utf-8', errors='replace')
         except OSError: continue
-        found.update(dict.fromkeys('/#' + route for route in HASH_ROUTE.findall(text) + (PATH.findall(text) if HASH_ROUTER.search(text) else [])))
-    return list(found)[:most]
+
+
+def hash_routed(root):
+    """Whether the app at `root` routes by the hash (#/now): its pages are opened at '/#' + their route."""
+    return any(HASH_ROUTER.search(text) for text in _code_texts(root))
+
+
+def as_screen(route, hashed):
+    """A page route of the code as the address that shows it: '/#/forms' in an app that routes by the hash."""
+    return '/#' + route if hashed and route.startswith('/') and '#' not in route else route
 
 
 def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False, seeds=()):
