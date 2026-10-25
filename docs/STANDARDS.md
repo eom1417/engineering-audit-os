@@ -1,7 +1,9 @@
 # EAOS engineering standards
 
-The laws every line of EAOS obeys, all checked by one command: **`tools/quality.sh`** (about a minute). Numbers only
-ever get stricter: a change that worsens one is refused (by `tools/quality.sh`, and by the beta update, step 5a).
+The laws every line of EAOS obeys, each beside **what guards it**: `tools/quality.sh` (about a minute), a named test of
+the suite, a git hook, or "review" where no machine guards it yet (each of those is a candidate for a guard; a guard
+added moves the law out of review). Numbers only ever get stricter: a change that worsens one is refused (by
+`tools/quality.sh`, and by the beta update, step 5a). Where a new file goes: `docs/ARCHITECTURE.md` §4.
 
 ## 1. Code
 
@@ -32,34 +34,34 @@ the Studio's entries from `console/knip.json`.
 
 ## 2. Security
 
-- No secret in code, logs, commits, process arguments or outputs; secrets come from the environment by name only.
-- No shell built from strings; subprocesses take argument lists. Paths from outside are resolved and kept inside
-  their root.
-- Studio and API: launch token, CSRF and Origin checks on every write; bound to the hosts it was started for.
-- EAOS's own code carries **no medium or high finding** from `bandit`, `semgrep`, `gitleaks`, `osv-scanner`: today's
-  findings are recorded in `tools/quality.json` and may only go down (M2.1 silences `semgrep`'s noisy rule; the rest
-  are fixed or justified in M8.4, which also adds a lock file for the Python dependencies). `osv-scanner` reads the
-  Studio's `package-lock.json`.
+| Law | Guarded by |
+|---|---|
+| No secret in code, logs, commits, process arguments or outputs; secrets come from the environment by name only | `gitleaks` in `tools/quality.sh`; `test_studio_api` (the token never logged or shown); `test_sandbox` (the isolated copy without env files or secrets) |
+| No shell built from strings; subprocesses take argument lists | `bandit` and `semgrep` in `tools/quality.sh` (today's findings recorded, may only go down) |
+| Paths from outside are resolved and kept inside their root | review |
+| Studio and API: launch token, CSRF and Origin checks on every write; bound to the hosts it was started for | `test_studio_api` (token and host, CSRF and Origin, the routed origin) |
+| EAOS's own code carries **no medium or high finding** from `bandit`, `semgrep`, `gitleaks`, `osv-scanner` (`osv-scanner` reads the Studio's `package-lock.json`) | `tools/quality.sh`: today's findings recorded in `tools/quality.json`, may only go down; the rest are fixed or justified in M8.4, which also adds a lock file for the Python dependencies |
 
 ## 3. Safety
 
-- `main` is never touched (git hooks refuse it). Every change goes through a `dev/<topic>` branch from `develop`
-  (directly on `develop` only when the owner says so).
-- A project's app runs only in its isolated copy (`eaos/live/sandbox.py`, `eaos/live/run.py`): its own database, port and
-  scratch home; never the owner's real data.
-- A simulated user (M10) acts only in the isolated copy: external services stubbed, dummy data only, within step,
-  time and cost budgets; what needs a real service is reported as not covered.
-- The owner's own projects are never checked from the EAOS development container; fixes are proved on trial apps and
-  on the compatibility corpus.
-- Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the owner.
+| Law | Guarded by |
+|---|---|
+| `main` is never touched; every change goes through a `dev/<topic>` branch from `develop` (directly on `develop` only when the owner says so) | the git hooks `pre-commit` and `pre-push` refuse `main` |
+| A project's app runs only in its isolated copy (`eaos/live/sandbox.py`, `eaos/live/run.py`): its own database, port and scratch home; never the owner's real data | `test_sandbox` |
+| A project's state is read and written only through `core/project_state.py` | `test_consistency` |
+| Never one machine's path in code | `test_platforms` |
+| A simulated user (M10) acts only in the isolated copy: external services stubbed, dummy data only, within step, time and cost budgets; what needs a real service is reported as not covered | M10's tests, when built |
+| The owner's own projects are never checked from the EAOS development container; fixes are proved on trial apps and on the compatibility corpus | review |
+| Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the owner | the hooks for `main`; review for the rest |
 
 ## 4. Performance and disk
 
-- **What EAOS makes, EAOS removes**: a new kind of file comes with the rule that removes or bounds it, and its test.
-- Outputs hold what people or later stages read; caches live in the runtime folder, never in the report.
-- A check's output and runtime have size budgets (`docs/METRICS.md`); the disk budget script
-  (`/workspace/eaos-dev/workers/disk-budget.sh`) is said at the start of each session.
-- Long runs (checks, suites, updates) run as systemd units or background jobs, one heavy job at a time.
+| Law | Guarded by |
+|---|---|
+| **What EAOS makes, EAOS removes**: a new kind of file comes with the rule that removes or bounds it, and its test | `test_artifact_contract` (every artifact one owner, one purpose, one budget); `test_code_limits` (a temporary folder removed by what made it); `test_sandbox` (a killed run's leftovers removed) |
+| Outputs hold what people or later stages read; caches live in the runtime folder, never in the report | `test_artifact_contract` |
+| A check's output and runtime have size budgets (`docs/METRICS.md`); the disk budget (`/workspace/eaos-dev/workers/disk-budget.sh`) is said at the start of each session | the beta update stops while a folder is over budget; `tools/metrics.py` at each milestone end |
+| Long runs (checks, suites, updates) run as systemd units or background jobs, one heavy job at a time | review |
 
 ## 5. Tests
 
@@ -71,13 +73,13 @@ the Studio's entries from `console/knip.json`.
   secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw), listed in
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed). The golden trial checks
   the app and `tools/detection_baseline.py` refuses a check that reaches any of them less; `--record` after reaching
-  more. Today 5 of 8 (the three missed say why).
+  more. Today 6 of 8 (the two missed say why; `docs/METRICS.md`).
 - **Compatibility corpus** (M0.3): 12 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without
   hash routes, Next.js, Vue, SvelteKit, Expo web, Flask, Django, Streamlit, one behind a sign-in, one with a welcome
   flow, a static site). `tools/corpus.py` checks each as a person would (`--path look --run-app`, no assistant; about
   50 minutes, a background job), records whether it ran and which expected screens were pictured, and refuses when an
   app that passed now fails; `--record` writes the results. A change to running apps or finding screens never lowers
-  its pass rate. Today 2 of 12 (each failure says why: the input of M5).
+  its pass rate. Today 12 of 12 (after M5; `docs/METRICS.md`).
 
 ## 6. Language
 
@@ -108,6 +110,8 @@ After **every** finished card or decision, before the turn ends, the assistant u
 - `docs/ARCHITECTURE.md`: any change to the layout, layers or pipeline.
 - `docs/STANDARDS.md`: any law that changed or became enforced.
 - `docs/METRICS.md`: the numbers, at each milestone end.
+- At a milestone's end, its done rows of `ROADMAP.md` and the reasoning of its own choices in `docs/DECISIONS.md` move
+  to `docs/archive/` (only what still binds stays), so what is read at the start of a session stays short.
 - `AGENTS.md` (this repository) and `/workspace/AGENTS.md`, `/workspace/HANDOFF.md`: whatever they say that is no
   longer true.
 
