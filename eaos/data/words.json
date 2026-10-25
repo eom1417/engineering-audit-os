@@ -625,6 +625,20 @@
     "Parts that will fail the first time they run: an import of a missing file, or a documented command that no longer exists."
    ]
   },
+  "layer_boundary": {
+   "one": [
+    "حد مكسور بين الطبقات",
+    "A broken boundary between layers"
+   ],
+   "group": [
+    "حدود مكسورة بين طبقات النظام",
+    "Broken boundaries between the layers"
+   ],
+   "why": [
+    "المتصفح يحمل سرًا، أو نقطة طلب بلا حماية، أو جدول مفتوح، أو قاعدة في المكان الخطأ: أي أحد يصل إلى ما لا يملكه.",
+    "The browser holds a secret, an endpoint has no guard, a table is open, or a rule lives in the wrong place: anyone reaches what is not theirs."
+   ]
+  },
   "security_weakness": {
    "one": [
     "ضعف أمني",
@@ -875,20 +889,6 @@
    "why": [
     "استيراد يخالف ترتيب الطبقات الذي أعلنه المشروع.",
     "An import that breaks the layering the project declared."
-   ]
-  },
-  "layer_boundary": {
-   "one": [
-    "حد مكسور بين الطبقات",
-    "A broken boundary between layers"
-   ],
-   "group": [
-    "حدود مكسورة بين طبقات النظام",
-    "Broken boundaries between the layers"
-   ],
-   "why": [
-    "المتصفح يحمل سرًا، أو نقطة طلب بلا حماية، أو جدول مفتوح، أو قاعدة في المكان الخطأ: أي أحد يصل إلى ما لا يملكه.",
-    "The browser holds a secret, an endpoint has no guard, a table is open, or a rule lives in the wrong place: anyone reaches what is not theirs."
    ]
   },
   "design_review": {
