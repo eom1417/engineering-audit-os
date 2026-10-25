@@ -5,7 +5,7 @@ The Studio a person opens with `eaos studio`: the governance console the design 
 CSS, no UI framework, no network beyond the server that serves it. Arabic (right to left) first, English equally
 finished, light and dark, phone (390 px) first and desktop (1440 px).
 
-It replaces the old front end (`studio/`, React), which stays as unused source until the owner removes it.
+It replaced the old front end (`studio/`, React), since removed.
 
 ## Build
 

@@ -9,8 +9,9 @@ dist/
 evaluations/review-pack/
 .claude/
 
-# The Studio (studio/): its packages and local build; the shipped build is eaos/data/studio
-studio/.gates/
+# A tool's own state when it runs with this folder as its home (k6's installation id, Semgrep's settings and log)
+.config/
+.semgrep/
 
 # The console (console/): its one build tool; the shipped build is eaos/data/studio
 console/node_modules
