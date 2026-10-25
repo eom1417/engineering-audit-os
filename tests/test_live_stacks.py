@@ -91,5 +91,18 @@ class OtherStackTests(unittest.TestCase):
         self.assertEqual(server['start'], ['npm', 'run', 'start'])
 
 
+class PagesAloneTests(unittest.TestCase):
+    def test_a_site_of_pages_alone_is_a_project_to_check(self):
+        # its script inside its index.html: the check said "no source file" and never ran the app
+        from eaos.pipeline import runners
+        from eaos.pipeline.stage_run import Context
+        site = project({'index.html': '<button onclick="location.hash=\'#/a\'">A</button>'})
+        import subprocess
+        for argv in (['init', '-q'], ['add', '.'], ['-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-qm', 'site']):
+            subprocess.run(['git', '-C', str(site), *argv], check=True)
+        context = Context(target=str(site), out=Path(scratch()), exclude=[], max_files=1000, max_bytes=2_000_000)
+        self.assertIn('facts', runners.facts(context))
+
+
 if __name__ == '__main__':
     unittest.main()
