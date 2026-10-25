@@ -281,9 +281,7 @@ def detect(project, report=None):
     project documents as a folder of a report points at `report` (report_values)."""
     project = Path(project)
     folder = app_folder(project)
-    if folder is None:
-        from . import setup_python
-        return setup_python.detect(project) or static_site(project, None, {}) or _unknown_app()
+    if folder is None: return static_site(project, None, {}) or _unknown_app()     # a Python app: setup.py detect
     package = read_json(project / folder / 'package.json')
     return static_site(project, folder, package) or _javascript(project, folder, package, report)
 
