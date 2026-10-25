@@ -32,7 +32,13 @@ read at the start of a session; what still binds is in `docs/DECISIONS.md`.
   - The corpus' Node REST API is `davidtiger3622/crud-api-sqlite` (an Express API with SQLite, Supabase sign-in and an
     `openapi.json`), not the express-openapi-validator example first picked: that example imports packages it does not
     declare and never starts. An install held to a lockfile older than its package.json (`npm ci`, `--frozen-lockfile`)
-    is tried once more without holding to it, in the run's own copy.
+    is tried once more without holding to it, in the run's own copy; pnpm installs with `--config.strict-dep-builds=false`
+    (pnpm 10 and later refuse packages whose build scripts nobody approved).
+  - A missing item of operations is a finding of the layers, never a card: the target's infrastructure rows already plan
+    it (one source). The target projection keeps its own placement (the layer map uses the same path rule); placing its
+    unplaced files by the map changed the gaps of other components and was left out.
+  - A handler that answers 401 checks who is signed in, one that answers 403 checks a right, whatever their checks are
+    called; a route of any method is called with a GET by the behaviour lock, as a browser does.
 - **M5 (assistant's decisions)**:
   - The browser agent is EAOS's own (`live/agent.py`): `browser-use` and `Stagehand` need a model key of their own,
     which EAOS never holds (it works through the person's assistant), so they cannot be measured here; the Playwright

@@ -33,8 +33,11 @@ security, a policy open to everyone, a write no test reaches). Now every check r
 - **The layers for people** (M6.11): START-HERE.md and REPORT.html open with the broken critical boundaries in red, then
   each boundary with its state; the Studio's new page "The system in layers"; each card names its boundary and the
   reference's fix.
-- **The proof** (M6.12): the detection baseline grew to 16 planted problems, its clean twin `tests/fixtures/baseline-clean`
-  must stay without any layer finding, and three corpus apps of the stacks the layers matter for joined the corpus.
+- **The proof** (M6.12): the detection baseline grew to 16 planted problems and finds 15 (6 before M6); its clean twin
+  `tests/fixtures/baseline-clean` has no layer finding; three corpus apps of the stacks the layers matter for joined the
+  corpus, their 37 layer findings judged by hand, 2 false (5%); the static part read EAOS's 572 files in 6 seconds.
+- Also: an install held to an outdated lockfile is tried once more without it, pnpm's unapproved build scripts no longer
+  stop an install (the corpus' Supabase app runs now), and the golden trial's own script follows the layout of M3 again.
 
 ## 0.0.77 (2026-10-25)
 

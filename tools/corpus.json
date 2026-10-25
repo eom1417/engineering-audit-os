@@ -1,5 +1,5 @@
 {
- "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25. The apps marked 'layers' (M6.0, 2026-10-25) are the stacks the layers matter for (React + Vite + Supabase with its migrations, a Node REST API with its OpenAPI file, Next.js with API routes and server actions): their layer findings are recorded beside their screens.",
+ "about": "The compatibility corpus (docs/STANDARDS.md §5, M0.3): real open-source apps pinned at a commit, one per common shape, each checked by tools/corpus.py (eaos check --path look --run-app, no assistant). 'screens' are the pages a person sees there without signing in, except for the sign-in app, whose signed-in pages are expected too; 'result' is the last recorded check. Picked and tried by hand on 2026-10-23; CoreUI's sign-in and 404 named again at its pinned commit's addresses on 2026-10-25. The apps marked 'layers' (M6.0, 2026-10-25) are the stacks the layers matter for (React + Vite + Supabase with its migrations, a Node REST API with its OpenAPI file, Next.js with API routes and server actions): their layer findings are recorded beside their screens. 'layers_judged' is the hand judgement of every layer finding of an app (M6.12): how many were true and false.",
  "apps": [
   {
    "name": "rr-basic",
@@ -1306,6 +1306,12 @@
       }
      ]
     }
+   },
+   "layers_judged": {
+    "date": "2026-10-25",
+    "true": 15,
+    "false": 0,
+    "notes": "all true: two Supabase edge-function callbacks write with the service key and check no caller; two security-definer functions callable by anyone; a service importing a toast hook; no test at all"
    }
   },
   {
@@ -1441,6 +1447,16 @@
       }
      ]
     }
+   },
+   "layers_judged": {
+    "date": "2026-10-25",
+    "true": 16,
+    "false": 2,
+    "false_items": [
+     "unguarded-write POST /triage",
+     "untested-write POST /triage"
+    ],
+    "notes": "the open task CRUD and /reset are real; /triage writes nothing (it calls a paid model with no sign-in: a real risk, said wrongly as a write)"
    }
   },
   {
@@ -1461,8 +1477,8 @@
      "/login"
     ],
     "passed": false,
-    "seconds": 287,
-    "why": "no AI assistant was available to work out: RuntimeError: install failed (corepack pnpm install --frozen-lockfile): Error: ERR_PNPM_IGNORED_BUILDS\n\n  × installing dependencies\n  ╰─▶ Ignored build scripts: esbuild@0.18.20, esbuild@0.19.12, sharp@0.34.5\n  help: Run \"pnpm approve-builds\" to pick which dependencies should be allowed\n        to run scripts.\n\n",
+    "seconds": 416,
+    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:54965/ within 180s; see /workspace/eaos-work/corpus/next-dashboard-9rnxxtf8/home/projects/app-41aed01e/runtime/sandbox/service-0.log; it said: /page.tsx:17:50)\n  57 |   }\n  58 |\n> 59 |   let totalProducts = await db.select({ count: count() }).from(products);\n     |                       ^\n  60 |   let moreProduct",
     "layers": {
      "files": 23,
      "placed": 19,
@@ -1496,6 +1512,12 @@
       }
      ]
     }
+   },
+   "layers_judged": {
+    "date": "2026-10-25",
+    "true": 4,
+    "false": 0,
+    "notes": "operations items only; the empty server action and the seed route are rightly not findings"
    }
   }
  ]
