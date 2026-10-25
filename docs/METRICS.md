@@ -128,6 +128,23 @@ run), against the M2 numbers. The host was quiet (load 3-6), so the time is comp
 - The cards' titles of agreeing engines were stored in Arabic and printed so in an English check: stored in English
   since this measure (`eaos/analysis/claims.py`), the reports render them from the template in the reader's language.
 
+## After M5: 0.0.77 (2026-10-25)
+
+| Measure | Value |
+|---|---|
+| Python lines (`eaos/`) | 66,501 in 408 files (2 flat at the package root) |
+| Studio UI (`console/src`) | 14,012 JS lines in 105 files (words 3,006) |
+| Tests | 20,502 lines in 129 files, 728 test functions |
+| Check time | 3,599 s wall (ideal 1,462 · verify 650 · triage 490 · engines 291) |
+| Stages / documents / engines | 37 / 27 `.md` / 39 tools |
+| Output | 401 MB, 2,482 files |
+| Runtime | 760 MB |
+| Cards on itself | 101 plan tasks (45 hotspot, 13 extend_feature, 12 canonicalize) from 418 claims |
+| Engine findings | 3,853 (`semgrep` 1,673, `reforge` 1,557) |
+| Compatibility corpus | 12 of 12 apps pass (12 pinned) |
+| Detection baseline | 6 of 8 planted problems found |
+
+
 ## Findings of the M-1 measurement (inputs for M1-M4; what remained became cards of `ROADMAP.md`)
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio
