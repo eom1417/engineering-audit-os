@@ -11,6 +11,7 @@ table; this tries them:
 Every failure is a finding with its evidence, joined to layers.json and the `boundaries` fact set.
 """
 import json
+import shutil
 from pathlib import Path
 
 from .live_app import _live
@@ -25,7 +26,7 @@ def _record(context):
     except (OSError, ValueError): raise SkipStage('the layers were not read in this check', code='no_layers')
 
 
-def built(context, runtime):
+def built(context, runtime, record):
     """(findings, what was read): the production build in an isolated copy, read like the project's own built output."""
     from ..analysis.layers.browser import built_output, built_folders
     from ..live.run import LiveRun
@@ -34,9 +35,16 @@ def built(context, runtime):
         return [], {'gap': 'the app has no production build the setup verified, so its built output was not read'}
     try:
         live.setup()
-        return built_output(live.sandbox.copy, 'built:'), {'read': [str(f.relative_to(live.sandbox.copy)) for f in built_folders(live.sandbox.copy)]}
+        found = built_output(live.sandbox.copy, 'built:')
+        return _new(found, record), {'read': [str(f.relative_to(live.sandbox.copy)) for f in built_folders(live.sandbox.copy)]}
     finally:
         live.stop()
+
+
+def _new(found, record):
+    """What the build in the copy shows that the project's own built output, read by the static part, did not."""
+    seen = {(f['rule'], f.get('path')) for f in record['findings']}
+    return [f for f in found if (f['rule'], f['path'].removeprefix('built:')) not in seen]
 
 
 def _made_at(record, migrations):
@@ -69,21 +77,24 @@ def data(context, runtime, record):
     return _failed_tests(tried, _made_at(record, migrations)) + _advised(tried, migrations[0] if migrations else '*'), tried
 
 
-def _accounts(live, base, runtime):
-    """{name: request headers} of the run's two test accounts: its own (the seed's session) and a second one the sign-up
-    script makes the same way, by rules."""
+ACCOUNTS = ('eaos-first', 'eaos-second')
+
+
+def _accounts(live, base, folder):
+    """{name: request headers} of two test accounts made on the running app by the sign-up rules (eaos/live/test_account.py),
+    whatever the check itself needed: one user reaching another's object needs two."""
+    import secrets
     from ..live import sign_in, test_account
     from ..live.api_trial import headers
-    state = sign_in.session(runtime)
-    live.seed(base, sign_in.seeding(state))
-    found = {'first': headers(state)}
-    seed = runtime / 'setup' / test_account.SCRIPT.name
-    if seed.is_file():
-        other = runtime / 'layers' / 'second.json'
-        other.parent.mkdir(parents=True, exist_ok=True)
-        live.run(['node', str(seed)], timeout=300, env={'BASE_URL': base, 'EAOS_STORAGE_STATE': str(other), 'EAOS_SIGN_IN_PAGE': '',
-                                                        'EAOS_TEST_USER': 'demo2', 'EAOS_TEST_PASSWORD': 'Second-account-1'})
-        found['second'] = headers(other)
+    live.seed(base, sign_in.seeding(sign_in.session(live.runtime)))         # the app's own data, as every page stage has it
+    script = folder / test_account.SCRIPT.name
+    script.write_text(test_account.SCRIPT.read_text(encoding='utf-8'), encoding='utf-8')
+    found = {}
+    for name in ACCOUNTS:
+        state = folder / f'{name}.json'
+        live.run(['node', str(script)], timeout=300, env={'BASE_URL': base, 'EAOS_STORAGE_STATE': str(state), 'EAOS_SIGN_IN_PAGE': '',
+                                                          'EAOS_TEST_USER': name, 'EAOS_TEST_PASSWORD': secrets.token_urlsafe(12) + 'Aa1!'})
+        found[name] = headers(state)
     return {name: sent for name, sent in found.items() if sent}
 
 
@@ -97,14 +108,16 @@ def api(context, runtime, record):
         spec = folder / 'openapi.derived.json'
         spec.write_text(json.dumps(api_trial.derived(record['endpoints']), indent=1), encoding='utf-8')
     live = LiveRun(context.target, runtime, 'S05', apart='layers')
+    sessions = Path(runtime) / 'layers'
+    sessions.mkdir(parents=True, exist_ok=True)
     try:
         live.setup()
         base = live.start()
-        accounts = _accounts(live, base, Path(runtime))
+        accounts = _accounts(live, base, sessions)
         tried = api_trial.run(folder, spec, base, accounts)
     finally:
         live.stop()
-        (Path(runtime) / 'layers' / 'second.json').unlink(missing_ok=True)      # the second account's session: a secret
+        shutil.rmtree(sessions, ignore_errors=True)          # the accounts' sessions: secrets, of this trial only
     tried.update(spec=str(spec.relative_to(context.target)) if spec.is_relative_to(context.target) else 'derived from the endpoint table',
                  accounts=len(accounts))
     return [_api_finding(f, record['endpoints'], api_trial) for f in tried['failures']], tried
@@ -116,8 +129,13 @@ def _api_finding(failure, endpoints, api_trial):
                 and r['method'] in (failure['method'], 'ANY')), {})
     return {'rule': api_trial.RULES[failure['check']], 'path': row.get('path') or '*', 'line': row.get('line'),
             'evidence': f"{failure['request']} -> {failure['status']} {failure['response'][:200]}",
-            'params': {'method': failure['method'], 'route': failure['path'], 'status': failure['status'],
-                       'detail': failure['detail'] or failure['title']}}
+            'params': {'method': failure['method'], 'route': failure['path'], 'status': failure['status'], 'detail': _said(failure)}}
+
+
+def _said(failure):
+    """The one line of Schemathesis' message that says what went wrong: the invalid part, else its first line."""
+    lines = [line.strip() for line in (failure['detail'] or failure['title']).splitlines() if line.strip()]
+    return next((line for line in lines if line.startswith('Invalid component')), lines[0] if lines else failure['check'])
 
 
 def layers_trial(context):
@@ -126,7 +144,7 @@ def layers_trial(context):
     runtime = _live(context)
     record = _record(context)
     findings, live = [], {}
-    for name, part in (('built', lambda: built(context, runtime)), ('data', lambda: data(context, runtime, record)),
+    for name, part in (('built', lambda: built(context, runtime, record)), ('data', lambda: data(context, runtime, record)),
                        ('api', lambda: api(context, runtime, record))):
         try:
             found, said = part()

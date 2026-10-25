@@ -12,11 +12,13 @@ AUTHENTICATION = re.compile(
     r'getAuth|requireUser|require_user|login_required|LoginRequired\w*|jwt_required|passport\.authenticate|withAuth|'
     r'withApiAuth\w*|isLoggedIn|is_logged_in|checkAuth|check_auth|protect\w*|auth\.protect|clerkClient|validateRequest|'
     r'validateSession|lucia\.\w+|IsAuthenticated|permission_classes|get_current_user\w*|Security\(|HTTPBearer|OAuth2PasswordBearer)\b'
-    r'|\b(?:req|request)\.(?:user|auth|session\.user(?:Id)?)\b|\bawait\s+auth\(\)|\bsession\?*\.user\b|\buser\s*=\s*await\s+auth\(')
+    r'|\b(?:req|request)\.(?:user|auth|session\.user(?:Id)?)\b|\bawait\s+auth\(\)|\bsession\?*\.user\b|\buser\s*=\s*await\s+auth\('
+    # a handler that answers 401 checks who is signed in, whatever it calls the check
+    r'|[(,=\s]401\b')
 AUTHORISATION = re.compile(
     r'\b(owner\w*|user_?id|userId|author_?id|authorId|created_?by|createdBy|profile_?id|account_?id|tenant_?id|org_?id|'
     r'role|roles|isAdmin|is_admin|is_staff|is_superuser|permission\w*|authori[sz]e\w*|can\(|has_perm\w*|has_role|hasRole|'
-    r'IsOwner\w*|PermissionRequired\w*|UserPassesTest\w*)\b|auth\.uid\(\)|[!=]==?\s*(?:user|req\.user\.id|session\.user\.id)\b'
+    r'IsOwner\w*|PermissionRequired\w*|UserPassesTest\w*)\b|[(,=\s]403\b|auth\.uid\(\)|[!=]==?\s*(?:user|req\.user\.id|session\.user\.id)\b'
     r'|\bfilter\(\s*(?:owner|user|author)\s*=|\.eq\(\s*[\'"]\w*(?:user|owner|author)\w*[\'"]')
 VALIDATION = re.compile(
     r'\.(?:parse|safeParse|parseAsync|safeParseAsync|validate\w*|is_valid)\s*\(|\b(?:z|zod|Joi|joi|yup|v|t)\.object\s*\(|'
@@ -39,9 +41,19 @@ SERVICE_CLIENT = re.compile(r'SERVICE_ROLE|service_role|SUPABASE_SECRET|sb_secre
 MIDDLEWARE_ARGS = re.compile(r'''\.(?:get|post|put|patch|delete|all)\(\s*['"`][^'"`]*['"`]\s*,\s*(?P<args>[^)]*?)\s*,\s*(?:async\s*)?(?:\(|function|\w+\s*\)|[A-Za-z_$][\w$.]*\s*\)\s*;?\s*$)''')
 
 
+QUOTED = re.compile(r"'(?:[^'\\\n]|\\.)*'" r'|"(?:[^"\\\n]|\\.)*"')
+TEMPLATE = re.compile(r'`[^`]*`')
+
+
 def code(text, language):
     """The text without its comments."""
     return COMMENTS['python' if language == 'python' else ''].sub('', text)
+
+
+def unquoted(text):
+    """The text with its string literals emptied (a template literal keeps the code inside ${...}): what names a variable."""
+    text = TEMPLATE.sub(lambda m: ' '.join(re.findall(r'\$\{([^}]*)\}', m.group(0))), text)
+    return QUOTED.sub("''", text)
 
 
 def read(text):

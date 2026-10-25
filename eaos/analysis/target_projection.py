@@ -167,6 +167,7 @@ def infrastructure(reference, facts, target, files, prefix=''):
     repository root or under the app root (chief-ops keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
     observed = {**_observed_in_facts(facts), **_observed_in_files(_existing(target, prefix), files)}
+    if not observed['data'][0] and (client := _typed_client(facts)): observed['data'] = (True, f'typed data client: {client}')
     return [_infrastructure_row(item, observed, reference['id']) for item in baseline_items(reference)]
 
 
@@ -178,6 +179,15 @@ def _existing(target, prefix):
     def exists(*names):
         return [n for n in names for base in dict.fromkeys(('', prefix)) if target and (target / base / n).exists()]
     return exists
+
+
+TYPED_CLIENTS = ('@prisma/client', 'drizzle-orm', 'kysely', 'sqlalchemy', 'sqlmodel')
+
+
+def _typed_client(facts):
+    """The typed data client the code imports (Drizzle's tables are its schema, in code), or None."""
+    modules = {(f.get('value') or {}).get('module') or '' for f in facts.get('import_edge') or []}
+    return next((client for client in TYPED_CLIENTS if any(m == client or m.startswith(client + '/') for m in modules)), None)
 
 
 def _observed_in_facts(facts):

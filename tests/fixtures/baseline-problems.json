@@ -83,8 +83,7 @@
     "idor",
     "access control"
    ],
-   "found": "missed",
-   "why": "missed 2026-10-23: no rule reads ownership; an assistant judge would (M6.4, M8.2)",
+   "found": "card",
    "card": "M6.4"
   },
   {
@@ -96,8 +95,7 @@
     "talks to the database"
    ],
    "card": "M6.3",
-   "found": "missed",
-   "why": "missed 2026-10-25: planted for M6 (M6.0), before any layer check"
+   "found": "card"
   },
   {
    "id": "browser-only-rule",
@@ -108,8 +106,7 @@
     "only in the browser"
    ],
    "card": "M6.8",
-   "found": "missed",
-   "why": "missed 2026-10-25: planted for M6 (M6.0), before any layer check"
+   "found": "card"
   },
   {
    "id": "secret-in-browser",
@@ -120,8 +117,7 @@
     "shipped to the browser"
    ],
    "card": "M6.3",
-   "found": "missed",
-   "why": "missed 2026-10-25: planted for M6 (M6.0), before any layer check"
+   "found": "card"
   },
   {
    "id": "key-in-built-output",
@@ -132,8 +128,7 @@
     "built output"
    ],
    "card": "M6.3",
-   "found": "missed",
-   "why": "missed 2026-10-25: planted for M6 (M6.0), before any layer check"
+   "found": "card"
   },
   {
    "id": "unguarded-write",
@@ -144,8 +139,7 @@
     "no sign-in check"
    ],
    "card": "M6.4",
-   "found": "missed",
-   "why": "missed 2026-10-25: planted for M6 (M6.0), before any layer check"
+   "found": "card"
   },
   {
    "id": "table-without-rls",
@@ -156,8 +150,7 @@
     "no row-level security"
    ],
    "card": "M6.5",
-   "found": "missed",
-   "why": "missed 2026-10-25: the access gap was a hidden detector (only 1 judged output)"
+   "found": "card"
   },
   {
    "id": "open-write-policy",
@@ -168,8 +161,7 @@
     "lets anyone"
    ],
    "card": "M6.5",
-   "found": "missed",
-   "why": "missed 2026-10-25: the access gap was a hidden detector (only 1 judged output)"
+   "found": "card"
   },
   {
    "id": "untested-write",
@@ -180,8 +172,7 @@
     "no test"
    ],
    "card": "M6.10",
-   "found": "missed",
-   "why": "missed 2026-10-25: planted for M6 (M6.0), before any layer check"
+   "found": "card"
   }
  ]
 }

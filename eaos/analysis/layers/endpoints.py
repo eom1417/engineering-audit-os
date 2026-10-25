@@ -126,7 +126,8 @@ def _data(project, path, first, last, text):
     """The tables and in-memory stores the handler reaches."""
     tables = {f['value']['target'] for f in project.facts('entrypoints', 'data_access')
               if f['location']['path'] == path and first <= (f['location'].get('start_line') or 0) <= last and f['value'].get('target')}
-    stores = {name for name in _stores(project, path) if re.search(r'\b' + re.escape(name) + r'\b', text)}
+    named = guards.unquoted(text)
+    stores = {name for name in _stores(project, path) if re.search(r'\b' + re.escape(name) + r'\b', named)}
     return sorted(map(str, tables | stores))
 
 

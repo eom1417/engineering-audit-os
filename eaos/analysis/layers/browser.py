@@ -66,11 +66,10 @@ def database_in_ui(project, rows):
         if row['side'] != 'browser': continue
         if 'data' in row['marks']:
             driver = next(m for m in project.imports[row['path']] if _driver(m))
-            found.append(_row('ui-database', row['path'], _line_of(project, row['path'], driver), f'imports {driver}',
-                              how=f'it imports {driver}'))
+            found.append(_row('ui-database', row['path'], _line_of(project, row['path'], driver), f'imports {driver}', how=driver))
         else:
             hit = next(((n, l) for n, l in enumerate(project.lines(row['path']), start=1) if SQL_CALL.search(l)), None)
-            if hit: found.append(_row('ui-database', row['path'], hit[0], hit[1].strip()[:160], how='it runs SQL'))
+            if hit: found.append(_row('ui-database', row['path'], hit[0], hit[1].strip()[:160], how='SQL'))
     return found
 
 
