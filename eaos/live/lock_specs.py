@@ -195,7 +195,7 @@ def _not_called(route, kind, method):
     if re.search(LEAVES, route, re.I):
         return f'{route} (ends the session or changes data: not called)', [
             f"  test({json.dumps(f'{route} is not called')}, async () => {{", "    test.skip(true, 'it would sign out or change data');", '  });']
-    if kind == HTTP and method != 'GET':
+    if kind == HTTP and method not in ('GET', 'ANY'):           # a route of any method answers a GET as a browser sends it
         return f'{method} {route} (needs_fixture: writes)', [
             f"  test({json.dumps(f'{method} {route} is not called blindly')}, async () => {{",
             f"    test.skip(true, 'needs_fixture: {method} writes; lock it against a fixture');", '  });']

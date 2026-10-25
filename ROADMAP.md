@@ -132,7 +132,9 @@ of becomes a question, never a finding.
   and the source evidence (Cloudflare security-audit style). The same judge rules on what a simulated user reports
   (M10.7).
 - **M7.5** Each batch checked beyond behaviour: after a batch, M6's layer and security checks run again over the
-  changed files, so a fix that opens a boundary is refused like one that breaks a screen.
+  changed files, so a fix that opens a boundary is refused like one that breaks a screen. (The layers' gate is in since
+  0.0.78: `journeys/execute.py` new_breakage refuses a change that breaks a boundary of the browser, the endpoints, the
+  data, the rules or the layers; what is left is the security engines' rerun and saying it in the batch's report.)
 - **M7.6** The build journey never stalls: after the third refused proof in a row its last milestone is handed over
   with the list of what stays unproven, shown in the Studio and the report (today `journeys/build_tools.py` holds it
   back on every refusal).
