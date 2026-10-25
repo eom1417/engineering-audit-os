@@ -23,6 +23,10 @@ ENV_IN_CODE = re.compile(r'(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]{2
 SECRETISH = re.compile(r'(SECRET|TOKEN|KEY|PASSWORD|PASS|SALT|PRIVATE|CREDENTIAL)', re.I)
 URLISH = re.compile(r'(URL|URI|HOST|ENDPOINT|DSN|ORIGIN|DOMAIN)$', re.I)
 MAIL_NAMES = re.compile(r'^(SMTP|MAIL|EMAIL)_?(HOST|SERVER|URL|PORT)$')     # where the app sends its mail: the run's Mailpit
+SCHEMES = (('REDIS', 'redis'), ('MONGO', 'mongodb'), ('AMQP', 'amqp'), ('RABBIT', 'amqp'))   # an address a client parses by scheme
+STATIC_SERVERS = ('browser-sync', 'live-server', 'http-server', 'lite-server', 'serve', 'five-server')
+SERVERS = ('express', 'fastify', 'koa', '@hapi/hapi', 'hono', '@nestjs/core', 'polka')
+SITE_FOLDERS = ('dist', 'build', '_site', 'public', 'docs', 'site', 'www', '.')
 DB_NAMES = re.compile(r'^(DATABASE_URL|POSTGRES_URL|POSTGRES_PRISMA_URL|POSTGRES_URL_NON_POOLING|DIRECT_URL|PG_?URL|DB_URL|NEON_DATABASE_URL)$')
 
 
@@ -90,7 +94,7 @@ def dependencies(package):
 
 def framework(package):
     deps = dependencies(package)
-    for name in ('next', 'nuxt', 'astro', '@remix-run/dev', '@sveltejs/kit', 'vite', 'react-scripts'):
+    for name in ('expo', 'next', 'nuxt', 'astro', '@remix-run/dev', '@sveltejs/kit', 'vite', 'react-scripts'):
         if name in deps: return name
     return None
 
@@ -99,6 +103,7 @@ def dev_command(manager, package, port):
     """How the app starts for the lock: its framework's dev server on 127.0.0.1:<port>, without file watchers."""
     scripts, kind = package.get('scripts') or {}, framework(package)
     port = str(port)
+    if kind == 'expo': return ['npx', 'expo', 'start', '--web', '--port', port, '--host', 'localhost'], {'CI': '1'}   # PORT is ignored
     if kind == 'next': return ['npx', 'next', 'dev', '-p', port, '-H', '127.0.0.1'], {}
     if kind in ('vite', '@sveltejs/kit', '@remix-run/dev'):
         return ['npx', 'vite', '--port', port, '--host', '127.0.0.1', '--strictPort'], {}
@@ -114,6 +119,7 @@ def production_commands(manager, package, port):
     """(build, start) for the load baseline: the built app, never the dev server; an app with no build step (a plain Node
     server) is its own production, started as it starts ([] to build); (None, None) if unclear."""
     scripts, kind = package.get('scripts') or {}, framework(package)
+    if kind == 'expo': return None, None       # its start script is the dev server
     build = [run_script(manager, 'build')] if 'build' in scripts and script_is_safe(scripts, 'build') else []
     port = str(port)
     if kind == 'next': return (build, ['npx', 'next', 'start', '-p', port, '-H', '127.0.0.1']) if build else (None, None)
@@ -228,10 +234,11 @@ def _value(name, example, port, database):
     """The value the run chooses for one name (environment_values), or None when it chooses none."""
     if name == 'PORT': return str(port)
     if name in ('HOST', 'HOSTNAME'): return '127.0.0.1'
-    if DB_NAMES.match(name) and database == 'postgres': return '{database_url}'
-    if MAIL_NAMES.match(name): return {'HOST': '127.0.0.1', 'PORT': '{mail_port}'}.get(name[-4:], 'smtp://127.0.0.1:{mail_port}')
+    # no address rather than a web one: an app falls back to its own database (SQLite), never parses http:// as one
+    if DB_NAMES.match(name): return '{database_url}' if database == 'postgres' else None
+    if MAIL_NAMES.match(name): return '{mail_port}' if name.endswith('PORT') else '127.0.0.1' if name.endswith(('HOST', 'SERVER')) else 'smtp://127.0.0.1:{mail_port}'
     if SECRETISH.search(name): return secrets.token_urlsafe(32)
-    if URLISH.search(name): return 'http://127.0.0.1:9'
+    if URLISH.search(name): return next((f'{scheme}://127.0.0.1:9' for prefix, scheme in SCHEMES if name.startswith(prefix)), 'http://127.0.0.1:9')
     if example and re.fullmatch(r'(true|false|\d{1,6}|[a-z]{2,12}|[a-z-]{2,20})', example): return example
     return None
 
@@ -258,8 +265,12 @@ def detect(project, report=None):
     project documents as a folder of a report points at `report` (report_values)."""
     project = Path(project)
     folder = app_folder(project)
-    if folder is None: return _unknown_app()
+    if folder is None:
+        from . import setup_python
+        return setup_python.detect(project) or static_site(project, None, {}) or _unknown_app()
     package = read_json(project / folder / 'package.json')
+    site = static_site(project, folder, package)
+    if site: return site
     manager, lockfile = package_manager(project, folder)
     port = free_port()
     start, start_env = dev_command(manager, package, port)
@@ -299,8 +310,28 @@ def _production_profile(manager, lockfile, build, production, env, port):
             'env': {**{k: v for k, v in env.items() if k != 'NODE_ENV'}, 'NODE_ENV': 'production', 'PORT': str(port)}}
 
 
+def static_site(project, folder, package):
+    """detect()'s answer for a static site, served from its folder by Python's own server: pages with no package.json,
+    or a package that only builds them and previews them with a static server (browser-sync: it ignores PORT, and the
+    corpus' static site never answered); None for anything else."""
+    deps = dependencies(package)
+    if folder is not None and (framework(package) or any(n in deps for n in SERVERS) or not any(n in deps for n in STATIC_SERVERS)): return None
+    base = Path(project) / (folder or '.')
+    scripts = package.get('scripts') or {}
+    build = [run_script(package_manager(project, folder)[0], 'build')] if folder and _first_safe(scripts, ('build',)) else []
+    served = next((name for name in SITE_FOLDERS if (base / name / 'index.html').is_file()), 'dist' if build else None)
+    if served is None: return None
+    port = free_port()
+    profile = {'schema_version': 1, 'app': folder or '.', 'install': [install_argv(*package_manager(project, folder))] if folder else [['true']],
+               'start': ['python3', '-m', 'http.server', str(port), '--bind', '127.0.0.1', '--directory', served], 'port': port,
+               'health': '/', 'start_timeout': 180, 'env': {}, 'checks': []}
+    if build: profile['build'] = build
+    return {'profile': profile, 'facts': {'folder': folder or '.', 'manager': folder and package_manager(project, folder)[0],
+                                          'framework': 'static', 'database': None, 'env_names': []}, 'limitations': []}
+
+
 def _unknown_app():
-    """An app EAOS does not know how to start by itself (no JavaScript web app: a Python one, say): a draft that starts
+    """An app EAOS does not know how to start by itself (neither a JavaScript nor a Python web app, nor a static site): a draft that starts
     nothing, so the run's records never keep an earlier app's profile, and the assistant works out how to start it from
     the project's own documentation (_attempts), with safe() as the judge of every command it proposes."""
     profile = {'schema_version': 1, 'app': '.', 'install': [['true']], 'start': ['true'], 'port': free_port(), 'health': '/',

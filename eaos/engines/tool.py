@@ -12,6 +12,7 @@ from .contract import ERROR, NOT_APPLICABLE, UNAVAILABLE, Report
 from .process import run, which
 
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
+SLOW = (120, 600)                 # seconds a version check may take: then again, on a loaded host
 
 
 def pinned(name):
@@ -20,12 +21,17 @@ def pinned(name):
 
 
 def version(binary, args=('--version',)):
-    """The version the installed binary prints, or None when it is absent or prints none."""
+    """The version the installed binary prints, or None when it is absent or prints none. A binary that is there but
+    does not answer in time (a loaded host: 120 s were not enough at load 47) is asked again with longer, then counted
+    as installed, its version 'unknown': never taken for a tool that is not installed."""
     path = which(binary)
     if not path: return None
-    code, out, error, _ = run([path, *args], timeout=120)
-    found = VERSION.search(out + error)
-    return found.group(1) if found else None
+    for limit in SLOW:
+        code, out, error, _ = run([path, *args], timeout=limit)
+        found = VERSION.search(out + error)
+        if found: return found.group(1)
+        if not (code == 127 and 'timed out' in error): return None
+    return 'unknown'
 
 
 def package_version(name, binary):

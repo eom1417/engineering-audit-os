@@ -146,7 +146,7 @@ def stale_instructions(source, known, everything):
     out = []
     for path, text in _documents(source, known):
         for match in CODE_SPAN.finditer(text):
-            span = match.group(1) or match.group(2)
+            span = match.group(1) or match.group(2) or ''     # an empty block (```\n```) has neither
             line = text.count('\n', 0, match.start()) + 1
             out += [(path, line, command) for command in _stale_in_span(span, path, commands)]
     return sorted(set(out))
