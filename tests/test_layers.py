@@ -48,3 +48,10 @@ class LayersTests(TemporaryWorkspace):
         self.assertEqual((removal['authentication'], removal['authorisation'], removal['writes']), ('signedIn', 'owner', True))
         self.assertIsNone(rows[('POST', '/api/orders')]['authentication'])
         self.assertTrue(rows[('ANY', '/health')]['public'])
+
+    def test_a_change_that_breaks_a_boundary_is_refused_by_the_fix_gate(self):
+        # the clean twin changed into the planted app: every broken boundary is named, a missing test is not one
+        broke = layers.introduced(self.clean, self.app)
+        self.assertTrue(any('writes with no sign-in check' in said for said in broke), broke)
+        self.assertFalse(any('no test reaches it' in said for said in broke))
+        self.assertEqual(layers.introduced(self.app, self.app), [])

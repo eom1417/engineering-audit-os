@@ -104,6 +104,7 @@ def api(context, runtime, record):
         tried = api_trial.run(folder, spec, base, accounts)
     finally:
         live.stop()
+        (Path(runtime) / 'layers' / 'second.json').unlink(missing_ok=True)      # the second account's session: a secret
     tried.update(spec=str(spec.relative_to(context.target)) if spec.is_relative_to(context.target) else 'derived from the endpoint table',
                  accounts=len(accounts))
     return [_api_finding(f, record['endpoints'], api_trial) for f in tried['failures']], tried

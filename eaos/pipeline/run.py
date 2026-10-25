@@ -247,7 +247,7 @@ def check(target, out, again_from=None, checked=False, paths=None, go_on=False, 
     if chosen['stages'] is not None: return focused(target, out, chosen, checked, **options)
     if not options.get('only'): clear(out)
     (Path(out) / USAGE).unlink(missing_ok=True)        # a fresh run counts its own use from nothing
-    return execute(target, out, **options)
+    return execute(target, out, paths=chosen['paths'], **options)     # `complete` and the options it switches on
 
 
 def focused(target, out, chosen, checked=False, **options):

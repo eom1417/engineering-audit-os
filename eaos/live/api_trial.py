@@ -104,9 +104,20 @@ def run(folder, spec, base, identities, budget=BUDGET):
         config = folder / 'schemathesis.toml'
         config.write_text(f'[auth.wfc]\npath = "{wfc}"\n' + (f'peers = {json.dumps(sorted(named))}\n' if len(named) > 1 else ''), encoding='utf-8')
         argv[1:1] = ['--config-file', str(config)]
-    done = run_command(argv, budget + 300, cwd=folder)
-    if not report.is_file(): return {'ran': False, 'why': (done.stderr or done.stdout).strip()[-300:], 'failures': []}
-    return {'ran': True, 'failures': failures(report), 'peers': sorted(named)}
+    try:
+        done = run_command(argv, budget + 300, cwd=folder)
+        if not report.is_file(): return {'ran': False, 'why': (done.stderr or done.stdout).strip()[-300:], 'failures': []}
+        return {'ran': True, 'failures': failures(report), 'peers': sorted(named)}
+    finally:
+        tidy(folder)
+
+
+def tidy(folder):
+    """What the trial wrote beside the report and nobody reads again: Schemathesis' report and caches, and the accounts'
+    sessions (a session is a secret)."""
+    import shutil
+    for name in ('schemathesis.ndjson', 'accounts.json', 'schemathesis.toml'): (Path(folder) / name).unlink(missing_ok=True)
+    for name in ('.hypothesis', '.schemathesis'): shutil.rmtree(Path(folder) / name, ignore_errors=True)
 
 
 def _recorders(report):

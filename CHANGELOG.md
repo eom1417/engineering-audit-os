@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.0.78 (2026-10-25)
+
+M6, the whole system in layers. EAOS knew the right layers of ten kinds of project but enforced them only when a project
+declared its own `eaos.policy.json`, and it checked no endpoint's guard, no row-level security beyond two hidden rules,
+and nothing of what ships to the browser: on the trial app planted with one defect per boundary it found none of the
+nine (a screen querying the database, a secret-named setting shipped to the browser, a privileged key in the built
+output, a write with no sign-in, a read of anyone's row, a rule kept only in the browser, a table without row-level
+security, a policy open to everyone, a write no test reaches). Now every check reads the system as layers:
+- **The layer map** (M6.1): every file in a layer of its reference type, by its path, else by what it imports (a
+  handler, a database client, a component) into the layer of that role its imports keep; a file in none is a listed
+  gap. Beside its layer each file has a side: the browser's, the server's, both, the database's.
+- **The boundaries by default** (M6.2): each layer may use only what the reference allows; a breach is a card at its
+  import, a low-confidence placement a question; dependency-cruiser gets the same rules and follows browser code to
+  server code through any chain of files.
+- **What ships to the browser** (M6.3): secret-named settings, privileged keys in code and in the built output, source
+  maps shipped, server code imported by the browser, a database driver or SQL in a screen.
+- **Every endpoint and its guard** (M6.4): one table (method, route, handler, sign-in, ownership, input check, the data
+  it touches) for Next.js routes and server actions, Express, Fastify, Hono, Koa, a bare node:http server, FastAPI,
+  Flask, Django and Supabase edge functions; a write with no sign-in, a row read by its id with no owner check, and a
+  read that hands anyone data other endpoints guard are cards; a guard EAOS cannot read is a question.
+- **The data layer's rules** (M6.5): a table without row-level security, a write policy open to everyone (the two
+  hidden access gaps, now here), security on with no policy, a security-definer function or view the public may run, a
+  public bucket anyone may list, and who reads and writes each table.
+- **The layers tried** (M6.6, M6.7), the new option "Try the layers": the migrations applied to the run's own database
+  and tried per table with pgTAP as no one and as another user, with the Supabase CLI's security advisors; the API
+  tried by Schemathesis with two test accounts (another user's object, a sign-in ignored, bad input accepted), each
+  failure with its request and response; the production build read for keys and source maps.
+- **One source of business rules** (M6.8), **operations** (M6.9: each missing item of the reference's infrastructure
+  baseline) and **tests** (M6.10: the project's runners, which layers no test reaches, every write no test reaches, the
+  project's own tests failing).
+- **The layers for people** (M6.11): START-HERE.md and REPORT.html open with the broken critical boundaries in red, then
+  each boundary with its state; the Studio's new page "The system in layers"; each card names its boundary and the
+  reference's fix.
+- **The proof** (M6.12): the detection baseline grew to 16 planted problems, its clean twin `tests/fixtures/baseline-clean`
+  must stay without any layer finding, and three corpus apps of the stacks the layers matter for joined the corpus.
+
 ## 0.0.77 (2026-10-25)
 
 M5, seeing any app. Without an assistant, EAOS started 4 of the 12 apps of its compatibility corpus and pictured the

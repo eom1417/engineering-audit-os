@@ -402,7 +402,8 @@
         "security",
         "look",
         "code",
-        "speed"
+        "speed",
+        "layers"
        ]
       },
       "description": "Only these paths of the check (eaos/pipeline/paths.py); the complete check when empty."

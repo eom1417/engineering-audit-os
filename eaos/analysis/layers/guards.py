@@ -26,10 +26,10 @@ VALIDATION = re.compile(
 # A webhook proves who calls it by a signature, not a session.
 SIGNATURE = re.compile(r'constructEvent|verifySignature|verify_signature|x-hub-signature|x-signature|svix|webhook_secret|'
                        r'WEBHOOK_SECRET|hmac|timingSafeEqual|compare_digest|x-api-key|X-API-Key|api_key\s*!?==|apiKey\s*!?==', re.I)
-# Endpoints that are public by what they are for: signing in or up, a password reset, a health check, an OAuth callback.
+# Endpoints that are public by what they are for: signing in or up, a password reset, a health check, the sign-in flow's own.
+# A webhook or a callback is not among them: it proves its caller by a signature (SIGNATURE), or it is open.
 PUBLIC = re.compile(r'(^|[/_:-])(login|log-in|signin|sign-in|sign_in|signup|sign-up|sign_up|register|logout|sign-?out|auth|oauth|'
-                    r'callback|token|refresh|password|forgot|reset|verify|confirm|health|healthz|ping|ready|live|status|'
-                    r'version|metrics|webhooks?|csrf|session)([/_.-]|$)', re.I)
+                    r'token|refresh|password|forgot|health|healthz|ping|ready|live|status|version|metrics|csrf|session)([/_.-]|$)', re.I)
 # A request's own token forwarded to Supabase, or its cookies: the database then knows the person, and its row-level
 # security decides what they reach.
 USER_CLIENT = re.compile(r'createServerClient|createRouteHandlerClient|createServerActionClient|createServerComponentClient|'

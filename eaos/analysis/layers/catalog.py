@@ -79,7 +79,7 @@ RULES = {
                            'الجدول {table} عليه أمان الصفوف بلا أي سياسة، فلا يصل إليه إلا الخادم ({path})',
                            'Add the policies the app needs (each person their own rows), or say that only the server uses it.',
                            'أضف السياسات التي يحتاجها التطبيق (كل شخص صفوفه)، أو وثّق أن الخادم وحده يستخدمه.'),
-    'definer-function-public': ('data', 'high',
+    'definer-function-public': ('data', 'medium',
                                 'Function {name} runs with its owner\'s rights and anyone may call it ({path})',
                                 'الدالة {name} تعمل بصلاحيات مالكها ويقدر أي أحد يناديها ({path})',
                                 'Revoke execute from public and anon, or make it security invoker.',

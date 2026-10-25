@@ -81,21 +81,20 @@ def _features_root(reference, layer_name):
     return layer['paths'][0].split('*')[0].rstrip('/')
 
 
-def place(files, features, reference):
-    """{path: (component name, layer)}: a file one feature uses goes to that feature; the rest to its layer."""
+def place(files, features, reference, mapped=None):
+    """{path: (component name, layer)}: a file one feature uses goes to that feature; the rest to its layer, by its path,
+    else by the layer map's placement (`mapped`, {path: layer} of layers.json: what it imports, M6.1)."""
     owners = defaultdict(list)
     for feature in features:
         for path in feature.get('files') or []: owners[path].append(feature['name'])
     feature_layer = _feature_layer(reference)
-    placed = {}
-    for path in files:
-        layer, _ = layer_of(path, reference)
-        if len(owners[path]) == 1 and layer in (feature_layer, None):
-            placed[path] = (f"feature:{slug(owners[path][0])}", feature_layer)
-        elif layer: placed[path] = (layer, layer)
-        elif len(owners[path]) == 1: placed[path] = (f"feature:{slug(owners[path][0])}", feature_layer)
-        else: placed[path] = (PLATFORM, PLATFORM)
-    return placed
+    return {path: _placed(owners[path], layer_of(path, reference)[0] or (mapped or {}).get(path), feature_layer) for path in files}
+
+
+def _placed(owners, layer, feature_layer):
+    """(component, layer) of one file: its one feature's, else its layer's, else the platform's."""
+    if len(owners) == 1 and layer in (feature_layer, None): return f"feature:{slug(owners[0])}", feature_layer
+    return (layer, layer) if layer else (PLATFORM, PLATFORM)
 
 
 def moves(path, component, layer, reference):
@@ -248,6 +247,13 @@ def _infrastructure_row(item, observed, reference_id):
             'alternative': f"Do nothing: {item['reason'][0].lower() + item['reason'][1:]}"}
 
 
+def _mapped(out, reference):
+    """{path: layer} the layer map (eaos/analysis/layers/) placed by what each file imports, of the reference's layers."""
+    names = {layer['name'] for layer in reference['layers']}
+    rows = (_load(Path(out) / 'layers.json', {}) or {}).get('map') or []
+    return {row['path']: row['layer'] for row in rows if row.get('layer') in names}
+
+
 def project(out, target=None):
     """The whole projection for one report: reference, components, placements, dispositions, infrastructure."""
     out = Path(out)
@@ -258,7 +264,7 @@ def project(out, target=None):
     features = (_load(out / 'features.json', {}) or {}).get('features') or []
     nodes = {f['location']['path']: f['value'] for f in facts['graph_node']}
     files = sorted(nodes)
-    placed = place(files, features, reference)
+    placed = place(files, features, reference, _mapped(out, reference))
     edges = [(path, sink) for path, node in nodes.items() for sink in node.get('depends_on') or []]
     bad = forbidden(edges, placed, reference)
     known = _known(out, facts)

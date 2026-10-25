@@ -119,6 +119,23 @@ def depcruise_rules(target, out):
     return len(rules)
 
 
+NAMING = ('route', 'method', 'table', 'name', 'field', 'to', 'family', 'area')
+# The boundaries a change can break; a missing piece of operations or a test not written yet is not broken by a fix.
+GATED = ('browser', 'endpoints', 'data', 'rules', 'layers')
+
+
+def _key(finding):
+    """What names a finding whatever line it moved to: its rule, its file and the values that name it."""
+    return (finding['rule'], finding.get('path'), tuple(str(finding['params'].get(k)) for k in NAMING))
+
+
+def introduced(before, after):
+    """The sentences of the static findings `after` has and `before` had not: the boundaries a change broke, the gate a
+    fix batch is judged by beside the project's own policy (eaos/journeys/execute.py new_breakage)."""
+    had = {_key(f) for f in before.get('findings') or [] if not f.get('live')}
+    return [f"the change broke a boundary: {f['en']}" for f in after['findings'] if f['boundary'] in GATED and _key(f) not in had]
+
+
 def amend(out, live):
     """Join the live part's findings and what it measured to the record and the fact set."""
     record = _read(Path(out) / RECORD)

@@ -20,6 +20,9 @@ from ..core.toolchain import home
 STUBS = Path(__file__).resolve().parents[1] / 'templates/layers/supabase-stubs.sql'
 DATABASE = 'eaos_layers'
 OWNER, OTHER = str(uuid.UUID(int=0xA)), str(uuid.UUID(int=0xB))
+# the two people of every test: A owns a row of each table, B tries to reach it
+USERS = ("insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000a', 'a@eaos.test'), "
+         "('00000000-0000-0000-0000-00000000000b', 'b@eaos.test');")
 # The schemas the trial itself makes (the stand-ins and pgTAP): what the advisors say of them is not the project's.
 STANDING = ('tap', 'auth', 'storage', 'extensions')
 OWNER_NAMES = ('user_id', 'owner_id', 'owner', 'author_id', 'created_by', 'profile_id', 'account_id', 'uid')
@@ -159,8 +162,7 @@ def _tests(row):
 def script(rows):
     """The whole pgTAP script: users A and B, one row per table owned by A, then each test as its role, rolled back."""
     tests = [(row, test) for row in rows for test in _tests(row)]
-    lines = ['set search_path = public, tap;', 'begin;', f'select plan({len(tests)});',
-             f"insert into auth.users (id, email) values ('{OWNER}', 'a@eaos.test'), ('{OTHER}', 'b@eaos.test');"]
+    lines = ['set search_path = public, tap;', 'begin;', f'select plan({len(tests)});', USERS]
     lines += [f"select tap.eaos_row({_quoted(row['table'])}, {_literal(row['owner'])}, '{OWNER}');" for row in rows]
     for _, (said, call, role, user) in tests:
         lines += [f'set local role {role};', f"set local request.jwt.claim.sub = '{user or ''}';",

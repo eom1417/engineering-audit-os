@@ -78,6 +78,11 @@ def layered(technical):
             'findings': [{'rule': f['rule'], 'path': f.get('path'), 'line': f.get('line'), 'said': f['en']} for f in record['findings'][:60]]}
 
 
+def _said(why, layers):
+    """Why the app did not pass and what its layers showed, each only when there is something."""
+    return {**({'why': why[:400]} if why else {}), **({'layers': layers} if layers else {})}
+
+
 def result(output, expected, seconds, error=''):
     """What the check of one app showed: ran, the expected screens pictured and missing, passed, and why not."""
     technical = next(output.rglob('run-manifest.json'), output / 'none').parent
@@ -86,11 +91,9 @@ def result(output, expected, seconds, error=''):
     pictured = sorted({screen(row.get('landed') or row['url']) for row in rows})   # where it landed: a redirect is not the page
     missing = [route for route in expected if (route.rstrip('/') or '/') not in pictured]
     ran = bool(setup.get('ok'))
-    why = error or _why(technical, setup, ran, missing)
-    layers = layered(technical)
+    said = _said(error or _why(technical, setup, ran, missing), layered(technical))
     return {'date': date.today().isoformat(), 'ran': ran, 'pictured': pictured, 'missing': missing,
-            'passed': ran and not missing, 'seconds': round(seconds), **({'why': why[:400]} if why else {}),
-            **({'layers': layers} if layers else {})}
+            'passed': ran and not missing, 'seconds': round(seconds), **said}
 
 
 def check(app):

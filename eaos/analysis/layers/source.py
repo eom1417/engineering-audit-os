@@ -10,14 +10,13 @@ from ...core.vocabulary import classify
 from ...facts.store import read_set
 
 TYPE_ONLY = re.compile(r'^\s*(import|export)\s+type\b')
-SCHEMA_SUFFIXES = ('.sql', '.prisma')
 LIMIT = 400_000          # characters of one file a check reads: a larger file is generated or data
 
 
 class Project:
     def __init__(self, root, out):
         self.root, self.out = Path(root), Path(out)
-        self._texts = {}
+        self._texts, self._lines = {}, {}
         syntax = read_set(self.out, 'syntax').get('facts') or []
         self._files = {f['location']['path']: f['value'] for f in syntax if f.get('kind') == 'source_file'}
         self._imports = [f for f in syntax if f.get('kind') == 'import_edge']
@@ -29,7 +28,8 @@ class Project:
         return self._texts[path]
 
     def lines(self, path):
-        return self.text(path).split('\n')
+        if path not in self._lines: self._lines[path] = self.text(path).split('\n')
+        return self._lines[path]
 
     def language(self, path):
         return (self._files.get(path) or {}).get('language')
@@ -71,6 +71,14 @@ class Project:
             if fact.get('resolution') != 'RESOLVED' or not target or source == target: continue
             if self._type_only(source, fact['location'].get('start_line')): continue
             found[source].add(target)
+        return found
+
+    @cached_property
+    def importers(self):
+        """{path: {paths that import it}}."""
+        found = defaultdict(set)
+        for source, targets in self.edges.items():
+            for target in targets: found[target].add(source)
         return found
 
     def _type_only(self, path, line):

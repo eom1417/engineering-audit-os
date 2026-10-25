@@ -22,6 +22,8 @@ STORE = re.compile(r'^(?:const|let|var)\s+(?P<name>[a-z]\w*)\s*=\s*(?:\{|\[|new\
 FILE_GUARD = re.compile(r'\.use\(\s*[^)\n]*\b(auth\w*|requireAuth\w*|passport\.\w+|jwt\w*|session\w*|protect\w*|ensureAuth\w*|'
                         r'requireUser\w*|clerkMiddleware|verifyToken)\b|@\w+\.before_request|APIRouter\([^)]*dependencies|'
                         r'DEFAULT_PERMISSION_CLASSES[^\]]*IsAuthenticated|LoginRequiredMiddleware', re.S)
+# A middleware the app wraps around every route, wherever the file declares it (Starlette, FastAPI).
+APP_GUARD = re.compile(r'(?:\bMiddleware\(|add_middleware\()\s*[\w.]*(?:Guard|Auth|Token|Session|Login)\w*')
 NEXT_MIDDLEWARE = ('middleware.ts', 'middleware.js', 'src/middleware.ts', 'src/middleware.js', 'proxy.ts', 'src/proxy.ts')
 MATCHER = re.compile(r'''matcher\s*:\s*\[?(?P<list>[^\]\n]*)''')
 
@@ -82,10 +84,16 @@ def _text(project, path, first, last):
 
 
 def _file_guard(project, path, line):
-    """A guard the file applies to every route declared after it."""
+    """A guard the file applies to every route declared after it, or one the app wraps around every route."""
     before = '\n'.join(project.lines(path)[:max(line - 1, 0)])
-    match = FILE_GUARD.search(guards.code(before, project.language(path)))
+    match = FILE_GUARD.search(guards.code(before, project.language(path))) or APP_GUARD.search(project.text(path))
     return match.group(0).strip()[:60] if match else None
+
+
+def _in_docstring(project, fact):
+    """Whether a Python route the detector read sits inside a docstring (an example written in the documentation)."""
+    path, line = fact['location']['path'], fact['location'].get('start_line') or 1
+    return project.language(path) == 'python' and '\n'.join(project.lines(path)[:line - 1]).count('"""') % 2 == 1
 
 
 def next_middleware(project):
@@ -133,8 +141,8 @@ def _route_guard(value, route_line, middleware):
 
 
 def _route_line(project, where):
-    lines = project.lines(where['path'])
-    return lines[(where.get('start_line') or 1) - 1] if lines else ''
+    lines, index = project.lines(where['path']), (where.get('start_line') or 1) - 1
+    return lines[index] if 0 <= index < len(lines) else ''
 
 
 def _authentication(project, fact, said, route_line, middleware):
@@ -180,7 +188,7 @@ def table(project):
     spans, middleware = Spans(project), next_middleware(project)
     facts = [f for f in project.facts('entrypoints', 'entry_point') if f['value'].get('surface') == 'http'
              and f['value'].get('category') != 'test' and f['value'].get('http_method') != 'MOUNT' and f['location']['path'] not in project.tests]
-    return [row(project, spans, fact, middleware) for fact in facts]
+    return [row(project, spans, fact, middleware) for fact in facts if not _in_docstring(project, fact)]
 
 
 def _guarded(row):

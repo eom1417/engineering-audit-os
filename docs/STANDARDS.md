@@ -71,7 +71,8 @@ the Studio's entries from `console/knip.json`.
   secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw), listed in
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed). The golden trial checks
   the app and `tools/detection_baseline.py` refuses a check that reaches any of them less; `--record` after reaching
-  more. Today 5 of 8 (the three missed say why).
+  more. M6 planted one defect per boundary of the layers (16 problems in all), and its clean twin
+  `tests/fixtures/baseline-clean` (the same app done right): the golden trial refuses any layer finding on the twin.
 - **Compatibility corpus** (M0.3): 12 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without
   hash routes, Next.js, Vue, SvelteKit, Expo web, Flask, Django, Streamlit, one behind a sign-in, one with a welcome
   flow, a static site). `tools/corpus.py` checks each as a person would (`--path look --run-app`, no assistant; about

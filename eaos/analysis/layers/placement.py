@@ -12,7 +12,7 @@ database driver, Node's own modules, 'use server', `server-only`, Python and Go,
 (M6.3) and the rules split (M6.8) read; the layers are what the boundaries (M6.2) read.
 """
 import re
-from collections import defaultdict, deque
+from collections import deque
 from fnmatch import fnmatch
 
 from .. import reference_architecture as reference_types
@@ -30,7 +30,8 @@ SUPABASE = re.compile(r'^@supabase/(supabase-js|ssr|auth-helpers-[\w-]+)$')
 JSX = re.compile(r'<[A-Z][\w.]*[\s/>]|</\w+>|return\s*\(\s*<')
 SERVER_ONLY = re.compile(r'''import\s+['"]server-only['"]''')
 BROWSER_GLOBALS = re.compile(r'\b(document|window|localStorage|sessionStorage)\.|\bimport\.meta\.env\b')
-SERVER_PATHS = ('supabase/functions/**', '**/*.server.ts', '**/*.server.js', '**/*.server.tsx', 'pages/api/**',
+NODE_TEXT = re.compile(r'\b(?:__dirname|__filename|process\.argv|require\.main)\b')
+SERVER_PATHS = ('*.cjs', '**/*.cjs', 'supabase/functions/**', '**/*.server.ts', '**/*.server.js', '**/*.server.tsx', 'pages/api/**',
                 'src/pages/api/**', '**/route.ts', '**/route.js', 'server/**', 'api/**', 'backend/**', 'netlify/functions/**')
 CONFIG = re.compile(r'(^|/)[\w.-]+\.config\.(js|cjs|mjs|ts|mts)$')
 BUILT = ('dist/', 'build/', 'out/', '.next/', '.output/', '.svelte-kit/', 'public/build/', 'storybook-static/')
@@ -66,7 +67,8 @@ def _written(path, text):
     """What a file's own text says: its directive, `server-only`, markup, the browser's globals."""
     said = directive(text)
     marks = {said} if said else set()
-    found = (('server', bool(SERVER_ONLY.search(text))), ('screen', _component(path, text)), ('browser', bool(BROWSER_GLOBALS.search(text))))
+    found = (('server', bool(SERVER_ONLY.search(text))), ('screen', _component(path, text)), ('node', bool(NODE_TEXT.search(text))),
+             ('browser', bool(BROWSER_GLOBALS.search(text))))
     return marks | {name for name, there in found if there}
 
 
@@ -114,20 +116,36 @@ def sides(project, marks, next_app):
     return {path: own[path] or REACHED[(path in browser, path in server)] for path in project.code}
 
 
-def _by_role(reference, role):
-    return next((layer['name'] for layer in reference['layers'] if layer.get('role') == role), None) if reference else None
-
-
 def _generic(pattern):
     """A pattern that places a whole tree or every file of a kind: its placement is a medium guess."""
     return pattern.startswith('**') or pattern.count('/') == 1 and pattern.endswith('/**') and pattern.split('/')[0] in ('apps', 'src', 'packages')
 
 
-def _by_marks(reference, marks):
+def _candidates(reference, marks):
+    """(the layers whose role what the file is made of names, why): every layer of the first role that has one."""
     for mark, role, why in MARKED:
-        layer = _by_role(reference, role) if mark in marks else None
-        if layer: return layer, why
-    return None, None
+        layers = [layer['name'] for layer in reference['layers'] if layer.get('role') == role] if mark in marks else []
+        if layers: return layers, why
+    return [], None
+
+
+def _breaks(project, path, layer, placed, may):
+    """How many of the file's own imports, and of the imports of it, the file would break in `layer`."""
+    out = sum(1 for target in project.edges.get(path, ()) if target in placed and placed[target]['layer'] not in may[layer])
+    into = sum(1 for source in project.importers.get(path, ()) if source in placed and layer not in may[placed[source]['layer']])
+    return out + into
+
+
+def _by_graph(project, row, reference, placed):
+    """A file its path does not place goes to the layer of its role that breaks none of its imports (the first such),
+    else to the one that breaks fewest, as a low-confidence guess its breaches turn into questions."""
+    layers, why = _candidates(reference, set(row['marks']))
+    if not layers: return
+    may = allowed(reference)
+    counted = [(_breaks(project, row['path'], layer, placed, may), index, layer) for index, layer in enumerate(layers)]
+    broken, _, layer = min(counted)
+    row.update(layer=layer, confidence=MEDIUM if not broken else LOW,
+               reason=why + ('' if len(layers) == 1 else f', and the layer of that kind its imports keep ({layer})'))
 
 
 def _role_conflict(reference, layer, marks):
@@ -147,9 +165,19 @@ def place(path, reference, policy_layers, marks):
             confidence = MEDIUM if _generic(pattern) else HIGH
             if _role_conflict(reference, layer, marks): confidence = LOW
             return layer, confidence, f'its path matches {pattern}'
-        layer, why = _by_marks(reference, marks)
-        if layer: return layer, MEDIUM, why
     return None, None, 'no path pattern of the reference type and nothing it imports places it'
+
+
+def _place_the_rest(project, rows, reference):
+    """Each file its path did not place, placed by what it imports against the files their paths placed."""
+    placed = {row['path']: row for row in rows if row['layer']}
+    for row in rows:
+        if not row['layer']: _by_graph(project, row, reference, placed)
+
+
+def _row(path, placed, side, marks):
+    layer, confidence, reason = placed
+    return {'path': path, 'layer': layer, 'side': side, 'confidence': confidence, 'reason': reason, 'marks': sorted(marks)}
 
 
 def layer_map(project, policy_layers=None):
@@ -158,11 +186,8 @@ def layer_map(project, policy_layers=None):
     marks = {path: _marks(project, path) for path in project.code}
     next_app = 'next' in project.packages
     side_of = sides(project, marks, next_app)
-    rows = []
-    for path in project.code:
-        layer, confidence, reason = place(path, reference, policy_layers, marks[path])
-        rows.append({'path': path, 'layer': layer, 'side': side_of[path], 'confidence': confidence, 'reason': reason,
-                     'marks': sorted(marks[path])})
+    rows = [_row(path, place(path, reference, policy_layers, marks[path]), side_of[path], marks[path]) for path in project.code]
+    if reference: _place_the_rest(project, rows, reference)
     rows += [{'path': path, 'layer': 'database', 'side': 'database', 'confidence': HIGH, 'reason': 'a migration or a schema',
               'marks': []} for path in project.schemas]
     return {'type': type_id, 'reference': reference, 'rows': rows, 'gaps': [row['path'] for row in rows if not row['layer']],
@@ -178,9 +203,3 @@ def by_path(rows):
     return {row['path']: row for row in rows}
 
 
-def importers(project):
-    """{path: [paths that import it]}."""
-    found = defaultdict(list)
-    for source, targets in project.edges.items():
-        for target in targets: found[target].append(source)
-    return found
