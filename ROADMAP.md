@@ -80,6 +80,68 @@ owner can take. **After each card, its row in the status table below is updated 
 - **M5.4** HungerLab joins the corpus (from the owner's snapshot repository).
 - Target: ≥ 90% of the corpus pictures its expected screens; every failure explained with its fix.
 
+### M10 The whole system in layers (runs right after M5; numbered last so earlier references keep their meaning)
+A professional firm checks a product as layers: the browser holds no secret and no privileged rule, every endpoint
+authenticates, authorises and validates, the business rules live in one place, the data layer enforces who sees what,
+and each layer speaks only to the layers it may. Today EAOS knows the right layers of ten project types
+(`eaos/rules/reference-architectures.json`) but enforces them only when a project declares its own
+`eaos.policy.json`; it does not check endpoint guards, row-level security or what ships to the browser (owner's
+review, 2026-10-25, `docs/DECISIONS.md`). Every card adds evidence through the existing fact and engine layers; a new
+tool is pinned with its licence recorded; nothing is written into the project; a placement EAOS is unsure of becomes
+a question, never a finding.
+
+- **M10.0** The proof first. `tests/fixtures/baseline-app` gains one planted defect per boundary, each in
+  `baseline-problems.json`: a screen that queries the database directly, a business rule only in the browser for a
+  write, a secret-named variable exposed to the browser (`VITE_`/`NEXT_PUBLIC_`), a privileged key in the built
+  output, a write endpoint with no authentication, a read endpoint that returns another user's row (BOLA), a table
+  without row-level security, a policy open to everyone (`using (true)`). A clean twin holds the same app done right.
+  The corpus gains three apps of the stacks the layers matter for: React + Vite + Supabase with its migrations, a
+  Node REST API with an OpenAPI file, a Next.js app with API routes and server actions (HungerLab of M5.4 when it
+  arrives). Today's numbers recorded: planted defects found, findings on the clean twin.
+- **M10.1** The layer map by default: every file of the project placed in a layer of its reference type, with the
+  reason (its path, what it imports: React/JSX, a database client, an HTTP framework; its markers: `'use client'`,
+  `server-only`) and a confidence; a file in no layer is a listed gap; the project's own policy file overrides. One
+  fact set `layers`, extending `analysis/target_projection.py`'s placement rather than a second one.
+- **M10.2** The boundaries enforced by default: each layer's `allowed_dependencies` of the reference become rules,
+  written to the work folder: `dependency-cruiser` for JavaScript and TypeScript (reachability through other files,
+  type-only imports allowed), `import-linter` for Python, `go-arch-lint` for Go. Each breach is a finding with
+  file:line and the boundary it breaks; one of a low-confidence placement is a question.
+- **M10.3** The browser holds no secret: `gitleaks` also over the built output and its source maps (the build run in
+  the isolated copy when the person consented, otherwise said as a gap); EAOS's own rules (Semgrep/ast-grep, beside
+  their examples): a secret-named variable exposed to the browser, a privileged key (`service_role`, `sb_secret_`) in
+  anything shipped, source maps shipped, a server-only module imported by browser code, a database or SQL call in a
+  UI file.
+- **M10.4** Every endpoint and its guard: one table, a row per endpoint (method, path, handler, authentication,
+  authorisation, input validation, the data it touches), from the entry-point facts and EAOS's own rules, for Next.js
+  (app and pages routes, server actions), Express, Fastify, Hono, FastAPI, Flask, Django/DRF and Supabase edge
+  functions. An endpoint that writes, or reads private data, with no guard is a finding; a guard EAOS cannot read is
+  a question. The table feeds M10.7 and the report.
+- **M10.5** The data layer's rules, read from the migrations (no database needed): a table without row-level security,
+  security enabled with no policy, a write policy open to everyone, a security-definer view or function the public
+  role can run, a public storage bucket that can be listed.
+- **M10.6** The data layer's rules, tried: in the isolated copy with the migrations applied, the Supabase CLI's
+  security advisors (`supabase db advisors --type security`, MIT, pinned) and pgTAP tests EAOS writes per table, run
+  as no one, as the row's owner and as another user (M5.3's test accounts); a policy that lets another user read or
+  change a row is a finding with the failing test as its evidence.
+- **M10.7** The API tried against the running app: `Schemathesis` (MIT, pinned, fixed seed, a time budget) over the
+  project's OpenAPI, or one EAOS writes from M10.4's table and marks as derived: an endpoint that ignores
+  authentication, one user reaching another's object (two test accounts of M5.3), bad input accepted. Each failure is
+  a finding with its request and response.
+- **M10.8** One source of business rules: the validation and the rules of a write compared between browser and server
+  (zod/yup/pydantic fields and limits, prices, roles, extending `facts/domain.py`'s rule duplication); a rule kept only
+  in the browser for a write is a finding (the server trusts the client); a business calculation inside a UI component
+  is flagged by an ast-grep rule.
+- **M10.9** The layers for people: in the report and the Studio, each layer with its files and its state in plain
+  words (breaches, unguarded endpoints, open tables, secrets); a broken critical boundary in red at the top; each
+  finding a card that names the broken boundary and the reference's fix (move into the data layer, add the guard,
+  enable row-level security), done behind the behaviour lock; M6.4's judge reads the broken boundary from it.
+- **M10.10** The proof and the numbers: the golden trial finds every planted defect of M10.0 and nothing on the clean
+  twin; on the three corpus apps of M10.0 every layer finding is judged by hand, at most 10% false; the static part
+  (M10.1-M10.5, M10.8) adds at most two minutes to a full check, the live part (M10.6-M10.7) is an option with its
+  time shown before it starts; `docs/METRICS.md` updated.
+- Target: every planted boundary defect found with its evidence; none on the clean twin; at most 10% false on the
+  corpus; every file of every corpus app in a layer or listed as a gap.
+
 ### M6 Reliable fixes and hand-over
 - **M6.1** The hand-over runs as its own service and resumes where it stopped.
 - **M6.2** The change that broke something found from the failure output first; halving last.
@@ -139,6 +201,8 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 - M-1 and M0 first: without references, guards and measures, any clean-up can break something silently.
 - M1-M2 before M3: what is removed is not moved.
 - M3 before M4-M5: the big work lands on a clean layout.
+- M10 right after M5: its live part (M10.6, M10.7) needs every app running and signed into (M5.1, M5.3); M6.4's
+  judge then reads the broken boundary each M10 finding names. Its static part may start once M5.1 is done.
 - M9 last: it stands on M5 (seeing and signing into any app, the browser-agent layer), M6.4 (the judge) and M8.1
   (model tiers); built earlier it would be noise and cost on a base that cannot yet picture every app.
 - Each milestone ends with one version, `beta-trial` updated and a short Arabic summary (`docs/STANDARDS.md` §7).
@@ -198,3 +262,14 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 | M9.8 | not started | | |
 | M9.9 | not started | | |
 | M9.10 | not started | | |
+| M10.0 | not started | | |
+| M10.1 | not started | | |
+| M10.2 | not started | | |
+| M10.3 | not started | | |
+| M10.4 | not started | | |
+| M10.5 | not started | | |
+| M10.6 | not started | | |
+| M10.7 | not started | | |
+| M10.8 | not started | | |
+| M10.9 | not started | | |
+| M10.10 | not started | | |
