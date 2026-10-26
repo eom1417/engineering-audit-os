@@ -1,6 +1,6 @@
 """The ideal planner as an AI node: node 1 (docs/STUDIO.md D10 and D11).
 
-The planning itself is eaos/ai/ideal.py `plan`, unchanged: the bundle, the plan and critique passes and the
+The planning itself is eaos/ai/ideal/planner.py `plan`, unchanged: the bundle, the plan and critique passes and the
 evidence check of every element. As a node it gains the framework's guards: the time and cost recorded (never cut),
 the cache (a current plan made from the same bundle is not asked again), the run log, and one decision in
 the shared shape, subject "ideal": "accept" (every view planned on evidence and no question left: on to the plan
@@ -10,8 +10,8 @@ import time
 from contextlib import nullcontext
 from pathlib import Path
 
-from . import core
-from .. import ideal, ideal_prompts
+from . import framework as core
+from ..ideal import planner as ideal, prompts as ideal_prompts
 
 SUBJECT = 'ideal'
 

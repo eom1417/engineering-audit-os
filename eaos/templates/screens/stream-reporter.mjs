@@ -1,4 +1,4 @@
-// Copied by EAOS into the lock folder (eaos/live/behavior_lock.py): a Playwright reporter that writes one JSON line per
+// Copied by EAOS into the lock folder (eaos/live/behavior/lock.py): a Playwright reporter that writes one JSON line per
 // test as it begins and ends, to the file named by its `outputFile` option (EAOS_LOCK_STREAM), so the live map shows
 // each screen as it is recorded instead of waiting for the run's JSON report. It uses the documented reporter API
 // (onBegin, onTestBegin, onTestEnd, onEnd) and never fails the run: a line it cannot write is left out.

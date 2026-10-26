@@ -31,7 +31,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from ...core import toolchain
-from ...core.process import run_command
+from ...core.system.process import run_command
 
 TEMPLATES = Path(__file__).resolve().parents[2] / 'templates/screens'
 VIEWPORTS = ({'name': 'phone', 'width': 390, 'height': 844},

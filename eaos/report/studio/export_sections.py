@@ -1,21 +1,21 @@
 """The Studio's contract v1 sections (eaos/report/studio/export.py writes them): meta, head, health, cards, story, plans
-and the inbox (decisions), each built from the one model (eaos/analysis/model.py); a number is a measure {value, src},
+and the inbox (decisions), each built from the one model (eaos/analysis/presentation/model.py); a number is a measure {value, src},
 and what was not measured is null, never 0."""
 import hashlib
 import json
 from pathlib import Path
 
-from ...core import owner_share
+from ...core.contracts import owner_share
 from ...facts.store import facts as facts_of
-from ...core.words import impact_of
-from ..run import absences
-from ...analysis.plan import title_of
-from . import build_plan
+from ...core.language.words import impact_of
+from ..documents.run import absences
+from ...analysis.planning.cards import title_of
+from . import blueprint_plan as build_plan
 from .evidence import rel
-from ...ai import ideal as planned_ideal
+from ...ai.ideal import planner as planned_ideal
 from . import inbox
 from ...ai.nodes import view as ai_nodes
-from ...analysis import model as M
+from ...analysis.presentation import model as M
 
 LANGUAGES = M.LANGUAGES
 LANGUAGES_SHOWN = ('ar', 'en')     # the Studio's two languages: a sentence written for both, shown in the person's
@@ -152,7 +152,7 @@ def _fact_ids(task, claim):
 
 
 def resolution_of(row):
-    """What the assistant decided for a card (eaos/analysis/plan.py resolve): {kind: fix | owner, by, words, and the change of a
+    """What the assistant decided for a card (eaos/analysis/planning/cards.py resolve): {kind: fix | owner, by, words, and the change of a
     fix or the question, options and recommendation of an owner's choice; capped when it was the owner's but turned
     into the assistant's recommendation}. A fixable card with `by: assistant` is in the Studio's "fix with the
     assistant's recommendations" selection."""

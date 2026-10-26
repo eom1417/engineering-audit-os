@@ -1,8 +1,8 @@
 """The loops' runner over one check run (eaos/pipeline/loops.py): the scheduler (schedule.py run_ready) asks it what a
 stage sees ended and, as each stage ends, which stages run again. When the last stage of a loop ends its exit is
 judged; a loop not met runs the stages it broke again while its rounds last, then settles with its outcome, which the
-manifest keeps (`loops`) and the coverage ledger reads (eaos/report/coverage_ledger.py)."""
-from .live_app import PAGE_STAGES, close_app
+manifest keeps (`loops`) and the coverage ledger reads (eaos/pipeline/coverage.py)."""
+from .runners.live_app import PAGE_STAGES, close_app
 from .loops import BROKEN, BY_NAME, LOOP_OF, LOOPS, NOT_MET, outcome
 
 

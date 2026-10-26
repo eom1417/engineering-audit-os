@@ -1,11 +1,12 @@
 """The check (audit): the person's choices for its AI, kept; the assistant's readiness; the check as a job; its overview."""
 from .. import check_choices, guided
-from ...core import branches, plain
-from ...live import sign_in as signing
-from ...ai.readiness import NoAssistant
+from ...core.project import branches
+from ...core.language import plain
+from ...live.access import sign_in as signing
+from ...ai.assistant.readiness import NoAssistant
 from ...pipeline import remedies
-from ...ai import readiness
-from ...core import project_state
+from ...ai.assistant import readiness
+from ...core.project import state as project_state
 from .evidence import _ready
 from .project import _read, _report, _start, state_of
 from .running import CONSENT
@@ -94,7 +95,7 @@ def _audit_job(project, arguments, progress):
 
 
 def overview(project=None):
-    from ...report.start_here import summary_counts
+    from ...report.documents.start_here import summary_counts
     state = state_of(project)
     report = _report(state)
     plan = _read(report / 'plan.json')

@@ -1,7 +1,7 @@
 """Gitleaks: secrets written into the project's files (keys, tokens, private keys), by its own rules and entropy.
 
 A second secret scanner beside Trivy's and Semgrep's, with its own rule set: where two of them name the same line
-(eaos/analysis/weaknesses.py) the secret is corroborated. It reads the files as they are today (`gitleaks dir`), the same
+(eaos/analysis/assessments/weaknesses.py) the secret is corroborated. It reads the files as they are today (`gitleaks dir`), the same
 snapshot as every other engine, and never prints a secret: `--redact` keeps only where it is.
 
 The directories outside the project's own code are an allowlist in a configuration written beside its output,

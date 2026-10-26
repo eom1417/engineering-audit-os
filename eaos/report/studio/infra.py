@@ -24,12 +24,12 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from ...analysis import arch_map
+from ...analysis.maps import architecture as arch_map
 
 LANES = ('hosting', 'ci', 'environments', 'databases', 'queues', 'services', 'observability')
 RELATION = {'hosting': 'deployed_to', 'ci': 'built_by', 'environments': 'configured_by', 'databases': 'stores_in',
             'queues': 'queues_on', 'services': 'calls', 'observability': 'reports_to'}
-# The target's infrastructure areas (eaos/analysis/target_projection.py) in the lane each belongs to.
+# The target's infrastructure areas (eaos/analysis/target_state/projection.py) in the lane each belongs to.
 AREA_LANE = {'hosting': 'hosting', 'ci': 'ci', 'tests': 'ci', 'dependencies': 'ci', 'configuration': 'environments',
              'secrets': 'environments', 'identity': 'environments', 'data': 'databases', 'migrations': 'databases',
              'backup': 'databases', 'observability': 'observability'}

@@ -98,7 +98,7 @@
   },
   "triage": {
    "type": "object",
-   "description": "The assistant's verdict on this claim's card, applied once after the triage (eaos/analysis/plan.py apply_verdicts): reject refutes the claim, doubt keeps it for a person's review and never for an automatic fix.",
+   "description": "The assistant's verdict on this claim's card, applied once after the triage (eaos/analysis/planning/cards.py apply_verdicts): reject refutes the claim, doubt keeps it for a person's review and never for an automatic fix.",
    "required": ["decision", "card"],
    "properties": {
     "decision": {"enum": ["confirm", "doubt", "reject"]},

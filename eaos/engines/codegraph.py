@@ -52,7 +52,7 @@ def _run(tool, args, workspace, timeout=600, index_home=None):
         import os
         environment = dict(os.environ, HOME=str(index_home))
     try:
-        from ..core.process import run_command
+        from ..core.system.process import run_command
         return _outcome(run_command(cmd, timeout=timeout, env=environment))
     except subprocess.TimeoutExpired:
         return None, f'timeout after {timeout}s'
@@ -301,7 +301,7 @@ def _findings(facts, found):
     findings, unmapped = [], {}
     for fact in facts:
         value = fact['value']
-        # A per-symbol metric carries no threshold: it stays a symbol metric (facts/external.py), never a finding.
+        # A per-symbol metric carries no threshold: it stays a symbol metric (facts/engine_findings.py), never a finding.
         if fact['kind'] == 'symbol_metric_external':
             continue
         elif fact['kind'] == 'hot_path_external':

@@ -1,6 +1,6 @@
 """REPORT.html's work log: who did what, when, and where the work stopped."""
-from ...analysis import model as M
-from ...core.markup import both as T, esc
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc
 from .html import lit, num, said, tech
 
 

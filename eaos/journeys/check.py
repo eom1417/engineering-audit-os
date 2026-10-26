@@ -6,12 +6,12 @@ published and the state saved (M3.3: the CLI had its own copy, without the remed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..core import branches, project_state
+from ..core.project import branches, state as project_state
 from .guided.batches import retire_stale_batch
 from .guided.project import chosen_assistant, publish, report_of, save, source, tip
-from ..core.build_info import digest
+from ..core.system.version_info import digest
 from ..pipeline import check, remedies
-from ..report.start_here import start_here
+from ..report.documents.start_here import start_here
 
 
 def run(state, options, again_from=None, go_on=False):

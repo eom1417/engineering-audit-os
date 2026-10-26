@@ -4,7 +4,7 @@ box's place, so every view and every reader draws the same places."""
 import re
 from collections import Counter, defaultdict
 
-from ...analysis import arch_map
+from ...analysis.maps import architecture as arch_map
 
 MAX_LANE = 40
 LANE_X = {'caller': 0, 'store': 1}

@@ -1,14 +1,14 @@
 """Which AI assistant EAOS uses on this machine: the one the person already signed in to. No key, no config file.
 
 $EAOS_ASSISTANT (claude or codex) chooses, and `none` turns every assistant off; otherwise Claude Code, then Codex, whichever is installed first. A project's
-own choice (eaos/journeys/guided.py `chosen_assistant`) is passed as `name`. Whether the one chosen really answers is
-eaos/ai/readiness.py.
+own choice (eaos/journeys/guided/ `chosen_assistant`) is passed as `name`. Whether the one chosen really answers is
+eaos/ai/assistant/readiness.py.
 """
 import os
 import shutil
 import sys
 
-ADAPTERS = {'claude': 'eaos.ai.claude_adapter', 'codex': 'eaos.ai.codex_adapter'}
+ADAPTERS = {'claude': 'eaos.ai.assistant.claude_adapter', 'codex': 'eaos.ai.assistant.codex_adapter'}
 
 
 def available():
@@ -22,7 +22,7 @@ def available():
 def provider(max_calls=20, name=None):
     """(name, provider) for assistant `name` when it is installed, else for the preferred installed one; (None, None) when
     there is none. The provider's config names its assistant (`assistant`), so the AI nodes ask the same one."""
-    from .command import Provider
+    from .assistant.command import Provider
     found = [name] if name in ADAPTERS and shutil.which(name) else [] if name in ADAPTERS else available()
     if not found: return None, None
     name = found[0]

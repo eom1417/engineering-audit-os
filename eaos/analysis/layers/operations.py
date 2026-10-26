@@ -2,7 +2,7 @@
 
 Operations: every item of the reference type's infrastructure baseline (the pipeline and what it checks, configuration
 kept apart from the code, where secrets live, error tracking and logs, health checks, migrations and backups, hosting),
-found present or absent by eaos/analysis/target_projection.py's reading of the facts; each missing one is a finding that
+found present or absent by eaos/analysis/target_state/projection.py's reading of the facts; each missing one is a finding that
 names the item it fails (the infrastructure files' own findings are Checkov's, among the engines').
 
 Tests: the project's own tests for every stack (Vitest, Jest, Mocha, Node's runner, Playwright, Cypress, pytest, Go), the
@@ -14,7 +14,7 @@ import re
 
 from .endpoints import PARAM
 
-from .. import target_projection
+from ..target_state import projection as target_projection
 
 RUNNERS = (('vitest', 'Vitest'), ('jest', 'Jest'), ('mocha', 'Mocha'), ('@playwright/test', 'Playwright'), ('cypress', 'Cypress'),
            ('ava', 'AVA'), ('node --test', "Node's test runner"))

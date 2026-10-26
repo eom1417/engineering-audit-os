@@ -119,14 +119,14 @@ run), against the M2 numbers. The host was quiet (load 3-6), so the time is comp
 - **What the laws did not reach yet** (inputs for M4, settled in M4.6): the Studio's JavaScript (`console/src`) is under no complexity law,
   and 32 hotspots remain, most of them there (17-20 branches: `stages.js` `render`, `actions.js` `liveClient`,
   `kit.js` `zoomable`); EAOS's own hotspot count (the facts' metrics) adds nested functions into the one that holds them,
-  the code laws count each alone, so `mcp_fix.py` `_fix_tools` (19 tools registered inside it) is a hotspot of 20 that
+  the code laws count each alone, so `interfaces/mcp_server/fix.py` `_fix_tools` (19 tools registered inside it) is a hotspot of 20 that
   the laws pass. `reforge` counts complexity per file (its 1,095 findings), not the laws' per-function measure.
 - **Security, untriaged**: 19 items without the assistant's triage: 5 are test fixtures' sample tokens, the rest
   single-engine audit rules (semgrep's subprocess call in 30 files, CWE-78; CodeQL 4) that a full check's triage settles (card M8.4).
-- **Architecture**: GitNexus reports 10 import cycles (`eaos/ai/nodes`, `core/markup.py`, `report/human_report/html.py`)
+- **Architecture**: GitNexus reports 10 import cycles (`eaos/ai/nodes`, `core/language/markup.py`, `report/human_report/html.py`)
   that import-linter's layers and the dependency-cruiser pass: lazy imports inside functions; settled in M4.6 (all six GitNexus's misreading).
 - The cards' titles of agreeing engines were stored in Arabic and printed so in an English check: stored in English
-  since this measure (`eaos/analysis/claims.py`), the reports render them from the template in the reader's language.
+  since this measure (`eaos/analysis/claims/ledger.py`), the reports render them from the template in the reader's language.
 
 ## After M5: 0.0.77 (2026-10-25)
 
@@ -171,9 +171,9 @@ before M6; the next check of `develop` from the Studio measures them on 0.0.78.
 
 - **Disk:** `live_run.py:114` never removes `run-data`; output cleared only for `BULKY` (`pipeline/run.py:307`); Studio
   sections written twice (`studio/export.py:366`); engine findings stored three times; `human/index.html` copies
-  `REPORT.html` (`guided.py:442`); stale translations never cleared (`bilingual.py:150`: 1,070 of 1,214 Library docs).
-- **Reading all facts per call** (~280 MB): `agent_tools.py:478`, `execute.py:36`, `codemods.py:245`,
-  `debt_register.py:65`, `intake.py:33`, `nfr.py:20`, `indicators.py:14`.
+  `REPORT.html` (`guided.py:442`); stale translations never cleared (`core/language/bilingual.py:150`: 1,070 of 1,214 Library docs).
+- **Reading all facts per call** (~280 MB): `agent_tools.py:478`, `journeys/fix/execute.py:36`, `analysis/repair/codemods.py:245`,
+  `analysis/assessments/debt_register.py:65`, `analysis/understanding/intake.py:33`, `live/trials/load_plans.py:20`, `indicators.py:14`.
 - **Documents read by nobody but the Studio Library:** CONTRACTS, FLOWS, DOMAIN-AND-DATA, ONBOARDING, DECISION-BRIEF,
   RISK-REGISTER, ROADMAP, EVOLUTION, PROVENANCE, FEATURES, LOAD-MODEL, MEASUREMENTS, SUSTAINABILITY, SEMANTIC,
   POLICY, ENGINES, transform-plan.
@@ -185,7 +185,7 @@ before M6; the next check of `develop` from the Studio measures them on 0.0.78.
 - **Tests:** duplicates D1 "no assistant, rules decide" ×5 (`test_ai_nodes:413`, `test_ideal_planner:215,397`,
   `test_ai_in_the_pipeline:92`, `test_joint_decision:89`); D2 two guards (`api/guard.py`, `studio/actions/security.py`);
   D3 `test_journey` runs the journey twice; D4 engine contracts in three files; D5 branches ×3. Sleeps:
-  `test_mcp:350`, `test_pipeline_parallel:206`, `test_sandbox:138-160`, `test_studio_actions:547-610`.
+  `test_mcp:350`, `test_parallel:206`, `test_sandbox:138-160`, `test_studio_actions:547-610`.
 - **Studio:** core places status, waiting, activity, ask, problems, screens, open (+ branches, plan); the
   understand-* views (17 screens) ≈ 5.4k lines and ~200 KB of bundle; ideal/nodes, system/territory, history and
   coverage stay because core places read them.

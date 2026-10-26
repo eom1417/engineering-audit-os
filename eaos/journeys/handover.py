@@ -18,8 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import guided
-from ..core import project_state
-from ..core.project_state import waiting_batch
+from ..core.project import state as project_state
+from ..core.project.state import waiting_batch
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
@@ -174,8 +174,8 @@ def _last_try(log, card):
 
 def brief(state, steps=12, notes=8):
     """What the next assistant needs, as a dict (status returns it; HANDOVER.md is it in words)."""
-    from ..core import jobs
-    from ..core.ledger import load
+    from ..core.project import jobs
+    from ..core.project.ledger import load
     log = entries(state, 400)
     last = log[-1] if log else {}
     busy = jobs.running(state['project'])

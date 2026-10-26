@@ -1,5 +1,5 @@
 """The small HTML pieces every section of REPORT.html is made of: a word, a number with its meaning, a chip."""
-from ...core.markup import both as T, esc
+from ...core.language.markup import both as T, esc
 from .words import W
 
 

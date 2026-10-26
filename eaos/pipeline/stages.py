@@ -44,7 +44,7 @@ class Stage:
     gathers: bool = False
     # What it holds while it runs, which no other stage holds at the same time (RESOURCES).
     uses: tuple = ()
-    # It runs the app in a copy and a database of its own (eaos/live/run.py `apart`): it holds no resource, and takes
+    # It runs the app in a copy and a database of its own (eaos/live/app/run.py `apart`): it holds no resource, and takes
     # an app's memory.
     apart: bool = False
     necessity: str = REQUIRED
@@ -196,7 +196,7 @@ _DECLARED = (
                       'document is an appendix to them'),
     Stage('translate', produces=('i18n/ar/START-HERE.md', 'i18n/en/START-HERE.md'), requires=('reports',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed: each document stays as it was written',
-          description="Every document whole in Arabic and in English (eaos/core/bilingual.py): only the pieces in the other "
+          description="Every document whole in Arabic and in English (eaos/core/language/bilingual.py): only the pieces in the other "
                       'language, as templates without their numbers and paths, by the smallest model without thinking, '
                       'once: EAOS ships its own sentences translated, and the rest is kept for the next check', ai=True),
 )

@@ -1,4 +1,4 @@
-"""One run of an AI node, `run_node` (eaos/ai/nodes/core.py holds the guards it uses): what it says as it goes, its
+"""One run of an AI node, `run_node` (eaos/ai/nodes/framework.py holds the guards it uses): what it says as it goes, its
 batches asked at the permitted width, the critique pass, the answer in the person's language, the subjects judged before
 kept, the rules fallback and the record it ends with."""
 import contextvars
@@ -8,10 +8,10 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from pathlib import Path
 
-from ...core.language import foreign_texts, restate
-from ...core.process import Stuck, check_cancelled
-from .core import (WORDS, answer_schema, cached, check, check_shape, critique_prompt, critique_schema, digest, fallback, folder_of,
-                   keep, launcher_of, now, record, rules_decisions, short, spent)
+from ...core.language.check import foreign_texts, restate
+from ...core.system.process import Stuck, check_cancelled
+from .framework import (WORDS, answer_schema, cached, check, check_shape, critique_prompt, critique_schema, digest,
+                        fallback, folder_of, keep, launcher_of, now, record, rules_decisions, short, spent)
 
 
 # A run's settings, with their defaults; every other option of run_node is the node's own input.
@@ -150,7 +150,7 @@ class Run:
 
     def _some_failed(self, failed, asked):
         """Raise the failure when every batch failed or the assistant is stuck or stopped; else the record says how many
-        failed, and the check is partial (eaos/pipeline/ai_runners.py _partly)."""
+        failed, and the check is partial (eaos/pipeline/runners/by_assistant.py _partly)."""
         stuck = next((p for p in failed if isinstance(p, Stuck)), None)
         if len(failed) == asked or stuck or self._stopped(): raise stuck or failed[0]
         self.unanswered = {'asked': asked, 'failed': len(failed), 'why': short(f'{type(failed[0]).__name__}: {failed[0]}', 300)}
@@ -196,7 +196,7 @@ class Run:
         return reviewed, reviewed.get('critique')
 
     def _in_language(self, launcher, answer, schema, name):
-        """The answer, its texts for the person in their language: sent back once when some are not (eaos/core/language.py)."""
+        """The answer, its texts for the person in their language: sent back once when some are not (eaos/core/language/check.py)."""
         lang = self.settings['lang']
         texts = foreign_texts(answer, lang)
         if not texts: return answer

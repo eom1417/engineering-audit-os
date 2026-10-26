@@ -15,7 +15,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import core, runner
+from . import framework as core, runner
 
 VERSION = '3'
 BATCH = 4                       # pages per question: their phone and desktop pictures, 8 at most
@@ -88,8 +88,8 @@ def inputs(report, project=None, lang='en', **_):
         page['pictures'].append(_picture(report, row, count))
         _add_found(page, row)
     if not pages: return None
-    from ...analysis.design import target
-    # `design`: the person's chosen look, or None; a redesign's departures from it are findings (eaos/analysis/design.py).
+    from ...analysis.target_state.look import target
+    # `design`: the person's chosen look, or None; a redesign's departures from it are findings (eaos/analysis/target_state/look.py).
     return {'lang': lang, 'project': {'name': (project and Path(project).name) or report.name}, 'pages': list(pages.values()),
             'design': target(report)}
 

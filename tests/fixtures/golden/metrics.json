@@ -6,7 +6,7 @@
   "input_sha": "115bddc7a7b3ed59d63f09a85d5131f14408e9b1766a8a5fc4ccf54da9634e5a",
   "limitations": [
     "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-    "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+    "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
     "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
     "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
     "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -187,7 +187,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -214,7 +214,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -241,7 +241,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -266,7 +266,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -293,7 +293,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -318,7 +318,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -345,7 +345,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -372,7 +372,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -397,7 +397,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -424,7 +424,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -449,7 +449,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -476,7 +476,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -503,7 +503,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -528,7 +528,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -553,7 +553,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -580,7 +580,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -607,7 +607,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -632,7 +632,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -659,7 +659,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -686,7 +686,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -711,7 +711,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -738,7 +738,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -765,7 +765,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -790,7 +790,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."
@@ -817,7 +817,7 @@
       "extractor_version": "2",
       "limitations": [
         "Branch counting is a lexical approximation, not a compiler-accurate cyclomatic complexity.",
-        "A function's complexity is the code laws' count (eaos/core/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
+        "A function's complexity is the code laws' count (eaos/core/contracts/code_laws.py) in Python; elsewhere 1 + its lexical branches. Either way a nested function is counted alone.",
         "Large or branch-heavy code is not a defect; it marks where a change scenario deserves review.",
         "Duplicate detection compares normalised lines; renamed variables still match, restructured logic does not.",
         "Generated and vendored code is only excluded when the snapshot excludes it."

@@ -12,15 +12,15 @@ assistant (the MCP audit tool) and the Studio.
                                            the sign-in the code shows
 
 The paths are asked for each check (a focused check is a choice of the moment); the mode and the sign-in are kept. The
-state comes from its callers (eaos/journeys/guided.py loads and saves it), so this module sits below them.
+state comes from its callers (eaos/journeys/guided/ loads and saves it), so this module sits below them.
 """
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..live import sign_in
-from ..core.check_paths import PATHS
-from ..pipeline.paths import resolve
+from ..live.access import sign_in
+from ..core.contracts.check_paths import PATHS
+from ..pipeline.path_choice import resolve
 from ..pipeline.schedule import MODES, forecast
 from ..pipeline.stages import BY_NAME, ORDER, dependents
 from ..core.progress import previous_seconds
@@ -42,7 +42,7 @@ def agreed_to_run(state):
 
 def agree_to_run(state, via):
     """The person's yes to running their app in an isolated copy, kept for the project in `state` (asked once, not once
-    a run; eaos/journeys/guided.py check_runtime reads it): the Studio's check window, `eaos check --run-app`, or the assistant."""
+    a run; eaos/journeys/guided/ check_runtime reads it): the Studio's check window, `eaos check --run-app`, or the assistant."""
     state['consent'] = {**(state.get('consent') or {}), 'run_and_fix': True, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}
     if not any(q.get('id') == 'run_and_fix' for q in state.setdefault('questions', [])):
         state['questions'].append({'id': 'run_and_fix', 'kind': 'yes_no', 'answer': True, 'via': via})
@@ -62,7 +62,7 @@ def keep(state, mode=None, sign_in=None, run_app=False):
 
 def options(state, progress, failed, provider, runtime, paths=None, engines=None, published=None):
     """The options of pipeline.check for this project now (`failed`: the tools started without; `provider`, `runtime`: the
-    assistant's and the isolated copy's, eaos/journeys/guided.py check_provider and check_runtime; `engines`: those to run again
+    assistant's and the isolated copy's, eaos/journeys/guided/ check_provider and check_runtime; `engines`: those to run again
     with again_from; `published`: the published address the person named for this check, read signed in, read only)."""
     resolve(paths)                                  # an unknown path stops the check before anything runs
     return dict(language=state.get('lang') or 'en', engines=engines or [], progress=progress, provider=provider, runtime=runtime,
@@ -96,7 +96,7 @@ def without_ai_kept(report, without_ai, again_from, chosen):
 def offered(state, report=None):
     """What the start of a check offers the person (the Studio's preview): each path with what it looks at, in both
     languages, the mode and the way to sign in kept for this project, the sign-in its code shows (`report`: the last
-    check's, eaos/live/sign_in.py from_code), when the ways to sign in are offered, and whether the person already agreed
+    check's, eaos/live/access/sign_in.py from_code), when the ways to sign in are offered, and whether the person already agreed
     to run their app (`run_app`): without it the pages, sign-in and speed are not checked, so the start asks it."""
     paths = [{'id': key, 'name': dict(zip(('en', 'ar'), path['names'])), 'looks_at': dict(zip(('en', 'ar'), path['looks_at']))}
              for key, path in PATHS.items()]

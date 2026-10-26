@@ -24,7 +24,7 @@ MOST = 80
 
 def file_routes(root):
     """['/about', ...]: the page routes the files of the project at `root` make, MOST at most."""
-    from ..setup_python import _requirements, folder as python_folder
+    from ..app.detect_python import _requirements, folder as python_folder
     root = Path(root)
     found, python = _web_routes(root), python_folder(root)
     if python is not None and 'streamlit' in _requirements(root / python):
@@ -35,7 +35,7 @@ def file_routes(root):
 
 def _web_routes(root):
     """The routes of the JavaScript app's page folders, by the framework its package depends on."""
-    from ..setup_detect import app_folder, dependencies
+    from ..app.detect import app_folder, dependencies
     web = app_folder(root)
     if web is None: return []
     app = root / web

@@ -1,5 +1,5 @@
 """The project an assistant's call is about, its state, and its jobs: a call that takes longer than a tool call waits
-returns a job (eaos/core/jobs.py) that `wait` follows; the Studio opened on it.
+returns a job (eaos/core/project/jobs.py) that `wait` follows; the Studio opened on it.
 """
 import json
 import os
@@ -7,8 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import guided
-from ...core import jobs, launch, toolchain
-from ...core import project_state
+from ...core.project import jobs
+from ...core.system import launch
+from ...core import toolchain
+from ...core.project import state as project_state
 
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
@@ -32,7 +34,7 @@ def repositories_under(folder):
 
 
 def locate(folder):
-    """The project a folder means: itself when it is one (eaos/journeys/project_state.looks_like_project); a folder with no project file
+    """The project a folder means: itself when it is one (eaos/core/project/state.looks_like_project); a folder with no project file
     and exactly one git repository directly under it (the assistant opened in the folder above) means that repository; with several, SeveralProjects: the
     person chooses, EAOS never guesses."""
     if not folder.is_dir() or project_state.looks_like_project(folder): return folder
@@ -70,7 +72,7 @@ def state_of(project=None, new=False):
     if not state:
         state = {'schema_version': 1, 'project': str(folder), 'workspace': str(guided.workspace(folder)),
                  'started': _now(), 'questions': [], 'lang': guided.language()}
-    # its report's folder kept from the start: a run of its app is shown only that folder (eaos/live/sandbox.py _own)
+    # its report's folder kept from the start: a run of its app is shown only that folder (eaos/live/isolation/sandbox.py _own)
     if not state.get('outputs') and guided.outputs(state): guided.save(state)
     return state
 
@@ -80,13 +82,13 @@ def _now():
 
 
 def _head(state):
-    """The last commit of the branch EAOS works on (eaos/core/branches.py)."""
+    """The last commit of the branch EAOS works on (eaos/core/project/branches.py)."""
     return guided.tip(state)
 
 
 def tool_digest():
-    """This EAOS's own code, as a fingerprint (eaos/core/build_info.py): a report made by an older EAOS is checked again."""
-    from ...core.build_info import digest
+    """This EAOS's own code, as a fingerprint (eaos/core/system/version_info.py): a report made by an older EAOS is checked again."""
+    from ...core.system.version_info import digest
     return digest()
 
 
@@ -118,7 +120,7 @@ def _job_answer(job, seconds, project):
 
 
 def _start(kind, state, arguments, seconds=WAIT, runner='eaos.journeys.agent_tools', watch=False):
-    """Start a job once the project's running one ended (waited for up to `seconds`: eaos/journeys/lanes.py), and answer as `_job_answer`
+    """Start a job once the project's running one ended (waited for up to `seconds`: eaos/journeys/fix/lanes.py), and answer as `_job_answer`
     does. `watch`: the live Studio is opened on its map first (once, before the job writes anything), its address in `watch`."""
     route = '/scan' if kind != 'audit' or toolchain.ready(state['project']) else '/tools'
     studio = _watch(state, route) if watch and not jobs.running(state['project']) else None

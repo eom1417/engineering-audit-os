@@ -4,7 +4,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from ...core.places import home
+from ...core.project.places import home
 from .person import box, say
 from .project import language
 
@@ -36,7 +36,7 @@ def _tools_row(row_id, when, ar, en, tools):
 
 def doctor_rows(project=None, probe=False):
     """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]. `probe`: ask each AI
-    assistant for one word (eaos/ai/readiness.py) instead of only looking for its command."""
+    assistant for one word (eaos/ai/assistant/readiness.py) instead of only looking for its command."""
     js = bool(project) and any((Path(project) / folder / 'package.json').is_file() for folder in ('.', 'app', 'web', 'client', 'frontend'))
     rows = [{'id': 'python', 'ok': sys.version_info >= (3, 10), 'when': 'now', 'ar': 'Python 3.10 أو أحدث', 'en': 'Python 3.10 or newer',
              'fix': 'https://www.python.org/downloads/'},
@@ -47,7 +47,7 @@ def doctor_rows(project=None, probe=False):
                      'ar': 'المشروع محفوظ في git (للإصلاح فقط)', 'en': 'The project is saved in git (only for fixing)',
                      'fix': 'git init && git add -A && git commit -m "first save"'})
     rows += _tool_rows()
-    from ...core.local_db import binaries
+    from ...core.system.local_db import binaries
     free = shutil.disk_usage(str(home().parent if not home().exists() else home())).free / 2 ** 30
     return rows + [{'id': 'database', 'ok': binaries() is not None, 'when': 'later',
                     'ar': 'قاعدة بيانات مؤقتة لتشغيل برنامجك (PostgreSQL)', 'en': 'A temporary database to run your app (PostgreSQL)',
@@ -69,7 +69,7 @@ def _tool_rows():
 def assistant_row(probe=False):
     """The doctor's row for the AI assistants: with `probe`, each one's readiness in a word and, when none is ready, the
     first one's reason and fix; without, whether one is installed."""
-    from ...ai import readiness
+    from ...ai.assistant import readiness
     return _probed_assistants(readiness) if probe else _installed_assistant(readiness)
 
 
@@ -91,7 +91,7 @@ def _probed_assistants(readiness):
             'fix': (blocked.get('reason') or {}).get('en') or blocked['code']}
 
 
-# One word for each readiness problem (eaos/ai/readiness.py), for a line that lists every assistant.
+# One word for each readiness problem (eaos/ai/assistant/readiness.py), for a line that lists every assistant.
 READY_WORD = {'ar': {'ready': 'جاهز', 'not_installed': 'غير مثبّت', 'not_working': 'لا يعمل', 'not_signed_in': 'غير مسجّل الدخول',
                      'sign_in_expired': 'دخوله انتهى', 'limit': 'وصل حدّه', 'no_answer': 'ما جاوب', 'failed': 'توقف بخطأ'},
               'en': {'ready': 'ready', 'not_installed': 'not installed', 'not_working': 'does not run', 'not_signed_in': 'not signed in',
@@ -111,7 +111,7 @@ def doctor(args):
     lang = language(args.lang)
     rows = doctor_rows(Path(args.project).resolve() if args.project else None, probe=True)
     from ... import __version__
-    from ...core.build_info import commit
+    from ...core.system.version_info import commit
     say(f"ℹ️ EAOS {__version__} · {commit() or ('commit غير معروف' if lang == 'ar' else 'commit unknown')}")
     for row in rows: say(_doctor_line(row, lang))
     tools_missing = [row for row in rows if not row['ok'] and row['fix'] == 'eaos doctor --fix']

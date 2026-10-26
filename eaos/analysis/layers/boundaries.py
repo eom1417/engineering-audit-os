@@ -2,7 +2,7 @@
 `allowed_dependencies` name. Every resolved import between two placed files is checked (a type-only import is not one:
 the compiler erases it); a breach is a finding at the import's line naming the boundary it breaks, and a breach where
 either file's placement is a low-confidence guess is a question. When the project declares its own eaos.policy.json,
-its rules are the policy stage's (eaos/analysis/policy.py) and are not checked twice here.
+its rules are the policy stage's (eaos/analysis/target_state/policy.py) and are not checked twice here.
 
 The same rules are written for dependency-cruiser (`rules(...)`), which the engines stage runs on JavaScript and
 TypeScript: the layers barred from each other, and browser code reaching server code through any chain of files

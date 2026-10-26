@@ -8,7 +8,7 @@ the fourth place of a page is "more", which shows the next page. The first optio
 """
 from pathlib import Path
 import os
-from ..core import project_state
+from ..core.project import state as project_state
 
 PAGE = 4
 MORE = 'more'
@@ -73,7 +73,7 @@ MORE_WORDS = (('خيارات أخرى…', 'More options…'), ('بقية ما �
 
 
 def _status(project):
-    from ..journeys.build_tools import status_of
+    from ..journeys.build_from_plan.steps import status_of
     return status_of(project)
 
 

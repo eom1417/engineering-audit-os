@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "description": "Every known failure a user can meet, in plain words, with a fix to copy. eaos/journeys/guided.py matches an error against `match` (regular expressions over the error type and text) in order; the first match is shown: `message` says what happened, `fix` what to do, `commands` what to copy, and `after` what to do if it happens again. An unknown error falls back to `unknown`, and the technical detail always goes to a log file, never to the screen.",
+ "description": "Every known failure a user can meet, in plain words, with a fix to copy. eaos/journeys/guided/ matches an error against `match` (regular expressions over the error type and text) in order; the first match is shown: `message` says what happened, `fix` what to do, `commands` what to copy, and `after` what to do if it happens again. An unknown error falls back to `unknown`, and the technical detail always goes to a log file, never to the screen.",
  "errors": [
   {
    "id": "not_a_folder",

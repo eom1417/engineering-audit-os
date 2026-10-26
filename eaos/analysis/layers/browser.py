@@ -8,7 +8,7 @@ output is read when the project holds it (dist/, build/, .next/static ...) or a 
 import re
 from pathlib import Path
 
-from ...facts.secrets import _classify_text
+from ...facts.defects.secrets import _classify_text
 from .placement import BUILT
 
 EXPOSED = r'(?:VITE_|NEXT_PUBLIC_|REACT_APP_|EXPO_PUBLIC_|PUBLIC_|NUXT_PUBLIC_|GATSBY_)'

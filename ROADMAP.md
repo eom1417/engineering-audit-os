@@ -9,10 +9,11 @@ The owner says "execute Mx" (in any chat, with any assistant): every card of Mx 
 Done (`docs/STANDARDS.md` §7), without asking again except for a decision only the owner can take. **After each card,
 its row in the status table below is updated in the same change.** Milestones are numbered in the order they run.
 
-## Where we are (2026-10-25, version 0.0.78)
+## Where we are (2026-10-26, version 0.0.78)
 
-M-1 to M4 are done, M5 but M5.4 (it waits for the owner's HungerLab snapshot), and M6; **next is M7**. Each done
-milestone in one line (what each card did: `docs/archive/ROADMAP-DONE.md`; why and how: `CHANGELOG.md`):
+M-1 to M4 are done, M5 but M5.4 (it waits for the owner's HungerLab snapshot), M6, then the code layout; **next is
+M7, once the owner has reviewed the layout and says so**. Each done milestone in one line (what each card did:
+`docs/archive/ROADMAP-DONE.md`; why and how: `CHANGELOG.md`):
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -24,6 +25,7 @@ milestone in one line (what each card did: `docs/archive/ROADMAP-DONE.md`; why a
 | M4 The pipeline as loops | loops as data, the coverage ledger with red gaps, the ideal in 8 minutes, repair or rebuild, the laws over all of EAOS (the Studio's JavaScript included) | 0.0.76 |
 | M5 Seeing any app (but M5.4) | the common stacks start from their files, screens found in layers and by the browser agent (explored once, replayed free), signed in by rules, the lock and walk-through per kind of user; the corpus 12 of 12 (2 before) | 0.0.77 |
 | M6 The whole system in layers | every check reads the system as layers (each file in its layer and side, the boundaries, what ships to the browser, every endpoint and its guard, the data rules, the rules split, operations, tests) and a fix that breaks a boundary is refused; the option "Try the layers" (the migrations tried with pgTAP and the Supabase advisors, the API with Schemathesis and two accounts, the production build read); the layers first in START-HERE, REPORT.html and the Studio; the detection baseline 15 of 16 (6 before) | 0.0.78 |
+| The code layout (owner, 2026-10-26) | every layer split into folders by job, each named by its docstring; the tests mirror the layers; the map in `docs/ARCHITECTURE.md` §1; nothing of the behaviour changed (the public surface and every test the same) | 0.0.78 (no new version) |
 
 ## The firm, department by department
 
@@ -65,11 +67,16 @@ completes it. A department with no card here is a gap in the plan.
   (M10.7).
 - **M7.5** Each batch checked beyond behaviour: after a batch, M6's layer and security checks run again over the
   changed files, so a fix that opens a boundary is refused like one that breaks a screen. (The layers' gate is in since
-  0.0.78: `journeys/execute.py` new_breakage refuses a change that breaks a boundary of the browser, the endpoints, the
+  0.0.78: `journeys/fix/execute.py` new_breakage refuses a change that breaks a boundary of the browser, the endpoints, the
   data, the rules or the layers; what is left is the security engines' rerun and saying it in the batch's report.)
 - **M7.6** The build journey never stalls: after the third refused proof in a row its last milestone is handed over
-  with the list of what stays unproven, shown in the Studio and the report (today `journeys/build_tools.py` holds it
+  with the list of what stays unproven, shown in the Studio and the report (today `journeys/build_from_plan/steps.py` holds it
   back on every refusal).
+- **M7.7** A leftover is never a source file: `facts/defects/leftovers.py` calls a file a build output when its name
+  starts with `build_` or a folder of its path is `target`, `out` or `bin`, so source code a project imports
+  (EAOS's own `build_info.py`, a Java or Rust project's `target` package in its source tree) became a leftover card
+  (found by the code layout, 2026-10-26); a file the project imports, or that sits beside source it imports, is
+  source.
 - Target: a batch that breaks behaviour or a boundary never reaches the person's branch; every journey ends.
 
 ### M8 Interfaces: CLI and MCP first, Studio light, EAOS clean
@@ -82,7 +89,10 @@ completes it. A department with no card here is a gap in the plan.
   (`tools/quality.json`: Semgrep's subprocess and innerHTML findings first); knip's unused exports and jscpd's clones
   to zero; the functions over 50 lines or 5 parameters to zero or justified; a lint of the Studio's JavaScript for
   undefined names and unused imports in `tools/quality.sh` (the M4.6 lesson: a name defined nowhere broke a page); a
-  lock file for EAOS's Python dependencies so osv-scanner reads them.
+  lock file for EAOS's Python dependencies so osv-scanner reads them. The packages whose `__init__.py` holds their
+  logic (`interfaces/studio_actions/`, `journeys/fix/waves/`, `journeys/guided/`, `report/studio/user_journeys/`,
+  `report/studio/paths/`, `report/human_report/`, `engines/`, `analysis/layers/`, `ai/nodes/`) keep only their
+  docstring and names there, the logic in a named module beside it (the independent review of the code layout).
 - Target: everything from the CLI and MCP; `tools/quality.json` holds no medium or high finding and no listed
   exception without its reason.
 
@@ -159,6 +169,7 @@ milestone's end.
 | M7.4 | not started | | |
 | M7.5 | not started | | |
 | M7.6 | not started | | |
+| M7.7 | not started | | |
 | M8.1 | not started | | |
 | M8.2 | not started | | |
 | M8.3 | not started | | |

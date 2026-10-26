@@ -1,10 +1,10 @@
 """The graph of every code path: each node and link stored once, and the builder that walks a page or a server entry
-through its lanes, from the records (eaos/report/studio/path_records.py) to a gap where they stop."""
+through its lanes, from the records (eaos/report/studio/paths/records.py) to a gap where they stop."""
 from collections import defaultdict
 from pathlib import Path
 
-from ....analysis import system_map as sm
-from ..path_records import line_number
+from ....analysis.maps import system as sm
+from .records import line_number
 
 LANES = ('screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data')
 IMPORT_STEPS = 2          # a component reaches the files that make its calls through at most two imports

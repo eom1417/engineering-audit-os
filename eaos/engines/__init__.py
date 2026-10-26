@@ -17,7 +17,7 @@ from . import (ast_grep, bandit, checkov, codegraph, codeql, dependency_cruiser,
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 from ..core import progress
-from ..core import resources
+from ..core.system import resources
 from ..core.toolchain import registry
 
 # The engines are the registry's (eaos/data/toolchain.json): every tool the engines stage runs (`check: engines`) with a

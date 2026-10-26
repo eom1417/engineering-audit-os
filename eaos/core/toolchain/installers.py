@@ -13,7 +13,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from ..web import opened
+from ..system.web import opened
 from .pins import TRIVY_CACHE, _link, browsers, checkout, home, npm_prefix, release_spec, tool_env, uv, venv_of
 from .versions import browser_missing, found_version
 

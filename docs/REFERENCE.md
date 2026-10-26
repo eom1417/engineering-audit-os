@@ -50,8 +50,8 @@ status, time and reason). `REPORT.html` and `HANDOVER.md` sit one level up.
 | `eaos/ai/` | Running the person's assistant (Claude Code, Codex), its readiness, and the AI nodes |
 | `eaos/report/` | REPORT.html, the four reports, START-HERE, and the Studio's data (`eaos/report/studio/`) |
 | `eaos/pipeline/` | The stages, their runners and the run driver |
-| `eaos/journeys/` | Check and fix (`agent_tools.py`, `guided.py`, `waves.py`, `execute.py`), build, extend |
-| `eaos/interfaces/` | The CLI, MCP (`mcp_server.py`), the local API (`api/`) and the Studio's actions (`studio/`) |
+| `eaos/journeys/` | Check and fix (`agent_tools.py`, `guided.py`, `waves.py`, `journeys/fix/execute.py`), build, extend |
+| `eaos/interfaces/` | The CLI, MCP (`interfaces/mcp_server/server.py`), the local API (`api/`) and the Studio's actions (`studio/`) |
 | `console/` | The Studio's source (plain JavaScript, esbuild); `npm run build` ships it to `eaos/data/studio` |
 | `tests/` | The test suite (`python -m unittest discover -s tests`) |
 | `tools/` | Development helpers: `validate.py`, `make_contracts.py`, `dev_setup.sh` |

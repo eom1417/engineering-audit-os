@@ -5,8 +5,8 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
-from ..core.workspace import read, write, load_run, fresh, safe_file, digest, now
-from ..core.vocabulary import classify
+from ..core.project.workspace import read, write, load_run, fresh, safe_file, digest, now
+from ..core.contracts.vocabulary import classify
 
 
 

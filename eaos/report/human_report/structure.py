@@ -1,7 +1,7 @@
 """REPORT.html's structure section: today's parts, how they differ from the target, the import cycles."""
-from ...core import plain
-from ...analysis import model as M
-from ...core.markup import both as T, esc
+from ...core.language import plain
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc
 from .arch import architecture_map
 from .charts import HEAT, HEAT_BINS, layer_diagram, treemap
 from .html import lit, num, unavailable

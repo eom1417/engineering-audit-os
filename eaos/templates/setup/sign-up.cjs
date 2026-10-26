@@ -1,4 +1,4 @@
-// EAOS's test account by rules (eaos/live/test_account.py): the app's own sign-in page filled as a person fills it, and,
+// EAOS's test account by rules (eaos/live/access/test_account.py): the app's own sign-in page filled as a person fills it, and,
 // when the account is not there yet, its own sign-up page first. Run as the run's seed against the app in its isolated
 // copy: BASE_URL, EAOS_STORAGE_STATE (where the session is saved), EAOS_TEST_USER and EAOS_TEST_PASSWORD (the run's own
 // account), EAOS_SIGN_IN_PAGE (where the app sent a visitor). Prints one JSON line: the account as the lock's E2E_USER

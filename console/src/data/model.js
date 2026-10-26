@@ -49,7 +49,7 @@ export function problem(id) { return memo('problemIndex', ['cards'], () => new M
 /** Who acts on a problem: the owner ('you', a decision or a skipped card) or EAOS by itself ('eaos'). */
 export const who = p => (p.needs_decision ? 'you' : 'eaos');
 
-/** The counts every page says (eaos/analysis/model.py problem_counts): every card of the plan, those EAOS fixes by
+/** The counts every page says (eaos/analysis/presentation/model.py problem_counts): every card of the plan, those EAOS fixes by
  *  itself, those that need the owner, by severity; and the closed of every card seen over the checks (history). */
 export function totals() {
   return memo('totals', ['cards', 'history'], (cards, history) => {
@@ -117,7 +117,7 @@ export function buildPlan() {
   return memo('buildPlan', ['plans'], p => (p && p.plans.find(x => x.kind === 'build')) || null);
 }
 
-/** The build's next step as the report's head names it (eaos/report/studio/build_plan.next_step): its words, and the inbox
+/** The build's next step as the report's head names it (eaos/report/studio/blueprint_plan.next_step): its words, and the inbox
  *  for the blueprint's questions or the `build_start` action; null when the next step is neither. */
 export function buildNext() {
   const p = project();

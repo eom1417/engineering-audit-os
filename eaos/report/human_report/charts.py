@@ -1,7 +1,7 @@
 """REPORT.html's charts, drawn as inline SVG: the severity bars, the heat treemap, the layers of the target."""
-from ...analysis import model as M
-from ...core.markup import esc, svg_text
-from ...analysis.model import AREAS, SEVERITIES
+from ...analysis.presentation import model as M
+from ...core.language.markup import esc, svg_text
+from ...analysis.presentation.model import AREAS, SEVERITIES
 from .words import W
 
 

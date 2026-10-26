@@ -4,12 +4,12 @@
 import subprocess
 from pathlib import Path
 
-from .. import batch_finish, guided, lanes
-from ...core import branches, jobs
-from ..batch_branch import commit_of, direct_target, merge_target
-from ...core.project_state import waiting_batch
-from ...live import setup as live_setup
-from ...core import project_state
+from ..fix import finish as batch_finish, lanes
+from .. import guided
+from ...core.project import branches, jobs, state as project_state
+from ..fix.branch import commit_of, direct_target, merge_target
+from ...core.project.state import waiting_batch
+from ...live.app import setup as live_setup
 from .evidence import _ready
 from .project import WAIT, _head, _now, _read, _report, _start, state_of
 from .running import CONSENT, _consented
@@ -67,7 +67,7 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch continues on
     it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left); `merge_into`, the branch accept merges them into (default the branch
     open in the project folder); `base_commit`, the commit the preview showed for `base`: when the branch moved since,
-    nothing opens (status base_moved) and the preview is made again. `assistants`: how many fix it at once (eaos/journeys/lanes.py)."""
+    nothing opens (status base_moved) and the preview is made again. `assistants`: how many fix it at once (eaos/journeys/fix/lanes.py)."""
     state = state_of(project)
     guided.reconcile(state)
     guided.retire_stale_batch(state)
@@ -126,7 +126,7 @@ def _not_ready(state, deliver_as):
 
 def _chosen(state, cards, size):
     """(why nothing opens, or None; the batch's cards): those asked for, else the next ready ones."""
-    from ..waves import next_batch, plan as read_plan, too_early, with_prerequisites
+    from ..fix.waves import next_batch, plan as read_plan, too_early, with_prerequisites
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
     chosen = with_prerequisites(report, state, list(dict.fromkeys(cards))) if cards else next_batch(report, state, size=min(max(int(size), 1), 25))
@@ -171,7 +171,7 @@ def fix_abandon(project=None):
 
 
 def _fix_start_job(project, arguments, progress):
-    from ..waves import open_batch, plan as read_plan
+    from ..fix.waves import open_batch, plan as read_plan
     state = project_state.load(project)
     report, runtime = guided.report_of(state), project_state.runtime_of(state)
     number = len(state.get('waves') or []) + 1
@@ -200,7 +200,7 @@ def _fix_start_job(project, arguments, progress):
 
 def _agreement_kept(state, source, runtime):
     """The person's agreement to run the app renewed for the commit now, when only merged batches came since it."""
-    from ...live.sandbox import head
+    from ...live.isolation.sandbox import head
     grant = runtime / 'authorization.json'
     granted = _read(grant).get('commit') if grant.is_file() else None
     if granted != head(source) and guided.same_code(state, granted):     # a merged batch: the agreement still holds
@@ -225,8 +225,8 @@ def _settle_delivery(state, wave, root):
 
 def _automatic_fixes(wave, cards, root, report, progress):
     """The cards with a codemod, fixed by it in the copy: each kept, or taken back when it fails or breaks something."""
-    from ..waves import change, commit, drop_last
-    from ..execute import new_breakage
+    from ..fix.waves import change, commit, drop_last
+    from ..fix.execute import new_breakage
     automatic = [c for c in cards if ((c.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
     for index, card in enumerate(automatic, 1):
         card_id = card['id']
@@ -338,7 +338,7 @@ def fix_edit(card, edits, summary='', project=None):
 
 
 def _fix_edit_job(project, arguments, progress):
-    from ..waves import commit, drop_last, edit_gates, plan as read_plan
+    from ..fix.waves import commit, drop_last, edit_gates, plan as read_plan
     state = project_state.load(project)
     wave, report = state['open_wave'], guided.report_of(state)
     root, card_id = Path(wave['root']), arguments['card']
@@ -382,7 +382,7 @@ def fix_skip(card, reason, project=None):
         wave = _open(state)
         if card not in wave['cards']: raise ValueError(f"{card} is not in batch {wave['number']}")
         if card in wave['kept']:
-            from ..waves import without
+            from ..fix.waves import without
             without(wave, card)
         wave['failed'][card] = f'skipped: {reason}'[:300]
     return {'card': card, 'skipped': True, 'left': lanes.mine(wave, lanes.untried(wave, wave['cards']))}

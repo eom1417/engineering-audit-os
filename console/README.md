@@ -24,7 +24,7 @@ npm run build                 # bundles into ../eaos/data/studio, writes SOURCE.
 | `assets/<place>.js` | `src/places/<place>/index.js` | when one of its addresses or sheets first opens |
 | `assets/style.css` + fonts | `src/css/index.css` | at once |
 
-Budgets (the build fails past them, and `tests/test_studio_assets.py` checks them again): the first page's script
+Budgets (the build fails past them, and `tests/guards/test_studio_assets.py` checks them again): the first page's script
 (boot, core, Arabic words, Status) at most 240 KB gzipped (target 200), the stylesheet 48 KB, the whole Studio 6 MB.
 The source fingerprint in `SOURCE.json` covers `package.json`, `package-lock.json`, `scripts/build.mjs`, `src/` and
 `docs/studio-actions.json`; the suite fails when the source changed without a rebuild.

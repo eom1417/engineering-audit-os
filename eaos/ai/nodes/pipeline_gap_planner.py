@@ -11,8 +11,8 @@ import json
 import sys
 from pathlib import Path
 
-from . import core, runner
-from .. import ideal
+from . import framework as core, runner
+from ..ideal import planner as ideal
 
 VERSION = '1'
 LIMIT = {'gaps': 200}
@@ -47,7 +47,7 @@ def _gaps(report):
     report = Path(report)
     body = core.load(report / 'studio/pipeline.json')
     if body is None:
-        from ...analysis.pipeline_map import from_report
+        from ...analysis.maps.pipeline import from_report
         body = from_report(report, lang='en')
     return [g for g in ((body or {}).get('views') or {}).get('gap') or [] if isinstance(g, dict) and g.get('id')]
 

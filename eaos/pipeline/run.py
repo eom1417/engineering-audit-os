@@ -13,10 +13,10 @@ from pathlib import Path
 
 from ..core.progress import ProgressLog, previous_seconds
 from ..core.progress.flow import incomplete, partial
-from ..core.usage import FILE as USAGE
-from .live_app import close_app
-from .paths import resolve
-from ..report.run import document
+from ..core.system.usage import FILE as USAGE
+from .runners.live_app import close_app
+from .path_choice import resolve
+from ..report.documents.run import document
 from .coverage import ledger
 from .loops import switched_off
 from .rounds import Rounds
@@ -29,7 +29,7 @@ MANIFEST = 'run-manifest.json'
 
 def _runners():
     """Imported lazily: a pipeline declaration must be readable without importing the whole product."""
-    from . import runners
+    from .runners import by_rules as runners
     return runners.RUNNERS
 
 
@@ -41,7 +41,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
     without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
     once the person agreed to run it; without it every live stage says so. `mode`: how many stages and assistants run at
-    once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths (eaos/pipeline/paths.py), recorded;
+    once (eaos/pipeline/schedule.py: normal, speed, one). `paths`: the check's paths (eaos/pipeline/path_choice.py), recorded;
     `patterns`: the card patterns the plan keeps, None for all. `sign_in`: how the page stages sign in to the app
     (eaos/journeys/check_choices.py options: how, the published address named for this check, the project's folder).
 
@@ -52,7 +52,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     While a stage runs it is the current stage of eaos/core/progress/context.py, so `progress.count()` anywhere below it
     reports into it."""
     target, out = _outside(target, out)
-    if isinstance(getattr(provider, 'config', None), dict): provider.config['usage'] = str(out / USAGE)    # eaos/core/usage.py
+    if isinstance(getattr(provider, 'config', None), dict): provider.config['usage'] = str(out / USAGE)    # eaos/core/system/usage.py
     runners = runners if runners is not None else _runners()
     _refuse_unknown(only, skip)
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
@@ -76,7 +76,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
            'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head,
            'lock': threading.RLock()}
     # What a stage reads of the run: the stages ended so far. It only asks of those it waits for, so it reads them
-    # ended whatever else runs beside it (tests/test_pipeline_parallel.py).
+    # ended whatever else runs beside it (tests/pipeline/test_parallel.py).
     context['manifest_so_far'] = {'stages': run['results'], 'status': 'RUNNING'}
     return _go(run, mode)
 
@@ -132,7 +132,7 @@ def _requested(only, skip):
 def _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake):
     """What the manifest says of the run whatever its stages do; with the stages so far it is also the checkpoint
     written after each stage, which a run stopped or killed midway is resumed from."""
-    from ..core.workspace import inventory
+    from ..core.project.workspace import inventory
     return {'contract_version': 1, 'target': str(target), 'out': str(out), 'started_at': started_at,
             'requested': requested,
             'options': {'language': language, 'exclude': list(exclude), 'max_files': max_files, 'max_bytes': max_bytes,
@@ -212,7 +212,7 @@ PICTURES = ('live/screens', 'live/crawl', 'nodes/*/runs', 'ideal/run-*')     # w
 def bulky(out, patterns=None):
     """The paths of report `out` that match `patterns`, by default the previous check's bulky data (BULKY and the
     engines' scratch)."""
-    from ..facts.external import SCRATCH
+    from ..facts.engine_findings import SCRATCH
     out = Path(out)
     patterns = patterns or (*BULKY, *(f'engines/{part}' for part in SCRATCH))
     return sorted({path for pattern in patterns for path in out.glob(pattern)})
@@ -265,7 +265,7 @@ def focused(target, out, chosen, checked=False, **options):
 def again(target, out, stage, checked=False, **options):
     """The last check with `stage` and every stage that reads what it makes run again (a tool that failed, a step to
     redo), the rest kept as it was: never a whole new check for one stage. `engines` names the tools to run again.
-    `checked`: `target` is the very commit the check read clean (eaos/journeys/guided.py source), so the same code whatever
+    `checked`: `target` is the very commit the check read clean (eaos/journeys/guided/ source), so the same code whatever
     caches lay beside it then (.cache, egg-info), and the files' fingerprint is not asked."""
     stages = (stage,) if isinstance(stage, str) else tuple(stage)
     for name in stages:
@@ -299,7 +299,7 @@ def resume(target, out, redo=(), checked=False, **options):
 
 def _resumable(target, previous):
     """The previous run's options, once it is shown to be about this source: the same files, wherever the copy is."""
-    from ..core.workspace import inventory
+    from ..core.project.workspace import inventory
     stored = previous.get('options', {})
     fingerprint = inventory(target, max_files=stored.get('max_files', 100000), max_bytes=stored.get('max_bytes', 2_000_000))['fingerprint']
     if fingerprint != previous.get('source_fingerprint'):

@@ -7,7 +7,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...core import plain
+from ...core.language import plain
 from .project import save
 
 

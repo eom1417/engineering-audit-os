@@ -1,12 +1,12 @@
-"""REPORT.html's architecture map (its data and layout: eaos/analysis/arch_map.py): the graph, its legend and metrics."""
+"""REPORT.html's architecture map (its data and layout: eaos/analysis/maps/architecture.py): the graph, its legend and metrics."""
 import math
 
-from ...analysis import model as M
-from ...core.markup import both as T, esc, fit, svg_text
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc, fit, svg_text
 from .html import lit, num, unavailable
 
 
-# ---------------------------------------------------------------- architecture maps (the data and layout: eaos/analysis/arch_map.py)
+# ---------------------------------------------------------------- architecture maps (the data and layout: eaos/analysis/maps/architecture.py)
 
 INSTABILITY = {'stable': ('مستقر: كثيرون يعتمدون عليه وهو يعتمد على القليل', 'stable: many rely on it, it relies on little'),
                'balanced': ('متوازن: يعتمد ويُعتمد عليه بقدر متقارب', 'balanced: it relies on others about as much as they rely on it'),
@@ -27,7 +27,7 @@ def arrow_defs(suffix):
 
 def graph_svg(cmap, rtl):
     """Today's parts as boxes, left to right from what uses to what is used (mirrored in Arabic), and their imports."""
-    from ...analysis.arch_map import NODE_W as BW
+    from ...analysis.maps.architecture import NODE_W as BW
     width, height = cmap['width'], cmap['height'] + 60
     X = (lambda x: width - x - BW) if rtl else (lambda x: x)
     boxes = {n['id']: (X(n['x']), n['y']) for n in cmap['nodes']}
@@ -44,7 +44,7 @@ def graph_svg(cmap, rtl):
 
 def _import_edge(e, boxes, names, rtl, suffix):
     """One import link: a curve forward to what is used, or a bow back under the boxes, thicker with more imports."""
-    from ...analysis.arch_map import NODE_W as BW, NODE_H as BH
+    from ...analysis.maps.architecture import NODE_W as BW, NODE_H as BH
     (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
     if not e['back']:
         sx, ex = (ax, bx + BW) if rtl else (ax + BW, bx)
@@ -63,7 +63,7 @@ def _import_edge(e, boxes, names, rtl, suffix):
 
 def _part_box(n, x, y, rtl):
     """One part as a box at (x, y): its short name, and its files and links in words."""
-    from ...analysis.arch_map import NODE_W as BW, NODE_H as BH
+    from ...analysis.maps.architecture import NODE_W as BW, NODE_H as BH
     side, edge = ('right', x + BW - 10) if rtl else ('left', x + 10)
     files, uses, used = n['files'], n['uses'], n['used_by']
     line = f'ملفات {files} · يستخدم {uses} · يستخدمه {used}' if rtl else f'{files} {files_word(files)} · uses {uses} · used by {used}'
@@ -157,7 +157,7 @@ def architecture_map(m):
 
 def _drill(drill, cmap):
     """Inside a part: the picker of parts (the most used first) over its files and functions, and what was left out."""
-    from ...analysis import arch_map
+    from ...analysis.maps import architecture as arch_map
     cap = drill['capped']
     notes = []
     if cap['files']: notes.append(T(f'في الأجزاء الكبيرة عُرض أول {num(arch_map.MAX_FILES, "files shown per part at most")} ملف فقط.', f'In large parts only the first {num(arch_map.MAX_FILES, "files shown per part at most")} files are listed.'))
@@ -174,7 +174,7 @@ def _drill(drill, cmap):
 
 def _flows(flows):
     """Pages and what they call: the picker of pages and entry points over the path drawn for each; "not available" without."""
-    from ...analysis import arch_map
+    from ...analysis.maps import architecture as arch_map
     head = f'<h3 id="flows">{T("الصفحات وما تستدعيه", "Pages and what they call")}</h3>'
     if not flows: return head + unavailable('flows')
     options = ''.join(f'<option value="{i}" data-literal="1">{esc(" ".join(x for x in (f["method"], f["route"] or "?") if x))} — {esc(f["handler"])}</option>'

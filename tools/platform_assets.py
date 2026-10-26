@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from eaos.core.web import opened  # noqa: E402
+from eaos.core.system.web import opened  # noqa: E402
 REGISTRY = ROOT / 'eaos/data/toolchain.json'
 WORDS = {'darwin-arm64': (r'(darwin|macos|mac|apple)', r'(arm64|aarch64|universal|_all)'),
          'darwin-x86_64': (r'(darwin|macos|mac|apple)', r'(x86_64|amd64|x64|64bit|64-bit|universal|_all)(?!.*arm)')}

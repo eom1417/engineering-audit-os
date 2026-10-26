@@ -1,6 +1,6 @@
 """The plan orderer: the order and grouping of the plan's steps, planned by the assistant (docs/STUDIO.md D11).
 
-It reads the rules' plan (eaos/analysis/plan.py: milestones, waves and each card's prerequisites), what the card triage decided
+It reads the rules' plan (eaos/analysis/planning/cards.py: milestones, waves and each card's prerequisites), what the card triage decided
 (a rejected card is set aside, a doubtful one waits for its probe), the planned ideal's own order when there is one,
 and the pipeline-gap planner's steps, then decides "reorder" (with its steps), "keep" or "ask". A planning node: a
 critique pass reviews the draft. The check refuses an order that puts a card before one of its prerequisites, names a
@@ -10,8 +10,8 @@ The proposal is written to nodes/plan_orderer/order.json; the plan itself is nev
 import json
 from pathlib import Path
 
-from . import core, runner
-from .. import ideal
+from . import framework as core, runner
+from ..ideal import planner as ideal
 
 VERSION = '1'
 LIMIT = {'tasks': 300}
@@ -104,7 +104,7 @@ def known(report, data):
 
 
 def rules_steps(data):
-    """The rules' order: by milestone, then wave, as eaos/analysis/plan.py placed the cards."""
+    """The rules' order: by milestone, then wave, as eaos/analysis/planning/cards.py placed the cards."""
     order = {m['id']: i for i, m in enumerate(data['milestones'])}
     steps = {}
     for task in sorted(data['tasks'], key=lambda t: (order.get(t['milestone'], 99), t['wave'] or 99, t['id'])):

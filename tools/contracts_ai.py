@@ -3,7 +3,7 @@ from contract_shapes import B, NN, NS, S, arr, enum, obj
 from contracts_maps import STUDIO_V2
 from contracts_studio import COUNT, OPERATIONS, REF, REFS, section_v2
 
-# The planned ideal (studio/ideal.json, eaos/ai/ideal.py, docs/STUDIO.md D10): every Target/Ideal view from the
+# The planned ideal (studio/ideal.json, eaos/ai/ideal/planner.py, docs/STUDIO.md D10): every Target/Ideal view from the
 # rules, then planned by the person's assistant on top of them, each element citing the evidence it stands on, and each
 # view with its provenance. Every section that draws a target carries the same optional `provenance`.
 IDEAL_VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')

@@ -33,6 +33,15 @@ decision goes under its topic; once its milestone is done, the reasoning behind 
 - **The code laws** (2026-10-13): least code, one source of truth, clear and clean (`docs/STANDARDS.md` §1).
 - **EAOS holds itself to 400 lines / complexity 10** with no exception from M3 on (2026-10-24, `tools/code_limits.py`);
   the laws it holds every project to stay 600 / 15 until the owner says otherwise.
+- **The code layout** (2026-10-26, owner: "any engineer or AI reaches anything by its logic"): inside each layer one
+  folder per job, each with a one-line docstring in its `__init__.py`; a module's name says its job inside its folder
+  (`facts/declared_pipelines/langgraph.py`, not `pipeline_langgraph.py`); the tests mirror the layers
+  (`tests/<layer>/`, the guards of the whole in `tests/guards/`); the map is `docs/ARCHITECTURE.md` §1. A folder is
+  never named after what EAOS skips or calls a build output in the projects it reads (`build`, `target`, `dist` ...):
+  EAOS would not read itself. Every path EAOS names exists (`tests/guards/test_named_paths.py`). An independent review
+  of the layout was taken: what it found and was cheap is done, the rest is M7.7 and M8.4. No behaviour changed: every
+  CLI command, MCP tool with its schema, stage and loop the same before and after (one help line names a moved file),
+  every test passing by name, the code laws at the recorded numbers. M7 waits for the owner's review of it.
 
 ## The product
 - **The North Star** (2026-10-23, `docs/NORTH-STAR.md`): EAOS is a software engineering firm in one command, with three

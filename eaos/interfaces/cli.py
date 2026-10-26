@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 import sys
 from .. import __version__
-from ..core.check_paths import PATHS
-from ..core.workspace import bounded_int, read
+from ..core.contracts.check_paths import PATHS
+from ..core.project.workspace import bounded_int, read
 
 
 def facts_command(args):
@@ -67,14 +67,14 @@ def handover_hook(args):
 
 def guided_command(args):
     from ..journeys import handover  # noqa: F401
-    from . import terminal, terminal_branches  # noqa: F401  (register the work log, the terminal's check, accept and undo)
+    from .terminal import commands as terminal, branches as terminal_branches  # noqa: F401  (register the work log, the terminal's check, accept and undo)
     from ..journeys.guided import main as guided_main
     return guided_main(args)
 
 
 def studio_command(args):
     if args.background: return studio_in_background(args)
-    from .api.server import run_foreground
+    from .studio_server.server import run_foreground
     return run_foreground(args.project, port=args.port, show=not args.no_open, remote_origin=args.remote_origin)
 
 
@@ -94,12 +94,12 @@ def studio_in_background(args):
 
 
 def decided_command(args):
-    from ..core.decided import main
+    from ..core.contracts.decided import main
     return main(args)
 
 
 def recheck_command(args):
-    from ..analysis.recheck import main
+    from ..analysis.claims.recheck import main
     return main(args)
 
 
@@ -109,7 +109,7 @@ def tools_command(args):
 
 
 def policy_command(args):
-    from ..analysis.policy import check as check_policy, init as init_policy
+    from ..analysis.target_state.policy import check as check_policy, init as init_policy
     if args.action=='init':
         print(json.dumps(init_policy(args.target,args.out,args.policy),ensure_ascii=False,indent=2));return 0
     result=check_policy(args.target,args.out,args.policy)
@@ -117,19 +117,19 @@ def policy_command(args):
     return 2 if result['status']=='VIOLATED' else 0
 
 
-BRANCH_COMMANDS = ('accept', 'branch', 'branches', 'undo')    # in terminal_branches.py
+BRANCH_COMMANDS = ('accept', 'branch', 'branches', 'undo')    # in interfaces/terminal/branches.py
 
 
 def terminal(name):
-    """The governance command `name` of eaos/interfaces/terminal.py (or terminal_branches.py), imported when it runs."""
-    module = 'eaos.interfaces.terminal_branches' if name in BRANCH_COMMANDS else 'eaos.interfaces.terminal'
+    """The governance command `name` of eaos/interfaces/terminal/commands.py (or interfaces/terminal/branches.py), imported when it runs."""
+    module = 'eaos.interfaces.terminal.branches' if name in BRANCH_COMMANDS else 'eaos.interfaces.terminal.commands'
     return lambda args: getattr(__import__(module, fromlist=[name]), name)(args)
 
 
 def governance_commands(s):
-    """Full governance from a terminal, without the Studio (eaos/interfaces/terminal.py over eaos/interfaces/govern.py, the Studio's own core)."""
+    """Full governance from a terminal, without the Studio (eaos/interfaces/terminal/commands.py over eaos/interfaces/govern.py, the Studio's own core)."""
     from .govern import CONTROLS
-    from ..core.store import contract
+    from ..core.project.runs import contract
     def command(name, text, func=None):
         q = s.add_parser(name, help=text)
         q.add_argument('--project', default='.')
@@ -156,7 +156,7 @@ def governance_commands(s):
     q.add_argument('id'); q.add_argument('option', nargs='?'); q.add_argument('--text', default=None, help='your own answer instead of an option')
     q.add_argument('--assistant', default=None, help='a report question: who reviews your answer (claude, codex, or handoff)')
     q = command('problems', 'What the check found, most important first')
-    from ..analysis.model import AREAS, SEVERITIES
+    from ..analysis.presentation.model import AREAS, SEVERITIES
     q.add_argument('--area', choices=AREAS, help="only this area, as the Studio's filter")
     q.add_argument('--severity', choices=SEVERITIES, help="only this severity, as the Studio's filter")
     q.add_argument('--kind', help='only this kind of problem (its pattern: dead_code, security_weakness, …)')
@@ -209,7 +209,7 @@ def _guided_commands(s):
             q.add_argument('--assistant',choices=['claude','codex','none'],default=None,
                            help='the AI assistant the check uses on this project (kept), or none for a check without AI')
             q.add_argument('--path',nargs='+',choices=sorted(PATHS),default=None,
-                           help='check only these paths (eaos/pipeline/paths.py); the complete check by default')
+                           help='check only these paths (eaos/pipeline/path_choice.py); the complete check by default')
             q.add_argument('--mode',choices=['normal','speed'],default=None,help='speed: several assistants at once, faster but '
                            'more tokens (kept for this project)')
         q.set_defaults(func=guided_command)
@@ -236,7 +236,7 @@ def main(argv=None):
     q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
-    q.set_defaults(func=lambda args: __import__('eaos.interfaces.mcp_govern', fromlist=['main']).main())
+    q.set_defaults(func=lambda args: __import__('eaos.interfaces.mcp_server.govern', fromlist=['main']).main())
     q=s.add_parser('facts',help='Deterministic facts about a target; no model is used')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
     q.add_argument('--max-commits',type=bounded_int,default=2000)

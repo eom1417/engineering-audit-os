@@ -1,9 +1,9 @@
 """The person's decision on the branch a batch handed over: accept (merged where they chose) or undo."""
 from .. import guided
-from ...core import branches
-from ..batch_branch import commit_of
-from ...core.project_state import waiting_batch
-from ...core import project_state
+from ...core.project import branches
+from ..fix.branch import commit_of
+from ...core.project.state import waiting_batch
+from ...core.project import state as project_state
 from .project import state_of
 
 
@@ -21,7 +21,7 @@ def accept(project=None, person_agreed=False, merge_into=None, delete_after=True
     """The waiting branch into the branch the person chose (`merge_into`; by default the one the fix preview named, else
     the person's current branch); then its branch is deleted (unless `delete_after` is false: it stays, merged) and the
     report brought up to date, in the same call (eaos/journeys/guided.merge)."""
-    from ...core.ledger import load
+    from ...core.project.ledger import load
     state = state_of(project)
     guided.reconcile(state)
     wave = waiting_batch(state)
@@ -47,7 +47,7 @@ def _not_merged(outcome, wave):
 
 def _accepted(project, wave, into):
     """accept's answer once the batch is merged: where it went, whether its branch is gone, the progress now."""
-    from ...core.ledger import load
+    from ...core.project.ledger import load
     state = project_state.load(project)
     page = branches.home(state) / 'REPORT.html'
     deleted = not guided._branch_exists(state, wave['branch'])
@@ -59,7 +59,7 @@ def _accepted(project, wave, into):
 
 
 def undo(project=None, person_agreed=False):
-    from ..waves import undo as drop
+    from ..fix.waves import undo as drop
     state = state_of(project)
     guided.reconcile(state)
     wave = waiting_batch(state)

@@ -5,8 +5,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...core import branches, jobs
-from ...core.project_state import runtime_of, waiting_batch
+from ...core.project import branches, jobs
+from ...core.project.state import runtime_of, waiting_batch
 from .project import PUBLISHERS, _branch_exists, _git, publish, report_of, same_code, save, tip
 
 
@@ -46,7 +46,7 @@ def retire_stale_batch(state):
 def _renumbered(state, wave):
     """Why the open batch no longer fits when the check on record numbered its cards again; else None."""
     if not (wave.get('keys') and (report_of(state) / 'plan.json').is_file()): return None
-    from ..waves import plan as read_plan
+    from ..fix.waves import plan as read_plan
     try: keys = {t['id']: t['key'] for t in read_plan(report_of(state))['tasks']}
     except (OSError, ValueError, KeyError): return None
     if any(keys.get(card) != key for card, key in wave['keys'].items()):

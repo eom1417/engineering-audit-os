@@ -1,7 +1,7 @@
 """The layers section of REPORT.html (M6.11): the broken critical boundaries in red first, then each boundary of the
 system with its state and its findings, each naming the reference's fix; read from layers.json, computed nowhere here."""
 from ...analysis.layers.catalog import BOUNDARIES
-from ...core.markup import both as T, esc
+from ...core.language.markup import both as T, esc
 from .html import num, sev_chip
 
 

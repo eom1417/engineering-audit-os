@@ -53,7 +53,7 @@ is kept in an account's or assistant's folders: a plan made in a provider's plan
 - Least code, best result; one source of truth; clear and clean; nothing replaced is left behind.
 - EAOS itself: module ≤ 400 lines and function complexity ≤ 10 with no exception (M3) in Python; the Studio's
   JavaScript under the same laws, no exception (M4.6; `console/tools/same.cjs` proves a split left every screen as it was); functions ≤ 50 lines and ≤ 5
-  parameters (today's exceptions listed). The laws EAOS holds every project to stay 600 / 15 (`eaos/core/code_laws.py`,
+  parameters (today's exceptions listed). The laws EAOS holds every project to stay 600 / 15 (`eaos/core/contracts/code_laws.py`,
   the owner's to change). No dead code, no duplication, no medium or high security finding; layers per
   `docs/ARCHITECTURE.md`.
 - **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded
@@ -93,7 +93,7 @@ why, from the real incident, then what changed). `1.0.0` only when the owner dec
 stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`, `test_artifact_contract`,
 the golden trial (`tools/golden_trial.sh`, with the detection baseline of `tests/fixtures/baseline-app` and no layer
 finding on its clean twin `tests/fixtures/baseline-clean`), `test_layers` (every planted boundary defect found).
-`tests/test_journey.py` is the fast end-to-end proof. A change to running apps or finding screens also runs the
+`tests/guards/test_journey.py` is the fast end-to-end proof. A change to running apps or finding screens also runs the
 compatibility corpus (`tools/corpus.py`, a background job of about an hour: `/workspace/RUNBOOK.md`); a milestone end
 measures `docs/METRICS.md` with `tools/metrics.py`.
 
@@ -101,7 +101,7 @@ measures `docs/METRICS.md` with `tools/metrics.py`.
 
 `bash tools/dev_setup.sh` builds `.venv`, installs every external tool at its pinned version in `~/.eaos/tools`
 (`$EAOS_ENGINE_TOOLS`) and the development material in `~/.eaos/dev`; `python tools/dev_paths.py` shows where each
-part is. Never write one machine's path in code (`tests/test_platforms.py`).
+part is. Never write one machine's path in code (`tests/guards/test_platforms.py`).
 
 ## The disk: a helping tool never weighs on the machine (owner, 2026-10-17)
 

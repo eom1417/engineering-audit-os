@@ -1,14 +1,14 @@
-"""What an AI assistant does EAOS with (docs/MCP.md): the tools behind eaos/interfaces/mcp_server.py.
+"""What an AI assistant does EAOS with (docs/MCP.md): the tools behind eaos/interfaces/mcp_server/server.py.
 
 The assistant is the one who thinks: it reads the evidence, reads the code, proposes how the app runs, writes
 the fixes. EAOS gives it the evidence, the isolated copy and the gates, and never calls a model itself here.
-Every tool returns a plain dict; one that takes longer than a tool call waits returns a job (eaos/core/jobs.py) that
+Every tool returns a plain dict; one that takes longer than a tool call waits returns a job (eaos/core/project/jobs.py) that
 `wait` follows. The person's project is only ever written through git: a branch `eaos/<branch>/wave-N`, fetched in.
 
 State is the guided commands' own (~/.eaos/projects/<name>-<hash>/state.json), so the two ways meet: a check
 started with `eaos start` is the one `overview` reads, and the other way round.
 """
-from .. import batch_finish
+from ..fix import finish as batch_finish
 from .checking import _audit_job
 from .fixing import _fix_edit_job, _fix_start_job
 from .running import _run_job, _safety_job

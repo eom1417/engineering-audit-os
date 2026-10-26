@@ -11,7 +11,7 @@ TRIVY_CACHE = 'cache/trivy'
 
 
 def registry():
-    """The pinned tools, and those the person added (eaos/core/tools_catalog.py: <home>/toolchain-added.json)."""
+    """The pinned tools, and those the person added (eaos/core/toolchain/catalog.py: <home>/toolchain-added.json)."""
     base = json.loads(REGISTRY.read_text(encoding='utf-8'))
     added = Path(os.environ.get(base['home']['env']) or base['home']['default']).expanduser() / 'toolchain-added.json'
     return {**base, 'tools': base['tools'] + json.loads(added.read_text(encoding='utf-8'))['tools']} if added.is_file() else base

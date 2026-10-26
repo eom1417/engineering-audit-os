@@ -1,25 +1,25 @@
 """Extend a checked project with a feature, a page or a part, planned against what the project already is
 (docs/BUILD-FROM-PLAN.md, "Extend a project"). No new machine builds it: the plan is read as a build's is
-(eaos/analysis/plan_source.py), the spec is the build's (eaos/report/blueprint.py SPEC) with what ties it to the project, and its cards
+(eaos/analysis/planning/plan_input.py), the spec is the build's (eaos/report/blueprint/design.py SPEC) with what ties it to the project, and its cards
 join the project's plan as one milestone that the usual batches build, through every gate of a fix (fix_start, fix_edit,
-fix_finish in eaos/journeys/agent_tools.py: the tests, the app's own checks, the layers, copies, dead code and security).
+fix_finish in eaos/journeys/agent_tools/: the tests, the app's own checks, the layers, copies, dead code and security).
 
   extend_start  the feature's plan, saved beside the report (extend/SOURCE.md), with the project as its check read it:
                 its parts, its layers and their rules, the functions to reuse, and its look (DESIGN.md)
   extend_plan   the spec checked, then every file it names held to the project: in a layer of its policy (else in a
                 folder the project has), reusing only functions it has and its rules let that layer use, and writing
                 no function the project already has; then its cards in the plan, ready for a batch
-  (a later check keeps the cards not built yet: eaos/analysis/extension.py, in the pipeline's cards stage)
+  (a later check keeps the cards not built yet: eaos/analysis/planning/extension.py, in the pipeline's cards stage)
 """
 import json
 from pathlib import Path
 
-from ..report import blueprint
-from ..analysis import design
-from ..core.ledger import key
-from ..analysis.plan_source import read_plan
-from ..analysis.policy import allowed, layer_of, load_policy
-from ..core.workspace import read, write
+from ..report.blueprint import design as blueprint
+from ..analysis.target_state import look as design
+from ..core.project.ledger import key
+from ..analysis.planning.plan_input import read_plan
+from ..analysis.target_state.policy import allowed, layer_of, load_policy
+from ..core.project.workspace import read, write
 
 FOLDER = 'extend'
 SPEC = {**{k: v for k, v in blueprint.SPEC.items() if k not in ('look', 'stack_preferences')},

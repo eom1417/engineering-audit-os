@@ -90,7 +90,7 @@ CONTRACTS = {
                                       'target_component': NS}, ['relation', 'reason']))}, [])),
 }
 CONTRACTS['ai-node'] = AI_NODE
-# The sections that draw a target, and the ideal view whose provenance they carry (eaos/ai/ideal.py SECTION_VIEWS).
+# The sections that draw a target, and the ideal view whose provenance they carry (eaos/ai/ideal/planner.py SECTION_VIEWS).
 TARGET_SECTIONS = ('system', 'story', 'plans', 'gaps', 'operations', 'paths', 'journeys', 'data_paths', 'infra', 'pipeline')
 for _sections in (STUDIO, STUDIO_V2):
     for _name in TARGET_SECTIONS:

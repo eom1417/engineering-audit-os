@@ -1,9 +1,9 @@
 """REPORT.html's target: its layers, the way from today's parts, and the gap each part has closed."""
 import math
 
-from ...analysis import model as M
-from ...core.markup import both as T, esc, fit, svg_text
-from ...analysis.model import CLOSED
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc, fit, svg_text
+from ...analysis.presentation.model import CLOSED
 from .arch import arrow_defs, files_word
 from .cards import bar, gap_block, pct
 from .charts import LAYER_ORDER
@@ -162,7 +162,7 @@ def section_target(m):
     out = [gap_block(m, cards, chart=False)]
     if not tcomps:
         return ''.join(out) + f'<h3>{T("البنية المستهدفة", "The target structure")}</h3>{unavailable("target")}'
-    from ...analysis.arch_map import target_progress
+    from ...analysis.maps.architecture import target_progress
     progress = target_progress(target, cards, CLOSED)
     edges, rows = _objects(target.get('target_edges')), target_rows(tcomps)
     current = _objects(target.get('current_components'))

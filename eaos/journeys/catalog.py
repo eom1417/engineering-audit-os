@@ -10,7 +10,7 @@ from pathlib import Path
 
 from ..core import progress
 from ..core.progress.flow import Stage
-from ..core import project_state
+from ..core.project import state as project_state
 
 DATA = Path(__file__).resolve().parents[1] / 'data' / 'journeys.json'
 BUILD = 'build'                 # the flow a build draws (draw_build)
@@ -85,8 +85,8 @@ def _built(state):
 
 def _extension(state):
     """{card key: the commit that holds it in the branch EAOS works on, or None} of the extension's cards."""
-    from ..core import branches
-    from ..core.ledger import walk
+    from ..core.project import branches
+    from ..core.project.ledger import walk
     held = walk(state['project'], branches.ref(state))[0]
     return {k: held.get(k) for k in state['extend'].get('keys') or []}
 

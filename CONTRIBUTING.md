@@ -28,16 +28,16 @@ bash tools/dev_setup.sh          # .venv, every external tool at its pinned vers
 2. **One source of truth.** Anything needed in more than one place is written once and called from everywhere else.
 3. **Clear and clean.** No dead code, no unused import, small functions with one job, modules with one responsibility.
 
-`tests/test_code_limits.py` enforces what can be measured: no function over cyclomatic complexity 15, no module over
+`tests/guards/test_code_limits.py` enforces what can be measured: no function over cyclomatic complexity 15, no module over
 600 lines (today's exceptions may only shrink), no function written twice, no pyflakes finding.
 
 ## The rules of the codebase
 
 - **A new Python module is declared in `eaos.policy.json`**, in its layer, or the policy gate fails.
 - **Every text a person reads exists in English and in Arabic**, added to both at once.
-- **A new report document is declared in `eaos/core/artifacts.py`**, with its owner, purpose and line budget.
+- **A new report document is declared in `eaos/core/contracts/artifacts.py`**, with its owner, purpose and line budget.
 - **A test is added only when it reproduces a real failure**, one test per real behaviour.
-- **Never write a path of one machine in code**: `tests/test_platforms.py` fails if you do.
+- **Never write a path of one machine in code**: `tests/guards/test_platforms.py` fails if you do.
 
 ## Commits
 

@@ -118,7 +118,7 @@ def _try(remedy, manifest, assistant):
         from ..core.toolchain import install
         return 'failed' if install(names=remedy.get('only'), echo=lambda *_: None) else 'fixed'
     if tool == 'assistant_check':
-        from ..ai.readiness import probe
+        from ..ai.assistant.readiness import probe
         return 'fixed' if assistant and probe(assistant, fresh=True).get('ready') else 'failed'
     return 'fixed'                       # the stage alone runs again (tools_failed: the engines stage, its tools again)
 

@@ -52,7 +52,7 @@
     try { sessionStorage.setItem('eaos.token', key); } catch (e) { /* storage refused: this visit only */ }
   }
 
-  // The live server's launch token (#token=…, or #/<route>?…&token=…, eaos/core/launch.py): kept for this tab only,
+  // The live server's launch token (#token=…, or #/<route>?…&token=…, eaos/core/system/launch.py): kept for this tab only,
   // then removed from the address so it is never bookmarked, shared or shown; the route, if any, stays.
   function liveToken() {
     var live = /^#token=([A-Za-z0-9_-]{16,128})$/.exec(location.hash) || /^(#\/[^?]*\?(?:.*&)?)token=([A-Za-z0-9_-]{16,128})$/.exec(location.hash);

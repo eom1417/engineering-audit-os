@@ -6,14 +6,14 @@ from pathlib import Path
 
 from .. import guided
 from ...core import toolchain
-from ...analysis.finish_line import proof
-from ...analysis.plan import title_of
-from ...core import project_state
+from ...analysis.repair.finish_line import proof
+from ...analysis.planning.cards import title_of
+from ...core.project import state as project_state
 from .project import EVIDENCE, PAGE, _head, _read, _report, state_of
 
 
 def _ready(task):
-    from ...core.decisions import ready
+    from ...core.contracts.decisions import ready
     return ready(task)
 
 
@@ -26,7 +26,7 @@ def findings(project=None, kind=None, path=None, text=None, fixable_only=False, 
     state = state_of(project)
     report, lang = _report(state), state.get('lang') or 'en'
     claims, rows = _claims(report), []
-    from ..selection import cards_in      # area and severity as the Studio's filter reads them
+    from ..fix.selection import cards_in      # area and severity as the Studio's filter reads them
     only = [cards_in(report / 'studio', by, value) for by, value in (('area', area), ('severity', severity)) if value]
     for task in _read(report / 'plan.json').get('tasks') or []:
         if not _wanted(task, kind, path, text, fixable_only) or any(task['id'] not in ids for ids in only): continue
@@ -147,7 +147,7 @@ def _milestone_row(m, tasks, whole, tried_card, where):
 
 
 def plan(project=None, milestone=None):
-    from ...core.ledger import keys, sync
+    from ...core.project.ledger import keys, sync
     state = state_of(project)
     guided.reconcile(state)
     report = _report(state)
@@ -172,7 +172,7 @@ def _card_states(record):
 def impact(target, project=None, depth=3):
     """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points through
     it, the tests that cover it, and the files that change with it in the history."""
-    from ...analysis.impact import LIMITS, assess
+    from ...analysis.maps.impact import LIMITS, assess
     result = assess(_report(state_of(project)), target, depth)
     return {**result, 'limits': LIMITS}
 
@@ -188,7 +188,7 @@ def tools_check(project=None, retry=False):
     project needs it (its files decide: a JavaScript linter is not needed by a Go project); what the check waits for
     here (`for_the_check`: ready, still coming, failed with why). `retry`: start the install again (the tools that
     failed are tried again; an install already running goes on)."""
-    from ...core import build_info
+    from ...core.system import version_info as build_info
     folder = Path(project or os.getcwd()).expanduser().resolve()
     files = toolchain.project_files(folder) if project_state.looks_like_project(folder) else None
     if retry: toolchain.prepare(folder if files is not None else None)
