@@ -71,7 +71,15 @@
     "samples",
     "assets",
     "public",
-    "static"
+    "static",
+    "test",
+    "tests",
+    "__tests__",
+    "__testfixtures__",
+    "testfixtures",
+    "e2e",
+    "spec",
+    "testdata"
   ],
   "history_docs": [
     "CHANGELOG",
@@ -85,7 +93,7 @@
   ],
   "dev_details": [
     [
-      "/home/[a-z][a-z0-9_-]+/",
+      "/home/(?!(?:user|username|you|me|ubuntu|ec2-user|app|deploy|www|www-data|project|name|pi|admin|vagrant|runner|node)/)[a-z][a-z0-9_-]+/",
       "a home folder's absolute path"
     ],
     [
@@ -150,5 +158,6 @@
     "make",
     "to",
     "from"
-  ]
+  ],
+  "per_rule": 5
 }

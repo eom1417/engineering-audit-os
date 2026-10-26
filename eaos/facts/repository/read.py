@@ -27,10 +27,20 @@ def findings(source, resolved, target=None):
     paths = [item['path'] for item in source.readable()]
     everything = {item['path'] for item in source.inventory['files']}
     read = context.texts(source, everything, rules)
-    return (craft.crowded(paths, rules) + craft.families(paths, rules) + craft.vague(source, paths, rules)
+    return _strongest(craft.crowded(paths, rules) + craft.families(paths, rules) + craft.vague(source, paths, rules)
             + craft.versions(paths, rules) + craft.traps(paths, _imported_modules(resolved or []), rules)
             + craft.stale_docs(source, everything, rules) + craft.tests_flat(paths, rules) + craft.dev_details(source, published(target or source.inventory['root'], paths), rules)
-            + context.heavy(read, rules) + context.repeats(read, rules) + context.done(read, rules))
+            + context.heavy(read, rules) + context.repeats(read, rules) + context.done(read, rules), rules['per_rule'])
+
+
+def _strongest(found, most):
+    """At most `most` findings of each rule, the largest first (by its count or lines): a monorepo is read for what
+    matters most, not drowned in cards."""
+    kept, by_rule = [], {}
+    for f in sorted(found, key=lambda f: -(f['params'].get('count') or f['params'].get('lines') or 0)):
+        by_rule[f['rule']] = by_rule.get(f['rule'], 0) + 1
+        if by_rule[f['rule']] <= most: kept.append(f)
+    return kept
 
 
 def run(target, source, resolved=None, **options):
