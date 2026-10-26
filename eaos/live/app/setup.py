@@ -94,6 +94,7 @@ def empty_state(page, unset):
     has no value for a name the app reads, so every screen would be pictured empty. '' otherwise: a page of more than
     SHORT words is the app, whatever "no ... yet" it shows (the full-stack app's command center, "No new cases", was refused)."""
     text = ' '.join((page.get('text') or '').split())
+    if text.startswith(('{', '[')): return ''          # an API's answer (the corpus's task-api), not an empty screen
     if not unset or len(text.split()) > SHORT or not (EMPTY.search(text) or len(text.split()) < 3): return ''
     return ('the first page shows an empty, no-data state while the app runs without a value for: ' + ', '.join(unset[:12])
             + '. Give it one (often a folder or address the app reads its data from); the page says: ' + (text[:400] or '(nothing)'))
@@ -110,15 +111,34 @@ def probe(live, base, state, report, paths=None):
     return json.loads(out.strip().splitlines()[-1]) if code == 0 and out.strip() else {'status': 0, 'errors': [(out + err)[-800:]]}
 
 
-def _failure(page, empty):
+def _probed(live, base, state, report, unreached):
+    """probe()'s page; when it failed with its own error, no other screen was opened and the app's database is out of the
+    run's reach (`unreached`: the project, else None), the pages its files make are opened too (the sign-in page among
+    them), to see whether the app answers."""
+    page = probe(live, base, state, report)
+    if unreached and page.get('status', 0) >= 500 and not page.get('others'):
+        from ..screens.file_routes import file_routes
+        page['others'] = probe(live, base, state, None, [path for path in file_routes(unreached) if path != '/'][:4]).get('others') or []
+    return page
+
+
+def _failure(page, empty, out_of_reach=False):
     """Why the page is no working app, '' when it is one. A page asking for a sign-in is the app working: the stage
-    `session` signs in to it (eaos/live/access/test_users.py)."""
-    bad = _bad_answers(page)
+    `session` signs in to it (eaos/live/access/test_users.py). When the app's database is one the run cannot give
+    (`out_of_reach`: a cloud one, MySQL, MongoDB), pages failing with their own error (5xx) while another page answers
+    are that database's absence, said in the run's limitations, and the app is working (the corpus's next-dashboard)."""
+    bad = [] if out_of_reach and _out_of_reach(page) else _bad_answers(page)
     if stuck(page) and not signed_out(page):         # every screen sent to the sign-in is the app, signed out
         return ('every screen shows the same page, so something (a chooser, a gate) stands in front of the app: the seed '
                 'picks one and saves the browser state to EAOS_STORAGE_STATE. The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600])
     if bad: return f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}"
     return empty
+
+
+def _out_of_reach(page):
+    """Whether every page that did not answer failed with its own error (5xx) while another page answered."""
+    bad = _bad_answers(page)
+    return len(bad) <= len(page.get('others') or []) and all(o.get('status', 0) >= 500 for o in bad)
 
 
 def _bad_answers(page):
@@ -144,9 +164,11 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         if state.exists(): state.unlink()
         record['fixtures'] = dict(live.seed(base, state))
         record['seed_output'] = getattr(live, 'seed_output', '')
-        page = record['page'] = probe(live, base, state, report)
+        detected = read_json(runtime / 'setup' / 'detected.json')
+        out_of_reach = (detected.get('facts') or {}).get('database_out_of_reach')
+        page = record['page'] = _probed(live, base, state, report, project if out_of_reach else None)
         empty = '' if mode == 'baseline' else empty_state(page, _unset(runtime, live))
-        failure = _failure(page, empty)
+        failure = _failure(page, empty, out_of_reach)
         record['ok'] = not failure
         if failure: record['failure'] = failure
     except Exception as problem:            # a failed start is the evidence the assistant needs, not a crash

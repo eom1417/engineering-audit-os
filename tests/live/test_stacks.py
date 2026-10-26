@@ -90,6 +90,16 @@ class OtherStackTests(unittest.TestCase):
                                             'public/index.html': ''}))['profile']
         self.assertEqual(server['start'], ['npm', 'run', 'start'])
 
+    def test_a_node_server_with_no_script_starts_from_its_main_file_on_the_port_its_code_writes(self):
+        # The corpus's task-api (Express, no dev or start script, `const port = 3000`): the run started `true`
+        written = live_setup.detect(project({'package.json': {'main': 'index.js', 'dependencies': {'express': '5'}},
+                                             'package-lock.json': '{}', 'index.js': 'const port = 3000;\napp.listen(port);'}))['profile']
+        self.assertEqual((written['start'], written['port'], written['env']['PORT']), (['node', 'index.js'], 3000, '3000'))
+        chosen = live_setup.detect(project({'package.json': {'dependencies': {'express': '5'}}, 'package-lock.json': '{}',
+                                            'index.js': 'app.listen(process.env.PORT || 3000);'}))['profile']
+        self.assertEqual(chosen['start'], ['node', 'index.js'])
+        self.assertNotEqual(chosen['port'], 3000, "the run's own port, read from PORT")
+
 
 class PagesAloneTests(unittest.TestCase):
     def test_a_site_of_pages_alone_is_a_project_to_check(self):

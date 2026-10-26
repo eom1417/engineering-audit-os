@@ -147,10 +147,11 @@ def _listens(port, group):
 
 
 def _answers(health, group):
-    """Whether `health` answers 200, or refuses (4xx), from a process of process group `group` (_listens)."""
+    """Whether `health` answers 200, refuses (4xx) or fails with its own error (500), from a process of process group
+    `group` (_listens). A gateway's 502-504 is a server still starting behind it."""
     try:
         with opened(health, timeout=2) as response: up = response.status == 200
-    except urllib.error.HTTPError as answer: up = answer.code < 500
+    except urllib.error.HTTPError as answer: up = answer.code <= 500
     except (urllib.error.URLError, OSError): return False
     return up and _listens(urlsplit(health).port, group) is not False
 
@@ -260,9 +261,10 @@ class Sandbox:
         return process.returncode, out, err
 
     def start(self, argv, health, timeout=30, cwd=None, env=None):
-        """Start a service in the copy and return once `health` (http://127.0.0.1:<port><path>) answers 200, or refuses (4xx:
-        it is up and decided; what it refuses is the next step's evidence, not minutes of waiting), from the service
-        itself (_listens): another program answering on that port does not count."""
+        """Start a service in the copy and return once `health` (http://127.0.0.1:<port><path>) answers 200, refuses (4xx)
+        or fails with its own error (500: a first page that needs a database the run cannot give): it is up and decided,
+        and what it refuses or fails is the next step's evidence, not minutes of waiting; from the service itself
+        (_listens): another program answering on that port does not count."""
         argv = [str(part) for part in argv]
         self.limitations.append(f"network not isolated for the started service: {' '.join(argv)[:120]}")
         log = open(self.workdir / f'service-{len(self.started)}.log', 'w', encoding='utf-8')

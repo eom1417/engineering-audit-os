@@ -1323,13 +1323,14 @@
    "layers": true,
    "screens": [],
    "result": {
-    "date": "2026-10-25",
-    "ran": false,
-    "pictured": [],
+    "date": "2026-10-26",
+    "ran": true,
+    "pictured": [
+     "/"
+    ],
     "missing": [],
-    "passed": false,
-    "seconds": 11,
-    "why": "no AI assistant was available to work out: RuntimeError: true exited with 0 before answering; see task-api-sz4c8ep_/home/projects/app-97bd0993/runtime/sandbox/service-0.log; it said: ",
+    "passed": true,
+    "seconds": 37,
     "layers": {
      "files": 9,
      "placed": 4,
@@ -1470,15 +1471,18 @@
     "/login"
    ],
    "result": {
-    "date": "2026-10-25",
-    "ran": false,
-    "pictured": [],
-    "missing": [
+    "date": "2026-10-26",
+    "ran": true,
+    "pictured": [
+     "/",
+     "/(dashboard)",
+     "/(dashboard)/customers",
+     "/customers",
      "/login"
     ],
-    "passed": false,
-    "seconds": 416,
-    "why": "no AI assistant was available to work out: RuntimeError: no 200 from http://127.0.0.1:54965/ within 180s; see next-dashboard-9rnxxtf8/home/projects/app-41aed01e/runtime/sandbox/service-0.log; it said: /page.tsx:17:50)\n  57 |   }\n  58 |\n> 59 |   let totalProducts = await db.select({ count: count() }).from(products);\n     |                       ^\n  60 |   let moreProduct",
+    "missing": [],
+    "passed": true,
+    "seconds": 1162,
     "layers": {
      "files": 23,
      "placed": 19,

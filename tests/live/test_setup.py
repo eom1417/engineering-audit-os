@@ -207,6 +207,8 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(live_setup.empty_state({'text': 'Problems: 12 open, 3 waiting for you'}, ['STUDIO_DATA']), '')
         rich = {'text': 'Command center ' + 'What needs a decision now. ' * 10 + 'No new cases or requests. No customer activity yet.'}
         self.assertEqual(live_setup.empty_state(rich, ['CLIENT_DIR']), '', "the full-stack app's command center: a full page is the app")
+        # The corpus's task-api: an API answers JSON on its first page, which is no empty screen
+        self.assertEqual(live_setup.empty_state({'text': '{"ok":true}'}, ['LLM_MODEL']), '')
         report = Path(scratch())
         (report / 'studio').mkdir()
         profile = live_setup.detect(project(studio), report)['profile']
@@ -239,6 +241,28 @@ class VerifyTests(unittest.TestCase):
         self.assertNotIn('dist-server', found)
         self.assertEqual(live_assist.relevant_source(root, 'app', 'short'), '')
 
+
+    def test_pages_failing_for_a_database_the_run_cannot_give_are_evidence_while_another_page_answers(self):
+        # The corpus's next-dashboard (Neon's driver): its first page answered 500, its sign-in page 200
+        page = {'path': '/', 'status': 500, 'others': [{'path': '/login', 'status': 200}], 'errors': ['db']}
+        self.assertEqual(live_setup._failure(page, '', out_of_reach=True), '')
+        self.assertIn('/ answered 500', live_setup._failure(page, ''), 'a local database the run gives: a 500 is to fix')
+        alone = {'path': '/', 'status': 500, 'others': [{'path': '/login', 'status': 502}]}
+        self.assertIn('answered 500', live_setup._failure(alone, '', out_of_reach=True), 'no page answered')
+        missing = {'path': '/', 'status': 500, 'text': 'a', 'others': [{'path': '/login', 'status': 200, 'text': 'b'},
+                                                                        {'path': '/x', 'status': 404, 'text': 'c'}]}
+        self.assertIn('answered', live_setup._failure(missing, '', out_of_reach=True), 'a page not found is no database error')
+
+    def test_with_its_database_out_of_reach_and_no_other_screen_known_the_pages_its_files_make_are_opened(self):
+        app = project({'package.json': {'scripts': {'dev': 'next dev'}, 'dependencies': {'next': '15'}}, 'app/page.tsx': '', 'app/login/page.tsx': ''})
+        first, visits = {'path': '/', 'status': 500, 'others': []}, {'others': [{'path': '/login', 'status': 200}]}
+        with mock.patch.object(live_setup, 'probe', side_effect=[dict(first), visits]) as probe:
+            page = live_setup._probed(None, 'http://x', Path('none'), None, app)
+        self.assertEqual(probe.call_args_list[1].args[4], ['/login'])
+        self.assertEqual(live_setup._failure(page, '', out_of_reach=True), '')
+        with mock.patch.object(live_setup, 'probe', return_value=dict(first)) as probe:
+            live_setup._probed(None, 'http://x', Path('none'), None, None)
+        self.assertEqual(probe.call_count, 1, 'a database the run gives: nothing more is opened')
 
 class RunEnvironmentTests(unittest.TestCase):
     def test_the_run_has_its_own_database_secrets_and_seed_values_and_never_the_owners(self):

@@ -82,7 +82,7 @@ the Studio's entries from `console/knip.json`.
   judged by hand). `tools/corpus.py` checks each as a person would (`--path look --run-app`, no assistant; about
   50 minutes, a background job), records whether it ran and which expected screens were pictured, and refuses when an
   app that passed now fails; `--record` writes the results. A change to running apps or finding screens never lowers
-  its pass rate. Today 13 of 15 (the 12 of M5 all pass; M5.5 holds the two that need an assistant; `docs/METRICS.md`).
+  its pass rate. Today 15 of 15 (2026-10-26; `docs/METRICS.md` measures it at each milestone end).
 
 ## 6. Language
 
