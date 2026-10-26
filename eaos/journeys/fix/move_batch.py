@@ -191,7 +191,8 @@ def make(batch):
 
 def _gate(batch, root, before):
     """Every difference the moves made: the surface, the tests and checks, what is newly broken, the screens."""
-    after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
+    try: after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
+    except RuntimeError as problem: return [f'the app no longer starts after the moves: {str(problem)[-500:]}']
     out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)), before['mapping'])
     out += move_gate.test_differences(before['checks'], after, before['mapping'])
     return out + new_breakage(batch['report'], root) + _lock(batch, root)

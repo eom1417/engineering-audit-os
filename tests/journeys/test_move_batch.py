@@ -56,6 +56,8 @@ class MoveBatchTests(Workspace):
         summary = self.make(root, FAMILY)
         self.assertEqual((summary['kept'], summary['refused'], summary['branch']), (['shop/pipeline_run.py', 'shop/pipeline_load.py'], [], 'eaos/moves-1'))
         self.assertTrue((Path(summary['root']) / 'shop/pipeline/run.py').is_file())
+        self.assertEqual(git(Path(summary['root']), 'status', '--porcelain', '--untracked-files=no'), '',
+                         'the rewritten imports are in the commit, not only on disk (M9.5: a gate ran the moves without them)')
         self.assertEqual(git(root, 'status', '--porcelain'), '', "the person's project is never written")
         self.assertNotIn('coverage.out', git(Path(summary['root']), 'show', '--name-only', '--format=', 'HEAD').split(),
                          'what a run left in the copy never lands on the branch')

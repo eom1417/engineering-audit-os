@@ -41,8 +41,12 @@ def own_batch(target, runtime, name):
 
 
 def commit_all(root, message, paths=None):
-    """Everything the batch changed in the copy (only `paths` when given: never what a run left there), as EAOS."""
-    git(root, 'add', '-A', *(['--', *paths] if paths else []))
+    """Everything the batch changed in the copy (only `paths` when given: never what a run left there), as EAOS. A
+    path a move took away is in neither the tree nor the index: named, git refused the whole add, and a move batch was
+    committed without its rewritten imports (M9.5: the app no longer started after the moves)."""
+    if paths: paths = [p for p in paths if (Path(root) / p).exists() or git(root, 'ls-files', '--', p).stdout.strip()]
+    added = git(root, 'add', '-A', *(['--', *paths] if paths else []))
+    if added.returncode: raise RuntimeError(f'git add failed: {added.stderr.strip()[-300:]}')
     if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m', message).returncode:
         raise RuntimeError('the batch left nothing to commit')
 
