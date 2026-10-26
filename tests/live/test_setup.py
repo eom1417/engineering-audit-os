@@ -177,7 +177,7 @@ class VerifyTests(unittest.TestCase):
         assistant = mock.Mock()
         assistant.complete.return_value = ({'result': {'env': {'APP_URL': 'https://127.0.0.1:5'}}}, {})
         with mock.patch.object(live_setup, 'verify', side_effect=lambda *a, **k: next(outcomes)) as runs:
-            record = live_setup.setup_baseline(project(VITE_APP), runtime, detected, assistant, say=lambda n: None)
+            record = live_setup.setup_baseline(live_setup.SetupRun(project(VITE_APP), runtime, None, assistant, lambda n: None, detected))
         self.assertTrue(record['ok'])
         self.assertTrue(all(call.kwargs.get('mode') == 'baseline' for call in runs.call_args_list))
         profile = json.loads((runtime / 'run.json').read_text())

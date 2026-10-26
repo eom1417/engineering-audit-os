@@ -24,6 +24,7 @@ Decisions inbox.
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import NamedTuple
 
 from ...analysis.understanding.aspects import ASPECTS, VERDICTS
 from ...live.access.roles import unseen
@@ -196,7 +197,8 @@ def check(ideal, known, context=()):
     known, context = set(known), set(context)
     ideal = ideal or {}
     dropped, alive = [], set()
-    views = {name: _check_view(name, (ideal.get('views') or {}).get(name) or {}, known, context, dropped, alive) for name in VIEWS}
+    refs = _Refs(known, context)
+    views = {name: _check_view(name, (ideal.get('views') or {}).get(name) or {}, refs, dropped, alive) for name in VIEWS}
     kept = {'views': views, 'aspects': _check_aspects(ideal, known, context)}
     kept['departures'] = _departures(ideal, known, context, alive)
     kept['open_questions'] = [_question(i, q) for i, q in enumerate(ideal.get('open_questions') or [])
@@ -219,20 +221,27 @@ def _confidence(value):
     return min(1.0, max(0.0, float(value))) if isinstance(value, (int, float)) else None
 
 
-def _check_view(name, view, known, context, dropped, alive):
+class _Refs(NamedTuple):
+    """What a citation may name: `known` ids are evidence, `context` ids (such as the project's documents) are read but
+    are not evidence."""
+    known: set
+    context: set
+
+
+def _check_view(name, view, refs, dropped, alive):
     """One view's elements that stand on evidence; each one dropped is added to `dropped`, each one kept to `alive`."""
     seen, elements = set(), []
     for element in view.get('elements') or []:
         if not isinstance(element, dict): continue
         eid = str(element.get('id') or '')
-        cites, evidence = _citations(element, known)
+        cites, evidence = _citations(element, refs.known)
         why = _drop_reason(eid, seen, element, evidence)
         if why:
             dropped.append({'view': name, 'id': eid or '?', 'title': _short(element.get('title'), 160), 'why': why, 'cites': cites[:8]})
             continue
         seen.add(eid)
         alive.add((name, eid))
-        elements.append(_element_row(eid, element, cites, evidence, known, context))
+        elements.append(_element_row(eid, element, cites, evidence, refs))
     return {'summary': _short(view.get('summary'), 600), 'confidence': _confidence(view.get('confidence')), 'elements': elements}
 
 
@@ -249,7 +258,8 @@ def _drop_reason(eid, seen, element, evidence):
             'no citation resolves to a fact, claim, card or rule of this report' if not evidence else None)
 
 
-def _element_row(eid, element, cites, evidence, known, context):
+def _element_row(eid, element, cites, evidence, refs):
+    known, context = refs
     row = {'id': eid, 'kind': str(element.get('kind') or 'element'), 'title': _short(element.get('title'), 200),
            'operation': element['operation'], 'subject': element.get('subject') if isinstance(element.get('subject'), str) else None,
            'detail': _short(element.get('detail'), 600), 'cites': list(dict.fromkeys(evidence))}

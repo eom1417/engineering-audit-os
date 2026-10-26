@@ -108,7 +108,7 @@ class FlowTests(unittest.TestCase):
                  + [{'callee': 'String', 'line': 61, 'attribute': False}, {'callee': 'load', 'line': 62, 'attribute': False}]}
         entry = {'value': {'handler': 'Page', 'surface': 'page', 'route': '/', 'http_method': None, 'framework': 'react_router'},
                  'location': {'path': 'src/Page.tsx', 'start_line': 1}}
-        traced = flows.trace(entry, by_file, by_name, calls, {'src/Page.tsx': {'src/api.ts'}}, {}, {'src/Page.tsx': {'useState'}})
+        traced = flows.trace(entry, flows.CodeIndex(by_file, by_name, {'src/Page.tsx': {'src/api.ts'}}, {'src/Page.tsx': {'useState'}}), calls, {})
         callees = [step['callee'] for step in traced['steps']]
         self.assertEqual(callees.count('useState'), 1)
         self.assertEqual(next(s for s in traced['steps'] if s['callee'] == 'load')['resolution'], 'imported')

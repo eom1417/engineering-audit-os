@@ -272,11 +272,10 @@ def project(out, target=None):
     known = _known(out, facts)
     components = _target_components(features, placed, reference, reference_id)
     _fill_components(components, placed, bad, reference)
-    rules = json.loads(RULES.read_text(encoding='utf-8'))
     return {'reference': reference_id, 'root': prefix, 'target_components': sorted(components.values(), key=lambda c: c['name']),
             'target_edges': _target_edges(edges, placed, bad),
             'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad,
-            'current': _current_packages(files, placed, reference, bad, known, rules),
+            'current': _current_packages(files, placed, reference, bad, known),
             'infrastructure': infrastructure(reference, facts, target, files, prefix)}
 
 
@@ -346,8 +345,9 @@ def _package_stats(members, placed, reference, bad, known):
             'critical': sum(known['critical'][p] for p in members)}
 
 
-def _current_packages(files, placed, reference, bad, known, rules):
+def _current_packages(files, placed, reference, bad, known):
     """Each of today's packages: what happens to it, why, and the target component most of its files go to."""
+    rules = json.loads(RULES.read_text(encoding='utf-8'))
     packages = defaultdict(list)
     for path in files: packages[package_of(path)].append(path)
     current = {}

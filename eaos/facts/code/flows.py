@@ -5,6 +5,7 @@ never skipped, so a short flow is visibly short rather than quietly incomplete.
 """
 import builtins
 from collections import defaultdict
+from typing import NamedTuple
 from .. import digest, make
 
 BUILTINS = set(dir(builtins)) | {'console', 'print', 'require', 'super', 'len', 'range'}
@@ -74,6 +75,15 @@ def _add_siblings(imports, symbol_facts):
         imports[path] |= {sibling for sibling in directories.get(_folder(path), ()) if sibling != path}
 
 
+class CodeIndex(NamedTuple):
+    """The index of the code a call is resolved against: the symbols by file and by name, the files each file
+    imports, and the names each file takes from a library."""
+    by_file: dict
+    by_name: dict
+    imports: dict
+    external_names: dict
+
+
 def resolve_callee(name, path, by_file, by_name, imports, external_names, attribute):
     """Distinguish a real gap in the trace from a call that simply leaves the codebase."""
     local = [row for row in by_file.get(path, []) if row['name'] == name]
@@ -98,12 +108,12 @@ def _outside(name, path, external_names):
 GAP_RESOLUTIONS = {'unresolved', 'ambiguous'}
 
 
-def _resolve_handler(handler, path, by_file, by_name, imports, calls=None):
+def _resolve_handler(handler, path, index, calls=None):
     """Locate the symbol a handler points at. Accepts bare names, receiver-qualified calls
     like `s.handleIndex`, and cross-file imports."""
     if not handler: return None
-    return (_module_start(handler, path, by_file, calls) or _console_script(handler, path, by_file)
-            or _in_file(handler, path, by_file) or _imported(handler, path, by_name, imports))
+    return (_module_start(handler, path, index.by_file, calls) or _console_script(handler, path, index.by_file)
+            or _in_file(handler, path, index.by_file) or _imported(handler, path, index.by_name, index.imports))
 
 
 def _module_start(handler, path, by_file, calls):
@@ -172,20 +182,19 @@ def _trace_calls(current, depth, context, walk):
         # it, so repeated hooks and helpers do not spend the step budget before the trace leaves the file.
         if call['callee'] in called: continue
         called.add(call['callee'])
-        target, how = resolve_callee(call['callee'], current['path'], context['by_file'], context['by_name'], context['imports'],
-                                     context['external_names'], call.get('attribute', False))
+        target, how = resolve_callee(call['callee'], current['path'], *context['index'], call.get('attribute', False))
         _note(target, how, depth, walk)
         if how in {'builtin'} and depth > 0: continue
         walk['steps'].append(_step(call, current, depth, target, how))
         if len(walk['steps']) >= MAX_STEPS: break
 
 
-def trace(entry, by_file, by_name, calls, imports, env_by_file, external_names):
+def trace(entry, index, calls, env_by_file):
     """Follow one entry point through resolvable calls, recording every stop with its reason."""
     handler = entry['value'].get('handler')
     path = entry['location']['path']
-    start = _resolve_handler(handler, path, by_file, by_name, imports, calls)
-    context = {'by_file': by_file, 'by_name': by_name, 'calls': calls, 'imports': imports, 'external_names': external_names}
+    start = _resolve_handler(handler, path, index, calls)
+    context = {'index': index, 'calls': calls}
     walk = {'steps': [], 'seen': set(), 'unresolved': 0, 'queue': [(start, 0)] if start else []}
     while walk['queue'] and len(walk['steps']) < MAX_STEPS:
         current, depth = walk['queue'].pop(0)
@@ -302,16 +311,14 @@ def _env_by_file(env):
 
 def run(target, source, symbols=None, calls=None, edges=None, entry_points=None, env=None, imports=None, **options):
     if symbols is None: symbols, calls, imports, edges, entry_points, env = _computed_inputs(target, source)
-    by_file, by_name = index_symbols(symbols)
+    code = CodeIndex(*index_symbols(symbols), imported_files(edges or [], symbols), external_name_index(imports, edges))
     call_index = index_calls(calls or [])
-    imported_map = imported_files(edges or [], symbols)
     env_by_file = _env_by_file(env)
-    external_names = external_name_index(imports, edges)
     ranked = _ranked(entry_points)
     deduplicated = _one_per_handler(ranked)
     facts = []
     for index, entry in enumerate(deduplicated, start=1):
-        traced = trace(entry, by_file, by_name, call_index, imported_map, env_by_file, external_names)
+        traced = trace(entry, code, call_index, env_by_file)
         if traced['handler_found']: facts.append(_flow_fact(index, entry, traced))
     facts.sort(key=lambda f: f['value']['flow_id'])
     summary = _summary(facts, ranked, deduplicated, entry_points)

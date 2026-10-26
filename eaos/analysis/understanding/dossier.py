@@ -4,6 +4,7 @@ Everything a reader sees is derived from `dossier.json`. Nothing is written into
 that does not exist in the ledger, and no claim reaches a reader without its confidence and source. The claims
 themselves are built in eaos/analysis/claims/gather.py.
 """
+from collections import namedtuple
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
@@ -16,6 +17,9 @@ from ...core.contracts.document_rules import validate
 from ...facts.store import read_set
 from ...core.project.workspace import read, write
 
+# What the dossier was asked for (assemble's arguments) and what it is built from: each travels whole to every step.
+_Request = namedtuple('_Request', 'target out run language version exclude')
+_Inputs = namedtuple('_Inputs', 'map_result sets records verification')
 
 
 def legacy_records(run):
@@ -260,12 +264,13 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
-    rows, withheld = _claims(target, out, sets, records, verification, exclude)
+    request, inputs = _Request(target, out, run, language, version, exclude), _Inputs(map_result, sets, records, verification)
+    rows, withheld = _claims(request, inputs)
     progress.count('claim steps', 3, CLAIM_STEPS)
     problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
                              {f['id'] for data in sets.values() for f in data['facts']})
     if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
-    dossier = _dossier(target, out, run, language, version, exclude, map_result, sets, records, verification, rows, withheld)
+    dossier = _dossier(request, inputs, rows, withheld)
     _decide(dossier)
     write(out / 'dossier.json', dossier)
     progress.count('claim steps', 4, CLAIM_STEPS)
@@ -294,34 +299,35 @@ def _more_sets(out, sets):
     return coverage_set
 
 
-def _claims(target, out, sets, records, verification, exclude):
+def _claims(request, inputs):
     """(ranked claims, withheld claims): the facts' claims and the runtime ones, outside the excluded paths."""
     # The load record lives beside the fact sets, not among them: it has a different shape, so it
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
-    load_record = read(out / 'load-model.json') if (out / 'load-model.json').is_file() else None
-    rows, fact_index, withheld = build_claims(sets, records, load_record=load_record, target=target)
+    load_record = read(request.out / 'load-model.json') if (request.out / 'load-model.json').is_file() else None
+    rows, fact_index, withheld = build_claims(inputs.sets, inputs.records, load_record=load_record, target=request.target)
     progress.count('claim steps', 2, CLAIM_STEPS)
-    coverage_set = _more_sets(out, sets)
-    runtime = runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(exclude))
+    coverage_set = _more_sets(request.out, inputs.sets)
+    runtime = runtime_claims(inputs.verification, len(rows), (coverage_set or {}).get('facts'), excluded=_excluded(request.exclude))
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
     for row in runtime:
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [REGISTER])
         row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
     from ..planning.ranking import rank
-    return rank(rows + runtime, sets, fact_index), withheld
+    return rank(rows + runtime, inputs.sets, fact_index), withheld
 
 
-def _dossier(target, out, run, language, version, exclude, map_result, sets, records, verification, rows, withheld):
+def _dossier(request, inputs, rows, withheld):
+    target, run, (_, sets, records, verification) = request.target, request.run, inputs
     tasks = tasks_of(records)
     return {
         'schema_version': 1,
-        'provenance': {'target': str(target), 'tool_version': version or __version__,
+        'provenance': {'target': str(target), 'tool_version': request.version or __version__,
                        'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'), 'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
-                       'excluded_patterns': map_result.get('exclude_patterns', list(exclude or []))},
+                       'excluded_patterns': inputs.map_result.get('exclude_patterns', list(request.exclude or []))},
         'coverage': _dossier_coverage(sets, records, verification, rows),
         'description': describe(sets, records),
         'claim_counts': _counts(rows),
@@ -334,7 +340,7 @@ def _dossier(target, out, run, language, version, exclude, map_result, sets, rec
         'do_not': ['لا تعتمد هذا المخرج كمراجعة أمنية أو شهادة جاهزية إنتاج.',
                    'لا تقرأ ترتيب الانتباه كترتيب خطورة؛ هو اصطلاح معلن للأولوية في القراءة.',
                    'لا تعتبر غياب نتيجة دليلًا على سلامة؛ الغياب يعني عدم الفحص ما لم يُصرَّح ببحث عن الغياب.']
-        if language == 'ar' else
+        if request.language == 'ar' else
         ['Do not treat this as a security review or a production-readiness certificate.',
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],

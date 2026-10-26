@@ -125,17 +125,17 @@ def as_screen(route, hashed):
     return '/#' + route if hashed and route.startswith('/') and '#' not in route else route
 
 
-def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=False, seeds=()):
-    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]. Signed in
-    (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never followed; `read_only` (a
-    published address) sends nothing but GET."""
+def discover(base, max_routes=200, storage_state=None, read_only=False, seeds=()):
+    """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}], within half an
+    hour. Signed in (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never
+    followed; `read_only` (a published address) sends nothing but GET."""
     from ..behavior.specs import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},
               'read_only': read_only, 'seeds': list(seeds)}
     if storage_state: config.update(storage_state=str(storage_state), leaves=LEAVES)
-    result, error = _node('crawl.mjs', config, timeout)
+    result, error = _node('crawl.mjs', config, 1800)
     return (result or {}).get('routes'), error
 
 

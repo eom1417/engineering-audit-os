@@ -237,7 +237,7 @@ class SignInTests(unittest.TestCase):
                                                                                              'folder': str(self.root)}}.get(key, default))
         with mock.patch('eaos.live.screens.audit.lighthouse', side_effect=speed), \
                 mock.patch('eaos.live.screens.audit.page_audit', return_value={'status': 'observed', 'rows': [], 'tools': {}}):
-            pages._audit_pages(context, {'/': ['/']}, None, None, 'https://app.example.com', session, None, True)
+            pages._audit_pages(context, (None, 'https://app.example.com', []), (None, session), ({'/': ['/']}, None), True)
         self.assertEqual(measured, [None, None], 'Lighthouse loads the live site as any visitor, never signed in')
 
     def test_the_sign_in_page_alone_answers_behind_its_guard_and_ends_once_the_person_answers(self):

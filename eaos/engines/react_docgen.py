@@ -12,6 +12,7 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import NamedTuple
 
 from . import tool
 from .contract import ERROR, OBSERVED, Report
@@ -90,8 +91,18 @@ def records(parsed):
     return rows
 
 
-def _batch(files, target, folder, index, failures, seconds):
+class _Parse(NamedTuple):
+    """What every batch of one run shares: the target it runs in, the folder it writes to, and the lists it adds the
+    files that failed alone and the seconds each call took to."""
+    target: Path
+    folder: Path
+    failures: list
+    seconds: list
+
+
+def _batch(files, index, parse):
     """Parse one batch; on failure split it until the failing file stands alone. Returns {file: [component]}."""
+    target, folder, failures, seconds = parse
     output = folder / f'docgen-{index}.json'
     output.unlink(missing_ok=True)
     command = [which(BINARY), '--out', str(output), '--resolver', 'find-all-exported-components',
@@ -105,8 +116,7 @@ def _batch(files, target, folder, index, failures, seconds):
         if len(failures) > MAX_FAILURES: raise TooManyFailures(error.strip()[-300:] or f'exit {code}')
         return {}
     middle = len(files) // 2
-    first = _batch(files[:middle], target, folder, f'{index}a', failures, seconds)
-    return {**first, **_batch(files[middle:], target, folder, f'{index}b', failures, seconds)}
+    return {**_batch(files[:middle], f'{index}a', parse), **_batch(files[middle:], f'{index}b', parse)}
 
 
 def analyze(target, workdir, exclude=(), formats=None):
@@ -118,9 +128,10 @@ def analyze(target, workdir, exclude=(), formats=None):
     folder.mkdir(parents=True, exist_ok=True)
     files, unreadable = sources(target, exclude)
     parsed, failures, seconds = {}, [], []
+    parse = _Parse(target, folder, failures, seconds)
     try:
         for start in range(0, len(files), BATCH):
-            parsed.update(_batch(files[start:start + BATCH], target, folder, start // BATCH, failures, seconds))
+            parsed.update(_batch(files[start:start + BATCH], start // BATCH, parse))
     except TooManyFailures as problem:
         return Report(NAME, found, PINNED, ERROR, seconds=sum(seconds),
                       reason=f'{len(failures)} files failed one by one: {problem}'[:300])

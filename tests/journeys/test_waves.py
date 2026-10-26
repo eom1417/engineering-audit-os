@@ -260,7 +260,7 @@ class FinishTests(unittest.TestCase):
                 mock.patch('eaos.live.behavior.lock.failing_tests', return_value={'problems'}):
             summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=True)
         self.assertEqual((summary['kept'], summary['failed']), (['T1', 'T2'], {}))
-        self.assertEqual(control.call_args.kwargs['name'], 'wave-1-control', 'checked once on the base alone')
+        self.assertEqual(control.call_args.args[3].name, 'wave-1-control', 'checked once on the base alone')
         self.assertEqual(sorted(p.name for p in root.glob('*.txt')), ['1.txt', '2.txt', 'a.txt'], 'and the batch back whole after it')
 
 

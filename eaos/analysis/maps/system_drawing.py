@@ -2,6 +2,7 @@
 people, and the Mermaid text of architecture/system.mmd."""
 import math
 from collections import defaultdict
+from typing import NamedTuple
 
 from ...core.language.markup import esc, fit, svg_text
 
@@ -133,8 +134,23 @@ def _spans(tag, first, second):
             + f'<tspan class="sm-l">{esc(first)}</tspan>' + (f'<tspan class="sm-s"> {esc(second)}</tspan>' if second else ''))
 
 
-def _node(place, rtl, i, c, first, second='', cls='', tip='', search='', tag='', words=False):
+class _Box(NamedTuple):
+    """What one box shows: its node and column, its name and second line, its class, tooltip and search words, its tag
+    (an API's method), and whether its name is words (cut, not fitted)."""
+    node: str
+    column: int
+    first: str
+    second: str = ''
+    cls: str = ''
+    tip: str = ''
+    search: str = ''
+    tag: str = ''
+    words: bool = False
+
+
+def _node(place, rtl, box):
     """One box: its tag (an API's method), its name fitted to the column, and a second line when there is room."""
+    i, c, first, second, cls, tip, search, tag, words = box
     x, y = _x(c, rtl), place[i][1]
     tx, anchor = (x + COLUMNS[c][1] - 7, 'start' if words else 'end') if rtl else (x + 7, 'start')
     space = int((COLUMNS[c][1] - 14) / 6.5) - len(tag) - (1 if tag else 0)
@@ -149,29 +165,28 @@ def _node(place, rtl, i, c, first, second='', cls='', tip='', search='', tag='',
 
 def svg_nodes(sm, place, rtl):
     """The boxes of the five columns: pages and their callers, APIs, server handlers, parts, tables and services."""
-    node = lambda *args, **named: _node(place, rtl, *args, **named)
-    out = []
+    boxes = []
     for p in sm['pages']:
         tip = f'{p["route"]} → {p["component"]} ({p["file"]})'
-        out.append(node(p['id'], 0, p['route'], p['component'], 'n-page' + ('' if p['traced'] else ' untraced'), tip, f'{p["route"]} {p["component"]} {p["file"]}'))
-    out += [node(c['id'], 0, c['short'], '', 'n-caller', c['path'], c['path']) for c in sm['callers']]
-    out += [_api_node(node, a) for a in sm['apis']]
-    out += [node(h['id'], 2, h['short'], '', 'n-handler' + ('' if h['apis'] else ' idle'), h['path'], h['path']) for h in sm['handlers']]
-    out += [node(mo['id'], 3, mo['short'], '', 'n-module', mo['name'], mo['name']) for mo in sm['modules']]
-    return out + [_data_node(node, d, rtl) for d in sm['data']]
+        boxes.append(_Box(p['id'], 0, p['route'], p['component'], 'n-page' + ('' if p['traced'] else ' untraced'), tip, f'{p["route"]} {p["component"]} {p["file"]}'))
+    boxes += [_Box(c['id'], 0, c['short'], '', 'n-caller', c['path'], c['path']) for c in sm['callers']]
+    boxes += [_api_box(a) for a in sm['apis']]
+    boxes += [_Box(h['id'], 2, h['short'], '', 'n-handler' + ('' if h['apis'] else ' idle'), h['path'], h['path']) for h in sm['handlers']]
+    boxes += [_Box(mo['id'], 3, mo['short'], '', 'n-module', mo['name'], mo['name']) for mo in sm['modules']]
+    return [_node(place, rtl, box) for box in boxes + [_data_box(d, rtl) for d in sm['data']]]
 
 
-def _api_node(node, a):
+def _api_box(a):
     """An API, its method as its tag: unknown when no handler answers it, guessed when one does only by its file name."""
     cls = 'n-api' + ('' if a['handlers'] else ' unknown') + ('' if a['exact'] or not a['handlers'] else ' guessed')
-    return node(a['id'], 1, a['path'], '', cls, a['key'], a['key'] + ' ' + ' '.join(a['features']), a['method'])
+    return _Box(a['id'], 1, a['path'], '', cls, a['key'], a['key'] + ' ' + ' '.join(a['features']), a['method'])
 
 
-def _data_node(node, d, rtl):
+def _data_box(d, rtl):
     """A table, with the files that use it, or a service, named in Arabic when the drawing is."""
     table = d['id'].startswith('T:')
     text = d['name'] if table or not rtl else d.get('ar') or d['name']
-    return node(d['id'], 4, text, '', 'n-table' if table else 'n-service', d['name'] + (' — ' + ', '.join(d.get('files') or []) if table else ''),
+    return _Box(d['id'], 4, text, '', 'n-table' if table else 'n-service', d['name'] + (' — ' + ', '.join(d.get('files') or []) if table else ''),
                 d['name'] + ' ' + (d.get('ar') or ''), words=not table)
 
 

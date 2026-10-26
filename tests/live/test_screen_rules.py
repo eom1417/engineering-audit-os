@@ -71,8 +71,8 @@ class VisitorTests(unittest.TestCase):
         context = mock.MagicMock(out=out)
         with mock.patch.object(pages, '_audit_pages', return_value=({'rows': rows}, None)) as audit:
             seen = pages._visitor(context, (None, 'http://h', [(None, state)]), groups, None)
-        self.assertEqual(list(audit.call_args.args[1]), ['/auth/login', '/auth/register'])
-        self.assertFalse(audit.call_args.args[5].is_file(), 'opened with no session')
+        self.assertEqual(list(audit.call_args.args[3][0]), ['/auth/login', '/auth/register'])
+        self.assertFalse(audit.call_args.args[2][1].is_file(), 'opened with no session')
         self.assertEqual([(r['kind'], r.get('unseen')) for r in seen], [('visitor', None), ('visitor', None)])
         self.assertEqual(pages._visitor(context, (None, 'http://h', [(None, out / 'none.json')]), groups, None), [],
                          'a check that never signed in pictured them already')

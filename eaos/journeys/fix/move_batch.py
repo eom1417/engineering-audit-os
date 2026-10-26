@@ -175,9 +175,9 @@ def _gate(batch, root, before):
 def _lock(batch, root):
     """The behaviour lock on every screen (no screen may look different), when the run recorded one."""
     if not batch.get('lock', True) or not (Path(batch['runtime']) / 'behavior-lock').is_dir(): return []
-    from ...live.behavior.lock import failing_tests, verify_lock
+    from ...live.behavior.lock import LockPass, failing_tests, verify_lock
     name = f"moves-{batch['number']}"
-    verdict = verify_lock(batch['report'], root, batch['runtime'], name=name)
+    verdict = verify_lock(batch['report'], root, batch['runtime'], LockPass(name))
     return [f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
             + '; '.join(sorted(failing_tests(batch['runtime'], name)))[:600]] if verdict['failed'] else []
 

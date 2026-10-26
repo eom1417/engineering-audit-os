@@ -5,6 +5,7 @@ import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import NamedTuple
 
 from . import (ast_grep, bandit, checkov, codegraph, codeql, dependency_cruiser, enola, gitleaks, gitnexus, jscpd, knip,
                lizard, oasdiff, osv_scanner, react_docgen, reforge, sarif, scc, semgrep, spectral, sqlfluff, syft,
@@ -56,10 +57,18 @@ def _report(name, target, workdir, exclude, formats):
                 'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
 
 
-def _run_one(name, selected, reports, target, workdir, exclude, formats):
+class _Job(NamedTuple):
+    """What every engine of one run is asked to read: the target, its scratch folder, the excluded paths, the formats."""
+    target: Path
+    workdir: Path
+    exclude: tuple
+    formats: object
+
+
+def _run_one(name, selected, reports, job):
     progress.step(name, len(reports), len(selected), 'running')
     began = time.monotonic()
-    reports[name] = _report(name, target, workdir, exclude, formats)
+    reports[name] = _report(name, *job)
     status = reports[name].get('status') or 'error'
     progress.step(name, len(reports), len(selected), status, time.monotonic() - began,
                   reason=reports[name].get('reason') or '', reason_code='' if status == 'observed' else f'engine_{status}')
@@ -74,7 +83,7 @@ def _run_all(selected, target, workdir, exclude, formats):
     engine starts once the engines it reads have ended, beside the others only while this computer has room for it
     (resources.room): a strong computer runs many at once, a small one one at a time, never none."""
     reports, left, running, began = {}, list(selected), {}, {}
-    args = (selected, reports, target, workdir, exclude, formats)
+    args = (selected, reports, _Job(target, workdir, exclude, formats))
     for name in selected: progress.step(name, 0, len(selected), 'waiting')
     with ThreadPoolExecutor(resources.capacity()[0], thread_name_prefix='eaos-engine') as pool:
         while left or running:

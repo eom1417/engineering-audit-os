@@ -64,7 +64,7 @@ def _pictured(context, app, groups, measured):
     live, base, made = app
     rows, speed, held = [], None, {kind for kind, _ in made if kind}
     for n, (kind, state) in enumerate(made):
-        audit, measure = _audit_pages(context, share(read(context.out), groups, kind, n == 0, held), measured, live, base, state, kind, n == 0)
+        audit, measure = _audit_pages(context, app, (kind, state), (share(read(context.out), groups, kind, n == 0, held), measured), n == 0)
         if audit['status'] != 'observed' and not rows:
             raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
         speed = speed or measure
@@ -76,10 +76,10 @@ def _pictured(context, app, groups, measured):
 def _visitor(context, app, groups, measured):
     """The sign-in and sign-up pages as a visitor sees them, kind `visitor`: a signed-in session is sent away from them
     (microblog's /auth/login opened its home page), so they are pictured with no session; [] when no session signed in."""
-    live, base, made = app
+    made = app[2]
     own = {template: paths for template, paths in groups.items() if VISITOR.search(paths[0])}
     if not own or not any(Path(state).is_file() for _, state in made): return []
-    audit, _ = _audit_pages(context, own, measured, live, base, context.out / 'live/.no-session', 'visitor', False)
+    audit, _ = _audit_pages(context, app, ('visitor', context.out / 'live/.no-session'), (own, measured), False)
     return [_as_visitor(_seen(context, row, 'visitor', None)) for row in audit.get('rows') or []]
 
 
@@ -156,10 +156,12 @@ def _named_pages(context):
     return [as_screen(page, hashed) for page in pages_of(context.out, served=False) + [page for kind in read(context.out) for page in kind['pages']]]
 
 
-def _audit_pages(context, groups, measured, live, base, state, kind, speed):
-    """(the page audit, the entry's speed) of `groups` opened with session `state` (as kind of user `kind`): Lighthouse
-    only with `speed`, and only when the crawl did not measure the entry already."""
+def _audit_pages(context, app, session, pages, speed):
+    """(the page audit, the entry's speed) of `pages` ({template: its pages}, the crawl's measured entry) opened on `app`
+    (live run, address, sessions) with `session` (kind of user, its browser state): Lighthouse only with `speed`, and
+    only when the crawl did not measure the entry already."""
     from ...live.screens.audit import VIEWPORTS, page_audit, variants
+    (live, base, _), (kind, state), (groups, measured) = app, session, pages
     state = state if state.is_file() else None
     folder = context.out / 'live/screens' / (kind or '')
     audit = page_audit([base + paths[0] for paths in groups.values()], [v for v in VIEWPORTS if v['name'] != 'tablet'],

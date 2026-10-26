@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+from typing import NamedTuple
 from .. import digest, make
 
 NAME = 'git_history'
@@ -82,15 +83,23 @@ def days_between(early, late):
     return round((datetime.fromisoformat(late) - datetime.fromisoformat(early)).total_seconds() / 86400.0, 1)
 
 
-def extract(target, raw, input_sha, max_commits=2000, min_support=3, bulk_limit=50, top=40, prefix=''):
+class Settings(NamedTuple):
+    """How the history is read: the commit window, the support a pair of files needs, the largest commit counted
+    as a change together, and how many hotspots the summary lists."""
+    max_commits: int = 2000
+    min_support: int = 3
+    bulk_limit: int = 50
+    top: int = 40
+
+
+def extract(target, raw, input_sha, settings=Settings(), prefix=''):
     commits = _under(parse(raw), prefix)
-    per_file, pairs = _tally(commits, bulk_limit)
+    per_file, pairs = _tally(commits, settings.bulk_limit)
     # Reference point is the newest commit in the window, never wall-clock time, so reruns are identical.
     reference = max((c['date'] for c in commits), default=None)
     present = _working_tree(target)
     facts = [fact for path in sorted(per_file) for fact in _file_facts(path, per_file[path], reference, present, input_sha)]
-    facts += _cochange_facts(pairs, per_file, min_support, input_sha)
-    settings = {'max_commits': max_commits, 'min_support': min_support, 'bulk_limit': bulk_limit, 'top': top}
+    facts += _cochange_facts(pairs, per_file, settings.min_support, input_sha)
     return facts, _summary(commits, per_file, reference, settings)
 
 
@@ -161,10 +170,10 @@ def _cochange_facts(pairs, per_file, min_support, input_sha):
 def _summary(commits, per_file, reference, settings):
     churn = sorted(per_file.items(), key=lambda kv: (-kv[1]['commits'], kv[0]))
     return {
-        'commits_analysed': len(commits), 'files_touched': len(per_file), 'window_max_commits': settings['max_commits'],
-        'reference_commit_date': reference, 'min_support': settings['min_support'], 'bulk_commit_limit': settings['bulk_limit'],
+        'commits_analysed': len(commits), 'files_touched': len(per_file), 'window_max_commits': settings.max_commits,
+        'reference_commit_date': reference, 'min_support': settings.min_support, 'bulk_commit_limit': settings.bulk_limit,
         'hotspots': [{'path': p, 'commits': r['commits'], 'fix_commits': r['fix_commits'],
-                      'lines_changed': r['added'] + r['deleted'], 'authors': len(r['authors'])} for p, r in churn[:settings['top']]],
+                      'lines_changed': r['added'] + r['deleted'], 'authors': len(r['authors'])} for p, r in churn[:settings.top]],
         'single_author_files': sorted(p for p, r in per_file.items() if len(r['authors']) == 1 and r['commits'] > 1),
         'interpretation': 'Attention signals only. High churn or single ownership is not a defect; it marks where a change scenario deserves review.',
     }
@@ -177,5 +186,5 @@ def run(target, source=None, max_commits=2000, **options):
                 'reason': 'No git work tree at the target; history facts are unavailable for this snapshot.'}
     raw = read_log(target, max_commits)
     input_sha = digest(raw.encode('utf-8'))
-    facts, summary = extract(target, raw, input_sha, max_commits=max_commits, prefix=prefix_of(target), **options)
+    facts, summary = extract(target, raw, input_sha, Settings(max_commits, **options), prefix_of(target))
     return {'facts': facts, 'summary': summary, 'available': True, 'input_sha': input_sha, 'reason': None}

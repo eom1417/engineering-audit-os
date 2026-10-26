@@ -95,9 +95,9 @@ def gates(batch, name):
         broken = regressions(batch['before'], project_checks(batch['root'], batch['runtime'], 'S09', name))
         if broken: return "the project's own check failed: " + ', '.join(broken)
     if batch['lock']:
-        from ....live.behavior.lock import verify_lock
-        verdict = verify_lock(batch['report'], batch['root'], batch['runtime'], name=name, declared=batch['declared'],
-                              known=batch.get('known') or ())
+        from ....live.behavior.lock import LockPass, verify_lock
+        verdict = verify_lock(batch['report'], batch['root'], batch['runtime'],
+                              LockPass(name, declared=batch['declared'], known=batch.get('known') or ()))
         if verdict['failed']:      # every screen that differs, at once: one per run cost a batch hours
             from ....live.behavior.lock import failing_tests
             return (f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
@@ -261,13 +261,13 @@ def _against_control(batch):
     or time that moved since the recording), not from its changes: the checks are judged against this control from now
     on, so no card is blamed for it (EAOS on itself, 2026-10-13: a screen reading live data failed with every card, and
     a whole batch of sound fixes was left out). True when the control set something aside."""
-    from ....live.behavior.lock import failing_tests, verify_lock
+    from ....live.behavior.lock import LockPass, failing_tests, verify_lock
     head, name = git(batch['root'], 'rev-parse', 'HEAD').stdout.strip(), f"{batch['name']}-control"
     batch['say']('control')
     rebuild(batch['root'], batch['base'], [])
     try:
         before = project_checks(batch['root'], batch['runtime'], 'S09', name) if batch['before'] else batch['before']
-        if batch['lock']: verify_lock(batch['report'], batch['root'], batch['runtime'], name=name)
+        if batch['lock']: verify_lock(batch['report'], batch['root'], batch['runtime'], LockPass(name))
         known = failing_tests(batch['runtime'], name) if batch['lock'] else set()
     finally:
         git(batch['root'], 'reset', '--hard', '--quiet', head)
