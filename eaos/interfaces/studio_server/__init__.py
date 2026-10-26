@@ -1,4 +1,4 @@
-"""The Studio's local server (NS37.T2, docs/STUDIO.md): the read API, the live stream and the built Studio, on
+"""The Studio's local server (NS37.T2, docs/ARCHITECTURE.md §1): the read API, the live stream and the built Studio, on
 127.0.0.1 only, behind a token made for each launch.
 
     interfaces/studio_server/guard.py   the token, the Host and Origin checks and the CSRF token, on every request

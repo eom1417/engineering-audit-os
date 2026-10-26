@@ -1,8 +1,8 @@
 // Search or ask (SRC-01, SRC-02): one light search over the whole project, opened from every screen (Ctrl/Cmd+K).
-// Places, decisions, problems, actions, runs, branches, plan steps, your app's screens, code paths, gaps, components
-// and documents (title, path, headings). It reads the sections it searches when it opens and never the large ones:
-// functions are searched on their own view, the documents' text through "Search the check's records" (PRB-13). Every
-// word must match (src/data/normalize.js); each result opens its screen.
+// Places, decisions, problems, actions, runs, branches, plan steps, your app's screens and the report's documents
+// (title, path, headings). It reads the sections it searches when it opens and never the large ones: the documents'
+// text is searched through "Search the check's records" (PRB-13). Every word must match (src/data/normalize.js); each
+// result opens its screen.
 import { prefs } from './prefs.js';
 import { t, L } from './i18n.js';
 import { esc, icon, code, rich, sev } from './format.js';
@@ -17,9 +17,9 @@ import { ACTIONS } from '../data/contract.js';
 import { labelOf } from '../data/derive.js';
 import { decisions, plan, problems } from '../data/model.js';
 
-const SEARCHED = ['cards', 'decisions', 'plans', 'gaps', 'screens', 'docs', 'paths', 'story'];
+const SEARCHED = ['cards', 'decisions', 'plans', 'screens', 'docs'];
 const enc = encodeURIComponent;
-const PLACE_ICON = { status: 'status', waiting: 'waiting', problems: 'problems', activity: 'activity', understand: 'understand' };
+const PLACE_ICON = { status: 'status', waiting: 'waiting', problems: 'problems', activity: 'activity', report: 'understand' };
 let branches = null;
 
 function titleIn(sc, lang) {
@@ -37,7 +37,7 @@ function places() {
 }
 const FIRST = () => [
   ['nav.status', '/status', 'status'], ['nav.waiting.long', '/waiting', 'waiting'], ['nav.problems', '/problems', 'problems'],
-  ['pb.view.plan', '/problems/plan', 'layers'], ['nav.activity', '/activity', 'activity'], ['nav.understand', '/understand', 'understand'],
+  ['pb.view.plan', '/problems/plan', 'layers'], ['nav.activity', '/activity', 'activity'], ['nav.report', '/report', 'understand'],
   ['proj.branches', '/project/branches', 'branch'], ['proj.assistants', '/project/assistants', 'ai'], ['proj.settings', '/project/settings', 'gear'],
 ].map(([key, path, ic]) => ({ icon: ic, html: esc(t(key)), href: path }));
 
@@ -52,12 +52,9 @@ const GROUPS = [
   ['runs', 4, () => live.runs, r => [r.id, labelOf(r.label, 'ar'), labelOf(r.label, 'en'), r.action, (r.cards || []).join(' ')].join(' '), r => ({ icon: 'activity', html: `${code(r.id)} ${esc(labelOf(r.label, prefs.lang))}`, href: '/activity/run/' + enc(r.id) })],
   ['branches', 4, () => (branches && branches.branches) || [], b => [b.name, b.subject || '', b.upstream || ''].join(' '), b => ({ icon: 'branch', html: code(b.name), href: '/project/branches/' + enc(b.name) })],
   ['steps', 4, () => plan().steps, st => `${st.id} ${L(st.title || '')} ${L(st.gate || '')}`, st => ({ icon: 'layers', html: `${code(st.id)} ${rich(L(st.title || st.gate || ''))}`, href: '/problems/plan/' + st.id })],
-  ['screens', 4, () => listOf('screens', 'screens'), sc => [sc.id, sc.title, sc.route, sc.file].join(' '), sc => ({ icon: 'screen', html: `${esc(L(sc.title || sc.id))} ${code(sc.route || '')}`, href: '/understand/screens/' + enc(sc.id) })],
-  ['paths', 4, () => listOf('paths', 'paths'), p => [p.id, L(p.title || ''), p.entry && (p.entry.path || p.entry)].join(' '), p => ({ icon: 'map', html: `${code(p.id)} ${esc(L(p.title || ''))}`, href: '/understand/paths/' + enc(p.id) })],
-  ['gaps', 4, () => listOf('gaps', 'gaps'), g => [g.id, g.component, g.operation, g.to].join(' '), g => ({ icon: 'layers', html: `${code(g.id)} ${code(g.component || '')}`, href: '/understand/gaps/' + enc(g.id) })],
-  ['components', 4, () => (section('story') && section('story').current.components) || [], c => c.name, c => ({ icon: 'map', html: code(c.name), href: '/understand/components/' + enc(c.name) })],
+  ['screens', 4, () => listOf('screens', 'screens'), sc => [sc.id, sc.title, sc.route, sc.file].join(' '), sc => ({ icon: 'screen', html: `${esc(L(sc.title || sc.id))} ${code(sc.route || '')}`, href: '/report?part=screens' })],
   ['docs', 5, () => listOf('docs', 'docs'), d => [d.id, d.title, (d.titles && (d.titles.ar || '') + ' ' + (d.titles.en || '')) || '', d.path, (d.headings || []).map(h => h.text).join(' ')].join(' '),
-    d => ({ icon: 'book', html: `${esc((d.titles && d.titles[prefs.lang]) || d.title)} ${code(d.path)}`, href: '/understand/library/' + enc(d.id) })],
+    d => ({ icon: 'book', html: `${esc((d.titles && d.titles[prefs.lang]) || d.title)} ${code(d.path)}`, href: `/report?part=files&sheet=file:${enc(enc(d.path))}` })],
 ];
 function results(q) {
   if (!q.trim()) return [{ group: 'places', items: FIRST() }];
@@ -75,7 +72,6 @@ function listHTML(q) {
   const out = r.map(g => `<div class="results__group" role="group" aria-labelledby="sg-${g.group}"><p class="results__h" id="sg-${g.group}">${esc(t('search.' + g.group))}</p>${g.items.map(it =>
     item(it, href(it.href.split('?')[0], Object.fromEntries(new URLSearchParams(it.href.split('?')[1] || ''))))).join('')}</div>`).join('');
   const more = q.trim() ? `<div class="results__group" role="group" aria-labelledby="sg-more"><p class="results__h" id="sg-more">${esc(t('search.more'))}</p>
-    ${item({ icon: 'code', html: esc(t('search.functions.in', { q })) }, href('/understand/functions', { q }))}
     ${item({ icon: 'book', html: esc(t('search.records', { q })) }, href('/ask', { q, records: 1 }))}
     <button class="result" data-act="assist-ask" data-q="${esc(q)}">${icon('ai')}<span class="result__text">${esc(t('search.ask', { q }))}</span></button></div>` : '';
   const none = q.trim() && !r.length ? `<p class="muted small">${t('search.none')}</p>` : '';

@@ -111,7 +111,7 @@
   "eaos/report/human_report/charts.py::_bar_row": 6,
   "eaos/report/human_report/charts.py::_bar_segment": 8,
   "eaos/report/studio/export.py::_build_core": 10,
-  "eaos/report/studio/export.py::_build_maps": 9,
+  "eaos/report/studio/export.py::_build_maps": 8,
   "eaos/report/studio/export.py::_publish_all": 9,
   "eaos/report/studio/export.py::export": 7,
   "eaos/report/studio/paths/graph.py::_Graph.gap": 6,

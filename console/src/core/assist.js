@@ -37,10 +37,6 @@ const ROUTES = [
   }],
   [/^\/activity\/run\/([^/]+)$/, x => { const id = decodeURIComponent(x[1]); const r = live.runs.find(y => y.id === id); return { kind: 'run', id, label: id + (r ? ' ' + L(r.label) : '') }; }],
   [/^\/project\/branches\/(.+)$/, x => { const n = decodeURIComponent(x[1]); return { kind: 'branch', id: n, label: n }; }],
-  [/^\/understand\/(components|functions|gaps|paths|data|screens|library|history)\/(.+)$/, x => {
-    if (x[2] === 'all' || x[2] === 'compare') return null;
-    const id = decodeURIComponent(x[2]); return { kind: 'thing', id: id.split('#').pop(), label: id };
-  }],
   [/^\/problems\/plan\/([^/]+)$/, x => (x[1] === 'waves' ? null : { kind: 'thing', id: x[1], label: x[1] })],
   [/^\/waiting\/(.+)$/, x => (['sign-in', 'questions', 'decided'].includes(x[1]) ? null : waitingCtx(decodeURIComponent(x[1])))],
 ];

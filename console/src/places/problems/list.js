@@ -7,7 +7,7 @@ import {
 } from 'eaos';
 import { NEEDS, SEV, AREAS, STATES, FACETS, component, who, steps, value, list, filterProblems, activeFilters, facetLabel, keepQuery } from './shared.js';
 import { detailHTML } from './detail.js';
-import { empty } from '../understand-kit/kit.js';
+import { empty } from '../kit/kit.js';
 
 const PAGE = 50;
 

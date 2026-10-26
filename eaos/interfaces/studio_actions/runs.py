@@ -31,7 +31,7 @@ STUDIO = 'EAOS Studio'                      # eaos/interfaces/mcp_server/server.
 
 STOP_GRACE = 5
 # Studio actions that are not an MCP tool: the planner of the ideal, which asks the person's assistant itself
-# (eaos/ai/ideal/planner.py, docs/STUDIO.md D10).
+# (eaos/ai/ideal/planner.py).
 PLANNERS = ('replan_ideal',)
 
 

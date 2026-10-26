@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import studio_synthetic  # noqa: E402
 
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations', 'library')
+SECTIONS_V2 = ('history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations')
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 
@@ -57,13 +57,12 @@ class Export(Workspace):
         self.assertEqual(list(rows)[:len(coverage.PLANNED)], list(coverage.PLANNED))
         for name in ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'gaps', 'operations'):
             self.assertIn(rows[name]['state'], ('measured', 'empty'), name)
-        for name in ('history', 'library'):
-            self.assertEqual(rows[name]['state'], 'measured', name)
+        self.assertEqual(rows['history']['state'], 'measured')
         for name in ('functions', 'screens'):
             self.assertEqual(rows[name]['state'], 'not_measured', name)
             self.assertTrue(rows[name]['detail'], name)
         self.assertEqual(data['not_measured']['value'], sum(r['state'] in ('not_measured', 'failed') for r in data['sections']))
-        self.assertEqual([d['id'] for d in self.load('library')['documents']], ['START-HERE.md'])
+        self.assertEqual([d['id'] for d in self.load('docs')['docs']], ['START-HERE.md'])
 
     def test_a_reexport_in_arabic_keeps_every_decision_identity_and_writes_plain_arabic(self):
         before = {row['id']: row for row in self.load('decisions')['decisions']}
@@ -146,8 +145,7 @@ class Export(Workspace):
         with mock.patch.object(export.library_section, 'media', side_effect=ValueError('no folder')):
             result = export.export(self.out, 'en', 'shop')
         self.assertEqual(result['errors'], [{'section': 'media', 'error': 'ValueError: no folder'}])
-        # the library carries the media's content: without the media it is not written either
-        self.assertEqual(result['written'], [n for n in SECTIONS if n != 'media'] + [n for n in SECTIONS_V2 if n != 'library'] + ['coverage'])
+        self.assertEqual(result['written'], [n for n in SECTIONS if n != 'media'] + list(SECTIONS_V2) + ['coverage'])
         self.assertNotIn('media', {entry['name'] for entry in self.load('manifest')['sections']})
         rows = {row['section']: row for row in self.load('coverage')['sections']}
         self.assertEqual((rows['media']['state'], rows['media']['reason']), ('failed', 'section_error'))

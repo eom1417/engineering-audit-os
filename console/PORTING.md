@@ -10,7 +10,7 @@ markup as it is; replace what it reads and what it does. The lead's ports are th
 | Owner | Files |
 |---|---|
 | **Builder A** | `src/places/activity/` (S-11..S-16: Activity, runs, one run, check preview, More work and every action, stages); `src/places/project/` (S-46..S-51: branches, one branch, your app, assistants and cost, tools, settings); `src/places/ask/` (S-52 and `EAOS.askAPI`, the conversation the floating assistant shows); `src/places/waiting/signin.js` (S-04) and `src/places/waiting/questions.js` (S-05); `src/places/open/` (S-53 opening states and old links, the project switch); `src/words/activity.js` (add more `src/words/activity-*.js` freely); `src/css/activity.css` |
-| **Builder B** | `src/places/plan/` (S-08..S-10 and the impact sheet S-54); `src/places/understand/` (S-17) and `src/places/understand-{change,built,screens,records}/` (S-18..S-45, the library and the records); `src/words/understand.js` (and `understand-*.js`); `src/css/understand.css` |
+| **Builder B** | `src/places/plan/` (S-08..S-10 and the impact sheet S-54); `src/places/report/` (S-17, the report page: the report for people, the screens' pictures, the report's files); `src/places/kit/`; `src/words/plan.js` and `src/words/report.js`; `src/css/places.css` |
 | **Lead** | everything else: `src/core/`, `src/data/`, `src/index.html`, `src/boot.js`, `scripts/`, `tools/`, `src/places/{status,waiting/list.js,waiting/index.js,problems}`, `src/words/{core,status,waiting,problems}.js`, `src/css/{tokens,core,index}.css` |
 
 A change you need in a lead file (a model getter, a core helper, a word in core.js, a fix in the shell): ask the lead,
@@ -49,7 +49,7 @@ file in your place is imported from your place's `index.js`.
    action is locked and offers `open-live`. A state that is a fact of the project (running, paused, waiting for a
    sign-in, a stale check, no assistant) comes from the data (`live`, `liveNow()`, `freshness()`, `live.assistants`),
    never from the address: the prototype's `?state=running|signin|…` demos are not ported.
-5. **Words**: the prototype's keys are already in `src/words/activity.js` / `understand.js` as `'key': [ar, en]`.
+5. **Words**: the prototype's keys are already in `src/words/activity.js` / `plan.js` as `'key': [ar, en]`.
    A word that carried a sample fact (a number, a branch, a time, "R-14") must become a parameter filled from the
    data (`'st.verdict': ['{problems}، منها {fixable} يصلحها EAOS وحده.', …]`); remove the sample word when nothing
    uses it. A plural is `[{zero, one, two, few, many, other}, {one, other}]` with `{n}`. Arabic first, English

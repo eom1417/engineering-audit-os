@@ -1,5 +1,5 @@
-"""The Library's data: what the check wrote for people to read (studio/docs.json, studio/media.json) and their content
-(studio/library.json, contract v2), so the Studio's reader shows them from its own folder, opened from a file or served.
+"""What the check wrote for people to read (studio/docs.json, studio/media.json): the Studio searches the documents and
+opens each from the report page's files; the screens and the user's journeys place the pictures.
 
 - docs: every Markdown document of the report, grouped by purpose, in the reading order the report's own index
   (README.md) gives, with its headings for search. The engines' working copies of the project (engines/) are not
@@ -8,13 +8,9 @@
   blueprint (its parts, technologies and milestones) and the plan of a feature added to the project, in one group.
 - media: the report's diagrams and images, the same way. The thumbnails an older crawl's Unlighthouse kept
   (`__screenshot-thumbnails__`, 760 of them on EAOS's own Studio) are its working files, not pictures of the check.
-- Each document in both languages when the check wrote them (report/i18n/<lang>/, eaos/core/language/bilingual.py): its title
-  (docs `titles`) and its text (library `texts`), so the reader switches with the person's language at once.
-- library: each document's text, and each image as a data URI (an <img> runs no script from it) or a diagram's source.
-  A file too large to carry is listed with the reason; nothing is cut silently. The machine's own folders in the text
-  (the project's absolute path, the home folder) are replaced by the project's name and `~`.
+- Each document's title in both languages when the check wrote them (report/i18n/<lang>/,
+  eaos/core/language/bilingual.py): docs `titles`.
 """
-import base64
 import re
 from pathlib import Path
 
@@ -27,10 +23,6 @@ LINK = re.compile(r'\]\(([^)#\s]+\.md)(?:#[^)]*)?\)')
 HEADING = re.compile(r'^(#{1,3})\s+(.+?)\s*#*\s*$')
 FENCE = re.compile(r'^\s*(```|~~~)')
 IMAGES = {'.png': 'png', '.svg': 'svg+xml', '.jpg': 'jpeg', '.jpeg': 'jpeg', '.gif': 'gif', '.webp': 'webp'}
-SOURCES = {'.mmd': 'mermaid'}
-TEXT_LIMIT = 400_000          # characters of one document
-IMAGE_LIMIT = 2_000_000       # bytes of one image
-SOURCE_LIMIT = 200_000        # characters of one diagram's source
 DIAGRAMS = {'architecture/system.mmd': ('خريطة الصفحات والواجهات البرمجية', 'Map of pages and APIs'),
             'architecture/current/diagram.mmd': ('البنية اليوم', 'The architecture today'),
             'architecture/target/diagram.mmd': ('البنية المستهدفة', 'The target architecture')}
@@ -145,41 +137,3 @@ def media(report, lang='ar'):
         out.append({'id': name, 'path': name, 'title': title, 'kind': 'diagram' if path.suffix in ('.mmd', '.svg') else 'screen',
                     'batch': None, 'phase': None, 'route': route, 'viewport': viewport, 'pair': None})
     return out
-
-
-def _private(text, project):
-    """The text with this machine's folders replaced: the project's absolute path by its name, the home folder by ~."""
-    if project:
-        root = str(Path(project).resolve())
-        text = text.replace(root, Path(root).name)
-    home = str(Path.home())
-    return text.replace(home + '/', '~/') if len(home) > 1 else text
-
-
-def library(report, doc_rows, image_rows, project=None):
-    """The library section's body: the text of each document and the content of each image or diagram."""
-    report = Path(report)
-    documents, images = [], []
-    for row in doc_rows:
-        text = _private(_source(report, row['path']).read_text(encoding='utf-8', errors='replace'), project)
-        texts = {lang: _private(body, project)[:TEXT_LIMIT] for lang, body in _versions(report, row['path']).items()}
-        documents.append({'id': row['id'], 'text': text[:TEXT_LIMIT], 'chars': len(text), 'truncated': len(text) > TEXT_LIMIT,
-                          **({'texts': texts} if texts else {})})
-    for row in image_rows:
-        path = report / row['path']
-        size = path.stat().st_size
-        if path.suffix in SOURCES:
-            source = _private(path.read_text(encoding='utf-8', errors='replace'), project)
-            images.append({'id': row['id'], 'format': SOURCES[path.suffix], 'data': None, 'source': source[:SOURCE_LIMIT],
-                           'bytes': size, 'embedded': len(source) <= SOURCE_LIMIT, 'reason': None if len(source) <= SOURCE_LIMIT else 'too_large'})
-        elif size <= IMAGE_LIMIT:
-            data = 'data:image/' + IMAGES[path.suffix.lower()] + ';base64,' + base64.b64encode(path.read_bytes()).decode('ascii')
-            images.append({'id': row['id'], 'format': IMAGES[path.suffix.lower()].split('+')[0], 'data': data, 'source': None,
-                           'bytes': size, 'embedded': True, 'reason': None})
-        else:
-            images.append({'id': row['id'], 'format': IMAGES[path.suffix.lower()].split('+')[0], 'data': None, 'source': None,
-                           'bytes': size, 'embedded': False, 'reason': 'too_large'})
-    return {'documents': documents, 'images': images,
-            'counts': {'documents': {'value': len(documents), 'src': 'docs.json#docs'}, 'images': {'value': len(images), 'src': 'media.json#images'},
-                       'truncated': {'value': sum(d['truncated'] for d in documents) + sum(not i['embedded'] for i in images),
-                                     'src': f'documents over {TEXT_LIMIT} characters, images over {IMAGE_LIMIT} bytes'}}}

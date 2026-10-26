@@ -18,7 +18,7 @@ import { act, tickAct } from './events.js';
 import { S } from './state.js';
 import { redrawAssist } from './assist.js';
 import * as ac from './marks.js';
-import * as markdown from './markdown.js';
+import { md } from './markdown.js';
 import './search.js';
 import './menu.js';
 import * as source from '../data/source.js';
@@ -39,7 +39,7 @@ act('copy', el => notices.copyText(el.dataset.text || ''));
 act('go', el => sheets.closeSheetThen(() => { location.hash = el.dataset.href; }));
 
 self.EAOS = Object.assign({}, i18n, format, address, router, sheets, notices, settings, shell, outline, {
-  act, tickAct, S, prefs, redrawAssist, ac, a11yRegions, loadingHTML, markdown, md: markdown.md,
+  act, tickAct, S, prefs, redrawAssist, ac, a11yRegions, loadingHTML, md,
   data: source, live: store.live, store, model, selection, derive, normalize, contract,
   client, ActionError, TERMINAL, ACTIVE, RETRYABLE,
 });

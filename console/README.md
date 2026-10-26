@@ -53,9 +53,9 @@ src/data/                       the data layer: the report, the live API and its
   derive.js      a run's view from its events          normalize.js   the search's Arabic-aware matching
   contract.js    docs/studio-actions.json (actions, verbs, lifecycle, snapshot)
 src/places/<place>/             one bundle per place (status, waiting, problems, plan, activity, project, ask, open,
-                                understand, understand-change, -built, -screens, -records)
+                                report); src/places/kit/ the helpers several places share
 src/words/<file>.js             the dictionary: every key as [Arabic, English]
-src/css/                        tokens.css, core.css (shell and the lead's screens), activity.css (A), understand.css (B)
+src/css/                        tokens.css, core.css (shell and the lead's screens), activity.css (A), places.css (B)
 tools/                          checks of a served console (below)
 ```
 

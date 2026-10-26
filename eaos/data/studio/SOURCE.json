@@ -1,5 +1,5 @@
 {
- "source_sha256": "64e63481d44907808843292eed32818945580bccd4a101d04806906c9f634347",
+ "source_sha256": "75efb9695ad992f07b581806b845e42e76e417cc6e30d96c6502169260d7ddd5",
  "files": [
   "assets/FONT-LICENSE.txt",
   "assets/activity.js",
@@ -18,14 +18,10 @@
   "assets/plan.js",
   "assets/problems.js",
   "assets/project.js",
+  "assets/report.js",
   "assets/status.js",
   "assets/studio.js",
   "assets/style.css",
-  "assets/understand-built.js",
-  "assets/understand-change.js",
-  "assets/understand-records.js",
-  "assets/understand-screens.js",
-  "assets/understand.js",
   "assets/waiting.js",
   "assets/words-ar.js",
   "assets/words-en.js",

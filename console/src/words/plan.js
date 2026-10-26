@@ -1,4 +1,4 @@
-// Builder B's words for the plan and the impact sheet, beside understand.js. Every key is [Arabic, English].
+// The words of the plan and the impact sheet (places/plan). Every key is [Arabic, English].
 export default {
   'un.plan.lede.none': ['خطة الإصلاح فيها {n}، ولا خطوة جاهزة لتبدأ الآن.', 'The fix plan has {n}; no step is ready to start now.'],
   'un.plan.open': ['{n} مفتوحة', '{n} open'],
@@ -34,17 +34,6 @@ export default {
   'un.imp.notests': ['لا اختبار يصل إليه عبر الاستيراد.', 'No test reaches it through imports.'],
   'un.imp.nopartners': ['لا ملف تغيّر معه في التاريخ.', 'No file changed with it in the history.'],
   'un.imp.limits': ['يتبع EAOS الاستيراد المحلول فقط: ما يُستدعى ديناميكيًا لا يظهر، والملف المعتمد قد لا يحتاج تغييرًا.', 'EAOS follows resolved imports only: what is called dynamically does not show, and a dependent may need no change.'],
-  'un.nm.title': ['هذا الجزء لم يُقس في هذا الفحص', 'This part was not measured in this check'],
-  'un.nm.unread': ['تعذّرت قراءة هذا الجزء', 'This part could not be read'],
-  'un.nm.none': ['الفحص لم يكتب هذا الجزء.', 'The check did not write this part.'],
-  'un.nm.step': ['تكتبه الخطوة {step}', 'step {step} writes it'],
-  'un.prov.state': ['الحالة', 'State'],
-  'un.prov.st.planned': ['خطّطه مساعدك لهذا الفحص', 'Planned by your assistant for this check'],
-  'un.prov.st.not_planned': ['لم يُخطَّط: القواعد وحدها', 'Not planned: the rules alone'],
-  'un.prov.st.stale': ['خُطّط لفحص سابق', 'Planned for an earlier check'],
-  'un.prov.st.failed': ['تعذّر التخطيط', 'Planning failed'],
-  'un.pv.noasst': ['لا مساعد جاهز: سجّل دخولك في Claude Code أو Codex.', 'No assistant is ready: sign in to Claude Code or Codex.'],
-  'un.pv.assistants': ['المساعدون والتكلفة', 'Assistants and cost'],
   'bp.milestone': [{ zero: 'لا مراحل', one: 'مرحلة واحدة', two: 'مرحلتان', few: '{n} مراحل', many: '{n} مرحلة', other: '{n} مرحلة' }, { one: '1 milestone', other: '{n} milestones' }],
   'bp.card': [{ zero: 'لا بطاقات', one: 'بطاقة واحدة', two: 'بطاقتان', few: '{n} بطاقات', many: '{n} بطاقة', other: '{n} بطاقة' }, { one: '1 card', other: '{n} cards' }],
   'bp.lede': ['خطة البناء: {m}، فيها {n}، وخلص منها {done}.', 'The build plan: {m} and {n}, {done} built.'],
@@ -149,4 +138,6 @@ export default {
   'un.imp.together': ['ملفات تتغيّر معه عادةً', 'Files that usually change with it'],
   'un.imp.pct': ['{p}% من المرات', '{p}% of the time'],
   'un.imp.together.note': ['من تاريخ git: كم مرة تغيّر الملفان في التغيير نفسه، من مرات تغيّره.', 'From git history: how often both files changed in the same change, of the times it changed.'],
+  'un.gap.props': ['تفاصيلها', 'Its details'],
+  'un.gap.ops': ['العمليات', 'Operations'],
 };
