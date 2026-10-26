@@ -45,6 +45,18 @@ QUESTIONS = {
         ('Where are the shared test fixtures (the test app and client) defined?', ['tests/conftest.py']),
         ('Which template renders the sign-in form?', ['flaskr/templates/auth/login.html']),
     ],
+    'flask-microblog': [
+        ('Where is the token of an API request checked (the API sign-in check)?', ['app/api/auth.py']),
+        ('Which file defines the database models (users, posts)?', ['app/models.py']),
+        ('Which file handles the API endpoint GET /api/users/<id>?', ['app/api/users.py']),
+        ('Where is the API endpoint that issues a token?', ['app/api/tokens.py']),
+        ('Where is the web sign-in (login) form handled?', ['app/auth/routes.py']),
+        ('Where are the configuration values (SECRET_KEY, the database URL) set?', ['config.py']),
+        ('Which file holds the unit tests of the models?', ['tests.py']),
+        ('Where are the error responses of the API built?', ['app/api/errors.py']),
+        ('Where is the translation of a post implemented?', ['app/translate.py']),
+        ('Where is the password reset e-mail sent?', ['app/auth/email.py']),
+    ],
     'task-api': [
         ('Where is it checked that a request carries a valid sign-in token?', ['authMiddleware.js']),
         ('Which file opens the SQLite database and creates its table?', ['db.js']),
