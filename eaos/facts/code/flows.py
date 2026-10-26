@@ -84,14 +84,15 @@ class CodeIndex(NamedTuple):
     external_names: dict
 
 
-def resolve_callee(name, path, by_file, by_name, imports, external_names, attribute):
-    """Distinguish a real gap in the trace from a call that simply leaves the codebase."""
-    local = [row for row in by_file.get(path, []) if row['name'] == name]
+def resolve_callee(name, path, index, attribute):
+    """Distinguish a real gap in the trace from a call that simply leaves the codebase, resolved against `index` (a
+    CodeIndex)."""
+    local = [row for row in index.by_file.get(path, []) if row['name'] == name]
     if local: return local[0], 'local'
-    candidates = [row for row in by_name.get(name, []) if row['path'] in imports.get(path, set())]
+    candidates = [row for row in index.by_name.get(name, []) if row['path'] in index.imports.get(path, set())]
     if len(candidates) == 1: return candidates[0], 'imported'
     if len(candidates) > 1: return None, 'ambiguous'
-    outside = _outside(name, path, external_names)
+    outside = _outside(name, path, index.external_names)
     if outside: return None, outside
     if attribute: return None, 'method_or_external'
     return None, 'unresolved'
@@ -182,7 +183,7 @@ def _trace_calls(current, depth, context, walk):
         # it, so repeated hooks and helpers do not spend the step budget before the trace leaves the file.
         if call['callee'] in called: continue
         called.add(call['callee'])
-        target, how = resolve_callee(call['callee'], current['path'], *context['index'], call.get('attribute', False))
+        target, how = resolve_callee(call['callee'], current['path'], context['index'], call.get('attribute', False))
         _note(target, how, depth, walk)
         if how in {'builtin'} and depth > 0: continue
         walk['steps'].append(_step(call, current, depth, target, how))
@@ -309,7 +310,7 @@ def _env_by_file(env):
     return env_by_file
 
 
-def run(target, source, symbols=None, calls=None, edges=None, entry_points=None, env=None, imports=None, **options):
+def run(target, source, symbols=None, calls=None, edges=None, entry_points=None, env=None, imports=None, **options):  # limits: parameters -- the extractor protocol: each earlier set it reads by name (facts/run.py EXTRACTOR_ARGS)
     if symbols is None: symbols, calls, imports, edges, entry_points, env = _computed_inputs(target, source)
     code = CodeIndex(*index_symbols(symbols), imported_files(edges or [], symbols), external_name_index(imports, edges))
     call_index = index_calls(calls or [])

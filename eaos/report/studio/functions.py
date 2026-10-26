@@ -169,7 +169,7 @@ def _resolve_call(call, key_of, index):
     where, value = call.get('location') or {}, call.get('value') or {}
     caller = key_of.get((where.get('path'), where.get('symbol')))
     if not caller or not value.get('callee'): return None, None
-    target, how = flows.resolve_callee(value['callee'], where['path'], *index, value.get('attribute', False))
+    target, how = flows.resolve_callee(value['callee'], where['path'], index, value.get('attribute', False))
     if how not in ('local', 'imported') or not target: return caller, None
     callee = key_of.get((target['path'], target['symbol']))
     return caller, (callee if callee and callee != caller else None)
@@ -179,7 +179,8 @@ def _calls(report, syntax, key_of):
     """(callers of each function, callees of each function, call sites, calls resolved), as the flow tracer resolves."""
     edges = facts_of(report, 'module_edge')
     index_file, index_name = flows.index_symbols([f for f in syntax if isinstance((f.get('location') or {}).get('end_line'), int)])
-    index = (index_file, index_name, flows.imported_files(edges, syntax), flows.external_name_index(facts_of(report, 'import_edge'), edges))
+    index = flows.CodeIndex(index_file, index_name, flows.imported_files(edges, syntax),
+                            flows.external_name_index(facts_of(report, 'import_edge'), edges))
     callers, callees = defaultdict(set), defaultdict(set)
     sites = resolved = 0
     for caller, callee in (_resolve_call(call, key_of, index) for call in facts_of(report, 'call_edge')):
