@@ -2,5 +2,5 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": ["scripts/*.mjs", "tools/*.cjs", "src/boot.js", "src/core/main.js", "src/places/*/index.js", "src/words/*.js"],
   "project": ["scripts/**/*.mjs", "tools/**/*.cjs", "src/**/*.js"],
-  "ignoreDependencies": ["eaos"]
+  "paths": {"eaos": ["./src/core/api.js"]}
 }

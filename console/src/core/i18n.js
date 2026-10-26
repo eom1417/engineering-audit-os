@@ -14,7 +14,7 @@ export function loadWords(lang) {
   return words()[lang] ? Promise.resolve(true) : self.EAOS_SCRIPT(`./assets/words-${lang}.js`);
 }
 
-export function fill(str, vars) {
+function fill(str, vars) {
   return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? vars[k] : m));
 }
 

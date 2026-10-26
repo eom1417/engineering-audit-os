@@ -6,7 +6,7 @@ import { t, num, esc, data, refresh, offline } from 'eaos';
 
 const got = new Map();
 /** The picture's data: address once read; null while it is read or when it cannot be (then `failed`). */
-export function picture(path) {
+function picture(path) {
   if (offline()) return { state: 'offline' };
   if (!got.has(path)) {
     const entry = { state: 'loading' };

@@ -18,7 +18,6 @@ let pushedAt = '';   // the address the opening pushed; a sheet that changed the
 /** Registers a sheet: {kind: drawer | dialog | menu | search, confirm, full, needs: [sections], render(arg, query,
  *  local) -> {title, sub, top, body, foot, head: false}, after(el, arg, local)}. It draws once its sections are read. */
 export function sheet(name, def) { sheets[name] = def; }
-export const hasSheet = name => !!sheets[name];
 export const sheetOpen = () => !!open;
 /** The open sheet's own state (see above); {} when none is open. */
 export const local = () => (open ? open.local : {});

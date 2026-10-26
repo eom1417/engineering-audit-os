@@ -3,7 +3,7 @@
 // the build's next step. A kit: stateless helpers bundled into each place that imports them (scripts/build.mjs).
 import { t, num, esc, icon, code, sev, rich, L, href, parseHash, searchTyped, act, offline, model, normalize } from 'eaos';
 
-export const q = () => parseHash().query;
+const q = () => parseHash().query;
 export const enc = encodeURIComponent;
 export const matches = normalize.matches;
 

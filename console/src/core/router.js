@@ -17,7 +17,7 @@ import { a11yRegions, hold } from './a11y.js';
 const screens = [];
 const renderHooks = [];
 /** The sections every screen's frame reads: the project's name and check, and what waits for the owner. */
-export const SHELL_NEEDS = ['head', 'decisions'];
+const SHELL_NEEDS = ['head', 'decisions'];
 /** Page states an address may ask for, to review a state the data does not have now (`?state=`); every other state
  *  comes from the data. */
 const ASKABLE = ['loading', 'empty', 'offline', 'reconnecting'];
