@@ -12,7 +12,7 @@ Every call passes the locks of eaos/core/system/studio_access.py first; every ac
 before it runs; reading actions answer at once, the others queue as runs (eaos/interfaces/studio_actions/runs.py).
 The code is in eaos/interfaces/studio_actions/centre.py; this package names what the rest of EAOS imports.
 """
-from .centre import Actions, contract, mount
+from .centre import GET_ROUTES, Actions, contract, mount
 from .previews import _where_of
 
-__all__ = ['Actions', 'contract', 'mount', '_where_of']
+__all__ = ['GET_ROUTES', 'Actions', 'contract', 'mount', '_where_of']
