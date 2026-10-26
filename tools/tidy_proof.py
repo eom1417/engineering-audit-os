@@ -224,7 +224,7 @@ def score(name, trees, mapping, model, folder):
     for number, (question, paths) in enumerate(QUESTIONS[name], 1):
         row = {'question': question}
         for when in trees:
-            want = expected(paths, mapping) if when == 'after' else paths
+            want = paths if when == 'before' else expected(paths, mapping)
             got = ask(question, trees[when], model, folder / f'ask-{when}-{number}.jsonl')
             row[when] = {**got, 'expected': want, 'right': any(p in got['paths'] for p in want)}
             print(f"  {name} Q{number} {when}: {'right' if row[when]['right'] else 'WRONG'} read={got['files_read']} tokens={got['tokens']}", flush=True)
