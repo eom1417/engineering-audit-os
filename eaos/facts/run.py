@@ -70,8 +70,7 @@ def collect_external(target, out, source, only=None, keep=False):
     if referenced:
         result['summary'] = dict(result.get('summary') or {})
         result['summary']['registry_referenced_dead_code_marked'] = referenced
-    external_entry = write_set(out, 'external', external.NAME, external.VERSION, facts, result['input_sha'],
-                                external.LIMITATIONS, result['summary'], result['available'], result['reason'])
+    external_entry = write_set(out, 'external', external.NAME, external.VERSION, external.LIMITATIONS, {**result, 'facts': facts})
     return [external_entry]
 
 
@@ -174,8 +173,7 @@ def _extract(names, target, out, source, context):
              reason_code='' if available else 'extractor_unavailable')
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
-        entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
-                                 module.LIMITATIONS, result['summary'], result['available'], result['reason']))
+        entries.append(write_set(out, name, module.NAME, module.VERSION, module.LIMITATIONS, result))
     return entries, reuse
 
 

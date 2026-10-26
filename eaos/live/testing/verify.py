@@ -394,6 +394,6 @@ def publish_facts(out, result):
                'test_files': len(result.get('test_files', [])),
                'uncovered_entry_reachable_files': result.get('uncovered_entry_reachable_files', []),
                'interpretation': 'Coverage of the command that ran. Not proof of correctness, and not proof that uncovered code is dead.'}
-    write_set(out, NAME, NAME, VERSION, facts, fingerprint, LIMITATIONS, summary,
-              available=bool(result.get('executed')), reason=result.get('reason'))
+    write_set(out, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': fingerprint, 'summary': summary,
+                                                     'available': bool(result.get('executed')), 'reason': result.get('reason')})
     return facts
