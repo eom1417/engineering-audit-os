@@ -18,6 +18,8 @@ import re
 import subprocess
 import sys
 
+from . import tiers
+
 ANSWER = 'Answer with exactly one JSON object and nothing else: no prose, no code fence.'
 
 
@@ -62,7 +64,7 @@ def call(messages, small=False, reads=None, deep=False):
     tools = ['--tools', 'Read,Grep,Glob', '--add-dir', reads, '--permission-mode', 'dontAsk'] if reads else ['--tools', '']
     argv = ['claude', '-p', *tools, '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
             '--include-partial-messages', '--system-prompt', system]
-    model = 'haiku' if small else os.environ.get('EAOS_CLAUDE_MODEL')
+    model = tiers.claude_model('light' if small else 'deep')       # the light and the deep tier of tiers.py
     if model: argv += ['--model', model]
     thinking = '0' if small else '31999' if deep else None
     envelope = stream(argv, conversation, {**os.environ, 'MAX_THINKING_TOKENS': thinking} if thinking else None)

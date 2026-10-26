@@ -29,8 +29,9 @@ ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime'
 # this list, and a set added to one of them was invisible to the others — the duplication this
 # product exists to find, in the product itself.
 # 'external' is produced here too, but only when a caller asks for engines: it shells out to
-# pinned binaries, so it never runs by default. 'boundaries' is the layers' (eaos/analysis/layers/).
-PRODUCED_ELSEWHERE = ['policy', 'verification', 'external', 'boundaries']
+# pinned binaries, so it never runs by default. 'boundaries' is the layers' (eaos/analysis/layers/); 'logic_flaws' the
+# logic-flaw hunt's (eaos/analysis/logic_flaws/), an optional deep check.
+PRODUCED_ELSEWHERE = ['policy', 'verification', 'external', 'boundaries', 'logic_flaws']
 ALL_SETS = ORDER + PRODUCED_ELSEWHERE
 # The minimum a caller needs before it can ask what a change would reach.
 GRAPH_PREREQUISITES = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph']

@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.0.81 (2026-10-26)
+
+M9, intelligence, cost and the final proof. Every stage asked the person's strongest model, the ideal's critique wrote
+60 KB that broke as JSON twice (three minutes lost on EAOS's own check), and no journey had been run end to end on a
+real app with a real assistant since the layout. Now:
+- **Model tiers** (M9.1, `eaos/ai/assistant/tiers.py`): each stage asks on its tier, as data: a card's first triage
+  and a translation on the light one (Claude Code's haiku, Codex's low effort), the gap planner, the plan's order and
+  the visual review on the standard one (sonnet, medium), the ideal and the fix review on the deep one (the person's
+  own model, high); the check's speed mode lowers standard to light; `EAOS_TIER_<STAGE>` and
+  `EAOS_CLAUDE_MODEL_<TIER>` set them. A tier that fails, or leaves batches unanswered, is asked again one tier up;
+  one that would set a card aside, call a gap no gap or a picture clean is asked again on the deep tier: a cheaper
+  model never closes anything alone. Each run records its tier and any escalation; the caches key on the tier. The
+  ideal's critique holds at most 12 short notes of each kind (the length asked in the prompt: strict schemas refuse
+  `maxLength`).
+- **Logic-flaw hunting** (M9.2, `eaos logic-flaws`, method adapted from Cloudflare's security-audit skill, MIT): an
+  optional deep check on a finished check, its time and cost said before it starts and its spend in `eaos usage`;
+  the project's text held as untrusted data; every flaw grounded on a real line of source, judged by a critic, then by
+  the triage like every card (the check goes on from its claims); a hunt of other code makes no card; a fix closes
+  its card once the cited line is gone. An independent review found nine defects before the merge, among them that
+  its findings never reached a card; each is fixed with its test.
+- **The three journeys proved** (M9.3, `tools/journeys_proof.py`, with the real assistant on the corpus's flaskr):
+  repair from the CLI (19 minutes, $2.24) and from the Studio's action API (19 minutes, $2.32); build from a PRD to
+  its first milestone's proof gate; add a feature from the CLI and MCP and from the Studio. On the way: a built
+  milestone's look was never reviewed (its copy was removed before its screens were pictured), the extend plan
+  refused a template outside a module's folder, and a project whose pytest is its pyproject test extra never ran its
+  tests while every gate said they passed. The runtime of a full check of EAOS: **68 MB** (target 100; 773 at 0.0.71).
+- **The tidy, measured** (M9.5, `tools/tidy_proof.py`): no move batch could be proved on the three corpus apps tried
+  (moves the tool cannot write, apps without tests the gate can run, an app that no longer starts after the moves,
+  which the gate now refuses instead of crashing); the target shape's moves, made unproven, made the same ten
+  questions cost 9 to 16% more tokens with the same answers. Found on the way: a move batch was committed without its
+  rewritten imports (a path a move took away failed the whole `git add`), and the gates found no suite kept at a small
+  app's root or in `tests/` by layer (EAOS's own since M8).
+- **M9.4** (the official Semgrep rules) waits for the owner's decision.
+
 ## 0.0.80 (2026-10-26)
 
 M8, interfaces and a tidy repository. The Studio could do things no assistant could ask for, its Understand had grown

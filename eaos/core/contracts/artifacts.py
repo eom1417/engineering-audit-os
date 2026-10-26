@@ -75,6 +75,12 @@ ARTIFACTS = (
              required=False, absent_when='no engine was requested, or none is installed'),
     Artifact('facts/policy.json', 'policy', RECORD, 'Every architecture-policy violation in full',
              required=False, absent_when='the project declares no architecture policy'),
+    Artifact('logic-flaws.json', 'claims', RECORD, 'The logic-flaw hunt (`eaos logic-flaws`, an optional deep check after a check): '
+             'at most 12 flaws, each grounded on a line and read twice, the candidates set aside and why, the code it read; '
+             'replaced by the next hunt, read by the claims', required=False, checked=False,
+             absent_when='the person did not ask for the logic-flaw hunt'),
+    Artifact('facts/logic_flaws.json', 'claims', RECORD, "The logic-flaw hunt's flaws as facts, the claims' input; replaced by the next hunt",
+             required=False, checked=False, absent_when='the person did not ask for the logic-flaw hunt'),
     Artifact('target-architecture.json', 'target', RECORD, 'The final target model in full, with who decided each component',
              mutated_by=('reconcile',)),
     Artifact('target-proposal.json', 'target', RECORD, "The rules' target proposal, as it was before the assistant judged it"),

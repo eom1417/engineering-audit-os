@@ -173,7 +173,9 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | running the app, signing in, finding screens | `live/`: how a stack starts in `live/app/detect.py` (JavaScript, static sites) or `live/app/detect_python.py`; the test account by rules in `live/access/test_account.py`; `live/screens/` for the crawl, the audit and the pages files name (`file_routes.py`) |
 | driving the browser for a goal, recording, replaying | `live/agent.py` with `templates/screens/agent.mjs` (the one browser-agent layer, M5.2): the assistant is passed in, never imported |
 | judging findings by rules, cards, plan, estimates | `analysis/<its folder>`: a claim in `claims/`, a ready judgement in `assessments/`, the plan in `planning/`, how a card is fixed in `repair/` |
+| an optional deep check the assistant does on a finished check (the logic-flaw hunt, M9.2) | `analysis/logic_flaws/`: the prompts and the brief in `hunt.py` (the assistant passed in, never imported), the grounding and the record in `record.py`; its facts become cards through `analysis/claims/from_logic_flaws.py`, its command in `interfaces/deep_checks.py` |
 | judging findings with an assistant (triage, the strict judge of M7.4) | `ai/` (`ai/nodes/`); `analysis/` takes its verdicts as data |
+| which model a stage asks (the light, standard and deep tiers, M9.1) | `ai/assistant/tiers.py` (each stage's tier as data, the escalation rule, each assistant's model or effort); `ai/nodes/runner.py` asks again higher |
 | anything that calls an assistant | `ai/` |
 | a simulated user: scenario, personas, data, actors, tickets | `ai/` (M10); its replays run from `live/` |
 | what people read (REPORT.html, the few documents, the Studio's data) | `report/` (`report/studio/`) |

@@ -40,7 +40,7 @@ def code():
     flat = len(list((ROOT / 'eaos').glob('*.py')))
     js, scripts = lines((ROOT / 'console' / 'src').rglob('*.js'))
     words, _ = lines((ROOT / 'console' / 'src' / 'words').glob('*.js'))
-    tests = sorted((ROOT / 'tests').glob('test_*.py'))
+    tests = sorted((ROOT / 'tests').rglob('test_*.py'))
     test_lines, test_files = lines(tests)
     cases = sum(path.read_text(encoding='utf-8').count('def test_') for path in tests)
     return [('Python lines (`eaos/`)', f'{python:,} in {modules} files ({flat} flat at the package root)'),

@@ -199,7 +199,7 @@ def _previous(out):
 # the ideal plan's raw runs another 40 MB (its record of them, ideal/runs.json, stays).
 # START-HERE.md too: kept, a check that never reached its reports showed the counts of the one before.
 BULKY = ('live/screens', 'live/screens.json', 'live/crawl', 'live/crawl.json', 'nodes/*/runs', 'nodes/*/cache', 'ideal/run-*',
-         'START-HERE.md')
+         'START-HERE.md', 'logic-flaws.json', 'facts/logic_flaws.json')     # the optional deep check's hunt, of older code
 # The documents and records a check no longer writes (M1.4: 27 documents down to 8, their records kept; M1.5:
 # reports.json, which nothing read): any run removes a previous check's,
 # or the output contract (R13) finds them undeclared and the Studio's Library lists them as if current.
@@ -296,6 +296,13 @@ def resume(target, out, redo=(), checked=False, **options):
     merged['resumed_from'] = previous['started_at']
     _write(Path(out) / MANIFEST, merged)
     return merged
+
+
+def same_source(target, out):
+    """The last check's options when `target` is the code it read; ValueError when there is no check or the code changed."""
+    previous = _previous(out)
+    if previous is None: raise ValueError('there is no check to go on from: run a check first')
+    return _resumable(target, previous)
 
 
 def _resumable(target, previous):

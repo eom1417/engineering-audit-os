@@ -12,6 +12,7 @@ fix_finish in eaos/journeys/agent_tools/: the tests, the app's own checks, the l
   (a later check keeps the cards not built yet: eaos/analysis/planning/extension.py, in the pipeline's cards stage)
 """
 import json
+import subprocess
 from pathlib import Path
 
 from ..report.blueprint import design as blueprint
@@ -78,7 +79,7 @@ def extend_plan(state, report, spec):
     """The spec checked against itself and against the project; when it holds, its cards in the project's plan."""
     report = Path(report)
     problems, questions = blueprint.validate_spec(spec, look=False)
-    if not problems: problems = fit(spec, load_policy(state['project'])[0], _functions(report), _known(report))
+    if not problems: problems = fit(spec, load_policy(state['project'])[0], _functions(report), _known(report, state['project']))
     folder(report).mkdir(parents=True, exist_ok=True)
     write(folder(report) / 'spec.json', spec)
     if problems or questions: return _unsettled(problems, questions)
@@ -216,9 +217,11 @@ def _homes(functions):
     return {name: modules for name, modules in homes.items() if len(modules) < GENERIC}
 
 
-def _known(report):
-    """Every folder the check saw a file in, '.' for the top."""
+def _known(report, project):
+    """Every folder the check saw a file in or the project keeps one in, '.' for the top: a template or a stylesheet is
+    no module the check reads, yet its folder is where the project keeps such files."""
     files = {m['id'] for m in _json(Path(report) / 'studio' / 'functions.json').get('modules') or [] if m.get('id')}
+    files |= set(filter(None, subprocess.run(['git', '-C', str(project), 'ls-files', '-z'], capture_output=True, text=True).stdout.split('\0')))
     files |= {p for c in _json(Path(report) / 'target-architecture.json').get('current_components') or [] for p in c.get('paths') or []}
     return {'.'} | {str(parent) for f in files for parent in Path(f).parents}
 

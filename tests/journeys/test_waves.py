@@ -366,6 +366,19 @@ class PythonSuiteGateTests(unittest.TestCase):
         from eaos.live.testing.verify import python_tests
         root = Path(scratch())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
+        small = Path(scratch())
+        (small / 'tests.py').write_text('')        # flask-microblog of the corpus keeps its tests at its root (M9.5)
+        (small / 'app').mkdir()
+        (small / 'app' / 'testing.py').write_text('raise SystemExit')   # never imported to find the tests
+        self.assertEqual(python_tests(small)[0][-3:], ['-m', 'unittest', 'tests'])
+        layered = Path(scratch())
+        (layered / 'tests' / 'e2e' / 'node_modules' / 'gyp').mkdir(parents=True)
+        (layered / 'tests' / 'e2e' / 'node_modules' / 'gyp' / 'test_gyp.py').write_text('')   # a dependency's
+        (layered / 'tests' / 'unit').mkdir()
+        (layered / 'tests' / 'unit' / 'test_a.py').write_text('')    # a folder unittest cannot enter
+        self.assertEqual(python_tests(layered), [])
+        (layered / 'tests' / 'unit' / '__init__.py').write_text('')  # EAOS's own since M8: its check found no suite
+        self.assertEqual(python_tests(layered)[0][-3:], ['discover', '-s', 'tests'])
         (root / 'tests').mkdir()
         (root / 'tests' / 'test_a.py').write_text('')
         self.assertEqual(python_tests(root)[0][-3:], ['discover', '-s', 'tests'])

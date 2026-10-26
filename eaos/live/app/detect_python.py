@@ -3,6 +3,7 @@ and Streamlit, found from the project's files alone; how it installs, prepares i
 and the environment names its code reads. Deterministic: a Python app runs without an assistant (the corpus' four
 Python apps never started without one, M5.1)."""
 import re
+import tomllib
 from pathlib import Path
 
 PY_ENV = re.compile(r'''os\.(?:environ\.get|getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.environ\[\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*\]''')
@@ -108,10 +109,21 @@ def served_pages(live):
 
 
 def install(app):
-    if (app / 'requirements.txt').is_file(): return [['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check', '-r', 'requirements.txt']]
-    if (app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file():
-        return [['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check', '-e', '.']]
-    return [['true']]
+    pip = ['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check']
+    extra = test_extra(app)
+    steps = [pip + ['-r', 'requirements.txt']] if (app / 'requirements.txt').is_file() else []
+    if (not steps or extra) and ((app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file()):
+        steps.append(pip + ['-e', f'.[{extra}]' if extra else '.'])      # the test extra beside the requirements too
+    return steps or [['true']]
+
+
+def test_extra(app):
+    """The pyproject.toml extra that brings pytest (`[project.optional-dependencies] test = ["pytest"]`), or None: its
+    tests need it installed (flaskr of the corpus: every gate said its tests passed, and none had run, M9.3)."""
+    try: extras = tomllib.loads(_read(app / 'pyproject.toml')).get('project', {}).get('optional-dependencies') or {}
+    except (tomllib.TOMLDecodeError, AttributeError): return None
+    if not isinstance(extras, dict): return None
+    return next((name for name, deps in extras.items() if any(re.match(r'pytest\b', str(d).strip().lower()) for d in deps)), None)
 
 
 def prepare(kind, target, app, needs, modules):
@@ -155,7 +167,7 @@ def detect(project):
     env, unset = environment_values(names, port, None)
     profile = {'schema_version': 1, 'app': where, 'install': install(app), 'start': start(kind, target, port), 'port': port,
                'health': '/', 'start_timeout': 180, 'env': {'PYTHONUNBUFFERED': '1', **env},
-               'checks': [['python', '-m', 'pytest', '-q']] if re.search(r'^pytest\b', needs, re.M) else []}
+               'checks': [['python', '-m', 'pytest', '-q']] if re.search(r'^pytest\b', needs, re.M) or test_extra(app) else []}
     commands = prepare(kind, target, app, needs, modules)
     if commands: profile['prepare'] = commands
     if kind == 'django':

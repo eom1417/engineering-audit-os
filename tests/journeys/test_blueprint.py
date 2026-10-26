@@ -297,7 +297,8 @@ class BuildTests(unittest.TestCase):
         self.assertFalse(refused['kept'])
         self.assertFalse((root / 'package.json').exists(), 'a refused card is taken back')
         with mock.patch.object(build_tools, '_gates', return_value=[]), \
-                mock.patch.object(build_tools.build_look, 'look', return_value={'screens': 2, 'departures': []}) as looked:
+                mock.patch.object(build_tools.build_look, 'look', side_effect=lambda state, root, progress, final=False:   # on the copy, still there
+                                  {'screens': 2 if Path(root).is_dir() else 0, 'departures': []}) as looked:
             kept = build_tools._build_edit_job(self.project, edit, lambda *_: None)
             self.assertTrue(kept['kept'])
             finished = build_tools._build_finish_job(self.project, {}, lambda *_: None)
@@ -349,6 +350,29 @@ class LookTests(unittest.TestCase):
 
 
 class ExtendTests(unittest.TestCase):
+    def test_a_file_of_a_kind_the_check_reads_no_module_of_fits_the_folder_the_project_keeps_it_in(self):
+        # M9.3: on flaskr an About page's template was refused, its folder unknown: the check knew only the Python modules
+        import json
+        from eaos.journeys import agent_tools, extend
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):
+            project = Path(tmp) / 'blog'
+            (project / 'blog/templates/blog').mkdir(parents=True)
+            (project / 'blog/views.py').write_text('def index(): pass\n')
+            (project / 'blog/templates/blog/index.html').write_text('<h1>Posts</h1>\n')
+            subprocess.run(['git', 'init', '-q', str(project)], check=True)
+            subprocess.run(['git', '-C', str(project), 'add', '.'], check=True)
+            state = agent_tools.state_of(str(project))
+            report = guided.report_of(state)
+            (report / 'studio').mkdir(parents=True)
+            (report / 'plan.json').write_text(json.dumps({'tasks': [], 'milestones': []}))
+            (report / 'studio/functions.json').write_text(json.dumps({'functions': [], 'modules': [{'id': 'blog/views.py'}]}))
+            feature = {'id': 'F1', 'name': 'About', 'module': 'about', 'acceptance': ['/about says what the blog is'],
+                       'paths': ['blog/views.py', 'blog/templates/blog/about.html', 'nowhere/about.html']}
+            wanted = spec(modules=[{'id': 'about', 'name': 'About', 'responsibility': 'the about page'}], entities=[], roles=[],
+                          flows=[{'id': 'FL1', 'name': 'Read', 'features': ['F1']}], features=[feature], look=None)
+            problems = extend.extend_plan(state, report, wanted)['problems']
+            self.assertEqual(problems, ['feature F1: nowhere/about.html is in no folder the project has: put it beside the code of its kind'])
+
     def test_a_feature_is_planned_into_the_checked_project_reusing_it_and_built_as_a_batch(self):
         import json
         from eaos.journeys import agent_tools, extend

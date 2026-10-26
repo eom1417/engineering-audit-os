@@ -38,9 +38,27 @@ def proposal(report, target):
     for move in drawn:
         if move['from'] in seen: continue
         seen.add(move['from'])
-        refused = moves.plan(target, [move], known)['refused']
+        refused = _cannot(target, move, known) + _shared_place(move, drawn)
         rows.append({'id': move_id(move), **move, 'refused': '; '.join(refused)})
     return {'moves': rows, 'tree': tree(rows), 'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
+
+
+def _cannot(target, move, known):
+    """Why the move tool cannot make the move alone: its plan, then the imports it would write (nothing written). The
+    plan alone let flaskr/auth.py be proposed into services/auth/, and the batch was refused whole at make: the package's
+    `from . import auth` cannot reach a module outside the package."""
+    drawn = moves.plan(target, [move], known)
+    if drawn['refused']: return drawn['refused']
+    try: moves.edits(target, drawn, known)
+    except Unmovable as problem: return [str(problem)]
+    return []
+
+
+def _shared_place(move, drawn):
+    """Another drawn move sends a different file to the same place: each looks makeable alone, never both together, and
+    a batch holding both is refused whole (two email.py files of a Flask app drawn into one feature folder)."""
+    others = sorted({m['from'] for m in drawn if m['to'] == move['to'] and m['from'] != move['from']})
+    return [f"{', '.join(others)} would become {move['to']} too"] if others else []
 
 
 def _set(report, name):
@@ -155,7 +173,8 @@ def make(batch):
     batch = {**batch, 'kind': 'moves', 'items': batch['moves']}
     root, base = own_batch(batch['target'], batch['runtime'], f"MOVES-{batch['number']}")
     say('before')
-    before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
+    try: before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
+    except RuntimeError as problem: return record_batch(batch, root, base, [], [f'proposal only: the app could not be set up before the moves: {str(problem)[-400:]}'])
     if (why := move_gate.unproven(before['checks'])): return record_batch(batch, root, base, [], ['proposal only: ' + why])
     before['surface'] = move_gate.surface(root, moves.files(root))
     before['mapping'] = moves.plan(root, batch['moves'])['mapping']
@@ -173,7 +192,8 @@ def make(batch):
 
 def _gate(batch, root, before):
     """Every difference the moves made: the surface, the tests and checks, what is newly broken, the screens."""
-    after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
+    try: after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
+    except RuntimeError as problem: return [f'the app could not be set up after the moves, as it was before them: {str(problem)[-500:]}']
     out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)), before['mapping'])
     out += move_gate.test_differences(before['checks'], after, before['mapping'])
     return out + new_breakage(batch['report'], root) + _lock(batch, root)

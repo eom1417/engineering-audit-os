@@ -84,3 +84,11 @@ package managers.
 | [frontend-design (Anthropic skills)](https://github.com/anthropics/skills) | Anthropic, PBC | Apache-2.0 | its SKILL.md read as guidance; the repository's other skills are not used |
 | [shadcn/ui](https://github.com/shadcn-ui/ui) | shadcn | MIT | installed into a built project by its own CLI |
 | [Fontsource](https://github.com/fontsource/fontsource) and the fonts it serves | their authors | MIT (tooling), OFL-1.1 (fonts) | installed into a built project by npm |
+
+## Method sources
+
+Ideas and prompt structure adapted into EAOS's own words; no code is copied. Licence texts in `upstreams/licenses/`.
+
+| Source | Copyright | Licence | Used how |
+| --- | --- | --- | --- |
+| [security-audit-skill](https://github.com/cloudflare/security-audit-skill) | Cloudflare, Inc. | MIT | ideas and prompt structure adapted for the logic-flaw hunt (`eaos/analysis/logic_flaws/`), no code |
