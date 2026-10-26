@@ -5,9 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.analysis.claims.from_logic_flaws import logic_flaws, present
+from eaos.analysis.claims.ledger import from_facts
+from eaos.analysis.claims.probe_queries import run_graph_query
 from eaos.analysis.logic_flaws import hunt, record
-from eaos.facts.store import read_set
+from eaos.facts.run import read_available
 
 ROUTE = "app.post('/orders/:id/refund', (req, res) => {\n  const order = find(req.params.id)\n  refund(order, req.body.amount)\n  res.json(order)\n})\n"
 
@@ -52,13 +53,11 @@ class LogicFlawsTest(unittest.TestCase):
         self.assertIn('refund(order, req.body.amount)', kept['excerpt'])
         self.assertEqual([a['stage'] for a in assistant.asked], ['logic_flaws', 'logic_flaws_critic'])
         self.assertTrue(all(a['deep'] and a['reads'] == str(self.project.resolve()) for a in assistant.asked))
-        claims = []
-        sets = {'logic_flaws': read_set(self.out, 'logic_flaws')}
-        logic_flaws(sets, lambda *args, **extra: claims.append((args, extra)), self.project)
-        (statement, kind, confidence, method, _), extra = claims[0]
-        self.assertEqual((kind, confidence, method), ('risk', 'LIKELY', ['model_inference']))
-        self.assertEqual(extra['render']['params']['boundary'], 'rules')
-        self.assertEqual(present(extra['probe_spec']['specification'], sets)[0], 'CONFIRMED')
+        sets = read_available(self.out)                     # how claims, cards and probes read a report's facts
+        self.assertIn('logic_flaws', sets)
+        claim = [c for c in from_facts(sets, target=self.project) if c['statement'] == flaw()['title']][0]
+        self.assertEqual((claim['claim_type'], claim['confidence']), ('risk', 'LIKELY'))
+        self.assertEqual(run_graph_query(claim['probe_spec']['specification'], sets)[0], 'CONFIRMED')
 
     def test_open_writes_are_read_first(self):
         routes = [row['route'] for row in hunt.brief(self.out)['endpoints']]
