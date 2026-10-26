@@ -221,7 +221,7 @@ def _known(report, project):
     """Every folder the check saw a file in or the project keeps one in, '.' for the top: a template or a stylesheet is
     no module the check reads, yet its folder is where the project keeps such files."""
     files = {m['id'] for m in _json(Path(report) / 'studio' / 'functions.json').get('modules') or [] if m.get('id')}
-    files |= set(subprocess.run(['git', '-C', str(project), 'ls-files'], capture_output=True, text=True).stdout.splitlines())
+    files |= set(filter(None, subprocess.run(['git', '-C', str(project), 'ls-files', '-z'], capture_output=True, text=True).stdout.split('\0')))
     files |= {p for c in _json(Path(report) / 'target-architecture.json').get('current_components') or [] for p in c.get('paths') or []}
     return {'.'} | {str(parent) for f in files for parent in Path(f).parents}
 

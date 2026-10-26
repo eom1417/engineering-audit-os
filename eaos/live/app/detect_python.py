@@ -109,18 +109,20 @@ def served_pages(live):
 
 
 def install(app):
-    if (app / 'requirements.txt').is_file(): return [['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check', '-r', 'requirements.txt']]
-    if (app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file():
-        extra = test_extra(app)
-        return [['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check', '-e', f'.[{extra}]' if extra else '.']]
-    return [['true']]
+    pip = ['python', '-m', 'pip', 'install', '-q', '--disable-pip-version-check']
+    extra = test_extra(app)
+    steps = [pip + ['-r', 'requirements.txt']] if (app / 'requirements.txt').is_file() else []
+    if (not steps or extra) and ((app / 'pyproject.toml').is_file() or (app / 'setup.py').is_file()):
+        steps.append(pip + ['-e', f'.[{extra}]' if extra else '.'])      # the test extra beside the requirements too
+    return steps or [['true']]
 
 
 def test_extra(app):
     """The pyproject.toml extra that brings pytest (`[project.optional-dependencies] test = ["pytest"]`), or None: its
     tests need it installed (flaskr of the corpus: every gate said its tests passed, and none had run, M9.3)."""
     try: extras = tomllib.loads(_read(app / 'pyproject.toml')).get('project', {}).get('optional-dependencies') or {}
-    except tomllib.TOMLDecodeError: return None
+    except (tomllib.TOMLDecodeError, AttributeError): return None
+    if not isinstance(extras, dict): return None
     return next((name for name, deps in extras.items() if any(re.match(r'pytest\b', str(d).strip().lower()) for d in deps)), None)
 
 

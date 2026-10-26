@@ -212,15 +212,17 @@ def extend(scratch):
 def served(journey, app):
     """A Studio of the app on PORT for the journey's steps; its action API once it answers, else None."""
     token_file = journey.folder / 'studio.token'
+    log = open(journey.folder / 'studio.log', 'a')
     server = subprocess.Popen([EAOS, 'studio', str(app), '--port', str(PORT), '--no-open'], stdin=subprocess.DEVNULL,
-                              stdout=open(journey.folder / 'studio.log', 'a'), stderr=subprocess.STDOUT,
-                              env={**os.environ, 'EAOS_STUDIO_TOKEN_FILE': str(token_file)})
+                              stdout=log, stderr=subprocess.STDOUT, env={**os.environ, 'EAOS_STUDIO_TOKEN_FILE': str(token_file)})
     try:
         up = journey.step('studio up', lambda: studio_up(token_file))
         yield Studio(token_file.read_text(encoding='utf-8').strip()) if up['passed'] else None
-    finally:
+    finally:      # never left running: a Studio outliving the proof keeps its runs and their assistant going
         server.terminate()
-        server.wait(30)
+        try: server.wait(30)
+        except subprocess.TimeoutExpired: server.kill()
+        log.close()
 
 
 def repair_studio(scratch):

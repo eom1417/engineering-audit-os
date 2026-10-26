@@ -51,6 +51,18 @@ class MoveBatchTests(Workspace):
                 mock.patch.object(move_batch, 'named_checks', checks), mock.patch.object(move_batch, 'new_breakage', return_value=[]):
             return move_batch.make({'report': report, 'target': root, 'runtime': runtime, 'number': 1, 'moves': chosen})
 
+    def test_a_batch_commits_its_own_paths_even_in_an_ignored_folder_and_never_everything(self):
+        from eaos.journeys.fix.execute import commit_all
+        root = self.project({'.gitignore': 'lib/\n', 'a.py': 'x = 1\n'})
+        git(root, 'mv', 'a.py', 'b.py')
+        (root / 'lib').mkdir()
+        (root / 'lib' / '__init__.py').write_text('')
+        (root / 'leftover.db').write_text('a run left it')
+        commit_all(root, 'moves', ['a.py', 'b.py', 'lib/__init__.py'])
+        self.assertEqual(sorted(git(root, 'ls-files').split()), ['.gitignore', 'b.py', 'lib/__init__.py'], 'the move and its new package')
+        with self.assertRaises(RuntimeError): commit_all(root, 'nothing', ['gone.py'])
+        self.assertIn('leftover.db', git(root, 'status', '--porcelain'), 'what a run left is never committed')
+
     def test_a_sound_batch_is_kept_on_its_own_branch_and_one_that_breaks_a_test_is_refused_whole(self):
         root = self.project(SHOP)
         summary = self.make(root, FAMILY)

@@ -171,7 +171,9 @@ def ask(question, tree, model, log):
             '--json-schema', json.dumps(SCHEMA), '--tools', 'Read,Grep,Glob', '--allowedTools', 'Read', 'Grep', 'Glob',
             '--permission-mode', 'dontAsk', '--strict-mcp-config', '--no-session-persistence']
     began = time.monotonic()
-    done = run(argv, tree, timeout=600)
+    try: done = run(argv, tree, timeout=600)
+    except subprocess.TimeoutExpired:      # one hung question is its own failure, never the app's other paid answers
+        return {'paths': [], 'said_read': None, 'files_read': 0, 'tool_calls': 0, 'cost': None, 'seconds': 600, 'tokens': 0, 'error': 'timeout'}
     log.write_text(done.stdout, encoding='utf-8')
     calls, result = _stream(done.stdout)
     read = {_relative(block['input'].get('file_path', ''), tree) for block in calls if block['name'] == 'Read'}
@@ -308,7 +310,8 @@ def main(argv):
         print(json.dumps({n: totals(rows, 'unproven') for n, rows in asked.items()}))
         return 0
     catalog = {app['name']: app for app in json.loads(corpus.CATALOG.read_text(encoding='utf-8'))['apps']}
-    results = {}
+    kept = scratch / 'tidy-proof.json'      # a run of some apps keeps the others' results
+    results = json.loads(kept.read_text(encoding='utf-8')) if kept.is_file() else {}
     for name in names:
         results[name] = prove(catalog[name], scratch / name, model, '--no-ask' not in argv)
         (scratch / 'tidy-proof.json').write_text(json.dumps(results, indent=1, default=str) + '\n', encoding='utf-8')

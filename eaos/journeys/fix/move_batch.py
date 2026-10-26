@@ -173,7 +173,8 @@ def make(batch):
     batch = {**batch, 'kind': 'moves', 'items': batch['moves']}
     root, base = own_batch(batch['target'], batch['runtime'], f"MOVES-{batch['number']}")
     say('before')
-    before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
+    try: before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
+    except RuntimeError as problem: return record_batch(batch, root, base, [], [f'proposal only: the app could not be set up before the moves: {str(problem)[-400:]}'])
     if (why := move_gate.unproven(before['checks'])): return record_batch(batch, root, base, [], ['proposal only: ' + why])
     before['surface'] = move_gate.surface(root, moves.files(root))
     before['mapping'] = moves.plan(root, batch['moves'])['mapping']
@@ -192,7 +193,7 @@ def make(batch):
 def _gate(batch, root, before):
     """Every difference the moves made: the surface, the tests and checks, what is newly broken, the screens."""
     try: after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after", [(r['argv'], r['at_root']) for r in before['checks']])
-    except RuntimeError as problem: return [f'the app no longer starts after the moves: {str(problem)[-500:]}']
+    except RuntimeError as problem: return [f'the app could not be set up after the moves, as it was before them: {str(problem)[-500:]}']
     out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)), before['mapping'])
     out += move_gate.test_differences(before['checks'], after, before['mapping'])
     return out + new_breakage(batch['report'], root) + _lock(batch, root)

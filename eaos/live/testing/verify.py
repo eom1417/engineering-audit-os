@@ -17,7 +17,6 @@ import json
 import os
 import re
 from pathlib import Path
-import sys
 import shutil
 import subprocess
 import tempfile
@@ -25,6 +24,7 @@ import time
 from ...facts import digest, make
 from ...facts.source import Source
 from ...facts.store import read_set, write_set
+from .python_suite import DEFAULT_COMMANDS, INTERPRETER, command as _python_suite
 
 NAME = 'verification'
 VERSION = '1'
@@ -38,10 +38,6 @@ LIMITATIONS = [
     'Test discovery by path convention misses suites that do not follow it.',
     'Commands run with the interpreter running EAOS unless an absolute one is configured; a project needing its own virtualenv must configure the command explicitly.',
 ]
-# The interpreter running EAOS is the one sure to exist with the runtime extra: a bare `python` on PATH lost all
-# execution evidence where only `python3` ships.
-INTERPRETER = sys.executable or 'python3'
-DEFAULT_COMMANDS = [[INTERPRETER, '-m', 'pytest', '-q'], [INTERPRETER, '-m', 'unittest', 'discover', '-s', 'tests']]
 INTERPRETER_NAMES = {'python', 'python3', 'py'}
 
 
@@ -191,20 +187,11 @@ TEST_WORDS = re.compile(r'(^|[^a-z])(test|tests|pytest|unittest|vitest|jest|moch
 
 
 def python_tests(target, profile=None):
-    """The command that runs a Python project's tests from its root, as the coverage stage and the batch gates (eaos/journeys/fix/execute.py) run them:
-    pytest when configured, else unittest on tests/ (by layer too) or on the root's tests.py and test_*.py (M9.5: the
-    move gate proved nothing of a small app keeping them there); [] without any, or when the run profile runs a suite."""
-    root = Path(target)
+    """[the command that runs a Python project's own tests from its root] (python_suite.py), as the coverage stage and
+    the batch gates (eaos/journeys/fix/execute.py) run them; [] without any, or when the run profile runs a suite."""
     if any(Path(str(argv[0])).name in INTERPRETER_NAMES for argv in test_commands(profile)): return []   # the profile runs them
-    folder, beside = any((root / 'tests').rglob('test_*.py')), (root / 'tests.py').is_file() or any(root.glob('test_*.py'))
-    if not (folder or beside): return []
-    if _pytest_configured(root): return [DEFAULT_COMMANDS[0]]
-    return [DEFAULT_COMMANDS[1] if folder else [INTERPRETER, '-m', 'unittest', 'discover', '-s', '.', '-p', 'test*.py']]
-
-
-def _pytest_configured(root):
-    toml = root / 'pyproject.toml'
-    return any((root / n).is_file() for n in ('pytest.ini', 'conftest.py')) or (toml.is_file() and '[tool.pytest' in toml.read_text(errors='replace'))
+    found = _python_suite(target)
+    return [found] if found else []
 
 
 def test_commands(profile):
