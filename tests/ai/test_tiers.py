@@ -51,8 +51,8 @@ class Stages(unittest.TestCase):
     def test_the_ideal_critique_is_held_short_so_its_answer_parses_the_first_time(self):
         # EAOS on itself (2026-10-22): an unbounded critique wrote 60 KB that broke as JSON twice, three minutes lost.
         missed = ideal_prompts.CRITIQUE_SCHEMA['properties']['critique']['properties']['missed']
-        self.assertEqual((missed['maxItems'], missed['items']['properties']['what']['maxLength']),
-                         (ideal_prompts.NOTES, ideal_prompts.NOTE_CHARS))
+        self.assertEqual(missed['maxItems'], ideal_prompts.NOTES)
+        self.assertIn(f'under {ideal_prompts.NOTE_CHARS} characters', ideal_prompts.prompt_critique({'project': {'language': 'en'}}, {}))
 
 
 class Escalation(unittest.TestCase):
@@ -81,6 +81,17 @@ class Escalation(unittest.TestCase):
             return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}
         record = self.triage(Tiered(make))
         self.assertEqual((record['method'], record['tier'], record['escalated']['from']), ('model', 'standard', 'light'))
+
+    def test_a_tier_reached_after_a_failure_still_never_closes_alone(self):
+        # the review of M9.1: light failed, standard answered "reject", and the reject stood without the deep tier
+        def make(tier):
+            if tier == 'light': raise ValueError('not the asked JSON')
+            choice = 'confirm' if tier == 'deep' else 'reject'
+            return {'summary': '', 'decisions': [decision('TASK-001', choice, ['TASK-001'], detail={'harmed': 'the app users'})]}
+        launcher = Tiered(make)
+        record = self.triage(launcher)
+        self.assertEqual((launcher.tiers[:3], record['tier']), (['light', 'standard', 'deep'], 'deep'))
+        self.assertEqual(next(d for d in record['decisions'] if d['subject'] == 'TASK-001')['decision'], 'confirm')
 
 
 if __name__ == '__main__':

@@ -56,7 +56,9 @@ class Run:
         self.at, self.began = now(), time.monotonic()
         self.base = {'at': self.at, 'inputs': digest(data), 'passes': list(node.passes), 'summary': ''}
         self.unanswered = None      # {asked, failed, why}: some batches failed, the rules decided their subjects
-        self.escalated = None       # {to, why}: the stage's tier was asked again one tier up (tiers.py)
+        self.escalated = None       # {from, to, why}: the stage's tier was asked again higher (tiers.py)
+        mode = settings['mode'] if settings['mode'] != 'normal' else getattr(settings['assistants'], 'mode', 'normal')
+        self.tier = tiers.tier_of(node.name, mode)      # the tier it starts on, part of its cache keys
 
     def done(self, row, key=None):
         row = keep(self.report, self.node, row, key, self.settings['logged'])
@@ -106,7 +108,7 @@ class Run:
         """The cache key of a run: the node, its version, what is asked and the decisions kept from before."""
         node = self.node
         return digest([node.name, node.version, getattr(self.spec, 'VERSION', '1'), [digest(p) for _, _, p in asks],
-                       [digest(s) for _, s, _ in asks], before])
+                       [digest(s) for _, s, _ in asks], before, self.tier])
 
     def _judged(self):
         """(the decisions kept, the data left to ask, None when nothing is): a subject of the node's list (spec.LIST)
@@ -125,7 +127,7 @@ class Run:
         return before, ({**self.data, field: left} if left else None)
 
     def _item_key(self, item):
-        return 'one-' + digest([self.node.name, self.node.version, getattr(self.spec, 'VERSION', '1'), self.frame, item])
+        return 'one-' + digest([self.node.name, self.node.version, getattr(self.spec, 'VERSION', '1'), self.frame, item, self.tier])
 
     def _remember(self, answer):
         """Each decision on a subject of the node's list, kept under its own input (_judged)."""
@@ -143,29 +145,33 @@ class Run:
         stamp = self.at.replace(':', '').replace('+0000', 'Z')
         images = self.spec.images(self.data) if hasattr(self.spec, 'images') else ()
         launcher = s['launcher'] or launcher_of(s['adapters'], folder_of(self.report, self.node) / 'runs' / stamp, s['cancel'], s['started'], images)
-        mode = s['mode'] if s['mode'] != 'normal' else getattr(s['assistants'], 'mode', 'normal')
-        if hasattr(launcher, 'tier'): launcher.tier = tiers.tier_of(self.node.name, mode)     # the person's assistant (AdapterLauncher)
+        if hasattr(launcher, 'tier'): launcher.tier = self.tier     # the person's assistant (AdapterLauncher)
         return launcher
 
     def _tiered(self, launcher, asks, asked, detail):
-        """The answer on the stage's tier; one that failed is asked again a tier up, and one that would close something
-        (tiers.CLOSING) again on the deep tier: a cheaper model never drops or closes anything alone."""
-        tier = getattr(launcher, 'tier', None)
-        try: answer, critique = self._ask(launcher, asks, asked, detail)
-        except Stuck: raise
-        except Exception as problem:   # noqa: BLE001 - a tier above answers it, or the rules fall back (go)
-            if self._stopped() or tiers.up(tier) is None: raise
-            return self._again(launcher, tiers.up(tier), f'the {tier} tier failed: {short(problem, 200)}', (asks, asked, detail))
-        closing = [] if tiers.up(tier) is None else tiers.closes(self.node.name, answer.get('decisions'))
-        if closing: return self._again(launcher, 'deep', f'the {tier} tier would close {len(closing)}', (asks, asked, detail))
-        return answer, critique
+        """The answer on the stage's tier, asked again higher until it stands: a tier that failed, or left some batches
+        unanswered, one tier up; one that would close something (tiers.CLOSING) on the deep tier. So a cheaper model
+        never drops or closes anything alone."""
+        while True:
+            tier = getattr(launcher, 'tier', None)
+            try: answer, critique = self._ask(launcher, asks, asked, detail)
+            except Stuck: raise
+            except Exception as problem:   # noqa: BLE001 - a tier above answers it, or the rules fall back (go)
+                if self._stopped() or tiers.up(tier) is None: raise
+                self._up(launcher, tiers.up(tier), f'the {tier} tier failed: {short(problem, 200)}', (asks, asked))
+                continue
+            if tiers.up(tier) is None: return answer, critique
+            if self.unanswered: self._up(launcher, tiers.up(tier), f'the {tier} tier left {self.unanswered["failed"]} batches unanswered', (asks, asked))
+            elif tiers.closes(self.node.name, answer.get('decisions')): self._up(launcher, 'deep', f'the {tier} tier would close a subject', (asks, asked))
+            else: return answer, critique
 
-    def _again(self, launcher, tier, why, job):
-        """`job` (asks, asked, detail) asked again on `tier`."""
-        self.escalated = {'from': launcher.tier, 'to': tier, 'why': why}
+    def _up(self, launcher, tier, why, job):
+        """The next ask on `tier`; `job` (asks, asked): the asks counted again."""
+        asks, asked = job
+        self.escalated, self.unanswered = {'from': launcher.tier, 'to': tier, 'why': why}, None
         self.tell(f'{self.node.title}: {why}; asked again on the {tier} tier', f'{self.node.title}: يُسأل من جديد على مستوى أعلى ({tier})')
         launcher.tier = tier
-        return self._ask(launcher, *job)
+        asked.extend(p for _, _, p in asks)
 
     def _ask(self, launcher, asks, asked, detail):
         """(answer, critique): one ask per batch, several at once when the check allows several assistants, joined in

@@ -6,8 +6,9 @@ the model (Claude Code: haiku, sonnet, the person's own) or the reasoning effort
                        the scenario planner, the judge) on the deep one; a stage not listed asks on the deep tier
     tier_of(stage)     the stage's tier; EAOS_TIER_<STAGE> sets one stage, the check's speed mode lowers standard to light
     up(tier)           the next tier: a cheaper tier that fails, or that would close something, asks again one tier up
-    CLOSING            the decisions a cheaper tier never takes alone: one that would set a card aside or call a gap no
-                       gap is asked again on the deep tier, so a cheaper model never drops or closes anything
+    CLOSING            the decisions a cheaper tier never takes alone: one that would set a card aside, call a gap no
+                       gap or a picture clean is asked again on the deep tier, so a cheaper model never drops or closes
+                       anything
     claude_model(tier) / codex_effort(tier)   what each assistant is told; EAOS_CLAUDE_MODEL_<TIER> overrides a tier's
                        model, EAOS_CLAUDE_MODEL the deep one (the person's own model when unset)
 """
@@ -17,7 +18,7 @@ TIERS = ('light', 'standard', 'deep')
 STAGES = {'card_triage': 'light', 'translation': 'light', 'actor': 'light',
           'visual_reviewer': 'standard', 'pipeline_gap_planner': 'standard', 'plan_orderer': 'standard',
           'ideal_planner': 'deep', 'fix_reviewer': 'deep', 'scenario_planner': 'deep', 'judge': 'deep'}
-CLOSING = {'card_triage': ('reject',), 'pipeline_gap_planner': ('not a gap',)}
+CLOSING = {'card_triage': ('reject',), 'pipeline_gap_planner': ('not a gap',), 'visual_reviewer': ('clean',)}
 CLAUDE = {'light': 'haiku', 'standard': 'sonnet', 'deep': None}
 CODEX = {'light': 'low', 'standard': 'medium', 'deep': 'high'}
 

@@ -41,10 +41,10 @@ def part_schema(views):
 
 # The critique's notes are short and few: unbounded, one wrote 60 KB that broke as JSON twice before it parsed (the check
 # of EAOS, 2026-10-22, three minutes lost); its changes carry the work, the notes only say why.
+# The length is asked in the prompt, not the schema: strict structured outputs refuse maxLength (Codex), and a model held
+# to it retries until it gives up.
 NOTE_CHARS, NOTES = 300, 12
-_NOTE_TEXT = {'type': 'string', 'maxLength': NOTE_CHARS}
-_NOTE = lambda *names: {'type': 'array', 'maxItems': NOTES,
-                        'items': _strict({name: (_STRS if name == 'cites' else _STR if name in ('view', 'element') else _NOTE_TEXT) for name in names})}
+_NOTE = lambda *names: {'type': 'array', 'maxItems': NOTES, 'items': _strict({name: (_STRS if name == 'cites' else _STR) for name in names})}
 _VIEW_NAME = {'type': 'string', 'enum': list(VIEWS)}
 CRITIQUE_SCHEMA = _strict({'critique': _strict({'missed': _NOTE('view', 'what', 'cites'), 'risks': _NOTE('view', 'element', 'risk', 'cites'),
                                                 'order': _NOTE('issue', 'suggestion', 'cites')}),
