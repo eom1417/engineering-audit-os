@@ -37,6 +37,8 @@ completes it. A department with no card here is a gap in the plan.
 | Discovery: the questions only the owner can answer | the intake, the coverage ledger, the sign-in question that says what EAOS tried (M5.3), each layer's questions (M6) | M7.4 (the judge asks what it cannot decide) |
 | Architecture: the ideal shape and the decision | the ideal picture, repair or rebuild, target architecture, every project read as layers with its boundaries (M6) | M7.4 (the judge reads the broken boundary) |
 | Code quality | dead code, duplication, complexity, the code laws | M8.4 (EAOS itself clean by its own laws) |
+| Repository craft: a layout any engineer or assistant finds their way in | the layer map (M6), the target shape's moves, leftovers, documents that name a missing command | M7.8 (seen), M8.5 (moved safely), M8.7 (born tidy), M8.8 (EAOS itself), M9.5 (proved) |
+| The assistants' context: what an AI reads every session | EAOS writes its own guide between marker lines only | M7.9 (measured), M8.6 (trimmed safely), M9.5 (proved) |
 | Security | Semgrep, Bandit, CodeQL, gitleaks, osv-scanner; what ships to the browser, every endpoint's guard, the API tried with two accounts (M6) | M7.4 (the judge), M7.5 (the security engines after each batch), M9.2 (logic flaws) |
 | Data | the data facts, rule duplication, the data layer's rules read and tried per table, one source of business rules (M6) | M9.2 (logic flaws) |
 | Quality assurance | the behaviour lock, acceptance checks, Python suite health, the tests layer: every write no test reaches (M6) | M10.4 (replays) |
@@ -77,9 +79,34 @@ completes it. A department with no card here is a gap in the plan.
   (EAOS's own `build_info.py`, a Java or Rust project's `target` package in its source tree) became a leftover card
   (found by the code layout, 2026-10-26); a file the project imports, or that sits beside source it imports, is
   source.
-- Target: a batch that breaks behaviour or a boundary never reaches the person's branch; every journey ends.
+- **M7.8** The repository read as an engineer reads it. Read-only and inside the existing check: no new engine, stage
+  or AI call, a few seconds. From the facts already gathered (the files, the import graph, the documents) and one rules
+  file, `rules/repository-craft.json` (every threshold is data, the owner's to change), low-severity findings of their
+  own kind, each with its evidence:
+  - a crowded folder: more source files at one level than the rule allows;
+  - a family of files sharing a prefix that wants its own folder (`pipeline_*`);
+  - a name that says nothing (`utils`, `helpers`, `misc`, `new_`, `_old`, `copy`, `v2`);
+  - a source folder named as tools skip it or call it output (`build`, `target`, `dist`, `out`: the trap of the code
+    layout, the other face of M7.7);
+  - a document naming a path that is not there (beside the missing commands of `facts/defects/broken.py`);
+  - tests whose layout does not follow the code's.
 
-### M8 Interfaces: CLI and MCP first, Studio light, EAOS clean
+  A framework's own layout is never a finding (Next.js `app/`, Django apps, Rails: the conventions of
+  `rules/reference-architectures.json`). With the target shape's moves (`analysis/target_state/projection.py`) it draws
+  one tree, "today → proposed", each move with its reason: the person's decision, never imposed. It is its own section,
+  after the real problems (security, breakage), and never raises the risk grade; in REPORT.html, START-HERE, the
+  Studio and MCP. The M7.4 judge rules on each finding before it becomes a card. Proof: no finding on
+  `tests/fixtures/baseline-clean`, the planted ones of `baseline-app` found, the noise on the corpus measured.
+- **M7.9** The assistants' context, measured (read-only, the same rules file): every file an assistant reads at the start
+  of a session (`AGENTS.md`, `CLAUDE.md` and the files it imports with `@`, `GEMINI.md`, `.cursor/rules`,
+  `.github/copilot-instructions.md`, the project's skills and the plans they point to) with its size in tokens per
+  session; lines said twice across them; done items still in them; paths and commands they name that are not there
+  (`broken.py`). Each finding says the tokens every session would save. EAOS's own block between its marker lines
+  (`ai/assistant/setup.py`) is never counted against the person.
+- Target: a batch that breaks behaviour or a boundary never reaches the person's branch; every journey ends; every
+  check shows the repository and the assistants' context as an engineer sees them, with no finding on the clean twin.
+
+### M8 Interfaces and a tidy repository: CLI and MCP first, Studio light, EAOS clean
 - **M8.1** Parity: everything the Studio does is done through MCP; the whole journey tested from the CLI alone.
 - **M8.2** Studio: core places stay; the deep "understand" views (17 screens, ~5.4k lines) become one report page;
   size and memory budgets; the code's 26 references to the missing `docs/STUDIO.md` resolved.
@@ -93,8 +120,25 @@ completes it. A department with no card here is a gap in the plan.
   logic (`interfaces/studio_actions/`, `journeys/fix/waves/`, `journeys/guided/`, `report/studio/user_journeys/`,
   `report/studio/paths/`, `report/human_report/`, `engines/`, `analysis/layers/`, `ai/nodes/`) keep only their
   docstring and names there, the logic in a named module beside it (the independent review of the code layout).
+- **M8.5** Safe moves, a batch of their own. The moves of M7.8 the person accepts are made by one move tool for Python
+  and JavaScript/TypeScript, beside `analysis/repair/codemods.py` and tried first on the isolated copy like it: it
+  moves the files, rewrites every import and path that names them, and keeps every name the code exposes. The batch
+  has its own branch and is never mixed with fix cards (M7.3). A move gate built on M7.5 refuses it whole on any
+  difference: the public surface (CLI commands, endpoints, pages, exported names), every test back with its name and
+  result, the build, the behaviour lock (every screen). A project whose tests cannot prove that gets the proposal
+  only, with the reason. The person chooses to merge it or not. (What the code layout of 2026-10-26 did by hand,
+  made general.)
+- **M8.6** The context trimmed safely, a documents batch: done items moved to an archive file (never deleted), a line
+  said twice kept in one place, stale paths fixed. Every instruction of the files before is found again in exactly one
+  file after, or the batch is refused. Only files inside the repository, never an assistant's own folders.
+- **M8.7** Born tidy: the build and add-a-feature journeys run M7.8 and M7.9 in each milestone's proof gate, so a new
+  project ends with no repository or context finding.
+- **M8.8** EAOS by its own repository rules: M7.8 and M7.9 over EAOS's `develop` find nothing, or each finding is
+  justified; the files-per-folder and naming rules become EAOS's own laws in `docs/STANDARDS.md`, guarded by
+  `tools/quality.sh`.
 - Target: everything from the CLI and MCP; `tools/quality.json` holds no medium or high finding and no listed
-  exception without its reason.
+  exception without its reason; a move or context batch that changes any behaviour or loses an instruction never
+  reaches the person's branch; EAOS's own repository and context with no finding.
 
 ### M9 Intelligence, cost and the final proof
 - **M9.1** Model tiers (light / standard / deep) per stage with escalation; a cheaper model never drops or closes
@@ -107,6 +151,10 @@ completes it. A department with no card here is a gap in the plan.
   PRD, add a feature; the runtime target of M1 (≤ 100 MB) measured on a full check.
 - **M9.4** The owner's decision on the official Semgrep rules (internal use only under their licence): kept while each
   person runs EAOS on their own code; rewritten as EAOS's own before EAOS is ever offered as a service.
+- **M9.5** The tidy, proved: on three corpus apps of different kinds the move batch (M8.5) merges with everything
+  green; an assistant given the same ten questions about each app ("where is sign-in checked?") before and after the
+  move and context batches answers right, with fewer files read and fewer tokens. The numbers go in
+  `docs/METRICS.md`.
 - Target: the three journeys green on the corpus; cost per check measured and lower; every number of
   `docs/METRICS.md` at or above its target.
 
@@ -150,6 +198,11 @@ EAOS's understanding of the project, and every difficulty they meet becomes evid
 - M6 right after M5: its live part (M6.6, M6.7, the tests run) needs every app running and signed into (M5.1, M5.3);
   its static part may start once M5.1 is done. M7's judge and batch checks then read the boundaries M6 names.
 - M7 before M8: fixes that are reliable and verified first, then the interfaces over them and EAOS's own clean-up.
+- The repository craft (owner, 2026-10-26) is seen first and moved later. The check (M7.8, M7.9) is read-only and
+  cheap, so it comes in M7, after the judge (M7.4) that rules on its findings. The moves and trims (M8.5, M8.6) stand
+  on M7's batches and their checks after each batch (M7.3, M7.5), so they come in M8, where EAOS also cleans itself;
+  M9.5 proves it with numbers. Nothing of it adds an engine or an AI call, and nothing of it touches the person's
+  branch without their choice.
 - M9 then M10: the proof of the three journeys and the model tiers come before the simulated users, which stand on M5
   (the browser-agent layer), M7.4 (the judge) and M9.1 (model tiers); built earlier they would be noise and cost.
 - Each milestone ends with one version, `beta-trial` updated and a short Arabic summary (`docs/STANDARDS.md` §7).
@@ -170,14 +223,21 @@ milestone's end.
 | M7.5 | not started | | |
 | M7.6 | not started | | |
 | M7.7 | not started | | |
+| M7.8 | not started | | |
+| M7.9 | not started | | |
 | M8.1 | not started | | |
 | M8.2 | not started | | |
 | M8.3 | not started | | |
 | M8.4 | not started | | |
+| M8.5 | not started | | |
+| M8.6 | not started | | |
+| M8.7 | not started | | |
+| M8.8 | not started | | |
 | M9.1 | not started | | |
 | M9.2 | not started | | |
 | M9.3 | not started | | |
 | M9.4 | not started | | |
+| M9.5 | not started | | |
 | M10.1 | not started | | |
 | M10.2 | not started | | |
 | M10.3 | not started | | |

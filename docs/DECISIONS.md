@@ -78,6 +78,12 @@ decision goes under its topic; once its milestone is done, the reasoning behind 
     said before it starts); a fix that breaks a boundary is refused. `import-linter` and `go-arch-lint` were not added:
     EAOS's own graph checks the same generated rules for every language and dependency-cruiser adds the reach through
     other files (the reasoning: `docs/archive/DECISIONS-DONE.md`, M6).
+- **Repository craft in every check** (2026-10-26, owner: a repository any engineer or assistant finds their way in at
+  once, its layout and the context files assistants read every session included, without ever harming the person's
+  experience): read-only findings in every check (M7.8, M7.9); moves and context trims only as a batch of their own,
+  on its own branch, refused whole on any difference in behaviour or any lost instruction, merged only if the person
+  chooses (M8.5, M8.6). Its rules are data, its findings low-severity and after the real problems; no new engine, no AI
+  call (`ROADMAP.md`, "Order and why").
 - **The user's full experience is simulated** (2026-10-23, M10): AI actors try the program as its users would (a user asks, an
   admin approves, the user goes on; support tickets when stuck), with realistic dummy data, only in the isolated copy.
   Three levels: the saved journeys are **replayed without AI in every full check**; a **short simulation** is an option
