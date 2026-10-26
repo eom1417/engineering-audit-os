@@ -260,6 +260,8 @@ def _build_finish_job(project, arguments, progress):
                 'what_now': 'The milestone as a whole breaks these: fix them with build_edit (card="FIX"; a requirement no kept card '
                             'builds: build the card it names with build_edit; a design departure: follow DESIGN.md; a load scenario: '
                             'make that route fast under load, an index or less work per request), then build_finish again.'}
+    # pictured on the copy before the state is saved: a save removes a delivered build's copy (waves/live_map.py saved)
+    look = look or (build_look.look(state, root, progress) if _screens(state, build) else None)
     branch = f"eaos/build-{build['number']}"
     fetched = _git(state['project'], 'fetch', '-q', str(root), f'+{branch}:{branch}')
     if fetched.returncode: raise RuntimeError(f'could not create {branch}: {fetched.stderr[-300:]}')
@@ -269,10 +271,9 @@ def _build_finish_job(project, arguments, progress):
     publish(state)
     if last: shutil.rmtree(project_state.runtime_of(state) / 'browsers', ignore_errors=True)    # fetched for the journeys alone
     remaining = _not_built(state)
-    screens = _screens(state, build)
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
             **_unproven(record),
-            'look': look or (build_look.look(state, root, progress) if screens else None),
+            'look': look,
             'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found (departures '
                          'from DESIGN.md, screen problems, a Lighthouse score under 90) is fixed there first, with build_edit '
                          'card="FIX".' if remaining else
