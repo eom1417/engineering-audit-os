@@ -13,6 +13,13 @@
     error while another page answers are that database's absence, said in the run's limitations, and the app runs; with
     no other screen known, the pages its files make are opened to see it (`live/app/setup.py`);
   - an API's JSON on its first page is no empty screen.
+- **A screen that asks for a sign-in is seen as one; the detection baseline 16 of 16 (15 before)** (M5.6, from the
+  independent review): the baseline's `#/account` draws a password form behind a 401, yet the check said no sign-in was
+  needed. Two general causes: the setup's probe opened the lock's first four paths, all of them API (`/api/export`,
+  `/api/me` ...), never a screen; and a sign-in route the code grouped with the rest of its API (`/api/login` under `api`)
+  was no evidence. The probe now opens the screens first, and any route of the code that is a sign-in itself counts.
+- **The release gate**: `.github/workflows/main-gate.yml` runs the data check and the suite on a pull request into
+  `main`, and only there (day-to-day work is verified locally).
 - **The public tree holds only the product**: the maintainers' own development notes live outside the repository, and
   `tests/guards/test_public_tree.py` refuses machine details and development paths in every tracked file. A Studio on
   any remote server is reached at one exact `https://<project>--<port>.<domain>` address (one platform's domain before).

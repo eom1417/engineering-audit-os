@@ -75,7 +75,7 @@ the Studio's entries from `console/knip.json`.
   the app and `tools/detection_baseline.py` refuses a check that reaches any of them less; `--record` after reaching
   more. M6 planted one defect per boundary of the layers (16 problems in all) and gave the app its clean twin
   `tests/fixtures/baseline-clean` (the same app done right): the golden trial refuses any layer finding on the twin.
-  Today 15 of 16 (the sign-in is still missed; `docs/METRICS.md`).
+  Today 16 of 16 (2026-10-26; `docs/METRICS.md`).
 - **Compatibility corpus** (M0.3): 15 real open-source apps pinned in `tools/corpus.json` (React/Vite with and without
   hash routes, Next.js, Vue, SvelteKit, Expo web, Flask, Django, Streamlit, one behind a sign-in, one with a welcome
   flow, a static site; and, since M6, three of the stacks the layers matter for, whose layer findings are recorded and

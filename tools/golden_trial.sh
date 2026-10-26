@@ -48,7 +48,8 @@ print(f"golden trial: a fix batch opens, every stage that runs the app ended ok,
 PY
 cp -r "$HERE/tests/fixtures/baseline-app" "$W/baseline"
 ( cd "$W/baseline" && git init -q && git add . && git -c user.name=t -c user.email=t@t commit -qm baseline )
-( cd "$W/baseline" && EAOS_OUTPUT="$W/baseline-output" "$EAOS" check --run-app --assistant none --lang en --watch >"$W/baseline.log" 2>&1 ) \
+# Nobody signs in to a trial: the sign-in it finds waits half a minute, not a person's fifteen.
+( cd "$W/baseline" && EAOS_SIGN_IN_WAIT=30 EAOS_OUTPUT="$W/baseline-output" "$EAOS" check --run-app --assistant none --lang en --watch >"$W/baseline.log" 2>&1 ) \
   || { tail -40 "$W/baseline.log"; exit 1; }
 "$(dirname "$EAOS")/python" "$HERE/tools/detection_baseline.py" "$W/baseline-output"
 # The clean twin (M6.0, M6.12): the same app done right, checked the same way; any layer finding on it is refused.

@@ -1,0 +1,30 @@
+# The release gate: a pull request into main is merged only when this passes (main's branch protection requires it).
+# Only here: day-to-day work is verified locally (AGENTS.md, "The flow"); the heavy checks (the golden trial, the
+# compatibility corpus) stay local too.
+name: main gate
+on:
+  pull_request:
+    branches: [main]
+concurrency:
+  group: main-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: python -m pip install -q -e '.[facts,runtime,live,dev]'
+      - name: The data check
+        run: python tools/validate.py
+      - name: The suite
+        run: python -m unittest discover -s tests -q

@@ -58,8 +58,11 @@ def routes(report, limit=4):
     of its own and opens signed in; never one that signs out or changes (LEAVES), which would end the session the probe
     checks. A server app's pages left out, the probe saw only its public first page and took an empty session for one."""
     plan = read_json(Path(report) / 'behavior-lock/plan.json') if report else {}
-    paths = [s.split(' (')[0].removeprefix('GET ') for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []]
-    return list(dict.fromkeys(s for s in paths if _openable(s)))[:limit]
+    surfaces = [s.split(' (')[0] for spec in plan.get('specs') or [] for s in spec.get('surfaces') or []]
+    # The screens first: a plan opening with its API (`GET /api/me` ...) filled the few paths, and the baseline's
+    # #/account, the screen that draws the sign-in form, was never opened (the detection baseline's missed sign-in).
+    paths = sorted(surfaces, key=lambda s: s.startswith('GET '))
+    return list(dict.fromkeys(s.removeprefix('GET ') for s in paths if _openable(s.removeprefix('GET '))))[:limit]
 
 
 def _openable(path):

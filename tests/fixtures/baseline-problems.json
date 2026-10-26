@@ -69,7 +69,7 @@
    "kinds": [
     "sign_in"
    ],
-   "found": "missed",
+   "found": "finding",
    "why": "missed 2026-10-23: the account screen answers 401 and draws its form; sign-in.json says not needed (M5.3)"
   },
   {
