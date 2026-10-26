@@ -6,17 +6,16 @@ assistant, and the runtime of one full check measured against the M1 target (doc
                      card fixed with `eaos fix --assistant claude` and handed over on its branch
       extend         on the repair-cli app, its batch accepted (`eaos accept`): a feature added through the MCP tools
                      (extend_start, extend_plan, fix_start ... fix_finish) by Claude, headless
-      repair-studio  the same repair on a fresh copy, driven through a Studio's action API on port 8198 (its token, its
-                     CSRF, its origin), as tests/interfaces/test_studio_actions.py does, without a browser
+      repair-studio  the same repair on a fresh copy through a Studio's action API on port 8198 (token, CSRF, origin)
+      extend-studio  on the repair-studio app: accept, the Studio's extend_start run, then a Fix of the cards it planned
       build          a ten-line PRD built through the MCP tools by Claude, headless, to its first milestone's proof gate
                      (build_finish delivering eaos/build-1)
-      runtime        the runtime of a full check (tools/metrics.py `size`) and its largest folders:
-                     `runtime=<project home>` names a check's project home, else the repair-cli check's is read
+      runtime[=<project home>]  a full check's runtime (tools/metrics.py `size`), its largest folders (repair-cli's)
 
 Each journey runs in <scratch>/<journey>/ with an EAOS home of its own; each step's outcome (passed, seconds, the
-assistant's cost when it reports one, the reason on failure) goes into <scratch>/results/<journey>.json, and the run
-prints them all. Run it in a transient unit (RUNBOOK.md): a journey takes minutes to tens of minutes.
+assistant's cost, the reason on failure) goes into <scratch>/results/<journey>.json. Run it in a transient unit.
 """
+import contextlib
 import json
 import os
 import socket
@@ -51,8 +50,7 @@ A small web app where one person keeps the books they want to read.
 - English only; one user, no sign-in.
 - It must run with one command and have tests for every feature.
 """
-# A page of its own: a feature that changes every page (a link in the shared navigation) is refused by the behaviour
-# lock, which knows no intended change to a recorded screen (the M9.3 proof's first run; docs/METRICS.md).
+# A page of its own: a link on every page is refused by the behaviour lock (no intended change to a recorded screen).
 FEATURE = 'Add an About page at /about that says "Flaskr, a small blog" and shows how many posts the blog has.'
 
 
@@ -210,37 +208,78 @@ def extend(scratch):
     return journey
 
 
+@contextlib.contextmanager
+def served(journey, app):
+    """A Studio of the app on PORT for the journey's steps; its action API once it answers, else None."""
+    token_file = journey.folder / 'studio.token'
+    server = subprocess.Popen([EAOS, 'studio', str(app), '--port', str(PORT), '--no-open'], stdin=subprocess.DEVNULL,
+                              stdout=open(journey.folder / 'studio.log', 'a'), stderr=subprocess.STDOUT,
+                              env={**os.environ, 'EAOS_STUDIO_TOKEN_FILE': str(token_file)})
+    try:
+        up = journey.step('studio up', lambda: studio_up(token_file))
+        yield Studio(token_file.read_text(encoding='utf-8').strip()) if up['passed'] else None
+    finally:
+        server.terminate()
+        server.wait(30)
+
+
 def repair_studio(scratch):
     journey = Journey(scratch, 'repair-studio')
     app = fetched(journey.folder)
-    token_file = journey.folder / 'studio.token'
-    server = subprocess.Popen([EAOS, 'studio', str(app), '--port', str(PORT), '--no-open'], stdin=subprocess.DEVNULL,
-                              stdout=open(journey.folder / 'studio.log', 'w'), stderr=subprocess.STDOUT,
-                              env={**os.environ, 'EAOS_STUDIO_TOKEN_FILE': str(token_file)})
-    try:
-        studio = journey.step('studio up', lambda: studio_up(token_file))
-        if not studio['passed']: return journey
-        api = Studio(token_file.read_text(encoding='utf-8').strip())
+    with served(journey, app) as api:
+        if api is None: return journey
         def check():
             from eaos.interfaces import govern
             if (before := earlier(app)): return before
             inputs = govern.check_inputs(None, ASSISTANT, None, sign_in='none', run_app=True)
             record = api.run({'action': 'audit', 'inputs': inputs, 'lang': 'en'})
             return checked(app) if record['state'] == 'done' else {'passed': False, 'reason': f"check run {record['state']}: {record.get('error')}"}
-        if not journey.step('check', check)['passed']: return journey
-        def fix():
-            card, before = card_to_fix(app), branches(app)
-            selection = {'kind': 'cards', 'cards': [card]}
-            preview = api.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'assistant': ASSISTANT})
-            record = api.run({'action': 'fix', 'verb': 'fix', 'selection': selection, 'assistant': ASSISTANT,
-                              'confirm': (preview.get('confirm') or {}).get('token')})
-            use = next((row['usage'] for row in api.get('/api/usage')['runs'] if row['id'] == record['id']), None)
-            return {'card': card, **batch_outcome(app, record, use, before)}
-        journey.step('fix', fix)
-    finally:
-        server.terminate()
-        server.wait(30)
+        if journey.step('check', check)['passed']: journey.step('fix', lambda: studio_fix(api, app, [card_to_fix(app)]))
     return journey
+
+
+def studio_fix(api, app, cards):
+    """A Fix of these cards as the Studio starts one: its preview, then the run with the preview's confirm token."""
+    before, selection = branches(app), {'kind': 'cards', 'cards': cards}
+    preview = api.post('/api/actions/fix/preview', {'verb': 'fix', 'selection': selection, 'assistant': ASSISTANT})
+    record = api.run({'action': 'fix', 'verb': 'fix', 'selection': selection, 'assistant': ASSISTANT,
+                      'confirm': (preview.get('confirm') or {}).get('token')})
+    use = api.use(record['id'])
+    return {'cards': cards, **batch_outcome(app, record, use, before)}
+
+
+def extend_studio(scratch):
+    """The extend journey through the Studio on the repair-studio app: its repair accepted (the preview's confirm), the
+    feature planned by the Studio's "Read a feature's plan to add" run, then built by a Fix of its cards."""
+    journey = Journey(scratch, 'repair-studio')
+    journey.name, journey.path, journey.steps = 'extend-studio', journey.path.with_name('extend-studio.json'), []
+    app = journey.folder / 'app'
+    with served(journey, app) as api:
+        if api is None: return journey
+        def accept():
+            repaired = json.loads(journey.path.with_name('repair-studio.json').read_text(encoding='utf-8'))['steps'][-1]
+            if api.get(f"/api/runs/{repaired['run']}")['run'].get('outcome') == 'accepted':
+                return {'passed': True, 'reused': 'accepted by an earlier run of this proof', 'head': _git(str(app), 'log', '--oneline', '-1')}
+            token = api.post('/api/actions/accept/preview', {})['confirm']['token']
+            answer = api.post(f"/api/runs/{repaired['run']}/accept", {'confirm': token})
+            return {'passed': answer['run'].get('outcome') == 'accepted', 'outcome': answer['run'].get('outcome'), 'head': _git(str(app), 'log', '--oneline', '-1')}
+        if not journey.step('accept the repair', accept)['passed']: return journey
+        planned = journey.step('plan the feature', lambda: studio_plan(api, app))
+        if planned['passed']: journey.step('build the feature', lambda: studio_fix(api, app, planned['cards']))
+    return journey
+
+
+def studio_plan(api, app):
+    """The Studio's "Read a feature's plan to add" run, to the cards it plans. The run ends on its question to the person
+    ("build it?"): it is stopped there, and their yes is the Fix of its cards, started next."""
+    from eaos.journeys import agent_tools
+    record = api.run({'action': 'extend_start', 'inputs': {'text': FEATURE}, 'assistant': ASSISTANT, 'lang': 'en'}, until=('waiting_for_person',))
+    asked = record['state'] == 'waiting_for_person' and (record.get('question') or {}).get('text')
+    if asked: record = api.post(f"/api/runs/{record['id']}/stop", {})['run']
+    cards = (agent_tools.state_of(str(app)).get('extend') or {}).get('cards') or []
+    use = api.use(record['id'])
+    return {'passed': bool(cards) and (record['state'] == 'done' or bool(asked)), 'cards': cards, 'state': record['state'],
+            'asked': asked, 'cost_usd': cost(use), 'reason': None if cards else f"no card planned: {str(record.get('result') or record.get('error'))[:400]}"}
 
 
 def studio_up(token_file, wait=120):
@@ -270,11 +309,15 @@ class Studio:
 
     def post(self, path, body): return self._call('POST', path, body)
 
-    def run(self, body):
-        """A run started and followed to its end; its record."""
+    def use(self, run):
+        """What the assistant of a run used, as the Studio's usage page reads it."""
+        return next((row['usage'] for row in self.get('/api/usage')['runs'] if row['id'] == run), None)
+
+    def run(self, body, until=()):
+        """A run started and followed to its end, or to one of the states `until`; its record."""
         from eaos.core.project.runs import TERMINAL
         run, began = self.post('/api/runs', body)['run'], time.monotonic()
-        while run['state'] not in TERMINAL and time.monotonic() - began < RUN_LIMIT:
+        while run['state'] not in TERMINAL + tuple(until) and time.monotonic() - began < RUN_LIMIT:
             time.sleep(5)
             run = self.get(f"/api/runs/{run['id']}")['run']
         return run
@@ -332,7 +375,8 @@ def runtime(scratch, home=None):
     return journey
 
 
-JOURNEYS = {'repair-cli': repair_cli, 'extend': extend, 'repair-studio': repair_studio, 'build': build, 'runtime': runtime}
+JOURNEYS = {'repair-cli': repair_cli, 'extend': extend, 'repair-studio': repair_studio, 'extend-studio': extend_studio, 'build': build,
+            'runtime': runtime}
 
 
 def results(scratch):
