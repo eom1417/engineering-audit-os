@@ -1,11 +1,12 @@
 """studio/functions.json and studio/screens.json: the function explorer and the screens gallery, read from the scan's
-facts and the user's journeys, never invented (eaos/report/studio/functions.py, screens.py)."""
+facts and the user's journeys, never invented (eaos/report/studio/function_explorer.py, screens.py)."""
 import json
 import unittest
 from pathlib import Path
 
 from eaos.core.contracts import artifact_rules as artifact_contracts
-from eaos.report.studio import coverage, functions, screens
+from eaos.report.studio import coverage, screens
+from eaos.report.studio import function_explorer as functions
 from tests.shared_fixture import TemporaryWorkspace
 
 

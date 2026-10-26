@@ -25,7 +25,7 @@ from . import library as library_section
 from . import hidden as hidden_map
 from . import user_journeys as journeys_map
 from . import data_paths as data_map
-from . import functions as function_explorer
+from . import function_explorer
 from .evidence import evidence, sources
 from . import infra as infra_map
 from ...ai.ideal import planner as planned_ideal
