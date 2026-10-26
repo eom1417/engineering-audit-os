@@ -71,7 +71,7 @@ what the tools returned.
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
 # answers in the Studio, which calls these itself.
 PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept')
+               'branches restore', 'auto_accept', 'sign_in_forget')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 

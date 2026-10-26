@@ -328,6 +328,19 @@ def restore(project, recovery):
     return _control(project).restore({'recovery': recovery})
 
 
+def fetch(project, remote=None):
+    """The remote's branches brought up to date (git fetch --prune of one remote), as the Studio's Refresh does."""
+    return _control(project).fetch({'remote': remote})
+
+
+def propose_resolution(project, source, target, assistant=None):
+    """A merge's conflict handed to the person's assistant as a review run that proposes how to resolve it and changes
+    nothing, as the Studio's Propose a resolution does; the host woken."""
+    done = _control(project).propose_resolution({'source': source, 'target': target, 'assistant': assistant})
+    wake(core(project).project)
+    return done
+
+
 # ---------------------------------------------------------------- history, comparison, use, freshness
 
 def _section(project, name):

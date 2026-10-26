@@ -10,7 +10,7 @@ govern_words.WORDS, the contract (docs/studio-actions.json) or the core's own wo
     eaos problems [--kind …]   eaos problem <id>                    what the check found
     eaos fix|verify|explain|plan <ids…> | --group by=value           the verbs, previewed first
     eaos branch [name]   eaos branches [merge|delete|protect|unprotect|cleanup|restore] …   (eaos accept, undo and these: interfaces/terminal/branches.py)
-    eaos history   eaos compare <a> <b>   eaos usage
+    eaos history   eaos compare <a> <b>   eaos usage   eaos projects
 """
 import functools
 import shlex
@@ -312,6 +312,17 @@ def act(args, lang):
 
 def contract_verb(verb):
     return next(v for v in contract()['verbs'] if v['id'] == verb)
+
+
+@command
+def projects(args, lang):
+    """`eaos projects`: the Studio's project switcher in a terminal."""
+    from ..studio_server.projects import listing
+    rows = listing(args.project)['projects']
+    for row in rows:
+        say(f"{'✓' if row['current'] else ' '} {row['name']:<28} {row['score'] if row['score'] is not None else '-':<6} {(row['checked'] or '-')[:16]:<16} "
+            f"{'🟢' if row['studio'] else '  '} {row['path']}")
+    guided.box(lang, words('projects', lang, count=len(rows)), commands=['eaos studio <folder>'])
 
 
 # ---------------------------------------------------------------- history, comparison, use

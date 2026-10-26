@@ -1,11 +1,13 @@
 """The governance tools of `eaos mcp` (docs/MCP.md "Governance"): the Studio's queue, inbox, verbs, history and branch
-control for an assistant, five tools each grouped by `op`, thin callers of eaos/interfaces/govern.py like the terminal's commands.
+control for an assistant, five tools each grouped by `op`, thin callers of eaos/interfaces/govern.py like the terminal's
+commands; with them, the Studio's remaining actions (mcp_server/studio_parity.py).
 
 What only the person decides needs their word and the preview: `waiting(op=answer)` takes `person_said`, their reply,
 given ANSWER_SECONDS or more after the question was listed; `branch_change` and `act(auto_accept=true)` take
 `person_agreed` and the confirm token of the preview the person saw. Inside a Studio run all of them are refused.
 """
 from .. import govern
+from . import studio_parity
 from .server import refuse_in_studio_run
 
 RUN_FIELDS = ('id', 'label', 'state', 'action', 'verb', 'cards', 'created', 'started', 'ended', 'position', 'question', 'outcome')
@@ -76,8 +78,15 @@ def history_op(op='list', a=None, b=None, project=None):
     raise ValueError('op is one of list, compare, usage')
 
 
+# What the Studio's branch control does that is no one's decision alone: refresh a remote (name), propose how to resolve
+# a merge's conflict (name into target, a review run that changes nothing).
+UNDECIDED = {'fetch': lambda project, name, target: govern.fetch(project, name),
+             'conflict': lambda project, name, target: govern.propose_resolution(project, name, target)}
+
+
 def branch_op(op, name=None, target=None, confirm=None, confirm_unmerged=None, person_agreed=False, project=None):
-    if op not in (*govern.BRANCH_OPS, 'restore'): raise ValueError('op is one of merge, delete, protect, unprotect, cleanup, restore')
+    if op in UNDECIDED: return UNDECIDED[op](project, name, target)
+    if op not in (*govern.BRANCH_OPS, 'restore'): raise ValueError('op is one of merge, delete, protect, unprotect, cleanup, restore, fetch, conflict')
     refuse_in_studio_run('branches ' + {'unprotect': 'protect'}.get(op, op))
     if op == 'restore':
         return govern.restore(project, name) if person_agreed else _needs('restoring is the person\'s decision', 'Ask them; only after their yes, call again with person_agreed=true.')
@@ -131,18 +140,24 @@ def register(server, reading, working, answer):
         return history_op(op, a, b, project)
 
     @server.tool(annotations=working, description='Change a branch, as the Studio\'s branch control does: op=merge (name into target), '
-                 'delete (name), protect or unprotect (name), cleanup (the merged branches and old worktrees), restore (name = a '
-                 'recovery id). Without confirm it returns the preview and its confirm token(s): show the person what will happen and '
-                 'ask; only after their yes call again with person_agreed=true and confirm (and confirm_unmerged for commits in no '
-                 'other branch). branches lists them.' + doc)
+                 'delete, protect, unprotect (name), cleanup (merged branches, old worktrees), restore (name: a recovery id), fetch '
+                 '(name: a remote, origin by default), conflict (name into target: the person\'s assistant proposes a resolution, '
+                 'nothing changes). Without confirm: the preview and its confirm token(s); show it, ask, and only after their yes '
+                 'call again with person_agreed=true and confirm (confirm_unmerged too for commits in no other branch).' + doc)
     @answer
     def branch_change(op: str, name: str | None = None, target: str | None = None, confirm: str | None = None,
                       confirm_unmerged: str | None = None, person_agreed: bool = False, project: str | None = None) -> str:
         return branch_op(op, name, target, confirm, confirm_unmerged, person_agreed, project)
 
 
+def every(server, reading, working, answer):
+    """What `eaos mcp` adds to the server: the governance tools and the Studio's remaining actions (studio_parity)."""
+    register(server, reading, working, answer)
+    studio_parity.register(server, reading, working, answer)
+
+
 def main():
     """`eaos mcp`: the server with every tool, these included."""
     from .server import build
-    build(register).run('stdio')
+    build(every).run('stdio')
     return 0

@@ -175,9 +175,9 @@ def governance_commands(s):
     q.add_argument('op', nargs='?', default='list', choices=['list', 'merge', 'delete', 'protect', 'unprotect', 'cleanup', 'restore'])
     q.add_argument('name', nargs='?'); q.add_argument('--into', default=None, help='merge: the branch to merge into')
     q.add_argument('--yes', action='store_true')
-    command('history', 'Every check on record: the score, the open problems, closed of total')
     q = command('compare', 'Two checks of the history side by side'); q.add_argument('first'); q.add_argument('second')
-    command('usage', 'What the assistant used: tokens and cost, per check stage and per run')
+    for name, text in (('history', 'Every check on record: the score, the open problems, closed of total'), ('usage', 'What the assistant used: '
+                       'tokens and cost, per check stage and per run'), ('projects', 'Every project EAOS knows on this computer')): command(name, text)
     q = s.add_parser('govern', help='The headless host that starts this project\'s runs while no Studio runs (the commands start it)')
     q.add_argument('project'); q.add_argument('--answer'); q.add_argument('--option'); q.add_argument('--text')
     q.set_defaults(func=terminal('govern_host'))
