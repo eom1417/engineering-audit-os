@@ -11,7 +11,7 @@ import { clearSelection, picked } from '../data/selection.js';
 import { need, pendingOf, state as dataState, mode } from '../data/source.js';
 import { project } from '../data/model.js';
 import { loadingHTML } from './loading.js';
-import { parseHash } from './address.js';
+import { parseHash, navigate } from './address.js';
 import { a11yRegions, hold } from './a11y.js';
 
 const screens = [];
@@ -64,12 +64,20 @@ function routeKey(r) { const q = Object.assign({}, r.query); delete q.sheet; del
 
 export function onRoute() {
   const r = parseHash();
-  if (addressPrefs(r) || !bundleReady(r)) return;
+  if (landOld(r) || addressPrefs(r) || !bundleReady(r)) return;
   const key = routeKey(r);
   if (key === current.key) { syncSheet(r.query.sheet || null); refreshAssist(); return; }
   leave(r);
   arrive(r, key);
   syncSheet(r.query.sheet || null);
+}
+/** Understand's views became the one report page (M8.2): an old address (a notice, a shared link) lands on it, a
+ *  report file's sheet kept open; true when the address was replaced. */
+function landOld(r) {
+  if (r.path !== '/understand' && !r.path.startsWith('/understand/')) return false;
+  const sheet = (r.query.sheet || '').startsWith('file:') ? r.query.sheet : null;
+  navigate('/report', { sheet, lang: r.query.lang, theme: r.query.theme }, { replace: true });
+  return true;
 }
 /** Language and theme in the address (LNK-01) apply and are remembered; true when the language draws everything again. */
 function addressPrefs(r) {
@@ -131,7 +139,7 @@ function draw(r, m, bundlePending) {
   document.title = t('doc.title', { place: sc && sc.title ? sc.title(ctx) : 'EAOS', project: project().name || 'EAOS' });
   main.innerHTML = screenHTML(sc, ctx, bundlePending);
   main.dataset.screen = sc ? sc.id : '';
-  renderShell(sc ? sc.place || null : null, r.path);
+  renderShell(sc ? sc.place || null : null);
   renderBanner(ctx);
   renderStrip();
   renderSelbar();
@@ -158,5 +166,5 @@ let pending = 0;
 /** A redraw at the next frame, however many changes arrive before it (the live data). */
 export function refreshSoon() {
   if (pending) return;
-  pending = requestAnimationFrame(() => { pending = 0; if (!document.querySelector('#main textarea:focus, #main input[type=search]:focus')) refresh(); else renderShell(match(parseHash().path) ? match(parseHash().path).screen.place : null, parseHash().path); });
+  pending = requestAnimationFrame(() => { pending = 0; if (!document.querySelector('#main textarea:focus, #main input[type=search]:focus')) refresh(); else renderShell(match(parseHash().path) ? match(parseHash().path).screen.place : null); });
 }

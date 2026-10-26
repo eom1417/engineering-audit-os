@@ -111,14 +111,6 @@ export function reportText(s) {
   return (table && table[s]) || s;
 }
 
-/** Part of the library (live: only the documents and images named, eaos/interfaces/studio_server/read.py library_items); the read-only
- *  copy reads it whole. */
-export async function libraryItems(ids) {
-  if (mode !== 'live') return readSection('library');
-  const answer = await apiGet(`/api/sections/library?only=${encodeURIComponent(ids.join(','))}`);
-  return answer.ok ? answer.json() : undefined;
-}
-
 /** A text file the check produced (live only), or null. */
 export async function reportFile(path) {
   if (mode !== 'live') return null;

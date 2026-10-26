@@ -77,7 +77,7 @@ function oldlink(q) {
   return `<h1 class="lede">${esc(t('ac.op.old', { what }))}</h1><p class="guide">${t('ac.op.old.guide')}</p>
       <div class="panel panel__pad section"><dl class="facts"><dt>${t('ac.op.old.missing')}</dt><dd>${code(what)}</dd>
         <dt>${t('ac.op.old.why')}</dt><dd>${t('ac.op.old.why.v')}</dd></dl></div>
-      <div class="actions"><a class="btn btn--primary" href="${href('/problems')}">${t('ac.op.old.back')}</a><a class="btn btn--quiet" href="${href('/understand/history')}">${t('ac.op.old.history')}</a></div>`;
+      <div class="actions"><a class="btn btn--primary" href="${href('/problems')}">${t('ac.op.old.back')}</a></div>`;
 }
 // data of another contract
 function contract() {

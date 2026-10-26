@@ -1,11 +1,9 @@
-// The frame around every screen: the phone's top bar and tab bar, the desktop's sidebar (places, Understand's groups,
-// the live card, language and theme, the version), the one banner (read-only copy, stale, reconnecting, loading), the
+// The frame around every screen: the phone's top bar and tab bar, the desktop's sidebar (places, the live card, language and theme, the version), the one banner (read-only copy, stale, reconnecting, loading), the
 // live strip while something runs or waits for the owner, and the selection bar.
 import { prefs } from './prefs.js';
 import { t, tn, num } from './i18n.js';
 import { esc, icon, fmtWhen, fmtTime } from './format.js';
 import { href, parseHash } from './address.js';
-import { UGROUPS, ugroupOf } from './places.js';
 import { picked } from '../data/selection.js';
 import { listed, manifest, mode, pendingOf } from '../data/source.js';
 import { active, live } from '../data/store.js';
@@ -17,7 +15,7 @@ const PLACES = [
   { id: 'waiting', path: '/waiting', icon: 'waiting' },
   { id: 'problems', path: '/problems', icon: 'problems' },
   { id: 'activity', path: '/activity', icon: 'activity' },
-  { id: 'understand', path: '/understand', icon: 'understand' },
+  { id: 'report', path: '/report', icon: 'understand' },
 ];
 
 /** What runs or waits now, for the live strip, the sidebar's card and Status: {kind: check | fix | run | signin,
@@ -79,13 +77,6 @@ function placeAttrs(p, place, wc) {
 }
 const placeCount = (p, wc) => (p.id === 'waiting' && wc ? `<span class="count" aria-hidden="true">${num(wc)}</span>` : '');
 
-/** Understand's groups under its place in the sidebar, on Understand only. */
-function understandGroups(place, path) {
-  if (place !== 'understand') return '';
-  const ug = ugroupOf(path);
-  return `<div class="side-sub">${UGROUPS.map(g => `<a href="${href('/understand/' + g.views[0])}" ${ug === g ? 'aria-current="true"' : ''}>${t('nav.u.' + g.id)}</a>`).join('')}</div>`;
-}
-
 /** The sidebar's card of what runs or waits now. */
 function liveCard() {
   const now = liveNow();
@@ -105,7 +96,7 @@ function sidePrefs() {
       </div>`;
 }
 
-export function renderShell(place, path) {
+export function renderShell(place) {
   document.querySelector('.skip').textContent = t('skip');
   const wc = waitingCount();
   document.getElementById('topbar').innerHTML = `${projectButton()}
@@ -115,11 +106,10 @@ export function renderShell(place, path) {
   tabbar.innerHTML = PLACES.map(p => `<a class="tab" href="${href(p.path)}" ${placeAttrs(p, place, wc)}>
       <span class="tab__icon">${icon(p.icon, 'icon--lg')}${placeCount(p, wc)}</span>
       <span>${t('nav.' + p.id)}</span></a>`).join('');
-  const sub = understandGroups(place, path);
   document.getElementById('sidebar').innerHTML = `${projectButton()}
     <button class="side-search" data-act="sheet" data-sheet="search">${icon('search')}<span>${t('search.open')}</span><kbd>${t('search.kbd')}</kbd></button>
     <nav class="side-nav" aria-label="${esc(t('nav.label'))}">
-      ${PLACES.map(p => `<a href="${href(p.path)}" ${placeAttrs(p, place, wc)}>${icon(p.icon)}<span>${t(p.id === 'waiting' ? 'nav.waiting.long' : 'nav.' + p.id)}</span>${placeCount(p, wc)}</a>${p.id === 'understand' ? sub : ''}`).join('')}
+      ${PLACES.map(p => `<a href="${href(p.path)}" ${placeAttrs(p, place, wc)}>${icon(p.icon)}<span>${t(p.id === 'waiting' ? 'nav.waiting.long' : 'nav.' + p.id)}</span>${placeCount(p, wc)}</a>`).join('')}
     </nav>
     <div class="side-foot">
       ${liveCard()}
