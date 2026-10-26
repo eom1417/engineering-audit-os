@@ -15,7 +15,7 @@ import re
 from collections import deque
 from fnmatch import fnmatch
 
-from .. import reference_architecture as reference_types
+from ..target_state import references as reference_types
 from ...facts.frameworks.server_entries import directive
 
 HTTP = re.compile(r'^(express|fastify|koa|hono|@hono/[\w-]+|h3|restify|@nestjs/[\w-]+|next/server|flask|fastapi|starlette|'

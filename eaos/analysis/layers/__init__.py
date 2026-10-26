@@ -3,9 +3,9 @@
     run(target, out)          the static part: the layer map, the boundaries, what ships to the browser, every endpoint
                               and its guard, the data layer's rules, where the business rules live, operations and tests;
                               writes <out>/layers.json (what people and the Studio read) and the `boundaries` fact set
-                              (what the claims make cards of: eaos/analysis/layer_claims.py)
+                              (what the claims make cards of: eaos/analysis/claims/from_layers.py)
     amend(out, live)          the live part's findings (the data rules tried, the API tried, the built output of the
-                              isolated copy: eaos/live/layers_live.py) joined to the same two
+                              isolated copy: eaos/pipeline/runners/layers_live.py) joined to the same two
 
 Nothing is written into the project; a placement EAOS is unsure of becomes a question, never a finding.
 """
@@ -133,7 +133,7 @@ def _key(finding):
 
 def introduced(before, after):
     """The sentences of the static findings `after` has and `before` had not: the boundaries a change broke, the gate a
-    fix batch is judged by beside the project's own policy (eaos/journeys/execute.py new_breakage)."""
+    fix batch is judged by beside the project's own policy (eaos/journeys/fix/execute.py new_breakage)."""
     had = {_key(f) for f in before.get('findings') or [] if not f.get('live')}
     return [f"the change broke a boundary: {f['en']}" for f in after['findings'] if f['boundary'] in GATED and _key(f) not in had]
 

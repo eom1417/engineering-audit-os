@@ -5,7 +5,7 @@ Read only from records the check already wrote; nothing is invented and every nu
     today        target-architecture.json current_components: each component, its files, kind, fan-in/out, its
                  relation to the target (retain, modify, rebuild, delete) and the target component it goes to
     imports      facts/graph.json graph_node depends_on, counted between the components that own the two files
-                 (the same count as eaos/analysis/arch_map.py); an edge inside one strongly connected group is a cycle edge
+                 (the same count as eaos/analysis/maps/architecture.py); an edge inside one strongly connected group is a cycle edge
     findings     the cards (cards.json) by severity: a card counts in the deepest component holding its first path,
                  the rule the Studio's ranked list uses, so the map and the list show one number
     target       target-architecture.json target_components and target_edges; a target component fed by no part of
@@ -18,7 +18,7 @@ draws. This section is the precursor of NS39.T1's unified graph: the same nodes 
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from ...analysis import arch_map
+from ...analysis.maps import architecture as arch_map
 from . import territory
 
 MAX_NODES = 200

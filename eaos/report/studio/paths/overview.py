@@ -2,7 +2,7 @@
 step on a large project."""
 from collections import Counter, defaultdict
 
-from ....analysis import arch_map
+from ....analysis.maps import architecture as arch_map
 from .graph import LANES
 
 CLUSTER_AT = 1000         # past this many nodes the Studio never draws every step at once, only the clusters

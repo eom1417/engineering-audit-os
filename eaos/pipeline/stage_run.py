@@ -6,7 +6,7 @@ import time
 from contextvars import ContextVar
 
 from ..core.progress import using
-from .live_app import PAGE_STAGES, close_app
+from .runners.live_app import PAGE_STAGES, close_app
 from .coverage import ledger
 from .loops import switched_off
 from .stages import BY_NAME, SkipStage, dependents

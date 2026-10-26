@@ -11,8 +11,8 @@ import json
 import sys
 from pathlib import Path
 
-from . import core, runner
-from .. import ideal
+from . import framework as core, runner
+from ..ideal import planner as ideal
 
 VERSION = '1'
 LIMIT = {'facts': 4, 'rejudge_facts': 12, 'measurements': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
@@ -219,7 +219,7 @@ def check(data, decision):
 
 def finish(report, record, data):
     """The verdicts, the probe requests of the doubtful cards and the library's feedback of the rejected ones."""
-    from ...analysis.probes import probe
+    from ...analysis.claims.probes import probe
     folder = core.folder_of(report, record['node'])
     folder.mkdir(parents=True, exist_ok=True)
     verdicts = _verdicts(record, {c['id']: c for c in data['cards']})

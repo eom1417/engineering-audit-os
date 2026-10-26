@@ -1,5 +1,5 @@
 // S-54 What changing a file touches (PRB-14), the sheet one problem opens beside its files: EAOS's impact action
-// (a free read, eaos/analysis/impact.py) on the check's facts: who imports it directly and further, the code paths and entry
+// (a free read, eaos/analysis/maps/impact.py) on the check's facts: who imports it directly and further, the code paths and entry
 // points through it, the tests that reach it, and the files that change with it in the history. Nothing is estimated.
 import { t, tn, num, esc, icon, code, href, sheet, data } from 'eaos';
 import { read } from '../understand-kit/reads.js';

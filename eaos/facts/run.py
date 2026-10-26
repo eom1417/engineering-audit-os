@@ -2,8 +2,14 @@
 import json
 import time as _time
 from pathlib import Path
-from . import (broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers,
-               metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax)
+from .defects import broken, leftovers, secrets
+from .code import config, entrypoints, flows, graph, history, metrics, resolve, structure, syntax
+from .dead_code import detect as deadcode
+from .domain import model as domain
+from . import engine_findings as external
+from .duplication import fingerprint, redundancy, sequences
+from .declared_pipelines import detect as pipeline
+from .runtime import operations as runtime
 from .source import Source
 from ..core import progress
 from .store import write_index, write_set
@@ -50,7 +56,7 @@ def collect_external(target, out, source, only=None, keep=False):
     stay as written, and value.adjudication says whether EAOS asserts it.
     """
     result = external.run(target, source, out=out, only=only, keep=keep)
-    from .registry import filter_dead_code_references as _filter_dead_code_references
+    from .dead_code.registry import filter_dead_code_references as _filter_dead_code_references
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
     # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
     # textual reference test decide what the report asserts (see facts/deadcode.adjudicate).

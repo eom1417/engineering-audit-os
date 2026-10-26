@@ -1,4 +1,5 @@
-"""Framework detectors. Adding one module here is how a new detector joins the pipeline.
+"""Framework detectors: entry points, routes, navigation and data access per framework. Adding one module here is how a
+new detector joins the pipeline.
 
 Each module exposes LANGUAGES / FILENAMES and detect(context). What the detector emits is one of
 the canonical fact kinds declared in this package (``entry_point``, ``data_access``, ``navigation``); the core

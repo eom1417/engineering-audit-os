@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from eaos.core.web import opened  # noqa: E402
+from eaos.core.system.web import opened  # noqa: E402
 
 REPOSITORIES = {
     'enola': 'enola-labs/enola',
@@ -30,7 +30,7 @@ def pinned():
 
 def contracts_pass():
     """Run the offline contract suite. Nothing here touches the network or an installed binary."""
-    done = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_engine_contracts', '-q'],
+    done = subprocess.run([sys.executable, '-m', 'unittest', 'tests.engines.test_engine_contracts', '-q'],
                           cwd=ROOT, capture_output=True, text=True)
     return done.returncode == 0, (done.stdout + done.stderr).strip().splitlines()[-1:]
 

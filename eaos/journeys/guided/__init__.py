@@ -19,9 +19,9 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...core import branches
-from ...core.project_state import current, load, looks_like_project
-from ...core.places import home, outputs_root, workspace
+from ...core.project import branches
+from ...core.project.state import current, load, looks_like_project
+from ...core.project.places import home, outputs_root, workspace
 from .batches import reconcile
 from .checking import choose_assistant, later_steps, scan
 from .doctor import doctor, doctor_rows
@@ -30,8 +30,8 @@ from .project import RESUME, language, log_failure, outputs, report_of, save, sc
 from .running import fix, fix_done, ready, ready_done, safety, safety_done
 
 # The names other modules call through the package (guided.publish, guided.report_of ...), each kept in one module here.
-from ...core.project_state import runtime_of  # noqa: F401
-from ...core.places import second_name  # noqa: F401
+from ...core.project.state import runtime_of  # noqa: F401
+from ...core.project.places import second_name  # noqa: F401
 from .batches import choose, close_batch, merge, retire_stale_batch  # noqa: F401
 from .checking import (agree_to_assistant, check_provider, check_runtime,  # noqa: F401
                        tools_for_check)
@@ -60,8 +60,8 @@ def show(args):
 
 
 def do(args):
-    """A request in plain words (`eaos do "افحص مشروعي"`), understood (eaos/core/intents.py) and done."""
-    from ...core.intents import understand
+    """A request in plain words (`eaos do "افحص مشروعي"`), understood (eaos/core/language/intents.py) and done."""
+    from ...core.language.intents import understand
     lang = language(args.lang)
     request = ' '.join(args.request or [])
     intent, _ = understand(request)
@@ -80,7 +80,7 @@ def do(args):
 
 def assistant(args):
     """Teach the person's AI assistant to use EAOS: the Claude Code skill and the Codex instructions, installed."""
-    from ...ai.setup import install
+    from ...ai.assistant.setup import install
     lang = language(args.lang)
     done = install()
     if not done:
@@ -146,7 +146,8 @@ def watch(state, args):
     started when it is not running, is printed and opened in the browser, unless `eaos start --no-watch`: on
     "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
     if getattr(args, 'no_watch', False): return
-    from ...core import launch, toolchain
+    from ...core.system import launch
+    from ...core import toolchain
     toolchain.prepare(state['project'])
     record, _ = launch.start(state)
     if not record: return
@@ -193,8 +194,8 @@ def clean(args):
     lang = language(args.lang)
     freed = 0
     if (pictures := getattr(args, 'pictures', False)): freed += _pictures_cleared()
-    from ...live.sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
-    from ...live.sign_in import forget                    # the sessions of the apps: a check asks to sign in again
+    from ...live.isolation.sandbox import sweep                     # a live run's folder (held) stays: another project's check runs on
+    from ...live.access.sign_in import forget                    # the sessions of the apps: a check asks to sign in again
     freed += sum(sweep(folder) for folder in (home() / 'projects').glob('*/runtime*/sandbox'))
     for folder in (home() / 'projects').glob('*'): forget(folder)
     freed += _copies_removed()
@@ -241,7 +242,7 @@ def resume(args):
     return 0
 
 
-# accept, undo and the check `start` asks for are the terminal's (eaos/interfaces/terminal.py: what will happen, the person's yes),
+# accept, undo and the check `start` asks for are the terminal's (eaos/interfaces/terminal/commands.py: what will happen, the person's yes),
 # registered by that module itself (TERMINAL['check'] and COMMANDS), so that this one does not import it.
 TERMINAL = {}
 COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean,

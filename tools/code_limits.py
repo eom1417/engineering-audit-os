@@ -2,7 +2,7 @@
 length, logic written once, and no unused import or variable.
 
 Complexity, lengths and parameters: what exceeds the limit today is listed in tools/code_limits.json with its current size and may
-only shrink; a new entry, or a listed one that grew, fails tests/test_code_limits.py. When an entry shrinks or drops
+only shrink; a new entry, or a listed one that grew, fails tests/guards/test_code_limits.py. When an entry shrinks or drops
 under the limit, `python tools/code_limits.py --tighten` rewrites the list. Duplicates and leftovers have no list:
 there are none, and the test keeps it so.
 """
@@ -16,14 +16,14 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from eaos.core.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity  # noqa: E402
+from eaos.core.contracts.code_laws import MAX_COMPLEXITY, MAX_FUNCTION_LINES, MAX_LINES, MAX_PARAMETERS, complexity  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools' / 'code_limits.json'
 FOLDERS = ('eaos', 'tools')
 # Each kind of limit and its number; every kind but 'modules' is keyed by function.
 # EAOS holds itself to the target laws since M3 (2026-10-24): complexity 10, modules of 400 lines. The laws it holds every
-# project to stay eaos/core/code_laws.py's.
+# project to stay eaos/core/contracts/code_laws.py's.
 LIMITS = {'functions': min(MAX_COMPLEXITY, 10), 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
           'modules': min(MAX_LINES, 400)}
 
@@ -52,7 +52,7 @@ def parameters(function):
 
 def studio(over):
     """The Studio's JavaScript (console/src) held to the same complexity and module length (M4.6), counted by EAOS's own
-    facts (eaos/facts/metrics.py: 1 + the lexical branches, each nested function alone), added to `over`."""
+    facts (eaos/facts/code/metrics.py: 1 + the lexical branches, each nested function alone), added to `over`."""
     import tempfile
     from eaos.facts.run import collect
     with tempfile.TemporaryDirectory() as out:

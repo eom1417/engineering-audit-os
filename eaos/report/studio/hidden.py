@@ -30,8 +30,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from ...analysis import arch_map
-from . import journeys as J
+from ...analysis.maps import architecture as arch_map
+from . import user_journeys as J
 
 GROUPS = ('triggers', 'screens', 'server', 'writes', 'outside', 'config', 'build', 'dead')
 LINKABLE = ('triggers', 'server', 'writes', 'outside', 'config')

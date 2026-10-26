@@ -1,4 +1,4 @@
-"""studio/history.json: the project over time (contract v2, docs/STUDIO.md D7), read from the ledger (eaos/core/ledger.py) and
+"""studio/history.json: the project over time (contract v2, docs/STUDIO.md D7), read from the ledger (eaos/core/project/ledger.py) and
 the check in hand; nothing is estimated.
 
 - scans: every check the ledger recorded (its `baseline` and `recheck` points), oldest first, with the cards open and
@@ -10,7 +10,7 @@ the check in hand; nothing is estimated.
 - events: the checks, the fixes taken in and the batches with a date, in time order.
 - cards: the ledger's cards that closed or that a later check found new, with when, so two scans can be compared.
 """
-from ...analysis import model as M
+from ...analysis.presentation import model as M
 
 SEVERITIES = ('critical', 'high', 'medium', 'low', 'info')
 SCAN_EVENTS = {'baseline', 'recheck'}
@@ -128,7 +128,7 @@ def _ledger_records(ledger):
 
 def history(scan, score, card_rows, ledger=None, waves=()):
     """The history section's body. scan: {commit, branch, at} of this check; score: its score 0..100 or None;
-    card_rows: this check's cards; ledger: eaos.core.ledger.for_report's record, or None."""
+    card_rows: this check's cards; ledger: eaos.core.project.ledger.for_report's record, or None."""
     now_open = _open_by_severity(card_rows)
     now_score = None if score is None else round(score / 100, 4)
     points, cards = _ledger_records(ledger)

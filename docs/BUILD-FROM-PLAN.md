@@ -14,11 +14,11 @@ instead of chased later.
 The person writes to their assistant: "I have my project's plan in this file, build it with EAOS with the best
 structure". Or, from the Studio: **"Build from a plan"** in the assistant's panel, with the new project's name, the
 plan's files and pictures of its screens (or pasted text); the blueprint is drawn in a new folder beside the project
-(`POST /api/plan`, `eaos/interfaces/studio/plan.py`), and the build starts once the person agrees.
+(`POST /api/plan`, `eaos/interfaces/studio_actions/plan.py`), and the build starts once the person agrees.
 
 | # | Tool | What happens |
 | --- | --- | --- |
-| 1 | `blueprint_start` | Reads the plan in any format (Markdown, text, HTML, Word, PDF, pasted words, or a folder of them) with the paths of its screen pictures for the assistant to look at (`eaos/analysis/plan_source.py`), and returns it with the spec format and the stack catalogue |
+| 1 | `blueprint_start` | Reads the plan in any format (Markdown, text, HTML, Word, PDF, pasted words, or a folder of them) with the paths of its screen pictures for the assistant to look at (`eaos/analysis/planning/plan_input.py`), and returns it with the spec format and the stack catalogue |
 | 2 | `blueprint_spec` | The assistant writes the spec, its look included (`look`: one theme, its colours, fonts and shared components, and each screen with its features and picture): parts with one responsibility, data with one owner, features with acceptance criteria. EAOS answers with what is missing and with choices, each with a recommendation. The assistant researches what products of this kind need, recommends, and asks the person only real choices (technology preferences among them) |
 | 3 | `blueprint_design` | The stack (the person's choice, else the recommendation), the target structure, the layer rules, and the build plan in milestones and cards |
 | 4 | `build_start` | One agreement, then the first milestone in an isolated copy. The blueprint and its rules enter the project itself (`eaos.policy.json` and `docs/blueprint/`) |
@@ -33,7 +33,7 @@ each card as its step (`eaos/journeys/catalog.py`), and the library's "The bluep
 DESIGN.md before any check exists.
 
 Wherever the blueprint was drawn (the Studio or the person's own assistant session), the Studio reads it from the
-blueprint folder (`eaos/report/studio/build_plan.py`): the Plan page lists the milestones and each build card with its
+blueprint folder (`eaos/report/studio/blueprint_plan.py`): the Plan page lists the milestones and each build card with its
 acceptance, files, tests and state; the spec's open questions wait in "Waiting for you", and an answer there goes into
 the spec at once and draws the blueprint again; Status says where the build stands and offers its one next step.
 "Build the whole product" starts the person's assistant, which builds every milestone in order, each card through
@@ -72,7 +72,7 @@ how to change it later.
 **The look is built once:** the shared-look card turns the spec's `look` into design tokens in `web/src/ui/theme.css`
 that no screen overrides, and each feature's card says which screen and picture it follows.
 
-**The look costs almost no tokens:** `blueprint_start` returns a design brief (`eaos/analysis/design.py`): the EAOS design
+**The look costs almost no tokens:** `blueprint_start` returns a design brief (`eaos/analysis/target_state/look.py`): the EAOS design
 standard (phone first, both directions, one theme, readable contrast), a catalogue of Arabic fonts, free pinned design
 libraries (UI UX Pro Max, awesome-design-md, tweakcn themes, Anthropic's frontend-design) and the design system UI UX
 Pro Max suggests for the product, found offline. The assistant spends its judgement on taste alone and writes the
@@ -84,7 +84,7 @@ part in data order (the data's owner before those that use it), then every journ
 
 ## The gates after every card
 
-They are the gates every change passes, in all three journeys (`eaos/analysis/gates.py`): a fix holds them against the check
+They are the gates every change passes, in all three journeys (`eaos/analysis/repair/gates.py`): a fix holds them against the check
 of the code it changes, a build against nothing (everything found is the card's), each held to the policy in force.
 
 | Gate | Keeps out |

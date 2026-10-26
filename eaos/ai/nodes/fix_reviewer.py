@@ -1,7 +1,7 @@
 """The fix reviewer: after a batch of fixes, the diff and the checks read, and each card accepted, retried or asked
 (docs/STUDIO.md D11).
 
-It reads one batch (eaos/journeys/waves.py `finish_batch`: `wave.json` with the cards kept and the ones that failed and why, and
+It reads one batch (eaos/journeys/fix/waves/ `finish_batch`: `wave.json` with the cards kept and the ones that failed and why, and
 the batch's patches, marked as untrusted data) and decides for each card: "accept" (the diff does what the card asks
 and the checks hold), "retry" (the fix is wrong or incomplete) or "ask" (it needs the person). The gates stay the
 judge: a card they failed cannot be accepted, whatever the answer says. "accept" is a recommendation only: the person
@@ -11,8 +11,8 @@ import json
 import sys
 from pathlib import Path
 
-from . import core, runner
-from .. import ideal
+from . import framework as core, runner
+from ..ideal import planner as ideal
 
 VERSION = '1'
 LIMIT = {'diff': 60000, 'cards': 60}

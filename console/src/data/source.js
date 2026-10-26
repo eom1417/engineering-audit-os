@@ -1,4 +1,4 @@
-// The report, read one section at a time from the read API of `eaos studio` (eaos/interfaces/api/read.py), every call carrying
+// The report, read one section at a time from the read API of `eaos studio` (eaos/interfaces/studio_server/read.py), every call carrying
 // the launch token as a header (never in a URL, so it reaches no log), with the sign-in cookie of a remote address
 // (credentials: same-origin). Without a token (a read-only page) there is nothing to read: the console says so.
 // A section is read when a screen first needs it (screen `needs`), once; a live reload re-reads only the sections
@@ -111,7 +111,7 @@ export function reportText(s) {
   return (table && table[s]) || s;
 }
 
-/** Part of the library (live: only the documents and images named, eaos/interfaces/api/read.py library_items); the read-only
+/** Part of the library (live: only the documents and images named, eaos/interfaces/studio_server/read.py library_items); the read-only
  *  copy reads it whole. */
 export async function libraryItems(ids) {
   if (mode !== 'live') return readSection('library');

@@ -6,7 +6,7 @@ from collections import defaultdict
 from functools import cached_property
 from pathlib import Path
 
-from ...core.vocabulary import classify
+from ...core.contracts.vocabulary import classify
 from ...facts.store import read_set
 
 TYPE_ONLY = re.compile(r'^\s*(import|export)\s+type\b')

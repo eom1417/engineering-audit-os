@@ -16,23 +16,24 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...core import artifact_contracts, build_info
+from ...core.contracts import artifact_rules as artifact_contracts
+from ...core.system import version_info as build_info
 from . import change as change_map
 from . import coverage as coverage_section
 from . import history as history_section
 from . import library as library_section
 from . import hidden as hidden_map
-from . import journeys as journeys_map
+from . import user_journeys as journeys_map
 from . import data_paths as data_map
 from . import functions as function_explorer
 from .evidence import evidence, sources
 from . import infra as infra_map
 from . import layers as layers_view
-from ...ai import ideal as planned_ideal
+from ...ai.ideal import planner as planned_ideal
 from ...ai.nodes import view as ai_nodes
-from ...analysis import model as M
+from ...analysis.presentation import model as M
 from . import paths as code_paths
-from ...analysis import pipeline_map
+from ...analysis.maps import pipeline as pipeline_map
 from . import screens as screens_gallery
 from . import system as system_map
 from .export_sections import TASK_STATE, cards, decision_rows, decisions, head, health, meta, plans, story, why_of  # noqa: F401  (TASK_STATE, decisions, why_of: read here by the tests and tools/studio_synthetic.py)
@@ -51,7 +52,7 @@ def _git(project, *args):
 
 def scan_of(project, state=None):
     """{commit, branch, at, recorded, detached, dirty} of the check. `recorded` is true when the scan itself wrote down
-    the branch (or a detached HEAD), the full commit and whether the checkout had unsaved changes (eaos/core/branches.py
+    the branch (or a detached HEAD), the full commit and whether the checkout had unsaved changes (eaos/core/project/branches.py
     scan_provenance); otherwise commit and branch are what git says at export time, and detached and dirty are None."""
     state = state or {}
     if state.get('scanned_commit') and ('scanned_branch' in state or 'scanned_detached' in state):
@@ -204,10 +205,10 @@ def _publish_all(folder, report, built, errors, lang, name, project, scan, stamp
 
 
 def freshness(project, state):
-    """(freshness, detail) at export time, from eaos/core/branches.py freshness: fresh, behind, rewritten, dirty, other_branch or
+    """(freshness, detail) at export time, from eaos/core/project/branches.py freshness: fresh, behind, rewritten, dirty, other_branch or
     unknown with its reason; eaos_updated when the scan was made by another EAOS. The live Studio asks the server again
     (GET /api/freshness) instead of trusting this snapshot."""
-    from ...core import branches
+    from ...core.project import branches
     if not project or not (state or {}).get('scanned'): return 'unknown', {'state': 'unknown', 'reason': 'not_scanned', 'behind': None, 'eaos_updated': False}
     found = branches.freshness({**(state or {}), 'project': str(project)})
     updated = bool((state or {}).get('scanned_with')) and state.get('scanned_with') != build_info.digest()

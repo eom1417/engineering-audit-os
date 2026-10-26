@@ -1,11 +1,12 @@
 """Where the work stands: the branch EAOS works on (the person chooses it), and `status`, the next tool to call."""
 from datetime import datetime, timezone
 
-from .. import batch_finish, guided, handover
-from ...core import branches, jobs
-from ...live import sign_in as signing
+from ..fix import finish as batch_finish
+from .. import guided, handover
+from ...core.project import branches, jobs
+from ...live.access import sign_in as signing
 from ...pipeline import remedies
-from ...core.project_state import waiting_batch
+from ...core.project.state import waiting_batch
 from .fixing import _no_safety_net
 from .project import ANSWER_SECONDS, SeveralProjects, _current, _head, _now, state_of, tool_digest
 
@@ -14,7 +15,7 @@ from .project import ANSWER_SECONDS, SeveralProjects, _current, _head, _now, sta
 
 def _branch(state):
     """The branch EAOS works on, settled: None when it is (chosen before, or no real choice: then the branch checked
-    out, without a question); else the choice to put to the person (eaos/core/branches.py)."""
+    out, without a question); else the choice to put to the person (eaos/core/project/branches.py)."""
     if state.get('branch'): return None
     current = branches.checked_out(state['project'])
     unfinished = state.get('open_wave') or waiting_batch(state) is not None
@@ -105,7 +106,7 @@ def status(project=None):
 
 def _facts(state, head, checked):
     """status' facts about the project: its commit, whether it is saved in git, checked, run and protected."""
-    from ...core import ledger
+    from ...core.project import ledger
     setup, safety = state.get('setup') or {}, state.get('safety') or {}
     return {'project': state['project'], 'branch': state.get('branch'), 'commit': head,
             'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),

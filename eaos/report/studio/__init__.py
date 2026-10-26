@@ -1,1 +1,1 @@
-"""EAOS Studio: the one model of a report, and the data the Studio reads (docs/STUDIO.md)."""
+"""The data the Studio reads (docs/STUDIO.md), drawn from the one model of a report (eaos/analysis/presentation/)."""

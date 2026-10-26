@@ -1,6 +1,6 @@
 """The data layer's rules, read from the migrations with no database (M6.5).
 
-What lets anyone through the API Supabase serves, from the net state of every migration (eaos/facts/domain.py's tables
+What lets anyone through the API Supabase serves, from the net state of every migration (eaos/facts/domain/model.py's tables
 and policies, and the migrations' text): a table without row-level security, a write policy open to everyone (`true`),
 security enabled with no policy, a security-definer function or view the public may run, a public storage bucket whose
 files anyone may list. And for each table, who reads it and who writes it (the data-access facts, each with the side of
@@ -9,7 +9,7 @@ its file), so a table written from the browser is seen beside its rules.
 import re
 from collections import defaultdict
 
-from ...facts.domain import table_key
+from ...facts.domain.model import table_key
 
 FUNCTION = re.compile(r'create\s+(?:or\s+replace\s+)?function\s+(?P<name>[\w."]+)\s*\((?P<args>[^)]*)\)(?P<body>.*?)(?:\$\w*\$.*?\$\w*\$|;)',
                       re.I | re.S)

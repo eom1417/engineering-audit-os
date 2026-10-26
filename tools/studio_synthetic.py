@@ -19,7 +19,7 @@ from pathlib import Path
 
 from studio_synthetic_base import DOMAINS, HEAD, LAYERS, V2, WHEN, measure, ratio
 from studio_synthetic_maps import data_maps, maps, synthetic_paths, synthetic_pipeline
-from eaos.core import artifact_contracts  # noqa: E402
+from eaos.core.contracts import artifact_rules as artifact_contracts  # noqa: E402
 from eaos.report.studio import coverage as coverage_section  # noqa: E402
 from eaos.report.studio import export  # noqa: E402
 
@@ -86,7 +86,7 @@ def synthetic_nodes(card_rows):
 def synthetic_ideal(comps, layer, card_rows):
     """studio/ideal.json at scale: every view's rules target, the system and the plan order planned, each planned element
     citing cards and facts that exist, and the rest of the views on the rules with their plain "not planned" state."""
-    from eaos.ai import ideal_base
+    from eaos.ai.ideal import base as ideal_base
     by_comp = {}
     for card in card_rows: by_comp.setdefault(card['paths'][0].split('/')[2], []).append(card)
     message = {'en': 'Planned by Claude Code (synthetic) on top of the rules.', 'ar': 'خطّطه Claude Code (اصطناعي) فوق القواعد.'}

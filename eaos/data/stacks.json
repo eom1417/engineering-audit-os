@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "description": "The technologies EAOS knows how to lay out, by concern, for building a project from a plan (eaos/report/blueprint.py). Each concern has a recommended option and alternatives. Every option lives behind one adapter folder (its port): only that folder may import the option's packages, which eaos/report/blueprint.py checks after every build card, so changing an option later is replacing one folder. `switch` says, in plain words, what changing to that option involves.",
+ "description": "The technologies EAOS knows how to lay out, by concern, for building a project from a plan (eaos/report/blueprint/design.py). Each concern has a recommended option and alternatives. Every option lives behind one adapter folder (its port): only that folder may import the option's packages, which eaos/report/blueprint/design.py checks after every build card, so changing an option later is replacing one folder. `switch` says, in plain words, what changing to that option involves.",
  "concerns": {
   "web": {
    "title": "The screens (front end)",

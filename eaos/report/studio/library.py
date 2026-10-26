@@ -8,7 +8,7 @@
   blueprint (its parts, technologies and milestones) and the plan of a feature added to the project, in one group.
 - media: the report's diagrams and images, the same way. The thumbnails an older crawl's Unlighthouse kept
   (`__screenshot-thumbnails__`, 760 of them on EAOS's own Studio) are its working files, not pictures of the check.
-- Each document in both languages when the check wrote them (report/i18n/<lang>/, eaos/core/bilingual.py): its title
+- Each document in both languages when the check wrote them (report/i18n/<lang>/, eaos/core/language/bilingual.py): its title
   (docs `titles`) and its text (library `texts`), so the reader switches with the person's language at once.
 - library: each document's text, and each image as a data URI (an <img> runs no script from it) or a diagram's source.
   A file too large to carry is listed with the reason; nothing is cut silently. The machine's own folders in the text
@@ -114,7 +114,7 @@ def _pictured(report):
     """{picture path: (route, viewport)} of the check's screen pictures (live/screens.json): the route is the page's
     address without its host or query (/#/system for a hash route), so a picture belongs to its screen."""
     from urllib.parse import urlsplit
-    from ...analysis.model import _load
+    from ...analysis.presentation.model import _load
     rows = (_load(Path(report) / 'live/screens.json', {}) or {}).get('rows') or []
     out = {}
     for row in rows:

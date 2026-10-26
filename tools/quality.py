@@ -37,7 +37,7 @@ def engine_counts(workdir):
 
 
 def dead_counts(workdir):
-    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/deadcode.py) over the Python code, the one
+    """{'deadcode:rule': findings} of EAOS's own dead-code detector (eaos/facts/dead_code/detect.py) over the Python code, the one
     every check runs (vulture's were all names called by dispatch, M2.3); the Studio's is knip's below. tools/ is EAOS's
     code too: what only it reads is read (the code laws' limits were said never read)."""
     from eaos.facts.run import collect

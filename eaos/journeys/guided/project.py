@@ -8,10 +8,10 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...core import branches, project_state
-from ...core.project_state import runtime_of
-from .. import waves
-from ...core.places import outputs_root, second_name
+from ...core.project import branches, state as project_state
+from ...core.project.state import runtime_of
+from ..fix import waves
+from ...core.project.places import outputs_root, second_name
 
 
 OUTPUTS_README = {
@@ -65,7 +65,7 @@ def outputs(state):
 
 
 def save(state):
-    """The state written (eaos/core/project_state.py), the open batch drawn and the closed ones' copies removed first."""
+    """The state written (eaos/core/project/state.py), the open batch drawn and the closed ones' copies removed first."""
     waves.saved(state, runtime_of(state))
     project_state.write(state)
 
@@ -87,7 +87,7 @@ def log_failure(where, problem):
 # ---------------------------------------------------------------- the steps `next` walks through
 
 def report_of(state):
-    """The technical report, in the branch's part of the outputs folder (eaos/core/branches.home); one an older EAOS left
+    """The technical report, in the branch's part of the outputs folder (eaos/core/project/branches.home); one an older EAOS left
     in the workspace is moved there once."""
     outputs(state)
     report = branches.home(state) / 'technical'
@@ -122,11 +122,11 @@ def report_stamp(state):
 
 
 def publish(state, lang=None, event=None):
-    """REPORT.html in the branch's outputs folder, rebuilt from the ledger (eaos/core/ledger.py) so that it shows what is in
+    """REPORT.html in the branch's outputs folder, rebuilt from the ledger (eaos/core/project/ledger.py) so that it shows what is in
     the person's branch now, stamped with the EAOS that made it. Nothing here fails in silence: a part that cannot be
     built is named on the page, in .report.json beside it and in logs/, and the rest of the page is still made. It is
     never a reason for a step to fail: without it, the technical report is still there."""
-    from ...core.build_info import stamp
+    from ...core.system.version_info import stamp
     report, home_folder = report_of(state), branches.home(state)
     target, made = home_folder / 'REPORT.html', datetime.now(timezone.utc).isoformat(timespec='seconds')
     errors, progress = [], {'waves': state.get('waves') or []}
@@ -137,7 +137,7 @@ def publish(state, lang=None, event=None):
             errors.append(f'{name}: {type(problem).__name__}: {problem}'[:300])
             log_failure(outputs(state), problem)
 
-    from ...core.ledger import for_report, sync
+    from ...core.project.ledger import for_report, sync
     part('ledger', lambda: for_report(sync(state, event, report)))
     part('branch', lambda: branch_links(state))
     for name, build in REPORT_PARTS.items(): part(name, lambda build=build: build(state))
@@ -223,7 +223,7 @@ def scan_done(state):
         and (report_of(state) / 'START-HERE.md').is_file()
 
 
-# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_blueprint.publish}, registered
+# How a way of working other than fixing rebuilds its page for people: {'build': eaos.journeys.build_from_plan.blueprint.publish}, registered
 # by that module itself, so that this one does not import it.
 PUBLISHERS = {}
 

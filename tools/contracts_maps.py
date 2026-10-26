@@ -5,7 +5,7 @@ from contracts_studio import (CARD_STATES, COUNT, COVERAGE_REASONS, COVERAGE_STA
                               TASK_STATES, section_v2)
 
 # The visual maps of NS46.T6 (STUDIO-COMPLETE.md "the owner's must-haves"): the user's journeys between screens
-# (eaos/report/studio/journeys.py) and what the user sees against what runs unseen (eaos/report/studio/hidden.py). Every element
+# (eaos/report/studio/user_journeys/) and what the user sees against what runs unseen (eaos/report/studio/hidden.py). Every element
 # carries its evidence (fact, file, line); a gap in the engine's data is written in `missing` and counted in coverage.
 _EVIDENCE = obj({'file': NS, 'line': NI, 'fact': NS}, ['file'])
 _MAP_GAP = obj({'id': S, 'state': enum(*COVERAGE_STATES), 'step': {'type': 'string', 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
@@ -213,7 +213,7 @@ STUDIO_V2 = {
               'not_measured': REF('measure')},
              ['sections', 'not_measured'])),
 }
-# The code paths (studio/paths.json, eaos/report/studio/paths.py): each entry through its layers as swimlanes, every node and
+# The code paths (studio/paths.json, eaos/report/studio/paths/): each entry through its layers as swimlanes, every node and
 # link with its evidence, a gap node where the records stop; and the fix plan's timeline in waves.
 _LANE = enum('screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data')
 _PATH_EVIDENCE = {'fact': NS, 'path': {'type': ['string', 'null'], 'pattern': r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$))'},
@@ -256,7 +256,7 @@ STUDIO_V2['paths'] = (
                  'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
                  ['plan', 'waves', 'steps', 'tasks', 'counts'])]}},
             ['lanes', 'paths', 'nodes', 'edges', 'components', 'new', 'overview', 'counts', 'src', 'timeline']))
-# The pipeline map (studio/pipeline.json, eaos/analysis/pipeline_map.py from facts/pipeline.json): whether the project, or a
+# The pipeline map (studio/pipeline.json, eaos/analysis/maps/pipeline.py from facts/pipeline.json): whether the project, or a
 # part of it, is a pipeline; its stages with their tools, inputs, outputs and side effects; the edges matched by value
 # flow; routers and their branches; fan-out and fan-in; the error lanes; what bypasses the declared flow; the steps
 # EAOS could not follow (drawn as gaps, never invented); and the ideal pipeline and the gap, by rules.

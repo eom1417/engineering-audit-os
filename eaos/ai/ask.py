@@ -6,7 +6,7 @@ indexed, so an empty answer is a real answer: the records do not cover the quest
 from pathlib import Path
 import re
 from ..facts.store import read_set
-from ..core.workspace import read
+from ..core.project.workspace import read
 
 STOP = {'the', 'a', 'an', 'of', 'in', 'is', 'are', 'how', 'what', 'where', 'which', 'does', 'do', 'to', 'and',
         'for', 'from', 'this', 'that', 'it', 'on', 'with', 'أين', 'كيف', 'ما', 'هل', 'من', 'في', 'على', 'الى', 'إلى'}

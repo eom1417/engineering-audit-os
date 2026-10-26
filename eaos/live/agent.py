@@ -1,6 +1,6 @@
 """The browser agent (M5.2): one layer that drives a running app's browser towards a goal with the person's assistant,
 records each step with its picture, and replays the recorded steps with no assistant at all. Screen discovery uses it
-after the rules and the links (pipeline/pages.py crawl): the screens behind buttons, tabs and welcomes are reached once
+after the rules and the links (pipeline/runners/pages.py crawl): the screens behind buttons, tabs and welcomes are reached once
 by the assistant, then every later check reaches them again for free. M10's simulated users stand on the same layer.
 
     Browser(base, out, storage_state)   the browser (eaos/templates/screens/agent.mjs), a step at a time: .do(command)

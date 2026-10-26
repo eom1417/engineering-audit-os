@@ -10,7 +10,7 @@ Read only from the facts the check already wrote; nothing is guessed:
     kind        react-docgen's exported components (engine react-docgen, with their props as the signature); a
                 capitalised function in a .tsx/.jsx file is a component by React's own naming rule; use* is a hook;
                 handle*/on* is a handler
-    calls       facts/syntax.json call_edge, resolved the way the flow tracer resolves them (facts/flows.py): a callee
+    calls       facts/syntax.json call_edge, resolved the way the flow tracer resolves them (facts/code/flows.py): a callee
                 defined in the same file, else in exactly one file this file imports. A call that does not resolve is
                 left out, never guessed; the share resolved is counted
     reads and   facts/entrypoints.json data_access (a table read or written, a request sent) and facts/config.json
@@ -25,13 +25,13 @@ from collections import defaultdict
 from pathlib import Path
 
 from ...facts.store import facts as facts_of
-from ...facts import flows
-from ...analysis.model import LANGUAGES
+from ...facts.code import flows
+from ...analysis.presentation.model import LANGUAGES
 
 SRC = {
     'functions': 'facts/syntax.json#symbol[kind in function, method] + engines lizard rows the parser did not read',
     'modules': 'files holding at least one function',
-    'calls': 'facts/syntax.json#call_edge resolved to a function of this project (facts/flows.py resolve_callee)',
+    'calls': 'facts/syntax.json#call_edge resolved to a function of this project (facts/code/flows.py resolve_callee)',
     'call_sites': 'facts/syntax.json#call_edge inside a function',
     'reads': 'facts/entrypoints.json#data_access + facts/config.json#env_read, in the innermost function',
     'writes': 'facts/entrypoints.json#data_access[operation writes]',
@@ -240,7 +240,7 @@ def _signature(short, value, component):
 
 
 def _lines(row, liz, metric):
-    """An engine's measure when it is a possible one (lizard said -1 for eaos/report/blueprint.py page, and the whole section
+    """An engine's measure when it is a possible one (lizard said -1 for eaos/report/blueprint/design.py page, and the whole section
     failed its contract); else EAOS's own."""
     if liz and (liz.get('nloc') or -1) >= 0: return {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
     if metric.get('lines') is not None: return {'value': metric['lines'], 'src': 'facts/metrics.json#metric.value.lines', 'unit': 'lines'}

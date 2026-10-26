@@ -19,7 +19,7 @@ from pathlib import Path
 from . import sarif, tool
 from .contract import ERROR, NOT_APPLICABLE, OBSERVED, Capability, Report
 from .process import run, which
-from ..core.web import opened
+from ..core.system.web import opened
 
 NAME = BINARY = 'codeql'
 PINNED = tool.pinned(NAME)
@@ -58,7 +58,7 @@ def public_repository(target):
     """`owner/name` when the project's origin is a public repository on GitHub.com, else None."""
     done = subprocess.run(['git', '-C', str(target), 'remote', 'get-url', 'origin'], capture_output=True, text=True)
     url = done.stdout.strip() if done.returncode == 0 else ''
-    # EAOS's own copy of the project (eaos/journeys/guided.py source) has the project's folder as origin: the project's own counts.
+    # EAOS's own copy of the project (eaos/journeys/guided/ source) has the project's folder as origin: the project's own counts.
     if url and Path(url).is_dir() and Path(url).resolve() != Path(target).resolve(): return public_repository(url)
     found = GITHUB.search(url)
     if not found: return None

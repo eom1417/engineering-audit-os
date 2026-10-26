@@ -33,7 +33,7 @@ of today feeds. The cards on a node's file come with the plan steps holding them
 Change from the same nodes, so a node keeps its place between views.
 
 The timeline is the fix plan (plan.json) in the order it runs: its waves, each task's step, and what each task waits
-for: a prerequisite the plan names, or the last task of an earlier wave touching the same file (eaos/analysis/plan.py waves()).
+for: a prerequisite the plan names, or the last task of an earlier wave touching the same file (eaos/analysis/planning/cards.py waves()).
 
 Here: the parts of today and the section; graph.py: the nodes and links and the builder that walks each entry;
 overview.py: the lanes' layout and the clusters; timeline.py: the plan's timeline.
@@ -42,8 +42,9 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from ....analysis import system_map as sm
-from .. import path_records, system as system_section
+from ....analysis.maps import system as sm
+from . import records as path_records
+from .. import system as system_section
 from ..change import _objects
 from .graph import LANES, _Builder, _fact_id, _measure
 from .overview import CLUSTER_AT, MAX_CLUSTERS, _folder, layout, overview  # noqa: F401  (CLUSTER_AT, MAX_CLUSTERS, _folder: read here by the tests)
@@ -56,11 +57,11 @@ SRC = {
     'calls': 'facts/entrypoints.json#data_access',
     'flows': 'facts/flows.json#flow',
     'imports': 'facts/graph.json#graph_node.depends_on',
-    'routes': 'facts/entrypoints.json#entry_point (server routes) and file routing (eaos/analysis/system_map.py find_handlers)',
+    'routes': 'facts/entrypoints.json#entry_point (server routes) and file routing (eaos/analysis/maps/system.py find_handlers)',
     'tables': 'facts/domain.json#data_table',
     'components': 'target-architecture.json#current_components, target_components',
     'cards': 'cards.json#cards[].paths, milestone',
-    'timeline': 'plan.json#waves, milestones, tasks[].prerequisites, tasks[].paths (eaos/analysis/plan.py waves())',
+    'timeline': 'plan.json#waves, milestones, tasks[].prerequisites, tasks[].paths (eaos/analysis/planning/cards.py waves())',
 }
 
 
@@ -69,7 +70,7 @@ def _slug(text):
 
 
 def _read(report):
-    """The records the paths read (eaos/report/studio/path_records.py), each piece empty when its record is missing or broken."""
+    """The records the paths read (eaos/report/studio/paths/records.py), each piece empty when its record is missing or broken."""
     report = Path(report)
     r = {'pages': [], 'servers': [], 'routes': [], 'calls': defaultdict(list), 'flows': {}, 'flow_of': {}, 'flow_list': [],
          'functions': defaultdict(list), 'names': defaultdict(set), 'methods': defaultdict(set), 'packages': defaultdict(set),

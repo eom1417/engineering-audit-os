@@ -1,6 +1,6 @@
 """Governance without the Studio: the terminal's commands (eaos check, watch, waiting, fix, branches...) and the
-assistant's governance tools (eaos/interfaces/mcp_govern.py), both thin callers of the Studio's own core, `Actions` and its
-`BranchControl` (eaos/interfaces/studio), so no rule is written twice and every surface sees the same runs.
+assistant's governance tools (eaos/interfaces/mcp_server/govern.py), both thin callers of the Studio's own core, `Actions` and its
+`BranchControl` (eaos/interfaces/studio_actions), so no rule is written twice and every surface sees the same runs.
 
 Who starts a run. The Studio's dispatcher is a thread of whatever builds `Actions` (runs.py, `dispatch.lock`). The
 callers here build it without that thread (`core`): a command never starts a run it would not live to follow. What
@@ -25,13 +25,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..journeys import guided
-from ..live import sign_in
-from ..core.launch import HEADLESS
-from ..core.store import ACTIVE, RETRYABLE
-from ..core import project_state
+from ..live.access import sign_in
+from ..core.system.launch import HEADLESS
+from ..core.project.runs import ACTIVE, RETRYABLE
+from ..core.project import state as project_state
 from .govern_words import WORDS, text_of
 
-SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/live/sign_in.py)
+SIGN_IN = 'sign-in'          # what waits for the person while the check waits for their sign-in (eaos/live/access/sign_in.py)
 HOST_IDLE = int(os.environ.get('EAOS_HOST_IDLE') or 120)   # seconds the host stays once nothing is queued or active (tests: less)
 # What a branch change previews, then does (BranchControl's methods), and the body both take.
 BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 'delete'), 'protect': ('preview_protect', 'protect'),
@@ -42,7 +42,7 @@ BRANCH_OPS = {'merge': ('preview_merge', 'merge'), 'delete': ('preview_delete', 
 
 @functools.lru_cache(maxsize=8)
 def _core(project):
-    from .studio import Actions
+    from .studio_actions import Actions
     return Actions(project, dispatch=False, lang=(project_state.load(project) or {}).get('lang') or 'ar')
 
 
@@ -64,7 +64,7 @@ def _held(path):
 def wake(project, answer=None):
     """The host that starts the project's queued runs, unless the project's Studio or a host already runs; with `answer`
     (question, option, text), a host that gives it first, whatever runs. True when one was started."""
-    from ..core import launch
+    from ..core.system import launch
     actions, state = core(project), project_state.load(core(project).project)
     if not answer and (_held(actions.store.folder / 'host.lock') or launch.running(state)): return False
     question, option, text = answer or (None, None, None)
@@ -78,7 +78,7 @@ def host(project, answer=None, idle=HOST_IDLE):
     """`eaos govern`: the project's runs started and followed without the Studio, by this process's dispatcher while it
     holds `dispatch.lock` (a Studio that holds it starts them instead), until nothing is queued, active or followed here
     for `idle` seconds. `answer` (question, option, text) is given first; a second host with no answer leaves at once."""
-    from .studio import Actions
+    from .studio_actions import Actions
     os.environ[HEADLESS] = '1'
     actions = Actions(project, lang=(project_state.load(Path(project).resolve()) or {}).get('lang') or 'ar')
     try:
@@ -196,8 +196,8 @@ def _pace(record, done, total):
 
 
 def _used(actions, record):
-    """What a run's assistant used so far (eaos/core/usage.py); a check's, the calls of the check under way."""
-    from ..core.usage import of_check, of_run
+    """What a run's assistant used so far (eaos/core/system/usage.py); a check's, the calls of the check under way."""
+    from ..core.system.usage import of_check, of_run
     found = of_run(actions.store.path(record['id']))
     if found or record.get('action') != 'audit' or not record.get('started'): return found
     if (record.get('inputs') or {}).get('use_assistant') is False: return None     # never the cost of a check before it
@@ -216,7 +216,7 @@ def show_run(project, run=None):
 def waiting(project):
     """Everything waiting for the person: the runs' questions, the report's questions not answered yet, the branch
     handed over for accept or undo, and the sign-in a check waits for."""
-    from ..core.project_state import waiting_batch
+    from ..core.project.state import waiting_batch
     actions = core(project)
     rows = _questions(actions)
     state = project_state.load(actions.project) or {}
@@ -239,7 +239,7 @@ def _questions(actions):
 
 
 def signing_in(project):
-    """What the check asks while it waits for the person to sign in to their app (eaos/live/sign_in.py asked), or None."""
+    """What the check asks while it waits for the person to sign in to their app (eaos/live/access/sign_in.py asked), or None."""
     return sign_in.asked(project_state.load(core(project).project)['workspace'])
 
 
@@ -276,7 +276,7 @@ def _answer_run(actions, row, option, text):
 # ---------------------------------------------------------------- the verbs on a selection
 
 def selection_of(ids=(), group=None):
-    """The Studio's selection (eaos/journeys/selection.py) from card ids, or a group as by=value."""
+    """The Studio's selection (eaos/journeys/fix/selection.py) from card ids, or a group as by=value."""
     if group:
         by, _, value = str(group).partition('=')
         return {'kind': 'group', 'group': {'by': by.strip(), 'value': value.strip()}}
@@ -291,7 +291,7 @@ def verb_preview(project, verb, selection, auto_accept=False, assistant=None):
 
 def verb_start(project, preview, confirm=None, assistant=None):
     """The run its preview showed, with that preview's confirm token (a Fix's), queued, and the host woken."""
-    from .studio import _where_of
+    from .studio_actions import _where_of
     actions = core(project)
     record = actions.create({'verb': preview['verb'], 'selection': preview['selection'], 'assistant': assistant, 'confirm': confirm,
                              'inputs': {'auto_accept': True} if preview.get('auto_accept') else {}, 'where': _where_of(preview.get('where'))})
@@ -331,7 +331,7 @@ def restore(project, recovery):
 # ---------------------------------------------------------------- history, comparison, use, freshness
 
 def _section(project, name):
-    from ..journeys.selection import studio_folder
+    from ..journeys.fix.selection import studio_folder
     folder = studio_folder(core(project).project)
     try: return json.loads((folder / f'{name}.json').read_text(encoding='utf-8')) if folder else None
     except (OSError, ValueError): return None

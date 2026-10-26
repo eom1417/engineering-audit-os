@@ -108,7 +108,7 @@ def code_routes(root, most=100):
 
 
 def _code_texts(root):
-    from ...core.workspace import inventory
+    from ...core.project.workspace import inventory
     for row in inventory(root)['files']:
         if not row['path'].endswith(CODE): continue
         try: yield (Path(root) / row['path']).read_text(encoding='utf-8', errors='replace')
@@ -129,7 +129,7 @@ def discover(base, max_routes=200, timeout=1800, storage_state=None, read_only=F
     """(routes, error): every page of the app reached from `base` by its links, [{path, depth, status}]. Signed in
     (`storage_state`), a link that would sign out, delete or change (lock_specs.LEAVES) is never followed; `read_only` (a
     published address) sends nothing but GET."""
-    from ..lock_specs import LEAVES
+    from ..behavior.specs import LEAVES
     absent = missing('playwright')
     if absent: return None, absent
     config = {'base': base, 'max_routes': max_routes, 'modules': {'playwright': str(toolchain.home() / 'node/node_modules')},

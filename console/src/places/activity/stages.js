@@ -1,4 +1,4 @@
-// The check's stages (CHK-08..11): the stages of the last check as /api/progress tells them (eaos/progress.py: each
+// The check's stages (CHK-08..11): the stages of the last check as /api/progress tells them (eaos/core/progress/: each
 // with its part, needs, state, reason, steps, programs, files and what it reported), drawn by part; one stage's
 // sheet (S-16, CHK-09); "Redo from here" with its free preview (CHK-10, POST /api/actions/audit/preview with
 // again_from); and the replay of a finished check from its own start and end times (CHK-11).

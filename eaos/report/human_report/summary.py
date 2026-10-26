@@ -1,10 +1,10 @@
 """REPORT.html's summary and its gaps and risks: the score, the areas, the top problems, what was not checked."""
 from collections import Counter
 
-from ...core import plain
-from ...analysis import model as M
-from ...core.markup import both as T, esc
-from ...analysis.model import AREAS, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, ledger_of
+from ...core.language import plain
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc
+from ...analysis.presentation.model import AREAS, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, ledger_of
 from .cards import gap_block
 from .charts import severity_bars
 from .html import lit, num, priority_words, said, sev_chip, unavailable, w
@@ -106,7 +106,7 @@ def not_checked(m):
         if status in ('failed', 'not_reached'):
             items.append(T(f'لم يكتمل: {esc(plain.stage(stage, "ar"))}. ما كان سيجده قد يكون ناقصًا.',
                            f'Did not complete: {esc(plain.stage(stage, "en"))}. What it would have found may be missing.', 'li'))
-    from ..run import absences
+    from ..documents.run import absences
     covered = ('semantic',) if coverage else ()
     for row in absences(manifest):
         if row['status'] in ('unavailable', 'skipped') and row['stage'] not in covered:

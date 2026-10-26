@@ -2,8 +2,8 @@
 import json
 
 from .. import check_choices, guided
-from ...live import assist as live_assist, run_profile, setup as live_setup
-from ...core import project_state
+from ...live.app import assist as live_assist, profile as run_profile, setup as live_setup
+from ...core.project import state as project_state
 from .project import _head, _read, _start, state_of
 
 

@@ -9,8 +9,8 @@ added moves the law out of review). Numbers only ever get stricter: a change tha
 
 | Law | Today (enforced) | Target | Enforced by |
 |---|---|---|---|
-| Module size | ≤ 400 lines, no exception in Python (M3, 0.0.75); the Studio's JavaScript under it since M4.6 (0.0.76), no exception | same, no exception | `tools/code_limits.py` (`tests/test_code_limits.py`) |
-| Function complexity | ≤ 10, no exception in Python (M3, 0.0.75), one count for the laws and the hotspots (`core/code_laws.py` `complexity`, a nested function counted alone); the Studio's JavaScript since M4.6, no exception; a split of its code proved by `console/tools/same.cjs` (every screen and sheet drawn the same before and after) | same, no exception | same |
+| Module size | ≤ 400 lines, no exception in Python (M3, 0.0.75); the Studio's JavaScript under it since M4.6 (0.0.76), no exception | same, no exception | `tools/code_limits.py` (`tests/guards/test_code_limits.py`) |
+| Function complexity | ≤ 10, no exception in Python (M3, 0.0.75), one count for the laws and the hotspots (`core/contracts/code_laws.py` `complexity`, a nested function counted alone); the Studio's JavaScript since M4.6, no exception; a split of its code proved by `console/tools/same.cjs` (every screen and sheet drawn the same before and after) | same, no exception | same |
 | Function length | ≤ 50 lines, today's 5 longer ones listed | same | same |
 | Function parameters | ≤ 5 (self, cls aside), today's 129 listed | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
@@ -47,8 +47,8 @@ the Studio's entries from `console/knip.json`.
 | Law | Guarded by |
 |---|---|
 | `main` is never touched; every change goes through a `dev/<topic>` branch from `develop` (directly on `develop` only when the owner says so) | the git hooks `pre-commit` and `pre-push` refuse `main` |
-| A project's app runs only in its isolated copy (`eaos/live/sandbox.py`, `eaos/live/run.py`): its own database, port and scratch home; never the owner's real data | `test_sandbox` |
-| A project's state is read and written only through `core/project_state.py` | `test_consistency` |
+| A project's app runs only in its isolated copy (`eaos/live/isolation/sandbox.py`, `eaos/live/app/run.py`): its own database, port and scratch home; never the owner's real data | `test_sandbox` |
+| A project's state is read and written only through `core/project/state.py` | `test_consistency` |
 | Never one machine's path in code | `test_platforms` |
 | A simulated user (M10) acts only in the isolated copy: external services stubbed, dummy data only, within step, time and cost budgets; what needs a real service is reported as not covered | M10's tests, when built |
 | The owner's own projects are never checked from the EAOS development container; fixes are proved on trial apps and on the compatibility corpus | review |
@@ -67,8 +67,8 @@ the Studio's entries from `console/knip.json`.
 
 - `unittest`. One test per real behaviour; a fix adds a test only when it reproduces a real failure. No sleeps where a
   condition can be awaited; no test of exact wording unless the wording is the contract.
-- Guards that always stay: `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`,
-  `test_artifact_contract`, the golden trial (`tools/golden_trial.sh`).
+- Guards that always stay (`tests/guards/`): `test_code_limits`, `test_studio_assets`, `test_golden_facts`, `test_consistency`,
+  `test_artifact_contract`, `test_named_paths` (every path EAOS names exists), the golden trial (`tools/golden_trial.sh`).
 - **Detection baseline** (M0.2): `tests/fixtures/baseline-app` carries eight planted problems (a command injection, a
   secret, a dead function, a dead module, duplication, a broken screen, a sign-in, a logic flaw), listed in
   `tests/fixtures/baseline-problems.json` with how far EAOS reaches each (card, finding, missed). The golden trial checks

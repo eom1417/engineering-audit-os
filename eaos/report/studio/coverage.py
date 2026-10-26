@@ -12,7 +12,7 @@ it) or not (so an engine step must produce them first).
 from pathlib import Path
 
 from ...facts.store import facts as facts_of
-from ...analysis.model import LANGUAGES
+from ...analysis.presentation.model import LANGUAGES
 
 FUNCTION_SCOPES = ('function', 'method')
 # Each section the Studio reads, in the order the rows are written, with the field its count reads.

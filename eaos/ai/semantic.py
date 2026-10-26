@@ -8,10 +8,10 @@ internal contracts, and it stays clearly marked as inference.
 import json
 import re
 from pathlib import Path
-from ..analysis import claims as ledger
-from ..core.code_laws import LAWS
+from ..analysis.claims import ledger
+from ..core.contracts.code_laws import LAWS
 from ..facts.store import read_set
-from ..core.workspace import read, write
+from ..core.project.workspace import read, write
 
 from ..facts.run import ALL_SETS as SETS
 TYPES = {'responsibility', 'contract', 'business_rule', 'cause', 'structure', 'capability_gap'}
@@ -200,9 +200,9 @@ def _full_digest(target, out, sets, dossier, known):
     digest['review_goal'] = goal
     digest['questions_for_this_goal'] = GOAL_QUESTIONS.get(goal, GOAL_QUESTIONS['evolution'])
     # The cards are written after this reading, so the problems found are not one of its aspects yet.
-    from ..analysis.aspects import digest as aspects
+    from ..analysis.understanding.aspects import digest as aspects
     digest['aspects'] = {name: row for name, row in aspects(out).items() if name != 'findings'}
-    from ..analysis.semantic_source import SourceSession
+    from ..analysis.understanding.semantic_source import SourceSession
     sources = SourceSession(target, out, sets, exclude=dossier['provenance'].get('excluded_patterns', []))
     known.update(f['id'] for f in sources.allowed.values())
     catalog = [{'path': f['location']['path'], 'fact_id': f['id'], 'kind': f['kind']} for f in sources.allowed.values()]

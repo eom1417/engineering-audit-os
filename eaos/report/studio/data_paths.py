@@ -18,14 +18,14 @@ counted, never a guessed link.
                  target_component); a store whose writers all land in one target component has a single source there
 
 The overview is laid out in data_paths_layout.py (callers and stores in two lanes, ordered by barycentre sweeps with
-eaos/analysis/arch_map.order_columns; the target's components ordered against the same, pinned, stores), so every view and
+eaos/analysis/maps/layout.order_columns; the target's components ordered against the same, pinned, stores), so every view and
 every reader draws the same places. Above MAX_LANE nodes a lane is clustered and each cluster expands on request.
 """
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from ...analysis import arch_map
+from ...analysis.maps import architecture as arch_map
 from .data_paths_layout import FAMILIES, MAX_LANE, view  # noqa: F401  (MAX_LANE: a lane's limit, read here by the tests)
 from .system import owner_of
 

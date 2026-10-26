@@ -72,7 +72,7 @@ Two projects were evaluated and deliberately not used:
 
 ## Design sources
 
-Read when a look is drawn or reviewed (`eaos/analysis/design.py`): fetched to the operator's machine at a pinned commit, never
+Read when a look is drawn or reviewed (`eaos/analysis/target_state/look.py`): fetched to the operator's machine at a pinned commit, never
 copied into this repository or redistributed. Components and fonts are installed into the built project by their own
 package managers.
 

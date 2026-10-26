@@ -65,7 +65,7 @@ def gallery(report):
     pages = {}
     for row in body.get('rows') or []:
         if not _pictured(report, row): continue
-        address, kind = _address(row.get('url')), row.get('kind')      # a page as each kind of user saw it (eaos/live/roles.py)
+        address, kind = _address(row.get('url')), row.get('kind')      # a page as each kind of user saw it (eaos/live/access/roles.py)
         page = pages.get((kind, address)) or pages.setdefault((kind, address), {**_page(address, known.get(address) or {}), 'kind': kind})
         _picture(page, row, on.get(row['screenshot'], []), address in clean)
     return list(pages.values())
@@ -90,7 +90,7 @@ def _pictured(report, row):
 
 
 def _covered(report):
-    """Which kinds of users of the code the check saw (eaos/live/roles.py), None when they are not known."""
+    """Which kinds of users of the code the check saw (eaos/live/access/roles.py), None when they are not known."""
     return (_load(Path(report) / 'live/screens.json') or {}).get('coverage') if report else None
 
 

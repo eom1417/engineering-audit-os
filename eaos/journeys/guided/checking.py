@@ -3,9 +3,9 @@ eaos/journeys/check.py runs it.
 """
 from datetime import datetime, timezone
 
-from ...core.project_state import runtime_of, waiting_batch
+from ...core.project.state import runtime_of, waiting_batch
 from .. import check_choices
-from ...report.start_here import summary_counts
+from ...report.documents.start_here import summary_counts
 from .person import AI_QUESTION, Declined, WITHOUT_AI_QUESTION, WITHOUT_QUESTION, answered, ask, box, progress_printer, say
 from .project import chosen_assistant, report_of, save, source
 
@@ -24,10 +24,11 @@ def choose_assistant(state, use, name=None, via='person'):
 
 def check_provider(state):
     """The provider of the person's assistant for the check's AI stages (docs/AI-IN-THE-PIPELINE.md): on unless they
-    said no to `use_assistant`, as long as the assistant they chose answers (eaos/ai/readiness.py). Otherwise a
+    said no to `use_assistant`, as long as the assistant they chose answers (eaos/ai/assistant/readiness.py). Otherwise a
     falsy NoAssistant that says why (they said no, it is not signed in, not answering), or None when no assistant is
     installed: the rules stand alone and the live map and the report name the reason."""
-    from ...ai import provider, readiness
+    from ...ai import provider
+    from ...ai.assistant import readiness
     # The assistant is on by default (owner, 2026-10-11): only the person's explicit no turns it off.
     said = answered(state, 'use_assistant')
     if said is False: return readiness.NoAssistant('ai_declined', 'the person chose to check without AI, so the rules stand alone')
@@ -47,9 +48,9 @@ def check_runtime(state):
 
 def agree_to_assistant(state, yes):
     """Asks once, when an assistant is installed, whether the check may use it; a no is kept and the check goes on. Then
-    the assistant chosen is asked for one word (eaos/ai/readiness.py): when it is not ready, the reason and its fix
+    the assistant chosen is asked for one word (eaos/ai/assistant/readiness.py): when it is not ready, the reason and its fix
     are said and the person decides whether this check starts without AI. False: they said no, the check does not start."""
-    from ...ai import readiness
+    from ...ai.assistant import readiness
     lang = 'ar' if state['lang'] == 'ar' else 'en'
     name = chosen_assistant(state)
     if not name: return True

@@ -1,13 +1,13 @@
 """The coverage ledger (M4.3): for each loop of the check (eaos/pipeline/loops.py), what it covered, what it could not,
 and why. The checkpoint and the manifest keep it (`coverage`); START-HERE.md and RUN.md show its big gaps in red at the
-top (eaos/report/start_here.py, eaos/report/run.py).
+top (eaos/report/documents/start_here.py, eaos/report/documents/run.py).
 
 A gap is big when the loop's goal is not reached for a reason the person did not choose: a stage of it broke, or a
 stage its goal stands on is absent (the app did not start, a tool not installed). A stage left out because the
 check followed other paths, did not switch its optional loop on, or the person did not allow (running the app, signing
 in), is said but is not a big gap.
 """
-from ..core.words import catalog
+from ..core.language.words import catalog
 from .loops import LOOPS, NOT_MET, outcome
 
 # what the person chose, or what does not apply to the project: said, never a big gap

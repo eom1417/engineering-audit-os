@@ -135,7 +135,7 @@ def relativise(path, target):
 
 
 class Declared:
-    """An engine a person added (eaos/core/tools_catalog.py): its `engine` entry says how to run it ({target} and {output} in
+    """An engine a person added (eaos/core/toolchain/catalog.py): its `engine` entry says how to run it ({target} and {output} in
     its args) and that it writes SARIF; its findings read like every SARIF engine's, every rule a `risk` unless mapped."""
 
     def __init__(self, entry):

@@ -1,7 +1,7 @@
 """REPORT.html's plan section: the milestones, the batches, the decisions waiting for the person."""
-from ...analysis import model as M
-from ...core.markup import both as T, esc
-from ...analysis.model import gap_totals, waves_state
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc
+from ...analysis.presentation.model import gap_totals, waves_state
 from .cards import _decision_card, card_groups, cards_block, milestone_label
 from .html import lit, num, quoted, tech, unavailable
 from .work_log import work_log

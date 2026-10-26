@@ -281,7 +281,7 @@ async function auditOne(browser, entry, viewport, variant, index) {
     variant: variant.name, mobile, expect: variant.expect || null };
   try {
     const response = await settle(page, url, entry);
-    // Where the page ended, its answer and a password field: whether it opened as itself (eaos/live/roles.py opened)
+    // Where the page ended, its answer and a password field: whether it opened as itself (eaos/live/access/roles.py opened)
     Object.assign(row, { landed: page.url(), http: response ? response.status() : null,
       password: await page.locator('input[type=password]').count(),
       text: (await page.locator('body').innerText().catch(() => '')).slice(0, 4000) });

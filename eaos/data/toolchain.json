@@ -587,7 +587,7 @@
     "repository": "https://github.com/theory/pgtap",
     "dir": "pgtap"
    },
-   "install_note": "v1.3.4: the per-table tests of the data rules (M6.6) load it as SQL into the run's own database (eaos/live/data_trial.py makes pgtap.sql from its source once)."
+   "install_note": "v1.3.4: the per-table tests of the data rules (M6.6) load it as SQL into the run's own database (eaos/live/trials/data.py makes pgtap.sql from its source once)."
   },
   {
    "name": "sqlfluff",
@@ -1020,7 +1020,7 @@
      "rrweb-player@2.1.7"
     ]
    },
-   "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior_lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
+   "install_note": "Libraries, no executable: the journeys stage (eaos/live/behavior/lock.py run_journeys) injects rrweb's recorder unmodified into each page a journey opens and keeps its events as JSON, capped in size, for the assistant and a later replay with rrweb-player from local files, never from a network."
   },
   {
    "name": "codecharta",
@@ -1038,7 +1038,7 @@
     "method": "npm",
     "package": "codecharta-analysis"
    },
-   "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/architecture.py). Needs temurin-jre."
+   "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/codecharta_emerge.py). Needs temurin-jre."
   },
   {
    "name": "emerge",
@@ -1061,7 +1061,7 @@
     ],
     "own_venv": true
    },
-   "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/architecture.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
+   "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/codecharta_emerge.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
    "version_args": [
     "--help"
    ]

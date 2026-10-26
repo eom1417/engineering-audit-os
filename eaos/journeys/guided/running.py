@@ -1,7 +1,7 @@
 """Steps 2-4: the app run in its isolated copy, the safety net recorded on it, and where the fixes are made."""
 import json
 
-from ...core.project_state import runtime_of
+from ...core.project.state import runtime_of
 from .person import ask, box, explain, say
 from .project import _commit, _saved_note, log_failure, outputs, report_of, safety_holds, save, set_up, source
 
@@ -11,8 +11,8 @@ def ready_done(state):
 
 
 def ready(state, args):
-    """Step 2: consent, then a run profile nobody writes (eaos/live/setup.py)."""
-    from ...live import setup as live_setup
+    """Step 2: consent, then a run profile nobody writes (eaos/live/app/setup.py)."""
+    from ...live.app import setup as live_setup
     from ...ai import available, provider
     lang, commit = state['lang'], _commit(state)
     ask(state, 'run_app', _run_question(lang, (available() or [None])[0]), args.yes)
@@ -68,18 +68,18 @@ def safety_run(state, step=lambda n: None):
     """The safety net's work, without words: every screen recorded on the original, then its speed under load
     when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}; the
     skipped are kept with the state, so "recorded nothing" says why (a real batch was refused with no reason).
-    Written as it happens as the flow `safety` of the live map (eaos/live/behavior_lock.py:FLOW)."""
+    Written as it happens as the flow `safety` of the live map (eaos/live/behavior/lock.py:FLOW)."""
     from ...core import progress
-    from ...live.behavior_lock import FLOW
+    from ...live.behavior.lock import FLOW
     with progress.Flow(runtime_of(state), 'safety', FLOW):
         return _safety_run(state, step)
 
 
 def _safety_run(state, step):
-    from ...live import lock_specs
+    from ...live.behavior import specs as lock_specs
     from ...core import progress
-    from ...live.behavior_lock import refused, run_lock
-    from ...live.runtime_baseline import run_baseline
+    from ...live.behavior.lock import refused, run_lock
+    from ...live.trials.load_baseline import run_baseline
     runtime = runtime_of(state)
     step(1)
     # The specs written again by this EAOS, so a change in how they are written reaches the safety net with no new check.
@@ -146,7 +146,7 @@ def _waves(state):
 
 def fix_done(state):
     """A wave of this commit is in the person's project as a branch, or no ready card is left to try."""
-    from ..waves import next_batch
+    from ..fix.waves import next_batch
     if any(w.get('status') == 'applied' for w in _waves(state)): return True
     return not next_batch(report_of(state), state)
 
@@ -154,7 +154,7 @@ def fix_done(state):
 def fix(state, args):
     """Step 4: the fixes are made by the person's AI assistant through EAOS's tools (fix_start, fix_edit, fix_finish),
     from the assistant or the Studio; this command never calls a model itself. It says where to go."""
-    from ..waves import next_batch
+    from ..fix.waves import next_batch
     lang = state['lang']
     batch = next_batch(report_of(state), state)
     box(lang, (f'{len(batch)} إصلاحات جاهزة. يصلحها مساعدك الذكي: افتح Claude Code أو Codex في هذا المجلد واكتب /eaos ثم '

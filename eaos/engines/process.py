@@ -12,7 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from ..core import toolchain
-from ..core.process import run_command
+from ..core.system.process import run_command
 
 DEFAULT_TIMEOUT = 600
 SKIP_DIRECTORIES = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'dist', 'build', '.mypy_cache'}
@@ -29,7 +29,7 @@ def which(binary):
 def run(command, cwd=None, timeout=DEFAULT_TIMEOUT, env=None):
     """Run an engine and return (exit code, stdout, stderr, seconds). Never raises on a bad exit."""
     started = time.monotonic()
-    cache = os.environ.get('EAOS_ENGINE_CACHE')     # the project's own (eaos/core/jobs.py): no cache shared between projects
+    cache = os.environ.get('EAOS_ENGINE_CACHE')     # the project's own (eaos/core/project/jobs.py): no cache shared between projects
     try:
         done = run_command(command, cwd=cwd, timeout=timeout,
                            env={**toolchain.tool_env(), 'NO_COLOR': '1', **({'XDG_CACHE_HOME': cache} if cache else {}), **(env or {})})

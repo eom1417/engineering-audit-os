@@ -1,12 +1,12 @@
-"""REPORT.html's system map (its data and layout: eaos/analysis/system_map.py): pages, APIs, handlers, tables."""
-from ...analysis import model as M
-from .. import pipeline_sheet
-from ...core.markup import both as T, esc
-from ...analysis.system_drawing import COLUMNS, WIDTH, svg_edge, svg_heads, svg_nodes
+"""REPORT.html's system map (its data and layout: eaos/analysis/maps/system.py): pages, APIs, handlers, tables."""
+from ...analysis.presentation import model as M
+from . import pipeline_sheet
+from ...core.language.markup import both as T, esc
+from ...analysis.maps.system_drawing import COLUMNS, WIDTH, svg_edge, svg_heads, svg_nodes
 from .html import lit, num, unavailable
 
 
-# ---------------------------------------------------------------- the system map (the data and layout: eaos/analysis/system_map.py)
+# ---------------------------------------------------------------- the system map (the data and layout: eaos/analysis/maps/system.py)
 
 SM_HEADS = (('الصفحات', 'Pages'), ('نقاط API', 'APIs'), ('ما يجيبها في الخادم', 'Server handlers'),
             ('الأجزاء التي يستخدمها', 'Parts it uses'), ('الجداول والخدمات', 'Tables and services'))
@@ -52,7 +52,7 @@ def api_table(sm):
 
 
 def pipeline_part(m):
-    """The pipeline sheet (eaos/report/pipeline_sheet.py) under the system map, when the project holds a pipeline."""
+    """The pipeline sheet (eaos/report/human_report/pipeline_sheet.py) under the system map, when the project holds a pipeline."""
     return pipeline_sheet.sheet(m['pipeline']) if m.get('pipeline') else ''
 
 
@@ -60,7 +60,7 @@ def section_system(m):
     """The whole system in one drawing, with a search, a feature filter, what a click reaches, and every API as a table."""
     sm, lay = m.get('system'), m.get('system_layout')
     if not sm or not lay: return _system_missing(m)
-    from ...analysis.arch_map import json_script
+    from ...analysis.maps.architecture import json_script
     metrics = M.system_counts(sm)
     info = {x['id']: x for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for x in sm[group]}
     info = {k: {kk: vv for kk, vv in v.items() if kk not in ('reach',)} for k, v in info.items()}

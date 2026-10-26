@@ -1,4 +1,4 @@
-// The plan of a project built from its plan (plans.json `build`, eaos/report/studio/build_plan.py): its milestones in order,
+// The plan of a project built from its plan (plans.json `build`, eaos/report/studio/blueprint_plan.py): its milestones in order,
 // each with its build cards, their acceptance and state, and the one next step: answer the blueprint's questions, or
 // build the next milestone (the `build_start` action: an assistant builds its cards through their gates).
 import { t, tn, L, num, esc, icon, code, rich } from 'eaos';

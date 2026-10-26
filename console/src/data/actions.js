@@ -1,4 +1,4 @@
-// The live action API of `eaos studio` (docs/studio-actions.json `endpoints`, eaos/interfaces/studio/, eaos/interfaces/api/): every
+// The live action API of `eaos studio` (docs/studio-actions.json `endpoints`, eaos/interfaces/studio_actions/, eaos/interfaces/studio_server/): every
 // call carries the launch token (X-EAOS-Token), every POST also the CSRF token GET /api/session returned for this
 // launch, and the browser adds the Origin the server checks. Previews never change anything; a run that changes code or
 // cannot be undone needs the confirm token its preview returned. The read-only copy has no client (`client` is null):

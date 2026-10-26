@@ -7,7 +7,7 @@ nodes' last decisions, and every subject a node routed to the inbox, into rows o
 """
 from pathlib import Path
 
-from . import core
+from . import framework as core
 
 # Each branch's condition in Arabic, beside the English of its declaration.
 WHEN_AR = {
@@ -105,7 +105,7 @@ def _counts(rows):
 
 def decisions(report, lang='ar'):
     """Rows of studio/decisions.json: each open question of the nodes' last decisions, waiting for the person (the ideal
-    planner's own questions reach the inbox through eaos/ai/ideal.py `decisions`)."""
+    planner's own questions reach the inbox through eaos/ai/ideal/planner.py `decisions`)."""
     body = section(report, lang)
     asked = {row['id']: row['at'] or '' for row in body['nodes']}
     return [{'id': f"node-{core.short(q['id'], 120)}", 'question': q['question'], 'recommendation': q.get('recommendation') or '',

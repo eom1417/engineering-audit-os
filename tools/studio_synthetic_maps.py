@@ -10,7 +10,7 @@ from eaos.report.studio import data_paths as data_map  # noqa: E402
 from eaos.report.studio import infra as infra_map  # noqa: E402
 from eaos.report.studio import paths as paths_section  # noqa: E402
 from eaos.report.studio import hidden as hidden_map  # noqa: E402
-from eaos.report.studio import journeys as journeys_map  # noqa: E402
+from eaos.report.studio import user_journeys as journeys_map  # noqa: E402
 
 
 def synthetic_paths(comps, layer, modules, card_rows, pages=250, calls=3):

@@ -1,8 +1,8 @@
 """REPORT.html's progress: the ledger's gap bars, the history chart, and every task card with its state."""
-from ...core import plain
-from ...analysis import model as M
-from ...core.markup import both as T, esc
-from ...analysis.model import gap_totals, ledger_of
+from ...core.language import plain
+from ...analysis.presentation import model as M
+from ...core.language.markup import both as T, esc
+from ...analysis.presentation.model import gap_totals, ledger_of
 from .html import lit, num, said, unavailable
 from .words import MILESTONE, OUTCOME
 
