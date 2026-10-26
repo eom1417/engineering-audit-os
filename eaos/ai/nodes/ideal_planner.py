@@ -11,7 +11,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 from . import framework as core
-from .runner import RUN_OPTIONS
+from .runner import settings_of
 from ..ideal import planner as ideal, prompts as ideal_prompts
 
 SUBJECT = 'ideal'
@@ -68,7 +68,7 @@ def _dropped(plan_record):
 
 def run(node, report, **options):
     """Plan the ideal (eaos/ai/ideal/planner.py) as a node; the settings come by name, as every node's (runner.RUN_OPTIONS)."""
-    o = {name: options.get(name, default) for name, default in RUN_OPTIONS.items()}
+    o = settings_of(options)
     project, lang, launcher = o['project'], o['lang'], o['launcher']
     report = Path(report)
     data = ideal.bundle(report, project, lang)

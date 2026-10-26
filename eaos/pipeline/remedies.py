@@ -5,6 +5,7 @@ a stage it needs now ok). A reason tried once is not tried again; a person's con
 keeps what was done (`remedies`), for the report and the Studio to say plainly."""
 import json
 from pathlib import Path
+from types import MappingProxyType
 
 from ..core.progress.reasons import reasons
 from .run import MANIFEST, _write
@@ -17,12 +18,12 @@ def remedy_of(row):
     return (reasons().get(str(row.get('reason_code') or '')) or {}).get('remedy')
 
 
-def apply(manifest, redo, out, options=None, assistant=None):
+def apply(manifest, redo, out, options=MappingProxyType({}), assistant=None):
     """The manifest after the remedies that need no person were applied and their stages run again (`redo(stages)`
     returns the new manifest); `remedies` lists each try: {stage, code, remedy, round, outcome, after}. A failed stage
     the catalog knows no remedy for is put to the person's assistant once (the `provider` of the check's `options`,
     eaos/journeys/check_choices.py options, whose `progress` hears each round), its answer one allowed action."""
-    progress, provider = (options or {}).get('progress'), (options or {}).get('provider')
+    progress, provider = options.get('progress'), options.get('provider')
     tried, record = set(), []
     for round_ in range(1, ROUNDS + 1):
         todo = _todo(manifest, tried)

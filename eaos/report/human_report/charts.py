@@ -29,8 +29,8 @@ def _bar_row(area, data, y, scale, rtl):
         last = position == len(segments) - 1
         length = max(3, plot * count / top) - (0 if last else 2)
         x = (BAR_WIDTH - start - length) if rtl else start
-        parts.append(_bar_segment((x, y, length), last, rtl, severity,
-                                  (f'{count} {severity} problems in {area}', f'{name} — {W[severity][side]}: {count}')))
+        parts.append(_bar_segment(x, y, length, last, rtl, severity, f'{count} {severity} problems in {area}',
+                                  f'{name} — {W[severity][side]}: {count}'))
         start += length + 2
     words = _problem_count(data['total'], rtl, ('لا مشاكل', 'none'))
     parts.append(svg_text((BAR_WIDTH - start - 6) if rtl else start + 6, y + BAR_HEIGHT / 2 + 5, words, 'value-label', align, rtl,
@@ -44,10 +44,8 @@ def _problem_count(count, rtl, none):
     return f'المشاكل: {count}' if rtl else f'{count} problems'
 
 
-def _bar_segment(box, last, rtl, severity, says):
-    """One severity's segment of a row, `box` its (x, y, length) and `says` its (data-meaning, title); the row's last one
-    has its outer end rounded."""
-    (x, y, length), (meaning, words) = box, says
+def _bar_segment(x, y, length, last, rtl, severity, meaning, words):  # limits: parameters -- one SVG element's attributes, each drawn as given
+    """One severity's segment of a row; the row's last one has its outer end rounded."""
     tail = f' class="seg sev-{severity}" data-meaning="{esc(meaning)}"><title>{esc(words)}</title>'
     if not (last and length > 8): return f'<rect x="{x:.1f}" y="{y}" width="{length:.1f}" height="{BAR_HEIGHT}"{tail}</rect>'
     flat, end, bottom = (x + length, x, y + BAR_HEIGHT) if rtl else (x, x + length, y + BAR_HEIGHT)
