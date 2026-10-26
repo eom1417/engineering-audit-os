@@ -30,6 +30,39 @@ def candidate(target, runtime, card_id):
     return where
 
 
+def own_batch(target, runtime, name):
+    """A clone of the authorised commit for one batch (a wave of fixes, a batch of moves or of the context): (root, base).
+    PermissionError when the person's agreement does not cover the commit now."""
+    from ...live.isolation.sandbox import head, refusal
+    reason = refusal(Path(runtime) / 'authorization.json', 'S08', head(target))
+    if reason: raise PermissionError(reason)
+    root = candidate(target, runtime, name)
+    return root, git(root, 'rev-parse', 'HEAD').stdout.strip()
+
+
+def commit_all(root, message):
+    """Everything the batch changed in the copy, committed as EAOS."""
+    git(root, 'add', '-A')
+    if git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m', message).returncode:
+        raise RuntimeError('the batch left nothing to commit')
+
+
+def record_batch(batch, root, base, kept, refused):
+    """A batch of its own (batch['kind']: moves, context) recorded beside the run, runtime/<kind>/<kind>-N/ with its
+    patch and summary.json; the summary: its branch, what it kept (empty when refused) and why it refused."""
+    from datetime import datetime, timezone
+    kind, number = batch['kind'], batch['number']
+    folder = Path(batch['runtime']) / kind / f'{kind}-{number}'
+    folder.mkdir(parents=True, exist_ok=True)
+    if kept: git(root, 'format-patch', '--quiet', '-o', str(folder), f'{base}..HEAD')
+    summary = {'batch': number, 'kind': kind, 'branch': batch.get('deliver_as') or f'eaos/{kind}-{number}', 'root': str(root),
+               'base': base, 'kept': kept, 'items': batch['items'], 'refused': refused, **(batch.get('extra') or {}),
+               'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip() if kept else ''}
+    (folder / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return summary
+
+
 def run_codemod(card, root, report):
     """The card's codemod on the candidate, rebuilt from the report's facts exactly as the plan's dry run built it."""
     from ...analysis.repair.codemods import _commands, card_for

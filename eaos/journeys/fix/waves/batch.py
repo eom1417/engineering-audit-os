@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ....core import progress
 from ....core.project.ledger import TRAILER, key
-from ..execute import candidate, git, original_checks, project_checks, record, regressions, run_codemod
+from ..execute import git, original_checks, own_batch, project_checks, record, regressions, run_codemod
 from .acceptance import _still, batch_acceptance, engines_for
 from .cards import plan
 
@@ -137,11 +137,7 @@ def declared_screens(cards):
 
 def open_batch(target, runtime, number):
     """The wave's candidate, cloned from the authorised commit: (root, base)."""
-    from ....live.isolation.sandbox import head, refusal
-    reason = refusal(Path(runtime) / 'authorization.json', 'S08', head(target))
-    if reason: raise PermissionError(reason)
-    root = candidate(target, runtime, f'WAVE-{number}')
-    return root, git(root, 'rev-parse', 'HEAD').stdout.strip()
+    return own_batch(target, runtime, f'WAVE-{number}')
 
 
 def drop_last(root):

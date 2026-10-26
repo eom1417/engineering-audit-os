@@ -13,15 +13,13 @@ fix cards, and refused whole on any difference.
 
 The handed-over branch is fetched into the person's project like a wave's (waves.apply); accept and undo decide it.
 """
-import json
 import posixpath
-from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 from ...analysis.repair import move_gate, moves
 from ...analysis.repair.move_python import Unmovable
 from ...core.project.ledger import TRAILER
-from .execute import candidate, git, new_breakage
+from .execute import commit_all, git, new_breakage, own_batch, record_batch
 
 FAMILY, TESTS = 'prefix-family', 'tests-flat'
 SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte')
@@ -44,9 +42,15 @@ def proposal(report, target):
     return {'moves': rows, 'tree': tree(rows)}
 
 
-def _findings(report):
+def _set(report, name):
+    """The facts of one set of the report; [] when the check did not make it (a report older than M7.8)."""
     from ...facts.store import read_set
-    return [f['value'] for f in (read_set(report, 'repository') or {}).get('facts') or []]
+    try: return read_set(report, name).get('facts') or []
+    except (OSError, ValueError): return []
+
+
+def _findings(report):
+    return [f['value'] for f in _set(report, 'repository')]
 
 
 def _from_findings(report, known):
@@ -81,9 +85,8 @@ def _mirrored(report, finding, known):
 
 def _imports_of(report):
     """{file: [the project files it imports]} from the check's resolved imports."""
-    from ...facts.store import read_set
     out = {}
-    for fact in (read_set(report, 'resolve') or {}).get('facts') or []:
+    for fact in _set(report, 'resolve'):
         value = fact.get('value') or {}
         if value.get('to_path') and fact.get('kind') == 'module_edge' and value.get('resolution', 'RESOLVED') == 'RESOLVED':
             out.setdefault(fact['location']['path'], []).append(value['to_path'])
@@ -142,32 +145,23 @@ def tree(rows):
 def make(batch):
     """The accepted moves made and proved: the summary, its `kept` the moves on the branch, empty when refused (why in
     `refused`). `batch`: {report, target, runtime, number, moves, deliver_as, lock, say}."""
-    from ...live.isolation.sandbox import head, refusal
     say = batch.get('say') or (lambda *_: None)
-    if (reason := refusal(Path(batch['runtime']) / 'authorization.json', 'S08', head(batch['target']))): raise PermissionError(reason)
-    root = candidate(batch['target'], batch['runtime'], f"MOVES-{batch['number']}")
-    base = git(root, 'rev-parse', 'HEAD').stdout.strip()
+    batch = {**batch, 'kind': 'moves', 'items': batch['moves']}
+    root, base = own_batch(batch['target'], batch['runtime'], f"MOVES-{batch['number']}")
     say('before')
     before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
-    if (why := move_gate.unproven(before['checks'])): return _summary(batch, root, base, [], ['proposal only: ' + why])
+    if (why := move_gate.unproven(before['checks'])): return record_batch(batch, root, base, [], ['proposal only: ' + why])
     before['surface'] = move_gate.surface(root, moves.files(root))
     before['mapping'] = moves.plan(root, batch['moves'])['mapping']
     say('moves')
     try: made = moves.apply(root, batch['moves'])
-    except Unmovable as problem: return _summary(batch, root, base, [], [f'the move tool refused: {problem}'])
-    _commit(root, batch['moves'], made)
+    except Unmovable as problem: return record_batch(batch, root, base, [], [f'the move tool refused: {problem}'])
+    commit_all(root, f"Move {made['moved']} file(s) to their place\n\n" + '\n'.join(f"  {m['from']} -> {m['to']}" for m in batch['moves'])
+               + f'\n\nExecuted by EAOS (move batch).\n\n{TRAILER}: moves')
     say('gate')
     differences = _gate(batch, root, before)
     if differences: git(root, 'reset', '--hard', '--quiet', base)
-    return _summary(batch, root, base, [] if differences else [m.get('id') or m['from'] for m in batch['moves']], differences)
-
-
-def _commit(root, chosen, made):
-    git(root, 'add', '-A')
-    listed = '\n'.join(f"  {m['from']} -> {m['to']}" for m in chosen)
-    done = git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m',
-               f"Move {made['moved']} file(s) to their place\n\n{listed}\n\nExecuted by EAOS (move batch).\n\n{TRAILER}: moves")
-    if done.returncode: raise RuntimeError('the moves left nothing to commit')
+    return record_batch(batch, root, base, [] if differences else [m.get('id') or m['from'] for m in batch['moves']], differences)
 
 
 def _gate(batch, root, before):
@@ -214,17 +208,3 @@ def _naming(argv):
     if 'unittest' in argv and '-v' not in argv: return argv + ['-v']
     if 'pytest' in argv and '-rA' not in argv: return argv + ['-rA']
     return argv
-
-
-def _summary(batch, root, base, kept, refused):
-    """The batch's record beside the run (runtime/moves/moves-N/moves.json, with its patch) and the summary."""
-    number = batch['number']
-    folder = Path(batch['runtime']) / 'moves' / f'moves-{number}'
-    folder.mkdir(parents=True, exist_ok=True)
-    if kept: git(root, 'format-patch', '--quiet', '-o', str(folder), f'{base}..HEAD')
-    summary = {'batch': number, 'kind': 'moves', 'branch': batch.get('deliver_as') or f'eaos/moves-{number}', 'root': str(root),
-               'base': base, 'kept': kept, 'moves': batch['moves'], 'refused': refused,
-               'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip() if kept else ''}
-    (folder / 'moves.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    return summary
