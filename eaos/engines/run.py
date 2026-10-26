@@ -112,7 +112,7 @@ def _no_room(name, running, began):
     return bool(running) and not resources.room(_need(name) + starting)
 
 
-def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):
+def analyze(target, workdir, exclude=(), only=None, formats=None, keep=False):  # limits: parameters -- the engine run's options, each a keyword with its default
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
     Each engine of the registry is reported as a step of the running stage (eaos/core/progress/context.py), from waiting

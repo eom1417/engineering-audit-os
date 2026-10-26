@@ -25,7 +25,7 @@ def call_name(node):
     return None
 
 
-def make(kind, extractor, version, input_sha, location, value, resolution=None, limitations=()):
+def make(kind, extractor, version, input_sha, location, value, resolution=None, limitations=()):  # limits: parameters -- a record's constructor: the fields of the fact contract its id is derived from
     """Build a fact whose identity is a pure function of its content, so reruns are comparable."""
     payload = json.dumps([kind, extractor, version, input_sha, location, value], sort_keys=True, ensure_ascii=False)
     row = {'id': 'FACT-' + digest(payload.encode('utf-8'))[:16], 'kind': kind, 'extractor': extractor,

@@ -41,7 +41,7 @@ RUN_FILE = re.compile(r'''\b(?:python3?|node|bash|sh|tsx|ts-node|deno\s+run)\s+(
 CODE_SPAN = re.compile(r'```[^\n]*\n(.*?)```|`([^`\n]+)`', re.S)
 
 
-def _fact(rule, path, line, symbol, message, severity, evidence, sha):
+def _fact(rule, path, line, symbol, message, severity, evidence, sha):  # limits: parameters -- a record's constructor: one broken-code fact's fields
     return make('broken_code', NAME, VERSION, sha, {'path': path, 'start_line': line, 'symbol': symbol},
                 {'rule': rule, 'message': message, 'severity': severity, 'evidence': evidence}, limitations=LIMITATIONS)
 
