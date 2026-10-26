@@ -233,7 +233,7 @@ def main(argv=None):
     q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
     q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
     q.add_argument('--background',action='store_true',help='start it in the background, print its address and return')
-    q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
+    q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.example.com origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.interfaces.mcp_server.govern', fromlist=['main']).main())

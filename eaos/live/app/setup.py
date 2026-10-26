@@ -1,6 +1,6 @@
 """Set up a project's run with nothing written by hand (NS9.T3): run.json, a local database, sign-in, consent.
 
-What a person once had to write for chief-ops (a run profile, a database, a seed script, an authorization),
+What a person once had to write for a full-stack app (a run profile, a database, a seed script, an authorization),
 this module finds or makes, in three passes:
 
   1. detect() (eaos/live/app/detect.py): the app's folder, its package manager, how it installs, starts, builds
@@ -92,7 +92,7 @@ EMPTY = re.compile(r'\b(no (data|reports?|results?|items?|records?|content|entri
 def empty_state(page, unset):
     """Why the first page is no working app although it answered: it shows an empty, "no data" state while the run
     has no value for a name the app reads, so every screen would be pictured empty. '' otherwise: a page of more than
-    SHORT words is the app, whatever "no ... yet" it shows (chief-ops' command center, "No new cases", was refused)."""
+    SHORT words is the app, whatever "no ... yet" it shows (the full-stack app's command center, "No new cases", was refused)."""
     text = ' '.join((page.get('text') or '').split())
     if not unset or len(text.split()) > SHORT or not (EMPTY.search(text) or len(text.split()) < 3): return ''
     return ('the first page shows an empty, no-data state while the app runs without a value for: ' + ', '.join(unset[:12])

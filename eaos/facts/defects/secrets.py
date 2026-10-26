@@ -20,7 +20,7 @@ JWT = re.compile(r'\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
 # PEM private keys (PEM-encoded RSA/ECDSA/OpenSSH/PGP).
 PEM_BLOCK = re.compile(r'-----BEGIN ((?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY)-----(.*?)(?:-----END \1-----|$)', re.S)
 # The shortest real private key (an EC P-256 key) carries well over 100 base64 characters. A block with less is a
-# marker a test or a scanner rule uses to talk about keys (chief-ops: "-----BEGIN PRIVATE KEY-----\nMIIE\n..."),
+# marker a test or a scanner rule uses to talk about keys (a full-stack app: "-----BEGIN PRIVATE KEY-----\nMIIE\n..."),
 # decided from the payload like every other severity here, never from the file's name or folder.
 PEM_MIN_BODY = 100
 # Common third-party secret prefixes.

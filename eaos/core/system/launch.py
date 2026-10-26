@@ -67,7 +67,7 @@ def start(state):
     it starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one."""
     found = running(state)
     if found and found.get('version') == __version__: return found, False
-    if found: _retire(state, found)          # an EAOS updated under a Studio still running the old one (HungerLab: 0.0.59)
+    if found: _retire(state, found)          # an EAOS updated under a Studio still running the old one (an SPA: 0.0.59)
     env, argv = own_env(), [sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open']
     if not (durable() and _as_service(state, argv, env, log_path(state, 'studio-server.log'))): detach(state, argv, env, 'studio-server.log')
     deadline = time.monotonic() + STARTUP
@@ -164,7 +164,7 @@ REMOTE_ORIGIN = 'EAOS_REMOTE_ORIGIN'
 def remote_template():
     """The address every Studio of this computer is reached at when it runs on a remote server: $EAOS_REMOTE_ORIGIN, else
     the one line of ~/.eaos/remote-origin, a Remote project address with {port} for the Studio's port
-    (https://<project>--{port}.dev.remote.e-m.sa); None on a person's own computer, where the address is localhost."""
+    (https://<project>--{port}.dev.example.com); None on a person's own computer, where the address is localhost."""
     text = os.environ.get(REMOTE_ORIGIN)
     if text is None:
         try: text = (home() / 'remote-origin').read_text(encoding='utf-8')

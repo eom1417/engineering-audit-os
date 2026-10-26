@@ -204,7 +204,7 @@ class Consent(unittest.TestCase):
         self.assertEqual(guided.check_provider(project_state.load(self.project)).code, 'ai_declined')
 
     def test_the_views_and_the_sign_in_read_the_code_themselves_and_every_other_call_is_as_it_was(self):
-        # chief-ops, 2026-10-21: the assistant of the views and the sign-in saw excerpts only, with every tool off
+        # a full-stack app, 2026-10-21: the assistant of the views and the sign-in saw excerpts only, with every tool off
         from eaos.ai.assistant import claude_adapter, codex_adapter
         seen = []
         with mock.patch.object(claude_adapter, 'stream', side_effect=lambda argv, text, env: seen.append((argv, env)) or {'result': '{}'}):

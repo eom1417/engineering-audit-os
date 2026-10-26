@@ -290,8 +290,8 @@ class Addresses(unittest.TestCase):
         record = {'port': 8123, 'token': 't' * 32}
         self.assertEqual(launch.url_of(record), f"http://127.0.0.1:8123/#token={'t' * 32}")
         self.assertEqual(launch.url_of(record, '/scan'), f"http://127.0.0.1:8123/#/scan?token={'t' * 32}")
-        routed = {**record, 'remote_origin': 'https://shop--8123.dev.remote.e-m.sa'}
-        self.assertEqual(launch.url_of(routed, '/scan'), f"https://shop--8123.dev.remote.e-m.sa/#/scan?token={'t' * 32}",
+        routed = {**record, 'remote_origin': 'https://shop--8123.dev.example.com'}
+        self.assertEqual(launch.url_of(routed, '/scan'), f"https://shop--8123.dev.example.com/#/scan?token={'t' * 32}",
                          'a Remote record gives its routed address')
         address = f"http://127.0.0.1:8123/#/scan?token={'t' * 32}"
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}), \

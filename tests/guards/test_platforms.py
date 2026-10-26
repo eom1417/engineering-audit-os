@@ -94,15 +94,8 @@ class PlatformTests(unittest.TestCase):
             self.assertEqual(toolchain.found_version(cruiser), ('18.4.0', ''), 'its own version, wherever it is printed')
 
 class PortabilityTests(unittest.TestCase):
-    def test_one_version_everywhere_and_no_code_points_at_the_machine_eaos_was_built_on(self):
-        listed = subprocess.run(['git', 'ls-files', 'eaos', 'tools', 'tests', 'install.sh'], cwd=ROOT, capture_output=True, text=True)
-        # Outside a git checkout (the check's isolated copy has no .git) the files on disk are the ones to read.
-        tracked = listed.stdout.split() if listed.returncode == 0 else [
-            p.relative_to(ROOT).as_posix() for folder in ('eaos', 'tools', 'tests') for p in (ROOT / folder).rglob('*')] + ['install.sh']
-        found = [name for name in tracked if name.endswith(('.py', '.sh')) and (ROOT / name).is_file()
-                 and '/workspace/' in (ROOT / name).read_text(encoding='utf-8', errors='replace')
-                 and name != 'tests/guards/test_platforms.py']
-        self.assertEqual(found, [], 'a clone on another computer must find everything')
+    def test_one_version_everywhere(self):
+        # No file points at the machine EAOS was built on: tests/guards/test_public_tree.py.
         import re
         from eaos import __version__
         package = re.search(r'^version = "([^"]+)"', (ROOT / 'pyproject.toml').read_text(encoding='utf-8'), re.M).group(1)

@@ -98,7 +98,7 @@ class RebuildTests(unittest.TestCase):
             ledger._reopen_waited({c['id']: c for c in book.values()}, [card('SPLIT', ['SIMPLIFY'])])
             self.assertEqual(book[keys['SPLIT']]['state'], 'open', 'set aside by the order, not by its own change')
             self.assertEqual(waves.next_batch(report, state), ['SPLIT'], 'tried, but opened again by the ledger')
-        # chief-ops: ten splits left for "the next batch" while their simplifications were open: now in the same batch, after
+        # a full-stack app: ten splits left for "the next batch" while their simplifications were open: now in the same batch, after
         book[keys['SIMPLIFY']].update(state='open', batch=None)
         with mock.patch.object(ledger, 'load', return_value={'cards': book}):
             self.assertEqual(waves.next_batch(report, state), ['SIMPLIFY', 'SPLIT'], 'listed first, the split comes after what it waits for')

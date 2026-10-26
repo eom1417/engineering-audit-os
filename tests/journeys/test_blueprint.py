@@ -98,7 +98,7 @@ class DesignTests(unittest.TestCase):
 
 
     def test_the_cards_every_product_needs_come_from_its_facts_and_every_requirement_is_built_by_something(self):
-        # HungerLab: an assistant added about 50 such cards by hand, and nothing proved each requirement was built.
+        # an SPA: an assistant added about 50 such cards by hand, and nothing proved each requirement was built.
         facts = spec(nonfunctional={'languages': ['ar', 'en'], 'data_sensitivity': 'health', 'platforms': ['mobile web'], 'expected_users': 5000},
                      integrations=[{'id': 'sms', 'name': 'Twilio', 'purpose': 'reminders'}],
                      requirements=[{'id': 'FR-1', 'text': 'book a visit', 'covered_by': ['F2']},
@@ -173,7 +173,7 @@ class BuildTests(unittest.TestCase):
         self.project = str(Path(self.tmp.name) / 'clinic')
 
     def test_a_blueprint_drawn_outside_the_studio_shows_there_its_build_plan_its_questions_and_its_next_step(self):
-        # The incident (HungerLab): the blueprint was drawn from the person's own assistant session; the Studio showed
+        # The incident (an SPA): the blueprint was drawn from the person's own assistant session; the Studio showed
         # no build card, none of its four questions, and "check the project" with no score.
         from eaos.interfaces import studio_actions as actions
         build_tools.blueprint_start(text='A clinic books visits for its patients.', project=self.project)

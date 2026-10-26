@@ -213,7 +213,7 @@ def _page_test(route, target, name, guard):
             '    const messages: string[] = [];',
             "    page.on('pageerror', (error) => messages.push(`pageerror: ${error.message}`));",
             "    page.on('console', (message) => { if (message.type() === 'error') messages.push(`console: ${message.text()}`); });",
-            # The clock held still: a screen showing the time differs between two recordings (HungerLab's "now").
+            # The clock held still: a screen showing the time differs between two recordings (the SPA's "now").
             "    await page.clock.setFixedTime(new Date('2026-01-01T09:00:00Z'));",
             f'    await page.goto({target});',
             "    await page.waitForLoadState('networkidle');",

@@ -206,7 +206,7 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(live_setup.empty_state({'text': 'No data yet'}, []), '', 'every value given: an empty page is the app')
         self.assertEqual(live_setup.empty_state({'text': 'Problems: 12 open, 3 waiting for you'}, ['STUDIO_DATA']), '')
         rich = {'text': 'Command center ' + 'What needs a decision now. ' * 10 + 'No new cases or requests. No customer activity yet.'}
-        self.assertEqual(live_setup.empty_state(rich, ['CLIENT_DIR']), '', "chief-ops' command center: a full page is the app")
+        self.assertEqual(live_setup.empty_state(rich, ['CLIENT_DIR']), '', "the full-stack app's command center: a full page is the app")
         report = Path(scratch())
         (report / 'studio').mkdir()
         profile = live_setup.detect(project(studio), report)['profile']

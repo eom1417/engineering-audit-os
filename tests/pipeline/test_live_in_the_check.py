@@ -113,7 +113,7 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertLess(max(ORDER.index(stage) for stage in LIVE), ORDER.index('claims'))
 
     def test_an_app_whose_code_names_no_page_locks_walks_and_loads_the_pages_the_crawl_found(self):
-        # A real check (HungerLab, an SPA with no client router): the code named no page, so lock, record, journeys and
+        # A real check (an SPA with no client router): the code named no page, so lock, record, journeys and
         # baseline stood still while the crawl had found and pictured the pages; and the Studio showed 0 screens.
         from eaos.live.behavior import specs as lock_specs
         speed = {'conditions': {'vus': 10}, 'scenarios': []}

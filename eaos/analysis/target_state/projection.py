@@ -163,7 +163,7 @@ HOSTING = ('vercel.json', 'netlify.toml', 'Dockerfile', 'fly.toml', 'railway.jso
 
 def infrastructure(reference, facts, target, files, prefix=''):
     """One decision per baseline item (and hosting), each present or absent by evidence. A file counts at the
-    repository root or under the app root (chief-ops keeps its app in app/ and its Dockerfile at the root)."""
+    repository root or under the app root (a full-stack app keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
     observed = {**_observed_in_facts(facts), **_observed_in_files(_existing(target, prefix), files)}
     if not observed['data'][0] and (client := _typed_client(facts)): observed['data'] = (True, f'typed data client: {client}')

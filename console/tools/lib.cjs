@@ -1,16 +1,18 @@
-/* What every check of the served console shares: Playwright (the one copy, beta's tools), the address of a live
+/* What every check of the served console shares: Playwright (the one copy, EAOS's tools), the address of a live
    console and its launch token, and opening one route the way a person does, waiting until it has drawn.
    Environment:
      EAOS_STUDIO_URL         the console's address (default http://127.0.0.1:8099/, the scratch preview)
-     EAOS_STUDIO_TOKEN       its launch token, or EAOS_STUDIO_TOKEN_FILE a file holding it (default: the preview's
-                             launch record, /workspace/eaos-work/studio-design/build-home/home/studio/<project>.token)
-     PLAYWRIGHT_BROWSERS_PATH where the browsers are (default /workspace/eaos-beta-trial/tools/browsers)
+     EAOS_STUDIO_TOKEN       its launch token, or EAOS_STUDIO_TOKEN_FILE a file holding it (default: the first launch
+                             record of the EAOS home, $EAOS_HOME/studio/<project>.token, ~/.eaos by default)
+     EAOS_ENGINE_TOOLS       EAOS's tools, Playwright and axe-core among them (default ~/.eaos/tools)
+     PLAYWRIGHT_BROWSERS_PATH where the browsers are (default the tools' browsers/)
    A file:// address checks the read-only copy (no token). */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '/workspace/eaos-beta-trial/tools/browsers';
-const TOOLS = '/workspace/eaos-beta-trial/tools';
+const TOOLS = process.env.EAOS_ENGINE_TOOLS || path.join(os.homedir(), '.eaos', 'tools');
+process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || path.join(TOOLS, 'browsers');
 const { chromium } = require(path.join(TOOLS, 'node/node_modules/playwright'));
 const AXE = path.join(TOOLS, 'npm/axe-core/node_modules/axe-core/axe.min.js');
 
@@ -19,7 +21,7 @@ function token() {
   if (process.env.EAOS_STUDIO_TOKEN) return process.env.EAOS_STUDIO_TOKEN;
   let file = process.env.EAOS_STUDIO_TOKEN_FILE;
   if (!file) {
-    const dir = '/workspace/eaos-work/studio-design/build-home/home/studio';
+    const dir = path.join(process.env.EAOS_HOME || path.join(os.homedir(), '.eaos'), 'studio');
     const found = fs.existsSync(dir) ? fs.readdirSync(dir).filter(n => n.endsWith('.token')) : [];
     file = found.length ? path.join(dir, found[0]) : null;
   }
