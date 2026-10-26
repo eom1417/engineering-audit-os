@@ -51,8 +51,10 @@ A small web app where one person keeps the books they want to read.
 - English only; one user, no sign-in.
 - It must run with one command and have tests for every feature.
 """
-FEATURE = ('Add an About page at /about that says "Flaskr, a small blog" and shows how many posts the blog has, with a '
-           'link to it in the navigation bar of every page.')
+# A page of its own: a feature that changes every page (a link in the shared navigation) is refused by the behaviour
+# lock, which knows no intended change to a recorded screen (the M9.3 proof's first run; docs/METRICS.md).
+FEATURE = 'Add an About page at /about that says "Flaskr, a small blog" and shows how many posts the blog has.'
+
 
 
 # ---------------------------------------------------------------- recording
@@ -182,13 +184,15 @@ def extend(scratch):
         repaired = json.loads(journey.path.with_name('repair-cli.json').read_text(encoding='utf-8'))['steps'][-1]
         if not (repaired['step'] == 'fix' and repaired['passed']): return {'passed': False, 'reason': 'the repair handed over no batch to accept'}
         head = _git(str(app), 'rev-parse', 'HEAD')
+        if subprocess.run(['git', '-C', str(app), 'merge-base', '--is-ancestor', repaired['branch'][-1], 'HEAD']).returncode == 0:
+            return {'passed': True, 'head': _git(str(app), 'log', '--oneline', '-1'), 'reused': 'accepted by an earlier run of this proof'}
         code, said = eaos('accept', str(app), '--yes', '--lang', 'en')
         moved = _git(str(app), 'rev-parse', 'HEAD') != head
         return {'passed': code == 0 and moved, 'head': _git(str(app), 'log', '--oneline', '-1'),
                 **({} if code == 0 and moved else {'reason': f'eaos accept exit {code}, HEAD moved {moved}: {said[-600:]}'})}
     if not journey.step('accept the repair', accept)['passed']: return journey
     prompt = (f'Use the eaos tools, always with project="{app}", to add this feature to the project: {FEATURE} '
-              'Call extend_start with that text, write the spec and call extend_plan until it fits (nobody is here to ask: '
+              'If status shows a batch still open, fix_abandon it first. Call extend_start with that text, write the spec and call extend_plan until it fits (nobody is here to ask: '
               'take your own recommendation for every choice). Then fix_start with exactly the cards extend_plan added, '
               'build each with fix_read and fix_edit (a test for it too), and call fix_finish; repair on top with '
               'fix_edit card="REPAIR" if it asks. End when fix_finish handed the batch over, saying its branch.')
