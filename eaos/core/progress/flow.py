@@ -140,7 +140,7 @@ class Flow:
         self.began[name], self.current = self.clock(), name
         self._step_token = context._current.set(self.log.stepper(name) if self.log.enabled else None)
 
-    def end(self, name=None, status=OK, reason='', code='', artifacts=(), detail=None):
+    def end(self, name=None, status=OK, reason='', code='', artifacts=(), detail=None):  # limits: parameters -- the fields of a stage's result row
         """`name` (default: the running stage) ends with `status`; its seconds are measured from its begin."""
         name = name or self.current
         if name is None or name not in self.declared or name in self.results: return
@@ -174,7 +174,7 @@ def begin(name):
     if flow is not None: _safely(flow.begin, name)
 
 
-def end(name=None, status=OK, reason='', code='', artifacts=(), detail=None):
+def end(name=None, status=OK, reason='', code='', artifacts=(), detail=None):  # limits: parameters -- Flow.end's fields, for the running flow
     flow = _flow.get()
     if flow is not None: _safely(flow.end, name, status, reason, code, artifacts, detail)
 

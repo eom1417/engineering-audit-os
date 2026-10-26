@@ -249,7 +249,7 @@ def _collected(target, out, exclude, engines, collected):
     return result, {entry['set']: read_set(out, entry['set']) for entry in result['sets']}
 
 
-def assemble(target, out, run=None, language='ar', version=None, exclude=(), engines=None, collected=None):
+def assemble(target, out, run=None, language='ar', version=None, exclude=(), engines=None, collected=None):  # limits: parameters -- the project and report, then the check's options by name (_Request)
     target, out = Path(target).resolve(), Path(out).resolve()
     progress.count('claim steps', 0, CLAIM_STEPS)
     map_result, sets = _collected(target, out, exclude, engines, collected)

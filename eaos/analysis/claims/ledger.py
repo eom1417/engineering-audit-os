@@ -82,7 +82,7 @@ def withhold(claims):
     return shown, withheld
 
 
-def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):
+def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):  # limits: parameters -- a claim's required fields (the claim-ledger schema)
     # The schema caps a statement at STATEMENT_LIMIT. Each builder names a bounded list (naming());
     # this is the last guard: one long sentence on a large project must not reject the whole ledger.
     if len(statement) > STATEMENT_LIMIT: statement = statement[:STATEMENT_LIMIT - 1].rstrip() + '…'

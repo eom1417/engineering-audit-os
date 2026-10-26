@@ -28,7 +28,7 @@ TELEMETRY = {'trace': 'traces', 'metric': 'metrics', 'sentry': 'error capture (S
 SLO_METRICS = ('availability', 'p95_ms', 'error_rate')
 
 
-def _row(aspect, key, status, title, detail='', evidence=()):
+def _row(aspect, key, status, title, detail='', evidence=()):  # limits: parameters -- a readiness row's fields
     return {'id': f'RDY-{aspect}-{key}', 'aspect': aspect, 'status': status, 'title': title, 'detail': detail,
             'evidence': [e for e in dict.fromkeys(evidence) if e][:8]}
 

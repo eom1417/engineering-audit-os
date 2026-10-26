@@ -34,7 +34,7 @@ def using(stepper):
         _current.reset(token)
 
 
-def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', artifact=''):
+def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', artifact=''):  # limits: parameters -- the fields of one step line (ProgressLog.stepper)
     """One named item of the stage: `done` of `total` items of the stage are finished; `artifact` is what it produced
     (a path relative to the flow's folder). No-op outside a run."""
     stepper = _current.get()

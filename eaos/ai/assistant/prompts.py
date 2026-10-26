@@ -77,7 +77,7 @@ CHAINS = {'blueprint_start': 'then do what its answer says through to blueprint_
                           'build it (fix_start with its cards).'}
 
 
-def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None, lane=None):
+def build(verb, cards, project, lang='ar', action=None, inputs=None, labels=None, where=None, lane=None):  # limits: parameters -- a run's request, each part by name, from a run record or a preview
     """The prompt of a run: a verb over cards, or one assistant action with its inputs (and, for a Fix, where the person
     chose to build and deliver it, with how many assistants fix it at once; `lane`: a Fix run beside the first one)."""
     language = NAMES.get(lang, NAMES['en'])
@@ -153,7 +153,7 @@ def _named(option, said):
     return option['id'].casefold() in said or any(label and label.casefold() in said for label in (option.get('label') or {}).values())
 
 
-def answer(question, option, text, lang='ar', done=None, via='studio'):
+def answer(question, option, text, lang='ar', done=None, via='studio'):  # limits: parameters -- the person's answer as it came: the question, option, words and where, and what EAOS did for it
     """The words that resume a session with the person's answer, said where they gave it (`via`: WHERE), and what EAOS
     already did for it."""
     chosen = _chosen(question, option)

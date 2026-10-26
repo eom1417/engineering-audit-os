@@ -165,7 +165,7 @@ class ProgressLog:
     thread off (a test then calls `tick()` itself); `sampler` is what `tick()` asks for the running programs (None:
     nobody asks)."""
 
-    def __init__(self, out, flow='check', *, clock=time.monotonic, pulse=True, sampler=True, alive_every=ALIVE_EVERY):
+    def __init__(self, out, flow='check', *, clock=time.monotonic, pulse=True, sampler=True, alive_every=ALIVE_EVERY):  # limits: parameters -- the folder and flow, then keyword-only hooks a test sets
         self.flow = flow
         self.folder = Path(out)
         self.path = path_for(out, flow)
@@ -229,7 +229,7 @@ class ProgressLog:
                 self.stop.set()
             return row
 
-    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None, assistants=None):
+    def started(self, stages, requested, previous, steps=None, process=True, at=None, mode=None, assistants=None):  # limits: parameters -- the fields of the run.started line
         """`run.started` with the declared stages as data; the step seconds of the last run come from the file this
         run replaces unless `steps` gives them. Starts the background thread. `process` false: no process holds the run
         (one drawn from a state, eaos/journeys/catalog.py), so none is named and a reader never judges it gone; `at`: when such a
@@ -260,7 +260,7 @@ class ProgressLog:
     def stepper(self, stage):
         """`step(name, done, total, status='running', seconds=None, reason='', reason_code='', kind='', artifact='')`
         for one stage: where a long stage is inside. `done` is held between 0 and `total`."""
-        def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', kind='', artifact=''):
+        def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', kind='', artifact=''):  # limits: parameters -- the fields of one stage.step line
             done, total = bounded(done, total)
             fields = {'stage': stage, 'step': str(name), 'done': done, 'total': total, 'status': str(status)}
             if kind: fields['kind'] = str(kind)
