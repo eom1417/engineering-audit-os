@@ -13,9 +13,9 @@ import json
 import re
 from pathlib import Path
 
-from . import tool
-from .contract import OBSERVED, Report
-from .process import run, which
+from .. import tool
+from ..contract import OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'syft'
 PINNED = tool.pinned(NAME)

@@ -12,9 +12,9 @@ from pathlib import Path
 
 import eaos
 
-from . import tool
-from .contract import KINDS, OBSERVED, SYMBOL, Capability, Report, finding, subject
-from .process import run, which
+from .. import tool
+from ..contract import KINDS, OBSERVED, SYMBOL, Capability, Report, finding, subject
+from ..process import run, which
 
 NAME = 'ast-grep'
 BINARY = 'ast-grep'

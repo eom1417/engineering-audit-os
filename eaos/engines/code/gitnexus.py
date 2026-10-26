@@ -21,9 +21,9 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import tool
-from .contract import ERROR, FILE, OBSERVED, Report, finding, measurement, subject
-from .process import run, which
+from .. import tool
+from ..contract import ERROR, FILE, OBSERVED, Report, finding, measurement, subject
+from ..process import run, which
 
 NAME = BINARY = 'gitnexus'
 PINNED = tool.pinned(NAME)
@@ -33,7 +33,7 @@ NOT_COPIED = ('.git', 'node_modules', '.venv', 'venv', 'dist', 'build', '.next',
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('cycle', 'gitnexus.check.cycles', granularity=FILE),
             Capability('coupling', f'gitnexus.fan_in>={FAN_IN}', granularity=FILE)]
 

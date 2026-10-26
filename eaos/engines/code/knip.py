@@ -12,9 +12,9 @@ import json
 import os
 from pathlib import Path
 
-from . import tool
-from .contract import ERROR, FILE, OBSERVED, SYMBOL, Capability, Report, finding, subject
-from .process import run, which
+from .. import tool
+from ..contract import ERROR, FILE, OBSERVED, SYMBOL, Capability, Report, finding, subject
+from ..process import run, which
 
 NAME = BINARY = 'knip'
 PINNED = tool.pinned(NAME)

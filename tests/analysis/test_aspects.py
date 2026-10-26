@@ -1,6 +1,6 @@
 """Every aspect of the program reaches the person's assistant and gets a verdict (eaos/analysis/understanding/aspects.py), with the evidence
 stages restored in 0.0.9: production readiness (eaos/analysis/readiness/production.py), the architecture map's digest
-(eaos/engines/codecharta_emerge.py) and the capped journeys (eaos/live/behavior/lock.py)."""
+(eaos/engines/code/codecharta_emerge.py) and the capped journeys (eaos/live/behavior/lock.py)."""
 import json
 import os
 import subprocess
@@ -54,7 +54,7 @@ class Readiness(Workspace):
                           speed({'p95_ms': 8.0, 'error_rate': 0})], ['gap', 'gap', 'ok'])
 
     def test_the_city_and_the_clusters_are_read_into_hotspots_and_clusters(self):
-        from eaos.engines.codecharta_emerge import digest
+        from eaos.engines.code.codecharta_emerge import digest
         folder = Path(self.tmp) / 'architecture'
         _write(folder / 'city.cc.json', {'files': [{'id': 'r', 'name': 'root', 'type': 'Folder', 'children': [
             {'id': 'a', 'name': 'app', 'type': 'Folder', 'children': [{'id': 'm', 'name': 'main.py', 'type': 'File'},

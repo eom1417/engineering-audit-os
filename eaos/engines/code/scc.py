@@ -6,9 +6,9 @@ and a file the two disagree about is worth a look. These are measurements, not f
 import json
 from pathlib import Path
 
-from . import tool
-from .contract import OBSERVED, Report
-from .process import run, which
+from .. import tool
+from ..contract import OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'scc'
 PINNED = tool.pinned(NAME)

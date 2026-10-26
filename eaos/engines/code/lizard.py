@@ -9,9 +9,9 @@ import csv
 import io
 from pathlib import Path
 
-from . import tool
-from .contract import OBSERVED, SYMBOL, Capability, Report, finding, measurement, subject
-from .process import run, which
+from .. import tool
+from ..contract import OBSERVED, SYMBOL, Capability, Report, finding, measurement, subject
+from ..process import run, which
 
 NAME = BINARY = 'lizard'
 PINNED = tool.pinned(NAME)

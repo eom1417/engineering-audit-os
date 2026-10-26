@@ -15,9 +15,9 @@ JavaScript or TypeScript is an error with the tool's own warning, never a clean 
 import json
 from pathlib import Path
 
-from . import tool
-from .contract import ERROR, FILE, OBSERVED, Report, finding, subject
-from .process import run, which
+from .. import tool
+from ..contract import ERROR, FILE, OBSERVED, Report, finding, subject
+from ..process import run, which
 
 NAME = 'dependency-cruiser'
 BINARY = 'depcruise'
@@ -27,7 +27,7 @@ LAYERS = 'layers-depcruise.json'
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('cycle', 'no-circular', granularity=FILE), Capability('boundary', 'policy.deny', granularity=FILE)]
 
 

@@ -10,9 +10,9 @@ Bandit matches an excluded entry anywhere in a path, so each one is passed as `/
 """
 from pathlib import Path
 
-from . import sarif, tool
-from .contract import OBSERVED, Capability, Report
-from .process import run, which
+from .. import sarif, tool
+from ..contract import OBSERVED, Capability, Report
+from ..process import run, which
 
 NAME = BINARY = 'bandit'
 PINNED = tool.pinned(NAME)

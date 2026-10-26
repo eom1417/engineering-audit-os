@@ -50,7 +50,7 @@ def _edge_summary(edges, call_edges, module_edges, metrics):
 def _merge_codegraph(target, workdir, input_sha, facts):
     """CodeGraph edges are facts at a different layer than findings; they belong in our graph."""
     try:
-        from ..engines import codegraph as codegraph_engine
+        from ..engines.code import codegraph as codegraph_engine
         # The adapter already ran the tools during `analyze` and wrote what it found beside
         # its report. Reading that file keeps this to one pass over the files.
         edges = codegraph_engine.read_graph_facts(Path(workdir) / 'engines')

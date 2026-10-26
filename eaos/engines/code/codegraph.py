@@ -19,9 +19,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from ..core import toolchain
+from ...core import toolchain
 from .codegraph_payloads import CONVERTERS, _complexity_facts, _parse_payload
-from .contract import OBSERVED, Report, SYMBOL, UNAVAILABLE, finding, measurement, subject
+from ..contract import OBSERVED, Report, SYMBOL, UNAVAILABLE, finding, measurement, subject
 
 NAME, VERSION, PINNED = 'codegraph', '1', 'v0.20.1'
 
@@ -52,7 +52,7 @@ def _run(tool, args, workspace, timeout=600, index_home=None):
         import os
         environment = dict(os.environ, HOME=str(index_home))
     try:
-        from ..core.system.process import run_command
+        from ...core.system.process import run_command
         return _outcome(run_command(cmd, timeout=timeout, env=environment))
     except subprocess.TimeoutExpired:
         return None, f'timeout after {timeout}s'
@@ -252,7 +252,7 @@ def version():
 
 def capabilities():
     """One Capability per tool the wrapper exposes. The kind is the fact vocabulary each produces."""
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability(kind=kind, rule='codegraph:' + tool, granularity='file')
             for tool, kind in TOOLS.items()]
 

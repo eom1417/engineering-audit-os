@@ -7,16 +7,16 @@ checks passed per framework, so a clean result reads apart from a check that nev
 import re
 import json
 
-from . import sarif, tool
-from .contract import OBSERVED, Report
-from .process import run, which
+from .. import sarif, tool
+from ..contract import OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'checkov'
 PINNED = tool.pinned(NAME)
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('misconfiguration', 'CKV*')]
 
 

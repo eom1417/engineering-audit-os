@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.analysis.assessments import weaknesses
-from eaos.engines import codeql
+from eaos.engines.security import codeql
 from eaos.analysis.claims.probe_queries import run_graph_query
 
 

@@ -6,9 +6,9 @@ report artifacts and reported 23.1% duplication where the source holds 1.85%; sc
 import json
 from pathlib import Path
 
-from .contract import Capability, Report, OBSERVED, UNAVAILABLE, FILE, finding, measurement, subject
-from . import tool
-from .process import run, which
+from ..contract import Capability, Report, OBSERVED, UNAVAILABLE, FILE, finding, measurement, subject
+from .. import tool
+from ..process import run, which
 
 NAME, BINARY, PINNED = 'jscpd', 'jscpd', '5.3.0'
 ALWAYS_IGNORED = ('**/.git/**', '**/node_modules/**', '**/.venv/**', '**/dist/**', '**/build/**',

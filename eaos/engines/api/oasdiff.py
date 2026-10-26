@@ -7,9 +7,10 @@ A specification with no earlier version is examined and has nothing to compare, 
 import json
 from pathlib import Path
 
-from . import openapi, tool
-from .contract import ERROR, OBSERVED, Report, finding, measurement, subject
-from .process import run, which
+from . import openapi
+from .. import tool
+from ..contract import ERROR, OBSERVED, Report, finding, measurement, subject
+from ..process import run, which
 
 NAME = BINARY = 'oasdiff'
 PINNED = tool.pinned(NAME)
@@ -17,7 +18,7 @@ LEVELS = {3: 'high', 2: 'medium', 1: 'low'}
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('api_contract', 'oasdiff.breaking')]
 
 

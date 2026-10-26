@@ -153,10 +153,10 @@ def readiness(context):
 
 
 def architecture(context):
-    """The city and the clusters of the code (eaos/engines/codecharta_emerge.py) and their digest, in architecture/map.json."""
+    """The city and the clusters of the code (eaos/engines/code/codecharta_emerge.py) and their digest, in architecture/map.json."""
     if context.engines is None:
         raise SkipStage('external engines were not requested for this run', code='engines_not_requested')
-    from ...engines.codecharta_emerge import city, clusters, digest
+    from ...engines.code.codecharta_emerge import city, clusters, digest
     from ...core.project.workspace import write
     folder = context.out / 'architecture'
     drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}

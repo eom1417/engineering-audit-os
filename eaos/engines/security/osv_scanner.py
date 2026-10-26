@@ -12,9 +12,9 @@ import json
 import re
 from pathlib import Path
 
-from . import tool
-from .contract import DETERMINISTIC, OBSERVED, Report, finding, measurement, subject
-from .process import run, which
+from .. import tool
+from ..contract import DETERMINISTIC, OBSERVED, Report, finding, measurement, subject
+from ..process import run, which
 
 NAME = BINARY = 'osv-scanner'
 PINNED = tool.pinned(NAME)
@@ -23,7 +23,7 @@ SEVERITIES = ('low', 'medium', 'high', 'critical')
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('vulnerability', 'osv.vulnerable_dependency', method=DETERMINISTIC)]
 
 

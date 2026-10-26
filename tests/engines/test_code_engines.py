@@ -12,7 +12,8 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos.engines import ast_grep, knip, lizard, react_docgen, tool
+from eaos.engines.code import ast_grep, knip, lizard, react_docgen
+from eaos.engines import tool
 from eaos.engines.contract import OBSERVED, UNAVAILABLE
 from eaos.engines.process import run, which
 

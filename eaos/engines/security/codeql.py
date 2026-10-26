@@ -16,10 +16,10 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from . import sarif, tool
-from .contract import ERROR, NOT_APPLICABLE, OBSERVED, Capability, Report
-from .process import run, which
-from ..core.system.web import opened
+from .. import sarif, tool
+from ..contract import ERROR, NOT_APPLICABLE, OBSERVED, Capability, Report
+from ..process import run, which
+from ...core.system.web import opened
 
 NAME = BINARY = 'codeql'
 PINNED = tool.pinned(NAME)
@@ -114,7 +114,7 @@ def _config(workdir, exclude):
 
 
 def _files(target, ignored):
-    from ..core.toolchain import project_files
+    from ...core.toolchain import project_files
     return [path for path in project_files(target) if not tool.excluded(path, ignored)]
 
 

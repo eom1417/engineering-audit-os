@@ -20,9 +20,9 @@ from pathlib import Path
 
 import eaos
 
-from . import sarif, tool
-from .contract import OBSERVED, Report
-from .process import run, which
+from .. import sarif, tool
+from ..contract import OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'semgrep'
 PINNED = tool.pinned(NAME)
@@ -38,7 +38,7 @@ EXCLUDED = ('node_modules', '.git', '.venv', 'venv', 'dist', 'build', '__pycache
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('dataflow', 'eaos.dataflow.*'), Capability('vulnerability', '*.security.*'),
             Capability('secret', 'generic.secrets.*')]
 
@@ -48,10 +48,10 @@ def version(): return tool.version(BINARY)
 
 def official_checkout():
     """The pinned official library on this machine, or None when `eaos tools install` has not fetched it."""
-    from ..core.toolchain import found_version, registry
+    from ...core.toolchain import found_version, registry
     entry = next(t for t in registry()['tools'] if t['name'] == 'semgrep-rules')
     found, _ = found_version(entry)
-    from ..core.toolchain import home
+    from ...core.toolchain import home
     return (home() / entry['install']['dir'], found) if found == entry['version'] else (None, found)
 
 

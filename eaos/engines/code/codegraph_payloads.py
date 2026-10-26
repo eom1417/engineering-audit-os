@@ -1,4 +1,4 @@
-"""CodeGraph's tool payloads turned into the engine's facts (eaos/engines/codegraph.py asks the tools): module and
+"""CodeGraph's tool payloads turned into the engine's facts (eaos/engines/code/codegraph.py asks the tools): module and
 call edges whose ends are named, per-symbol complexity, and hot paths. A payload that is not what a tool returns gives
 no fact."""
 import json

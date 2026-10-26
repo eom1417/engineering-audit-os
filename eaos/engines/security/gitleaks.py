@@ -10,9 +10,9 @@ which extends Gitleaks' default rules rather than replacing them.
 import re
 from pathlib import Path
 
-from . import sarif, tool
-from .contract import OBSERVED, Capability, Report
-from .process import run, which
+from .. import sarif, tool
+from ..contract import OBSERVED, Capability, Report
+from ..process import run, which
 
 NAME = BINARY = 'gitleaks'
 PINNED = tool.pinned(NAME)

@@ -4,16 +4,17 @@ It applies only where a specification exists; elsewhere it is not applicable.
 """
 from pathlib import Path
 
-from . import openapi, sarif, tool
-from .contract import ERROR, OBSERVED, Report
-from .process import run, which
+from . import openapi
+from .. import sarif, tool
+from ..contract import ERROR, OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'spectral'
 PINNED = tool.pinned(NAME)
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('api_contract', 'spectral:oas')]
 
 

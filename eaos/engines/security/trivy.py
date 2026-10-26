@@ -13,9 +13,9 @@ import json
 import re
 from pathlib import Path
 
-from . import sarif, tool
-from .contract import OBSERVED, Report
-from .process import run, which
+from .. import sarif, tool
+from ..contract import OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'trivy'
 PINNED = tool.pinned(NAME)
@@ -24,7 +24,7 @@ MATCH = re.compile(r'Match:.*', re.S)
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('secret', '<secret rule>'), Capability('misconfiguration', 'AVD-*')]
 
 
@@ -59,7 +59,7 @@ def _redact_messages(results):
 def _command(output, exclude):
     """The scan: what it learns of the project kept in memory only (never in a cache another project's scan reads); the
     tools' cache holds only its misconfiguration checks."""
-    from ..core.toolchain import TRIVY_CACHE, home
+    from ...core.toolchain import TRIVY_CACHE, home
     command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'secret,misconfig', '--quiet', '--cache-backend', 'memory',
                '--cache-dir', str(home() / TRIVY_CACHE), '--output', str(output)]
     for directory in EXCLUDED + tuple(exclude): command += ['--skip-dirs', directory]

@@ -14,9 +14,9 @@ import re
 from pathlib import Path
 from typing import NamedTuple
 
-from . import tool
-from .contract import ERROR, OBSERVED, Report
-from .process import run, which
+from .. import tool
+from ..contract import ERROR, OBSERVED, Report
+from ..process import run, which
 
 NAME = BINARY = 'react-docgen'
 PINNED = tool.pinned(NAME)

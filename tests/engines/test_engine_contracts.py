@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.engines import codegraph, enola, reforge
+from eaos.engines.code import codegraph, enola, reforge
 from eaos.engines.contract import KINDS
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -32,7 +32,7 @@ class SampleTests(unittest.TestCase):
         from eaos.engines import ADAPTERS, tool
         for name, adapter in ADAPTERS.items():
             with self.subTest(engine=name):
-                self.assertIs(adapter, importlib.import_module('eaos.engines.' + name.replace('-', '_')))
+                self.assertEqual((adapter.__name__.rsplit('.', 1)[-1], importlib.import_module(adapter.__name__)), (name.replace('-', '_'), adapter))
                 for method in ('analyze', 'capabilities', 'version'):
                     self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
                 pin = 'v' + tool.pinned(name) if name in TAGGED else tool.pinned(name)
@@ -127,8 +127,8 @@ class CodegraphAdapterTests(unittest.TestCase):
         self.assertEqual(([f['kind'] for f in report.findings], sorted(report.evaluated)), ([], ['coupling']))
 
     def test_engine_paths_are_relative_nameless_edges_are_dropped_and_flow_files_are_asked_about(self):
-        from eaos.engines.codegraph import files_of_interest
-        from eaos.engines.codegraph_payloads import _module_edges_from_dep_graph, _relative
+        from eaos.engines.code.codegraph import files_of_interest
+        from eaos.engines.code.codegraph_payloads import _module_edges_from_dep_graph, _relative
         self.assertEqual(_relative('/repo/pkg/a.go', '/repo'), 'pkg/a.go')
         # A path outside the tree is kept as given rather than mangled into a wrong relative one.
         self.assertEqual(_relative('/elsewhere/b.go', '/repo'), '/elsewhere/b.go')

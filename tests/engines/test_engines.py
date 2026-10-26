@@ -185,7 +185,7 @@ class InstalledEngineTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from eaos.engines import enola, jscpd
+        from eaos.engines.code import enola, jscpd
         if not (enola.version() and jscpd.version()):
             raise unittest.SkipTest('the pinned engines are not installed in this environment')
 

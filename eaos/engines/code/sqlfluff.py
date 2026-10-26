@@ -9,9 +9,9 @@ dialect cannot parse. A SQL finding is a fact for the debt register, not a claim
 import json
 from pathlib import Path
 
-from . import tool
-from .contract import OBSERVED, Report, finding, measurement, subject
-from .process import run, which
+from .. import tool
+from ..contract import OBSERVED, Report, finding, measurement, subject
+from ..process import run, which
 
 NAME = BINARY = 'sqlfluff'
 PINNED = tool.pinned(NAME)
@@ -21,7 +21,7 @@ SKIPPED = ('node_modules', '.git', 'dist', 'build', 'vendor')
 
 
 def capabilities():
-    from .contract import Capability
+    from ..contract import Capability
     return [Capability('sql_quality', 'AM*,ST*,CV*,RF01,RF02,RF04,PRS')]
 
 

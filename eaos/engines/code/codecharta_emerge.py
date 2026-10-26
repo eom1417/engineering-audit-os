@@ -15,7 +15,7 @@ import json
 import os
 from pathlib import Path
 
-from .process import run, which
+from ..process import run, which
 
 SKIP = ('node_modules', '.git', 'dist', 'build', '.venv', 'venv', '__pycache__', 'coverage', '.next', 'vendor')
 # emerge reads one language per analysis, by these extensions.
@@ -31,7 +31,7 @@ def _files(target):
 
 def _java():
     """ccsh runs on the pinned JRE, which the tools' bin folder holds."""
-    from ..core import toolchain
+    from ...core import toolchain
     return {'PATH': str(toolchain.home() / 'bin') + os.pathsep + os.environ.get('PATH', '')}
 
 
