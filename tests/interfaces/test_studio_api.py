@@ -672,7 +672,7 @@ class Remote(unittest.TestCase):
         self.addCleanup(held.cleanup)
         table = Path(held.name) / 'route'
         table.write_text('Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\n'
-                         'eth0\t00000000\t01219A0A\t0003\t0\t0\t100\t00000000\n'
+                         'eth0\t00000000\t0103000A\t0003\t0\t0\t100\t00000000\n'
                          'eth0\t00219A0A\t00000000\t0001\t0\t0\t100\t00FFFFFF\n')
         self.assertEqual(server._gateways(table), {'10.0.3.1'}, "the default route's gateway, from the kernel's table")
         for peer, given in (('10.0.3.1', True), ('::ffff:10.0.3.1', True), ('10.0.3.8', False), ('127.0.0.1', False), ('', False)):

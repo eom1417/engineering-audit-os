@@ -98,7 +98,8 @@ class Locks:
     def __init__(self, port, token=None, remote_origin=None):
         self.port = int(port)
         self.remote_origin = remote_origin
-        if remote_origin and not re.fullmatch(r'https://[a-z0-9]+(?:-[a-z0-9]+)*--[1-9][0-9]{0,4}\.dev\.remote\.e-m\.sa', remote_origin):
+        # One exact HTTPS address of the shape <project>--<port>.<the server's domain>: no wildcard, no other scheme.
+        if remote_origin and not re.fullmatch(r'https://[a-z0-9]+(?:-[a-z0-9]+)*--[1-9][0-9]{0,4}(?:\.[a-z0-9]+(?:-[a-z0-9]+)*){2,}', remote_origin):
             raise ValueError('remote_origin must be one exact Remote HTTPS project hostname')
         if remote_origin and int(urlsplit(remote_origin).hostname.split('--')[-1].split('.')[0]) != self.port:
             raise ValueError('Remote hostname port must match the listening port')
