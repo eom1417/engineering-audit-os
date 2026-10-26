@@ -1,6 +1,33 @@
 # Changelog
 
-## Unreleased
+## 0.0.79 (2026-10-26)
+
+M7, reliable fixes and hand-over. The refusal of a breaking fix was in the code and its unit tests, but no trial ran
+one (the independent review of 2026-10-26); the first one that did, `tools/fix_proof.py` in the golden trial, found the
+behaviour lock let a changed sentence through. Now:
+- **The fix proof** (M7.0): on the checked baseline app, a real batch where one sound card reaches the branch and three
+  breaking ones are refused, each for its own break: a screen's words (the lock), a test (the app's own check), an
+  unguarded write (the layers, at the edit); the person's project untouched. It runs in every golden trial.
+- **The lock reads words** (M7.0): a screenshot may differ by 1% of its pixels, a changed sentence less; each screen's
+  words are now matched too, once recorded (a lock recorded before holds none and checks none); a design card may
+  change them as it may change the look. An edit refused records its own reason in the batch.
+- **A hand-over survives the assistant's session** (M7.1): where the Studios are systemd services, every long job (a
+  batch's hand-over among them) is a transient unit of the computer, not a child of the session that started it.
+- **The cause from the output first** (M7.2) was already in: the files a failing check names are tried first, halving
+  last. **Batches** (M7.3) stay at ten cards, each handed over on its own branch: a smaller batch finds a culprit faster.
+- **The strict judge** (M7.4): a confirm names who the problem harms and the boundary it breaks; one that names no one
+  harmed is kept as a doubt.
+- **The batch's security engine** (M7.5): semgrep reads a batch's kept changes once; a card bringing a finding of it in
+  a file it changed is left out, and the batch's record says so (bandit and gitleaks already read every change).
+- **The build never stalls** (M7.6): a milestone refused three times in a row is handed over with what stays unproven,
+  in the answer, the record and the Studio's build plan.
+- **A leftover is never source** (M7.7): source named or placed as a build output is source beside imported source or
+  under `src/`.
+- **The repository as an engineer reads it** (M7.8) and **the assistants' context** (M7.9): a fact set of its own, read
+  from the files in seconds, its thresholds data (`eaos/rules/repository-craft.json`); low-severity cards of their own
+  group, judged by the triage, never raising the risk grade; 38 on the fifteen corpus apps, none on the clean twin.
+
+Also in this version:
 
 - **Every app of the compatibility corpus starts by rules, 15 of 15 (13 before)** (M5.5). The corpus's task-api (an
   Express API with no dev or start script, `const port = 3000`) was started as `true`, and next-dashboard (Next.js on
