@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 
+from . import tiers
 from .claude_adapter import ANSWER, parse, record, render, serve
 
 
@@ -23,7 +24,7 @@ def call(messages, small=False, reads=None, deep=False):   # the model signed in
         argv = ['codex', 'exec', '--skip-git-repo-check', '--ephemeral', '--ignore-rules', '--ignore-user-config',
                 '-s', 'read-only', '--color', 'never', '-C', reads or empty, '-o', answer]
         if os.environ.get('EAOS_CODEX_MODEL'): argv += ['-m', os.environ['EAOS_CODEX_MODEL']]
-        if small or deep: argv += ['-c', f'model_reasoning_effort="{"low" if small else "high"}"']
+        if small or deep: argv += ['-c', f'model_reasoning_effort="{tiers.codex_effort("light" if small else "deep")}"']
         began = time.monotonic()
         done = subprocess.run(argv + ['-'], input=f'{system}\n\n{conversation}\n\n{ANSWER}', stdout=sys.stderr, stderr=sys.stderr,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit, python.lang.security.audit.dangerous-subprocess-use-tainted-env-args -- the assistant's CLI as its adapter builds it, a list argv, no shell; the environment is the person's own
                               text=True, cwd=reads or empty)
