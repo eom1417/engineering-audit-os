@@ -106,14 +106,23 @@ def report_of(app):
 
 
 def checked(app):
-    """What a check left: passed when every stage that runs the app ended ok and the plan has cards."""
+    """What a check left: passed when no stage failed (one that does not apply says `unavailable`, with its reason) and
+    the plan has cards."""
     from eaos.core.system.usage import of_check
     report = report_of(app)
     manifest = json.loads((report / 'run-manifest.json').read_text(encoding='utf-8'))
-    bad = {name: row.get('reason') or row['status'] for name, row in manifest['stages'].items() if row['status'] not in ('ok', 'skipped')}
+    said = {name: f"{row['status']}: {row.get('reason')}" for name, row in manifest['stages'].items() if row['status'] != 'ok'}
+    bad = {name: why for name, why in said.items() if not why.startswith(('skipped', 'unavailable'))}
     cards = len(json.loads((report / 'plan.json').read_text(encoding='utf-8')).get('tasks') or [])
-    return {'passed': bool(cards) and not bad, 'stages': len(manifest['stages']), 'not_ok': bad, 'cards': cards,
-            'cost_usd': cost((of_check(report) or {}).get('total')), **({'reason': f'stages not ok: {bad}'} if bad else {})}
+    return {'passed': bool(cards) and not bad, 'stages': len(manifest['stages']), 'not_ok': said, 'cards': cards,
+            'check_seconds': round(manifest.get('seconds') or 0), 'cost_usd': cost((of_check(report) or {}).get('total')),
+            **({'reason': f'stages failed: {bad}'} if bad else {})}
+
+
+def earlier(app):
+    """The check an earlier run of this proof left in the journey's home, judged again rather than paid for twice."""
+    try: return {**checked(app), 'reused': 'the check of an earlier run of this proof (check_seconds is its wall time)'}
+    except (OSError, ValueError, LookupError): return None
 
 
 def card_to_fix(app):
@@ -145,6 +154,7 @@ def repair_cli(scratch):
     journey = Journey(scratch, 'repair-cli')
     app = fetched(journey.folder)
     def check():
+        if (before := earlier(app)): return before
         code, said = eaos('check', '--project', str(app), '--run-app', '--assistant', ASSISTANT, '--sign-in', 'none', '--lang', 'en', '--watch')
         return checked(app) if code == 0 else {'passed': False, 'reason': f'eaos check exit {code}: {said[-600:]}'}
     if not journey.step('check', check)['passed']: return journey
@@ -169,8 +179,13 @@ def extend(scratch):
     journey.name, journey.path, journey.steps = 'extend', journey.path.with_name('extend.json'), []
     app = journey.folder / 'app'
     def accept():
+        repaired = json.loads(journey.path.with_name('repair-cli.json').read_text(encoding='utf-8'))['steps'][-1]
+        if not (repaired['step'] == 'fix' and repaired['passed']): return {'passed': False, 'reason': 'the repair handed over no batch to accept'}
+        head = _git(str(app), 'rev-parse', 'HEAD')
         code, said = eaos('accept', str(app), '--yes', '--lang', 'en')
-        return {'passed': code == 0, 'head': _git(str(app), 'log', '--oneline', '-1'), **({} if code == 0 else {'reason': said[-600:]})}
+        moved = _git(str(app), 'rev-parse', 'HEAD') != head
+        return {'passed': code == 0 and moved, 'head': _git(str(app), 'log', '--oneline', '-1'),
+                **({} if code == 0 and moved else {'reason': f'eaos accept exit {code}, HEAD moved {moved}: {said[-600:]}'})}
     if not journey.step('accept the repair', accept)['passed']: return journey
     prompt = (f'Use the eaos tools, always with project="{app}", to add this feature to the project: {FEATURE} '
               'Call extend_start with that text, write the spec and call extend_plan until it fits (nobody is here to ask: '
@@ -204,6 +219,7 @@ def repair_studio(scratch):
         api = Studio(token_file.read_text(encoding='utf-8').strip())
         def check():
             from eaos.interfaces import govern
+            if (before := earlier(app)): return before
             inputs = govern.check_inputs(None, ASSISTANT, None, sign_in='none', run_app=True)
             record = api.run({'action': 'audit', 'inputs': inputs, 'lang': 'en'})
             return checked(app) if record['state'] == 'done' else {'passed': False, 'reason': f"check run {record['state']}: {record.get('error')}"}
@@ -315,14 +331,19 @@ def runtime(scratch, home=None):
 JOURNEYS = {'repair-cli': repair_cli, 'extend': extend, 'repair-studio': repair_studio, 'build': build, 'runtime': runtime}
 
 
+def results(scratch):
+    """Every journey's recorded steps, without the failures' tracebacks."""
+    found = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((scratch / 'results').glob('*.json'))]
+    return [{**r, 'steps': [{k: v for k, v in step.items() if k != 'trace'} for step in r['steps']]} for r in found]
+
+
 def main(scratch, names):
-    scratch = Path(scratch).resolve()
-    for name in [n for n in JOURNEYS if n in {a.split('=')[0] for a in names}]:
-        home = next((a.split('=', 1)[1] for a in names if a.startswith('runtime=')), None)
-        JOURNEYS[name](scratch, home) if name == 'runtime' else JOURNEYS[name](scratch)
-    results = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((scratch / 'results').glob('*.json'))]
-    print(json.dumps([{**r, 'steps': [{k: v for k, v in s.items() if k != 'trace'} for s in r['steps']]} for r in results], indent=1))
-    return 0 if all(s['passed'] for r in results for s in r['steps']) else 1
+    scratch, asked = Path(scratch).resolve(), dict(a.partition('=')[::2] for a in names)
+    for name in [n for n in JOURNEYS if n in asked]:
+        JOURNEYS[name](scratch, *([asked[name] or None] if name == 'runtime' else []))
+    found = results(scratch)
+    print(json.dumps(found, indent=1))
+    return 0 if all(step['passed'] for r in found for step in r['steps']) else 1
 
 
 if __name__ == '__main__':
