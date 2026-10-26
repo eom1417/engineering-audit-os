@@ -27,6 +27,9 @@ def recheck(root, spec):
         if (spec.get('specification') or {}).get('query') == 'boundary_finding_present':
             from ..layers import check, facts_of
             sets['boundaries'] = {'facts': facts_of(check(Path(root).resolve(), out))}
+        if (spec.get('specification') or {}).get('query') == 'logic_flaw_present':
+            from .from_logic_flaws import reread
+            sets['logic_flaws'] = reread(root, spec['specification'])     # the code read again, never an old hunt
         return decide_probe(spec, sets)
 
 

@@ -44,13 +44,18 @@ STATEMENT_LIMIT = 600
 VERDICTS = DATA / 'detector-verdicts.json'
 
 
+# The card keys whose detector is one of their params: (the detector's prefix, the param).
+DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
+               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class')}
+
+
 def detector_of(claim):
     """The detector a claim comes from: its card key, an engine cluster's kind, or the import-cycle check."""
     render = claim.get('render') or {}
     key = render.get('key')
-    if key == 'engine_cluster': return 'engine_cluster:' + str((render.get('params') or {}).get('kind'))
-    if key == 'layer_finding': return 'layer:' + str((render.get('params') or {}).get('rule'))
-    if key == 'repository_finding': return 'repository:' + str((render.get('params') or {}).get('rule'))
+    if key in DETECTED_BY:
+        prefix, param = DETECTED_BY[key]
+        return prefix + ':' + str((render.get('params') or {}).get(param))
     if key: return key
     if str(claim.get('statement', '')).startswith('Import cycle between'): return 'import_cycle'
     return 'unattributed'

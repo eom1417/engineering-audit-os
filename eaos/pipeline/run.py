@@ -298,6 +298,13 @@ def resume(target, out, redo=(), checked=False, **options):
     return merged
 
 
+def same_source(target, out):
+    """The last check's options when `target` is the code it read; ValueError when there is no check or the code changed."""
+    previous = _previous(out)
+    if previous is None: raise ValueError('there is no check to go on from: run a check first')
+    return _resumable(target, previous)
+
+
 def _resumable(target, previous):
     """The previous run's options, once it is shown to be about this source: the same files, wherever the copy is."""
     from ..core.project.workspace import inventory

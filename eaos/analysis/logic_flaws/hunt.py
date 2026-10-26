@@ -6,11 +6,17 @@ scanners cannot find, the lowest-trust surfaces first, and no finding kept that 
 assistant is passed in (its deep tier), never imported; it reads the project itself, read only.
 """
 import json
+import threading
+from contextlib import contextmanager
 from pathlib import Path
+
+from ...core.contracts.untrusted import CLAUSE, wrapped
+from ...core.system.process import STOP, Stuck
 
 CLASSES = ('skipped-step', 'race', 'quantity', 'wrong-check', 'trusted-input', 'time', 'fallback', 'feature-abuse')
 SEVERITIES = ('low', 'medium', 'high')
-LIMIT = {'endpoints': 60, 'tables': 40, 'features': 30, 'flaws': 12}
+LIMIT = {'endpoints': 60, 'tables': 40, 'features': 30, 'flaws': 12, 'row': 600}
+MINUTES = 40            # the wall clock a whole hunt may take, both readings together (`eaos logic-flaws --minutes`)
 _TEXT = {'type': 'string'}
 FLAW = {'type': 'object', 'additionalProperties': False,
         'required': ['title', 'title_ar', 'class', 'severity', 'principal', 'invariant', 'path', 'line', 'steps', 'impact',
@@ -58,7 +64,9 @@ high when another person's data or money is reached, medium when the person's ow
 
 DO NOT
 Report what a rule already finds (a missing sign-in check, an injection, a secret in code), a style issue, or a flaw
-you could not point to by file and line. Fewer real flaws beat many plausible ones; none is a good answer.'''
+you could not point to by file and line. Fewer real flaws beat many plausible ones; none is a good answer.
+
+''' + CLAUSE
 
 CRITIC = '''GOAL
 Each candidate below is a logic flaw another reviewer claims in this project. Try to disprove each one by reading the
@@ -67,11 +75,14 @@ path, the framework doing it), or a step of its sequence that cannot happen.
 
 Answer per candidate, by its number: "holds" when the code shows it and nothing you found stops it; "refuted" when you
 found what stops it (name it in `why`, with its file and line); "unsure" when the code does not settle it. `why`: one
-or two plain sentences.'''
+or two plain sentences.
+
+''' + CLAUSE
 
 
 def _rank(row):
-    """The lowest-trust and most valuable endpoints first: open writes, then writes by id, then the rest."""
+    """The lowest-trust and most valuable endpoints first: those without authentication before the others, and within
+    each, writes before reads, then those taking an id, then by route."""
     return (bool(row.get('authentication')), not row.get('writes'), not row.get('by_id'), str(row.get('route')))
 
 
@@ -79,15 +90,23 @@ def brief(out):
     """What the hunt reads of a check's record (layers.json, features.json), bounded."""
     layers = _read(Path(out) / 'layers.json') or {}
     keys = ('method', 'route', 'path', 'line', 'writes', 'by_id', 'public', 'authentication', 'authorisation', 'validation', 'data')
-    endpoints = [{k: row.get(k) for k in keys} for row in sorted(layers.get('endpoints') or [], key=_rank)]
-    return {'endpoints': endpoints[:LIMIT['endpoints']], 'tables': (layers.get('tables') or [])[:LIMIT['tables']],
+    rows = [row for row in layers.get('endpoints') or [] if isinstance(row, dict)]
+    endpoints = [_capped({k: row.get(k) for k in keys}) for row in sorted(rows, key=_rank)]
+    return {'endpoints': endpoints[:LIMIT['endpoints']], 'tables': [_capped(t) for t in (layers.get('tables') or [])[:LIMIT['tables']]],
             'features': _features(out), 'more_endpoints': max(0, len(endpoints) - LIMIT['endpoints'])}
+
+
+def _capped(row):
+    """A row of the brief no longer than LIMIT['row'] characters as JSON: past it, its text cut and marked."""
+    text = json.dumps(row, ensure_ascii=False, default=str)
+    return row if len(text) <= LIMIT['row'] else {'cut': text[:LIMIT['row']]}
 
 
 def _features(out):
     """The names of what the program does (features.json), bounded."""
     rows = (_read(Path(out) / 'features.json') or {}).get('features') or []
-    return [name for name in (f.get('name') or f.get('title') for f in rows if isinstance(f, dict)) if name][:LIMIT['features']]
+    names = (f.get('name') or f.get('title') for f in rows if isinstance(f, dict))
+    return [str(name)[:200] for name in names if name][:LIMIT['features']]
 
 
 def _read(path):
@@ -95,25 +114,58 @@ def _read(path):
     except (OSError, ValueError): return None
 
 
+class Unfinished(Exception):
+    """The assistant did not finish a reading: the hunt's time ran out, or it fell silent (Stuck)."""
+
+
+class _Deadline(threading.Event):
+    """The stop a hunt's clock sets (eaos/core/system/process.py STOP): the assistant's process is ended when it is."""
+
+
+@contextmanager
+def deadline(minutes):
+    """Within it, an assistant still working `minutes` after it began is ended and its reading raises Unfinished."""
+    stop = _Deadline()
+    timer, token = threading.Timer(minutes * 60, stop.set), STOP.set(stop)
+    timer.daemon = True
+    timer.start()
+    try: yield stop
+    finally: timer.cancel(); STOP.reset(token)
+
+
+def _asked(provider, messages, stage, project):
+    """The provider's answer; Unfinished when the hunt's clock ran out or the assistant fell silent."""
+    try: return provider.complete(messages, deep=True, stage=stage, reads=str(project))[0]
+    except Stuck as stuck: raise Unfinished(str(stuck)) from None
+    except KeyboardInterrupt:
+        stop = STOP.get()
+        if isinstance(stop, _Deadline) and stop.is_set(): raise Unfinished('the hunt passed its time limit') from None
+        raise
+
+
 def _answer(provider, system, content, project, stage):
-    """The assistant's answer on its deep tier, reading the project itself."""
+    """The assistant's answer on its deep tier, reading the project itself; ValueError when it is not a JSON object."""
     messages = [{'role': 'system', 'content': system}, {'role': 'user', 'content': json.dumps(content, ensure_ascii=False)}]
-    answer = provider.complete(messages, deep=True, stage=stage, reads=str(project))[0]
-    return answer.get('result') or answer
+    answer = _asked(provider, messages, stage, project)
+    answer = answer.get('result') or answer if isinstance(answer, dict) else answer
+    if not isinstance(answer, dict): raise ValueError(f'the assistant answered the {stage} step with no JSON object')
+    return answer
 
 
 def candidates(provider, out, project):
     """{flaws, reviewed}: the assistant's candidates, unchecked."""
-    answer = _answer(provider, TASK + '\n\nANSWER\n' + json.dumps(SCHEMA), brief(out), project, 'logic_flaws')
-    return {'flaws': [f for f in answer.get('flaws') or [] if isinstance(f, dict)][:LIMIT['flaws']],
-            'reviewed': [str(r) for r in answer.get('reviewed') or []]}
+    answer = _answer(provider, TASK + '\n\nANSWER\n' + json.dumps(SCHEMA), wrapped(brief(out)), project, 'logic_flaws')
+    flaws, reviewed = answer.get('flaws'), answer.get('reviewed')
+    return {'flaws': [f for f in (flaws if isinstance(flaws, list) else []) if isinstance(f, dict)][:LIMIT['flaws']],
+            'reviewed': [str(r)[:200] for r in (reviewed if isinstance(reviewed, list) else [])][:LIMIT['endpoints']]}
 
 
 def critique(provider, flaws, project):
     """{number: (verdict, why)}: the second, independent reading of each candidate."""
     if not flaws: return {}
-    shown = [{'number': n, **{k: f.get(k) for k in ('title', 'class', 'principal', 'invariant', 'path', 'line', 'steps', 'excerpt')}}
-             for n, f in enumerate(flaws, 1)]
+    shown = [{'number': n, **{k: f.get(k) for k in ('title', 'class', 'principal', 'invariant', 'path', 'line', 'steps')},
+              'excerpt': wrapped(f.get('excerpt'))} for n, f in enumerate(flaws, 1)]
     answer = _answer(provider, CRITIC + '\n\nANSWER\n' + json.dumps(VERDICTS), {'candidates': shown}, project, 'logic_flaws_critic')
-    return {v['number']: (v.get('verdict'), str(v.get('why') or '')) for v in answer.get('verdicts') or []
-            if isinstance(v, dict) and isinstance(v.get('number'), int)}
+    verdicts = answer.get('verdicts')
+    return {v['number']: (v.get('verdict'), str(v.get('why') or '')) for v in (verdicts if isinstance(verdicts, list) else [])
+            if isinstance(v, dict) and type(v.get('number')) is int}
