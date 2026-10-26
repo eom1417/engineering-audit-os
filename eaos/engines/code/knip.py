@@ -75,17 +75,14 @@ def _issue_findings(issue, found):
     return findings
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()
-    folder = Path(workdir) / NAME
-    folder.mkdir(parents=True, exist_ok=True)
     names = plugins(which(BINARY))
     if not names:
         return Report(NAME, found, PINNED, ERROR, reason='the plugin list of the installed knip was not found; '
                       'run without switching plugins off, it would load the project\'s configuration files as code')
-    config = folder / 'knip-config.json'
+    config = workdir / 'knip-config.json'
     config.write_text(json.dumps(configuration(names, exclude), indent=1), encoding='utf-8')
     command = [which(BINARY), '--config', str(config), '--reporter', 'json', '--no-progress', '--no-exit-code',
                '--no-config-hints', '--no-tag-hints']
@@ -93,7 +90,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     try: report = json.loads(out)
     except ValueError:
         return tool.failed(NAME, found, seconds, code, error)
-    output = folder / 'knip.json'
+    output = workdir / 'knip.json'
     output.write_text(out, encoding='utf-8')
     findings, counted = normalise(report, found)
     by_rule = {}

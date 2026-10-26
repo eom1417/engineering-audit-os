@@ -4,6 +4,7 @@ can decline to run (not installed; nothing in this project for it to read).
 The pin lives in eaos/data/toolchain.json and nowhere else; `eaos tools install` puts the binary where
 eaos.engines.process.which looks first.
 """
+import functools
 import re
 import shutil
 from pathlib import Path
@@ -81,6 +82,19 @@ def started(name, binary, target, probe=None):
         return Report(name, found, pinned(name), NOT_APPLICABLE,
                       reason=f'nothing here for {name} to read (it applies to: {rule})'), found
     return None, found
+
+
+def engine(name, binary, fresh=False):
+    """An adapter's analyze(target, workdir, exclude=(), formats=None), from its body(target, folder, exclude, formats,
+    version found): declined here when the tool cannot or need not run (`started`), else the body run in the engine's
+    own folder of the run's work folder (`folder`, emptied first when `fresh`)."""
+    def adapter(body):
+        @functools.wraps(body)
+        def analyze(target, workdir, exclude=(), formats=None):
+            declined, found = started(name, binary, target)
+            return declined or body(target, folder(workdir, name, fresh), exclude, formats, found)
+        return analyze
+    return adapter
 
 
 def folder(workdir, name, fresh=False):

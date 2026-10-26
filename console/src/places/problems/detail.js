@@ -8,7 +8,7 @@ const enc = encodeURIComponent;
 const confidence = c => (c == null ? null : c >= 0.9 ? 'confirmed' : c >= 0.6 ? 'likely' : 'hypothesis');
 S.notes = S.notes || {};
 
-export function codeBlock(c) {
+function codeBlock(c) {
   const hidden = new Set(c.hidden || []);
   return `<div class="code">${c.lines.map((l, i) => {
     const n = c.start + i;

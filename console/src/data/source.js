@@ -5,7 +5,7 @@
 // whose sha256 in the manifest changed.
 import { prefs } from '../core/prefs.js';
 
-export const CONTRACT = 1;
+const CONTRACT = 1;
 const TOKEN_KEY = 'eaos.token';
 
 /** The launch token of this tab, or null when the console was opened as a read-only copy. */
@@ -24,7 +24,7 @@ export function onChange(fn) { listeners.add(fn); return () => listeners.delete(
 const changed = names => listeners.forEach(fn => fn(names));
 
 /** A GET of the live API with the launch token. */
-export function apiGet(path) {
+function apiGet(path) {
   return fetch(path, { headers: { 'X-EAOS-Token': token, Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' });
 }
 

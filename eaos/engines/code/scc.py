@@ -22,12 +22,10 @@ def capabilities():
 def version(): return tool.version(BINARY)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target)
-    output = Path(workdir) / NAME / 'scc.json'
-    output.parent.mkdir(parents=True, exist_ok=True)
+    output = workdir / 'scc.json'
     command = [which(BINARY), '--by-file', '--format', 'json', '--no-cocomo', '--output', str(output),
                '--exclude-dir', ','.join(EXCLUDED + tuple(exclude)), str(target)]
     code, _, error, seconds = run(command)

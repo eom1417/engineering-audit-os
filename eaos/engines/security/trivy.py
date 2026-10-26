@@ -11,7 +11,6 @@ No secret value is ever recorded. Trivy masks the value it matched; the adapter 
 """
 import json
 import re
-from pathlib import Path
 
 from .. import sarif, tool
 from ..contract import OBSERVED, Report
@@ -66,11 +65,9 @@ def _command(output, exclude):
     return command
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    output = Path(workdir) / NAME / 'trivy.sarif'
-    output.parent.mkdir(parents=True, exist_ok=True)
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
+    output = workdir / 'trivy.sarif'
     code, _, error, seconds = run(_command(output, exclude) + [str(target)])
     if code or not output.is_file():
         return tool.failed(NAME, found, seconds, code, error)

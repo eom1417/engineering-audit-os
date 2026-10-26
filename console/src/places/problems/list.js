@@ -13,7 +13,7 @@ const PAGE = 50;
 
 /* ---------- the problems drawn: held while a new check waits to be shown (PRB-11) ---------- */
 let held = null;
-export function shown() {
+function shown() {
   const cards = data.section('cards');
   if (!held || held.cards === cards || !S.newcheck) held = { cards, list: model.problems() };
   return held.list;
@@ -62,7 +62,7 @@ function listHTML(rows, q, openId) {
     <ul class="rows plist">${groups.get(k).map(p => row(p, p.id === openId)).join('')}</ul>`).join('')}</div>`;
 }
 
-export function listColumn(q, openId) {
+function listColumn(q, openId) {
   const all = shown();
   const rows = filterProblems(all, q);
   const limit = Math.max(PAGE, Number(q.n) || PAGE);

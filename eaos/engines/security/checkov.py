@@ -38,10 +38,8 @@ def _frameworks(summary):
             for row in (data if isinstance(data, list) else [data]) if isinstance(row, dict) and row.get('check_type')}
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    workdir = tool.folder(workdir, NAME, fresh=True)
+@tool.engine(NAME, BINARY, fresh=True)
+def analyze(target, workdir, exclude, formats, found):
     # Checkov exits 1 when a check fails; that is a result, not an error.
     code, _, error, seconds = run(_command(target, workdir, exclude), cwd=workdir)
     output, summary = workdir / 'results_sarif.sarif', workdir / 'results_json.json'

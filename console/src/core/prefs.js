@@ -7,7 +7,7 @@ function read() {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; }
 }
 
-export const device = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const device = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const saved = read();
 const root = document.documentElement;
 

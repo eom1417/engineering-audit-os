@@ -33,10 +33,8 @@ def capabilities():
 def version(): return tool.version(BINARY)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    workdir = tool.folder(workdir, NAME, fresh=True)
+@tool.engine(NAME, BINARY, fresh=True)
+def analyze(target, workdir, exclude, formats, found):
     config, output = workdir / 'gitleaks.toml', workdir / 'gitleaks.sarif'
     names = [re.escape(name.strip('/')) for name in EXCLUDED + tuple(exclude) if name.strip('/')]
     config.write_text(CONFIG.replace('{names}', '|'.join(names)), encoding='utf-8')

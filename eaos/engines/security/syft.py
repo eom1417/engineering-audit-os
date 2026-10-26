@@ -69,10 +69,8 @@ def complete(sbom, target):
     return added
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    workdir = tool.folder(workdir, NAME)
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     sbom = workdir / 'sbom.cdx.json'
     command = [which(BINARY), 'scan', f'dir:{target}', '-o', f'cyclonedx-json={sbom}', '-q']
     for pattern in exclude: command += ['--exclude', f'./{pattern}/**']

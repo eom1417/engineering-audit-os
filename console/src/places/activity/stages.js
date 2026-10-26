@@ -9,7 +9,7 @@ import {
 
 /** A stage's name and what it does: the dictionary's words, else its own description. */
 export const stageTitle = id => (has('ac.stage.' + id) ? t('ac.stage.' + id) : id);
-export const stageDoes = s => (has('ac.stage.' + s.id + '.does') ? t('ac.stage.' + s.id + '.does') : s.description || '');
+const stageDoes = s => (has('ac.stage.' + s.id + '.does') ? t('ac.stage.' + s.id + '.does') : s.description || '');
 
 /** The state the board draws for one stage of the flow: the run's pause, a sign-in it waits for and a stop shown. */
 function shownState(s, run) {
@@ -64,7 +64,7 @@ export function stageButton(s, focus) {
     ${s.ai ? `<span class="ac-stg__ai" title="${esc(t('ac.stg.ai'))}">${icon('ai', 'icon--sm')}<span class="sr-only">${t('ac.stg.ai')}</span></span>` : ''}${stageTime(s, 'ac-stg__t')}${stageCount(s)}</button></li>`;
 }
 /** The five parts of a check, in the order a check goes through them (eaos/pipeline/stages.py PHASES). */
-export const PARTS = ['read', 'tools', 'app', 'assistant', 'plan'];
+const PARTS = ['read', 'tools', 'app', 'assistant', 'plan'];
 /** A part's own time without its check's pauses: from its first stage's start, counting while one of its stages
  *  runs, else to its last end. */
 function partTime(row) {
@@ -121,7 +121,7 @@ export function lostOf(s) {
   return { assistant: old[1], resets: back ? back[1].trim() : null, code };
 }
 /** The stages that read from `id`, however far (redo runs them again). */
-export function dependents(list, id) {
+function dependents(list, id) {
   const out = new Set();
   const walk = x => list.forEach(s => { if (s.needs.includes(x) && !out.has(s.id)) { out.add(s.id); walk(s.id); } });
   walk(id);

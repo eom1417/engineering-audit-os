@@ -26,10 +26,8 @@ def capabilities():
 def version(): return tool.version(BINARY)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    workdir = tool.folder(workdir, NAME, fresh=True)
+@tool.engine(NAME, BINARY, fresh=True)
+def analyze(target, workdir, exclude, formats, found):
     output = workdir / 'bandit.sarif'
     skipped = ','.join(f"/{name.strip('/')}/" for name in EXCLUDED + tuple(exclude) if name.strip('/'))
     # Bandit exits 1 when it found something; that is a result, not an error.
