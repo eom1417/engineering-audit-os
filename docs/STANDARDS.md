@@ -15,6 +15,7 @@ added moves the law out of review). Numbers only ever get stricter: a change tha
 | Function parameters | ≤ 5 (self, cls aside), today's 129 listed | same | same |
 | One source of truth | no function written twice; jscpd clones not more than recorded | no duplicated block | `test_code_limits`, `jscpd` |
 | No dead code | no unused import or variable (pyflakes); EAOS's own dead-code detector (the Python) and `knip` (the Studio) not more than recorded | no unused function, module or JS export | `test_code_limits`, `tools/quality.sh` (not `enola`: its count moves with the documents' words) |
+| Repository craft | no crowded folder, vague name, family of files, document naming a path that is gone, machine detail in a published file, or assistant's context too heavy or said twice (M8.8, 0.0.80; the limits in `eaos/rules/repository-craft.json`, the same rules EAOS reads any project with) | same | `tools/quality.sh` |
 | Layers | each layer imports only the layers under it, directly or not (`docs/ARCHITECTURE.md` §2; one layers contract in `pyproject.toml`, no exception) | same (reached by M3.1) | `import-linter` |
 
 What exceeds a limit today is listed in `tools/code_limits.json` and may only shrink: after shrinking one, run

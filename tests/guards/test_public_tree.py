@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-GENERIC = [r'/workspace/',                       # a development container's own folder
+GENERIC = [r'/work(?:space)/',                     # a development container's own folder
            r'\.lxd\b',                           # a container's host name
            r'\b\d+ (cores|vcpus?)\b',            # the machine's size
            r'\bload \d+(-\d+)?\b']               # the machine's load at some moment

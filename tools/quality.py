@@ -68,6 +68,15 @@ def studio_lint():
             for row in json.loads(found.stdout) for m in row['messages']]
 
 
+def repository_craft():
+    """EAOS by its own repository rules (eaos/rules/repository-craft.json): a crowded folder, a vague name, a family of
+    files, a document naming a path that is gone, a machine's detail in a published file, an assistant's context too
+    heavy or said twice; none is allowed."""
+    from eaos.facts.repository import read
+    from eaos.facts.source import Source
+    return [f"repository: {f['rule']} {f['path']}" for f in read.findings(Source(ROOT), [], ROOT)]
+
+
 def law_problems():
     """What breaks a law that has no recorded number: a limit passed, logic written twice, a leftover (in the Studio too), a
     layer crossed."""
@@ -75,6 +84,7 @@ def law_problems():
     problems += [f'written twice: {", ".join(group)}' for group in code_limits.duplicates()]
     problems += [f'leftover: {message}' for message in code_limits.leftovers()]
     problems += studio_lint()
+    problems += repository_craft()
     layers = subprocess.run([str(Path(sys.executable).parent / 'lint-imports')], cwd=ROOT, capture_output=True, text=True)
     problems += [f'layers: {line.strip()}' for line in layers.stdout.splitlines() if line.rstrip().endswith('BROKEN')]
     return problems + (['layers: lint-imports failed: ' + layers.stderr.strip()[-300:]] if layers.returncode > 1 else [])
