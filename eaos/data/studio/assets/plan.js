@@ -7,7 +7,7 @@
       <span class="row__main"><span class="row__title">${(0,c.rich)((0,c.L)(t.title))}</span>
       <span class="row__meta" style="display:block">${(0,c.esc)((0,c.t)("bp.cards",{done:(0,c.num)(s),n:(0,c.tn)("bp.card",t.tasks.length)}))}${t.branch?` ${(0,c.code)(t.branch)}`:""}</span></span>
       ${V(t.state)}${t.id===n?`<span class="tag tag--you">${(0,c.t)("un.plan.nexttag")}</span>`:""}${(0,c.icon)("chev","chev")}</summary>
-    <div class="fold__body rows">${t.tasks.map(ge).join("")}</div></details>`}function J(t){let n=t.steps.reduce((p,$)=>p+$.tasks.length,0),s=t.steps.reduce((p,$)=>p+$.tasks.filter(r=>r.state==="done").length,0),l=n?s/n:0,a=t.open||t.next;return`<div class="page page--wide">
+    <div class="fold__body rows">${(t.unproven||[]).length?`<div class="banner banner--caution"><strong>${(0,c.t)("bp.unproven")}</strong><ul>${t.unproven.map(l=>`<li>${(0,c.rich)(l)}</li>`).join("")}</ul></div>`:""}${t.tasks.map(ge).join("")}</div></details>`}function J(t){let n=t.steps.reduce((p,$)=>p+$.tasks.length,0),s=t.steps.reduce((p,$)=>p+$.tasks.filter(r=>r.state==="done").length,0),l=n?s/n:0,a=t.open||t.next;return`<div class="page page--wide">
     <h1 class="lede">${(0,c.esc)((0,c.t)("bp.lede",{m:(0,c.tn)("bp.milestone",t.steps.length),n:(0,c.tn)("bp.card",n),done:(0,c.num)(s)}))}</h1>
     ${t.goal?`<p class="guide">${(0,c.rich)((0,c.L)(t.goal))}</p>`:""}
     ${t.requirements?`<p class="small ink-2">${(0,c.icon)("check","icon--sm")} ${(0,c.esc)((0,c.t)("bp.covered",{n:(0,c.num)(t.requirements)}))}</p>`:""}

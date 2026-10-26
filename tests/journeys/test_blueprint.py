@@ -264,6 +264,25 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(build_tools.build_start(self.project)['status'], 'needs_agreement')
         self.assertFalse((Path(self.project) / '.git').exists(), 'nothing is made before the person agrees')
 
+    def test_a_milestone_refused_three_times_in_a_row_is_handed_over_with_what_stays_unproven(self):
+        # M7.6: every refusal held the milestone back, and the journey stood still while one gate kept failing
+        build_tools.blueprint_start(text='plan', project=self.project)
+        build_tools.blueprint_spec(spec(), self.project)
+        build_tools.blueprint_design(project=self.project)
+        build_tools.build_start(self.project, person_agreed=True)
+        edit = {'card': 'BLD-001', 'edits': [{'path': 'package.json', 'content': '{"name": "clinic"}\n'}]}
+        held = ([{'gate': 'tests', 'where': 'app', 'what': 'the app test fails'}], None)
+        with mock.patch.object(build_tools, '_gates', return_value=[]):
+            build_tools._build_edit_job(self.project, edit, lambda *_: None)
+        with mock.patch.object(build_tools, '_held', return_value=held):
+            answers = [build_tools._build_finish_job(self.project, {}, lambda *_: None) for _ in range(build_tools.HOLDS)]
+        self.assertEqual([a['delivered'] for a in answers], [False, False, True])
+        self.assertEqual(answers[-1]['unproven'], ['the app test fails'])
+        built = project_state.load(Path(self.project).resolve())['built'][-1]
+        self.assertEqual(built['unproven'], ['the app test fails'], 'kept for the Studio and the report')
+        from eaos.report.studio import blueprint_plan
+        self.assertEqual(blueprint_plan._step({'id': 'M01', 'name': 'm', 'tasks': []}, {}, {}, __import__('collections').defaultdict(lambda: (None, []), {'M01': ('b', ['x'])}), 'en')['unproven'], ['x'])
+
     def test_a_card_is_kept_only_through_its_gates_and_a_milestone_arrives_as_a_stacked_branch(self):
         build_tools.blueprint_start(text='plan', project=self.project)
         build_tools.blueprint_spec(spec(), self.project)

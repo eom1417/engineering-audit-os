@@ -32,6 +32,7 @@ from ...core.progress.log import now
 from ...core.project import state as project_state
 from ...core.project.state import waiting_batch
 
+HOLDS = 3       # refused finishes of one milestone in a row; the next refusal hands it over with what stays unproven
 CONSENT = ('May I build your project from its blueprint in a separate copy, milestone by milestone, checking every '
            'step, and hand each milestone to your project as a new branch (nothing else in your project changes)?')
 
@@ -252,23 +253,23 @@ def _build_finish_job(project, arguments, progress):
     # Dead code is judged when the whole build is there: a shared part made early is used by a later milestone.
     last = _plan(state)['milestones'][-1]['id'] == build['milestone']
     problems, look = _held(state, root, build, last, progress)
-    guided.save(state)
-    if problems:
-        return {'delivered': False, 'why': problems[:25],
+    if (held := _holding(state, build, problems)):
+        return {**held, 'why': problems[:25],
                 'what_now': 'The milestone as a whole breaks these: fix them with build_edit (card="FIX"; a requirement no kept card '
                             'builds: build the card it names with build_edit; a design departure: follow DESIGN.md; a load scenario: '
                             'make that route fast under load, an index or less work per request), then build_finish again.'}
     branch = f"eaos/build-{build['number']}"
     fetched = _git(state['project'], 'fetch', '-q', str(root), f'+{branch}:{branch}')
     if fetched.returncode: raise RuntimeError(f'could not create {branch}: {fetched.stderr[-300:]}')
-    record = _record_built(state, build, branch, root)
+    record = _record_built(state, build, branch, root, [p['what'] if isinstance(p, dict) else str(p) for p in problems])
     state.pop('open_build', None)
     guided.save(state)
     publish(state)
     if last: shutil.rmtree(project_state.runtime_of(state) / 'browsers', ignore_errors=True)    # fetched for the journeys alone
     remaining = _not_built(state)
-    screens = any(p.startswith('web/') for c in build['kept'] for p in _cards(state)[c]['paths'])
+    screens = _screens(state, build)
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
+            **_unproven(record),
             'look': look or (build_look.look(state, root, progress) if screens else None),
             'what_now': ('Call build_start for the next milestone, without asking the person again; what `look` found (departures '
                          'from DESIGN.md, screen problems, a Lighthouse score under 90) is fixed there first, with build_edit '
@@ -278,15 +279,33 @@ def _build_finish_job(project, arguments, progress):
                          '(accept with person_agreed=true). Then offer the audit of the finished project.')}
 
 
-def _record_built(state, build, branch, root):
+def _screens(state, build):
+    """Whether the milestone's kept cards made a screen (a file under web/)."""
+    return any(p.startswith('web/') for c in build['kept'] for p in _cards(state)[c]['paths'])
+
+
+def _holding(state, build, problems):
+    """The answer that holds the milestone back while it is refused fewer than HOLDS times in a row, else None."""
+    build['refused'] = build.get('refused', 0) + 1 if problems else 0
+    guided.save(state)
+    return {'delivered': False, 'refused': f"{build['refused']} of {HOLDS}"} if problems and build['refused'] < HOLDS else None
+
+
+def _unproven(record):
+    return ({'unproven': record['unproven'][:25], 'why_delivered': f'refused {HOLDS} times in a row: handed over with what stays '
+             'unproven, for the person to decide; tell them plainly'} if record.get('unproven') else {})
+
+
+def _record_built(state, build, branch, root, unproven=()):
     """The milestone handed over on `branch`, recorded among the built ones and the waves (where it supersedes the
-    milestones before it); its record."""
+    milestones before it), with what stays `unproven` when it was handed over refused (HOLDS); its record."""
     record = {'number': build['number'], 'milestone': build['milestone'], 'branch': branch, 'base': build['base'],
               'kept': list(build['kept']), 'skipped': build['skipped'], 'stat': _git(root, 'diff', '--shortstat', f"{build['base']}..HEAD").stdout.strip(),
-              'began': build.get('began'), 'ended': now()}
+              'began': build.get('began'), 'ended': now(), **({'unproven': list(unproven)} if unproven else {})}
     state.setdefault('built', []).append(record)
     state.setdefault('waves', []).append({'number': build['number'], 'branch': branch, 'base': build['base'], 'kept': record['kept'],
-                                          'failed': build['skipped'], 'stat': record['stat'], 'status': 'applied', 'via': 'build'})
+                                          'failed': build['skipped'], 'stat': record['stat'], 'status': 'applied', 'via': 'build',
+                                          **({'unproven': record['unproven']} if unproven else {})})
     for older in state['waves'][:-1]:                   # stacked: the last branch holds every milestone before it
         if older.get('via') == 'build' and older.get('status') == 'applied': older['status'] = 'superseded'
     return record

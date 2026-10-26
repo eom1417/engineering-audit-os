@@ -118,7 +118,7 @@ def answers(name, schema):
         steps = [{'id': 's1', 'title': 'Dead code first', 'tasks': ['TASK-001', 'TASK-002'], 'why': 'small and safe'},
                  {'id': 's2', 'title': 'Then', 'tasks': ['TASK-003'], 'why': 'needs TASK-001'}]
         return {'summary': '', 'decisions': [decision('plan', 'reorder', ['TASK-001', 'TASK-003'], detail={'steps': steps})]}
-    return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001', 'FACT-0001'], detail={'falsifier': 'a caller'}),
+    return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001', 'FACT-0001'], detail={'falsifier': 'a caller', 'harmed': 'the app users'}),
                                          decision('TASK-002', 'reject', ['TASK-002'], detail={'falsifier': 'no caller'}),
                                          decision('TASK-003', 'doubt', ['FACT-invented'], detail={'falsifier': '?'})]}
 

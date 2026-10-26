@@ -21,7 +21,7 @@ RESOLUTIONS = ('fix', 'keep', 'owner')
 _TEXT = {'type': ['string', 'null']}
 DETAIL = {'type': 'object', 'additionalProperties': False,
           'required': ['falsifier', 'resolution', 'change', 'question', 'options', 'recommendation'],
-          'properties': {'falsifier': {'type': 'string'}, 'resolution': {'type': ['string', 'null'], 'enum': [*RESOLUTIONS, None]},
+          'properties': {'falsifier': {'type': 'string'}, 'harmed': _TEXT, 'boundary': _TEXT, 'resolution': {'type': ['string', 'null'], 'enum': [*RESOLUTIONS, None]},
                          'change': _TEXT, 'question': _TEXT, 'options': {'type': 'array', 'items': {'type': 'string'}},
                          'recommendation': _TEXT}}
 TASK = '''GOAL
@@ -42,6 +42,12 @@ it neither shows nor contradicts it (the card is kept as not proven, and the nex
 contradicts it (a false alarm: the card is set aside and its rule is told). `why`: one or two plain sentences naming what
 in the evidence decided it. `detail.falsifier`: the observation that would show your decision wrong. `evidence`: the
 card id and the fact ids you relied on.
+
+A confirm is strict (M7.4): `detail.harmed` names who the problem hurts and how, in a few plain words (the app's users,
+whose data leaks; the person's team, who cannot change the code safely; the business, which pays for a slow page), and
+`evidence` cites the facts that show it, not the card alone; `detail.boundary` names the boundary the card
+breaks when it is one (the browser and the server, an endpoint and its guard, the data and its rules, the layers),
+else null. A confirm that cannot name who is harmed is a doubt.
 
 For a card you confirm, also decide what happens to it, in `detail.resolution`, the way the project is already going:
 "fix" when the change is clear and yours to make: `detail.change` is the change in one plain line (the card becomes work
@@ -211,10 +217,13 @@ def prompt(data):
 
 
 def check(data, decision):
-    """A verdict must stand on the card's own evidence: the card itself or one of its facts."""
+    """A verdict must stand on the card's own evidence: the card itself or one of its facts. A confirm is strict (M7.4):
+    one that names no one harmed is kept as a doubt."""
     card = next(c for c in data['cards'] if c['id'] == decision['subject'])
-    own = {card['id']} | {e['id'] for e in card['evidence']}
-    return None if own & set(decision['evidence']) else "none of its evidence is this card's"
+    if not ({card['id']} | {e['id'] for e in card['evidence']}) & set(decision['evidence']): return "none of its evidence is this card's"
+    if decision['decision'] == 'confirm' and not str((decision.get('detail') or {}).get('harmed') or '').strip():
+        decision.update(decision='doubt', demoted='a confirm that names no one harmed')      # its words stay the person's
+    return None
 
 
 def finish(report, record, data):
@@ -240,6 +249,7 @@ def _verdicts(record, cards):
     return [{'card': d['subject'], 'decision': route[d['subject']], 'kind': cards[d['subject']]['kind'],
              'severity': cards[d['subject']]['severity'], 'confidence': d['confidence'], 'why': d['why'],
              'evidence': d['evidence'], 'source': d['source'], 'rejudged': 'first_doubt' in (d.get('detail') or {}),
+             **{k: (d.get('detail') or {})[k] for k in ('harmed', 'boundary') if (d.get('detail') or {}).get(k)},
              **resolution(route[d['subject']], d.get('detail') or {})}
             for d in record['decisions']]
 

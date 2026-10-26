@@ -36,6 +36,7 @@ QUERY_PATTERNS = {
     'vulnerable_dependency_present': 'upgrade_dependency',
     'weakness_present': 'security_weakness',
     'boundary_finding_present': 'layer_boundary',
+    'repository_finding_present': 'repository_craft',
 }
 
 
@@ -239,6 +240,14 @@ PATTERNS = {
         ],
         'rollback': 'revert واحد يعيد الموضع كما كان.',
     },
+    'repository_craft': {
+        'change': 'رتّب الموضع كما تقول الملاحظة (مجلد حسب الوظيفة، اسم يقول وش فيه، مسار صحيح، ملف كونتكست أخف)، كدفعة نقل خاصة خلف قفل السلوك؛ ثم أعد قراءة الريبو.',
+        'options': [
+            {'option': 'الترتيب كدفعة لحالها يثبت إن ولا سلوك تغيّر', 'cost': 'منخفضة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'إبقاؤه مع سبب مكتوب حين يكون عُرفًا للمشروع', 'cost': 'صفر', 'verdict': 'حين يثبته الكود أو المالك'},
+        ],
+        'rollback': 'revert واحد يعيد الملفات كما كانت.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -253,7 +262,7 @@ def pattern_for(claim):
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
     render = claim.get('render') or {}
-    if render.get('key') == 'layer_finding':        # the reference's own fix for the boundary it breaks (M6.11)
+    if render.get('key') in ('layer_finding', 'repository_finding'):        # the finding's own fix (M6.11, M7.8)
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)
@@ -298,5 +307,6 @@ def cost_of_inaction(name):
         'remove_dead': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'security_weakness': 'يبقى باب مفتوح لمن يرسل مدخلًا مصممًا أو يجد السر، ولا يظهر أثره إلا بعد الاستغلال',
         'layer_boundary': 'يبقى الحد مفتوحًا: سرّ أو بيانات أو قاعدة يصل إليها من لا يملكها',
+        'repository_craft': 'يبقى الوصول لأي شي في الريبو أبطأ وأصعب على كل مهندس ومساعد، وتكلّف كل جلسة توكنز أكثر',
         'generic': '⧗ غير محددة',
     }[name]

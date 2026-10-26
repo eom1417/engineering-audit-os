@@ -25,7 +25,7 @@ function milestone(s, next) {
       <span class="row__main"><span class="row__title">${rich(L(s.title))}</span>
       <span class="row__meta" style="display:block">${esc(t('bp.cards', { done: num(done), n: tn('bp.card', s.tasks.length) }))}${s.branch ? ` ${code(s.branch)}` : ''}</span></span>
       ${tag(s.state)}${s.id === next ? `<span class="tag tag--you">${t('un.plan.nexttag')}</span>` : ''}${icon('chev', 'chev')}</summary>
-    <div class="fold__body rows">${s.tasks.map(card).join('')}</div></details>`;
+    <div class="fold__body rows">${(s.unproven || []).length ? `<div class="banner banner--caution"><strong>${t('bp.unproven')}</strong><ul>${s.unproven.map(u => `<li>${rich(u)}</li>`).join('')}</ul></div>` : ''}${s.tasks.map(card).join('')}</div></details>`;
 }
 
 export function buildPage(plan) {

@@ -1,6 +1,7 @@
 """A project built from its plan, in the Studio (docs/BUILD-FROM-PLAN.md): its milestones and build cards as the plan of
 kind `build`, the spec's open questions in the inbox (answered by build_tools.answered), and the build's own
 verdict and next step on the Status page, from what build_tools.studio_build read of the blueprint folder."""
+from collections import defaultdict
 from ..blueprint import design as blueprint
 
 
@@ -24,7 +25,8 @@ def _step(milestone, by_id, states, branches, lang):
     seen = {t['state'] for t in tasks}
     state = 'done' if seen <= {'done', 'blocked'} else 'active' if seen & {'active', 'done', 'blocked'} else 'todo'
     return {'id': milestone['id'], 'title': milestone.get(_in(lang, 'name_ar', 'name')) or milestone['name'], 'state': state,
-            'weight': len(tasks), 'gate': milestone.get('exit'), 'branch': branches.get(milestone['id']), 'tasks': tasks}
+            'weight': len(tasks), 'gate': milestone.get('exit'), 'branch': branches[milestone['id']][0],
+            'unproven': branches[milestone['id']][1], 'tasks': tasks}
 
 
 def _task(card, state):
@@ -33,12 +35,17 @@ def _task(card, state):
             'paths': card.get('paths') or [], 'tests': card.get('tests') or [], 'depends_on': card.get('depends_on') or []}
 
 
+def _branches(build):
+    """{milestone: (its branch, what stays unproven)} of the milestones handed over."""
+    return defaultdict(lambda: (None, []), {r['milestone']: (r.get('branch'), r.get('unproven') or []) for r in build['built']})
+
+
 def plan(build, lang):
     """The plan of kind `build` (plans.json): one step per milestone, its cards with their acceptance and state."""
     if not build or not build['plan']: return None
     by_id = {c['id']: c for c in build['plan']['tasks']}
-    states, branches = _card_states(build), {r['milestone']: r.get('branch') for r in build['built']}
-    steps = [_step(m, by_id, states, branches, lang) for m in build['plan']['milestones']]
+    states = _card_states(build)
+    steps = [_step(m, by_id, states, _branches(build), lang) for m in build['plan']['milestones']]
     done = sum(states.get(c) == 'done' for c in by_id)
     state, waiting = _plan_state(build, steps)
     return {'id': 'build', 'title': _in(lang, 'خطة البناء', 'Build plan'), 'kind': 'build', 'parent': None, 'state': state,

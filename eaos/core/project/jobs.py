@@ -62,8 +62,9 @@ def read(job, project):
     if not path.is_file(): raise ValueError(f'no job named {job!r} in this project')
     record = json.loads(path.read_text(encoding='utf-8'))
     if record['status'] == 'running' and not _alive(record.get('pid')):
-        record.update(status='failed', error='the job stopped before it finished (the computer slept or the process was killed); start it again',
-                      ended=_now())
+        record.update(status='failed', ended=_now(), error='the job stopped before it finished (the computer slept or the process was '
+                      'killed); start it again' + (': the batch keeps every change it kept, and fix_finish goes on from them'
+                                                   if record.get('kind') == 'fix_finish' else ''))
         _write(record)
     return record
 
@@ -136,15 +137,30 @@ def start(kind, project, arguments, runner='eaos.journeys.agent_tools'):
     record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project), 'arguments': arguments, 'status': 'running',
               'progress': None, 'result': None, 'error': None, 'log': str(log), 'started': _now(), 'ended': None, 'pid': None}
     _write(record)
-    with log.open('w', encoding='utf-8') as out:
-        process = subprocess.Popen([sys.executable, '-m', 'eaos.core.project.jobs', job, str(project)], stdout=out, stderr=subprocess.STDOUT,
-                                   stdin=subprocess.DEVNULL, start_new_session=True,
-                                   env={**os.environ, 'PYTHONUNBUFFERED': '1', 'EAOS_ENGINE_CACHE': str(cache(project))})
+    pid = _launch(job, project, log)
     record = json.loads(_path(job, project).read_text(encoding='utf-8'))
-    record['pid'] = process.pid
+    record['pid'] = pid
     _write(record)
     _prune(project)
     return job
+
+
+def _launch(job, project, log):
+    """The job's process: a systemd service of the computer where its Studios are (launch.durable: a remote server ends
+    an assistant's session with everything it started, a batch's hand-over among it), else a process in a session of
+    its own. Its pid."""
+    from ..system import launch
+    argv = [sys.executable, '-m', 'eaos.core.project.jobs', job, str(project)]
+    env = {**os.environ, 'PYTHONUNBUFFERED': '1', 'EAOS_ENGINE_CACHE': str(cache(project))}
+    log.write_text('', encoding='utf-8')
+    unit = 'eaos-job-' + job
+    if launch.durable() and launch.as_unit(unit, argv, env, {'description': f'EAOS {job}', 'log': log, 'cwd': folder(project)}):
+        for _ in range(50):          # None: it ended already, its record says how
+            if (pid := launch.unit_pid(unit)) or _path(job, project).read_text(encoding='utf-8').find('"running"') < 0: return pid
+            time.sleep(0.1)
+        return None
+    with log.open('w', encoding='utf-8') as out:
+        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, env=env).pid
 
 
 def wait(job, seconds, project):

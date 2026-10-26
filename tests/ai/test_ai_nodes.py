@@ -78,7 +78,8 @@ def _fill(schema):
     kind = next((k for k in kind if k != 'null'), 'null') if isinstance(kind, list) else kind
     if 'enum' in schema: return schema['enum'][0]
     if 'oneOf' in schema: return _fill(next(s for s in schema['oneOf'] if s.get('type') != 'null'))
-    if kind == 'object': return {name: _fill(sub) for name, sub in (schema.get('properties') or {}).items()}
+    if kind == 'object':        # a confirm names who is harmed (the card triage, M7.4)
+        return {name: 'the app users' if name == 'harmed' else _fill(sub) for name, sub in (schema.get('properties') or {}).items()}
     if kind == 'array':
         items = schema.get('items') or {}
         subject = (items.get('properties') or {}).get('subject') or {}
@@ -155,7 +156,7 @@ class Language(Base):
         english = 'The card is a false alarm because the file is generated'
         def make(name, schema):
             why = 'البطاقة إنذار كاذب لأن الملف مولّد' if name.endswith('-language') else english
-            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], why=why)]}
+            return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], why=why, detail={'harmed': 'the app users'})]}
         ask = Answer(make)
         record = nodes.run(self.report, names=['card_triage'], launcher=ask, lang='ar', fresh=True)['card_triage']
         self.assertEqual([name for name, _ in ask.calls if name.endswith('-language')], [f"{ask.calls[0][0]}-language"])
@@ -211,7 +212,7 @@ class Framework(Base):
         record = self.triage(Answer(lambda n, s: {'decisions': 'nope'}))
         self.assertEqual((record['state'], record['method']), ('failed', 'rules'))
         self.assertIn('could not be used', record['why'])
-        record = self.triage(Answer(lambda name, schema: {'summary': 's', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'])]}),
+        record = self.triage(Answer(lambda name, schema: {'summary': 's', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'})]}),
                              fresh=True)
         by = {d['subject']: d for d in record['decisions']}
         self.assertEqual((by['TASK-001']['source'], by['TASK-002']['source']), ('model', 'rules'))
@@ -285,7 +286,7 @@ class Triage(Base):
         record = self.triage(Answer(lambda n, s: {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['FACT-0002'])]}))
         self.assertEqual(record['dropped'][0]['why'], "none of its evidence is this card's")
         launcher = Answer(lambda n, s: {'summary': '', 'decisions': [
-            decision('TASK-001', 'confirm', ['TASK-001', 'FACT-0001']),
+            decision('TASK-001', 'confirm', ['TASK-001', 'FACT-0001'], detail={'harmed': 'the app users'}),
             decision('TASK-002', 'doubt', ['FACT-0002'], detail={'falsifier': 'a caller of b'}),
             decision('TASK-003', 'reject', ['TASK-003'])]})
         cards = (self.report / 'studio/cards.json').read_bytes()
@@ -299,9 +300,20 @@ class Triage(Base):
         self.assertEqual(probes[0]['specification']['falsifier'], 'a caller of b')
         self.assertEqual([r['card'] for r in json.loads((folder / 'library-feedback.json').read_text(encoding='utf-8'))['rejected']], ['TASK-003'])
 
+    def test_a_confirm_that_names_no_one_harmed_is_kept_as_a_doubt_and_the_harmed_party_is_kept(self):
+        # M7.4, the strict judge: a confirm on the card's title alone ("plausible") reached the plan as a true problem
+        record = self.triage(Answer(lambda n, s: {'summary': '', 'decisions': [
+            decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': '', 'falsifier': 'x'}, why='looks right'),
+            decision('TASK-002', 'confirm', ['TASK-002'], detail={'harmed': 'the app users: any of them reads others\' orders',
+                                                                  'boundary': 'an endpoint and its guard', 'falsifier': 'y'})]}))
+        verdicts = {v['card']: v for v in json.loads((self.report / 'nodes/card_triage/verdicts.json').read_text())['verdicts']}
+        self.assertEqual((verdicts['TASK-001']['decision'], verdicts['TASK-001']['why']), ('doubt', 'looks right'))
+        self.assertEqual((verdicts['TASK-002']['decision'], verdicts['TASK-002']['boundary']), ('confirm', 'an endpoint and its guard'))
+        self.assertIn('reads others', verdicts['TASK-002']['harmed'])
+
     def test_a_confirmed_card_carries_what_the_assistant_decided_for_it(self):
         # The self-audit: the triage confirmed 203 cards and every one still waited for the owner's decision.
-        detail = lambda **d: {'falsifier': 'x', 'resolution': None, 'change': None, 'question': None, 'options': [], 'recommendation': None, **d}
+        detail = lambda **d: {'falsifier': 'x', 'harmed': 'the app users', 'resolution': None, 'change': None, 'question': None, 'options': [], 'recommendation': None, **d}
         launcher = Answer(lambda n, s: {'summary': '', 'decisions': [
             decision('TASK-001', 'confirm', ['TASK-001'], detail=detail(resolution='fix', change='Delete dead() and its export')),
             decision('TASK-002', 'confirm', ['TASK-002'], detail=detail(resolution='owner', question='Keep b for the mobile app?',
@@ -333,7 +345,7 @@ class Triage(Base):
         def answer(name, schema):
             asked.append(name)
             choice = 'doubt' if len(asked) == 1 else 'confirm'
-            return {'summary': '', 'decisions': [decision('TASK-001', choice, ['TASK-001', 'FACT-14'], detail={'falsifier': 'x'}),
+            return {'summary': '', 'decisions': [decision('TASK-001', choice, ['TASK-001', 'FACT-14'], detail={'falsifier': 'x', 'harmed': 'the app users'}),
                                                  decision('TASK-002', 'doubt', ['TASK-002'], detail={'falsifier': 'y'})]}
         launcher = Answer(answer)
         self.triage(launcher, fresh=True)
@@ -479,7 +491,7 @@ class Studio(Base):
         body = view.section(self.report, 'ar')
         self.assertEqual(artifact_contracts.validate(wrap(body), contract), [])
         self.assertEqual({n['state'] for n in body['nodes']}, {'not_run'})
-        ask = Answer(lambda n, s: {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], open_questions=[
+        ask = Answer(lambda n, s: {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001'], detail={'harmed': 'the app users'}, open_questions=[
             {'id': 'q1', 'question': 'Is the file generated?', 'options': ['yes', 'no'], 'recommendation': None}])]})
         nodes.run(self.report, names=['card_triage'], launcher=ask)
         body = view.section(self.report, 'ar')

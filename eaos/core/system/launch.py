@@ -114,23 +114,41 @@ def service_name(state):
 def _as_service(state, argv, env, log):
     """The server as a transient systemd service of its own; False when systemd refused it. Its environment is the
     asker's, passed by name only (no value on a command line); a unit still starting is waited for, not doubled."""
-    unit, user = service_name(state), ([] if os.geteuid() == 0 else ['--user'])
-    systemctl = lambda *words: subprocess.run(['systemctl', *user, *words, unit], capture_output=True, text=True)
-    if systemctl('is-active').stdout.strip() in ('active', 'activating', 'reloading'): return True
-    systemctl('reset-failed')
+    unit = service_name(state)
+    if _systemctl('is-active', unit).stdout.strip() in ('active', 'activating', 'reloading'): return True
+    _systemctl('reset-failed', unit)
+    return as_unit(unit, argv, env, {'description': f"EAOS Studio of {Path(state['project']).name}", 'log': log,
+                                     'cwd': state['workspace'], 'extra': ['--property=Restart=on-failure', '--property=RestartSec=2s']})
+
+
+def _systemctl(*words):
+    return subprocess.run(['systemctl', *([] if os.geteuid() == 0 else ['--user']), *words], capture_output=True, text=True)
+
+
+def as_unit(unit, argv, env, where):
+    """`argv` as a transient systemd service `unit` of this computer, so the session of the assistant that asked for it
+    (which a remote server ends with the session) cannot take it down; True when systemd took it. Its environment is
+    the asker's, passed by name only (no value on a command line); `where`: its description, the `log` its output is
+    appended to, its `cwd`, and `extra` properties."""
+    description, log, cwd, extra = where['description'], where['log'], where['cwd'], where.get('extra') or ()
     names = sorted(name for name in env if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) and name not in SHELL_ONLY)
-    done = subprocess.run(['systemd-run', *user, f'--unit={unit}', f"--description=EAOS Studio of {Path(state['project']).name}",
-                           '--collect', '--service-type=exec', f"--working-directory={state['workspace']}",
-                           '--property=Restart=on-failure', '--property=RestartSec=2s',
+    done = subprocess.run(['systemd-run', *([] if os.geteuid() == 0 else ['--user']), f'--unit={unit}', f'--description={description}',
+                           '--collect', '--service-type=exec', f'--working-directory={cwd}', *extra,
                            f'--property=StandardOutput=append:{log}', f'--property=StandardError=append:{log}',
                            *(f'--setenv={name}' for name in names), *argv], env=env, capture_output=True, text=True)
     return done.returncode == 0
 
 
+def unit_pid(unit):
+    """The main process of a running unit, or None."""
+    pid = _systemctl('show', '--property=MainPID', '--value', unit).stdout.strip()
+    return int(pid) if pid.isdigit() and int(pid) else None
+
+
 
 def _retire(state, record):
     """Stop a Studio of another EAOS version: its service, which would otherwise come back, else its process."""
-    if durable(): subprocess.run(['systemctl', *([] if os.geteuid() == 0 else ['--user']), 'stop', service_name(state)], capture_output=True)
+    if durable(): _systemctl('stop', service_name(state))
     stop(record)
 
 
