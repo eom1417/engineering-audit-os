@@ -3,6 +3,7 @@ made through their gates on an isolated copy, and an assistant asked the same te
 after, scored right or wrong, with the files it read and the tokens it spent.
 
     python tools/tidy_proof.py [name ...] [--scratch DIR] [--model MODEL] [--no-ask] [--out FILE]
+    python tools/tidy_proof.py --unproven --scratch DIR    the moves no gate could prove, made on the export, asked again
 
 Each app (tools/corpus.json) is fetched at its pinned commit into DIR (default $EAOS_CORPUS/tidy), checked
 (`eaos check --path look --run-app --assistant none`: its run set up, its screens recorded), then:
@@ -218,16 +219,38 @@ def expected(paths, mapping):
 
 
 def score(name, trees, mapping, model, folder):
+    """[{question, <when>: the answer scored}] for each tree of `trees` ({when: folder})."""
     rows = []
     for number, (question, paths) in enumerate(QUESTIONS[name], 1):
         row = {'question': question}
-        for when in ('before', 'after'):
+        for when in trees:
             want = expected(paths, mapping) if when == 'after' else paths
             got = ask(question, trees[when], model, folder / f'ask-{when}-{number}.jsonl')
             row[when] = {**got, 'expected': want, 'right': any(p in got['paths'] for p in want)}
             print(f"  {name} Q{number} {when}: {'right' if row[when]['right'] else 'WRONG'} read={got['files_read']} tokens={got['tokens']}", flush=True)
         rows.append(row)
     return rows
+
+
+def unproven(scratch, model):
+    """The moves a gate could not prove (a project with no test it can run), made anyway on the clean export of
+    `before`, for the question score only: what the layout alone changes for a reader. Never handed over."""
+    from eaos.analysis.repair import moves
+    results = json.loads((scratch / 'tidy-proof.json').read_text(encoding='utf-8'))
+    for name, done in results.items():
+        made = done['moves']['made']
+        if done['moves']['merged'] or not made or not done.get('questions'): continue
+        tree = scratch / name / 'after-unproven'
+        shutil.rmtree(tree, ignore_errors=True)
+        shutil.copytree(scratch / name / 'before', tree)
+        for argv in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'before']): git(tree, *argv)
+        moves.apply(tree, made)
+        shutil.rmtree(tree / '.git')
+        mapping = {m['from']: m['to'] for m in made}
+        for row, again in zip(done['questions'], score(name, {'unproven': tree}, mapping, model, scratch / name)):
+            row['unproven'] = again['unproven']
+        (scratch / 'tidy-proof-unproven.json').write_text(json.dumps(results, indent=1, default=str) + '\n', encoding='utf-8')
+    return results
 
 
 # ---------------------------------------------------------------- the table
@@ -255,32 +278,43 @@ def table(results, model):
     return '\n'.join(lines) + f'\n\nAssistant: Claude Code CLI, model `{model}`, Read/Grep/Glob only, one fresh session per question.\n'
 
 
-def main(argv):
-    names = [a for a in argv if not a.startswith('--')] or list(QUESTIONS)
+def prove(app, folder, model, asking=True):
+    """One app checked, both batches made through their gates, and its questions asked before and after."""
+    shutil.rmtree(folder, ignore_errors=True)
+    folder.mkdir()
+    os.environ.update(EAOS_HOME=str(folder / 'home'), EAOS_OUTPUT=str(folder / 'output'))
+    began = time.monotonic()
+    state = check(app, folder)
+    made = batches(state)
+    print(f"{app['name']}: moves {made['moves']['proposed']} proposed, {len(made['moves']['made'])} made, merged={made['moves']['merged']} "
+          f"{made['moves']['refused']}; context merged={made['context']['merged']} {made['context']['refused']}", flush=True)
+    result = {'stack': app['stack'], **made}
+    if asking: result['questions'] = score(app['name'], exports(folder, state, made), made['moves']['mapping'], model, folder)
+    return {**result, 'seconds': round(time.monotonic() - began)}
+
+
+def options(argv):
+    """(names, scratch, model, out) of the command line."""
     option = lambda flag, default: argv[argv.index(flag) + 1] if flag in argv else default  # noqa: E731
-    scratch, model = Path(option('--scratch', CORPUS / 'tidy')), option('--model', 'sonnet')
-    names = [n for n in names if n not in (option('--scratch', ''), option('--model', ''), option('--out', ''))]
-    catalog = {app['name']: app for app in json.loads(corpus.CATALOG.read_text(encoding='utf-8'))['apps']}
+    scratch, model, out = Path(option('--scratch', CORPUS / 'tidy')), option('--model', 'sonnet'), option('--out', '')
+    return [a for a in argv if not a.startswith('--') and a not in (str(scratch), model, out)] or list(QUESTIONS), scratch, model, out
+
+
+def main(argv):
+    names, scratch, model, out = options(argv)
     scratch.mkdir(parents=True, exist_ok=True)
+    if '--unproven' in argv:
+        asked = {n: d['questions'] for n, d in unproven(scratch, model).items() if 'unproven' in (d.get('questions') or [{}])[0]}
+        print(json.dumps({n: totals(rows, 'unproven') for n, rows in asked.items()}))
+        return 0
+    catalog = {app['name']: app for app in json.loads(corpus.CATALOG.read_text(encoding='utf-8'))['apps']}
     results = {}
     for name in names:
-        folder = scratch / name
-        shutil.rmtree(folder, ignore_errors=True)
-        folder.mkdir()
-        os.environ.update(EAOS_HOME=str(folder / 'home'), EAOS_OUTPUT=str(folder / 'output'))
-        began = time.monotonic()
-        state = check(catalog[name], folder)
-        made = batches(state)
-        print(f"{name}: moves {made['moves']['proposed']} proposed, {len(made['moves']['made'])} made, merged={made['moves']['merged']} "
-              f"{made['moves']['refused']}; context merged={made['context']['merged']} {made['context']['refused']}", flush=True)
-        results[name] = {'stack': catalog[name]['stack'], **made}
-        if '--no-ask' not in argv:
-            results[name]['questions'] = score(name, exports(folder, state, made), made['moves']['mapping'], model, folder)
-        results[name]['seconds'] = round(time.monotonic() - began)
+        results[name] = prove(catalog[name], scratch / name, model, '--no-ask' not in argv)
         (scratch / 'tidy-proof.json').write_text(json.dumps(results, indent=1, default=str) + '\n', encoding='utf-8')
     text = table(results, model)
     print(text)
-    if '--out' in argv: Path(option('--out', '')).write_text(text, encoding='utf-8')
+    if out: Path(out).write_text(text, encoding='utf-8')
     return 0
 
 
