@@ -361,6 +361,19 @@ class JobTests(Home):
             self.assertEqual(jobs.run(job, project), 1)
         self.assertIn('KeyboardInterrupt', jobs.read(job, project)['error'])
 
+    def test_where_studios_are_services_a_job_is_one_too_so_the_assistant_s_session_cannot_end_it(self):
+        # M7.1: a remote server ends an assistant's session with everything it started, a batch's hand-over among it
+        from eaos.core.system import launch
+        with mock.patch.object(launch, 'durable', return_value=True), \
+                mock.patch.object(launch, 'as_unit', return_value=True) as unit, mock.patch.object(launch, 'unit_pid', return_value=4321):
+            job = jobs.start('fix_finish', str(self.project), {})
+        self.assertEqual(unit.call_args.args[0], f'eaos-job-{job}')
+        self.assertEqual(json.loads((jobs.folder(str(self.project)) / f'{job}.json').read_text())['pid'], 4321)
+        jobs.subprocess.Popen.assert_not_called()
+        record = {**json.loads((jobs.folder(str(self.project)) / f'{job}.json').read_text()), 'pid': 2 ** 22 + 12345}
+        (jobs.folder(str(self.project)) / f'{job}.json').write_text(json.dumps(record))
+        self.assertIn('fix_finish goes on from them', jobs.read(job, str(self.project))['error'])
+
     def test_a_project_reads_only_its_own_jobs_and_keeps_only_its_last_ones(self):
         other = Path(self.tmp.name) / 'other'
         other.mkdir()
