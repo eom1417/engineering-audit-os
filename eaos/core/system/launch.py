@@ -117,18 +117,20 @@ def _as_service(state, argv, env, log):
     unit = service_name(state)
     if _systemctl('is-active', unit).stdout.strip() in ('active', 'activating', 'reloading'): return True
     _systemctl('reset-failed', unit)
-    return as_unit(unit, f"EAOS Studio of {Path(state['project']).name}", argv, env, log, state['workspace'],
-                   ['--property=Restart=on-failure', '--property=RestartSec=2s'])
+    return as_unit(unit, argv, env, {'description': f"EAOS Studio of {Path(state['project']).name}", 'log': log,
+                                     'cwd': state['workspace'], 'extra': ['--property=Restart=on-failure', '--property=RestartSec=2s']})
 
 
 def _systemctl(*words):
     return subprocess.run(['systemctl', *([] if os.geteuid() == 0 else ['--user']), *words], capture_output=True, text=True)
 
 
-def as_unit(unit, description, argv, env, log, cwd, extra=()):
+def as_unit(unit, argv, env, where):
     """`argv` as a transient systemd service `unit` of this computer, so the session of the assistant that asked for it
     (which a remote server ends with the session) cannot take it down; True when systemd took it. Its environment is
-    the asker's, passed by name only (no value on a command line); its output appended to `log`."""
+    the asker's, passed by name only (no value on a command line); `where`: its description, the `log` its output is
+    appended to, its `cwd`, and `extra` properties."""
+    description, log, cwd, extra = where['description'], where['log'], where['cwd'], where.get('extra') or ()
     names = sorted(name for name in env if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) and name not in SHELL_ONLY)
     done = subprocess.run(['systemd-run', *([] if os.geteuid() == 0 else ['--user']), f'--unit={unit}', f'--description={description}',
                            '--collect', '--service-type=exec', f'--working-directory={cwd}', *extra,

@@ -154,7 +154,7 @@ def _launch(job, project, log):
     env = {**os.environ, 'PYTHONUNBUFFERED': '1', 'EAOS_ENGINE_CACHE': str(cache(project))}
     log.write_text('', encoding='utf-8')
     unit = 'eaos-job-' + job
-    if launch.durable() and launch.as_unit(unit, f'EAOS {job}', argv, env, log, folder(project)):
+    if launch.durable() and launch.as_unit(unit, argv, env, {'description': f'EAOS {job}', 'log': log, 'cwd': folder(project)}):
         for _ in range(50):          # None: it ended already, its record says how
             if (pid := launch.unit_pid(unit)) or _path(job, project).read_text(encoding='utf-8').find('"running"') < 0: return pid
             time.sleep(0.1)

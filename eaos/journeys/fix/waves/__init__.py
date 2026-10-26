@@ -197,6 +197,7 @@ def finish_batch(report, target, runtime, wave, **options):
     progress.begin('acceptance')
     if kept: kept = _accepted(batch, cards, kept, failed, list(options.get('repairs') or ()))
     else: progress.skip('acceptance', 'no change was kept to check', 'nothing_kept')
+    kept = _secure(batch, kept, failed, list(options.get('repairs') or ()))
     if kept:                                    # the files the build makes, rebuilt from the batch's source
         say('regenerate')
         regenerate(batch['root'])
@@ -216,6 +217,33 @@ def _accepted(batch, cards, kept, failed, repairs):
     _rebuilt_without(batch, kept, failed, repairs)
     _acceptance_steps(kept, failed, exits)
     return {c: s for c, s in kept.items() if c not in failed}
+
+
+BATCH_ENGINES = ('semgrep',)   # the security engine too slow for every change (GATE_ENGINES), run once on the batch
+
+
+def _secure(batch, kept, failed, repairs):
+    """The kept cards once the slower security engine read all of them together (M7.5): a card whose change brings in a
+    finding of it the check had not, in a file it changed, is left out; batch['security'] says what ran and what it found."""
+    from ....facts.run import collect
+    from ....analysis.assessments.weaknesses import new
+    if not kept: return kept
+    batch['say']('security')
+    changed = {c: set(git(batch['root'], 'show', '--name-only', '--format=', sha).stdout.split()) for c, sha in kept.items()}
+    with tempfile.TemporaryDirectory(prefix='eaos-batch-security-') as out:
+        collect(batch['root'].resolve(), out, engines=list(BATCH_ENGINES))
+        brought = new(batch['report'], out, set().union(*changed.values()))
+    _blamed(changed, brought, failed)
+    batch['security'] = {'engines': list(BATCH_ENGINES), 'brought': [list(row) for row in brought]}
+    if any(c in failed for c in kept): _rebuilt_without(batch, kept, failed, repairs)
+    return {c: s for c, s in kept.items() if c not in failed}
+
+
+def _blamed(changed, brought, failed):
+    """Each card whose changed files hold a finding the batch brought in, failed with it."""
+    for card_id, paths in changed.items():
+        mine = [f'{rule} ({engine}) in {path}' for engine, rule, path in brought if path in paths]
+        if mine: failed[card_id] = 'it brings a security finding in: ' + '; '.join(mine)[:300]
 
 
 def _rebuilt_without(batch, kept, failed, repairs):
@@ -331,7 +359,7 @@ def _write_wave(batch, wave, kept, failed):
     if kept: git(root, 'format-patch', '--quiet', '-o', str(patches), f'{base}..HEAD')
     summary = {'wave': number, 'branch': branch or f'eaos/wave-{number}', 'root': str(root), 'base': base, 'kept': list(kept),
                'failed': failed, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip()}
+               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip(), **({'security': batch['security']} if batch.get('security') else {})}
     (patches / 'wave.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return summary
 

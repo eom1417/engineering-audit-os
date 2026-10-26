@@ -11,6 +11,7 @@ from pathlib import Path
 from ...core import progress
 
 SCREENSHOT = re.compile(r'toHaveScreenshot.*?Snapshot: ([\w.-]+)\.png', re.S)
+WORDS = re.compile(r'([\w.-]+)\.text\.txt')      # a screen's words differ (specs.py): a design card may change them too
 ANSI = re.compile(r'\x1b\[[0-9;]*m')
 FAILED_STATUSES = ('failed', 'timedOut', 'interrupted')
 
@@ -40,7 +41,8 @@ def _failed_titles(path):
 def _declared(status, message, declared):
     """A test failed only because its screen looks different, on a screen the batch's design cards say they change
     (`declared` snapshot names, eaos/journeys/fix/waves/ declared_screens): their change, not a breakage."""
-    found = SCREENSHOT.search(ANSI.sub('', message or '')) if status == 'failed' else None
+    said = ANSI.sub('', message or '')
+    found = (SCREENSHOT.search(said) or WORDS.search(said)) if status == 'failed' else None
     return 'passed' if found and ('*' in declared or found.group(1) in declared) else status
 
 

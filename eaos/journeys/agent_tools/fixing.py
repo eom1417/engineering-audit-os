@@ -10,6 +10,7 @@ from ...core.project import branches, jobs, state as project_state
 from ..fix.branch import commit_of, direct_target, merge_target
 from ...core.project.state import waiting_batch
 from ...live.app import setup as live_setup
+from .edits import _apply, _inside
 from .evidence import _ready
 from .project import WAIT, _head, _now, _read, _report, _start, state_of
 from .running import CONSENT, _consented
@@ -246,13 +247,6 @@ def _automatic_fixes(wave, cards, root, report, progress):
             wave['failed'][card_id] = f'{type(problem).__name__}: {problem}'[:300]
 
 
-def _inside(root, relative):
-    path = (Path(root) / relative).resolve()
-    if Path(root).resolve() not in path.parents or '.git' in path.relative_to(Path(root).resolve()).parts:
-        raise ValueError(f'{relative}: not a file of the project')
-    return path
-
-
 def fix_read(path, project=None, start=1, end=None):
     state = state_of(project)
     root = _open(state)['root']
@@ -265,66 +259,6 @@ def fix_read(path, project=None, start=1, end=None):
     end = min(int(end or len(lines)), len(lines), start + 1999)
     return {'path': path, 'lines': len(lines), 'from_line': start, 'to_line': end,
             'text': '\n'.join(f'{n:>5}  {lines[n - 1]}' for n in range(start, end + 1))}
-
-
-def _kept(path):
-    """A file's text with its own line ends: read as text, a Windows file came back with \\n, and the edit wrote every
-    line of it back changed."""
-    with path.open(encoding='utf-8', newline='') as file: return file.read()
-
-
-def _line_ends(text, find, replace):
-    """`find` and `replace` with the file's own line ends: fix_read shows a Windows file's lines without their \\r, and
-    the text an assistant copies from them has none."""
-    if '\r\n' in text and '\r\n' not in find and find.replace('\n', '\r\n') in text:
-        return find.replace('\n', '\r\n'), replace.replace('\r\n', '\n').replace('\n', '\r\n')
-    return find, replace
-
-
-def _not_once(relative, times):
-    """Why an edit was refused, and what to do: read the lines again, they are not what the edit remembers."""
-    if not times:
-        return (f'{relative}: the text to find is not in the file as it is now: read those lines again with fix_read (an '
-                'earlier edit, or a change taken back, may have changed them) and copy `find` from them, without the line numbers')
-    return f'{relative}: the text to find occurs {times} times, not once: take more lines around it so it is found once'
-
-
-def _apply(root, edits):
-    """Each edit: {path, find, replace} (find occurs exactly once), {path, content} (the whole file, new or not),
-    or {path, delete: true}. All or nothing."""
-    staged = {}
-    for edit in edits:
-        path = _inside(root, edit.get('path') or '')
-        staged[edit['path']] = _edited(edit, path, staged)
-    for relative, text in staged.items():
-        path = _inside(root, relative)
-        if text is None:
-            if path.is_file(): path.unlink()
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open('w', encoding='utf-8', newline='') as out: out.write(text)
-    return sorted(staged)
-
-
-def _edited(edit, path, staged):
-    """What one edit leaves of its file: None (deleted), its new content, or its text so far with `find` replaced once."""
-    relative = edit['path']
-    if edit.get('delete'): return None
-    if 'content' in edit:
-        if not isinstance(edit['content'], str): raise ValueError(f'{relative}: content must be text')
-        return edit['content']
-    text = staged.get(relative) if relative in staged else (_kept(path) if path.is_file() else None)
-    if text is None: raise ValueError(f'{relative}: does not exist; send its whole content instead')
-    return _replaced(relative, text, edit.get('find'), edit.get('replace'))
-
-
-def _replaced(relative, text, find, replace):
-    """`text` with `find` replaced by `replace`, once: ValueError unless `find` occurs exactly once."""
-    if not isinstance(find, str) or not isinstance(replace, str) or not find:
-        raise ValueError(f'{relative}: an edit needs `find` and `replace`, or `content`, or `delete`')
-    find, replace = _line_ends(text, find, replace)
-    if text.count(find) != 1: raise ValueError(_not_once(relative, text.count(find)))
-    return text.replace(find, replace, 1)
 
 
 def fix_edit(card, edits, summary='', project=None):
@@ -357,7 +291,8 @@ def _fix_edit_job(project, arguments, progress):
     diff = guided._git(root, 'show', '--stat', '--format=', 'HEAD').stdout.strip()
     if broke or exit_code not in (0, None):
         drop_last(root)
-        return {'card': card_id, 'kept': False, 'why': _not_kept(broke, exit_code, still), 'files': changed,
+        why = _refused(project, card_id, _not_kept(broke, exit_code, still))
+        return {'card': card_id, 'kept': False, 'why': why, 'files': changed,
                 'what_now': 'The change was taken back. Fix the cause and send fix_edit again, or fix_skip with the reason.'}
     if repair: return batch_finish.repaired(project_state.load(project), root, changed, diff)
     with lanes.changing(project) as state:
@@ -368,6 +303,12 @@ def _fix_edit_job(project, arguments, progress):
         wave.setdefault('summaries', {})[card_id] = arguments.get('summary') or ''
     left = lanes.mine(wave, lanes.untried(wave, wave['cards']))
     return {'card': card_id, 'kept': True, 'files': changed, 'diff': diff, 'left': left, 'what_now': lanes.next_step(wave, left)}
+
+
+def _refused(project, card_id, why):
+    with lanes.changing(project) as state:      # the batch's record says why, not an earlier skip
+        if card_id in state['open_wave']['failed']: state['open_wave']['failed'][card_id] = why[:300]
+    return why
 
 
 def _not_kept(broke, exit_code, still):

@@ -220,6 +220,10 @@ def _page_test(route, target, name, guard):
             "    await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, { timeout: 60000 }).catch(() => {});",
             f"    expect(messages.join('\\n')).toMatchSnapshot('{name}.console.txt');",
             f"    await expect(page).toHaveScreenshot('{name}.png', {{ fullPage: true, maxDiffPixelRatio: 0.01 }});",
+            # Its words too: a sentence changed is under 1% of a page's pixels (the fix proof, M7.0). Checked once recorded
+            # (EAOS_LOCK_UPDATE, or a lock recorded before held no words).
+            f"    if (process.env.EAOS_LOCK_UPDATE || fs.existsSync(test.info().snapshotPath('{name}.text.txt')))",
+            f"      expect((await page.locator('body').innerText()).replace(/\\s+/g, ' ').trim()).toMatchSnapshot('{name}.text.txt');",
             '  });']
 
 

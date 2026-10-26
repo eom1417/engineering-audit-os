@@ -60,6 +60,22 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(gates.call_count, 1, 'one run of the checks, not a halving')
         self.assertEqual(waves._sizes_before(root, ['b.py', 'c.py']), {'b.py': 2}, 'counted as facts/metrics counts lines')
 
+    def test_a_card_whose_change_brings_a_finding_of_the_slower_security_engine_is_left_out_of_the_batch(self):
+        # M7.5: bandit and gitleaks read every change; semgrep (the browser's innerHTML, a shell built from strings) only
+        # read the batch's commit once it was merged, by the next check
+        root = repository()
+        base = git(root, 'rev-parse', 'HEAD')
+        sound, unsafe = commit_file(root, 'b.txt', 'b\n'), commit_file(root, 'page.js', 'el.innerHTML = name\n')
+        batch = {'root': root, 'base': base, 'report': root, 'say': lambda *_: None, 'regenerate': lambda r: None}
+        failed = {}
+        found = [('semgrep', 'insecure-innerhtml', 'page.js')]
+        with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.analysis.assessments.weaknesses.new', return_value=found):
+            kept = waves._secure(batch, {'T1': sound, 'T2': unsafe}, failed, [])
+        self.assertEqual(list(kept), ['T1'])
+        self.assertIn('insecure-innerhtml (semgrep) in page.js', failed['T2'])
+        self.assertEqual(batch['security']['engines'], ['semgrep'], "the batch's record says what read it")
+        self.assertFalse((root / 'page.js').exists(), 'the copy is rebuilt without it')
+
     def test_a_batch_is_the_next_ready_cards_in_milestone_order_and_judged_from_one_collection_of_facts(self):
         report = Path(scratch())
         ready = lambda i: {'id': i, 'kind': 'remediate', 'decision': {'readiness': 'ready'}}

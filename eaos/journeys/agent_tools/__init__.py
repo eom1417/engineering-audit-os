@@ -17,7 +17,8 @@ from .running import _run_job, _safety_job
 from .checking import PERMISSION, _assistant_not_ready, assistant_check, audit, overview  # noqa: F401
 from .deciding import _merge_problem, accept, undo  # noqa: F401
 from .evidence import (ask, finding, findings, impact, open_report, plan, report_file, structure, tools_check)  # noqa: F401
-from .fixing import (_apply, _chosen, _inside, _no_safety_net, _still_open, delivery, fix_abandon, fix_edit,  # noqa: F401
+from .edits import _apply, _inside  # noqa: F401
+from .fixing import (_chosen, _no_safety_net, _still_open, delivery, fix_abandon, fix_edit,  # noqa: F401
                      fix_finish, fix_read, fix_skip, fix_start, waiting_on, work_branches)
 from .project import (ANSWER_SECONDS, EVIDENCE, PAGE, SeveralProjects, TOOLS_FIRST, WAIT, _current, _head,  # noqa: F401
                       _now, _read, _report, _start, _watch, locate, open_studio, repositories_under, state_of,

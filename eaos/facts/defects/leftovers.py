@@ -107,6 +107,14 @@ def _imported_modules(resolve_facts):
     return imported
 
 
+LANGUAGES = {'.py': 'python', '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+             '.ts': 'typescript', '.tsx': 'tsx'}
+
+
+def _language(rel):
+    return LANGUAGES.get(os.path.splitext(rel)[1].lower())
+
+
 def collect(source, resolve_facts):
     """Walk the snapshot, classify each path, prove unimported, and yield fact-ready records."""
     facts_list = []
@@ -115,15 +123,7 @@ def collect(source, resolve_facts):
         rel = item['path']
         reason = classify(rel)
         if not reason: continue
-        # Determine language from extension
-        ext = os.path.splitext(rel)[1].lower()
-        language = None
-        if ext == '.py': language = 'python'
-        elif ext in {'.js', '.jsx', '.mjs', '.cjs'}: language = 'javascript'
-        elif ext == '.ts': language = 'typescript'
-        elif ext == '.tsx': language = 'tsx'
-        if _is_reachable(rel, language, imported): continue
-        if reason == 'build_output' and _source_after_all(rel, imported): continue
+        if _is_reachable(rel, _language(rel), imported) or (reason == 'build_output' and _source_after_all(rel, imported)): continue
         facts_list.append({'path': rel, 'reason': reason, 'sha256': item.get('sha256')})
     return facts_list
 

@@ -61,6 +61,7 @@ export default {
   'bp.after': ['بعد:', 'After:'],
   'bp.covered': ['كل متطلبات خطتك ({n}) لها بطاقات تبنيها، وآخر مرحلة ما تتسلّم إلا إذا انبنت كلها.', 'Every requirement of your plan ({n}) has cards that build it; the last milestone is delivered only once all are built.'],
   'bp.st.skipped': ['متروكة', 'Set aside'],
+  'bp.unproven': ['سُلّمت ومعها اللي ما انثبت (رُفض إثباتها ثلاث مرات ورا بعض، والقرار لك):', 'Handed over with what stays unproven (its proof was refused three times in a row; the decision is yours):'],
   'un.plan.lede': ['خطة الإصلاح فيها {n}، والتالية {next}.', 'The fix plan has {n}; {next} comes next.'],
   'un.plan.guide': ['كل خطوة تنتهي حين تتحقق قاعدتها، ولا تنتظر إلا الخطوات التي تذكرها. أصلح الخطوة التالية، أو افتح خطوة لتختار مشاكلها.', 'Each step ends when its rule holds, and waits only for the steps it names. Fix the next step, or open a step to choose its problems.'],
   'un.plan.loading': ['نقرأ الخطة…', 'Reading the plan…'],

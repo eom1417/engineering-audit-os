@@ -83,7 +83,8 @@ def _pass(live, lock, base, output, how):
     try:
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
                                           env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
-                                               'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or ''})
+                                               'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or '',
+                                               'EAOS_LOCK_UPDATE': '1' if update else ''})
     finally:
         screens.stop()
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})     # why a spec did not run
