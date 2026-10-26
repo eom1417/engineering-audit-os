@@ -40,14 +40,14 @@ class _Graph:
                                'cards': cards, 'steps': steps, 'reason': None, 'detail': None, 'items': [], 'group': None, **extra}
         return nid
 
-    def link(self, a, b, how, fact=None, path=None, line=None):
+    def link(self, a, b, how, fact=None, path=None, line=None):  # limits: parameters -- a link's fields: its ends, how, and where it was read
         key = (a, b, how)
         if key not in self.index:
             self.index[key] = len(self.edges)
             self.edges.append({'from': a, 'to': b, 'how': how, 'fact': _fact_id(fact), 'path': path or None, 'line': line_number(line)})
         return self.index[key]
 
-    def gap(self, nid, lane, reason, label, detail=None, items=()):
+    def gap(self, nid, lane, reason, label, detail=None, items=()):  # limits: parameters -- a gap node's fields, each caller names its own
         self.node(nid, lane, label, kind='gap')
         self.nodes[nid].update(reason=reason, detail=detail, items=list(items)[:MAX_ITEMS])
         return nid

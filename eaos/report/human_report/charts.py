@@ -12,13 +12,15 @@ BAR_WIDTH, BAR_LABEL, BAR_ROW, BAR_HEIGHT = 900, 210, 42, 22
 def severity_bars(areas, rtl):
     """Horizontal stacked bars: problems per area, split by severity. One SVG per reading direction."""
     top, plot = max([a['total'] for a in areas.values()] + [1]), BAR_WIDTH - BAR_LABEL - 120
-    rows = ''.join(_bar_row(area, areas[area], index * BAR_ROW + 8, plot, top, rtl) for index, area in enumerate(AREAS))
+    rows = ''.join(_bar_row(area, areas[area], index * BAR_ROW + 8, (plot, top), rtl) for index, area in enumerate(AREAS))
     return (f'<svg viewBox="0 0 {BAR_WIDTH} {BAR_ROW * len(AREAS) + 10}" direction="ltr" role="img" class="chart bars {"l-ar" if rtl else "l-en"}" '
             f'aria-label="{esc("المشاكل لكل مجال حسب الخطورة" if rtl else "Problems per area by severity")}">{rows}</svg>')
 
 
-def _bar_row(area, data, y, plot, top, rtl):
-    """One area's row: its name, a segment per severity it has, and its total."""
+def _bar_row(area, data, y, scale, rtl):
+    """One area's row: its name, a segment per severity it has, and its total; `scale`: the chart's (plot width, largest
+    total), the same for every row."""
+    plot, top = scale
     side, align = (0, 'right') if rtl else (1, 'left')
     name = W['structure_area' if area == 'structure' else area][side]
     parts = [svg_text(BAR_WIDTH - 4 if rtl else 4, y + BAR_HEIGHT / 2 + 5, name, 'axis-label', align, rtl)]
@@ -27,8 +29,8 @@ def _bar_row(area, data, y, plot, top, rtl):
         last = position == len(segments) - 1
         length = max(3, plot * count / top) - (0 if last else 2)
         x = (BAR_WIDTH - start - length) if rtl else start
-        parts.append(_bar_segment(x, y, length, last, rtl, severity, f'{count} {severity} problems in {area}',
-                                  f'{name} — {W[severity][side]}: {count}'))
+        parts.append(_bar_segment((x, y, length), last, rtl, severity,
+                                  (f'{count} {severity} problems in {area}', f'{name} — {W[severity][side]}: {count}')))
         start += length + 2
     words = _problem_count(data['total'], rtl, ('لا مشاكل', 'none'))
     parts.append(svg_text((BAR_WIDTH - start - 6) if rtl else start + 6, y + BAR_HEIGHT / 2 + 5, words, 'value-label', align, rtl,
@@ -42,8 +44,10 @@ def _problem_count(count, rtl, none):
     return f'المشاكل: {count}' if rtl else f'{count} problems'
 
 
-def _bar_segment(x, y, length, last, rtl, severity, meaning, words):
-    """One severity's segment of a row; the row's last one has its outer end rounded."""
+def _bar_segment(box, last, rtl, severity, says):
+    """One severity's segment of a row, `box` its (x, y, length) and `says` its (data-meaning, title); the row's last one
+    has its outer end rounded."""
+    (x, y, length), (meaning, words) = box, says
     tail = f' class="seg sev-{severity}" data-meaning="{esc(meaning)}"><title>{esc(words)}</title>'
     if not (last and length > 8): return f'<rect x="{x:.1f}" y="{y}" width="{length:.1f}" height="{BAR_HEIGHT}"{tail}</rect>'
     flat, end, bottom = (x + length, x, y + BAR_HEIGHT) if rtl else (x, x + length, y + BAR_HEIGHT)

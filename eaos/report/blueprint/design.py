@@ -18,6 +18,7 @@ The gates after every card are the ones every change passes (eaos/analysis/repai
 Nothing here calls a model: the assistant reads, researches and writes; EAOS gives the shape and the gates.
 """
 import re
+from dataclasses import dataclass
 
 from .spec import SPEC, _applicable, _nonfunctional, answer, stacks, validate_spec  # noqa: F401  (SPEC, answer, validate_spec: read here by others)
 
@@ -136,7 +137,7 @@ def design(spec, stack):
     last_of = {}
     for index, module in enumerate(ordered, start=3):
         base = [foundations[-1]] + [last_of[other] for other in sorted(uses[module['id']]) if other in last_of]
-        last_of[module['id']] = _module_cards(cards, f'M{index:02d}', module, base, spec['features'], entities, stack, look)
+        last_of[module['id']] = _module_cards(_Milestone(cards, f'M{index:02d}', module, stack), base, spec['features'], entities, look)
     flows = spec.get('flows') or []
     _journey_cards(cards, flows, ordered, last_of)
     # The last milestone, once the product exists: what makes it ready to release (accessibility, speed, load, CI).
@@ -161,7 +162,7 @@ def _journey_cards(cards, flows, ordered, last_of):
 class _Cards(list):
     """The build's cards in order: each one added gets the next number."""
 
-    def add(self, milestone, kind, title, module, paths, acceptance, tests, depends=(), feature=None, why='', source=None):
+    def add(self, milestone, kind, title, module, paths, acceptance, tests, depends=(), feature=None, why='', source=None):  # limits: parameters -- a build card's fields, each caller names its own
         row = {'id': f'BLD-{len(self) + 1:03d}', 'kind': 'build', 'pattern': f'build_{kind}', 'milestone': milestone, 'title': title,
                'module': module, 'paths': paths, 'acceptance': acceptance, 'tests': tests, 'depends_on': list(depends),
                'feature': feature, 'source': source or feature, 'why': why, 'budget_lines': LINE_BUDGET[kind],
@@ -260,14 +261,24 @@ def _uses(modules, features, entities):
     return uses
 
 
-def _module_cards(cards, mid, module, base, features, entities, stack, look):
+@dataclass
+class _Milestone:
+    """One module's milestone: the cards it adds to, its id, the module, and the stack its cards' paths follow."""
+    cards: _Cards
+    mid: str
+    module: dict
+    stack: dict
+
+
+def _module_cards(milestone, base, features, entities, look):
     """A module's milestone: its data card when it owns data, then a card per feature, each after the one before.
     The id of its last card, which later modules wait for."""
+    module = milestone.module
     owned = [e for e in entities if e['module'] == module['id']]
-    data_card = _data_card(cards, mid, module, owned, base, stack) if owned else None
+    data_card = _data_card(milestone, owned, base) if owned else None
     previous = data_card or base[-1]
     for feature in [f for f in features if f['module'] == module['id']]:
-        previous = _feature_card(cards, mid, module, feature, _after(previous, data_card), stack, _screens_of(look, feature))
+        previous = _feature_card(milestone, feature, _after(previous, data_card), _screens_of(look, feature))
     return previous
 
 
@@ -281,7 +292,8 @@ def _screens_of(look, feature):
     return [x for x in look.get('screens') or [] if feature['id'] in (x.get('features') or [])]
 
 
-def _data_card(cards, mid, module, owned, base, stack):
+def _data_card(milestone, owned, base):
+    cards, mid, module, stack = milestone.cards, milestone.mid, milestone.module, milestone.stack
     folder = slug(module['id'])
     paths = [f'shared/src/{folder}/'] + ([f'server/src/domain/{folder}/', f'server/src/application/{folder}/'] if stack['api']['id'] != 'none' else [])
     if stack['database']['id'] != 'none': paths.append(adapter_folder(stack, 'database') + f'{folder}.ts')
@@ -292,7 +304,8 @@ def _data_card(cards, mid, module, owned, base, stack):
                      why='The data has one owner: other modules call it rather than touching its tables.')
 
 
-def _feature_card(cards, mid, module, feature, depends, stack, screens):
+def _feature_card(milestone, feature, depends, screens):
+    cards, mid, module, stack = milestone.cards, milestone.mid, milestone.module, milestone.stack
     server = stack['api']['id'] != 'none'
     folder, fslug = slug(module['id']), slug(feature['name'])[:40]
     paths = [f'web/src/features/{folder}/{fslug}/'] + ([f'server/src/application/{folder}/{fslug}.ts', f'server/src/interface/http/{folder}/'] if server else [])
