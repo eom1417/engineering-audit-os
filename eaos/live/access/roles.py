@@ -235,13 +235,16 @@ def _write(out, kinds, unreachable=None, **said):
     return kinds
 
 
-def opened(path, landed, status=200, password=0, text=None, nowhere=None):
-    """Whether a page opened as itself: it answered, it was not sent elsewhere (a sign-in, a refusal, the first page),
-    it shows no password field, and it is not the page the app shows for an address it does not have (`nowhere`: the
-    lines of NOWHERE's page with the same session, nowhere_of; an app answering every address 200 draws its "not found"
-    itself, and often inside its menus)."""
-    return 200 <= (status or 0) < 400 and not password and \
-        (urlsplit(landed or '').path.rstrip('/') or '/') == (path.rstrip('/') or '/') and not absent(text, nowhere, path)
+def opened(row, nowhere=None, path=None):
+    """Whether a probed page (`row`: its path, the url it landed on, its status, its password fields and its text, as a
+    probe answers each) opened as itself at `path` (its own by default): it answered, it was not sent elsewhere (a
+    sign-in, a refusal, the first page), it shows no password field, and it is not the page the app shows for an address
+    it does not have (`nowhere`: the lines of NOWHERE's page with the same session, nowhere_of; an app answering every
+    address 200 draws its "not found" itself, and often inside its menus)."""
+    path = (row.get('path') or '/') if path is None else path
+    return 200 <= (row.get('status') or 0) < 400 and not row.get('password') and \
+        (urlsplit(row.get('url') or '').path.rstrip('/') or '/') == (path.rstrip('/') or '/') and \
+        not absent(row.get('text'), nowhere, path)
 
 
 def nowhere_of(page):
@@ -330,4 +333,4 @@ def _opened_others(kind, page, owner):
     """[{kind, page, of}] of the other views' pages a session's probe (`page`, NOWHERE last) opened as themselves."""
     nowhere = nowhere_of(page)
     return [{'kind': kind, 'page': row['path'], 'of': owner[row['path']]} for row in (page.get('others') or [])[:-1]
-            if opened(row['path'], row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere)]
+            if opened(row, nowhere)]

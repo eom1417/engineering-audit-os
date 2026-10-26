@@ -37,7 +37,7 @@ def say(text, stream=None):
     print(text, file=stream or sys.stdout, flush=True)
 
 
-def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=None, log=None):
+def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=None, log=None):  # limits: parameters -- the printed box's optional parts, each passed by keyword
     """The fixed ending of every user command: what happened, where, and what to copy next."""
     icon = {'ok': '✅', 'warn': '⚠️', 'fail': '❌', 'ask': '❓'}[status]
     words = BOX_WORDS['ar' if lang == 'ar' else 'en']

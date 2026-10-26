@@ -17,10 +17,12 @@ def remedy_of(row):
     return (reasons().get(str(row.get('reason_code') or '')) or {}).get('remedy')
 
 
-def apply(manifest, redo, out, progress=None, assistant=None, provider=None):
+def apply(manifest, redo, out, options=None, assistant=None):
     """The manifest after the remedies that need no person were applied and their stages run again (`redo(stages)`
     returns the new manifest); `remedies` lists each try: {stage, code, remedy, round, outcome, after}. A failed stage
-    the catalog knows no remedy for is put to the person's assistant once (`provider`), its answer one allowed action."""
+    the catalog knows no remedy for is put to the person's assistant once (the `provider` of the check's `options`,
+    eaos/journeys/check_choices.py options, whose `progress` hears each round), its answer one allowed action."""
+    progress, provider = (options or {}).get('progress'), (options or {}).get('provider')
     tried, record = set(), []
     for round_ in range(1, ROUNDS + 1):
         todo = _todo(manifest, tried)

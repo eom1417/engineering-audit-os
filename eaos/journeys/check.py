@@ -22,8 +22,8 @@ def run(state, options, again_from=None, go_on=False):
     # taken before the check reads: a commit made meanwhile is not in it
     read = {} if again_from else {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, code)}
     done = check(str(code), out, again_from, state.get('scanned_dirty') is False, go_on=go_on, **options)
-    done = remedies.apply(done, lambda stages: check(str(code), out, stages, True, **options), out, options.get('progress'),
-                          chosen_assistant(state), options['provider'])
+    done = remedies.apply(done, lambda stages: check(str(code), out, stages, True, **options), out, options,
+                          chosen_assistant(state))
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = project_state.load(state['project'])            # as the check's stages left it
     state.update(scanned=datetime.now(timezone.utc).isoformat(timespec='seconds'), scanned_with=digest(), **read)

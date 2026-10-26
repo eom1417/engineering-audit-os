@@ -39,7 +39,7 @@ class Roles(unittest.TestCase):
             + [gone]}
         found = roles.breaches(KINDS, [('admin', 'a'), ('customer', 'c')], look)
         self.assertEqual(found, [{'kind': 'customer', 'page': '/admin/users', 'of': 'admin'}])
-        self.assertFalse(roles.opened('/admin', base + '/login'), 'sent to the sign-in is not opened')
+        self.assertFalse(roles.opened({'path': '/admin', 'url': base + '/login', 'status': 200}), 'sent to the sign-in is not opened')
 
     def test_each_kind_pictures_its_own_pages_and_the_first_one_the_shared_ones(self):
         groups = {p: [p] for p in ('/', '/admin', '/support', '/help')}
@@ -54,21 +54,21 @@ class Roles(unittest.TestCase):
         gone = roles.nowhere_of({'text': 'Home\nWelcome back', 'others': [
             {'text': 'Page not found\nThe page /eaos-no-such-page-7f3a does not exist. Back home'}]})
         programs = 'Page not found\nThe page /programs/plans does not exist. Back home'
-        self.assertFalse(roles.opened('/programs/plans', base + '/programs/plans', 200, 0, programs, gone))
-        self.assertTrue(roles.opened('/admin', base + '/admin', 200, 0, 'Administration\nUsers 12 Programs 3', gone))
+        self.assertFalse(roles.opened({'path': '/programs/plans', 'url': base + '/programs/plans', 'status': 200, 'text': programs}, gone))
+        self.assertTrue(roles.opened({'path': '/admin', 'url': base + '/admin', 'status': 200, 'text': 'Administration\nUsers 12 Programs 3'}, gone))
         # the second check of a full-stack app: the app draws its "not found" inside its menus, which the page of an address it
         # does not have lacks, and the whole pages were too unlike for the "not found" to be told
         within = 'Chief Ops\nCommand centre\nPrograms\nRota\nSettings\nSupport team\nPage not found\nThe page /rota does not exist. Back home'
-        self.assertFalse(roles.opened('/rota', base + '/rota', 200, 0, within, gone), 'its "not found" inside the menus')
-        self.assertTrue(roles.opened('/rota', base + '/rota', 200, 0, 'Chief Ops\nCommand centre\nRota\nWeek 43\nBack home', gone))
+        self.assertFalse(roles.opened({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': within}, gone), 'its "not found" inside the menus')
+        self.assertTrue(roles.opened({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Chief Ops\nCommand centre\nRota\nWeek 43\nBack home'}, gone))
         self.assertEqual(roles.nowhere_of({'text': 'Home\nWelcome', 'others': [{'text': 'Home\nWelcome'}]})['missing'], [],
                          'an app drawing its first page at any address says nothing by it')
         # an app with two "not found" pages: a bare 404 for an address it does not have, and its own inside its menus
         bare = roles.nowhere_of({'text': 'Chief Ops\nCommand centre\nRota\nWelcome, manager.', 'others': [{'text': '404\nThis page could not be found.'}]})
         own = 'Chief Ops\nCommand centre\nRota\nPage not found\nThe page /tickets does not exist.'
-        self.assertFalse(roles.opened('/tickets', base + '/tickets', 200, 0, own, bare))
-        self.assertTrue(roles.opened('/rota', base + '/rota', 200, 0, 'Chief Ops\nCommand centre\nRota\nRota\nWeek 43: 12 shifts.', bare))
-        self.assertTrue(roles.opened('/settings', base + '/settings', 200, 0, 'Chief Ops\nSettings\nPermissions\n' + 'A rule. ' * 30, bare),
+        self.assertFalse(roles.opened({'path': '/tickets', 'url': base + '/tickets', 'status': 200, 'text': own}, bare))
+        self.assertTrue(roles.opened({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Chief Ops\nCommand centre\nRota\nRota\nWeek 43: 12 shifts.'}, bare))
+        self.assertTrue(roles.opened({'path': '/settings', 'url': base + '/settings', 'status': 200, 'text': 'Chief Ops\nSettings\nPermissions\n' + 'A rule. ' * 30}, bare),
                         'a page about permissions is a page')
         views = KINDS + [{'id': 'programs', 'enter': 'switch', 'pages': ['/programs/plans']}]
         groups = {p: [p] for p in ('/', '/admin', '/programs/plans')}
@@ -152,7 +152,7 @@ class Roles(unittest.TestCase):
         with mock.patch.object(test_users, 'lacking', return_value='/rota'), \
                 mock.patch.object(test_users, '_round', side_effect=lambda *a: rounds.append('round') or ('/rota' if rounds.count('round') < 3 else '')), \
                 mock.patch('eaos.live.access.roles.find', side_effect=lambda *a: rounds.append(('find', a[3]))):
-            self.assertEqual(test_users.make('p', None, 'b', 's', 'r', 'provider'), '')
+            self.assertEqual(test_users.make('p', test_users.Trial(None, 'b', 's', 'r', False), 'provider'), '')
         self.assertEqual(rounds, ['round', ('find', '/rota'), 'round', ('find', '/rota'), 'round'])
         nowhere = roles.nowhere_of({'text': 'Home', 'others': [{'text': '404'}]})
         self.assertFalse(test_users._reached({'path': '/admin', 'url': 'http://h/dashboard', 'status': 200, 'text': 'Dashboard'}, nowhere),

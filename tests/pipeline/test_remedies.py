@@ -46,7 +46,7 @@ class RemedyTests(unittest.TestCase):
         broken = manifest(measure=('failed', 'stage_error'), setup=('unavailable', 'no_run_consent'))
         passed = manifest(measure=('ok', ''), setup=('unavailable', 'no_run_consent'))
         with tempfile.TemporaryDirectory() as tmp:
-            done = remedies.apply(broken, lambda stages: passed if stages == ['measure'] else self.fail(stages), tmp, provider=Provider())
+            done = remedies.apply(broken, lambda stages: passed if stages == ['measure'] else self.fail(stages), tmp, {'provider': Provider()})
             self.assertEqual(remedies.pending(tmp), None, 'nothing left untried')
         self.assertEqual(Provider.calls, 1, 'once in the whole check')
         self.assertEqual({r['stage']: r['after'] for r in done['remedies']}, {'setup': 'unavailable', 'measure': 'ok'})

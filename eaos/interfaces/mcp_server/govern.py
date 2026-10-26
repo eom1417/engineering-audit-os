@@ -28,7 +28,7 @@ def _needs(why, what_now):
 
 
 def runs(op: str = 'list', run: str | None = None, paths: list[str] | None = None, mode: str | None = None,
-         assistant: str | None = None, project: str | None = None, sign_in: str | None = None, published: str | None = None) -> str:
+         assistant: str | None = None, project: str | None = None, sign_in: str | None = None, published: str | None = None) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
     if op == 'list': return {'runs': [_run(r) for r in govern.core(project).runs({'all': '1'})['runs'][:30]]}
     if op == 'show':
         found = govern.show_run(project, run)
@@ -43,7 +43,7 @@ def runs(op: str = 'list', run: str | None = None, paths: list[str] | None = Non
 
 
 def waiting(op: str = 'list', id: str | None = None, option: str | None = None, text: str | None = None, person_said: str = '',
-            project: str | None = None) -> str:
+            project: str | None = None) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
     if op == 'list':
         rows = govern.waiting(project)
         for row in rows: govern.shown(row['id'])
@@ -58,7 +58,7 @@ def waiting(op: str = 'list', id: str | None = None, option: str | None = None, 
 
 
 def act(verb: str, ids: list[str] | None = None, group: str | None = None, op: str = 'preview', confirm: str | None = None,
-        auto_accept: bool = False, person_agreed: bool = False, assistant: str | None = None, project: str | None = None) -> str:
+        auto_accept: bool = False, person_agreed: bool = False, assistant: str | None = None, project: str | None = None) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
     if auto_accept: refuse_in_studio_run('auto_accept')
     if op == 'start' and auto_accept and not person_agreed: return _needs('accepting by itself is the person\'s decision', ASK)
     preview = govern.verb_preview(project, verb, govern.selection_of(ids, group), auto_accept, assistant)
@@ -90,7 +90,7 @@ UNDECIDED = {'fetch': lambda project, name, target: govern.fetch(project, name),
 
 
 def branch_change(op: str, name: str | None = None, target: str | None = None, confirm: str | None = None,
-                  confirm_unmerged: str | None = None, person_agreed: bool = False, project: str | None = None) -> str:
+                  confirm_unmerged: str | None = None, person_agreed: bool = False, project: str | None = None) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
     if op in UNDECIDED: return UNDECIDED[op](project, name, target)
     if op not in (*govern.BRANCH_OPS, 'restore'): raise ValueError('op is one of merge, delete, protect, unprotect, cleanup, restore, fetch, conflict')
     refuse_in_studio_run('branches ' + {'unprotect': 'protect'}.get(op, op))

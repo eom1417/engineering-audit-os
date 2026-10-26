@@ -114,7 +114,7 @@ def _satisfied(name, results, out):
     return bool(stage) and bool(stage.produces) and all((out / artifact).exists() for artifact in stage.produces)
 
 
-def _row(stage, status, reason, seconds=0.0, artifacts=(), detail=None, code=''):
+def _row(stage, status, reason, seconds=0.0, artifacts=(), detail=None, code=''):  # limits: parameters -- a manifest row's fields
     """One stage's row of the manifest. `code` is the stable word for the reason (`reason_code`), present only when
     the stage has a reason: the Studio shows its text from eaos/data/errors.json in the person's language."""
     row = {'stage': stage.name, 'status': status, 'reason': reason, 'seconds': round(seconds, 2),
