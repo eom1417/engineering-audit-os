@@ -1,5 +1,4 @@
-"""The fix reviewer: after a batch of fixes, the diff and the checks read, and each card accepted, retried or asked
-(docs/STUDIO.md D11).
+"""The fix reviewer: after a batch of fixes, the diff and the checks read, and each card accepted, retried or asked.
 
 It reads one batch (eaos/journeys/fix/waves/ `finish_batch`: `wave.json` with the cards kept and the ones that failed and why, and
 the batch's patches, marked as untrusted data) and decides for each card: "accept" (the diff does what the card asks

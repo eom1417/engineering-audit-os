@@ -1,4 +1,4 @@
-"""studio/pipeline.json: the pipeline map, current, ideal and gap (contract v2, docs/STUDIO.md D9).
+"""studio/pipeline.json: the pipeline map, current, ideal and gap (contract v2).
 
 Built from facts/pipeline.json (eaos/facts/declared_pipelines/detect.py), the cards and the fix plan; the Studio computes no position and
 no number. Each stage gets its layer and its order inside the layer from EAOS's own layered layout (eaos/analysis/maps/layout.py),

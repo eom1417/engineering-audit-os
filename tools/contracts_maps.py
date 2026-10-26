@@ -1,4 +1,4 @@
-"""The Studio's contract v2 sections (NS46, docs/STUDIO.md D7): the visual maps (journeys, hidden work, data paths,
+"""The Studio's contract v2 sections (NS46): the visual maps (journeys, hidden work, data paths,
 infrastructure, code paths, the pipeline) and the other sections a v1 reader ignores (tools/make_contracts.py)."""
 from contract_shapes import B, N, NI, NS, S, arr, enum, obj
 from contracts_studio import (CARD_STATES, COUNT, COVERAGE_REASONS, COVERAGE_STATES, OPERATIONS, REF, REFS, SEVERITIES,

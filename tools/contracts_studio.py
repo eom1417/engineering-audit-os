@@ -1,13 +1,13 @@
-"""The Studio's data contract, its first sections (NS36, docs/STUDIO.md): the manifest and the sections a v1 reader
+"""The Studio's data contract, its first sections (NS36): the manifest and the sections a v1 reader
 knows, and what every section shares (tools/make_contracts.py writes them)."""
 from contract_shapes import B, N, NI, NS, S, arr, enum, obj
 
-# The Studio's data contract (NS36, docs/STUDIO.md): studio/manifest.json and one file per section, written by EAOS
+# The Studio's data contract (NS36): studio/manifest.json and one file per section, written by EAOS
 # after every check. Every section carries the contract version; a ratio is bounded to 0..1; a number the Studio shows
 # is a measure with its source; what was not measured is null, never 0; a path is relative to the project.
 STUDIO_CONTRACT = 1
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-# Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
+# Contract v2: sections added without breaking a v1 reader. They keep "contract": 1 (the number a
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
 SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'coverage', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',

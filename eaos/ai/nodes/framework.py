@@ -1,4 +1,4 @@
-"""The AI-node framework (docs/STUDIO.md D11, docs/adoption/ns46-t15-ai-nodes.md).
+"""The AI-node framework.
 
 An AI node is a stage of EAOS's pipeline whose input is a deterministic output and whose output is a structured
 decision in one shared shape (contract `ai-node`, read here as `DECISION`): the decision, its options, the evidence

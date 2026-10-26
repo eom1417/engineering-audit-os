@@ -23,7 +23,7 @@ fi
 [ -x .venv/bin/python ] || "$PYTHON" -m venv .venv
 .venv/bin/python -m pip install --quiet --upgrade pip
 .venv/bin/python -m pip install --quiet -e '.[facts,runtime,live,dev]'
-# Regenerating the Studio's subset fonts (tools/studio_fonts.py; docs/adoption/ns46-t7-performance.md)
+# Regenerating the Studio's subset fonts (tools/studio_fonts.py)
 .venv/bin/python -m pip install --quiet 'fonttools==4.60.1' 'brotli==1.1.0'
 
 .venv/bin/python -m eaos tools install --stage assessment

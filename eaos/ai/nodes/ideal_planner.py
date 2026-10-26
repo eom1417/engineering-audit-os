@@ -1,4 +1,4 @@
-"""The ideal planner as an AI node: node 1 (docs/STUDIO.md D10 and D11).
+"""The ideal planner as an AI node: node 1.
 
 The planning itself is eaos/ai/ideal/planner.py `plan`, unchanged: the bundle, the plan and critique passes and the
 evidence check of every element. As a node it gains the framework's guards: the time and cost recorded (never cut),

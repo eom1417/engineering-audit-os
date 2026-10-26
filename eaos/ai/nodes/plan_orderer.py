@@ -1,4 +1,4 @@
-"""The plan orderer: the order and grouping of the plan's steps, planned by the assistant (docs/STUDIO.md D11).
+"""The plan orderer: the order and grouping of the plan's steps, planned by the assistant.
 
 It reads the rules' plan (eaos/analysis/planning/cards.py: milestones, waves and each card's prerequisites), what the card triage decided
 (a rejected card is set aside, a doubtful one waits for its probe), the planned ideal's own order when there is one,

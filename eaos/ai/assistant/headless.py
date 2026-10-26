@@ -1,4 +1,4 @@
-"""The person's own assistant, started headless for a run (docs/adoption/ns46-t9-command-centre.md).
+"""The person's own assistant, started headless for a run.
 
 An adapter knows one assistant: whether it is installed and logged in, the command that starts it on a prompt (and
 resumes its session with the person's answer) with the EAOS MCP server and nothing else that writes, and how to read

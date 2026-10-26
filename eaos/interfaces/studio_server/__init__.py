@@ -9,5 +9,5 @@
     core/system/launch.py  the server's record: find, reuse and open the running server of a project, without importing
                the server (agent_tools.open_studio starts one)
 
-Starlette, Uvicorn and sse-starlette are adopted (docs/adoption/ns37-t2-live-server.md); they come with `mcp`.
+Starlette, Uvicorn and sse-starlette are adopted; they come with `mcp`.
 """

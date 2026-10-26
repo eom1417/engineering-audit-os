@@ -1,4 +1,4 @@
-"""The ideal, planned with a model on top of the rules (docs/STUDIO.md D10, docs/adoption/ns46-t14-ideal-planner.md).
+"""The ideal, planned with a model on top of the rules.
 
 Two layers, both kept and shown. The rules (eaos/report/target_architecture/picture.py, eaos/analysis/target_state/projection.py and the maps built
 from them) give the baseline target of every view and its evidence. The person's own assistant, run headless by the

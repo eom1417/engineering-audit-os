@@ -1,4 +1,4 @@
-"""The AI nodes of EAOS's pipeline, declared as data (docs/STUDIO.md D11).
+"""The AI nodes of EAOS's pipeline, declared as data.
 
 Each node takes a deterministic output, analyses it, plans and decides, and writes one structured decision per subject
 (eaos/ai/nodes/framework.py, contract `ai-node`). After each node a router of declared branches (`routes`) sends every
