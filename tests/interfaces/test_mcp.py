@@ -165,7 +165,7 @@ class ToolTests(Home):
         guided.save(state)
         with mock.patch('eaos.facts.run.collect'), \
              mock.patch('eaos.journeys.fix.execute.new_breakage', side_effect=[[], ['src/b.js: import of a file that is gone']]), \
-             mock.patch('eaos.journeys.fix.waves.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
+             mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0, 'TASK-002': 0}):
             kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                 {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             broke = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-002', 'edits': [
@@ -181,8 +181,8 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.fix_finish(str(self.project))['status'], 'cards_left')
         agent_tools.fix_skip('TASK-002', 'needs a product decision', str(self.project))
         self.assertEqual(project_state.load(self.project)['open_wave']['failed']['TASK-002'], 'skipped: needs a product decision')
-        with mock.patch('eaos.journeys.fix.waves.batch_acceptance', return_value={'TASK-001': 0}), \
-                mock.patch('eaos.journeys.fix.waves.original_checks', return_value=[]), mock.patch('eaos.journeys.fix.waves.gates', return_value=''):
+        with mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}), \
+                mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value=[]), mock.patch('eaos.journeys.fix.waves.batch.gates', return_value=''):
             done = batch_finish.finish_job(str(self.project), {}, lambda *_: None)
         self.assertEqual((done['branch'], done['kept']), ('eaos/wave-1', ['TASK-001']))
         self.assertIn('a = 3', guided._git(self.project, 'show', 'eaos/wave-1:src/a.js').stdout, 'the fix arrives as a branch')
@@ -225,7 +225,7 @@ class ToolTests(Home):
         with as_first, mock.patch.object(lanes, 'WAIT', 0):
             self.assertEqual(lanes.mine(project_state.load(self.project)['open_wave'], list(tasks)), ['TASK-001', 'TASK-002', 'TASK-003'])
             with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.journeys.fix.execute.new_breakage', return_value=[]), \
-                    mock.patch('eaos.journeys.fix.waves.batch_acceptance', return_value={'TASK-001': 0}):
+                    mock.patch('eaos.journeys.fix.waves.batch.batch_acceptance', return_value={'TASK-001': 0}):
                 kept = agent_tools._fix_edit_job(str(self.project), {'card': 'TASK-001', 'edits': [
                     {'path': 'src/a.js', 'find': 'a = 1', 'replace': 'a = 3'}]}, lambda *_: None)
             self.assertEqual(kept['left'], ['TASK-003'], 'its own: the card left for the end comes with fix_finish')

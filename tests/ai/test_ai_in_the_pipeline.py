@@ -95,10 +95,7 @@ class IdealStage(unittest.TestCase):
     def test_the_ideal_is_planned_after_the_check_and_a_failure_or_no_assistant_leaves_the_rules_target(self):
         with self.assertRaises(SkipStage) as failed:
             self.planned_with(Launcher('critique', TimeoutError('slow')))
-        self.assertEqual(failed.exception.code, 'ai_failed')
-        with self.assertRaises(SkipStage) as absent:
-            runners.ideal(Context(self.context, provider=None))
-        self.assertEqual(absent.exception.code, 'no_provider')
+        self.assertEqual(failed.exception.code, 'ai_failed')      # without an assistant (no_provider): test_joint_decision
         self.assertEqual(ideal.current(self.report), (None, 'failed'))
         detail = self.planned_with(Launcher())
         self.assertEqual((detail['dropped'], detail['calls'], detail['model']), (1, 2, 'fake-model'))

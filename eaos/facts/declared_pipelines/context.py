@@ -2,13 +2,21 @@
 parameter) a stage writes and another reads, or nobody reads (eaos/facts/declared_pipelines/python_code.py)."""
 import ast
 from collections import defaultdict
+from typing import NamedTuple
 
 from .read import slug, site, _str, _method_call, CONTEXT_PARAMS, DICT_METHODS
 
 
+class _Uses(NamedTuple):
+    """How the stages use the context: {key: stages writing it}, {key: stages reading it}, {(key, stage): its line}."""
+    writes: dict
+    reads: dict
+    lines: dict
+
+
 def context_channels(py, found, functions):
     """Keys of one shared context a stage writes and another reads: side channels beside the declared edges."""
-    writes, reads, lines = defaultdict(set), defaultdict(set), {}
+    uses = _Uses(defaultdict(set), defaultdict(set), {})
     for (rel, name), key in _stage_functions(found, functions).items():
         node = py.defs[rel].get(name)
         param = next((a.arg for a in node.args.args if a.arg in CONTEXT_PARAMS), None)
@@ -16,9 +24,9 @@ def context_channels(py, found, functions):
         for sub in ast.walk(node):
             used, written, noted = _context_use(sub, param)
             if used is None: continue
-            (writes if written else reads)[used].add(key)
-            if noted: lines.setdefault((used, key), (rel, sub.lineno))
-    for name in sorted(writes): _context_channel(py, found, name, writes[name], reads.get(name, set()), lines)
+            (uses.writes if written else uses.reads)[used].add(key)
+            if noted: uses.lines.setdefault((used, key), (rel, sub.lineno))
+    for name in sorted(uses.writes): _context_channel(py, found, name, uses)
 
 
 def _stage_functions(found, functions):
@@ -68,11 +76,12 @@ def _is_name(node, name):
     return isinstance(node, ast.Name) and node.id == name
 
 
-def _context_channel(py, found, name, writers, read_by, lines):
+def _context_channel(py, found, name, uses):
     """A context key read by a stage other than its writer is a side channel; one nobody reads is an unread output."""
+    writers, read_by = uses.writes[name], uses.reads.get(name, set())
     readers = {r for r in read_by if any(r != w for w in writers)}
     first = sorted(writers, key=found.order.index)[0]
-    rel, line = lines.get((name, first), (found.stages[first]['entry']['path'], found.stages[first]['entry']['line']))
+    rel, line = uses.lines.get((name, first), (found.stages[first]['entry']['path'], found.stages[first]['entry']['line']))
     if readers:
         found.hidden.append({'id': f'{found.id}:ctx:{slug(name)}', 'pipeline': found.id, 'kind': 'side_channel',
                              'channel': 'context', 'name': f"context['{name}']",

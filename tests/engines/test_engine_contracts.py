@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.engines import codegraph, enola, jscpd, reforge
+from eaos.engines import codegraph, enola, reforge
 from eaos.engines.contract import KINDS
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -19,23 +19,30 @@ def sample(name):
     return json.loads((CONTRACTS / f'{name}.json').read_text(encoding='utf-8'))
 
 
+# The engines with no captured sample: each writes SARIF, read by sarif.py and its tests (test_sarif).
+UNSAMPLED = ('bandit', 'gitleaks', 'codeql')
+TAGGED = ('codegraph',)      # its release tag, v0.20.1, is the version it prints
+
+
 class SampleTests(unittest.TestCase):
-    def test_every_adapter_has_a_real_sample_at_its_pinned_version_and_maps_into_the_shared_kinds(self):
-        for module in (enola, codegraph, reforge, jscpd):
-            payload = sample(module.NAME)
-            self.assertEqual(payload['pinned_version'], module.PINNED, f'{module.NAME}: captured from another version')
-            self.assertTrue([key for key in payload if key.endswith('.json')], module.NAME)
+    def test_every_adapter_of_the_registry_is_its_module_pinned_with_its_sample_and_maps_into_the_shared_kinds(self):
+        # The one contract every engine holds (it was asked in three files, each of a few engines). Without `analyze`
+        # the registry raised AttributeError on every run and a working engine contributed nothing.
+        import importlib
+        from eaos.engines import ADAPTERS, tool
+        for name, adapter in ADAPTERS.items():
+            with self.subTest(engine=name):
+                self.assertIs(adapter, importlib.import_module('eaos.engines.' + name.replace('-', '_')))
+                for method in ('analyze', 'capabilities', 'version'):
+                    self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
+                pin = 'v' + tool.pinned(name) if name in TAGGED else tool.pinned(name)
+                self.assertEqual(adapter.PINNED, pin, 'the adapter and the registry pin one version')
+                if name not in UNSAMPLED:
+                    self.assertEqual(sample(name)['pinned_version'], adapter.PINNED, f'{name}: captured from another version')
+                for capability in adapter.capabilities(): self.assertIn(capability.kind, KINDS)
         kinds = list(enola.KIND_BY_SOURCE.values()) + list(reforge.KIND_BY_FAMILY.values()) + list(codegraph.TOOLS.values())
         for kind in kinds:
             self.assertIn(kind, KINDS)
-
-    def test_every_adapter_is_reachable_through_the_engine_registry(self):
-        # Without `analyze` the registry raised AttributeError on every run and a working engine contributed nothing.
-        from eaos.engines import ADAPTERS
-        for name, adapter in ADAPTERS.items():
-            with self.subTest(engine=name):
-                for method in ('analyze', 'capabilities', 'version'):
-                    self.assertTrue(callable(getattr(adapter, method, None)), f'{name} has no {method}')
 
 
 # enola's sources the adapter sees and deliberately does not map: they report scope rather than a finding.
@@ -118,8 +125,6 @@ class CodegraphAdapterTests(unittest.TestCase):
                 mock.patch.object(codegraph, 'run', return_value=produced):
             report = codegraph.analyze(tmp, tmp)
         self.assertEqual(([f['kind'] for f in report.findings], sorted(report.evaluated)), ([], ['coupling']))
-        from eaos.facts import engine_findings as external
-        self.assertFalse(hasattr(external, '_from_external_symbol_metrics'))
 
     def test_engine_paths_are_relative_nameless_edges_are_dropped_and_flow_files_are_asked_about(self):
         from eaos.engines.codegraph import files_of_interest

@@ -429,8 +429,7 @@ class IdealNode(Base):
 
     def test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands_and_with_one_it_asks_once(self):
         record = nodes.run(self.report, names=['ideal_planner'], adapters={})['ideal_planner']
-        self.assertEqual((record['state'], record['decisions'][0]['decision']), ('rules_only', 'rules only'))
-        self.assertEqual(ideal.section(self.report, 'en')['state'], 'not_planned')
+        self.assertEqual((record['state'], record['decisions'][0]['decision']), ('rules_only', 'rules only'))   # the page: test_ideal_planner
         def stuck(name, schema): raise provider.Stuck('silent')
         record = nodes.run(self.report, names=['ideal_planner'], launcher=Answer(stuck), fresh=True)['ideal_planner']
         self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))

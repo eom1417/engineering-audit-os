@@ -11,9 +11,9 @@ MAX_PAGES, MAX_CALLERS, MAX_APIS, MAX_HANDLERS, MAX_MODULES, MAX_DATA = 80, 24, 
 def assemble(client, server, wiring, r):
     """Cap every column, then the links drawn and, for each node, every node it reaches or is reached from. `client`:
     (pages, shared callers, APIs); `server`: (handlers, modules, tables, services); `wiring`: (links, uses)."""
-    (pages, shared, apis), (handlers, modules, tables, services), (links, uses) = client, server, wiring
+    (pages, shared, apis), (links, uses) = client, wiring
     if not pages and not apis: return None
-    cols, capped = _columns(pages, shared, apis, handlers, modules, tables, services, links, uses)
+    cols, capped = _columns(client, server, wiring)
     view = {'cols': cols, 'links': links, 'uses': uses, 'capped': capped, 'root': r['root'],
             'kept_apis': {a['id'] for a in cols['apis']},
             'ids': {x['id'] for name in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for x in cols[name]}}
@@ -29,8 +29,9 @@ def _cap(items, limit, name, weight, capped):
     return items[:limit]
 
 
-def _columns(pages, shared, apis, handlers, modules, tables, services, links, uses):
+def _columns(client, server, wiring):
     """Every column capped and ordered, and how many each cap left out."""
+    (pages, shared, apis), (handlers, modules, tables, services), (links, uses) = client, server, wiring
     capped = {}
     api_list = _cap(apis.values(), MAX_APIS, 'apis', lambda a: (-len(a['callers']) - 2 * bool(a['handlers']), a['group'], a['path'], a['method']), capped)
     api_list.sort(key=lambda a: (a['group'], a['path'], METHODS.index(a['method']) if a['method'] in METHODS else 9))

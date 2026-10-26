@@ -107,10 +107,12 @@ def _around(text, at, name, context):
     return f'=== {name} (lines {start + 1}-{end})\n' + '\n'.join(lines[start:end])
 
 
-def assist_messages(project, runtime, detected, failure, needs, mode='lock'):
+def assist_messages(run, failure, needs, mode='lock'):
+    """The messages that ask the assistant for a change to setup `run` (eaos/live/app/setup.py SetupRun)."""
+    project, detected = run.project, run.detected
     folder = detected['profile']['app']
     package = read_json(Path(project) / folder / 'package.json')
-    profile = json.loads((Path(runtime) / 'run.json').read_text(encoding='utf-8'))
+    profile = json.loads((Path(run.runtime) / 'run.json').read_text(encoding='utf-8'))
     if mode == 'baseline': profile = {**{k: v for k, v in profile.items() if k != 'baseline'}, **(profile.get('baseline') or {})}
     brief = {'what_failed': failure, 'current_profile': profile,
              'detected': detected['facts'], 'scripts': package.get('scripts'), 'fixtures_the_checks_need': needs}

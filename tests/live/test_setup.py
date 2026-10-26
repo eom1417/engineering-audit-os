@@ -177,7 +177,7 @@ class VerifyTests(unittest.TestCase):
         assistant = mock.Mock()
         assistant.complete.return_value = ({'result': {'env': {'APP_URL': 'https://127.0.0.1:5'}}}, {})
         with mock.patch.object(live_setup, 'verify', side_effect=lambda *a, **k: next(outcomes)) as runs:
-            record = live_setup.setup_baseline(project(VITE_APP), runtime, detected, assistant, say=lambda n: None)
+            record = live_setup.setup_baseline(live_setup.SetupRun(project(VITE_APP), runtime, None, assistant, lambda n: None, detected))
         self.assertTrue(record['ok'])
         self.assertTrue(all(call.kwargs.get('mode') == 'baseline' for call in runs.call_args_list))
         profile = json.loads((runtime / 'run.json').read_text())
@@ -284,7 +284,7 @@ class RunEnvironmentTests(unittest.TestCase):
             with mock.patch.dict(os.environ, {'DATABASE_URL': 'postgres://owner@production.example/live', 'OWNER_SECRET_TOKEN': 'x'}), \
                     mock.patch('eaos.core.system.local_db.LocalPostgres') as database:
                 database.return_value.create.return_value = 'postgresql://postgres@127.0.0.1:5/app'
-                extra = live.extra()
+                extra = live.run_env()
             self.assertEqual(extra['DATABASE_URL'], 'postgresql://postgres@127.0.0.1:5/app')
             database.return_value.create.assert_called_once_with('app')
             self.assertNotIn('OWNER_SECRET_TOKEN', extra)
@@ -293,7 +293,7 @@ class RunEnvironmentTests(unittest.TestCase):
             live = bare_run(profile={'seed': [['node', 'seed.cjs']]}, fixtures={}, _extra={'PATH': '/bin'})
             live.run = mock.Mock(return_value=(0, printed, ''))
             self.assertEqual(live.seed('http://127.0.0.1:5'), {'E2E_PROFILEID': 'p1'})
-            self.assertEqual(live.extra()['E2E_PROFILEID'], 'p1')
+            self.assertEqual(live.run_env()['E2E_PROFILEID'], 'p1')
             self.assertIn('signed in', live.seed_output)
 
     def test_a_database_of_the_runs_own_on_loopback_even_deep_in_a_home_and_gone_once_its_runtime_is(self):

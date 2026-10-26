@@ -5,6 +5,7 @@ the plan's open questions and the places the assistant and the rules differ to t
 person reads about a plan, and what a plan was made for (`scan_key`), are here too."""
 import hashlib
 from pathlib import Path
+from typing import NamedTuple
 
 from .base import VIEWS, _load, _slug, guard_words
 from .rules import views as _rules_views
@@ -110,8 +111,18 @@ def _differences(planned, rules_elements):
     return rows
 
 
-def _view(name, rules_view, record, ideal, state, message, lang):
+class _Plan(NamedTuple):
+    """The latest plan as every view reads it: its record (None when there is none for this check), the ideal it holds,
+    its state and the words that say it."""
+    record: dict
+    ideal: dict
+    state: str
+    message: str
+
+
+def _view(name, rules_view, plan, lang):
     summary, rules_elements = rules_view
+    record, ideal, state, message = plan
     planned = (ideal.get('views') or {}).get(name) if record else None
     planned = planned if planned and planned.get('elements') else None
     if planned:
@@ -162,8 +173,8 @@ def section(report, lang='ar'):
     runs = _load(report / 'ideal/runs.json', []) or []
     message = _message(state, record, runs)
     ideal = (record or {}).get('ideal') or {}
-    rules_views = _rules_views(report)
-    views = {name: _view(name, rules_views[name], record, ideal, state, message, lang) for name in VIEWS}
+    rules_views, plan = _rules_views(report), _Plan(record, ideal, state, message)
+    views = {name: _view(name, rules_views[name], plan, lang) for name in VIEWS}
     return {'state': state, 'message': message,
             'provenance': _planned_provenance(record, ideal, message) if record else _rules_provenance(state, message, lang),
             'views': views, 'evidence': _evidence(record, views), 'critique': _critique(record),

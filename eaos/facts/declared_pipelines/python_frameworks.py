@@ -2,6 +2,7 @@
 (eaos/facts/declared_pipelines/detect.py; LangGraph: eaos/facts/declared_pipelines/langgraph.py; build, CI and workflow files:
 eaos/facts/declared_pipelines/files.py)."""
 import ast
+from collections import namedtuple
 import re
 
 from .. import call_name
@@ -11,13 +12,18 @@ from .read import slug, site, Found, _str, _strs, _decorators, _unparse, describ
 SHIFTS = (ast.RShift, ast.LShift)
 
 
+# One Airflow DAG being read: the project, its pipeline, its file, and {variable: (task_id, operator call)}.
+_Dag = namedtuple('_Dag', 'py found rel tasks')
+
+
 def airflow(py, out, flows):
     for rel, tree in py.trees.items():
         if not any((module or '').split('.')[0] == 'airflow' for module, _ in py.imports.get(rel, {}).values()): continue
         found, tasks = _dag(py, rel, tree)
         if found is None or not tasks: continue
         found.functions.add((rel, '<dag>'))
-        keys = {var: _task_stage(py, found, rel, var, tasks, flows) for var in tasks}
+        dag = _Dag(py, found, rel, tasks)
+        keys = {var: _task_stage(dag, var, flows) for var in tasks}
         _declared_order(py, found, rel, tree, keys)
         _xcom_edges(py, found, keys)
         _match_joins(found)
@@ -47,8 +53,9 @@ def _found(py, rel, call):
                  [site(rel, call.lineno, py.line(rel, call.lineno))]) if dag_id else None
 
 
-def _task_stage(py, found, rel, var, tasks, flows):
+def _task_stage(dag, var, flows):
     """The stage of one task: its operator, the callable it runs, its retries and timeout; returns its key."""
+    py, found, rel, tasks = dag
     task_id, call = tasks[var]
     line = next((k.value.lineno for k in call.keywords if k.arg == 'task_id'), call.lineno)
     key = found.stage(task_id, site(rel, line, py.line(rel, line)), symbol=f"{rel[:-3].replace('/', '.')}.{var}", variable=var)
@@ -56,7 +63,7 @@ def _task_stage(py, found, rel, var, tasks, flows):
     stage['tools'] = [call_name(call.func) or 'Operator']
     for keyword in call.keywords:
         if keyword.arg == 'python_callable' and isinstance(keyword.value, ast.Name):
-            _callable(py, found, key, rel, call, keyword.value.id, tasks, flows)
+            _callable(dag, key, call, keyword.value.id, flows)
         if keyword.arg in ('retries', 'retry_delay'):
             found.control.append({'id': f'{key}:retry', 'pipeline': found.id, 'stage': key, 'kind': 'retry',
                                   'condition': _unparse(keyword.value), 'evidence': site(rel, call.lineno, py.line(rel, call.lineno))})
@@ -64,16 +71,16 @@ def _task_stage(py, found, rel, var, tasks, flows):
     return key
 
 
-def _callable(py, found, key, rel, call, name, tasks, flows):
+def _callable(dag, key, call, name, flows):
     """The function a task runs, when it resolves: described on its stage, a branch operator's routes, its XCom pulls."""
-    target = py.resolve(rel, name)
+    target = dag.py.resolve(dag.rel, name)
     if not target: return
-    stage = found.stages[key]
+    stage = dag.found.stages[key]
     flows.add((target[0], target[1].name))
     stage['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}"
     stage['callable'] = (target[0], target[1].name)
-    describe(py, target[0], target[1], stage)
-    if 'Branch' in (call_name(call.func) or ''): _branch_operator(py, found, key, target, tasks, rel, call)
+    describe(dag.py, target[0], target[1], stage)
+    if 'Branch' in (call_name(call.func) or ''): _branch_operator(dag, key, target, call)
     for upstream, line in _xcom_pulls(target[1]): stage.setdefault('xcom', []).append((upstream, target[0], line))
 
 
@@ -149,7 +156,8 @@ def _match_joins(found):
             fan['join'], fan['matched'] = next(iter(joins)), True
 
 
-def _branch_operator(py, found, key, target, tasks, rel, call):
+def _branch_operator(dag, key, target, call):
+    py, found, rel, tasks = dag
     returns = sorted(((_strs(s.value) or [], s.lineno) for s in ast.walk(target[1]) if isinstance(s, ast.Return) and s.value is not None),
                      key=lambda row: row[1])
     known = {task_id for task_id, _ in tasks.values()}
@@ -175,7 +183,7 @@ def celery(py, out):
             found = by_file[rel] = Found(f'{rel}:canvas', f'Celery canvas ({rel})', 'celery', site(rel, fn.lineno, py.line(rel, fn.lineno)),
                                          [site(rel, first.lineno, py.line(rel, first.lineno))])
         found.functions.add((rel, fn_name))
-        _canvas(py, found, rel, fn_name, canvases, pipes, tasks)
+        _Canvas(py, found, rel, fn_name, tasks).read(canvases, pipes)
     out.extend(f for f in by_file.values() if f.stages)
     _task_routes(py, out, tasks)
     return tasks
@@ -200,22 +208,20 @@ def _canvas_calls(fn, tasks):
     return canvases, pipes
 
 
-def _canvas(py, found, rel, fn_name, canvases, pipes, tasks):
-    """The stages and edges of one function's Celery canvas: chain, group, chord and `|`."""
-    canvas = _Canvas(py, found, rel, fn_name, tasks)
-    for call in canvases:
-        kind = call_name(call.func)
-        if kind == 'chain': canvas.chain(call)
-        elif kind == 'group': canvas.group(call)
-        elif kind == 'chord' and call.args: canvas.chord(call)
-    for pipe in pipes: canvas.pipe(pipe)
-
-
 class _Canvas:
     """One function's Celery canvas, read call by call into its pipeline's stages, edges and fans."""
 
     def __init__(self, py, found, rel, fn_name, tasks):
         self.py, self.found, self.rel, self.fn_name, self.tasks = py, found, rel, fn_name, tasks
+
+    def read(self, canvases, pipes):
+        """The stages and edges of the canvas: chain, group, chord and `|`."""
+        for call in canvases:
+            kind = call_name(call.func)
+            if kind == 'chain': self.chain(call)
+            elif kind == 'group': self.group(call)
+            elif kind == 'chord' and call.args: self.chord(call)
+        for pipe in pipes: self.pipe(pipe)
 
     def where(self, node):
         return site(self.rel, node.lineno, self.py.line(self.rel, node.lineno))

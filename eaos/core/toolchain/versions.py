@@ -29,7 +29,7 @@ def _version_output(tool, path):
     """(what `path --version` printed, None), or (None, why it could not run)."""
     try:
         # A tool that runs on another (the Structurizr CLI on the JRE) finds it in the pinned bin first.
-        done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,
+        done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a list argv of a tool EAOS installs at its pin, no shell
                               env={**tool_env(), 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'

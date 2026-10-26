@@ -112,7 +112,7 @@ def _spawn(argv, log):
     env = {**os.environ, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
     home().mkdir(parents=True, exist_ok=True)
     with open(home() / log, 'ab') as out:
-        return subprocess.Popen([sys.executable, '-m', 'eaos', *argv], cwd=home(), env=env, stdin=subprocess.DEVNULL,
+        return subprocess.Popen([sys.executable, '-m', 'eaos', *argv], cwd=home(), env=env, stdin=subprocess.DEVNULL,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
                                 stdout=out, stderr=out, start_new_session=True, close_fds=True)
 
 

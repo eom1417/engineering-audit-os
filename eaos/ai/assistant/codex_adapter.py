@@ -25,7 +25,7 @@ def call(messages, small=False, reads=None, deep=False):   # the model signed in
         if os.environ.get('EAOS_CODEX_MODEL'): argv += ['-m', os.environ['EAOS_CODEX_MODEL']]
         if small or deep: argv += ['-c', f'model_reasoning_effort="{"low" if small else "high"}"']
         began = time.monotonic()
-        done = subprocess.run(argv + ['-'], input=f'{system}\n\n{conversation}\n\n{ANSWER}', stdout=sys.stderr, stderr=sys.stderr,
+        done = subprocess.run(argv + ['-'], input=f'{system}\n\n{conversation}\n\n{ANSWER}', stdout=sys.stderr, stderr=sys.stderr,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit, python.lang.security.audit.dangerous-subprocess-use-tainted-env-args -- the assistant's CLI as its adapter builds it, a list argv, no shell; the environment is the person's own
                               text=True, cwd=reads or empty)
         if done.returncode != 0: raise RuntimeError(f'codex exited {done.returncode}')
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''

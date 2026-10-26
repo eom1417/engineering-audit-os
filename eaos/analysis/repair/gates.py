@@ -15,6 +15,8 @@ there, so everything found is the change's). A gate counts only what the change 
     complex    more decisions past the complexity limit, summed over those files (a split is less, a move is neither)
     size       a module grown past the line limit
     security   a weakness that an engine both collections ran reports (eaos/analysis/assessments/weaknesses.py)
+    tidy       the repository's craft or its assistants' context made worse (M7.8, M7.9): a finding at a changed file or
+               a folder holding one, so a project built or extended ends with none (M8.7)
 
 Each problem is {'gate', 'where', 'what'}; `what` is the sentence the assistant reads, with its place.
 """
@@ -50,9 +52,30 @@ def debt(before, after, paths, dead=True, had=None):
     had = had if had is not None else _sizes(before, paths) if before else {}
     problems += [{'gate': 'size', 'where': path, 'what': f'{path} grew to {lines} lines, past the limit of {MAX_LINES}: split it'}
                  for path, lines in sorted(_sizes(after, paths).items()) if lines > MAX_LINES and lines > had.get(path, 0)]
+    problems += tidy(before, after, paths)
     from ..assessments.weaknesses import new
     return problems + [{'gate': 'security', 'where': path, 'what': f'a security finding: {rule} ({engine}) in {path}: never bring a weakness in'}
                        for engine, rule, path in new(before, after, paths)]
+
+
+def tidy(before, after, paths):
+    """The repository findings of `after` (eaos/facts/repository/) at one of `paths` or a folder holding one, that
+    `before` did not have: a crowded folder the change filled, a test it put where the code's layout is not, a context
+    file it made heavier. A `before` check that did not read the repository (older than M7.8) holds nothing against it:
+    every finding would look new."""
+    if before and not (Path(before) / 'facts/repository.json').is_file(): return []     # a check older than M7.8 read none
+    paths = set(paths)
+    rows = lambda folder: {(f['value']['rule'], f['value']['path']): {
+        'gate': 'tidy', 'where': f['value']['path'], 'what': f"{f['value']['en']}: {f['value']['fix_en']}"}
+        for f in _facts(folder, 'repository') if _touches(f['value']['path'], paths)}
+    return _added(rows, before, after)
+
+
+def _touches(where, paths):
+    """Whether a finding's place (a file, a folder, a family `folder/prefix_*`) is a changed file or holds one."""
+    if '*' in where: return any(path.startswith(where.split('*')[0]) for path in paths)
+    where = where.rstrip('/')
+    return bool(paths) if where in ('', '.') else where in paths or any(path.startswith(where + '/') for path in paths)
 
 
 def words(problems):

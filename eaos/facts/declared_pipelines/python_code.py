@@ -101,16 +101,18 @@ def declared_lists(py, out):
         for var, node in assigns.items():
             if not isinstance(node.value, (ast.List, ast.Tuple)) or len(node.value.elts) < 3: continue
             rows = [_declared_row(py, rel, element) for element in node.value.elts]
-            if None not in rows: _declare(py, rel, var, node, rows, out)
+            if None not in rows: _declare(py, (rel, var, node), rows, out)
 
 
-def _declare(py, rel, var, node, rows, out):
+def _declare(py, declared, rows, out):
+    """`declared`: the list's file, name and node."""
+    rel, var, _ = declared
     names = [r['label'] for r in rows]
     if len(set(names)) != len(names): return
     dag = sum(bool(set(r['requires']) & set(names)) for r in rows) >= 2
     drivers = _drivers(py, rel, var)
-    if dag: _declared_dag(py, (rel, var, node), rows, drivers, out)
-    elif all(r['functions'] for r in rows) and _calls_steps(drivers): _declared_sequence(py, rel, var, node, rows, drivers, out)
+    if dag: _declared_dag(py, declared, rows, drivers, out)
+    elif all(r['functions'] for r in rows) and _calls_steps(drivers): _declared_sequence(py, declared, rows, drivers, out)
 
 
 def _calls_steps(drivers):
@@ -357,7 +359,9 @@ def _assigned_pairs(assign):
         yield from zip(names, values)
 
 
-def _declared_sequence(py, rel, var, node, rows, drivers, out):
+def _declared_sequence(py, declared, rows, drivers, out):
+    """A module-level list of stage records a driver runs in order (`declared`: its file, name and node)."""
+    rel, var, node = declared
     driver = drivers[0]
     found = Found(f'{rel}:{var}', f'{var} ({rel})', 'declared_dag', site(driver[0], driver[2].lineno, py.line(driver[0], driver[2].lineno)),
                   [site(rel, node.lineno, py.line(rel, node.lineno))], confidence=0.8)

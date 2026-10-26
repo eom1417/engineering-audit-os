@@ -60,5 +60,5 @@ def _acceptance_exit(card, sets, dead, out, root):
         return _probe_exit(json.loads(argv[argv.index('--spec') + 1]), sets, out)
     found = DEADCODE.search(argv[-1]) if argv else None
     if found: return 1 if found.groups() in dead else 0
-    if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode
+    if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a card's acceptance check, a list argv run in the candidate copy, no shell
     return None

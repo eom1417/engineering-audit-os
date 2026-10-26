@@ -8,12 +8,5 @@
  "semgrep:javascript.lang.security.audit.detect-non-literal-regexp": 1,
  "semgrep:javascript.lang.security.audit.unsafe-dynamic-method": 1,
  "semgrep:javascript.lang.security.insecure-object-assign": 1,
- "semgrep:python.django.security.audit.avoid-query-set-extra": 7,
- "semgrep:python.lang.security.audit.dangerous-os-exec-audit": 1,
- "semgrep:python.lang.security.audit.dangerous-os-exec-tainted-env-args": 1,
- "semgrep:python.lang.security.audit.dangerous-subprocess-use-audit": 40,
- "semgrep:python.lang.security.audit.dangerous-subprocess-use-tainted-env-args": 1,
- "semgrep:python.lang.security.audit.dynamic-urllib-use-detected": 1,
- "semgrep:python.lang.security.audit.insecure-file-permissions": 1,
- "semgrep:python.lang.security.audit.non-literal-import": 1
+ "semgrep:python.lang.security.audit.dangerous-subprocess-use-audit": 40
 }

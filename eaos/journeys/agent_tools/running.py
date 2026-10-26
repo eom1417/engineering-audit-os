@@ -66,9 +66,9 @@ def _unset(profile, runtime):
     return [n for n in (_read(runtime / 'setup/detected.json')['facts'].get('env_names') or []) if n not in profile['env'] and n != 'NODE_ENV']
 
 
-def _lock_run(project, runtime, report, record, profile, attempt):
-    """After a run as developers run it: the profile's values and limitations, and the project's setup record.
-    The fixtures the screens need and nobody gave."""
+def _lock_run(project, runtime, report, record, profile):
+    """After a run as developers run it (its verify `record`): the profile's values and limitations, and the project's
+    setup record. The fixtures the screens need and nobody gave."""
     needs = live_setup.fixtures_needed(report) if (report / 'plan.json').is_file() else []
     known = {**profile.get('env', {}), **record.get('fixtures', {})}
     missing = [name for name in needs if name not in known]
@@ -77,7 +77,7 @@ def _lock_run(project, runtime, report, record, profile, attempt):
     profile['limitations'] = _limitations(profile, record, runtime, missing)
     run_profile.write_profile(runtime, profile)
     state = project_state.load(project)
-    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': attempt, 'limitations': profile['limitations']}
+    state['setup'] = {'commit': _head(state), 'ok': record['ok'], 'attempts': record['attempt'], 'limitations': profile['limitations']}
     state.pop('safety', None)
     guided.save(state)
     return missing
@@ -125,7 +125,7 @@ def _run_job(project, arguments, progress):
         profile.setdefault('baseline', {})['verified'] = record['ok']
         run_profile.write_profile(runtime, profile)
     else:
-        answer['fixtures_missing'] = _lock_run(project, runtime, report, record, profile, attempt)
+        answer['fixtures_missing'] = _lock_run(project, runtime, report, record, profile)
         if record['ok'] and (profile.get('baseline') or {}).get('build') and 'verified' not in profile['baseline']:
             profile = _production_build(source, runtime, answer, progress)
     return _run_answer(answer, record, profile, source, mode)

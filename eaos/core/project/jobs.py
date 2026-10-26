@@ -160,7 +160,7 @@ def _launch(job, project, log):
             time.sleep(0.1)
         return None
     with log.open('w', encoding='utf-8') as out:
-        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, env=env).pid
+        return subprocess.Popen(argv, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, env=env).pid  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
 
 
 def wait(job, seconds, project):
@@ -187,7 +187,9 @@ def run(job, project):
     path = _path(job, project)
     record = json.loads(path.read_text(encoding='utf-8'))
     try:
-        work = importlib.import_module(record.get('runner') or 'eaos.journeys.agent_tools').JOBS[record['kind']]
+        runner = record.get('runner') or 'eaos.journeys.agent_tools'
+        if not runner.startswith('eaos.'): raise ValueError(f'a job runs only in EAOS, not in {runner}')
+        work = importlib.import_module(runner).JOBS[record['kind']]  # nosemgrep: python.lang.security.audit.non-literal-import -- the runner EAOS wrote in its own job record, one of eaos's modules (checked above)
         result = work(record['project'], record['arguments'], lambda *step: progress(job, project, *step))
         record = json.loads(path.read_text(encoding='utf-8'))
         record.update(status='done', result=result, ended=_now())

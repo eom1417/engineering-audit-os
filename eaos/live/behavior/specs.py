@@ -295,10 +295,12 @@ def feature_spec(feature, known, target, root):
     web = [(route, info) for route, info in rows if info[0] in (PAGE, HTTP)]
     if any(route == '*' or path_of(route) is not None for route, _ in web):
         text, listed = playwright_spec(feature, web)
-        return _written(root, f'playwright/{slug(feature["name"])}.spec.ts', text, feature, 'playwright', listed)
+        return _written(root, text, {'feature': feature['name'], 'tool': 'playwright',
+                                     'path': f'playwright/{slug(feature["name"])}.spec.ts', 'surfaces': listed})
     text, modules = approval_test(feature, target)
     if text:
-        return _written(root, f'approvals/test_{slug(feature["name"]).replace("-", "_")}.py', text, feature, 'approvaltests', modules)
+        return _written(root, text, {'feature': feature['name'], 'tool': 'approvaltests',
+                                     'path': f'approvals/test_{slug(feature["name"]).replace("-", "_")}.py', 'surfaces': modules})
     return _unlocked(feature, web)
 
 
@@ -309,7 +311,8 @@ def _unlocked(feature, web):
             'surfaces': [f'{s} (needs_fixture: no web surface and no import-safe module)' for s in feature.get('surfaces') or []]}
 
 
-def _written(root, path, text, feature, tool, listed):
-    (root / path).parent.mkdir(parents=True, exist_ok=True)
-    (root / path).write_text(text, encoding='utf-8')
-    return {'feature': feature['name'], 'tool': tool, 'path': path, 'surfaces': listed}
+def _written(root, text, row):
+    """The plan's `row`, its spec `text` written under `root` at the row's path."""
+    (root / row['path']).parent.mkdir(parents=True, exist_ok=True)
+    (root / row['path']).write_text(text, encoding='utf-8')
+    return row

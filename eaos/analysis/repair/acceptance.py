@@ -62,7 +62,7 @@ def _refusal(check, execute, target):
 
 def _exit_code(argv, cwd, stdout, stderr, timeout):
     """Run argv in its own process group: its exit code, or None once the timeout terminated the whole group."""
-    process = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr, start_new_session=(os.name == 'posix'))
+    process = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr, start_new_session=(os.name == 'posix'))  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the project's own declared command, a list argv, run in its isolated copy with the person's consent, no shell
     try:
         return process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:

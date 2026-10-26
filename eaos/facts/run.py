@@ -150,17 +150,13 @@ def _load_cache(cache_path):
     except ValueError: return {}
 
 
-def _run_extractor(name, target, source, produced, context, step, done, total):
+def _run_extractor(name, target, source, produced, context):
+    """(the extractor's module, its result, the seconds it took)."""
     module = EXTRACTORS[name]
-    step(name, done, total, 'running')
     began = _time.monotonic()
     arguments = EXTRACTOR_ARGS.get(name, lambda produced, context: {})(produced, context)
     result = module.run(target, source, **arguments)
-    available = result['available']
-    step(name, done + 1, total, 'ok' if available else 'unavailable', _time.monotonic() - began,
-         reason='' if available else result.get('reason') or '',
-         reason_code='' if available else 'extractor_unavailable')
-    return module, result
+    return module, result, _time.monotonic() - began
 
 
 def _extract(names, target, out, source, context):
@@ -170,7 +166,12 @@ def _extract(names, target, out, source, context):
     step = progress.step
     for name in names: step(name, 0, len(names), 'waiting')
     for done, name in enumerate(names):
-        module, result = _run_extractor(name, target, source, produced, context, step, done, len(names))
+        step(name, done, len(names), 'running')
+        module, result, seconds = _run_extractor(name, target, source, produced, context)
+        available = result['available']
+        step(name, done + 1, len(names), 'ok' if available else 'unavailable', seconds,
+             reason='' if available else result.get('reason') or '',
+             reason_code='' if available else 'extractor_unavailable')
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],

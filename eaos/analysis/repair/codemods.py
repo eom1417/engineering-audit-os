@@ -122,7 +122,7 @@ def _run_step(step, description, copy):
         except (OSError, SyntaxError, ValueError):
             return 1, description
     import os
-    done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,
+    done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv built here (jscodeshift, npm --ignore-scripts), run in an isolated copy, no shell
                           env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
     return done.returncode, shlex.join([Path(step[0]).name, *step[1:]]).replace(str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs')
 
