@@ -32,7 +32,7 @@ os.environ['EAOS_HEADLESS'] = '1'                       # no Studio opens by its
 os.environ.setdefault('EAOS_SIGN_IN_WAIT', '30')        # nobody signs in to a proof
 
 import corpus  # noqa: E402  (beside this file)
-from fix_proof import _git, done  # noqa: E402
+from fix_proof import _git  # noqa: E402
 from metrics import MB, size  # noqa: E402
 
 EAOS = str(Path(sys.executable).parent / 'eaos')
@@ -212,9 +212,8 @@ def extend(scratch):
 def served(journey, app):
     """A Studio of the app on PORT for the journey's steps; its action API once it answers, else None."""
     token_file = journey.folder / 'studio.token'
-    log = open(journey.folder / 'studio.log', 'a')
-    server = subprocess.Popen([EAOS, 'studio', str(app), '--port', str(PORT), '--no-open'], stdin=subprocess.DEVNULL,
-                              stdout=log, stderr=subprocess.STDOUT, env={**os.environ, 'EAOS_STUDIO_TOKEN_FILE': str(token_file)})
+    log, env = open(journey.folder / 'studio.log', 'a'), {**os.environ, 'EAOS_STUDIO_TOKEN_FILE': str(token_file)}
+    server = subprocess.Popen([EAOS, 'studio', str(app), '--port', str(PORT), '--no-open'], stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, env=env)
     try:
         up = journey.step('studio up', lambda: studio_up(token_file))
         yield Studio(token_file.read_text(encoding='utf-8').strip()) if up['passed'] else None
