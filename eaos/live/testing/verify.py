@@ -196,14 +196,17 @@ TEST_WORDS = re.compile(r'(^|[^a-z])(test|tests|pytest|unittest|vitest|jest|moch
 
 def python_tests(target, profile=None):
     """The command that runs a Python project's tests from its root, as the coverage stage and the batch gates (eaos/journeys/fix/execute.py) run them:
-    pytest when the project configures it, else unittest on tests/; [] without a tests/ folder of test_*.py, or when
-    the run profile already runs a Python suite."""
+    pytest when the project configures it, else unittest on tests/, or on the root's tests.py or test_*.py (a small app
+    keeps them there: the move gate of M9.5 could prove nothing of one); [] without any, or when the run profile already
+    runs a Python suite."""
     root = Path(target)
     if any(Path(str(argv[0])).name in INTERPRETER_NAMES for argv in test_commands(profile)): return []   # the profile runs them
-    if not any((root / 'tests').glob('test_*.py')): return []
+    folder, beside = any((root / 'tests').glob('test_*.py')), (root / 'tests.py').is_file() or any(root.glob('test_*.py'))
+    if not folder and not beside: return []
     configured = (root / 'pytest.ini').is_file() or (root / 'conftest.py').is_file() or '[tool.pytest' in (
         (root / 'pyproject.toml').read_text(encoding='utf-8', errors='replace') if (root / 'pyproject.toml').is_file() else '')
-    return [DEFAULT_COMMANDS[0] if configured else DEFAULT_COMMANDS[1]]
+    if configured: return [DEFAULT_COMMANDS[0]]
+    return [DEFAULT_COMMANDS[1] if folder else [INTERPRETER, '-m', 'unittest', 'discover', '-s', '.', '-p', 'test*.py']]
 
 
 def test_commands(profile):

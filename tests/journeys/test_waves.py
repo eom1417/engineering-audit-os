@@ -366,6 +366,9 @@ class PythonSuiteGateTests(unittest.TestCase):
         from eaos.live.testing.verify import python_tests
         root = Path(scratch())
         self.assertEqual(python_tests(root), [], 'no tests/ folder, no command')
+        small = Path(scratch())
+        (small / 'tests.py').write_text('')        # flask-microblog of the corpus keeps its tests at its root (M9.5)
+        self.assertEqual(python_tests(small)[0][-4:], ['-s', '.', '-p', 'test*.py'])
         (root / 'tests').mkdir()
         (root / 'tests' / 'test_a.py').write_text('')
         self.assertEqual(python_tests(root)[0][-3:], ['discover', '-s', 'tests'])
