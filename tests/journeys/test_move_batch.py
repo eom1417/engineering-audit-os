@@ -100,3 +100,27 @@ class MoveBatchTests(Workspace):
         (root / 'pyproject.toml').write_text('[project]\nname = "shop"\n')
         self.assertEqual(move_batch.proposal(report, root)['limits'], [move_gate.PUBLISHED])
         self.assertTrue(any(line.startswith('  pipeline_load.py  →  shop/pipeline/load.py') for line in drawn['tree']))
+
+    def test_two_drawn_moves_to_one_place_are_each_marked_as_unmakeable(self):
+        # M9.5 (flask-microblog): the target shape drew app/email.py and app/auth/email.py both into one feature folder;
+        # each looked makeable alone, and a batch holding both would be refused whole by the move tool.
+        root = self.project({'app/email.py': 'A = 1\n', 'app/auth/email.py': 'B = 1\n', 'app/other.py': 'C = 1\n'})
+        drawn = [{'from': 'app/email.py', 'to': 'services/reset/email.py', 'rule': 'target-shape', 'reason': 'r'},
+                 {'from': 'app/auth/email.py', 'to': 'services/reset/email.py', 'rule': 'target-shape', 'reason': 'r'},
+                 {'from': 'app/other.py', 'to': 'services/other/other.py', 'rule': 'target-shape', 'reason': 'r'}]
+        with mock.patch.object(move_batch, '_from_findings', return_value=[]), \
+                mock.patch.object(move_batch, '_from_target_shape', return_value=drawn):
+            rows = {m['from']: m['refused'] for m in move_batch.proposal(Path(self.tmp) / 'report', root)['moves']}
+        self.assertEqual(rows['app/email.py'], 'app/auth/email.py would become services/reset/email.py too')
+        self.assertEqual(rows['app/auth/email.py'], 'app/email.py would become services/reset/email.py too')
+        self.assertEqual(rows['app/other.py'], '')
+
+    def test_a_move_whose_imports_cannot_be_written_is_marked_in_the_proposal(self):
+        # M9.5 (flaskr): flaskr/auth.py was proposed into services/auth/ as makeable; the package's `from . import auth`
+        # cannot reach it there, and the move tool refused the whole batch only at make.
+        root = self.project({'flaskr/__init__.py': 'def make():\n    from . import auth\n    return auth\n', 'flaskr/auth.py': 'X = 1\n'})
+        drawn = [{'from': 'flaskr/auth.py', 'to': 'services/auth/auth.py', 'rule': 'target-shape', 'reason': 'r'}]
+        with mock.patch.object(move_batch, '_from_findings', return_value=[]), \
+                mock.patch.object(move_batch, '_from_target_shape', return_value=drawn):
+            row = move_batch.proposal(Path(self.tmp) / 'report', root)['moves'][0]
+        self.assertEqual(row['refused'], 'flaskr/__init__.py would import services.auth from outside its package')
