@@ -39,6 +39,17 @@ def _as_the_person(workspace, cookie='signed'):
     return thread
 
 
+def listening(port, seconds=30):
+    """Wait until the app answers on its port: a fixed sleep was too short on a loaded computer and long on an idle one."""
+    import socket
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(('127.0.0.1', port), timeout=1): return
+        except OSError: time.sleep(0.05)
+    raise TimeoutError(f'nothing listened on {port} in {seconds}s')
+
+
 class SignInTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -159,7 +170,7 @@ class SignInTests(unittest.TestCase):
                                    **({'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(smtp)} if catcher else {})}, stdout=output, stderr=output)
         self.addCleanup(app.wait)
         self.addCleanup(app.terminate)
-        time.sleep(0.8)
+        listening(port)
         browser = Browser(f'http://127.0.0.1:{port}/', self.root / 'session.json')
         self.assertTrue(browser.send({'do': 'look'})['url'].endswith('/login'))
         for command in ({'do': 'key', 'key': 'Tab'}, {'do': 'type', 'text': 'me@example.test'}, {'do': 'key', 'key': 'Enter'}):

@@ -12,8 +12,8 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos.engines import ADAPTERS, ast_grep, knip, lizard, react_docgen, tool
-from eaos.engines.contract import KINDS, OBSERVED, UNAVAILABLE
+from eaos.engines import ast_grep, knip, lizard, react_docgen, tool
+from eaos.engines.contract import OBSERVED, UNAVAILABLE
 from eaos.engines.process import run, which
 
 CONTRACTS = Path(__file__).resolve().parents[1] / 'contracts'
@@ -34,12 +34,8 @@ def rules_of(report):
 
 
 class EveryEngineTests(Workspace):
-    def test_each_is_registered_pinned_sampled_and_a_missing_tool_is_unavailable_never_raised(self):
-        for name, module in ENGINES.items():
-            self.assertIs(ADAPTERS[name], module)
-            self.assertEqual(module.PINNED, tool.pinned(name))
-            self.assertEqual(sample(name)['pinned_version'], module.PINNED, name)
-            for capability in module.capabilities(): self.assertIn(capability.kind, KINDS)
+    def test_a_missing_tool_is_unavailable_never_raised(self):
+        # registered, pinned and sampled: test_engine_contracts, for every engine
         with mock.patch.object(tool, 'which', return_value=None):
             for name, module in ENGINES.items():
                 self.assertIsNone(module.version(), name)

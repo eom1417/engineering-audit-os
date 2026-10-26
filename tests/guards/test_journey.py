@@ -130,13 +130,9 @@ class Journey(unittest.TestCase):
         self.assertTrue((self.project / 'app/old_report.py').is_file())
         return ledger.load(project_state.load(self.project))['totals']
 
-    def test_check_change_check_fix_accept(self):
-        totals = self.journey()
-        self.assertEqual(totals['done'], 2, totals)
-
-    def test_progress_counts_only_the_fixes_merged(self):
-        totals = self.journey()
-        self.assertEqual((totals['closed'], totals['total']), (2, 3), totals)
+    def test_check_change_check_fix_accept_and_the_progress_counts_only_the_fixes_merged(self):
+        totals = self.journey()          # once: the whole journey is the suite's slowest proof
+        self.assertEqual((totals['done'], totals['closed'], totals['total']), (2, 2, 3), totals)
 
 
 if __name__ == '__main__':

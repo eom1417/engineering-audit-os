@@ -22,8 +22,7 @@ class SampleTests(Workspace):
                                           (checkov, 'checkov', 'results_sarif.sarif', {'misconfiguration'}),
                                           (spectral, 'spectral', 'spectral.sarif', {'api_contract'})):
             with self.subTest(engine=name):
-                payload = sample(name)
-                self.assertEqual(payload['pinned_version'], module.PINNED)
+                payload = sample(name)                       # its pin: test_engine_contracts
                 path = Path(self.tmp) / f'{name}.sarif'
                 path.write_text(json.dumps(payload[file]))
                 findings, unmapped = sarif.read(path, name, module.PINNED)
@@ -32,7 +31,6 @@ class SampleTests(Workspace):
                 if kinds: self.assertLessEqual(kinds, {f['kind'] for f in findings})
         self.assertNotRegex(json.dumps(sample('trivy')), r'\*{6,}', 'the trivy sample is redacted')
         payload = sample('scc')
-        self.assertEqual(payload['pinned_version'], scc.PINNED)
         for language in payload['scc.json']:
             for field in ('Name', 'Count', 'Code', 'Complexity'): self.assertIn(field, language)
             for row in language['Files']:
