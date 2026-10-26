@@ -287,6 +287,7 @@ async function auditOne(browser, entry, viewport, variant, index) {
       text: (await page.locator('body').innerText().catch(() => '')).slice(0, 4000) });
     // The page's own errors, counted before axe runs (on file:// axe reads stylesheets the page's policy may refuse)
     row.page_errors = errors.slice(0, 10);
+    // nosemgrep: javascript.lang.security.insecure-object-assign -- measure() returns its own fixed keys; the config read is EAOS's own
     Object.assign(row, await measure(page, { phoneWidth: config.phone_width, targetMin: config.target_min,
       viewportWidth: viewport.width }));
     row.axe = await axeOf(page);

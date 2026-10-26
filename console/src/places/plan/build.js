@@ -6,9 +6,10 @@ import { buildStep } from '../kit/kit.js';
 
 const TAG = { done: 'tag--ok', active: 'tag--live', blocked: 'tag--caution', todo: 'tag--state' };
 const tag = st => `<span class="tag ${TAG[st] || TAG.todo}">${st === 'done' ? icon('check') : ''}${t(st === 'blocked' ? 'bp.st.skipped' : 'un.pst.' + (TAG[st] ? st : 'todo'))}</span>`;
-const list = (items, cls) => items.length ? `<ul class="${cls}">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : '';  // nosemgrep: javascript.browser.security.raw-html-join -- the items are rich(), escaped
+const list = (items, cls) => items.length ? `<ul class="${cls}">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : '';
 
 function card(c) {
+  // nosemgrep: javascript.browser.security.raw-html-join -- words, and values escaped by code() and rich()
   const facts = [
     c.acceptance ? `<div class="block-title">${t('bp.accepted')}</div>${list(c.acceptance.split('\n').map(a => rich(a)), 'small')}` : '',
     c.paths.length ? `<p class="small muted">${t('bp.files')} ${c.paths.map(code).join(' ')}</p>` : '',

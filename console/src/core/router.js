@@ -27,6 +27,7 @@ const ASKABLE = ['loading', 'empty', 'offline', 'reconnecting'];
  *  replaces the earlier one (a finished screen replaces its outline). */
 export function screen(def) {
   const keys = [];
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp -- the path is a screen's own address in the code, never input
   const re = new RegExp('^' + def.path.replace(/:(\w+)/g, (m, k) => { keys.push(k); return '([^/]+)'; }) + '$');
   const i = screens.findIndex(x => x.path === def.path);
   if (i >= 0) screens.splice(i, 1);
@@ -137,6 +138,7 @@ function draw(r, m, bundlePending) {
   const sc = m && m.screen;
   const main = document.getElementById('main');
   document.title = t('doc.title', { place: sc && sc.title ? sc.title(ctx) : 'EAOS', project: project().name || 'EAOS' });
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each screen's render escapes every value it draws (esc, rich, code: core/format.js)
   main.innerHTML = screenHTML(sc, ctx, bundlePending);
   main.dataset.screen = sc ? sc.id : '';
   renderShell(sc ? sc.place || null : null);

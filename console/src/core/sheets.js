@@ -86,6 +86,7 @@ function create(key, name, arg, def) {
   el.setAttribute('aria-labelledby', 'sheet-title');
   el.tabIndex = -1;
   open = { key, name, arg, def, el, scrim, ret: document.activeElement, local: {} };
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each sheet's render escapes every value it draws (esc, rich, code: core/format.js)
   el.innerHTML = inner(def, arg, open.local);
   host.append(scrim, el);
   document.documentElement.style.overflow = 'hidden';
@@ -104,6 +105,7 @@ export function rerenderSheet() {
   const back = hold(st.el);
   const body = st.el.querySelector('.sheet__body');
   const top = body ? body.scrollTop : 0;
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each sheet's render escapes every value it draws (esc, rich, code: core/format.js)
   st.el.innerHTML = inner(st.def, st.arg, st.local);
   const nb = st.el.querySelector('.sheet__body'); if (nb) nb.scrollTop = top;
   if (st.def.after) st.def.after(st.el, st.arg, st.local);

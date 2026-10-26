@@ -99,13 +99,16 @@ function sidePrefs() {
 export function renderShell(place) {
   document.querySelector('.skip').textContent = t('skip');
   const wc = waitingCount();
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the project button escapes the name and branch; the rest are words
   document.getElementById('topbar').innerHTML = `${projectButton()}
     <div class="topbar__end"><button class="btn btn--icon" data-act="sheet" data-sheet="search" aria-label="${esc(t('search.open'))}">${icon('search', 'icon--lg')}</button></div>`;
   const tabbar = document.getElementById('tabbar');
   tabbar.setAttribute('aria-label', t('nav.label'));
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- fixed places and words; the count is a number
   tabbar.innerHTML = PLACES.map(p => `<a class="tab" href="${href(p.path)}" ${placeAttrs(p, place, wc)}>
       <span class="tab__icon">${icon(p.icon, 'icon--lg')}${placeCount(p, wc)}</span>
       <span>${t('nav.' + p.id)}</span></a>`).join('');
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- every value escaped (the project, the live card, the version); the rest are words
   document.getElementById('sidebar').innerHTML = `${projectButton()}
     <button class="side-search" data-act="sheet" data-sheet="search">${icon('search')}<span>${t('search.open')}</span><kbd>${t('search.kbd')}</kbd></button>
     <nav class="side-nav" aria-label="${esc(t('nav.label'))}">
@@ -127,6 +130,7 @@ export function renderStrip() {
   const shown = now && (here === now.href || (here === '/activity' && now.kind !== 'signin') || (now.kind === 'signin' && here.startsWith('/waiting')));
   document.body.classList.toggle('has-strip', !!now && !picked.ids.size && !shown);
   if (!now || shown) { el.innerHTML = ''; return; }
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the run text escaped, its address encoded; the rest are words
   el.innerHTML = `<a class="live-strip ${now.you ? 'live-strip--you' : ''}" href="${href(now.href)}">
     <span class="dot ${now.you ? 'dot--you' : 'dot--live'}" aria-hidden="true"></span>
     <span class="live-strip__text">${esc(now.text)}</span>
@@ -145,17 +149,21 @@ export function renderBanner(ctx) {
   const el = document.getElementById('banner');
   const f = freshness();
   if (ctx.offline) {
+    // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the banner text escaped; the rest are words
     el.innerHTML = `<div class="banner banner--offline" role="note">${icon('lock')}<span>${esc(project().checked_at ? t('offline.banner', { when: fmtWhen(project().checked_at) }) : t('offline.banner.bare'))}</span>
       <button class="btn btn--quiet btn--sm banner__act" data-act="sheet" data-sheet="open-live">${t('offline.how')}</button></div>`;
   } else if (ctx.query.state === 'reconnecting' || live.feed === 'reconnecting') {
+    // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the banner text escaped
     el.innerHTML = `<div class="banner banner--caution" role="status">${icon('offline')}<span>${esc(t('reconnect.banner', { time: fmtTime(new Date(live.heard || Date.now()).toISOString()) }))}</span></div>`;
   } else if (ctx.state === 'loading') {
     const all = ((manifest() && manifest().sections) || []).filter(s => listed(s.name)).length;
+    // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the banner text escaped
     el.innerHTML = `<div class="banner" role="status">${icon('clock')}<span>${esc(t('loading.banner', { n: num(pendingOf(ctx.needs.concat(['head', 'decisions'])).length), total: num(all) }))}</span></div>`;
   } else if (ctx.state !== 'empty' && (f.state === 'behind' || f.state === 'rewritten' || f.state === 'dirty')) {
     const b = f.behind || {};
     const said = f.state === 'behind' ? t('stale.banner', { commits: tn('pl.commit', b.commits || 0), files: tn('pl.file', b.files || 0), branch: f.branch || '' })
       : t('stale.' + f.state, { branch: f.branch || '' });
+    // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the banner text escaped; the link is a fixed address
     el.innerHTML = `<div class="banner banner--caution" role="note">${icon('warn')}<span>${esc(said)}</span>
       <a class="btn btn--quiet btn--sm banner__act" href="${href('/activity', { sheet: 'check' })}">${t('stale.act')}</a></div>`;
   } else el.innerHTML = '';
@@ -171,6 +179,7 @@ const selbarHTML = () => `<div class="selbar__top"><span class="selbar__count">$
   <div class="selbar__verbs">${['fix', 'verify', 'explain', 'plan'].map((v, i) => `<button class="btn ${i ? 'btn--secondary' : 'btn--primary'}" data-act="sheet" data-sheet="verb:${v}">${t('verb.' + v)}</button>`).join('')}</div>`;
 export function renderSelbar() {
   const el = document.getElementById('selbar');
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the selection bar escapes the count and the group; the verbs are words
   if (picked.ids.size && selbarClear) { el.innerHTML = selbarHTML(); el.setAttribute('aria-label', tn('pl.selected', picked.ids.size)); }
   else el.innerHTML = '';
   document.body.classList.toggle('has-selection', picked.ids.size > 0);

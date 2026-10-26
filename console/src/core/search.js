@@ -68,7 +68,7 @@ function results(q) {
 
 function listHTML(q) {
   const r = results(q);
-  const item = (it, target) => `<button class="result" data-act="go" data-href="${target}">${it.sev ? sev(it.sev, false) : icon(it.icon)}<span class="result__text">${it.html}</span></button>`;
+  const item = (it, target) => `<button class="result" data-act="go" data-href="${esc(target)}">${it.sev ? sev(it.sev, false) : icon(it.icon)}<span class="result__text">${it.html}</span></button>`;
   const out = r.map(g => `<div class="results__group" role="group" aria-labelledby="sg-${g.group}"><p class="results__h" id="sg-${g.group}">${esc(t('search.' + g.group))}</p>${g.items.map(it =>
     item(it, href(it.href.split('?')[0], Object.fromEntries(new URLSearchParams(it.href.split('?')[1] || ''))))).join('')}</div>`).join('');
   const more = q.trim() ? `<div class="results__group" role="group" aria-labelledby="sg-more"><p class="results__h" id="sg-more">${esc(t('search.more'))}</p>
@@ -91,6 +91,7 @@ sheet('search', {
   after(el, arg, local) {
     if (!local.asked) readOnce(local);
     const input = el.querySelector('#search-input');
+    // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- every result's text escaped (esc, rich, code) and its address escaped; the rest are words
     input.addEventListener('input', () => { local.q = input.value; el.querySelector('#search-results').innerHTML = listHTML(input.value); });
     input.addEventListener('keydown', e => onKey(el, e));
   },
