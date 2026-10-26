@@ -5,7 +5,7 @@ GROUPS = (
     ('govern', 'الحوكمة كاملة من الطرفية، بدون الاستوديو', 'Full governance from a terminal, without the Studio',
      ('check', 'watch', 'runs', 'stop', 'pause', 'resume', 'retry', 'waiting', 'answer', 'sign-in', 'problems', 'problem', 'fix', 'verify',
       'explain', 'plan', 'branch', 'branches', 'projects', 'history', 'compare', 'usage', 'govern')),
-    ('run', 'الفحص والأدوات', 'The check and its tools', ('audit', 'tools', 'logic-flaws')),
+    ('run', 'الفحص والأدوات', 'The check and its tools', ('audit', 'tools', 'logic-flaws', 'experience')),
     ('cards', 'ما تشغّله بطاقات الإصلاح للتحقق', 'What a task card runs to check itself', ('facts', 'policy', 'decided', 'recheck')),
 )
 
