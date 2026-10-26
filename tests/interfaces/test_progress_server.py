@@ -170,9 +170,11 @@ class ReportFile(Project):
 
     def test_the_report_for_people_opens_by_a_one_use_ticket_as_html_with_its_own_policy(self):
         # A real incident, remote Studio: "Open the full report" ran a browser on the server and showed its file path.
+        http, keys, _ = self.client()
+        refused = http.get('/api/report-ticket', headers={'X-EAOS-Token': keys.token})
+        self.assertEqual((refused.status_code, refused.json()['error']), (404, 'not_found'), 'no ticket before the page is built')
         (self.report / 'human').mkdir(exist_ok=True)
         (self.report / 'human/index.html').write_text('<!doctype html><html lang="ar"><script>1</script><p>تقرير</p></html>', encoding='utf-8')
-        http, keys, _ = self.client()
         self.assertEqual(http.get('/api/report-ticket').status_code, 401, 'the ticket needs the launch token')
         url = http.get('/api/report-ticket', headers={'X-EAOS-Token': keys.token}).json()['url']
         self.assertTrue(url.startswith('/report/'))
@@ -181,6 +183,9 @@ class ReportFile(Project):
         self.assertIn('تقرير', answer.text)
         self.assertIn("script-src 'unsafe-inline'", answer.headers['content-security-policy'])
         self.assertIn("connect-src 'none'", answer.headers['content-security-policy'])
+        # the Studio's report page frames it (M8.2); no other site may
+        self.assertIn("frame-ancestors 'self'", answer.headers['content-security-policy'])
+        self.assertEqual(answer.headers['x-frame-options'], 'SAMEORIGIN')
         self.assertEqual(http.get(url).json()['error'], 'ticket', 'one use')
         self.assertEqual(http.get('/report/made-up').status_code, 404)
 

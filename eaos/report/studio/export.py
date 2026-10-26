@@ -1,4 +1,4 @@
-"""studio/: the data the Studio reads, written from the one model after every check and every batch (docs/STUDIO.md).
+"""studio/: the data the Studio reads, written from the one model after every check and every batch (docs/ARCHITECTURE.md §1).
 
 One JSON file per section, each checked against its contract (schemas/artifacts/studio-<section>.schema.json) before it
 is written, and a .js twin of each so the Studio opens from a file, where a browser refuses to fetch JSON. Every file
@@ -28,7 +28,6 @@ from . import data_paths as data_map
 from . import functions as function_explorer
 from .evidence import evidence, sources
 from . import infra as infra_map
-from . import layers as layers_view
 from ...ai.ideal import planner as planned_ideal
 from ...ai.nodes import view as ai_nodes
 from ...analysis.presentation import model as M
@@ -39,9 +38,9 @@ from . import system as system_map
 from .export_sections import TASK_STATE, cards, decision_rows, decisions, head, health, meta, plans, story, why_of  # noqa: F401  (TASK_STATE, decisions, why_of: read here by the tests and tools/studio_synthetic.py)
 
 CONTRACT = 1
-REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
+REVISION = 2           # contract v2: sections added without breaking a v1 reader
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('functions', 'screens', 'history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations', 'library', 'layers')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('functions', 'screens', 'history', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations')   # contract v2 sections written here (coverage is written last, apart)
 
 
 def _git(project, *args):
@@ -108,7 +107,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     if not scan['at']: scan['at'] = str((m['manifest'] or {}).get('started_at') or '')
     built, errors = {}, []
     card_rows = _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors)
-    _build_maps(report, m, lang, project, progress, scan, card_rows, built, errors)
+    _build_maps(report, m, lang, progress, scan, card_rows, built, errors)
     entries = _publish_all(folder, report, built, errors, lang, name, project, scan, stamp)
     return {'written': [e['name'] for e in entries], 'errors': errors}
 
@@ -120,8 +119,8 @@ def _attempt(built, errors, section, make):
 
 
 def _drop_unwritten(built):
-    """Leave out the sections whose records the check did not write (facts/pipeline.json, layers.json)."""
-    for section in [name for name in ('pipeline', 'layers') if name in built and built[name] is None]: built.pop(section)
+    """Leave out the pipeline map when the check did not write its record (facts/pipeline.json)."""
+    if 'pipeline' in built and built['pipeline'] is None: built.pop('pipeline')
 
 
 def _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors):
@@ -145,20 +144,17 @@ def _build_core(report, m, lang, project, progress, state, scan, stamp, built, e
     return card_rows
 
 
-def _build_maps(report, m, lang, project, progress, scan, card_rows, built, errors):
-    """The contract v2 sections, into `built`: the maps, the history, the library, the ideal and the change."""
+def _build_maps(report, m, lang, progress, scan, card_rows, built, errors):
+    """The contract v2 sections, into `built`: the maps, the history, the ideal and the change."""
     attempt = lambda section, make: _attempt(built, errors, section, make)
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
     attempt('journeys', lambda: journeys_map.journeys(report, built.get('media')))
     if 'journeys' in built: attempt('hidden', lambda: hidden_map.hidden(report, built['journeys'], card_rows))
     attempt('data_paths', lambda: data_map.data_paths(report, lang))
     attempt('infra', lambda: infra_map.infra(report, lang))
-    attempt('layers', lambda: layers_view.layers(report, lang))
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
     attempt('history', lambda: history_section.history(scan, m['score']['score'], card_rows, (progress or {}).get('ledger'),
                                                        (progress or {}).get('waves') or ()))
-    if 'docs' in built and 'media' in built:
-        attempt('library', lambda: library_section.library(report, built['docs'], built['media'], project))
     _drop_unwritten(built)
     attempt('ideal', lambda: planned_ideal.section(report, lang))
     attempt('nodes', lambda: ai_nodes.section(report, lang))

@@ -1,4 +1,4 @@
-"""The command centre's action API (docs/studio-actions.json, docs/STUDIO.md D8): run EAOS from the Studio.
+"""The command centre's action API (docs/studio-actions.json): run EAOS from the Studio.
 
 Framework-agnostic: `Actions.handle(method, path, headers, body)` answers every endpoint of the contract with
 `(status, dict)`, and `Actions.sse(run, last_event_id, follow)` yields a run's events as Server-Sent Events frames. The

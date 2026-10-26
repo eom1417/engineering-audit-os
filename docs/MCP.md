@@ -81,7 +81,7 @@ EAOS لا يستدعي نموذجًا بنفسه في هذا الطريق: عق�
 | فعل الاستوديو | أداة MCP | الأمر |
 | --- | --- | --- |
 | الأقسام والتقدم والأحداث (`/api/sections`، `progress`، `events`، `report-file`) | `overview` و`findings` و`finding` و`structure` و`plan` و`report_file`؛ `status` و`runs` و`wait` | `eaos problems`، `eaos status`، `eaos watch` |
-| الصور وتذكرة التقرير (`screen`، `report-image`، `report-ticket`) | `open_report` | — |
+| الصور وتذكرة التقرير (`screen`، `report-image`، `report-ticket`: صفحة التقرير في الاستوديو تعرض بها التقرير وصور الشاشات) | `open_report` | — |
 | المشاريع والتبديل بينها (`/api/projects`، `projects/open`) | **`projects`**، `open_studio` | **`eaos projects`**، `eaos studio <المجلد>` |
 | تسجيل الدخول: الحال، المتابعة بدونه، النسيان | `waiting`، **`sign_in_forget`** (قرار الشخص) | `eaos sign-in --signed-out` / `--forget` |
 | تشغيل أي فعل (`POST /api/runs`) ومعاينته | الأداة بنفس اسم الفعل؛ `act` و`runs(op=check/estimate)`؛ **`replan_ideal`** | `eaos check`، `eaos fix` وأخواتها |
