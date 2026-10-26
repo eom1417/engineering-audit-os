@@ -304,7 +304,7 @@ class TwoProjectsTests(Workspace):
         from eaos.journeys import guided
         held, left = self.box(self.b), self.b['runtime'] / 'sandbox/run-left-by-a-killed-run'
         left.mkdir()
-        with mock.patch.object(guided, 'box'):
+        with mock.patch.object(guided.commands, 'box'):
             guided.clean(mock.Mock(lang='en', pictures=False))
         self.assertTrue(held.copy.is_dir(), "eaos clean removed the copy of B's live run")
         self.assertFalse(left.exists())

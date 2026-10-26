@@ -53,9 +53,9 @@ class Journey(unittest.TestCase):
         for patch in (mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'EAOS_ASSISTANT': 'none'}),
                       mock.patch.dict(runners.RUNNERS, engines=no_engines, architecture=no_engines),
                       mock.patch.object(guided, 'tools_for_check', return_value={}),
-                      mock.patch('eaos.journeys.fix.waves.original_checks', return_value={}),
-                      mock.patch('eaos.journeys.fix.waves.gates', side_effect=project_checks),
-                      mock.patch('eaos.journeys.fix.waves._against_control', return_value=False)):   # the base passes: nothing set aside
+                      mock.patch('eaos.journeys.fix.waves.batch.original_checks', return_value={}),
+                      mock.patch('eaos.journeys.fix.waves.batch.gates', side_effect=project_checks),
+                      mock.patch('eaos.journeys.fix.waves.batch._against_control', return_value=False)):   # the base passes: nothing set aside
             patch.start()
             self.addCleanup(patch.stop)
         os.environ.pop('EAOS_DETECTOR_VERDICTS', None)      # the product's own detector verdicts, as a person gets them

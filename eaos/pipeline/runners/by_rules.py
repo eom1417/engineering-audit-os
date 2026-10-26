@@ -197,7 +197,7 @@ def layers(context):
     project's tests as this check ran them, when it did."""
     from ...analysis import layers as layered
     from .live_app import _ran
-    verification = layered._read(context.out / 'verification.json') if _ran(context, 'verify') else None
+    verification = layered.read(context.out / 'verification.json') if _ran(context, 'verify') else None
     summary = layered.run(context.target, context.out, verification)
     return {'findings': summary['findings'], 'questions': summary['questions'], 'files': summary['files'],
             'gaps': summary['gaps'], 'endpoints': summary['endpoints']}

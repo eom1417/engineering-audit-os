@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from eaos.journeys.fix import waves
+from eaos.journeys.fix.waves import batch as wave_batch
 from shared_fixture import scratch
 
 
@@ -55,10 +56,10 @@ class OrderTests(unittest.TestCase):
             (root / name).write_text('z = 2\n'); run('commit', '-qam', name); commits.append(run('rev-parse', 'HEAD'))
         batch = {'name': 'w', 'runtime': root, 'root': root, 'base': base, 'say': lambda *_: None, 'regenerate': lambda r: None}
         said = [{'command': 'tests', 'output': 'FAIL: test_x ... a.py::f: 16 (allowed 15)'}]
-        with mock.patch.object(waves, 'failing_output', return_value=said), mock.patch.object(waves, 'gates', return_value='') as gates:
-            self.assertEqual(list(waves._named(batch, commits)), [commits[0]])
+        with mock.patch.object(wave_batch, 'failing_output', return_value=said), mock.patch.object(wave_batch, 'gates', return_value='') as gates:
+            self.assertEqual(list(wave_batch._named(batch, commits)), [commits[0]])
         self.assertEqual(gates.call_count, 1, 'one run of the checks, not a halving')
-        self.assertEqual(waves._sizes_before(root, ['b.py', 'c.py']), {'b.py': 2}, 'counted as facts/metrics counts lines')
+        self.assertEqual(wave_batch._sizes_before(root, ['b.py', 'c.py']), {'b.py': 2}, 'counted as facts/metrics counts lines')
 
     def test_a_card_whose_change_brings_a_finding_of_the_slower_security_engine_is_left_out_of_the_batch(self):
         # M7.5: bandit and gitleaks read every change; semgrep (the browser's innerHTML, a shell built from strings) only
@@ -70,7 +71,7 @@ class OrderTests(unittest.TestCase):
         failed = {}
         found = [('semgrep', 'insecure-innerhtml', 'page.js')]
         with mock.patch('eaos.facts.run.collect'), mock.patch('eaos.analysis.assessments.weaknesses.new', return_value=found):
-            kept = waves._secure(batch, {'T1': sound, 'T2': unsafe}, failed, [])
+            kept = wave_batch._secure(batch, {'T1': sound, 'T2': unsafe}, failed, [])
         self.assertEqual(list(kept), ['T1'])
         self.assertIn('insecure-innerhtml (semgrep) in page.js', failed['T2'])
         self.assertEqual(batch['security']['engines'], ['semgrep'], "the batch's record says what read it")
@@ -92,7 +93,7 @@ class OrderTests(unittest.TestCase):
         sets = {'deadcode': {'facts': [{'location': {'path': 'src/a.ts', 'symbol': 'still'}, 'value': {'rule': 'unused-symbol'}}]}}
         with mock.patch('eaos.facts.run.collect') as collect, mock.patch('eaos.facts.run.read_available', return_value=sets), \
                 mock.patch('eaos.analysis.claims.probes.decide_probe', return_value=('REFUTED', 'gone')):
-            exits = waves.batch_acceptance(scratch(), [dead_card, gone_card, probe_card], scratch())
+            exits = wave_batch.batch_acceptance(scratch(), [dead_card, gone_card, probe_card], scratch())
         self.assertEqual(collect.call_count, 1)
         self.assertEqual(exits, {'D': 0, 'G': 1, 'P': 0})
 
@@ -130,8 +131,8 @@ class RebuildTests(unittest.TestCase):
         commits = [f'c{n}' for n in range(8)]
         applied, regenerated = [], []
         batch = {'root': 'root', 'base': 'base', 'name': 'wave-1', 'say': lambda *a: None, 'regenerate': regenerated.append}
-        with mock.patch.object(waves, 'rebuild', side_effect=lambda root, base, part: applied.append(list(part)) or []), \
-                mock.patch.object(waves, 'gates', side_effect=lambda *a, **k: f'broken by {len(applied[-1])}' if 'c5' in applied[-1] else ''):
+        with mock.patch.object(wave_batch, 'rebuild', side_effect=lambda root, base, part: applied.append(list(part)) or []), \
+                mock.patch.object(wave_batch, 'gates', side_effect=lambda *a, **k: f'broken by {len(applied[-1])}' if 'c5' in applied[-1] else ''):
             found = waves.culprits(batch, commits)
         self.assertEqual(found, {'c5': 'broken by 1'}, "the culprit's own reason, not the batch's")
         self.assertLessEqual(len(applied), 6, 'halving, not trying every card alone')
@@ -199,10 +200,10 @@ class FinishTests(unittest.TestCase):
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         broken = lambda batch, name: 'the project\'s own check failed: test' if (Path(batch['root']) / '2.txt').exists() else ''
-        with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}
                                | {'T4': 1}), \
-                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=broken), \
-                mock.patch.object(waves, '_against_control', return_value=False):
+                mock.patch.object(wave_batch, 'original_checks', return_value=['test']), mock.patch.object(wave_batch, 'gates', side_effect=broken), \
+                mock.patch.object(wave_batch, '_against_control', return_value=False):
             summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=False)
         self.assertEqual(summary['kept'], ['T1', 'T3'])
         self.assertIn("own check failed", summary['failed']['T2'])
@@ -230,9 +231,9 @@ class FinishTests(unittest.TestCase):
                                                 else "the project's own check failed: a cycle")
         finish = lambda repairs, bisect: waves.finish_batch(report, project, runtime, wave(root, base, kept),
                                                            lock=False, repairs=repairs, bisect=bisect)
-        with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
-                mock.patch.object(waves, 'original_checks', return_value=['test']), mock.patch.object(waves, 'gates', side_effect=together), \
-                mock.patch.object(waves, '_against_control', return_value=False):
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+                mock.patch.object(wave_batch, 'original_checks', return_value=['test']), mock.patch.object(wave_batch, 'gates', side_effect=together), \
+                mock.patch.object(wave_batch, '_against_control', return_value=False):
             with self.assertRaises(waves.GatesFailed) as asked:
                 finish([], bisect=False)
             self.assertIn('a cycle', asked.exception.why)
@@ -253,8 +254,8 @@ class FinishTests(unittest.TestCase):
         base = git(root, 'rev-parse', 'HEAD')
         kept = {card['id']: commit_file(root, card['paths'][0], card['id']) for card in cards}
         live_page = lambda batch, name: '' if 'problems' in (batch.get('known') or ()) else 'the behaviour lock broke on 1 of 2 specs'
-        with mock.patch.object(waves, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
-                mock.patch.object(waves, 'original_checks', return_value=[]), mock.patch.object(waves, 'gates', side_effect=live_page), \
+        with mock.patch.object(wave_batch, 'batch_acceptance', side_effect=lambda report, cards, root: {c['id']: 0 for c in cards}), \
+                mock.patch.object(wave_batch, 'original_checks', return_value=[]), mock.patch.object(wave_batch, 'gates', side_effect=live_page), \
                 mock.patch('eaos.live.behavior.lock.verify_lock') as control, \
                 mock.patch('eaos.live.behavior.lock.failing_tests', return_value={'problems'}):
             summary = waves.finish_batch(report, project, runtime, wave(root, base, kept), lock=True)

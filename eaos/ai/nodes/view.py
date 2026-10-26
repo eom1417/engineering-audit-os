@@ -46,7 +46,7 @@ def _log(report):
 
 def section(report, lang='ar'):
     """The body of studio/nodes.json."""
-    from . import NODES, SINKS, TITLES_AR
+    from .pipeline import NODES, SINKS, TITLES_AR
     report = Path(report)
     logs = _log(report)
     rows, questions = [], []

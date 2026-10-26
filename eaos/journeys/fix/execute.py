@@ -76,7 +76,7 @@ def new_breakage(report, root, collected=None):
 def _layers_broken(report, root, out):
     """The boundaries of the layers (eaos/analysis/layers/) a change broke, when the check read them."""
     from ...analysis import layers
-    before = layers._read(Path(report) / layers.RECORD)
+    before = layers.read(Path(report) / layers.RECORD)
     return layers.introduced(before, layers.check(root, out)) if before else []
 
 

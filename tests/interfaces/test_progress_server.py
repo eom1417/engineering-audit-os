@@ -295,17 +295,17 @@ class Addresses(unittest.TestCase):
                          'a Remote record gives its routed address')
         address = f"http://127.0.0.1:8123/#/scan?token={'t' * 32}"
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}), \
-                mock.patch.object(guided, 'doctor_rows', return_value=[]), mock.patch.object(guided, 'advance', return_value=0), \
+                mock.patch.object(guided.commands, 'doctor_rows', return_value=[]), mock.patch.object(guided.commands, 'advance', return_value=0), \
                 mock.patch.object(toolchain, 'ready', return_value=True), mock.patch.object(toolchain, 'prepare'), \
                 mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32}), \
-                mock.patch.object(launch, '_open') as opened, mock.patch.object(guided, 'say') as said:
+                mock.patch.object(launch, '_open') as opened, mock.patch.object(guided.commands, 'say') as said:
             project = git_project(Path(tmp) / 'shop')
             cli.main(['start', str(project), '--lang', 'en', '--no-watch'])
             opened.assert_not_called()
             cli.main(['start', str(project), '--lang', 'en'])
         opened.assert_called_once_with(address, True)
         self.assertIn(mock.call(f'Watch the work live: {address}'), said.call_args_list)
-        with mock.patch.object(launch, 'start') as started, mock.patch.object(guided, 'say') as said:
+        with mock.patch.object(launch, 'start') as started, mock.patch.object(guided.commands, 'say') as said:
             guided.watch({'lang': 'ar'}, cli.argparse.Namespace(no_watch=True))
         started.assert_not_called()
         said.assert_not_called()
