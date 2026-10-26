@@ -245,7 +245,7 @@ def _audit_tool(server, reading, working):
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
               assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
               paths: list[str] | None = None, mode: str | None = None, sign_in: str | None = None, published: str | None = None,
-              run_app: bool = False, go_on: bool = False, fixed: bool = False, person_agreed: bool = False) -> str:
+              run_app: bool = False, go_on: bool = False, fixed: bool = False, person_agreed: bool = False) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
         return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in,
                            published, run_app, go_on, fixed, person_agreed)
 

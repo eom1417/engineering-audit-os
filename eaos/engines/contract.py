@@ -77,7 +77,7 @@ def measurement(name, value, threshold=None, unit=None):
 
 
 def finding(engine, version, rule, kind, subj, message, measurements=(), engine_confidence=None,
-            method=HEURISTIC, raw_ref=None, sites=(), cwe=()):
+            method=HEURISTIC, raw_ref=None, sites=(), cwe=()):  # limits: parameters -- a record's constructor: the fields of the finding contract, the optional ones keywords
     """One normalised finding. Its id is content-derived, so two runs of the same engine agree.
 
     A finding about several places carries all of them in `sites`; `subject` is only its anchor.

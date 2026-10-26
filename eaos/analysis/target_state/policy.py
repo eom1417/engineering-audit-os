@@ -132,8 +132,7 @@ def check(target, out, policy_path=None):
     from ...facts.store import write_set
     target, out = Path(target).resolve(), Path(out).resolve()
     result = run(target, out, policy_path)
-    write_set(out, NAME, NAME, VERSION, result['facts'], result['input_sha'], LIMITATIONS,
-              result['summary'], result['available'], result['reason'])
+    write_set(out, NAME, NAME, VERSION, LIMITATIONS, result)
     summary = result['summary']
     return {'target': str(target), 'out': str(out), 'declared': summary.get('declared', False),
             'violations': summary.get('violations', 0), 'unclassified_count': summary.get('unclassified_count', 0),

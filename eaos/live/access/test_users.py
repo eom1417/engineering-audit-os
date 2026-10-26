@@ -114,10 +114,10 @@ def _reached(row, nowhere):
     from urllib.parse import urlsplit
     from ..app.setup import SIGN_IN_PAGE
     path, landed = row.get('path') or '/', urlsplit(row.get('url') or '').path.rstrip('/') or '/'
-    if opened(path, row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere): return True
+    if opened(row, nowhere): return True
     return 200 <= (row.get('status') or 0) < 400 and landed.startswith(path.rstrip('/') + '/') and not row.get('password') \
         and not SIGN_IN_PAGE.search(landed) \
-        and opened(landed, row.get('url'), row.get('status'), 0, row.get('text'), nowhere)
+        and opened({**row, 'password': 0}, nowhere, landed)
 
 
 def _sources(root, pages, limit=12000):
@@ -137,22 +137,21 @@ def _opens(live, base, session, pages):
     from ..app.setup import probe
     page = probe(live, base, session, None, pages[:3] + [NOWHERE]) if session.is_file() else {}
     nowhere, rows = nowhere_of(page), (page.get('others') or [])[:-1] if pages else [page]
-    return any(opened(row.get('path') or '/', row.get('url'), row.get('status'), row.get('password'), row.get('text'), nowhere)
+    return any(opened(row, nowhere)
                for row in rows if row)
 
 
-def make(project, live, base, state, report, provider, hand=False):
+def make(project, trial, provider):
     """The assistant's seed script, run on the running app and told what is still lacking, round by round (ROUNDS at
     most): a round that ends with something lacking goes back to the node that owns the views and the way in, the
     reading of the code (eaos/live/access/roles.py find), with what lacks, and the next round goes on with its answer. What is still
-    lacking ('' when every session works). `hand`: the person signed in themselves (BY_HAND)."""
+    lacking ('' when every session works). `trial`: what the script is tried on (Trial)."""
     from .roles import find
-    trial = Trial(live, base, state, report, hand)
     wrong = lacking(*trial)
     for again in range(ROUNDS):
         if not wrong: break
         if again:
-            try: find(project, report, provider, wrong)
+            try: find(project, trial.report, provider, wrong)
             except ValueError: pass                # an answer with no real line: the views stay as they were
         wrong = _round(project, trial, provider, wrong)
     return wrong

@@ -326,7 +326,7 @@ def _why(problem, cancel):
     return 'stuck' if isinstance(problem, Stuck) else _short(f'{type(problem).__name__}: {problem}', 300)
 
 
-def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=None, started=None, say=None):
+def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=None, started=None, say=None):  # limits: parameters -- the planning's settings by name, a node's (eaos/ai/nodes/runner.py RUN_OPTIONS)
     """Plan the ideal of every view on top of the rules: the planning pass, the critique pass and the evidence check.
 
     Returns {state, message{en, ar}, ...}. 'planned' writes <report>/ideal/plan.json; 'not_planned' (no assistant here)

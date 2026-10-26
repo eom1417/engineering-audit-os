@@ -78,7 +78,7 @@ def _plain_mermaid(components, edges):
 MAX_EDGES = 150
 
 
-def readable(names, edges, group_of, cycles=(), limit=MAX_EDGES, title=''):
+def readable(names, edges, group_of, cycles=(), limit=MAX_EDGES, title=''):  # limits: parameters -- a diagram's parts, links, groups and loops, with its cap and title
     """A Mermaid flowchart a person reads in VS Code: the parts in one subgraph per layer (or top folder), each link
     labelled with its import count, strongest first and capped at `limit` (a comment says how many are left out),
     and the links inside an import loop drawn red. edges: [(from, to, count or None)]."""

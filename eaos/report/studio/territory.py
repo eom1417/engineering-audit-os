@@ -25,6 +25,7 @@ import hashlib
 import math
 import random
 from collections import defaultdict
+from dataclasses import dataclass
 
 from .territory_land import land
 
@@ -64,7 +65,7 @@ def squarify(weights, x, y, w, h):
         while j < len(areas) and _worst(row + [areas[j]], short) <= _worst(row, short):
             row.append(areas[j])
             j += 1
-        x, y, w, h = _lay_row(row, x, y, w, h, out)
+        x, y, w, h = _lay_row(row, (x, y, w, h), out)
         i = j
     return out
 
@@ -75,8 +76,9 @@ def _worst(r, short):
     return max(max(s * s / (short * short * a), short * short * a / (s * s)) for a in r) if s else math.inf
 
 
-def _lay_row(row, x, y, w, h, out):
-    """Lay one row of areas into out; (x, y, w, h) of the room left."""
+def _lay_row(row, rect, out):
+    """Lay one row of areas into out, in the room `rect` (x, y, w, h); (x, y, w, h) of the room left."""
+    x, y, w, h = rect
     s = sum(row)
     if w >= h:                           # a column along the left side
         cw = s / h if h else 0
@@ -121,12 +123,12 @@ def layout(nodes, edges, room, family=()):
     pos = {n['id']: _start(n, room) for n in nodes}
     links = _links(edges, by)
     iters = max(160, min(700, int(500000 / max(len(ids), 1) ** 2)))
-    pull = _pulls(nodes)
+    walk = _Walk(ids, pos, by, room, _pulls(nodes))
     for it in range(iters):
         force = {i: [0.0, 0.0] for i in ids}
         _repel(ids, pos, by, force)
         _attract(pos, by, force, links, family)
-        _move(ids, pos, by, force, room, pull, 1.0 - it / iters)
+        _move(walk, force, 1.0 - it / iters)
     return {k: (round(v[0], 1), round(v[1], 1)) for k, v in pos.items()}
 
 
@@ -192,8 +194,20 @@ def _attract(pos, by, force, links, family):
         force[b][0] -= dx * k; force[b][1] -= dy * k
 
 
-def _move(ids, pos, by, force, room, pull, t):
+@dataclass
+class _Walk:
+    """What the layout's walk holds from step to step: the dots (ids in order, positions, nodes by id) and each
+    region's room (its ellipse) and pull toward its centre."""
+    ids: list
+    pos: dict
+    by: dict
+    room: dict
+    pull: dict
+
+
+def _move(walk, force, t):
     """One step, smaller as the walk cools (t from 1 to 0): each dot pulled to its region's centre, held inside it."""
+    ids, pos, by, room, pull = walk.ids, walk.pos, walk.by, walk.room, walk.pull
     step, cap = 0.6 + 0.4 * t, 12 * t + 1
     for i in ids:
         cx, cy, rx, ry = room[by[i]['region']]
@@ -288,7 +302,7 @@ def node_labels(nodes, pos, taken):
         px = 13.5 if big else 12
         w = text_width(n['short'], px, 'mono')
         others = [b for k, b in dots.items() if k != n['id']]
-        spot = _spot(x, y, r, w, px, placed, others)
+        spot = _spot((x, y, r), (w, px), placed, others)
         if spot is None:
             lx = _clamp_x(x, w / 2)
             spot = ('middle', lx, y + r + px + 2, (lx - w / 2, y + r + 2, lx + w / 2, y + r + px + 5))
@@ -301,8 +315,10 @@ def node_labels(nodes, pos, taken):
     return out
 
 
-def _spot(x, y, r, w, px, placed, others):
-    """(anchor, x, y, box) of the first free place for a dot's label: below, above, right, left; None when none is."""
+def _spot(dot, label, placed, others):
+    """(anchor, x, y, box) of the first free place for the label (w, px) of the dot (x, y, r): below, above, right,
+    left; None when none is."""
+    (x, y, r), (w, px) = dot, label
     for anchor, lx, ly in (('middle', x, y + r + px + 2), ('middle', x, y - r - 5), ('start', x + r + 5, y + px * .35),
                            ('end', x - r - 5, y + px * .35)):
         lx, box = _label_box(anchor, lx, ly, w, px)

@@ -60,7 +60,7 @@ def site(path, line, text=None):
 class Found:
     """One pipeline: its stages, edges, routers and the rest, each with its evidence."""
 
-    def __init__(self, key, title, kind, entry, evidence=(), role=None, confidence=None):
+    def __init__(self, key, title, kind, entry, evidence=(), role=None, confidence=None):  # limits: parameters -- a record's constructor: one pipeline's fields, the optional ones keywords
         self.id, self.title, self.kind = slug(key), title, kind
         self.role = role or ('tooling' if kind in TOOLING else 'product')
         self.confidence = confidence if confidence is not None else CONFIDENCE.get(kind, 0.7)
@@ -79,7 +79,7 @@ class Found:
             self.order.append(key)
         return key
 
-    def edge(self, a, b, matched_by, where, names=(), shape=None, kind='data', condition=None):
+    def edge(self, a, b, matched_by, where, names=(), shape=None, kind='data', condition=None):  # limits: parameters -- a record's constructor: one edge's fields, the optional ones keywords
         if a == b or a not in self.stages or b not in self.stages: return None
         row = self.edges.get((a, b))
         if row is None:

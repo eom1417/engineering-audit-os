@@ -3,6 +3,7 @@ paths, the journeys and hidden work, the data paths and infrastructure, and a pi
 import json
 import tempfile
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 from studio_synthetic_base import DOMAINS, ROOT, V2, measure, ratio
@@ -13,14 +14,17 @@ from eaos.report.studio import hidden as hidden_map  # noqa: E402
 from eaos.report.studio import user_journeys as journeys_map  # noqa: E402
 
 
-def synthetic_paths(comps, layer, modules, card_rows, pages=250, calls=3):
-    """studio/paths.json for the synthetic project: a page per component (up to `pages`), each through its layers, one
+PAGES, CALLS = 250, 3         # the synthetic paths: a page per component, up to PAGES, each making CALLS calls
+
+
+def synthetic_paths(comps, layer, modules, card_rows):
+    """studio/paths.json for the synthetic project: a page per component (up to PAGES), each through its layers, one
     call in five with no server route (a gap), laid out and clustered by EAOS's own functions; and the timeline of a
     plan whose waves run the cards in order."""
     mods = {}
     for path, comp in modules: mods.setdefault(comp, []).append(path)
-    graph = _Graph(card_rows)
-    out = [_synthetic_page(graph, comps, layer, mods, i, calls) for i in range(min(pages, len(comps)))]
+    graph, project = _Graph(card_rows), _Project(comps, layer, mods)
+    out = [_synthetic_page(graph, project, i) for i in range(min(PAGES, len(comps)))]
     used = Counter(n for p in out for column in p['columns'] for n in column)
     node_rows = [{**graph.nodes[n], 'paths': used[n]} for n in sorted(graph.nodes)]
     named = {n['component'] for n in node_rows}
@@ -39,7 +43,7 @@ class _Graph:
         for card in card_rows:
             for path in card['paths']: self.on_file.setdefault(path, []).append(card)
 
-    def node(self, nid, lane, label, kind='step', path=None, component=None, **extra):
+    def node(self, nid, lane, label, kind='step', path=None, component=None, **extra):  # limits: parameters -- a node's fields, as eaos/report/studio/paths/graph.py's
         cards = self.on_file.get(path, []) if path else []
         self.nodes.setdefault(nid, {'id': nid, 'lane': lane, 'kind': kind, 'label': label, 'fact': None, 'path': path, 'line': 1 if path else None,
                                     'component': component, 'cards': [c['id'] for c in cards][:20], 'group': extra.pop('group', None),
@@ -51,15 +55,26 @@ class _Graph:
         return len(self.edges) - 1
 
 
-def _synthetic_page(graph, comps, layer, mods, i, calls):
-    """Page i: its screen and component, then `calls` calls through their layers, laid out in columns."""
-    comp = comps[i]
+@dataclass
+class _Project:
+    """The synthetic project the paths walk: its components, each one's layer, and each one's files."""
+    comps: list
+    layer: dict
+    mods: dict
+
+    def part(self, comp):
+        return f'src/{self.layer[comp]}/{comp}'
+
+
+def _synthetic_page(graph, project, i):
+    """Page i: its screen and component, then CALLS calls through their layers, laid out in columns."""
+    mods, part = project.mods, project.part
+    comp = project.comps[i]
     domain = comp.rsplit('-', 1)[0]
     route = f'/{domain}/{i}'
-    part = lambda c: f'src/{layer[c]}/{c}'
     steps = [graph.link(graph.node(f'S:{route}', 'screen', route, path='src/App.tsx', component='src', group=f'/{domain}'),
                         graph.node(f'C:{mods[comp][0]}', 'component', comp, path=mods[comp][0], component=part(comp)), 'route', 'src/App.tsx')]
-    for j in range(calls): steps += _synthetic_call(graph, comps, mods, part, comp, i, j)
+    for j in range(CALLS): steps += _synthetic_call(graph, project, i, j)
     ids = {graph.edges[k][end] for k in steps for end in ('from', 'to')}
     columns = paths_section.layout(ids, {n: graph.nodes[n]['lane'] for n in ids}, [(graph.edges[k]['from'], graph.edges[k]['to']) for k in steps])
     return {'id': f'{domain}-{i}', 'title': route, 'handler': comp, 'surface': 'page', 'entry': f'S:{route}', 'fact': None, 'flow': None, 'flow_fact': None,
@@ -67,9 +82,11 @@ def _synthetic_page(graph, comps, layer, mods, i, calls):
             'unresolved': None, 'reach': 6}
 
 
-def _synthetic_call(graph, comps, mods, part, comp, i, j):
+def _synthetic_call(graph, project, i, j):
     """The links of call j of page i: handler, request, then a gap (one call in five) or the endpoint, its service and table."""
     node, link = graph.node, graph.link
+    comps, mods, part = project.comps, project.mods, project.part
+    comp = comps[i]
     other = comps[(i * 7 + j * 13 + 1) % len(comps)]
     h = node(f'H:{mods[other][1]}#fn{j}', 'handler', f'fn{j}', path=mods[other][1], component=part(other))
     steps = [link(f'C:{mods[comp][0]}', h, ('call', 'imports', 'contains')[j % 3], mods[comp][0])]

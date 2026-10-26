@@ -26,7 +26,8 @@ before anything else; it binds over this file.
   the symptom, and never break what exists.
 - EAOS itself: module ≤ 400 lines and function complexity ≤ 10 with no exception in Python; the Studio's JavaScript
   under the same laws, no exception (`console/tools/same.cjs` proves a split left every screen as it was); functions
-  ≤ 50 lines and ≤ 5 parameters (today's exceptions listed). The laws EAOS holds every project to stay 600 / 15
+  ≤ 50 lines and ≤ 5 parameters, no listed exception: a function whose parameters cannot be grouped (a
+  tool mirroring its command, a record's constructor) says why on its `def` line, `# limits: parameters -- <why>`. The laws EAOS holds every project to stay 600 / 15
   (`eaos/core/contracts/code_laws.py`). No dead code, no duplication, no medium or high security finding; layers per
   `docs/ARCHITECTURE.md`.
 - **`tools/quality.sh`** checks every law in about a minute and refuses any number worse than recorded

@@ -149,9 +149,12 @@ def _measure(row, base, out, number, storage_state):
                report=Path(speed['report']).relative_to(out).as_posix() if speed.get('report') else None)
 
 
-def crawl(base, out, max_routes=200, measured=MEASURED, storage_state=None, read_only=False, seeds=()):
+def crawl(base, out, max_routes=200, measured=MEASURED, **way):
+    """The app's pages from `base`, Lighthouse on a few; `way`: how they are reached, discover's storage_state,
+    read_only and seeds."""
+    read_only, storage_state = way.get('read_only', False), way.get('storage_state')
     if read_only: max_routes, measured = min(max_routes, PUBLISHED_ROUTES), min(measured, PUBLISHED_MEASURED)
-    routes, error = discover(base, max_routes, storage_state=storage_state, read_only=read_only, seeds=seeds)
+    routes, error = discover(base, max_routes, **way)
     if routes is None:
         return {'status': 'unavailable' if error and error.startswith(('not installed', 'Node.js')) else 'error', 'reason': error, 'routes': []}
     routes = [r for r in routes if r.get('status') == 'observed']

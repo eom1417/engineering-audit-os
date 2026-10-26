@@ -93,7 +93,7 @@ def write(out, record):
     (out / RECORD).write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     sha, facts = _facts(record)
     asked = [{'question': q['question'], 'question_ar': q['question_ar'], 'path': q['path']} for q in record['questions'][:30]]
-    write_set(out, NAME, NAME, VERSION, facts, sha, LIMITATIONS, {**record['summary'], 'asked': asked})
+    write_set(out, NAME, NAME, VERSION, LIMITATIONS, {'facts': facts, 'input_sha': sha, 'summary': {**record['summary'], 'asked': asked}})
     return record['summary']
 
 

@@ -80,7 +80,7 @@ def _node(script, config, timeout, env=None):
 
 
 def variants(lang_key=None, lang_param=None, theme_key=None, theme_param=None, langs=('ar', 'en'), themes=(None,),
-             lang_field=None, theme_field=None):
+             lang_field=None, theme_field=None):  # limits: parameters -- the keys of an app profile's `screens` settings, passed as **settings
     """The page variants to audit. A language is set through a localStorage key or a query parameter, when one is
     named; a theme the same way, and always through prefers-color-scheme. By default one theme only, the app's own:
     nothing is set and the browser asks for light (a dark pass doubled the pictures and the review, for a theme the

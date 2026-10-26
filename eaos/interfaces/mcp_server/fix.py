@@ -22,7 +22,7 @@ def _finding_tools(server, reading, working, _answer):
                  'text in the title, or only those EAOS can fix; paged with limit and offset.')
     @_answer
     def findings(kind: str | None = None, path: str | None = None, text: str | None = None, fixable_only: bool = False,
-                 limit: int = 30, offset: int = 0, project: str | None = None) -> str:
+                 limit: int = 30, offset: int = 0, project: str | None = None) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
         return tools.findings(project, kind, path, text, fixable_only, limit, offset)
 
     @server.tool(annotations=reading, description='One problem whole, by card (TASK-…) or claim (CLM-…) id: what and why, the evidence '
@@ -154,7 +154,7 @@ def _batch_tools(server, reading, working, _answer):
     @_answer
     def fix_start(cards: list[str] | None = None, size: int = 10, project: str | None = None, base: str | None = None,
                   deliver_as: str | None = None, merge_into: str | None = None, base_commit: str | None = None,
-                  assistants: int = 1) -> str:
+                  assistants: int = 1) -> str:  # limits: parameters -- the MCP tool's schema: each parameter is an argument the assistant passes
         return tools.fix_start(project, cards, size, base=base, deliver_as=deliver_as, merge_into=merge_into, base_commit=base_commit,
                                assistants=assistants)
 

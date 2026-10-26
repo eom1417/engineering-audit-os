@@ -19,6 +19,11 @@ RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en'
                'cancel': None, 'started': None, 'assistants': None, 'logged': True}
 
 
+def settings_of(options):
+    """A node's settings out of its options, each at its default when not given (RUN_OPTIONS); `options` is left as it is."""
+    return {name: options.get(name, default) for name, default in RUN_OPTIONS.items()}
+
+
 def run_node(node, spec, report, **options):
     """Run one decision node with its guards and return its record (contract ai-node), or None when it has nothing
     to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of

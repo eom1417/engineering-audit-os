@@ -99,7 +99,10 @@ def _out_edges(edges, cells):
             for e in sorted(edges.values(), key=lambda e: (e['from'], e['to']))]
 
 
-def _journey_counts(out_screens, pages, out_edges, journey, tasks, shot_count):
+def _journey_counts(out_screens, out_edges, journey, tasks):
+    """The section's numbers, each with the record it is read from."""
+    pages = [s for s in out_screens if s['kind'] == 'page']
+    shot_count = sum(1 for s in out_screens if s['shots'])
     broken, unowned = journey['broken'], journey['unowned']
     count = lambda flag: sum(flag in s['flags'] for s in pages)
     links = [e for e in out_edges if e['via'] != 'menu_of']
@@ -140,7 +143,7 @@ def _assemble(r, journey, tasks, cells):
     groups = defaultdict(list)
     for s in out_screens: groups[s['group']].append(s['id'])
     return {
-        'counts': _journey_counts(out_screens, pages, out_edges, journey, tasks, shot_count),
+        'counts': _journey_counts(out_screens, out_edges, journey, tasks),
         'src': SRC,
         'grid': _grid(cells),
         'starts': starts,

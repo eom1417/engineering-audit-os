@@ -106,12 +106,12 @@ def works(live, base, state, report=None):
 
 # ---------------------------------------------------------------- the check asks, the person answers
 
-def ask(workspace, base, state, why, log=None, mail=None, published=False):
+def ask(workspace, base, state, why, log=None, mail=None, published=False):  # limits: parameters -- the fields of the one question the person reads, each named
     """The check asks the person to sign in to the app at `base`; the browser of the sign-in page saves to `state`."""
     now = datetime.now(timezone.utc)
     _write(Path(workspace) / ASKED, {'asked': now.isoformat(timespec='seconds'), 'until': (now + timedelta(seconds=WAIT)).isoformat(timespec='seconds'),
-                                     'base': base, 'session': str(state), 'why': why, 'log': str(log) if log else None, 'mail': mail,
-                                     'published': published, 'state': 'waiting'})
+                                     'base': base, 'session': str(state), 'why': why, 'log': str(log) if log else None,
+                                     'mail': mail, 'published': published, 'state': 'waiting'})
 
 
 def tell(workspace, **said):

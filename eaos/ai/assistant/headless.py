@@ -346,7 +346,7 @@ def _json_object(text):
     return value if isinstance(value, dict) else None
 
 
-def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):
+def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):  # limits: parameters -- one assistant call: the question and its answer's shape, its folder, and the run's stop and pid hooks
     """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
 
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in

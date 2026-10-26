@@ -62,7 +62,7 @@ def delivery(state, deliver_as=None, merge_into=None):
     return name, merge_target(state, merge_into, continued)
 
 
-def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None, assistants=1):
+def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None, assistants=1):  # limits: parameters -- the fix_start tool's arguments, one for one (MCP server and CLI)
     """Open the next batch. As the fix preview set it: `base`, the branch to build on (by default the branch EAOS works
     on; another one becomes the branch EAOS works on, as choose_branch does); `deliver_as`, the new branch the fixes
     arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch continues on

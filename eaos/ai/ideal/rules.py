@@ -12,7 +12,7 @@ PATH_RANK = {op: i for i, op in enumerate(('retain', 'refactor', 'merge', 'rebui
 STORE_CHANGE = {'single_already': 'retain', 'merged_in_target': 'merge', 'still_multiple': 'refactor'}
 
 
-def _element(id_, kind, title, operation, subject=None, detail='', cites=(), rule_ids=()):
+def _element(id_, kind, title, operation, subject=None, detail='', cites=(), rule_ids=()):  # limits: parameters -- a target element's fields
     return {'id': str(id_), 'kind': kind, 'title': short(title, 160) or str(id_), 'operation': RELATION_OP.get(operation, operation)
             if RELATION_OP.get(operation, operation) in OPERATIONS else 'refactor', 'subject': subject, 'detail': short(detail, 220),
             'cites': [c for c in dict.fromkeys(cites) if isinstance(c, str) and EVIDENCE.match(c)][:8], 'rules': list(rule_ids)}

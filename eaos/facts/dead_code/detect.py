@@ -68,7 +68,7 @@ REVIEW_REASONS = {'test_only': 'only tests name it: delete it with them, or keep
                             'manifests or the docs runs it, so ask whether anyone still does before deleting it'}
 
 
-def _finding(rule, path, line, symbol, message, subject_kind, evidence, sha, tests=(), program=False):
+def _finding(rule, path, line, symbol, message, subject_kind, evidence, sha, tests=(), program=False):  # limits: parameters -- a record's constructor: one dead-code finding's fields
     # A name or module only tests read is either dead with its tests, or a contract the tests pin on purpose (a
     # test harness kept outside tests/); the text cannot tell which, so it is a review candidate (test_only), not an
     # asserted defect. A program in a scripts/ or tools/ folder is never imported: that nothing imports it says

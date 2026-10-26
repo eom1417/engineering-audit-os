@@ -36,7 +36,7 @@ def _runners():
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
-            runtime=None, mode='normal', paths=None, patterns=None, sign_in=None):
+            runtime=None, mode='normal', paths=None, patterns=None, sign_in=None):  # limits: parameters -- the run's keyword-only options, passed through as **options by check, again and resume
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
     without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
@@ -233,7 +233,7 @@ def clear(out, patterns=None):
     return freed
 
 
-def check(target, out, again_from=None, checked=False, paths=None, go_on=False, **options):
+def check(target, out, again_from=None, checked=False, paths=None, go_on=False, **options):  # limits: parameters -- the check's own choices (again, go on, focus); the run's options pass on as **options
     """A check the person asked for: a fresh full run, which first clears the previous check's bulky data (clear) unless
     it runs some stages only. `go_on`: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
     goes on from that checkpoint instead, unless the source changed since; a new check never does (one stopped and

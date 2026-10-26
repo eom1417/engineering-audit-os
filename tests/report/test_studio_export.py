@@ -186,7 +186,7 @@ class Evidence(unittest.TestCase):
                  {'id': 'F2', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'}, 'value': {'kind': 'secret', 'sites': [{'path': 'src/a.ts', 'line': 3}]}}]
         from eaos.facts.store import write_set
         with tempfile.TemporaryDirectory() as report:
-            write_set(report, 'external', 'external', '1', facts, 'sha', [])
+            write_set(report, 'external', 'external', '1', [], {'facts': facts, 'input_sha': 'sha'})
             rows = {f['id']: f for f in evidence.evidence(report, {'F1', 'F2'}, self.source)}
         self.assertEqual((rows['F1']['line'], rows['F1']['code']['hidden']), (4, [3]))
         self.assertIsNone(rows['F2']['code'])

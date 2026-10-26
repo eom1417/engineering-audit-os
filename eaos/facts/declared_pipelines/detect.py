@@ -306,8 +306,9 @@ def write(report, record):
     from ..store import facts_dir, write_set
     facts_dir(report)
     rows = facts_of(record)
-    return write_set(report, NAME, NAME, VERSION, rows, digest(json.dumps(record, sort_keys=True, default=str).encode('utf-8')),
-                     LIMITATIONS, {'detected': record['detected'], 'pipelines': len(record['pipelines'])})
+    return write_set(report, NAME, NAME, VERSION, LIMITATIONS,
+                     {'facts': rows, 'input_sha': digest(json.dumps(record, sort_keys=True, default=str).encode('utf-8')),
+                      'summary': {'detected': record['detected'], 'pipelines': len(record['pipelines'])}})
 
 
 def read(report):

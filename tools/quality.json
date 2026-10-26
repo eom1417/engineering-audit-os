@@ -1,12 +1,9 @@
 {
- "code:parameters": 121,
  "jscpd:exact_clone": 6,
  "knip:exports": 36,
- "semgrep:javascript.browser.security.insecure-document-method": 17,
- "semgrep:javascript.browser.security.insecure-innerhtml": 17,
+ "semgrep:javascript.browser.security.insecure-document-method": 13,
+ "semgrep:javascript.browser.security.insecure-innerhtml": 13,
  "semgrep:javascript.browser.security.raw-html-join": 1,
  "semgrep:javascript.lang.security.audit.detect-non-literal-regexp": 1,
- "semgrep:javascript.lang.security.audit.unsafe-dynamic-method": 1,
- "semgrep:javascript.lang.security.insecure-object-assign": 1,
- "semgrep:python.lang.security.audit.dangerous-subprocess-use-audit": 40
+ "semgrep:javascript.lang.security.insecure-object-assign": 1
 }

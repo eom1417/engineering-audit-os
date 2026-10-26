@@ -63,8 +63,8 @@ class StoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out:
             rows = [make('symbol', 'syntax', '3', 'sha', {'path': f'a{i}.py'}, {'n': i}, limitations=['syntax only'])
                     for i in range(3)]
-            entries = [store.write_set(out, 'syntax', 'syntax', '3', rows, 'sha', ['syntax only']),
-                       store.write_set(out, 'graph', 'graph', '1', [], 'sha', [])]
+            entries = [store.write_set(out, 'syntax', 'syntax', '3', ['syntax only'], {'facts': rows, 'input_sha': 'sha'}),
+                       store.write_set(out, 'graph', 'graph', '1', [], {'facts': [], 'input_sha': 'sha'})]
             store.write_index(out, out, entries)
             self.assertNotIn('limitations', json.loads((Path(out) / 'facts/syntax.json').read_text())['facts'][0])
             self.assertEqual(read_set(out, 'syntax')['facts'], rows)

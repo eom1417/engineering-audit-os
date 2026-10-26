@@ -24,11 +24,14 @@ def facts_dir(out):
 def serialise(payload): return json.dumps(payload, ensure_ascii=False, separators=(',', ':')) + '\n'
 
 
-def write_set(out, name, extractor, version, facts, input_sha, limitations, summary=None, available=True, reason=None):
+def write_set(out, name, extractor, version, limitations, result):  # limits: parameters -- the set's file name and its extractor's name, version and limitations, each a module's constants (history writes git_history)
+    """facts/<name>.json of an extractor's `result`, the dict every extractor's run() returns: its facts and input_sha,
+    and optionally its summary, available (True when absent) and reason. Returns its index entry."""
+    facts, available, reason = result['facts'], result.get('available', True), result.get('reason')
     shared = _shared(facts)
     payload = {'schema_version': SCHEMA_VERSION, 'extractor': extractor, 'extractor_version': version,
-               'available': available, 'input_sha': input_sha, 'limitations': list(limitations),
-               'summary': summary or {}, 'fact_fields': shared,
+               'available': available, 'input_sha': result['input_sha'], 'limitations': list(limitations),
+               'summary': result.get('summary') or {}, 'fact_fields': shared,
                'facts': [{key: value for key, value in fact.items() if key not in shared} for fact in facts]}
     if reason: payload['reason'] = reason
     text = serialise(payload)

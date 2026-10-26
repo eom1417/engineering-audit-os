@@ -3,14 +3,18 @@ length, logic written once, and no unused import or variable.
 
 Complexity, lengths and parameters: what exceeds the limit today is listed in tools/code_limits.json with its current size and may
 only shrink; a new entry, or a listed one that grew, fails tests/guards/test_code_limits.py. When an entry shrinks or drops
-under the limit, `python tools/code_limits.py --tighten` rewrites the list. Duplicates and leftovers have no list:
-there are none, and the test keeps it so.
+under the limit, `python tools/code_limits.py --tighten` rewrites the list. A function whose parameters cannot be grouped
+(a public tool mirroring its command's options, a record's constructor) says why on its `def` line instead, the way a
+justified pyflakes or Semgrep line does: `# limits: parameters -- <why>`; it is not counted and needs no entry, and a
+comment with no reason after `--` does not count. Duplicates and leftovers have no list: there are none, and the test
+keeps it so.
 """
 import ast
 import hashlib
 import io
 import json
 import linecache
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -26,6 +30,9 @@ FOLDERS = ('eaos', 'tools')
 # project to stay eaos/core/contracts/code_laws.py's.
 LIMITS = {'functions': min(MAX_COMPLEXITY, 10), 'function_lines': MAX_FUNCTION_LINES, 'parameters': MAX_PARAMETERS,
           'modules': min(MAX_LINES, 400)}
+# The kinds a function may justify on its signature, and the comment that does: the kind, then `--` and a reason.
+JUSTIFIABLE = ('parameters',)
+_JUSTIFIED = re.compile(r'#\s*limits:\s*([\w, ]+?)\s+--\s*\S')
 
 
 def functions(tree, prefix=''):
@@ -50,6 +57,15 @@ def parameters(function):
     return sum(arg.arg not in ('self', 'cls') for arg in named)
 
 
+def justified(function, lines):
+    """The kinds of JUSTIFIABLE the function's signature (its `def` line to the line before its body) says why it
+    exceeds: `# limits: parameters -- <why>`. No reason after `--`, no justification."""
+    last = max(function.lineno, function.body[0].lineno - 1)
+    said = {kind.strip() for line in lines[function.lineno - 1:last] for match in _JUSTIFIED.finditer(line)
+            for kind in match.group(1).split(',')}
+    return said & set(JUSTIFIABLE)
+
+
 def studio(over):
     """The Studio's JavaScript (console/src) held to the same complexity and module length (M4.6), counted by EAOS's own
     facts (eaos/facts/code/metrics.py: 1 + the lexical branches, each nested function alone), added to `over`."""
@@ -72,12 +88,13 @@ def measure():
     over = studio({kind: {} for kind in LIMITS})
     for path in modules():
         text, rel = path.read_text(encoding='utf-8'), path.relative_to(ROOT).as_posix()
-        if (lines := len(text.splitlines())) > LIMITS['modules']: over['modules'][rel] = lines
+        if len(lines := text.splitlines()) > LIMITS['modules']: over['modules'][rel] = len(lines)
         for name, node in functions(ast.parse(text, rel)):
             sizes = {'functions': complexity(node), 'function_lines': node.end_lineno - node.lineno + 1,
                      'parameters': parameters(node)}
+            excused = justified(node, lines)
             for kind, size in sizes.items():
-                if size > LIMITS[kind]: over[kind][f'{rel}::{name}'] = size
+                if size > LIMITS[kind] and kind not in excused: over[kind][f'{rel}::{name}'] = size
     return over
 
 

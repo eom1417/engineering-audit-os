@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import subprocess
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -88,7 +89,7 @@ def _write(folder, name, data):
     return blob
 
 
-def export(report, lang='ar', name=None, project=None, progress=None, state=None, build=None):
+def export(report, lang='ar', name=None, project=None, progress=None, state=None, build=None):  # limits: parameters -- the Studio's one public entry, each caller passes its own subset
     """Write <report>/studio/ and return {'written': [sections], 'errors': [{section, error}]}; `build`: a project still built
     from its plan (build_tools.studio_build), its plan, questions and next step in place of a check's."""
     report = Path(report)
@@ -105,11 +106,29 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     stamp = {**build_info.stamp(datetime.now(timezone.utc).isoformat(timespec='seconds')), 'studio_digest': build_info.studio_digest()}
     scan = scan_of(project, state)
     if not scan['at']: scan['at'] = str((m['manifest'] or {}).get('started_at') or '')
-    built, errors = {}, []
-    card_rows = _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors)
-    _build_maps(report, m, lang, progress, scan, card_rows, built, errors)
-    entries = _publish_all(folder, report, built, errors, lang, name, project, scan, stamp)
-    return {'written': [e['name'] for e in entries], 'errors': errors}
+    run = _Build(report, folder, m, lang, name, project, progress, state, scan, stamp)
+    card_rows = _build_core(run)
+    _build_maps(run, card_rows)
+    entries = _publish_all(run)
+    return {'written': [e['name'] for e in entries], 'errors': run.errors}
+
+
+@dataclass
+class _Build:
+    """One export: what it reads (the report, its records `m`, the project and its scan) and what it fills (`built`,
+    `errors`), shared by the steps that build and publish the sections."""
+    report: Path
+    folder: Path
+    m: dict
+    lang: str
+    name: str | None
+    project: str | None
+    progress: dict | None
+    state: dict | None
+    scan: dict
+    stamp: dict
+    built: dict = field(default_factory=dict)
+    errors: list = field(default_factory=list)
 
 
 def _attempt(built, errors, section, make):
@@ -123,16 +142,18 @@ def _drop_unwritten(built):
     if 'pipeline' in built and built['pipeline'] is None: built.pop('pipeline')
 
 
-def _build_core(report, m, lang, project, progress, state, scan, stamp, built, errors):
+def _build_core(run):
     """The contract v1 sections, into `built`; returns the cards every later section reads."""
-    attempt = lambda section, make: _attempt(built, errors, section, make)
+    report, m, lang, project, progress, state, scan, built = (run.report, run.m, run.lang, run.project, run.progress,
+                                                              run.state, run.scan, run.built)
+    attempt = lambda section, make: _attempt(built, run.errors, section, make)
     claims = {c.get('id'): c for c in m['dossier'].get('claims') or [] if isinstance(c, dict)}
     attempt('cards', lambda: cards(m, claims, lang))
     card_rows = built.get('cards') or []
     history = (((progress or {}).get('ledger') or {}).get('scores') or
                [{'at': scan['at'], 'commit': scan['commit'], 'score': None if m['score']['score'] is None else m['score']['score'] / 100}])
     attempt('meta', lambda: meta(report, m))
-    attempt('head', lambda: head(m, scan, lang, stamp, freshness(project, state)))
+    attempt('head', lambda: head(m, scan, lang, run.stamp, freshness(project, state)))
     attempt('health', lambda: health(m, history))
     attempt('evidence', lambda: evidence(report, {i for c in card_rows for i in c['evidence']}, sources(project, scan['commit'])))
     attempt('story', lambda: story(report, m, card_rows))
@@ -144,16 +165,17 @@ def _build_core(report, m, lang, project, progress, state, scan, stamp, built, e
     return card_rows
 
 
-def _build_maps(report, m, lang, progress, scan, card_rows, built, errors):
+def _build_maps(run, card_rows):
     """The contract v2 sections, into `built`: the maps, the history, the ideal and the change."""
-    attempt = lambda section, make: _attempt(built, errors, section, make)
+    report, m, lang, progress, built = run.report, run.m, run.lang, run.progress, run.built
+    attempt = lambda section, make: _attempt(built, run.errors, section, make)
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
     attempt('journeys', lambda: journeys_map.journeys(report, built.get('media')))
     if 'journeys' in built: attempt('hidden', lambda: hidden_map.hidden(report, built['journeys'], card_rows))
     attempt('data_paths', lambda: data_map.data_paths(report, lang))
     attempt('infra', lambda: infra_map.infra(report, lang))
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
-    attempt('history', lambda: history_section.history(scan, m['score']['score'], card_rows, (progress or {}).get('ledger'),
+    attempt('history', lambda: history_section.history(run.scan, m['score']['score'], card_rows, (progress or {}).get('ledger'),
                                                        (progress or {}).get('waves') or ()))
     _drop_unwritten(built)
     attempt('ideal', lambda: planned_ideal.section(report, lang))
@@ -167,9 +189,10 @@ def _build_maps(report, m, lang, progress, scan, card_rows, built, errors):
         if built.get(section, False) is None: built.pop(section)
 
 
-def _publish_all(folder, report, built, errors, lang, name, project, scan, stamp):
+def _publish_all(run):
     """Write every section that keeps its contract, then coverage, the locales, errors.json and the manifest last;
     returns the manifest's entries."""
+    folder, report, built, errors, lang = run.folder, run.report, run.built, run.errors, run.lang
     contracts, entries = artifact_contracts.contracts(), []
 
     def publish(section, data):
@@ -192,8 +215,8 @@ def _publish_all(folder, report, built, errors, lang, name, project, scan, stamp
     except (OSError, ValueError, TypeError) as error:
         errors.append({'section': 'locales', 'error': str(error)[:300]})
     (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    manifest = {'schema_version': 1, 'language': lang, 'contract': CONTRACT, 'revision': REVISION, 'built': stamp,
-                'project': {'name': name or Path(str(project or report)).name}, 'scanned': scan, 'sections': entries}
+    manifest = {'schema_version': 1, 'language': lang, 'contract': CONTRACT, 'revision': REVISION, 'built': run.stamp,
+                'project': {'name': run.name or Path(str(run.project or report)).name}, 'scanned': run.scan, 'sections': entries}
     if locales:
         manifest['locales'] = locales
     if entries and not artifact_contracts.validate(manifest, contracts['studio-manifest']): _write(folder, 'manifest', manifest)

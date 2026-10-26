@@ -193,7 +193,7 @@ def _cycle_groups(graph):
     return groups
 
 
-def run(target, source, edges=None, entry_points=None, metrics=None, history=None, **options):
+def run(target, source, edges=None, entry_points=None, metrics=None, history=None, **options):  # limits: parameters -- the extractor protocol: each earlier set it reads by name (facts/run.py EXTRACTOR_ARGS)
     if edges is None: edges, entry_points, metrics, history = _computed_inputs(target, source)
     edges = edges or []
     nodes = _nodes(source, edges)

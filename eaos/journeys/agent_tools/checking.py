@@ -16,7 +16,7 @@ from .where import _branch, _older_check
 # ---------------------------------------------------------------- diagnosis
 
 def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None, without_ai=False, again_from=None, engines=None,
-          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False, person_agreed=False):
+          paths=None, mode=None, sign_in=None, published=None, run_app=False, go_on=False, fixed=False, person_agreed=False):  # limits: parameters -- the audit tool's arguments, one for one (MCP server and CLI)
     """`use_assistant`, `assistant`: the person's choice for the check's AI, kept (one not ready stops it, with why);
     `without_ai`: the rules alone; `again_from`: the last check goes on from that stage (`engines`: only those tools);
     `paths`, `mode`, `sign_in`, `published`, `run_app` (kept: eaos/journeys/check_choices.py); `go_on`: Retry; `fixed`: the assistant

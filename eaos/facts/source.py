@@ -23,7 +23,7 @@ def language_of(path): return LANGUAGE_BY_SUFFIX.get(Path(path).suffix.lower())
 class Source:
     """One snapshot, read once, shared by all extractors; the target is never written to."""
 
-    def __init__(self, target, inv=None, max_files=100000, max_bytes=2_000_000, exclude=None, include_vendored=False):
+    def __init__(self, target, inv=None, max_files=100000, max_bytes=2_000_000, exclude=None, include_vendored=False):  # limits: parameters -- the snapshot's bounds, each a keyword with its default
         self.target = Path(target).resolve()
         self.inventory = inv or inventory(self.target, max_files, max_bytes)
         from .scope import GENERATED, vendored_patterns

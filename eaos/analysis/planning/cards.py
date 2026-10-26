@@ -341,10 +341,10 @@ def _settle(task, verdicts, decided, context):
     """A card that stays: its verdict, its resolution, and its prerequisites on cards that left dropped with why.
     `decided`: (resolutions, claims); `context`: (target, out, revision, the cards gone, the cards rejected)."""
     resolved, claims = decided
-    target, out, revision, gone, rejected = context
+    *where, gone, rejected = context
     verdict = verdicts.get(task['id'])
     if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence', 'rejudged')}
-    if task['id'] in resolved: resolve(task, resolved[task['id']], claims.get(task.get('claim_id')), target, out, revision)
+    if task['id'] in resolved: resolve(task, resolved[task['id']], claims.get(task.get('claim_id')), where)
     _drop_prerequisites(task, gone, rejected)
 
 

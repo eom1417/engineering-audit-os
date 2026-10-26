@@ -295,9 +295,11 @@ def _recheck_spec(claim, sets):
     return spec_for(claim, sets) if decidable else None
 
 
-def resolve(task, resolution, claim, target, out, revision):
+def resolve(task, resolution, claim, where):
     """The card as the assistant resolved it: `fix` makes it remediate and ready with the change and its check, `owner`
-    keeps it an investigation carrying the question, `keep` closes it (the caller sets it aside)."""
+    keeps it an investigation carrying the question, `keep` closes it (the caller sets it aside). `where`: (target, out,
+    revision), the project, its report and the revision it was read at."""
+    target, out, revision = where
     from ...core.contracts.decisions import decide
     words = 'decided by your assistant: ' + (resolution.get('note') or resolution.get('why') or '')
     task['resolution'] = {**{k: v for k, v in resolution.items() if k not in ('checks', 'severity', 'reach')}, 'by': 'assistant', 'words': words}

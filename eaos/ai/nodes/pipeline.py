@@ -77,15 +77,15 @@ TITLES_AR = {'card_triage': 'فرز البطاقات', 'visual_reviewer': 'ال�
 BY_NAME = {each.name: each for each in NODES}
 
 
-def run(report, names=None, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None, **inputs):
-    """Run the named AI nodes (all by default) in order; a node with nothing to read is left out of the result."""
+def run(report, names=None, **options):
+    """Run the named AI nodes (all by default) in order; a node with nothing to read is left out of the result. The
+    options go to each node as they are: its settings (runner.RUN_OPTIONS) and its inputs."""
     records = {}
     for each in NODES:
         if names and each.name not in names: continue
         runner = NODE_RUNNERS.get(each.name)
         if runner is None: continue
-        result = runner(each, report, launcher=launcher, adapters=adapters, project=project, lang=lang, fresh=fresh, say=say,
-                        **inputs)
+        result = runner(each, report, **options)
         if result is not None: records[each.name] = result
     return records
 
