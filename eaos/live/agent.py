@@ -87,11 +87,15 @@ def step_command(step):
     return {'op': action, 'target': step.get('target') or {}, 'value': step.get('value')}
 
 
+def seen(page, steps):
+    """The page now and the last steps, as an assistant reads them before choosing the next step."""
+    return {'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
+            'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')}, 'picture': page.get('picture')}
+
+
 def _brief(page, steps, goal):
     """What the assistant reads before choosing the next step."""
-    return json.dumps({'goal': goal, 'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
-                       'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')},
-                       'picture': page.get('picture')}, ensure_ascii=False)
+    return json.dumps({'goal': goal, **seen(page, steps)}, ensure_ascii=False)
 
 
 def explore(browser, goal, provider, start='/'):

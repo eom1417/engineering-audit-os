@@ -12,7 +12,7 @@ import json
 import time
 from pathlib import Path
 
-from ..agent import reach, step_command, taken
+from ..agent import reach, seen, step_command, taken
 
 VERSION = 1
 BUDGET = {'steps': 25, 'seconds': 600, 'calls': 30, 'failures': 3}
@@ -37,9 +37,9 @@ Never delete, pay, send to real people, publish or sign out."""
 def _brief(page, steps, goal, values):
     """What the persona reads before choosing its next step."""
     return json.dumps({'goal': goal['goal'], 'done_when': goal.get('done_when'), 'values_to_use': values or {},
-                       'steps_so_far': [{k: s.get(k) for k in ('action', 'target', 'value', 'landed', 'error')} for s in steps[-10:]],
-                       'page_now': {k: page.get(k) for k in ('path', 'title', 'text', 'controls', 'error')},
-                       'picture': page.get('picture')}, ensure_ascii=False)
+                       **({'happened_before_you': goal['events']} if goal.get('events') else {}),
+                       **({'support_told_you': goal['help']} if goal.get('help') else {}),
+                       **seen(page, steps)}, ensure_ascii=False)
 
 
 def _next(browser, provider, persona, brief):
@@ -88,8 +88,9 @@ class _Journey:
 
 
 def act(browser, persona, goal, provider, values=None):
-    """The journey of `persona` towards `goal` ({name: '<persona>.<goal>', goal, start, done_when}) on `browser`: the
-    steps until the persona says done or stuck, or a budget ends it (`stopped`: steps, time, calls or failures)."""
+    """The journey of `persona` towards `goal` ({name: '<persona>.<goal>', goal, start, done_when, events?: the
+    hand-offs it waited for, shown to the persona}) on `browser`: the steps until the persona says done or stuck, or a
+    budget ends it (`stopped`: steps, time, calls or failures)."""
     journey = _Journey(persona, goal, goal.get('start') or '/')
     page = browser.do({'op': 'open', 'path': journey.record['start']})
     if page.get('ok'): reach(journey.screens, page)
