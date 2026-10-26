@@ -66,7 +66,7 @@ def run_command(project, argv, timeout):
     environment = {k: v for k, v in os.environ.items() if k in {'PATH', 'HOME', 'LANG', 'TMPDIR', 'SystemRoot', 'WINDIR'}}
     started = time.monotonic()
     try:
-        completed = subprocess.run(argv, cwd=project, env=environment, capture_output=True, text=True,
+        completed = subprocess.run(argv, cwd=project, env=environment, capture_output=True, text=True,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the project's own declared command, a list argv, run in its isolated copy with the person's consent, no shell
                                    timeout=timeout, check=False)
         output, code, timed_out = (completed.stdout + completed.stderr)[-4000:], completed.returncode, False
     except subprocess.TimeoutExpired:

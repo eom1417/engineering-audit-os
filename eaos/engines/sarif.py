@@ -30,12 +30,17 @@ CWE = re.compile(r'\bcwe[-/:]?0*(\d+)', re.IGNORECASE)
 
 
 def _results(data):
-    """(rules by id, result) for every result of every run."""
+    """(rules by id, result) for every result of every run, but those suppressed in the source: a line the project
+    justified (`# nosemgrep: rule -- why`) is its decision, not a finding (SARIF suppressions, kind inSource)."""
     for run in data.get('runs') or []:
         driver = (run.get('tool') or {}).get('driver') or {}
         rules = {rule.get('id'): rule for rule in driver.get('rules') or []}
         for result in run.get('results') or []:
-            yield rules, result
+            if not _justified(result): yield rules, result
+
+
+def _justified(result):
+    return any(s.get('kind') == 'inSource' and s.get('status') in (None, 'accepted') for s in result.get('suppressions') or [])
 
 
 def _artifacts(result):

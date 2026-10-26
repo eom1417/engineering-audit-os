@@ -21,7 +21,7 @@ def _launcher(spec):
 def _view_refusal():
     """'' when a command can have a view of its own run here (a user and a mount namespace), else why it cannot."""
     try:
-        done = subprocess.run([*_launcher({'offline': True, 'cwd': '/', 'mounts': [['hide', tempfile.gettempdir()]]}), 'true'],
+        done = subprocess.run([*_launcher({'offline': True, 'cwd': '/', 'mounts': [['hide', tempfile.gettempdir()]]}), 'true'],  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the launcher with `true`, fixed arguments, no shell
                               capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.TimeoutExpired) as problem:
         return str(problem)[:200]

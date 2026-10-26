@@ -72,7 +72,7 @@ def run_codemod(card, root, report):
     if not steps: raise RuntimeError(f"{card['id']}: its codemod cannot be rebuilt from the report's facts")
     for step, _ in steps:
         if callable(step): step()
-        else: subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600, check=True)
+        else: subprocess.run(step, cwd=root, capture_output=True, text=True, timeout=600, check=True)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- a codemod's argv rebuilt from the report's facts, run in the candidate copy, no shell
 
 
 def surfaces(facts):

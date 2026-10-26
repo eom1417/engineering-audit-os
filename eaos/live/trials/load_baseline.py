@@ -135,7 +135,7 @@ def run_baseline(report, target, runtime):
             conditions = conditions or _conditions(live, warmup, vus, duration)
             export = out / f'k6-{script.stem}.json'
             _, _, err = live.sandbox.run(['k6', 'run', '--quiet', '--summary-export', str(export), str(script)], timeout=duration + 600,
-                                         network=True, env={**live.extra(), 'BASE_URL': base, 'PATHS': json.dumps(paths), 'HEADERS': json.dumps(sent)})
+                                         network=True, env={**live.run_env(), 'BASE_URL': base, 'PATHS': json.dumps(paths), 'HEADERS': json.dumps(sent)})
             if not export.is_file(): raise RuntimeError(f'k6 did not run {script.name}: {err.strip()[-300:]}')     # never "no such file"
             scenarios.append({'id': script.stem.upper(), 'script': f'nfr/k6/{script.name}', 'threshold': threshold,
                               'before': summary(export), 'after': None})

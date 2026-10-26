@@ -157,7 +157,7 @@ class SandboxTests(Workspace):
         try: base = live.start()
         finally: live.stop()
         self.assertNotEqual(base, f'http://127.0.0.1:{taken}')
-        self.assertEqual(live.extra()['APP_URL'], base, 'every value naming the port moves with it')
+        self.assertEqual(live.run_env()['APP_URL'], base, 'every value naming the port moves with it')
 
     def test_a_timeout_kills_the_whole_process_group_and_dispose_keeps_only_the_record(self):
         box = self.box()

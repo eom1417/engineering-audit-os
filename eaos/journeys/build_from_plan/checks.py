@@ -1,5 +1,6 @@
 """The project's own scripts run on the copy of a milestone being built: install when the manifests changed, then
-typecheck, lint and test, and on the last milestone its browser journeys (e2e)."""
+typecheck, lint and test, and on the last milestone its browser journeys (e2e); and the repository's craft of the whole
+copy at a milestone's proof (M8.7)."""
 import json
 import os
 import subprocess
@@ -65,3 +66,9 @@ def _run_script(root, env, scripts, script, say):
     if done.returncode:
         return {'gate': script, 'where': 'package.json', 'what': f'npm run {script} failed: ' + (done.stdout + done.stderr)[-2000:]}
     return None
+
+
+def _milestone_tidy(root, out, card, closing):
+    """A milestone's proof (not the last: it reads every file) holds the whole copy to the repository's craft (M8.7)."""
+    from ...analysis.repair.gates import tidy
+    return tidy(None, out, _git(root, 'ls-files').stdout.split()) if card is None and not closing else []

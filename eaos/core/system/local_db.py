@@ -85,7 +85,7 @@ def _reachable(bin_dir, owner):
 def _open_to(folder, owner):
     """A folder the dedicated account owns, closed to every other account (it was open to all of them)."""
     shutil.chown(folder, user=owner, group=owner)
-    os.chmod(folder, 0o700)
+    os.chmod(folder, 0o700)  # nosemgrep: python.lang.security.audit.insecure-file-permissions -- 0o700 closes the folder to every other account
 
 
 def _as_owner():
@@ -112,7 +112,7 @@ class LocalPostgres:
         self._held = None
 
     def _run(self, bin_dir, name, *args, check=True):
-        return subprocess.run([str(bin_dir / name), *args], capture_output=True, text=True, check=check, timeout=120,
+        return subprocess.run([str(bin_dir / name), *args], capture_output=True, text=True, check=check, timeout=120,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- PostgreSQL's own binaries at their pin, a list argv, no shell
                               **({'user': self.owner} if self.owner else {}))
 
     def running(self):
@@ -198,9 +198,9 @@ class LocalPostgres:
             psql = [str(Path(state['bin']) / 'psql'), '-h', '127.0.0.1', '-p', str(state['port']), '-U', 'postgres', '-tA',
                     '-v', 'ON_ERROR_STOP=1', '-v', f'name={name}']
             env = {**os.environ, 'PGPASSWORD': self.password_file.read_text().strip()}
-            exists = subprocess.run(psql, input="select 1 from pg_database where datname = :'name'", capture_output=True, text=True, env=env)
+            exists = subprocess.run(psql, input="select 1 from pg_database where datname = :'name'", capture_output=True, text=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- psql at its pin, the name passed as a psql variable, never in the SQL text
             if exists.stdout.strip() != '1':
-                subprocess.run(psql, input='create database :"name"', capture_output=True, text=True, check=True, env=env)
+                subprocess.run(psql, input='create database :"name"', capture_output=True, text=True, check=True, env=env)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- psql at its pin, the name passed as a psql variable, never in the SQL text
         return self.url(state, name)
 
     def stop(self):

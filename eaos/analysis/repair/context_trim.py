@@ -155,10 +155,13 @@ def verify(drawn, after):
     """Each instruction of the context before that is not found again in exactly one file after (the context, the
     archive, the private file), a renamed path read as renamed; [] when none."""
     counts = Counter(line for text in after.values() for line in instructions(text))
-    wanted = {_renamed(line, drawn['renamed']) for text in drawn['before'].values() for line in instructions(text)}
+    wanted = sorted({_renamed(line, drawn['renamed']) for text in drawn['before'].values() for line in instructions(text)})
     twice = {said(text) for text, _ in drawn['kept_twice']}
-    lost = [f'lost: {line[:120]}' for line in sorted(wanted) if not counts.get(line)]
-    return lost + [f'said {counts[line]} times: {line[:120]}' for line in sorted(wanted) if counts.get(line, 0) > 1 and line not in twice]
+    return [_problem(line, counts[line]) for line in wanted if counts[line] != 1 and line not in twice or not counts[line]]
+
+
+def _problem(line, count):
+    return f'lost: {line[:120]}' if not count else f'said {count} times: {line[:120]}'
 
 
 def _renamed(line, renamed):

@@ -82,7 +82,7 @@ def _pass(live, lock, base, output, how):
     screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=update).start()
     try:
         code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
-                                          env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
+                                          env={**live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
                                                'EAOS_LOCK_STREAM': str(stream), 'EAOS_LOCK_KIND': kind or '',
                                                'EAOS_LOCK_UPDATE': '1' if update else ''})
     finally:
@@ -107,7 +107,7 @@ def _approvals(live, lock, output, update):
     argv = [str(pytest), f'{lock.name}/approvals', '-c', f'{lock.name}/pytest.ini', '-p', 'no:cacheprovider',
             '--continue-on-collection-errors', '-q', f'--junitxml={output}']
     code, out, err = live.sandbox.run(argv, timeout=1800, env={
-        **live.extra(), 'PYTHONPATH': str(Path(live.sandbox.copy).resolve()), 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1',
+        **live.run_env(), 'PYTHONPATH': str(Path(live.sandbox.copy).resolve()), 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1',
         'APPROVAL_TESTS_USE_REPORTER': APPROVE if update else COMPARE})
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
     statuses = approval_statuses(output)
@@ -312,7 +312,7 @@ def _walk(live, base, folder, kind, recorder):
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
             '--trace=retain-on-failure', '--output', str(folder / f'results{mark}'), *files]
     code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock', env={
-        **live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(folder / f'report{mark}.json'), 'EAOS_LOCK_KIND': kind or '',
+        **live.run_env(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(folder / f'report{mark}.json'), 'EAOS_LOCK_KIND': kind or '',
         'EAOS_LOCK_STREAM': str(folder / STREAM), **({} if kind else {'EAOS_RRWEB': str(recorder), 'EAOS_JOURNEYS': str(folder / 'rrweb')})})
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
 

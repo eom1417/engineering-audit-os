@@ -112,7 +112,7 @@ class LiveRun:
             self._database_url = self._database.create('_'.join(filter(None, (database['name'], self.apart))))
         return self._database_url
 
-    def extra(self):
+    def run_env(self):
         """The run's own values and the tools' locations; never an owner secret (those pass by name only).
         `{database_url}` in a value is the run's own database."""
         from ...core.toolchain import browsers, home
@@ -146,7 +146,7 @@ class LiveRun:
             import subprocess
             from ...core.system.local_db import free_port
             smtp, page = free_port(), free_port()
-            self._mailpit = smtp, f'http://127.0.0.1:{page}', subprocess.Popen(
+            self._mailpit = smtp, f'http://127.0.0.1:{page}', subprocess.Popen(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- mailpit at its pin, a list argv on free local ports, no shell
                 [str(binary), '--smtp', f'127.0.0.1:{smtp}', '--listen', f'127.0.0.1:{page}', '--quiet'],
                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         return self._mailpit[0] if hasattr(self, '_mailpit') else 9
@@ -180,7 +180,7 @@ class LiveRun:
     def run(self, argv, timeout=900, network=True, env=None, at_root=False):
         """(exit, stdout, stderr) of argv in the app folder of the copy (its root with `at_root`), with the run's environment."""
         result = self.sandbox.run(argv, timeout=timeout, network=network, cwd=None if at_root else self.profile.get('app') or None,
-                                  env={**self.extra(), **(env or {})})
+                                  env={**self.run_env(), **(env or {})})
         self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-6000:]})
         return result
 
@@ -200,7 +200,7 @@ class LiveRun:
             if code: raise RuntimeError(f"seed failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
             self.seed_output = (out + err)[-3000:]
             fixtures = _printed_fixtures(out)
-            self.extra().update(fixtures)
+            self.run_env().update(fixtures)
             self.fixtures.update(fixtures)
         for made in [storage_state, *kinds_folder(storage_state).glob('*.json')] if storage_state else []:
             if Path(made).is_file(): Path(made).chmod(0o600)            # a signed-in session: its owner's alone
@@ -234,7 +234,7 @@ class LiveRun:
             self.__dict__.pop('_extra', None)
         base = f"http://127.0.0.1:{self.profile['port']}"
         self.sandbox.start(self.profile['start'], base + self.profile.get('health', '/'),
-                           timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=self.extra())
+                           timeout=self.profile.get('start_timeout', 90), cwd=self.profile.get('app') or None, env=self.run_env())
         return base
 
     def stop(self):

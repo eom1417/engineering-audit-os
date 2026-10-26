@@ -91,7 +91,7 @@ def _run(argv, timeout, stdin=None, cwd=None):
     """(returncode, stdout, stderr) or (None, '', why) when it could not run or did not end in time: then its whole
     process group is ended, so a child it started cannot hold the probe."""
     try:
-        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd,
+        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
                                    start_new_session=(os.name == 'posix'))
     except (OSError, subprocess.SubprocessError) as problem:
         return None, '', type(problem).__name__

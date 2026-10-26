@@ -245,7 +245,7 @@ def version():
     import subprocess
     if not Path(BINARY).is_file(): return None
     try:
-        result = subprocess.run([BINARY, '--version'], capture_output=True, text=True, timeout=30)
+        result = subprocess.run([BINARY, '--version'], capture_output=True, text=True, timeout=30)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the pinned binary asked its version, fixed arguments, no shell
         return (result.stdout + result.stderr).strip().splitlines()[-1].strip()
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return None

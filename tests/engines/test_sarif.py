@@ -36,3 +36,11 @@ class SarifTests(Workspace):
         found = read(path, 'x', '1', [{'match': '*', 'kind': 'vulnerability'}])[0]
         self.assertEqual([(f['measurements'][0]['value'], f['engine_confidence'], f['cwe']) for f in found],
                          [('high', 'low', ['CWE-78']), ('medium', 'medium', ['CWE-89'])])
+
+    def test_a_result_the_project_justified_on_its_line_is_its_decision_not_a_finding(self):
+        # `# nosemgrep: rule -- why` reaches the SARIF as a suppression in the source; EAOS counted it as a finding.
+        justified = {**SARIF['runs'][0]['results'][0], 'suppressions': [{'kind': 'inSource'}]}
+        rejected = {**justified, 'suppressions': [{'kind': 'inSource', 'status': 'rejected'}]}
+        path = Path(self.tmp) / 'justified.sarif'
+        path.write_text(json.dumps({**SARIF, 'runs': [{**SARIF['runs'][0], 'results': [justified, rejected]}]}))
+        self.assertEqual(len(read(path, 'x', '1', [{'match': 'KNOWN-*', 'kind': 'vulnerability'}])[0]), 1, 'a rejected suppression stays a finding')

@@ -93,7 +93,7 @@ def detach(state, argv, env, log, mode='ab'):
     """`argv` in a session of its own, from the project's EAOS workspace folder, its output in logs/`log` (`mode` 'wb':
     each start writes it again, so it stays bounded)."""
     with open(log_path(state, log), mode) as out:
-        subprocess.Popen(argv, cwd=state['workspace'], env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=out,
+        subprocess.Popen(argv, cwd=state['workspace'], env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=out,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- EAOS starts itself (sys.executable -m eaos), a list argv, no shell
                          start_new_session=True, close_fds=True)
 
 

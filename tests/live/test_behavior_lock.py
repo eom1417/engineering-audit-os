@@ -294,7 +294,7 @@ class ApprovalRunTests(Workspace):
         from eaos.core import toolchain
         from eaos.live.isolation.sandbox import Sandbox
         live = mock.Mock(log=[], sandbox=Sandbox(project, Path(self.tmp) / 'authorization.json', Path(self.tmp) / 'sandbox', 'S05'))
-        live.extra.return_value = {'PATH': f"{toolchain.home() / 'bin'}{os.pathsep}{os.environ['PATH']}"}
+        live.run_env.return_value = {'PATH': f"{toolchain.home() / 'bin'}{os.pathsep}{os.environ['PATH']}"}
         return live
 
     def test_the_same_code_in_another_copy_matches_its_recording(self):
