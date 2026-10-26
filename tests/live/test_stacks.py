@@ -47,6 +47,11 @@ class PythonStackTests(unittest.TestCase):
         self.assertEqual(flaskr['install'][0][-2:], ['-e', '.'])
         self.assertEqual(flaskr['start'][4], 'flaskr')
         self.assertEqual(flaskr['prepare'], [['python', '-m', 'flask', '--app', 'flaskr', 'init-db']])
+        tested = live_setup.detect(project({
+            'pyproject.toml': '[project]\ndependencies = ["flask"]\n[project.optional-dependencies]\ntest = ["pytest", "coverage"]\n',
+            'flaskr/__init__.py': 'from flask import Flask\ndef create_app():\n    return Flask(__name__)\n'}))['profile']
+        # flaskr of the corpus: its pytest is its test extra; every gate said its tests passed and none had run (M9.3)
+        self.assertEqual((tested['install'][0][-2:], tested['checks']), (['-e', '.[test]'], [['python', '-m', 'pytest', '-q']]))
 
     def test_streamlit_and_fastapi_start_their_entry(self):
         streamlit = live_setup.detect(project({'requirements.txt': 'streamlit\n', 'pages/a.py': 'import streamlit as st\n',
