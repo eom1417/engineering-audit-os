@@ -18,13 +18,15 @@ import json
 import shutil
 from pathlib import Path
 
+import eaos
+
 from . import sarif, tool
 from .contract import OBSERVED, Report
 from .process import run, which
 
 NAME = BINARY = 'semgrep'
 PINNED = tool.pinned(NAME)
-OWN = Path(__file__).resolve().parent.parent / 'rules/semgrep'
+OWN = Path(eaos.__path__[0]).resolve() / 'rules/semgrep'
 OFFICIAL = ('javascript', 'typescript', 'python', 'generic/secrets')
 PREFIXES = ('rules.eaos.', 'rules.official.')
 # Official rules left out (M2.1, 2026-10-24). html-in-template-string flags every template literal that looks like HTML

@@ -10,6 +10,8 @@ import json
 import re
 from pathlib import Path
 
+import eaos
+
 from . import tool
 from .contract import KINDS, OBSERVED, SYMBOL, Capability, Report, finding, subject
 from .process import run, which
@@ -17,7 +19,7 @@ from .process import run, which
 NAME = 'ast-grep'
 BINARY = 'ast-grep'
 PINNED = tool.pinned(NAME)
-RULES = Path(__file__).resolve().parent.parent / 'rules/ast-grep'
+RULES = Path(eaos.__path__[0]).resolve() / 'rules/ast-grep'
 EXCLUDED = ('.git', 'node_modules', '.venv', 'venv', '__pycache__', 'dist', 'build', '.next', 'vendor', 'coverage')
 # A rule's metadata is written on one line (`metadata: {record: ..., kind: ...}`), so it is read without YAML.
 METADATA_KIND = re.compile(r'^metadata:.*\bkind: (\w+)', re.M)
