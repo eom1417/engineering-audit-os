@@ -30,12 +30,13 @@ def _app(args):
 def experience_command(args):
     from ..analysis.experience import simulation
     from ..report.experience.document import write
+    from ..report.experience.story import story, summary
     step = args.step
     if step == 'plan': said = {'personas': len(simulation.prepare(args.out, _assistant(args))[0]['personas'])}
     elif step == 'run': said = {k: v for k, v in simulation.simulate(args.out, args.target, _app(args), _assistant(args)).items() if k in ('seconds', 'calls', 'seeded')}
     elif step == 'judge': said = simulation.judged(args.out, _app(args), _assistant(args))
     elif step == 'replay': said = simulation.replays(args.out, _app(args))['summary']
-    else: said = {'written': [str(path) for path in write(args.out, args.lang)]}
+    else: said = {'written': [str(path) for path in write(args.out, args.lang)], 'difficulties': len(summary(story(args.out))['difficulties']['ranked'])}
     print(f'experience {step}: {said}')
 
 

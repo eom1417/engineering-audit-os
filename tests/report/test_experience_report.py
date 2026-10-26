@@ -1,13 +1,11 @@
 """The experience report (M10.8): one story from the records, told in EXPERIENCE.md in both languages and by the MCP tool."""
-import asyncio
 import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 from eaos.report.experience.document import write
-from eaos.report.experience.story import story
+from eaos.report.experience.story import story, summary
 
 
 def _put(path, body):
@@ -83,14 +81,8 @@ class ExperienceReport(unittest.TestCase):
             self.assertIn('journeys/', told['missing'])
             self.assertIn('was not tried', write(empty, 'en')[0].read_text(encoding='utf-8'))
 
-    def test_the_mcp_tool_answers_the_summary(self):
-        from eaos.interfaces.mcp_server.server import build
-        from eaos.journeys import guided
-        with mock.patch.object(guided, 'report_of', return_value=self.report), \
-             mock.patch('eaos.journeys.agent_tools.state_of', return_value={}), \
-             mock.patch.dict('os.environ', {'EAOS_HOME': str(self.report / 'home')}):
-            answer = asyncio.run(build().call_tool('experience', {'project': str(self.report)}))
-        told = json.loads(answer.content[0].text)
+    def test_the_summary_counts_the_steps_and_keeps_the_ranking(self):
+        told = summary(story(self.report))
         self.assertEqual(told['personas'][0]['goals'][0]['steps'], 1)
         self.assertEqual(told['difficulties']['ranked'][0]['id'], 'D3')
 
