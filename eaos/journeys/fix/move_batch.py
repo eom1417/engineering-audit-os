@@ -1,0 +1,230 @@
+"""A batch of moves (M8.5): the repository's layout put right by moving files, on a branch of its own, never mixed with
+fix cards, and refused whole on any difference.
+
+    proposal(report, target)   one tree "today → proposed": each move with its reason (the repository's findings of
+                               M7.8: a family of files that wants its folder, tests that do not follow the code; the
+                               target shape's placements), and whether the project's tests can prove a move changed nothing
+    make(batch)                the moves the person accepted, made in a clone of the authorised commit by the move tool
+                               (analysis/repair/moves.py), then the move gate: the public surface (entry points, the
+                               commands a package declares, every name each file exposes), every test back with its name
+                               and result, every check of the run profile (the build among them) with its exit, nothing
+                               newly broken (execute.new_breakage), and the behaviour lock on every screen. Any difference
+                               refuses the batch whole; a project whose tests cannot prove it gets the proposal only.
+
+The handed-over branch is fetched into the person's project like a wave's (waves.apply); accept and undo decide it.
+"""
+import json
+import posixpath
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+
+from ...analysis.repair import move_gate, moves
+from ...analysis.repair.move_python import Unmovable
+from ...core.project.ledger import TRAILER
+from .execute import candidate, git, new_breakage
+
+FAMILY, TESTS = 'prefix-family', 'tests-flat'
+SOURCE = ('.py', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.vue', '.svelte')
+
+
+# ---------------------------------------------------------------- the proposal
+
+def proposal(report, target):
+    """{moves: [{id, from, to, reason, rule, refused}], tree: [lines]}: the moves the repository's findings and the target
+    shape draw, each checked alone by the move tool (`refused`: why it cannot be made, else '')."""
+    target = Path(target)
+    known = moves.files(target)
+    drawn = _from_findings(report, known) + _from_target_shape(report, target, known)
+    seen, rows = set(), []
+    for number, move in enumerate(drawn, 1):
+        if move['from'] in seen: continue
+        seen.add(move['from'])
+        refused = moves.plan(target, [move], known)['refused']
+        rows.append({'id': f'MOVE-{number:03d}', **move, 'refused': '; '.join(refused)})
+    return {'moves': rows, 'tree': tree(rows)}
+
+
+def _findings(report):
+    from ...facts.store import read_set
+    return [f['value'] for f in (read_set(report, 'repository') or {}).get('facts') or []]
+
+
+def _from_findings(report, known):
+    out = []
+    for finding in _findings(report):
+        if finding['rule'] == FAMILY: out += _family(finding, known)
+        elif finding['rule'] == TESTS: out += _mirrored(report, finding, known)
+    return out
+
+
+def _family(finding, known):
+    """pipeline_run.py, pipeline_load.py ... into pipeline/: run.py, load.py."""
+    folder, prefix = finding['params']['path'], finding['params']['prefix']
+    base = '' if folder in ('', '.') else folder + '/'
+    members = [p for p in sorted(known) if posixpath.dirname(p) == folder.strip('.') and PurePosixPath(p).name.startswith(prefix)
+               and PurePosixPath(p).suffix in SOURCE]
+    return [{'from': p, 'to': f"{base}{prefix.rstrip('_-')}/{PurePosixPath(p).name[len(prefix):]}", 'rule': FAMILY,
+             'reason': finding.get('en') or f'{len(members)} files share {prefix}: they want their own folder'} for p in members]
+
+
+def _mirrored(report, finding, known):
+    """Each test of a flat tests folder beside the code it reads most: tests/<that code's folder>/."""
+    root = finding['params']['path']
+    reads = _imports_of(report)
+    out = []
+    for test in sorted(p for p in known if posixpath.dirname(p) == root and PurePosixPath(p).suffix in SOURCE):
+        folder = _mirror(reads.get(test) or [])
+        if folder: out.append({'from': test, 'to': f'{root}/{folder}/{PurePosixPath(test).name}', 'rule': TESTS,
+                               'reason': finding.get('en') or 'the tests follow the layout of the code they test'})
+    return out
+
+
+def _imports_of(report):
+    """{file: [the project files it imports]} from the check's resolved imports."""
+    from ...facts.store import read_set
+    out = {}
+    for fact in (read_set(report, 'resolve') or {}).get('facts') or []:
+        value = fact.get('value') or {}
+        if value.get('to_path') and fact.get('kind') == 'module_edge' and value.get('resolution', 'RESOLVED') == 'RESOLVED':
+            out.setdefault(fact['location']['path'], []).append(value['to_path'])
+    return out
+
+
+def _mirror(imported):
+    """The folder most of the imported code lives in, without its first folder (the package or src/), or None."""
+    folders = [PurePosixPath(p).parent.parts[1:] for p in imported if not PurePosixPath(p).name.startswith('test')]
+    folders = [f for f in folders if f]
+    if not folders: return None
+    best = max(set(folders), key=folders.count)
+    return '/'.join(best) if folders.count(best) * 2 > len(folders) else None
+
+
+def _from_target_shape(report, target, known):
+    """Each file the target shape places in a component whose folder is plain (no wildcard inside it)."""
+    from ...analysis.target_state import projection
+    try: projected = projection.project(report, target)
+    except (OSError, ValueError, KeyError): return []
+    if not projected: return []
+    reference = projection.rooted(projection.by_id(projected['reference']), projected['root'])
+    out = []
+    for path, component in sorted((projected.get('placements') or {}).items()):
+        folder = _component_folder(component, reference)
+        if folder and path in known and not path.startswith(folder):
+            out.append({'from': path, 'to': folder + PurePosixPath(path).name, 'rule': 'target-shape',
+                        'reason': f'the target shape keeps it in {component}'})
+    return out
+
+
+def _component_folder(component, reference):
+    from ...analysis.target_state.projection import _features_root, _feature_layer
+    if component.startswith('feature:'):
+        return f"{_features_root(reference, _feature_layer(reference))}/{component.split(':', 1)[1]}/"
+    layer = next((layer for layer in reference['layers'] if layer['name'] == component), None)
+    pattern = next(iter((layer or {}).get('paths') or ()), '')
+    folder = pattern[:-2] if pattern.endswith('**') else ''
+    return folder if folder and '*' not in folder else None
+
+
+def tree(rows):
+    """The proposal as one tree "today → proposed", folder by folder; a move that cannot be made says why."""
+    lines, folder = [], None
+    for row in sorted(rows, key=lambda r: r['from']):
+        here = posixpath.dirname(row['from']) or '.'
+        if here != folder: lines.append(f'{here}/')
+        folder = here
+        lines.append(f"  {PurePosixPath(row['from']).name}  →  {row['to']}   ({row['reason']})"
+                     + (f"  [cannot: {row['refused']}]" if row['refused'] else ''))
+    return lines
+
+
+# ---------------------------------------------------------------- the batch
+
+def make(batch):
+    """The accepted moves made and proved: the summary, its `kept` the moves on the branch, empty when refused (why in
+    `refused`). `batch`: {report, target, runtime, number, moves, deliver_as, lock, say}."""
+    from ...live.isolation.sandbox import head, refusal
+    say = batch.get('say') or (lambda *_: None)
+    if (reason := refusal(Path(batch['runtime']) / 'authorization.json', 'S08', head(batch['target']))): raise PermissionError(reason)
+    root = candidate(batch['target'], batch['runtime'], f"MOVES-{batch['number']}")
+    base = git(root, 'rev-parse', 'HEAD').stdout.strip()
+    say('before')
+    before = {'checks': named_checks(root, batch['runtime'], f"moves-{batch['number']}-before"), 'surface': None}
+    if (why := move_gate.unproven(before['checks'])): return _summary(batch, root, base, [], ['proposal only: ' + why])
+    before['surface'] = move_gate.surface(root, moves.files(root))
+    before['mapping'] = moves.plan(root, batch['moves'])['mapping']
+    say('moves')
+    try: made = moves.apply(root, batch['moves'])
+    except Unmovable as problem: return _summary(batch, root, base, [], [f'the move tool refused: {problem}'])
+    _commit(root, batch['moves'], made)
+    say('gate')
+    differences = _gate(batch, root, before)
+    if differences: git(root, 'reset', '--hard', '--quiet', base)
+    return _summary(batch, root, base, [] if differences else [m.get('id') or m['from'] for m in batch['moves']], differences)
+
+
+def _commit(root, chosen, made):
+    git(root, 'add', '-A')
+    listed = '\n'.join(f"  {m['from']} -> {m['to']}" for m in chosen)
+    done = git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m',
+               f"Move {made['moved']} file(s) to their place\n\n{listed}\n\nExecuted by EAOS (move batch).\n\n{TRAILER}: moves")
+    if done.returncode: raise RuntimeError('the moves left nothing to commit')
+
+
+def _gate(batch, root, before):
+    """Every difference the moves made: the surface, the tests and checks, what is newly broken, the screens."""
+    after = named_checks(root, batch['runtime'], f"moves-{batch['number']}-after")
+    out = move_gate.surface_differences(before['surface'], move_gate.surface(root, moves.files(root)), before['mapping'])
+    out += move_gate.test_differences(before['checks'], after, before['mapping'])
+    return out + new_breakage(batch['report'], root) + _lock(batch, root)
+
+
+def _lock(batch, root):
+    """The behaviour lock on every screen (no screen may look different), when the run recorded one."""
+    if not batch.get('lock', True) or not (Path(batch['runtime']) / 'behavior-lock').is_dir(): return []
+    from ...live.behavior.lock import failing_tests, verify_lock
+    name = f"moves-{batch['number']}"
+    verdict = verify_lock(batch['report'], root, batch['runtime'], name=name)
+    return [f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs: "
+            + '; '.join(sorted(failing_tests(batch['runtime'], name)))[:600]] if verdict['failed'] else []
+
+
+def named_checks(root, runtime, name):
+    """[{argv, exit, output}] of the run profile's checks and the Python tests on `root`, the tests told to name each
+    test they run (unittest -v, pytest -rA), so the gate finds every test back by its name."""
+    from ...live.app.run import LiveRun
+    from ...live.testing.verify import python_tests
+    live = LiveRun(root, runtime, 'S09')
+    checks = [(argv, False) for argv in live.profile.get('checks') or []] + [(argv, True) for argv in python_tests(root, live.profile)]
+    if not checks: return []
+    try:
+        live.setup()
+        rows = []
+        for argv, at_root in checks:
+            code, out, err = live.run(_naming(argv), timeout=1800, at_root=at_root)
+            rows.append({'argv': [str(a) for a in argv], 'exit': code, 'output': out + err})
+        return rows
+    finally:
+        live.stop()
+        live.record(f'runtime/checks-{name}-log.json')
+
+
+def _naming(argv):
+    """The same command, asking a Python test runner to name each test."""
+    argv = [str(a) for a in argv]
+    if 'unittest' in argv and '-v' not in argv: return argv + ['-v']
+    if 'pytest' in argv and '-rA' not in argv: return argv + ['-rA']
+    return argv
+
+
+def _summary(batch, root, base, kept, refused):
+    """The batch's record beside the run (runtime/moves/moves-N/moves.json, with its patch) and the summary."""
+    number = batch['number']
+    folder = Path(batch['runtime']) / 'moves' / f'moves-{number}'
+    folder.mkdir(parents=True, exist_ok=True)
+    if kept: git(root, 'format-patch', '--quiet', '-o', str(folder), f'{base}..HEAD')
+    summary = {'batch': number, 'kind': 'moves', 'branch': batch.get('deliver_as') or f'eaos/moves-{number}', 'root': str(root),
+               'base': base, 'kept': kept, 'moves': batch['moves'], 'refused': refused,
+               'at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+               'stat': git(root, 'diff', '--shortstat', f'{base}..HEAD').stdout.strip() if kept else ''}
+    (folder / 'moves.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return summary
