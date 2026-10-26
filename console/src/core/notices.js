@@ -8,7 +8,8 @@ export function toast(text, opts) {
   const el = document.createElement('div');
   const refusal = opts && opts.refusal;
   el.className = 'toast' + (refusal ? ' toast--refusal' : '');
-  el.innerHTML = `${icon(refusal ? 'warn' : 'check')}<span>${esc(text)}</span>${opts && opts.link ? `<a href="${opts.link.href}">${esc(opts.link.text)}</a>` : ''}`;
+  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the text and the link escaped
+  el.innerHTML = `${icon(refusal ? 'warn' : 'check')}<span>${esc(text)}</span>${opts && opts.link ? `<a href="${esc(opts.link.href)}">${esc(opts.link.text)}</a>` : ''}`;
   host.append(el);
   announce(text);
   if (refusal) el.addEventListener('click', () => el.remove());

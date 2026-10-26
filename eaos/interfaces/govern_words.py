@@ -52,6 +52,7 @@ WORDS = {
     'agree': {'en': 'To agree, type the command below; nothing happens until you do', 'ar': 'للموافقة اكتب الأمر أدناه، ولن يحدث شيء حتى توافق'},
     'said_no': {'en': 'you said no', 'ar': 'قلت لا'},
     'runs': {'en': '{count} run(s)', 'ar': '{count} تشغيل'},
+    'projects': {'en': '{count} project(s) on this computer', 'ar': '{count} مشروع على هذا الجهاز'},
     'problems': {'en': '{shown} of {total} problem(s) shown', 'ar': 'معروض {shown} من {total} مشكلة'},
     'branches': {'en': 'EAOS works on {branch}', 'ar': 'EAOS يشتغل على {branch}'},
     'unchecked_merge': {'en': 'No checks are recorded for this commit: agreeing merges it without them.',

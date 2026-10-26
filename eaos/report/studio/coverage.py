@@ -1,4 +1,4 @@
-"""studio/coverage.json: what EAOS measured for this report and what it has not measured yet (contract v2, docs/STUDIO.md D7).
+"""studio/coverage.json: what EAOS measured for this report and what it has not measured yet (contract v2).
 
 Every section the Studio reads gets one row: its state, the reason as a stable code the Studio words in either
 language, the step of the plan that will produce it, and how to produce it. A page whose section is not measured
@@ -20,7 +20,7 @@ PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'car
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
            'maps': None, 'paths': 'paths', 'journeys': 'screens', 'hidden': 'items',
-           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages', 'ideal': None, 'nodes': 'nodes', 'layers': 'layers'}
+           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages', 'ideal': None, 'nodes': 'nodes'}
 V1_STEP = 'NS36.T2'
 
 
@@ -208,7 +208,7 @@ PARTS = {'functions': _functions_parts, 'paths': _paths_parts, 'data_paths': _da
 
 def _nodes_row(body, lang):
     """The AI nodes are measured when at least one ran for this check; each node's part says how it was decided:
-    by the person's assistant, by the rules alone, or not yet (docs/STUDIO.md D11)."""
+    by the person's assistant, by the rules alone, or not yet."""
     nodes = (body or {}).get('nodes') or []
     words = {'model': ('قرّره المساعد', "decided by the person's assistant"), 'rules': ('قُرِّر بالقواعد فقط', 'decided by the rules only'),
              None: ('لم يعمل بعد', 'not run yet')}
@@ -222,7 +222,7 @@ def _nodes_row(body, lang):
 
 def _ideal_row(body, lang):
     """The ideal is measured when the person's assistant planned it for this check; the rules' target alone is partial,
-    with each view's part saying how it was made (docs/STUDIO.md D10)."""
+    with each view's part saying how it was made."""
     views = (body or {}).get('views') or {}
     planned = [name for name, view in views.items() if (view.get('provenance') or {}).get('method') == 'planned']
     parts = _view_parts(views, planned, lang)

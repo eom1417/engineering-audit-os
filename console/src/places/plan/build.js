@@ -2,11 +2,11 @@
 // each with its build cards, their acceptance and state, and the one next step: answer the blueprint's questions, or
 // build the next milestone (the `build_start` action: an assistant builds its cards through their gates).
 import { t, tn, L, num, esc, icon, code, rich } from 'eaos';
-import { buildStep } from '../understand-kit/kit.js';
+import { buildStep } from '../kit/kit.js';
 
 const TAG = { done: 'tag--ok', active: 'tag--live', blocked: 'tag--caution', todo: 'tag--state' };
 const tag = st => `<span class="tag ${TAG[st] || TAG.todo}">${st === 'done' ? icon('check') : ''}${t(st === 'blocked' ? 'bp.st.skipped' : 'un.pst.' + (TAG[st] ? st : 'todo'))}</span>`;
-const list = (items, cls) => items.length ? `<ul class="${cls}">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : '';
+const list = (items, cls) => items.length ? `<ul class="${cls}">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : '';  // nosemgrep: javascript.browser.security.raw-html-join -- the items are rich(), escaped
 
 function card(c) {
   const facts = [

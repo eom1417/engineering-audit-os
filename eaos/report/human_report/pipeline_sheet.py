@@ -1,6 +1,6 @@
 """The pipeline sheet of the report for people (REPORT.html, human/index.html, and its printed PDF): the flowchart of each
 product pipeline, the stage table and the gap, drawn from the Studio's pipeline section (eaos/analysis/maps/pipeline.py), so the
-report and System -> Pipeline show the same stages, places and numbers (docs/STUDIO.md D2, D9). Nothing here reads the
+report and System -> Pipeline show the same stages, places and numbers. Nothing here reads the
 records or computes a number: the section is given, once per language, by the caller.
 """
 from ...analysis.presentation import model as M

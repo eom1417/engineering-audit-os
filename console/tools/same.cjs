@@ -15,11 +15,7 @@ const arg = name => (process.argv.find(a => a.startsWith(`--${name}=`)) || '').s
 const ASSETS = arg('assets');
 const COMBOS = L.COMBOS.filter(c => ['1440-ar-light', '390-en-dark'].includes(c.key));
 const SEEDS = ['/status', '/waiting', '/waiting/decided', '/waiting/questions', '/waiting/sign-in', '/problems', '/problems/plan',
-  '/problems/plan/waves', '/activity', '/activity/runs', '/understand', '/understand/story', '/understand/gaps',
-  '/understand/operations', '/understand/ideal', '/understand/ai-decisions', '/understand/components', '/understand/functions',
-  '/understand/paths', '/understand/data', '/understand/unseen', '/understand/infra', '/understand/pipelines',
-  '/understand/architecture', '/understand/screens', '/understand/screens/all', '/understand/journeys', '/understand/library',
-  '/understand/report-files', '/understand/history', '/understand/history/compare', '/project/app', '/project/assistants',
+  '/problems/plan/waves', '/activity', '/activity/runs', '/report', '/report?part=screens', '/report?part=files', '/project/app', '/project/assistants',
   '/project/tools', '/project/settings', '/project/branches', '/open', '/ask'];
 const PER_KIND = 3, MOST = 400;
 

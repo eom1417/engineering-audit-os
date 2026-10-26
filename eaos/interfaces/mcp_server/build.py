@@ -3,7 +3,13 @@ on the server eaos/interfaces/mcp_server/server.py builds (each answered as ever
 
 
 def _build_tools(server, reading, working, _answer):
-    """The tools that build a new project from its plan, milestone after milestone."""
+    """The tools that build a new project from its plan, milestone after milestone, or extend a checked one, in this order."""
+    _plan_tools(server, working, _answer)
+    _milestone_tools(server, reading, working, _answer)
+
+
+def _plan_tools(server, working, _answer):
+    """From the plan to the target: the spec, the design; or a feature's spec on a checked project."""
     from ...journeys.build_from_plan import steps as build
 
     @server.tool(annotations=working, description='Build a new project from its plan (a PRD, notes, any file: Markdown, text, PDF, '
@@ -49,6 +55,11 @@ def _build_tools(server, reading, working, _answer):
             guided.save(state)
             guided.publish(state)
         return answer
+
+
+def _milestone_tools(server, reading, working, _answer):
+    """One milestone of the build in its isolated copy: open, read, write, leave out, close."""
+    from ...journeys.build_from_plan import steps as build
 
     @server.tool(annotations=working, description='Open the next milestone of the build in an isolated copy (the first time it asks '
                  'the person\'s agreement: person_agreed=true only after their yes). Returns the cards to build.')

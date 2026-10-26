@@ -1,5 +1,5 @@
 """The runs that ask the person's assistant themselves rather than handing it EAOS's tools (eaos/interfaces/studio_actions/runs.py
-PLANNERS): the planner of the ideal (eaos/ai/ideal/planner.py, docs/STUDIO.md D10) and the AI nodes (D11). Their steps are
+PLANNERS): the planner of the ideal (eaos/ai/ideal/planner.py) and the AI nodes (eaos/ai/nodes/). Their steps are
 the run's events, stop cancels them, and the Studio's data is published again when they end."""
 import threading
 
@@ -47,7 +47,7 @@ def plan_ideal(manager, run):
     manager.set_state(run, 'done', result=payload)
 
 def run_nodes(manager, run):
-    """Run the AI nodes on the latest check (docs/STUDIO.md D11) with the run's assistant: each node's steps are the
+    """Run the AI nodes on the latest check with the run's assistant: each node's steps are the
     run's events, the last batch of fixes is the fix reviewer's input, and the Studio's data is published again so the
     pipeline map, the cards and the inbox show the decisions. Without an assistant every node decides by the rules."""
     from ...journeys import guided

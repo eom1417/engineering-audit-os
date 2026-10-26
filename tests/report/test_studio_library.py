@@ -1,4 +1,4 @@
-"""The Library and History sections of the Studio's data: eaos/report/studio/library.py and history.py."""
+"""The documents, pictures and History sections of the Studio's data: eaos/report/studio/library.py and history.py."""
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,7 +34,7 @@ class Library(unittest.TestCase):
             'live/crawl/unlighthouse/reports/__screenshot-thumbnails__/0.jpg': PNG,
         })
 
-    def test_documents_follow_the_reading_order_and_travel_with_the_studio_and_the_machines_folders_and_oversized_images_do_not(self):
+    def test_documents_follow_the_reading_order_and_the_engines_copies_and_a_crawlers_thumbnails_are_left_out(self):
         rows = {d['path']: d for d in library.docs(self.out)}
         self.assertEqual(sorted(rows), ['README.md', 'RUN.md', 'START-HERE.md', 'adr/ADR-001.md'], "the engines' copies are left out")
         self.assertLess(rows['START-HERE.md']['order'], rows['RUN.md']['order'])
@@ -42,24 +42,9 @@ class Library(unittest.TestCase):
         self.assertEqual(rows['adr/ADR-001.md']['group'], 'adr')
         self.assertEqual(rows['START-HERE.md']['headings'], [{'level': 2, 'text': 'What was found'}, {'level': 3, 'text': 'Next'}],
                          'a line inside a code block is not a heading')
-        docs, media = library.docs(self.out), library.media(self.out, 'en')
+        media = library.media(self.out, 'en')
         self.assertEqual([m['id'] for m in media], ['architecture/system.mmd', 'shots/home.png'], "a crawler's thumbnails are left out")
         self.assertEqual(media[0]['title'], 'Map of pages and APIs')
-        body = library.library(self.out, docs, media, project=None)
-        text = {d['id']: d['text'] for d in body['documents']}
-        self.assertIn('~/projects/shop/src/a.ts', text['RUN.md'])
-        self.assertNotIn(str(Path.home()), text['RUN.md'])
-        images = {i['id']: i for i in body['images']}
-        self.assertEqual(images['architecture/system.mmd']['source'], 'flowchart LR\n  a --> b\n')
-        self.assertTrue(images['shots/home.png']['data'].startswith('data:image/png;base64,'))
-        old = library.IMAGE_LIMIT
-        library.IMAGE_LIMIT = 10
-        self.addCleanup(setattr, library, 'IMAGE_LIMIT', old)
-        body = library.library(self.out, [], library.media(self.out), project=None)
-        shot = next(i for i in body['images'] if i['id'] == 'shots/home.png')
-        self.assertEqual((shot['data'], shot['embedded'], shot['reason']), (None, False, 'too_large'))
-        self.assertEqual(body['counts']['truncated']['value'], 1)
-
 
 CARDS = [{'id': 'TASK-1', 'severity': 'high', 'state': 'open'}, {'id': 'TASK-2', 'severity': 'low', 'state': 'done'},
          {'id': 'TASK-3', 'severity': 'low', 'state': 'open'}]

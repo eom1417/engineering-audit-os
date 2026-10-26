@@ -1,57 +1,38 @@
-// Markdown drawn without any library (LIB-03, LIB-04, LIB-05), for a report document and for what an assistant writes
-// (a run's words, Ask's answers): headings with anchors for the contents, paragraphs, lists and task lists, tables with
-// their number columns aligned, quotes and GitHub's alerts, code with copy; a diagram is the caller's (ctx.diagram,
-// the library's Mermaid flowcharts), else its source. Nothing is ever injected as HTML: every text is escaped, then
-// only the marks below are added. Problem ids open the problem, links to other documents open them here, outside
-// links open outside, a file the library lacks is a dead link.
+// Markdown drawn without any library (LIB-04, LIB-05), for what an assistant writes (a run's words, Ask's answers,
+// a recommendation): headings, paragraphs, lists and task lists, tables with their number columns aligned, quotes and
+// GitHub's alerts, code with copy. Nothing is ever injected as HTML: every text is escaped, then only the marks below
+// are added. Problem ids open the problem, outside links open outside; any other link or picture is its words alone.
 import { t } from './i18n.js';
 import { esc, icon } from './format.js';
 import { href } from './address.js';
 import { problems } from '../data/model.js';
 
-const enc = encodeURIComponent;
 const ALERT = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i;
-
-/** A link inside a document, resolved against the document's folder: './a.md', '../b/c.md', 'd.md#part'. */
-export function resolveLink(from, target) {
-  const [file, hash = ''] = target.split('#');
-  if (!file) return { path: from, hash };
-  const parts = file.startsWith('/') ? [] : from.split('/').slice(0, -1);
-  for (const part of file.replace(/^\/+/, '').split('/')) { if (part === '..') parts.pop(); else if (part && part !== '.') parts.push(part); }
-  return { path: parts.join('/'), hash };
-}
 
 function inline(text, ctx) {
   let s = esc(text);
   s = s.replace(/`([^`]+)`/g, (m, c) => `\u0000code${c}\u0001`);
-  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (m, alt, src) => {
-    const p = resolveLink(ctx.path, src).path;
-    return `<a class="link" href="${href('/understand/library', { tab: 'images', q: p.split('/').pop() })}">${icon('map', 'icon--sm')}${alt || p.split('/').pop()}</a>`;
-  });
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (m, alt, src) => alt || src.split('/').pop());
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (m, label, target) => {
     const raw = target.replace(/&amp;/g, '&');
-    if (/^https?:/i.test(raw)) return `<a class="link" href="${esc(raw)}" target="_blank" rel="noopener noreferrer">${label}${icon('external', 'icon--sm')}</a>`;
-    if (raw.startsWith('#')) return `<a class="link" href="#" data-act="un-toc" data-target="h-${esc(slug(raw.slice(1)))}">${label}</a>`;
-    const { path } = resolveLink(ctx.path, raw);
-    return (ctx.docs || new Set()).has(path) ? `<a class="link" href="${href('/understand/library/' + enc(path))}">${label}</a>` : `<span class="un-deadlink" title="${esc(t('un.doc.dead'))}">${label}</span>`;
+    return /^https?:/i.test(raw) ? `<a class="link" href="${esc(raw)}" target="_blank" rel="noopener noreferrer">${label}${icon('external', 'icon--sm')}</a>` : label;
   });
   s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>');
   s = s.replace(/\b(TASK-\d{1,6})\b/g, (m, id) => ((ctx.cards || new Set()).has(id) ? `<a class="link" href="${href('/problems/' + id)}"><bdi class="mono">${id}</bdi></a>` : m));
   s = s.replace(/\\([_*`#|\[\]])/g, '$1');
   return s.replace(/\u0000code([^\u0001]*)\u0001/g, '<bdi class="mono">$1</bdi>');
 }
-export const slug = text => String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
+const slug = text => String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
 const dir = text => (/[؀-ۿ]/.test(text) ? 'rtl' : 'ltr');
 
 /* The block readers: each answers [html, the next line] for the block starting at line i, or null when it is not its
-   kind. doc: {out, para, heads, diagram}, the document drawn so far. */
-function fence(lines, i, ctx, doc) {
+   kind. doc: {out, para}, the text drawn so far. */
+function fence(lines, i) {
   const m = /^\s*```\s*(\S*)/.exec(lines[i]);
   if (!m) return null;
   const body = [];
   for (i += 1; i < lines.length && !/^\s*```/.test(lines[i]); i += 1) body.push(lines[i]);
   const src = body.join('\n');
-  if (m[1] === 'mermaid' && ctx.diagram) return [ctx.diagram(src, doc.diagram++), i + 1];
   return [`<div class="un-codeblock"><div class="un-codeblock__bar"><span class="small muted">${esc(m[1] || '')}</span><button class="btn btn--plain btn--sm" data-act="copy" data-text="${esc(src)}">${icon('copy', 'icon--sm')}${t('copy')}</button></div>
         <div class="code" tabindex="0">${body.map((l, j) => `<div class="code__line"><span class="code__ln">${j + 1}</span><span>${esc(l)}</span></div>`).join('')}</div></div>`, i + 1];
 }
@@ -61,7 +42,6 @@ function heading(lines, i, ctx, doc) {
   const depth = h[1].length, text = h[2].replace(/[*`]/g, '');
   if (depth === 1 && !doc.out.length && !doc.para.length) return ['', i + 1]; // the document's title is the page's
   const id = 'h-' + slug(text), tag = `h${Math.min(depth + 1, 4)}`;
-  doc.heads.push({ id, depth, text });
   return [`<${tag} id="${id}" dir="${dir(text)}">${inline(h[2], ctx)}</${tag}>`, i + 1];
 }
 function table(lines, i, ctx) {
@@ -100,10 +80,10 @@ function list(lines, i, ctx) {
 const rule = (lines, i) => (/^\s*(---|\*\*\*|___)\s*$/.test(lines[i]) ? ['<hr>', i + 1] : null);
 const BLOCKS = [fence, heading, table, quote, list, rule];
 
-/** {html, headings: [{id, depth, text}]} of a Markdown text. ctx: {path, docs: Set, cards: Set, diagram(src, n)}. */
-export function render(md, ctx) {
+/** The HTML of a Markdown text. ctx: {cards: Set}, the problems whose ids open them. */
+function render(md, ctx) {
   const lines = md.replace(/\r\n?/g, '\n').split('\n');
-  const doc = { out: [], para: [], heads: [], diagram: 0 };
+  const doc = { out: [], para: [] };
   const flush = () => { if (doc.para.length) { const s = doc.para.join(' '); doc.out.push(`<p dir="${dir(s)}">${inline(s, ctx)}</p>`); doc.para.length = 0; } };
   let i = 0;
   while (i < lines.length) {
@@ -115,7 +95,7 @@ export function render(md, ctx) {
     i = block[1];
   }
   flush();
-  return { html: doc.out.join(''), headings: doc.heads };
+  return doc.out.join('');
 }
 function listHTML(items, ordered, ctx) {
   const tag = ordered ? 'ol' : 'ul';
@@ -134,5 +114,5 @@ function listHTML(items, ordered, ctx) {
 
 /** What an assistant wrote, drawn as Markdown: its tables, lists, headings and bold; its problem ids open them. */
 export function md(text) {
-  return `<div class="md">${render(String(text || ''), { path: '', cards: new Set(problems().map(p => p.id)) }).html}</div>`;
+  return `<div class="md">${render(String(text || ''), { cards: new Set(problems().map(p => p.id)) })}</div>`;
 }

@@ -1,5 +1,5 @@
 """studio/gaps.json and studio/operations.json: what separates each component from the ideal, and the operations that
-close it in the order the plan runs them (contract v2, docs/STUDIO.md D7, NS46.T3).
+close it in the order the plan runs them (contract v2, NS46.T3).
 
 Read only from the check's own records: target-architecture.json (each component of today, its relation to the target
 and why, and the target's components), gap-matrix.json (the cards that close each gap and how far they cover it),

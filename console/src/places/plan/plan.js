@@ -7,7 +7,7 @@ import {
   t, tn, L, num, esc, icon, code, sev, chk, rich, href, screen, act, tickAct, refresh, parseHash, announce, setSelbar, offline,
   model, selection, data,
 } from 'eaos';
-import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page, opLinks } from '../understand-kit/kit.js';
+import { loading, nm, fold, facts, prow, enc, back, empty, ticks, page } from '../kit/kit.js';
 import { buildPage } from './build.js';
 
 const NEEDS = ['plans', 'cards', 'paths', 'operations', 'history'];
@@ -279,7 +279,7 @@ function stepFacts(s, all, before, tasks) {
           [t('un.step.waitsfor'), waitsLine],
           [t('un.step.comesbefore'), before.length ? before.map(x => `<a class="link" href="${href('/problems/plan/' + enc(x.id))}">${code(x.id)}</a>`).join(' ') : t('un.none')],
           [t('un.step.subplan'), s.sub_plan ? code(s.sub_plan) : t('un.none')],
-          [t('un.gap.ops'), opLinks(ops) || t('un.none')],
+          [t('un.gap.ops'), ops.map(o => '#' + num(o.order)).join(' ') || t('un.none')],
         ])}
       </section>`;
 }

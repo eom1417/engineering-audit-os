@@ -71,7 +71,7 @@ what the tools returned.
 # In a run the Studio started (EAOS_STUDIO_RUN set by eaos/interfaces/studio_actions), the assistant asks instead, and the person
 # answers in the Studio, which calls these itself.
 PERSON_ONLY = ('accept', 'undo', 'choose_branch', 'answer', 'branches merge', 'branches delete', 'branches protect', 'branches cleanup',
-               'branches restore', 'auto_accept')
+               'branches restore', 'auto_accept', 'sign_in_forget')
 STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
 
 
@@ -143,10 +143,17 @@ def build(more=None):
     return server
 
 
+PROJECT_DOC = 'The project folder (default: the folder the assistant was opened in).'
+
+
 def _check_tools(server, reading, working):
-    """The tools of the check: where things stand, the branches, the menu, the tools, the check and its overview."""
+    """The tools of the check: where things stand, the branches, the menu, the tools, the check and its overview, in this order."""
+    for group in (_way_tools, _record_tools, _audit_tool, _follow_tools): group(server, reading, working)
+
+
+def _way_tools(server, reading, working):
+    """Where things stand, the branches and the one to work on, and the menu."""
     from ...journeys import agent_tools as tools
-    project_doc = 'The project folder (default: the folder the assistant was opened in).'
 
     @server.tool(annotations=reading, description='Where this project is in the EAOS way, the next tool to call, the progress, and the '
                  'handover (what the last assistant did and noted, and how to continue without asking the person again). Call it '
@@ -173,33 +180,43 @@ def _check_tools(server, reading, working):
     @server.tool(annotations=reading, description='What to offer the person who typed /eaos alone, or asked what EAOS can do: '
                  'the options that make sense for this project now, the recommended one first, each with its words in their language, '
                  'a description from the project\'s own numbers, and what to do once it is chosen; cut into pages of at most four. '
-                 'Show it as a choice (how_to_show). ' + project_doc)
+                 'Show it as a choice (how_to_show). ' + PROJECT_DOC)
     @_answer
     def menu(project: str | None = None, lang: str | None = None) -> str:
         from ..menu import menu as offer
         return offer(project, lang)
 
+
+def _record_tools(server, reading, working):
+    """The tools installed, and what the check's records say about a change or a question."""
+    from ...journeys import agent_tools as tools
+
     @server.tool(annotations=working, description='This EAOS (version, commit) and every external tool it runs: installed or not, '
                  'at which version, whether this project needs it (needed_here), what the check waits for here (for_the_check: '
                  'pending, failed with why, ready), and the one command that installs what it misses. retry=true starts the '
-                 'install again (what failed is tried again). ' + project_doc)
+                 'install again (what failed is tried again). ' + PROJECT_DOC)
     @_answer
     def tools_check(project: str | None = None, retry: bool = False) -> str:
         return tools.tools_check(project, retry)
 
     @server.tool(annotations=reading, description='What changing a file or a symbol touches, from the check\'s facts: the files that '
                  'import it (direct and further), the flows and entry points through it, the tests that cover it, and the files '
-                 'that change with it in the history. target: a path or a symbol name. ' + project_doc)
+                 'that change with it in the history. target: a path or a symbol name. ' + PROJECT_DOC)
     @_answer
     def impact(target: str, project: str | None = None) -> str:
         return tools.impact(target, project)
 
     @server.tool(annotations=reading, description='Search the check\'s records (facts, claims, report sections) for a question, '
                  'each answer with its place. Records use the code\'s own words: ask with identifiers or paths. '
-                 'NOT_IN_RECORDS means no record answers it: say so, never guess. ' + project_doc)
+                 'NOT_IN_RECORDS means no record answers it: say so, never guess. ' + PROJECT_DOC)
     @_answer
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
+
+
+def _audit_tool(server, reading, working):
+    """The check itself, with every choice the person makes for it."""
+    from ...journeys import agent_tools as tools
 
     @server.tool(annotations=working, description='Check the whole project (35 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
@@ -223,7 +240,7 @@ def _check_tools(server, reading, working):
                  'said yes to running their app in an isolated copy (its pages, sign-in and speed need it; kept). go_on=true: only '
                  'when the person asks to continue a check they stopped: it goes on from where it stopped; any other check '
                  'starts from nothing. fixed=true: the person said their assistant is fixed: the check starts without asking '
-                 'whether it is ready. ' + project_doc)
+                 'whether it is ready. ' + PROJECT_DOC)
     @_answer
     def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
               assistant: str | None = None, without_ai: bool = False, again_from: str | None = None, engines: list[str] | None = None,
@@ -232,22 +249,27 @@ def _check_tools(server, reading, working):
         return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai, again_from, engines, paths, mode, sign_in,
                            published, run_app, go_on, fixed, person_agreed)
 
+
+def _follow_tools(server, reading, working):
+    """Whether an assistant is ready, a job followed, and the health after the check."""
+    from ...journeys import agent_tools as tools
+
     @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
                  'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '
                  'with its fix; the person\'s choice for this project, and what the assistant may do in the check. fresh=true asks '
-                 'again (an answer is kept a few minutes); assistant=claude|codex asks only that one. ' + project_doc)
+                 'again (an answer is kept a few minutes); assistant=claude|codex asks only that one. ' + PROJECT_DOC)
     @_answer
     def assistant_check(project: str | None = None, fresh: bool = False, assistant: str | None = None) -> str:
         return tools.assistant_check(project, fresh, assistant)
 
     @server.tool(annotations=reading, description='Follow a job (audit, run_setup, run_try, safety_net, fix_start, fix_edit, fix_finish): '
-                 'waits up to `seconds` (default 50) and returns its progress, or its result once done. ' + project_doc)
+                 'waits up to `seconds` (default 50) and returns its progress, or its result once done. ' + PROJECT_DOC)
     @_answer
     def wait(job: str, seconds: int = 50, project: str | None = None) -> str:
         return tools.wait(job, seconds, project)
 
     @server.tool(annotations=reading, description="The project's health after the check: counts, kinds of problems (with plain titles), "
-                 'milestones of the plan, what did not complete. ' + project_doc)
+                 'milestones of the plan, what did not complete. ' + PROJECT_DOC)
     @_answer
     def overview(project: str | None = None) -> str:
         return tools.overview(project)
