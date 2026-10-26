@@ -25,4 +25,5 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 
 | Milestone | Goal |
 |---|---|
+| M9, what its proofs found | moves that help a reader (measured), the behaviour lock knowing an intended change, a Studio queue never held by a question |
 | M10 The user's full experience, simulated | AI actors try the program as its users would, in the isolated copy; replays free in every full check |
