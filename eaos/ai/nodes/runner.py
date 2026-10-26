@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from pathlib import Path
 
+from ..assistant import tiers
 from ...core.language.check import foreign_texts, restate
 from ...core.system.process import Stuck, check_cancelled
 from .framework import (WORDS, answer_schema, cached, check, check_shape, critique_prompt, critique_schema, digest,
@@ -16,7 +17,7 @@ from .framework import (WORDS, answer_schema, cached, check, check_shape, critiq
 
 # A run's settings, with their defaults; every other option of run_node is the node's own input.
 RUN_OPTIONS = {'launcher': None, 'adapters': None, 'project': None, 'lang': 'en', 'fresh': False, 'say': None,
-               'cancel': None, 'started': None, 'assistants': None, 'logged': True}
+               'cancel': None, 'started': None, 'assistants': None, 'logged': True, 'mode': 'normal'}
 
 
 def settings_of(options):
@@ -29,8 +30,8 @@ def run_node(node, spec, report, **options):
     to read. `launcher(pass, prompt, schema) -> dict` asks the assistant; without one, the first available adapter of
     `adapters`; with none, the rules decide alone. The settings come by name (RUN_OPTIONS: launcher, adapters, project,
     lang, fresh, say, cancel, started; `assistants`, the check's eaos/pipeline/schedule.py Assistants, how many batches are
-    asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one); the other
-    options are the node's inputs."""
+    asked at once; `logged` false leaves the run out of the run log, for a node that logs its passes as one; `mode`, the
+    check's, which may lower the node's model tier, eaos/ai/assistant/tiers.py); the other options are the node's inputs."""
     settings = {name: options.pop(name, default) for name, default in RUN_OPTIONS.items()}
     report = Path(report)
     data = spec.inputs(report, project=settings['project'], lang=settings['lang'], **options)
@@ -55,6 +56,9 @@ class Run:
         self.at, self.began = now(), time.monotonic()
         self.base = {'at': self.at, 'inputs': digest(data), 'passes': list(node.passes), 'summary': ''}
         self.unanswered = None      # {asked, failed, why}: some batches failed, the rules decided their subjects
+        self.escalated = None       # {from, to, why}: the stage's tier was asked again higher (tiers.py)
+        mode = settings['mode'] if settings['mode'] != 'normal' else getattr(settings['assistants'], 'mode', 'normal')
+        self.tier = tiers.tier_of(node.name, mode)      # the tier it starts on, part of its cache keys
 
     def done(self, row, key=None):
         row = keep(self.report, self.node, row, key, self.settings['logged'])
@@ -86,7 +90,7 @@ class Run:
         launcher = self._launcher()
         if launcher is None: return self.rules_only('rules_only', WORDS['no_assistant'])
         asked = [p for _, _, p in asks]
-        try: answer, critique = self._ask(launcher, asks, asked, detail)
+        try: answer, critique = self._tiered(launcher, asks, asked, detail)
         except Exception as problem:   # noqa: BLE001 - every failure falls back to the rules, with its reason
             return self._failed(problem, launcher, asks, asked)
         self._remember(answer)
@@ -104,7 +108,7 @@ class Run:
         """The cache key of a run: the node, its version, what is asked and the decisions kept from before."""
         node = self.node
         return digest([node.name, node.version, getattr(self.spec, 'VERSION', '1'), [digest(p) for _, _, p in asks],
-                       [digest(s) for _, s, _ in asks], before])
+                       [digest(s) for _, s, _ in asks], before, self.tier])
 
     def _judged(self):
         """(the decisions kept, the data left to ask, None when nothing is): a subject of the node's list (spec.LIST)
@@ -123,7 +127,7 @@ class Run:
         return before, ({**self.data, field: left} if left else None)
 
     def _item_key(self, item):
-        return 'one-' + digest([self.node.name, self.node.version, getattr(self.spec, 'VERSION', '1'), self.frame, item])
+        return 'one-' + digest([self.node.name, self.node.version, getattr(self.spec, 'VERSION', '1'), self.frame, item, self.tier])
 
     def _remember(self, answer):
         """Each decision on a subject of the node's list, kept under its own input (_judged)."""
@@ -140,7 +144,34 @@ class Run:
         s = self.settings
         stamp = self.at.replace(':', '').replace('+0000', 'Z')
         images = self.spec.images(self.data) if hasattr(self.spec, 'images') else ()
-        return s['launcher'] or launcher_of(s['adapters'], folder_of(self.report, self.node) / 'runs' / stamp, s['cancel'], s['started'], images)
+        launcher = s['launcher'] or launcher_of(s['adapters'], folder_of(self.report, self.node) / 'runs' / stamp, s['cancel'], s['started'], images)
+        if hasattr(launcher, 'tier'): launcher.tier = self.tier     # the person's assistant (AdapterLauncher)
+        return launcher
+
+    def _tiered(self, launcher, asks, asked, detail):
+        """The answer on the stage's tier, asked again higher until it stands: a tier that failed, or left some batches
+        unanswered, one tier up; one that would close something (tiers.CLOSING) on the deep tier. So a cheaper model
+        never drops or closes anything alone."""
+        while True:
+            tier = getattr(launcher, 'tier', None)
+            try: answer, critique = self._ask(launcher, asks, asked, detail)
+            except Stuck: raise
+            except Exception as problem:   # noqa: BLE001 - a tier above answers it, or the rules fall back (go)
+                if self._stopped() or tiers.up(tier) is None: raise
+                self._up(launcher, tiers.up(tier), f'the {tier} tier failed: {short(problem, 200)}', (asks, asked))
+                continue
+            if tiers.up(tier) is None: return answer, critique
+            if self.unanswered: self._up(launcher, tiers.up(tier), f'the {tier} tier left {self.unanswered["failed"]} batches unanswered', (asks, asked))
+            elif tiers.closes(self.node.name, answer.get('decisions')): self._up(launcher, 'deep', f'the {tier} tier would close a subject', (asks, asked))
+            else: return answer, critique
+
+    def _up(self, launcher, tier, why, job):
+        """The next ask on `tier`; `job` (asks, asked): the asks counted again."""
+        asks, asked = job
+        self.escalated, self.unanswered = {'from': launcher.tier, 'to': tier, 'why': why}, None
+        self.tell(f'{self.node.title}: {why}; asked again on the {tier} tier', f'{self.node.title}: يُسأل من جديد على مستوى أعلى ({tier})')
+        launcher.tier = tier
+        asked.extend(p for _, _, p in asks)
 
     def _ask(self, launcher, asks, asked, detail):
         """(answer, critique): one ask per batch, several at once when the check allows several assistants, joined in
@@ -225,7 +256,7 @@ class Run:
         decided = {d['subject'] for d in kept}
         left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
         row = record(node, {**self.base, 'state': 'decided', 'method': 'model', 'assistant': getattr(launcher, 'assistant', None),
-                            'model': getattr(launcher, 'model', None),
+                            'model': getattr(launcher, 'model', None), 'tier': getattr(launcher, 'tier', None), 'escalated': self.escalated,
                             'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': launcher is None, 'calls': len(asked),
                             'seconds': round(time.monotonic() - self.began, 1),
                             'cost_usd': spent(launcher), 'why': None, 'summary': short((answer or {}).get('summary'), 800)},

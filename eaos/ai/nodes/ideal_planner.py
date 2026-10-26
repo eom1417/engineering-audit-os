@@ -11,6 +11,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 from . import framework as core
+from ..assistant import tiers
 from .runner import settings_of
 from ..ideal import planner as ideal, prompts as ideal_prompts
 
@@ -66,6 +67,12 @@ def _dropped(plan_record):
             for row in (plan_record or {}).get('dropped') or []]
 
 
+
+def _on_tier(launcher):
+    """The launcher on the ideal's tier (eaos/ai/assistant/tiers.py), when it is the person's assistant (AdapterLauncher)."""
+    if hasattr(launcher, 'tier'): launcher.tier = tiers.tier_of('ideal_planner')
+    return launcher
+
 def run(node, report, **options):
     """Plan the ideal (eaos/ai/ideal/planner.py) as a node; the settings come by name, as every node's (runner.RUN_OPTIONS)."""
     o = settings_of(options)
@@ -83,10 +90,10 @@ def run(node, report, **options):
                                                           'seconds': 0.0, 'cost_usd': None, 'why': None},
                                                    _decisions(node, report, current), _dropped(current)))
     stamp = at.replace(':', '').replace('+0000', 'Z')
-    launcher = launcher or core.launcher_of(o['adapters'], report / 'ideal' / f'run-{stamp}', o['cancel'], o['started'])
+    launcher = _on_tier(launcher or core.launcher_of(o['adapters'], report / 'ideal' / f'run-{stamp}', o['cancel'], o['started']))
     with o['assistants'] or nullcontext():
         result = ideal.plan(report, launcher=launcher, project=project, lang=lang, adapters={}, cancel=o['cancel'], say=o['say'])
-    fields = {'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
+    fields = {'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None), 'tier': getattr(launcher, 'tier', None),
               'prompt': asked if launcher else None, 'schema': schema, 'cached': False, 'seconds': round(time.monotonic() - began, 1),
               'cost_usd': core.spent(launcher)}
     if result['state'] != 'planned':

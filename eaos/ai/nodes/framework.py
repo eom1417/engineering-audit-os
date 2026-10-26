@@ -70,17 +70,18 @@ DECISION = contract()['properties']['decisions']['items']
 # ---------------------------------------------------------------- the assistant
 
 class AdapterLauncher:
-    """The person's assistant as a node's launcher: each pass is one `ask` in its own folder; `cost_usd` adds up what
-    the passes cost when the stream says, several passes at once included."""
+    """The person's assistant as a node's launcher: each pass is one `ask` in its own folder, on `tier` (the runner sets
+    the node's, eaos/ai/assistant/tiers.py); `cost_usd` adds up what the passes cost when the stream says, several passes
+    at once included."""
 
     def __init__(self, adapter, folder, cancel=None, started=None, images=()):
         self.adapter, self.folder, self.cancel, self.started, self.images = adapter, Path(folder), cancel, started, tuple(images)
-        self.assistant, self.model, self.seconds, self.cost_usd = adapter.name, None, 0.0, None
+        self.assistant, self.model, self.seconds, self.cost_usd, self.tier = adapter.name, None, 0.0, None, None
         self.lock = threading.Lock()
 
     def __call__(self, name, prompt, schema):
         from ..assistant.headless import ask
-        answer = ask(self.adapter, prompt, schema, self.folder / name, self.cancel, self.started, self.images)
+        answer = ask(self.adapter, prompt, schema, self.folder / name, self.cancel, self.started, self.images, self.tier)
         with self.lock:
             self.model, self.seconds = answer['model'] or self.model, self.seconds + answer['seconds']
             if answer.get('cost_usd') is not None: self.cost_usd = (self.cost_usd or 0.0) + answer['cost_usd']
@@ -337,7 +338,7 @@ def log_run(report, node, row):
     """The run log's line of one run of the node: its time, what it cost and how it routed; its decisions are in its
     last record and cache, not copied here (99 lines had grown to 6 MB)."""
     _append(report, {'node': node.name, 'at': row['at'], 'state': row['state'], 'method': row['method'], 'assistant': row['assistant'],
-                     'model': row['model'], 'prompt': row['prompt'], 'inputs': row['inputs'], 'schema': row.get('schema'),
+                     'model': row['model'], 'tier': row.get('tier'), 'prompt': row['prompt'], 'inputs': row['inputs'], 'schema': row.get('schema'),
                      'cached': row['cached'], 'seconds': row['seconds'], 'cost_usd': row['cost_usd'], 'why': row['why'],
                      'routes': {r['decision']: len(r['subjects']) for r in row['routes']}, 'dropped': len(row['dropped'])})
 

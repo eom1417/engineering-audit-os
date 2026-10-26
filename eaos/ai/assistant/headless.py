@@ -19,6 +19,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from . import tiers
 from .events import READS, json_text, result_events, said, tool_events
 
 PERSON_ONLY = ('accept', 'undo', 'choose_branch')
@@ -123,14 +124,17 @@ class ClaudeCode(Adapter):
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])
 
-    def ask_argv(self, schema, folder, images=()):
+    def ask_argv(self, schema, folder, images=(), tier=None):
         """One question on standard input, no MCP server, nothing kept: the answer held to `schema`, streamed as it is
-        written. No tool, but Read on exactly `images` when the question is about pictures (Read elsewhere is refused;
-        an absolute path in a permission rule starts with //, a single / is relative to the working folder)."""
+        written, on the model of `tier` (tiers.py). No tool, but Read on exactly `images` when the question is about
+        pictures (Read elsewhere is refused; an absolute path in a permission rule starts with //, a single / is
+        relative to the working folder)."""
         tools = ['--tools', 'Read', '--allowedTools', *[f'Read(/{Path(image).resolve()})' for image in images],
                  '--permission-mode', 'dontAsk'] if images else ['--tools', '']
+        model = tiers.claude_model(tier)
         return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
-                               '--json-schema', json.dumps(schema), *tools, '--strict-mcp-config', '--no-session-persistence']
+                               '--json-schema', json.dumps(schema), *tools, *(['--model', model] if model else []),
+                               '--strict-mcp-config', '--no-session-persistence']
 
     def cost(self, lines):
         """`total_cost_usd` of the stream's result line."""
@@ -242,13 +246,15 @@ class Codex(Adapter):
         if session: return self.command + ['exec', 'resume', *options, session, prompt]
         return self.command + ['exec', *options, prompt]
 
-    def ask_argv(self, schema, folder, images=()):
-        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`; the
-        pictures of a question about them attached with -i."""
+    def ask_argv(self, schema, folder, images=(), tier=None):
+        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`, at the
+        reasoning effort of `tier` (tiers.py); the pictures of a question about them attached with -i."""
         path = folder / 'schema.json'
         path.write_text(json.dumps(schema), encoding='utf-8')
+        effort = tiers.codex_effort(tier)
         return self.command + ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--output-schema', str(path),
                                '-c', 'approval_policy="never"', '-c', 'sandbox_mode="read-only"',
+                               *(['-c', f'model_reasoning_effort="{effort}"'] if effort else []),
                                *[part for image in images for part in ('-i', str(image))], '-']
 
     def model(self):
@@ -346,7 +352,7 @@ def _json_object(text):
     return value if isinstance(value, dict) else None
 
 
-def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):  # limits: parameters -- one assistant call: the question and its answer's shape, its folder, and the run's stop and pid hooks
+def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=(), tier=None):  # limits: parameters -- one assistant call: the question and its answer's shape, its folder, the run's stop and pid hooks, its tier
     """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
 
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
@@ -354,13 +360,14 @@ def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()): 
     manager can pause or stop it. It works as long as it needs: `cancel` (a threading.Event) ends the whole group and
     raises AskFailed('stopped'), and only an assistant silent for eaos/core/system/process.py STUCK seconds is ended as
     stuck (Stuck). An answer that is not a JSON object raises AskFailed. The stream stays in `folder`. `images`: the
-    pictures the question is about, the only files the assistant may open."""
+    pictures the question is about, the only files the assistant may open. `tier`: the model's tier (tiers.py), None for
+    the assistant's own."""
     from ...core.system.process import wait
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     stream, began = folder / 'stream.jsonl', time.monotonic()
     with open(stream, 'wb') as out, open(folder / 'stderr.log', 'wb') as err:
-        process = subprocess.Popen(adapter.ask_argv(schema, folder, images), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
+        process = subprocess.Popen(adapter.ask_argv(schema, folder, images, tier), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- the assistant's CLI as its adapter builds it, a list argv, no shell
                                    start_new_session=True)
         if started: started(process.pid)
         try:
@@ -375,7 +382,7 @@ def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()): 
     if failure or answer is None:
         tail = (folder / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-400:].strip()
         raise AskFailed(failure or f'no JSON answer (exit {process.returncode})' + (f': {tail}' if tail else ''))
-    return {'answer': answer, 'model': model or adapter.model(), 'assistant': adapter.name, 'seconds': round(time.monotonic() - began, 1),
+    return {'answer': answer, 'model': model or adapter.model(), 'assistant': adapter.name, 'tier': tier, 'seconds': round(time.monotonic() - began, 1),
             'cost_usd': adapter.cost(lines)}
 
 
