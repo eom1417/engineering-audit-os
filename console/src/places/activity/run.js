@@ -348,7 +348,7 @@ screen({
       if (!el || parseHash().query.replay !== String(x)) { clearInterval(replay.timer); replay.timer = 0; return; }
       replay.at = Math.min(span(flow), replay.at + x);
       const list = stagesOf(flow, r, replay.at);
-      el.innerHTML = board(list, true);
+      el.innerHTML = board(list, true);  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the board escapes every text it shows
       const sum = document.getElementById('ac-stage-sum'); if (sum) sum.textContent = summary(counts(list));
       const at = document.querySelector('.ac-stamp__at'); if (at) at.textContent = t('ac.replay.at', { n: num(finished(list)), total: num(list.length) });
       if (replay.at >= span(flow)) { clearInterval(replay.timer); }

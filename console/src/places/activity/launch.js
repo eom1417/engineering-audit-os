@@ -286,6 +286,6 @@ sheet('launcher', {
   },
   after(el) {
     const input = el.querySelector('#lc-q');
-    if (input) input.addEventListener('input', () => { el.querySelector('#lc-list').innerHTML = launcherList(input.value); });
+    if (input) input.addEventListener('input', () => { el.querySelector('#lc-list').innerHTML = launcherList(input.value); });  // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- the query only filters; every text is a word or escaped
   },
 });

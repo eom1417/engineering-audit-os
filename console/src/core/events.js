@@ -25,7 +25,7 @@ export function tickAct(name, list, ticks) {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
-  const fn = acts[el.dataset.act];
+  const fn = Object.hasOwn(acts, el.dataset.act) ? acts[el.dataset.act] : null;  // nosemgrep: javascript.lang.security.audit.unsafe-dynamic-method -- only the table's own actions
   if (!fn) return;
   if (el.tagName === 'A' || el.tagName === 'BUTTON' || el.classList.contains('scrim')) e.preventDefault();
   fn(el, e);
