@@ -145,6 +145,18 @@ run), against the M2 numbers. The machine was quiet, so the time is comparable t
 | Detection baseline | 6 of 8 planted problems found |
 
 
+## After M9: 0.0.81 (2026-10-26)
+
+| Measure | Value |
+|---|---|
+| Runtime of a full check of EAOS (`--run-app --assistant claude`, 39 stages) | **68 MB** in 176 files (target ≤ 100; 760 MB at M5); its largest part `syntax-cache.json` 65 MB |
+| That check | 3,474 s wall, $9.09; output 125 MB in 959 files; 56 plan tasks from 184 claims; 1,394 engine findings (`reforge` 1,013, `enola` 182) |
+| Repair end to end (flaskr, real assistant) | CLI 19 min, $2.24; Studio action API 19 min, $2.32 (the check 80% of both) |
+| Build from a PRD to the first milestone's proof gate (MCP) | 378 s, $0.95, its screens reviewed |
+| Add a feature (CLI and MCP; Studio) | a page of its own: 90 s, $0.49; Studio plan and build 631 s (400 of them queued), $0.88; a link on every page refused by the behaviour lock (it knows no intended change) |
+| The tidy on three corpus apps (flaskr, task-api, flask-microblog) | no move batch proved (moves unwritable, no runnable tests, an app that stops starting); the target shape's moves made unproven: same answers (10/10), tokens +9% and +16% |
+| Model tiers | each stage's tier recorded per run; the next check of `develop` measures the cost per check against 0.0.80 |
+
 ## After M8: 0.0.80 (2026-10-26)
 
 Measured on the code (no check of `develop` ran for this milestone; the next one from the Studio measures the check's

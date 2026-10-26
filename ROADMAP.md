@@ -4,7 +4,7 @@ Where EAOS is going: from today's EAOS to the tool of `docs/NORTH-STAR.md`, a co
 command. The milestones run in this order; each ends with one version (`CHANGELOG.md` says what it changed and why)
 and its numbers in `docs/METRICS.md`. This page is updated at each milestone's end.
 
-## Done (version 0.0.80)
+## Done (version 0.0.81)
 
 | Milestone | What it delivered | Version |
 |---|---|---|
@@ -19,10 +19,10 @@ and its numbers in `docs/METRICS.md`. This page is updated at each milestone's e
 | The code layout | every layer in folders by job, the tests by layer, the map in `docs/ARCHITECTURE.md` §1 | 0.0.78 |
 | M7 Reliable fixes and hand-over | a real batch proves a breaking fix is refused; the lock reads words; hand-overs survive the session; a strict judge; the repository and its assistants' context read as an engineer reads them | 0.0.79 |
 | M8 Interfaces and a tidy repository | everything the Studio does through MCP and the CLI; the Studio's Understand one report page; a move tool and its gate, the assistants' context trimmed safely, new projects born tidy; EAOS clean by its own laws and repository rules | 0.0.80 |
+| M9 Intelligence, cost and the final proof | model tiers per stage, a cheaper model never closing anything alone; logic-flaw hunting as an optional deep check; the three journeys proved end to end from the CLI and the Studio; the runtime 68 MB; the tidy measured (no move batch proved yet) | 0.0.81 |
 
 ## Next
 
 | Milestone | Goal |
 |---|---|
-| M9 Intelligence, cost and the final proof | model tiers per stage; the three journeys proved end to end on the corpus; cost per check measured and lower |
 | M10 The user's full experience, simulated | AI actors try the program as its users would, in the isolated copy; replays free in every full check |
