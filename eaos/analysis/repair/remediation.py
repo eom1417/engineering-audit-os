@@ -262,7 +262,7 @@ def pattern_for(claim):
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
     render = claim.get('render') or {}
-    if render.get('key') in ('layer_finding', 'repository_finding'):        # the finding's own fix (M6.11, M7.8)
+    if render.get('key') in ('layer_finding', 'repository_finding', 'logic_flaw'):        # the finding's own fix (M6.11, M7.8)
         pattern['change'] = (render.get('params') or {}).get('fix_ar') or pattern['change']
     if name == 'generic':
         reason = _generic_fallback_reason(claim)

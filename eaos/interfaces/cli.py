@@ -8,6 +8,7 @@ import sys
 from .. import __version__
 from ..core.contracts.check_paths import PATHS
 from ..core.project.workspace import bounded_int, read
+from . import deep_checks
 
 
 def facts_command(args):
@@ -235,6 +236,7 @@ def main(argv=None):
     _session_commands(s)
     _pipeline_commands(s)
     governance_commands(s)
+    deep_checks.commands(s)
     args=p.parse_args(argv)
     args.words = list(sys.argv[1:] if argv is None else argv)
     try:

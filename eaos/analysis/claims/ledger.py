@@ -10,6 +10,7 @@ from pathlib import Path
 from .duplicates import duplicated_rules, redundant_work, sequences, structural_duplicates
 from .engine_measures import engine_measurement
 from .from_layers import layer_findings
+from .from_logic_flaws import logic_flaws
 from .from_repository import repository_findings
 from .from_facts import (broken_code, cochanges, cycles, dead_code, external_writes, hotspots, large_modules,
                          mutable_globals, policy_violations, trace_gaps, vulnerable_dependencies)
@@ -23,7 +24,7 @@ PROVING_METHODS = {'runtime_probe', 'test_evidence', 'static_fact', 'history_fac
 # The builders of the claims facts earn (eaos/analysis/claims/from_facts.py), in ledger order: the claims are numbered in it.
 BUILDERS = (cycles, cochanges, duplicated_rules, hotspots, large_modules, mutable_globals, external_writes,
             structural_duplicates, sequences, redundant_work, policy_violations, trace_gaps, dead_code, broken_code,
-            vulnerable_dependencies, weaknesses, layer_findings, repository_findings)
+            vulnerable_dependencies, weaknesses, layer_findings, logic_flaws, repository_findings)
 TYPES = ['structure', 'responsibility', 'contract', 'business_rule', 'flow_step', 'risk', 'cause', 'capability_gap', 'cost']
 
 
@@ -43,13 +44,18 @@ STATEMENT_LIMIT = 600
 VERDICTS = DATA / 'detector-verdicts.json'
 
 
+# The card keys whose detector is one of their params: (the detector's prefix, the param).
+DETECTED_BY = {'engine_cluster': ('engine_cluster', 'kind'), 'layer_finding': ('layer', 'rule'),
+               'repository_finding': ('repository', 'rule'), 'logic_flaw': ('logic', 'class')}
+
+
 def detector_of(claim):
     """The detector a claim comes from: its card key, an engine cluster's kind, or the import-cycle check."""
     render = claim.get('render') or {}
     key = render.get('key')
-    if key == 'engine_cluster': return 'engine_cluster:' + str((render.get('params') or {}).get('kind'))
-    if key == 'layer_finding': return 'layer:' + str((render.get('params') or {}).get('rule'))
-    if key == 'repository_finding': return 'repository:' + str((render.get('params') or {}).get('rule'))
+    if key in DETECTED_BY:
+        prefix, param = DETECTED_BY[key]
+        return prefix + ':' + str((render.get('params') or {}).get(param))
     if key: return key
     if str(claim.get('statement', '')).startswith('Import cycle between'): return 'import_cycle'
     return 'unattributed'

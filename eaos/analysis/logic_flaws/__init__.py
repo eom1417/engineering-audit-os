@@ -1,0 +1,1 @@
+"""Hunting logic flaws (M9.2), an optional deep check: the assistant reads each workflow's endpoints for the flaws no rule finds (skipped steps, races, negative amounts, the wrong check), every candidate tried again to disprove it, the survivors kept as findings and cards."""

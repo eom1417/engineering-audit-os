@@ -67,6 +67,11 @@ class Sets(Mapping):
         if name not in self.read: self.read[name] = read_set(self.out, name)
         return self.read[name]
 
+    def __setitem__(self, name, value):
+        """A set made by the caller in place of the report's (a recheck reads the code again)."""
+        self.read[name] = value
+        if name not in self.names: self.names.append(name)
+
     def __iter__(self): return iter(self.names)
 
     def __len__(self): return len(self.names)
