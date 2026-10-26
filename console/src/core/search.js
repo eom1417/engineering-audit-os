@@ -17,6 +17,10 @@ import { ACTIONS } from '../data/contract.js';
 import { labelOf } from '../data/derive.js';
 import { decisions, plan, problems } from '../data/model.js';
 
+// The documents written beside the report, not in it (eaos/report/studio/library.py BESIDE): /api/report-file reads only
+// the report's own folder, so they are not offered here.
+const BESIDE = ['blueprint/BLUEPRINT.md', 'DESIGN.md', 'extend/SOURCE.md'];
+
 const SEARCHED = ['cards', 'decisions', 'plans', 'screens', 'docs'];
 const enc = encodeURIComponent;
 const PLACE_ICON = { status: 'status', waiting: 'waiting', problems: 'problems', activity: 'activity', report: 'understand' };
@@ -53,7 +57,7 @@ const GROUPS = [
   ['branches', 4, () => (branches && branches.branches) || [], b => [b.name, b.subject || '', b.upstream || ''].join(' '), b => ({ icon: 'branch', html: code(b.name), href: '/project/branches/' + enc(b.name) })],
   ['steps', 4, () => plan().steps, st => `${st.id} ${L(st.title || '')} ${L(st.gate || '')}`, st => ({ icon: 'layers', html: `${code(st.id)} ${rich(L(st.title || st.gate || ''))}`, href: '/problems/plan/' + st.id })],
   ['screens', 4, () => listOf('screens', 'screens'), sc => [sc.id, sc.title, sc.route, sc.file].join(' '), sc => ({ icon: 'screen', html: `${esc(L(sc.title || sc.id))} ${code(sc.route || '')}`, href: '/report?part=screens' })],
-  ['docs', 5, () => listOf('docs', 'docs'), d => [d.id, d.title, (d.titles && (d.titles.ar || '') + ' ' + (d.titles.en || '')) || '', d.path, (d.headings || []).map(h => h.text).join(' ')].join(' '),
+  ['docs', 5, () => listOf('docs', 'docs').filter(d => !BESIDE.includes(d.path)), d => [d.id, d.title, (d.titles && (d.titles.ar || '') + ' ' + (d.titles.en || '')) || '', d.path, (d.headings || []).map(h => h.text).join(' ')].join(' '),
     d => ({ icon: 'book', html: `${esc((d.titles && d.titles[prefs.lang]) || d.title)} ${code(d.path)}`, href: `/report?part=files&sheet=file:${enc(enc(d.path))}` })],
 ];
 function results(q) {

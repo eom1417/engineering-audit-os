@@ -138,14 +138,18 @@ function draw(r, m, bundlePending) {
   const sc = m && m.screen;
   const main = document.getElementById('main');
   document.title = t('doc.title', { place: sc && sc.title ? sc.title(ctx) : 'EAOS', project: project().name || 'EAOS' });
+  // A screen that holds what a redraw would lose (a frame's page) says what it shows: the same, it is left as it is.
+  const steady = sc && sc.steady && !bundlePending && ctx.state !== 'loading' ? sc.steady(ctx) : '';
+  const kept = steady && main.dataset.screen === sc.id && main.dataset.steady === steady;
   // nosemgrep: javascript.browser.security.insecure-document-method, javascript.browser.security.insecure-innerhtml -- each screen's render escapes every value it draws (esc, rich, code: core/format.js)
-  main.innerHTML = screenHTML(sc, ctx, bundlePending);
+  if (!kept) main.innerHTML = screenHTML(sc, ctx, bundlePending);
   main.dataset.screen = sc ? sc.id : '';
+  main.dataset.steady = steady || '';
   renderShell(sc ? sc.place || null : null);
   renderBanner(ctx);
   renderStrip();
   renderSelbar();
-  if (sc && sc.after && ctx.state !== 'loading') sc.after(main, ctx);
+  if (sc && sc.after && ctx.state !== 'loading' && !kept) sc.after(main, ctx);
   a11yRegions(main);
   renderHooks.forEach(fn => fn(ctx));
   readMissing(ctx, bundlePending);

@@ -202,8 +202,8 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
   (`CURRENT-STATE.md`, `TARGET-STATE.md`, `GAP-AND-STRATEGY.md`, `EXECUTION-PLAN.md`), `TARGET-ARCHITECTURE.md`, `RUN.md`
   and the index `README.md`; plus `PLAN/` (STEPS, WAVES, one TASK card each) and `adr/`, which assistants read when
   fixing cards (M1.4: the other 19 Markdown renderings removed; their records stay).
-- `technical/layers.json`: the system in layers (M6), what START-HERE's layers section, REPORT.html's and the Studio's
-  `studio/layers.json` read; its findings are also the `boundaries` fact set the claims make cards of.
+- `technical/layers.json`: the system in layers (M6), what START-HERE's layers section and REPORT.html's (shown in the
+  Studio's report page) read; its findings are also the `boundaries` fact set the claims make cards of.
 - `technical/`: records later stages and the Studio read. Caches never live here (M1.2). A run removes the documents
   a check no longer writes (`eaos/pipeline/run.py` RETIRED).
 - `runtime/` in EAOS's home: working copies, caches, batch copies, bounded by a retention rule (M1.1).

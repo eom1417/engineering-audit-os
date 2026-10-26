@@ -221,6 +221,7 @@ def signing_in(args, lang):
     from ..studio_server import sign_in as page
     project = _project(args)
     if args.forget:
+        refuse_in_studio_run('sign_in_forget')      # the person's only, as the MCP tool is
         page.forget(project)
         return guided.box(lang, words('sign_in_forgot', lang), commands=['eaos status'])
     if not govern.signing_in(project): return guided.box(lang, words('sign_in_none', lang), commands=['eaos watch'])

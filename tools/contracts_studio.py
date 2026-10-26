@@ -11,7 +11,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
 SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'coverage', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',
-               'pipeline', 'ideal', 'nodes', 'library', 'layers')
+               'pipeline', 'ideal', 'nodes')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
