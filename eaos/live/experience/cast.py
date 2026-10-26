@@ -20,13 +20,13 @@ BUDGET = {'seconds': 3600, 'calls': 300}      # the whole run; past either, no n
 RUN = 'run.json'
 
 
-def _goals(scenario):
+def goals_by_name(scenario):
     """Each goal by its name '<persona>.<goal>': (its persona, the goal with its name)."""
     return {f"{p['id']}.{g['id']}": (p, {**g, 'name': f"{p['id']}.{g['id']}"})
             for p in scenario.get('personas') or [] for g in p.get('goals') or []}
 
 
-def _values(data):
+def typed_values(data):
     """The values typed through the screens, by goal (data.json's through_ui)."""
     return {row['goal']: row.get('values') or {} for row in (data or {}).get('through_ui') or [] if row.get('goal')}
 
@@ -96,7 +96,7 @@ def run(app, scenario, plan, provider, report):
     """<report>/experience/run.json ({version, goals: [{name, persona, role, status: reached | stuck | stopped |
     blocked, why?, waited_for?, seconds, calls, friction}], events: [{event, by, at}], seconds, calls}), each journey
     saved in experience/journeys. `app` = {base: the running copy's address, sessions: {role: storage state or None}}."""
-    goals, values, board = _goals(scenario), _values(plan.get('data')), _Board(Path(report) / 'experience')
+    goals, values, board = goals_by_name(scenario), typed_values(plan.get('data')), _Board(Path(report) / 'experience')
     app = {**app, 'report': report}
     for name in (n for n in plan.get('order') or [] if n in goals):
         persona, goal = goals[name]

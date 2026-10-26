@@ -1,7 +1,7 @@
 """The graph queries a probe asks again (eaos/analysis/claims/probes.py decide_probe): each over the current snapshot's fact
 sets, inconclusive when the facts it reads, or the engines it names, are not there.
 """
-from . import from_layers as layer_claims, from_logic_flaws as logic_claims, from_repository as repository_claims
+from . import from_experience as experience_claims, from_layers as layer_claims, from_logic_flaws as logic_claims, from_repository as repository_claims
 from ..assessments import weaknesses
 
 
@@ -16,6 +16,7 @@ QUERY_REQUIRES = {
     'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
     'weakness_present': 'external', 'boundary_finding_present': 'boundaries',
     'repository_finding_present': 'repository', 'logic_flaw_present': 'logic_flaws',
+    'experience_difficulty_present': 'experience',
 }
 
 
@@ -185,6 +186,7 @@ QUERIES = {
     'duplicate_cluster_present': _duplicate, 'sequence_cluster_present': _sequence, 'redundancy_present': _redundancy,
     'no_code_dependency': _no_dependency, 'boundary_finding_present': layer_claims.present,
     'repository_finding_present': repository_claims.present, 'logic_flaw_present': logic_claims.present,
+    'experience_difficulty_present': experience_claims.present,
 }
 
 
