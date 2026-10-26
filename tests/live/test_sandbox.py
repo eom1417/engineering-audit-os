@@ -125,6 +125,20 @@ class SandboxTests(Workspace):
         self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
         self.assertEqual(record['commands'][-1]['exit'], 3)
 
+    def test_a_first_page_that_fails_with_its_own_error_is_a_started_app_and_a_gateways_503_is_not(self):
+        # The corpus's next-dashboard: its first page needs a cloud database, answered 500 for 180 s, and nothing was seen
+        from eaos.live.app.detect import free_port
+        serve = ('import http.server, sys\nclass H(http.server.BaseHTTPRequestHandler):\n'
+                 '    def do_GET(self): self.send_error(int(sys.argv[2]))\n'
+                 'http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()')
+        port = free_port()
+        box = self.box()
+        box.start([sys.executable, '-c', serve, str(port), '500'], f'http://127.0.0.1:{port}/', timeout=10)
+        box.stop()
+        port = free_port()
+        with self.assertRaisesRegex(RuntimeError, 'no 200'):
+            self.box().start([sys.executable, '-c', serve, str(port), '503'], f'http://127.0.0.1:{port}/', timeout=3)
+
     def test_a_port_another_program_holds_is_given_up_and_only_the_runs_own_service_counts_as_answering(self):
         import http.server
         import threading

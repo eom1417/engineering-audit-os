@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Every app of the compatibility corpus starts by rules, 15 of 15 (13 before)** (M5.5). The corpus's task-api (an
+  Express API with no dev or start script, `const port = 3000`) was started as `true`, and next-dashboard (Next.js on
+  Neon's serverless driver) answered 500 on its first page for 180 s, so neither was seen without an assistant:
+  - a Node server with no script starts from its main file when it depends on a server framework, on the port its code
+    writes when it reads none from `PORT` (`live/app/detect.py` `plain_server`);
+  - a service that fails with its own error (500) has started, like one that refuses (4xx): what it fails is the next
+    step's evidence; a gateway's 502-504 is still waited for (`live/isolation/sandbox.py`);
+  - when the app's database is one the run cannot give (Neon, Supabase, MySQL, MongoDB), pages failing with their own
+    error while another page answers are that database's absence, said in the run's limitations, and the app runs; with
+    no other screen known, the pages its files make are opened to see it (`live/app/setup.py`);
+  - an API's JSON on its first page is no empty screen.
+- **The public tree holds only the product**: the maintainers' own development notes live outside the repository, and
+  `tests/guards/test_public_tree.py` refuses machine details and development paths in every tracked file. A Studio on
+  any remote server is reached at one exact `https://<project>--<port>.<domain>` address (one platform's domain before).
+
 ## 0.0.78 (2026-10-25)
 
 M6, the whole system in layers. EAOS knew the right layers of ten kinds of project but enforced them only when a project

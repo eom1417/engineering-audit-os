@@ -44,16 +44,31 @@ def free_port():
 # ---------------------------------------------------------------- 1. detect
 
 def app_folder(project):
-    """The folder holding the app's package.json: the first conventional one with a dev or start script."""
+    """The folder holding the app's package.json: the first conventional one with a dev or start script, or that is a
+    plain server (plain_server)."""
     project = Path(project)
     for folder in APP_FOLDERS:
-        scripts = read_json(project / folder / 'package.json').get('scripts') or {}
-        if 'dev' in scripts or 'start' in scripts: return folder
+        if _starts(project / folder): return folder
     for path in sorted(project.glob('*/package.json')) + sorted(project.glob('*/*/package.json')):
-        if 'node_modules' in path.parts: continue
-        scripts = read_json(path).get('scripts') or {}
-        if 'dev' in scripts or 'start' in scripts: return path.parent.relative_to(project).as_posix()
+        if 'node_modules' not in path.parts and _starts(path.parent): return path.parent.relative_to(project).as_posix()
     return None
+
+
+def _starts(folder):
+    package = read_json(folder / 'package.json')
+    scripts = package.get('scripts') or {}
+    return 'dev' in scripts or 'start' in scripts or plain_server(folder, package, 0)[0] is not None
+
+
+def plain_server(app, package, port):
+    """(['node', entry], port) for a server with no dev or start script (an Express API started as `node index.js`):
+    its main file, when it depends on a server framework; on the port its code writes when it reads none from PORT
+    (`const port = 3000`), else on `port`. (None, port) when it is not one."""
+    entry = package.get('main') or 'index.js'
+    if not any(name in dependencies(package) for name in SERVERS) or not (app / entry).is_file(): return None, port
+    code = (app / entry).read_text(encoding='utf-8', errors='replace')
+    written = None if 'process.env.PORT' in code else re.search(r'\b(?:port\s*=|\.listen\()\s*(\d{2,5})\b', code, re.I)
+    return ['node', entry], int(written[1]) if written else port
 
 
 def package_manager(project, folder):
@@ -288,11 +303,19 @@ def detect(project, report=None):
     return static_site(project, folder, package) or _javascript(project, folder, package, report)
 
 
+def _start(manager, package, port, app):
+    """(argv, its environment, the port) the app starts with: its framework's or script's dev server, else a plain server."""
+    start, env = dev_command(manager, package, port)
+    if start is not None: return start, env, port
+    start, port = plain_server(app, package, port)
+    return start, {'PORT': str(port)} if start else {}, port
+
+
 def _javascript(project, folder, package, report):
     """detect()'s answer for a JavaScript web app, its package.json `package` in `folder`."""
     manager, lockfile = package_manager(project, folder)
     port = free_port()
-    start, start_env = dev_command(manager, package, port)
+    start, start_env, port = _start(manager, package, port, project / folder)
     build, production = production_commands(manager, package, free_port())
     database = database_kind(project, folder, package)
     names = environment_names(project, folder)
@@ -307,13 +330,17 @@ def _javascript(project, folder, package, report):
     if prepare: profile['prepare'] = prepare
     if database in ('postgres', 'sqlite'): profile['database'] = {'kind': database, 'name': re.sub(r'\W', '_', project.name.lower())[:40] or 'app'}
     if production: profile['baseline'] = _production_profile(manager, lockfile, build, production, profile['env'], port)
+    out_of_reach = database in ('mysql', 'mongodb', 'supabase') or '@neondatabase/serverless' in dependencies(package)
     return {'profile': profile, 'facts': {'folder': folder, 'manager': manager, 'framework': framework(package), 'database': database,
-                                          'env_names': sorted(names)}, 'limitations': _draft_limitations(start, database, unset)}
+                                          'env_names': sorted(names), 'database_out_of_reach': out_of_reach}, 'limitations': _draft_limitations(start, database, unset, dependencies(package))}
 
 
-def _draft_limitations(start, database, unset):
+def _draft_limitations(start, database, unset, deps=()):
     """What the draft run cannot do, from what detect() found."""
     limitations = []
+    if '@neondatabase/serverless' in deps:
+        limitations.append("the app reaches PostgreSQL through Neon's serverless driver (HTTP or WebSocket), which the run's local "
+                           'PostgreSQL does not answer; pages that read data show their error state')
     if start is None: limitations.append('no safe command starts the app (its dev and start scripts deploy, or there are none)')
     if database in ('mysql', 'mongodb'): limitations.append(f'the app uses {database}; EAOS starts PostgreSQL and SQLite only, so pages that need data may be empty')
     if database == 'supabase': limitations.append('the app talks to Supabase in the cloud; the run never reaches it, so pages that need data show their empty or error state')
