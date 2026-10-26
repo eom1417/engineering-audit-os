@@ -277,7 +277,7 @@ class WorkLogStampErrorTests(unittest.TestCase):
         clean = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
         self.assertNotIn('data-part="report-errors"', clean)
         self.assertNotIn('data-part="stamp"', clean)
-        with mock.patch('eaos.report.human_report.section_target', side_effect=RuntimeError('a broken record')):
+        with mock.patch('eaos.report.human_report.page.section_target', side_effect=RuntimeError('a broken record')):
             page = human_report.write(self.out, 'en').read_text(encoding='utf-8')
         self.assertEqual(json.loads((self.out / 'human' / 'errors.json').read_text(encoding='utf-8')),
                          [{'section': 'target', 'error': 'RuntimeError: a broken record'}])

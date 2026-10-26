@@ -44,7 +44,7 @@ class PipelineSheet(unittest.TestCase):
     def test_the_report_page_holds_the_sheet_in_both_languages(self):
         from tests.report.test_human_report import report
         data = fixture()
-        with tempfile.TemporaryDirectory() as folder, mock.patch.object(human_report, 'pipeline_sections', return_value={'ar': data, 'en': data}):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(human_report.page, 'pipeline_sections', return_value={'ar': data, 'en': data}):
             out = report(Path(folder))
             page = Path(human_report.write(out, 'en', 'eaos')).read_text(encoding='utf-8')
         self.assertEqual(page.count('id="pipeline-sheet"'), 1)
