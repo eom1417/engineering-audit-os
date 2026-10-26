@@ -21,7 +21,7 @@ function reportPage(ctx) {
   return `<div class="page page--wide rp">
     <h1 class="lede">${t('rp.lede')}</h1>
     <p class="guide">${t('rp.guide')}</p>
-    ${seg('part', Object.keys(PARTS).map(p => [p, t('rp.part.' + p)]), part, t('rp.parts'), { dflt: 'report' })}
+    <div class="section">${seg('part', Object.keys(PARTS).map(p => [p, t('rp.part.' + p)]), part, t('rp.parts'), { dflt: 'report' })}</div>
     <section class="section" aria-label="${t('rp.part.' + part)}">${PARTS[part].draw(ctx)}</section>
   </div>`;
 }

@@ -13,13 +13,13 @@ const widest = shots => shots.slice().sort((a, b) => (b.width || 0) - (a.width |
 function fromPage(p, titles) {
   const shot = widest(p.pictures || []);
   const findings = (shot.findings || []).map(f => ({ title: L(f.title), severity: f.severity, region: f.region }));
-  return { title: titles[(p.same_as || [])[0]] || p.path, route: p.path, shot, findings };
+  return { title: titles[(p.same_as || [])[0]] || '', route: p.path, shot, findings };
 }
 /** A screen the check pictured but did not review: its widest picture before any fix, and its open issues. */
 function fromScreen(s) {
   const shot = widest((s.shots || []).filter(x => x.phase !== 'after'));
   const findings = (s.issues || []).filter(x => x.state !== 'fixed').map(x => ({ title: L(x.summary), severity: x.severity, region: null }));
-  return { title: s.title || s.id, route: s.route, shot, findings };
+  return { title: s.title || '', route: s.route, shot, findings };
 }
 function pictured(S) {
   const titles = Object.fromEntries((S.screens || []).map(s => [s.id, s.title]));
@@ -31,7 +31,7 @@ function card(item) {
   const pins = item.findings.map((f, i) => ({ n: i + 1, region: f.region }));
   const list = item.findings.length ? `<ol class="rows rp-findings">${item.findings.map((f, i) => `<li class="row small"><span class="un-num num">${num(i + 1)}</span><span class="row__main">${esc(f.title)}</span>${sev(f.severity)}</li>`).join('')}</ol>`
     : `<p class="small muted">${t('rp.scr.clean')}</p>`;
-  return `<article class="panel panel__pad rp-shot"><h2 class="h2">${esc(item.title)} ${code(item.route || '')}</h2>
+  return `<article class="panel panel__pad rp-shot"><h2 class="h2">${item.title ? esc(item.title) + ' ' : ''}${code(item.route || '')}</h2>
     ${figure(item.shot, pins, t('un.pic.cap', { w: num(item.shot.width || 0) }))}
     <p class="small ink-2">${esc(tn('un.pl.finding', item.findings.length))}</p>${list}</article>`;
 }

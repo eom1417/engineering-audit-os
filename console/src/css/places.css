@@ -124,6 +124,7 @@ h1.empty__title { font-size: var(--fs-body); line-height: var(--lh-body); }
 .rp-frame { margin-top: var(--s3); }
 .rp-frame iframe { display: block; width: 100%; height: max(480px, calc(100vh - 260px)); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
 .rp-shots { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.rp-shots > .rp-shot { margin: 0; }
 .rp-shot { display: grid; gap: var(--s3); align-content: start; }
 .rp-findings .row { min-height: 40px; padding-inline: 0; gap: var(--s2); }
 .un-picfig { margin: 0; display: grid; gap: var(--s2); }
