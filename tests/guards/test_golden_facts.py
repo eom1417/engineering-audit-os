@@ -1,6 +1,6 @@
 """Golden fact snapshots: any change in extractor output must be seen and accepted deliberately.
 
-Regenerate with: python tests/regenerate_golden.py
+Regenerate a snapshot by writing read_set(out, name) of a collect() of tests/fixtures/polyglot, as setUpClass makes it.
 """
 import json
 from pathlib import Path
@@ -14,7 +14,7 @@ from eaos.facts.store import read_set
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'fixtures/polyglot'
 GOLDEN = ROOT / 'fixtures/golden'
-SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline']
+SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
 
 
 class GoldenFactTests(TemporaryWorkspace):

@@ -625,6 +625,20 @@
     "Parts that will fail the first time they run: an import of a missing file, or a documented command that no longer exists."
    ]
   },
+  "repository_craft": {
+   "one": [
+    "ترتيب في الريبو",
+    "Repository craft"
+   ],
+   "group": [
+    "ترتيب الريبو وملفات الكونتكست",
+    "The repository's craft and its assistants' context"
+   ],
+   "why": [
+    "مجلد مزدحم، أو اسم ما يقول شي، أو مسار في الوثائق ما عاد موجود، أو ملفات كونتكست ثقيلة: كل مهندس ومساعد يتأخر عشان يلقى اللي يبيه.",
+    "A crowded folder, a name that says nothing, a documented path that is gone, heavy context files: every engineer and assistant takes longer to find what they need."
+   ]
+  },
   "layer_boundary": {
    "one": [
     "حد مكسور بين الطبقات",

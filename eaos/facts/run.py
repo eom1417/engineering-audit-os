@@ -10,6 +10,7 @@ from . import engine_findings as external
 from .duplication import fingerprint, redundancy, sequences
 from .declared_pipelines import detect as pipeline
 from .runtime import operations as runtime
+from .repository import read as repository
 from .source import Source
 from ..core import progress
 from .store import write_index, write_set
@@ -20,8 +21,8 @@ EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'res
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
               'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,
               'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
-              'secrets': secrets, 'pipeline': pipeline}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline']
+              'secrets': secrets, 'pipeline': pipeline, 'repository': repository}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline', 'repository']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
@@ -130,6 +131,7 @@ EXTRACTOR_ARGS = {
     'syntax': lambda produced, context: {'cache': context['cache']},
     'leftovers': lambda produced, context: {'resolve_facts': produced.get('resolve', [])},
     'broken': lambda produced, context: {'resolved': produced.get('resolve', [])},
+    'repository': lambda produced, context: {'resolved': produced.get('resolve', [])},
     'deadcode': _deadcode_args,
 }
 

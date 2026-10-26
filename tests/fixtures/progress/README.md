@@ -4,7 +4,7 @@ Recorded material for the progress contract (eaos/progress/, tests/test_progress
 
 - `<name>.jsonl`: a real check's `run-progress.jsonl`, recorded by `tools/progress_golden.py record` from a check of a
   fresh copy of the corpus project RendaPerene with this repository's EAOS (host, process numbers and folders replaced
-  by fixed placeholders, nothing else changed). `<name>.fold.json` is the fold of it (`eaos/progress/fold.py`), written
+  by fixed placeholders, nothing else changed). `<name>.fold.json` is the fold of it (`eaos/core/progress/fold.py`), written
   by `tools/progress_golden.py expect`; the Python fold must keep producing it, and the Studio's TypeScript fold must
   produce the same JSON from the same lines.
   - `complete`: the check ran to its end.

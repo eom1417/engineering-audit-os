@@ -1,0 +1,16 @@
+{
+ "schema_version": 1,
+ "extractor": "repository",
+ "extractor_version": "1",
+ "available": true,
+ "input_sha": "44c1c7d3ec751b412d110bd599de042ab706622f3e40ed95456639642d34c593",
+ "limitations": [
+  "Read from the files alone, never run; a folder a framework fills by its own convention is not judged.",
+  "Tokens are counted as about four characters each."
+ ],
+ "summary": {
+  "findings": 0,
+  "by_rule": {}
+ },
+ "facts": []
+}

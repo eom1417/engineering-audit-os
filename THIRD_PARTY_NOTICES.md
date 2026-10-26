@@ -50,7 +50,7 @@ app under test, and its player is copied unmodified beside the report to replay 
 
 ### Screen audit tools
 
-The screen audit (`eaos/live/screens/audit.py`, `tools/studio_gates.py`) runs these in a separate Node.js process
+The screen audit (`eaos/live/screens/audit.py`) runs these in a separate Node.js process
 (`eaos/templates/screens/*.mjs`); none of their code is copied into this repository or into the EAOS Python
 process. axe-core is injected unmodified into the page under test, which MPL-2.0 permits without further
 obligation. Pinned versions are in `eaos/data/toolchain.json`.

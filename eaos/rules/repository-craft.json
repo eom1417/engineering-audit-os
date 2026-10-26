@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "about": "What a repository read as an engineer reads it shows (eaos/facts/repository/, M7.8 and M7.9): every threshold here is data, the owner's to change. Findings are low severity and never raise the risk grade.",
+  "source_ext": [
+    ".py",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".svelte",
+    ".java",
+    ".kt",
+    ".rs",
+    ".go",
+    ".rb",
+    ".php",
+    ".cs",
+    ".swift"
+  ],
+  "crowded_files": 25,
+  "family_min": 4,
+  "family_folder_min": 8,
+  "vague_names": [
+    "utils",
+    "util",
+    "helpers",
+    "helper",
+    "misc",
+    "stuff",
+    "common",
+    "functions",
+    "things"
+  ],
+  "vague_lines": 300,
+  "trap_folders": [
+    "build",
+    "target",
+    "dist",
+    "out",
+    "bin",
+    "obj"
+  ],
+  "tests_flat_max": 30,
+  "exempt_folders": [
+    "migrations",
+    "locales",
+    "locale",
+    "i18n",
+    "translations",
+    "fixtures",
+    "__fixtures__",
+    "__snapshots__",
+    "snapshots",
+    "icons",
+    "generated",
+    "__generated__",
+    "vendor",
+    "node_modules",
+    "third_party",
+    "pages",
+    "app",
+    "routes",
+    "screens",
+    "components",
+    "ui",
+    "stories",
+    "examples",
+    "samples",
+    "assets",
+    "public",
+    "static"
+  ],
+  "history_docs": [
+    "CHANGELOG",
+    "HISTORY",
+    "RELEASES",
+    "NEWS",
+    "archive",
+    "ADR",
+    "adr",
+    "decisions"
+  ],
+  "dev_details": [
+    [
+      "/home/[a-z][a-z0-9_-]+/",
+      "a home folder's absolute path"
+    ],
+    [
+      "/Users/[A-Z][A-Za-z0-9_-]+/",
+      "a home folder's absolute path"
+    ],
+    [
+      "(?<![\\w.-])/work(?:space)/",
+      "a development container's folder"
+    ],
+    [
+      "\\b[\\w-]+\\.(?:lxd)\\b",
+      "a container's host name"
+    ],
+    [
+      "\\b\\d+ (cores|vcpus?)\\b",
+      "the machine's size"
+    ]
+  ],
+  "dev_detail_skip": [
+    "LICENSE",
+    "NOTICE",
+    "AUTHORS",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "Cargo.lock",
+    "poetry.lock"
+  ],
+  "context_files": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".cursorrules",
+    ".github/copilot-instructions.md",
+    ".windsurfrules"
+  ],
+  "context_folders": [
+    ".cursor/rules",
+    ".claude/skills",
+    ".agents/skills"
+  ],
+  "context_tokens": 6000,
+  "context_repeat_chars": 40,
+  "context_done_items": 5,
+  "eaos_block": [
+    "<!-- EAOS: begin (eaos assistant install) -->",
+    "<!-- EAOS: end -->"
+  ],
+  "family_stop_prefixes": [
+    "test",
+    "tests",
+    "spec",
+    "use",
+    "with",
+    "get",
+    "set",
+    "is",
+    "has",
+    "on",
+    "handle",
+    "make",
+    "to",
+    "from"
+  ]
+}
