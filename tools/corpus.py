@@ -79,7 +79,9 @@ def layered(technical):
 
 
 def _said(why, layers):
-    """Why the app did not pass and what its layers showed, each only when there is something."""
+    """Why the app did not pass and what its layers showed, each only when there is something; a path is told from the
+    corpus folder, so the recorded results name nothing of the machine they ran on."""
+    why = why.replace(f'{CORPUS}/', '')
     return {**({'why': why[:400]} if why else {}), **({'layers': layers} if layers else {})}
 
 

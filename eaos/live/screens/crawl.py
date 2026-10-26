@@ -86,7 +86,7 @@ def distinct(paths, declared=()):
 
 # A screen address the code itself names: '#/now', '/#/plan/today' in a string, as a hash-routed app writes its menu and
 # its redirects. The crawl opens these too, so a screen behind a welcome, a button or a slow first load is still found
-# (HungerLab: the app opened on #/onboarding, its tab bar never showed, and the crawl found one page).
+# (an SPA: the app opened on #/onboarding, its tab bar never showed, and the crawl found one page).
 HASH_ROUTE = re.compile(r'''["'`]/?#(/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*)/?["'`]''')
 CODE = ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.vue', '.svelte', '.html')
 # In a file that routes by the hash (its own table, a HashRouter), a plain '/now' is a screen too; never an /api call.

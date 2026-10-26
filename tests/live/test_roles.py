@@ -48,7 +48,7 @@ class Roles(unittest.TestCase):
         self.assertEqual(roles.share(KINDS, groups, None, True), groups)
 
     def test_a_page_of_another_profile_showing_the_apps_not_found_is_not_seen_never_a_missing_page(self):
-        # chief-ops (2026-10-20): signed in to the administration profile only, the check opened the programs profile's
+        # a full-stack app (2026-10-20): signed in to the administration profile only, the check opened the programs profile's
         # pages by their address, pictured the app's "not found" (answered 200), and asked whether to delete or build them
         base = 'http://127.0.0.1:3000'
         gone = roles.nowhere_of({'text': 'Home\nWelcome back', 'others': [
@@ -56,7 +56,7 @@ class Roles(unittest.TestCase):
         programs = 'Page not found\nThe page /programs/plans does not exist. Back home'
         self.assertFalse(roles.opened('/programs/plans', base + '/programs/plans', 200, 0, programs, gone))
         self.assertTrue(roles.opened('/admin', base + '/admin', 200, 0, 'Administration\nUsers 12 Programs 3', gone))
-        # the second check of chief-ops: the app draws its "not found" inside its menus, which the page of an address it
+        # the second check of a full-stack app: the app draws its "not found" inside its menus, which the page of an address it
         # does not have lacks, and the whole pages were too unlike for the "not found" to be told
         within = 'Chief Ops\nCommand centre\nPrograms\nRota\nSettings\nSupport team\nPage not found\nThe page /rota does not exist. Back home'
         self.assertFalse(roles.opened('/rota', base + '/rota', 200, 0, within, gone), 'its "not found" inside the menus')
@@ -93,7 +93,7 @@ class Roles(unittest.TestCase):
 
 
     def test_a_view_the_running_app_shows_missing_is_added_as_checked_and_a_redirect_to_its_own_page_is_reached(self):
-        # chief-ops (2026-10-20): only the support pages were pictured; the reading of the code had missed the programs
+        # a full-stack app (2026-10-20): only the support pages were pictured; the reading of the code had missed the programs
         from unittest import mock
         from eaos.live.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:
@@ -112,7 +112,7 @@ class Roles(unittest.TestCase):
         self.assertFalse(test_users._reached({'path': '/rota', 'url': base + '/rota', 'status': 200, 'text': 'Home\nPage not found'}, nowhere))
 
     def test_every_page_no_session_opens_is_either_owned_by_the_view_that_opens_it_or_proved_unreachable(self):
-        # chief-ops (2026-10-21): pages of the program skipped silently; a page a session found went to the wrong one
+        # a full-stack app (2026-10-21): pages of the program skipped silently; a page a session found went to the wrong one
         from unittest import mock
         from eaos.live.access import test_users
         with tempfile.TemporaryDirectory() as target, tempfile.TemporaryDirectory() as out:

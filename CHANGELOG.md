@@ -201,14 +201,14 @@ EAOS has a number that may only get better.
 
 ## 0.0.69 (2026-10-22)
 
-- **The screens an app's code names are found, however it moves** (HungerLab on 0.0.68 still "pages 1": it opens on
+- **The screens an app's code names are found, however it moves** (an SPA on 0.0.68 still "pages 1": it opens on
   `#/onboarding`, a language then a start, moves by buttons, and its development server drew the first screen after
   seconds, while the crawl read the page after 3): the crawl opens every hash route the code names
   (`screens.crawl.code_routes`: `'#/now'` in a string, or `'/now'` in a file that routes by the hash), records where the
   entry led (`#/onboarding`), and waits until a page shows something before reading it; the screens and the safety net
   wait for it too, so a slow app is never pictured blank. The golden app now behaves so: the 0.0.68 crawl found 1 of its
   5 screens, this one 5, and the trial demands them.
-- **A card goes in the same batch as the cards it waits for, after them** (chief-ops: ten module splits refused and
+- **A card goes in the same batch as the cards it waits for, after them** (a full-stack app: ten module splits refused and
   left for "the next batch" while their simplifications were open and ready): the next batch takes a waiting card once
   what it waits for is done or taken before it (`waves.ready_cards`), so a split comes right after its last
   simplification; cards asked for by name bring the ready cards they wait for, first (`waves.with_prerequisites`); a
@@ -217,8 +217,8 @@ EAOS has a number that may only get better.
 
 ## 0.0.68 (2026-10-22)
 
-- **The crawl finds the pages of an app that moves by buttons** (HungerLab: "pages 1", so nothing was locked, walked
-  or protected): it followed links only, and HungerLab opens on a welcome and moves by a tab bar of buttons. The crawl
+- **The crawl finds the pages of an app that moves by buttons** (an SPA: "pages 1", so nothing was locked, walked
+  or protected): it followed links only, and the SPA opens on a welcome and moves by a tab bar of buttons. The crawl
   now presses the welcome's start button once, then each moving button (a tab bar, a nav or header menu, tabs and menu
   items, at most 15 a page) and follows every address they lead to; a button that would change or remove something
   (save, send, delete, sign out, in English and Arabic) is never pressed, and a published site is still only read.
@@ -227,7 +227,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.67 (2026-10-22)
 
-- **An update reaches the Studio already running** (HungerLab's Studio still said 0.0.59 after updating): a Studio kept
+- **An update reaches the Studio already running** (the SPA's Studio still said 0.0.59 after updating): a Studio kept
   as a service ran the EAOS it started with until someone restarted it. Its record now carries its version, and
   opening the Studio with another EAOS stops it and starts this one (`launch.start`, `_retire`); `install.sh` restarts
   every `eaos-studio-*` service after installing. A Studio that ends no longer removes the record of the one that
@@ -235,7 +235,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.66 (2026-10-22)
 
-- **The safety net no longer refuses a whole batch for one unsteady screen** (HungerLab: the app ran, "0 screens
+- **The safety net no longer refuses a whole batch for one unsteady screen** (an SPA: the app ran, "0 screens
   recorded", not one of the five cards tried): the pages the crawl found all went into one spec file, and its result is
   the file's, so one page that differs between two recordings (a random tip, the time) failed every page. Each crawled
   page is now its own spec (`lock_specs.features_of`): the steady ones are locked, the unsteady one is refused alone,
@@ -264,7 +264,7 @@ EAOS has a number that may only get better.
   (`audit person_agreed`); a tool that could not be installed points to `tools_find`; "where things stand" proposes
   `again_from` for a remedy not tried yet; after `run_nodes` the stage that reads the decisions is named to run again.
 - **The golden trial proves the fix flow and the report too**: after the check, the app is set up as a fix starts, the
-  safety net must record a screen (HungerLab's batch was refused for 0), and the report for people must open by its
+  safety net must record a screen (the SPA's batch was refused for 0), and the report for people must open by its
   address.
 
 ## 0.0.63 (2026-10-22)
@@ -296,7 +296,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.61 (2026-10-22)
 
-- **The safety net finds the app's pages by itself**: HungerLab's fix batch was refused for "0 screens recorded": the
+- **The safety net finds the app's pages by itself**: the SPA's fix batch was refused for "0 screens recorded": the
   lock takes its pages from the code, which names none (an SPA of `/#/now` routes), and no check had crawled the app.
   The lock now crawls the app it started once, writes its pages to `live/crawl.json`, and locks them: a fix batch opens
   without a check first. The refusal, when it still happens, says the real reason.
@@ -304,7 +304,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.60 (2026-10-22)
 
-- **An app whose code names no page is still locked, walked and loaded**: HungerLab's check (an SPA with no client
+- **An app whose code names no page is still locked, walked and loaded**: the check of an SPA (no client
   router, what EAOS's own blueprint builds) had no `page` in its facts, so `lock`, `record`, `journeys` and `baseline`
   stood still while the crawl had found and pictured its pages. `lock` now runs after `crawl` and reads it: the crawl's
   distinct pages stand in for the code's (`lock_specs.crawled_pages`), one source for the lock, the load and the
@@ -339,7 +339,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.58 (2026-10-22)
 
-- **EAOS's own tools in the app's isolated run, from one source**: HungerLab's check (an app built with EAOS) stopped
+- **EAOS's own tools in the app's isolated run, from one source**: the SPA's check (an app built with EAOS) stopped
   ten stages, every one that runs the app: it never answered in the isolated copy. An app with its own Playwright
   (every app built from a plan has one, for its browser tests) met EAOS's scripts there twice: the setup probe and the
   seed script (the setup assistant was told `require('playwright')`) loaded the app's own, another version with no
@@ -378,7 +378,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.55 (2026-10-21)
 
-- **The blueprint plans a complete product by itself**: HungerLab's blueprint had a card per module, feature and
+- **The blueprint plans a complete product by itself**: the SPA's blueprint had a card per module, feature and
   journey only; an assistant added about 50 cards by hand (languages, offline, security, accessibility, speed, release)
   and measured by hand that every requirement of the plan was covered. The generator collected the spec's
   `nonfunctional` facts and ignored them. Now the cards every product needs are data (`eaos/data/product-standard.json`),
@@ -396,7 +396,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.54 (2026-10-21)
 
-- **A project built from its plan is followed in the Studio, wherever its blueprint was drawn**: HungerLab's blueprint
+- **A project built from its plan is followed in the Studio, wherever its blueprint was drawn**: the SPA's blueprint
   was drawn from the person's own assistant session, and the Studio showed none of its 68 build cards, none of its four
   questions, and "check the project" with "no score". The Studio read only a check's plan and inbox. Now it reads the
   blueprint folder (`eaos/studio/build_plan.py`): the Plan page lists the milestones and each card with its acceptance,
@@ -411,7 +411,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.53 (2026-10-21)
 
-- **An answer acts; the same question never comes back**: after the assistant's connection dropped, chief-ops' check
+- **An answer acts; the same question never comes back**: after the assistant's connection dropped, the full-stack app's check
   stopped on "Claude Code is not answering", and every answer brought the same question back. "I fixed it: check
   again" checked the assistant first, found it as before and asked again; an answer in words went to an assistant,
   the very one not answering. Now "I fixed it" starts the check (`fixed`): a stage the assistant still fails says so in
@@ -420,7 +420,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.52 (2026-10-21)
 
-- **The views and the sign-in are worked out by an assistant that reads the code itself**: chief-ops' check found the
+- **The views and the sign-in are worked out by an assistant that reads the code itself**: the full-stack app's check found the
   program owner's view but never made a session that opened its pages, and a local trial of the same shape stopped at
   setup. The assistant of the views, the setup and the sessions answered blind, every tool off, from excerpts. Now
   those three calls read and search the project (or its isolated copy) themselves, read only (Read, Grep, Glob; Codex
@@ -433,14 +433,14 @@ EAOS has a number that may only get better.
   at most, as before); a round that ends with pages no session opens asks the reading of the views again with them,
   which adds views and never drops one, and the next round goes on with its answer.
 - **A working app is not refused**: a first page of more than forty words is the app, whatever "no ... yet" it shows
-  (chief-ops' command center was taken for an empty state), and a chooser in front of the app is picked by the seed,
+  (the full-stack app's command center was taken for an empty state), and a chooser in front of the app is picked by the seed,
   its browser state saved.
 - **One rule of a page seen**: the sessions and the pictures judge a page the same way, and a page sent on is seen only
   when it lands under its own address (/settings to /settings/profile, never /admin to /dashboard).
 
 ## 0.0.51 (2026-10-21)
 
-- **A new check starts from nothing; going on with a stopped one is a choice**: the owner stopped a check of chief-ops
+- **A new check starts from nothing; going on with a stopped one is a choice**: the owner stopped a check of a full-stack app
   and started a new one, which opened at "31 of 37 stages done": any check found the checkpoint of one stopped midway
   and went on from it, whether asked or not. Now "Check the project" always starts a new check and drops that
   checkpoint; Retry on the stopped check goes on from where it stopped (`go_on`), and the Stop window says which does
@@ -457,7 +457,7 @@ EAOS has a number that may only get better.
 
 ## 0.0.50 (2026-10-21)
 
-- **An app that signs in by itself still gets its views**: the third check of chief-ops pictured the support pages
+- **An app that signs in by itself still gets its views**: the third check of a full-stack app pictured the support pages
   alone again, and its sign-in record said `"needed": false`. In development the app signs every request in as a
   support account, with no sign-in page, so no sign-in was seen and the whole making of the views (0.0.49's, too)
   was skipped. Now, with no sign-in asked for, the pages of the code are still opened: when the code has views, or
@@ -473,14 +473,14 @@ EAOS has a number that may only get better.
 
 ## 0.0.49 (2026-10-20)
 
-- **A "not found" inside the app's menus is a page not seen**: the second check of chief-ops still asked whether to
+- **A "not found" inside the app's menus is a page not seen**: the second check of a full-stack app still asked whether to
   redirect /rota, /schedule, /settings and other pages that "now end at a not found page". The app draws its "not
   found" inside its menus, and the page of an address it does not have without them, so the whole pages were too
   unlike (62% against the 90% needed) for the "not found" to be told; and an app may have two "not found" pages of
   different words. A page is now not seen when it shows every line of that page the first page lacks, whatever menus
   are around them, or when its own few lines, the menus left out, open with "not found", "404", "no access" and the
   like (in English or Arabic). The screens' reviewer is told such a picture is never a finding.
-- **The views of a big project reach the assistant, and the running app tells those it missed**: chief-ops pictured the
+- **The views of a big project reach the assistant, and the running app tells those it missed**: a full-stack app pictured the
   support pages alone. The assistant read the fifteen files with most words about users, which in a big project are a
   folder of near-alike policies or fixtures: the sign-in, the accounts and the program chooser never reached it. Now the
   files that serve the app's routes come first, two of any other folder at most. And once the test users are made,
@@ -1229,7 +1229,7 @@ The fifteen fixes of the 2026-10-12 review; each is proven by the test named aft
   "Preparing the tools"; `eaos studio --background` does the same from anywhere. On a remote server, the Studio
   gives its server address instead, also with no token at its end (it listens on every interface, and the page
   receives its token itself): set it once in `~/.eaos/remote-origin` (or `$EAOS_REMOTE_ORIGIN`), for example
-  `https://<project>--{port}.dev.remote.e-m.sa`.
+  `https://<project>--{port}.dev.example.com`.
 - **The Studio** names the new stages on the live map and lists every rule-vs-assistant disagreement, with both
   views, on the decisions page.
 

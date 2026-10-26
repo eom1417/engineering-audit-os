@@ -23,7 +23,7 @@ def ready_cards(report, state=None):
     the ledger holds other than open, nor one tried before (the state's `tried`, by key: a new check numbers the cards
     again) unless the ledger opened it again (ledger._reopen_waited), nor one waiting for a card not done yet
     (decisions.waiting) unless that card is taken before it: the split goes in the same batch, after its simplifications
-    (chief-ops: ten splits left for "the next batch" while their simplifications were open)."""
+    (a full-stack app: ten splits left for "the next batch" while their simplifications were open)."""
     if not (Path(report) / 'plan.json').is_file(): return []
     book, tried = _book(state), set((state or {}).get('tried') or ())
     cards = [card for card in _in_order(plan(report)) if ready(card) and _free(card['key'], book, tried)]

@@ -28,7 +28,7 @@ function pathOf(href) {
 }
 
 // An app that moves by buttons (a tab bar, a menu of buttons) and opens on a welcome: its pages are found by pressing
-// them, never a button that would change or remove something (HungerLab: one page found of many, nothing locked).
+// them, never a button that would change or remove something (an SPA: one page found of many, nothing locked).
 const STARTS = /^\s*(ابدأ|ابدا|ابدأ الآن|يلا|start|get started|begin|continue|متابعة|تابع|skip|تخطَّ?ي?|next|التالي)(\s|!|$)/i;
 const MOVERS = 'nav button, [role=navigation] button, header button, footer button, [role=tablist] button, [role=tab], [role=link], [role=menuitem]';
 const UNSAFE = /delete|remove|clear|reset|save|submit|send|pay|buy|sign|log ?out|حذف|امسح|مسح|احفظ|حفظ|أرسل|ارسل|إرسال|ادفع|دفع|شراء|خروج|تسجيل/i;

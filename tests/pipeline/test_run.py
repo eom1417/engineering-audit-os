@@ -188,7 +188,7 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(ran[0], 'ideal')
         self.assertFalse({'semantic', 'triage'} & set(ran), 'a finished AI stage was asked again')
         self.assertEqual(second['counts'][OK], RUN)
-        # A new check after one stopped starts from nothing (chief-ops, 2026-10-21: it went on at 31 of 37 stages).
+        # A new check after one stopped starts from nothing (a full-stack app, 2026-10-21: it went on at 31 of 37 stages).
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(KeyboardInterrupt):
                 execute('.', directory, runners=fake_runners(ideal=KeyboardInterrupt()))

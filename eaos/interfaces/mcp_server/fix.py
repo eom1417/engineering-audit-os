@@ -73,7 +73,7 @@ def _fix_tools(server, reading, working, _answer, _status):
     @server.tool(annotations=reading, description='Open the live EAOS Studio of the project in the person\'s browser: every '
                  'card, map, plan and decision of the last check, updating by itself after every check, batch, merge and decision. '
                  'It runs on this computer and is reused while it runs. On a remote server whose ports your environment routes to '
-                 'an https address (for example https://<project>--<port>.dev.remote.e-m.sa), pass that address once as `address`: '
+                 'an https address (for example https://<project>--<port>.dev.example.com), pass that address once as `address`: '
                  'the Studio then answers there with a plain address and keeps running after your session ends.')
     @_answer
     def open_studio(show: bool = True, address: str | None = None, project: str | None = None) -> str:

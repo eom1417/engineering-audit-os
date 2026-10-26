@@ -22,7 +22,7 @@ def pinned(name):
 
 def version(binary, args=('--version',)):
     """The version the installed binary prints, or None when it is absent or prints none. A binary that is there but
-    does not answer in time (a loaded host: 120 s were not enough at load 47) is asked again with longer, then counted
+    does not answer in time (on a busy machine 120 s were not enough) is asked again with longer, then counted
     as installed, its version 'unknown': never taken for a tool that is not installed."""
     path = which(binary)
     if not path: return None

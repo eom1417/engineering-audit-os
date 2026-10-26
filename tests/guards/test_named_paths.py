@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # `eaos/<folders>/<module>.py` or `eaos/<folders>/`, not inside a longer path or a word.
 NAMED = re.compile(r'(?<![\w/.-])eaos/((?:[a-z_]+/)*[a-z_0-9]+)(\.py|/)')
 READ = ('.py', '.md', '.toml', '.sh', '.js', '.mjs')
-HISTORY = ('CHANGELOG.md', 'docs/archive/', 'tests/', 'eaos/data/studio/', 'upstreams/')
+HISTORY = ('CHANGELOG.md', 'tests/', 'eaos/data/studio/', 'upstreams/')
 EXAMPLES = {'eaos/x.py'}          # a made-up file a docstring shows a rule with
 
 

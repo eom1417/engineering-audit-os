@@ -68,7 +68,7 @@ def vendored_patterns():
 def git_ignored(target):
     """What the project's own .gitignore keeps out of its repository: build outputs, local data, copies.
 
-    A snapshot handed over as an archive carries them (chief-ops shipped release/, dist/ and .data/ beside
+    A snapshot handed over as an archive carries them (a full-stack app shipped release/, dist/ and .data/ beside
     its source, 756 files, and release/ is a second copy of the server). They are not the project's code,
     so analysing them counts every duplicate and dead symbol twice. Empty when the target is not a git
     repository or git is absent: then nothing is excluded on this ground."""

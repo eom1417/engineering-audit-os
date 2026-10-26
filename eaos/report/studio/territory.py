@@ -17,7 +17,7 @@ module turns that into a deterministic picture in a fixed world of W x H units:
     edges        a quadratic curve between two rims, always bent to the same side of its direction, so the two
                  directions of a pair separate; its width grows with the log of the imports
 
-Ported from the approved mockup (eaos-dev/planning/studio-v2/directions/studio/tools/geo.py, terrain.py), without its
+Ported from the approved mockup (its geo.py and terrain.py), without its
 hand-placed regions: here the regions come from the data. Pure Python (EAOS has no numpy); the world is direction
 neutral: the Studio mirrors the chrome around it in Arabic, never the geometry.
 """

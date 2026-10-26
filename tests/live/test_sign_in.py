@@ -68,7 +68,7 @@ class SignInTests(unittest.TestCase):
         asked.assert_not_called()
 
     def test_an_app_that_signs_in_by_itself_still_gets_its_views_and_nobody_is_asked(self):
-        # chief-ops in development opens as support by itself: no sign-in seen, its program's pages a "not found"
+        # a full-stack app in development opens as support by itself: no sign-in seen, its program's pages a "not found"
         context = SimpleNamespace(out=self.root / 'out', target=self.root / 'project', provider=object())
         context.setdefault = lambda key, default: default
         (self.root / 'out').mkdir()
@@ -234,7 +234,7 @@ class SignInTests(unittest.TestCase):
         project, apps = self.root / 'shop', []
         project.mkdir()
         (project / 'package.json').write_text('{}')
-        with mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'home'), 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.remote.e-m.sa'}), \
+        with mock.patch.dict(os.environ, {'EAOS_HOME': str(self.root / 'home'), 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.example.com'}), \
                 mock.patch.object(adapters, 'installed', return_value={}), \
                 mock.patch.object(server, 'create_app', side_effect=lambda *a, made=server.create_app, **k: apps.append(made(*a, **k)) or apps[-1]):
             guided.save({'project': str(project), 'workspace': str(guided.workspace(project))})
@@ -249,8 +249,8 @@ class SignInTests(unittest.TestCase):
                 time.sleep(0.05)
             address = said[0]
             port = int(re.search(r'--(\d+)\.', address)[1])
-            self.assertEqual(address, f'https://shop--{port}.dev.remote.e-m.sa/#/sign-in', 'its routed address, the token read behind the Remote sign-in')
-            host = {'Host': f'shop--{port}.dev.remote.e-m.sa'}
+            self.assertEqual(address, f'https://shop--{port}.dev.example.com/#/sign-in', 'its routed address, the token read behind the Remote sign-in')
+            host = {'Host': f'shop--{port}.dev.example.com'}
             with self.assertRaises(urllib.error.HTTPError) as refused:
                 urllib.request.urlopen(urllib.request.Request(f'http://127.0.0.1:{port}/api/sign-in', headers=host), timeout=5)
             self.assertEqual(refused.exception.code, 401)

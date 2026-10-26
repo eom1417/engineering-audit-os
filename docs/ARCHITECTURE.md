@@ -185,8 +185,7 @@ for a reason the person did not choose) shows in red at the top of START-HERE.md
 | a Studio screen | `console/src/places/<place>/` (only core places; see `ROADMAP.md` M8) |
 | a test | `tests/<layer>/test_<what it proves>.py`, beside the tests of the layer it proves (a guard of the whole in `tests/guards/`), one test per real behaviour |
 | a developer tool | `tools/` |
-| scratch of a task | `/workspace/eaos-work/<task>/`, removed when the task ends: never in the repository |
-| the done cards of the roadmap, the reasoning of done milestones | `docs/archive/`: not read at the start of a session |
+| scratch of a task | a folder outside the repository, removed when the task ends: never in the repository |
 
 ## 5. Check paths
 

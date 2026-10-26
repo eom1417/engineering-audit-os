@@ -128,7 +128,7 @@ class BuildTests(Workspace):
         self.assertEqual(run_lock(report, Path(self.tmp), Path(self.tmp) / 'runtime')['results'], [], 'the safety net is empty, never a crash')
 
     def test_the_safety_net_crawls_the_running_app_for_its_pages_when_the_code_names_none(self):
-        # A real incident (HungerLab, 0.0.59): the safety net recorded 0 screens (the code names no page: an SPA of
+        # A real incident (an SPA, 0.0.59): the safety net recorded 0 screens (the code names no page: an SPA of
         # /#/now routes), so no fix batch could open. The lock now crawls the app it started and locks those pages.
         from eaos.live.behavior import lock as behavior_lock
         report, runtime = Path(self.tmp) / 'report', Path(self.tmp) / 'runtime'

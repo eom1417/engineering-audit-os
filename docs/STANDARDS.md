@@ -23,7 +23,7 @@ What exceeds a limit today is listed in `tools/code_limits.json` and may only sh
 own adapters (`eaos/engines/`), over what EAOS ships (without the tests, the developer tools, the built Studio and the rule examples); `knip` reads
 the Studio's entries from `console/knip.json`.
 
-**How code is written** (owner, 2026-10-13):
+**How code is written** (2026-10-13):
 1. **Least code, best result**: the shortest, most direct code that does the job best; no needless layer, option or
    abstraction. A change that adds lines must earn them.
 2. **One source of truth**: anything needed in two places is written once and called from everywhere else; a change
@@ -46,13 +46,13 @@ the Studio's entries from `console/knip.json`.
 
 | Law | Guarded by |
 |---|---|
-| `main` is never touched; every change goes through a `dev/<topic>` branch from `develop` (directly on `develop` only when the owner says so) | the git hooks `pre-commit` and `pre-push` refuse `main` |
+| `main` is never touched; every change goes through a `dev/<topic>` branch from `develop` (directly on `develop` only when the maintainers say so) | the git hooks `pre-commit` and `pre-push` refuse `main` |
 | A project's app runs only in its isolated copy (`eaos/live/isolation/sandbox.py`, `eaos/live/app/run.py`): its own database, port and scratch home; never the owner's real data | `test_sandbox` |
 | A project's state is read and written only through `core/project/state.py` | `test_consistency` |
 | Never one machine's path in code | `test_platforms` |
 | A simulated user (M10) acts only in the isolated copy: external services stubbed, dummy data only, within step, time and cost budgets; what needs a real service is reported as not covered | M10's tests, when built |
-| The owner's own projects are never checked from the EAOS development container; fixes are proved on trial apps and on the compatibility corpus | review |
-| Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the owner | the hooks for `main`; review for the rest |
+| Fixes of EAOS are proved on trial apps and on the compatibility corpus, never on a person's real project | review |
+| Nothing destructive or outward-facing (push to `main`, delete a remote branch, publish) without the maintainers | the hooks for `main`; review for the rest |
 
 ## 4. Performance and disk
 
@@ -60,7 +60,7 @@ the Studio's entries from `console/knip.json`.
 |---|---|
 | **What EAOS makes, EAOS removes**: a new kind of file comes with the rule that removes or bounds it, and its test | `test_artifact_contract` (every artifact one owner, one purpose, one budget); `test_code_limits` (a temporary folder removed by what made it); `test_sandbox` (a killed run's leftovers removed) |
 | Outputs hold what people or later stages read; caches live in the runtime folder, never in the report | `test_artifact_contract` |
-| A check's output and runtime have size budgets (`docs/METRICS.md`); the disk budget (`/workspace/eaos-dev/workers/disk-budget.sh`) is said at the start of each session | the beta update stops while a folder is over budget; `tools/metrics.py` at each milestone end |
+| A check's output and runtime have size budgets (`docs/METRICS.md`) | `tools/metrics.py` at each milestone end |
 | Long runs (checks, suites, updates) run as systemd units or background jobs, one heavy job at a time | review |
 
 ## 5. Tests
@@ -86,8 +86,6 @@ the Studio's entries from `console/knip.json`.
 
 ## 6. Language
 
-- **Everything said to the owner is Arabic**: replies, the one-line updates between steps, questions, tables (headers
-  too), summaries, the notification summary. Plain words, no jargon.
 - **Everything programmed is English**: code, comments, file and symbol names, commit messages, technical docs.
 - What EAOS shows its users is bilingual (Arabic and English) from one words catalog.
 
@@ -102,22 +100,18 @@ the Studio's entries from `console/knip.json`.
 5. **The context is updated in the same change** (section 8).
 
 **A milestone is done when** all its cards are done, then: one version (`pyproject.toml`, `eaos/__init__.py`, the
-README badges, a `CHANGELOG.md` entry), `beta-trial` updated (`update.sh --approved`, approved in advance for each
-milestone end), `docs/METRICS.md` measured again, and a short Arabic summary to the owner.
+README badges, a `CHANGELOG.md` entry), the working copy of EAOS updated to it, `docs/METRICS.md` measured again, and
+`ROADMAP.md` updated.
 
 ## 8. The context is always current
 
-After **every** finished card or decision, before the turn ends, the assistant updates:
-- `ROADMAP.md`: the card's status, version and date.
-- `docs/DECISIONS.md`: any new decision of the owner.
+After **every** finished change, in the same change:
 - `docs/ARCHITECTURE.md`: any change to the layout, layers or pipeline.
 - `docs/STANDARDS.md`: any law that changed or became enforced.
 - `docs/METRICS.md`: the numbers, at each milestone end.
-- At a milestone's end, its done rows of `ROADMAP.md` and the reasoning of its own choices in `docs/DECISIONS.md` move
-  to `docs/archive/` (only what still binds stays), so what is read at the start of a session stays short.
-- `AGENTS.md` (this repository) and `/workspace/AGENTS.md`, `/workspace/HANDOFF.md`: whatever they say that is no
-  longer true.
+- `CHANGELOG.md` and `ROADMAP.md`: at each milestone end.
+- `AGENTS.md`: whatever it says that is no longer true.
 
-Nothing about the work is kept in an assistant's or account's own folders (`~/.claude`, run-accounts, plan files,
-provider memory, `~/.codex`): a plan written in any provider's plan mode is copied into `ROADMAP.md` or
-`docs/DECISIONS.md` before the turn ends.
+Nothing about the work is kept in an assistant's or account's own folders (its memory, its plan files): a plan made in
+any assistant's plan mode is written where the work's plan lives before the turn ends. Nothing private is published
+(`AGENTS.md`, "The published tree holds only the product").

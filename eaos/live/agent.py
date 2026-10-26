@@ -11,7 +11,7 @@ The steps name controls by role and name ({"role": "tab", "name": "Reports", "nt
 lives one page only, so a replay finds them again; a step that deletes, pays, sends or signs out is refused in the
 browser itself. Open-source agents (browser-use, Stagehand) need a model key of their own, which EAOS never holds (it
 works through the person's assistant), and the Playwright MCP's steps are not replayable: this layer is EAOS's own
-(docs/DECISIONS.md, 2026-10-25).
+(2026-10-25, CHANGELOG.md 0.0.77).
 """
 import json
 import select

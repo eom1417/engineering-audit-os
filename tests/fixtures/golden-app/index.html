@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>العيّنة</title>
 <style>body{font:16px system-ui;margin:24px;color:#111;background:#fff}button{padding:12px;min-width:44px}</style></head>
 <body>
-<!-- As HungerLab: drawn seconds after loading (a development server), sent to #/onboarding (a language, then start),
+<!-- As a real SPA: drawn seconds after loading (a development server), sent to #/onboarding (a language, then start),
      then moving by a tab bar of buttons, with no link at all: the crawl must read the screens the code names. -->
 <template id="app">
 <section id="welcome"><p>أهلًا بك في العيّنة</p>
@@ -15,7 +15,7 @@
 <script>
 const screens = { '#/onboarding': 'اختر لغتك ثم ابدأ.', '#/now': 'ما يحدث الآن: ثلاث مهام مفتوحة ومهمتان منجزتان اليوم.', '#/tasks': 'قائمة المهام: كتابة التقرير، مراجعة الطلبات، الرد على العملاء.', '#/about': 'عيّنة صغيرة يفحصها EAOS في كل تحديث.' };
 if (!localStorage.started && !location.hash) location.hash = '#/onboarding';
-// The now screen shows the time, as HungerLab's does: two recordings of it differ unless the clock is held still.
+// The now screen shows the time, as the SPA's does: two recordings of it differ unless the clock is held still.
 const draw = () => { document.getElementById('screen').textContent = (screens[location.hash] || screens['#/now']) + ' ' + new Date().toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); };
 const show = () => { const on = Boolean(localStorage.started); document.getElementById('welcome').hidden = on; document.querySelector('nav').hidden = !on; };
 const chosen = () => { document.getElementById('language').hidden = true; document.getElementById('start').hidden = false; };

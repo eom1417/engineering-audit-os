@@ -489,7 +489,7 @@ class Commands(unittest.TestCase):
         restarted.wait(10)
 
     def test_in_the_background_on_a_remote_server_the_studio_gives_its_plain_remote_address(self):
-        env = {**self.env, 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.remote.e-m.sa'}
+        env = {**self.env, 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.example.com'}
         done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=env,
                               capture_output=True, text=True, timeout=60)
         [record] = self.records()
@@ -498,8 +498,8 @@ class Commands(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
         # The page it opens depends on this computer (the tools page where they are not installed); the address does not.
-        self.assertEqual(address.split('#', 1)[0], f"https://shop--{saved['port']}.dev.remote.e-m.sa/", 'the Remote address carries no token')
-        host = {'Host': f"shop--{saved['port']}.dev.remote.e-m.sa"}
+        self.assertEqual(address.split('#', 1)[0], f"https://shop--{saved['port']}.dev.example.com/", 'the Remote address carries no token')
+        host = {'Host': f"shop--{saved['port']}.dev.example.com"}
         status, page = _fetch(f"http://127.0.0.1:{saved['port']}/", host)
         self.assertEqual(status, 200, 'it answers to its Remote name')
         self.assertIn('live-token.js', page.decode('utf-8'), 'behind the Remote sign-in the page also reads its token from its server')
@@ -522,7 +522,7 @@ class Commands(unittest.TestCase):
         self.assertTrue(first['studio'].startswith('http://127.0.0.1:'))
         second = agent_tools.open_studio(str(self.project), show=False)
         self.assertEqual((second['studio'], second['started']), (first['studio'], False))
-        # EAOS updated under it (HungerLab still showed 0.0.59): the old Studio is stopped and this EAOS's started.
+        # EAOS updated under it (an SPA still showed 0.0.59): the old Studio is stopped and this EAOS's started.
         with mock.patch.object(launch, '__version__', 'newer'):
             third = agent_tools.open_studio(str(self.project), show=False)
         self.assertTrue(third['started'])
@@ -585,13 +585,13 @@ class Remote(unittest.TestCase):
         from eaos.core.system import launch
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder, 'SECRET_TOKEN': 'x'}):
             self.assertFalse(launch.durable(), 'a person\'s own computer: a process of its own')
-            for wrong in ('https://evil.example:8096', 'https://shop.dev.remote.e-m.sa'):
+            for wrong in ('https://evil.example:8096', 'https://shop.dev.example.com'):
                 with self.assertRaises(ValueError): launch.serve_remotely(wrong)
             with mock.patch.object(launch.shutil, 'which', return_value='/usr/bin/systemd-run'), \
                     mock.patch.object(launch.Path, 'is_dir', return_value=True):
-                self.assertEqual(launch.serve_remotely('https://shop--8096.dev.remote.e-m.sa/'), 'https://shop--{port}.dev.remote.e-m.sa')
+                self.assertEqual(launch.serve_remotely('https://shop--8096.dev.example.com/'), 'https://shop--{port}.dev.example.com')
                 self.assertTrue(launch.durable())
-            self.assertEqual(launch.remote_template(), 'https://shop--{port}.dev.remote.e-m.sa')
+            self.assertEqual(launch.remote_template(), 'https://shop--{port}.dev.example.com')
             state = {'workspace': f'{folder}/projects/shop-1a2b3c4d', 'project': '/srv/shop'}
             with mock.patch.object(launch.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout='inactive')) as ran:
                 self.assertTrue(launch._as_service(state, ['python', '-m', 'eaos', 'studio'], dict(os.environ, PWD='/x'), Path(folder) / 'log'))
@@ -606,7 +606,7 @@ class Remote(unittest.TestCase):
         from eaos.core.system import launch
         from eaos.ai.assistant import headless as adapters
         from eaos.core.system import studio_access as security
-        origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
+        origin = 'https://engineering-audit-os--8096.dev.example.com'
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
             report = report_with_data(folder)
             project = Path(folder) / 'project'
@@ -617,12 +617,12 @@ class Remote(unittest.TestCase):
                 headers = {'X-EAOS-Token': keys.token, 'X-EAOS-CSRF': keys.csrf, 'Origin': origin}
                 self.assertEqual(remote.get('/api/decisions', headers=headers).status_code, 200)
                 self.assertEqual(remote.get('/api/decisions').status_code, 401)
-                self.assertEqual(remote.get('/api/decisions', headers={**headers, 'Host': 'other--8096.dev.remote.e-m.sa'}).status_code, 421)
+                self.assertEqual(remote.get('/api/decisions', headers={**headers, 'Host': 'other--8096.dev.example.com'}).status_code, 421)
                 for altered in ({'Origin': 'https://evil.example'}, {'X-EAOS-CSRF': 'bad'}):
                     self.assertEqual(remote.post('/api/decisions/missing/answer', headers={**headers, **altered}, json={}).status_code, 403)
                 self.assertEqual(remote.post('/api/decisions/missing/answer', headers=headers, json={}).status_code, 404)
             with self.assertRaises(ValueError): server.Keys(port=8097, remote_origin=origin)
-        for value in ('https://*.dev.remote.e-m.sa', 'http://engineering-audit-os--8095.dev.remote.e-m.sa', 'https://evil.example'):
+        for value in ('https://*.dev.example.com', 'http://engineering-audit-os--8095.dev.example.com', 'https://evil.example'):
             with self.assertRaises(ValueError): security.Locks(8095, remote_origin=value)
         record = {'port': 8096, 'token': 'fixture-not-a-secret', 'remote_origin': origin}
         self.assertTrue(launch.url_of(record).startswith(origin + '/#token='))
@@ -640,15 +640,15 @@ class Remote(unittest.TestCase):
             self.assertNotEqual(server._kept_token(str(path)), 'x' * 40, 'a file others can read gets a new token')
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         self.assertIsNone(server._kept_token(None))
-        ctx = lambda remote: mock.Mock(keys=server.Keys(port=8096, remote_origin='https://p--8096.dev.remote.e-m.sa' if remote else None))
+        ctx = lambda remote: mock.Mock(keys=server.Keys(port=8096, remote_origin='https://p--8096.dev.example.com' if remote else None))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
             self.assertEqual((server._remote_login_trusted(ctx(True)), server._remote_login_trusted(ctx(False))), (True, False))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': ''}):
             self.assertFalse(server._remote_login_trusted(ctx(True)))
-        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': 'https://p--{port}.dev.remote.e-m.sa'}):
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': 'https://p--{port}.dev.example.com'}):
             self.assertTrue(server._remote_login_trusted(ctx(True)), 'a computer set up for Remote opts in')
         from eaos.ai.assistant import headless as adapters
-        origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
+        origin = 'https://engineering-audit-os--8096.dev.example.com'
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
             keys = server.Keys(port=8096, remote_origin=origin)
             app = server.create_app(report_with_data(folder), keys=keys, watch=False)
@@ -674,8 +674,8 @@ class Remote(unittest.TestCase):
         table.write_text('Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\n'
                          'eth0\t00000000\t01219A0A\t0003\t0\t0\t100\t00000000\n'
                          'eth0\t00219A0A\t00000000\t0001\t0\t0\t100\t00FFFFFF\n')
-        self.assertEqual(server._gateways(table), {'10.154.33.1'}, "the default route's gateway, from the kernel's table")
-        for peer, given in (('10.154.33.1', True), ('::ffff:10.154.33.1', True), ('10.154.33.8', False), ('127.0.0.1', False), ('', False)):
+        self.assertEqual(server._gateways(table), {'10.0.3.1'}, "the default route's gateway, from the kernel's table")
+        for peer, given in (('10.0.3.1', True), ('::ffff:10.0.3.1', True), ('10.0.3.8', False), ('127.0.0.1', False), ('', False)):
             self.assertEqual(server._gateway_peer(peer, table), given, peer)
 
 

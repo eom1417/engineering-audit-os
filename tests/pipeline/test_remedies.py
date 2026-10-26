@@ -14,7 +14,7 @@ def manifest(**stages):
 
 class RemedyTests(unittest.TestCase):
     def test_a_missing_tool_is_installed_and_its_stage_run_again_once_a_person_only_cause_is_only_said(self):
-        # A real check (HungerLab): ten stages stood still and nobody tried the causes EAOS could fix by itself.
+        # A real check (an SPA): ten stages stood still and nobody tried the causes EAOS could fix by itself.
         first = manifest(engines=('unavailable', 'no_engine_installed'), setup=('unavailable', 'no_run_consent'), measure=('ok', ''))
         fixed = manifest(engines=('ok', ''), setup=('unavailable', 'no_run_consent'), measure=('ok', ''))
         calls = []

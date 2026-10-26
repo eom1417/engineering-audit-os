@@ -48,7 +48,7 @@ def _by_rules(context, live, base, state):
 
 def _views_alone(context):
     """No sign-in asked for (an app that opens signed in by itself, a development sign-in): the views are still made
-    when the code has some, or when pages of the code open as none of themselves (chief-ops opened as support alone,
+    when the code has some, or when pages of the code open as none of themselves (a full-stack app opened as support alone,
     its program's pages a "not found", and no view was ever looked for). Never asks the person to sign in."""
     from ...live.access.roles import read
     from ...live.access.test_users import unreached

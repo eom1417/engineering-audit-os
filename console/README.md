@@ -1,7 +1,7 @@
 # The console: EAOS Studio
 
 The Studio a person opens with `eaos studio`: the governance console the design committee approved
-(`/workspace/eaos-work/studio-design/`: `IA.md`, `DESIGN-SYSTEM.md`, `prototype/`). Plain modern JavaScript modules and
+(its `IA.md`, `DESIGN-SYSTEM.md` and `prototype/`, kept outside the repository). Plain modern JavaScript modules and
 CSS, no UI framework, no network beyond the server that serves it. Arabic (right to left) first, English equally
 finished, light and dark, phone (390 px) first and desktop (1440 px).
 

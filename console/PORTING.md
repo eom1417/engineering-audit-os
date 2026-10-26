@@ -1,6 +1,6 @@
 # Porting a prototype screen into the console
 
-The prototype (`/workspace/eaos-work/studio-design/prototype/assets/screens/*.js`) is the approved look, words and
+The prototype (its `assets/screens/*.js`, kept outside the repository) is the approved look, words and
 behaviour; the console draws the same markup with the same CSS classes on the real report and the real API. Port the
 markup as it is; replace what it reads and what it does. The lead's ports are the model: `src/places/status/index.js`,
 `src/places/waiting/list.js`, `src/places/problems/{list,detail,preview}.js`.

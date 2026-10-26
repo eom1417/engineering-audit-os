@@ -62,8 +62,8 @@ merges them) and the runtime was not measured. The full check's figures come at 
 ## After M2: 0.0.74 (2026-10-24), the rules' part of a check of `develop`
 
 Measured as after M1 (`eaos audit --engines` by the beta-trial EAOS, no assistant, no app run), against the M1 numbers.
-The host was loaded (load 25-40 on 10 cores): the time is not comparable, and Checkov's version probe took 111 s of its
-120 s limit, so this run counted it as not installed (it is: an open item in `/workspace/HANDOFF.md`).
+The machine was busy: the time is not comparable, and Checkov's version probe took 111 s of its
+120 s limit, so this run counted it as not installed (it is installed).
 
 | Measure | After M1 (0.0.73) | After M2 (0.0.74) |
 |---|---|---|
@@ -104,7 +104,7 @@ M4 changed how the check runs, not what the engines find, so the engine measure 
 ## After M3: 0.0.75 (2026-10-24), the rules' part of a check of `develop`
 
 Measured as after M2 (`eaos audit --engines` by the beta-trial EAOS on `develop` at `484debd1`, no assistant, no app
-run), against the M2 numbers. The host was quiet (load 3-6), so the time is comparable to M1's, not M2's.
+run), against the M2 numbers. The machine was quiet, so the time is comparable to M1's, not M2's.
 
 | Measure | After M2 (0.0.74) | After M3 (0.0.75) |
 |---|---|---|

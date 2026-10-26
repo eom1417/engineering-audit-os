@@ -105,7 +105,7 @@ def _shape_fits(rule, root):
 
 
 # Where an application may sit inside its repository: at the root, or in one conventional folder
-# (chief-ops keeps its package.json in app/). The first folder a catalogue type matches is the app root.
+# (a full-stack app keeps its package.json in app/). The first folder a catalogue type matches is the app root.
 APP_ROOTS = ('', 'app', 'web', 'client', 'frontend', 'src/app')
 
 
