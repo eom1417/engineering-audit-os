@@ -51,16 +51,18 @@ def _end(pid, paused=False):
 
 
 class Manager(Turns, Answers, Outcomes):
-    def __init__(self, project, store, adapters, contract, tools, lang='ar', dispatch=True):
-        self.project = Path(project).resolve()
-        self.store = store
-        self.adapters = adapters
-        self.contract = contract
+    def __init__(self, owner, tools, dispatch=True):
+        """`owner`: the Actions it runs for (eaos/interfaces/studio_actions/centre.py), whose project, store, adapters,
+        contract and language it takes."""
+        self.project = Path(owner.project).resolve()
+        self.store = owner.store
+        self.adapters = owner.adapters
+        self.contract = contract = owner.contract
         self.actions = {action['id']: action for action in contract['actions']}
         self.labels = {action['id']: action['label'] for action in contract['actions']}
         self.tools = tools                              # name -> callable returning the MCP tool's JSON text
         self.branch_control = None                      # eaos/interfaces/studio_actions/branches/, set by Actions: run -> branch provenance
-        self.lang = lang
+        self.lang = owner.lang
         self.children = {}                              # run -> Popen started by this process
         self.watched = set()                            # runs a thread of this process follows
         self.cancels = {}                               # run -> threading.Event of a planner run

@@ -76,8 +76,8 @@ def start(actions, body):
     argv = adapter.argv(prompt, 'chat', folder, session=session, tools=READ_TOOLS)
     if adapter.id == 'claude': argv += _claude_options(body)
     turn = uuid.uuid4().hex
-    TURNS[turn] = {'folder': folder, 'done': False, 'result': None, 'error': None}
-    threading.Thread(target=_turn, args=(actions, adapter, turn, argv, message, session, direct), daemon=True).start()
+    TURNS[turn] = {'folder': folder, 'done': False, 'result': None, 'error': None, 'message': message, 'session': session, 'direct': direct}
+    threading.Thread(target=_turn, args=(actions, adapter, turn, argv), daemon=True).start()
     return {'turn': turn}
 
 
@@ -87,18 +87,20 @@ def _claude_options(body):
     return ['--json-schema', json.dumps(SCHEMA), '--include-partial-messages'] + (['--model', model] if model else [])
 
 
-def _turn(actions, adapter, turn, argv, message, session, direct):
+def _turn(actions, adapter, turn, argv):
+    """One turn of the conversation, its asking kept in TURNS[turn] (message, session, direct): the answer or the error."""
     record = TURNS[turn]
+    message, session = record['message'], record['session']
     stream = record['folder'] / 'stream.jsonl'
     try:
         with open(stream, 'wb') as out:
-            subprocess.run(argv, cwd=actions.project, stdout=out, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, timeout=LIMIT)
+            subprocess.run(argv, cwd=actions.project, stdout=out, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, timeout=LIMIT)  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit -- an argument list, no shell: the adapter's own command
         lines = stream.read_text(encoding='utf-8', errors='replace').splitlines()
         answer, _, failure = adapter.answer(lines)
         if failure or not isinstance(answer, dict): raise LookupError(f'the assistant did not answer: {failure or "no answer"}')
         proposals = _allowed(actions, answer.get('proposals'))
         result = {'session': _session(lines) or session, 'answer': NOTE.sub('', str(answer.get('answer') or '')).strip(), 'proposals': proposals,
-                  'done': _done_at_once(actions, proposals) if direct else [],
+                  'done': _done_at_once(actions, proposals) if record['direct'] else [],
                   'assistant': adapter.name, 'usage': from_stream(lines)}
         with open(record['folder'] / 'turns.jsonl', 'a', encoding='utf-8') as log:
             log.write(json.dumps({'at': _now().isoformat(timespec='seconds'), 'message': message, **result}, ensure_ascii=False) + '\n')

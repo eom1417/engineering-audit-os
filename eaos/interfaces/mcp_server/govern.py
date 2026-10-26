@@ -1,6 +1,8 @@
 """The governance tools of `eaos mcp` (docs/MCP.md "Governance"): the Studio's queue, inbox, verbs, history and branch
 control for an assistant, five tools each grouped by `op`, thin callers of eaos/interfaces/govern.py like the terminal's
-commands; with them, the Studio's remaining actions (mcp_server/studio_parity.py).
+commands; with them, the Studio's remaining actions (mcp_server/studio_parity.py). Each tool's function is defined once, here, with the
+parameters the assistant passes (its schema); `register` puts it on the server as every tool is answered, and the tests call
+it directly for its dict.
 
 What only the person decides needs their word and the preview: `waiting(op=answer)` takes `person_said`, their reply,
 given ANSWER_SECONDS or more after the question was listed; `branch_change` and `act(auto_accept=true)` take
@@ -25,12 +27,13 @@ def _needs(why, what_now):
     return {'status': 'needs_the_person', 'why': why, 'what_now': what_now}
 
 
-def runs_op(op, run=None, paths=None, mode=None, assistant=None, project=None, sign_in=None, published=None):
+def runs(op: str = 'list', run: str | None = None, paths: list[str] | None = None, mode: str | None = None,
+         assistant: str | None = None, project: str | None = None, sign_in: str | None = None, published: str | None = None) -> str:
     if op == 'list': return {'runs': [_run(r) for r in govern.core(project).runs({'all': '1'})['runs'][:30]]}
     if op == 'show':
         found = govern.show_run(project, run)
         return {**found, 'run': _run(found['run'])}
-    inputs = govern.check_inputs(paths, mode, assistant, sign_in, published)
+    inputs = govern.check_inputs(paths, assistant, mode=mode, sign_in=sign_in, published=published)
     if op == 'estimate': return govern.estimate(project, inputs)
     if op == 'check':
         return {'run': _run(govern.start_check(project, inputs)), 'what_now': 'Tell the person the check runs in the background and '
@@ -39,7 +42,8 @@ def runs_op(op, run=None, paths=None, mode=None, assistant=None, project=None, s
     raise ValueError('op is one of list, show, estimate, check, stop, pause, resume, retry')
 
 
-def waiting_op(op, id=None, option=None, text=None, person_said='', project=None):
+def waiting(op: str = 'list', id: str | None = None, option: str | None = None, text: str | None = None, person_said: str = '',
+            project: str | None = None) -> str:
     if op == 'list':
         rows = govern.waiting(project)
         for row in rows: govern.shown(row['id'])
@@ -53,7 +57,8 @@ def waiting_op(op, id=None, option=None, text=None, person_said='', project=None
     return govern.answer(project, id, option, text)
 
 
-def act_op(verb, ids=None, group=None, op='preview', confirm=None, auto_accept=False, person_agreed=False, assistant=None, project=None):
+def act(verb: str, ids: list[str] | None = None, group: str | None = None, op: str = 'preview', confirm: str | None = None,
+        auto_accept: bool = False, person_agreed: bool = False, assistant: str | None = None, project: str | None = None) -> str:
     if auto_accept: refuse_in_studio_run('auto_accept')
     if op == 'start' and auto_accept and not person_agreed: return _needs('accepting by itself is the person\'s decision', ASK)
     preview = govern.verb_preview(project, verb, govern.selection_of(ids, group), auto_accept, assistant)
@@ -71,7 +76,7 @@ def _shown(preview, auto_accept):
             'what_now': ASK if auto_accept else 'Tell the person what it will do, then call op=start (with confirm, for fix).'}
 
 
-def history_op(op='list', a=None, b=None, project=None):
+def history(op: str = 'list', a: str | None = None, b: str | None = None, project: str | None = None) -> str:
     if op == 'list': return govern.history(project)
     if op == 'compare': return govern.compare(project, a, b)
     if op == 'usage': return govern.usage(project)
@@ -84,7 +89,8 @@ UNDECIDED = {'fetch': lambda project, name, target: govern.fetch(project, name),
              'conflict': lambda project, name, target: govern.propose_resolution(project, name, target)}
 
 
-def branch_op(op, name=None, target=None, confirm=None, confirm_unmerged=None, person_agreed=False, project=None):
+def branch_change(op: str, name: str | None = None, target: str | None = None, confirm: str | None = None,
+                  confirm_unmerged: str | None = None, person_agreed: bool = False, project: str | None = None) -> str:
     if op in UNDECIDED: return UNDECIDED[op](project, name, target)
     if op not in (*govern.BRANCH_OPS, 'restore'): raise ValueError('op is one of merge, delete, protect, unprotect, cleanup, restore, fetch, conflict')
     refuse_in_studio_run('branches ' + {'unprotect': 'protect'}.get(op, op))
@@ -102,52 +108,33 @@ def register(server, reading, working, answer):
     """The five governance tools on `server`, each answered as every tool is (`answer`: mcp_server._answer)."""
     doc = ' project: the project folder (default: the folder the assistant was opened in).'
 
-    @server.tool(annotations=working, description='The runs of the Studio\'s queue, without the Studio: op=list; show (one run, the '
-                 'active one by default: its stage, minutes left, cost so far, last events, its question); estimate (how long a check '
-                 'of `paths` in `mode` takes here); check (a new check in the background, the same one the Studio and `eaos check` '
-                 'start: paths, mode, assistant claude|codex|none, sign_in hand|test_user|none (kept), published: an https address '
-                 'the person named, read signed in, read only, for this check); stop, pause, resume, retry (run, the newest it '
-                 'applies to by default).' + doc)
-    @answer
-    def runs(op: str = 'list', run: str | None = None, paths: list[str] | None = None, mode: str | None = None,
-             assistant: str | None = None, project: str | None = None, sign_in: str | None = None, published: str | None = None) -> str:
-        return runs_op(op, run, paths, mode, assistant, project, sign_in, published)
+    server.tool(annotations=working, description='The runs of the Studio\'s queue, without the Studio: op=list; show (one run, the '
+                'active one by default: its stage, minutes left, cost so far, last events, its question); estimate (how long a check '
+                'of `paths` in `mode` takes here); check (a new check in the background, the same one the Studio and `eaos check` '
+                'start: paths, mode, assistant claude|codex|none, sign_in hand|test_user|none (kept), published: an https address '
+                'the person named, read signed in, read only, for this check); stop, pause, resume, retry (run, the newest it '
+                'applies to by default).' + doc)(answer(runs))
 
-    @server.tool(annotations=working, description='What waits for the person: op=list (the runs\' questions, the report\'s questions, '
-                 'a branch waiting for accept or undo, the sign-in a check waits for: the person signs in in the Studio\'s Waiting '
-                 'for you or with eaos sign-in, never you; option signed_out goes on without it); op=answer (id, option or text) with person_said = the person\'s own reply, '
-                 'never yours: only after you listed it and asked them.' + doc)
-    @answer
-    def waiting(op: str = 'list', id: str | None = None, option: str | None = None, text: str | None = None, person_said: str = '',
-                project: str | None = None) -> str:
-        return waiting_op(op, id, option, text, person_said, project)
+    server.tool(annotations=working, description='What waits for the person: op=list (the runs\' questions, the report\'s questions, '
+                'a branch waiting for accept or undo, the sign-in a check waits for: the person signs in in the Studio\'s Waiting '
+                'for you or with eaos sign-in, never you; option signed_out goes on without it); op=answer (id, option or text) with person_said = the person\'s own reply, '
+                'never yours: only after you listed it and asked them.' + doc)(answer(waiting))
 
-    @server.tool(annotations=working, description='A verb (fix, verify, explain, plan) on cards: ids, or group as by=value (by: area, '
-                 'severity, component, gap, operation). op=preview first (cards, files, batches, estimate, risk, where a fix builds, '
-                 'its confirm token); then op=start (fix: with confirm). The run is the Studio\'s: the person\'s assistant runs it '
-                 'headless, or, with assistant=handoff, it waits for you in status. auto_accept=true (fix: accepted by itself when its '
-                 'checks pass) is the person\'s choice: person_agreed=true only after their yes.' + doc)
-    @answer
-    def act(verb: str, ids: list[str] | None = None, group: str | None = None, op: str = 'preview', confirm: str | None = None,
-            auto_accept: bool = False, person_agreed: bool = False, assistant: str | None = None, project: str | None = None) -> str:
-        return act_op(verb, ids, group, op, confirm, auto_accept, person_agreed, assistant, project)
+    server.tool(annotations=working, description='A verb (fix, verify, explain, plan) on cards: ids, or group as by=value (by: area, '
+                'severity, component, gap, operation). op=preview first (cards, files, batches, estimate, risk, where a fix builds, '
+                'its confirm token); then op=start (fix: with confirm). The run is the Studio\'s: the person\'s assistant runs it '
+                'headless, or, with assistant=handoff, it waits for you in status. auto_accept=true (fix: accepted by itself when its '
+                'checks pass) is the person\'s choice: person_agreed=true only after their yes.' + doc)(answer(act))
 
-    @server.tool(annotations=reading, description='The project over time: op=list (every check on record: score, open cards, closed of '
-                 'total); compare (a, b: two check ids of the list); usage (what the assistant used: the last check stage by stage, '
-                 'every run, the chat: tokens and cost at API prices).' + doc)
-    @answer
-    def history(op: str = 'list', a: str | None = None, b: str | None = None, project: str | None = None) -> str:
-        return history_op(op, a, b, project)
+    server.tool(annotations=reading, description='The project over time: op=list (every check on record: score, open cards, closed of '
+                'total); compare (a, b: two check ids of the list); usage (what the assistant used: the last check stage by stage, '
+                'every run, the chat: tokens and cost at API prices).' + doc)(answer(history))
 
-    @server.tool(annotations=working, description='Change a branch, as the Studio\'s branch control does: op=merge (name into target), '
-                 'delete, protect, unprotect (name), cleanup (merged branches, old worktrees), restore (name: a recovery id), fetch '
-                 '(name: a remote, origin by default), conflict (name into target: the person\'s assistant proposes a resolution, '
-                 'nothing changes). Without confirm: the preview and its confirm token(s); show it, ask, and only after their yes '
-                 'call again with person_agreed=true and confirm (confirm_unmerged too for commits in no other branch).' + doc)
-    @answer
-    def branch_change(op: str, name: str | None = None, target: str | None = None, confirm: str | None = None,
-                      confirm_unmerged: str | None = None, person_agreed: bool = False, project: str | None = None) -> str:
-        return branch_op(op, name, target, confirm, confirm_unmerged, person_agreed, project)
+    server.tool(annotations=working, description='Change a branch, as the Studio\'s branch control does: op=merge (name into target), '
+                'delete, protect, unprotect (name), cleanup (merged branches, old worktrees), restore (name: a recovery id), fetch '
+                '(name: a remote, origin by default), conflict (name into target: the person\'s assistant proposes a resolution, '
+                'nothing changes). Without confirm: the preview and its confirm token(s); show it, ask, and only after their yes '
+                'call again with person_agreed=true and confirm (confirm_unmerged too for commits in no other branch).' + doc)(answer(branch_change))
 
 
 def every(server, reading, working, answer):

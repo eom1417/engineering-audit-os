@@ -86,7 +86,8 @@ def _said(actions, record):
 @command
 def check(args, lang):
     project = _project(args)
-    inputs = govern.check_inputs(*(getattr(args, name, None) for name in ('path', 'mode', 'assistant', 'sign_in', 'published', 'run_app', 'again_from')))   # check, start
+    inputs = govern.check_inputs(getattr(args, 'path', None), getattr(args, 'assistant', None), getattr(args, 'again_from', None),   # check, start
+                                 **{name: getattr(args, name, None) for name in ('mode', 'sign_in', 'published', 'run_app')})
     shown = govern.estimate(project, inputs)['estimate']
     say(words('estimate', lang, low=shown['minutes_low'], high=shown['minutes_high'], basis=text_of(shown['basis'], lang)))
     record = govern.start_check(project, inputs, lang)

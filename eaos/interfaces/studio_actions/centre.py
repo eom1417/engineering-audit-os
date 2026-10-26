@@ -98,13 +98,13 @@ class Actions(Previews, Decisions):
         self.locks = Locks(options.get('port', 8765), options.get('token'), options.get('remote_origin'))
         self.token, self.csrf = self.locks.token, self.locks.csrf
         self.studio = Path(studio) if studio else None
-        self.lang = lang = options.get('lang', 'ar')
+        self.lang = options.get('lang', 'ar')
         self.adapters = adapters_module.installed() if adapters is None else dict(adapters)
         self.contract = contract()
         self.actions = {action['id']: action for action in self.contract['actions']}
         self.verbs = {verb['id']: verb for verb in self.contract['verbs']}
         self.store = Store(guided.workspace(self.project) / 'runs', Scrubber(self.project, [self.token, self.csrf]))
-        self.manager = Manager(self.project, self.store, self.adapters, self.contract, _server_tools, lang, options.get('dispatch', True))
+        self.manager = Manager(self, _server_tools, options.get('dispatch', True))
         self.branches = BranchControl(self)
         self.manager.branch_control = self.branches
 
