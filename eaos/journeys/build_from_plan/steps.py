@@ -177,10 +177,12 @@ def build_edit(card, edits, summary='', project=None):
 def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
     """The build's gates on the copy: its own scripts, then the gates every change passes (eaos/analysis/repair/gates.py) against
     nothing before it, held to the blueprint's policy: the fast security engines on every card, CodeQL too when a
-    milestone closes, where it may run; dead code once the milestone closes, when the cards after can no longer use it."""
+    milestone closes, where it may run; dead code once the milestone closes, when the cards after can no longer use it.
+    A milestone's proof (no card) also holds the whole copy to the repository's craft and its assistants' context (M8.7):
+    a new project ends with no such finding."""
     from ..fix.execute import GATE_ENGINES
     from ...facts.run import collect
-    from ...analysis.repair.gates import found
+    from ...analysis.repair.gates import found, tidy
     rules = _read(Path(root) / 'eaos.policy.json') or _read(folder(state) / 'eaos.policy.json')
     problems, build = _checks(root, state['open_build'], progress, project_state.runtime_of(state) / 'browsers' if closing else None)
     state['open_build'] = build
@@ -189,6 +191,7 @@ def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
         progress(3, 4, 'reading the structure and security: layers, cycles, copies, weaknesses' + (', dead code' if closing else ''))
         collect(Path(root).resolve(), out, engines=list(GATE_ENGINES) + (['codeql'] if closing else []))
         problems += found(None, out, changed, rules, dead=closing)
+        if card is None and not closing: problems += [p for p in tidy(None, out, _git(root, 'ls-files').stdout.split()) if p not in problems]
     if card and card != 'FIX': problems += _untested(state, root, card)
     return problems
 
