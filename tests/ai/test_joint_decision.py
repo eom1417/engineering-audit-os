@@ -69,7 +69,7 @@ class Assistant:
             on_core = {c['id'] for c in bundle(prompt)['cards'] if 'core/audit.py' in c['paths']}
             verdict = lambda card: 'reject' if card in on_core else 'doubt' if card == 'TASK-002' else 'confirm'
             Assistant.rejected |= on_core
-            return {'summary': '', 'decisions': [decision(s, verdict(s), [s], {'falsifier': 'a caller'}) for s in subjects]}
+            return {'summary': '', 'decisions': [decision(s, verdict(s), [s], {'falsifier': 'a caller', 'harmed': 'the app users'}) for s in subjects]}
         return {'summary': '', 'decisions': []}
 
 
