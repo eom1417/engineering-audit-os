@@ -201,7 +201,7 @@ def python_tests(target, profile=None):
     runs a Python suite."""
     root = Path(target)
     if any(Path(str(argv[0])).name in INTERPRETER_NAMES for argv in test_commands(profile)): return []   # the profile runs them
-    folder, beside = any((root / 'tests').glob('test_*.py')), (root / 'tests.py').is_file() or any(root.glob('test_*.py'))
+    folder, beside = any((root / 'tests').rglob('test_*.py')), (root / 'tests.py').is_file() or any(root.glob('test_*.py'))   # tests/ by layer too
     if not folder and not beside: return []
     configured = (root / 'pytest.ini').is_file() or (root / 'conftest.py').is_file() or '[tool.pytest' in (
         (root / 'pyproject.toml').read_text(encoding='utf-8', errors='replace') if (root / 'pyproject.toml').is_file() else '')

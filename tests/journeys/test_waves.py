@@ -369,6 +369,10 @@ class PythonSuiteGateTests(unittest.TestCase):
         small = Path(scratch())
         (small / 'tests.py').write_text('')        # flask-microblog of the corpus keeps its tests at its root (M9.5)
         self.assertEqual(python_tests(small)[0][-4:], ['-s', '.', '-p', 'test*.py'])
+        layered = Path(scratch())
+        (layered / 'tests' / 'facts').mkdir(parents=True)
+        (layered / 'tests' / 'facts' / 'test_a.py').write_text('')   # EAOS's own since M8: its check found no suite
+        self.assertEqual(python_tests(layered)[0][-3:], ['discover', '-s', 'tests'])
         (root / 'tests').mkdir()
         (root / 'tests' / 'test_a.py').write_text('')
         self.assertEqual(python_tests(root)[0][-3:], ['discover', '-s', 'tests'])
