@@ -20,11 +20,9 @@ def capabilities():
 def version(): return tool.version(BINARY)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()
-    workdir = tool.folder(workdir, NAME)
     ruleset = workdir / 'ruleset.yaml'
     ruleset.write_text('extends: ["spectral:oas"]\n', encoding='utf-8')
     specs = openapi.specifications(target, exclude)

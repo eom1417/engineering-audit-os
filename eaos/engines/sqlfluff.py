@@ -38,13 +38,11 @@ def sql_files(target, exclude=()):
                   if not set(p.relative_to(root).parts) & set(SKIPPED + tuple(exclude)))
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()
     files = sql_files(target, exclude)
-    output = Path(workdir) / NAME / 'sqlfluff.json'
-    output.parent.mkdir(parents=True, exist_ok=True)
+    output = workdir / 'sqlfluff.json'
     command = [which(BINARY), 'lint', '--format', 'json', '--dialect', 'postgres', '--nofail', '--disable-progress-bar',
                '--write-output', str(output), *files]
     code, _, error, seconds = run(command, cwd=target)

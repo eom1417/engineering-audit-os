@@ -89,10 +89,8 @@ def normalise(path, target):
     sarif.relativise(path, target)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
-    workdir = tool.folder(workdir, NAME)
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     used, commit = assemble(workdir)
     output = workdir / 'semgrep.sarif'
     # No time limit per rule and file: semgrep's own (5 s, a file skipped after three) dropped findings in silence on a

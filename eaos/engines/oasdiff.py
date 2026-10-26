@@ -24,11 +24,9 @@ def capabilities():
 def version(): return tool.version(BINARY)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()
-    workdir = tool.folder(workdir, NAME)
     findings, compared, seconds = [], {}, 0.0
     for index, spec in enumerate(openapi.specifications(target, exclude)):
         commit, text = openapi.previous(target, spec)

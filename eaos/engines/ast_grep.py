@@ -68,12 +68,10 @@ def normalise(rows, found):
     return (sorted(metrics, key=lambda m: (m['path'], m['line'])), findings, dict(sorted(by_rule.items())))
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()
-    output = Path(workdir) / NAME / 'ast-grep.jsonl'
-    output.parent.mkdir(parents=True, exist_ok=True)
+    output = workdir / 'ast-grep.jsonl'
     globs = [argument for name in EXCLUDED + tuple(exclude) for argument in ('--globs', f'!**/{name}/**')]
     command = [which(BINARY), 'scan', '--config', str(RULES / 'sgconfig.yml'), '--json=stream', '--include-metadata',
                '--color', 'never', *globs, '.']

@@ -53,12 +53,10 @@ def normalise(parsed, found):
     return sorted(metrics, key=lambda m: (m['path'], m['line'])), findings
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined, found = tool.started(NAME, BINARY, target)
-    if declined: return declined
+@tool.engine(NAME, BINARY)
+def analyze(target, workdir, exclude, formats, found):
     target = Path(target).resolve()
-    output = Path(workdir) / NAME / 'lizard.csv'
-    output.parent.mkdir(parents=True, exist_ok=True)
+    output = workdir / 'lizard.csv'
     patterns = [argument for name in EXCLUDED + tuple(exclude) for argument in ('-x', f'*/{name}/*')]
     # -i -1: the exit code stays 0 however many functions pass the threshold; a warning is a result. One process: its
     # -t workers deadlocked now and then (2 of 6 runs on EAOS hung until the timeout; alone it takes 6 s), and the
