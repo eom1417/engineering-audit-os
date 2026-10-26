@@ -28,8 +28,11 @@ bash tools/dev_setup.sh          # .venv, every external tool at its pinned vers
 2. **One source of truth.** Anything needed in more than one place is written once and called from everywhere else.
 3. **Clear and clean.** No dead code, no unused import, small functions with one job, modules with one responsibility.
 
-`tests/guards/test_code_limits.py` enforces what can be measured: no function over cyclomatic complexity 15, no module over
-600 lines (today's exceptions may only shrink), no function written twice, no pyflakes finding.
+`tests/guards/test_code_limits.py` enforces what can be measured in EAOS itself: no module over 400 lines and no function
+over cyclomatic complexity 10, with no exception; functions over 50 lines or 5 parameters only as listed in
+`tools/code_limits.json`, a list that may only shrink; no function written twice, no pyflakes finding. (600 lines and 15
+are the limits EAOS holds the projects it checks to: `eaos/core/contracts/code_laws.py`.) The laws in full:
+`docs/STANDARDS.md`.
 
 ## The rules of the codebase
 

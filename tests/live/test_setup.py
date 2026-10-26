@@ -264,6 +264,14 @@ class VerifyTests(unittest.TestCase):
             live_setup._probed(None, 'http://x', Path('none'), None, None)
         self.assertEqual(probe.call_count, 1, 'a database the run gives: nothing more is opened')
 
+    def test_the_probe_opens_the_lock_s_screens_before_its_server_paths(self):
+        # The detection baseline: four API paths filled the probe, and #/account, which draws the sign-in form, was missed
+        report = Path(scratch())
+        (report / 'behavior-lock').mkdir()
+        (report / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': [
+            'GET /api/export', 'GET /api/me', 'GET /api/report', 'GET /health', '/', '/#/home', '/#/orders', '/#/account']}]}))
+        self.assertEqual(live_setup.routes(report), ['/#/home', '/#/orders', '/#/account', '/api/export'])
+
 class RunEnvironmentTests(unittest.TestCase):
     def test_the_run_has_its_own_database_secrets_and_seed_values_and_never_the_owners(self):
         with tempfile.TemporaryDirectory() as tmp:

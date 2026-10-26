@@ -71,10 +71,12 @@ def mark(state):
 
 
 def from_code(report):
-    """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin, auth... as `auth`)."""
+    """The routes of the code's sign-in feature (eaos/analysis/understanding/features.py groups login, signin, auth... as `auth`),
+    and any route of another feature that is a sign-in itself (the detection baseline's /api/login, grouped as `api`)."""
+    from ..app.setup import SIGN_IN_PAGE
     features = (_read(Path(report) / 'features.json') or {}).get('features') or []
-    return [f'{surface}: a sign-in route of the code' for feature in features if feature.get('name') == 'auth'
-            for surface in (feature.get('surfaces') or [])[:5]]
+    routes = [s for f in features for s in f.get('surfaces') or [] if f.get('name') == 'auth' or SIGN_IN_PAGE.search(s)]
+    return [f'{surface}: a sign-in route of the code' for surface in list(dict.fromkeys(routes))[:5]]
 
 
 def from_pages(page):

@@ -50,6 +50,9 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(sign_in.from_pages({**SIGNED_OUT_PAGE, 'url': 'http://127.0.0.1:1/'}), [])
         (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'auth', 'surfaces': ['/login']}, {'name': 'shop', 'surfaces': ['/']}]}))
         self.assertEqual(sign_in.from_code(self.root), ['/login: a sign-in route of the code'])
+        # The detection baseline: its sign-in route grouped with the rest of its API, and the check said no sign-in needed
+        (self.root / 'features.json').write_text(json.dumps({'features': [{'name': 'api', 'surfaces': ['/api/login', '/api/orders']}]}))
+        self.assertEqual(sign_in.from_code(self.root), ['/api/login: a sign-in route of the code'])
         from eaos.live.app.setup import routes
         (self.root / 'behavior-lock').mkdir()
         (self.root / 'behavior-lock/plan.json').write_text(json.dumps({'specs': [{'surfaces': ['/logout', '/settings', '/sign-out', '/reports']}]}))
