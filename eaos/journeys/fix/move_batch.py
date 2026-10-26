@@ -38,9 +38,16 @@ def proposal(report, target):
     for move in drawn:
         if move['from'] in seen: continue
         seen.add(move['from'])
-        refused = moves.plan(target, [move], known)['refused']
+        refused = moves.plan(target, [move], known)['refused'] + _shared_place(move, drawn)
         rows.append({'id': move_id(move), **move, 'refused': '; '.join(refused)})
     return {'moves': rows, 'tree': tree(rows), 'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
+
+
+def _shared_place(move, drawn):
+    """Another drawn move sends a different file to the same place: each looks makeable alone, never both together, and
+    a batch holding both is refused whole (two email.py files of a Flask app drawn into one feature folder)."""
+    others = sorted({m['from'] for m in drawn if m['to'] == move['to'] and m['from'] != move['from']})
+    return [f"{', '.join(others)} would become {move['to']} too"] if others else []
 
 
 def _set(report, name):
