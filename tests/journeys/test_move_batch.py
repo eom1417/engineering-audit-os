@@ -114,3 +114,13 @@ class MoveBatchTests(Workspace):
         self.assertEqual(rows['app/email.py'], 'app/auth/email.py would become services/reset/email.py too')
         self.assertEqual(rows['app/auth/email.py'], 'app/email.py would become services/reset/email.py too')
         self.assertEqual(rows['app/other.py'], '')
+
+    def test_a_move_whose_imports_cannot_be_written_is_marked_in_the_proposal(self):
+        # M9.5 (flaskr): flaskr/auth.py was proposed into services/auth/ as makeable; the package's `from . import auth`
+        # cannot reach it there, and the move tool refused the whole batch only at make.
+        root = self.project({'flaskr/__init__.py': 'def make():\n    from . import auth\n    return auth\n', 'flaskr/auth.py': 'X = 1\n'})
+        drawn = [{'from': 'flaskr/auth.py', 'to': 'services/auth/auth.py', 'rule': 'target-shape', 'reason': 'r'}]
+        with mock.patch.object(move_batch, '_from_findings', return_value=[]), \
+                mock.patch.object(move_batch, '_from_target_shape', return_value=drawn):
+            row = move_batch.proposal(Path(self.tmp) / 'report', root)['moves'][0]
+        self.assertEqual(row['refused'], 'flaskr/__init__.py would import services.auth from outside its package')

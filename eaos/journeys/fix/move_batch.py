@@ -38,9 +38,20 @@ def proposal(report, target):
     for move in drawn:
         if move['from'] in seen: continue
         seen.add(move['from'])
-        refused = moves.plan(target, [move], known)['refused'] + _shared_place(move, drawn)
+        refused = _cannot(target, move, known) + _shared_place(move, drawn)
         rows.append({'id': move_id(move), **move, 'refused': '; '.join(refused)})
     return {'moves': rows, 'tree': tree(rows), 'limits': [move_gate.PUBLISHED] if move_gate.published(target, known) else []}
+
+
+def _cannot(target, move, known):
+    """Why the move tool cannot make the move alone: its plan, then the imports it would write (nothing written). The
+    plan alone let flaskr/auth.py be proposed into services/auth/, and the batch was refused whole at make: the package's
+    `from . import auth` cannot reach a module outside the package."""
+    drawn = moves.plan(target, [move], known)
+    if drawn['refused']: return drawn['refused']
+    try: moves.edits(target, drawn, known)
+    except Unmovable as problem: return [str(problem)]
+    return []
 
 
 def _shared_place(move, drawn):
