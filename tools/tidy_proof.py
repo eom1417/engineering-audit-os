@@ -118,7 +118,7 @@ def check(app, folder):
 def batches(state):
     """{moves: {proposed, made, merged, refused, mapping, root}, context: {...}}: both batches through their gates."""
     from eaos.journeys import guided
-    from eaos.journeys.fix import context_batch, move_batch
+    from eaos.journeys.fix import move_batch
     target, runtime, report = guided.source(state), guided.runtime_of(state), guided.report_of(state)
     drawn = move_batch.proposal(report, target)
     makeable = [m for m in drawn['moves'] if not m['refused']]
@@ -130,13 +130,19 @@ def batches(state):
         summary = move_batch.make({'report': report, 'target': target, 'runtime': runtime, 'number': 1, 'moves': makeable})
         moves.update(merged=bool(summary['kept']), refused=summary['refused'], root=summary['root'],
                      mapping={m['from']: m['to'] for m in makeable} if summary['kept'] else {})
+    return {'moves': moves, 'context': trimmed(target, runtime)}
+
+
+def trimmed(target, runtime):
+    """The context batch: what its proposal saves, merged or refused, and its patch when merged."""
+    from eaos.journeys.fix import context_batch
     trim = context_batch.proposal(target)
     context = {'files': trim['files'], 'tokens_before': trim['tokens_before'], 'tokens_after': trim['tokens_after'],
                'merged': False, 'refused': [], 'patch': None}
     summary = context_batch.make({'target': target, 'runtime': runtime, 'number': 1})
     context.update(merged=bool(summary['kept']), refused=summary['refused'])
     if summary['kept']: context['patch'] = git(summary['root'], 'format-patch', '--stdout', f"{summary['base']}..HEAD")
-    return {'moves': moves, 'context': context}
+    return context
 
 
 def exports(folder, state, made):
@@ -166,22 +172,37 @@ def ask(question, tree, model, log):
     began = time.monotonic()
     done = run(argv, tree, timeout=600)
     log.write_text(done.stdout, encoding='utf-8')
-    read, tools, result = set(), 0, {}
-    for line in done.stdout.splitlines():
-        try: event = json.loads(line)
-        except ValueError: continue
-        if event.get('type') == 'assistant':
-            for block in (event.get('message') or {}).get('content') or []:
-                if block.get('type') == 'tool_use' and block.get('name') in ('Read', 'Grep', 'Glob'):
-                    tools += 1
-                    if block['name'] == 'Read': read.add(_relative(block['input'].get('file_path', ''), tree))
-        elif event.get('type') == 'result': result = event
-    usage = result.get('usage') or {}
+    calls, result = _stream(done.stdout)
+    read = {_relative(block['input'].get('file_path', ''), tree) for block in calls if block['name'] == 'Read'}
+    tools = len(calls)
     answer = result.get('structured_output') or {}
     return {'paths': [_relative(p, tree) for p in answer.get('answer_paths') or []], 'said_read': answer.get('files_read'),
             'files_read': len(read), 'tool_calls': tools, 'cost': result.get('total_cost_usd'), 'seconds': round(time.monotonic() - began),
-            'tokens': sum(usage.get(k) or 0 for k in ('input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens')),
+            'tokens': _tokens(result),
             'error': '' if result.get('subtype') == 'success' else (result.get('subtype') or done.stderr[-200:])}
+
+
+def _events(text):
+    """The JSON objects of a stream-json output, one per line."""
+    events = []
+    for line in text.splitlines():
+        try: events.append(json.loads(line))
+        except ValueError: continue
+    return events
+
+
+def _stream(text):
+    """([the Read, Grep and Glob calls], the result line) of a stream-json output."""
+    events = _events(text)
+    blocks = [block for event in events if event.get('type') == 'assistant' for block in event['message']['content']]
+    calls = [block for block in blocks if block.get('name') in ('Read', 'Grep', 'Glob')]
+    return calls, next((event for event in reversed(events) if event.get('type') == 'result'), {})
+
+
+def _tokens(result):
+    """The input (cache included) and output tokens of a result line."""
+    usage = result.get('usage') or {}
+    return sum(usage.get(k) or 0 for k in ('input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens'))
 
 
 def _relative(path, tree):
