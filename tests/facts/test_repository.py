@@ -1,16 +1,16 @@
 """The repository read as an engineer reads it (M7.8) and its assistants' context (M7.9): each rule finds what it names,
 and a framework's own layout, an output path, an ignored file or EAOS's own block is never a finding."""
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
 from eaos.facts.repository import read
 from eaos.facts.source import Source
+from shared_fixture import scratch
 
 
 def project(files, tracked=None):
-    root = Path(tempfile.mkdtemp())
+    root = Path(scratch())
     for name, text in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(text)
