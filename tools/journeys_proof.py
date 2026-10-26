@@ -184,7 +184,7 @@ def extend(scratch):
         repaired = json.loads(journey.path.with_name('repair-cli.json').read_text(encoding='utf-8'))['steps'][-1]
         if not (repaired['step'] == 'fix' and repaired['passed']): return {'passed': False, 'reason': 'the repair handed over no batch to accept'}
         head = _git(str(app), 'rev-parse', 'HEAD')
-        if subprocess.run(['git', '-C', str(app), 'merge-base', '--is-ancestor', repaired['branch'][-1], 'HEAD']).returncode == 0:
+        if any(line.startswith(f"{repaired['card']}:") for line in _git(str(app), 'log', '--format=%s').splitlines()):   # its branch goes at accept
             return {'passed': True, 'head': _git(str(app), 'log', '--oneline', '-1'), 'reused': 'accepted by an earlier run of this proof'}
         code, said = eaos('accept', str(app), '--yes', '--lang', 'en')
         moved = _git(str(app), 'rev-parse', 'HEAD') != head
