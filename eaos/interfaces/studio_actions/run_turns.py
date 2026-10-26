@@ -5,7 +5,7 @@ import subprocess
 import threading
 import time
 
-from ...ai.assistant import headless as adapters, prompts
+from ...ai.assistant import headless as adapters, prompts, tiers
 from ...core.language.check import foreign, restate
 from . import lane_assistants as helpers
 from ...core.project.runs import now
@@ -185,6 +185,6 @@ class Turns:
         """The assistant's last words in the person's language: asked of it again once when they are not (eaos/core/language/check.py)."""
         adapter = self.adapters.get(self.store.load(run).get('assistant'))
         if not foreign(words, self.lang) or adapter is None: return words
-        try: said = adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID, self.store.path(run) / 'language')
+        try: said = adapters.ask(adapter, restate({'text': words}, [words], self.lang), SAID, self.store.path(run) / 'language', tier=tiers.tier_of('translation'))
         except Exception: return words
         return str((said['answer'] or {}).get('text') or words)

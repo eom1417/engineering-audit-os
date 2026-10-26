@@ -40,7 +40,7 @@ class Assistants(threading.BoundedSemaphore):
 
     def __init__(self, count):
         super().__init__(count)
-        self.count, self.answering, self.began, self._guard = count, 0, [], threading.Lock()
+        self.count, self.answering, self.began, self._guard, self.mode = count, 0, [], threading.Lock(), 'normal'
 
     def __enter__(self):
         super().__enter__()
@@ -66,10 +66,13 @@ class Assistants(threading.BoundedSemaphore):
 
 def assistants(mode):
     """One assistant normally; in speed mode only as many as the container's available memory can safely hold."""
-    if mode != 'speed': return Assistants(1)
-    _, memory, available = capacity()
-    megabytes = min(memory or 0, available or 0) // 2 ** 20
-    return Assistants(max(1, min(MOST_ASSISTANTS, (megabytes - RESERVE_MB) // ASSISTANT_MB)))
+    if mode != 'speed': slots = Assistants(1)
+    else:
+        _, memory, available = capacity()
+        megabytes = min(memory or 0, available or 0) // 2 ** 20
+        slots = Assistants(max(1, min(MOST_ASSISTANTS, (megabytes - RESERVE_MB) // ASSISTANT_MB)))
+    slots.mode = mode or 'normal'      # the AI stages' model tiers read it (eaos/ai/assistant/tiers.py)
+    return slots
 
 
 def width(mode):

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "nodes/<node>/last.json",
-  "description": "One AI node's run: what it read (the inputs' digest) and asked (the prompt's digest), which assistant and model answered or that the rules decided alone, the time it took and what it cost, whether it came from the cache, every decision in the shared shape (the decision, its options, the evidence ids it stands on, the confidence, why, the open questions), what the evidence check dropped and why, and where the router sent each subject.",
+  "description": "One AI node's run: what it read (the inputs' digest) and asked (the prompt's digest), which assistant, model and tier answered (and the tier it was asked again on, when a cheaper one failed or would have closed something) or that the rules decided alone, the time it took and what it cost, whether it came from the cache, every decision in the shared shape (the decision, its options, the evidence ids it stands on, the confidence, why, the open questions), what the evidence check dropped and why, and where the router sent each subject.",
   "x-artifact": "nodes/<node>/last.json",
   "x-owner": "NS46.T15",
   "type": "object",
@@ -294,6 +294,42 @@
           "type": "string"
         }
       }
+    },
+    "tier": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "light",
+        "standard",
+        "deep",
+        null
+      ]
+    },
+    "escalated": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "from": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "to": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "to",
+        "why"
+      ]
     }
   }
 }

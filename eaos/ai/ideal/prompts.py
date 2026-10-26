@@ -39,7 +39,12 @@ def part_schema(views):
     return schema
 
 
-_NOTE = lambda *names: {'type': 'array', 'items': _strict({name: (_STRS if name == 'cites' else _STR) for name in names})}
+# The critique's notes are short and few: unbounded, one wrote 60 KB that broke as JSON twice before it parsed (the check
+# of EAOS, 2026-10-22, three minutes lost); its changes carry the work, the notes only say why.
+NOTE_CHARS, NOTES = 300, 12
+_NOTE_TEXT = {'type': 'string', 'maxLength': NOTE_CHARS}
+_NOTE = lambda *names: {'type': 'array', 'maxItems': NOTES,
+                        'items': _strict({name: (_STRS if name == 'cites' else _STR if name in ('view', 'element') else _NOTE_TEXT) for name in names})}
 _VIEW_NAME = {'type': 'string', 'enum': list(VIEWS)}
 CRITIQUE_SCHEMA = _strict({'critique': _strict({'missed': _NOTE('view', 'what', 'cites'), 'risks': _NOTE('view', 'element', 'risk', 'cites'),
                                                 'order': _NOTE('issue', 'suggestion', 'cites')}),
@@ -138,7 +143,8 @@ def prompt_critique(data, draft):
             '`departures` and `open_questions` to add, `drop_questions` the ids of questions to remove, `confidence` the '
             'new overall confidence or null. What you do not change stays as the draft has it.\n\n'
             'A GOOD REVIEW\nChecks every element against its cites; keeps what was right as it was; each change it makes '
-            'is named in `critique`.\n\n'
+            f'is named in `critique` in one short note (at most {NOTES} notes of each kind, each under {NOTE_CHARS} '
+            'characters: the change carries the detail, the note says why).\n\n'
             'DO NOT\nWrite the draft again; drop a sound element to be safe; add an element the bundle does not support.\n\n'
             + LAWS + '\n\n' + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
             + '\n\nAnswer with the JSON object of the schema only.\n\nThe draft:\n'
