@@ -297,7 +297,8 @@ class BuildTests(unittest.TestCase):
         self.assertFalse(refused['kept'])
         self.assertFalse((root / 'package.json').exists(), 'a refused card is taken back')
         with mock.patch.object(build_tools, '_gates', return_value=[]), \
-                mock.patch.object(build_tools.build_look, 'look', return_value={'screens': 2, 'departures': []}) as looked:
+                mock.patch.object(build_tools.build_look, 'look', side_effect=lambda state, root, progress, final=False:   # on the copy, still there
+                                  {'screens': 2 if Path(root).is_dir() else 0, 'departures': []}) as looked:
             kept = build_tools._build_edit_job(self.project, edit, lambda *_: None)
             self.assertTrue(kept['kept'])
             finished = build_tools._build_finish_job(self.project, {}, lambda *_: None)
