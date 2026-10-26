@@ -241,12 +241,9 @@ def dry_run(target, moves):
     """{exit, files_changed, refused} of the moves on an isolated copy of `target`: nothing of the project is written."""
     from ...live.testing.verify import isolated_copy
     from .codemods import _changed, _stats
-    holder = Path(tempfile.mkdtemp(prefix='eaos-move-'))
-    try:
-        copy = isolated_copy(Path(target), holder / 'project')
+    with tempfile.TemporaryDirectory(prefix='eaos-move-') as holder:
+        copy = isolated_copy(Path(target), Path(holder) / 'project')
         before = _stats(copy)
         try: apply(copy, moves)
         except Unmovable as refused: return {'exit': 1, 'files_changed': 0, 'refused': str(refused)}
         return {'exit': 0, 'files_changed': len(_changed(copy, target, before, _stats(copy))), 'refused': ''}
-    finally:
-        shutil.rmtree(holder, ignore_errors=True)
